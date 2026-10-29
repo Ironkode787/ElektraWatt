@@ -736,7 +736,11 @@ fn gpp_rehearsal_draws_folios_101_to_103_saves_exports_and_lists_the_parts() {
 /// WP-S2.04 §13.6's G-PP rehearsal on the folio-103 demo variant (round a28-r8): folios 101 and 102 as the golden
 /// rehearsal draws them, folio 103 without strip segments (the strips by `strip.new`, the 15 terminals by Place,
 /// their parts, the wiring to the terminals' own CPs, PI10's three bridges, the other golden bridges and the bridge
-/// part quantities), then the save, the PDF export and the oracle of the demo variant.
+/// part quantities), then the save, the PDF export and the oracle of the demo variant. Folios 101 and 102 carry
+/// what 103 needs (the terminal symbols the demo's terminals take, the tags, the wiring the potentials reach 103
+/// over); their parts, junction styles, structure box and marker groups and their oracle are the golden
+/// rehearsal's (`gpp_rehearsal_draws_folios_101_to_103_saves_exports_and_lists_the_parts`), so this test checks 103
+/// and its parts list rows only (test clean-up, 2026-10-30).
 #[test]
 fn gpp_rehearsal_on_the_folio_103_demo_variant() {
     let exe = bin_exe();
@@ -747,15 +751,14 @@ fn gpp_rehearsal_on_the_folio_103_demo_variant() {
         functions,
     } = gpp_start_demo(&exe, &tmp);
     assert!(functions.is_empty(), "the demo start's function map is empty");
-    // The three folios' sheet maps and grids.
-    let (map101, grid101, map102, map103) = {
+    // The three folios' sheet maps.
+    let (map101, map102, map103) = {
         let (s, _) = Session::open_read_only(&job, "test").unwrap();
         let g1 = s.page_grid("101").expect("page 101");
         let g2 = s.page_grid("102").expect("page 102");
         let g3 = s.page_grid("103").expect("page 103");
         (
             SheetMap::of_grid(&g1),
-            (g1.num_nm, g1.den),
             SheetMap::of_grid(&g2),
             SheetMap::of_grid(&g3),
         )
@@ -778,20 +781,12 @@ fn gpp_rehearsal_on_the_folio_103_demo_variant() {
     script1.extend(placements103);
     script1.extend(steps(&[("file.save", json!({})), ("file.close", json!({}))]));
     all_done(&run(&exe, &tmp, "gpp-demo-1.jsonl", &script1, None));
-    // The typed tags of 101 to 103, the parts of 101 and 102 (the demo terminals' parts are B3) and the golden
-    // potential definitions.
+    // The typed tags of 101 to 103 and the golden potential definitions (the parts of 101 and 102 are the golden
+    // rehearsal's; the demo terminals' parts are B3).
     let mut tags = Vec::new();
     for folio in [101, 102, 103] {
         tags.extend(typed_tag_steps(folio, &job));
     }
-    let parts: Vec<(u32, String, AnyCommand)> = [101, 102]
-        .into_iter()
-        .flat_map(|folio| {
-            part_steps(folio, &job)
-                .into_iter()
-                .map(move |(k, c)| (folio, k, c))
-        })
-        .collect();
     let potentials = potential_steps(&[101, 102, 103], &job);
     assert_eq!(potentials.len(), 18, "the golden potential definitions");
     {
@@ -810,10 +805,6 @@ fn gpp_rehearsal_on_the_folio_103_demo_variant() {
             }
             let log = CmdLog::parse(&text).unwrap();
             s.run_script(&log, "gpp-demo-tags.ewcmd").unwrap();
-        }
-        for (_, _, cmd) in &parts {
-            s.execute(cmd).unwrap_or_else(|e| panic!("{}: {e:?}", cmd.name));
-            *executed.entry(cmd.name.clone()).or_default() += 1;
         }
         for (label, cmd) in &potentials {
             s.execute(cmd)
@@ -847,12 +838,10 @@ fn gpp_rehearsal_on_the_folio_103_demo_variant() {
         s.save().unwrap();
         s.close();
     }
-    // Script 3: the wiring of 101 and 102, the demo's 103, the junction styles of 102 and the structure box of 101.
+    // Script 3: the wiring of 101 and 102 (the potentials reach 103 over it) and the demo's 103.
     let (wiring101, commits101, _points101) = wiring_steps(101, map101);
-    let (wiring102, commits102, points102) = wiring_steps(102, map102);
+    let (wiring102, commits102, _points102) = wiring_steps(102, map102);
     let (wiring103, commits103) = demo_103_wiring(&job, map103);
-    let junction = junction_style_steps(102, map102, &points102);
-    let structure_box = structure_box_steps(map101, grid101, &external_connection_anchors(101));
     let mut script3 = steps(&[("file.open", json!({ "dir": path(&job) }))]);
     for (folio, wiring) in [(101, &wiring101), (102, &wiring102), (103, &wiring103)] {
         script3.extend(steps(&[
@@ -861,10 +850,6 @@ fn gpp_rehearsal_on_the_folio_103_demo_variant() {
         ]));
         script3.extend(wiring.iter().cloned());
     }
-    script3.extend(steps(&[("page.goto", json!({"folio": "102"}))]));
-    script3.extend(junction.iter().cloned());
-    script3.extend(steps(&[("page.goto", json!({"folio": "101"}))]));
-    script3.extend(structure_box.iter().cloned());
     script3.extend(steps(&[("file.save", json!({})), ("file.close", json!({}))]));
     all_done(&run(&exe, &tmp, "gpp-demo-3.jsonl", &script3, None));
     // B5 (PI10): the demo's -X1031:1 to :4, before and after three strip.bridge steps. Its `connection.draw`
@@ -874,57 +859,6 @@ fn gpp_rehearsal_on_the_folio_103_demo_variant() {
     let bridges = demo_103_bridges(&tmp, &job, &strips);
     for (name, n) in &bridges.executed {
         *executed.entry(name.clone()).or_default() += n;
-    }
-    // The marker groups of 101 and 102 (the golden rehearsal's), with E1/E2's assertions.
-    let (tables101, tables102) = {
-        let (s, _) = Session::open_read_only(&job, "test").unwrap();
-        (
-            s.page_tables("101").expect("page 101"),
-            s.page_tables("102").expect("page 102"),
-        )
-    };
-    let (markers101, fallbacks101) = marker_steps(101, &tables101, map101);
-    let (markers102, fallbacks102) = marker_steps(102, &tables102, map102);
-    assert!(
-        fallbacks101.is_empty(),
-        "no 101 marker group falls back: {fallbacks101:?}"
-    );
-    assert_eq!(
-        fallbacks102.len(),
-        1,
-        "one 102 marker group falls back: {fallbacks102:?}"
-    );
-    let w20_to_w23: Vec<String> = ["W20", "W21", "W22", "W23"]
-        .iter()
-        .map(|wire| rehearsal_connection_id(&tables102, wire))
-        .collect();
-    assert_eq!(
-        fallbacks102[0].connections, w20_to_w23,
-        "the 102 fallback's connections are W20, W21, W22 and W23 in order"
-    );
-    let mut script4 = steps(&[("file.open", json!({ "dir": path(&job) }))]);
-    script4.extend(steps(&[("page.goto", json!({"folio": "101"}))]));
-    script4.extend(markers101.iter().cloned());
-    script4.extend(steps(&[("page.goto", json!({"folio": "102"}))]));
-    script4.extend(markers102.iter().cloned());
-    script4.extend(steps(&[("file.save", json!({})), ("file.close", json!({}))]));
-    all_done(&run(&exe, &tmp, "gpp-demo-4.jsonl", &script4, None));
-    let mut fallback_commands = Vec::new();
-    for (tables, fallbacks) in [(&tables101, &fallbacks101), (&tables102, &fallbacks102)] {
-        for fallback in fallbacks {
-            fallback_commands.push(fallback_command(tables, fallback));
-        }
-    }
-    if !fallback_commands.is_empty() {
-        let mut store = StoreOptions::new("test");
-        store.state_dir = Some(tmp.path("state-gpp-demo-fallback"));
-        let (mut s, _) = Session::open(&job, store, SessionOptions::default(), Recovery::Keep).unwrap();
-        for cmd in &fallback_commands {
-            s.execute(cmd).unwrap_or_else(|e| panic!("{}: {e:?}", cmd.name));
-            *executed.entry(cmd.name.clone()).or_default() += 1;
-        }
-        s.save().unwrap();
-        s.close();
     }
     // The PDF export.
     let pdf = tmp.path("gpp-demo.pdf");
@@ -966,33 +900,6 @@ fn gpp_rehearsal_on_the_folio_103_demo_variant() {
         );
         assert_eq!(oracle, golden_wiring(folio), "the wiring of {folio}");
     }
-    // The junctions of 102: style, wiring and bevel orientation, at the same far-end sequence.
-    let final_102 = final_tables("102");
-    let golden_102 = golden_tables_of("102");
-    assert_eq!(final_102.junctions.len(), 4);
-    for j in &final_102.junctions {
-        let far = junction_far_ends(&final_102, j);
-        let golden_j = golden_102
-            .junctions
-            .iter()
-            .find(|g| junction_far_ends(&golden_102, g) == far)
-            .unwrap_or_else(|| panic!("no golden junction at {far:?}"));
-        assert_eq!(j.style, golden_j.style, "the style of {far:?}");
-        assert_eq!(j.wiring, golden_j.wiring, "the wiring of {far:?}");
-        assert_eq!(
-            j.bevel_orient, golden_j.bevel_orient,
-            "the bevel orientation of {far:?}"
-        );
-    }
-    // The marker texts of 101 and 102 and the structure box of 101.
-    assert_eq!(marker_texts(&final_tables("101")), ["2.5 BK BU", "2.5 BK BU"]);
-    assert_eq!(
-        marker_texts(&final_tables("102")),
-        ["1.5 DBU DBU", "1.5 DBU DBU WH WH"]
-    );
-    let boxes = &final_tables("101").structure_boxes;
-    assert_eq!(boxes.len(), 1, "one structure box on 101");
-    assert_eq!(boxes[0].caption, "External Connection (+J-E-206 / JE-N1000-03)");
     // 103: 35 representations (the 20 interruption points and the 15 terminals), 20 drawn connections, no junction,
     // the 15 terminal devices on the two strips, and the golden wiring pairs (up to orientation).
     let final_103 = final_tables("103");
@@ -1021,14 +928,19 @@ fn gpp_rehearsal_on_the_folio_103_demo_variant() {
             .count()
     };
     assert_eq!(terminal_devices, 15, "terminal devices on the two demo strips");
-    // The parts list: Golden A's restricted 14 rows with the demo variant's four quantities.
+    // The parts list: Golden A's rows of 103's terminals, end brackets and plug-in bridges with the demo variant's
+    // quantities, and the rows of 102's two black boxes, which the black box tool places from their parts (the
+    // other parts of 101 and 102 are the golden rehearsal's).
     let bom = |s: &Session| {
         s.export_csv(Export::Bom(BomMode::Component))
             .expect("the 901 parts list")
     };
     let final_rows = parts_rows(&parse_csv(&bom(&final_s)));
     let golden_rows = parts_rows(&parse_csv(&bom(&golden_s)));
-    let kept = |pos: &str| pos.parse::<u32>().is_ok_and(|p| matches!(p, 3..=14 | 26 | 27));
+    let kept = |pos: &str| {
+        pos.parse::<u32>()
+            .is_ok_and(|p| matches!(p, 10 | 12 | 13 | 14 | 26 | 27))
+    };
     let tbd: Vec<&str> = golden_rows
         .iter()
         .filter(|(pos, part, _)| kept(pos) && part == "TBD")
@@ -1052,30 +964,22 @@ fn gpp_rehearsal_on_the_folio_103_demo_variant() {
         .iter()
         .map(|(_, part, qty)| (part.clone(), qty.clone()))
         .collect();
-    assert_eq!(expected.len(), 14, "the 14 golden §14.1 rows: {expected:?}");
+    assert_eq!(expected.len(), 6, "the six golden §14.1 rows: {expected:?}");
     expected.sort();
     actual.sort();
-    assert_eq!(
-        actual.len(),
-        14,
-        "the 901 parts list of the demo variant: {actual:?}"
-    );
     assert_eq!(actual, expected, "the demo variant's 901 parts list");
     // The PDF export exists and is a PDF.
     let bytes = std::fs::read(&pdf).expect("the exported PDF");
     assert!(bytes.starts_with(b"%PDF-"), "the export starts with %PDF-");
     // The lane's report.
     eprintln!(
-        "gpp-demo: scripts {} + {} + {} + {} steps; wires {} + {} + {} commits; junctions of 102 {} steps; structure box {} steps",
+        "gpp-demo: scripts {} + {} + {} steps; wires {} + {} + {} commits",
         script1.len(),
         script2.len(),
         script3.len(),
-        script4.len(),
         commits101,
         commits102,
         commits103,
-        junction.len(),
-        structure_box.len(),
     );
     eprintln!("gpp-demo: command.run steps left (Session-executed records): {executed:?}");
     eprintln!("gpp-demo: placement command.run steps: {runs}");

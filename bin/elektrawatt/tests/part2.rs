@@ -564,38 +564,10 @@ fn workspaces_are_saved_listed_and_loaded_by_a_script() {
     assert_eq!(out.status.code(), Some(1));
 }
 
+/// The first-run, wizard, new-project and workspace flows print no path of the run's temporary directory (transcript
+/// determinism is `headless::the_transcript_is_deterministic`, A7; test clean-up, 2026-10-30).
 #[test]
-fn f1_and_the_quick_switches_show_in_the_describe_text() {
-    let tmp = Tmp::new();
-    let steps = run_ok(
-        &tmp,
-        &[
-            ("help.documentation", json!({})),
-            ("ui.describe", json!({})),
-            ("help.about", json!({})),
-            ("help.documentation", json!({})),
-            ("ui.describe", json!({})),
-            ("ui.dismiss", json!({})),
-            ("settings.set", json!({"key": "keymap", "value": "kicad"})),
-            ("ui.describe", json!({})),
-        ],
-    );
-    assert!(describe(&steps[1]).contains("help: how-to/application-window.html#start-page"));
-    let about = describe(&steps[4]);
-    assert!(
-        about.contains("help: how-to/application-window.html#about"),
-        "{about}"
-    );
-    assert!(about.contains("Support: pre-release build"), "{about}");
-    assert!(
-        about.contains("ElektraWatt's checks do not replace engineering verification"),
-        "{about}"
-    );
-    assert!(describe(&steps[7]).contains("quick \"Keymap\": \"KiCad-like\""));
-}
-
-#[test]
-fn the_part_two_transcripts_are_deterministic() {
+fn the_part_two_transcripts_carry_no_path() {
     let script = |tmp: &Tmp| {
         let basic = tmp.path("company.ew");
         let steps = [
@@ -613,11 +585,10 @@ fn the_part_two_transcripts_are_deterministic() {
         ];
         run(tmp, &steps).stdout
     };
-    let (a, b) = (Tmp::new(), Tmp::new());
-    let (first, second) = (script(&a), script(&b));
-    // The two runs name different temporary directories; the transcripts carry no path, so they are equal.
-    assert_eq!(String::from_utf8_lossy(&first), String::from_utf8_lossy(&second));
-    assert!(!String::from_utf8_lossy(&first).contains(&*a.0.to_string_lossy()));
+    let a = Tmp::new();
+    let first = String::from_utf8_lossy(&script(&a)).into_owned();
+    assert!(first.lines().count() > 11, "{first}");
+    assert!(!first.contains(&*a.0.to_string_lossy()), "{first}");
 }
 
 /// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the binaries of a

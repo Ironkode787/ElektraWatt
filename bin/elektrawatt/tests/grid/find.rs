@@ -161,8 +161,15 @@ fn steps(dir: &Path) -> Vec<(&'static str, Value)> {
     ]
 }
 
+/// Per gate one run of the script (`twice` false); the deep nightly's
+/// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
+/// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
 fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed() {
+    fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case(false);
+}
+
+pub(crate) fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case(twice: bool) {
     let tmp = Tmp::new();
     let a = tmp.golden("a.ew");
     let record = tmp.path("find.ewcmd");
@@ -216,14 +223,16 @@ fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed() {
             }
         }
     }
-    // Twice: the same bytes.
-    let b = tmp.golden("b.ew");
-    let record_b = tmp.path("find_b.ewcmd");
-    let out_b = run(&tmp, "find_b.jsonl", &script(&steps(&b)), &record_b);
-    assert_eq!(
-        String::from_utf8_lossy(&out.stdout).replace("a.ew", "x"),
-        String::from_utf8_lossy(&out_b.stdout).replace("b.ew", "x")
-    );
+    if twice {
+        // Twice: the same bytes.
+        let b = tmp.golden("b.ew");
+        let record_b = tmp.path("find_b.ewcmd");
+        let out_b = run(&tmp, "find_b.jsonl", &script(&steps(&b)), &record_b);
+        assert_eq!(
+            String::from_utf8_lossy(&out.stdout).replace("a.ew", "x"),
+            String::from_utf8_lossy(&out_b.stdout).replace("b.ew", "x")
+        );
+    }
     // The record: three `fields.set_many` lines, replayed onto a fresh copy, give the saved records.
     let log = CmdLog::parse(&std::fs::read_to_string(&record).unwrap()).unwrap();
     let names: Vec<&str> = log.commands().map(|c| c.name.as_str()).collect();

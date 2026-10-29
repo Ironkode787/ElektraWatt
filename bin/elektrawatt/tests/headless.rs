@@ -37,8 +37,19 @@ mod messages_scripts;
 #[path = "preview/scripts.rs"]
 mod preview_scripts;
 
-/// The folio-script support; here for its UUID check (FT-422).
+/// The folio-script support; here for its UUID check (FT-422) and the runs of a script test.
 mod support;
+
+/// The bodies of `canvas.rs`'s folio-script tests, `create.rs`'s script tests and `image.rs`'s IM2, for the deep
+/// nightly's second runs (`nightly_every_script_transcript_is_byte_identical_twice`).
+#[path = "canvas/folio_scripts.rs"]
+mod folio_cases;
+
+#[path = "create/scripts.rs"]
+mod create_scripts;
+
+#[path = "image/placement.rs"]
+mod image_placement;
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
@@ -652,4 +663,108 @@ fn bin_exe() -> std::path::PathBuf {
     std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_elektrawatt"))) // bin-exe-fallback
+}
+
+/// CI-N-02's deep nightly: the script tests of this package run their script once per gate (with their checks and
+/// their `--record` replay); transcript determinism per gate is `the_transcript_is_deterministic` (A7), `canvas.rs`'s
+/// T7 for the snapshot bytes and `blind_replay`. This table runs each of those script tests with its second run on an
+/// equal start and the byte-identical comparison of the two transcripts, as each ran per gate before the test
+/// clean-up of 2026-10-30 (for PG10 the second run is the alias-substituted one of ID-630 (c)). One case per test,
+/// named as the test; a failing case prints its panic and its name, and the test fails naming every failed case.
+#[test]
+#[ignore = "deep nightly (CI-N-02): each headless script run twice, byte-identical transcripts"]
+fn nightly_every_script_transcript_is_byte_identical_twice() {
+    type Case = (&'static str, fn(bool));
+    let cases: &[Case] = &[
+        (
+            "canvas::folio_scripts::folio_101_is_placed_by_a_generated_script_twice_identically_and_replays",
+            folio_cases::folio_101_is_placed_by_a_generated_script_twice_identically_and_replays_case,
+        ),
+        (
+            "canvas::folio_scripts::folio_101_is_wired_by_a_generated_script_twice_identically_and_replays",
+            folio_cases::folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_case,
+        ),
+        (
+            "canvas::folio_scripts::folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_identically_and_replays",
+            folio_cases::folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_identically_and_replays_case,
+        ),
+        (
+            "canvas::folio_scripts::folio_101_structure_box_and_markers_are_drawn_by_a_generated_script_twice_identically_and_replay",
+            folio_cases::folio_101_structure_box_and_markers_are_drawn_by_a_generated_script_twice_identically_and_replay_case,
+        ),
+        (
+            "create::page_new_creates_folios_101_to_103_twice_identically_and_the_record_replays",
+            create_scripts::page_new_creates_folios_101_to_103_twice_identically_and_the_record_replays_case,
+        ),
+        (
+            "create::a_navigator_script_runs_twice_identically_and_its_record_replays",
+            create_scripts::a_navigator_script_runs_twice_identically_and_its_record_replays_case,
+        ),
+        (
+            "create::a_highlight_script_runs_twice_identically_and_records_nothing",
+            create_scripts::a_highlight_script_runs_twice_identically_and_records_nothing_case,
+        ),
+        (
+            "create::a_table_script_runs_twice_identically_and_its_record_replays",
+            create_scripts::a_table_script_runs_twice_identically_and_its_record_replays_case,
+        ),
+        (
+            "image::im2_an_image_is_placed_by_a_script_twice_identically_and_replays",
+            image_placement::im2_an_image_is_placed_by_a_script_twice_identically_and_replays_case,
+        ),
+        (
+            "headless::grid_properties::pg9_d06_headless",
+            grid_properties::pg9_d06_headless_case,
+        ),
+        (
+            "headless::grid_properties::pg10_the_pilot_script_is_deterministic_and_replays",
+            grid_properties::pg10_the_pilot_script_is_deterministic_and_replays_case,
+        ),
+        (
+            "headless::grid_find::fr3_to_fr6_find_and_replace_headless_twice_and_replayed",
+            grid_find::fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case,
+        ),
+        (
+            "headless::grid_clipboard::cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed",
+            grid_clipboard::cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case,
+        ),
+        (
+            "headless::jobs_scripts::jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays",
+            jobs_scripts::jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays_case,
+        ),
+        (
+            "headless::jobs_scripts::jb7_the_recovery_script_is_byte_identical_twice",
+            jobs_scripts::jb7_the_recovery_script_is_byte_identical_twice_case,
+        ),
+        (
+            "headless::messages_scripts::ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice",
+            messages_scripts::ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice_case,
+        ),
+        (
+            "headless::messages_scripts::ms2_messages_check_ends_pending_byte_identical_twice_and_replays",
+            messages_scripts::ms2_messages_check_ends_pending_byte_identical_twice_and_replays_case,
+        ),
+        (
+            "headless::messages_scripts::ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays",
+            messages_scripts::ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_case,
+        ),
+        (
+            "headless::preview_scripts::pv2_golden_b_script_is_byte_identical_twice_and_replays",
+            preview_scripts::pv2_golden_b_script_is_byte_identical_twice_and_replays_case,
+        ),
+    ];
+    let mut failed = Vec::new();
+    for (name, case) in cases {
+        eprintln!("case {name}: two runs");
+        if std::panic::catch_unwind(|| case(true)).is_err() {
+            eprintln!("case {name}: FAILED (its panic is printed above)");
+            failed.push(*name);
+        }
+    }
+    assert!(
+        failed.is_empty(),
+        "{} of {} cases failed: {failed:#?}",
+        failed.len(),
+        cases.len()
+    );
 }

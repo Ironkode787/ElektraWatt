@@ -150,8 +150,15 @@ fn content(s: &Session) -> (Vec<String>, Vec<(i64, i64)>, usize) {
 
 /// CB5 (FR-UI-036) and CB8: T55, E55 and E56 copied into a new project's folio 1 by a script, twice byte-identical,
 /// no raw UUID, and the `--record` log replayed onto a fresh new project.
+/// Per gate one run of the script (`twice` false); the deep nightly's
+/// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
+/// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
 fn cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed() {
+    cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case(false);
+}
+
+pub(crate) fn cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case(twice: bool) {
     let tmp = Tmp::new();
     // The new project, made once by `file.new`: the start of both runs and of the replay.
     let start = tmp.path("start.ew");
@@ -175,21 +182,23 @@ fn cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed() {
     assert_eq!(t[11]["state"]["canvas"]["selection"].as_array().unwrap().len(), 3);
     let transcript = String::from_utf8_lossy(&out.stdout).into_owned();
     super::support::assert_no_uuid(&transcript);
-    // Twice: the same bytes (the directories aside).
-    let b = tmp.golden("b.ew");
-    let out_b = run(
-        &tmp,
-        "clip_b.jsonl",
-        &script(&steps(&b, &new_b)),
-        &tmp.path("clip_b.ewcmd"),
-    );
-    all_done(&out_b);
-    assert_eq!(
-        transcript.replace("new_a.ew", "x").replace("a.ew", "y"),
-        String::from_utf8_lossy(&out_b.stdout)
-            .replace("new_b.ew", "x")
-            .replace("b.ew", "y")
-    );
+    if twice {
+        // Twice: the same bytes (the directories aside).
+        let b = tmp.golden("b.ew");
+        let out_b = run(
+            &tmp,
+            "clip_b.jsonl",
+            &script(&steps(&b, &new_b)),
+            &tmp.path("clip_b.ewcmd"),
+        );
+        all_done(&out_b);
+        assert_eq!(
+            transcript.replace("new_a.ew", "x").replace("a.ew", "y"),
+            String::from_utf8_lossy(&out_b.stdout)
+                .replace("new_b.ew", "x")
+                .replace("b.ew", "y")
+        );
+    }
     // CB5 on the saved project: three new devices, no frozen tag, tags of the new project's scheme, the copies once.
     let (saved, _) = Session::open_read_only(&new_a, "test").unwrap();
     let (tags, places, parts) = content(&saved);

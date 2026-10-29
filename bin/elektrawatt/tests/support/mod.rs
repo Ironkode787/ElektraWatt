@@ -66,6 +66,14 @@ pub fn first_uuid(text: &str) -> Option<&str> {
     None
 }
 
+/// The runs of a script test: `["a"]` per gate, `["a", "b"]` when `twice`. A script test runs its script once per
+/// gate (transcript determinism per gate is `headless::the_transcript_is_deterministic`, A7); the deep nightly's
+/// `headless::nightly_every_script_transcript_is_byte_identical_twice` (CI-N-02) runs each such test with `twice`, which
+/// adds the second run on an equal start and the byte-identical comparison of the two transcripts.
+pub fn runs(twice: bool) -> &'static [&'static str] {
+    if twice { &["a", "b"] } else { &["a"] }
+}
+
 /// Asserts that no line of `transcript` holds a UUID, naming the step and the UUID when one does.
 #[track_caller]
 pub fn assert_no_uuid(transcript: &str) {

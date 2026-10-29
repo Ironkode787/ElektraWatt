@@ -109,19 +109,20 @@ fn finding_rows(d: &str) -> Vec<&str> {
         .collect()
 }
 
-/// Runs `steps` twice, each on its own copy of Golden A at `<side>/g.ew`, checks every step is done, that the
-/// transcripts are byte-identical and that the `--record` log replayed onto a fresh copy gives the saved project's
+/// Runs `steps` once, or twice when `twice` (the deep nightly), each run on its own copy of Golden A at
+/// `<side>/g.ew`; checks every step is done, that the transcripts of two runs are byte-identical and that the `--record` log replayed onto a fresh copy gives the saved project's
 /// records (up to the IDs of records it created, when `new_records`); returns the steps of the first run and the number of recorded commands.
-fn twice(
+fn run_flow(
     name: &str,
     new_records: bool,
+    twice: bool,
     steps: impl Fn(&Path) -> Vec<(&'static str, Value)>,
 ) -> (Vec<Value>, usize) {
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
     let mut first = None;
     let mut commands = 0;
-    for side in ["a", "b"] {
+    for side in super::support::runs(twice) {
         let dir = tmp.0.join(side);
         copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
         let out = run(&dir, name, &steps(&dir.join("g.ew")));
@@ -165,14 +166,23 @@ fn twice(
         assert!(new_records || added.is_empty(), "{:?}", diff.model);
         first.get_or_insert(lines);
     }
-    assert_eq!(transcripts[0], transcripts[1], "two runs give the same bytes");
+    if twice {
+        assert_eq!(transcripts[0], transcripts[1], "two runs give the same bytes");
+    }
     (first.unwrap(), commands)
 }
 
 /// MS1 and MS4: View ▸ Messages, F8 and Shift+F8 with the pane closed, walking and wrapping, and Enter on EF-08.
+/// Per gate one run of the script (`twice` false); the deep nightly's
+/// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
+/// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
 fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice() {
-    let (lines, commands) = twice("ms1-ms4", false, |project| {
+    ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice_case(false);
+}
+
+pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice_case(twice: bool) {
+    let (lines, commands) = run_flow("ms1-ms4", false, twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
             ("page.goto", json!({"folio": "102"})),
@@ -274,9 +284,16 @@ fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice(
 }
 
 /// MS2: a new unpaired interruption point on the editing page is pending; `messages.check` ends it.
+/// Per gate one run of the script (`twice` false); the deep nightly's
+/// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
+/// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
 fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays() {
-    let (lines, commands) = twice("ms2", true, |project| {
+    ms2_messages_check_ends_pending_byte_identical_twice_and_replays_case(false);
+}
+
+pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_case(twice: bool) {
+    let (lines, commands) = run_flow("ms2", true, twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
             ("page.goto", json!({"folio": "101"})),
@@ -318,9 +335,16 @@ fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays() {
 }
 
 /// MS3: the quick fix of EW-CORE-023 opened with `messages.fix` on the cursor's finding and applied from its card.
+/// Per gate one run of the script (`twice` false); the deep nightly's
+/// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
+/// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
 fn ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays() {
-    let (lines, commands) = twice("ms3", false, |project| {
+    ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_case(false);
+}
+
+pub(crate) fn ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_case(twice: bool) {
+    let (lines, commands) = run_flow("ms3", false, twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
             ("page.goto", json!({"folio": "102"})),

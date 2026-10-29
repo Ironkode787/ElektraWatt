@@ -748,7 +748,9 @@ words (309 + the 6 of §8.8). Built as §8 says, with these points:
 - **Fuzzing.** The fuzzer arms (random text into the TSV parser and into the pattern parser, no panic, the TSV round
   trip) are unit tests in `ew-viewmodel`, since `ci/dep-rules.toml` allows `ew-testkit` no edge to `ew-viewmodel`.
 - **Determinism.** `create.rs`'s `a_table_script_runs_twice_identically_and_its_record_replays` runs the TB2 flow
-  through the built binary twice byte-identically and replays its record (two `fields.set`).
+  through the built binary and replays its record (two `fields.set`); its second run and the byte-identical
+  comparison are the deep nightly's `headless.rs` `nightly_every_script_transcript_is_byte_identical_twice` (test
+  clean-up 2026-10-30).
 - **FT-509.** Every tab group of two or more panes in the dock has an "All tabs" menu (≡) at the right of its tab
   strip that lists every pane and activates the chosen one, so tabs pushed out by the strip's overflow stay reachable.
 - **Integration (cycle 31, lane I31; decision log ID-732, ID-741).** On the merged tip with WP-S2.09 parts 2 and 3 the

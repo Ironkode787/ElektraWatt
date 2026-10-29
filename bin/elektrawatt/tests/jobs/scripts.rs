@@ -115,11 +115,20 @@ fn export_steps(dir: &Path) -> Vec<(&'static str, Value)> {
     ]
 }
 
+/// Per gate one run of the script (`twice` false); the deep nightly's
+/// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
+/// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
 fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays() {
+    jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays_case(false);
+}
+
+pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays_case(
+    twice: bool,
+) {
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
-    for side in ["a", "b"] {
+    for side in super::support::runs(twice) {
         let dir = tmp.0.join(side);
         copy_dir(Path::new(GOLDEN_A), &dir.join("g.ew"));
         // The first export, before the edit, is the golden PDF: kept aside before the replace overwrites it.
@@ -178,14 +187,23 @@ fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_repla
         let diff = replayed.diff_from(&saved.world()).unwrap();
         assert!(diff.model.is_empty(), "{:?}", diff.model);
     }
-    assert_eq!(transcripts[0], transcripts[1], "two runs give the same bytes");
+    if twice {
+        assert_eq!(transcripts[0], transcripts[1], "two runs give the same bytes");
+    }
 }
 
+/// Per gate one run of the script (`twice` false); the deep nightly's
+/// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
+/// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
 fn jb7_the_recovery_script_is_byte_identical_twice() {
+    jb7_the_recovery_script_is_byte_identical_twice_case(false);
+}
+
+pub(crate) fn jb7_the_recovery_script_is_byte_identical_twice_case(twice: bool) {
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
-    for side in ["a", "b"] {
+    for side in super::support::runs(twice) {
         let dir = tmp.0.join(side);
         let project = dir.join("g.ew");
         copy_dir(Path::new(GOLDEN_A), &project);
@@ -257,8 +275,10 @@ fn jb7_the_recovery_script_is_byte_identical_twice() {
         assert!(d.contains("page \"996\""), "the recovered page: {d}");
         assert_eq!(lines[3]["state"]["dirty"], false);
     }
-    assert_eq!(transcripts[0], transcripts[2], "two runs give the same bytes");
-    assert_eq!(transcripts[1], transcripts[3], "two runs give the same bytes");
+    if twice {
+        assert_eq!(transcripts[0], transcripts[2], "two runs give the same bytes");
+        assert_eq!(transcripts[1], transcripts[3], "two runs give the same bytes");
+    }
 }
 
 /// Review finding 3 of cycle 30: a script whose last step is an export that does not wait (`wait: false`) and has no

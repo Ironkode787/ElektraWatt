@@ -274,11 +274,17 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
 
 /// PG10: the pilot's script twice gives byte-identical transcripts; its `--record` log replayed onto a fresh copy
 /// gives the records the script saved.
+/// Per gate one run of the script (`twice` false); the deep nightly's
+/// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
+/// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
 fn pg10_the_pilot_script_is_deterministic_and_replays() {
+    pg10_the_pilot_script_is_deterministic_and_replays_case(false);
+}
+
+pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: bool) {
     let tmp = Tmp::new();
     let a = tmp.golden("a.ew");
-    let b = tmp.golden("b.ew");
     let record = tmp.path("pilot.ewcmd");
     let out_a = run(&tmp, "a.jsonl", &script(&pilot_steps(&a)), Some(&record));
     let steps = all_done(&out_a);
@@ -287,40 +293,43 @@ fn pg10_the_pilot_script_is_deterministic_and_replays() {
     // byte-identical and its `--record` log holds the same UUIDs (ID-630 (c)).
     let text_a = String::from_utf8_lossy(&out_a.stdout).into_owned();
     super::support::assert_no_uuid(&text_a);
-    let lines_a: Vec<&str> = text_a.lines().skip(1).collect();
-    let mut steps_b = pilot_steps(&b);
-    let mut aliased = Vec::new();
-    for (i, (action, params)) in steps_b.iter_mut().enumerate() {
-        let Some(id) = params["ids"].get(0).and_then(Value::as_str).map(str::to_owned) else {
-            continue;
-        };
-        assert_eq!(*action, "select.set");
-        let alias = steps[i]["state"]["canvas"]["selection"][0]
-            .as_str()
-            .unwrap()
-            .to_owned();
-        assert!(ew_ui::ew_viewmodel::alias::is_alias(&alias), "{alias}");
-        if lines_a[..i].iter().any(|l| l.contains(&format!("\"{alias}\""))) {
-            *params = json!({ "ids": [alias] });
-            aliased.push(id);
+    if twice {
+        let b = tmp.golden("b.ew");
+        let lines_a: Vec<&str> = text_a.lines().skip(1).collect();
+        let mut steps_b = pilot_steps(&b);
+        let mut aliased = Vec::new();
+        for (i, (action, params)) in steps_b.iter_mut().enumerate() {
+            let Some(id) = params["ids"].get(0).and_then(Value::as_str).map(str::to_owned) else {
+                continue;
+            };
+            assert_eq!(*action, "select.set");
+            let alias = steps[i]["state"]["canvas"]["selection"][0]
+                .as_str()
+                .unwrap()
+                .to_owned();
+            assert!(ew_ui::ew_viewmodel::alias::is_alias(&alias), "{alias}");
+            if lines_a[..i].iter().any(|l| l.contains(&format!("\"{alias}\""))) {
+                *params = json!({ "ids": [alias] });
+                aliased.push(id);
+            }
         }
+        assert!(aliased.contains(&W29.to_owned()), "{aliased:?}");
+        assert!(aliased.contains(&DEF_24VDC_1.to_owned()), "{aliased:?}");
+        let record_b = tmp.path("pilot-b.ewcmd");
+        let out_b = run(&tmp, "b.jsonl", &script(&steps_b), Some(&record_b));
+        all_done(&out_b);
+        assert_eq!(
+            std::fs::read_to_string(&record).unwrap(),
+            std::fs::read_to_string(&record_b).unwrap(),
+            "an alias in the input records the UUID it names"
+        );
+        // The transcripts name the project directories, which are the same name in both.
+        assert_eq!(
+            String::from_utf8_lossy(&out_a.stdout).replace("a.ew", "x.ew"),
+            String::from_utf8_lossy(&out_b.stdout).replace("b.ew", "x.ew"),
+            "two runs give the same bytes"
+        );
     }
-    assert!(aliased.contains(&W29.to_owned()), "{aliased:?}");
-    assert!(aliased.contains(&DEF_24VDC_1.to_owned()), "{aliased:?}");
-    let record_b = tmp.path("pilot-b.ewcmd");
-    let out_b = run(&tmp, "b.jsonl", &script(&steps_b), Some(&record_b));
-    all_done(&out_b);
-    assert_eq!(
-        std::fs::read_to_string(&record).unwrap(),
-        std::fs::read_to_string(&record_b).unwrap(),
-        "an alias in the input records the UUID it names"
-    );
-    // The transcripts name the project directories, which are the same name in both.
-    assert_eq!(
-        String::from_utf8_lossy(&out_a.stdout).replace("a.ew", "x.ew"),
-        String::from_utf8_lossy(&out_b.stdout).replace("b.ew", "x.ew"),
-        "two runs give the same bytes"
-    );
     // What the steps read back.
     let describe = |i: usize| steps[i]["describe"].as_str().unwrap().to_owned();
     let d = describe(6);
@@ -467,8 +476,15 @@ fn pg8_a_counter_collision_stops_the_script_with_its_remedy() {
 
 /// PG9: D-06's property-grid entry headless — the override of folio 101's description shows as Overridden with the
 /// project's description, the finding EW-CORE-023 at info in the header; Reset removes both; each one undo step.
+/// Per gate one run of the script (`twice` false); the deep nightly's
+/// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
+/// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
 fn pg9_d06_headless() {
+    pg9_d06_headless_case(false);
+}
+
+pub(crate) fn pg9_d06_headless_case(twice: bool) {
     let tmp = Tmp::new();
     let dir = tmp.golden("d06.ew");
     let steps = vec![
@@ -511,21 +527,23 @@ fn pg9_d06_headless() {
     assert!(d(14).contains(inherited), "{}", d(14));
     assert_eq!(t[7]["state"]["properties"]["row"], "page/derived.description");
     assert_eq!(t[7]["state"]["focus"], "properties");
-    // Twice: the same bytes.
-    let dir2 = tmp.golden("d06b.ew");
-    let steps2: Vec<(&str, Value)> = steps
-        .iter()
-        .map(|(a, p)| {
-            if *a == "file.open" {
-                (*a, json!({ "dir": dir2.to_string_lossy() }))
-            } else {
-                (*a, p.clone())
-            }
-        })
-        .collect();
-    let out2 = run(&tmp, "d06b.jsonl", &script(&steps2), None);
-    assert_eq!(
-        String::from_utf8_lossy(&out.stdout).replace("d06.ew", "x"),
-        String::from_utf8_lossy(&out2.stdout).replace("d06b.ew", "x")
-    );
+    if twice {
+        // Twice: the same bytes.
+        let dir2 = tmp.golden("d06b.ew");
+        let steps2: Vec<(&str, Value)> = steps
+            .iter()
+            .map(|(a, p)| {
+                if *a == "file.open" {
+                    (*a, json!({ "dir": dir2.to_string_lossy() }))
+                } else {
+                    (*a, p.clone())
+                }
+            })
+            .collect();
+        let out2 = run(&tmp, "d06b.jsonl", &script(&steps2), None);
+        assert_eq!(
+            String::from_utf8_lossy(&out.stdout).replace("d06.ew", "x"),
+            String::from_utf8_lossy(&out2.stdout).replace("d06b.ew", "x")
+        );
+    }
 }

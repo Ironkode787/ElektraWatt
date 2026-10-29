@@ -110,11 +110,18 @@ fn golden_b_steps(project: &Path) -> Vec<(&'static str, Value)> {
     ]
 }
 
+/// Per gate one run of the script (`twice` false); the deep nightly's
+/// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
+/// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
 fn pv2_golden_b_script_is_byte_identical_twice_and_replays() {
+    pv2_golden_b_script_is_byte_identical_twice_and_replays_case(false);
+}
+
+pub(crate) fn pv2_golden_b_script_is_byte_identical_twice_and_replays_case(twice: bool) {
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
-    for side in ["a", "b"] {
+    for side in super::support::runs(twice) {
         let dir = tmp.0.join(side);
         let project = dir.join("g.ew");
         copy_dir(Path::new(GOLDEN_A), &project);
@@ -172,5 +179,7 @@ fn pv2_golden_b_script_is_byte_identical_twice_and_replays() {
         let diff = replayed.diff_from(&saved.world()).unwrap();
         assert!(diff.model.is_empty(), "{:?}", diff.model);
     }
-    assert_eq!(transcripts[0], transcripts[1], "two runs give the same bytes");
+    if twice {
+        assert_eq!(transcripts[0], transcripts[1], "two runs give the same bytes");
+    }
 }
