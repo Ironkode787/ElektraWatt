@@ -383,7 +383,7 @@ channel and N1 names the surplus it leaves, which this command without `parts` r
 
 *Amended by cycle 33 (G-PP ruling #4).* **`connection.draw_many`** (`ConnectMany`) joins: `{connections: [Connect…]}`, each entry applied as `connection.draw` in order, in one transaction and one undo step; an entry's parameter error keeps its pointer prefixed by `/connections/<i>` and its refusal its reason prefixed by `entry <i>: `; no entry, or more than 10,000, is refused at `/connections`; cost `Bulk` above 500 entries. Bridge terminals (`strip.bridge`, on the Draw tab) uses it for a chain over three or more selected terminals of one strip and keeps `connection.draw` for a pair. **56 commands** are registered (54 `Edit`, two `HumanOnly`).
 
-*As built (cycle 33, G-PP finding 5; decision log ID-770, ID-780).* **Delete removes an orphaned device.** Deleting a device's last schematic representation (Delete, and Cut through the same path) deletes the device in the same `edit.delete` step, so one undo restores the device, its part use and the representation. The device is kept when it has another role (another function with a representation, a terminal or strip role, child devices, or a cable, assembly or PLC aspect) or when its functions carry intent: a potential definition, a bond, or a connection that has no page or lies on another page. A kept device is left to EW-CORE-047 ([15](15-checks-revisions-collaboration.md) §4.2).
+*As built (cycle 33, G-PP finding 5; decision log ID-770, ID-780).* **Delete removes an orphaned device.** Deleting a device's last representation (Delete, and Cut through the same path) deletes the device in the same `edit.delete` step, so one undo restores the device, its part use and the representation. "Last" means every representation of every function of the device is among the deleted ones, panel-front and contact-image representations included, so a device that keeps a panel-front representation is kept and EW-CORE-047 reports it. The device is also kept when it has another role (a function the deletion leaves drawn, a terminal or strip role, child devices, or a cable, assembly or PLC aspect) or when one of its functions carries other intent: a CP of the device holds a potential definition, a bond, or a connection that is page-less or lies on another page than the deleted representations. A kept device stays unplaced and is left to EW-CORE-047 ([15](15-checks-revisions-collaboration.md) §4.2).
 
 The table lists every registered command and the planned ones (`Cost` is the registered cost; `Bulk` commands run as
 preview jobs). The parameter schemas in `crates/ew-commands/schemas/` and the generated pages of the user guide's
@@ -478,8 +478,12 @@ findings.
 *As built (cycle 33, G-PP finding 6; decision log ID-773, ID-780).* The refusal of a colliding letter edit offers the
 proposal: the window shows "<refusal>. Use <tag> to accept it." with a "Use <tag>" button under the error, and the hidden
 parameterless action `props.accept_tag_proposal` accepts it in one step (the counter cleared and the letter set in one
-`fields.set_many`, so online numbering assigns the counter and the tag stays unfrozen). The proposal is cleared when the
-selection changes.
+`fields.set_many`, so online numbering assigns the counter and the tag stays unfrozen). A script or blind-run failure
+message reads "<refusal>. Use <tag> to accept it: props.accept_tag_proposal takes it." The proposal is computed from the
+preview's tag diff, never parsed from the refusal's text: the tag is the device's printed tag after the proposal and the
+toast's counter is the device's `tag.counter` in the preview's after-state. It is cleared when the selection changes,
+and accepted only while its refusal is still under the field on the same revision; otherwise the action is refused with
+`reason-no-tag-proposal`.
 
 | # | Normaliser | Effect | Owner |
 |---|---|---|---|

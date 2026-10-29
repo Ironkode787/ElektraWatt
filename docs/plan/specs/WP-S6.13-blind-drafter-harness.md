@@ -304,7 +304,7 @@ The agent runs only `{blind}` = `<run>/bin/xtask blind` (the composed prompt car
 
 *As built (cycle 33; decision log ID-774).* Per step one line `<n> <action> <outcome>[ <reason>[: <sentence>]][ "<message>"]`:
 a refusal prints its key and, from the transcript member `reason_text`, the key's sentence from the strings table
-(`2 bridge.place refused reason-bridge-selection: Select two terminals of one strip.`). When the step leaves a preview
+(`649 strip.bridge refused reason-bridge-selection: Select two or more terminals of one strip`, from the recording `gpp-2`). When the step leaves a preview
 card open, the transcript member `pending` holds the card's summary and `do` prints a second line
 `  preview: <summary>; Apply or Cancel`. Then, for each top-level member of `state` and each member of `state.canvas`
 that differs from the previous step's, one line `  <member>: <compact JSON>` with UUIDs normalised (§6 item 2);

@@ -166,9 +166,12 @@ pub struct TerminalGroup { from_seq: u32, to_seq: u32, label: MlText }   // "Pne
   the lowest side-1 CP of its function definition, so bridges can be drawn before parts are chosen; Bridge terminals
   (`strip.bridge`, on the Draw tab) draws the chain over two or more selected terminals of one strip (consecutive in `seq` order) in one
   undo step, one `connection.draw` for a pair and one `connection.draw_many` for a longer chain ([06](06-schematic-editor.md) §3.1).
-  The BOM's bridge row stays WP-S2.07. *As built (cycle 33):* a bridge drawn at the side-1 clamp fallback is still
-  stored as `plug_in` on shaft 1; if a part with a shaft is chosen later, Bridge terminals adds a second bridge on the
-  shaft beside it. Storing a clamp-end kind, or re-seating the bridge on the shaft, is FT-585 (M2).
+  The BOM's bridge row stays WP-S2.07. *As built (cycle 33; decision log ID-780):* a bridge between terminals
+  without a part shaft is stored as a plug-in bridge on shaft 1 at their lowest side-1 CPs. When a part with a
+  shaft-1 entry is chosen later, Bridge terminals does not treat the pair as bridged, because it compares CPs: it draws
+  a second bridge between the shaft CPs, in a new group unless an existing bridge of the strip ends at one of those
+  CPs, and leaves the side-1 bridge in place. Storing a clamp-end kind, or re-seating the bridge on the shaft, is
+  FT-585 (M2).
 - **Strip groups** label ranges of terminals. The terminal's own `function_text` holds its printed label ("1+").
   This follows [20](20-golden-project.md) §9, where "1+" is the printed function text and "Pneumatics" is the group
   label.
@@ -387,8 +390,9 @@ potential_flow(potential):                              // memo per potential; t
   project's implicit main location while the project has at most one own location (a location node that no
   external reference names; `+J-E-206` of an external point is not one): it joins the only own location's PE node,
   or an implicit main-location PE node when the project has none. It is skipped and reported as EW-POT-008 only
-  when the project has two or more own locations. *As built (cycle 33, the review's fix):* an own location is a
-  location that no external reference names, or one that the project's own devices or pages use.
+  when the project has two or more own locations. *As built (cycle 33, the review's fix):* the own locations are the
+  location nodes that no external reference names, or that an own device or page assigns as its location (a node
+  both named by an external reference and assigned by an own device or page is own).
 - **Rail bonding at 1.0.** When a layout space exists for the location, the partition replaces the location node.
   A rail-bonded terminal then joins PE only through a carrier and surface that both declare `pe_bond` (FR-LAY-058).
   A difference between the two models is reported on migration ([03](03-domain-model.md) OQ10).
