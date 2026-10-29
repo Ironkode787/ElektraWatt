@@ -2531,7 +2531,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "kind?:enum(end_plate|end_clamp|partition|marker|cover), part?:text",
+        "kind?:enum(end_plate|end_clamp|partition|marker|cover), part?:text, before?:bool",
         in_navigator(act(
             "strip.add_accessory",
             Command,

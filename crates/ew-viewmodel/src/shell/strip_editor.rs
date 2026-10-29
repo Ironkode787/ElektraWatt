@@ -20,7 +20,7 @@ use std::sync::Arc;
 use ew_api::output::{NavKind, NavNode, NavRole, NavTable, StripEdit, StripEditError, Uuid};
 use serde_json::{Map, Value};
 
-use super::{Mode, Outcome, ShellModel, failed, string_param};
+use super::{Mode, Outcome, ShellModel, failed, flag, string_param};
 use crate::navigators::table::{Chooser, TableMode};
 use crate::strings;
 
@@ -580,8 +580,9 @@ impl ShellModel {
         out
     }
 
-    /// `strip.add_accessory {kind?, part?}` (Edit ▸ Add accessory, §6.5, D5): an accessory of `kind` (default
-    /// `end_clamp`) after the cursor row (a terminal: its `seq`; an accessory: its `after_seq`; the strip row: 0), its
+    /// `strip.add_accessory {kind?, part?, before?}` (Edit ▸ Add accessory, §6.5, D5): an accessory of `kind` (default
+    /// `end_clamp`) after the cursor row (a terminal: its `seq`; an accessory: its `after_seq`; the strip row: 0), or
+    /// with `before` directly before the cursor terminal row (FT-600), its
     /// part parsed by D7 or the one project copy of the kind's part kinds; several: the chooser list in the window, the
     /// error listing them headless.
     pub(super) fn act_strip_add_accessory(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -635,9 +636,27 @@ impl ShellModel {
             };
         };
         let pos = rows.cell(cursor, "pos");
+        let seq_of = |i: usize| -> u32 {
+            rows.cell(i, "pos")
+                .split('.')
+                .next()
+                .and_then(|x| x.parse().ok())
+                .unwrap_or(0)
+        };
+        // FT-600: `before` on a terminal row places the accessory directly before it (after the terminal before it,
+        // behind the accessories already there; 0 before the strip's first terminal), so table mode reaches the
+        // start of a strip. On an accessory row or the strip row it changes nothing.
+        let before = flag(p, "before") && rows.node(cursor).role == NavRole::Terminal;
         let after_seq: u32 = match rows.node(cursor).role {
             NavRole::Strip => 0,
-            _ => pos.split('.').next().and_then(|x| x.parse().ok()).unwrap_or(0),
+            NavRole::Terminal if before => rows
+                .children(s)
+                .into_iter()
+                .take_while(|i| *i != cursor)
+                .filter(|i| rows.node(*i).role == NavRole::Terminal)
+                .last()
+                .map_or(0, seq_of),
+            _ => seq_of(cursor),
         };
         let edit = StripEdit::AddAccessory {
             strip,
@@ -694,6 +713,9 @@ impl ShellModel {
         let word = ew_api::output::accessory_kind_word(&kind);
         let text = match rows.node(cursor).role {
             NavRole::Strip => strings::format("toast-accessory-added-first", &[word, &rows.node(s).label]),
+            NavRole::Terminal if before => {
+                strings::format("toast-accessory-added-before", &[word, &rows.name(cursor)])
+            }
             NavRole::Terminal => strings::format("toast-accessory-added", &[word, &rows.name(cursor)]),
             _ => strings::format(
                 "toast-accessory-added",

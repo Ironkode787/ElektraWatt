@@ -298,6 +298,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "toast-strip-moved-one" => "Moved 1 terminal of {1}",
         "toast-accessory-added" => "Added {0} after {1}",
         "toast-accessory-added-first" => "Added {0} at the start of {1}",
+        "toast-accessory-added-before" => "Added {0} before {1}",
         "toast-accessories-removed" => "Removed {0} accessories",
         "toast-accessories-removed-one" => "Removed 1 accessory",
         "toast-unbridged" => "Removed {0} bridges",
