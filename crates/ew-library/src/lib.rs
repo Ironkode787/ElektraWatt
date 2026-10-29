@@ -6,8 +6,8 @@
 //!
 //! WP-S1.19 part 2 (decisions D3 to D6):
 //!
-//! - **Tiers** ([`Tier`], [`LibraryTiers`]): system (the compiled-in [`starter`] as `ew-starter`, and
-//!   `content/libraries/*.ewlib`), community (`<data dir>/packs`), company (the settings' paths), user
+//! - **Tiers** ([`Tier`], [`LibraryTiers`]): system (the compiled-in [`starter`] as `ew-starter`, the
+//!   compiled-in generic parts `ew-starter-parts`, and `content/libraries/*.ewlib`), community (`<data dir>/packs`), company (the settings' paths), user
 //!   (`<data dir>/libraries`). System and community libraries refuse writes ([`LibraryError::ReadOnly`]).
 //! - **The `.ewlib` directory** (doc 07 §2.2): `library.json` ([`LibManifest`]) written last, records in
 //!   `parts/<xx>.<generation>.jsonl`, `symbols/`, `fndefs/`, `forms/`, `macros/` and
@@ -33,6 +33,7 @@ mod record;
 mod registry;
 mod search;
 pub mod starter;
+mod starter_parts;
 mod tiers;
 
 pub use error::LibraryError;
@@ -47,7 +48,9 @@ pub use tiers::{LibraryTiers, Tier, default_cache_dir, default_data_dir};
 pub const STARTER_PARTS_KEY: &str = "ew-starter-parts";
 
 /// The ID of the system library `ew-starter-parts` (WP-S1.19 §7.1): `v5(SYSTEM_LIBRARY, "ew-starter-parts")`, the
-/// directory `content/libraries/ew-starter-parts.ewlib` that WP-S2.18 part 2 fills.
+/// directory `content/libraries/ew-starter-parts.ewlib` of the generic starter parts (WP-S2.18 D5). It is compiled in
+/// beside the starter (D6), so every registry holds it; a directory library with this ID replaces the compiled-in
+/// one.
 pub fn starter_parts_library() -> ew_ids::Uuid {
     ew_ids::v5::imported_id::<()>(starter::LIBRARY, STARTER_PARTS_KEY).as_uuid()
 }

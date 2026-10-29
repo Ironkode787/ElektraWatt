@@ -22,13 +22,15 @@ use crate::record::{
     records_file,
 };
 use crate::search::{ItemHit, ItemQuery, PartHit, PartQuery};
-use crate::starter;
 use crate::{LibraryError, LibraryTiers, Tier};
+use crate::{starter, starter_parts};
 
 /// The pseudo path of the compiled-in starter library in the index.
 const STARTER_PATH: &str = "<compiled-in>";
 /// The pseudo file of the compiled-in starter library.
 const STARTER_FILE: &str = "starter";
+/// The pseudo path of the compiled-in system library of starter parts in the index.
+const STARTER_PARTS_PATH: &str = "<compiled-in>/ew-starter-parts";
 
 /// What [`Registry::libraries`] reports per library.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -47,7 +49,7 @@ pub struct LibraryInfo {
     pub licence: String,
     /// Whether the registry accepts writes (company and user tiers).
     pub writable: bool,
-    /// The directory; `None` for the compiled-in starter.
+    /// The directory; `None` for a compiled-in library (the starter and the starter parts).
     pub path: Option<PathBuf>,
     /// The manifest generation.
     pub generation: u64,
@@ -89,6 +91,8 @@ struct Lib {
     info: LibraryInfo,
     /// `None` for the compiled-in starter.
     manifest: Option<LibManifest>,
+    /// The files of a compiled-in `.ewlib` library (the starter parts, WP-S2.18 D6) as `(path, text)`.
+    compiled: Option<&'static [(&'static str, &'static str)]>,
 }
 
 impl Lib {
@@ -118,8 +122,11 @@ impl Lib {
     }
 
     fn index_path(&self) -> String {
-        self.dir()
-            .map_or_else(|| STARTER_PATH.to_owned(), |d| d.display().to_string())
+        match (self.dir(), self.compiled) {
+            (Some(d), _) => d.display().to_string(),
+            (None, Some(_)) => STARTER_PARTS_PATH.to_owned(),
+            (None, None) => STARTER_PATH.to_owned(),
+        }
     }
 }
 
@@ -389,11 +396,12 @@ impl Registry {
         Err(last.unwrap_or(LibraryError::Index("the index could not be built".into())))
     }
 
-    /// A registry of the compiled-in starter only, with the index in memory (no tiers configured).
+    /// A registry of the compiled-in libraries only (the starter and the starter parts), with the index in memory
+    /// (no tiers configured).
     pub fn starter_only() -> Registry {
         let index = Index::in_memory().unwrap_or_else(|e| panic!("an in-memory SQLite database: {e}"));
         let mut reg = Registry::with_index(LibraryTiers::default(), index);
-        reg.libs.truncate(1);
+        reg.libs.retain(|l| l.dir().is_none());
         if let Err(e) = reg.reindex_all(false) {
             reg.findings.push(format!("index: {e}"));
         }
@@ -420,8 +428,37 @@ impl Registry {
                 findings: Vec::new(),
             },
             manifest: None,
+            compiled: None,
         }];
         let mut seen: BTreeSet<Uuid> = BTreeSet::from([starter::LIBRARY]);
+        // The system library of starter parts, compiled in (WP-S2.18 D6): a new project reaches its parts with no
+        // library configured. The same directory installed as a system library is the shipped copy of it.
+        let compiled_parts = crate::starter_parts_library();
+        match LibManifest::parse(starter_parts::MANIFEST.as_bytes()) {
+            Ok(m) => {
+                seen.insert(m.id);
+                libs.push(Lib {
+                    info: LibraryInfo {
+                        id: m.id,
+                        key: m.key.clone(),
+                        name: m.name.clone(),
+                        tier: Tier::System,
+                        version: m.version.clone(),
+                        licence: m.licence.clone(),
+                        writable: false,
+                        path: None,
+                        generation: m.generation,
+                        index: IndexState::Fresh,
+                        findings: Vec::new(),
+                    },
+                    manifest: Some(m),
+                    compiled: Some(starter_parts::FILES),
+                });
+            }
+            Err(e) => findings.push(format!(
+                "the compiled-in starter parts: {e}; the library is not used"
+            )),
+        }
         let mut paths: Vec<(Tier, PathBuf)> = Vec::new();
         paths.extend(tiers.system.iter().map(|p| (Tier::System, p.clone())));
         paths.push((Tier::Community, tiers.community.clone()));
@@ -434,7 +471,15 @@ impl Registry {
             for dir in library_dirs(&p) {
                 match open_manifest(&dir, &limits) {
                     Ok(m) => {
-                        if !seen.insert(m.id) {
+                        // A directory of the starter parts (the installed copy, or a writable one that the
+                        // generator writes) replaces the compiled-in library, once.
+                        let replaces = m.id == compiled_parts
+                            && libs
+                                .iter()
+                                .any(|l| l.info.id == compiled_parts && l.compiled.is_some());
+                        if replaces {
+                            libs.retain(|l| l.info.id != compiled_parts);
+                        } else if !seen.insert(m.id) {
                             findings.push(format!(
                                 "{}: library {} is installed twice; the first one is used",
                                 dir.display(),
@@ -463,6 +508,7 @@ impl Registry {
                                 findings: notes,
                             },
                             manifest: Some(m),
+                            compiled: None,
                         });
                     }
                     Err(e) => findings.push(format!("{}: {e}; the library is not used", dir.display())),
@@ -491,13 +537,21 @@ impl Registry {
 
     /// Reads one records file of `lib`: checked against the manifest's hash, parsed; the skipped lines as notes.
     fn load_file(&self, lib: &Lib, path: &str) -> Result<Parsed, String> {
-        let Some(dir) = lib.dir() else {
+        if lib.manifest.is_none() {
             return Ok((starter_entries(), Vec::new(), Vec::new()));
-        };
+        }
         let Ok(PathRole::Records(key)) = classify(path) else {
             return Ok((Vec::new(), Vec::new(), Vec::new()));
         };
-        let bytes = read_file(dir, path, self.limits.max_file_bytes)?;
+        let bytes = match (lib.dir(), lib.compiled) {
+            (Some(dir), _) => read_file(dir, path, self.limits.max_file_bytes)?,
+            (None, Some(files)) => files
+                .iter()
+                .find(|(p, _)| *p == path)
+                .map(|(_, text)| text.as_bytes().to_vec())
+                .ok_or_else(|| format!("{path}: not compiled in; skipped"))?,
+            (None, None) => return Err(format!("{path}: the library has no directory")),
+        };
         let expected = lib.manifest.as_ref().and_then(|m| m.files.get(path));
         if !expected.is_some_and(|h| hash_matches(h, &bytes)) {
             return Err(format!(
@@ -755,6 +809,35 @@ impl Registry {
         let mut out = vec![first];
         out.extend(rest);
         Ok(out)
+    }
+
+    /// Every document of `kind` that library `library` holds, with copy metadata, by item ID; empty for a library
+    /// that is not installed. Records files that cannot be read are skipped, as the reader skips them.
+    pub fn documents(&self, library: Uuid, kind: Kind) -> Vec<LibDocument> {
+        let Some(lib) = self.lib(library) else {
+            return Vec::new();
+        };
+        let mut out: BTreeMap<Uuid, LibDocument> = BTreeMap::new();
+        if lib.manifest.is_none() {
+            out.extend(
+                self.starter
+                    .iter()
+                    .filter(|(_, d)| d.kind() == Some(kind))
+                    .map(|(i, d)| (*i, d.clone())),
+            );
+        } else {
+            for (key, paths) in lib.shards() {
+                if key.kind != kind {
+                    continue;
+                }
+                for p in paths {
+                    if let Ok((entries, _, _)) = self.load_file(lib, &p) {
+                        out.extend(entries.into_iter().map(|e| (e.item, e.doc)));
+                    }
+                }
+            }
+        }
+        out.into_values().collect()
     }
 
     /// The part search of D6 over every installed library; an index error gives no hits.
@@ -1052,6 +1135,7 @@ impl Registry {
                     findings: Vec::new(),
                 },
                 manifest: Some(manifest),
+                compiled: None,
             });
             let i = self.libs.len() - 1;
             let state = self.index().state(id)?;

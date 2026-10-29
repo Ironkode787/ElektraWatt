@@ -212,11 +212,22 @@ fn company(f: &Fixture, reg: &mut Registry) -> Uuid {
     lib
 }
 
+/// The hits of `q` from the fixture's libraries: the compiled-in starter parts (WP-S2.18 D6), which every registry
+/// holds, are left out.
+fn fixture_hits(reg: &Registry, q: PartQuery) -> Vec<PartHit> {
+    let mut hits = reg.search(&q);
+    hits.retain(|h| h.library != ew_library::starter_parts_library());
+    hits
+}
+
 fn search(reg: &Registry, text: &str) -> Vec<PartHit> {
-    reg.search(&PartQuery {
-        text: text.into(),
-        ..PartQuery::default()
-    })
+    fixture_hits(
+        reg,
+        PartQuery {
+            text: text.into(),
+            ..PartQuery::default()
+        },
+    )
 }
 
 fn numbers(hits: &[PartHit]) -> Vec<&str> {
@@ -356,7 +367,7 @@ fn ix2_writes_are_canonical_and_a_killed_writer_leaves_the_old_generation() {
             .unwrap();
         let LibDocument::Part(c) = doc else { panic!() };
         assert_eq!(c.version, "1.0.1", "{fault:?}: the old generation");
-        assert_eq!(reader.libraries()[1].generation, 3);
+        assert_eq!(reader.libraries()[2].generation, 3);
     }
     // The next write removes the leftovers.
     let report = reg.write(lib, &[newer.doc(lib)]).unwrap();
@@ -393,7 +404,7 @@ fn versions_are_immutable_and_untyped_lines_survive_a_rewrite() {
             version: "1.0.0".into()
         }
     );
-    assert_eq!(reg.libraries()[1].generation, 2, "nothing written");
+    assert_eq!(reg.libraries()[2].generation, 2, "nothing written");
     // The same content again changes nothing.
     let same = parts(lib);
     let report = reg.write(lib, &same).unwrap();
@@ -417,7 +428,7 @@ fn versions_are_immutable_and_untyped_lines_survive_a_rewrite() {
     m.generation += 1;
     std::fs::write(dir.join("library.json"), m.to_text()).unwrap();
     let mut reg = f.open();
-    let info = &reg.libraries()[1];
+    let info = &reg.libraries()[2];
     assert!(
         info.findings
             .iter()
@@ -541,6 +552,7 @@ fn ix3_the_index_is_rebuilt_and_only_what_changed_is_reindexed() {
         states,
         [
             ("ew-starter".to_owned(), IndexState::Fresh),
+            ("ew-starter-parts".to_owned(), IndexState::Fresh),
             ("company-std".to_owned(), IndexState::Fresh),
             ("mine".to_owned(), IndexState::Rebuilt),
         ]
@@ -638,13 +650,16 @@ fn ix5_the_compatibility_filter_ranks_fitting_parts_first() {
     let f = Fixture::new("ew-library-ix5");
     let mut reg = f.open();
     company(&f, &mut reg);
-    let hits = reg.search(&PartQuery {
-        compatible_with: Some(FnCompat {
-            category: ["ProtectionOvercurrent".into(), "MCB".into()],
-            contact_kind: ContactKind::Pole,
-        }),
-        ..PartQuery::default()
-    });
+    let hits = fixture_hits(
+        &reg,
+        PartQuery {
+            compatible_with: Some(FnCompat {
+                category: ["ProtectionOvercurrent".into(), "MCB".into()],
+                contact_kind: ContactKind::Pole,
+            }),
+            ..PartQuery::default()
+        },
+    );
     let fits: Vec<(&str, Option<bool>)> = hits
         .iter()
         .map(|h| (h.part_number.as_str(), h.compatible))
@@ -669,13 +684,16 @@ fn ix5_the_compatibility_filter_ranks_fitting_parts_first() {
     };
     let (a, b, _) = c.item.category.clone();
     let category = [a.as_str().to_owned(), b.as_str().to_owned()];
-    let coil = reg.search(&PartQuery {
-        compatible_with: Some(FnCompat {
-            category: category.clone(),
-            contact_kind: c.item.contact_kind.clone(),
-        }),
-        ..PartQuery::default()
-    });
+    let coil = fixture_hits(
+        &reg,
+        PartQuery {
+            compatible_with: Some(FnCompat {
+                category: category.clone(),
+                contact_kind: c.item.contact_kind.clone(),
+            }),
+            ..PartQuery::default()
+        },
+    );
     assert_eq!(
         (coil[0].part_number.as_str(), coil[0].compatible),
         ("LC1D09", Some(true))
@@ -686,13 +704,16 @@ fn ix5_the_compatibility_filter_ranks_fitting_parts_first() {
     } else {
         ContactKind::Pole
     };
-    let none = reg.search(&PartQuery {
-        compatible_with: Some(FnCompat {
-            category,
-            contact_kind: other_kind,
-        }),
-        ..PartQuery::default()
-    });
+    let none = fixture_hits(
+        &reg,
+        PartQuery {
+            compatible_with: Some(FnCompat {
+                category,
+                contact_kind: other_kind,
+            }),
+            ..PartQuery::default()
+        },
+    );
     assert!(none.iter().all(|h| h.compatible == Some(false)));
 }
 
@@ -704,11 +725,14 @@ fn ix6_inactive_parts_are_hidden_and_the_successor_is_reported() {
     let lib = company(&f, &mut reg);
     let visible = numbers(&search(&reg, "circuit breaker")).join(",");
     assert!(!visible.contains("A9N0000"), "{visible}");
-    let all = reg.search(&PartQuery {
-        text: "circuit breaker".into(),
-        include_inactive: true,
-        ..PartQuery::default()
-    });
+    let all = fixture_hits(
+        &reg,
+        PartQuery {
+            text: "circuit breaker".into(),
+            include_inactive: true,
+            ..PartQuery::default()
+        },
+    );
     let old = all.iter().find(|h| h.part_number == "A9N00001").unwrap();
     let ItemStatus::Deprecated(d) = &old.status else {
         panic!("{:?}", old.status)
@@ -732,33 +756,48 @@ fn ix7_ties_order_by_natural_part_number() {
     assert_eq!(numbers(&hits), ["X2", "X10"]);
     // Held parts come first inside their tier, then the boost list.
     let lib = hits[0].library;
-    let held = reg.search(&PartQuery {
-        text: "equal tie part".into(),
-        held: vec![(lib, id(TIE_X10))],
-        ..PartQuery::default()
-    });
+    let held = fixture_hits(
+        &reg,
+        PartQuery {
+            text: "equal tie part".into(),
+            held: vec![(lib, id(TIE_X10))],
+            ..PartQuery::default()
+        },
+    );
     assert_eq!(numbers(&held), ["X10", "X2"]);
-    let boosted = reg.search(&PartQuery {
-        text: "tie".into(),
-        boost: vec![(lib, id(TIE_X10))],
-        ..PartQuery::default()
-    });
+    let boosted = fixture_hits(
+        &reg,
+        PartQuery {
+            text: "tie".into(),
+            boost: vec![(lib, id(TIE_X10))],
+            ..PartQuery::default()
+        },
+    );
     assert_eq!(numbers(&boosted), ["X10", "X2"]);
     // Filters: kinds, category prefix, tiers.
-    let terminals = reg.search(&PartQuery {
-        kinds: vec![PartKind::Terminal],
-        ..PartQuery::default()
-    });
+    let terminals = fixture_hits(
+        &reg,
+        PartQuery {
+            kinds: vec![PartKind::Terminal],
+            ..PartQuery::default()
+        },
+    );
     assert_eq!(numbers(&terminals), ["3044102"]);
-    let mcbs = reg.search(&PartQuery {
-        category: vec!["ProtectionOvercurrent".into(), "MCB".into()],
-        ..PartQuery::default()
-    });
+    let mcbs = fixture_hits(
+        &reg,
+        PartQuery {
+            category: vec!["ProtectionOvercurrent".into(), "MCB".into()],
+            ..PartQuery::default()
+        },
+    );
     assert_eq!(numbers(&mcbs), ["A9F78116", "A9P52610", "A9P52616"]);
-    let user_only = reg.search(&PartQuery {
-        tiers: vec![Tier::User],
-        ..PartQuery::default()
-    });
+    let user_only = fixture_hits(
+        &reg,
+        PartQuery {
+            tiers: vec![Tier::User],
+            ..PartQuery::default()
+        },
+    );
     assert!(user_only.is_empty());
 }
 
@@ -837,14 +876,18 @@ fn items_are_searchable() {
         ..ItemQuery::default()
     });
     assert!(symbols.len() > 30, "{}", symbols.len());
-    // The starter-only registry has the starter items in memory.
+    // The starter-only registry has the compiled-in libraries in memory: the starter and the starter parts.
     let only = Registry::starter_only();
-    assert_eq!(only.libraries().len(), 1);
+    assert_eq!(only.libraries().len(), 2);
     assert!(only.index_path().is_none());
     assert!(!only.search_items(&ItemQuery::default()).is_empty());
+    let parts = only.search(&PartQuery::default());
     assert!(
-        only.search(&PartQuery::default()).is_empty(),
-        "the starter has no parts"
+        !parts.is_empty()
+            && parts
+                .iter()
+                .all(|h| h.library == ew_library::starter_parts_library()),
+        "only the starter parts hold parts"
     );
 }
 
@@ -895,28 +938,27 @@ fn a_locked_library_refuses_and_a_stale_lock_needs_a_confirmed_takeover() {
     assert!(!dir.join(LOCK).exists(), "released after the write");
 }
 
-/// The shipped, still empty system library `ew-starter-parts` (§7.1): its manifest names the derived ID; WP-S2.18
-/// part 2 fills it.
+/// The shipped system library `ew-starter-parts` (§7.1, filled by WP-S2.18 part 2): its manifest names the derived ID
+/// and the CC0 licence of part facts; installed as a system library it replaces the compiled-in copy of itself.
 #[test]
 fn the_shipped_starter_parts_library_has_the_derived_id() {
     let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
     let libraries = repo.join("content").join("libraries");
-    let expected = LibManifest::new(
-        ew_library::starter_parts_library(),
-        ew_library::STARTER_PARTS_KEY,
-        "ElektraWatt starter parts",
-        "CC-BY-SA-4.0",
-    )
-    .to_text();
-    let shipped = std::fs::read_to_string(libraries.join("ew-starter-parts.ewlib").join("library.json"));
+    let shipped = std::fs::read(libraries.join("ew-starter-parts.ewlib").join("library.json")).unwrap();
+    let m = LibManifest::parse(&shipped).unwrap();
     assert_eq!(
-        shipped.map(|s| s.replace("\r\n", "\n")).ok().as_deref(),
-        Some(expected.as_str())
+        (m.id, m.key.as_str(), m.name.as_str(), m.licence.as_str()),
+        (
+            ew_library::starter_parts_library(),
+            ew_library::STARTER_PARTS_KEY,
+            "ElektraWatt starter parts",
+            "CC0-1.0"
+        )
     );
     // Read as a system library next to the compiled-in starter.
     let f = Fixture::new("ew-library-shipped");
     let reg = Registry::open(&LibraryTiers {
-        system: vec![libraries],
+        system: vec![libraries.clone()],
         ..f.tiers.clone()
     })
     .unwrap();
@@ -932,4 +974,10 @@ fn the_shipped_starter_parts_library_has_the_derived_id() {
             ("ew-starter-parts".to_owned(), Tier::System, false)
         ]
     );
+    assert!(reg.findings().is_empty(), "{:?}", reg.findings());
+    assert_eq!(
+        reg.libraries()[1].path.as_deref(),
+        Some(libraries.join("ew-starter-parts.ewlib").as_path())
+    );
+    assert!(!reg.search(&PartQuery::default()).is_empty());
 }

@@ -334,6 +334,11 @@ allowed = ["MIT OR Apache-2.0"]
 glob = "content/**"
 allowed = ["CC-BY-SA-4.0"]
 
+# L8: the generic starter parts (WP-S2.18 D5) are part facts (CC0-1.0); the longer glob beats the L7 rule above.
+[[path]]
+glob = "content/libraries/ew-starter-parts.ewlib/**"
+allowed = ["CC0-1.0"]
+
 # L14: bundled third-party fonts keep their own licence and notices (OFL-1.1 for Noto Sans, ADR-0028); the
 # notice rule lists the path under [notices].third_party. Binary files: REUSE.toml annotations.
 [[path]]

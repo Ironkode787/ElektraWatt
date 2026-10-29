@@ -80,6 +80,14 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
 
+# L8: the generic starter parts (WP-S2.18 D5), part facts written by the library writer as JSON lines and a manifest,
+# which cannot carry headers (CC0-1.0, like the other part facts); `override` replaces the L7 annotation above.
+[[annotations]]
+path = "content/libraries/ew-starter-parts.ewlib/**"
+precedence = "override"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "CC0-1.0"
+
 # L14: bundled third-party fonts (Noto Sans Regular, SemiBold and Bold, Noto Sans Math Regular, OFL-1.1; ADR-0028),
 # binary files. The fonts' own copyright lines come first (Noto Sans 2015, Noto Sans Math 2022), then the collective
 # notice for the selection (NFR-LIC-10); provenance in NOTICE.
