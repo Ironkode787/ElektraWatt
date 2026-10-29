@@ -1,6 +1,6 @@
 # WP-S6.13: the blind-drafter harness, personas and prompts (closed specification)
 
-**Status:** part 3 delivered in cycle 33, so the package is complete (§12.9; decision log ID-768, ID-776, ID-777); §5.2.3 as built · specified in cycle 25 (documents only; fix round after the independent Opus review, whose amended rulings
+**Status:** **parts 4 and 5, the visual play-test runs and open design briefs, specified in cycle 34** in the companion [specification](WP-S6.13-visual-playtest-runs.md) (decision log ID-785 to ID-794; this document governs text runs unchanged) · part 3 delivered in cycle 33, so parts 1 to 3 are complete (§12.9; decision log ID-768, ID-776, ID-777); §5.2.3 as built · specified in cycle 25 (documents only; fix round after the independent Opus review, whose amended rulings
 the orchestrator accepted) for three parts: part 1 (the harness `cargo xtask blind`, the session keeper, the three
 product additions it needs and the replay in CI, 1.1 pw, D3), part 2 (the prompts, the personas, the G-PP task sheet
 with its prelude, oracle and scoring, and a dry run on folio 101 after WP-S2.04 part 1, 0.5 pw, D3), part 3 (the full
@@ -763,7 +763,7 @@ and does not merge or push.
 
 | Item | Where it goes |
 |---|---|
-| A GUI for the harness, screenshots, image diffing, OCR, any pixel path to the agent | Never (ID-341's method; D4) |
+| A GUI for the harness, screenshots, image diffing, OCR, any pixel path to the agent | Never in a text run (ID-341's method; D4). *Amended in cycle 34 (ID-787):* a visual run sees offscreen frames of the window and nothing textual, by the [companion specification](WP-S6.13-visual-playtest-runs.md); never the desktop, never image diffing as a check |
 | The live runs after other large UI changes (the M2 run of gates §5.5) | The 20 % reserve, when scheduled (WBS scope out) |
 | Fixing what a run finds | The owning packages, through follow-up tasks |
 | The GUI "Describe page" command and its full FR-UI-046 text (function texts, parts, connections by potential) | 1.0 (FR-UI-046); `page.describe` is its headless v0 |
@@ -1005,6 +1005,15 @@ Built as §5.6, §5.7, §5.8 (the reports), §5.9 and §7 say; BD14 and BD15 pas
 5. **The text interface** gained `reason_text` and `pending` (§5.2.3 as built) and the page text's item positions and terminal sides (§5.5.3: every page item prints `at <x> <y> mm`, a terminal CP `internal` or `field`; 355 describe words).
 6. **The audit recipe of §5.11 step 7:** the drafter's and the checker's transcripts are the subagents' own transcripts; a task's output file may be empty and is not the record to audit.
 7. **The G-PP reading.** By the owner's ruling of 2026-10-29 the gate run stands as proxy for G-PP-01 and G-PP is recorded Go (§8 as amended; gates §5.4). Follow-ups: FT-543 to FT-556 from gpp-r2's triage, FT-582 to FT-584 from gpp-r1's harness and task-sheet defects.
+### 12.10 Parts 4 and 5 (cycle 34)
+
+The owner's rulings of 2026-10-29 (decision log ID-785) add a second run kind on the senses axis, **visual**, and the
+play-test form of open design briefs with a live friction log. Both are specified in the companion
+[specification](WP-S6.13-visual-playtest-runs.md) as parts 4 (1.2 pw) and 5 (0.6 pw), built in M2, with the runs from the
+20 % reserve as part 3's (ID-786, ID-794). ID-341 and this document's D4 are amended for visual runs only (ID-787); every
+text run, recording and check of this document is unchanged, except that `HELP.md` version 7 gains the friction command
+and text runs of briefs use it.
+
 ---
 
 ## Sources

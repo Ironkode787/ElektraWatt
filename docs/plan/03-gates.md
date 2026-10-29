@@ -958,6 +958,11 @@ plan; the re-forecast of G-M2 … G-M6; the one-row gate record.
 **Blind drafter (not a criterion).** After the large UI and feature work of M2 the blind drafter runs again
 ([18](../design/18-quality-security-release.md) §3.17, decision log ID-341) before R1; its hand-back, including the
 QET-veteran time estimate, is read beside the R1 protocol and turns into follow-up tasks. It never blocks the gate.
+*Amended in cycle 34 (decision log ID-793):* from G-M2 on, every milestone gate reads a **visual play-test round**
+([WP-S6.13 parts 4 and 5](specs/WP-S6.13-visual-playtest-runs.md) §9): the brief library of that time with every
+persona, the testers seeing only offscreen frames of the window, plus `gpp-101-103` as the regression run; the same
+holds at the gate of every UI-heavy cycle. A `blocker` friction cluster that two or more personas hit is due before the
+next milestone gate and named in the gate record; otherwise the round is evidence, never a criterion.
 
 **Open decisions closed by G-M2.** PD-9 (ADR-0029), PD-10 (ADR-0007), LG-3, LG-4. After G-M2 no ADR is Proposed (§4.3).
 
