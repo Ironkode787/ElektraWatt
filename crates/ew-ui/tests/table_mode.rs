@@ -10,7 +10,7 @@ mod support;
 
 use egui::OutputCommand;
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::layout::PaneKind;
 use ew_ui::ew_viewmodel::navigators::NavKind;
@@ -99,6 +99,12 @@ fn copy_and_paste_events_run_the_table_actions() {
         .cloned()
         .expect("the table card");
     assert_eq!(gesture.blocking(), 1);
+    // No cell can be applied: Apply is disabled (its reason is the tooltip), Cancel and Drop stay.
+    let applies: Vec<_> = h.query_all_by_label("Apply").collect();
+    assert!(!applies.is_empty(), "the card's Apply");
+    for a in applies {
+        assert!(a.accesskit_node().is_disabled(), "Apply with nothing to apply");
+    }
     h.get_by_label("Drop").click();
     settle(&mut h);
     assert!(h.state().shell().table_gesture().is_none());

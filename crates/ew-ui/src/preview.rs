@@ -188,7 +188,14 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 ui.add_space(pad);
-                components::apply_cancel(ui, components::apply_action(&card.origin), Value::Null, events);
+                let blocked = card.preview.result.as_ref().err().map(String::as_str);
+                components::apply_cancel(
+                    ui,
+                    components::apply_action(&card.origin),
+                    Value::Null,
+                    blocked,
+                    events,
+                );
             });
         });
         let inset = |ui: &mut Ui, f: &mut dyn FnMut(&mut Ui)| {

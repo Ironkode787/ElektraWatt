@@ -563,8 +563,30 @@ pub(crate) fn live_line(ui: &mut Ui, text: &str, error: bool) {
 
 /// Apply (Primary) and Cancel (Secondary), right-aligned (doc 16a §6.9); Apply dispatches `apply` and Cancel
 /// `preview.cancel`.
-pub(crate) fn apply_cancel(ui: &mut Ui, apply: &'static str, apply_params: Value, events: &mut Vec<Event>) {
-    apply_cancel_with(ui, (apply, apply_params), ("preview.cancel", json!({})), events);
+pub(crate) fn apply_cancel(
+    ui: &mut Ui,
+    apply: &'static str,
+    apply_params: Value,
+    blocked: Option<&str>,
+    events: &mut Vec<Event>,
+) {
+    apply_cancel_blocked(
+        ui,
+        (apply, apply_params),
+        ("preview.cancel", json!({})),
+        blocked,
+        events,
+    );
+}
+
+/// Why the open card's Apply cannot run: its preview was refused, so no change applies ("No cell can be applied."
+/// for a table paste where every cell is invalid); `None` when Apply can run or no card is open. Apply is then
+/// disabled with this reason as its tooltip (doc 16a §6.13: a disabled control shows its reason).
+pub(crate) fn apply_blocked(shell: &ShellModel) -> Option<String> {
+    shell
+        .properties()
+        .card()
+        .and_then(|c| c.preview.result.as_ref().err().cloned())
 }
 
 /// Apply (Primary) and Cancel (Secondary), right-aligned in the platform's order (doc 16a §6.12: Windows Apply then
@@ -573,6 +595,17 @@ pub(crate) fn apply_cancel_with(
     ui: &mut Ui,
     apply: (&'static str, Value),
     cancel: (&'static str, Value),
+    events: &mut Vec<Event>,
+) {
+    apply_cancel_blocked(ui, apply, cancel, None, events);
+}
+
+/// [`apply_cancel_with`] with Apply disabled, `blocked` as its tooltip, when `blocked` is given.
+pub(crate) fn apply_cancel_blocked(
+    ui: &mut Ui,
+    apply: (&'static str, Value),
+    cancel: (&'static str, Value),
+    blocked: Option<&str>,
     events: &mut Vec<Event>,
 ) {
     let t = tokens(ui);
@@ -586,7 +619,18 @@ pub(crate) fn apply_cancel_with(
         };
         for apply_now in order {
             if apply_now {
-                if button(ui, Kind::Primary, strings::text("card-apply"), true, 0.0).clicked() {
+                let r = button(
+                    ui,
+                    Kind::Primary,
+                    strings::text("card-apply"),
+                    blocked.is_none(),
+                    0.0,
+                );
+                let r = match blocked {
+                    Some(reason) => r.on_disabled_hover_text(reason),
+                    None => r,
+                };
+                if r.clicked() {
                     events.push(Event::Action(apply.0, apply.1.clone()));
                 }
             } else if button(ui, Kind::Secondary, strings::text("card-cancel"), true, 0.0).clicked() {
@@ -637,7 +681,13 @@ pub(crate) fn inline_card(
             _ => live_line(ui, card.summary, false),
         }
         body(ui, events);
-        apply_cancel(ui, card.apply, Value::Null, events);
+        apply_cancel(
+            ui,
+            card.apply,
+            Value::Null,
+            apply_blocked(shell).as_deref(),
+            events,
+        );
     });
 }
 
@@ -712,7 +762,13 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
                     if small(ui, "preview-cancel", false).clicked() {
                         events.push(Event::Action("preview.cancel", json!({})));
                     }
-                    if small(ui, "preview-apply", true).clicked() {
+                    let blocked = card.preview.result.as_ref().err();
+                    let apply = ui.add_enabled_ui(blocked.is_none(), |ui| small(ui, "preview-apply", true));
+                    let apply = match blocked {
+                        Some(reason) => apply.inner.on_disabled_hover_text(reason),
+                        None => apply.inner,
+                    };
+                    if apply.clicked() {
                         events.push(Event::Action(apply_action(&card.origin), Value::Null));
                     }
                     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
