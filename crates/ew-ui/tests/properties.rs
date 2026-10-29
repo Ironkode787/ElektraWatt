@@ -424,6 +424,48 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
     out
 }
 
+/// The minimal part chooser (G-PP run, finding 1): S51's Parts row opens a list of the project's part copies, the
+/// typed number filters it, a click on `533356 (Eaton)` commits one part use of quantity 1 in one command, and the
+/// row reads `533356 × 1`.
+#[test]
+fn j33_the_parts_row_chooses_a_part_copy_with_the_mouse() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:S51"]}));
+    dispatch(&mut h, "props.set", json!({"row": "device/parts", "value": ""}));
+    settle(&mut h);
+    dispatch(&mut h, "props.focus", json!({}));
+    settle(&mut h);
+    row_to(&mut h, "device/parts");
+    press(&mut h, Key::Enter);
+    assert!(
+        h.get_all_by_role(egui::Role::ListBoxOption).count() >= 10,
+        "the project's part copies are offered"
+    );
+    type_into_field(&mut h, "Parts", "533356");
+    let options: Vec<String> = h
+        .get_all_by_role(egui::Role::ListBoxOption)
+        .filter_map(|n| n.accesskit_node().label())
+        .collect();
+    assert_eq!(options, ["533356 (Eaton)"]);
+    let before = h.state().shell().recorded_commands().len();
+    h.get_all_by_role(egui::Role::ListBoxOption)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("533356 (Eaton)"))
+        .expect("the option 533356")
+        .click();
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().recorded_commands().len(),
+        before + 1,
+        "one commit: {:?}",
+        h.state().shell().properties().error()
+    );
+    assert_eq!(row(&h, "device/parts").0, "533356 × 1");
+}
+
 /// J32 (doc 16a §6.8, the mockup's `.prow` and `.psec`): on folio 101's page sheet at 1280 by 800 every property
 /// label is painted at the left edge of its 96-px label column (not centred), the group headings read as written
 /// ("Main", not "MAIN"), the inherited Description shows its one-word chip ("inherited", no glyph) in its row, and

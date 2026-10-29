@@ -138,6 +138,13 @@ impl FieldType {
     pub fn is_container(&self) -> bool {
         matches!(self.inner(), FieldType::Group(_) | FieldType::List(_))
     }
+
+    /// Whether this is a list of part uses (a device's `parts`): its editor is the minimal part chooser (the G-PP
+    /// run's first finding, moved forward from WP-S2.07): the project's part copies by part number, quantity 1.
+    pub fn is_part_uses(&self) -> bool {
+        matches!(self.inner(), FieldType::List(item) if matches!(&**item, FieldType::Group(c)
+            if c.iter().any(|n| n.name == "part") && c.iter().any(|n| n.name == "qty")))
+    }
 }
 
 /// The category of a field: its top-level member's (§6.1.2), in display order.
@@ -1103,6 +1110,9 @@ pub struct ParsedInput {
 pub enum InputError {
     /// Not a value of the field's type; the text says why.
     Invalid(String),
+    /// No part copy of the project has the typed part number (the text as typed, trimmed); the shell says so in a
+    /// sentence of its strings table.
+    UnknownPart(String),
     /// Two readings; the user picks one: (the choice's text, its value).
     Ambiguous {
         /// The choices.
@@ -1442,38 +1452,10 @@ pub(crate) fn parse_input(
                 })
                 .ok_or_else(|| invalid(format!("`{t}` is not one of {}", options.join(", "))))
         }
-        FieldType::Link { kind } if kind == "part" => {
-            let t = text.trim();
-            let copies = cx.part_copies();
-            if let Some(id) = t.strip_prefix("id:") {
-                return match copies.iter().find(|(c, _, _)| c == id) {
-                    Some((c, _, _)) => plain(serde_json::json!({ "copy": c })),
-                    None => Err(invalid(format!("the project has no part copy `{id}`"))),
-                };
-            }
-            let mut hits: Vec<&(String, String, String)> = copies
-                .iter()
-                .filter(|(_, pn, _)| pn.eq_ignore_ascii_case(t))
-                .collect();
-            // The display form `<part number> (<manufacturer>)` parses back.
-            if hits.is_empty()
-                && let Some((pn, rest)) = t.rsplit_once(" (")
-                && let Some(mfr) = rest.strip_suffix(')')
-            {
-                hits = copies
-                    .iter()
-                    .filter(|(_, p, m)| p.eq_ignore_ascii_case(pn) && m.eq_ignore_ascii_case(mfr))
-                    .collect();
-            }
-            match hits.as_slice() {
-                [one] => plain(serde_json::json!({ "copy": one.0 })),
-                [] => Err(invalid(format!("the project has no part `{t}`"))),
-                _ => Err(invalid(format!(
-                    "{} part copies have the part number `{t}`; use id:<uuid>",
-                    hits.len()
-                ))),
-            }
-        }
+        FieldType::Link { kind } if kind == "part" => resolve_part(cx, text).map(|copy| ParsedInput {
+            value: serde_json::json!({ "copy": copy }),
+            notes: Vec::new(),
+        }),
         FieldType::Slot => {
             let t = text.trim();
             if t.is_empty() {
@@ -1501,6 +1483,9 @@ pub(crate) fn parse_input(
             }
         }
         FieldType::Uuid | FieldType::Link { .. } => Err(invalid("this field is shown, not edited")),
+        FieldType::List(_) if ty.is_part_uses() && !text.trim_start().starts_with('[') => {
+            parse_part_uses(cx, text)
+        }
         FieldType::List(_) | FieldType::Group(_) | FieldType::Json => ew_schema::parse_value(text)
             .map(|value| ParsedInput {
                 value,
@@ -1508,6 +1493,67 @@ pub(crate) fn parse_input(
             })
             .map_err(|e| invalid(format!("not strict JSON: {e}"))),
     }
+}
+
+/// The copy ID of the part typed as `text`: `id:<uuid>`, a part number, or the display form `<part number>
+/// (<manufacturer>)`, matched without regard to case.
+fn resolve_part(cx: &dyn ParseCx, text: &str) -> Result<String, InputError> {
+    let t = text.trim();
+    let copies = cx.part_copies();
+    if let Some(id) = t.strip_prefix("id:") {
+        return match copies.iter().find(|(c, _, _)| c == id) {
+            Some((c, _, _)) => Ok(c.clone()),
+            None => Err(invalid(format!("the project has no part copy `{id}`"))),
+        };
+    }
+    let mut hits: Vec<&(String, String, String)> = copies
+        .iter()
+        .filter(|(_, pn, _)| pn.eq_ignore_ascii_case(t))
+        .collect();
+    // The display form `<part number> (<manufacturer>)` parses back.
+    if hits.is_empty()
+        && let Some((pn, rest)) = t.rsplit_once(" (")
+        && let Some(mfr) = rest.strip_suffix(')')
+    {
+        hits = copies
+            .iter()
+            .filter(|(_, p, m)| p.eq_ignore_ascii_case(pn) && m.eq_ignore_ascii_case(mfr))
+            .collect();
+    }
+    match hits.as_slice() {
+        [one] => Ok(one.0.clone()),
+        [] => Err(InputError::UnknownPart(t.to_owned())),
+        _ => Err(invalid(format!(
+            "{} part copies have the part number `{t}`; use id:<uuid>",
+            hits.len()
+        ))),
+    }
+}
+
+/// A list of part uses typed as text (the minimal part chooser): part numbers separated by commas, each optionally
+/// followed by `× <quantity>` (the row's display form, `533356 × 1`), quantity 1 when left out; an empty text is the
+/// empty list. A text starting with `[` is the list's strict JSON instead (`parse_input`).
+fn parse_part_uses(cx: &dyn ParseCx, text: &str) -> Result<ParsedInput, InputError> {
+    let mut uses = Vec::new();
+    for item in text.split(',').map(str::trim).filter(|i| !i.is_empty()) {
+        let (part, qty) = match item.rsplit_once('\u{d7}') {
+            Some((p, q)) => {
+                let q = q.trim();
+                let qty = Dec3::parse_lenient(q)
+                    .ok()
+                    .filter(|d| d.0 > 0)
+                    .ok_or_else(|| invalid(format!("`{q}` is not a quantity above 0")))?;
+                (p.trim(), dec3_text(qty))
+            }
+            None => (item, "1".to_owned()),
+        };
+        let copy = resolve_part(cx, part)?;
+        uses.push(serde_json::json!({ "part": { "copy": copy }, "qty": qty }));
+    }
+    Ok(ParsedInput {
+        value: Value::Array(uses),
+        notes: Vec::new(),
+    })
 }
 
 /// The notes of an identifier: its mixed scripts and confusable code points (FR-I18N-011, FR-NUM-016).
@@ -1567,17 +1613,13 @@ pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &s
             out
         }
         FieldType::Link { kind } if kind == "part" => {
-            let mut copies = cx.part_copies();
-            copies.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then_with(|| a.0.cmp(&b.0)));
-            copies
-                .into_iter()
-                .map(|(id, pn, mfr)| FieldChoice {
-                    text: format!("{pn} ({mfr})"),
-                    value: serde_json::json!({ "copy": id }),
-                    note: None,
-                })
-                .collect()
+            part_choices(cx, |id| serde_json::json!({ "copy": id }))
         }
+        // The minimal part chooser: one part use of quantity 1 replaces the list.
+        FieldType::List(_) if ty.is_part_uses() => part_choices(
+            cx,
+            |id| serde_json::json!([{ "part": { "copy": id }, "qty": "1" }]),
+        ),
         FieldType::Slot => {
             let mut nodes = cx.slot_nodes(member);
             nodes.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then_with(|| a.0.cmp(&b.0)));
@@ -1593,6 +1635,20 @@ pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &s
         _ => Vec::new(),
     };
     all.into_iter().filter(keep).collect()
+}
+
+/// The project's part copies as options, `<part number> (<manufacturer>)` in natural order, each writing `value(id)`.
+fn part_choices(cx: &dyn ParseCx, value: impl Fn(&str) -> Value) -> Vec<FieldChoice> {
+    let mut copies = cx.part_copies();
+    copies.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then_with(|| a.0.cmp(&b.0)));
+    copies
+        .into_iter()
+        .map(|(id, pn, mfr)| FieldChoice {
+            text: format!("{pn} ({mfr})"),
+            value: value(&id),
+            note: None,
+        })
+        .collect()
 }
 
 /// The catalogue entry of `row_path` (list indices in it: `parts[0].qty`) in `catalogue`.
@@ -1959,5 +2015,51 @@ mod tests {
         let c = choices(&Cx, &FieldType::Colour, "", "b");
         assert!(c.iter().all(|x| x.text.to_lowercase().contains('b')));
         assert!(choices(&Cx, &FieldType::Text, "", "").is_empty());
+    }
+
+    fn part_uses() -> FieldType {
+        FieldType::List(Box::new(FieldType::Group(vec![
+            FieldNode {
+                name: "part".into(),
+                ty: FieldType::Link { kind: "part".into() },
+            },
+            FieldNode {
+                name: "qty".into(),
+                ty: FieldType::Dec3,
+            },
+        ])))
+    }
+
+    /// The minimal part chooser (G-PP run, finding 1): a device's parts are typed by part number, quantity 1, or in
+    /// the row's display form; a number no copy has is `UnknownPart`, never serde text; `[` keeps the strict JSON.
+    #[test]
+    fn part_uses_are_typed_by_part_number() {
+        let ty = part_uses();
+        assert!(ty.is_part_uses());
+        assert!(!FieldType::List(Box::new(FieldType::Text)).is_part_uses());
+        let one = |c: &str, q: &str| json!({ "part": { "copy": c }, "qty": q });
+        assert_eq!(parse(ty.clone(), "a9f78116"), Ok(json!([one("c1", "1")])));
+        assert_eq!(
+            parse(ty.clone(), "A9F78116 (Schneider) \u{d7} 2, A9P52610"),
+            Ok(json!([one("c1", "2"), one("c2", "1")]))
+        );
+        assert_eq!(parse(ty.clone(), "  "), Ok(json!([])));
+        assert_eq!(
+            parse(ty.clone(), "533356"),
+            Err(InputError::UnknownPart("533356".into()))
+        );
+        assert!(matches!(
+            parse(ty.clone(), "A9F78116 \u{d7} 0"),
+            Err(InputError::Invalid(_))
+        ));
+        assert_eq!(
+            parse(ty.clone(), r#"[{"part":{"copy":"c9"},"qty":"1"}]"#),
+            Ok(json!([one("c9", "1")]))
+        );
+        // The options: one part use of quantity 1 per copy, filtered by the typed text.
+        let c = choices(&Cx, &ty, "parts", "p52");
+        assert_eq!(c.len(), 1);
+        assert_eq!(c[0].text, "A9P52610 (Schneider)");
+        assert_eq!(c[0].value, json!([one("c2", "1")]));
     }
 }

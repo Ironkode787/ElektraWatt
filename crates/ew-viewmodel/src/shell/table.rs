@@ -154,6 +154,9 @@ impl ShellModel {
                 Some(project) => match project.session.parse_field_input(&kind, &path, text) {
                     Ok(parsed) => CellValue::Valid(parsed.value),
                     Err(InputError::Invalid(message)) => CellValue::Invalid(message),
+                    Err(InputError::UnknownPart(typed)) => {
+                        CellValue::Invalid(strings::format("error-no-part", &[&typed]))
+                    }
                     Err(InputError::Ambiguous { choices }) => CellValue::Ambiguous(choices),
                 },
             },

@@ -601,6 +601,14 @@ impl ShellModel {
             None => match (&row.value, self.mltext_object(&section, &row)) {
                 // A multi-language value edits its source language's text inside the object (§6.5).
                 (_, Some(object)) => self.source_text(&object),
+                // The minimal part chooser edits the part numbers (`533356 × 1`), not the list's JSON.
+                (RowValue::One { json, text }, None) if row.ty.is_part_uses() => {
+                    if json.as_array().is_some_and(Vec::is_empty) {
+                        String::new()
+                    } else {
+                        text.clone()
+                    }
+                }
                 (RowValue::One { json, text }, None) => {
                     if row.ty.is_container() || matches!(row.ty.inner(), crate::properties::FieldType::Json) {
                         json.to_string()
@@ -830,6 +838,11 @@ impl ShellModel {
                 return Outcome::Done;
             }
             (Err(InputError::Invalid(message)), _) => {
+                self.props.error = Some((key.to_owned(), message.clone()));
+                return Outcome::Failed { message };
+            }
+            (Err(InputError::UnknownPart(typed)), _) => {
+                let message = strings::format("error-no-part", &[&typed]);
                 self.props.error = Some((key.to_owned(), message.clone()));
                 return Outcome::Failed { message };
             }

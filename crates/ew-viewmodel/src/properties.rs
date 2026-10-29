@@ -110,6 +110,7 @@ pub fn has_options(ty: &FieldType) -> bool {
         ty.inner(),
         FieldType::Enum { .. } | FieldType::Colour | FieldType::Slot
     ) || matches!(ty.inner(), FieldType::Link { kind } if kind == "part")
+        || ty.is_part_uses()
 }
 
 /// A popup of the grid.
