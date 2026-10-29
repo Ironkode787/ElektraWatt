@@ -399,18 +399,13 @@ impl NavigatorPane {
         }
         // The cursor is scrolled into view when it moved to a row outside the rows on show (the first and last ones may
         // be cut).
-        // K32: in the Messages pane the rows on show end where this frame's list ends, not where last frame's did (the
-        // detail block that opens with the cursor shortens the list). The other navigators keep the as-built rule: it
-        // would also scroll the Pages list to the current page on the first frames, a change of the main window's
-        // images left to its own decision.
+        // K32, FT-529: the rows on show end where this frame's list ends, not where last frame's did (the Messages detail
+        // block that opens with the cursor, or a shorter pane, shortens the list).
         let fits = (list_rect.height().max(0.0) / row_height(ui.ctx())).floor() as usize;
-        let shown_end = if self.kind == NavKind::Messages {
-            self.view.end.min(self.view.start + fits)
-        } else {
-            self.view.end
-        };
+        let shown_end = self.view.end.min(self.view.start + fits);
         let inside = |i: usize| self.view.start < i && i + 1 < shown_end;
-        // W31-1: a list that got shorter (the Messages detail block opened below it) scrolls its cursor back into view.
+        // W31-1, FT-529: a list that got shorter (the Messages detail block opened below it, a dock or the window made
+        // smaller) scrolls its cursor back into view, in every navigator.
         let shrunk = list_rect.height() + 0.5 < self.list_height;
         self.list_height = list_rect.height();
         let scroll_to = cursor
@@ -428,8 +423,11 @@ impl NavigatorPane {
             .auto_shrink([false, false])
             .max_height(list_height)
             .min_scrolled_height(list_height);
-        if let Some(i) = scroll_to {
-            area = area.vertical_scroll_offset((i as f32 * row - 2.0 * row).max(0.0));
+        // FT-528: the scroll is a scroll target without animation inside the list (two rows above the cursor at the
+        // top), not a set offset: egui clamps a target to this frame's room, while an offset past the last frame's room
+        // (the list just got shorter) springs back with momentum and carries the cursor row out of view again.
+        if scroll_to.is_some() {
+            area = area.animated(false);
         }
         let kind = self.kind;
         let mut painted = 0;
@@ -440,6 +438,20 @@ impl NavigatorPane {
             ui.spacing_mut().item_spacing.y = 0.0;
             ui.spacing_mut().interact_size.y = row;
             area.show_rows(ui, row, visible.len(), |ui, range| {
+                if let Some(i) = scroll_to {
+                    // The closure's rectangle starts at the first row it paints, `range.start`.
+                    let first = ui.max_rect().top() - range.start as f32 * row;
+                    let top = first + (i as f32 - 2.0).max(0.0) * row;
+                    let target = egui::Rect::from_min_size(
+                        egui::pos2(ui.max_rect().left(), top),
+                        egui::vec2(1.0, row),
+                    );
+                    ui.scroll_to_rect_animation(
+                        target,
+                        Some(egui::Align::TOP),
+                        egui::style::ScrollAnimation::none(),
+                    );
+                }
                 view = range.clone();
                 for row in &visible[range] {
                     painted += 1;

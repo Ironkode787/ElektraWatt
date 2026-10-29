@@ -934,8 +934,30 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `navigator.row {kind, key?, step?, to?, extend?}`: moves the cursor; `extend` marks the range from the anchor to
-    /// the new cursor in visible order (Shift+Up, Shift+Down, Shift+click).
+    /// FT-528: expands the collapsed ancestors of row `key` of generic navigator `kind` when that makes the row show (a
+    /// row hidden by the filter or unknown leaves the collapsed nodes as they were).
+    fn reveal_key(&mut self, kind: NavKind, key: &str) {
+        if self.vis_keys(kind).iter().any(|k| k == key) {
+            return;
+        }
+        let Some(nav) = self.generic_mut(kind) else {
+            return;
+        };
+        let Some((node, _)) = nav.node_of(key) else {
+            return;
+        };
+        let before = nav.collapsed.clone();
+        nav.reveal(node);
+        if !self.vis_keys(kind).iter().any(|k| k == key)
+            && let Some(nav) = self.generic_mut(kind)
+        {
+            nav.collapsed = before;
+        }
+    }
+
+    /// `navigator.row {kind, key?, step?, to?, extend?}`: moves the cursor (a `key` under a collapsed node expands its
+    /// path, FT-528); `extend` marks the range from the anchor to the new cursor in visible order (Shift+Up,
+    /// Shift+Down, Shift+click).
     pub(super) fn act_navigator_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
@@ -948,6 +970,11 @@ impl ShellModel {
         let out = if self.as_built_pages(kind) {
             self.act_pages_row(&q)
         } else {
+            // FT-528: a key under a collapsed node expands its path first, so the cursor lands on a row on show.
+            if let Ok(Some(key)) = string_param(&q, "key") {
+                let key = key.to_owned();
+                self.reveal_key(kind, &key);
+            }
             let keys = self.vis_keys(kind);
             if keys.is_empty() {
                 return Outcome::Done;

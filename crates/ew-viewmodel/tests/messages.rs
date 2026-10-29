@@ -607,3 +607,73 @@ fn ms6_the_sixteen_words_the_five_actions_and_the_counts() {
     }
     shell.shutdown();
 }
+
+/// FT-528: `navigator.row {key}` to a finding under a collapsed group expands its path and puts the cursor on it; a key
+/// the filter hides is refused and leaves the collapsed groups as they were.
+#[test]
+fn ft528_navigator_row_into_a_collapsed_group_expands_its_path() {
+    let tmp = Tmp::new("msg-ft528");
+    let mut shell = tmp.shell("102");
+    done(&mut shell, "messages.show", json!({}));
+    let ef08 = finding(&shell, "EW-CORE-033", "-3W1");
+    let rows = shell.shown_rows(NavKind::Messages);
+    let row = rows.iter().find(|r| r.key == ef08.key).expect("EF-08 on show");
+    let group = row.parent.clone().expect("EF-08 under a group");
+    done(
+        &mut shell,
+        "navigator.toggle",
+        json!({"kind": "messages", "key": group}),
+    );
+    assert!(
+        !shell
+            .shown_rows(NavKind::Messages)
+            .iter()
+            .any(|r| r.key == ef08.key),
+        "hidden under its collapsed group"
+    );
+    done(
+        &mut shell,
+        "navigator.row",
+        json!({"kind": "messages", "key": ef08.key}),
+    );
+    assert_eq!(
+        shell.nav_cursor(NavKind::Messages).as_deref(),
+        Some(ef08.key.as_str())
+    );
+    let shown = shell.shown_rows(NavKind::Messages);
+    assert_eq!(
+        shown.iter().find(|r| r.key == group).and_then(|r| r.expanded),
+        Some(true),
+        "the group is expanded again"
+    );
+    // A filter that hides EF-08: the key is refused and the collapsed group stays collapsed.
+    done(
+        &mut shell,
+        "navigator.toggle",
+        json!({"kind": "messages", "key": group}),
+    );
+    done(
+        &mut shell,
+        "navigator.filter",
+        json!({"kind": "messages", "text": "F55"}),
+    );
+    assert!(matches!(
+        shell.dispatch("navigator.row", &json!({"kind": "messages", "key": ef08.key})),
+        ew_viewmodel::shell::Outcome::Failed { .. }
+    ));
+    done(
+        &mut shell,
+        "navigator.filter",
+        json!({"kind": "messages", "text": ""}),
+    );
+    assert_eq!(
+        shell
+            .shown_rows(NavKind::Messages)
+            .iter()
+            .find(|r| r.key == group)
+            .and_then(|r| r.expanded),
+        Some(false),
+        "the refused move left the group collapsed"
+    );
+    shell.shutdown();
+}

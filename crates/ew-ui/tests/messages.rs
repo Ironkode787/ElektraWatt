@@ -322,3 +322,101 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
         "the link {link:?} at the right end of the title line {rule:?}"
     );
 }
+
+/// FT-528: `navigator.row` to a finding under a collapsed group expands the path and scrolls the cursor row into view;
+/// a finding out of view is scrolled to as well (Golden A's findings, the window 1280 by 640).
+#[test]
+fn ft528_navigator_row_into_a_collapsed_group_expands_it_and_scrolls_the_row_into_view() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, Scripted::default());
+    h.set_size(egui::Vec2::new(1280.0, 640.0));
+    settle(&mut h);
+    support::open_menu(&mut h, &["Check"]);
+    settle(&mut h);
+    support::menu_node(&h, "Messages").click();
+    settle(&mut h);
+    settle(&mut h);
+    let on_show = |h: &Harness<'_, App>, label: &str| -> bool {
+        let list = h.get_by_label("Messages navigator").rect();
+        h.get_all_by_role(egui::Role::TreeItem)
+            .filter_map(|n| n.accesskit_node().label().map(|l| (l, n.rect())))
+            .any(|(l, r)| l.starts_with(label) && list.expand(0.5).contains_rect(r))
+    };
+    // The last finding of the tree (every group expanded) and its group.
+    let rows = h.state().shell().shown_rows(NavKind::Messages);
+    let target = rows
+        .iter()
+        .rev()
+        .find(|r| r.role == "finding" && r.parent.is_some())
+        .expect("a finding under a group")
+        .clone();
+    let group = target.parent.clone().unwrap();
+    dispatch(
+        &mut h,
+        "navigator.row",
+        json!({"kind": "messages", "to": "first"}),
+    );
+    dispatch(
+        &mut h,
+        "navigator.toggle",
+        json!({"kind": "messages", "key": group}),
+    );
+    settle(&mut h);
+    settle(&mut h);
+    let shown = h.state().shell().shown_rows(NavKind::Messages);
+    assert!(
+        !shown.iter().any(|r| r.key == target.key),
+        "the finding is hidden under its collapsed group"
+    );
+    assert!(
+        !on_show(&h, &target.name),
+        "the finding is not on show before the move"
+    );
+    // The move: the group opens, the cursor is on the finding and its row is scrolled into the list.
+    dispatch(
+        &mut h,
+        "navigator.row",
+        json!({"kind": "messages", "key": target.key}),
+    );
+    settle(&mut h);
+    settle(&mut h);
+    let shell = h.state().shell();
+    assert_eq!(
+        shell.nav_cursor(NavKind::Messages).as_deref(),
+        Some(target.key.as_str())
+    );
+    let group_row = shell
+        .shown_rows(NavKind::Messages)
+        .into_iter()
+        .find(|r| r.key == group)
+        .unwrap();
+    assert_eq!(group_row.expanded, Some(true), "the group is expanded again");
+    assert!(
+        on_show(&h, &target.name),
+        "the cursor row {} is on show",
+        target.name
+    );
+    // A finding out of view: back to the first row, then to the last finding by key.
+    dispatch(
+        &mut h,
+        "navigator.row",
+        json!({"kind": "messages", "to": "first"}),
+    );
+    settle(&mut h);
+    settle(&mut h);
+    assert!(
+        !on_show(&h, &target.name),
+        "the first row's list does not show the last finding"
+    );
+    dispatch(
+        &mut h,
+        "navigator.row",
+        json!({"kind": "messages", "key": target.key}),
+    );
+    settle(&mut h);
+    settle(&mut h);
+    assert!(
+        on_show(&h, &target.name),
+        "the last finding is scrolled into view"
+    );
+}
