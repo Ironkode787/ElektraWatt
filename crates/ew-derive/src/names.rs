@@ -7,8 +7,12 @@
 //! - **`potential_name(p)`** (doc 08 §3.5): the first definition's name in ID order (another name is noted as
 //!   EW-POT-017); else the first non-external source interruption point in page order (page position, anchor
 //!   row, anchor column, ID); else the first external source interruption point in that order (review decision
-//!   D6); else `<tag>:<designation>` of the first member CP in (page position, row, column) order, ties by that
-//!   name in natural order and then by CP ID. The aliases are every other distinct IP name on the potential,
+//!   D6); else (doc 08 §3.5 step 2b, WP-S1.16 D1) the supply's name `<root>/<tag>:<designation>` when the
+//!   potential is entered through the pass-through pair of a function f (its flow `upstream`): `<root>` is the
+//!   name of the nearest upstream potential named by a definition or a source point (the walk passes potentials
+//!   named by this step), `<tag>` f's displayed tag without its leading aspect sign and `<designation>` the
+//!   pair's downstream CP (`L/S51:2`); else `<tag>:<designation>` of the first member CP in (page position, row,
+//!   column) order, ties by that name in natural order and then by CP ID. The aliases are every other distinct IP name on the potential,
 //!   external points included, in natural order; points on a bond's `via` path (doc 03
 //!   §9.6) are named on the bond, not on the potential. A signal takes the first IP name inside it, in page
 //!   order. The family also pushes the EW-POT-001 notes of the potential's attributes, which name it.
@@ -30,6 +34,7 @@ use ew_ids::Id;
 use ew_mltext::natural_cmp;
 use ew_schema::{Function, IpDirection, PotentialDef, PotentialType};
 
+use crate::flow::FlowBfs;
 use crate::heap::HeapBytes;
 use crate::ip::{IpFnInfo, IpInfoOf};
 use crate::links::BondPathsQ;
@@ -160,6 +165,8 @@ impl Query for PotentialNameOf {
                 text: i.name().to_owned(),
                 source: NameSource::SourceIp(*f),
             }
+        } else if let Some(supply) = supply_name(q, *key) {
+            supply
         } else {
             fallback_name(q, p)
         };
@@ -200,6 +207,58 @@ impl Query for PotentialNameOf {
     }
 }
 
+/// Step 2b of doc 08 §3.5 (WP-S1.16 D1): `<root>/<tag without aspect sign>:<designation>` of the pass-through
+/// pair that enters `key` from upstream (its flow entry's `upstream`), the designation the pair's CP on this side.
+/// `<root>` is the name of the nearest upstream potential named by a definition or a source point; potentials
+/// named by this step are walked through. `None` (step 3 applies) when the potential has no upstream, when the
+/// walk reaches a potential named by the fallback or a revisit (the flow is a tree; the guard ends a walk that
+/// would not be one).
+fn supply_name(q: &Q, key: PotentialId) -> Option<PotentialName> {
+    let entry = |p: PotentialId| {
+        q.get_part::<FlowBfs>((), PartKey::Flow(p))
+            .entries
+            .get(&p)
+            .and_then(|e| e.upstream)
+    };
+    let up = entry(key)?;
+    let mut seen: BTreeSet<PotentialId> = BTreeSet::from([key]);
+    let mut at = up.from;
+    let root = loop {
+        if !seen.insert(at) {
+            return None;
+        }
+        let names = q.get::<PotentialNameOf>(at);
+        match names.name.source {
+            NameSource::Def(_) | NameSource::SourceIp(_) => break names.name.text.clone(),
+            NameSource::Supply { .. } => at = entry(at)?.from,
+            NameSource::Fallback(_) => return None,
+        }
+    };
+    let text = cp_text(q, CpRef::new(up.function, up.to_idx));
+    let text = text.strip_prefix('-').unwrap_or(&text);
+    Some(PotentialName {
+        text: format!("{root}/{text}"),
+        source: NameSource::Supply { via: up.function },
+    })
+}
+
+/// `<tag>:<designation>` of a CP: its function's device tag as a report prints it (`?` without one) and the CP's
+/// designation (its index without one).
+pub(crate) fn cp_text(q: &Q, cp: CpRef) -> String {
+    let tag = q
+        .functions()
+        .get(cp.function)
+        .and_then(|f| f.device)
+        .and_then(|d| q.get::<DeviceTag>(d).as_ref().as_ref().map(|t| t.short()))
+        .unwrap_or_else(|| "?".to_owned());
+    let designation = q
+        .get::<FunctionCps>(cp.function)
+        .iter()
+        .find(|c| c.idx == cp.idx)
+        .map_or_else(|| cp.idx.to_string(), |c| c.designation.clone());
+    format!("{tag}:{designation}")
+}
+
 /// The fallback name `<tag>:<designation>` of the first member CP (not an IP) in (page position, row, column) order
 /// of its function's first representation; ties go to the name in natural order (then bytes) and only then to the CP
 /// ID, so two CPs of one anchor cell (a terminal's two sides) name the potential alike in every fresh copy of a
@@ -217,20 +276,6 @@ fn fallback_name(q: &Q, p: &Potential) -> PotentialName {
         let cell = rep.and_then(|r| q.get::<RepAnchorCell>(r).as_ref().clone());
         let (row, col) = cell.map_or((u32::MAX, u32::MAX), |c| (c.row, c.column));
         (pos, row, col)
-    };
-    let text = |cp: CpRef| {
-        let tag = q
-            .functions()
-            .get(cp.function)
-            .and_then(|f| f.device)
-            .and_then(|d| q.get::<DeviceTag>(d).as_ref().as_ref().map(|t| t.short()))
-            .unwrap_or_else(|| "?".to_owned());
-        let designation = q
-            .get::<FunctionCps>(cp.function)
-            .iter()
-            .find(|c| c.idx == cp.idx)
-            .map_or_else(|| cp.idx.to_string(), |c| c.designation.clone());
-        format!("{tag}:{designation}")
     };
     let keyed: Vec<_> = p
         .cps
@@ -254,7 +299,7 @@ fn fallback_name(q: &Q, p: &Potential) -> PotentialName {
             },
         )
         .into_iter()
-        .map(|cp| (text(cp), cp))
+        .map(|cp| (cp_text(q, cp), cp))
         .min_by(|(ta, a), (tb, b)| {
             natural_cmp(ta, tb)
                 .then_with(|| ta.cmp(tb))
@@ -416,7 +461,7 @@ fn attrs_of(q: &Q, p: &Potential) -> PotentialAttrsV {
 }
 
 /// The roles of the member CPs that are not interruption points and declare one, in CP order.
-fn member_roles(q: &Q, p: &Potential) -> Vec<(CpRef, PotentialType)> {
+pub(crate) fn member_roles(q: &Q, p: &Potential) -> Vec<(CpRef, PotentialType)> {
     p.cps
         .iter()
         .filter(|cp| p.ips.binary_search(&cp.function).is_err())

@@ -74,6 +74,12 @@ pub enum NameSource {
     Def(Id<PotentialDef>),
     /// A source interruption point.
     SourceIp(Id<Function>),
+    /// The supply (doc 08 §3.5 step 2b, WP-S1.16 D1): `<root>/<tag>:<designation>` of the pass-through pair of
+    /// `via` that enters the potential from upstream.
+    Supply {
+        /// The function whose pass-through pair enters the potential.
+        via: Id<Function>,
+    },
     /// The fallback `<tag>:<designation>` of a member CP.
     Fallback(CpRef),
 }

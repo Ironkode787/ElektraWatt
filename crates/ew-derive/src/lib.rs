@@ -48,6 +48,7 @@
 
 mod assembly;
 mod bom;
+mod bond_carrier;
 mod cell;
 mod channel_index;
 mod component;
@@ -121,6 +122,8 @@ pub use memo_keys::{MemoInput, PartKey};
 pub use memo_store::MemoStore;
 // The memo engine types a session configures and reads (oracle mode, statistics, memory).
 pub use ew_memo::{Counters, FamilyMemory, Mismatch, Oracle, Stats};
+// WP-S1.16 D3: the carrier of a 0 V–PE bond (EW-POT-001's quick fix).
+pub use bond_carrier::{BondCarrierQ, Carrier};
 pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use names::{PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, potential_named};
@@ -207,6 +210,7 @@ pub use ew_rds;
 pub const FAMILIES: &[(&str, Policy)] = &[
     (AssemblyBreakMarks::FAMILY, AssemblyBreakMarks::POLICY),
     (BomRows::FAMILY, BomRows::POLICY),
+    (BondCarrierQ::FAMILY, BondCarrierQ::POLICY),
     (BondIndex::FAMILY, BondIndex::POLICY),
     (BondPathsQ::FAMILY, BondPathsQ::POLICY),
     (BondVias::FAMILY, BondVias::POLICY),
