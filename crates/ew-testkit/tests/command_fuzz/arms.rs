@@ -879,8 +879,9 @@ fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         }
         2 => {
             let c = rng.pick(&live.connections)?;
-            let colour = *rng.pick(&["BK", "RD", "BU", "WH", "GNYE"])?;
-            Some(one("connection", c, "overrides.colour", json!([colour])))
+            // A colour is a list of IEC 60757 codes: green-yellow is the two codes GN and YE.
+            let colour: &[&str] = rng.pick(&[&["BK"][..], &["RD"], &["BU"], &["WH"], &["GN", "YE"]])?;
+            Some(one("connection", c, "overrides.colour", json!(colour)))
         }
         3 => {
             let c = rng.pick(&live.connections)?;
@@ -3273,8 +3274,12 @@ fn conductor_specs(rng: &mut SplitMix64, n: usize, taken: &std::collections::BTr
     cores
         .into_iter()
         .map(|core| {
-            let colour = *["BK", "BU", "RD", "GNYE"].get(rng.below(4)).unwrap_or(&"BK");
-            json!({"core": core, "colour": [colour], "csa": "1.5"})
+            // Green-yellow is the two IEC 60757 codes GN and YE (EW-CORE-031 refuses a code `GNYE`).
+            let colour: &[&str] = [&["BK"][..], &["BU"], &["RD"], &["GN", "YE"]]
+                .get(rng.below(4))
+                .copied()
+                .unwrap_or(&["BK"]);
+            json!({"core": core, "colour": colour, "csa": "1.5"})
         })
         .collect()
 }
