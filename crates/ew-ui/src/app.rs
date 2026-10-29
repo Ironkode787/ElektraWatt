@@ -517,6 +517,10 @@ impl App {
         );
         if self.applied_theme.as_ref() != Some(&appearance) {
             crate::theme::apply_setting(&appearance.0, &appearance.1, &ctx);
+            // A visual run draws the caret always (WP-S6.13 part 4 §3.1), so a frame never catches it off.
+            if crate::clock::on_frame_clock() {
+                ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
+            }
             self.applied_theme = Some(appearance);
         }
         // The switch rule (WP-S2.02 section 7.2): the setting is effective at once, a failure moves the canvas to the
@@ -548,7 +552,9 @@ impl App {
         self.app_menu_keys(&ctx);
         // WP-S2.09 part 1: the jobs wake the window after each progress report and at their end, and every frame takes
         // the ends that are in (no `Session` call).
-        if !self.waker_set {
+        // On the frame clock (a visual run) the driver waits for the jobs itself: no job thread wakes the frame, so
+        // which frame sees an end never depends on timing.
+        if !self.waker_set && !crate::clock::on_frame_clock() {
             let waker = ctx.clone();
             self.shell
                 .set_job_waker(Some(std::sync::Arc::new(move || waker.request_repaint())));

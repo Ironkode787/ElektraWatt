@@ -1577,7 +1577,28 @@ impl CanvasHost {
             .chain(self.views.iter().filter_map(|v| v.previous))
             .collect();
         if let Some(pool) = &self.pool {
-            while let Some(done) = pool.try_recv() {
+            // On the frame clock (a visual run) the tiles submitted last frame are all waited for and taken in key
+            // order, so what a frame shows never depends on the workers' timing.
+            let mut waited = Vec::new();
+            if crate::clock::on_frame_clock() {
+                loop {
+                    while let Some(done) = pool.try_recv() {
+                        waited.push(done);
+                    }
+                    if pool.pending() == 0 {
+                        while let Some(done) = pool.try_recv() {
+                            waited.push(done);
+                        }
+                        break;
+                    }
+                    if let Some(done) = pool.recv_timeout(Duration::from_millis(20)) {
+                        waited.push(done);
+                    }
+                }
+                waited.sort_by_key(|d| d.key);
+            }
+            let mut waited = waited.into_iter();
+            while let Some(done) = waited.next().or_else(|| pool.try_recv()) {
                 rastered += 1;
                 // A tile of a scene no tab shows any more is dropped; a failed tile stays missing (its paper shows).
                 if !live.contains(&done.key.scene) {
@@ -1668,10 +1689,22 @@ impl CanvasHost {
         if keys.is_empty() && self.pool.is_none() {
             return;
         }
+        let frame_clock = crate::clock::on_frame_clock();
         let pool = self.pool.get_or_insert_with(|| {
             let ctx = ctx.clone();
-            TilePool::new(worker_count(), Arc::new(move || ctx.request_repaint()))
+            // On the frame clock no worker wakes the frame: the frame after a submission waits for its tiles.
+            TilePool::new(
+                worker_count(),
+                Arc::new(move || {
+                    if !frame_clock {
+                        ctx.request_repaint();
+                    }
+                }),
+            )
         });
+        if frame_clock && !keys.is_empty() {
+            ctx.request_repaint();
+        }
         self.counters.skipped_cached += cached;
         self.counters.requested_while_cached += keys.iter().filter(|k| self.cache.contains(k)).count() as u64;
         self.counters.tiles_requested += keys.len() as u64;

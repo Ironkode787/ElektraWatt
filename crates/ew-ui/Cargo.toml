@@ -46,6 +46,9 @@ tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 # Picks the regular face among the bundled fonts by its family name and weight (already in the graph through
 # ew-render-cpu).
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
+# WP-S6.13 part 4: a visual run's frame line carries its PNG's SHA-256 (the dev-dependency below, promoted; already
+# in the graph through ew-api, no new package).
+sha2 = { workspace = true }
 
 [dev-dependencies]
 # Interaction tests and the accessible-name walker, without rendering (no snapshot or wgpu feature: WP-S2.17 D7 would
@@ -54,8 +57,6 @@ egui_kittest = { version = "=0.37.0", default-features = false }
 # WP-S2.09 part 1: the window's running export is held at a gate (`ShellModel::set_job_gate_for_tests`, feature
 # `testkit`, dev-only by `ci/dep-rules.toml`); the normal edge above is the same package.
 ew-viewmodel = { path = "../ew-viewmodel", features = ["testkit"] }
-# WP-S2.17 part 1: the SemiBold face is pinned by SHA-256 in a unit test (ADR-0028 recommendation 6).
-sha2 = { workspace = true }
 # WP-S2.17 DL6: the snapshot gate reads its blessed PNG files (the version ew-render-cpu writes them with).
 png = "0.18.1"
 # The fresh temporary directory of the tests (FT-586; dev-only edge, `[allowed_dev_edges]`).

@@ -45,11 +45,17 @@ pub struct HeadlessArgs {
     /// `--keep-going`: a refused or failed step is written to the transcript and the run goes on (WP-S6.13 §5.5.1);
     /// the exit code is 1 when any step was not done or the script ends with unsaved changes.
     pub keep_going: bool,
+    /// `--visual` (WP-S6.13 part 4): the window's frame driven by mouse and key lines, see [`crate::visual`].
+    pub visual: bool,
+    /// `--frames <dir>`: where a visual run writes the frames its frame lines ask for.
+    pub frames: Option<PathBuf>,
+    /// `--no-frames`: a visual run lays out every frame and paints none (replay on every system).
+    pub no_frames: bool,
 }
 
 /// `view.snapshot`: the current page as a PNG at the given dpi through the page view's render path; and
 /// `canvas.snapshot`: the canvas pane as it shows it (WP-S2.02 section 6.6), always on the CPU path.
-struct Snapshot;
+pub(crate) struct Snapshot;
 
 impl StepExtension for Snapshot {
     fn handle(&mut self, shell: &mut ShellModel, action: &str, params: &Value) -> Option<Outcome> {
@@ -173,6 +179,9 @@ pub fn run(
     out: &mut dyn Write,
     err: &mut dyn Write,
 ) -> i32 {
+    if args.visual {
+        return crate::visual::run(config, args, stdin, out, err);
+    }
     if let Some(dir) = &args.config_dir {
         config = ShellConfig::in_dir(dir, &config.app_version);
     }

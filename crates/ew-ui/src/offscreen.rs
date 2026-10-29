@@ -83,6 +83,11 @@ impl Offscreen {
         }
     }
 
+    /// Frees one texture.
+    pub fn free(&mut self, id: egui::TextureId) {
+        self.renderer.free_texture(&id);
+    }
+
     /// Applies a frame's texture frees (after its shapes are painted).
     pub fn free_textures(&mut self, delta: &TexturesDelta) {
         // Freeing is independent per texture.

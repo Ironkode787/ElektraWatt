@@ -549,6 +549,8 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
     );
     h.event(egui::Event::PointerMoved(pos));
     let started = ew_render2d::stats::now();
+    // The rest is measured on egui's frame time (FT-570): the harness's steps, however long the machine takes.
+    let rest_from = h.ctx.input(|i| i.time);
     while h.state().shell().link_preview().is_none() && started.elapsed() < Duration::from_secs(5) {
         h.run_ok();
         std::thread::sleep(Duration::from_millis(25));
@@ -561,8 +563,8 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
         .expect("the rest showed the link preview");
     assert_eq!(lp.target, target);
     assert!(
-        started.elapsed() >= Duration::from_millis(300),
-        "not before 300 ms of rest"
+        h.ctx.input(|i| i.time) - rest_from >= 0.3,
+        "not before 300 ms of rest on the frame clock"
     );
     let after = h.state().shell().session_calls();
     assert_eq!(after.page_content, calls.page_content + 1, "the target page once");

@@ -244,6 +244,12 @@ impl PageView {
     }
 
     fn spawn(&mut self, ctx: &egui::Context, tag: Tag, pages: Arc<ExportPages>) {
+        // On the frame clock (a visual run) the image is rendered in the frame that asks for it.
+        if crate::clock::on_frame_clock() {
+            let image = render_page(&pages, tag.dpi);
+            let _ = self.tx.send(Done { tag, image });
+            return;
+        }
         let tx = self.tx.clone();
         let worker = self.worker.get_or_insert_with(|| {
             LatestWorker::new(move |request: Request| {
