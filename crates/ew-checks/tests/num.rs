@@ -38,27 +38,40 @@ fn rule_value() -> String {
 }
 
 #[test]
-fn num001_reports_a_frozen_tag_that_deviates() {
+fn num001_cases() {
     let rule = rule_value();
     assert_ne!(rule, "S51", "the fixture must not derive the frozen text");
-    let m = drawn(Some("S51"));
-    let f = findings_of(&m, "EW-NUM-001");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "017101");
-    assert_eq!(f[0].severity, Severity::Info);
-    assert_eq!(f[0].discriminator, "frozen");
-    assert_eq!(f[0].targets.len(), 1);
-    assert_eq!(
-        (f[0].targets[0].kind, f[0].targets[0].id),
-        (Kind::Device, uid(DEV))
+    let equal = drawn(Some(&rule));
+    rule_table(
+        "EW-NUM-001",
+        vec![
+            Case::reports(
+                "a frozen tag that deviates is reported",
+                drawn(Some("S51")),
+                move |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "017101", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Info, "case {c}");
+                    assert_eq!(f[0].discriminator, "frozen", "case {c}");
+                    assert_eq!(f[0].targets.len(), 1, "case {c}");
+                    assert_eq!(
+                        (f[0].targets[0].kind, f[0].targets[0].id),
+                        (Kind::Device, uid(DEV)),
+                        "case {c}"
+                    );
+                    assert!(
+                        f[0].message.contains("frozen, deviates from scheme"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                    assert!(f[0].message.starts_with("S51"), "case {c}: {}", f[0].message);
+                    assert!(f[0].message.contains(&rule), "case {c}: {}", f[0].message);
+                },
+            ),
+            Case::silent("a frozen tag equal to the rule value", equal),
+            Case::silent("a device without frozen tag", drawn(None)),
+        ],
     );
-    assert!(
-        f[0].message.contains("frozen, deviates from scheme"),
-        "{}",
-        f[0].message
-    );
-    assert!(f[0].message.starts_with("S51"), "{}", f[0].message);
-    assert!(f[0].message.contains(&rule), "{}", f[0].message);
 }
 
 #[test]
@@ -72,16 +85,4 @@ fn num001_stays_info_in_release_mode() {
         .collect();
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].severity, Severity::Info);
-}
-
-#[test]
-fn num001_a_frozen_tag_equal_to_the_rule_value_has_no_finding() {
-    let rule = rule_value();
-    let m = drawn(Some(&rule));
-    assert!(findings_of(&m, "EW-NUM-001").is_empty());
-}
-
-#[test]
-fn num001_a_device_without_frozen_tag_has_no_finding() {
-    assert!(findings_of(&drawn(None), "EW-NUM-001").is_empty());
 }

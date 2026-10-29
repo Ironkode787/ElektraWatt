@@ -12,46 +12,45 @@ use ew_derive::ew_schema::Kind;
 use serde_json::json;
 
 #[test]
-fn rds004_reports_a_designation_printed_twice() {
-    let mut fx = Fx::base();
-    fx.drawn_device(0x101, "K", Some(1), P1);
-    fx.drawn_device(0x102, "K", Some(1), P1);
-    fx.drawn_device(0x103, "K", Some(2), P1);
-    let f = findings_of(&fx.build(), "EW-RDS-004");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "017004");
-    assert_eq!(f[0].severity, Severity::Error);
-    assert_eq!(f[0].discriminator, "");
-    assert_eq!(
-        f[0].targets.iter().map(|t| (t.kind, t.id)).collect::<Vec<_>>(),
-        vec![(Kind::Device, uid(0x101)), (Kind::Device, uid(0x102))]
-    );
-    assert!(
-        f[0].message.ends_with("is printed by 2 devices"),
-        "{}",
-        f[0].message
-    );
-    assert!(f[0].subject.contains("K1"), "{}", f[0].subject);
-}
-
-#[test]
-fn rds004_distinct_designations_have_no_finding() {
-    let mut fx = Fx::base();
-    fx.drawn_device(0x101, "K", Some(1), P1);
-    fx.drawn_device(0x102, "K", Some(2), P1);
-    fx.drawn_device(0x103, "Q", Some(1), P1);
+fn rds004_cases() {
+    let mut printed_twice = Fx::base();
+    printed_twice.drawn_device(0x101, "K", Some(1), P1);
+    printed_twice.drawn_device(0x102, "K", Some(1), P1);
+    printed_twice.drawn_device(0x103, "K", Some(2), P1);
+    let mut distinct = Fx::base();
+    distinct.drawn_device(0x101, "K", Some(1), P1);
+    distinct.drawn_device(0x102, "K", Some(2), P1);
+    distinct.drawn_device(0x103, "Q", Some(1), P1);
     // The same letter and counter on another page is another designation (`-2K1`).
-    fx.drawn_device(0x104, "K", Some(1), P2);
-    assert!(findings_of(&fx.build(), "EW-RDS-004").is_empty());
-}
-
-#[test]
-fn rds004_skips_unnumbered_designations() {
+    distinct.drawn_device(0x104, "K", Some(1), P2);
+    let mut unnumbered = Fx::base();
     // Two devices that are still waiting for a number print "-1K?": EW-IMP-122, not a duplicate.
-    let mut fx = Fx::base();
-    fx.drawn_device(0x101, "K", None, P1);
-    fx.drawn_device(0x102, "K", None, P1);
-    assert!(findings_of(&fx.build(), "EW-RDS-004").is_empty());
+    unnumbered.drawn_device(0x101, "K", None, P1);
+    unnumbered.drawn_device(0x102, "K", None, P1);
+    rule_table(
+        "EW-RDS-004",
+        vec![
+            Case::reports("a designation printed twice", printed_twice.build(), |c, f| {
+                assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                assert_eq!(f[0].code, "017004", "case {c}");
+                assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                assert_eq!(f[0].discriminator, "", "case {c}");
+                assert_eq!(
+                    f[0].targets.iter().map(|t| (t.kind, t.id)).collect::<Vec<_>>(),
+                    vec![(Kind::Device, uid(0x101)), (Kind::Device, uid(0x102))],
+                    "case {c}"
+                );
+                assert!(
+                    f[0].message.ends_with("is printed by 2 devices"),
+                    "case {c}: {}",
+                    f[0].message
+                );
+                assert!(f[0].subject.contains("K1"), "case {c}: {}", f[0].subject);
+            }),
+            Case::silent("distinct designations", distinct.build()),
+            Case::silent("unnumbered designations are skipped", unnumbered.build()),
+        ],
+    );
 }
 
 #[test]

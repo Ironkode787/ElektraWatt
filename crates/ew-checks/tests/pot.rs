@@ -343,53 +343,67 @@ fn two_junctions(seq1: &[u128], seq2: &[u128]) -> Model {
 }
 
 #[test]
-fn pot011_reports_an_ambiguous_junction_feed() {
-    let m = two_junctions(&[0x2001, 0x2002], &[0x2001, 0x2003]);
-    let f = findings_of(&m, "EW-POT-011");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005011");
-    assert_eq!(f[0].severity, Severity::Warning);
-    // A potential without a definition targets every member function, whatever their ID order.
-    assert_eq!(
-        f[0].targets,
-        vec![target(Kind::Function, 0x1001), target(Kind::Function, 0x1002)]
+fn pot011_cases() {
+    rule_table(
+        "EW-POT-011",
+        vec![
+            Case::reports(
+                "an ambiguous junction feed is reported",
+                two_junctions(&[0x2001, 0x2002], &[0x2001, 0x2003]),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005011", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Warning, "case {c}");
+                    // A potential without a definition targets every member function, whatever their ID order.
+                    assert_eq!(
+                        f[0].targets,
+                        vec![target(Kind::Function, 0x1001), target(Kind::Function, 0x1002)],
+                        "case {c}"
+                    );
+                    assert!(!f[0].discriminator.is_empty(), "case {c}");
+                    assert!(!f[0].message.is_empty(), "case {c}");
+                },
+            ),
+            Case::silent(
+                "a consistent junction tree is silent",
+                two_junctions(&[0x2002, 0x2001], &[0x2001, 0x2003]),
+            ),
+        ],
     );
-    assert!(!f[0].discriminator.is_empty());
-    assert!(!f[0].message.is_empty());
 }
 
 #[test]
-fn pot011_a_consistent_junction_tree_is_silent() {
-    let m = two_junctions(&[0x2002, 0x2001], &[0x2001, 0x2003]);
-    assert!(findings_of(&m, "EW-POT-011").is_empty());
-}
-
-#[test]
-fn pot012_reports_a_ring_by_its_broken_connection() {
-    let mut fx = Fx::base();
+fn pot012_cases() {
+    let mut ring_fx = Fx::base();
     for f in [0x1001, 0x1002, 0x1003] {
-        fx.func(f, P1);
+        ring_fx.func(f, P1);
     }
-    fx.conn(0x2002, P1, cp(0x1001), cp(0x1002), &none());
-    fx.conn(0x2003, P1, cp(0x1002), cp(0x1003), &none());
-    fx.conn(0x2001, P1, cp(0x1003), cp(0x1001), &none());
-    let f = findings_of(&fx.build(), "EW-POT-012");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005012");
-    assert_eq!(f[0].severity, Severity::Warning);
-    // The highest connection of the ring forms no wire; its ID is the discriminator.
-    assert_eq!(f[0].discriminator, us(0x2003));
-}
-
-#[test]
-fn pot012_a_chain_has_no_ring() {
-    let mut fx = Fx::base();
+    ring_fx.conn(0x2002, P1, cp(0x1001), cp(0x1002), &none());
+    ring_fx.conn(0x2003, P1, cp(0x1002), cp(0x1003), &none());
+    ring_fx.conn(0x2001, P1, cp(0x1003), cp(0x1001), &none());
+    let mut chain_fx = Fx::base();
     for f in [0x1001, 0x1002, 0x1003] {
-        fx.func(f, P1);
+        chain_fx.func(f, P1);
     }
-    fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
-    fx.conn(0x2002, P1, cp(0x1002), cp(0x1003), &none());
-    assert!(findings_of(&fx.build(), "EW-POT-012").is_empty());
+    chain_fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
+    chain_fx.conn(0x2002, P1, cp(0x1002), cp(0x1003), &none());
+    rule_table(
+        "EW-POT-012",
+        vec![
+            Case::reports(
+                "a ring is reported by its broken connection",
+                ring_fx.build(),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005012", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Warning, "case {c}");
+                    // The highest connection of the ring forms no wire; its ID is the discriminator.
+                    assert_eq!(f[0].discriminator, us(0x2003), "case {c}");
+                },
+            ),
+            Case::silent("a chain has no ring", chain_fx.build()),
+        ],
+    );
 }
 
 /// A cable with the conductors 0x6101 and 0x6102 and an interruption-point pair joining the functions
@@ -437,16 +451,30 @@ fn conflict_fixture_bonded(core1: u128, core2: u128, bonded: bool) -> Model {
 }
 
 #[test]
-fn pot014_reports_constituents_that_name_different_conductors() {
-    let f = findings_of(&conflict_fixture(0x6101, 0x6102), "EW-POT-014");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005014");
-    assert_eq!(f[0].severity, Severity::Error);
-    // The wire is carried by the connection at the target point; its ID is the discriminator.
-    assert_eq!(f[0].discriminator, us(0x2002));
-    // Every member function: the two functions and the two interruption points.
-    assert_eq!(f[0].targets.len(), 4);
-    assert!(f[0].targets.iter().all(|t| t.kind == Kind::Function));
+fn pot014_cases() {
+    rule_table(
+        "EW-POT-014",
+        vec![
+            Case::reports(
+                "constituents that name different conductors are reported",
+                conflict_fixture(0x6101, 0x6102),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005014", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                    // The wire is carried by the connection at the target point; its ID is the discriminator.
+                    assert_eq!(f[0].discriminator, us(0x2002), "case {c}");
+                    // Every member function: the two functions and the two interruption points.
+                    assert_eq!(f[0].targets.len(), 4, "case {c}");
+                    assert!(f[0].targets.iter().all(|t| t.kind == Kind::Function), "case {c}");
+                },
+            ),
+            Case::silent(
+                "agreeing constituents are silent",
+                conflict_fixture(0x6102, 0x6102),
+            ),
+        ],
+    );
 }
 
 #[test]
@@ -465,11 +493,6 @@ fn ft188_a_wire_note_in_a_bond_closure_is_reported_once() {
     assert_eq!(f[0].discriminator, us(0x2002));
 }
 
-#[test]
-fn pot014_agreeing_constituents_are_silent() {
-    assert!(findings_of(&conflict_fixture(0x6102, 0x6102), "EW-POT-014").is_empty());
-}
-
 /// The second own location of [`rail_model`]'s two-location project.
 const LOC2: u128 = 0x901;
 
@@ -486,23 +509,34 @@ fn rail_model(location: Option<u128>, pe: Option<u128>, two_locations: bool) -> 
     fx.build()
 }
 
-/// Amended by cycle 33 (G-PP ruling #20): the warning stays in a project with two or more own locations.
 #[test]
-fn pot008_reports_a_rail_bonded_terminal_without_a_location() {
-    let m = rail_model(None, Some(0x1001), true);
-    let f = findings_of(&m, "EW-POT-008");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005008");
-    assert_eq!(f[0].severity, Severity::Warning);
-    assert_eq!(f[0].targets, vec![target(Kind::Device, 0x4001)]);
-    assert!(f[0].message.contains("no location"), "{}", f[0].message);
-    assert!(f[0].message.contains("2 own locations"), "{}", f[0].message);
-}
-
-#[test]
-fn pot008_a_located_terminal_has_no_finding() {
-    let m = rail_model(Some(LOC), Some(0x1001), true);
-    assert!(findings_of(&m, "EW-POT-008").is_empty());
+fn pot008_location_cases() {
+    rule_table(
+        "EW-POT-008",
+        vec![
+            // Amended by cycle 33 (G-PP ruling #20): the warning stays in a project with two or more own locations.
+            Case::reports(
+                "a rail-bonded terminal without a location is reported",
+                rail_model(None, Some(0x1001), true),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005008", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Warning, "case {c}");
+                    assert_eq!(f[0].targets, vec![target(Kind::Device, 0x4001)], "case {c}");
+                    assert!(f[0].message.contains("no location"), "case {c}: {}", f[0].message);
+                    assert!(
+                        f[0].message.contains("2 own locations"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                },
+            ),
+            Case::silent(
+                "a located terminal has no finding",
+                rail_model(Some(LOC), Some(0x1001), true),
+            ),
+        ],
+    );
 }
 
 /// Cycle 33 (G-PP ruling #20), the -X1032:1-4 case of the G-PP run: in a project with one own location (an
@@ -569,49 +603,62 @@ fn pelv_m() -> Value {
 }
 
 #[test]
-fn pot002_reports_a_pelv_potential_without_a_bond() {
-    let f = findings_of(&bonded(&pelv_m(), 0), "EW-POT-002");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "005002");
-    assert_eq!(f[0].severity, Severity::Error);
-    assert_eq!(f[0].discriminator, "pelv");
-    assert_eq!(f[0].targets, vec![target(Kind::PotentialDef, 0x5001)]);
-    assert!(f[0].message.contains("no 0 V–PE bond"), "{}", f[0].message);
-}
-
-#[test]
-fn pot002_a_pelv_potential_with_one_bond_has_no_finding() {
-    assert!(findings_of(&bonded(&pelv_m(), 1), "EW-POT-002").is_empty());
-}
-
-#[test]
-fn pot002_reports_a_pelv_potential_with_two_bonds() {
-    let f = findings_of(&bonded(&pelv_m(), 2), "EW-POT-002");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].discriminator, "pelv");
-    assert!(f[0].message.contains("has 2 0 V–PE bonds"), "{}", f[0].message);
-    let bonds = f[0].targets.iter().filter(|t| t.kind == Kind::Bond).count();
-    assert_eq!(bonds, 2, "{:?}", f[0].targets);
-}
-
-#[test]
-fn pot002_reports_a_bonded_selv_potential() {
-    let m = bonded(&json!({"ptype": "m", "env": {"earthing": "selv"}}), 1);
-    let f = findings_of(&m, "EW-POT-002");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].severity, Severity::Error);
-    assert_eq!(f[0].discriminator, "selv");
-    assert!(
-        f[0].targets.contains(&target(Kind::Bond, 0x4001)),
-        "{:?}",
-        f[0].targets
+fn pot002_cases() {
+    rule_table(
+        "EW-POT-002",
+        vec![
+            Case::reports(
+                "a pelv potential without a bond is reported",
+                bonded(&pelv_m(), 0),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "005002", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                    assert_eq!(f[0].discriminator, "pelv", "case {c}");
+                    assert_eq!(f[0].targets, vec![target(Kind::PotentialDef, 0x5001)], "case {c}");
+                    assert!(
+                        f[0].message.contains("no 0 V–PE bond"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                },
+            ),
+            Case::silent("a pelv potential with one bond", bonded(&pelv_m(), 1)),
+            Case::reports(
+                "a pelv potential with two bonds is reported",
+                bonded(&pelv_m(), 2),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].discriminator, "pelv", "case {c}");
+                    assert!(
+                        f[0].message.contains("has 2 0 V–PE bonds"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                    let bonds = f[0].targets.iter().filter(|t| t.kind == Kind::Bond).count();
+                    assert_eq!(bonds, 2, "case {c}: {:?}", f[0].targets);
+                },
+            ),
+            Case::reports(
+                "a bonded selv potential is reported",
+                bonded(&json!({"ptype": "m", "env": {"earthing": "selv"}}), 1),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                    assert_eq!(f[0].discriminator, "selv", "case {c}");
+                    assert!(
+                        f[0].targets.contains(&target(Kind::Bond, 0x4001)),
+                        "case {c}: {:?}",
+                        f[0].targets
+                    );
+                },
+            ),
+            Case::silent(
+                "a pelv potential that is not M type",
+                bonded(&json!({"ptype": "l_plus", "env": {"earthing": "pelv"}}), 0),
+            ),
+        ],
     );
-}
-
-#[test]
-fn pot002_a_pelv_potential_that_is_not_m_type_has_no_finding() {
-    let m = bonded(&json!({"ptype": "l_plus", "env": {"earthing": "pelv"}}), 0);
-    assert!(findings_of(&m, "EW-POT-002").is_empty());
 }
 
 // ---------------------------------------------------------------------------------------------------------

@@ -23,30 +23,89 @@ fn three_terminals(d: [&str; 3]) -> Vec<ew_derive::ew_schema::Record> {
 }
 
 #[test]
-fn term002_reports_one_finding_per_duplicated_designation() {
-    let m = model(three_terminals(["1", "2", "2"]));
-    let q = Q::new(&m);
-    let report = run(&q, &PRE_DELIVERY, CheckMode::Release);
+fn term002_cases() {
+    let duplicated = model(three_terminals(["1", "2", "2"]));
+    let duplicated_run = model(three_terminals(["1", "2", "2"]));
+    let clean = model(three_terminals(["1", "2", "3"]));
+    let clean_run = model(three_terminals(["1", "2", "3"]));
+    let clean_term001 = model(three_terminals(["1", "2", "3"]));
+    rule_table(
+        "EW-TERM-002",
+        vec![
+            // One finding per duplicated designation, with both terminals as targets.
+            Case::reports("a designation duplicated in one strip", duplicated, |c, f| {
+                assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                assert_eq!(f[0].targets.len(), 2, "case {c}");
+                assert_eq!(f[0].code, "001002", "case {c}");
+                assert!(
+                    f[0].message.contains("designation 2"),
+                    "case {c}: {}",
+                    f[0].message
+                );
+            }),
+            Case::silent("a clean strip", clean),
+        ],
+    );
+    // The pre-delivery release run of the duplicated strip: the finding and the exit code.
+    let report = run(&Q::new(&duplicated_run), &PRE_DELIVERY, CheckMode::Release);
     let term: Vec<_> = report
         .findings
         .iter()
         .filter(|f| f.rule == "EW-TERM-002")
         .collect();
-    assert_eq!(term.len(), 1, "{:#?}", report.findings);
-    assert_eq!(term[0].targets.len(), 2);
-    assert_eq!(term[0].code, "001002");
-    assert!(term[0].message.contains("designation 2"), "{}", term[0].message);
-    assert_eq!(report.counts.errors, 1);
-    assert_eq!(report.exit_code(), 1);
-}
-
-#[test]
-fn term002_clean_strip_has_no_finding() {
-    let m = model(three_terminals(["1", "2", "3"]));
-    let q = Q::new(&m);
-    let report = run(&q, &MIGRATION, CheckMode::Release);
-    assert!(report.findings.iter().all(|f| f.rule != "EW-TERM-002"));
-    assert!(report.rules.iter().any(|r| r.id == "EW-TERM-002"));
+    assert_eq!(
+        term.len(),
+        1,
+        "case a designation duplicated in one strip: {:#?}",
+        report.findings
+    );
+    assert_eq!(
+        term[0].targets.len(),
+        2,
+        "case a designation duplicated in one strip"
+    );
+    assert_eq!(
+        term[0].code, "001002",
+        "case a designation duplicated in one strip"
+    );
+    assert!(
+        term[0].message.contains("designation 2"),
+        "case a designation duplicated in one strip: {}",
+        term[0].message
+    );
+    assert_eq!(
+        report.counts.errors, 1,
+        "case a designation duplicated in one strip"
+    );
+    assert_eq!(
+        report.exit_code(),
+        1,
+        "case a designation duplicated in one strip"
+    );
+    // The migration release run of a clean strip.
+    let report = run(&Q::new(&clean_run), &MIGRATION, CheckMode::Release);
+    assert!(
+        report.findings.iter().all(|f| f.rule != "EW-TERM-002"),
+        "case a clean strip (migration run)"
+    );
+    assert!(
+        report.rules.iter().any(|r| r.id == "EW-TERM-002"),
+        "case a clean strip (migration run)"
+    );
+    rule_table(
+        "EW-TERM-001",
+        vec![
+            // `Ident` cannot be empty, so no snapshot can hold an undesignated terminal; the rule runs and is
+            // silent, and it is registered for lenient data and the catalogue.
+            Case::silent("a clean strip", clean_term001),
+        ],
+    );
+    let meta = ew_checks::rule("EW-TERM-001").expect("registered").meta();
+    assert_eq!(meta.code, "001001", "case a clean strip (EW-TERM-001 meta)");
+    assert!(
+        meta.modes.prevent && meta.modes.online && meta.modes.release,
+        "case a clean strip (EW-TERM-001 meta)"
+    );
 }
 
 #[test]
@@ -79,62 +138,75 @@ fn term002_fingerprint_is_stable_across_renaming_the_strip() {
     assert_eq!(fp(&a), fp(&b));
 }
 
-#[test]
-fn term002_prevent_refuses_a_new_duplicate() {
-    let before = model(three_terminals(["1", "2", "3"]));
-    let after = model(three_terminals(["1", "2", "2"]));
-    let v = prevent(&Q::new(&before), &Q::new(&after), &[dev_key(0x103)]);
-    assert_eq!(v.len(), 1, "{v:#?}");
-    assert_eq!(v[0].rule, "EW-TERM-002");
-    assert!(v[0].message.contains("taken"), "{}", v[0].message);
-    assert!(v[0].message.contains("use 3"), "{}", v[0].message);
-    assert!(v[0].message.contains("swap 3"), "{}", v[0].message);
-}
+/// The prevent check of EW-TERM-002 over plain before/after drawings: a plain table, since `prevent` is not
+/// `findings_of`. Each row is (case name, before, after, touched keys, check of the violations).
+/// One row of [`term002_prevent_cases`]: the name, the drawing before and after, the touched keys, the check.
+type PreventRow = (
+    &'static str,
+    ew_model::Model,
+    ew_model::Model,
+    Vec<(ew_derive::ew_schema::Kind, ew_derive::ew_schema::AnyId)>,
+    fn(&str, &[ew_checks::Finding]),
+);
 
 #[test]
-fn term002_prevent_accepts_a_swap() {
-    let before = model(three_terminals(["1", "2", "3"]));
-    let after = model(three_terminals(["1", "3", "2"]));
-    let v = prevent(
-        &Q::new(&before),
-        &Q::new(&after),
-        &[dev_key(0x102), dev_key(0x103)],
-    );
-    assert!(v.is_empty(), "{v:#?}");
-}
-
-#[test]
-fn term002_prevent_ignores_an_existing_duplicate_left_alone() {
-    // A lenient import committed "2" twice; editing the third terminal leaves the duplicate alone.
-    let before = model(three_terminals(["1", "2", "2"]));
-    let after = model(three_terminals(["9", "2", "2"]));
-    let v = prevent(&Q::new(&before), &Q::new(&after), &[dev_key(0x101)]);
-    assert!(v.is_empty(), "{v:#?}");
-    // Touching a member without changing its designation is not a new violation either.
-    let v = prevent(&Q::new(&before), &Q::new(&before), &[dev_key(0x102)]);
-    assert!(v.is_empty(), "{v:#?}");
-}
-
-#[test]
-fn term002_prevent_refuses_a_new_terminal_with_a_taken_designation() {
-    let before = model(three_terminals(["1", "2", "3"]));
-    let mut records = three_terminals(["1", "2", "3"]);
-    records.push(terminal(0x104, STRIP, 4, "1"));
-    let after = model(records);
-    let v = prevent(&Q::new(&before), &Q::new(&after), &[dev_key(0x104)]);
-    assert_eq!(v.len(), 1);
-    assert_eq!(v[0].targets.len(), 2);
-}
-
-#[test]
-fn term001_clean_strip_has_no_finding() {
-    // `Ident` cannot be empty, so no snapshot can hold an undesignated terminal; the rule runs and is
-    // silent, and it is registered for lenient data and the catalogue.
-    let m = model(three_terminals(["1", "2", "3"]));
-    assert!(findings_of(&m, "EW-TERM-001").is_empty());
-    let meta = ew_checks::rule("EW-TERM-001").expect("registered").meta();
-    assert_eq!(meta.code, "001001");
-    assert!(meta.modes.prevent && meta.modes.online && meta.modes.release);
+fn term002_prevent_cases() {
+    let cases: [PreventRow; 5] = [
+        (
+            "a new duplicate is refused",
+            model(three_terminals(["1", "2", "3"])),
+            model(three_terminals(["1", "2", "2"])),
+            vec![dev_key(0x103)],
+            |c, v| {
+                assert_eq!(v.len(), 1, "case {c}: {v:#?}");
+                assert_eq!(v[0].rule, "EW-TERM-002", "case {c}");
+                assert!(v[0].message.contains("taken"), "case {c}: {}", v[0].message);
+                assert!(v[0].message.contains("use 3"), "case {c}: {}", v[0].message);
+                assert!(v[0].message.contains("swap 3"), "case {c}: {}", v[0].message);
+            },
+        ),
+        (
+            "a swap is accepted",
+            model(three_terminals(["1", "2", "3"])),
+            model(three_terminals(["1", "3", "2"])),
+            vec![dev_key(0x102), dev_key(0x103)],
+            |c, v| assert!(v.is_empty(), "case {c}: {v:#?}"),
+        ),
+        // A lenient import committed "2" twice; editing the third terminal leaves the duplicate alone.
+        (
+            "an existing duplicate left alone",
+            model(three_terminals(["1", "2", "2"])),
+            model(three_terminals(["9", "2", "2"])),
+            vec![dev_key(0x101)],
+            |c, v| assert!(v.is_empty(), "case {c}: {v:#?}"),
+        ),
+        // Touching a member without changing its designation is not a new violation either.
+        (
+            "a member touched without a designation change",
+            model(three_terminals(["1", "2", "2"])),
+            model(three_terminals(["1", "2", "2"])),
+            vec![dev_key(0x102)],
+            |c, v| assert!(v.is_empty(), "case {c}: {v:#?}"),
+        ),
+        (
+            "a new terminal with a taken designation is refused",
+            model(three_terminals(["1", "2", "3"])),
+            {
+                let mut taken_records = three_terminals(["1", "2", "3"]);
+                taken_records.push(terminal(0x104, STRIP, 4, "1"));
+                model(taken_records)
+            },
+            vec![dev_key(0x104)],
+            |c, v| {
+                assert_eq!(v.len(), 1, "case {c}");
+                assert_eq!(v[0].targets.len(), 2, "case {c}");
+            },
+        ),
+    ];
+    for (name, before, after, touched, check) in cases {
+        let v = prevent(&Q::new(&before), &Q::new(&after), &touched);
+        check(name, &v);
+    }
 }
 
 /// A strip with a rail-bonded terminal; `pe` gives it a function with a PE CP, `bonded` the flag.
@@ -154,21 +226,26 @@ fn rail_strip(pe: bool, bonded: bool) -> ew_model::Model {
 }
 
 #[test]
-fn term005_reports_a_rail_bonded_terminal_without_a_pe_cp() {
-    let f = findings_of(&rail_strip(false, true), "EW-TERM-005");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "001005");
-    assert_eq!(f[0].severity, ew_checks::Severity::Error);
-    assert_eq!(f[0].discriminator, "");
-    assert_eq!(f[0].targets.len(), 1);
-    assert_eq!(f[0].targets[0].id, uid(0x4001));
-    assert!(f[0].message.contains("no PE CP"), "{}", f[0].message);
-}
-
-#[test]
-fn term005_a_terminal_with_a_pe_cp_or_without_the_flag_has_no_finding() {
-    assert!(findings_of(&rail_strip(true, true), "EW-TERM-005").is_empty());
-    assert!(findings_of(&rail_strip(false, false), "EW-TERM-005").is_empty());
+fn term005_cases() {
+    let without_pe = rail_strip(false, true);
+    let with_pe = rail_strip(true, true);
+    let unflagged = rail_strip(false, false);
+    rule_table(
+        "EW-TERM-005",
+        vec![
+            Case::reports("a rail-bonded terminal without a PE CP", without_pe, |c, f| {
+                assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                assert_eq!(f[0].code, "001005", "case {c}");
+                assert_eq!(f[0].severity, ew_checks::Severity::Error, "case {c}");
+                assert_eq!(f[0].discriminator, "", "case {c}");
+                assert_eq!(f[0].targets.len(), 1, "case {c}");
+                assert_eq!(f[0].targets[0].id, uid(0x4001), "case {c}");
+                assert!(f[0].message.contains("no PE CP"), "case {c}: {}", f[0].message);
+            }),
+            Case::silent("a terminal with a PE CP", with_pe),
+            Case::silent("a terminal without the rail-bonded flag", unflagged),
+        ],
+    );
 }
 
 #[test]

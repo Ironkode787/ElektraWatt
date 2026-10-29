@@ -23,35 +23,34 @@ fn cable(length: Option<&str>) -> Fx {
 }
 
 #[test]
-fn core033_reports_a_cable_without_length() {
-    let f = findings_of(&cable(None).build(), "EW-CORE-033");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "003033");
-    assert_eq!(f[0].severity, Severity::Error);
-    assert_eq!(f[0].discriminator, "");
-    assert_eq!(f[0].targets.len(), 1);
-    assert_eq!(
-        (f[0].targets[0].kind, f[0].targets[0].id),
-        (Kind::Device, uid(0x6000))
+fn core033_cases() {
+    let mut no_cables = Fx::new();
+    no_cables.device(0x101, "K", Some(1));
+    rule_table(
+        "EW-CORE-033",
+        vec![
+            Case::reports("a cable without length", cable(None).build(), |c, f| {
+                assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                assert_eq!(f[0].code, "003033", "case {c}");
+                assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                assert_eq!(f[0].discriminator, "", "case {c}");
+                assert_eq!(f[0].targets.len(), 1, "case {c}");
+                assert_eq!(
+                    (f[0].targets[0].kind, f[0].targets[0].id),
+                    (Kind::Device, uid(0x6000)),
+                    "case {c}"
+                );
+                assert!(
+                    f[0].message.ends_with("has no routed, manual or part length"),
+                    "case {c}: {}",
+                    f[0].message
+                );
+                assert!(f[0].subject.contains("W1"), "case {c}: {}", f[0].subject);
+            }),
+            Case::silent("a cable with a part length", cable(Some("from_part")).build()),
+            Case::silent("a model without cables", no_cables.build()),
+        ],
     );
-    assert!(
-        f[0].message.ends_with("has no routed, manual or part length"),
-        "{}",
-        f[0].message
-    );
-    assert!(f[0].subject.contains("W1"), "{}", f[0].subject);
-}
-
-#[test]
-fn core033_a_cable_with_a_part_length_has_no_finding() {
-    assert!(findings_of(&cable(Some("from_part")).build(), "EW-CORE-033").is_empty());
-}
-
-#[test]
-fn core033_a_model_without_cables_has_no_finding() {
-    let mut fx = Fx::new();
-    fx.device(0x101, "K", Some(1));
-    assert!(findings_of(&fx.build(), "EW-CORE-033").is_empty());
 }
 
 /// EW-CORE-047: a device whose only function has no representation is a warning (an error in release mode); a
@@ -121,85 +120,115 @@ fn lonely_ip() -> Fx {
 }
 
 #[test]
-fn core051_reports_an_interruption_point_without_a_partner() {
-    let f = findings_of(&lonely_ip().build(), "EW-CORE-051");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "103051");
-    assert_eq!(f[0].severity, Severity::Error);
-    // The point's function is the target; the discriminator holds no name (doc 15 §2.5).
-    assert_eq!(f[0].targets.len(), 1);
-    assert_eq!(
-        (f[0].targets[0].kind, f[0].targets[0].id),
-        (Kind::Function, uid(0x1101))
+fn core051_cases() {
+    let mut no_cp = Fx::base();
+    no_cp.ip_without_cp(0x1101, P1, "NOCP", "source");
+    let mut pair = Fx::base();
+    pair.func(0x1001, P1);
+    pair.func(0x1002, P2);
+    pair.ip(0x1101, P1, "X", "source");
+    pair.ip(0x1102, P2, "X", "target");
+    pair.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
+    pair.conn(0x2002, P2, cp(0x1102), cp(0x1002), &Value::Null);
+    rule_table(
+        "EW-CORE-051",
+        vec![
+            Case::reports(
+                "an interruption point without a partner",
+                lonely_ip().build(),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "103051", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Error, "case {c}");
+                    // The point's function is the target; the discriminator holds no name (doc 15 §2.5).
+                    assert_eq!(f[0].targets.len(), 1, "case {c}");
+                    assert_eq!(
+                        (f[0].targets[0].kind, f[0].targets[0].id),
+                        (Kind::Function, uid(0x1101)),
+                        "case {c}"
+                    );
+                    assert_eq!(f[0].discriminator, "unpaired", "case {c}");
+                    assert!(f[0].subject.contains("LONELY"), "case {c}: {}", f[0].subject);
+                    assert!(f[0].message.contains("no partner"), "case {c}: {}", f[0].message);
+                },
+            ),
+            Case::reports(
+                "an interruption point without a connection point",
+                no_cp.build(),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].targets.len(), 1, "case {c}");
+                    assert_eq!(f[0].targets[0].id, uid(0x1101), "case {c}");
+                    assert_eq!(f[0].discriminator, "no-cp", "case {c}");
+                    assert!(
+                        f[0].message.contains("no connection point"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                },
+            ),
+            Case::silent("a pair has no finding", pair.build()),
+        ],
     );
-    assert_eq!(f[0].discriminator, "unpaired");
-    assert!(f[0].subject.contains("LONELY"), "{}", f[0].subject);
-    assert!(f[0].message.contains("no partner"), "{}", f[0].message);
 }
 
 #[test]
-fn core051_reports_an_interruption_point_without_a_connection_point() {
-    let mut fx = Fx::base();
-    fx.ip_without_cp(0x1101, P1, "NOCP", "source");
-    let f = findings_of(&fx.build(), "EW-CORE-051");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].targets.len(), 1);
-    assert_eq!(f[0].targets[0].id, uid(0x1101));
-    assert_eq!(f[0].discriminator, "no-cp");
-    assert!(f[0].message.contains("no connection point"), "{}", f[0].message);
-}
-
-#[test]
-fn core051_a_pair_has_no_finding() {
-    let mut fx = Fx::base();
-    fx.func(0x1001, P1);
-    fx.func(0x1002, P2);
-    fx.ip(0x1101, P1, "X", "source");
-    fx.ip(0x1102, P2, "X", "target");
-    fx.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
-    fx.conn(0x2002, P2, cp(0x1102), cp(0x1002), &Value::Null);
-    assert!(findings_of(&fx.build(), "EW-CORE-051").is_empty());
-}
-
-#[test]
-fn core052_two_sources_without_a_star_flag_are_ambiguous_not_unpaired() {
+fn core052_cases() {
     // Two sources and no star flag: the derivation pairs from the smallest ID; EW-CORE-052 asks for the
     // decision, and no point is reported as unpaired (EW-CORE-051).
-    let mut fx = Fx::base();
+    let mut ambiguous_fx = Fx::base();
     for (f, page) in [(0x1001, P1), (0x1002, P2), (0x1003, P2)] {
-        fx.func(f, page);
+        ambiguous_fx.func(f, page);
     }
-    fx.ip(0x1101, P1, "X", "source");
-    fx.ip(0x1102, P2, "X", "source");
-    fx.ip(0x1103, P2, "X", "target");
-    fx.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
-    fx.conn(0x2002, P2, cp(0x1002), cp(0x1102), &Value::Null);
-    fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
-    let m = fx.build();
-    assert!(findings_of(&m, "EW-CORE-051").is_empty());
-    let f = findings_of(&m, "EW-CORE-052");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "103052");
-    assert_eq!(f[0].targets.len(), 3);
-    assert_eq!(f[0].discriminator, "star-source");
-    assert!(f[0].message.contains("source points"), "{}", f[0].message);
-}
-
-#[test]
-fn core052_one_source_is_not_ambiguous() {
-    let mut fx = Fx::base();
+    ambiguous_fx.ip(0x1101, P1, "X", "source");
+    ambiguous_fx.ip(0x1102, P2, "X", "source");
+    ambiguous_fx.ip(0x1103, P2, "X", "target");
+    ambiguous_fx.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
+    ambiguous_fx.conn(0x2002, P2, cp(0x1002), cp(0x1102), &Value::Null);
+    ambiguous_fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
+    let ambiguous = ambiguous_fx.build();
+    let ambiguous_unpaired = findings_of(&ambiguous, "EW-CORE-051");
+    let mut single_fx = Fx::base();
     for (f, page) in [(0x1001, P1), (0x1002, P2), (0x1003, P2)] {
-        fx.func(f, page);
+        single_fx.func(f, page);
     }
-    fx.ip(0x1101, P1, "X", "source");
-    fx.ip(0x1102, P2, "X", "target");
-    fx.ip(0x1103, P2, "X", "target");
-    fx.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
-    fx.conn(0x2002, P2, cp(0x1002), cp(0x1102), &Value::Null);
-    fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
-    let m = fx.build();
-    assert!(findings_of(&m, "EW-CORE-052").is_empty());
-    assert!(findings_of(&m, "EW-CORE-051").is_empty());
+    single_fx.ip(0x1101, P1, "X", "source");
+    single_fx.ip(0x1102, P2, "X", "target");
+    single_fx.ip(0x1103, P2, "X", "target");
+    single_fx.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
+    single_fx.conn(0x2002, P2, cp(0x1002), cp(0x1102), &Value::Null);
+    single_fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
+    let single = single_fx.build();
+    let single_unpaired = findings_of(&single, "EW-CORE-051");
+    rule_table(
+        "EW-CORE-052",
+        vec![
+            Case::reports(
+                "two sources without a star flag are ambiguous",
+                ambiguous,
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "103052", "case {c}");
+                    assert_eq!(f[0].targets.len(), 3, "case {c}");
+                    assert_eq!(f[0].discriminator, "star-source", "case {c}");
+                    assert!(
+                        f[0].message.contains("source points"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                },
+            ),
+            Case::silent("one source is not ambiguous", single),
+        ],
+    );
+    assert!(
+        ambiguous_unpaired.is_empty(),
+        "case two sources without a star flag: {ambiguous_unpaired:#?}"
+    );
+    assert!(
+        single_unpaired.is_empty(),
+        "case one source is not ambiguous: {single_unpaired:#?}"
+    );
 }
 
 #[test]
@@ -274,27 +303,39 @@ fn page_with_override(over: Option<Value>) -> ew_model::Model {
 }
 
 #[test]
-fn core023_reports_a_page_with_a_description_override() {
-    let m = page_with_override(Some(json!({"en": "Override"})));
-    let f = findings_of(&m, "EW-CORE-023");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].rule, "EW-CORE-023");
-    assert_eq!(f[0].code, "101023");
-    assert_eq!(f[0].severity, Severity::Info);
-    assert_eq!(f[0].discriminator, "description_override");
-    assert_eq!(f[0].targets.len(), 1);
-    assert_eq!((f[0].targets[0].kind, f[0].targets[0].id), (Kind::Page, uid(P1)));
-    assert!(f[0].message.contains("folio 1"), "{}", f[0].message);
-    assert!(f[0].message.contains("Override"), "{}", f[0].message);
-    let fix = f[0].fix.as_ref().expect("a quick fix");
-    assert_eq!(fix.command, "fields.set");
-    assert_eq!(fix.params["path"], json!("description_override"));
-    assert_eq!(fix.params["value"], Value::Null);
-}
-
-#[test]
-fn core023_a_page_without_override_has_no_finding() {
-    assert!(findings_of(&page_with_override(None), "EW-CORE-023").is_empty());
+fn core023_cases() {
+    rule_table(
+        "EW-CORE-023",
+        vec![
+            Case::reports(
+                "a page with a description override",
+                page_with_override(Some(json!({"en": "Override"}))),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].rule, "EW-CORE-023", "case {c}");
+                    assert_eq!(f[0].code, "101023", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Info, "case {c}");
+                    assert_eq!(f[0].discriminator, "description_override", "case {c}");
+                    assert_eq!(f[0].targets.len(), 1, "case {c}");
+                    assert_eq!(
+                        (f[0].targets[0].kind, f[0].targets[0].id),
+                        (Kind::Page, uid(P1)),
+                        "case {c}"
+                    );
+                    assert!(f[0].message.contains("folio 1"), "case {c}: {}", f[0].message);
+                    assert!(f[0].message.contains("Override"), "case {c}: {}", f[0].message);
+                    let fix = f[0]
+                        .fix
+                        .as_ref()
+                        .unwrap_or_else(|| panic!("case {c}: a quick fix"));
+                    assert_eq!(fix.command, "fields.set", "case {c}");
+                    assert_eq!(fix.params["path"], json!("description_override"), "case {c}");
+                    assert_eq!(fix.params["value"], Value::Null, "case {c}");
+                },
+            ),
+            Case::silent("a page without override", page_with_override(None)),
+        ],
+    );
 }
 
 // EW-CORE-053 cross-reference cell invalid.
@@ -361,27 +402,49 @@ fn main_and_aux_at(anchor: &str, graphics: bool, aux_x: i64, folio2: Option<u32>
 }
 
 #[test]
-fn core053_an_anchor_at_the_graphics_centre_has_no_finding() {
-    let m = main_and_aux("graphic_centre", true);
-    assert!(findings_of(&m, "EW-CORE-053").is_empty());
-}
-
-#[test]
-fn core053_an_origin_anchor_outside_the_graphics_is_an_empty_cell() {
-    let m = main_and_aux("origin", true);
-    let f = findings_of(&m, "EW-CORE-053");
-    assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].code, "103053");
-    assert_eq!(f[0].severity, Severity::Warning);
-    assert_eq!(f[0].discriminator, "");
-    assert_eq!(f[0].page.map(|p| p.to_string()), Some(us(P1)));
-    assert_eq!(f[0].targets.len(), 2);
-    assert_eq!(f[0].targets[0].kind, Kind::Representation);
-    assert!(f[0].message.contains(": empty cell"), "{}", f[0].message);
-    assert!(f[0].message.starts_with(&f[0].subject), "{}", f[0].message);
-    let fix = f[0].fix.as_ref().expect("a quick fix");
-    assert_eq!(fix.command, "rep.set_anchor_policy");
-    assert_eq!(fix.params["anchor"], json!("graphic_centre"));
+fn core053_cases() {
+    rule_table(
+        "EW-CORE-053",
+        vec![
+            Case::silent(
+                "an anchor at the graphics centre",
+                main_and_aux("graphic_centre", true),
+            ),
+            Case::reports(
+                "an origin anchor outside the graphics is an empty cell",
+                main_and_aux("origin", true),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert_eq!(f[0].code, "103053", "case {c}");
+                    assert_eq!(f[0].severity, Severity::Warning, "case {c}");
+                    assert_eq!(f[0].discriminator, "", "case {c}");
+                    assert_eq!(f[0].page.map(|p| p.to_string()), Some(us(P1)), "case {c}");
+                    assert_eq!(f[0].targets.len(), 2, "case {c}");
+                    assert_eq!(f[0].targets[0].kind, Kind::Representation, "case {c}");
+                    assert!(
+                        f[0].message.contains(": empty cell"),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                    assert!(
+                        f[0].message.starts_with(&f[0].subject),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                    let fix = f[0]
+                        .fix
+                        .as_ref()
+                        .unwrap_or_else(|| panic!("case {c}: a quick fix"));
+                    assert_eq!(fix.command, "rep.set_anchor_policy", "case {c}");
+                    assert_eq!(fix.params["anchor"], json!("graphic_centre"), "case {c}");
+                },
+            ),
+            Case::silent(
+                "a symbol without graphics is not judged",
+                main_and_aux("origin", false),
+            ),
+        ],
+    );
 }
 
 #[test]
@@ -417,12 +480,6 @@ fn core053_the_fingerprint_survives_a_renumber_and_a_move() {
     );
     assert_eq!(renumbered[0].fingerprint, base[0].fingerprint);
     assert_eq!(moved[0].fingerprint, base[0].fingerprint);
-}
-
-#[test]
-fn core053_a_symbol_without_graphics_is_not_judged() {
-    let m = main_and_aux("origin", false);
-    assert!(findings_of(&m, "EW-CORE-053").is_empty());
 }
 
 // EW-CORE-065 description lint.
