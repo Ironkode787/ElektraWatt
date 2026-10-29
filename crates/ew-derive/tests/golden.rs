@@ -28,9 +28,8 @@
 //!   configured products on -201U1: `bom_component_rows_match_the_specification`,
 //!   `bom_assembly_rows_replace_the_covered_rows`.
 //! - **Determinism** (NFR-REL-07): the same project built in another record and library order gives equal
-//!   page order, TOC, tags, anchor cells, title blocks and BOM rows in both modes:
-//!   `derived_values_do_not_depend_on_record_order`, and in 16 seeded shuffles of the records and library
-//!   documents: `derived_values_do_not_depend_on_record_order_shuffled`.
+//!   page order, TOC, tags, anchor cells, title blocks and BOM rows in both modes, in reversed order and in 16
+//!   seeded shuffles of the records and library documents: `derived_values_do_not_depend_on_record_order`.
 //!
 //! The fixture is a subset of Golden A (see `tests/common/golden.rs`): the quantities of the strips and of
 //! the 533361 and 571334 rows count the fixture's devices, not the 20, 5, 7 and 28 of doc 20.
@@ -807,20 +806,6 @@ fn derived_text(fx: &Fx) -> Vec<(String, String)> {
     out
 }
 
-#[test]
-fn derived_values_do_not_depend_on_record_order() {
-    let a = derived_text(&golden());
-    let b = derived_text(&golden_reversed());
-    assert_eq!(a.len(), b.len());
-    // Page order, TOC, tags, one anchor cell per representation, one title block per page, two BOMs.
-    // Every device of the fixture has one representation.
-    assert_eq!(a.len(), 2 + 2 * all_devices().len() + 16 + 2);
-    for (x, y) in a.iter().zip(&b) {
-        assert_eq!(x.0, y.0);
-        assert_eq!(x.1, y.1, "{}", x.0);
-    }
-}
-
 /// A deterministic Fisher-Yates shuffle driven by a 64-bit LCG (Knuth's MMIX constants) seeded with `seed`.
 fn shuffle<T>(items: &mut [T], seed: u64) {
     let mut state = seed;
@@ -836,18 +821,27 @@ fn shuffle<T>(items: &mut [T], seed: u64) {
     }
 }
 
+/// The fixture in reversed record and library order and in 16 seeded shuffles derives the same values as
+/// in its own order.
 #[test]
-fn derived_values_do_not_depend_on_record_order_shuffled() {
+fn derived_values_do_not_depend_on_record_order() {
     let forward = derived_text(&golden());
+    // Page order, TOC, tags, one anchor cell per representation, one title block per page, two BOMs.
+    // Every device of the fixture has one representation.
+    assert_eq!(forward.len(), 2 + 2 * all_devices().len() + 16 + 2);
+    let mut cases = vec![("reversed".to_owned(), golden_reversed())];
     for seed in 0..16u64 {
         let mut fx = golden();
         shuffle(&mut fx.records, seed);
         shuffle(&mut fx.lib, seed.wrapping_add(1_000));
-        let shuffled = derived_text(&fx);
-        assert_eq!(forward.len(), shuffled.len(), "seed {seed}");
-        for (x, y) in forward.iter().zip(&shuffled) {
-            assert_eq!(x.0, y.0, "seed {seed}");
-            assert_eq!(x.1, y.1, "seed {seed}: {}", x.0);
+        cases.push((format!("seed {seed}"), fx));
+    }
+    for (name, fx) in cases {
+        let other = derived_text(&fx);
+        assert_eq!(forward.len(), other.len(), "case {name}");
+        for (x, y) in forward.iter().zip(&other) {
+            assert_eq!(x.0, y.0, "case {name}");
+            assert_eq!(x.1, y.1, "case {name}: {}", x.0);
         }
     }
 }

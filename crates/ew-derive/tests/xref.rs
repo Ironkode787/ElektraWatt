@@ -37,7 +37,8 @@
 //! - `hostile_shapes_are_refused_at_load`
 //! - `hostile_shapes_on_raw_models_print_nothing`
 //! - `same_function_reps_refer_to_the_main_rep`
-//! - `ten_thousand_targets_are_formatted_without_quadratic_work`
+//! - `twelve_hundred_targets_are_formatted` (per gate) and `ten_thousand_targets_are_formatted_without_quadratic_work`
+//!   (perf, ignored: milestone deliveries only)
 //! - `xref_texts_do_not_depend_on_record_order`
 //! - `hostile_shapes_do_not_panic`
 
@@ -849,12 +850,11 @@ fn same_function_reps_refer_to_the_main_rep() {
     assert_eq!(text(&q, 0x1_0002), format!("(1-{})", cell(0, 0)));
 }
 
-#[test]
-fn ten_thousand_targets_are_formatted_without_quadratic_work() {
-    const N: i64 = 10_000;
+/// A source with `n` targets over 136 cells (17 columns, 8 rows).
+fn many_targets(n: i64) -> Model {
     let mut fx = base();
     ip(&mut fx, 0x10, pg(1), "BIG", "source", (2, 3));
-    for i in 0..N {
+    for i in 0..n {
         ip(
             &mut fx,
             0x1000 + i as u128,
@@ -864,31 +864,51 @@ fn ten_thousand_targets_are_formatted_without_quadratic_work() {
             (i % 17, (i / 17) % 8),
         );
     }
-    let m = fx.build();
+    fx.build()
+}
+
+/// The source of [`many_targets`] prints the first nine items and an overflow mark; every target prints the
+/// source cell. `n` must exceed 8 × 136 so that nine targets share cell A0.
+fn many_targets_are_formatted(q: &Q, n: i64) {
+    let source = q.get::<XrefTextOf>(rid(0x10));
+    assert_eq!(source.links.len(), 9);
+    assert!(source.text.ends_with(", …"));
+    assert_eq!(source.text.lines().count(), 3);
+    // The targets over 136 cells: the first nine items are the A0 copies (smallest IDs first).
+    assert!(source.text.starts_with("2-A0, 2-A0, 2-A0\n"));
+    let rel = q.get::<XrefRelationOf>(rid(0x10));
+    assert_eq!(rel.targets.len(), n as usize);
+    // Sorted by row, then column, then ID: the first target is A0 with the smallest ID.
+    assert_eq!(rel.targets[0].rep, rid(0x1000));
+    let key = |t: &ew_derive::XrefTarget| (t.cell.as_ref().map(|c| (c.row, c.column)), t.rep);
+    assert!(rel.targets.windows(2).all(|w| key(&w[0]) < key(&w[1])));
+    let want = format!("1-{}", cell(2, 3));
+    for i in 0..n {
+        let t = q.get::<XrefTextOf>(rid(0x1000 + i as u128));
+        assert_eq!(t.text, want, "target {i}");
+        assert_eq!(t.links.len(), 1);
+    }
+}
+
+/// The per-gate size of [`many_targets_are_formatted`]: 1,200 targets, nine of them in cell A0.
+#[test]
+fn twelve_hundred_targets_are_formatted() {
+    let m = many_targets(1_200);
+    many_targets_are_formatted(&Q::new(&m), 1_200);
+}
+
+#[test]
+#[ignore = "perf: release-profile timing, milestone deliveries only"]
+fn ten_thousand_targets_are_formatted_without_quadratic_work() {
+    const N: i64 = 10_000;
+    let m = many_targets(N);
     let q = Q::new(&m);
     // Timing acquisition and reporting are opt-in; no time reaches the compared text.
     let start = std::env::var_os("EW_PERF_ASSERT")
         .is_some()
         // Opt-in test timing only; the clock never reaches the model, exports or compared text.
         .then(std::time::Instant::now);
-    let source = q.get::<XrefTextOf>(rid(0x10));
-    assert_eq!(source.links.len(), 9);
-    assert!(source.text.ends_with(", …"));
-    assert_eq!(source.text.lines().count(), 3);
-    // 10 000 targets over 136 cells: the first nine items are the A0 copies (smallest IDs first).
-    assert!(source.text.starts_with("2-A0, 2-A0, 2-A0\n"));
-    let rel = q.get::<XrefRelationOf>(rid(0x10));
-    assert_eq!(rel.targets.len(), N as usize);
-    // Sorted by row, then column, then ID: the first target is A0 with the smallest ID.
-    assert_eq!(rel.targets[0].rep, rid(0x1000));
-    let key = |t: &ew_derive::XrefTarget| (t.cell.as_ref().map(|c| (c.row, c.column)), t.rep);
-    assert!(rel.targets.windows(2).all(|w| key(&w[0]) < key(&w[1])));
-    let want = format!("1-{}", cell(2, 3));
-    for i in 0..N {
-        let t = q.get::<XrefTextOf>(rid(0x1000 + i as u128));
-        assert_eq!(t.text, want, "target {i}");
-        assert_eq!(t.links.len(), 1);
-    }
+    many_targets_are_formatted(&q, N);
     if let Some(start) = start {
         eprintln!("10 000 targets: {:?}", start.elapsed());
     }

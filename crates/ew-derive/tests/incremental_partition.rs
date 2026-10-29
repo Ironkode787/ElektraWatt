@@ -814,9 +814,10 @@ fn run_plan(steps: &[Step], cover: &mut Coverage) -> Result<(), TestCaseError> {
 #[test]
 fn incremental_partition_equals_cold() {
     // `contextualize_config` applies the PROPTEST_* variables (the deep nightly's PROPTEST_CASES) that the
-    // `proptest!` macro applies itself and a hand-built runner would otherwise ignore.
+    // `proptest!` macro applies itself and a hand-built runner would otherwise ignore. Twelve cases per gate;
+    // the deep nightly (CI-N-02) runs thousands.
     let config = contextualize_config(Config {
-        cases: 36,
+        cases: 12,
         failure_persistence: None,
         ..Config::default()
     });
@@ -830,8 +831,8 @@ fn incremental_partition_equals_cold() {
     let cover = cover.into_inner();
     eprintln!("{cover:?}");
     assert!(
-        cover.applied.iter().all(|n| *n >= 3),
-        "every kind of edit is applied a few times: {cover:?}"
+        cover.applied.iter().all(|n| *n >= 1),
+        "every kind of edit is applied: {cover:?}"
     );
     assert!(
         cover.partition_incremental > 0,

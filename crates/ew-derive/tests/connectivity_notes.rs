@@ -6,7 +6,8 @@
 
 //! Connectivity notes and the linear partner lookup (WP-S1.07, cycle-7 A review findings F6, F7, F8, F13).
 //!
-//! - `star_group_of_4000_members_is_linear`: one source and 3,999 targets derive through every query.
+//! - `star_group_of_400_members_derives`: one source and 399 targets derive through every query; the 3,999-target
+//!   size, `star_group_of_4000_members_is_linear`, is a perf test (ignored, milestone deliveries only).
 //! - `star_source_with_two_drawn_connections_is_no_hub_and_noted`: EW-POT-011, the wires end open.
 //! - `star_source_without_a_drawn_connection_is_no_hub_and_noted`: EW-POT-011 with zero connections.
 //! - `star_hub_with_one_feed_raises_no_note`: the positive control of the two tests above.
@@ -122,9 +123,9 @@ fn notes_with(q: &mut Q, code: &str, needle: &str) -> Vec<(String, String)> {
         .collect()
 }
 
-#[test]
-fn star_group_of_4000_members_is_linear() {
-    const TARGETS: u128 = 3_999;
+/// One source interruption point and `targets` targets derive through every query: the partner lookup, the
+/// partition, the physical wires and their properties.
+fn star_group_derives(targets: u128) {
     const SOURCE_FN: u128 = 0x1000;
     const SOURCE_IP: u128 = 0x1100;
     let plain = |i: u128| 0x100_0000 + i;
@@ -133,7 +134,7 @@ fn star_group_of_4000_members_is_linear() {
     func(&mut fx, SOURCE_FN, P1);
     ip(&mut fx, SOURCE_IP, P1, "BIG", "source");
     wire(&mut fx, 0x300_0000, P1, cp(SOURCE_FN), cp(SOURCE_IP));
-    for i in 0..TARGETS {
+    for i in 0..targets {
         let page = if i % 2 == 0 { P1 } else { P2 };
         func(&mut fx, plain(i), page);
         ip(&mut fx, target(i), page, "BIG", "target");
@@ -143,12 +144,12 @@ fn star_group_of_4000_members_is_linear() {
     let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     let source: Id<Function> = id(SOURCE_IP);
-    assert_eq!(g.ip_partners(source).len(), TARGETS as usize);
+    assert_eq!(g.ip_partners(source).len(), targets as usize);
     assert!(
         g.ip_partners(source).windows(2).all(|w| w[0] < w[1]),
         "sorted and unique"
     );
-    for i in 0..TARGETS {
+    for i in 0..targets {
         assert_eq!(g.ip_partners(id(target(i))), [source]);
     }
     assert!(
@@ -161,7 +162,7 @@ fn star_group_of_4000_members_is_linear() {
     // A star group with a drawn feed is a hub (doc 08 §3.8): each target arm resolves to one wire that
     // shares the feed arm.
     let wires = q.get::<PhysicalWiresOf>(pid);
-    assert_eq!(wires.wires.len(), TARGETS as usize, "{:?}", wires.notes);
+    assert_eq!(wires.wires.len(), targets as usize, "{:?}", wires.notes);
     assert!(
         wires
             .wires
@@ -169,10 +170,23 @@ fn star_group_of_4000_members_is_linear() {
             .all(|w| w.ends.iter().all(|e| e.kind == EndKind::Device))
     );
     let ids: BTreeSet<_> = wires.wires.iter().map(|w| w.id).collect();
-    assert_eq!(ids.len(), TARGETS as usize);
+    assert_eq!(ids.len(), targets as usize);
     let props = q.get::<WirePropsOf>(pid);
-    assert_eq!(props.wires.len(), TARGETS as usize);
+    assert_eq!(props.wires.len(), targets as usize);
     let _flow = q.get::<PotentialFlow>(pid);
+}
+
+/// The per-gate size of [`star_group_derives`]: one source and 399 targets.
+#[test]
+fn star_group_of_400_members_derives() {
+    star_group_derives(399);
+}
+
+/// The size that shows the partner lookup is linear: one source and 3,999 targets.
+#[test]
+#[ignore = "perf: release-profile timing, milestone deliveries only"]
+fn star_group_of_4000_members_is_linear() {
+    star_group_derives(3_999);
 }
 
 /// Source IP 0x1101 with `source_ends` drawn connections to functions, and two targets, each wired to one

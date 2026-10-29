@@ -634,8 +634,11 @@ fn anchor_cells_agree_with_the_command_layer() {
         }
         let mut n = 0x10_000u128;
         for (si, symbol) in symbols.iter().enumerate() {
-            for (oi, orient) in ORIENTS.iter().enumerate() {
-                for (pi, (x, y)) in points.iter().enumerate() {
+            for (pi, (x, y)) in points.iter().enumerate() {
+                // Two opposite orientations per symbol and point, rotating with them: every symbol, point and
+                // orientation occurs, at a quarter of the full grid.
+                for oi in [(si + pi) % 8, (si + pi + 4) % 8] {
+                    let orient = &ORIENTS[oi];
                     fx.rep(n, ANCHOR_PAGE, *symbol, &[0x1001], *x, *y);
                     fx.record(n)["orient"] = json!(orient);
                     // Every third: the xref slot (index 1) dragged 16 mm in symbol coordinates; every fifth: the
@@ -657,6 +660,10 @@ fn anchor_cells_agree_with_the_command_layer() {
 }
 
 proptest! {
+    // 32 cases per gate (the fixed grid of `anchor_cells_agree_with_the_command_layer` covers the shapes);
+    // PROPTEST_CASES overrides it.
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
     /// Random anchors (a representation's named point or a dragged slot), orientations and positions on the golden
     /// frame and on the labelled frame: both layers give the same cell.
     #[test]

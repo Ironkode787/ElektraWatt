@@ -444,20 +444,97 @@ mod tests {
             .collect()
     }
 
-    #[test]
-    fn qet_preset_equals_brace_preset() {
-        assert_eq!(parse_format("%F-%l%c"), parse_format("{page}-{row}{column}"));
-        assert_eq!(
-            parse_format("{page}-{row}{column}"),
-            vec![
-                XrefToken::Page,
-                XrefToken::Lit("-".into()),
-                XrefToken::Row,
-                XrefToken::Column
-            ]
-        );
+    /// How an item example is rendered.
+    enum Render {
+        /// With [`values`] and the default options.
+        Plain,
+        /// Zone-only, for page 1 cell H16 ([`zone`]).
+        Zone,
+        /// With the prefix `+J-E-206` for (page, row, column) ([`prefixed`]).
+        Prefixed(&'static str, &'static str, &'static str),
+        /// Zone-only with the prefix `+J-E-206`, for page 1 cell H16: zone-only ignores the prefix.
+        ZonePrefixed,
     }
 
+    /// Rendered item examples: (name, how, format, expected text).
+    #[test]
+    fn item_examples() {
+        use Render::{Plain, Prefixed, Zone, ZonePrefixed};
+        #[rustfmt::skip]
+        let cases = [
+            // EPLAN presets.
+            ("eplan page.column", Plain, "/{page}.{column}", "/102.1"),
+            ("eplan page.row column", Plain, "/{page}.{row}{column}", "/102.A1"),
+            // Zone only.
+            ("zone brace preset", Zone, "{page}-{row}{column}", "H16"),
+            ("zone eplan preset", Zone, "/{page}.{row}{column}", "/H16"),
+            ("zone qet preset", Zone, "%F-%l%c", "H16"),
+            ("zone full structure", Zone, "{function}{location}/{page}.{row}{column}", "H16"),
+            // Prefix.
+            ("prefix eplan", Prefixed("102", "A", "1"), "/{page}.{row}{column}", "+J-E-206/102.A1"),
+            ("prefix in brackets", Prefixed("201", "E", "1"), "({page}-{row}{column})", "(+J-E-206/201-E1)"),
+            ("prefix brace preset", Prefixed("102", "A", "1"), "{page}-{row}{column}", "+J-E-206/102-A1"),
+            ("prefix after a literal", Prefixed("102", "A", "1"), "x/{page}", "x+J-E-206/102"),
+            // No value token: no prefix.
+            ("no value token, no prefix", Prefixed("102", "A", "1"), "abc", "abc"),
+            // First value token is a row: the prefix goes in front of it.
+            ("prefix before a row", Prefixed("102", "A", "1"), "[{row}]", "[+J-E-206/A]"),
+            ("zone-only ignores the prefix", ZonePrefixed, "{page}-{row}{column}", "H16"),
+            // The list token and Unicode.
+            ("unicode literal", Plain, "∞ {page}", "∞ 102"),
+            // A list token in an item format prints nothing.
+            ("list token in an item", Plain, "a{list}b", "ab"),
+        ];
+        for (name, how, format, expected) in cases {
+            let got = match how {
+                Plain => plain(format),
+                Zone => zone(format),
+                Prefixed(page, row, column) => prefixed(format, page, row, column),
+                ZonePrefixed => {
+                    let o = ItemOptions {
+                        zone_only: true,
+                        prefix: Some("+J-E-206".into()),
+                    };
+                    let v = ItemValues {
+                        page: "1".into(),
+                        row: Some("H".into()),
+                        column: Some("16".into()),
+                        ..ItemValues::default()
+                    };
+                    item(format, &v, &o)
+                }
+            };
+            assert_eq!(got, expected, "case {name}");
+        }
+    }
+
+    /// Parse examples: (name, format, expected tokens).
+    #[test]
+    fn parse_examples() {
+        use XrefToken::{Column, List, Lit, Page, Row};
+        // The QET preset equals the brace preset.
+        assert_eq!(
+            parse_format("%F-%l%c"),
+            parse_format("{page}-{row}{column}"),
+            "case qet preset equals brace preset"
+        );
+        let cases: [(&str, &str, Vec<XrefToken>); 6] = [
+            (
+                "brace preset",
+                "{page}-{row}{column}",
+                vec![Page, Lit("-".into()), Row, Column],
+            ),
+            // `%%` is a percent sign, and literals merge.
+            ("percent percent inside", "a%%b", vec![Lit("a%b".into())]),
+            ("percent percent alone", "%%", vec![Lit("%".into())]),
+            ("literals merge", "a{foo}%%%q{x", vec![Lit("a{foo}%%q{x".into())]),
+            ("empty", "", vec![]),
+            ("list token and unicode", "∞ {list}", vec![Lit("∞ ".into()), List]),
+        ];
+        for (name, format, expected) in cases {
+            assert_eq!(parse_format(format), expected, "case {name}");
+        }
+    }
     #[test]
     fn qet_page_index_prints_position() {
         // FR-XRF-003
@@ -467,12 +544,6 @@ mod tests {
             ..values()
         };
         assert_eq!(item("{page_index}", &none, &ItemOptions::default()), "?");
-    }
-
-    #[test]
-    fn eplan_presets() {
-        assert_eq!(plain("/{page}.{column}"), "/102.1");
-        assert_eq!(plain("/{page}.{row}{column}"), "/102.A1");
     }
 
     #[test]
@@ -524,17 +595,6 @@ mod tests {
     }
 
     #[test]
-    fn percent_percent_and_literal_merge() {
-        assert_eq!(parse_format("a%%b"), vec![XrefToken::Lit("a%b".into())]);
-        assert_eq!(parse_format("%%"), vec![XrefToken::Lit("%".into())]);
-        assert_eq!(
-            parse_format("a{foo}%%%q{x"),
-            vec![XrefToken::Lit("a{foo}%%q{x".into())]
-        );
-        assert_eq!(parse_format(""), Vec::<XrefToken>::new());
-    }
-
-    #[test]
     fn lm_is_checked_before_l() {
         assert_eq!(parse_format("%LM"), vec![XrefToken::Location]);
         assert_eq!(parse_format("%l"), vec![XrefToken::Row]);
@@ -542,25 +602,6 @@ mod tests {
             parse_format("%lM"),
             vec![XrefToken::Row, XrefToken::Lit("M".into())]
         );
-    }
-
-    #[test]
-    fn list_token_and_unicode() {
-        assert_eq!(
-            parse_format("∞ {list}"),
-            vec![XrefToken::Lit("∞ ".into()), XrefToken::List]
-        );
-        assert_eq!(plain("∞ {page}"), "∞ 102");
-        // A list token in an item format prints nothing.
-        assert_eq!(plain("a{list}b"), "ab");
-    }
-
-    #[test]
-    fn zone_only_examples() {
-        assert_eq!(zone("{page}-{row}{column}"), "H16");
-        assert_eq!(zone("/{page}.{row}{column}"), "/H16");
-        assert_eq!(zone("%F-%l%c"), "H16");
-        assert_eq!(zone("{function}{location}/{page}.{row}{column}"), "H16");
     }
 
     #[test]
@@ -575,52 +616,31 @@ mod tests {
         assert_eq!(zone("{function}{location}/{page}"), "");
     }
 
+    /// List matrices: (name, item count, per row, max, expected text, expected item ranges if checked, item count).
     #[test]
-    fn prefix_examples() {
-        assert_eq!(
-            prefixed("/{page}.{row}{column}", "102", "A", "1"),
-            "+J-E-206/102.A1"
-        );
-        assert_eq!(
-            prefixed("({page}-{row}{column})", "201", "E", "1"),
-            "(+J-E-206/201-E1)"
-        );
-        assert_eq!(
-            prefixed("{page}-{row}{column}", "102", "A", "1"),
-            "+J-E-206/102-A1"
-        );
-        assert_eq!(prefixed("x/{page}", "102", "A", "1"), "x+J-E-206/102");
-        // No value token: no prefix.
-        assert_eq!(prefixed("abc", "102", "A", "1"), "abc");
-        // First value token is a row: the prefix goes in front of it.
-        assert_eq!(prefixed("[{row}]", "102", "A", "1"), "[+J-E-206/A]");
-        // Zone-only ignores the prefix.
-        let o = ItemOptions {
-            zone_only: true,
-            prefix: Some("+J-E-206".into()),
-        };
-        let v = ItemValues {
-            page: "1".into(),
-            row: Some("H".into()),
-            column: Some("16".into()),
-            ..ItemValues::default()
-        };
-        assert_eq!(item("{page}-{row}{column}", &v, &o), "H16");
-    }
-
-    #[test]
-    fn matrix_examples() {
-        let m = matrix(3, 9);
-        let r = render_list(&strings(2), &m);
-        assert_eq!(r.text, "a, b");
-        assert_eq!(r.items, vec![0..1, 3..4]);
-        assert_eq!(render_list(&strings(5), &m).text, "a, b, c\nd, e");
-        assert_eq!(render_list(&strings(9), &m).text, "a, b, c\nd, e, f\ng, h, i");
-        let r = render_list(&strings(11), &m);
-        assert_eq!(r.text, "a, b, c\nd, e, f\ng, h, i, …");
-        assert_eq!(r.items.len(), 9);
-        let empty = render_list(&[], &m);
-        assert_eq!(empty, Rendered::default());
+    fn matrix_cases() {
+        #[rustfmt::skip]
+        let cases = [
+            ("3x9 of 2", 2, 3, 9, "a, b", Some(vec![0..1, 3..4]), 2),
+            ("3x9 of 5", 5, 3, 9, "a, b, c\nd, e", None, 5),
+            ("3x9 of 9", 9, 3, 9, "a, b, c\nd, e, f\ng, h, i", None, 9),
+            ("3x9 of 11 is cut", 11, 3, 9, "a, b, c\nd, e, f\ng, h, i, …", None, 9),
+            ("3x9 of none", 0, 3, 9, "", Some(vec![]), 0),
+            // Unlimited.
+            ("one row, no max", 7, 0, 0, "a, b, c, d, e, f, g", None, 7),
+            ("3 per row, no max", 7, 3, 0, "a, b, c\nd, e, f\ng", None, 7),
+            ("one row, max 4 of 7", 7, 0, 4, "a, b, c, d, …", None, 4),
+            ("one row, max 4 of 4", 4, 0, 4, "a, b, c, d", None, 4),
+            ("1 per row, no max", 3, 1, 0, "a\nb\nc", None, 3),
+        ];
+        for (name, n, per_row, max, text, items, count) in cases {
+            let r = render_list(&strings(n), &matrix(per_row, max));
+            assert_eq!(r.text, text, "case {name}");
+            assert_eq!(r.items.len(), count, "case {name}");
+            if let Some(items) = items {
+                assert_eq!(r.items, items, "case {name}");
+            }
+        }
     }
 
     #[test]
@@ -642,64 +662,39 @@ d"
         assert_eq!(render_list_more(&[], false, &m), Rendered::default());
     }
 
+    /// Wrappers around a rendered list: (name, list, wrapper format, expected text, expected item ranges).
     #[test]
-    fn matrix_unlimited() {
-        assert_eq!(
-            render_list(&strings(7), &matrix(0, 0)).text,
-            "a, b, c, d, e, f, g"
-        );
-        assert_eq!(
-            render_list(&strings(7), &matrix(3, 0)).text,
-            "a, b, c\nd, e, f\ng"
-        );
-        assert_eq!(render_list(&strings(7), &matrix(0, 4)).text, "a, b, c, d, …");
-        assert_eq!(render_list(&strings(4), &matrix(0, 4)).text, "a, b, c, d");
-        assert_eq!(render_list(&strings(3), &matrix(1, 0)).text, "a\nb\nc");
-    }
-
-    #[test]
-    fn wrapper_example() {
-        let list = Rendered {
+    fn wrapper_cases() {
+        let example = Rendered {
             text: "3-B2, 106-G3".into(),
             items: vec![0..4, 6..12],
         };
-        let w = render_wrapper(&parse_format("∞ {list}"), &list);
-        assert_eq!(w.text, "∞ 3-B2, 106-G3");
-        assert_eq!(w.items, vec![4..8, 10..16]);
-    }
-
-    #[test]
-    fn wrapper_edge_cases() {
-        let list = Rendered {
+        let ab = Rendered {
             text: "a, b".into(),
             items: vec![0..1, 3..4],
         };
-        let none = render_wrapper(&parse_format("x{page}y"), &list);
-        assert_eq!(none.text, "xy");
-        assert!(none.items.is_empty());
-        let twice = render_wrapper(&parse_format("{list}|{list}"), &list);
-        assert_eq!(twice.text, "a, b|a, b");
-        assert_eq!(twice.items, vec![0..1, 3..4]);
-    }
-
-    #[test]
-    fn ranges_slice_back_for_varied_inputs() {
-        let sets: [Vec<String>; 3] = [
-            vec!["3-B2".into(), "106-G3".into(), "∞".into(), String::new()],
-            strings(20),
-            vec!["+J-E-206/102.A1".into(); 7],
+        let cases = [
+            (
+                "the example",
+                &example,
+                "∞ {list}",
+                "∞ 3-B2, 106-G3",
+                vec![4..8, 10..16],
+            ),
+            ("no list token", &ab, "x{page}y", "xy", vec![]),
+            // The items are those of the first list token.
+            (
+                "two list tokens",
+                &ab,
+                "{list}|{list}",
+                "a, b|a, b",
+                vec![0..1, 3..4],
+            ),
         ];
-        for items in &sets {
-            for (per_row, max) in [(0, 0), (3, 9), (1, 2), (4, 0), (0, 5), (255, 255)] {
-                let r = render_list(items, &matrix(per_row, max));
-                for (range, expected) in r.items.iter().zip(items) {
-                    assert_eq!(&r.text[range.clone()], expected);
-                }
-                let w = render_wrapper(&parse_format("∞ {list}"), &r);
-                for (range, expected) in w.items.iter().zip(items) {
-                    assert_eq!(&w.text[range.clone()], expected);
-                }
-            }
+        for (name, list, format, text, items) in cases {
+            let w = render_wrapper(&parse_format(format), list);
+            assert_eq!(w.text, text, "case {name}");
+            assert_eq!(w.items, items, "case {name}");
         }
     }
 
@@ -725,11 +720,20 @@ d"
             prop_assert_eq!(render_item(&tokens, &values(), &o), s);
         }
 
+        /// The item ranges of a list and of a wrapper around it are ordered and slice back to the items, over
+        /// random items and the fixed sets (empty, Unicode and repeated items), random matrices and the 255
+        /// limits, and random wrapper literals.
         #[test]
-        fn list_ranges_are_ordered_and_slice_back(
-            items in proptest::collection::vec("\\PC{0,6}", 0..30),
-            per_row in 0u8..6,
-            max in 0u8..12,
+        fn ranges_slice_back(
+            items in prop_oneof![
+                proptest::collection::vec("\\PC{0,6}", 0..30),
+                Just(vec!["3-B2".to_string(), "106-G3".into(), "∞".into(), String::new()]),
+                Just(strings(20)),
+                Just(vec!["+J-E-206/102.A1".to_string(); 7]),
+            ],
+            per_row in prop_oneof![0u8..6, Just(255u8)],
+            max in prop_oneof![0u8..12, Just(255u8)],
+            wrapper in "[^{}%]{0,5}",
         ) {
             let r = render_list(&items, &matrix(per_row, max));
             let shown = if max == 0 { items.len() } else { items.len().min(usize::from(max)) };
@@ -741,17 +745,9 @@ d"
                 prop_assert_eq!(&r.text[range.clone()], expected.as_str());
                 last_end = range.end;
             }
-        }
-
-        #[test]
-        fn wrapper_ranges_slice_back(
-            items in proptest::collection::vec("\\PC{0,6}", 0..20),
-            wrapper in "[^{}%]{0,5}",
-        ) {
-            let list = render_list(&items, &matrix(3, 9));
             let format = format!("{wrapper}{{list}}");
-            let w = render_wrapper(&parse_format(&format), &list);
-            prop_assert_eq!(w.items.len(), list.items.len());
+            let w = render_wrapper(&parse_format(&format), &r);
+            prop_assert_eq!(w.items.len(), r.items.len());
             for (range, expected) in w.items.iter().zip(&items) {
                 prop_assert_eq!(&w.text[range.clone()], expected.as_str());
             }

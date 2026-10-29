@@ -1,17 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Title-block values (doc 09 §2.6–§2.7, doc 20 §4.1, §4.2, §17.2): full value sets of the golden-shaped
-//! fixture, with the anonymised placeholders of doc 20 §1.2 as literal strings.
+//! Title-block values (doc 09 §2.6–§2.7, doc 20 §4.1, §4.2, §17.2) over the golden-shaped fixture, with the
+//! anonymised placeholders of doc 20 §1.2 as literal strings. The full value sets of folio 101, folio 201 and
+//! the divider of section 1 are `golden::title_block_value_sets_match_the_specification`.
 
 mod common;
-
-use std::collections::BTreeMap;
 
 use common::{Fx, id, uid};
 use ew_derive::{PageOrder, PageRef, Q, TbValue, TitleBlock, TitleBlockValues, profile_by_version};
 use ew_mltext::MlText;
-use ew_schema::Date;
 use serde_json::json;
 
 const P01: u128 = 0x10;
@@ -31,10 +29,6 @@ fn ml(text: &str) -> MlText {
 
 fn text(s: &str) -> TbValue {
     TbValue::Text(s.to_owned())
-}
-
-fn date(y: u16, m: u8, d: u8) -> TbValue {
-    TbValue::Date(Date::new(y, m, d).expect("date"))
 }
 
 /// The golden-shaped fixture: doc 20 §4.1–§4.2 master data and parties, two sections, two revisions.
@@ -110,134 +104,40 @@ fn block(fx: &Fx, page: PageRef) -> TitleBlock {
     (*q.get::<TitleBlockValues>(page)).clone()
 }
 
-fn expected(pairs: &[(&str, TbValue)]) -> BTreeMap<String, TbValue> {
-    pairs.iter().map(|(k, v)| ((*k).to_owned(), v.clone())).collect()
-}
-
-/// The values every page of the golden fixture shares.
-fn shared() -> Vec<(&'static str, TbValue)> {
-    vec![
-        (
-            "project.description",
-            TbValue::Ml(ml("Expansion Control Cabinets")),
-        ),
-        (
-            "project.long_description",
-            TbValue::Ml(ml("Expansion Control Cabinets <end user>")),
-        ),
-        ("project.document_title", TbValue::Ml(ml("Electrical Definition"))),
-        ("project.reference", text("<project ref>")),
-        ("project.drawing_id", text("<drawing id>")),
-        ("project.object", text("J-E-2416")),
-        ("project.created", date(2025, 3, 3)),
-        ("project.edited", date(2025, 4, 14)),
-        ("project.supply", text("1 x 230 VAC + N + PE, 50 Hz")),
-        ("revision.current.label", text("V2.0")),
-        ("revision.current.state", text("open")),
-        ("revision.current.date", date(2025, 4, 14)),
-        ("revision.current.author.name", TbValue::Ml(ml("<engineer>"))),
-        ("party.customer.name", TbValue::Ml(ml("<customer>"))),
-        ("party.end_user.name", TbValue::Ml(ml("<end user>"))),
-        ("party.end_user.address.street", text("<address>")),
-        ("party.end_user.address.postcode", text("<postcode>")),
-        ("party.end_user.address.city", text("<city>")),
-        ("party.end_user.address.country", text("<country>")),
-        ("party.panel_builder.name", TbValue::Ml(ml("<panel builder>"))),
-        ("party.engineer.name", TbValue::Ml(ml("<engineer>"))),
-    ]
-}
-
+/// Prev and Next at both ends of the page order (FR-PAG-013): (name, page, expected values, `None` = absent).
 #[test]
-fn folio_101_full_value_set() {
-    let fx = golden();
-    let mut want = shared();
-    want.extend([
-        ("page.folio", text("101")),
-        ("page.prev", text("100")),
-        ("page.next", text("102")),
-        ("page.title", TbValue::Ml(ml("Power Supply 1 - Main Current"))),
-        ("page.description", TbValue::Ml(ml("Expansion Control Cabinets"))),
-        ("page.function", text("=P01")),
-        ("page.location", text("+J-E-2416")),
-        ("page.last_changed_in", text("V1.0")),
-        ("doc.page_index", text("4")),
-        ("doc.page_count", text("8")),
-    ]);
-    let tb = block(&fx, PageRef::Drawn(id(PAGE101)));
-    assert_eq!(tb.values, expected(&want));
-    // The checker is unset (doc 20 U-03): the path is absent, not empty.
-    assert_eq!(tb.get("revision.current.checker.name"), None);
-    assert_eq!(tb.get("page.scale"), None);
-}
-
-#[test]
-fn folio_201_full_value_set() {
-    let fx = golden();
-    let mut want = shared();
-    want.extend([
-        ("page.folio", text("201")),
-        ("page.prev", text("200")),
-        ("page.title", TbValue::Ml(ml("Valve Manifold Overview 1"))),
-        ("page.description", TbValue::Ml(ml("Expansion Control Cabinets"))),
-        ("page.function", text("=P01")),
-        ("page.location", text("+J-E-2416")),
-        ("page.last_changed_in", text("V1.0")),
-        ("doc.page_index", text("8")),
-        ("doc.page_count", text("8")),
-    ]);
-    let tb = block(&fx, PageRef::Drawn(id(PAGE201)));
-    // The last page has no next page (FR-PAG-013).
-    assert_eq!(tb.values, expected(&want));
-}
-
-#[test]
-fn divider_of_section_1_full_value_set() {
-    let fx = golden();
-    let mut want = shared();
-    want.extend([
-        ("page.folio", text("100")),
-        ("page.prev", text("3")),
-        ("page.next", text("101")),
-        (
-            "page.title",
-            TbValue::Ml(ml(
-                "=P01+J-E-2416 - Section 1 - Page 100 - 199 - Wiring Definition",
-            )),
-        ),
-        // Dividers print the project description (doc 09 §2.7).
-        ("page.description", TbValue::Ml(ml("Expansion Control Cabinets"))),
-        ("page.function", text("=P01")),
-        ("page.location", text("+J-E-2416")),
-        ("doc.page_index", text("3")),
-        ("doc.page_count", text("8")),
-    ]);
-    let tb = block(&fx, PageRef::Divider(id(SEC1)));
-    assert_eq!(tb.values, expected(&want));
-}
-
-#[test]
-fn first_page_has_no_prev() {
-    let tb = block(&golden(), PageRef::Drawn(id(COVER)));
-    assert_eq!(tb.get("page.folio"), Some(&text("1")));
-    assert_eq!(tb.get("page.prev"), None);
-    assert_eq!(tb.get("page.next"), Some(&text("3")));
-    assert_eq!(tb.get("doc.page_index"), Some(&text("1")));
-    // A page without a structure has no function, location or document kind.
-    assert_eq!(tb.get("page.function"), None);
-    assert_eq!(tb.get("page.location"), None);
-    assert_eq!(tb.get("page.document_kind"), None);
-}
-
-#[test]
-fn last_page_has_no_next() {
+fn prev_next_at_ends() {
     let fx = golden();
     let m = fx.build();
     let q = Q::new(&m);
-    let order = q.get::<PageOrder>(());
-    let last = order.entries.last().expect("pages").page;
-    let tb = (*q.get::<TitleBlockValues>(last)).clone();
-    assert_eq!(tb.get("page.next"), None);
-    assert_eq!(tb.get("page.prev"), Some(&text("200")));
+    let last = q.get::<PageOrder>(()).entries.last().expect("pages").page;
+    let cases = [
+        (
+            "the first page has no prev",
+            PageRef::Drawn(id(COVER)),
+            vec![
+                ("page.folio", Some(text("1"))),
+                ("page.prev", None),
+                ("page.next", Some(text("3"))),
+                ("doc.page_index", Some(text("1"))),
+                // A page without a structure has no function, location or document kind.
+                ("page.function", None),
+                ("page.location", None),
+                ("page.document_kind", None),
+            ],
+        ),
+        (
+            "the last page has no next",
+            last,
+            vec![("page.next", None), ("page.prev", Some(text("200")))],
+        ),
+    ];
+    for (name, page, want) in cases {
+        let tb = (*q.get::<TitleBlockValues>(page)).clone();
+        for (path, value) in want {
+            assert_eq!(tb.get(path), value.as_ref(), "case {name}: {path}");
+        }
+    }
 }
 
 #[test]
@@ -461,71 +361,82 @@ fn label_of(fx: &Fx) -> Option<TbValue> {
         .cloned()
 }
 
+/// Which revision is current: (name, revision records, the current label, the printed state when checked).
 #[test]
-fn open_undated_revision_beats_released_dated() {
-    let mut fx = Fx::new();
-    fx.push(
-        json!({"$k": "revision", "id": uid(1), "label": "V2.0", "date": "2025-04-14", "state": "released"}),
-    )
-    .push(json!({"$k": "revision", "id": uid(2), "label": "V3.0", "state": "open"}));
-    assert_eq!(label_of(&fx), Some(text("V3.0")));
-}
-
-#[test]
-fn withdrawn_revision_is_never_current() {
-    let mut fx = Fx::new();
-    fx.push(
-        json!({"$k": "revision", "id": uid(1), "label": "V1.0", "date": "2025-03-03", "state": "released"}),
-    )
-    .push(
-        json!({"$k": "revision", "id": uid(2), "label": "V2.0", "date": "2025-05-01", "state": "withdrawn"}),
-    );
-    assert_eq!(label_of(&fx), Some(text("V1.0")));
-}
-
-/// A withdrawal record leaves the revision it withdraws released (EW-INV-020), but the title block no
-/// longer prints it: the latest revision that is not withdrawn is current.
-#[test]
-fn a_revision_named_by_a_withdrawal_record_is_never_current() {
-    let mut fx = Fx::new();
-    fx.push(
-        json!({"$k": "revision", "id": uid(1), "label": "V1.0", "date": "2025-03-03", "state": "released"}),
-    )
-    .push(
-        json!({"$k": "revision", "id": uid(2), "label": "V2.0", "date": "2025-04-14", "state": "released"}),
-    );
-    assert_eq!(label_of(&fx), Some(text("V2.0")));
-    fx.push(
-        json!({"$k": "revision", "id": uid(3), "label": "V2.0", "date": "2025-05-01",
-        "state": "withdrawn", "withdraws": uid(2)}),
-    );
-    assert_eq!(label_of(&fx), Some(text("V1.0")));
-}
-
-/// A state of a newer format is kept verbatim by the typed record; it is not open, so it ranks with the
-/// released revisions and prints as its text.
-#[test]
-fn a_state_of_a_newer_format_ranks_with_the_released_revisions() {
-    let mut fx = Fx::new();
-    fx.push(
-        json!({"$k": "revision", "id": uid(1), "label": "V1.0", "date": "2025-03-03", "state": "released"}),
-    )
-    .push(
-        json!({"$k": "revision", "id": uid(2), "label": "V2.0", "date": "2025-05-01", "state": "superseded"}),
-    );
-    assert_eq!(label_of(&fx), Some(text("V2.0")));
-    let tb = block(&fx, PageRef::Drawn(id(1)));
-    assert_eq!(tb.get("revision.current.state"), Some(&text("superseded")));
-}
-
-#[test]
-fn undated_revision_counts_as_newest_within_its_state() {
-    let mut fx = Fx::new();
-    fx.push(
-        json!({"$k": "revision", "id": uid(1), "label": "V1.0", "date": "2025-03-03", "state": "released"}),
-    )
-    .push(json!({"$k": "revision", "id": uid(2), "label": "V0.9", "state": "released"}));
-    assert_eq!(label_of(&fx), Some(text("V0.9")));
+fn current_revision_cases() {
+    let rev = |n: u128, label: &str, date: Option<&str>, state: &str| {
+        let mut r = json!({"$k": "revision", "id": uid(n), "label": label, "state": state});
+        if let Some(d) = date {
+            r["date"] = json!(d);
+        }
+        r
+    };
+    let v1 = || rev(1, "V1.0", Some("2025-03-03"), "released");
+    let cases: Vec<(&str, Vec<serde_json::Value>, &str, Option<&str>)> = vec![
+        (
+            "an open undated revision beats a released dated one",
+            vec![
+                rev(1, "V2.0", Some("2025-04-14"), "released"),
+                rev(2, "V3.0", None, "open"),
+            ],
+            "V3.0",
+            None,
+        ),
+        (
+            "a withdrawn revision is never current",
+            vec![v1(), rev(2, "V2.0", Some("2025-05-01"), "withdrawn")],
+            "V1.0",
+            None,
+        ),
+        (
+            "of two released revisions the latest is current",
+            vec![v1(), rev(2, "V2.0", Some("2025-04-14"), "released")],
+            "V2.0",
+            None,
+        ),
+        // A withdrawal record leaves the revision it withdraws released (EW-INV-020), but the title block no
+        // longer prints it: the latest revision that is not withdrawn is current.
+        (
+            "a revision named by a withdrawal record is never current",
+            vec![
+                v1(),
+                rev(2, "V2.0", Some("2025-04-14"), "released"),
+                json!({"$k": "revision", "id": uid(3), "label": "V2.0", "date": "2025-05-01",
+                    "state": "withdrawn", "withdraws": uid(2)}),
+            ],
+            "V1.0",
+            None,
+        ),
+        // A state of a newer format is kept verbatim by the typed record; it is not open, so it ranks with the
+        // released revisions and prints as its text.
+        (
+            "a state of a newer format ranks with the released revisions",
+            vec![v1(), rev(2, "V2.0", Some("2025-05-01"), "superseded")],
+            "V2.0",
+            Some("superseded"),
+        ),
+        (
+            "an undated revision counts as newest within its state",
+            vec![v1(), rev(2, "V0.9", None, "released")],
+            "V0.9",
+            None,
+        ),
+    ];
+    for (name, records, label, state) in cases {
+        let mut fx = Fx::new();
+        for r in records {
+            fx.push(r);
+        }
+        assert_eq!(label_of(&fx), Some(text(label)), "case {name}");
+        if let Some(state) = state {
+            let tb = block(&fx, PageRef::Drawn(id(1)));
+            assert_eq!(
+                tb.get("revision.current.state"),
+                Some(&text(state)),
+                "case {name}"
+            );
+        }
+    }
 }
 
 #[test]
