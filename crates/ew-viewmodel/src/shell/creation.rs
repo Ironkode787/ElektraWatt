@@ -190,6 +190,13 @@ pub struct FormField {
     pub value: String,
 }
 
+impl FormField {
+    /// Whether the field is a yes-or-no choice (`false`, `true`), which the window draws as a check box (FT-558).
+    pub fn is_toggle(&self) -> bool {
+        self.choices == ["false", "true"]
+    }
+}
+
 /// A creation dialog: the action Enter dispatches with the fields, the title key, the fields, and the refusal of the
 /// last attempt.
 #[derive(Clone, PartialEq, Eq, Debug)]

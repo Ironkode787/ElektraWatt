@@ -1718,6 +1718,24 @@ pub fn field_label(kind: &str, path: &str) -> String {
     out
 }
 
+/// A choice value of a form dialog in words (doc 16a §8, FT-558): the parameter's snake_case word in sentence case,
+/// with the hyphenated compounds of the standard's usage (`multi_line` is "Multi-line", `page_based` "Page-based").
+/// The parameter keeps the raw word; only the window shows this.
+pub fn choice_text(value: &str) -> String {
+    let words = match value {
+        "multi_line" => "multi-line".to_owned(),
+        "single_line" => "single-line".to_owned(),
+        "user_defined" => "user-defined".to_owned(),
+        "page_based" => "page-based".to_owned(),
+        other => other.replace('_', " "),
+    };
+    let mut chars = words.chars();
+    chars
+        .next()
+        .map(|c| c.to_uppercase().chain(chars).collect())
+        .unwrap_or_default()
+}
+
 /// A record kind in words, singular (`potential definition`).
 pub fn kind_label(kind: &str) -> String {
     match kind {
@@ -1785,6 +1803,26 @@ mod tests {
     use super::*;
 
     const NOW: u64 = 1_793_000_000_000;
+
+    /// FT-558: the form dialogs show doc 16a §8's words, never the raw parameter value.
+    #[test]
+    fn choice_text_gives_the_display_words() {
+        assert_eq!(choice_text("multi_line"), "Multi-line");
+        assert_eq!(choice_text("table_of_contents"), "Table of contents");
+        assert_eq!(choice_text("location"), "Location");
+        assert_eq!(choice_text("user_defined"), "User-defined");
+        assert_eq!(choice_text("page_based"), "Page-based");
+        assert_eq!(choice_text("project"), "Project");
+        assert_eq!(choice_text(""), "");
+        for value in crate::shell::PAGE_TYPES
+            .iter()
+            .chain(crate::shell::STRUCTURE_KINDS)
+        {
+            let text = choice_text(value);
+            assert!(!text.contains('_'), "{value}: {text}");
+            assert!(text.starts_with(|c: char| c.is_uppercase()), "{value}: {text}");
+        }
+    }
 
     #[test]
     fn elapsed_text_is_just_now_under_a_minute() {

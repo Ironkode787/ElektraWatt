@@ -366,6 +366,9 @@ pub struct Tokens {
     pub size_button_min_width: f32,
     pub size_dialog_small: f32,
     pub size_dialog_form: f32,
+    /// FT-566: the label column of a form dialog's label-and-field rows, the same in every form dialog (a small
+    /// dialog's one field has no label and fills the body).
+    pub size_dialog_label: f32,
     pub size_palette: f32,
     pub size_palette_row: f32,
     pub size_toast: f32,
@@ -659,6 +662,7 @@ impl Tokens {
             ("size.button.min_width", Px(self.size_button_min_width)),
             ("size.dialog.small", Px(self.size_dialog_small)),
             ("size.dialog.form", Px(self.size_dialog_form)),
+            ("size.dialog.label", Px(self.size_dialog_label)),
             ("size.palette", Px(self.size_palette)),
             ("size.palette.row", Px(self.size_palette_row)),
             ("size.toast", Px(self.size_toast)),
@@ -1044,6 +1048,7 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         size_button_min_width: 72.0,
         size_dialog_small: 440.0,
         size_dialog_form: 640.0,
+        size_dialog_label: 160.0,
         size_palette: 560.0,
         size_palette_row: 32.0,
         size_toast: 300.0,

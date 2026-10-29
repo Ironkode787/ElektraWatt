@@ -13,10 +13,10 @@ use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::ew_viewmodel::shell::Dialog;
 use support::{Scripted, Tmp, harness, settle};
 
-/// The text field whose placeholder is `name`.
+/// The text field labelled `name` (FT-566: the form fields have no placeholder; their label names them).
 fn field<'a, 'h>(h: &'h egui_kittest::Harness<'a, ew_ui::app::App>, name: &str) -> egui_kittest::Node<'h> {
     h.get_all_by_role(egui::Role::TextInput)
-        .find(|n| n.accesskit_node().data().placeholder() == Some(name))
+        .find(|n| n.accesskit_node().label().as_deref() == Some(name))
         .unwrap_or_else(|| panic!("no field {name}"))
 }
 
@@ -119,7 +119,7 @@ fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
     // Choosing the type from the list.
     h.get_by_role(egui::Role::ComboBox).click();
     settle(&mut h);
-    h.get_by_label("single_line").click();
+    h.get_by_label("Single-line").click();
     settle(&mut h);
     assert_eq!(form_values(&h)[1], ("type".into(), "single_line".into()));
     h.state_mut().shell_mut().shutdown();

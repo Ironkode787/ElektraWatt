@@ -58,8 +58,15 @@ fn dialog_now_ms(ctx: &egui::Context) -> u64 {
 
 /// A one-line text field that tells the shell what is typed (`on_change`) and says "go" on Enter.
 fn name_field(ui: &mut Ui, hint_key: &str, text: &str, just_opened: bool) -> (Option<String>, bool) {
+    let t = crate::theme::current(ui.ctx());
     let mut field = text.to_owned();
-    let edit = ui.add(TextEdit::singleline(&mut field).hint_text(strings::text(hint_key)));
+    // FT-566: a dialog's only field fills the body's width, `size.control` high (doc 16a §6.5).
+    let edit = ui.add(
+        TextEdit::singleline(&mut field)
+            .hint_text(strings::text(hint_key))
+            .desired_width(f32::INFINITY)
+            .min_size(egui::vec2(0.0, t.size_control)),
+    );
     if just_opened {
         edit.request_focus();
     }
@@ -206,23 +213,52 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     }
 }
 
-/// The fields of a creation or renumber form, two columns; `true` when Enter in a text field submits it.
+/// The fields of a creation or renumber form, one row each (FT-558, FT-566): the label in the dialog size's fixed label
+/// column (`size.dialog.label`, then `space.3`), so the field edges line up from one dialog to the next, and the field filling the
+/// rest of the body, `size.control` high. A text field has no placeholder (its label names it); a choice shows doc
+/// 16a §8's words ([`strings::choice_text`]) behind a `chevron-down`; a yes-or-no choice is a check box. `true` when
+/// Enter in a text field submits the form.
 fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut Vec<Event>) -> bool {
     let t = crate::theme::current(ui.ctx());
     let mut submit = false;
     let mut first = just_opened;
-    let field_width = t.size_dialog_form - 2.0 * t.space_5 - t.size_property_label * 2.0;
-    egui::Grid::new("form").num_columns(2).show(ui, |ui| {
-        for f in &form.fields {
-            let label_text = strings::text(f.label_key);
-            let label = ui.label(label_text);
-            if f.choices.is_empty() {
+    let label_width = t.size_dialog_label;
+    for f in &form.fields {
+        let label_text = strings::text(f.label_key);
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 0.0;
+            let label = ui
+                .allocate_ui_with_layout(
+                    egui::vec2(label_width, t.size_control),
+                    egui::Layout::left_to_right(egui::Align::Center),
+                    |ui| {
+                        ui.set_min_size(egui::vec2(label_width, t.size_control));
+                        ui.add(egui::Label::new(label_text).truncate())
+                    },
+                )
+                .inner;
+            // `space.3` between the label column and the field (doc 16a §6.8's label-to-value gap).
+            ui.add_space(t.space_3);
+            if f.is_toggle() {
+                let mut on = f.value == "true";
+                // At the field column's start, as the fields' text.
+                let check = ui
+                    .add(egui::Checkbox::without_text(&mut on))
+                    .labelled_by(label.id);
+                if check.changed() {
+                    events.push(Event::FormField(f.name, on.to_string()));
+                }
+                if first {
+                    check.request_focus();
+                    first = false;
+                }
+            } else if f.choices.is_empty() {
                 let mut text = f.value.clone();
                 let edit = ui
                     .add(
                         TextEdit::singleline(&mut text)
-                            .hint_text(label_text)
-                            .desired_width(field_width),
+                            .desired_width(ui.available_width())
+                            .min_size(egui::vec2(0.0, t.size_control)),
                     )
                     .labelled_by(label.id);
                 if first {
@@ -235,20 +271,21 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
                 submit |= edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
             } else {
                 let combo = egui::ComboBox::from_id_salt(("form-choice", f.name))
-                    .selected_text(&f.value)
-                    .width(field_width)
+                    .selected_text(strings::choice_text(&f.value))
+                    .width(ui.available_width())
+                    .icon(crate::components::combo_chevron)
                     .show_ui(ui, |ui| {
                         for choice in f.choices {
-                            if ui.selectable_label(f.value == *choice, *choice).clicked() {
+                            let word = strings::choice_text(choice);
+                            if ui.selectable_label(f.value == *choice, word).clicked() {
                                 events.push(Event::FormField(f.name, (*choice).to_owned()));
                             }
                         }
                     });
                 combo.response.labelled_by(label.id);
             }
-            ui.end_row();
-        }
-    });
+        });
+    }
     if let Some(error) = &form.error {
         ui.colored_label(t.error.color32(), error);
     }

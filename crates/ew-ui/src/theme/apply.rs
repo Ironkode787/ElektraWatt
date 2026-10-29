@@ -57,7 +57,9 @@ pub fn style_of(t: &Tokens) -> Style {
     v.indent_has_left_vline = false;
     v.button_frame = true;
     v.collapsing_header_frame = false;
-    v.text_cursor.stroke = stroke(t.border_width.max(2.0), t.accent);
+    // FT-566: a 1-px caret (`border.width`, as the platforms draw it), so it clears the first glyph of the text or
+    // the placeholder; the 2-px caret, centred on the pen position, overlapped it.
+    v.text_cursor.stroke = stroke(t.border_width, t.accent);
 
     let corner = radius(t.radius_md);
     let w = &mut v.widgets;
