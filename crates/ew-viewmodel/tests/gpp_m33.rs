@@ -166,3 +166,21 @@ fn row6_a_stale_tag_proposal_is_refused() {
     );
     assert_eq!(s.revision(), rev, "nothing committed");
 }
+
+/// Cycle 33 review finding 12: `error-unknown-strip` never prints an empty strip list ("its strips are ."): a
+/// terminal placed on a strip name in a project without strips is refused before the name is looked up
+/// (`reason-no-strip`, "create one"), so the unknown-strip text is reached only when the project has a strip.
+#[test]
+fn an_unknown_strip_in_a_project_without_strips_is_refused_as_no_strip() {
+    let tmp = Tmp::new("m33-no-strips");
+    let mut s = new_project(&tmp);
+    assert_eq!(
+        s.dispatch(
+            "place.pick",
+            &json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X9"}),
+        ),
+        Outcome::Refused {
+            reason_key: "reason-no-strip"
+        }
+    );
+}
