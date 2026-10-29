@@ -1,6 +1,6 @@
 # Connections, terminals and cables
 
-**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7; 2026-10-27, cycle 29: the numbering order's tie-break by what is printed, §5.2 and §11, decision log ID-675; the fallback potential name's tie by its text and not by the CP ID, §3.5, decision log ID-677; amended 2026-10-28, cycle-30 design pass: `orient_wire`'s step 3 without minted IDs (FT-478), §3.8, decision log ID-704; the `#n` after a repeated clamp letter, §3.8, decision log ID-711; amended 2026-10-29, cycle 33: bridges without a shaft and the chain of Bridge terminals, §2.3, G-PP ruling #4; rail bonding of terminals without a location, §3.7 and §8.1, G-PP ruling #20) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-23 (cycle 23: the shipped colour profiles and their limits as built, §4.3, decision log ID-577; the marker mode as a project setting for WP-S2.04, §4.5, ID-568; 2026-10-21: cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7; 2026-10-27, cycle 29: the numbering order's tie-break by what is printed, §5.2 and §11, decision log ID-675; the fallback potential name's tie by its text and not by the CP ID, §3.5, decision log ID-677; amended 2026-10-28, cycle-30 design pass: `orient_wire`'s step 3 without minted IDs (FT-478), §3.8, decision log ID-704; the `#n` after a repeated clamp letter, §3.8, decision log ID-711; amended 2026-10-29, cycle 33: bridges without a shaft and the chain of Bridge terminals, §2.3, G-PP ruling #4; rail bonding of terminals without a location, §3.7 and §8.1, G-PP ruling #20; the stored shown name of a potential defined from the Potentials table, §3.5, decision log ID-780; the side-1 fallback bridge's storage, §2.3, and the own location as built, §3.7) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) turns drawn connections into electrical meaning. It covers
 connection points, connections and junctions, the three connectivity levels (net, signal, potential) with stable
@@ -163,10 +163,12 @@ pub struct TerminalGroup { from_seq: u32, to_seq: u32, label: MlText }   // "Pne
 - **`ClampKey`.** Wires end on clamps. Plug-in bridges end on shaft CPs. Rail-bonded PE terminals have a rail-foot
   CP for carrier bonding at 1.0. A shaft and a rail foot are joined to the level's clamps by FnDef `Short` links.
   *Amended by cycle 33 (G-PP ruling #4):* a terminal whose part has no shaft, or that has no part yet, is bridged at
-  the lowest side-1 CP of its function definition, so bridges can be drawn before parts are chosen; Edit ▸ Bridge
-  terminals draws the chain over two or more selected terminals of one strip (consecutive in `seq` order) in one
+  the lowest side-1 CP of its function definition, so bridges can be drawn before parts are chosen; Bridge terminals
+  (`strip.bridge`, on the Draw tab) draws the chain over two or more selected terminals of one strip (consecutive in `seq` order) in one
   undo step, one `connection.draw` for a pair and one `connection.draw_many` for a longer chain ([06](06-schematic-editor.md) §3.1).
-  The BOM's bridge row stays WP-S2.07.
+  The BOM's bridge row stays WP-S2.07. *As built (cycle 33):* a bridge drawn at the side-1 clamp fallback is still
+  stored as `plug_in` on shaft 1; if a part with a shaft is chosen later, Bridge terminals adds a second bridge on the
+  shaft beside it. Storing a clamp-end kind, or re-seating the bridge on the shaft, is FT-585 (M2).
 - **Strip groups** label ranges of terminals. The terminal's own `function_text` holds its printed label ("1+").
   This follows [20](20-golden-project.md) §9, where "1+" is the printed function text and "Pneumatics" is the group
   label.
@@ -304,6 +306,12 @@ an undefined one.
   therefore names B1 and is neither an alias of 0V nor of PE.
 - **Conflicts.** Two definitions with different names in one potential produce EW-POT-017. The first definition in
   ID order wins.
+- *As built (cycle 33; decision log ID-772, ID-780).* Typing a Type or Voltage on a Potentials row known only at its
+  CPs defines the potential with one `potential.define` at its minimum member CP, and stores the name the row shows
+  (the step-2 IP name or the step-3 fallback, such as `-102F1:1`) as `PotentialDef.name`. The stored text is frozen:
+  a later renumber of the device keeps the old text, and a test pins this, because the blessed blind recording
+  `gpp-2` replays the path. A name the user types (the name cell defines the row, or Type and Voltage refuse until
+  the potential is named) retires the stored derived name: FT-577 (M2).
 
 Golden: 24VDC-1 has no definition and takes the name of its source IP on folio 102. Its aliases are 24VDC-AIR1 …
 AIR4. 0V is defined, with aliases 0VDC and 0VDC-AIR1 … AIR4. PE is defined, with 7 aliases: J-E-206-PE, PE-1.1 …
@@ -379,7 +387,8 @@ potential_flow(potential):                              // memo per potential; t
   project's implicit main location while the project has at most one own location (a location node that no
   external reference names; `+J-E-206` of an external point is not one): it joins the only own location's PE node,
   or an implicit main-location PE node when the project has none. It is skipped and reported as EW-POT-008 only
-  when the project has two or more own locations.
+  when the project has two or more own locations. *As built (cycle 33, the review's fix):* an own location is a
+  location that no external reference names, or one that the project's own devices or pages use.
 - **Rail bonding at 1.0.** When a layout space exists for the location, the partition replaces the location node.
   A rail-bonded terminal then joins PE only through a carrier and surface that both declare `pe_bond` (FR-LAY-058).
   A difference between the two models is reported on migration ([03](03-domain-model.md) OQ10).

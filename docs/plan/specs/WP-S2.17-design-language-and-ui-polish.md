@@ -510,6 +510,17 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
   gated; no gated snapshot changed). The tool line is FT-536; the focus ring, table mode's empty state and the grid
   snapshots are FT-532.
 
+### 7.2 As built: the cycle-33 follow-ups (decision log ID-763 to ID-767, ID-775, ID-778)
+
+The follow-ups FT-527 to FT-541 of parts 2 to 5 were built in cycle 33 by lanes A33 to E33 and O33:
+
+1. **The data grid** (doc 16a §6.21; B33): table mode's empty state; the focus ring 1 px inside the pane; the cursor row's bar inside the ring (left edge + 1 + the ring's width), at one position with or without focus; the scroll handle `color.border.control` at rest and `color.text.secondary` on hover or drag; the cell editor on the cell's text baseline; the Columns menu's move items as `arrow-left` and `arrow-right` icon buttons; every read-only reason a string key; DK12's 8 images in the pixel gate.
+2. **Navigators and Properties** (A33): `navigator.row` expands a collapsed path and scrolls the row into view with an unanimated scroll target, and the shorter-list rule holds in every navigator; the Properties header shows one severity chip per finding; the row's actions open as a popup menu on the "…" button and, since O33, on a right click; the Properties filter above 12 rows (hidden action `props.filter`, its text kept across selections) uses the shared `filter_field` with a leading filter icon and a clear button (O33).
+3. **Chrome** (C33, O33): the frame-statistics panel sized at its widest values; the dialog footer's order as the pure `footer_order(Platform)`, tested per OS; the chip line's jump chips as §6.24 pills; the dock tabs in §6.4's family with a count chip and the bottom dock's close button; **`view.bottom_dock`** (Ctrl+J, View ▸ Bottom dock, `on?:bool`) closes the bottom dock and reopens the panes it remembered (or Messages); the HUD tool bar's shadow clipped off the dock tab bar.
+4. **Dialogs and cards** (O33): About keeps Close in the footer and its links in the body; the notices text reflowed; a preview card's Apply is disabled with the refusal as tooltip when the preview applies nothing; **a disabled Primary draws as a Secondary with `color.text.disabled`** (about 2.2 to 2.3:1, exempt as a disabled control; FT-581).
+5. **The pixel gate** (D33): CB7 at all four theme and density variants, CP6 every dialog one by one, CP9's cards, the dock tab bar and the chip line, and the 300 % main window **gated** (FT-537 ruled); Recovery, the journal discard, the check scheme and the purge stay ungated (FT-571). **Flakes** (E33): test folders of their own (`fresh_dir`) and the toast timer on the frame clock.
+6. **The window check W33** found no rank-A defect and 9 rank-B and 9 rank-C items, FT-557 to FT-567.
+
 ## 8. Part 4: cards, toasts, dialogs, menus, palette and empty states
 
 1. **Dialogs**: one dialog frame in `ew-ui` (`dialog.rs`) for every modal of the shell (about, keyboard shortcuts, go

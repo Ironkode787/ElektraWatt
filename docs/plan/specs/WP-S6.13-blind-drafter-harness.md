@@ -1,6 +1,6 @@
 # WP-S6.13: the blind-drafter harness, personas and prompts (closed specification)
 
-**Status:** specified in cycle 25 (documents only; fix round after the independent Opus review, whose amended rulings
+**Status:** part 3 delivered in cycle 33, so the package is complete (§12.9; decision log ID-768, ID-776, ID-777); §5.2.3 as built · specified in cycle 25 (documents only; fix round after the independent Opus review, whose amended rulings
 the orchestrator accepted) for three parts: part 1 (the harness `cargo xtask blind`, the session keeper, the three
 product additions it needs and the replay in CI, 1.1 pw, D3), part 2 (the prompts, the personas, the G-PP task sheet
 with its prelude, oracle and scoring, and a dry run on folio 101 after WP-S2.04 part 1, 0.5 pw, D3), part 3 (the full
@@ -302,10 +302,15 @@ The agent runs only `{blind}` = `<run>/bin/xtask blind` (the composed prompt car
 
 #### 5.2.3 What `do` prints
 
-Per step one line `<n> <action> <outcome>[ <reason>][ "<message>"]`, then, for each top-level member of `state` and each
-member of `state.canvas` that differs from the previous step's, one line `  <member>: <compact JSON>` with UUIDs
-normalised (§6 item 2); `skipped` steps print `<n> <action> skipped`. A harness refusal prints
-`harness: <text>`. The full lines stay in `transcript.jsonl`.
+*As built (cycle 33; decision log ID-774).* Per step one line `<n> <action> <outcome>[ <reason>[: <sentence>]][ "<message>"]`:
+a refusal prints its key and, from the transcript member `reason_text`, the key's sentence from the strings table
+(`2 bridge.place refused reason-bridge-selection: Select two terminals of one strip.`). When the step leaves a preview
+card open, the transcript member `pending` holds the card's summary and `do` prints a second line
+`  preview: <summary>; Apply or Cancel`. Then, for each top-level member of `state` and each member of `state.canvas`
+that differs from the previous step's, one line `  <member>: <compact JSON>` with UUIDs normalised (§6 item 2);
+`skipped` steps print `<n> <action> skipped`. A harness refusal prints `harness: <text>`. A transcript line without
+the two members prints as before, and `outcomes.jsonl` and the recordings' format (§5.10) are unchanged: `reason` keeps
+the key. The full lines stay in `transcript.jsonl`. `HELP.md` version 5 says so.
 
 ### 5.3 The harness filter
 
@@ -721,7 +726,9 @@ The G-PP record's "not criteria, but recorded" part ([gates](../03-gates.md) §5
 
 **Reading.** The chair reads the run with the pilot's issue list. A `pass` says the text interface alone lets the task
 be done; `pass-with-gaps` names what the product still lacks for it; `fail` names an agent or product miss. None of
-them changes G-PP-01's outcome, which is the pilot's (ID-341: never blocking). G-M2's run (gates §5.5) reuses the harness
+them changes G-PP-01's outcome, which is the pilot's (ID-341: never blocking). *Amended for G-PP (the owner's ruling of
+2026-10-29, decision log ID-777):* the gate run `gpp-2` stands as proxy for G-PP-01's pilot run, and G-PP is recorded Go
+on it, with H4's two accessory rows as the declared WP-S2.07 gap; the pilot run stays available to the owner. G-M2's run (gates §5.5) reuses the harness
 with a new task when the owner schedules it.
 
 ## 9. Files owned
@@ -986,6 +993,18 @@ Built as §5.6, §5.7, §5.8 (the reports), §5.9 and §7 say; BD14 and BD15 pas
 
 **BD16 as run (cycle 29; decision log ID-678).** The run `gpp-dry-101` (gate kind, task `gpp-101-103`, `--folios 101`, persona `qet-veteran`, `--stateless`) had a Sonnet drafter and a Sonnet checker, restricted by instruction to the harness and the run's book. Their tool logs were audited afterwards: the drafter made two benign calls outside the harness (a directory listing of the run's `book/` and reading its own saved help output) and the checker none, so **the run is valid**. **Score:** outcome **pass-with-gaps**. H1 ok (17 representations, 21 connections, 2 junctions), H5 ok (the PDF was exported), H6 ok (saved), H7 ok; H2 and H3 gap (not in this run); H4 gap (WP-S2.07: the part picker lists only parts with a function template). Soft: S3, S5, S6 and S8 ok; S1, S2, S4 and S7 miss (the terminal strip cells, the external points drawn as interruption points and not linked, a marker text). Keep score 6/10. The run took about 120 turns, where the agent estimated 20 to 30 minutes in its previous tool. **Replay:** R1 and R2 hold after the determinism fix of ID-677 (R3: 12, a report). **Not blessed:** the harness's D16 guard refused, because files under `golden/` (FT-440's expected outputs and README, ID-675) changed during the run, although the golden project itself did not; the run is recorded as done but unblessed, since BD16's purpose (the score, the audits, the notes and the follow-ups) is met. **No prompt revision this cycle:** the notes are product findings, not prompt defects. **Follow-ups:** FT-484 (the guard should digest the golden project fixture only, and `start` refusing an option must not leave a non-empty run folder; a part 3 prerequisite) and FT-485 (the product findings, a checklist for the next shell lane).
 
+
+### 12.9 As built: part 3 (cycle 33)
+
+**WP-S6.13 part 3 is delivered, so WP-S6.13 is complete (decision log ID-768, ID-776, ID-777).** Two gate runs of `gpp-101-103` with the persona `qet-veteran`, `--stateless`, each with its checker; drafter and checker on Opus at `low` (BD16's Sonnet replaced under ID-700), restricted by instruction to the harness and the run's book, their tool logs audited afterwards.
+
+1. **gpp-r1** scored **pass-with-gaps**: H1 to H3 (17/21/2, 12/19/4, 35/20/0 with 15 terminals on 2 strips) and H5 to H7 ok, H4 a gap (2 of 14 rows); S3 to S6 ok, S1, S2, S7 and S8 missed; keep 6/10; 92 turns. Valid by its audit (benign calls only, ID-678). Its thirteen product findings were built in the same cycle (ID-770 to ID-774).
+2. **The bless guard.** `bless` first refused gpp-r1 because the task's committed `prelude.uiscript` holds the golden part copies' IDs. `raw_uuid_refusal` now accepts the task's committed prelude; the agent's steps still may hold no raw UUID (fa270ba0). gpp-r1 was blessed as `gpp-1`, marked stale once the product changed its steps, and removed.
+3. **gpp-r2**, on the fixed build, scored **pass-with-gaps**: H1 to H3 and H5 to H7 ok; H4 12 of 14 rows (the TBD end brackets ×4 and plug-in bridges ×3, WP-S2.07's strip accessories); S3 to S6 and S8 ok; S1, S2 and S7 missed (S7: explicit marker mode set and no wire flagged); keep 7/10; 68 turns and 664 steps; nothing broken. Valid by its audit (two benign, self-reported calls). Replay R1 and R2 hold (R3 0). Committed as `tools/blind/recordings/gpp-2/` with `ci = nightly`.
+4. **The oracle error.** The checker showed that `oracle/rows/ends.csv` rows 11 and 13 put 1X1's external field ends on `/a`, the internal side; they belong on `/b`. The fix and the re-score of `gpp-2` (S rows only) are FT-555; the H rows and G-PP's record do not change.
+5. **The text interface** gained `reason_text` and `pending` (§5.2.3 as built) and the page text's item positions and terminal sides (§5.5.3: every page item prints `at <x> <y> mm`, a terminal CP `internal` or `field`; 355 describe words).
+6. **The audit recipe of §5.11 step 7:** the drafter's and the checker's transcripts are the subagents' own transcripts; a task's output file may be empty and is not the record to audit.
+7. **The G-PP reading.** By the owner's ruling of 2026-10-29 the gate run stands as proxy for G-PP-01 and G-PP is recorded Go (§8 as amended; gates §5.4). Follow-ups: FT-543 to FT-556 from gpp-r2's triage, FT-582 to FT-584 from gpp-r1's harness and task-sheet defects.
 ---
 
 ## Sources
