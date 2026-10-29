@@ -8,7 +8,7 @@ color.surface.raised #FFFFFF
 color.surface.sunken #F4F5F7
 color.surface.inverse #1A1D21
 color.text.primary #1A1D21 on color.surface.panel 16.91 on color.surface.chrome 15.50 on color.surface.raised 16.91 on color.surface.sunken 15.50 on color.accent.subtle 14.71
-color.text.secondary #555C66 on color.surface.panel 6.75 on color.surface.chrome 6.19 on color.surface.raised 6.75 on color.accent.subtle 5.88
+color.text.secondary #555C66 on color.surface.panel 6.75 on color.surface.chrome 6.19 on color.badge.on_chrome 5.40 on color.surface.raised 6.75 on color.accent.subtle 5.88
 color.text.tertiary #646C78 on color.surface.chrome 4.86 on color.surface.panel 5.31 on color.surface.raised 5.31
 color.text.disabled #A7AEB8
 color.text.on_accent #FFFFFF on color.accent 5.69
@@ -99,6 +99,7 @@ size.chip 16px
 size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
+size.dialog.label 160px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -117,6 +118,7 @@ color.table.cursor #0B63CE on color.surface.panel 5.69 on color.accent.subtle 4.
 color.table.cursor_idle #0B63CE on color.accent.subtle 4.95
 color.history.undone #646C78 on color.surface.panel 5.31
 color.card.strip #F4F5F7
+color.badge.on_chrome #E3E6EA
 radius.none 0px
 radius.mark 2px
 radius.sm 4px
@@ -140,7 +142,7 @@ color.surface.raised #FFFFFF
 color.surface.sunken #F4F5F7
 color.surface.inverse #1A1D21
 color.text.primary #1A1D21 on color.surface.panel 16.91 on color.surface.chrome 15.50 on color.surface.raised 16.91 on color.surface.sunken 15.50 on color.accent.subtle 14.71
-color.text.secondary #555C66 on color.surface.panel 6.75 on color.surface.chrome 6.19 on color.surface.raised 6.75 on color.accent.subtle 5.88
+color.text.secondary #555C66 on color.surface.panel 6.75 on color.surface.chrome 6.19 on color.badge.on_chrome 5.40 on color.surface.raised 6.75 on color.accent.subtle 5.88
 color.text.tertiary #646C78 on color.surface.chrome 4.86 on color.surface.panel 5.31 on color.surface.raised 5.31
 color.text.disabled #A7AEB8
 color.text.on_accent #FFFFFF on color.accent 5.69
@@ -231,6 +233,7 @@ size.chip 16px
 size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
+size.dialog.label 160px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -249,6 +252,7 @@ color.table.cursor #0B63CE on color.surface.panel 5.69 on color.accent.subtle 4.
 color.table.cursor_idle #0B63CE on color.accent.subtle 4.95
 color.history.undone #646C78 on color.surface.panel 5.31
 color.card.strip #F4F5F7
+color.badge.on_chrome #E3E6EA
 radius.none 0px
 radius.mark 2px
 radius.sm 4px
@@ -272,7 +276,7 @@ color.surface.raised #2A2E34
 color.surface.sunken #1A1D21
 color.surface.inverse #ECEEF1
 color.text.primary #ECEEF1 on color.surface.panel 13.39 on color.surface.chrome 14.55 on color.surface.raised 11.74 on color.surface.sunken 14.55 on color.accent.subtle 10.41
-color.text.secondary #A7AEB8 on color.surface.panel 6.96 on color.surface.chrome 7.56 on color.surface.raised 6.10 on color.accent.subtle 5.41
+color.text.secondary #A7AEB8 on color.surface.panel 6.96 on color.surface.chrome 7.56 on color.badge.on_chrome 5.19 on color.surface.raised 6.10 on color.accent.subtle 5.41
 color.text.tertiary #959DA8 on color.surface.chrome 6.17 on color.surface.panel 5.68 on color.surface.raised 4.98
 color.text.disabled #555C66
 color.text.on_accent #0B1A33 on color.accent 6.65
@@ -296,7 +300,7 @@ color.success #47C97E on color.surface.panel 7.36
 color.success.subtle #1D3326
 color.info #5AA2FF
 color.info.subtle #203754
-color.backdrop #1A1D213D
+color.backdrop #00000066
 canvas.surround #2E3238
 canvas.sheet #FFFFFF
 canvas.sheet_line #000000
@@ -363,6 +367,7 @@ size.chip 16px
 size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
+size.dialog.label 160px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -381,6 +386,7 @@ color.table.cursor #5AA2FF on color.surface.panel 5.96 on color.accent.subtle 4.
 color.table.cursor_idle #5AA2FF on color.accent.subtle 4.64
 color.history.undone #959DA8 on color.surface.panel 5.68
 color.card.strip #1A1D21
+color.badge.on_chrome #343941
 radius.none 0px
 radius.mark 2px
 radius.sm 4px
@@ -404,7 +410,7 @@ color.surface.raised #2A2E34
 color.surface.sunken #1A1D21
 color.surface.inverse #ECEEF1
 color.text.primary #ECEEF1 on color.surface.panel 13.39 on color.surface.chrome 14.55 on color.surface.raised 11.74 on color.surface.sunken 14.55 on color.accent.subtle 10.41
-color.text.secondary #A7AEB8 on color.surface.panel 6.96 on color.surface.chrome 7.56 on color.surface.raised 6.10 on color.accent.subtle 5.41
+color.text.secondary #A7AEB8 on color.surface.panel 6.96 on color.surface.chrome 7.56 on color.badge.on_chrome 5.19 on color.surface.raised 6.10 on color.accent.subtle 5.41
 color.text.tertiary #959DA8 on color.surface.chrome 6.17 on color.surface.panel 5.68 on color.surface.raised 4.98
 color.text.disabled #555C66
 color.text.on_accent #0B1A33 on color.accent 6.65
@@ -428,7 +434,7 @@ color.success #47C97E on color.surface.panel 7.36
 color.success.subtle #1D3326
 color.info #5AA2FF
 color.info.subtle #203754
-color.backdrop #1A1D213D
+color.backdrop #00000066
 canvas.surround #2E3238
 canvas.sheet #FFFFFF
 canvas.sheet_line #000000
@@ -495,6 +501,7 @@ size.chip 16px
 size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
+size.dialog.label 160px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -513,6 +520,7 @@ color.table.cursor #5AA2FF on color.surface.panel 5.96 on color.accent.subtle 4.
 color.table.cursor_idle #5AA2FF on color.accent.subtle 4.64
 color.history.undone #959DA8 on color.surface.panel 5.68
 color.card.strip #1A1D21
+color.badge.on_chrome #343941
 radius.none 0px
 radius.mark 2px
 radius.sm 4px
@@ -536,7 +544,7 @@ color.surface.raised #000000
 color.surface.sunken #000000
 color.surface.inverse #FFFFFF
 color.text.primary #FFFFFF on color.surface.panel 21.00 on color.surface.chrome 21.00 on color.surface.raised 21.00 on color.surface.sunken 21.00 on color.accent.subtle 17.56
-color.text.secondary #D7DBE0 on color.surface.panel 15.10 on color.surface.chrome 15.10 on color.surface.raised 15.10 on color.accent.subtle 12.63
+color.text.secondary #D7DBE0 on color.surface.panel 15.10 on color.surface.chrome 15.10 on color.badge.on_chrome 15.10 on color.surface.raised 15.10 on color.accent.subtle 12.63
 color.text.tertiary #D7DBE0 on color.surface.chrome 15.10 on color.surface.panel 15.10 on color.surface.raised 15.10
 color.text.disabled #8A9099 on color.surface.panel 6.53
 color.text.on_accent #000000 on color.accent 10.11
@@ -560,7 +568,7 @@ color.success #6EE29E on color.surface.panel 13.04
 color.success.subtle #000000
 color.info #79B8FF
 color.info.subtle #001A33
-color.backdrop #1A1D213D
+color.backdrop #00000066
 canvas.surround #1A1A1A
 canvas.sheet #FFFFFF
 canvas.sheet_line #000000
@@ -627,6 +635,7 @@ size.chip 16px
 size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
+size.dialog.label 160px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -645,6 +654,7 @@ color.table.cursor #79B8FF on color.surface.panel 10.11 on color.accent.subtle 8
 color.table.cursor_idle #79B8FF on color.accent.subtle 8.46
 color.history.undone #D7DBE0 on color.surface.panel 15.10
 color.card.strip #000000
+color.badge.on_chrome #000000
 radius.none 0px
 radius.mark 2px
 radius.sm 4px
@@ -668,7 +678,7 @@ color.surface.raised #000000
 color.surface.sunken #000000
 color.surface.inverse #FFFFFF
 color.text.primary #FFFFFF on color.surface.panel 21.00 on color.surface.chrome 21.00 on color.surface.raised 21.00 on color.surface.sunken 21.00 on color.accent.subtle 17.56
-color.text.secondary #D7DBE0 on color.surface.panel 15.10 on color.surface.chrome 15.10 on color.surface.raised 15.10 on color.accent.subtle 12.63
+color.text.secondary #D7DBE0 on color.surface.panel 15.10 on color.surface.chrome 15.10 on color.badge.on_chrome 15.10 on color.surface.raised 15.10 on color.accent.subtle 12.63
 color.text.tertiary #D7DBE0 on color.surface.chrome 15.10 on color.surface.panel 15.10 on color.surface.raised 15.10
 color.text.disabled #8A9099 on color.surface.panel 6.53
 color.text.on_accent #000000 on color.accent 10.11
@@ -692,7 +702,7 @@ color.success #6EE29E on color.surface.panel 13.04
 color.success.subtle #000000
 color.info #79B8FF
 color.info.subtle #001A33
-color.backdrop #1A1D213D
+color.backdrop #00000066
 canvas.surround #1A1A1A
 canvas.sheet #FFFFFF
 canvas.sheet_line #000000
@@ -759,6 +769,7 @@ size.chip 16px
 size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
+size.dialog.label 160px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -777,6 +788,7 @@ color.table.cursor #79B8FF on color.surface.panel 10.11 on color.accent.subtle 8
 color.table.cursor_idle #79B8FF on color.accent.subtle 8.46
 color.history.undone #D7DBE0 on color.surface.panel 15.10
 color.card.strip #000000
+color.badge.on_chrome #000000
 radius.none 0px
 radius.mark 2px
 radius.sm 4px
@@ -800,7 +812,7 @@ color.surface.raised #FFFFFF
 color.surface.sunken #FFFFFF
 color.surface.inverse #000000
 color.text.primary #000000 on color.surface.panel 21.00 on color.surface.chrome 21.00 on color.surface.raised 21.00 on color.surface.sunken 21.00 on color.accent.subtle 18.27
-color.text.secondary #2A2E34 on color.surface.panel 13.65 on color.surface.chrome 13.65 on color.surface.raised 13.65 on color.accent.subtle 11.87
+color.text.secondary #2A2E34 on color.surface.panel 13.65 on color.surface.chrome 13.65 on color.badge.on_chrome 13.65 on color.surface.raised 13.65 on color.accent.subtle 11.87
 color.text.tertiary #2A2E34 on color.surface.chrome 13.65 on color.surface.panel 13.65 on color.surface.raised 13.65
 color.text.disabled #6B717A on color.surface.panel 4.92
 color.text.on_accent #FFFFFF on color.accent 8.64
@@ -891,6 +903,7 @@ size.chip 16px
 size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
+size.dialog.label 160px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -909,6 +922,7 @@ color.table.cursor #0047A3 on color.surface.panel 8.64 on color.accent.subtle 7.
 color.table.cursor_idle #0047A3 on color.accent.subtle 7.52
 color.history.undone #2A2E34 on color.surface.panel 13.65
 color.card.strip #FFFFFF
+color.badge.on_chrome #FFFFFF
 radius.none 0px
 radius.mark 2px
 radius.sm 4px
@@ -932,7 +946,7 @@ color.surface.raised #FFFFFF
 color.surface.sunken #FFFFFF
 color.surface.inverse #000000
 color.text.primary #000000 on color.surface.panel 21.00 on color.surface.chrome 21.00 on color.surface.raised 21.00 on color.surface.sunken 21.00 on color.accent.subtle 18.27
-color.text.secondary #2A2E34 on color.surface.panel 13.65 on color.surface.chrome 13.65 on color.surface.raised 13.65 on color.accent.subtle 11.87
+color.text.secondary #2A2E34 on color.surface.panel 13.65 on color.surface.chrome 13.65 on color.badge.on_chrome 13.65 on color.surface.raised 13.65 on color.accent.subtle 11.87
 color.text.tertiary #2A2E34 on color.surface.chrome 13.65 on color.surface.panel 13.65 on color.surface.raised 13.65
 color.text.disabled #6B717A on color.surface.panel 4.92
 color.text.on_accent #FFFFFF on color.accent 8.64
@@ -1023,6 +1037,7 @@ size.chip 16px
 size.button.min_width 72px
 size.dialog.small 440px
 size.dialog.form 640px
+size.dialog.label 160px
 size.palette 560px
 size.palette.row 32px
 size.toast 300px
@@ -1041,6 +1056,7 @@ color.table.cursor #0047A3 on color.surface.panel 8.64 on color.accent.subtle 7.
 color.table.cursor_idle #0047A3 on color.accent.subtle 7.52
 color.history.undone #2A2E34 on color.surface.panel 13.65
 color.card.strip #FFFFFF
+color.badge.on_chrome #FFFFFF
 radius.none 0px
 radius.mark 2px
 radius.sm 4px
