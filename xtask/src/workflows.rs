@@ -640,6 +640,74 @@ mod tests {
         }
     }
 
+    /// R1-2 (ID-746): every job that runs cargo on a Windows runner has an explicit `RUSTFLAGS`, set workflow-wide
+    /// (before `jobs:`) or in the job, because RUSTFLAGS replaces the target rustflags of `.cargo/config.toml` (the
+    /// local builds' rust-lld): CI and the release artefacts link with link.exe.
+    #[test]
+    fn every_windows_cargo_job_sets_rustflags() {
+        let dir = crate::workspace_root().join(".github/workflows");
+        let mut files: Vec<_> = std::fs::read_dir(&dir)
+            .expect("the workflows")
+            .map(|e| e.expect("an entry").path())
+            .filter(|p| p.extension().is_some_and(|x| x == "yml"))
+            .collect();
+        files.sort();
+        let mut windows_jobs = 0;
+        let mut missing = Vec::new();
+        for path in files {
+            let text = std::fs::read_to_string(&path)
+                .expect("a workflow")
+                .replace("\r\n", "\n");
+            let name = path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned();
+            let Some((head, jobs)) = text.split_once("\njobs:\n") else {
+                continue;
+            };
+            let global = head.lines().any(|l| l.starts_with("  RUSTFLAGS:"));
+            // A job starts at a key line indented by two spaces.
+            let mut job: Option<(String, String)> = None;
+            let mut all = Vec::new();
+            for line in jobs.lines() {
+                let key = line
+                    .strip_prefix("  ")
+                    .filter(|r| !r.starts_with(' ') && !r.starts_with('#'))
+                    .and_then(|r| r.strip_suffix(':'));
+                if let Some(k) = key {
+                    all.extend(job.take());
+                    job = Some((k.to_owned(), String::new()));
+                } else if let Some((_, body)) = job.as_mut() {
+                    body.push_str(line);
+                    body.push('\n');
+                }
+            }
+            all.extend(job);
+            for (job, body) in all {
+                let code: Vec<&str> = body
+                    .lines()
+                    .map(|l| l.split(" #").next().unwrap_or(l))
+                    .filter(|l| !l.trim_start().starts_with('#'))
+                    .collect();
+                let code = code.join("\n");
+                if !(code.contains("windows-") && code.contains("cargo ")) {
+                    continue;
+                }
+                windows_jobs += 1;
+                let local = code.contains("RUSTFLAGS:") || code.contains("export RUSTFLAGS=");
+                if !(global || local) {
+                    missing.push(format!("{name}: {job}"));
+                }
+            }
+        }
+        assert!(windows_jobs >= 2, "Windows cargo jobs found: {windows_jobs}");
+        assert!(
+            missing.is_empty(),
+            "Windows cargo jobs without RUSTFLAGS: {missing:?}"
+        );
+    }
+
     /// FT-343: the `detect_odr_violation=1` trial is a dispatch input of the deep nightly that defaults to off; the
     /// workflow keeps `=0` (the suppression of the proven false positive, ID-495), and only the step of the
     /// `asan-command-fuzz` job reads the input, through an expression that yields one of two literals.

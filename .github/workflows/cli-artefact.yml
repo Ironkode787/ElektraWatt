@@ -45,6 +45,12 @@ jobs:
     name: cli-artefact (${{ matrix.os }}-${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    # An explicit RUSTFLAGS replaces the target rustflags of .cargo/config.toml, so the Windows artefact links with
+    # link.exe and not with the local builds' rust-lld (ID-746). `-D warnings` as ci.yml: the release build of `ew`
+    # is warning-free (checked with `cargo check -p ew --release` under these flags), and it is the flag set CI
+    # already builds with. The path remaps stay with the release-check job of the GUI binary.
+    env:
+      RUSTFLAGS: "-D warnings"
     strategy:
       fail-fast: false
       matrix:
