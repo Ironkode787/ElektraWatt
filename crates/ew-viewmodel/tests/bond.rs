@@ -76,7 +76,8 @@ fn without_b1(tmp: &Tmp) -> ShellModel {
     shell
 }
 
-/// D-22's situation: without B1 the wire W27 joins 0 V and PE, EW-POT-001 reports and 0 V's wires turn green-yellow;
+/// D-22's situation: without B1 the wire W27 joins 0 V and PE into one potential, EW-POT-001 reports, and the merged
+/// potential takes the first of its two definitions in natural order of name, 0V (WP-S1.16 D9, FT-587);
 /// Draw ▸ Bond on W27 previews `bond.create` (pelv_0v_pe, via W27), Apply commits it in one step, EW-POT-001 and
 /// EW-POT-002 are gone, 0 V is WH and PE stays PE; Undo brings the merge back.
 #[test]
@@ -86,8 +87,8 @@ fn a_bond_drawn_on_w27_keeps_0v_and_pe_apart() {
     assert!(findings(&mut shell, "EW-POT-001") >= 1, "the merge reports");
     let merged = potentials(&mut shell);
     assert!(
-        !merged.iter().any(|(l, _, _)| l == "0V"),
-        "0 V is merged into PE: {merged:?}"
+        merged.iter().any(|(l, _, _)| l == "0V") && !merged.iter().any(|(l, _, _)| l == "PE"),
+        "0 V and PE are one potential, named 0V (D9): {merged:?}"
     );
 
     done(&mut shell, "select.set", json!({"refs": [W27]}));
