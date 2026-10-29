@@ -344,7 +344,8 @@ is the directory WP-S7.03 fills; part 2 ships it empty with its manifest.
   generation and the new file names last, the same way; remove the files the old manifest named and the new one does
   not; release the lock. A crash before the manifest rename leaves the old manifest naming only old, intact files, so a
   reader sees one generation complete; unreferenced files left by a crash are removed by the next write. Published versions are immutable: a write of different content under
-  an existing `(item, version)` is refused (doc 05 §13.1).
+  an existing `(item, version)` is refused (doc 05 §13.1). A write refuses an item version older than the one held
+  (`Downgrade`) and refuses to replace an item whose shard holds a line this reader cannot type (ID-833).
 - **Read-only tiers** refuse every write (D4).
 
 ### 7.3 The index and search
@@ -636,8 +637,8 @@ WP-S7.03 after parts 2 and 4; WP-S2.07 part 4 after part 3.
 1:** doc 05 §2.2 (the implemented kinds), §3.5 (a part with `mech`), §13.2 (manufacturer copies); doc 07 §2.5 (as
 built, the typed members), §2.7 (`MacroDef` as built); doc 03 §7. **After part 2:** doc 07 §2.2 and §4.7 (the index as
 built), doc 05 §13.1; the user guide's library page. **After part 3:** doc 07 §3.1, §3.3 (`part.assign`), §4.5 (as
-built); doc 06 §3.1 (the command count); doc 17 §2.1; doc 20 §9.2 (manufacturer copies). **After part 4:** doc 07 §3.6;
-doc 14 (the parts import). **After part 5:** doc 07 §3.5, §4.6 (as built); doc 20 §9.3. **After part 6:** doc 16 §5 (the
+built); doc 06 §3.1 (the command count); doc 17 §2.1; doc 07 §9.2 (manufacturer copies). **After part 4:** doc 07 §3.6;
+doc 14 (the parts import). **After part 5:** doc 07 §3.5, §4.6 (as built); doc 07 §9.3. **After part 6:** doc 16 §5 (the
 Macros and Libraries navigators), doc 16a where a pattern is new; the traceability and the glossary (library tier,
 copy state, macro instance).
 
