@@ -18,6 +18,18 @@ the narrower and wins for the lanes; the design documents stay the target of the
 named in §14.4 are updated at the design pass after each part. A choice a lane meets that this document does not settle
 is escalated, never guessed (`CLAUDE.md`, rule 2).
 
+**As built (cycle 34).** **Part 1 is built** (lane H34): `terminal.insert` and `terminal.move` (58 commands),
+`strip.accessories` through `fields.set`, the derived query `strip_bridges` with the bridge BOM line and
+`bridge_groups`, the part resolver's kinds and description form, the strip editor below the shell
+(`Session::strip_edit`), and the six actions of §6.9 in the shell (268 actions; with WP-S1.19 part 1's word, 357
+describe words). Two items of part 1 are **not built and move to part 2**: §6.8 (Enter on an unplaced terminal row
+dispatching `place.pick`, and the row as a drag source onto a canvas), and the Alt+Up and Alt+Down shortcut of
+`strip.move` (§6.4, §6.9): the keymap test forbids a second binding of those chords in the navigator context, where
+they are `pages.move_up` and `pages.move_down`, so `strip.move` has no shortcut as built and runs as a registered action
+(the palette, `command.run`, a script); the Pos cell's read-only reason already names the keys. The lead ruling for part 2: **Alt+Up and Alt+Down are `strip.move` while the Terminal strips
+navigator has the focus, and `pages.move_up` and `pages.move_down` elsewhere.** SE7's order is corrected below to the
+as-built natural order of the tags, which the tests assert.
+
 ---
 
 **Contents**
@@ -352,6 +364,8 @@ list and the label mode as built.
 
 ### 6.8 Placing unplaced terminals (FR-TRM-015, FR-DEV-018)
 
+*As built (cycle 34): not built in part 1; moved to part 2.*
+
 A terminal row whose terminal has no representation and is drawn by no strip segment shows the `unplaced` badge (as
 built) and is a drag source onto a canvas; Enter on it, with a page open in the focused tab, dispatches `place.pick
 { function: <its main function> }` (WP-S2.06 §6.7's drop); with no page open, Enter refuses `reason-no-page`. A placed
@@ -364,7 +378,7 @@ terminal's row opens its drawing as built.
 | `strip.edit` | View | Strip editor | Edit | — | global | `strip?:text` |
 | `strip.insert` | Command | Insert terminal | — | Insert | strips navigator | `count?:uint, designation?:text` |
 | `strip.delete_rows` | Command | Delete rows | — | Ctrl+Delete | strips navigator | `` |
-| `strip.move` | Command | Move terminals | — | Alt+Arrow Up, Alt+Arrow Down | strips navigator | `step?:int, before?:text` |
+| `strip.move` | Command | Move terminals | — | Alt+Arrow Up, Alt+Arrow Down (as built: none, part 2; see the as-built note at the top) | strips navigator | `step?:int, before?:text` |
 | `strip.add_accessory` | Command | Add accessory | Edit | — | strips navigator | `kind?:enum(end_plate\|end_clamp\|partition\|marker\|cover), part?:text` |
 | `strip.unbridge` | Command | Remove bridge | — | — | strips navigator | `` |
 
@@ -490,7 +504,7 @@ for a lead ruling.
 | SE4 | `StripBridges` and the BOM: on a fixture strip with BR groups 1 (two connections, part on the second) and 2 (no part), the carrier is group 1's second connection, `DevicePartLines(strip)` has one `Bridge` line; Golden A's BOM, terminal diagrams (903 to 905) and wire list (907) byte-equal to the expected files; `bridges` and `bridge_groups` give BR1 to BR6 as built | `ew-derive`, `ew-reports`, `ew-api` tests | D6 |
 | SE5 | The part resolver: kind filter (TBD with `end_bracket` resolves to the end bracket, with `accessory` to the bridge), the description form parses back, two matches are `Ambiguous` with both choices, the Parts row unchanged for a unique number | `ew-api` tests | D7 |
 | SE6 | **G-PP's H4 rows**, script and kittest: from the task's prelude, three strips and their terminals, four end brackets by `strip.add_accessory` (no `part`, the one end-bracket copy), BR1, BR5 and BR6 by `strip.bridge` on terminals selected by `select.set` with tags, the Bridge part "TBD" by one fill-down over the bridged rows; the exported parts list's rows for End bracket (4) and Plug-in bridge (3) equal `oracle/bom.csv` rows 13 and 14 | `bin/elektrawatt/tests` | §6.5, §6.6, D5, D6, FT-548 |
-| SE7 | The strips table on Golden A: `Order` sort (1X1, then -X1031 1 … 20, then -X1032 1 … 5); the `pos` cells; `strip:-x1031` shows 20 rows; an accessory row placed and numbered as D3 for `after_seq` 0, 20 and two at 4; the read-only reasons of §6.2 | `ew-api`, `ew-viewmodel` tests | D2, D3 |
+| SE7 | The strips table on Golden A: `Order` sort (-X1031 1 … 20, then -X1032 1 … 5, then 1X1: in natural order `-` sorts before a digit, `ew_mltext::natural_cmp`); the `pos` cells; `strip:-x1031` shows 20 rows; an accessory row placed and numbered as D3 for `after_seq` 0, 20 and two at 4; the read-only reasons of §6.2 | `ew-api`, `ew-viewmodel` tests | D2, D3 |
 | SE8 | Group labels: on Golden A, "Reserve" on -X1031:7 and :8 gives 1–4, 5–6, 7–8, 9–10, 11–14, 15–20 with the old labels; "Pneumatics" on 5 … 10 gives 1–14 and 15–20; clearing 5 … 10 gives 1–4, 11–14, 15–20; a group with an unknown member keeps it on each piece; each is one `fields.set` and one undo step; the Properties "Group" row of a terminal does the same | `ew-api`, `ew-viewmodel` tests | D8, D13, FT-553 |
 | SE9 | Strip-editor gestures, kittest and script: Insert before -X1031:5 (§6.4, toast, cursor), Ctrl+Delete on two terminal rows opens the card with their bridges and wires, on an accessory row commits, on a mix refuses; Alt+Up on :13 three times puts it at seq 10's place (three commands, three undo steps); Enter on an unplaced spare terminal (-X1031:15) with folio 103 open arms the Place tool with its function | `ew-viewmodel`, `ew-ui` tests | §6.4, §6.8, D12, D14, FR-TRM-015 |
 | SE10 | **FT-548:** `strip.bridge` works with the terminals selected by click (representations), by `select.set` with `tag:` (devices), by navigator marks (devices) and by functions, with one result; two strips refuse `reason-bridge-strips` | `ew-viewmodel` tests | D9 |

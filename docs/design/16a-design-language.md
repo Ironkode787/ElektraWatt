@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -242,7 +242,7 @@ row. **Text** needs 4.5:1, **non-text** (icons, boundaries, focus) 3:1.
 | `color.surface.chrome` | `slate-50` #F4F5F7 | `slate-900` #1A1D21 | — | — | — | The command bar's tab row, rails, canvas-tab bar, status bar |
 | `color.surface.panel` | `slate-0` #FFFFFF | `slate-850` #212429 | — | — | — | The command row, docked panels, the command search field |
 | `color.surface.raised` | `slate-0` #FFFFFF | `slate-800` #2A2E34 | — | — | — | Menus, popovers, dialogs, toasts, palette |
-| `color.surface.sunken` | `slate-50` #F4F5F7 | `slate-900` #1A1D21 | — | — | — | Table headers, the segmented control's track, dock-tab counts |
+| `color.surface.sunken` | `slate-50` #F4F5F7 | `slate-900` #1A1D21 | — | — | — | Table headers, the segmented control's track, the panel's count badges (the dock-tab counts use `color.badge.on_chrome` since cycle 34, §4.15) |
 | `color.surface.inverse` | `slate-900` #1A1D21 | `slate-100` #ECEEF1 | — | — | — | Tooltips, canvas chips, the tool HUD (opaque) |
 | `color.text.primary` | `slate-900` #1A1D21 | `slate-100` #ECEEF1 | panel | 16.9 | 13.4 | Values, labels of rows, body |
 | `color.text.secondary` | `slate-600` #555C66 | `slate-350` #A7AEB8 | panel | 6.75 | 7.0 | Property labels, meta, shortcuts |
@@ -457,7 +457,7 @@ none of it reads raw egui defaults.
 
 Added 2026-10-28 for the widgets that WP-S2.06 part 3, WP-S2.09 parts 2 and 3 and FT-500 built alongside this
 document (§6.21 to §6.25). Each is a component token (§4.1, layer 3) defined by an alias or an existing size; none
-adds a raw value, so the token test of WP-S2.17 part 1 checks them through their aliases.
+adds a raw value, so the token test of WP-S2.17 part 1 checks them through their aliases. *As built (cycle 34):* `size.dialog.label` is the one exception, a raw 160 px in both densities; `color.badge.on_chrome` is checked as a background of `color.text.secondary` in the token dump.
 
 | Token | Comfortable | Compact | Defined as | Use |
 |---|---|---|---|---|
@@ -472,6 +472,8 @@ adds a raw value, so the token test of WP-S2.17 part 1 checks them through their
 | `color.table.cursor_idle` | = `color.accent` | = `color.accent` | alias | The cursor cell's 1-px inset ring while the focus is elsewhere; the width, not the colour, tells the two apart |
 | `color.history.undone` | = `color.text.tertiary` | = `color.text.tertiary` | alias | Undone History entries, always with their state icon (§6.24) |
 | `color.card.strip` | = `color.surface.sunken` | = `color.surface.sunken` | alias | The fill of the "Preview open" strip |
+| `size.dialog.label` | 160 | 160 | raw size (cycle 34, FT-566) | The fixed label column of every form dialog, followed by `space.3` (§6.12) |
+| `color.badge.on_chrome` | = `color.border.subtle` | = `color.border.subtle` | alias (high-contrast themes: `color.surface.sunken`, outlined with `color.border.default`) | A count badge on the chrome, such as the dock tab row's count chip (§6.16; FT-561); secondary text on it is 5.40:1 (light) and 5.19:1 (dark) |
 
 `color.border.control` is not used for the idle cursor: on `color.accent.subtle` it falls to 2.88:1, under 3:1.
 Tertiary text does not sit on `color.accent.subtle` either (4.62:1 light, 4.42:1 dark): a selected or marked row
@@ -723,7 +725,7 @@ Every interactive component has these states, drawn the same way everywhere:
 | Pressed | `color.state.pressed` overlay |
 | Selected | `color.accent.subtle` fill; text primary, icon `color.accent`; in lists a 2-px accent bar (`radius.mark`) at the left edge, inset 4 px top and bottom |
 | Focused (keyboard) | 2-px `color.focus` ring, 1 px outside the element, `radius` of the element + 1 |
-| Disabled | `color.text.disabled` text and icon, no hover; the reason as tooltip (doc 16 §2.4). *Amended by cycle 33 (decision log ID-775):* a disabled Primary draws as a Secondary (its fill and border) with `color.text.disabled`, without egui's extra fade; about 2.2 to 2.3:1, exempt as a disabled control (a 3:1 disabled token is FT-581) |
+| Disabled | `color.text.disabled` text and icon, no hover; the reason as tooltip (doc 16 §2.4). *Amended by cycle 33 (decision log ID-775):* a disabled Primary draws as a Secondary (its fill and border) with `color.text.disabled`, without egui's extra fade; about 2.2 to 2.3:1, exempt as a disabled control. *Ruled in cycle 34 (FT-581):* the exemption stands and there is no 3:1 disabled token; `color.text.disabled` is 2.23:1 (light) and 2.27:1 (dark) on the panel, legible yet clearly under every enabled label, and a test keeps it within [2, 3) and at most half the primary text's ratio, so it can neither fade into illegibility nor make a disabled Primary read as an enabled button |
 | Error | `color.error` boundary on fields, the message under the field with an icon |
 | Busy | the label stays; a 12-px spinner replaces the icon; never disables the window |
 
@@ -854,6 +856,8 @@ the Primary unless it is destructive. No close cross: Cancel is the way out.
 
 *As built (cycle 32; decision log ID-750).* Every dialog is drawn modal over the `color.backdrop` scrim. **In a confirmation of a destructive step (journal discard, purge) Cancel is the Primary**, so Enter keeps the data; the step is the danger button, and the Primary is drawn as a Secondary beside it. The button order on Linux and macOS has no test yet (FT-534).
 
+*As built (cycle 34; FT-557, FT-558, FT-566).* **`color.backdrop` is per theme:** light and high-contrast light `slate-900` at 24 % (#1A1D213D), dark and high-contrast dark black at 40 % (#00000066, the alpha of the dark `elevation.1` shadow). The scrim always covered the whole window; at slate-900 over a slate-900 chrome it dimmed nothing outside the canvas in dark, and now the command bar, rail, navigator, Properties and status bar are visibly darker under a dialog in every theme (a pixel test asserts it in light and dark). **Form dialogs** lay their rows out on one fixed label column, `size.dialog.label` (160 px) then `space.3`, so the field edges line up from dialog to dialog; the fields fill the body at `size.control` height and carry no placeholder that repeats their label; a choice field shows the display words of §8 ("Multi-line", "Location", "Page-based", "User-defined") while the action receives the raw value, and a yes-or-no field is a check box named by its label. The text caret is 1 px (`border.width`).
+
 ### 6.13 Menus and context menus
 
 `color.surface.raised`, `elevation.1`, `radius.md`, `space.2` padding, rows of `size.row`: a 16-px icon column (empty
@@ -885,7 +889,7 @@ hover overlay and a tooltip with the full name, library and version. Selected or
 
 | Kind | Drawing | Example |
 |---|---|---|
-| Count badge | `radius.pill`, `type.caption`, 18 px high, `space.icon` padding; the semantic subtle fill with the semantic text, or `color.surface.sunken` with `color.text.secondary` | a finding count on a tree row, "3" on the Messages tab |
+| Count badge | `radius.pill`, `type.caption`, 18 px high, `space.icon` padding; the semantic subtle fill with the semantic text, or `color.surface.sunken` with `color.text.secondary`; *as built (cycle 34, FT-561):* on the chrome (a dock tab's count chip) the fill is `color.badge.on_chrome`, because `color.surface.sunken` is the chrome's own colour in light and dark | a finding count on a tree row, "3" on the Messages tab |
 | Provenance chip | `radius.pill`, `type.caption`, `color.text.tertiary`, 1-px `color.border.default`, 16 px high | "inherited", "page" (§6.8) |
 | Status badge | `radius.sm`, subtle semantic fill, icon + word in `type.caption` | "Pending", "Stale", "Read-only" |
 | Key chip | `radius.sm`, 1-px `color.border.default`, `type.caption`, `color.text.tertiary`, `space.2` padding; the keys separated by a space | "Ctrl K", "R" |
