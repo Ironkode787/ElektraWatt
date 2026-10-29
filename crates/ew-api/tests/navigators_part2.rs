@@ -187,10 +187,27 @@ fn np1_strips_are_the_terminal_diagrams() {
 #[test]
 fn np1_cables_plc_potentials_parts() {
     let s = common::golden_session();
-    // Cables: block 906's data rows, 3 cables and 13 cores.
+    // Cables: block 906's data rows, 3 cables and 13 cores, then (WP-S2.07 part 2) a core's derived potential, its
+    // shield flag and pair, empty on a cable row.
     let t = s.navigator_table(NavKind::Cables);
     assert_tree_contract(&t);
-    assert_eq!(cells(&t), block_rows(&s, "906"));
+    let report = block_rows(&s, "906");
+    let width = report[0].len();
+    let all = cells(&t);
+    assert_eq!(
+        all.iter().map(|r| r[..width].to_vec()).collect::<Vec<_>>(),
+        report
+    );
+    let extra = |core: &str, cable: &str| {
+        all.iter()
+            .find(|r| r[0] == cable && r[2] == core)
+            .map(|r| r[width..].to_vec())
+            .unwrap()
+    };
+    assert_eq!(extra("BN", "-106W1"), ["24VDC-1", "no", ""]);
+    assert_eq!(extra("GNYE", "-106W2"), ["PE", "no", ""]);
+    assert_eq!(extra("SH", "-3W1"), ["", "yes", ""]);
+    assert_eq!(all[0][width..], ["", "", ""]);
     let cables: Vec<&NavNode> = t.nodes.iter().filter(|n| n.role == NavRole::Cable).collect();
     assert_eq!(cables.len(), 3);
     assert_eq!(

@@ -392,7 +392,7 @@ fn kind_columns(kind: &str) -> Vec<NavColumn> {
 
 /// The editable columns of table mode (WP-S2.06 part 3, §8.2; D10): (navigator, column key, route kind, route path).
 /// Every other column is read-only.
-const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 18] = [
+const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 22] = [
     (NavKind::Pages, "title", "page", "title"),
     (NavKind::Pages, "type", "page", "kind"),
     (NavKind::Devices, "function_text", "device", "function_text"),
@@ -408,6 +408,12 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 18] = [
     (NavKind::Strips, "state", "device", "state"),
     (NavKind::Cables, "colour", "conductor", "colour"),
     (NavKind::Cables, "cross_section", "conductor", "csa"),
+    // WP-S2.07 part 2 (§7, FR-CBL-016): a core's name (an identifier of its cable), shield and pair; a cable's length
+    // through its typed editor (FT-429).
+    (NavKind::Cables, "core", "conductor", "core"),
+    (NavKind::Cables, "shield", "conductor", "shield"),
+    (NavKind::Cables, "pair", "conductor", "pair"),
+    (NavKind::Cables, "length", "device", "cable.length"),
     (NavKind::Potentials, "potential", "potential_def", "name"),
     // The G-PP triage's row 8: Type and Voltage set a definition's `ptype` and `voltage`; on a potential without one
     // the Name defines it, with Type and Voltage typed in the same gesture (WP-S1.16 D4; the view model compiles
@@ -429,8 +435,9 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 18] = [
 /// The derived columns (WP-S2.06 part 3, §8.1, §8.2): cells the derivation computes from other records rather than a
 /// field of the row's record (a connection's or terminal's potential, the folios a row is drawn on, counts). Drawn
 /// italic in table mode and read-only with the reason "derived".
-const DERIVED_COLUMNS: [(NavKind, &str); 8] = [
+const DERIVED_COLUMNS: [(NavKind, &str); 9] = [
     (NavKind::Connections, "potential"),
+    (NavKind::Cables, "potential"),
     (NavKind::Connections, "pages"),
     (NavKind::Strips, "potential"),
     (NavKind::Potentials, "aliases"),
@@ -503,7 +510,13 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             }
             c
         }
-        NavKind::Cables => kind_columns("cable_overview_diagrams"),
+        // WP-S2.07 part 2 (§7): the cable overview's columns (a core row's From and To are the far ends of its
+        // wires, as the cable diagram prints them), then a core's derived potential, its shield flag and pair.
+        NavKind::Cables => {
+            let mut c = kind_columns("cable_overview_diagrams");
+            c.extend(["potential", "shield", "pair"].map(|k| column(k, &key_label(k), false, None)));
+            c
+        }
         NavKind::Plc => kind_columns("plc_overview"),
         NavKind::Potentials => kind_columns("potential_overview"),
         NavKind::Ips => own(&["name", "page_cell", "direction", "partner", "external"]),
@@ -1567,6 +1580,7 @@ fn cables_table(q: &Q, b: &mut Builder) {
         return;
     };
     let folios = folios(q);
+    let partition = q.get::<ew_derive::PotentialPartition>(());
     let mut cables: BTreeMap<Uuid, u32> = BTreeMap::new();
     for (i, r) in set.rows.iter().enumerate() {
         if r.kind != ew_reports::RowKind::Data {
@@ -1584,11 +1598,14 @@ fn cables_table(q: &Q, b: &mut Builder) {
                 if !part.is_empty() {
                     facets.push(("part".to_owned(), part));
                 }
+                let label = cell_of(&set, &texts, "cable").to_owned();
+                let mut texts = texts;
+                texts.extend([String::new(), String::new(), String::new()]);
                 let n = b.push(
                     None,
                     NavRole::Cable,
                     &format!("cable:{cable}"),
-                    cell_of(&set, &texts, "cable").to_owned(),
+                    label,
                     Vec::new(),
                     vec![cable],
                     drawables,
@@ -1611,11 +1628,31 @@ fn cables_table(q: &Q, b: &mut Builder) {
                 cons.sort();
                 let drawables = connection_drawables(q, &folios, &cons);
                 let facets = base_facets(NavRole::Conductor, &drawables);
+                // The potential of the core's wires (the first end of its first connection that has one), its shield
+                // flag and pair.
+                let potential = cons
+                    .iter()
+                    .filter_map(|c| q.connections().get(*c))
+                    .flat_map(|c| [&c.a, &c.b])
+                    .find_map(|e| {
+                        let key = ew_derive::EndpointKey::of(e)?;
+                        let p = partition.potential_at(key)?;
+                        Some(q.get::<ew_derive::PotentialNameOf>(p.id).name.text.clone())
+                    })
+                    .unwrap_or_default();
+                let conductor = q.conductors().get(cid);
+                let shield = conductor.map_or("", |c| if c.shield { "yes" } else { "no" });
+                let pair = conductor
+                    .and_then(|c| c.pair)
+                    .map_or_else(String::new, |p| p.to_string());
+                let label = cell_of(&set, &texts, "core").to_owned();
+                let mut texts = texts;
+                texts.extend([potential, shield.to_owned(), pair]);
                 b.push(
                     Some(parent),
                     NavRole::Conductor,
                     &format!("conductor:{core}"),
-                    cell_of(&set, &texts, "core").to_owned(),
+                    label,
                     Vec::new(),
                     vec![cable, core],
                     drawables,
@@ -2631,7 +2668,9 @@ mod tests {
                 "{kind}.{path}: route {:?}",
                 spec.route
             );
-            assert!(scalar(&spec.ty), "{kind}.{path}: {}", spec.ty.word());
+            // A cable's length source is JSON with its own typed editor (`parse_field_input`, WP-S2.07 §7).
+            let typed = (kind, path) == ("device", "cable.length");
+            assert!(scalar(&spec.ty) || typed, "{kind}.{path}: {}", spec.ty.word());
             assert_eq!(
                 spec.identifier,
                 identifiers.contains(&(kind, path)),

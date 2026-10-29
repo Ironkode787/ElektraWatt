@@ -282,6 +282,8 @@ pub fn row_targets(node: &NavNode, route_kind: &str) -> Vec<Uuid> {
     let picked: Vec<Uuid> = match route_kind {
         "conductor" if node.role == NavRole::Conductor => node.records.iter().skip(1).copied().collect(),
         "conductor" => Vec::new(),
+        // A cable's length is edited on its cable row, not on a core row (WP-S2.07 §7).
+        "device" if node.role == NavRole::Conductor => Vec::new(),
         "potential_def"
             if node.role == NavRole::Potential
                 && node.facets.iter().any(|(f, _)| f == "potential")
@@ -437,6 +439,8 @@ pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<St
     }
     match route_type(kind, path) {
         Some(ty) if is_scalar(&ty) => None,
+        // WP-S2.07 part 2 (§7, FT-429): a cable's length source has its typed editor (`parse_field_input`).
+        Some(_) if (kind.as_str(), path.as_str()) == ("device", "cable.length") => None,
         Some(_) => Some(crate::strings::text("table-reason-property-grid").to_owned()),
         None => Some(crate::strings::text("table-reason-no-command").to_owned()),
     }

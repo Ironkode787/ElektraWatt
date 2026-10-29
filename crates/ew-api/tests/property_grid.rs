@@ -597,6 +597,44 @@ fn the_frozen_tag_takes_the_printed_tag_as_text() {
     ));
 }
 
+/// WP-S2.07 CT3 (FT-429): a cable's length is typed in metres or as its words, and shows as it is typed.
+#[test]
+fn ct3_the_cable_length_is_typed_in_metres_or_words() {
+    let s = golden();
+    let value = |text: &str| s.parse_field_input("device", "cable.length", text).unwrap().value;
+    assert_eq!(value("12.5 m"), json!({"manual": 12_500_000_000_i64}));
+    assert_eq!(value("12.5m"), json!({"manual": 12_500_000_000_i64}));
+    assert_eq!(value("3"), json!({"manual": 3_000_000_000_i64}));
+    assert_eq!(value("0.000000001 m"), json!({"manual": 1}));
+    assert_eq!(value("missing"), json!("missing"));
+    assert_eq!(value("Length missing"), json!("missing"));
+    assert_eq!(value("from part"), json!("from_part"));
+    // The JSON form is parsed as before.
+    assert_eq!(value(r#"{"manual": 7}"#), json!({"manual": 7}));
+    for bad in ["1.2.3 m", "1.0000000001 m", ".5 m"] {
+        assert!(
+            matches!(
+                s.parse_field_input("device", "cable.length", bad),
+                Err(InputError::Invalid(_))
+            ),
+            "{bad}"
+        );
+    }
+    // The value reads back in the words the editor takes.
+    let ty = ew_api::output::field_catalogue("device")
+        .unwrap()
+        .iter()
+        .find(|f| f.path == "cable.length")
+        .unwrap()
+        .ty
+        .clone();
+    let show = |v: Value| ew_api::output::format_field_value(&ty, &v);
+    assert_eq!(show(json!({"manual": 12_500_000_000_i64})), "12.5 m");
+    assert_eq!(show(json!({"manual": 3_000_000_000_i64})), "3 m");
+    assert_eq!(show(json!("from_part")), "from part");
+    assert_eq!(show(json!("missing")), "missing");
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // PG8: the editors on the project's data
 

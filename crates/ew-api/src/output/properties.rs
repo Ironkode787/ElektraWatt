@@ -1941,6 +1941,11 @@ impl Session {
         {
             return parsed;
         }
+        if (kind, row_path) == ("device", "cable.length")
+            && let Some(parsed) = cable_length_input(text)
+        {
+            return parsed;
+        }
         let q = self.query();
         let cx = SheetCx::new(&q);
         let ty = row_type(kind, row_path)
@@ -1958,6 +1963,52 @@ impl Session {
         let q = self.query();
         let cx = SheetCx::new(&q);
         choices(&cx, &ty, &last_member(row_path), filter)
+    }
+}
+
+/// A cable's length source typed as its words (FT-429, WP-S2.07 §7): `<number> m` (or the number alone, in metres)
+/// is a manual length, `missing` (or `length missing`, the cable overview's text) none, `from part` the part's.
+/// `None` for anything else (a JSON value, the field's own form, parsed as before).
+fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
+    use ew_derive::ew_schema::LengthSource;
+    use ew_derive::ew_units::Nm;
+    let t = text.trim();
+    let plain = |source: LengthSource| {
+        Some(
+            serde_json::to_value(&source)
+                .map(|value| ParsedInput {
+                    value,
+                    notes: Vec::new(),
+                })
+                .map_err(|e| InputError::Invalid(e.to_string())),
+        )
+    };
+    match t.to_lowercase().as_str() {
+        "missing" | "length missing" => return plain(LengthSource::Missing),
+        "from part" | "from_part" => return plain(LengthSource::FromPart),
+        _ => {}
+    }
+    let number = t.strip_suffix('m').map_or(t, str::trim_end);
+    if number.is_empty() || !number.chars().all(|c| c.is_ascii_digit() || c == '.') {
+        return None;
+    }
+    let (whole, frac) = number.split_once('.').unwrap_or((number, ""));
+    if whole.is_empty() || frac.contains('.') || frac.len() > 9 {
+        return Some(Err(InputError::Invalid(format!(
+            "`{t}` is not a length in metres (for example 12.5 m)"
+        ))));
+    }
+    let nm = whole
+        .parse::<i64>()
+        .ok()
+        .and_then(|w| w.checked_mul(1_000_000_000))
+        .and_then(|w| {
+            let f: i64 = format!("{frac:0<9}").parse().ok()?;
+            w.checked_add(f)
+        });
+    match nm {
+        Some(nm) => plain(LengthSource::Manual(Nm(nm))),
+        None => Some(Err(InputError::Invalid(format!("`{t}` is too long a length")))),
     }
 }
 

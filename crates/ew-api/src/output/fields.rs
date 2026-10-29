@@ -1107,7 +1107,32 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
         },
         // A unit variant of a tagged enum (a function's `black_box`) is its word.
         FieldType::Group(_) => value.as_str().map(str::to_owned).unwrap_or_default(),
-        FieldType::Json => compact_json(value),
+        FieldType::Json => length_source_text(value).unwrap_or_else(|| compact_json(value)),
+    }
+}
+
+/// A cable's length source in the words its typed editor reads back (FT-429, WP-S2.07 §7): `{"manual": <nm>}` as
+/// `<metres> m`, `from_part` as `from part`, `missing` as is; `None` for any other JSON value.
+fn length_source_text(value: &Value) -> Option<String> {
+    match value {
+        Value::String(s) if s == "from_part" => Some("from part".to_owned()),
+        Value::String(s) if s == "missing" => Some("missing".to_owned()),
+        Value::Object(m) if m.len() == 1 => {
+            let nm = m.get("manual")?.as_i64()?;
+            let sign = if nm < 0 { "-" } else { "" };
+            let abs = nm.unsigned_abs();
+            let mut frac = format!("{:09}", abs % 1_000_000_000);
+            while frac.ends_with('0') {
+                frac.pop();
+            }
+            let whole = abs / 1_000_000_000;
+            Some(if frac.is_empty() {
+                format!("{sign}{whole} m")
+            } else {
+                format!("{sign}{whole}.{frac} m")
+            })
+        }
+        _ => None,
     }
 }
 
