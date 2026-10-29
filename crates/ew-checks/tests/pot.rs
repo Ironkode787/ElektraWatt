@@ -416,3 +416,113 @@ fn pot002_a_pelv_potential_that_is_not_m_type_has_no_finding() {
     let m = bonded(&json!({"ptype": "l_plus", "env": {"earthing": "pelv"}}), 0);
     assert!(findings_of(&m, "EW-POT-002").is_empty());
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// WP-S1.16 part 1 (D2, D3; FT-551): EW-POT-001's quick fix "Declare 0 V–PE bond (PELV)".
+
+const M_FN: u128 = 0x1001;
+const TERMINAL: u128 = 0x1002;
+const PE_FN: u128 = 0x1003;
+const W1: u128 = 0x2001;
+const W27: u128 = 0x2027;
+const PE_FN2: u128 = 0x1004;
+const W30: u128 = 0x2030;
+
+/// 0 V (the M-role CP of `M_FN`) and PE (the PE-role CPs of `PE_FN` and `PE_FN2`, joined by wire W30) joined
+/// through a terminal: wire W1 from the 0 V CP to the terminal, wire W27 from the terminal to the PE CP; `bond` adds
+/// the bond the fix declares. `(w1, w27)` are the IDs of W1 and W27.
+fn zero_volt_through_a_terminal_with(bond: bool, (w1, w27): (u128, u128)) -> Model {
+    let mut fx = Fx::base();
+    fx.func_m(M_FN, P1);
+    fx.func(TERMINAL, P1);
+    fx.func_pe(PE_FN, P1);
+    fx.func_pe(PE_FN2, P1);
+    fx.conn(w1, P1, Ep::Cp(M_FN, 1), cp(TERMINAL), &none());
+    fx.conn(w27, P1, cp(TERMINAL), Ep::Cp(PE_FN, 1), &none());
+    fx.conn(W30, P1, Ep::Cp(PE_FN, 1), Ep::Cp(PE_FN2, 1), &none());
+    if bond {
+        fx.push(json!({
+            "$k": "bond", "id": us(0x4001), "a": {"cp": [us(TERMINAL), 0]}, "b": {"cp": [us(PE_FN), 1]},
+            "kind": "pelv_0v_pe", "via": us(w27),
+        }));
+    }
+    fx.build()
+}
+
+fn zero_volt_through_a_terminal(bond: bool) -> Model {
+    zero_volt_through_a_terminal_with(bond, (W1, W27))
+}
+
+#[test]
+fn pot001_offers_the_0v_pe_bond_on_the_wire_at_the_pe_side() {
+    // The two ID orders of the wires: the carrier follows the drawing's printed keys, not the IDs (ID-677).
+    for (w1, w27) in [(W1, W27), (W27, W1)] {
+        let f = findings_of(&zero_volt_through_a_terminal_with(false, (w1, w27)), "EW-POT-001");
+        assert_eq!(f.len(), 1, "{f:#?}");
+        assert_eq!(
+            f[0].message, "member roles M meet Pe; the first in role order applies",
+            "a finding with a fix keeps its text"
+        );
+        let fix = f[0].fix.as_ref().expect("the bond fix");
+        assert_eq!(fix.label, "Declare 0 V–PE bond (PELV)");
+        assert_eq!(fix.command, "bond.create");
+        // W1 and W27 split 0 V from PE (W30 leaves a PE CP on each side); W27 has an end on the PE-role CP, so it
+        // comes first (D3).
+        assert_eq!(
+            fix.params,
+            json!({
+                "a": {"cp": {"function": us(TERMINAL), "idx": 0}},
+                "b": {"cp": {"function": us(PE_FN), "idx": 1}},
+                "kind": "pelv_0v_pe",
+                "via": us(w27),
+            })
+        );
+    }
+}
+
+#[test]
+fn the_declared_bond_keeps_0v_and_pe_apart_and_satisfies_pot002() {
+    let m = zero_volt_through_a_terminal(true);
+    let q = ew_derive::Q::new(&m);
+    assert_eq!(
+        q.get::<ew_derive::PotentialPartition>(()).potential_count(),
+        2,
+        "the bond's via is cut: 0 V and PE are two potentials"
+    );
+    assert!(findings_of(&m, "EW-POT-001").is_empty());
+    assert!(
+        findings_of(&m, "EW-POT-002").is_empty(),
+        "the one 0 V–PE bond of the PELV potential"
+    );
+}
+
+#[test]
+fn pot001_without_a_carrier_has_no_fix_and_names_draw_bond() {
+    // Two parallel wires between the 0 V and the PE CP: removing either splits nothing.
+    let mut fx = Fx::base();
+    fx.func_m(M_FN, P1);
+    fx.func_pe(PE_FN, P1);
+    fx.conn(W1, P1, Ep::Cp(M_FN, 1), Ep::Cp(PE_FN, 1), &none());
+    fx.conn(W27, P1, Ep::Cp(M_FN, 1), Ep::Cp(PE_FN, 1), &none());
+    let f = findings_of(&fx.build(), "EW-POT-001");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert!(f[0].fix.is_none(), "{:?}", f[0].fix);
+    assert_eq!(
+        f[0].message,
+        "member roles M meet Pe; the first in role order applies; declare the bond with Draw ▸ Bond"
+    );
+}
+
+#[test]
+fn pot001_a_conflict_without_pe_has_no_fix_and_no_hint() {
+    // M against L: a definition of type L on the 0 V CP's potential.
+    let mut fx = Fx::base();
+    fx.func_m(M_FN, P1);
+    fx.func(TERMINAL, P1);
+    fx.conn(W1, P1, Ep::Cp(M_FN, 1), cp(TERMINAL), &none());
+    fx.def(0x5001, cp(TERMINAL), &json!({"ptype": "l"}));
+    let f = findings_of(&fx.build(), "EW-POT-001");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert!(f[0].fix.is_none());
+    assert!(!f[0].message.contains("Draw"), "{}", f[0].message);
+}

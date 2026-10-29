@@ -124,6 +124,8 @@ pub use memo_store::MemoStore;
 pub use ew_memo::{Counters, FamilyMemory, Mismatch, Oracle, Stats};
 // WP-S1.16 D3: the carrier of a 0 V–PE bond (EW-POT-001's quick fix).
 pub use bond_carrier::{BondCarrierQ, Carrier};
+// The endpoint type of a carrier's ends (and of a component's members), for the crates above this one.
+pub use ew_model::EndpointKey;
 pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use names::{PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, potential_named};

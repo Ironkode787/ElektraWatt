@@ -147,11 +147,13 @@ fn carrier(q: &Q, key: PotentialId) -> Option<Carrier> {
             _ => {}
         }
     }
-    // The rail bonds: a chain over each location's PE CPs.
+    // The rail bonds: a chain over each location's PE CPs in the graph, in CP order (as the stitch graph chains
+    // them).
     let rail = q.get::<RailBondsQ>(());
     for cps in rail.by_location.values() {
-        for w in cps.windows(2) {
-            push(node(w[0].key()), node(w[1].key()), None);
+        let chain: Vec<usize> = cps.iter().filter_map(|c| node(c.key())).collect();
+        for w in chain.windows(2) {
+            push(Some(w[0]), Some(w[1]), None);
         }
     }
 

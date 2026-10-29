@@ -202,3 +202,83 @@ fn a_session_with_its_own_hook_does_not_install_the_shipped_rules() {
     };
     s.execute(&cmd).expect("the custom hook accepts");
 }
+
+/// The open EW-POT-001 and EW-POT-002 findings of a session (pre-delivery, online).
+fn pot_findings(s: &Session) -> Vec<checks::Finding> {
+    s.check(&PRE_DELIVERY, CheckMode::Online)
+        .findings
+        .into_iter()
+        .filter(|f| f.is_open() && (f.rule == "EW-POT-001" || f.rule == "EW-POT-002"))
+        .collect()
+}
+
+/// The names of the potentials of a session's model, sorted.
+fn potential_names(s: &Session) -> Vec<String> {
+    let q = ew_derive::Q::new(&s.world().model);
+    let part = q.get::<ew_derive::PotentialPartition>(());
+    let mut names: Vec<String> = part
+        .potentials()
+        .map(|p| q.get::<ew_derive::PotentialNameOf>(p.id).name.text.clone())
+        .collect();
+    names.sort();
+    names
+}
+
+/// WP-S1.16 P1-2 (D2, D3; FT-551): Golden A without its bond B1 (D-22: W27 is then a plain wire, 0 V and PE merge)
+/// reports EW-POT-001 with the fix "Declare 0 V–PE bond (PELV)" on W27, the wire on the PE side; running the fix's
+/// command as `messages.fix` does leaves 0V and PE two potentials, no EW-POT-001 and EW-POT-002 satisfied by the one
+/// bond; undo brings the finding back.
+#[test]
+fn the_0v_pe_bond_fix_declares_b1_on_w27_and_undo_restores_the_finding() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let mut s = golden_common::session_with(&batch, |_, records| {
+        records.retain(|r| !matches!(r, Record::Bond(_)));
+    });
+    let names = potential_names(&s);
+    assert!(
+        !names.contains(&"0V".to_owned()) || !names.contains(&"PE".to_owned()),
+        "without B1 0V and PE are one potential: {names:?}"
+    );
+    let before = pot_findings(&s);
+    let conflict: Vec<&checks::Finding> = before.iter().filter(|f| f.rule == "EW-POT-001").collect();
+    assert_eq!(conflict.len(), 1, "{before:#?}");
+    let fix = conflict[0]
+        .fix
+        .clone()
+        .unwrap_or_else(|| panic!("the bond fix: {:#?}", conflict[0]));
+    assert_eq!(fix.label, "Declare 0 V–PE bond (PELV)");
+    assert_eq!(fix.command, "bond.create");
+    assert_eq!(fix.params["kind"], "pelv_0v_pe");
+    assert_eq!(
+        fix.params["via"],
+        ids["connections|W27"].as_str(),
+        "{}",
+        fix.params
+    );
+
+    // The command path of `messages.fix`: the finding's command with its parameters.
+    let cmd = AnyCommand {
+        name: fix.command.clone(),
+        params: fix.params.clone(),
+    };
+    s.execute(&cmd).expect("the fix commits");
+    let names = potential_names(&s);
+    assert!(
+        names.contains(&"0V".to_owned()) && names.contains(&"PE".to_owned()),
+        "0V and PE are two potentials again: {names:?}"
+    );
+    assert!(
+        pot_findings(&s).is_empty(),
+        "no EW-POT-001, and EW-POT-002 is satisfied by the one bond: {:#?}",
+        pot_findings(&s)
+    );
+
+    s.undo(&ew_api::Origin::Gui).expect("undo");
+    let after = pot_findings(&s);
+    assert_eq!(
+        after.iter().map(|f| f.fingerprint).collect::<Vec<_>>(),
+        before.iter().map(|f| f.fingerprint).collect::<Vec<_>>(),
+        "undo restores the finding"
+    );
+}

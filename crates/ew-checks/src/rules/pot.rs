@@ -3,13 +3,14 @@
 
 //! EW-POT rules (doc 15 §4.3; content in doc 08 §3, §8.1).
 
+use ew_derive::EndpointKey;
 use ew_derive::ew_schema::{BondKind, Kind, PotentialEarthing, PotentialType};
 use ew_derive::{
-    DeriveNote, FlowBfs, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId, PotentialNameOf,
-    PotentialPartition, Q, RailTerminalOf,
+    BondCarrierQ, DeriveNote, FlowBfs, FunctionCps, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow,
+    PotentialId, PotentialNameOf, PotentialPartition, Q, RailTerminalOf,
 };
 
-use crate::finding::{Finding, Severity, Target};
+use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::full_tag;
 
@@ -100,6 +101,11 @@ pub const TYPE_OR_VOLTAGE_CONFLICT: RuleMeta = RuleMeta {
 ///
 /// - **Attributes:** one finding per potential with conflicts, discriminator `attrs` (plus the CP index
 ///   suffix of a potential without a definition), message the conflict details joined with "; ".
+/// - **0 V joined to PE** (WP-S1.16 D2, D3): when the member CPs carry both the roles `M` and `PE`, the attribute
+///   finding carries the quick fix "Declare 0 V–PE bond (PELV)", a `bond.create {a, b, kind: pelv_0v_pe, via}` on
+///   the potential's carrier connection (`bond_carrier`), which keeps 0 V and PE as two potentials; without a
+///   carrier (none, or a tie on the printed keys) it has no fix and its message ends with the hint "declare the
+///   bond with Draw ▸ Bond". A conflict without both roles is unchanged.
 /// - **Flow:** one finding per pass-through conflict whose first side is the potential, discriminator
 ///   `flow` (plus the suffix), targets the potential's and the function.
 #[derive(Clone, Copy, Debug)]
@@ -118,13 +124,36 @@ impl Rule for TypeOrVoltageConflict {
         let (targets, suffix) = potential_targets(q, p);
         let attrs = q.get::<PotentialAttrsOf>(p);
         if !attrs.conflicts.is_empty() {
-            out.push(Finding::new(
+            let mut message = attrs.conflicts.join("; ");
+            let mut fix = None;
+            if zero_volt_meets_pe(q, p) {
+                match *q.get::<BondCarrierQ>(p) {
+                    Some(c) => {
+                        fix = Some(QuickFix {
+                            label: "Declare 0 V–PE bond (PELV)".to_owned(),
+                            command: "bond.create".to_owned(),
+                            params: serde_json::json!({
+                                "a": endpoint_param(c.a),
+                                "b": endpoint_param(c.b),
+                                "kind": "pelv_0v_pe",
+                                "via": c.via.to_string(),
+                            }),
+                        });
+                    }
+                    None => message.push_str("; declare the bond with Draw ▸ Bond"),
+                }
+            }
+            let finding = Finding::new(
                 &TYPE_OR_VOLTAGE_CONFLICT,
                 targets.iter().copied(),
                 format!("attrs{suffix}"),
                 potential_name(q, p),
-                attrs.conflicts.join("; "),
-            ));
+                message,
+            );
+            out.push(match fix {
+                Some(fix) => finding.with_fix(fix),
+                None => finding,
+            });
         }
         let flow = q.get::<FlowBfs>(());
         for c in flow.conflicts.iter().filter(|c| c.a == p) {
@@ -143,6 +172,44 @@ impl Rule for TypeOrVoltageConflict {
             ));
         }
         out
+    }
+}
+
+/// Whether the member CPs of a potential (interruption points aside) carry both the role `M` and the role `PE`: a
+/// 0 V joined to PE (WP-S1.16 D2).
+fn zero_volt_meets_pe(q: &Q, p: PotentialId) -> bool {
+    let partition = q.get::<PotentialPartition>(());
+    let Some(potential) = partition.get(p) else {
+        return false;
+    };
+    let (mut m, mut pe) = (false, false);
+    for cp in &potential.cps {
+        if potential.ips.binary_search(&cp.function).is_ok() {
+            continue;
+        }
+        let cps = q.get::<FunctionCps>(cp.function);
+        match cps
+            .iter()
+            .find(|c| c.idx == cp.idx)
+            .and_then(|c| c.potential_role.as_ref())
+        {
+            Some(PotentialType::M) => m = true,
+            Some(PotentialType::Pe) => pe = true,
+            _ => {}
+        }
+    }
+    m && pe
+}
+
+/// An endpoint as a command parameter (`{"cp": {"function", "idx"}}`, `{"junction": {"junction"}}`).
+fn endpoint_param(e: EndpointKey) -> serde_json::Value {
+    match e {
+        EndpointKey::Cp(function, idx) => {
+            serde_json::json!({"cp": {"function": function.to_string(), "idx": idx}})
+        }
+        EndpointKey::Junction(junction) => {
+            serde_json::json!({"junction": {"junction": junction.to_string()}})
+        }
     }
 }
 
