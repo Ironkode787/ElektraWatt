@@ -86,7 +86,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             });
         }
         Dialog::Notices => {
-            let text = ew_viewmodel::about::notices_text(shell);
+            let text = reflow(&ew_viewmodel::about::notices_text(shell));
             let t = crate::theme::current(ui.ctx());
             ScrollArea::vertical()
                 .max_height(t.size_row * 12.0)
@@ -236,4 +236,61 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
         ui.colored_label(t.error.color32(), error);
     }
     submit
+}
+
+/// The notices text with its hard line breaks inside a paragraph joined, so the label's own wrap is the only one (the
+/// file's hard wrap wrapped again left orphan words such as "user"). A line keeps its break when it or the
+/// previous line is empty, or when it starts a list item or is indented (licence texts keep their layout).
+pub(crate) fn reflow(text: &str) -> String {
+    fn keeps_break(line: &str) -> bool {
+        let t = line.trim_start();
+        line.len() != t.len()
+            || t.starts_with(['-', '*', '•', '#', '=', '('])
+            || t.split_once(['.', ')']).is_some_and(|(n, _)| {
+                !n.is_empty() && n.len() <= 3 && n.chars().all(|c| c.is_ascii_alphanumeric())
+            })
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut prev_blank = true;
+    for line in text.lines() {
+        let blank = line.trim().is_empty();
+        if !out.is_empty() {
+            if blank || prev_blank || keeps_break(line) {
+                out.push('\n');
+            } else {
+                out.push(' ');
+            }
+        }
+        out.push_str(if blank { "" } else { line.trim_end() });
+        prev_blank = blank;
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::reflow;
+
+    #[test]
+    fn reflow_joins_the_lines_of_a_paragraph() {
+        let text =
+            "This font is free software; you can give it to any\nuser under the licence.\n\nSecond para.";
+        assert_eq!(
+            reflow(text),
+            "This font is free software; you can give it to any user under the licence.\n\nSecond para."
+        );
+    }
+
+    #[test]
+    fn reflow_keeps_list_items_and_indented_lines() {
+        let text = "Terms:\n- one\n- two\n  indented\n1. first\nnext";
+        assert_eq!(reflow(text), "Terms:\n- one\n- two\n  indented\n1. first next");
+    }
+
+    #[test]
+    fn reflow_leaves_no_orphan_line_in_the_notices() {
+        let out = reflow(ew_viewmodel::about::NOTICE);
+        assert!(out.contains("a face of the user "), "{out}");
+        assert!(!out.lines().any(|l| l.trim() == "user"), "{out}");
+    }
 }
