@@ -4,7 +4,7 @@
 existing device from the window (1.1 pw, D4), part 2 the generic starter parts and their reach from a new project
 (1.0 pw, D3, after WP-S1.19 parts 2 and 3), part 3 every starter symbol placeable and the briefs without embed lines
 (0.6 pw, D3), part 4 the brief `brief-plc-io` (0.3 pw, D2, after WP-S2.07 part 3 and WP-S1.21's channel assignment);
-part 1 first and alone of any dependency; parts 2 and 3 in that order; part 4 last · **Part 1 built in cycle 35** (lane A35, decision log ID-817; D3 deferred, FT-628); parts 2 and 3 building in cycle 35 (recorded by the orchestrator) · **Date:** 2026-10-29 ·
+part 1 first and alone of any dependency; parts 2 and 3 in that order; part 4 last · **Part 1 built in cycle 35** (lane A35, decision log ID-817; D3 deferred, FT-628); **parts 2 and 3 built in cycle 35** (lane G35, decision log ID-830); part 4 waits for WP-S1.21's channel assignment · **Date:** 2026-10-29 ·
 **Work package:** [WP-S2.18](../02-work-packages.md#wp-s218-basic-elements-from-the-window-starter-symbols-parts-and-joined-functions)
 · **Decision log:** ID-812 · **Part of:** ElektraWatt plan, specifications
 
@@ -26,7 +26,25 @@ row's object takes the hover outline; the actions `place.join`, `chooser.row`, `
 `place.pick device=<tag>` and `function=<tag>[:<slot>]`. `brief-relays-valves` and `brief-valve-switch` are runnable
 (FT-599), the prelude's part line still in place. **D3 is not built:** the Tag row is read-only and no command moves
 a function to another device, so the proposal's button has nothing to commit; FT-628 (an editable Tag row and a core
-`function.move_to_device`, then D3). The documents of §7 are not yet updated for part 1.
+`function.move_to_device`, then D3).
+
+**As built (cycle 35, parts 2 and 3).** Lane G35 (5d0636b4, 71d5b747, 04b67edc; decision log ID-830). **D5:** sixteen
+CC0-1.0 parts of manufacturer "Generic" in `content/libraries/ew-starter-parts.ewlib` (version 0.1.0): EW-GEN-RLY-1,
+CON-1, MCB-1, MCB-2, FUS-1, PB-1, SEL-1, POS-1, LMP-1, MOT-1, PSU-1, VLV-1, TRM-1, TRM-2, DI-1 and DO-1, written by the
+test `crates/ew-library/tests/starter_parts.rs` (`EW_BLESS=1`) and compiled into `ew-library`, so every session holds
+them; a directory of the same library ID replaces the compiled-in copy. Three details differ from D5: the selector
+switch has two NO contacts, since the starter set has no one-contact selector FnDef (FT-658); the MCB 3P and the valve
+3/2 are de-scoped by §5's rule (FT-657); the relay and the contactor template their coil only and carry their contacts
+as contact data, because the CP derivation matches a function to its template entry by FnDef alone (FT-655). **D6:**
+the picker's part rows and the Parts row list the library's parts after the embedded copies; the Parts row's choice is
+one `part.assign` that carries the closure (one undo step, replays without a library); **a placement from the picker is
+two undo steps**, a pre-arm `library.embed` and the placement, accepted for now (FT-656). **D7:**
+`crates/ew-viewmodel/tests/starter_symbols.rs` places every starter symbol of a new project by its path (part, strip
+terminal, black box, join through the chooser, device without a starter part, box device, drawing aid); the path table
+must equal the starter set; the D3 half of "both ways" is not built (FT-628). **D8:** both briefs at version 2 without
+`library.embed` lines pass `check-brief`, the potential-naming items still infeasible; `check-brief`'s `part:`
+requirement is also met by a shipped starter part (FT-592 closed). The documents of §7 are updated as built in the
+cycle-35 design pass.
 
 ## 1. Goal and non-goals
 

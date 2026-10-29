@@ -415,6 +415,15 @@ the relay's 6-character tag where a 36-character ID is required; its reference s
 brief` refuses it until a window path exists. Rule (4) above is, as built, checked by `check-brief`'s replay of the
 reference solution rather than by a sanity text run.
 
+*As built (cycle 35; decision log ID-817, ID-830).* **Both briefs are runnable.** WP-S2.18 part 1 gave the window a
+path to an existing device (the Join chooser, `place.pick device=<tag>`; FT-599), and part 3 moved both briefs to
+**version 2** without the `library.embed` prelude line (FT-592): their reference solutions take every part from the
+generic starter parts (`place.pick part=EW-GEN-…`; `brief-relays-valves` draws its relays from the contactor part and
+joins one NO contact to each by `device=<tag>`), the parts item is met in both (relays A10, valve switch A8, its query
+skipping strip devices), and `check-brief`'s `part:` requirement is also met by a shipped starter part. Both pass
+`check-brief`; the soft potential-naming items stay infeasible (relays A9, valve switch A7). The table's "not runnable
+on this build" reads as of cycle 34.
+
 ### 6.4 The regression task
 
 `gpp-101-103` runs unchanged as a visual gate run (the copy task with its oracle, H1 to H7 and S1 to S8), so its score,
