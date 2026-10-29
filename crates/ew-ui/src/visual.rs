@@ -420,8 +420,8 @@ pub fn parse_frame(o: &Map<String, Value>) -> Result<FrameRequest, String> {
                 || h == 0
                 || w > ZOOM_MAX.0
                 || h > ZOOM_MAX.1
-                || x + w > FRAME_WIDTH
-                || y + h > FRAME_HEIGHT
+                || x.checked_add(w).is_none_or(|end| end > FRAME_WIDTH)
+                || y.checked_add(h).is_none_or(|end| end > FRAME_HEIGHT)
             {
                 return Err(bad(format!(
                     "`zoom` is at most {} × {} pixels inside the frame",

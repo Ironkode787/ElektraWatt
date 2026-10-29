@@ -193,6 +193,13 @@ fn bv2_the_inputs_check_their_members_and_bounds() {
     assert!(parse_frame(&obj(json!({"frame": "../x.png"}))).is_err());
     assert!(parse_frame(&obj(json!({"frame": "t1.png", "zoom": [0, 0, 769, 10]}))).is_err());
     assert!(parse_frame(&obj(json!({"frame": "t1.png", "zoom": [1000, 0, 768, 10]}))).is_err());
+    // A corner near u32::MAX is refused, not added with overflow (a debug panic, a wrapped slice in release).
+    for zoom in [
+        json!([4_294_967_295_u32, 0, 10, 10]),
+        json!([0, 4_294_967_295_u32, 10, 10]),
+    ] {
+        assert!(parse_frame(&obj(json!({"frame": "t1.png", "zoom": zoom}))).is_err());
+    }
 }
 
 /// BV3: a click on a known button dispatches its action; a right click on a property row opens its menu; typing
