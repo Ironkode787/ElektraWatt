@@ -857,7 +857,9 @@ pub(crate) fn apply_action(origin: &CardOrigin) -> &'static str {
 /// The "Preview open" strip of an origin pane while the Preview tab shows its card (doc 16a §6.23): one line
 /// `size.card_strip` high on `color.card.strip`, `radius.md`, `space.3` padding: the `eye` icon, "Preview open:
 /// `<line>`" in `type.small` with an ellipsis and a tooltip when cut, then Apply (Subtle, its label in `color.accent`
-/// SemiBold), Cancel and Show (Subtle). `false` (and nothing painted) while the tab is not open.
+/// SemiBold), Cancel and Show (Subtle). When the whole line does not fit beside the buttons (FT-565), the strip takes
+/// two rows: the eye icon and the line without "Preview open:" in at most two lines, then the buttons right-aligned
+/// under it. `false` (and nothing painted) while the tab is not open.
 pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &mut Vec<Event>) -> bool {
     let Some(card) = shell.properties().card().filter(|_| shell.preview_shown()) else {
         return false;
@@ -870,8 +872,49 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
         .inner_margin(egui::Margin::symmetric(t.space_3 as i8, t.space_1 as i8))
         .show(ui, |ui| {
             ui.set_min_height(t.size_card_strip - 2.0 * t.space_1);
-            ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing.x = t.space_2;
+            let small_font = |accent: bool| {
+                theme::font(&theme::TypeToken {
+                    semibold: accent,
+                    ..t.type_small
+                })
+            };
+            let small = |ui: &mut Ui, key: &str, accent: bool| {
+                let colour = if accent { t.accent } else { t.text_primary };
+                let b = Button::new(
+                    RichText::new(strings::text(key))
+                        .font(small_font(accent))
+                        .color(colour.color32()),
+                )
+                .fill(theme::NONE)
+                .stroke(theme::stroke(0.0, t.border_default))
+                .corner_radius(theme::radius(t.radius_sm))
+                .min_size(Vec2::new(0.0, t.size_control_inline));
+                let r = ui.add(b);
+                crate::command_bar::state_overlay(ui, &t, &r, true, t.radius_sm);
+                r
+            };
+            // Apply, Cancel and Show from the right.
+            let mut buttons = |ui: &mut Ui| {
+                ui.spacing_mut().item_spacing.x = t.space_1;
+                if small(ui, "preview-show", false).clicked() {
+                    events.push(Event::Action("preview.show", json!({ "on": true })));
+                }
+                if small(ui, "preview-cancel", false).clicked() {
+                    events.push(Event::Action("preview.cancel", json!({})));
+                }
+                let blocked = card.preview.result.as_ref().err();
+                let apply = ui.add_enabled_ui(blocked.is_none(), |ui| small(ui, "preview-apply", true));
+                let apply = match blocked {
+                    Some(reason) => apply.inner.on_disabled_hover_text(reason),
+                    None => apply.inner,
+                };
+                if apply.clicked() {
+                    events.push(Event::Action(apply_action(&card.origin), Value::Null));
+                }
+            };
+            // The eye icon, then the text in `room`: whole, or (FT-565) without "Preview open:", for which the eye
+            // stands, in at most two lines, cut with an ellipsis and whole in the tooltip.
+            let label = |ui: &mut Ui, shown: &str| {
                 let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_sm), Sense::hover());
                 icons::paint(
                     ui.painter(),
@@ -880,68 +923,64 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
                     t.text_secondary.color32(),
                     t.icon_stroke,
                 );
-                // The buttons first from the right, so the text takes what is left and is cut with an ellipsis.
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    ui.spacing_mut().item_spacing.x = t.space_1;
-                    let small = |ui: &mut Ui, key: &str, accent: bool| {
-                        let (font, colour) = if accent {
-                            (&t.type_label, t.accent)
-                        } else {
-                            (&t.type_small, t.text_primary)
-                        };
-                        let font = if accent {
-                            theme::font(&theme::TypeToken {
-                                semibold: true,
-                                ..t.type_small
-                            })
-                        } else {
-                            theme::font(font)
-                        };
-                        let b = Button::new(
-                            RichText::new(strings::text(key))
-                                .font(font)
-                                .color(colour.color32()),
-                        )
-                        .fill(theme::NONE)
-                        .stroke(theme::stroke(0.0, t.border_default))
-                        .corner_radius(theme::radius(t.radius_sm))
-                        .min_size(Vec2::new(0.0, t.size_control_inline));
-                        let r = ui.add(b);
-                        crate::command_bar::state_overlay(ui, &t, &r, true, t.radius_sm);
-                        r
-                    };
-                    if small(ui, "preview-show", false).clicked() {
-                        events.push(Event::Action("preview.show", json!({ "on": true })));
-                    }
-                    if small(ui, "preview-cancel", false).clicked() {
-                        events.push(Event::Action("preview.cancel", json!({})));
-                    }
-                    let blocked = card.preview.result.as_ref().err();
-                    let apply = ui.add_enabled_ui(blocked.is_none(), |ui| small(ui, "preview-apply", true));
-                    let apply = match blocked {
-                        Some(reason) => apply.inner.on_disabled_hover_text(reason),
-                        None => apply.inner,
-                    };
-                    if apply.clicked() {
-                        events.push(Event::Action(apply_action(&card.origin), Value::Null));
-                    }
-                    ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                        let response = ui.add(
-                            egui::Label::new(
-                                RichText::new(&text)
-                                    .font(theme::font(&t.type_small))
-                                    .color(t.text_primary.color32()),
-                            )
-                            .truncate(),
-                        );
-                        let live = text.clone();
-                        ui.ctx().accesskit_node_builder(response.id, |n| {
-                            n.set_live(egui::accesskit::Live::Polite);
-                            n.set_value(live);
-                        });
+                let room = ui.available_width().max(0.0);
+                let mut job = egui::text::LayoutJob::single_section(
+                    shown.to_owned(),
+                    egui::TextFormat::simple(theme::font(&t.type_small), t.text_primary.color32()),
+                );
+                job.wrap = egui::text::TextWrapping {
+                    max_width: room,
+                    max_rows: 2,
+                    break_anywhere: false,
+                    overflow_character: Some('…'),
+                };
+                let galley = ui.painter().layout_job(job);
+                let cut = galley.elided || shown != text.as_str();
+                let response = ui.add(egui::Label::new(galley).selectable(false));
+                let response = if cut {
+                    response.on_hover_text(&text)
+                } else {
+                    response
+                };
+                let live = text.clone();
+                ui.ctx().accesskit_node_builder(response.id, |n| {
+                    n.set_live(egui::accesskit::Live::Polite);
+                    n.set_value(live);
+                });
+            };
+            // One line while the whole text fits beside the buttons; else (FT-565: a 280-px Properties panel left
+            // "Preview o…") the text takes the strip's width on its own line and the buttons go under it, right-aligned.
+            let width = |s: &str, accent: bool| {
+                ui.painter()
+                    .layout_no_wrap(s.to_owned(), small_font(accent), t.text_primary.color32())
+                    .size()
+                    .x
+            };
+            let pad = 2.0 * ui.spacing().button_padding.x;
+            let buttons_w = width(strings::text("preview-apply"), true)
+                + width(strings::text("preview-cancel"), false)
+                + width(strings::text("preview-show"), false)
+                + 3.0 * pad
+                + 2.0 * t.space_1;
+            let one_line =
+                t.icon_sm + width(&text, false) + buttons_w + 2.0 * t.space_2 <= ui.available_width();
+            if one_line {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = t.space_2;
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        buttons(ui);
+                        ui.with_layout(Layout::left_to_right(Align::Center), |ui| label(ui, &text));
                     });
                 });
-            });
+            } else {
+                ui.spacing_mut().item_spacing.y = 0.0;
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = t.space_2;
+                    label(ui, line);
+                });
+                let size = Vec2::new(ui.available_width(), t.size_control_inline);
+                ui.allocate_ui_with_layout(size, Layout::right_to_left(Align::Center), |ui| buttons(ui));
+            }
         });
     true
 }
