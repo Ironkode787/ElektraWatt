@@ -16,14 +16,15 @@
 //! a new zoom factor (egui applies [`egui::Context::set_zoom_factor`] at the start of the next pass), so a frame whose
 //! zoom differs from the previous frame's records nothing.
 //!
-//! **The clamp at start.** [`ew_viewmodel::window::restore`] runs with the monitors the window knows before it opens,
-//! which is none: eframe 0.37 without its `persistence` feature exposes no monitor list, so the start applies the size
-//! bounds of the clamp and eframe's own clamp of the size to the largest monitor; the position clamp to a visible
-//! monitor is the pure function's, tested on three layouts, and waits for a monitor list to be wired.
+//! **The clamp at start** (FT-526). eframe 0.37 without its `persistence` feature knows no monitor before the window
+//! opens, so the builder gets the saved geometry with the size bounds of [`ew_viewmodel::window::restore`] only (and
+//! eframe's own clamp of the size to the largest monitor). On the first frame the executable reads the monitors from
+//! eframe's winit window and [`placement`] runs the same pure clamp on the window as it opened: a window whose title
+//! bar is on no monitor (its monitor gone) moves onto the primary one.
 
 use egui::{ViewportBuilder, ViewportInfo};
 use ew_viewmodel::shell::ShellModel;
-use ew_viewmodel::window::{self, WindowGeometry};
+use ew_viewmodel::window::{self, MonitorArea, WindowGeometry};
 
 /// The window builder `builder` with the saved geometry `saved` restored (its size, position and maximised state).
 pub fn restore(builder: ViewportBuilder, saved: Option<WindowGeometry>) -> ViewportBuilder {
@@ -34,6 +35,24 @@ pub fn restore(builder: ViewportBuilder, saved: Option<WindowGeometry>) -> Viewp
         .with_inner_size([g.width, g.height])
         .with_position([g.x, g.y])
         .with_maximized(g.maximized)
+}
+
+/// Where a window that opened with its outer top-left corner at `at` and the inner size `size` moves to so that it
+/// lies on one of the system's `monitors` (the primary first), all in points at the zoom 1; `None` when it stays (its
+/// title bar's grip is on a monitor, or no monitor is known). The clamp of [`ew_viewmodel::window::restore`].
+pub fn placement(at: (f32, f32), size: (f32, f32), monitors: &[MonitorArea]) -> Option<(f32, f32)> {
+    if monitors.is_empty() {
+        return None;
+    }
+    let opened = WindowGeometry {
+        x: at.0,
+        y: at.1,
+        width: size.0,
+        height: size.1,
+        maximized: false,
+    };
+    let g = window::restore(opened, monitors);
+    ((g.x, g.y) != at).then_some((g.x, g.y))
 }
 
 /// The geometry a running window reports in `info`, its rectangles in points at the zoom factor `zoom`, given the last
@@ -184,6 +203,40 @@ mod tests {
             assert!((next.x + 2400.0).abs() < 1e-3, "{next:?}");
             saved = next;
         }
+    }
+
+    /// R1-4 (FT-526): a window that opened on a monitor that is gone moves onto the primary one; one on any monitor
+    /// (the left one at negative x included) stays; without a monitor list nothing moves.
+    #[test]
+    fn dk6_the_first_frame_moves_an_off_screen_window_onto_the_primary_monitor() {
+        let primary = MonitorArea {
+            x: 0.0,
+            y: 0.0,
+            width: 1920.0,
+            height: 1080.0,
+        };
+        let left = MonitorArea {
+            x: -2560.0,
+            y: 0.0,
+            width: 2560.0,
+            height: 1440.0,
+        };
+        // Saved on the left monitor, which is unplugged now.
+        assert_eq!(
+            placement((-2400.0, 40.0), (1280.0, 800.0), &[primary]),
+            Some((0.0, 40.0))
+        );
+        assert_eq!(
+            placement((-2400.0, 40.0), (1280.0, 800.0), &[primary, left]),
+            None
+        );
+        assert_eq!(placement((100.0, 50.0), (1280.0, 800.0), &[primary]), None);
+        // Far below the desktop.
+        assert_eq!(
+            placement((100.0, 5000.0), (1280.0, 800.0), &[primary]),
+            Some((100.0, 280.0))
+        );
+        assert_eq!(placement((-2400.0, 40.0), (1280.0, 800.0), &[]), None);
     }
 
     /// DK6: the builder takes the saved geometry, the size raised to the minimum; without one it is unchanged.

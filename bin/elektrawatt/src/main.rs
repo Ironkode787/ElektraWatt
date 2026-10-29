@@ -33,6 +33,7 @@ use eframe::egui;
 use ew_ui::app::{App, Pick, PickReply, Platform, setup, spawn_pick};
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
+use ew_ui::ew_viewmodel::window::MonitorArea;
 use ew_ui::gpu::{Flags, adapter_count, wgpu_configuration};
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
 
@@ -316,11 +317,15 @@ fn shell_config(isolated: bool) -> ShellConfig {
     config.with_resources(locate_resources(current_exe().as_deref()))
 }
 
-/// The eframe application: the shell frame of `ew-ui`.
-struct ShellApp(App);
+/// The eframe application: the shell frame of `ew-ui`, and whether the window has been placed on a monitor.
+struct ShellApp(App, bool);
 
 impl eframe::App for ShellApp {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        if !self.1 {
+            place_on_screen(ui.ctx(), frame);
+            self.1 = true;
+        }
         self.0.ui(ui);
     }
 
@@ -328,6 +333,54 @@ impl eframe::App for ShellApp {
         // Shutdown at exit: the project lock is released; the journal is kept while the project is dirty
         // (crash-recovery semantics, doc 05 section 8) and removed only after a clean close.
         self.0.shell_mut().shutdown();
+    }
+}
+
+/// FT-526 (R1-4): on the first frame, a window restored at a position on no monitor (its monitor gone) moves onto
+/// the primary monitor, by the pure clamp of `ew_ui::window_memory::placement`. The monitors come from eframe's
+/// winit window, in physical pixels; the clamp works in points at the zoom 1 (physical pixels over the window's
+/// native scale, the unit of the saved geometry). A maximised, minimised or full-screen window, a window without
+/// a known position (Wayland) and a frame without a winit window are left alone.
+fn place_on_screen(ctx: &egui::Context, frame: &eframe::Frame) {
+    let Some(window) = frame.winit_window() else {
+        return;
+    };
+    if window.is_maximized() || window.is_minimized() == Some(true) || window.fullscreen().is_some() {
+        return;
+    }
+    let Ok(outer) = window.outer_position() else {
+        return;
+    };
+    let scale = window.scale_factor() as f32;
+    if !(scale.is_finite() && scale > 0.0) {
+        return;
+    }
+    let primary = window.primary_monitor();
+    let mut handles: Vec<_> = window.available_monitors().collect();
+    // The primary first (a stable sort keeps the system's order of the others).
+    handles.sort_by_key(|m| primary.as_ref() != Some(m));
+    let monitors: Vec<MonitorArea> = handles
+        .iter()
+        .map(|m| {
+            let (at, size) = (m.position(), m.size());
+            MonitorArea {
+                x: at.x as f32 / scale,
+                y: at.y as f32 / scale,
+                width: size.width as f32 / scale,
+                height: size.height as f32 / scale,
+            }
+        })
+        .collect();
+    let inner = window.inner_size();
+    let at = (outer.x as f32 / scale, outer.y as f32 / scale);
+    let size = (inner.width as f32 / scale, inner.height as f32 / scale);
+    if let Some((x, y)) = ew_ui::window_memory::placement(at, size, &monitors) {
+        // `OuterPosition` is in points at the current zoom (egui-winit multiplies it by zoom × native scale).
+        let zoom = ctx.zoom_factor();
+        ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(egui::pos2(
+            x / zoom,
+            y / zoom,
+        )));
     }
 }
 
@@ -406,7 +459,7 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
             // The canvas draws on eframe's device (one wgpu device, ADR-0014); without a render state it is the CPU
             // canvas.
             app.attach_gpu(cc.wgpu_render_state.clone(), flags);
-            Ok(Box::new(ShellApp(app)))
+            Ok(Box::new(ShellApp(app, false)))
         }),
     );
     match result {

@@ -449,9 +449,11 @@ and colours), `history.rs` (DK11's state icons and undone tone) and `window_memo
   removed monitor, and idempotent over a grid. The window records its outer position and inner size each frame
   (only a real window: egui reports the monitor's size only there; a maximised window keeps its normal geometry);
   `elektrawatt` builds the viewport from the saved geometry. **Not built:** the position clamp at start runs with no
-  monitor list (eframe 0.37 without its `persistence` feature exposes none before or after the window opens), so a
-  window saved on a monitor that is gone opens off-screen until the list is wired; eframe still clamps the size to
-  the largest monitor. A follow-up: FT-526.
+  monitor list (eframe 0.37 without its `persistence` feature exposes none before the window opens), so a window
+  saved on a monitor that is gone opened off-screen; eframe still clamps the size to the largest monitor. A
+  follow-up: FT-526, *closed in the cycle-32 review loop (R1-4): on the first frame the monitors come from eframe's
+  winit window and the same pure clamp moves a window that is on no monitor onto the primary one.* The geometry is
+  saved in points at the zoom 1 (the review's R1-1: egui's reported points times the UI scale).
 
 **L32 (cycle 32, the data grid of doc 16a §6.21, DK9):**
 
