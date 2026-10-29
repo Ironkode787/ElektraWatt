@@ -1151,6 +1151,27 @@ fn device_tags(rows: &[Vec<String>], folios: &[String]) -> BTreeSet<String> {
         .collect()
 }
 
+/// Whether the S2 row `row` (`folio, end_1, end_2, span`) ends at an interruption point (`ext <name>`) whose
+/// cross-reference in the oracle's `xrefs` rows (`folio, tag, xref`, on the row's folio) names a folio outside
+/// `run_folios` (FT-598): the point's partner sits on a folio the task does not draw. An end the oracle has no
+/// cross-reference for, or one that names no folio (an external point's `+J-E-206 / JE-N1000-03`), is in scope.
+pub fn ends_at_ip_outside(row: &[String], xrefs: &[Vec<String>], run_folios: &[String]) -> bool {
+    let Some(folio) = row.first() else {
+        return false;
+    };
+    row.iter()
+        .skip(1)
+        .take(2)
+        .filter_map(|end| end.strip_prefix("ext "))
+        .any(|name| {
+            xrefs
+                .iter()
+                .filter(|x| x.first() == Some(folio) && x.get(1).map(String::as_str) == Some(name))
+                .filter_map(|x| x.get(2))
+                .any(|text| xref_folios(text).iter().any(|f| !run_folios.contains(f)))
+        })
+}
+
 fn in_folios(row: &[String], folios: &[String]) -> bool {
     row.first().is_some_and(|f| folios.contains(f))
 }
@@ -1189,25 +1210,37 @@ fn soft_checks(task: &TaskDef, ev: &Evidence, run_folios: &[String]) -> Vec<Raw>
             }
             "junctions" => (want_set(set), Ok(junctions.clone())),
             "markers" => (want_set(set), Ok(markers.clone())),
-            "ends" => (
-                // A wire whose pages are not all in the run ends somewhere the run does not draw.
-                want_set(set)
-                    .into_iter()
-                    .filter(|r| {
-                        r.get(3)
-                            .is_some_and(|span| span.split(',').all(|f| run_folios.contains(&f.to_owned())))
-                    })
-                    .collect(),
-                sql_rows("ends").map(|rows| {
-                    rows.into_iter()
+            "ends" => {
+                // FT-598: a drafted wire that ends at an interruption point whose partner the oracle puts on a folio
+                // outside the run is out of scope. The golden wire runs on through the pair to the partner's folio, so
+                // the query leaves it out of the oracle; the drafted one stops at the point (its partner is not drawn)
+                // and would count as an extra row. The rule holds on both sides, so an oracle row of that form (none in
+                // Golden A's, by the query) is left out with the drafted one.
+                let xrefs = want_set("xrefs");
+                let in_scope = |r: &Vec<String>| !ends_at_ip_outside(r, &xrefs, run_folios);
+                (
+                    // A wire whose pages are not all in the run ends somewhere the run does not draw.
+                    want_set(set)
+                        .into_iter()
                         .filter(|r| {
                             r.get(3).is_some_and(|span| {
                                 span.split(',').all(|f| run_folios.contains(&f.to_owned()))
                             })
                         })
-                        .collect()
-                }),
-            ),
+                        .filter(in_scope)
+                        .collect(),
+                    sql_rows("ends").map(|rows| {
+                        rows.into_iter()
+                            .filter(|r| {
+                                r.get(3).is_some_and(|span| {
+                                    span.split(',').all(|f| run_folios.contains(&f.to_owned()))
+                                })
+                            })
+                            .filter(in_scope)
+                            .collect()
+                    }),
+                )
+            }
             "xrefs" => (
                 // A text whose partner lies on a folio the run does not draw is left out (AC-05's rule).
                 want_set(set)

@@ -613,16 +613,23 @@ fn soft_misses_are_capped_at_fifty_and_counted() {
 fn s2_and_s4_leave_out_what_ends_on_a_folio_that_is_not_drawn() {
     let tmp = Tmp::new("score-s2-s4");
     let mut t = task();
-    t.rows
-        .get_mut("ends")
-        .unwrap()
-        .push(row(&["101", "A:1", "B:2", "101,102"]));
+    let ends = t.rows.get_mut("ends").unwrap();
+    ends.push(row(&["101", "A:1", "B:2", "101,102"]));
+    ends.push(row(&["101", "A:1", "C:3", "101"]));
     let mut e = perfect(&tmp.0);
     e.rj.folios = vec!["101".to_owned()];
     e.epilogue.retain(|f, _| f == "101");
     e.turns.retain(|t| t.folio.as_deref() == Some("101"));
+    e.sql.insert(
+        "ends".to_owned(),
+        Ok(sql_json(
+            &["folio", "end_1", "end_2", "span"],
+            &[&["101", "S51:1", "ext L-1", "101"], &["101", "A:1", "C:3", "101"]],
+        )),
+    );
     let s = score(Some(&t), &e);
-    // Expected: the wire on 101 only (the span 101,102 is out); the xref L-1 -> 102-A1 is out too (partner on 102).
+    // Expected: the wire A:1 to C:3 on 101 only (the span 101,102 is out, and so is the wire to L-1, whose partner is
+    // on 102, FT-598); the xref L-1 -> 102-A1 is out too (partner on 102).
     assert_eq!(by_id(&s, "S2").status, Status::Ok, "{:?}", by_id(&s, "S2").misses);
     assert_eq!(by_id(&s, "S2").want, "1 rows");
     let s4 = by_id(&s, "S4");
@@ -637,6 +644,57 @@ fn s2_and_s4_leave_out_what_ends_on_a_folio_that_is_not_drawn() {
     assert_eq!(xref_folios("+J-E-206 / JE-N1000-03"), Vec::<String>::new());
     assert_eq!(xref_folios("102-A1"), ["102"]);
     assert_eq!(xref_folios("24VDC-1 0VDC-AIR1"), Vec::<String>::new());
+}
+
+/// FT-598: a drafted wire that ends at an interruption point whose partner the oracle puts on a folio outside the run
+/// (PE-1.1 on 101, partner 106-A1) is out of scope, not an extra row; one whose partner is drawn (L-1, partner on 102)
+/// is still extra, and so is a point the oracle does not know.
+#[test]
+fn s2_leaves_out_a_wire_to_an_ip_whose_partner_is_not_drawn() {
+    let tmp = Tmp::new("score-s2-ip");
+    let t = task();
+    let mut e = perfect(&tmp.0);
+    let ends = |rows: &[&[&str]]| Ok(sql_json(&["folio", "end_1", "end_2", "span"], rows));
+    e.sql.insert(
+        "ends".to_owned(),
+        ends(&[
+            &["101", "S51:1", "ext L-1", "101"],
+            &["101", "S51:2", "ext PE-1.1", "101"],
+        ]),
+    );
+    let s = score(Some(&t), &e);
+    let s2 = by_id(&s, "S2");
+    assert_eq!(s2.status, Status::Ok, "{:?}", s2.misses);
+    assert_eq!((s2.want.as_str(), s2.got.as_str()), ("1 rows", "1 rows"));
+    // A second wire to L-1 (partner on 102, in the run) and one to an unknown point are extra rows.
+    e.sql.insert(
+        "ends".to_owned(),
+        ends(&[
+            &["101", "S51:1", "ext L-1", "101"],
+            &["101", "S51:2", "ext L-1", "101"],
+            &["101", "S51:3", "ext X-9", "101"],
+            &["101", "S51:4", "ext PE-1.1", "101"],
+        ]),
+    );
+    let s = score(Some(&t), &e);
+    let s2 = by_id(&s, "S2");
+    assert_eq!(s2.status, Status::Miss);
+    assert_eq!(s2.got, "3 rows", "{:?}", s2.misses);
+    assert!(s2.misses.iter().all(|m| !m.contains("PE-1.1")), "{:?}", s2.misses);
+    // The rule itself: either end, the row's folio, and any named folio outside the run.
+    let xrefs = t.rows["xrefs"].clone();
+    let run = ["101".to_owned(), "102".to_owned(), "103".to_owned()];
+    let r = |a: &str, b: &str| row(&["101", a, b, "101"]);
+    assert!(ends_at_ip_outside(&r("ext PE-1.1", "S51:2"), &xrefs, &run));
+    assert!(ends_at_ip_outside(&r("S51:2", "ext PE-1.1"), &xrefs, &run));
+    assert!(!ends_at_ip_outside(&r("S51:2", "ext L-1"), &xrefs, &run));
+    assert!(!ends_at_ip_outside(
+        &row(&["102", "S51:2", "ext PE-1.1", "102"]),
+        &xrefs,
+        &run
+    ));
+    let all = ["101".to_owned(), "106".to_owned()];
+    assert!(!ends_at_ip_outside(&r("S51:2", "ext PE-1.1"), &xrefs, &all));
 }
 
 /// S8 reads `out/check.json` through the tags of the drawn devices: a finding on a device that is not drawn, or on a
