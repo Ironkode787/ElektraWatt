@@ -60,6 +60,8 @@ mod navigation;
 mod navigators;
 // WP-S2.06 part 3
 mod onboarding;
+// WP-S2.07 part 2: swap cores, and Delete and F2 in navigator trees (§7, FT-490).
+mod row_ops;
 // WP-S2.07 part 1: the strip editor's row gestures (§6.4, §6.5).
 mod strip_editor;
 mod table;
@@ -79,6 +81,7 @@ pub use drawing::TextPopup;
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 // WP-S2.06 part 1
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
+pub use row_ops::NavRename;
 // WP-S2.09 part 3
 pub use bond::BOND_KINDS;
 pub use bulk::PURGE_LISTED;
@@ -414,6 +417,8 @@ pub struct ShellModel {
     navs: std::collections::BTreeMap<crate::navigators::NavKind, crate::navigators::Navigator>,
     /// WP-S2.06 part 3: the Pages navigator in table mode, a generic navigator over `navigator_table(Pages)` (§8.1).
     pages_table: Option<crate::navigators::Navigator>,
+    /// WP-S2.07 part 2 (FT-490): the tree row whose label is being renamed.
+    rename: Option<NavRename>,
     /// The chips of the line "Not on this page" (§6.5), and the (selection generation, page) they were made for.
     chips: Vec<navigators::Chip>,
     chips_for: Option<(u64, Option<crate::canvas::PageId>)>,
@@ -934,6 +939,7 @@ impl ShellModel {
             navigator: PageNavigator::new(),
             navs: std::collections::BTreeMap::new(),
             pages_table: None,
+            rename: None,
             chips: Vec::new(),
             chips_for: None,
             last_page: None,
@@ -1703,6 +1709,10 @@ impl ShellModel {
             "strip.move" => self.act_strip_move(p),
             "strip.add_accessory" => self.act_strip_add_accessory(p),
             "strip.unbridge" => self.act_strip_unbridge(),
+            // WP-S2.07 part 2 (§7, FT-490).
+            "cable.swap_cores" => self.act_cable_swap_cores(),
+            "navigator.delete" => self.act_navigator_delete(p),
+            "navigator.rename" => self.act_navigator_rename(p),
             // G-PP triage row 7: Draw ▸ Bond.
             "bond.draw" => self.act_bond_draw(p),
             // WP-S2.04 part 4b (marker and structure box, §10.5 to §10.7).

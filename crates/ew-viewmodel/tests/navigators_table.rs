@@ -777,8 +777,9 @@ fn tb8_describe_lines_words_and_counts() {
     // WP-S1.19 part 1: the kind word `macro_instance`.
     // WP-S2.18 part 1: the Join chooser's word `chooser` and four actions (`place.join`, `chooser.*`).
     // WP-S2.07 part 2: the page line's word `bridge` (FT-621).
+    // WP-S2.07 part 2: three actions (`cable.swap_cores`, `navigator.delete`, `navigator.rename`).
     assert_eq!(VOCABULARY.len(), 359);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 272);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 275);
     for (id, keys) in [
         ("table.edit", &["F2"][..]),
         ("table.fill_down", &["Ctrl+D"]),

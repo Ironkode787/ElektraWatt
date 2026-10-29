@@ -331,6 +331,59 @@ fn s68_an_unplaced_terminal_row_is_dragged_onto_the_canvas() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// WP-S2.07 CT4 in the window (FT-490): F2 on a Potentials row opens the inline editor on its name with the focus;
+/// typing (appended at the end) and Enter rename the definition; Delete on a row opens the delete card.
+#[test]
+fn ct4_f2_renames_a_potential_and_delete_opens_the_card() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
+    settle(&mut h);
+    settle(&mut h);
+    let key = row_key(&h, NavKind::Potentials, NavRole::Potential, "24VDC-1");
+    dispatch(&mut h, "navigator.row", json!({"kind": "potentials", "key": key}));
+    dispatch(
+        &mut h,
+        "ui.focus",
+        json!({"area": "navigator", "kind": "potentials"}),
+    );
+    settle(&mut h);
+    h.key_press(egui::Key::F2);
+    settle(&mut h);
+    let r = h.state().shell().nav_rename().expect("the editor").clone();
+    assert_eq!(r.text, "24VDC-1");
+    let field = h.get_by_role_and_label(egui::Role::TextInput, "Rename 24VDC-1, potential");
+    assert!(field.accesskit_node().is_focused(), "the editor has the focus");
+    h.get_by_role_and_label(egui::Role::TextInput, "Rename 24VDC-1, potential")
+        .type_text("9");
+    h.run_ok();
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    settle(&mut h);
+    let shell = h.state().shell();
+    assert!(shell.nav_rename().is_none());
+    assert_eq!(
+        shell.recorded_commands().last().map(|c| c.cmd.as_str()),
+        Some("fields.set")
+    );
+    let value = shell.recorded_commands().last().unwrap().params["value"].clone();
+    assert_eq!(value, "24VDC-19");
+    // Delete on the focused row: the card, nothing committed.
+    let n = h.state().shell().recorded_commands().len();
+    dispatch(
+        &mut h,
+        "ui.focus",
+        json!({"area": "navigator", "kind": "potentials"}),
+    );
+    settle(&mut h);
+    h.key_press(egui::Key::Delete);
+    settle(&mut h);
+    let card = h.state().shell().properties().card().expect("the delete card");
+    assert_eq!(card.reason, "reason-nav-delete");
+    assert_eq!(h.state().shell().recorded_commands().len(), n);
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// NV4 and NV11 in the window (§9 item 4, §11): the Devices pane paints at most the rows in view plus two; opening it
 /// makes one `navigator_table` call; scrolling makes none and builds no rows.
 #[test]

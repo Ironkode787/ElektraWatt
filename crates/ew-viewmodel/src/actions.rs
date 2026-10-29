@@ -532,6 +532,12 @@ fn strips_editor(m: &ShellModel) -> Result<(), &'static str> {
     m.strip_editor_shown()
 }
 
+/// Swap cores (WP-S2.07 §7): a writable project with the Cables navigator open and focused (headless: open).
+fn cables_editor(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    m.cables_shown()
+}
+
 /// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).
 fn junction_editor_open(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
@@ -2551,6 +2557,43 @@ pub static ACTIONS: &[ActionMeta] = &[
         strips_editor,
         None,
     )),
+    // WP-S2.07 part 2 (§7, FR-CBL-016): swap two cores of one cable. The navigators have no row menu yet, so it sits
+    // in the Edit menu with the strip editor's gestures.
+    in_navigator(act(
+        "cable.swap_cores",
+        Command,
+        "action-cable-swap-cores",
+        Menu::Edit,
+        &[],
+        cables_editor,
+        slot(Menu::Edit),
+    )),
+    // FT-490's generic half: Delete and F2 in a navigator tree (`table.clear` and `table.edit` in tree mode run these,
+    // `ShellModel::shortcut_action`).
+    with_params(
+        "kind?:text",
+        hidden(in_navigator(act(
+            "navigator.delete",
+            Command,
+            "action-navigator-delete",
+            Menu::Edit,
+            &[],
+            writable,
+            None,
+        ))),
+    ),
+    with_params(
+        "kind?:text, text?:text, cancel?:bool",
+        hidden(in_navigator(act(
+            "navigator.rename",
+            Command,
+            "action-navigator-rename",
+            Menu::Edit,
+            &[],
+            writable,
+            None,
+        ))),
+    ),
     // G-PP triage row 7: Draw ▸ Bond, `bond.create` on the selected connection or two named CPs, previewed.
     with_params(
         "kind?:enum(pelv_0v_pe|fe_pe|equipotential|shield), a?:text, b?:text",

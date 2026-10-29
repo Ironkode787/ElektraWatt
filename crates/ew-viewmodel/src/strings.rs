@@ -304,6 +304,17 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "toast-unbridged" => "Removed {0} bridges",
         "toast-unbridged-one" => "Removed 1 bridge",
         "chooser-accessory-part" => "Choose the part",
+        // WP-S2.07 part 2: swap cores, and Delete and F2 in navigator trees (§7, FT-490).
+        "action-cable-swap-cores" => "Swap cores",
+        "action-navigator-delete" => "Delete rows",
+        "action-navigator-rename" => "Rename",
+        "reason-not-cables" => "Open the Cables navigator first",
+        "reason-swap-two-cores" => "Mark two cores of one cable",
+        "reason-swap-cores-unwired" => "Neither core has a connection",
+        "reason-nav-not-deletable" => "These rows stand for nothing that can be deleted",
+        "reason-nav-not-renamable" => "This row has no name to rename",
+        "reason-nav-delete" => "Deleting also removes what depends on the rows",
+        "toast-cores-swapped" => "Swapped cores {0} and {1} of {2}",
         // G-PP triage row 7: Draw ▸ Bond.
         "action-bond-draw" => "Bond",
         "submenu-bond" => "Bond",

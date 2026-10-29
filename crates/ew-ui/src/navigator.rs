@@ -441,6 +441,8 @@ impl NavigatorPane {
             area = area.animated(false);
         }
         let kind = self.kind;
+        // WP-S2.07 part 2 (FT-490): the row whose label F2 is renaming.
+        let renaming = shell.nav_rename().filter(|r| r.kind == kind).cloned();
         let mut painted = 0;
         let mut view = 0..0;
         // The rows are made in a scope whose AccessKit parent is the list, so they are the Tree's items (§6.9).
@@ -466,6 +468,10 @@ impl NavigatorPane {
                 view = range.clone();
                 for row in &visible[range] {
                     painted += 1;
+                    if let Some(r) = renaming.as_ref().filter(|r| r.key == row.key) {
+                        rename_ui(ui, kind, row, &r.text, events);
+                        continue;
+                    }
                     row_ui(ui, kind, pages, row, cursor.as_deref(), &visible, events);
                 }
             });
@@ -694,6 +700,53 @@ pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str,
         NavKind::Blocks => (IconId::report, "empty-nav-blocks"),
     };
     (icon, strings::text(line), strings::text("empty-nav-text"))
+}
+
+/// The inline editor of a row whose label is being renamed (WP-S2.07 part 2, FT-490): a one-line text field at the
+/// row's indent, opened on the current label with the focus; Enter commits (`navigator.rename {text}`), Escape or a
+/// click elsewhere cancels (`navigator.rename {cancel}`).
+fn rename_ui(ui: &mut Ui, kind: NavKind, row: &ShownRow, initial: &str, events: &mut Vec<Event>) {
+    let t = crate::theme::current(ui.ctx());
+    let id = egui::Id::unique(("navigator-rename", kind.word(), row.key.as_str()));
+    let mut text = ui
+        .data(|d| d.get_temp::<String>(id))
+        .unwrap_or_else(|| initial.to_owned());
+    let started = ui
+        .data(|d| d.get_temp::<bool>(id.with("started")))
+        .unwrap_or(false);
+    let response = ui
+        .horizontal(|ui| {
+            ui.add_space(t.space_4 + t.size_tree_indent * (row.level.saturating_sub(1)) as f32);
+            ui.add(
+                egui::TextEdit::singleline(&mut text)
+                    .id(id.with("edit"))
+                    .desired_width(f32::INFINITY),
+            )
+        })
+        .inner;
+    // Named "Rename <row name>" (every focusable node has a name, ADR-0014 amendment 2).
+    let name = format!("{} {}", strings::text("action-navigator-rename"), row.name);
+    ui.ctx()
+        .accesskit_node_builder(response.id, |n| n.set_label(name));
+    if !started {
+        response.request_focus();
+        ui.data_mut(|d| d.insert_temp(id.with("started"), true));
+    }
+    if response.lost_focus() {
+        let enter = ui.input(|i| i.key_pressed(egui::Key::Enter));
+        let params = if enter {
+            json!({"kind": kind.word(), "text": text})
+        } else {
+            json!({"kind": kind.word(), "cancel": true})
+        };
+        events.push(Event::Action("navigator.rename", params));
+        ui.data_mut(|d| {
+            d.remove::<String>(id);
+            d.remove::<bool>(id.with("started"));
+        });
+    } else {
+        ui.data_mut(|d| d.insert_temp(id, text));
+    }
 }
 
 /// One row: its glyph, its text, its input, drag and drop, and its AccessKit node.

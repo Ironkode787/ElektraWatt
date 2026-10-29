@@ -40,6 +40,8 @@
 //! rule 2: a hash of the export input), `<pages>` being `all` or the selected folio labels joined by `,` and
 //! `<digest>` the [`content_digest`] of the pages and the bundled fonts.
 
+// WP-S2.07 part 2: the edit-cable table's gestures (§7).
+mod cable_edit;
 // WP-S2.05 part 3
 mod clipboard;
 mod editing;

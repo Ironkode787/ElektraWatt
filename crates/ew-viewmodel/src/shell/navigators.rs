@@ -192,12 +192,26 @@ impl ShellModel {
 
     /// The action and parameters a keyboard shortcut bound to `action` runs with the current focus (WP-S2.07 part 1
     /// ruling): Alt+Up and Alt+Down (`pages.move_up`, `pages.move_down`) run `strip.move {step: -1 | 1}` while the
-    /// Terminal strips navigator has the focus; every other binding runs its own action without parameters.
+    /// Terminal strips navigator has the focus; Delete and F2 (`table.clear`, `table.edit`) run `navigator.delete` and
+    /// `navigator.rename` with the focused navigator's `kind` while it is not in table mode (WP-S2.07 part 2, FT-490);
+    /// every other binding runs its own action without parameters.
     pub fn shortcut_action(&self, action: &'static str) -> (&'static str, Value) {
         let strips = self.focused_navigator() == Some(NavKind::Strips);
         match action {
             "pages.move_up" if strips => ("strip.move", json!({ "step": -1 })),
             "pages.move_down" if strips => ("strip.move", json!({ "step": 1 })),
+            // WP-S2.07 part 2 (FT-490): in tree mode, Delete and F2 delete and rename the rows.
+            "table.clear" | "table.edit"
+                if let Some(k) = self.focused_navigator()
+                    && !self.generic(k).is_some_and(|n| n.table_mode.is_some()) =>
+            {
+                let action = if action == "table.clear" {
+                    "navigator.delete"
+                } else {
+                    "navigator.rename"
+                };
+                (action, json!({ "kind": k.word() }))
+            }
             _ => (action, Value::Null),
         }
     }
@@ -1311,7 +1325,7 @@ impl ShellModel {
     }
 
     /// The marked page records of the Pages navigator, in page order (the cursor row's page when none is marked).
-    fn marked_pages(&self) -> Result<Vec<PageRow>, Outcome> {
+    pub(super) fn marked_pages(&self) -> Result<Vec<PageRow>, Outcome> {
         let rows = self.page_rows();
         let marks = &self.navigator.marked;
         let mut keys: Vec<&String> = marks.iter().collect();
