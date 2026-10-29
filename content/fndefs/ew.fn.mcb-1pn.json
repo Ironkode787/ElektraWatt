@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "473bc9ca-9b42-5683-ada8-f5f0a4081772",
   "version": "0.1.0",
-  "sha256": "sha256:927fd5a684a487d8cf90a1b23879d51bbe67ed3da2e1f5ecc260bd0b0523bba8",
+  "sha256": "sha256:7f3bc658452d2022daf38f5889539aa6d0819ac37a61ed68dce9e3e2eb410592",
   "meta": {
     "key": "ew.fn.mcb-1pn",
     "licence": "CC-BY-SA-4.0",
@@ -58,5 +58,8 @@
         }
       }
     }
-  ]
+  ],
+  "flags": {
+    "switches_n_with_l": true
+  }
 }

@@ -668,7 +668,7 @@ def parse_x1_pins(cell):
         pm = re.match(r"(\d) (0V|FE|24V)\b", tok)
         check(pm, f"X1 pin {tok!r} of {cell!r} is not '<pin> <0V|FE|24V> ...'")
         out.append((pm.group(1), X1_ROLE[pm.group(2)]))
-    out.append(("FE", "fe"))  # the FE screw
+    out.append(("FE", "pe"))  # the FE screw: the earthing point, role PE (doc 08 section 3.7)
     return out
 
 
@@ -987,8 +987,10 @@ def build_part_cps_templates(part_keys):
     check(mico == parse_cp_list(cell), f"section 6.1 row 12: MICO 4.10 CPs are not {cell!r}")
     for i, d in enumerate(mico):
         add("MICO 4.10", i, d)
-    # doc 20 section 6.1 row 19 (X1 pins), doc 07 section 9.2: pin 3 is FE (U-18); row 28: pins 1-5, FE screw
-    pins = [("1", "m"), ("2", "m"), ("3", "fe"), ("4", "l_plus"), ("5", "l_plus"), ("FE", "fe")]
+    # doc 20 section 6.1 row 19 (X1 pins), doc 07 section 9.2: pin 3 is FE (U-18); row 28: pins 1-5, FE screw.
+    # The earth screw "FE" is the device's intended earthing point with role PE (doc 08 section 3.7; doc 20
+    # section 7.3 puts it on PE, section 8.2 wires it with the PE wires W33/W34 and EF-10 names only pin 3).
+    pins = [("1", "m"), ("2", "m"), ("3", "fe"), ("4", "l_plus"), ("5", "l_plus"), ("FE", "pe")]
     cell = row61("-201U1")["Connection points"]
     check(pins == parse_x1_pins(cell), f"section 6.1 row 19: the 550208 pins and roles are not {cell!r}")
     check(row61("-202U1")["Connection points"] == "X1: pins 1–5; FE screw", "section 6.1 row 28: -202U1 pins")
@@ -997,6 +999,11 @@ def build_part_cps_templates(part_keys):
     fixture(
         "part_cps", "potential_role", "550208:2", "fe", "§6.1 row 19",
         "pin 3 is the functional earth, printed 'PE': its role is a ▲", cell=cell,
+    )  # fmt: skip
+    fixture(
+        "part_cps", "potential_role", "550208:5", "pe", "§6.1 rows 19, 28; §7.3; EF-10",
+        "the earth screw 'FE' is the device's intended earthing point: role PE (doc 08 §3.7), so EF-10 names only pin 3",
+        marks=[],
     )  # fmt: skip
     # doc 20 section 6.1 rows 13/14, doc 03 section 11: clamp a (side 1), b and c (side 2), shaft s1
     check("clamps a, b, c" in row61("-X1031")["Connection points"], "section 6.1 row 13: clamps a, b, c")
