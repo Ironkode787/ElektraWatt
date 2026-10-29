@@ -26,7 +26,7 @@ use egui::Vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::{App, setup};
-use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 use support::{Scripted, Tmp};
 
@@ -102,7 +102,21 @@ fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen:
 fn main_window_at(theme: &str, density: &str, ppp: f32) -> (Harness<'static, App>, offscreen::Recorder, Tmp) {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
-    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+    let (h, recorder) = window_on(tmp.config(), dir, theme, density, ppp, true);
+    (h, recorder, tmp)
+}
+
+/// The main window with `config` on the project `dir` (a copy the test may have prepared) in `theme` and `density` at
+/// `ppp`, with its page on show; on folio 101 when `goto_101` (the recovery dialog refuses the action).
+fn window_on(
+    config: ShellConfig,
+    dir: PathBuf,
+    theme: &str,
+    density: &str,
+    ppp: f32,
+    goto_101: bool,
+) -> (Harness<'static, App>, offscreen::Recorder) {
+    let mut shell = ShellModel::new(Mode::Gui, config);
     assert_eq!(
         shell.dispatch("settings.set", &json!({"key": "theme", "value": theme})),
         Outcome::Done
@@ -119,16 +133,18 @@ fn main_window_at(theme: &str, density: &str, ppp: f32) -> (Harness<'static, App
         .build_ui_state(|ui, app: &mut App| app.ui(ui), app);
     h.run_ok();
     support::wait_for_page(&mut h);
-    assert_eq!(
-        h.state_mut()
-            .shell_mut()
-            .dispatch("page.goto", &json!({"folio": "101"})),
-        Outcome::Done
-    );
+    if goto_101 {
+        assert_eq!(
+            h.state_mut()
+                .shell_mut()
+                .dispatch("page.goto", &json!({"folio": "101"})),
+            Outcome::Done
+        );
+        h.run_ok();
+        support::wait_for_page(&mut h);
+    }
     h.run_ok();
-    support::wait_for_page(&mut h);
-    h.run_ok();
-    (h, recorder, tmp)
+    (h, recorder)
 }
 
 #[test]
@@ -702,10 +718,9 @@ fn around(rects: impl IntoIterator<Item = egui::Rect>, margin: f32) -> egui::Rec
 }
 
 /// CP6 (FT-533): every dialog of the shell one by one that Golden A opens with one action, each cropped to the dialog's
-/// frame with its shadow, in light and dark, Comfortable, gated. Not here: the quit prompt (`part4-dialog-toast-*`),
-/// the recovery dialog (its text carries the wall clock's elapsed time and UTC stamp) and the question of discarding
-/// its journal (only an earlier session's journal opens it), the check-scheme question (only the finished wizard opens
-/// it) and the purge question (Golden A has no unused image).
+/// frame with its shadow, in light and dark, Comfortable, gated. Not here: the quit prompt (`part4-dialog-toast-*`)
+/// and the four dialogs that need a fixture (the recovery dialog, the question of discarding its journal, the
+/// check-scheme question and the purge question), gated by [`cp6_the_fixture_dialogs_in_light_and_dark`] (FT-571).
 #[test]
 fn cp6_every_dialog_one_by_one_in_light_and_dark() {
     let dev = device();
@@ -731,42 +746,267 @@ fn cp6_every_dialog_one_by_one_in_light_and_dark() {
                 Outcome::Done,
                 "{action}"
             );
-            dismiss_toasts(&mut h);
-            // A few frames: the modal's area sizes itself and centres on the frames after it opens.
-            for _ in 0..4 {
-                h.run_ok();
-            }
-            assert!(h.state().shell().dialog().is_some(), "{action}: a dialog");
-            let area = h
-                .ctx
-                .memory(|m| m.area_rect(egui::Id::unique("ew-dialog")))
-                .expect("the dialog's area");
-            // A footer wider than the dialog grows to the left of the area's rectangle (the About dialog's four
-            // buttons): the footer row's buttons (the lowest row of buttons inside the area, and the buttons on its
-            // line) are taken in.
-            let all: Vec<egui::Rect> = h.get_all_by_role(egui::Role::Button).map(|n| n.rect()).collect();
-            let footer_top = all
-                .iter()
-                .filter(|r| area.contains_rect(**r))
-                .map(|r| r.top())
-                .fold(f32::NEG_INFINITY, f32::max);
-            let frame = around(
-                std::iter::once(area).chain(
-                    all.into_iter()
-                        .filter(|r| (r.top() - footer_top).abs() < 1.0 && r.right() > area.left() - 300.0),
-                ),
-                0.0,
-            );
-            let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-            failures.extend(record(
+            failures.extend(shoot_dialog(
+                &dev,
+                &mut h,
+                &recorder,
                 &format!("cp6-dialog-{name}-{theme}"),
-                &crop(&image, frame.expand(24.0)),
-                true,
             ));
             let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!(null));
             h.run_ok();
             assert!(h.state().shell().dialog().is_none(), "{action}: dismissed");
         }
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// Records the open dialog as `name`, cropped to the dialog's frame with its shadow, gated; the toasts (they leave on
+/// the wall clock) are dismissed first.
+fn shoot_dialog(
+    dev: &ew_render2d::gpu::HeadlessDevice,
+    h: &mut Harness<'static, App>,
+    recorder: &offscreen::Recorder,
+    name: &str,
+) -> Option<String> {
+    dismiss_toasts(h);
+    // A few frames: the modal's area sizes itself and centres on the frames after it opens.
+    for _ in 0..4 {
+        h.run_ok();
+    }
+    assert!(h.state().shell().dialog().is_some(), "{name}: a dialog");
+    let area = h
+        .ctx
+        .memory(|m| m.area_rect(egui::Id::unique("ew-dialog")))
+        .expect("the dialog's area");
+    // A footer wider than the dialog grows to the left of the area's rectangle (the About dialog's four buttons): the
+    // footer row's buttons (the lowest row of buttons inside the area, and the buttons on its line) are taken in.
+    let all: Vec<egui::Rect> = h.get_all_by_role(egui::Role::Button).map(|n| n.rect()).collect();
+    let footer_top = all
+        .iter()
+        .filter(|r| area.contains_rect(**r))
+        .map(|r| r.top())
+        .fold(f32::NEG_INFINITY, f32::max);
+    let frame = around(
+        std::iter::once(area).chain(
+            all.into_iter()
+                .filter(|r| (r.top() - footer_top).abs() < 1.0 && r.right() > area.left() - 300.0),
+        ),
+        0.0,
+    );
+    let image = offscreen::render(dev, &h.ctx, h.output(), recorder);
+    record(name, &crop(&image, frame.expand(24.0)), true)
+}
+
+/// The last change of the recovery fixture's journal: 2026-10-28 12:00 UTC, in epoch milliseconds.
+const FIXTURE_LAST_CHANGE_MS: u64 = 1_793_188_800_000;
+
+/// The recovery dialog's now in the fixture: two hours after [`FIXTURE_LAST_CHANGE_MS`].
+const FIXTURE_NOW_MS: u64 = FIXTURE_LAST_CHANGE_MS + 2 * 3_600_000;
+
+/// Sets the time of every transaction in the journals under `dir` to `t` (epoch milliseconds): a journal's `tx` line
+/// carries the wall clock of its write, and the recovery dialog shows the newest.
+fn pin_journal_times(dir: &std::path::Path, t: u64) {
+    const KEY: &str = r#","t":"#;
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            pin_journal_times(&path, t);
+            continue;
+        }
+        let in_journal = path.components().any(|c| c.as_os_str() == "journal");
+        if !in_journal || path.extension().is_none_or(|e| e != "jsonl") {
+            continue;
+        }
+        let text = std::fs::read_to_string(&path).unwrap();
+        let mut pinned = String::with_capacity(text.len());
+        for line in text.split_inclusive('\n') {
+            let at = if line.starts_with(r#"{"j":"tx","#) {
+                line.find(KEY)
+            } else {
+                None
+            };
+            match at {
+                Some(at) => {
+                    let digits = at + KEY.len();
+                    let end = digits
+                        + line[digits..]
+                            .find(|c: char| !c.is_ascii_digit())
+                            .expect("a value after the time");
+                    pinned.push_str(&line[..digits]);
+                    pinned.push_str(&t.to_string());
+                    pinned.push_str(&line[end..]);
+                }
+                None => pinned.push_str(line),
+            }
+        }
+        std::fs::write(&path, pinned).unwrap();
+    }
+}
+
+/// CP6 (FT-571): the four dialogs that need a fixture, each cropped to the dialog's frame with its shadow, in light and
+/// dark, Comfortable, gated: the recovery dialog (an earlier session's journal on a copy of Golden A, its last change
+/// pinned to 2026-10-28 12:00 UTC and the dialog's clock to two hours later), the question of discarding that journal
+/// (Discard… of the recovery dialog), the check-scheme question (Apply the check scheme of the finished
+/// company-standard wizard) and the purge question (a copy of Golden A whose first new logo was replaced and saved,
+/// re-opened).
+#[test]
+fn cp6_the_fixture_dialogs_in_light_and_dark() {
+    use ew_ui::ew_viewmodel::shell::Dialog;
+    let dev = device();
+    let mut failures = Vec::new();
+    for theme in ["light", "dark"] {
+        // The recovery dialog and the question of discarding the journal.
+        let tmp = Tmp::new();
+        let dir = tmp.golden("g.ew");
+        {
+            let mut crashed = ShellModel::new(Mode::Gui, tmp.config());
+            for (action, params) in [
+                ("file.open", json!({ "dir": dir.to_string_lossy() })),
+                (
+                    "command.run",
+                    json!({"cmd": "page.create", "params": {"number": 996}}),
+                ),
+            ] {
+                assert_eq!(crashed.dispatch(action, &params), Outcome::Done, "{action}");
+            }
+            // A dirty end without a clean close: the journal stays.
+            crashed.shutdown();
+        }
+        pin_journal_times(&tmp.0, FIXTURE_LAST_CHANGE_MS);
+        let (mut h, recorder) = window_on(tmp.config(), dir, theme, "comfortable", 1.0, false);
+        h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
+        ew_ui::set_now_for_tests(&h.ctx, FIXTURE_NOW_MS);
+        assert!(
+            matches!(
+                h.state().shell().dialog(),
+                Some(Dialog::Recovery {
+                    last_change_ms: FIXTURE_LAST_CHANGE_MS,
+                    ..
+                })
+            ),
+            "{:?}",
+            h.state().shell().dialog()
+        );
+        failures.extend(shoot_dialog(
+            &dev,
+            &mut h,
+            &recorder,
+            &format!("cp6-dialog-recovery-{theme}"),
+        ));
+        assert!(h.query_by_label("Last change: 2 hours ago").is_some());
+        assert!(h.query_by_label_contains("2026-10-28 12:00 UTC").is_some());
+        assert_eq!(
+            h.state_mut()
+                .shell_mut()
+                .dispatch("file.discard_journal", &json!({})),
+            Outcome::Done
+        );
+        assert_eq!(h.state().shell().dialog(), Some(&Dialog::ConfirmJournalDiscard));
+        failures.extend(shoot_dialog(
+            &dev,
+            &mut h,
+            &recorder,
+            &format!("cp6-dialog-journal-discard-{theme}"),
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+
+        // The check-scheme question.
+        let tmp = Tmp::new();
+        let dir = tmp.golden("g.ew");
+        // The wizard previews its draft on the sample project of the resources.
+        let (mut h, recorder) = window_on(tmp.config_with_resources(), dir, theme, "comfortable", 1.0, true);
+        h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
+        let basic = tmp.0.join("company.ew");
+        assert_eq!(
+            h.state_mut()
+                .shell_mut()
+                .dispatch("tools.company_standard", &json!({})),
+            Outcome::Done
+        );
+        // The wizard's preview arrives from its worker: on show before the dialog opens over it.
+        support::wait_for_preview(&mut h);
+        for (action, params) in [
+            ("wizard.set", json!({"field": "check_scheme", "value": "full"})),
+            ("wizard.finish", json!({ "dir": basic.to_string_lossy() })),
+            ("wizard.apply_check_scheme", json!({})),
+        ] {
+            assert_eq!(
+                h.state_mut().shell_mut().dispatch(action, &params),
+                Outcome::Done,
+                "{action}"
+            );
+        }
+        assert_eq!(
+            h.state().shell().dialog(),
+            Some(&Dialog::ConfirmCheckScheme {
+                scheme: "full".into()
+            })
+        );
+        failures.extend(shoot_dialog(
+            &dev,
+            &mut h,
+            &recorder,
+            &format!("cp6-dialog-check-scheme-{theme}"),
+        ));
+        let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!(null));
+        let _ = h.state_mut().shell_mut().dispatch("wizard.cancel", &json!({}));
+        h.run_ok();
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+
+        // The purge question: the first logo is unused once the project is re-opened (the undo history named it).
+        let tmp = Tmp::new();
+        let dir = tmp.golden("g.ew");
+        {
+            let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+            let logo = |svg: &str| {
+                json!({"cmd": "project.company.set",
+                    "params": {"logo": ew_ui::ew_viewmodel::ew_api::base64_encode(svg.as_bytes())}})
+            };
+            for (action, params) in [
+                ("file.open", json!({ "dir": dir.to_string_lossy() })),
+                (
+                    "command.run",
+                    logo(r#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#),
+                ),
+                ("file.save", json!({})),
+                (
+                    "command.run",
+                    logo(r#"<svg viewBox="0 0 3 3"><circle r="1"/></svg>"#),
+                ),
+                ("file.save", json!({})),
+                ("file.close", json!({})),
+            ] {
+                assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
+            }
+            shell.shutdown();
+        }
+        let (mut h, recorder) = window_on(tmp.config(), dir, theme, "comfortable", 1.0, true);
+        h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
+        assert_eq!(
+            h.state_mut()
+                .shell_mut()
+                .dispatch("project.purge_assets", &json!({})),
+            Outcome::Done
+        );
+        assert!(matches!(
+            h.state().shell().dialog(),
+            Some(Dialog::ConfirmPurge { .. })
+        ));
+        failures.extend(shoot_dialog(
+            &dev,
+            &mut h,
+            &recorder,
+            &format!("cp6-dialog-purge-{theme}"),
+        ));
+        let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!(null));
+        h.run_ok();
         h.state_mut().shell_mut().shutdown();
         drop(h);
         drop(tmp);

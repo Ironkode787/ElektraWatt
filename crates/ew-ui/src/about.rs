@@ -39,6 +39,23 @@ fn now_ms() -> u64 {
         .map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
 }
 
+/// The key of the test-only clock of [`set_now_for_tests`].
+const NOW_FOR_TESTS: &str = "ew-now-for-tests";
+
+/// Makes the recovery dialog measure its elapsed time against `now_ms` (epoch milliseconds) instead of the system
+/// clock, for a stable image in the pixel gate (FT-571). Tests only: the product never calls it and keeps the store's
+/// clock.
+#[doc(hidden)]
+pub fn set_now_for_tests(ctx: &egui::Context, now_ms: u64) {
+    ctx.data_mut(|d| d.insert_temp(egui::Id::unique(NOW_FOR_TESTS), now_ms));
+}
+
+/// Now for the recovery dialog: the test clock of [`set_now_for_tests`] when one is set, else [`now_ms`].
+fn dialog_now_ms(ctx: &egui::Context) -> u64 {
+    ctx.data(|d| d.get_temp::<u64>(egui::Id::unique(NOW_FOR_TESTS)))
+        .unwrap_or_else(now_ms)
+}
+
 /// A one-line text field that tells the shell what is typed (`on_change`) and says "go" on Enter.
 fn name_field(ui: &mut Ui, hint_key: &str, text: &str, just_opened: bool) -> (Option<String>, bool) {
     let mut field = text.to_owned();
@@ -131,7 +148,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         } => {
             let t = crate::theme::current(ui.ctx());
             if let Some(when) = utc_text(*last_change_ms) {
-                let ago = strings::elapsed_text(*last_change_ms, now_ms());
+                let ago = strings::elapsed_text(*last_change_ms, dialog_now_ms(ui.ctx()));
                 ui.label(strings::format("recovery-last-change", &[&ago]));
                 ui.label(
                     egui::RichText::new(strings::format("recovery-last-change-utc", &[&when]))

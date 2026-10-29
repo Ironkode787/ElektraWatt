@@ -16,6 +16,9 @@
 pub use ew_viewmodel;
 
 mod about;
+// FT-571: the recovery dialog's test clock (the module is private).
+#[doc(hidden)]
+pub use about::set_now_for_tests;
 pub mod app;
 pub mod canvas;
 pub mod canvas_area;
