@@ -16,7 +16,8 @@
 //! - `rail_bonded_terminal_without_pe_cp_is_noted`: EW-TERM-005, no rail bond.
 //! - `unlocated_rail_bonded_terminals_do_not_bond`: EW-POT-008, no rail bond, in a project with two own locations.
 //! - `unlocated_rail_bonded_terminals_join_the_only_own_location` and `..._join_the_implicit_main_location`:
-//!   cycle 33 (G-PP ruling #20), one own location or none: the rail joins them, no EW-POT-008.
+//!   cycle 33 (G-PP ruling #20), one own location or none: the rail joins them, no EW-POT-008. A location an
+//!   external reference names is own while an own device or page uses it (cycle 33 review finding 7).
 //! - `scoped_pairing_without_the_node_pairs_project_wide_and_notes`: F13, pages without a location node.
 //! - `scoped_pairing_keeps_locations_apart`: F13, different location nodes do not pair, the same node does.
 
@@ -449,6 +450,29 @@ fn unlocated_rail_bonded_terminals_join_the_only_own_location() {
         "both PE CPs and their wires are one potential"
     );
     assert!(notes_with(&mut q, "EW-POT-008", "").is_empty());
+}
+
+/// Cycle 33 review finding 7: a location that an external reference names is still own when an own device sits in
+/// it. With A and B (named by an external reference, holding the own device -K1) both own, the unlocated terminals
+/// join no rail and are noted (EW-POT-008), as with two own locations.
+#[test]
+fn a_location_named_by_an_external_reference_and_used_by_an_own_device_is_own() {
+    let mut fx = terminal_base();
+    fx.node(LOC_B, "location", "B", None);
+    fx.push(
+        json!({"$k": "external_ref", "id": uid(0x6100), "location": uid(LOC_B), "device": "JE",
+        "connection": "PE"}),
+    );
+    fx.device(0x4100, "K", Some(1))
+        .with("structure", json!({"location": uid(LOC_B)}));
+    let m = two_unlocated_terminals(fx);
+    let mut q = Q::new(&m);
+    let g = q.get::<StitchGraphQ>(());
+    assert!(rail_bonds(&g).is_empty(), "{:?}", rail_bonds(&g));
+    assert_eq!(q.get::<PotentialPartition>(()).potential_count(), 2);
+    let found = notes_with(&mut q, "EW-POT-008", "2 own locations");
+    let subjects: BTreeSet<String> = found.into_iter().map(|(s, _)| s).collect();
+    assert_eq!(subjects, BTreeSet::from([uid(0x4001), uid(0x4002)]));
 }
 
 /// Amended by cycle 33 (G-PP ruling #20): with no location node at all, the unlocated terminals join the implicit

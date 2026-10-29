@@ -23,7 +23,7 @@ use ew_model::EndpointKey;
 use ew_rds::Aspect;
 use ew_schema::{
     Bond, ClampKey, Connection, ContactKind, Device, Function, FunctionKind, InternalKind, Open,
-    PotentialType, Side, StructureNode,
+    PotentialType, Side, Slot, StructureNode,
 };
 
 use crate::cps::pattern_origin;
@@ -209,14 +209,36 @@ pub enum RailLocation {
     Main,
 }
 
-/// The project's own locations: the location-aspect structure nodes that no external reference names (an external
-/// reference's location is another installation's, such as `+J-E-206`), in ID order. Reads the structure nodes
-/// and the external references whole.
+/// The project's own locations, in ID order: the location-aspect structure nodes that no external reference names
+/// (an external reference's location is another installation's, such as `+J-E-206`), or that an own device or page
+/// assigns as its location (cycle 33 review finding 7: a location both named by an external reference and holding
+/// own devices or pages is own, so that a terminal without a location does not see two own rails where there is
+/// one). Reads the structure nodes, the external references, the devices and the pages whole.
 fn own_locations(q: &Q) -> Vec<Id<StructureNode>> {
     let external: BTreeSet<Id<StructureNode>> = q.external_refs().iter().map(|(_, x)| x.location).collect();
+    let assigned = |slot: &Option<Slot>| match slot {
+        Some(Slot::Node(n)) => Some(*n),
+        _ => None,
+    };
+    let mut used: BTreeSet<Id<StructureNode>> = BTreeSet::new();
+    if !external.is_empty() {
+        used.extend(
+            q.devices()
+                .iter()
+                .filter_map(|(_, d)| assigned(&d.structure.location)),
+        );
+        used.extend(
+            q.pages()
+                .iter()
+                .filter_map(|(_, p)| assigned(&p.structure.location)),
+        );
+    }
     q.structure_nodes()
         .iter()
-        .filter(|(id, node)| matches!(node.aspect, Open::Known(Aspect::Location)) && !external.contains(id))
+        .filter(|(id, node)| {
+            matches!(node.aspect, Open::Known(Aspect::Location))
+                && (!external.contains(id) || used.contains(id))
+        })
         .map(|(id, _)| id)
         .collect()
 }

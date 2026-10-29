@@ -10,7 +10,7 @@
 //!
 //! - `incremental_partition_equals_cold`: a random sequence of edit batches (joins, splits, bridges, page-less
 //!   connections, definitions, interruption-point renames, representation moves, rail-bonding, a second own
-//!   location (cycle 33) and a page
+//!   location (cycle 33), an external reference naming it and a page
 //!   added and removed) over a fixture with several pages, interruption-point pairs, a bond with a via
 //!   connection, terminals and a junction. After every batch the memoised partition, stitch graph, flow,
 //!   pairing, local nets and the per-potential families equal the cold ones, the notes equal, and a second
@@ -35,7 +35,8 @@ use ew_derive::{
 use ew_ids::Id;
 use ew_model::{AnyKey, AnyRow, Entity, Model, Op};
 use ew_schema::{
-    Connection, ConnectionKind, Device, Endpoint, Function, Page, PotentialDef, Representation, StructureNode,
+    Connection, ConnectionKind, Device, Endpoint, ExternalRef, Function, Page, PotentialDef, Representation,
+    StructureNode,
 };
 use proptest::collection::vec;
 use proptest::prelude::*;
@@ -71,6 +72,9 @@ const LOC: u128 = 0x900;
 /// A second own location: added and removed by the edits (cycle 33: an unlocated rail-bonded terminal joins the
 /// only own location, and no rail once there are two).
 const LOC2: u128 = 0x901;
+/// An external reference naming LOC2: added and removed by the edits (cycle 33 review finding 7: a location an external
+/// reference names is not own unless an own device or page uses it).
+const EXT2: u128 = 0x902;
 const J1: u128 = 0x3001;
 
 /// Every function of the fixture with its number of CPs; the representation of function `f` is `f + REP`.
@@ -391,7 +395,7 @@ struct Step {
 }
 
 fn step() -> impl Strategy<Value = Step> {
-    let act = (0u8..14, 0u16..64, 0u16..64, 0u16..64).prop_map(|(kind, a, b, c)| Act { kind, a, b, c });
+    let act = (0u8..15, 0u16..64, 0u16..64, 0u16..64).prop_map(|(kind, a, b, c)| Act { kind, a, b, c });
     (vec(act, 1..=3), 0u64..=u64::MAX).prop_map(|(acts, order)| Step { acts, order })
 }
 
@@ -551,14 +555,35 @@ fn op_of(model: &Model, batch: &mut Batch, next: u128, act: &Act) -> Option<Op> 
                 }
             })
         }
-        // Cycle 33: a second own location added or removed (nothing is placed in it).
+        // Cycle 33: a second own location added or removed (nothing is placed in it); kept while an external
+        // reference names it (ExternalRef.location is Forbid).
         13 => {
             let loc2: Id<StructureNode> = id(LOC2);
+            let ext2 = ExternalRef::key(id(EXT2));
+            if model.row(&ext2).is_some() || batch.keys.contains(&ext2) {
+                return None;
+            }
             match model.row(&StructureNode::key(loc2)) {
                 Some(row) => Some(Op::delete(row)),
                 None => Some(Op::insert(typed::<StructureNode>(json!({
                     "id": uid(LOC2), "aspect": "location", "code": "B",
                 })))),
+            }
+        }
+        // Cycle 33 review finding 7: an external reference naming LOC2 added or removed. While it exists, LOC2 is
+        // another installation's location (no own device or page uses it), so the unlocated rail-bonded terminals
+        // join the only own location again.
+        14 => {
+            let ext2 = ExternalRef::key(id(EXT2));
+            let loc2 = StructureNode::key(id(LOC2));
+            match model.row(&ext2) {
+                Some(row) => Some(Op::delete(row)),
+                None if model.row(&loc2).is_some() && !batch.keys.contains(&loc2) => {
+                    Some(Op::insert(typed::<ExternalRef>(json!({
+                        "id": uid(EXT2), "location": uid(LOC2), "device": "X9",
+                    }))))
+                }
+                None => None,
             }
         }
         // The empty fourth page removed or added again.
@@ -603,7 +628,7 @@ fn ops_of(model: &Model, step: &Step, next: &mut u128, cover: &mut Coverage) -> 
 #[derive(Default, Debug)]
 struct Coverage {
     /// Edits applied, per kind.
-    applied: [usize; 14],
+    applied: [usize; 15],
     /// Steps after which the cold partition differs from the one before.
     partition_changed: usize,
     /// Steps run.
