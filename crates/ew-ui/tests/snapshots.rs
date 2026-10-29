@@ -956,11 +956,7 @@ fn the_bottom_dock_tab_bar_in_light_and_dark() {
                 assert_eq!(at(x, y), fill, "{theme}: the tab bar's fill at ({x}, {y})");
             }
         }
-        failures.extend(record(
-            &format!("dock-tabs-{theme}-comfortable"),
-            &strip,
-            true,
-        ));
+        failures.extend(record(&format!("dock-tabs-{theme}-comfortable"), &strip, true));
         h.state_mut().shell_mut().shutdown();
         drop(h);
         drop(tmp);

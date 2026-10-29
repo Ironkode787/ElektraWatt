@@ -437,8 +437,7 @@ fn the_dock_tab_counts_the_findings_and_the_close_button_closes_the_dock() {
     let tab = h
         .get_all_by_role(egui::Role::Button)
         .find(|n| {
-            n.accesskit_node().label().as_deref() == Some("Messages")
-                && n.accesskit_node().value().is_some()
+            n.accesskit_node().label().as_deref() == Some("Messages") && n.accesskit_node().value().is_some()
         })
         .expect("the Messages dock tab with its count");
     assert_eq!(tab.accesskit_node().value(), Some(open.to_string()));
