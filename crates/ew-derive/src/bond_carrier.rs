@@ -166,20 +166,21 @@ fn carrier(q: &Q, key: PotentialId) -> Option<Carrier> {
     // (connection, its end on the M side, its end on the PE side).
     let mut found: Vec<(Id<Connection>, EndpointKey, EndpointKey)> = Vec::new();
     let keys: Vec<EndpointKey> = index.keys().copied().collect();
-    for (e, inside) in bridges {
+    for &(e, child) in &bridges.found {
+        let inside = |v: usize| bridges.inside(child, v);
         let edge = &edges[e];
         let Some(connection) = edge.connection else {
             continue;
         };
-        let all_in = |v: &[usize]| v.iter().all(|x| inside[*x]);
-        let none_in = |v: &[usize]| v.iter().all(|x| !inside[*x]);
+        let all_in = |v: &[usize]| v.iter().all(|x| inside(*x));
+        let none_in = |v: &[usize]| v.iter().all(|x| !inside(*x));
         // `inside` is the side of the child end.
         let child_m = all_in(&m_nodes) && none_in(&pe_nodes);
         let child_pe = all_in(&pe_nodes) && none_in(&m_nodes);
         if !(child_m || child_pe) {
             continue;
         }
-        let (on_m, on_pe) = if inside[edge.a] == child_m {
+        let (on_m, on_pe) = if inside(edge.a) == child_m {
             (edge.a, edge.b)
         } else {
             (edge.b, edge.a)
@@ -237,10 +238,26 @@ fn carrier(q: &Q, key: PotentialId) -> Option<Carrier> {
     Some(keyed[0].4)
 }
 
-/// The bridges of a multigraph of `n` nodes (one DFS from node 0, Tarjan's low links, an explicit stack): each
-/// bridge's edge index and, per node, whether it lies on the bridge's child side. `None` when the graph is not
-/// connected.
-fn bridges(n: usize, edges: &[Edge]) -> Option<Vec<(usize, Vec<bool>)>> {
+/// The bridges of a multigraph, with the DFS entry and exit times that answer which side of a bridge a node lies on.
+struct Bridges {
+    /// Each bridge's edge index and its child end (the end the DFS entered it towards), in edge order.
+    found: Vec<(usize, usize)>,
+    tin: Vec<usize>,
+    tout: Vec<usize>,
+}
+
+impl Bridges {
+    /// Whether node `v` lies on the child side of a bridge whose child end is `child`: in the child's DFS subtree,
+    /// whose entry times are contiguous. O(1), so no per-bridge side vector is built (a tree-shaped potential has
+    /// as many bridges as nodes).
+    fn inside(&self, child: usize, v: usize) -> bool {
+        self.tin[child] <= self.tin[v] && self.tin[v] < self.tout[child]
+    }
+}
+
+/// The bridges of a multigraph of `n` nodes (one DFS from node 0, Tarjan's low links, an explicit stack). `None`
+/// when the graph is not connected.
+fn bridges(n: usize, edges: &[Edge]) -> Option<Bridges> {
     if n == 0 {
         return None;
     }
@@ -293,17 +310,7 @@ fn bridges(n: usize, edges: &[Edge]) -> Option<Vec<(usize, Vec<bool>)>> {
         return None;
     }
     found.sort_unstable();
-    Some(
-        found
-            .into_iter()
-            .map(|(e, child)| {
-                let inside = (0..n)
-                    .map(|v| tin[v] >= tin[child] && tin[v] < tout[child])
-                    .collect();
-                (e, inside)
-            })
-            .collect(),
-    )
+    Some(Bridges { found, tin, tout })
 }
 
 #[cfg(test)]
@@ -318,19 +325,30 @@ mod tests {
         }
     }
 
+    /// Per bridge, its edge index and the nodes on its child side.
+    fn sides(n: usize, edges: &[Edge]) -> Option<Vec<(usize, Vec<bool>)>> {
+        let b = bridges(n, edges)?;
+        Some(
+            b.found
+                .iter()
+                .map(|&(e, child)| (e, (0..n).map(|v| b.inside(child, v)).collect()))
+                .collect(),
+        )
+    }
+
     #[test]
     fn a_path_is_all_bridges_and_a_parallel_pair_is_none() {
         let path = [e(0, 1), e(1, 2)];
-        let got = bridges(3, &path).expect("connected");
+        let got = sides(3, &path).expect("connected");
         assert_eq!(got.len(), 2);
         assert_eq!(got[0].0, 0);
         assert_eq!(got[0].1, vec![false, true, true], "the child side of 0-1");
         assert_eq!(got[1].1, vec![false, false, true]);
         let parallel = [e(0, 1), e(0, 1), e(1, 2)];
-        let got = bridges(3, &parallel).expect("connected");
+        let got = sides(3, &parallel).expect("connected");
         assert_eq!(got.iter().map(|(i, _)| *i).collect::<Vec<_>>(), vec![2]);
         let ring = [e(0, 1), e(1, 2), e(2, 0)];
-        assert!(bridges(3, &ring).expect("connected").is_empty());
+        assert!(sides(3, &ring).expect("connected").is_empty());
         assert!(bridges(3, &[e(0, 1)]).is_none(), "node 2 is not reached");
     }
 }
