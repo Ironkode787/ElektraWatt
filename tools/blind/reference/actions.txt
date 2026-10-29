@@ -13,6 +13,7 @@ app.quit Command "Quit" menu "File" shortcut "Ctrl+Q" context global params "dis
 edit.undo Command "Undo" menu "Edit" shortcut "Ctrl+Z" context global params ""
 edit.redo Command "Redo" menu "Edit" shortcut "Ctrl+Shift+Z" context global params ""
 history.show View "History" menu "View" shortcut none context global params "on?:bool"
+view.bottom_dock View "Bottom dock" menu "View" shortcut "Ctrl+J" context global params "on?:bool"
 props.focus View "Properties of selection" menu "Edit" shortcut "E" context canvas params ""
 props.project View "Project properties" menu "Project" shortcut none context global params ""
 find.open View "Find…" menu "Edit" shortcut "Ctrl+F" context global params ""

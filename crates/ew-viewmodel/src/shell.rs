@@ -390,6 +390,8 @@ pub struct ShellModel {
     wizard: Option<Wizard>,
     /// The dock layout of the project view (FT-309) and the workspace it belongs to.
     layout: Layout,
+    /// The bottom-dock panes `view.bottom_dock` closed, reopened by the next open (doc 16a §5.7; view state only).
+    bottom_closed: Vec<crate::layout::PaneKind>,
     workspace: String,
     /// Bumped when the shell replaces the layout (a workspace was loaded or reset): the frame rebuilds its tree.
     layout_version: u64,
@@ -769,6 +771,7 @@ fn clears_banner(id: &str) -> bool {
             // WP-S2.09 part 3: the Preview tab and the history panel's own moves.
             | "preview.show"
             | "history.show"
+            | "view.bottom_dock"
             | "history.row"
             | "history.changes"
     )
@@ -901,6 +904,7 @@ impl ShellModel {
             first_run: None,
             wizard: None,
             layout: Layout::schematic(),
+            bottom_closed: Vec::new(),
             workspace,
             layout_version: 0,
             layout_changed_at: None,
@@ -1448,6 +1452,7 @@ impl ShellModel {
             // WP-S2.09 part 3
             "preview.show" => self.act_preview_show(p),
             "history.show" => self.act_history_show(p),
+            "view.bottom_dock" => self.act_bottom_dock(p),
             "history.row" => self.act_history_row(p),
             "history.undo_to" => self.act_history_undo_to(p),
             "history.changes" => self.act_history_changes(p),

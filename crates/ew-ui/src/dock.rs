@@ -537,20 +537,6 @@ struct DockBehavior<'a> {
     counts: &'a [(PaneKind, usize)],
 }
 
-/// The actions that close each pane of the bottom dock (doc 16a §5.7: the tab row's close button closes the dock).
-fn bottom_close(pane: PaneKind) -> Option<(&'static str, serde_json::Value)> {
-    use ew_viewmodel::navigators::NavKind;
-    let off = json!({ "on": false });
-    match pane {
-        PaneKind::Find => Some(("find.close", json!({}))),
-        PaneKind::Jobs => Some(("jobs.show", off)),
-        PaneKind::Navigator(NavKind::Messages) => Some(("messages.show", off)),
-        PaneKind::Preview => Some(("preview.show", off)),
-        PaneKind::History => Some(("history.show", off)),
-        _ => None,
-    }
-}
-
 impl DockBehavior<'_> {
     /// The panel header of a pane (doc 16a §5.4): `size.panel_header` high, the title in `type.label` at `space.4`;
     /// a button without a frame for AccessKit, sensing drags (the pane's drag handle).
@@ -847,13 +833,12 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
     ) {
         let panes = tab_panes(tiles, tabs);
         // Doc 16a §5.7: one close button at the right end of the bottom dock's tab row closes the dock.
-        let closes: Vec<_> = panes.iter().filter_map(|(_, p)| bottom_close(*p)).collect();
-        if !closes.is_empty() {
+        if panes.iter().any(|(_, p)| PaneKind::BOTTOM.contains(p)) {
             ui.add_space(self.tokens.space_2);
             let name = strings::text("dock-close");
             if crate::components::icon_button(ui, crate::icons::IconId::x, name).clicked() {
                 self.events
-                    .extend(closes.into_iter().map(|(a, p)| Event::Action(a, p)));
+                    .push(Event::Action("view.bottom_dock", json!({ "on": false })));
             }
         }
         if panes.len() < 2 {

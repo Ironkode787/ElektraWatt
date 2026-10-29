@@ -448,4 +448,21 @@ fn the_dock_tab_counts_the_findings_and_the_close_button_closes_the_dock() {
     assert!(!shell.navigator_open(NavKind::Messages), "Messages closed");
     assert!(!shell.history_shown(), "History closed");
     assert!(h.query_by_label("Close the bottom dock").is_none());
+    // Ctrl+J (`view.bottom_dock`) opens the dock again with the same panes, and closes it again.
+    dispatch(&mut h, "ui.focus", json!({"area": "canvas"}));
+    h.key_press_modifiers(Modifiers::COMMAND, egui::Key::J);
+    settle(&mut h);
+    let shell = h.state().shell();
+    assert!(shell.navigator_open(NavKind::Messages), "Messages reopened");
+    assert!(shell.history_shown(), "History reopened");
+    h.key_press_modifiers(Modifiers::COMMAND, egui::Key::J);
+    settle(&mut h);
+    assert!(!h.state().shell().bottom_dock_shown(), "Ctrl+J closes it");
+    // With nothing remembered the dock opens on Messages.
+    dispatch(&mut h, "view.bottom_dock", json!({"on": true}));
+    dispatch(&mut h, "history.show", json!({"on": false}));
+    dispatch(&mut h, "messages.show", json!({"on": false}));
+    dispatch(&mut h, "view.bottom_dock", json!({}));
+    let shell = h.state().shell();
+    assert!(shell.navigator_open(NavKind::Messages) && !shell.history_shown());
 }

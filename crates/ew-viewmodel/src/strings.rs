@@ -1494,6 +1494,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "pane-history" => "History",
         "action-preview-show" => "Preview",
         "action-history-show" => "History",
+        "action-view-bottom-dock" => "Bottom dock",
         "action-history-row" => "Move in the history",
         "action-history-undo-to" => "Undo to here",
         "action-history-changes" => "Show changes",

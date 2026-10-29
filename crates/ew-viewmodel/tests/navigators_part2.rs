@@ -416,9 +416,10 @@ fn np6_the_six_words_and_the_two_actions() {
     // history panel's thirteen words and eight actions; WP-S2.06 part 3 table mode's six words and fourteen actions;
     // WP-S2.17 part 1 View ▸ Theme and View ▸ Density; part 3 the rails' six words and two actions; FT-541
     // `props.filter`; the G-PP triage's Draw ▸ Bond (`bond.draw`), the tag proposal
-    // (`props.accept_tag_proposal`) and a terminal CP's side `internal`.
+    // (`props.accept_tag_proposal`) a terminal CP's side `internal` and
+    // View ▸ Bottom dock (`view.bottom_dock`).
     assert_eq!(VOCABULARY.len(), 355);
-    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 261);
+    assert_eq!(ew_viewmodel::actions::ACTIONS.len(), 262);
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()
         .find(|a| a.id == "navigator.highlight")

@@ -1032,6 +1032,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Doc 16a §5.7: View ▸ Bottom dock (Ctrl+J) closes the bottom dock and opens it again with the panes it had.
+    with_params(
+        "on?:bool",
+        act(
+            "view.bottom_dock",
+            View,
+            "action-view-bottom-dock",
+            Menu::View,
+            &["Ctrl+J"],
+            project_open,
+            grp(Group::Panels),
+        ),
+    ),
     // Edit, Properties of selection (E and Alt+Enter on the canvas) and Project properties: the shell has no Project
     // menu yet, so the project's properties sit beside the selection's (WP-S2.05 §6.10, lane ruling).
     in_canvas(act(
@@ -4196,6 +4209,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             // WP-S2.09 part 3.
             "history.show" => model.history_shown(),
             "preview.show" => model.preview_shown(),
+            "view.bottom_dock" => model.bottom_dock_shown(),
             "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
             // WP-S2.04 part 2.
             "tool.wire" => model.tool().name() == "wire",
