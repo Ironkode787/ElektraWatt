@@ -67,6 +67,9 @@ pub enum WriteFault {
     AfterShards,
     /// After the new manifest's temporary file is written, before its rename.
     BeforeManifestRename,
+    /// After the manifest's rename (the write has committed), the search index's update fails; the write reports it
+    /// in [`WriteReport::index_error`] and releases the lock as usual.
+    Reindex,
 }
 
 /// What a [`Registry::write`] did.
@@ -84,6 +87,9 @@ pub struct WriteReport {
     pub written: Vec<String>,
     /// Files removed (replaced shards and leftovers of an interrupted write).
     pub removed: Vec<String>,
+    /// The search index failed to take the committed write, with the reason: the write stands, and the index is
+    /// brought up to date on the next open or write.
+    pub index_error: Option<String>,
 }
 
 #[derive(Debug)]
@@ -228,6 +234,50 @@ fn open_manifest(dir: &Path, limits: &Limits) -> Result<LibManifest, String> {
         ));
     }
     Ok(m)
+}
+
+/// The semantic-version order of `a` and `b` (build metadata ignored; a pre-release orders before its release, and
+/// pre-release identifiers compare numerically or else as text, numeric ones first), `None` when either does not
+/// parse as `X.Y.Z[-pre][+build]`.
+pub(crate) fn version_order(a: &str, b: &str) -> Option<std::cmp::Ordering> {
+    use std::cmp::Ordering;
+    fn parse(v: &str) -> Option<([u64; 3], Option<&str>)> {
+        let v = v.split('+').next()?;
+        let (core, pre) = match v.split_once('-') {
+            Some((c, p)) => (c, Some(p)),
+            None => (v, None),
+        };
+        let mut parts = core.split('.').map(|p| p.parse::<u64>().ok());
+        let out = [parts.next()??, parts.next()??, parts.next()??];
+        parts.next().is_none().then_some((out, pre))
+    }
+    let ((ca, pa), (cb, pb)) = (parse(a)?, parse(b)?);
+    Some(ca.cmp(&cb).then_with(|| match (pa, pb) {
+        (None, None) => Ordering::Equal,
+        (None, Some(_)) => Ordering::Greater,
+        (Some(_), None) => Ordering::Less,
+        (Some(x), Some(y)) => {
+            let (mut xs, mut ys) = (x.split('.'), y.split('.'));
+            loop {
+                match (xs.next(), ys.next()) {
+                    (None, None) => break Ordering::Equal,
+                    (None, Some(_)) => break Ordering::Less,
+                    (Some(_), None) => break Ordering::Greater,
+                    (Some(p), Some(q)) => {
+                        let o = match (p.parse::<u64>(), q.parse::<u64>()) {
+                            (Ok(m), Ok(n)) => m.cmp(&n),
+                            (Ok(_), Err(_)) => Ordering::Less,
+                            (Err(_), Ok(_)) => Ordering::Greater,
+                            (Err(_), Err(_)) => p.cmp(q),
+                        };
+                        if o != Ordering::Equal {
+                            break o;
+                        }
+                    }
+                }
+            }
+        }
+    }))
 }
 
 /// Whether `version` satisfies the semantic-version requirement `req`: `*` or empty, `^X[.Y[.Z]]` (also bare, as
@@ -882,8 +932,10 @@ impl Registry {
     /// new file, then `library.json` with the next generation, last; then the files the old manifest named and the
     /// new one does not, and leftovers of an interrupted write, are removed. Each document's `library_id` must be
     /// the library's; its copy ID and hash are recomputed. A document of other content under a version the library
-    /// holds is [`LibraryError::Immutable`] and nothing is written. Lines of a rewritten shard that this reader
-    /// cannot type are kept as they are.
+    /// holds is [`LibraryError::Immutable`], one under a version older than the one held [`LibraryError::Downgrade`],
+    /// and nothing is written. Lines of a rewritten shard that this reader cannot type are kept as they are; such a
+    /// line for an item being written refuses the write ([`LibraryError::Format`]), as it may be a newer record this
+    /// reader would lose.
     pub fn write(&mut self, library: Uuid, docs: &[LibDocument]) -> Result<WriteReport, LibraryError> {
         let i = self
             .libs
@@ -957,6 +1009,13 @@ impl Registry {
                 }
                 kept.extend(raw);
             }
+            if let Some(line) = kept.iter().find(|l| items.contains_key(&kept_line_id(l))) {
+                return Err(LibraryError::Format(format!(
+                    "item {} has a line in its shard that this reader cannot type (a newer format?); it is not \
+                     replaced",
+                    kept_line_id(line)
+                )));
+            }
             let mut changed = false;
             for (item, (version, line)) in items {
                 match lines.get(item) {
@@ -965,6 +1024,18 @@ impl Registry {
                         return Err(LibraryError::Immutable {
                             item: *item,
                             version: version.clone(),
+                        });
+                    }
+                    Some((v, _))
+                        if matches!(
+                            version_order(version, v),
+                            Some(std::cmp::Ordering::Less | std::cmp::Ordering::Equal)
+                        ) =>
+                    {
+                        return Err(LibraryError::Downgrade {
+                            item: *item,
+                            version: version.clone(),
+                            held: v.clone(),
                         });
                     }
                     Some(_) => {
@@ -1034,8 +1105,16 @@ impl Registry {
         let lib = &mut self.libs[i];
         lib.info.generation = generation;
         lib.manifest = Some(manifest);
-        let state = self.index().state(self.libs[i].info.id)?;
-        self.reindex_lib(i, state, &BTreeMap::new())?;
+        // The write has committed: an index failure is reported with it, not as the write's error.
+        let indexed = if self.fault == Some(WriteFault::Reindex) {
+            Err(LibraryError::Index("injected fault in the reindex".into()))
+        } else {
+            let state = self.index().state(self.libs[i].info.id);
+            state.and_then(|state| self.reindex_lib(i, state, &BTreeMap::new()))
+        };
+        if let Err(e) = indexed {
+            report.index_error = Some(e.to_string());
+        }
         Ok(report)
     }
 
@@ -1156,6 +1235,24 @@ fn kept_line_id(line: &str) -> Uuid {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn versions_order_as_semver() {
+        use std::cmp::Ordering::{Equal, Greater, Less};
+        for (a, b, o) in [
+            ("1.0.0", "2.0.0", Some(Less)),
+            ("1.10.0", "1.9.0", Some(Greater)),
+            ("1.0.0", "1.0.0+build", Some(Equal)),
+            ("1.0.0-beta", "1.0.0", Some(Less)),
+            ("1.0.0-alpha.2", "1.0.0-alpha.10", Some(Less)),
+            ("1.0.0-alpha", "1.0.0-alpha.1", Some(Less)),
+            ("1.0.0-1", "1.0.0-a", Some(Less)),
+            ("1.0", "1.0.0", None),
+            ("x", "1.0.0", None),
+        ] {
+            assert_eq!(version_order(a, b), o, "{a} vs {b}");
+        }
+    }
 
     #[test]
     fn version_requirements() {

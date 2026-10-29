@@ -455,6 +455,115 @@ fn versions_are_immutable_and_untyped_lines_survive_a_rewrite() {
     assert!(matches!(reg.write(lib, &[foreign]), Err(LibraryError::Format(_))));
 }
 
+/// Review C35 m1: a version older than the one held is refused (it would replace the newer version with another
+/// content under an older `(item, version)`); nothing is written and the newer version stays.
+#[test]
+fn an_older_version_is_refused_as_a_downgrade() {
+    let f = Fixture::new("ew-library-downgrade");
+    let mut reg = f.open();
+    let lib = company(&f, &mut reg);
+    let at = |version| P {
+        version,
+        ..P::new(
+            id(A9P52616),
+            "A9P52616",
+            id(SE),
+            "Miniature circuit breaker 1P+N C16",
+        )
+    };
+    reg.write(lib, &[at("2.0.0").doc(lib)]).unwrap();
+    for older in ["1.0.0", "1.5.0", "2.0.0-rc.1"] {
+        let e = reg.write(lib, &[at(older).doc(lib)]).unwrap_err();
+        assert_eq!(
+            e,
+            LibraryError::Downgrade {
+                item: id(A9P52616),
+                version: older.into(),
+                held: "2.0.0".into()
+            }
+        );
+    }
+    assert_eq!(reg.libraries()[2].generation, 3, "nothing written");
+    let doc = reg
+        .resolve(&serde_json::from_value::<LibRef>(libref(lib, id(A9P52616), "*")).unwrap())
+        .unwrap();
+    let LibDocument::Part(c) = doc else { panic!() };
+    assert_eq!(c.version, "2.0.0");
+    // A newer version is an update.
+    let report = reg.write(lib, &[at("2.1.0").doc(lib)]).unwrap();
+    assert_eq!(report.updated, [id(A9P52616)]);
+}
+
+/// Review C35 m3: a line this reader cannot type for an item being written refuses the write instead of leaving two
+/// lines for the item in the rewritten shard.
+#[test]
+fn an_untyped_line_of_an_item_being_written_refuses_the_write() {
+    let f = Fixture::new("ew-library-untyped-twin");
+    let mut reg = f.open();
+    let lib = company(&f, &mut reg);
+    let dir = f.root.join("company").join("company-std.ewlib");
+    let future = format!(
+        "{{\"$k\":\"part\",\"id\":\"{}\",\"version\":\"3.0.0\",\"future\":1}}",
+        id(A9P52616)
+    );
+    let shard = dir.join("parts/10.2.jsonl");
+    let mut text = std::fs::read_to_string(&shard).unwrap();
+    text.push_str(&future);
+    text.push('\n');
+    std::fs::write(&shard, &text).unwrap();
+    let mut m = LibManifest::parse(&std::fs::read(dir.join("library.json")).unwrap()).unwrap();
+    m.files
+        .insert("parts/10.2.jsonl".into(), ew_format::sha256(text.as_bytes()));
+    m.generation += 1;
+    std::fs::write(dir.join("library.json"), m.to_text()).unwrap();
+    let mut reg = f.open();
+    let newer = P {
+        version: "2.0.0",
+        ..P::new(
+            id(A9P52616),
+            "A9P52616",
+            id(SE),
+            "Miniature circuit breaker 1P+N C16",
+        )
+    };
+    let e = reg.write(lib, &[newer.doc(lib)]).unwrap_err();
+    assert!(
+        matches!(&e, LibraryError::Format(m) if m.contains(&id(A9P52616).to_string())),
+        "{e:?}"
+    );
+    assert_eq!(reg.libraries()[2].generation, 3, "nothing written");
+    assert_eq!(std::fs::read_to_string(&shard).unwrap(), text);
+}
+
+/// Review C35 nit: a search-index failure after the manifest's rename does not make the committed write an error; it
+/// is reported with the write, the lock is released, and the next open brings the index up to date.
+#[test]
+fn an_index_failure_after_the_commit_is_reported_with_the_write() {
+    let f = Fixture::new("ew-library-reindex-fault");
+    let mut reg = f.open();
+    let lib = company(&f, &mut reg);
+    let dir = f.root.join("company").join("company-std.ewlib");
+    reg.set_write_fault(Some(WriteFault::Reindex));
+    let newer = P {
+        version: "2.0.0",
+        ..P::new(id(A9P52616), "A9P52616", id(SE), "Reindexed circuit breaker")
+    };
+    let report = reg.write(lib, &[newer.doc(lib)]).unwrap();
+    assert_eq!(report.generation, 3);
+    assert_eq!(report.updated, [id(A9P52616)]);
+    assert!(
+        report
+            .index_error
+            .as_deref()
+            .is_some_and(|m| m.contains("injected")),
+        "{report:?}"
+    );
+    assert!(!dir.join(LOCK).exists(), "the lock is released");
+    drop(reg);
+    let reg = f.open();
+    assert_eq!(numbers(&search(&reg, "Reindexed")), ["A9P52616"]);
+}
+
 /// IX-3: a deleted index is rebuilt with the same results; a truncated one is replaced; a changed library reindexes
 /// only itself.
 #[test]

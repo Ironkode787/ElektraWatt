@@ -42,6 +42,17 @@ pub enum LibraryError {
         /// The version the library holds with other content.
         version: String,
     },
+    /// A write of an item at a version older than the one the library holds: it would replace the newer version,
+    /// and the library would then hold an older `(item, version)` whose content may differ from what projects
+    /// embedded (doc 05 §13.1).
+    Downgrade {
+        /// The item.
+        item: Uuid,
+        /// The version written.
+        version: String,
+        /// The newer version the library holds.
+        held: String,
+    },
     /// A library directory or document that cannot be used, with the reason.
     Format(String),
     /// The search index failed, with SQLite's message.
@@ -67,6 +78,10 @@ impl fmt::Display for LibraryError {
             LibraryError::Immutable { item, version } => write!(
                 f,
                 "item {item} is published at version {version} with other content; give the change a new version"
+            ),
+            LibraryError::Downgrade { item, version, held } => write!(
+                f,
+                "item {item} is held at version {held}; version {version} is older and would replace it"
             ),
             LibraryError::Format(m) => write!(f, "library format: {m}"),
             LibraryError::Index(m) => write!(f, "library index: {m}"),
