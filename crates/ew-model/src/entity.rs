@@ -12,7 +12,7 @@ use ew_ids::Id;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, FnDef, FormDef, Function,
     ImportLineage, Junction, Kind, LibCopy, MacroDef, MacroInstance, Manufacturer, Page, PageItem, Part,
-    PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, StructureBox,
+    PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, Waiver, StructureBox,
     StructureNode, SymbolDef,
 };
 
@@ -274,6 +274,7 @@ entities! {
     ReportBlock: ReportBlock, ReportBlock, report_blocks;
     MacroInstance: MacroInstance, MacroInstance, macro_instances;
     Revision: Revision, Revision, revisions;
+    Waiver: Waiver, Waiver, waivers;
     Part: LibCopy<Part>, Part, lib.parts;
     Symbol: LibCopy<SymbolDef>, SymbolDef, lib.symbols;
     Fndef: LibCopy<FnDef>, FnDef, lib.fndefs;

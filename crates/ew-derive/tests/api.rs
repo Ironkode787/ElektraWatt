@@ -327,7 +327,7 @@ impl Query for EveryAccessor {
         n += q.idx().connected_cps_of_function(id(0x1001)).len();
         n += q.symbols().len() + q.fndefs().len();
         n += usize::from(q.project().derivation_profile.as_str() == "2027.1");
-        n += q.reserved(Kind::Waiver).count();
+        n += q.reserved(Kind::Comment).count();
         n += usize::from(q.get::<DeviceTag>(id(0x1000)).is_some());
         Arc::new(n)
     }

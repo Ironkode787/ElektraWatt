@@ -446,8 +446,8 @@ fn unknown_kind_is_kept_verbatim_with_one_ew_core_016_per_kind_and_file() {
 
 #[test]
 fn reserved_kind_is_kept_without_a_finding() {
-    let line = r#"{"$k":"waiver","id":"3b9c1d72-5e48-7a06-8f13-2d6c0e9a4b51","note":"x"}"#;
-    let loaded = load_lines("waivers.jsonl", &[line]);
+    let line = r#"{"$k":"comment","id":"3b9c1d72-5e48-7a06-8f13-2d6c0e9a4b51","note":"x"}"#;
+    let loaded = load_lines("comments.jsonl", &[line]);
     assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
     assert_eq!(loaded.records.len(), 1);
     assert_eq!(loaded.kept.len(), 1);
@@ -531,6 +531,48 @@ fn revision_members_of_a_newer_build_survive_and_a_broken_line_is_quarantined() 
     assert!(loaded.records.is_empty());
     assert_eq!(loaded.kept.len(), 1);
     assert_eq!(loaded.kept[0].text, broken.as_bytes());
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Migration of the waiver kind (WP-S1.16 part 5, D7): typed within format 0.1 (ADR-0011 amendment 4, ID-334)
+
+/// A waiver line as a build before the typing wrote it: the kind was reserved, so the members are in byte-wise key
+/// order, and `expires` (FT-184) is a member the typed kind keeps in `extra`.
+const OLD_WAIVER: &str = r#"{"$k":"waiver","author":"engineer","date":"2025-04-14","expires":"never","id":"6c1d0a37-92e4-5f8b-a0d6-3e7b9c2f4a18","reason":"PE stud is part of NSYPMM107","rule":"EW-CORE-041","target":{"finding":"9c2e5a0b7d14f3e8a6c1b05d2e9f41ab"}}"#;
+
+/// The same record in the canonical form of the typed kind: `$k`, `id`, the members in declaration order, `extra`
+/// last.
+const NEW_WAIVER: &str = r#"{"$k":"waiver","id":"6c1d0a37-92e4-5f8b-a0d6-3e7b9c2f4a18","rule":"EW-CORE-041","target":{"finding":"9c2e5a0b7d14f3e8a6c1b05d2e9f41ab"},"reason":"PE stud is part of NSYPMM107","author":"engineer","date":"2025-04-14","expires":"never"}"#;
+
+/// Upgrade on read: an old `waivers.jsonl` loads into typed waivers with every member, the only finding is the info
+/// `NonCanonical`, the file is scheduled for a rewrite and reads back without a finding.
+#[test]
+fn an_old_waivers_file_loads_typed_and_is_rewritten_canonically() {
+    let loaded = load_lines("waivers.jsonl", &[OLD_WAIVER]);
+    assert_eq!(
+        kinds(&loaded),
+        [FindingKind::NonCanonical],
+        "{:?}",
+        loaded.findings
+    );
+    assert!(loaded.kept.is_empty(), "{:?}", loaded.kept);
+    assert!(loaded.rewrite.contains(&p("waivers.jsonl")));
+    let [Record::Waiver(w)] = loaded.records.as_slice() else {
+        panic!("one waiver: {:?}", loaded.records);
+    };
+    assert_eq!(w.rule.as_str(), "EW-CORE-041");
+    assert_eq!(
+        w.target.finding.as_deref(),
+        Some("9c2e5a0b7d14f3e8a6c1b05d2e9f41ab")
+    );
+    assert_eq!(
+        w.extra.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["expires"]
+    );
+    assert_eq!(record_line(&loaded.records[0]).unwrap(), NEW_WAIVER);
+    let again = load_lines("waivers.jsonl", &[NEW_WAIVER]);
+    assert!(again.findings.is_empty(), "{:?}", again.findings);
+    assert!(again.rewrite.is_empty());
 }
 
 const MALFORMED: &str = r#"{"$k":"function","id":"1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19","def":"5b9e2d70-3c41-5f8a-b6d2-19e4c7a03f58","kind":{"ip":{"direction":"source","name":" bad"}}}"#;

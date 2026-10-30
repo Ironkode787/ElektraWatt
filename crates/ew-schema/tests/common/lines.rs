@@ -80,6 +80,8 @@ pub const GOLDEN: &[&str] = &[
     // revisions (doc 20 §4.1 U-04, doc 03 §18): a historic released one without archive, an open one
     r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","date":"2025-03-03","description":"Initial issue","state":"released","source_ref":{"lineage":"@LIN","key":"revisions|V1.0"}}"#,
     r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","date":"2025-04-14","author":"engineer","description":{"en-GB":"Changes on 101 and 106"},"state":"open","page_notes":[{"page":"@P1"},{"page":"@P103","description":{"en-GB":"Supply moved"}}]}"#,
+    // waivers (doc 15 §2.5, doc 20 §18.1 EF-19): W-1 on -XPE, with a member of a newer build kept in `extra`
+    r#"{"$k":"waiver","id":"@WAIVER_W1","rule":"EW-CORE-041","target":{"finding":"9c2e5a0b7d14f3e8a6c1b05d2e9f41ab"},"reason":{"en-GB":"PE stud is part of NSYPMM107"},"author":"engineer","date":"2025-04-14","expires":"never"}"#,
     // page items and a structure box (doc 03 §5, §6; WP-S2.04 §10.1): every typed variant and shape kind, a
     // bound text (an unknown variant is `records::an_unknown_page_item_variant_is_kept_verbatim`)
     r#"{"$k":"page_item","id":"@PI_MARKER","page":"@P102","kind":{"wire_marker":{"connections":["@CON_W20","@CON_W29"],"at":[90000000,24000000],"angle":90000,"fields":["csa","colour"]}}}"#,

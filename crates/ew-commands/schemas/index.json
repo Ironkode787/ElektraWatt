@@ -70,6 +70,28 @@
       "aliases": [],
       "confirmation": "none",
       "cost": "interactive",
+      "exposure": "human_only",
+      "name": "check.unwaive",
+      "params_version": 1,
+      "schema": "check.unwaive.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "human_only",
+      "name": "check.waive",
+      "params_version": 1,
+      "schema": "check.waive.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
       "exposure": "edit",
       "name": "conductor.add",
       "params_version": 1,

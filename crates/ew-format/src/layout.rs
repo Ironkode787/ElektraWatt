@@ -67,6 +67,7 @@ fn junction_anchor_file(j: AnyId, anchors: &dyn Anchors) -> FilePath {
 /// | `potential_def`, `bond` | the file of endpoint `at` / `a`'s anchor |
 /// | page-oriented `report_block` | `report-blocks.jsonl` |
 /// | `revision` | `revisions.jsonl` |
+/// | `waiver` | `waivers.jsonl` |
 ///
 /// The anchor of a connection-point endpoint is the shard of the function's device, or for a function
 /// without a device the function's own file; a junction endpoint's anchor is the junction's page. A
@@ -109,6 +110,7 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
             None => FilePath::report_blocks(),
         },
         Record::Revision(_) => FilePath::root("revisions.jsonl"),
+        Record::Waiver(_) => FilePath::root("waivers.jsonl"),
         Record::Connection(r) => match r.page {
             Some(p) => FilePath::page(p.cast()),
             None => endpoint_file(record.anchor_ref())

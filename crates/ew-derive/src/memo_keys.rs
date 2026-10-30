@@ -129,6 +129,7 @@ macro_rules! by_kind {
             Kind::ReportBlock => $f::<ReportBlock>($($arg),*),
             Kind::MacroInstance => $f::<ew_schema::MacroInstance>($($arg),*),
             Kind::Revision => $f::<ew_schema::Revision>($($arg),*),
+            Kind::Waiver => $f::<ew_schema::Waiver>($($arg),*),
             Kind::Part => $f::<LibCopy<Part>>($($arg),*),
             Kind::Symbol => $f::<LibCopy<SymbolDef>>($($arg),*),
             Kind::Fndef => $f::<LibCopy<FnDef>>($($arg),*),
@@ -478,7 +479,7 @@ mod tests {
     const ABSENT: u128 = 0xdead;
 
     /// The kinds with a table, in the order of the `by_kind!` macro.
-    const TABLE_KINDS: [Kind; 22] = [
+    const TABLE_KINDS: [Kind; 23] = [
         Kind::PlcConfigProject,
         Kind::ImportLineage,
         Kind::StructureNode,
@@ -497,6 +498,7 @@ mod tests {
         Kind::DeviceLink,
         Kind::ReportBlock,
         Kind::Revision,
+        Kind::Waiver,
         Kind::Part,
         Kind::Symbol,
         Kind::Fndef,
@@ -1133,7 +1135,7 @@ mod tests {
         }
         let _ = q.project();
         let _ = q.profile();
-        let _ = q.reserved(Kind::Waiver).count();
+        let _ = q.reserved(Kind::Comment).count();
         let _ = q.logo_asset(&ew_schema::Sha256([7; 32]));
 
         let reads = rec.reads();
@@ -1209,7 +1211,7 @@ mod tests {
             stamp(&m3, &DepKey::Table(Kind::Connection))
         );
         // A kind without a table answers the model's revision.
-        assert_eq!(stamp(&m3, &DepKey::Row((Kind::Waiver, id(ABSENT)))), Rev(3));
+        assert_eq!(stamp(&m3, &DepKey::Row((Kind::Comment, id(ABSENT)))), Rev(3));
     }
 
     // -------------------------------------------------------------------------------------------------

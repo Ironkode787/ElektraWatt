@@ -107,6 +107,10 @@ macro_rules! with_row {
                 let $kind = Kind::Revision;
                 $body
             }
+            AnyRow::Waiver($r) => {
+                let $kind = Kind::Waiver;
+                $body
+            }
             AnyRow::Part($r) => {
                 let $kind = Kind::Part;
                 $body
@@ -160,6 +164,7 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
         AnyRow::ReportBlock(r) => Record::ReportBlock((**r).clone()),
         AnyRow::MacroInstance(r) => Record::MacroInstance((**r).clone()),
         AnyRow::Revision(r) => Record::Revision((**r).clone()),
+        AnyRow::Waiver(r) => Record::Waiver((**r).clone()),
         AnyRow::Part(_)
         | AnyRow::Symbol(_)
         | AnyRow::Fndef(_)
@@ -194,6 +199,7 @@ pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
         Record::ReportBlock(r) => AnyRow::of(r),
         Record::MacroInstance(r) => AnyRow::of(r),
         Record::Revision(r) => AnyRow::of(r),
+        Record::Waiver(r) => AnyRow::of(r),
         Record::Unknown(_) => return None,
     })
 }

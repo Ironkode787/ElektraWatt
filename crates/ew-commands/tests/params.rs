@@ -203,6 +203,15 @@ fn examples() -> Vec<(&'static str, Value)> {
         ),
         ("project.checks.set", json!({"release_scheme": "pre-delivery"})),
         (
+            "check.waive",
+            json!({"rule": "EW-CORE-041", "fingerprint": "9c2e5a0b7d14f3e8a6c1b05d2e9f41ab",
+                   "reason": {"en-GB": "PE stud is part of NSYPMM107"}, "author": "engineer", "date": "2025-04-14"}),
+        ),
+        (
+            "check.unwaive",
+            json!({"waiver": "6c1d0a37-92e4-5f8b-a0d6-3e7b9c2f4a18"}),
+        ),
+        (
             "project.assets.purge",
             json!({"assets": [format!("sha256:{}", "ab".repeat(32))]}),
         ),

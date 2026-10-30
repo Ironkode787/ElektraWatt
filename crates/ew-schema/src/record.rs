@@ -16,7 +16,7 @@ use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, w
 use crate::value::Endpoint;
 use crate::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    Page, PageItem, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision,
+    Page, PageItem, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Waiver,
     SchemaError, Section, StructureBox, StructureNode,
 };
 
@@ -163,6 +163,8 @@ pub enum Record {
     MacroInstance(MacroInstance),
     /// `revision` (60).
     Revision(Revision),
+    /// `waiver` (61).
+    Waiver(Waiver),
     /// A record of a kind this reader does not implement, with its `$k`, kept verbatim.
     Unknown(Value),
 }
@@ -196,6 +198,7 @@ impl Record {
             Record::ReportBlock(_) => Kind::ReportBlock,
             Record::MacroInstance(_) => Kind::MacroInstance,
             Record::Revision(_) => Kind::Revision,
+            Record::Waiver(_) => Kind::Waiver,
             Record::Unknown(_) => return None,
         })
     }
@@ -233,6 +236,7 @@ impl Record {
             Record::ReportBlock(r) => r.id.as_uuid(),
             Record::MacroInstance(r) => r.id.as_uuid(),
             Record::Revision(r) => r.id.as_uuid(),
+            Record::Waiver(r) => r.id.as_uuid(),
             Record::Unknown(v) => {
                 return v
                     .get("id")
@@ -252,7 +256,8 @@ impl Record {
             | Record::StructureNode(_)
             | Record::Section(_)
             | Record::ExternalRef(_)
-            | Record::Revision(_) => AnchorRef::Root,
+            | Record::Revision(_)
+            | Record::Waiver(_) => AnchorRef::Root,
             Record::Page(r) => AnchorRef::Direct(r.id.as_uuid()),
             Record::Device(r) => AnchorRef::Direct(r.id.as_uuid()),
             Record::Function(r) => match r.device {
@@ -337,6 +342,7 @@ impl Serialize for Record {
             Record::ReportBlock(r) => tagged(Kind::ReportBlock, r, serializer),
             Record::MacroInstance(r) => tagged(Kind::MacroInstance, r, serializer),
             Record::Revision(r) => tagged(Kind::Revision, r, serializer),
+            Record::Waiver(r) => tagged(Kind::Waiver, r, serializer),
             Record::Unknown(v) => v.serialize(serializer),
         }
     }
@@ -422,6 +428,7 @@ impl Record {
             Kind::ReportBlock => Record::ReportBlock(typed(kind, map, |r: &ReportBlock| r.v)?),
             Kind::MacroInstance => Record::MacroInstance(typed(kind, map, |r: &MacroInstance| r.v)?),
             Kind::Revision => Record::Revision(typed(kind, map, |r: &Revision| r.v)?),
+            Kind::Waiver => Record::Waiver(typed(kind, map, |r: &Waiver| r.v)?),
             k => return Err(SchemaError::UnknownKind(k.name().into())),
         })
     }

@@ -210,9 +210,10 @@ fn run(texts: &[(String, bool)], tally: &mut Tally) {
 /// line two multi-language `description`s; the page-item lines (WP-S2.04 part 4a) seven enum wrappers (the
 /// five `kind` variants and two graphic `shape`s); WP-S1.19 part 1 three multi-language texts (the macro's `name`
 /// and `description`, a part fixture's `description`). The survivor floor was raised to the 298 objects counted
-/// then, so the new part, manufacturer, macro and macro-instance objects stay extensible.
-const MIN_SURVIVORS: usize = 298;
-const MAX_REJECTED: usize = 94;
+/// then, so the new part, manufacturer, macro and macro-instance objects stay extensible. The waiver line (WP-S1.16
+/// part 5) adds one multi-language `reason`; its record and target objects keep unknown members.
+const MIN_SURVIVORS: usize = 300;
+const MAX_REJECTED: usize = 95;
 
 fn examples() -> Vec<(String, bool)> {
     let mut all: Vec<(String, bool)> = DOC05_LINES.iter().map(|l| (fill(l), false)).collect();

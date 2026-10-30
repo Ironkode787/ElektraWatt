@@ -698,6 +698,7 @@ pub static LINKS: &[LinkDecl] = &[
     // revision (`page_notes[].page` is not a link: NOT_LINKS)
     link!(Revision."withdraws" -> Revision, Forbid, None, |v, out| opt(v.withdraws, out)),
     lineage_link!(Revision),
+    // waiver: no links (it names a finding by fingerprint, which an unmatched waiver keeps naming, EW-CORE-081)
     // library copies
     link!(Form."title_block" -> Form, Forbid, None, |v, out| opt(v.item.title_block, out)),
     link!(Form."continuation" -> Form, Forbid, None, |v, out| opt(v.item.continuation, out)),

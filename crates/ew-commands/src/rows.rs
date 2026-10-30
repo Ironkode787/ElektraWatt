@@ -48,6 +48,7 @@ pub fn row_json(row: &AnyRow) -> Result<Value, CmdError> {
         AnyRow::ReportBlock(r) => v(&**r, row),
         AnyRow::MacroInstance(r) => v(&**r, row),
         AnyRow::Revision(r) => v(&**r, row),
+        AnyRow::Waiver(r) => v(&**r, row),
         AnyRow::Part(r) => v(&**r, row),
         AnyRow::Symbol(r) => v(&**r, row),
         AnyRow::Fndef(r) => v(&**r, row),

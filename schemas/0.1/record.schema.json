@@ -67,6 +67,9 @@
     },
     {
       "$ref": "revision.schema.json"
+    },
+    {
+      "$ref": "waiver.schema.json"
     }
   ],
   "required": [

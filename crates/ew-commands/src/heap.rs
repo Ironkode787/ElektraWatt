@@ -94,6 +94,7 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::ReportBlock(r) => of(&**r),
         AnyRow::MacroInstance(r) => of(&**r),
         AnyRow::Revision(r) => of(&**r),
+        AnyRow::Waiver(r) => of(&**r),
         AnyRow::Part(r) => of(&**r),
         AnyRow::Symbol(r) => of(&**r),
         AnyRow::Fndef(r) => of(&**r),
@@ -288,6 +289,19 @@ impl HeapSize for ew_schema::Revision {
             + self.page_notes.heap_size()
             + self.withdraws.heap_size()
             + self.source_ref.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+// ---- waivers (doc 15 §2.5) ----
+
+impl HeapSize for ew_schema::Waiver {
+    fn heap_size(&self) -> usize {
+        self.rule.heap_size()
+            + self.target.finding.heap_size()
+            + self.target.extra.heap_size()
+            + self.reason.heap_size()
+            + self.author.heap_size()
             + self.extra.heap_size()
     }
 }

@@ -21,7 +21,7 @@
 //!   session's memo store a rule re-runs in a scope only when something it read changed (doc 15 §3.3). The
 //!   scope kinds are project, page, strip, device, cable and potential.
 //! - **Runs.** [`run`] evaluates a scheme over a snapshot and applies effective severities, supersession,
-//!   waivers (the reserved `waiver` records, matched by [`Fingerprint`]) and EW-CORE-081; the
+//!   waivers (the typed `waiver` records, matched by rule and [`Fingerprint`]) and EW-CORE-081; the
 //!   [`CheckReport`] is in canonical order (code, printed subject and message, fingerprint) and carries the totals and `ew check`'s exit code.
 //!   [`prevent`] is the commit validator's entry (ADR-0009): `ew-api` installs it as the model's
 //!   `PreventHook`.

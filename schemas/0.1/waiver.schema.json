@@ -1,0 +1,119 @@
+{
+  "$defs": {
+    "Date": {
+      "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "WaiverTarget": {
+      "additionalProperties": true,
+      "description": "The target of a waiver (doc 03 §19 `target: Fingerprint | PartSelector`): the finding fingerprint, the MVP\ntarget. A part selector (`{library, item}`, 1.0) stays in `extra`.",
+      "properties": {
+        "finding": {
+          "description": "The finding fingerprint, as 32 lower-case hex digits (FR-CHK-044).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "One waiver (doc 03 §19, doc 15 §2.5, rank 61, `waivers.jsonl`; FR-CHK-009).\n\nIt is written only by the `HumanOnly` command `check.waive` (WP-S1.16 D7): the author and the date are that\ncommand's parameters, never read from a clock or the operating system. The check engine marks a finding whose\nrule and fingerprint match as waived; a waiver that matches nothing is reported (EW-CORE-081), never deleted.",
+  "properties": {
+    "$k": {
+      "const": "waiver",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "author": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Who waived it: the author's display name as the GUI recorded it (FT-494). `check.waive` always sets it; a\nrecord written while the kind was reserved may lack it and still loads."
+    },
+    "date": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Date"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "When it was waived. `check.waive` always sets it; a record written while the kind was reserved may lack it."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "reason": {
+      "$ref": "#/$defs/MlText",
+      "description": "Why the finding is accepted (at least 10 characters, doc 15 §2.5)."
+    },
+    "rule": {
+      "$ref": "#/$defs/Ident",
+      "description": "The rule ID of the waived finding (`EW-CORE-041`)."
+    },
+    "target": {
+      "$ref": "#/$defs/WaiverTarget",
+      "description": "What the waiver covers."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "rule",
+    "target",
+    "reason"
+  ],
+  "title": "waiver",
+  "type": "object"
+}

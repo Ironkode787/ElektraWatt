@@ -301,9 +301,9 @@
       "file": "waivers.jsonl",
       "kind": "waiver",
       "rank": 61,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "waiver.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "comments.jsonl",

@@ -49,6 +49,8 @@
 //! | `project.frames.set` | [`SetFrameDefaults`] | Bulk |
 //! | `project.languages.set` | [`SetProjectLanguages`] | Bulk |
 //! | `project.checks.set` | [`SetCheckSchemes`] | Interactive; exposure `HumanOnly` |
+//! | `check.waive` | [`WaiveFinding`] | Interactive; exposure `HumanOnly` |
+//! | `check.unwaive` | [`UnwaiveFinding`] | Interactive; exposure `HumanOnly` |
 //! | `project.assets.purge` | [`PurgeAssets`] | Bulk; not undoable (a marker line), confirmation `Destructive`; exposure `HumanOnly` |
 //! | `rep.exchange_symbol` | [`ExchangeSymbol`] | Interactive |
 //! | `project.drawing.set` | [`SetDrawing`] | Interactive |
@@ -110,7 +112,9 @@ pub use assembly::{AddValve, AttachChildren, ChildSpec, LinkDevices};
 pub use assets::PurgeAssets;
 pub use assign::{ASSIGN_BULK_FROM, AssignModeParam, AssignPart};
 pub use box_reshape::ReshapeBox;
-pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes};
+pub use checks::{
+    CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes, UnwaiveFinding, WAIVER_REASON_MIN_CHARS, WaiveFinding,
+};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::{COMPANY_MEMBER, SetCompany};
 pub use connection::{
@@ -229,4 +233,7 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<UpdateLibraryCopies>();
     // WP-S1.19 part 5
     r.register::<InsertMacro>();
+    // WP-S1.16 part 5: waiver recording (D7, FT-494)
+    r.register::<WaiveFinding>();
+    r.register::<UnwaiveFinding>();
 }

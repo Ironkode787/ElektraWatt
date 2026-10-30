@@ -1,0 +1,25 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`check.unwaive` (`UnwaiveFinding`): removes a waiver (doc 15 §2.5, FR-CHK-009; WP-S1.16 D7), after which its\nfinding counts again. Rejected: a waiver that does not exist (at `/waiver`). **Exposure `HumanOnly`**, as\n`check.waive`. Interactive; undoable as one step. Outcome: none.",
+  "properties": {
+    "waiver": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The waiver."
+    }
+  },
+  "required": [
+    "waiver"
+  ],
+  "title": "check.unwaive",
+  "type": "object"
+}

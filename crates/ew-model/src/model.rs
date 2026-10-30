@@ -10,7 +10,7 @@ use std::sync::Arc;
 use ew_schema::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, FunctionKind,
     ImportLineage, Junction, Kind, KindRegistry, LibDocument, MacroInstance, Page, PageItem,
-    PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section,
+    PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section, Waiver,
     StructureBox, StructureNode,
 };
 
@@ -55,6 +55,7 @@ pub struct Model {
     pub(crate) report_blocks: Table<ReportBlock>,
     pub(crate) macro_instances: Table<MacroInstance>,
     pub(crate) revisions: Table<Revision>,
+    pub(crate) waivers: Table<Waiver>,
     pub(crate) lib: LibraryCopies,
     /// Records of unknown or reserved kinds, kept for the writer in the line order of doc 05 §3.3; they
     /// take part in nothing else.
@@ -93,6 +94,7 @@ impl Model {
             report_blocks: Table::default(),
             macro_instances: Table::default(),
             revisions: Table::default(),
+            waivers: Table::default(),
             lib: LibraryCopies::default(),
             unknown: Arc::new(Vec::new()),
             unknown_lib: Arc::new(Vec::new()),
@@ -147,6 +149,7 @@ impl Model {
                 Record::ReportBlock(r) => Some(AnyRow::of(r)),
                 Record::MacroInstance(r) => Some(AnyRow::of(r)),
                 Record::Revision(r) => Some(AnyRow::of(r)),
+                Record::Waiver(r) => Some(AnyRow::of(r)),
                 other => {
                     unknown.push(other);
                     None

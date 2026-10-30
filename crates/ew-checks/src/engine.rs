@@ -201,28 +201,17 @@ struct Waiver {
     finding: Option<Fingerprint>,
 }
 
-/// The waivers of the snapshot. The `waiver` kind is reserved in schema v0, so the records are read as the
-/// reserved JSON lines: `{"id", "rule", "target": {"finding": "<32 hex digits>"}}`. A part target (1.0) and
-/// `expires` are not evaluated yet; a record without a parsable fingerprint matches nothing.
+/// The waivers of the snapshot: the typed `waiver` records (doc 15 §2.5; typed within format 0.1 by WP-S1.16 D7,
+/// ID-334), matched by rule and fingerprint. A part target (1.0) and `expires` (FT-184) are not evaluated yet; a
+/// record without a parsable fingerprint matches nothing (EW-CORE-081 reports it).
 fn waivers(q: &Q) -> Vec<Waiver> {
     let mut out: Vec<Waiver> = q
-        .reserved(Kind::Waiver)
-        .map(|v| Waiver {
-            id: v
-                .get("id")
-                .and_then(serde_json::Value::as_str)
-                .unwrap_or_default()
-                .to_owned(),
-            rule: v
-                .get("rule")
-                .and_then(serde_json::Value::as_str)
-                .unwrap_or_default()
-                .to_owned(),
-            finding: v
-                .get("target")
-                .and_then(|t| t.get("finding"))
-                .and_then(serde_json::Value::as_str)
-                .and_then(Fingerprint::parse),
+        .table::<ew_derive::ew_schema::Waiver>()
+        .iter()
+        .map(|(_, w)| Waiver {
+            id: w.id.to_string(),
+            rule: w.rule.as_str().to_owned(),
+            finding: w.target.finding.as_deref().and_then(Fingerprint::parse),
         })
         .collect();
     out.sort_by(|a, b| a.id.cmp(&b.id).then_with(|| a.rule.cmp(&b.rule)));

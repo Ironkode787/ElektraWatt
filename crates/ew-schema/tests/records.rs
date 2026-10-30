@@ -305,7 +305,7 @@ fn unknown_enum_variants_are_kept() {
 #[test]
 fn unknown_and_reserved_kinds_are_kept() {
     for line in [
-        r#"{"$k":"waiver","id":"0192f3a0-0000-7000-8000-000000000001","reason":"accepted","rule":"EW-CORE-047"}"#,
+        r#"{"$k":"comment","id":"0192f3a0-0000-7000-8000-000000000001","rule":"EW-CORE-047","text":"accepted"}"#,
         r#"{"$k":"hologram","beam":[1,2],"id":"0192f3a0-0000-7000-8000-000000000002"}"#,
     ] {
         let record: Record = serde_json::from_str(line).unwrap();
