@@ -240,6 +240,7 @@ function role enum(main|aux) other read-only:no-command
 function source_ref group? other read-only:no-command
 function source_ref.key text other read-only:no-command
 function source_ref.lineage uuid other read-only:no-command
+function template_entry int[0..65535]? other read-only:no-command
 representation $v int[0..65535] identity read-only:identity
 representation anchor json? other read-only:rep.set_anchor_policy
 representation arrangement ident? placement fields.set:arrangement

@@ -384,6 +384,7 @@ impl Mx<'_, '_> {
             kind,
             cp_overrides: Default::default(),
             source_ref: Some(ids.source_ref(&fkey)),
+            template_entry: None,
             extra,
         }));
         let page = self.inp.pages.pages[e.diagram].id;

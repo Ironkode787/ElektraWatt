@@ -318,3 +318,155 @@ fn function_not_named_by_a_template_keeps_fndef_cps() {
     assert_eq!(out[0].level, Some(9));
     assert_eq!(out[0].discipline, Discipline::Bus);
 }
+
+// ---- FT-655: a function's template entry ----
+
+const FNDEF_COIL: u128 = 0x510;
+const FNDEF_CO: u128 = 0x511;
+const PART_RELAY: u128 = 0x610;
+const PART_RELAY_SPARE: u128 = 0x611;
+
+/// A relay part with a coil and four changeover contacts of one FnDef, each contact a template entry naming three
+/// pattern CPs (WP-S2.18's EW-GEN-RLY-1 shape), and a second part whose template has one changeover contact only.
+fn with_relay() -> Fx {
+    let mut fx = base();
+    lib_fndef(
+        &mut fx,
+        FNDEF_COIL,
+        ["Relay", "Coil", "Coil"],
+        json!([{"idx": 0, "designation": "A1"}, {"idx": 1, "designation": "A2"}]),
+    );
+    lib_fndef(
+        &mut fx,
+        FNDEF_CO,
+        ["Relay", "Contact", "CO"],
+        json!([
+            {"idx": 0, "designation": "11", "alias": "common"},
+            {"idx": 1, "designation": "12", "discipline": "bus"},
+            {"idx": 2, "designation": "14"},
+        ]),
+    );
+    let designations = [
+        "A1", "A2", "11", "12", "14", "21", "22", "24", "31", "32", "34", "41", "42", "44",
+    ];
+    let pattern: Vec<Value> = designations
+        .iter()
+        .enumerate()
+        .map(|(i, d)| json!({"idx": i, "designation": d}))
+        .collect();
+    let mut template = vec![json!({"fndef": fndef_ref(FNDEF_COIL), "main": true, "cps": [0, 1]})];
+    for k in 0..4u16 {
+        let first = 2 + 3 * k;
+        template.push(json!({"fndef": fndef_ref(FNDEF_CO), "cps": [first, first + 1, first + 2]}));
+    }
+    fx.lib_item(
+        "part",
+        PART_RELAY,
+        part_json(
+            "RELAY",
+            json!({"cp_pattern": pattern, "function_template": template}),
+        ),
+    );
+    fx.lib_item(
+        "part",
+        PART_RELAY_SPARE,
+        part_json(
+            "RELAY-SPARE",
+            json!({
+                "cp_pattern": [
+                    {"idx": 0, "designation": "51"}, {"idx": 1, "designation": "52"}, {"idx": 2, "designation": "54"},
+                ],
+                "function_template": [{"fndef": fndef_ref(FNDEF_CO), "cps": [0, 1, 2]}],
+            }),
+        ),
+    );
+    fx
+}
+
+/// The relay device 0x1000 with the given part uses and function 0x1001 of FnDef `def` with `template_entry`.
+fn relay_function(fx: &mut Fx, parts: &[u128], def: u128, entry: Option<Value>) {
+    let uses: Vec<Value> = parts
+        .iter()
+        .map(|p| json!({"part": {"copy": uid(*p)}, "qty": "1"}))
+        .collect();
+    let mut f = json!({"$k": "function", "id": uid(0x1001), "device": uid(0x1000), "def": fndef_copy(def)});
+    if let Some(e) = entry {
+        f["template_entry"] = e;
+    }
+    fx.device(0x1000, "K", Some(1))
+        .with("parts", Value::Array(uses))
+        .push(f);
+}
+
+fn relay_cps(parts: &[u128], def: u128, entry: Option<Value>) -> Vec<Cp> {
+    let mut fx = with_relay();
+    relay_function(&mut fx, parts, def, entry);
+    cps(&fx, 0x1001)
+}
+
+#[test]
+fn each_contact_of_one_fndef_takes_its_own_template_entry() {
+    let expected = [
+        [(0, "11"), (1, "12"), (2, "14")],
+        [(0, "21"), (1, "22"), (2, "24")],
+        [(0, "31"), (1, "32"), (2, "34")],
+        [(0, "41"), (1, "42"), (2, "44")],
+    ];
+    for (k, want) in expected.iter().enumerate() {
+        let out = relay_cps(&[PART_RELAY], FNDEF_CO, Some(json!(k + 1)));
+        // The CPs keep the FnDef's indices (a symbol's `fn_cp` and the FnDef's internal links name them) and
+        // print the entry's pattern designations.
+        assert_eq!(designations(&out), want.to_vec(), "contact {}", k + 1);
+        // The other members come from the FnDef CP each stands for.
+        assert_eq!(out[0].alias.as_deref(), Some("common"));
+        assert_eq!(out[1].discipline, Discipline::Bus);
+        assert_eq!(out[2].discipline, Discipline::Electrical);
+    }
+    let coil = relay_cps(&[PART_RELAY], FNDEF_COIL, Some(json!(0)));
+    assert_eq!(designations(&coil), [(0, "A1"), (1, "A2")]);
+}
+
+#[test]
+fn a_function_without_template_entry_takes_the_first_entry_of_its_fndef() {
+    // A file written before FT-655: as before, the first entry naming the FnDef.
+    let out = relay_cps(&[PART_RELAY], FNDEF_CO, None);
+    assert_eq!(designations(&out), [(0, "11"), (1, "12"), (2, "14")]);
+    let coil = relay_cps(&[PART_RELAY], FNDEF_COIL, None);
+    assert_eq!(designations(&coil), [(0, "A1"), (1, "A2")]);
+}
+
+#[test]
+fn a_stale_template_entry_falls_back_to_the_first_entry_of_its_fndef() {
+    // Out of range in every part use.
+    let out = relay_cps(&[PART_RELAY], FNDEF_CO, Some(json!(99)));
+    assert_eq!(designations(&out), [(0, "11"), (1, "12"), (2, "14")]);
+    // In range, but the entry names another FnDef (the coil).
+    let out = relay_cps(&[PART_RELAY], FNDEF_CO, Some(json!(0)));
+    assert_eq!(designations(&out), [(0, "11"), (1, "12"), (2, "14")]);
+    // The maximum index does not overflow.
+    let out = relay_cps(&[PART_RELAY], FNDEF_CO, Some(json!(u16::MAX)));
+    assert_eq!(designations(&out), [(0, "11"), (1, "12"), (2, "14")]);
+}
+
+#[test]
+fn the_template_entry_is_read_in_the_first_part_use_that_has_it() {
+    // The spare part comes first: its entry 0 names the FnDef, so a function with entry 0 takes it, while entry
+    // 3 is only in the relay part.
+    let out = relay_cps(&[PART_RELAY_SPARE, PART_RELAY], FNDEF_CO, Some(json!(0)));
+    assert_eq!(designations(&out), [(0, "51"), (1, "52"), (2, "54")]);
+    let out = relay_cps(&[PART_RELAY_SPARE, PART_RELAY], FNDEF_CO, Some(json!(3)));
+    assert_eq!(designations(&out), [(0, "31"), (1, "32"), (2, "34")]);
+    // Without the member the first part use with an entry of the FnDef wins, as before.
+    let out = relay_cps(&[PART_RELAY_SPARE, PART_RELAY], FNDEF_CO, None);
+    assert_eq!(designations(&out), [(0, "51"), (1, "52"), (2, "54")]);
+}
+
+#[test]
+fn overrides_apply_to_the_fndef_index_of_a_positional_entry() {
+    let mut fx = with_relay();
+    relay_function(&mut fx, &[PART_RELAY], FNDEF_CO, Some(json!(2)));
+    fx.record(0x1001)["cp_overrides"] = json!([{"idx": 2, "designation": "24x"}]);
+    let out = cps(&fx, 0x1001);
+    assert_eq!(designations(&out), [(0, "21"), (1, "22"), (2, "24x")]);
+    assert!(out[2].overridden);
+}

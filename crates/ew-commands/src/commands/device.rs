@@ -208,7 +208,8 @@ pub struct ConnectHint {
 /// - `from_part` (FR-UI-017, FR-DEV-017): a device `{tag: {letter, counter: none}, parts: [the part, quantity
 ///   1]}` and one function per entry of the part copy's `function_template`, in template order (def: the entry's
 ///   FnDef copy, which must be embedded; role main for `main`, else auxiliary; kind `black_box` when the FnDef's
-///   contact kind is `black_box`, else normal; the CPs follow from the template, doc 03 §7); the representation
+///   contact kind is `black_box`, else normal; `template_entry` the entry's index, so the CPs follow from that
+///   entry, doc 03 §7, FT-655); the representation
 ///   draws entry `template`, the others stay unplaced. The symbol's FnDef must be entry `template`'s, and that
 ///   entry must not be a black box (`box.black` places those).
 /// - `new_terminal` (AC-28): one terminal of the strip, created as `terminal.add` creates it (the strip's letter,
@@ -1280,7 +1281,7 @@ impl Command for PlaceBlackBox {
             PlaceTarget::NewDevice { letter, fndef, kind } => {
                 let def = place_fndef(tx, &symbol, *fndef)?;
                 let device = insert_new_device(tx, letter, kind)?;
-                insert_function_of_kind(tx, Some(device), def, FnRole::Main, FunctionKind::BlackBox)?
+                insert_function_of_kind(tx, Some(device), def, FnRole::Main, FunctionKind::BlackBox, None)?
             }
             PlaceTarget::ExistingFunction { function } => {
                 let f = tx.require::<Function>(*function)?;
@@ -1295,7 +1296,7 @@ impl Command for PlaceBlackBox {
             PlaceTarget::JoinDevice { device, fndef, role } => {
                 tx.require::<Device>(*device)?;
                 let def = place_fndef(tx, &symbol, *fndef)?;
-                insert_function_of_kind(tx, Some(*device), def, role.clone(), FunctionKind::BlackBox)?
+                insert_function_of_kind(tx, Some(*device), def, role.clone(), FunctionKind::BlackBox, None)?
             }
             PlaceTarget::FromPart {
                 part,
@@ -1377,16 +1378,18 @@ pub(crate) fn insert_function(
     def: Id<FnDef>,
     role: FnRole,
 ) -> Result<Id<Function>, CmdError> {
-    insert_function_of_kind(tx, device, def, role, FunctionKind::Normal)
+    insert_function_of_kind(tx, device, def, role, FunctionKind::Normal, None)
 }
 
-/// Inserts a function of `device` with the given definition, role and kind.
+/// Inserts a function of `device` with the given definition, role and kind; `template_entry` is the index of the
+/// part template entry it is made from (FT-655), `None` for a function not made from a template.
 fn insert_function_of_kind(
     tx: &mut TxBuilder<'_>,
     device: Option<Id<Device>>,
     def: Id<FnDef>,
     role: FnRole,
     kind: FunctionKind,
+    template_entry: Option<u16>,
 ) -> Result<Id<Function>, CmdError> {
     let id: Id<Function> = tx.mint();
     tx.insert(Function {
@@ -1398,6 +1401,7 @@ fn insert_function_of_kind(
         kind,
         cp_overrides: Default::default(),
         source_ref: None,
+        template_entry,
         extra: Extra::new(),
     })
 }
@@ -1512,7 +1516,10 @@ fn insert_from_part(
     let mut placed_fn = None;
     for (i, (e, (def, kind))) in entries.iter().zip(defs).enumerate() {
         let role = if e.main { FnRole::Main } else { FnRole::Aux };
-        let f = insert_function_of_kind(tx, Some(device), def, role, kind)?;
+        // The entry index is stored (FT-655); an index beyond u16 (never in practice) is left out and the derivation
+        // falls back to the first entry of the FnDef.
+        let entry = u16::try_from(i).ok();
+        let f = insert_function_of_kind(tx, Some(device), def, role, kind, entry)?;
         if i == usize::from(template) {
             placed_fn = Some(f);
         }

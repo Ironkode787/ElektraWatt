@@ -178,6 +178,35 @@ fn a_text_slot_style_is_optional_and_round_trips() {
     assert_eq!(styles, [None, Some("xref.device")]);
 }
 
+#[test]
+fn a_function_template_entry_is_optional_appended_and_round_trips() {
+    // FT-655 (ADR-0011 amendment 1): `Function.template_entry` is optional, written only when present, after the
+    // existing members and before unknown ones; a line without it (every file written before it) is unchanged.
+    let plain = fill(
+        r#"{"$k":"function","id":"@FN_S51","device":"@DEV_S51","def":"@FNDEF_MCB","role":"aux","source_ref":{"lineage":"@LIN","key":"k"}}"#,
+    );
+    let Record::Function(f) = assert_canonical(&plain) else {
+        panic!("a function");
+    };
+    assert_eq!(f.template_entry, None);
+
+    let with = plain.replacen(r#""key":"k"}}"#, r#""key":"k"},"template_entry":3}"#, 1);
+    assert_ne!(with, plain);
+    let Record::Function(f) = assert_canonical(&with) else {
+        panic!("a function");
+    };
+    assert_eq!(f.template_entry, Some(3));
+
+    // An unknown member of a newer minor stays after it.
+    let newer = with.replacen(r#""template_entry":3}"#, r#""template_entry":3,"zz":1}"#, 1);
+    assert_canonical(&newer);
+    // A negative or non-integer index is not a function line of this format.
+    for bad in [r#""template_entry":-1}"#, r#""template_entry":"3"}"#] {
+        let line = with.replacen(r#""template_entry":3}"#, bad, 1);
+        assert!(serde_json::from_str::<Record>(&line).is_err(), "{line}");
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Unknown content
 

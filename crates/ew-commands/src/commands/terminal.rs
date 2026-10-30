@@ -246,6 +246,7 @@ pub(crate) fn insert_terminal(
         kind: FunctionKind::Normal,
         cp_overrides: Default::default(),
         source_ref: None,
+        template_entry: None,
         extra: Extra::new(),
     })?;
     Ok((device, function))

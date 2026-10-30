@@ -406,6 +406,8 @@ fn from_part_makes_the_device_with_one_function_per_template_entry() {
             FunctionKind::Normal
         )
     );
+    // Each function records the template entry it is made from (FT-655).
+    assert_eq!((first.template_entry, second.template_entry), (Some(0), Some(1)));
     // The representation draws entry 0; entry 1 stays unplaced.
     let rep = row(&e, rep_id);
     assert_eq!(rep.functions, vec![fns[0]]);
@@ -470,6 +472,7 @@ fn from_part_places_a_black_box_entry_with_box_black() {
             FunctionKind::Normal
         )
     );
+    assert_eq!((bb.template_entry, contact.template_entry), (Some(0), Some(1)));
     let rep = row(&e, primary::<Representation>(&r));
     assert_eq!(rep.functions, vec![fns[0]]);
     assert!(

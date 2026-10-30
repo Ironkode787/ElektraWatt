@@ -102,6 +102,7 @@ fn new_ip(
         kind: FunctionKind::Ip(spec),
         cp_overrides: Default::default(),
         source_ref: None,
+        template_entry: None,
         extra: Extra::new(),
     })?;
     tx.insert(Representation {

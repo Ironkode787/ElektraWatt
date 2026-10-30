@@ -606,6 +606,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
                 kind,
                 cp_overrides,
                 source_ref: Some(source_ref("functions", row.key())),
+                template_entry: None,
                 extra: Default::default(),
             },
             FnInfo {

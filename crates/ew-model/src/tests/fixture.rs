@@ -253,6 +253,7 @@ pub(crate) fn function(
         kind: FunctionKind::Normal,
         cp_overrides: Default::default(),
         source_ref: None,
+        template_entry: None,
         extra: Extra::new(),
     }
 }
@@ -274,6 +275,7 @@ pub(crate) fn ip_function(function_id: Id<Function>, name: &str, direction: IpDi
         }),
         cp_overrides: Default::default(),
         source_ref: None,
+        template_entry: None,
         extra: Extra::new(),
     }
 }

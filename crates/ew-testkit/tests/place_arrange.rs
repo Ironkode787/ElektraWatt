@@ -729,7 +729,9 @@ fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
         0,
         "the contact is not drawn"
     );
-    // The CPs follow from the part's pattern (doc 03 §7).
+    // The CPs follow from the part's pattern (doc 03 §7). The contact's entry lists one pattern CP per FnDef CP, so
+    // they pair by position and keep the FnDef's indices 0 and 1, which its symbol draws (FT-655).
+    assert_eq!(contact.template_entry, Some(1));
     let cps = |f: Id<Function>| -> Vec<(u16, String)> {
         q.get::<FunctionCps>(f)
             .iter()
@@ -738,7 +740,7 @@ fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
     };
     assert_eq!(
         cps(functions[1]),
-        vec![(4, "13".to_owned()), (5, "14".to_owned())],
+        vec![(0, "13".to_owned()), (1, "14".to_owned())],
         "the contact's CPs are the pattern's 13 and 14"
     );
     assert_eq!(cps(functions[0]).len(), 8);

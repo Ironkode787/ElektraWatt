@@ -271,6 +271,16 @@
         }
       ],
       "description": "Import provenance."
+    },
+    "template_entry": {
+      "description": "The 0-based index of the part `function_template` entry this function was created from (FT-655), stored at\ncreation because the function's ID is minted and cannot name it. The CP derivation reads the entry at this\nindex of the first part use of the device whose template has one naming the function's FnDef copy; absent (a\nfunction not made from a template, or a file written before the member), or an index that names no such entry,\nit takes the first entry naming the FnDef copy. Appended, since 0.1: an optional member without cascade\nsemantics, additive within format 0.1 (ADR-0011 amendment 1, doc 05 §10.3 rule 1).",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
     }
   },
   "required": [

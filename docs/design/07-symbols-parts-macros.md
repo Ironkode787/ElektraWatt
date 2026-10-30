@@ -718,8 +718,12 @@ replays without one; it embeds what the project lacks, reuses a held copy of the
 from library first"). A device's main part is the part use whose template provides the main function (rule 6,
 FT-208). The Properties Parts row sends `part.assign` (`replace_all`) when its new value is one use of a system
 library's part the project does not hold, else its own `fields.set`. Rules 2 and 3's matching is not changed by the
-command; the CP derivation finds a function's template entry by FnDef alone, so a part does not yet template several
-functions of one FnDef (FT-655).
+command. *Cycle 36 (FT-655):* a function made from a template records its entry index (`Function.template_entry`, an
+optional member appended within 0.1 under ADR-0011 amendment 1), and the CP derivation reads that entry, falling back
+to the first entry of the function's FnDef when the member is absent or names no such entry; an entry whose `cps` list
+as many pattern CPs as its FnDef has CPs pairs them by position, so each function keeps the FnDef's CP indices (a
+symbol's `fn_cp`, the FnDef's internal links) and prints the pattern's designations. A part may therefore template
+several functions of one FnDef: the generic relay and contactor template their contacts.
 
 ### 3.4 Data quality levels
 

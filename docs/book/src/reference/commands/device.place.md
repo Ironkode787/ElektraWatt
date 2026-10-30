@@ -16,7 +16,8 @@ target requires.
 - `from_part` (FR-UI-017, FR-DEV-017): a device `{tag: {letter, counter: none}, parts: [the part, quantity
   1]}` and one function per entry of the part copy's `function_template`, in template order (def: the entry's
   FnDef copy, which must be embedded; role main for `main`, else auxiliary; kind `black_box` when the FnDef's
-  contact kind is `black_box`, else normal; the CPs follow from the template, doc 03 §7); the representation
+  contact kind is `black_box`, else normal; `template_entry` the entry's index, so the CPs follow from that
+  entry, doc 03 §7, FT-655); the representation
   draws entry `template`, the others stay unplaced. The symbol's FnDef must be entry `template`'s, and that
   entry must not be a black box (`box.black` places those).
 - `new_terminal` (AC-28): one terminal of the strip, created as `terminal.add` creates it (the strip's letter,

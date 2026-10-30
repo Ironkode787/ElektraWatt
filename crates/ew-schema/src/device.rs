@@ -589,6 +589,14 @@ pub struct Function {
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
+    /// The 0-based index of the part `function_template` entry this function was created from (FT-655), stored at
+    /// creation because the function's ID is minted and cannot name it. The CP derivation reads the entry at this
+    /// index of the first part use of the device whose template has one naming the function's FnDef copy; absent (a
+    /// function not made from a template, or a file written before the member), or an index that names no such entry,
+    /// it takes the first entry naming the FnDef copy. Appended, since 0.1: an optional member without cascade
+    /// semantics, additive within format 0.1 (ADR-0011 amendment 1, doc 05 §10.3 rule 1).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template_entry: Option<u16>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
