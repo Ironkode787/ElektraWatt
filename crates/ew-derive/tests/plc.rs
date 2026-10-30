@@ -673,30 +673,56 @@ fn a_start_edit_re_addresses_its_own_module_only() {
     assert_eq!(texts(&store.query(), M3)[0], "Q2.0", "M3 keeps its start");
 }
 
-/// `address_index(cfg)`: every resolved channel address as a bit range, sorted, and the overlapping pairs: a manual
-/// channel address inside another module's range overlaps one channel; a word address overlaps eight.
+/// `address_index(cfg)`: every resolved channel address as a bit range, sorted, and the overlap groups (FX38a): a
+/// manual channel address inside another module's range makes a group of two; a word address a group of itself and
+/// the channels it covers, once.
 #[test]
 fn the_address_index_lists_overlaps() {
-    let q_overlaps = |fx: Fx| {
+    let q_groups = |fx: Fx| {
         let m = fx.build();
         let q = Q::new(&m);
         let v = q.get::<ew_derive::AddressIndex>(cfg());
-        v.overlaps
+        v.groups
             .iter()
-            .map(|(i, j)| format!("{} ~ {}", v.uses[*i].text, v.uses[*j].text))
+            .map(|g| g.iter().map(|i| v.uses[*i].text.as_str()).collect::<Vec<_>>().join(" ~ "))
             .collect::<Vec<_>>()
     };
-    assert!(q_overlaps(fixture()).is_empty(), "automatic starts never overlap");
+    assert!(q_groups(fixture()).is_empty(), "automatic starts never overlap");
     let mut fx = fixture();
     fx.record(channel(M3, 0))["address"] = json!({"manual": {"area": "q", "byte": 0, "bit": 3}});
-    assert_eq!(q_overlaps(fx), ["Q0.3 ~ Q0.3"]);
+    assert_eq!(q_groups(fx), ["Q0.3 ~ Q0.3"]);
     let mut fx = fixture();
     fx.record(channel(M3, 0))["address"] = json!({"manual": {"area": "q", "size": "word", "byte": 1}});
-    let v = q_overlaps(fx);
-    assert_eq!(v.len(), 15, "QW1 covers Q1.0 … Q2.7 but for itself: {v:?}");
+    let v = q_groups(fx);
+    assert_eq!(v.len(), 1, "{v:?}");
+    assert_eq!(
+        v[0].split(" ~ ").count(),
+        16,
+        "QW1 covers Q1.0 … Q2.7: itself and fifteen channels: {v:?}"
+    );
     let m = fixture().build();
     let q = Q::new(&m);
     assert_eq!(q.get::<ew_derive::AddressIndex>(cfg()).uses.len(), 24);
+}
+
+/// FX38a: N channels on one manual address make one group of N members, never N(N−1)/2 pairs; the index holds at most
+/// one entry per channel in its groups whatever N is (a hostile project of identical manual addresses, doc 05 §3.6).
+#[test]
+fn the_address_index_stays_linear_for_identical_addresses() {
+    for n in [2u16, 3, 8] {
+        let mut fx = fixture();
+        for c in 0..n {
+            fx.record(channel(M3, c))["address"] = json!({"manual": {"area": "q", "byte": 0, "bit": 3}});
+        }
+        let m = fx.build();
+        let q = Q::new(&m);
+        let v = q.get::<ew_derive::AddressIndex>(cfg());
+        assert_eq!(v.groups.len(), 1, "n {n}: {:?}", v.groups);
+        assert_eq!(v.groups[0].len(), usize::from(n) + 1, "n {n}: the M1 channel on Q0.3 and the n of M3");
+        let members: usize = v.groups.iter().map(Vec::len).sum();
+        assert!(members <= v.uses.len(), "n {n}: {members} members over {} uses", v.uses.len());
+        assert!(v.groups[0].windows(2).all(|w| w[0] < w[1]), "n {n}: ascending, so address order");
+    }
 }
 
 /// The memoised index families equal a cold run after each edit of the channel table: a channel inserted,

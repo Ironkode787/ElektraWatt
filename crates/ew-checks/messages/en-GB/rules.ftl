@@ -140,7 +140,10 @@ rule-ew-num-002 =
 
 rule-ew-plc-001 = { $form ->
         [alignment] { $channel }: the address { $address } does not start at a multiple of { $align } bytes, the profile's word alignment (an unverified convention)
-       *[overlap] { $channel } ({ $address }) overlaps { $other } ({ $other_address }) in configuration project { $cfg }; give one of them another address
+       *[overlap] addresses overlap in configuration project { $cfg }: { $channels }{ $more ->
+            [none] {""}
+           *[other] ; and { $more } more channels
+        }; give all but one of them another address
     }
     .title = Address overlap
     .hint = Give one of the overlapping channels another address, or let both take automatic addresses.

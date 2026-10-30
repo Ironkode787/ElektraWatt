@@ -145,13 +145,20 @@ fn a_consistent_terminal_has_no_plc_finding() {
     assert!(plc.is_empty(), "{plc:#?}");
 }
 
+/// The fixture with channel `n` of -1U3 (`M2`) at the manual bit address `Q<byte>.<bit>`, for each `(n, byte, bit)`.
+fn manual_bits(at: &[(u16, u32, u8)]) -> ew_model::Model {
+    let mut fx = fixture();
+    for &(n, byte, bit) in at {
+        rec(&mut fx, &ch(M2, n))["address"] = json!({"manual": {"area": "q", "byte": byte, "bit": bit}});
+    }
+    fx.build()
+}
+
 /// EW-PLC-001: a manual address on another module's bit is one overlap with both channels as targets; a word at an
-/// odd byte is an alignment warning beside its overlaps.
+/// odd byte is an alignment warning beside its overlap group.
 #[test]
 fn ew_plc_001_reports_overlaps_and_word_alignment() {
-    let mut fx = fixture();
-    rec(&mut fx, &ch(M2, 0))["address"] = json!({"manual": {"area": "q", "byte": 0, "bit": 3}});
-    let f = findings_of(&fx.build(), "EW-PLC-001");
+    let f = findings_of(&manual_bits(&[(0, 0, 3)]), "EW-PLC-001");
     assert_eq!(
         subjects(&f),
         [("overlap".to_owned(), "-1U2:3".to_owned())],
@@ -159,7 +166,8 @@ fn ew_plc_001_reports_overlaps_and_word_alignment() {
     );
     assert_eq!(
         f[0].message,
-        "-1U2:3 (Q0.3) overlaps -1U3:0 (Q0.3) in configuration project PLC1; give one of them another address"
+        "addresses overlap in configuration project PLC1: -1U2:3 (Q0.3), -1U3:0 (Q0.3); give all but one of them \
+         another address"
     );
     assert_eq!(f[0].targets.len(), 2);
     assert!(f[0].targets.iter().all(|t| t.kind == Kind::Channel));
@@ -175,8 +183,89 @@ fn ew_plc_001_reports_overlaps_and_word_alignment() {
         "-1U3:0: the address QW1 does not start at a multiple of 2 bytes, the profile's word alignment (an unverified \
          convention)"
     );
-    // QW1 covers Q1.0 … Q2.7: the seven other channels of -1U3
-    assert_eq!(f.iter().filter(|f| f.discriminator == "overlap").count(), 7);
+    // QW1 covers Q1.0 … Q2.7: one group of -1U3:0 and the seven other channels of -1U3 (FX38a: once, not seven pairs).
+    let overlap: Vec<&ew_checks::Finding> = f.iter().filter(|f| f.discriminator == "overlap").collect();
+    assert_eq!(overlap.len(), 1, "{f:#?}");
+    assert_eq!(overlap[0].targets.len(), 8);
+}
+
+/// FX38a: three channels on one address are one finding with the three channels as targets.
+#[test]
+fn ew_plc_001_reports_a_group_of_three_once() {
+    let f = findings_of(&manual_bits(&[(0, 0, 3), (1, 0, 3)]), "EW-PLC-001");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].targets.len(), 3);
+    assert_eq!(f[0].subject, "-1U2:3");
+    assert_eq!(
+        f[0].message,
+        "addresses overlap in configuration project PLC1: -1U2:3 (Q0.3), -1U3:0 (Q0.3), -1U3:1 (Q0.3); give all but \
+         one of them another address"
+    );
+}
+
+/// FX38a: two overlaps on different addresses are two findings.
+#[test]
+fn ew_plc_001_reports_separate_overlaps_apart() {
+    let f = findings_of(&manual_bits(&[(0, 0, 3), (1, 0, 5)]), "EW-PLC-001");
+    assert_eq!(
+        subjects(&f),
+        [
+            ("overlap".to_owned(), "-1U2:3".to_owned()),
+            ("overlap".to_owned(), "-1U2:5".to_owned())
+        ],
+        "{f:#?}"
+    );
+    assert!(f.iter().all(|f| f.targets.len() == 2), "{f:#?}");
+}
+
+/// FX38a: a group names five channels and counts the rest ("and 4 more channels"), in the rule text, the en-GB
+/// pattern (equal to it, as FT-724 holds for EW-POT-001) and the nl-NL pattern; every member stays a target.
+#[test]
+fn ew_plc_001_names_five_channels_and_counts_the_rest() {
+    let all: Vec<(u16, u32, u8)> = (0..8).map(|n| (n, 0, 3)).collect();
+    let f = findings_of(&manual_bits(&all), "EW-PLC-001");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    let f = &f[0];
+    assert_eq!(f.targets.len(), 9);
+    assert_eq!(f.message.matches("(Q0.3)").count(), 5, "{}", f.message);
+    assert!(
+        f.message.ends_with("; and 4 more channels; give all but one of them another address"),
+        "{}",
+        f.message
+    );
+    let nl = ew_checks::messages::render(f, "nl-NL");
+    assert!(nl.contains("; en nog 4 kanalen; "), "{nl}");
+    assert_eq!(nl.matches("(Q0.3)").count(), 5, "{nl}");
+}
+
+/// FX38a: EW-PLC-001's text is built in the rule and in the Fluent pattern; the en-GB pattern rendered from the
+/// finding's arguments equals the rule's text for a pair, a group of three, the "and N more" cut and the alignment
+/// warning, and the nl-NL pattern renders each.
+#[test]
+fn ew_plc_001_the_en_gb_pattern_equals_the_rule_text() {
+    let all: Vec<(u16, u32, u8)> = (0..8).map(|n| (n, 0, 3)).collect();
+    let mut word = fixture();
+    rec(&mut word, &ch(M2, 0))["address"] = json!({"manual": {"area": "q", "size": "word", "byte": 1}});
+    let models = [
+        ("pair", manual_bits(&[(0, 0, 3)])),
+        ("three", manual_bits(&[(0, 0, 3), (1, 0, 3)])),
+        ("and N more", manual_bits(&all)),
+        ("word", word.build()),
+    ];
+    for (case, m) in models {
+        let f = findings_of(&m, "EW-PLC-001");
+        assert!(!f.is_empty(), "{case}");
+        for f in f {
+            assert_eq!(
+                ew_checks::messages::format(&f, "en-GB").as_deref(),
+                Some(f.message.as_str()),
+                "{case} {}",
+                f.discriminator
+            );
+            let nl = ew_checks::messages::format(&f, "nl-NL").expect("an nl-NL pattern");
+            assert_ne!(nl, f.message, "{case}: nl-NL is its own text");
+        }
+    }
 }
 
 /// EW-PLC-002: a manual address outside the module's byte is reported; one inside it is not.

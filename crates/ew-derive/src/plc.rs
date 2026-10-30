@@ -751,19 +751,21 @@ pub struct AddressUse {
     pub to: u64,
 }
 
-/// The value of [`AddressIndex`]: the addresses in use and the pairs among them that overlap.
+/// The value of [`AddressIndex`]: the addresses in use and the groups among them that overlap.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct AddressIndexV {
     /// Every channel of the configuration project that resolves to an address, in (area, first bit, module, number,
     /// channel) order.
     pub uses: Vec<AddressUse>,
-    /// The pairs `(i, j)`, `i < j`, of [`uses`](Self::uses) in one area whose bit ranges intersect (`IW0` against
-    /// `I1.3`), in (i, j) order.
-    pub overlaps: Vec<(usize, usize)>,
+    /// The overlap groups (FX38a): each connected run of [`uses`](Self::uses) in one area whose bit ranges overlap one
+    /// another in a chain (`IW0` against `I1.3`), once, as ascending indices into `uses` (so in address order), two
+    /// members or more; the groups in the order of their first member. Their total size is at most `uses.len()`, so
+    /// N channels on one address make one group of N, never N(N−1)/2 pairs.
+    pub groups: Vec<Vec<usize>>,
 }
 
 /// `address_index(cfg)` (doc 10 §2.10): the channel addresses of a configuration project as bit intervals per area,
-/// sorted, with the overlapping pairs (EW-PLC-001). The unit width is the configuration project's profile's; without a
+/// sorted, with the overlap groups (EW-PLC-001). The unit width is the configuration project's profile's; without a
 /// shipped profile no address resolves and the value is empty.
 #[derive(Debug)]
 pub struct AddressIndex;
@@ -810,16 +812,31 @@ impl Query for AddressIndex {
                 b.channel,
             ))
         });
-        let mut overlaps = Vec::new();
-        for i in 0..uses.len() {
-            for j in i + 1..uses.len() {
-                if uses[j].address.area != uses[i].address.area || uses[j].from >= uses[i].to {
-                    break;
+        // One sweep in (area, first bit) order: a use joins the current run when it starts below the run's end in
+        // the same area; the runs of two or more are the groups (the components of the interval-overlap graph).
+        let mut groups = Vec::new();
+        let mut run: Vec<usize> = Vec::new();
+        let mut end = 0u64;
+        for (i, u) in uses.iter().enumerate() {
+            let joins = run
+                .last()
+                .is_some_and(|&l| uses[l].address.area == u.address.area && u.from < end);
+            if joins {
+                run.push(i);
+                end = end.max(u.to);
+            } else {
+                if run.len() > 1 {
+                    groups.push(std::mem::take(&mut run));
                 }
-                overlaps.push((i, j));
+                run.clear();
+                run.push(i);
+                end = u.to;
             }
         }
-        Arc::new(AddressIndexV { uses, overlaps })
+        if run.len() > 1 {
+            groups.push(run);
+        }
+        Arc::new(AddressIndexV { uses, groups })
     }
 }
 

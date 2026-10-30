@@ -34,7 +34,10 @@ rule-ew-num-001 = { $frozen }: bevroren, wijkt af van het schema (afgeleide waar
 
 rule-ew-plc-001 = { $form ->
         [alignment] { $channel }: het adres { $address } begint niet op een veelvoud van { $align } bytes, de woorduitlijning van het profiel (een niet-geverifieerde conventie)
-       *[overlap] { $channel } ({ $address }) overlapt { $other } ({ $other_address }) in configuratieproject { $cfg }; geef een van beide een ander adres
+       *[overlap] adressen overlappen in configuratieproject { $cfg }: { $channels }{ $more ->
+            [none] {""}
+           *[other] ; en nog { $more } kanalen
+        }; geef ze op één na allemaal een ander adres
     }
     .title = Adresoverlap
     .hint = Geef een van de overlappende kanalen een ander adres, of laat beide een automatisch adres nemen.

@@ -112,13 +112,19 @@ pub const ADDRESS_OVERLAP: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// EW-PLC-001: two channel addresses of one configuration project whose bit ranges overlap in one area (`IW0`
-/// against `I1.3`; `address_index(cfg)`), one finding per pair, both channels as targets, discriminator `overlap`; and
-/// a word, double-word or long-word address at a byte that is not a multiple of the profile's word alignment, a
-/// warning (an unverified convention), discriminator `alignment`. Automatic starts never overlap (A1), so a finding
-/// involves a manual value or a part map that gives two channels one bit.
+/// EW-PLC-001: channel addresses of one configuration project whose bit ranges overlap in one area (`IW0` against
+/// `I1.3`; `address_index(cfg)`), one finding per overlap group (FX38a: the connected run of overlapping channels,
+/// so N channels on one address are one finding, not N(N−1)/2), every member channel as a target, subject the first
+/// in address order, discriminator `overlap`; the text names the first [`SHOWN_OVERLAP_CHANNELS`] channels with
+/// their addresses and counts the rest ("and 7 more channels"); and a word, double-word or long-word address at a
+/// byte that is not a multiple of the profile's word alignment, a warning (an unverified convention), discriminator
+/// `alignment`. Automatic starts never overlap (A1), so a finding involves a manual value or a part map that gives
+/// two channels one bit.
 #[derive(Clone, Copy, Debug)]
 pub struct AddressOverlap;
+
+/// The most channels an EW-PLC-001 overlap text names; the rest are counted ("and 7 more channels").
+pub const SHOWN_OVERLAP_CHANNELS: usize = 5;
 
 impl Rule for AddressOverlap {
     fn meta(&self) -> &'static RuleMeta {
@@ -132,27 +138,42 @@ impl Rule for AddressOverlap {
         let index = q.get::<AddressIndex>(cfg);
         let name = cfg_name(q, cfg);
         let mut out = Vec::new();
-        for (i, j) in &index.overlaps {
-            let (a, b) = (&index.uses[*i], &index.uses[*j]);
-            let first = channel_name(q, a.module, a.channel, a.number);
-            let second = channel_name(q, b.module, b.channel, b.number);
+        for group in &index.groups {
+            let members: Vec<&ew_derive::AddressUse> = group.iter().map(|&i| &index.uses[i]).collect();
+            let Some(first) = members.first() else {
+                continue;
+            };
+            let subject = channel_name(q, first.module, first.channel, first.number);
+            let shown: Vec<String> = members
+                .iter()
+                .take(SHOWN_OVERLAP_CHANNELS)
+                .map(|u| format!("{} ({})", channel_name(q, u.module, u.channel, u.number), u.text))
+                .collect();
+            let shown = shown.join(", ");
+            let more = members.len().saturating_sub(SHOWN_OVERLAP_CHANNELS);
+            let mut message = format!("addresses overlap in configuration project {name}: {shown}");
+            if more > 0 {
+                message.push_str(&format!("; and {more} more channels"));
+            }
+            message.push_str("; give all but one of them another address");
             out.push(
                 Finding::new(
                     &ADDRESS_OVERLAP,
-                    [Target::new(Kind::Channel, a.channel), Target::new(Kind::Channel, b.channel)],
+                    members.iter().map(|u| Target::new(Kind::Channel, u.channel)),
                     "overlap",
-                    first.clone(),
-                    format!(
-                        "{first} ({}) overlaps {second} ({}) in configuration project {name}; give one of them \
-                         another address",
-                        a.text, b.text
-                    ),
+                    subject,
+                    message,
                 )
                 .arg("form", "overlap")
-                .arg("channel", first)
-                .arg("address", a.text.clone())
-                .arg("other", second)
-                .arg("other_address", b.text.clone())
+                .arg("channels", shown)
+                .arg(
+                    "more",
+                    if more > 0 {
+                        more.to_string()
+                    } else {
+                        "none".to_owned()
+                    },
+                )
                 .arg("cfg", name.clone()),
             );
         }
