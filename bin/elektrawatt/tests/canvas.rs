@@ -621,7 +621,8 @@ fn t7_the_snapshot_composites_the_tool_overlay() {
     let (_, _, band) = decode_rgba(&band);
     let (_, _, markers) = decode_rgba(&markers);
     assert_eq!(count(&plain, MEASURE), 0);
-    assert_eq!(count(&plain, ACCENT), 0);
+    // The open squares of unconnected CPs (FT-705) share the accent, so the overlay is counted over the plain page.
+    let base = count(&plain, ACCENT);
     assert!(count(&measure, MEASURE) > 20, "the measure line");
     // The two snap markers alone (the cursor hidden; the measure line stays, with the pixels the cursor covered),
     // then the cursor's own pixels.
@@ -629,7 +630,7 @@ fn t7_the_snapshot_composites_the_tool_overlay() {
         count(&markers, MEASURE) >= count(&measure, MEASURE),
         "the measure line stays"
     );
-    assert!(count(&markers, ACCENT) >= 32, "the snap markers");
+    assert!(count(&markers, ACCENT) >= base + 32, "the snap markers");
     assert!(
         count(&measure, ACCENT) >= count(&markers, ACCENT) + 20,
         "the grid cursor"
