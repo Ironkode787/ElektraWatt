@@ -19,14 +19,14 @@
 //! | `Option<T>` | `0`, or `1` then `T` |
 //! | UUID | its 16 bytes in RFC 4122 order |
 //! | SHA-256 | its 32 bytes |
-//! | [`Orient2`](ew_units::Orient2) | its variant letter of doc 06 (`A` … `H`) as one byte |
+//! | [`Orient2`] | its variant letter of doc 06 (`A` … `H`) as one byte |
 //! | `Pt2` | `x`, `y` |
 //! | `Rect` | `min`, `max` |
 //! | [`Transform`] | `translate`, `orient`, `angle` |
 //! | [`Color`](crate::Color) | `r`, `g`, `b`, `a` |
-//! | [`Brush`](crate::Brush) | tag `0` (solid), then the colour |
-//! | [`Stroke`](crate::Stroke) | `width`, cap (`0` butt, `1` round, `2` square), join (`0` miter, `1` round, `2` bevel), `Option` of the dash (the segment count, each segment, `offset`), brush |
-//! | [`PathEl`](crate::PathEl) | tag (`0` move, `1` line, `2` quad, `3` cubic, `4` close), then its points |
+//! | [`Brush`] | tag `0` (solid), then the colour |
+//! | [`Stroke`] | `width`, cap (`0` butt, `1` round, `2` square), join (`0` miter, `1` round, `2` bevel), `Option` of the dash (the segment count, each segment, `offset`), brush |
+//! | [`PathEl`] | tag (`0` move, `1` line, `2` quad, `3` cubic, `4` close), then its points |
 //! | [`Path`] | the element count, then each element |
 //! | [`SymbolGeomId`] | `symbol`, `variant`, `Option` of `extra` (`u16`) |
 //! | [`DisplayList`] | the item count, then each [`Item`] |
