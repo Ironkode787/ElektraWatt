@@ -55,11 +55,14 @@ pub struct MacroVariable {
     pub ty: &'static str,
 }
 
+/// A macro's thumbnail, shared.
+type Thumbnail = Arc<MacroThumbnail>;
+
 /// The shell's macro state: the detail of the Macros navigator's cursor row, the variables of the next save.
 #[derive(Default, Debug)]
 pub(crate) struct MacroState {
     /// The cursor row's key, its detail (`None`: no macro row) and its thumbnail (`None`: none drawn, FT-754 (a)).
-    detail: Option<(String, Option<Arc<MacroDetail>>, Option<Arc<MacroThumbnail>>)>,
+    detail: Option<(String, Option<Arc<MacroDetail>>, Option<Thumbnail>)>,
     /// The variables Make variable remembered.
     variables: Vec<MacroVariable>,
     /// The Libraries navigator's cursor row key, the table it was read from (its address: a new table after a change

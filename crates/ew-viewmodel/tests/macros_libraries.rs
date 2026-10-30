@@ -606,7 +606,11 @@ fn ft754d_update_previews_keys_then_marked_then_cursor_then_all() {
         json!({"kind": "libraries", "key": b}),
     );
     done(&mut shell, "libraries.update", json!({}));
-    assert_eq!(card_copies(&shell), [cb.clone()], "the cursor's copy");
+    assert_eq!(
+        card_copies(&shell),
+        std::slice::from_ref(&cb),
+        "the cursor's copy"
+    );
     done(&mut shell, "preview.cancel", json!({}));
     // Marked over the cursor.
     done(
@@ -615,7 +619,7 @@ fn ft754d_update_previews_keys_then_marked_then_cursor_then_all() {
         json!({"kind": "libraries", "key": a}),
     );
     done(&mut shell, "libraries.update", json!({}));
-    assert_eq!(card_copies(&shell), [ca.clone()], "the marked copy");
+    assert_eq!(card_copies(&shell), std::slice::from_ref(&ca), "the marked copy");
     done(&mut shell, "preview.cancel", json!({}));
     // Keys over the marks.
     done(&mut shell, "libraries.update", json!({"keys": [b]}));

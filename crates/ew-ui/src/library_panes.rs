@@ -12,7 +12,7 @@
 //! of a throwaway copy, `ShellModel::macro_thumbnail`, rendered by the CPU renderer once per macro version and shown
 //! on the white sheet with a 1-px `color.border.default` frame; "No preview" when there is none), the devices, the
 //! variables and Insert macro… (Primary), which arms the macro tool. The thumbnail is an `Image` named "Preview of
-//! <name>".
+//! the macro".
 //!
 //! **Accessibility.** The detail block is a `Group` named after the macro; each line is a label; the buttons are named
 //! by their text (NFR-A11Y-01).
