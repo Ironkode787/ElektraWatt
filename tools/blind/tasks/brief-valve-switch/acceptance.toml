@@ -8,7 +8,7 @@ id = "A1"
 kind = "hard"
 what = "A fuse, a door switch and the valve's coil exist and are each connected into the circuit."
 how = "connections, pages"
-query = "SELECT d.tag FROM api_v1_device d WHERE d.letter IN ('F', 'S', 'Y') AND EXISTS (SELECT 1 FROM api_v1_wire w WHERE w.from_tag = d.tag OR w.to_tag = d.tag)"
+query = "SELECT d.tag FROM api_v1_device d WHERE (d.letter IN ('F', 'S') OR d.tag IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil')) AND EXISTS (SELECT 1 FROM api_v1_wire w WHERE w.from_tag = d.tag OR w.to_tag = d.tag)"
 expect = ">= 3"
 
 [[item]]
@@ -24,7 +24,7 @@ id = "A3"
 kind = "hard"
 what = "Field wiring: both connections of the valve's coil go to terminals of the strip, none to a cabinet device."
 how = "connections, pages"
-query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'Y' AND b.kind = 'terminal') OR (b.letter = 'Y' AND a.kind = 'terminal')"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.tag IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil') AND b.kind = 'terminal') OR (b.tag IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil') AND a.kind = 'terminal')"
 expect = ">= 2"
 
 [[item]]
@@ -32,7 +32,7 @@ id = "A4"
 kind = "hard"
 what = "No connection of the valve's coil goes straight to a device in the cabinet."
 how = "connections"
-query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'Y' AND COALESCE(b.kind, '') <> 'terminal') OR (b.letter = 'Y' AND COALESCE(a.kind, '') <> 'terminal')"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.tag IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil') AND COALESCE(b.kind, '') <> 'terminal') OR (b.tag IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil') AND COALESCE(a.kind, '') <> 'terminal')"
 expect = "== 0"
 
 [[item]]

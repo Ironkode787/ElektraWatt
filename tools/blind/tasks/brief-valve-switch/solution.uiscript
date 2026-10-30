@@ -24,7 +24,7 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-F5"}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"part":"EW-GEN-VLV-1","letter":"Y"}}
+{"action":"place.pick","params":{"part":"EW-GEN-VLV-1"}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-G5"}}
