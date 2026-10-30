@@ -63,7 +63,8 @@ impl Query for CheckOf {
 }
 
 /// The evaluation scopes of a scope kind in a snapshot, in key order: the project, every drawn page, every
-/// strip, device or cable device, every potential of the partition.
+/// strip, device or cable device, every potential of the partition, every PLC module device, every PLC configuration
+/// project.
 pub fn scopes(q: &Q, kind: ScopeKind) -> Vec<Scope> {
     match kind {
         ScopeKind::Project => vec![Scope::Project],
@@ -90,6 +91,17 @@ pub fn scopes(q: &Q, kind: ScopeKind) -> Vec<Scope> {
             ids.sort();
             ids
         }
+        ScopeKind::Module => q
+            .devices()
+            .iter()
+            .filter(|(_, d)| d.aspects.plc_module.is_some())
+            .map(|(id, _)| Scope::Module(id))
+            .collect(),
+        ScopeKind::Cfg => q
+            .table::<ew_derive::ew_schema::PlcConfigProject>()
+            .ids()
+            .map(Scope::Cfg)
+            .collect(),
     }
 }
 

@@ -290,8 +290,9 @@ pub const OPEN_TBD_VALUE: RuleMeta = RuleMeta {
 
 /// EW-CORE-044: a typed `Tbd` value of the device (FR-CHK-034, D-15): a PLC module's input or output start and the
 /// address of each of its channels (`AddrSpec::Tbd`). These are all the typed `Tbd` values of schema v0; a bus
-/// address is not typed yet (`BusPort`, doc 03 §14), so EW-BUS-001's `Tbd` addresses are not reachable here. When
-/// EW-PLC-015 (WP-S1.21) is built, its findings supersede these for the same targets (doc 15 §3.6). One finding per
+/// address is not typed yet (`BusPort`, doc 03 §14), so EW-BUS-001's `Tbd` addresses are not reachable here.
+/// EW-PLC-015 reports the same values of a module inside a configuration project with the same targets, and its
+/// findings supersede these (doc 15 §3.6); a module outside every configuration project stays this rule's. One finding per
 /// value: the module (and the channel) as targets, discriminator `start.input`, `start.output` or `address`. An info
 /// online, an error in release mode (an open item that blocks release).
 #[derive(Clone, Copy, Debug)]
@@ -584,6 +585,10 @@ impl Rule for OrderCodesCover {
 ///   refuses on open). Target the channel and the device, subject `<device tag>:<channel number>`. The delete quick
 ///   fix of FT-229 waits for a command that deletes a channel (`edit.delete` does not take one; WP-S1.16 §11.2
 ///   item 6).
+/// - **`duplicate_number`** (FT-350, WP-S1.21 D10): a channel that shares its number with another channel of its
+///   module (an import or a merge that bypassed the v5 rule of N1). The derivation and N1 keep one channel per
+///   number, the one whose ID is `v5(module, "channel", number)`, else the lowest ID; every other channel of that
+///   number is reported, with the channel and the module as targets and subject `<module tag>:<number>`.
 #[derive(Clone, Copy, Debug)]
 pub struct DanglingReference;
 
@@ -598,8 +603,37 @@ impl Rule for DanglingReference {
         }
         let mut out = dangling_frame_forms(q);
         out.extend(orphan_channels(q));
+        out.extend(duplicate_numbers(q));
         out
     }
+}
+
+/// EW-CORE-008 `duplicate_number`: the channels a module holds beside the one it keeps for their number, in module
+/// order, then number, then ID.
+fn duplicate_numbers(q: &Q) -> Vec<Finding> {
+    let index = q.get::<ChannelsByModule>(());
+    let mut out = Vec::new();
+    for module in index.modules_with_duplicates() {
+        let kept: BTreeMap<u16, Id<Channel>> = index.of_module(module).into_iter().collect();
+        let tag = full_tag(q, module, "module");
+        for (number, id) in index.all_of_module(module) {
+            if kept.get(&number) == Some(&id) {
+                continue;
+            }
+            let subject = format!("{tag}:{number}");
+            out.push(Finding::new(
+                &DANGLING_REFERENCE,
+                [Target::new(Kind::Channel, id), Target::new(Kind::Device, module)],
+                "duplicate_number",
+                subject.clone(),
+                format!(
+                    "{tag} holds a second channel numbered {number}; the module keeps one channel per number, so this \
+                     one prints nowhere"
+                ),
+            ));
+        }
+    }
+    out
 }
 
 /// EW-CORE-008 `channel`: the channels whose module is not a PLC module, in natural order of their printed subject.

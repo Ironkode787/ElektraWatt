@@ -136,6 +136,57 @@ rule-ew-num-002 =
     .title = Frozen value deviates
     .hint = Unfreeze the value to take the derived one, or keep it frozen if the deviation is intended.
 
+## EW-PLC: PLC addresses and bindings
+
+rule-ew-plc-001 = { $form ->
+        [alignment] { $channel }: the address { $address } does not start at a multiple of { $align } bytes, the profile's word alignment (an unverified convention)
+       *[overlap] { $channel } ({ $address }) overlaps { $other } ({ $other_address }) in configuration project { $cfg }; give one of them another address
+    }
+    .title = Address overlap
+    .hint = Give one of the overlapping channels another address, or let both take automatic addresses.
+
+rule-ew-plc-002 = { $channel }: the address { $address } is outside the I/O range of { $module } ({ $range ->
+        [none] no byte of area { $area }
+       *[bytes] bytes { $first } to { $last } of area { $area }
+    })
+    .title = Address outside the module
+    .hint = Give the channel an address inside its module's range, or correct the module's start.
+
+rule-ew-plc-003 = { $subject }: { $what ->
+        [input] the input start
+        [output] the output start
+       *[address] the manual address
+    } names bit { $bit }, outside the { $width } bits of a unit
+    .title = Bit index out of range
+    .hint = Choose a bit inside the width of a unit.
+
+rule-ew-plc-007 = the symbol { $symbol } is used by { $count } channels of configuration project { $cfg }: { $channels }; give each channel its own symbol
+    .title = Duplicate symbol
+    .hint = Give each channel its own symbol.
+
+rule-ew-plc-008 = { $channel } is used but has no address: { $reason ->
+        [station] its module belongs to no PLC station; place a CPU first or attach the module to a station
+        [excluded] it is excluded from addressing; give it an address
+       *[other] no address can be derived for it; check the module's start and its part's PLC section
+    }
+    .title = Used channel without address
+    .hint = Give the channel an address, or mark it unused.
+
+rule-ew-plc-012 = { $form ->
+        [manual] { $channel }: the manual address { $address } differs from the derived address { $derived }; set the address to auto, or keep the deviation deliberately
+       *[binding] { $channel } ({ $address }) drives solenoid { $solenoid } of { $valve }, which the position map of part { $part } assigns to { $expected } ({ $expected_address }); rebind it to the map's channel, or correct the part's PLC section
+    }
+    .title = Binding differs from the part map
+    .hint = Rebind the channel the part's map assigns, or correct the part's PLC section.
+
+rule-ew-plc-015 = { $subject }: the { $what ->
+        [input] input start address
+        [output] output start address
+       *[address] channel address
+    } is TBD; enter it before release
+    .title = Tbd address
+    .hint = Enter the address before release.
+
 ## EW-POT: potentials
 
 rule-ew-pot-001 = { $conflicts }{ $more ->

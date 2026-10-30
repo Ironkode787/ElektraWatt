@@ -169,6 +169,14 @@ fn scope_text(q: &Q, scope: &Scope) -> String {
         ),
         Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) => full_tag(q, d, "a device"),
         Scope::Potential(p) => format!("potential {}", q.get::<PotentialNameOf>(p).name.text),
+        Scope::Module(d) => full_tag(q, d, "a module"),
+        Scope::Cfg(c) => q
+            .table::<ew_derive::ew_schema::PlcConfigProject>()
+            .get(c)
+            .map_or_else(
+                || "a configuration project".to_owned(),
+                |c| format!("configuration project {}", c.name),
+            ),
     }
 }
 
@@ -177,7 +185,10 @@ fn scope_target(scope: &Scope) -> Option<Target> {
     match *scope {
         Scope::Project | Scope::Potential(_) => None,
         Scope::Page(p) => Some(Target::new(Kind::Page, p)),
-        Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) => Some(Target::new(Kind::Device, d)),
+        Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) | Scope::Module(d) => {
+            Some(Target::new(Kind::Device, d))
+        }
+        Scope::Cfg(c) => Some(Target::new(Kind::PlcConfigProject, c)),
     }
 }
 
@@ -190,6 +201,8 @@ fn scope_kind_name(kind: ScopeKind) -> &'static str {
         ScopeKind::Device => "device",
         ScopeKind::Cable => "cable",
         ScopeKind::Potential => "potential",
+        ScopeKind::Module => "module",
+        ScopeKind::Cfg => "cfg",
     }
 }
 

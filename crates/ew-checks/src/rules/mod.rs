@@ -10,6 +10,7 @@ pub mod core;
 pub mod device;
 pub mod num;
 pub mod page;
+pub mod plc;
 pub mod pot;
 pub mod rds;
 pub mod rel;

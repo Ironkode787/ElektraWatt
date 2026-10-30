@@ -1218,6 +1218,285 @@
       "waivable": true
     },
     {
+      "code": "110001",
+      "id": "EW-PLC-001",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "prevent"
+      ],
+      "pack": "EW-PLC",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "cfg",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Address overlap",
+      "waivable": true
+    },
+    {
+      "code": "110002",
+      "id": "EW-PLC-002",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-PLC",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "module",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Address outside the module",
+      "waivable": true
+    },
+    {
+      "code": "110003",
+      "id": "EW-PLC-003",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-PLC",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "module",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Bit index out of range",
+      "waivable": true
+    },
+    {
+      "code": "110007",
+      "id": "EW-PLC-007",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "prevent",
+        "release"
+      ],
+      "pack": "EW-PLC",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "cfg",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Duplicate symbol",
+      "waivable": true
+    },
+    {
+      "code": "110008",
+      "id": "EW-PLC-008",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release",
+        "export"
+      ],
+      "pack": "EW-PLC",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "module",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Used channel without address",
+      "waivable": true
+    },
+    {
+      "code": "110012",
+      "id": "EW-PLC-012",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-PLC",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "module",
+      "severity": "error",
+      "supersedes": [
+        "EW-NUM-002"
+      ],
+      "title": "Binding differs from the part map",
+      "waivable": true
+    },
+    {
+      "code": "110015",
+      "id": "EW-PLC-015",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-PLC",
+      "release": "MVP",
+      "release_severity": "error",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "cfg",
+      "severity": "info",
+      "supersedes": [
+        "EW-CORE-044"
+      ],
+      "title": "Tbd address",
+      "waivable": true
+    },
+    {
       "code": "005001",
       "id": "EW-POT-001",
       "kind": "conflict",

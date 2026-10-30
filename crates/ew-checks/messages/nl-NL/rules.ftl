@@ -32,6 +32,55 @@ rule-ew-num-001 = { $frozen }: bevroren, wijkt af van het schema (afgeleide waar
     .title = Tag wijkt af van het schema
     .hint = Ontdooi de tag om de afgeleide waarde over te nemen, of laat hem bevroren als de afwijking bedoeld is.
 
+rule-ew-plc-001 = { $form ->
+        [alignment] { $channel }: het adres { $address } begint niet op een veelvoud van { $align } bytes, de woorduitlijning van het profiel (een niet-geverifieerde conventie)
+       *[overlap] { $channel } ({ $address }) overlapt { $other } ({ $other_address }) in configuratieproject { $cfg }; geef een van beide een ander adres
+    }
+    .title = Adresoverlap
+    .hint = Geef een van de overlappende kanalen een ander adres, of laat beide een automatisch adres nemen.
+
+rule-ew-plc-002 = { $channel }: het adres { $address } ligt buiten het I/O-bereik van { $module } ({ $range ->
+        [none] geen byte van gebied { $area }
+       *[bytes] bytes { $first } tot en met { $last } van gebied { $area }
+    })
+    .title = Adres buiten de module
+    .hint = Geef het kanaal een adres binnen het bereik van zijn module, of corrigeer de start van de module.
+
+rule-ew-plc-003 = { $subject }: { $what ->
+        [input] de start van de ingangen
+        [output] de start van de uitgangen
+       *[address] het handmatige adres
+    } noemt bit { $bit }, buiten de { $width } bits van een eenheid
+    .title = Bitindex buiten bereik
+    .hint = Kies een bit binnen de breedte van een eenheid.
+
+rule-ew-plc-007 = het symbool { $symbol } wordt gebruikt door { $count } kanalen van configuratieproject { $cfg }: { $channels }; geef elk kanaal een eigen symbool
+    .title = Dubbel symbool
+    .hint = Geef elk kanaal een eigen symbool.
+
+rule-ew-plc-008 = { $channel } is in gebruik maar heeft geen adres: { $reason ->
+        [station] de module hoort bij geen PLC-station; plaats eerst een CPU of koppel de module aan een station
+        [excluded] het is uitgesloten van adressering; geef het een adres
+       *[other] er is geen adres voor af te leiden; controleer de start van de module en de PLC-sectie van het onderdeel
+    }
+    .title = Gebruikt kanaal zonder adres
+    .hint = Geef het kanaal een adres, of markeer het als ongebruikt.
+
+rule-ew-plc-012 = { $form ->
+        [manual] { $channel }: het handmatige adres { $address } wijkt af van het afgeleide adres { $derived }; zet het adres op automatisch, of houd de afwijking bewust aan
+       *[binding] { $channel } ({ $address }) stuurt spoel { $solenoid } van { $valve } aan, die de positiekaart van onderdeel { $part } toewijst aan { $expected } ({ $expected_address }); koppel het kanaal van de kaart, of corrigeer de PLC-sectie van het onderdeel
+    }
+    .title = Koppeling wijkt af van de onderdeelkaart
+    .hint = Koppel het kanaal dat de kaart van het onderdeel toewijst, of corrigeer de PLC-sectie van het onderdeel.
+
+rule-ew-plc-015 = { $subject }: { $what ->
+        [input] de start van de ingangen
+        [output] de start van de uitgangen
+       *[address] het kanaaladres
+    } is TBD; vul het in vóór de vrijgave
+    .title = Tbd-adres
+    .hint = Vul het adres in vóór de vrijgave.
+
 rule-ew-pot-001 = { $conflicts }{ $more ->
         [none] {""}
        *[other] ; en nog { $more } aansluitpunten

@@ -4,7 +4,7 @@
 //! The [`Rule`] trait and the rule metadata of doc 15 §2.3: ID, code, pack, kind, modes, severities, scope.
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AnyId, Device, Kind, Page};
+use ew_derive::ew_schema::{AnyId, Device, Kind, Page, PlcConfigProject};
 use ew_derive::{PotentialId, Q};
 
 use crate::finding::{Finding, Severity};
@@ -88,6 +88,10 @@ pub enum ScopeKind {
     Cable,
     /// One potential of the potential partition.
     Potential,
+    /// One PLC module (a device with the `plc_module` aspect; doc 15 §2.3 `module`).
+    Module,
+    /// One PLC configuration project (doc 15 §2.3 `cfg`, requested by doc 10 §3.10).
+    Cfg,
 }
 
 /// One evaluation scope: the key of the memo family [`CheckOf`](crate::CheckOf) together with a rule ID.
@@ -105,6 +109,10 @@ pub enum Scope {
     Cable(Id<Device>),
     /// A potential.
     Potential(PotentialId),
+    /// A PLC module device.
+    Module(Id<Device>),
+    /// A PLC configuration project.
+    Cfg(Id<PlcConfigProject>),
 }
 
 impl Scope {
@@ -117,6 +125,8 @@ impl Scope {
             Scope::Device(_) => ScopeKind::Device,
             Scope::Cable(_) => ScopeKind::Cable,
             Scope::Potential(_) => ScopeKind::Potential,
+            Scope::Module(_) => ScopeKind::Module,
+            Scope::Cfg(_) => ScopeKind::Cfg,
         }
     }
 }
