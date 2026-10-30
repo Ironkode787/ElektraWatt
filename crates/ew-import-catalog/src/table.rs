@@ -14,6 +14,18 @@ pub const MAX_ROWS: usize = 1_000_000;
 /// The most columns of one table.
 pub const MAX_COLUMNS: usize = 1_024;
 
+/// The longest cell of one table, in bytes: 32 KiB (doc 14 §11, "CSV, XLSX: cell ≤ 32 KiB"; FT-665).
+pub const MAX_CELL_BYTES: u32 = 32 * 1024;
+
+/// The input limits of a parts table: the defaults with `max_text_bytes` lowered to [`MAX_CELL_BYTES`], the cell
+/// limit of doc 14 §11 (a cell, and an XLSX shared string, is at most 32 KiB).
+pub fn table_limits() -> Limits {
+    Limits {
+        max_text_bytes: MAX_CELL_BYTES,
+        ..Limits::default()
+    }
+}
+
 /// The format of a parts table.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SourceFormat {

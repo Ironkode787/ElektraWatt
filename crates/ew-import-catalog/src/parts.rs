@@ -88,14 +88,14 @@ pub struct CatalogTarget<'a> {
 }
 
 impl CatalogTarget<'static> {
-    /// A target `library` that holds no part yet, without a date, no bump, the default limits, the parts naming the
-    /// master's manufacturer records.
+    /// A target `library` that holds no part yet, without a date, no bump, the table limits
+    /// ([`crate::table_limits`]: cells of at most 32 KiB), the parts naming the master's manufacturer records.
     pub fn new(library: Uuid) -> CatalogTarget<'static> {
         CatalogTarget {
             library,
             as_of: None,
             bump: false,
-            limits: Limits::default(),
+            limits: crate::table_limits(),
             existing: &no_existing,
             local_manufacturers: false,
             shared: &[],

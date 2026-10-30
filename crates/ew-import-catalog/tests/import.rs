@@ -745,9 +745,20 @@ fn a_shared_string_named_by_many_cells_is_refused_within_the_memory_budget() {
     assert!(bomb.len() < 8 * 1024, "{} bytes packed", bomb.len());
     // The workspace forbids `unsafe`, so no counting allocator measures the parse; the bound is the budget itself:
     // the cells may hold at most eight times the ~1 MB unpacked, far under the 256 MB rule.
-    let err = import_bytes("bomb.xlsx", bomb, &target()).unwrap_err();
+    // Under the general 1 MiB text limit the string itself is admitted, and the cells' budget refuses it; under the
+    // table preset (32 KiB cells, FT-665) the string is refused on its own.
+    let loose = CatalogTarget {
+        limits: Limits::default(),
+        ..target()
+    };
+    let err = import_bytes("bomb.xlsx", bomb.clone(), &loose).unwrap_err();
     assert!(
         matches!(&err, ImportError::LimitExceeded { what, limit } if what == "cell text size" && *limit < 16 << 20),
+        "{err}"
+    );
+    let err = import_bytes("bomb.xlsx", bomb, &target()).unwrap_err();
+    assert!(
+        matches!(&err, ImportError::LimitExceeded { limit, .. } if *limit == 32 * 1024),
         "{err}"
     );
 
@@ -896,4 +907,26 @@ fn the_import_is_deterministic() {
     let a = import_bytes("liste.csv", LIST.as_bytes().to_vec(), &target()).unwrap();
     let b = import_bytes("liste.csv", LIST.as_bytes().to_vec(), &target()).unwrap();
     assert_eq!(a, b);
+}
+
+/// FT-665: a parts table's cell is at most 32 KiB (doc 14 §11), the default of [`CatalogTarget::new`]: a cell of
+/// exactly 32 KiB is read, one byte more refuses the table, naming the cell's line.
+#[test]
+fn a_cell_above_32_kib_refuses_the_table() {
+    assert_eq!(ew_import_catalog::MAX_CELL_BYTES, 32 * 1024);
+    assert_eq!(target().limits.max_text_bytes, ew_import_catalog::MAX_CELL_BYTES);
+    let header = "Hersteller;Artikelnummer;Typ;Bezeichnung;Art;Nennstrom;Einheit\r\n";
+    let row = |len: usize| {
+        format!(
+            "{header}Schneider;A9P52610;iC40N;{};device;10 A;\r\n",
+            "x".repeat(len)
+        )
+    };
+    let at = 32 * 1024;
+    assert!(import_bytes("liste.csv", row(at).into_bytes(), &target()).is_ok());
+    let err = import_bytes("liste.csv", row(at + 1).into_bytes(), &target()).unwrap_err();
+    assert!(
+        matches!(&err, ImportError::LimitExceeded { what, limit } if what == "cell size at line 2" && *limit == 32 * 1024),
+        "{err}"
+    );
 }

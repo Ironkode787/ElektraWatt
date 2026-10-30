@@ -2156,6 +2156,9 @@ fn run_lib(a: &LibArgs) -> i32 {
                         target.1,
                         counts_text(&done.import)
                     );
+                    if let Some(w) = done.write.as_ref().and_then(index_warning) {
+                        eprintln!("{w}");
+                    }
                     0
                 }
                 Err(e) => {
@@ -2171,6 +2174,14 @@ fn run_lib(a: &LibArgs) -> i32 {
             }
         }
     }
+}
+
+/// The warning for a library write whose search index failed to take the committed write (FT-665): the write
+/// stands, and the index is brought up to date on the next open or write.
+fn index_warning(w: &ew_api::library::WriteReport) -> Option<String> {
+    w.index_error.as_deref().map(|e| {
+        format!("warning: the library's search index was not updated ({e}); it is rebuilt on the next open or write")
+    })
 }
 
 /// Reads the column map and the table of a mapped parts import (exit code 2 on failure).
@@ -2432,6 +2443,16 @@ fn write_report(path: &Path, text: &str) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn index_warning_prints_the_index_error_only_when_there_is_one() {
+        let mut w = ew_api::library::WriteReport::default();
+        assert_eq!(super::index_warning(&w), None);
+        w.index_error = Some("disk full".into());
+        let text = super::index_warning(&w).expect("a warning");
+        assert!(text.starts_with("warning: "), "{text}");
+        assert!(text.contains("disk full"), "{text}");
+    }
+
     use super::*;
 
     fn p(args: &[&str]) -> Result<Command, String> {

@@ -23,7 +23,7 @@ use ew_schema::{Kind, LibCopy, LibDocument, LibRef, Manufacturer, Part};
 
 pub use ew_import_catalog::{
     CatalogTarget, ColumnMap, IMPORTER_ID, MapError, Member, PartsImport, RowCounts, RowOutcome, RowStatus,
-    SourceFormat, check_source_key, parse_parts, pn_norm,
+    SourceFormat, check_source_key, parse_parts, pn_norm, table_limits,
 };
 
 use crate::import::PARTS_IMPORT;
@@ -265,7 +265,7 @@ pub fn import_into_library(
             library,
             as_of,
             bump,
-            limits: Limits::default(),
+            limits: table_limits(),
             existing: &held,
             local_manufacturers: true,
             shared: &shared,
@@ -338,7 +338,7 @@ impl Session {
             library: project,
             as_of,
             bump: false,
-            limits: Limits::default(),
+            limits: table_limits(),
             existing: &existing,
             local_manufacturers: true,
             shared: &[],
