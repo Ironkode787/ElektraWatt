@@ -598,8 +598,9 @@ fn a_module_finds_its_channels_by_number_whatever_their_id() {
     );
     assert_eq!(ids[3].1, id(0xabc));
 
-    // two channels with number 5 of M2: the lower ID wins, whatever the order of the table
+    // three channels with number 5 of M2: the v5 one wins over foreign IDs, however low (WP-S1.21 D10, FT-350) …
     let mut fx = fixture();
+    fx.record(channel(M2, 5))["designation"] = json!("V5");
     fx.push(
         json!({"$k": "channel", "id": uid(1), "module": uid(M2), "number": 5, "kind": "do",
         "designation": "LOW"}),
@@ -612,8 +613,90 @@ fn a_module_finds_its_channels_by_number_whatever_their_id() {
     let q = Q::new(&m);
     let texts = q.get::<ChannelTexts>(id(M2));
     assert_eq!(texts.len(), 8);
+    assert_eq!(texts[5].0, id::<ew_schema::Channel>(channel(M2, 5)));
+    assert_eq!(texts[5].1.designation.as_deref(), Some("V5"));
+    let index = q.get::<ew_derive::ChannelsByModule>(());
+    assert_eq!(index.modules_with_duplicates(), [id::<Device>(M2)]);
+    assert_eq!(
+        index
+            .all_of_module(id(M2))
+            .iter()
+            .filter(|(n, _)| *n == 5)
+            .count(),
+        3
+    );
+
+    // … and without a v5 one, the lower ID wins, whatever the order of the table
+    let mut fx = fixture();
+    fx.record(channel(M2, 5))["id"] = json!(uid(u128::MAX));
+    fx.record(u128::MAX)["designation"] = json!("HIGH");
+    fx.push(
+        json!({"$k": "channel", "id": uid(1), "module": uid(M2), "number": 5, "kind": "do",
+        "designation": "LOW"}),
+    );
+    let m = fx.build();
+    let q = Q::new(&m);
+    let texts = q.get::<ChannelTexts>(id(M2));
+    assert_eq!(texts.len(), 8);
     assert_eq!(texts[5].0, id::<ew_schema::Channel>(1));
     assert_eq!(texts[5].1.designation.as_deref(), Some("LOW"));
+}
+
+/// WP-S1.21 D9 (FT-224, AC-29): a start edit of one module re-runs the configuration project's starts and every
+/// module's projection, but `channel_addresses` of that module alone; the other projections cut off.
+#[test]
+fn a_start_edit_re_addresses_its_own_module_only() {
+    use ew_derive::MemoStore;
+
+    let m0 = fixture().build();
+    let store = MemoStore::new(&m0);
+    let _ = read_all(&store.query());
+    let op = update::<Device>(&m0, M2, |v| {
+        v["plc_module"] = json!({"start": {"output": {"manual": {"area": "q", "byte": 10}}}});
+    });
+    let keys = vec![op.key()];
+    let model = m0
+        .apply_unchecked(&[op], m0.rev().next())
+        .expect("the op applies");
+    store.advance(&model, &keys);
+    assert_eq!(read_all(&store.query()), read_all(&Q::new(&model)));
+    let stats = store.commit_stats();
+    let runs = |family: &str| stats.family(family).re_executions;
+    assert_eq!(runs("module_starts"), 1);
+    assert_eq!(runs("channel_addresses"), 1, "M2's 8 addresses only");
+    assert_eq!(
+        stats.family("module_start_of").cut_offs,
+        2,
+        "the projections of M1 and M3 cut off"
+    );
+    assert_eq!(texts(&store.query(), M2)[0], "Q10.0");
+    assert_eq!(texts(&store.query(), M3)[0], "Q2.0", "M3 keeps its start");
+}
+
+/// `address_index(cfg)`: every resolved channel address as a bit range, sorted, and the overlapping pairs: a manual
+/// channel address inside another module's range overlaps one channel; a word address overlaps eight.
+#[test]
+fn the_address_index_lists_overlaps() {
+    let q_overlaps = |fx: Fx| {
+        let m = fx.build();
+        let q = Q::new(&m);
+        let v = q.get::<ew_derive::AddressIndex>(cfg());
+        v.overlaps
+            .iter()
+            .map(|(i, j)| format!("{} ~ {}", v.uses[*i].text, v.uses[*j].text))
+            .collect::<Vec<_>>()
+    };
+    assert!(q_overlaps(fixture()).is_empty(), "automatic starts never overlap");
+    let mut fx = fixture();
+    fx.record(channel(M3, 0))["address"] = json!({"manual": {"area": "q", "byte": 0, "bit": 3}});
+    assert_eq!(q_overlaps(fx), ["Q0.3 ~ Q0.3"]);
+    let mut fx = fixture();
+    fx.record(channel(M3, 0))["address"] = json!({"manual": {"area": "q", "size": "word", "byte": 1}});
+    let v = q_overlaps(fx);
+    assert_eq!(v.len(), 15, "QW1 covers Q1.0 … Q2.7 but for itself: {v:?}");
+    let m = fixture().build();
+    let q = Q::new(&m);
+    assert_eq!(q.get::<ew_derive::AddressIndex>(cfg()).uses.len(), 24);
 }
 
 /// The memoised index families equal a cold run after each edit of the channel table: a channel inserted,

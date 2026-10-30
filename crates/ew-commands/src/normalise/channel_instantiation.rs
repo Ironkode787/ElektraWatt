@@ -64,17 +64,28 @@ pub(crate) fn module_part_copy(tx: &TxBuilder<'_>, dev: &Device) -> Option<Arc<L
 }
 
 /// The channels of a module by number; of two channels with one number (an import that bypassed the v5
-/// rule), the lower ID. An index lookup (`TxBuilder::channels_of_module`), not a scan of the channel table
-/// (FT-319); `ew_derive::ModuleChannelIds` keys the derivation the same way.
+/// rule), the one whose ID is `v5(module, "channel", number)`, else the lower ID (WP-S1.21 D10, FT-350). An index
+/// lookup (`TxBuilder::channels_of_module`), not a scan of the channel table (FT-319); `ew_derive::ModuleChannelIds`
+/// keys the derivation the same way.
 pub(crate) fn channels_by_number(tx: &TxBuilder<'_>, module: Id<Device>) -> BTreeMap<u16, Arc<Channel>> {
     let mut out: BTreeMap<u16, Arc<Channel>> = BTreeMap::new();
-    // in ID order, so the first channel of a number is the lowest ID
+    // in ID order, so the first channel of a number is the lowest ID, unless the v5 one comes later
     for c in tx
         .channels_of_module(module)
         .into_iter()
         .filter_map(|id| tx.get::<Channel>(id))
     {
-        out.entry(c.number).or_insert(c);
+        let v5 = ew_ids::v5::plc_channel_id::<Device, Channel>(module, c.number);
+        match out.entry(c.number) {
+            std::collections::btree_map::Entry::Vacant(e) => {
+                e.insert(c);
+            }
+            std::collections::btree_map::Entry::Occupied(mut e) => {
+                if c.id == v5 {
+                    e.insert(c);
+                }
+            }
+        }
     }
     out
 }

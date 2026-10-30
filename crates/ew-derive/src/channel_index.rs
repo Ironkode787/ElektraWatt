@@ -98,17 +98,46 @@ fn first_id() -> Id<Channel> {
 }
 
 impl ChannelKeyed<(Id<Device>, u16)> {
-    /// The channels of `module` by number, in (number, ID) order, each number once with its lowest ID (the
-    /// channel N1 keeps when an import left two with one number).
+    /// The channels of `module` by number, in number order, each number once: of two channels with one number (an
+    /// import that bypassed the v5 rule), the one whose ID is `v5(module, "channel", number)`, else the lowest ID
+    /// (WP-S1.21 D10, FT-350: the channel N1 keeps; EW-CORE-008 `duplicate_number` reports the others).
     pub fn of_module(&self, module: Id<Device>) -> Vec<(u16, Id<Channel>)> {
         let mut out: Vec<(u16, Id<Channel>)> = Vec::new();
         for (((m, number), id), ()) in self.by_key.range(((module, 0), first_id())..) {
             if *m != module {
                 break;
             }
-            if out.last().is_none_or(|(n, _)| n != number) {
-                out.push((*number, *id));
+            match out.last_mut() {
+                Some((n, kept)) if n == number => {
+                    if *id == ew_ids::v5::plc_channel_id::<Device, Channel>(module, *number) {
+                        *kept = *id;
+                    }
+                }
+                _ => out.push((*number, *id)),
             }
+        }
+        out
+    }
+
+    /// Every channel of `module` by number in (number, ID) order, duplicates of a number included (EW-CORE-008
+    /// `duplicate_number`, FT-350).
+    pub fn all_of_module(&self, module: Id<Device>) -> Vec<(u16, Id<Channel>)> {
+        self.by_key
+            .range(((module, 0), first_id())..)
+            .take_while(|(((m, _), _), ())| *m == module)
+            .map(|(((_, number), id), ())| (*number, *id))
+            .collect()
+    }
+
+    /// The modules that hold two or more channels of one number, in module order (EW-CORE-008 `duplicate_number`).
+    pub fn modules_with_duplicates(&self) -> Vec<Id<Device>> {
+        let mut out: Vec<Id<Device>> = Vec::new();
+        let mut last: Option<(Id<Device>, u16)> = None;
+        for (((m, number), _), ()) in self.by_key.iter() {
+            if last == Some((*m, *number)) && out.last() != Some(m) {
+                out.push(*m);
+            }
+            last = Some((*m, *number));
         }
         out
     }

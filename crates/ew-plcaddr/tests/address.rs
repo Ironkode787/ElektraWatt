@@ -45,7 +45,62 @@ fn builtins_lookup() {
     let b = builtin("siemens-tia-intl@2027.1").unwrap();
     assert_eq!(b.reference(), "siemens-tia-intl@2027.1");
     assert!(builtin("siemens-tia-intl").is_none());
-    assert_eq!(builtins().len(), 1);
+    assert!(builtins().contains(&&SIEMENS_TIA_INTL));
+    assert!(builtins().contains(&&IEC_61131_3));
+    assert_eq!(builtin("iec-61131-3@2027.1"), Some(&IEC_61131_3));
+}
+
+/// WP-S1.21 PA-3: the IEC profile renders `%QX0.1` and `%IW64` and parses its own texts back (the prefix optional).
+#[test]
+fn the_iec_profile_renders_and_parses_its_notation() {
+    let p = &IEC_61131_3;
+    assert_eq!(
+        p.render(&PlcAddress::bit(Area::Q, 0, 1), Purpose::Drawing),
+        "%QX0.1"
+    );
+    assert_eq!(
+        p.render(&PlcAddress::unit(Area::I, Size::Word, 64), Purpose::Drawing),
+        "%IW64"
+    );
+    assert_eq!(p.example(), "%QX0.1");
+    assert_eq!(p.parse("%QX0.1"), Some(PlcAddress::bit(Area::Q, 0, 1)));
+    assert_eq!(p.parse("ix4.7"), Some(PlcAddress::bit(Area::I, 4, 7)));
+    assert_eq!(p.parse("%MB10"), Some(PlcAddress::unit(Area::M, Size::Byte, 10)));
+    for bad in ["Q0.1", "%Q0.1", "%QX0.8", "%QX0"] {
+        assert_eq!(p.parse(bad), None, "{bad:?}");
+    }
+}
+
+/// WP-S1.21 D8: a module-start text names an area and a byte: a bit address at bit 0, a unit address, or the area and
+/// the byte alone; any other bit is refused.
+#[test]
+fn a_start_text_names_an_area_and_a_byte() {
+    let tia = &SIEMENS_TIA_INTL;
+    for (text, want) in [
+        ("Q10", (Area::Q, 10)),
+        (" q10 ", (Area::Q, 10)),
+        ("Q10.0", (Area::Q, 10)),
+        ("QB10", (Area::Q, 10)),
+        ("%Q10", (Area::Q, 10)),
+        ("I0", (Area::I, 0)),
+        ("IW64", (Area::I, 64)),
+    ] {
+        assert_eq!(tia.parse_start(text), Some(want), "{text:?}");
+    }
+    for bad in ["", "Q10.3", "Q", "10", "auto", "Q-1", "%%Q1"] {
+        assert_eq!(tia.parse_start(bad), None, "{bad:?}");
+    }
+    let iec = &IEC_61131_3;
+    for (text, want) in [
+        ("%QX10.0", (Area::Q, 10)),
+        ("%QX10", (Area::Q, 10)),
+        ("%QB10", (Area::Q, 10)),
+        ("%Q10", (Area::Q, 10)),
+        ("Q10", (Area::Q, 10)),
+    ] {
+        assert_eq!(iec.parse_start(text), Some(want), "{text:?}");
+    }
+    assert_eq!(iec.parse_start("%QX10.1"), None);
 }
 
 #[test]

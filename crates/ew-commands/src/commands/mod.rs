@@ -42,6 +42,8 @@
 //! | `plc.config_project.create` | [`CreatePlcConfigProject`] | Interactive |
 //! | `plc.bind_channel` | [`BindChannel`] | Interactive |
 //! | `plc.set_module_part` | [`SetModulePart`] | Bulk |
+//! | `plc.set_start` | [`SetStart`] | Interactive |
+//! | `plc.set_profile` | [`SetProfile`] | Interactive |
 //! | `project.supply.set` | [`SetProjectSupply`] | Interactive |
 //! | `library.embed` | [`EmbedLibraryCopies`] | Interactive |
 //! | `revision.create` | [`CreateRevision`] | Interactive |
@@ -156,7 +158,7 @@ pub use page::{CreatePage, DeletePages, PageScope, RenumberPages, ReorderPages};
 // WP-S2.05 part 3
 pub use parts::{ImportParts, import_counts};
 pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS, PasteFragment};
-pub use plc::{BindChannel, CreatePlcConfigProject, SetModulePart};
+pub use plc::{BindChannel, CreatePlcConfigProject, SetModulePart, SetProfile, SetStart, StartDir};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
 pub use revision::{
     ApproveRevision, ApprovedPack, CreateRevision, LABEL_ORDER_RULE, NewRevisionState, RevisionPageNote,
@@ -211,6 +213,9 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<CreatePlcConfigProject>();
     r.register::<BindChannel>();
     r.register::<SetModulePart>();
+    // WP-S1.21 part 3 (D8)
+    r.register::<SetStart>();
+    r.register::<SetProfile>();
     r.register::<SetProjectSupply>();
     r.register::<EmbedLibraryCopies>();
     r.register::<CreateRevision>();

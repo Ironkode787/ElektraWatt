@@ -14,7 +14,8 @@
 use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_schema::{
-    Channel, Device, Endpoint, Extra, FnDef, Function, Kind, LibCopy, Part, PartUse, PlcConfigProject,
+    AddrSpec, Channel, Device, Endpoint, Extra, FnDef, Function, IoDir, Kind, LibCopy, Part, PartUse,
+    PlcArea, PlcConfigProject,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -111,6 +112,13 @@ impl Command for CreatePlcConfigProject {
 /// bound to the same CP is unbound in the same transaction (a CP is in at most one channel, FR-PLC-005),
 /// and the outcome's notices name it. An explicit binding wins over the solenoid-position map: N2 never
 /// rebinds a coil that a channel binds, nor a channel that is bound. Outcome: the channel.
+///
+/// In a command log (and the blind harness's `command.run`) the channel and the CP may also be named by tags
+/// (FT-721): the channel as `<module tag>#<number>` or `<module tag>:<designation>`, the function as `<device tag>`
+/// or `<device tag>:<slot>` with the CP by `designation` instead of `idx`, as
+/// `{"channel": "-201U5#3", "endpoint": {"cp": {"function": "-201Y3", "designation": "14"}}}`; the replay resolves
+/// them into this ID form before the command runs, and refuses an unknown or ambiguous name with up to five
+/// candidates.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct BindChannel {
@@ -192,6 +200,189 @@ impl Command for BindChannel {
         outcome.notices = notices;
         Ok(outcome)
     }
+}
+
+/// A direction of a module's I/O range: the start `plc.set_start` sets.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum StartDir {
+    /// The input start (area I).
+    Input,
+    /// The output start (area Q).
+    Output,
+}
+
+/// `plc.set_start` (`SetStart`, doc 10 §3.9 `plc.set_start{modules, dir, spec}`, FR-PLC-013, FR-PLC-014; WP-S1.21
+/// D8): sets the start of one direction of one or more modules.
+///
+/// `spec` is `auto` (the default: the module takes the first free range after the modules before it, algorithm A1),
+/// `excluded` (not addressed), `tbd` (an open item, reported by EW-PLC-015) or a start text in the notation of the
+/// module's configuration project's profile (the shipped default profile while the module has no station): the area
+/// and the byte, as `Q10`, `Q10.0` or `QB10` under the TIA profile and `%QX10` under IEC, stored as a `manual` start.
+/// The keywords are read without regard to case. Rejected: a module that does not exist ([`CmdError::NotFound`]) or
+/// has no `plc_module` aspect; at `/spec`, a text the profile does not read (with the profile's example start) and a
+/// start in another area than the direction's (an input start is in area I, an output start in area Q). A module
+/// whose part has no range in `dir` takes the start anyway, with a notice that it has no effect. A start equal to the
+/// current one writes nothing. One undo step. Outcome: the first module.
+///
+/// Renders nothing by itself: only the modules whose start value changes are re-addressed (the per-module cut-off
+/// of D9: a manual start outside the automatic path moves no other module, doc 10 §3.1).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetStart {
+    /// The module devices (at least one).
+    #[schemars(with = "Vec<UuidS>")]
+    pub modules: Vec<Id<Device>>,
+    /// The direction whose start is set.
+    pub dir: StartDir,
+    /// `auto`, `excluded`, `tbd` or a start text of the profile (`Q10`).
+    pub spec: String,
+}
+
+impl Command for SetStart {
+    const NAME: &'static str = "plc.set_start";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let Some(first) = self.modules.first().copied() else {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/modules",
+                "name at least one module",
+            ));
+        };
+        let word = self.spec.trim().to_ascii_lowercase();
+        let mut notices = Vec::new();
+        let mut seen = std::collections::BTreeSet::new();
+        for m in &self.modules {
+            if !seen.insert(*m) {
+                continue;
+            }
+            let dev = tx.require::<Device>(*m)?;
+            let Some(aspect) = dev.aspects.plc_module.as_ref() else {
+                return tx.reject(format!(
+                    "device {m} is not a module: it has no `plc_module` aspect; a start belongs to a module"
+                ));
+            };
+            let spec = match word.as_str() {
+                "auto" => AddrSpec::Auto,
+                "excluded" => AddrSpec::Excluded,
+                "tbd" => AddrSpec::Tbd,
+                _ => {
+                    let profile = module_profile(tx, *m);
+                    let a = ew_derive::parse_plc_start(&profile, &self.spec)
+                        .map_err(|e| CmdError::invalid_params(Self::NAME, "/spec", e))?;
+                    let (want, name, area) = match self.dir {
+                        StartDir::Input => (PlcArea::I, "an input", ew_derive::ew_plcaddr::Area::I),
+                        StartDir::Output => (PlcArea::Q, "an output", ew_derive::ew_plcaddr::Area::Q),
+                    };
+                    if a.area != want {
+                        let example = ew_derive::ew_plcaddr::builtin(&profile)
+                            .map(|p| ew_derive::start_example(p, area))
+                            .unwrap_or_default();
+                        return Err(CmdError::invalid_params(
+                            Self::NAME,
+                            "/spec",
+                            format!(
+                                "`{}` is not {name} start: {name} start is in area {}, like {example}",
+                                self.spec,
+                                if want == PlcArea::I { "I" } else { "Q" }
+                            ),
+                        ));
+                    }
+                    AddrSpec::Manual(a)
+                }
+            };
+            let dir = match self.dir {
+                StartDir::Input => IoDir::In,
+                StartDir::Output => IoDir::Out,
+            };
+            let has_range = module_section(tx, &dev).is_some_and(|s| s.io.iter().any(|r| r.dir == dir));
+            if !has_range {
+                notices.push(format!(
+                    "module {m} has no {} range in its part: the start has no effect until it has one",
+                    if dir == IoDir::In { "input" } else { "output" }
+                ));
+            }
+            let current = match self.dir {
+                StartDir::Input => &aspect.start.input,
+                StartDir::Output => &aspect.start.output,
+            };
+            if *current == spec {
+                continue;
+            }
+            tx.update::<Device>(*m, |d| {
+                if let Some(module) = d.aspects.plc_module.as_mut() {
+                    match self.dir {
+                        StartDir::Input => module.start.input = spec,
+                        StartDir::Output => module.start.output = spec,
+                    }
+                }
+            })?;
+        }
+        let mut outcome = Outcome::primary((Kind::Device, first.cast()));
+        outcome.notices = notices;
+        Ok(outcome)
+    }
+}
+
+/// `plc.set_profile` (`SetProfile`, doc 10 §3.9 `plc.set_profile{cfg, profile}`, FR-PLC-008, FR-PLC-007; WP-S1.21
+/// D8): pins another shipped address profile on a configuration project.
+///
+/// `profile` names a profile this build ships, by its reference `id@version` or its ID alone, without regard to case
+/// (`iec-61131-3` pins `iec-61131-3@2027.1`); every other text is rejected at `/profile` with the list of shipped
+/// profiles. The change renders only: addresses are stored canonically, so the project files differ in the one
+/// `profile` member, and every address prints in the new notation (`Q0.1` → `%QX0.1`). A profile equal to the current
+/// one writes nothing. The configuration project exists ([`CmdError::NotFound`]). One undo step. Outcome: the
+/// configuration project.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetProfile {
+    /// The configuration project.
+    #[schemars(with = "UuidS")]
+    pub config_project: Id<PlcConfigProject>,
+    /// The shipped profile: `id@version` or the ID (`iec-61131-3`).
+    pub profile: String,
+}
+
+impl Command for SetProfile {
+    const NAME: &'static str = "plc.set_profile";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let Some(reference) = ew_derive::shipped_address_profile(&self.profile) else {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/profile",
+                format!(
+                    "`{}` is not a shipped address profile; the shipped profiles are {}",
+                    self.profile,
+                    ew_derive::shipped_address_profiles().join(", ")
+                ),
+            ));
+        };
+        let cfg = tx.require::<PlcConfigProject>(self.config_project)?;
+        if cfg.profile.as_str() != reference {
+            let profile = Ident::from_input(&reference)
+                .map_err(|e| CmdError::internal(format!("plc.set_profile: {reference}: {e}")))?;
+            tx.update::<PlcConfigProject>(self.config_project, |c| c.profile = profile)?;
+        }
+        Ok(Outcome::primary((
+            Kind::PlcConfigProject,
+            self.config_project.cast(),
+        )))
+    }
+}
+
+/// The profile reference that reads a module's start texts: its configuration project's, else the default.
+fn module_profile(tx: &TxBuilder<'_>, module: Id<Device>) -> String {
+    crate::commands::fields::channel_profile(tx, module)
 }
 
 /// `plc.set_module_part` (`SetModulePart`, FR-PLC-053, doc 10 §3.3 N1, §8 item 3): changes a module's part

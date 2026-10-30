@@ -259,6 +259,17 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: plc_set_module_part,
     },
+    // WP-S1.21 part 3 (D8)
+    Arm {
+        command: "plc.set_profile",
+        weight: 1,
+        build: plc_set_profile,
+    },
+    Arm {
+        command: "plc.set_start",
+        weight: 2,
+        build: plc_set_start,
+    },
     Arm {
         command: "potential.define",
         weight: 3,
@@ -4077,6 +4088,124 @@ fn plc_bind_channel(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                         .then_some(())
                         .ok_or_else(|| format!("{n} channels are bound to the same CP"))
                 }),
+            )
+        }
+    }
+}
+
+/// `plc.set_profile` (WP-S1.21 D8): a shipped profile by its reference or its ID pins that reference; an unknown
+/// profile and an unknown configuration project are refused.
+fn plc_set_profile(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    match rng.below(8) {
+        // Refused: no such shipped profile.
+        0 => {
+            let cfg = rng.pick(&live.cfgs)?.clone();
+            Some(
+                Step::cmd(
+                    "plc.set_profile",
+                    json!({"config_project": cfg, "profile": "nope@1"}),
+                )
+                .refuse(),
+            )
+        }
+        // Refused: the configuration project does not exist.
+        1 => Some(
+            Step::cmd(
+                "plc.set_profile",
+                json!({"config_project": rng.uuid(), "profile": "iec-61131-3"}),
+            )
+            .refuse(),
+        ),
+        _ => {
+            let cfg = rng.pick(&live.cfgs)?.clone();
+            let (text, reference) = *rng.pick(&[
+                ("iec-61131-3", "iec-61131-3@2027.1"),
+                ("IEC-61131-3@2027.1", "iec-61131-3@2027.1"),
+                ("siemens-tia-intl@2027.1", "siemens-tia-intl@2027.1"),
+            ])?;
+            let id = cfg.clone();
+            Some(
+                Step::cmd("plc.set_profile", json!({"config_project": cfg, "profile": text}))
+                    .accept()
+                    .counts(&[(Table::PlcConfigProjects, 0)])
+                    .check(move |_, after| {
+                        let id =
+                            typed::<ew_schema::PlcConfigProject>(&id).ok_or("a configuration project ID")?;
+                        let c = after
+                            .table::<ew_schema::PlcConfigProject>()
+                            .get(id)
+                            .cloned()
+                            .ok_or("the configuration project is gone")?;
+                        if c.profile.as_str() == reference {
+                            Ok(())
+                        } else {
+                            Err(format!("profile {} instead of {reference}", c.profile))
+                        }
+                    }),
+            )
+        }
+    }
+}
+
+/// `plc.set_start` (WP-S1.21 D8): a keyword or a start of the direction's area sets the module's start; an unknown
+/// module and a start in the other area are refused.
+fn plc_set_start(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let m = rng.pick(&live.modules)?.clone();
+    match rng.below(8) {
+        // Refused: the module does not exist.
+        0 => Some(
+            Step::cmd(
+                "plc.set_start",
+                json!({"modules": [rng.uuid()], "dir": "output", "spec": "auto"}),
+            )
+            .refuse(),
+        ),
+        // Refused: an input address as an output start.
+        1 => Some(
+            Step::cmd(
+                "plc.set_start",
+                json!({"modules": [m], "dir": "output", "spec": "I3"}),
+            )
+            .refuse(),
+        ),
+        k => {
+            let output = k % 2 == 0;
+            let byte = rng.below(64);
+            let spec = match rng.below(4) {
+                0 => "auto".to_owned(),
+                1 => "excluded".to_owned(),
+                2 => "TBD".to_owned(),
+                _ => format!("{}{byte}", if output { "Q" } else { "I" }),
+            };
+            let dir = if output { "output" } else { "input" };
+            let module = m.clone();
+            let want = spec.to_ascii_lowercase();
+            Some(
+                Step::cmd("plc.set_start", json!({"modules": [m], "dir": dir, "spec": spec}))
+                    .accept()
+                    .counts(&[(Table::Devices, 0)])
+                    .check(move |_, after| {
+                        let id = typed::<ew_schema::Device>(&module).ok_or("a device ID")?;
+                        let start = after
+                            .devices()
+                            .get(id)
+                            .and_then(|d| d.aspects.plc_module.clone())
+                            .ok_or("the module lost its aspect")?
+                            .start;
+                        let got = if output { start.output } else { start.input };
+                        let ok = match (want.as_str(), &got) {
+                            ("auto", ew_schema::AddrSpec::Auto)
+                            | ("excluded", ew_schema::AddrSpec::Excluded)
+                            | ("tbd", ew_schema::AddrSpec::Tbd) => true,
+                            (_, ew_schema::AddrSpec::Manual(a)) => usize::try_from(a.byte).ok() == Some(byte),
+                            _ => false,
+                        };
+                        if ok {
+                            Ok(())
+                        } else {
+                            Err(format!("start {got:?} for spec {want}"))
+                        }
+                    }),
             )
         }
     }

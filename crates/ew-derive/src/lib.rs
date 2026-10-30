@@ -145,11 +145,13 @@ pub use part_text::{
 };
 pub use pattern::{PatternError, expand_pattern};
 pub use plc::{
-    ChannelAddr, ChannelAddrEntry, ChannelAddresses, ChannelStates, ChannelTarget, ChannelTargets,
-    ChannelText, ChannelTexts, EffectiveState, ModuleOrder, ModuleStart, ModuleStarts, OrderedModule,
-    PlcAddressText, PlcAddressTexts, PlcRow, PlcRows, Slot, SolenoidPositions, SolenoidSlot, Start,
-    channel_pin, coil_cp_idx, default_profile, driven_device, eval_map, module_part, parse_plc_address,
-    pin_pattern_error, profile_of, solenoid_channel, station_of, stations,
+    AddressIndex, AddressIndexV, AddressUse, ChannelAddr, ChannelAddrEntry, ChannelAddresses, ChannelStates,
+    ChannelTarget, ChannelTargets, ChannelText, ChannelTexts, EffectiveState, ModuleOrder, ModuleStart,
+    ModuleStartOf, ModuleStarts, OrderedModule, PlcAddressText, PlcAddressTexts, PlcRow, PlcRows, Slot,
+    SolenoidPositions, SolenoidSlot, Start, auto_address, canonical, channel_pin, coil_cp_idx,
+    default_profile, driven_device, eval_map, module_part, parse_plc_address, parse_plc_start,
+    pin_pattern_error, profile_of, shipped_address_profile, shipped_address_profiles, solenoid_channel,
+    start_example, station_of, stations,
 };
 pub use potentials::{
     Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
@@ -216,12 +218,17 @@ pub use ew_model::Rev;
 // the model's types through `ew-derive` alone (`ew-reports`, ARCH §3).
 pub use {ew_ids, ew_mltext, ew_schema, ew_units};
 
+// The PLC address types of `ChannelAddr` and `AddressUse` and the address profiles, for the PLC rules of `ew-checks`
+// and the PLC commands (WP-S1.21 part 3).
+pub use ew_plcaddr;
+
 // The reference-designation types of `ResolvedStructure` (`Aspect`, `RdsSyntax`), for the crates that render a
 // structure aspect on their own (`ew-sqlview`'s `structure_function` and `structure_location` columns).
 pub use ew_rds;
 
 /// Every query family of this crate with its initial policy (ARCH §6.4), in name order.
 pub const FAMILIES: &[(&str, Policy)] = &[
+    (AddressIndex::FAMILY, AddressIndex::POLICY),
     (AssemblyBreakMarks::FAMILY, AssemblyBreakMarks::POLICY),
     (BomRows::FAMILY, BomRows::POLICY),
     (BondCarrierQ::FAMILY, BondCarrierQ::POLICY),
@@ -259,6 +266,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (MainRep::FAMILY, MainRep::POLICY),
     (ModuleChannelIds::FAMILY, ModuleChannelIds::POLICY),
     (ModuleOrder::FAMILY, ModuleOrder::POLICY),
+    (ModuleStartOf::FAMILY, ModuleStartOf::POLICY),
     (ModuleStarts::FAMILY, ModuleStarts::POLICY),
     (NumberingSettingsOf::FAMILY, NumberingSettingsOf::POLICY),
     (PageIds::FAMILY, PageIds::POLICY),

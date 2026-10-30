@@ -509,7 +509,7 @@ fn channel_address_value(
 /// The profile reference that reads a channel's address texts: the profile of the configuration project of the
 /// module's station (the module device itself or its nearest ancestor with `plc_station`), else the shipped
 /// default profile (a module without a station, or a station whose configuration project is gone).
-fn channel_profile(tx: &TxBuilder<'_>, module: ew_ids::Id<Device>) -> String {
+pub(crate) fn channel_profile(tx: &TxBuilder<'_>, module: ew_ids::Id<Device>) -> String {
     let mut at = Some(module);
     let mut steps = 0usize;
     while let Some(d) = at.and_then(|d| tx.get::<Device>(d)) {

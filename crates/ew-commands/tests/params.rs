@@ -160,6 +160,15 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"channel": DEV_T1.to_string(), "endpoint": fn_a.clone()}),
         ),
         ("plc.set_module_part", json!({"module": DEV_102F2.to_string()})),
+        // WP-S1.21 part 3 (D8)
+        (
+            "plc.set_start",
+            json!({"modules": [DEV_102F2.to_string()], "dir": "output", "spec": "Q10"}),
+        ),
+        (
+            "plc.set_profile",
+            json!({"config_project": DEV_T1.to_string(), "profile": "iec-61131-3"}),
+        ),
         (
             "project.supply.set",
             json!({"path": "origin.source", "value": null}),

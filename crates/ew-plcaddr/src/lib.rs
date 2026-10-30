@@ -19,4 +19,4 @@ mod profile;
 pub use address::{Area, PlcAddress, Size};
 pub use intervals::AreaIntervals;
 pub use map::{MapExpr, MapVar};
-pub use profile::{AddressProfile, Purpose, SIEMENS_TIA_INTL, builtin, builtins};
+pub use profile::{AddressProfile, IEC_61131_3, Purpose, SIEMENS_TIA_INTL, builtin, builtins};

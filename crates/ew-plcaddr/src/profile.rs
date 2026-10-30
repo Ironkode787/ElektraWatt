@@ -141,6 +141,38 @@ impl AddressProfile {
         None
     }
 
+    /// The start byte a module-start text names (WP-S1.21 D8, `plc.set_start`): the profile's bit address at bit 0
+    /// (`Q10.0`), a unit address of any size (`QB10`, `%QX10` under IEC) or the area and the byte alone (`Q10`), each
+    /// with the optional drawing or exchange prefix, white space and ASCII case as [`AddressProfile::parse`] takes
+    /// them. `None` for any other text, a bit address at another bit included.
+    pub fn parse_start(&self, text: &str) -> Option<(Area, u32)> {
+        if let Some(a) = self.parse(text) {
+            return match a.bit {
+                Some(0) | None => Some((a.area, a.byte)),
+                Some(_) => None,
+            };
+        }
+        let text = text.trim();
+        let mut bodies = vec![text];
+        for prefix in [self.exchange_prefix, self.drawing_prefix] {
+            if let Some(rest) = strip_prefix_ci(text, prefix).filter(|_| !prefix.is_empty()) {
+                bodies.push(rest);
+            }
+        }
+        let bare = [Token::Area, Token::Byte];
+        let unit = tokens(self.render_unit);
+        for body in bodies {
+            for template in [&unit[..], &bare[..]] {
+                if let Some(p) = self.match_tokens(template, body, Parsed::default())
+                    && p.bit.is_none()
+                {
+                    return Some((p.area?, p.byte?));
+                }
+            }
+        }
+        None
+    }
+
     /// `text` matched against `template`: a bit address when `bit`, else a unit address.
     fn parse_template(&self, template: &str, text: &str, bit: bool) -> Option<PlcAddress> {
         let tokens = tokens(template);
@@ -303,9 +335,30 @@ pub static SIEMENS_TIA_INTL: AddressProfile = AddressProfile {
     allocation_verified: false,
 };
 
+/// IEC 61131-3 notation (doc 10 section 2.5: the TIA profile with other data): `%QX0.1`, `%IW64`, the `%` prefix on
+/// the drawing and in exchange files. Its allocation defaults are the TIA profile's (unverified).
+pub static IEC_61131_3: AddressProfile = AddressProfile {
+    id: "iec-61131-3",
+    version: "2027.1",
+    label: "IEC 61131-3",
+    absolute: true,
+    base: 10,
+    unit_bits: 8,
+    word_align: 2,
+    area_mnemonics: ["I", "Q", "M", "PI", "PQ"],
+    size_mnemonics: ["X", "B", "W", "D", "L"],
+    render_bit: "{area}{size}{byte}.{bit}",
+    render_unit: "{area}{size}{byte}",
+    drawing_prefix: "%",
+    exchange_prefix: "%",
+    default_start_digital: 0,
+    default_start_analog: 0,
+    allocation_verified: false,
+};
+
 /// The built-in profiles.
 pub fn builtins() -> &'static [&'static AddressProfile] {
-    static ALL: [&AddressProfile; 1] = [&SIEMENS_TIA_INTL];
+    static ALL: [&AddressProfile; 2] = [&SIEMENS_TIA_INTL, &IEC_61131_3];
     &ALL
 }
 

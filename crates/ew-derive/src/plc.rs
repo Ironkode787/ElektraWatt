@@ -76,11 +76,14 @@ pub fn module_part(q: &Q, module: Id<Device>) -> Option<(Arc<LibCopy<Part>>, Plc
 }
 
 /// The station of a device: the device itself when it carries `plc_station`, else its nearest ancestor that
-/// does (bounded by the number of devices, so a hostile parent cycle terminates).
+/// does. A hostile parent cycle terminates: the walk stops at a device it has visited. It reads the rows of the
+/// device and its ancestors only, never the whole device table, so an edit of another device does not invalidate
+/// its readers (WP-S1.21 D9).
 pub fn station_of(q: &Q, device: Id<Device>) -> Option<Id<Device>> {
     let devices = q.devices();
+    let mut seen = std::collections::BTreeSet::new();
     let mut at = device;
-    for _ in 0..=devices.len() {
+    while seen.insert(at) {
         let dev = devices.get(at)?;
         if dev.aspects.plc_station.is_some() {
             return Some(at);
@@ -142,6 +145,68 @@ pub fn parse_plc_address(profile: &str, text: &str) -> Result<ew_schema::PlcAddr
     })
 }
 
+/// A module-start text in the notation of the shipped profile `profile` (`id@version`), in the stored form of a
+/// `Manual` start (WP-S1.21 D8, `plc.set_start`): the area and the byte, no size and no bit (`"Q10"`, `"Q10.0"` and
+/// `"QB10"` under the TIA profile are output byte 10; see [`AddressProfile::parse_start`]). The error is the message a
+/// refusal shows, naming the profile's example start (`expected a start like Q0`).
+pub fn parse_plc_start(profile: &str, text: &str) -> Result<ew_schema::PlcAddress, String> {
+    let Some(p) = ew_plcaddr::builtin(profile) else {
+        return Err(format!(
+            "the address profile {profile} is not shipped by this build, so a start text cannot be read; give auto, \
+             excluded or tbd"
+        ));
+    };
+    let Some((area, byte)) = p.parse_start(text) else {
+        return Err(format!(
+            "`{text}` is not a start of profile {profile}: expected a start like {}",
+            start_example(p, Area::Q)
+        ));
+    };
+    Ok(ew_schema::PlcAddress {
+        area: plc_area(area),
+        size: PlcSize::Bit,
+        byte,
+        bit: None,
+        extra: ew_schema::Extra::new(),
+    })
+}
+
+/// The example start of `area` in profile `p` (`Q0` under TIA, `%QX0` under IEC): the unit template with the bit-size
+/// mnemonic and byte 0.
+pub fn start_example(p: &AddressProfile, area: Area) -> String {
+    p.render(
+        &ew_plcaddr::PlcAddress::unit(area, Size::Bit, 0),
+        Purpose::Drawing,
+    )
+}
+
+/// The reference (`id@version`) of the shipped address profile that `text` names: its exact reference, or its ID
+/// alone (`iec-61131-3`), compared without regard to ASCII case. `None` when this build ships no such profile
+/// (`plc.set_profile`, WP-S1.21 D8).
+pub fn shipped_address_profile(text: &str) -> Option<String> {
+    let text = text.trim();
+    ew_plcaddr::builtins()
+        .iter()
+        .find(|p| p.reference().eq_ignore_ascii_case(text) || p.id.eq_ignore_ascii_case(text))
+        .map(|p| p.reference())
+}
+
+/// The references of every shipped address profile, in shipping order (`siemens-tia-intl@2027.1`, `iec-61131-3@2027.1`).
+pub fn shipped_address_profiles() -> Vec<String> {
+    ew_plcaddr::builtins().iter().map(|p| p.reference()).collect()
+}
+
+/// The stored area of a canonical area.
+fn plc_area(a: Area) -> PlcArea {
+    match a {
+        Area::I => PlcArea::I,
+        Area::Q => PlcArea::Q,
+        Area::M => PlcArea::M,
+        Area::Pi => PlcArea::Pi,
+        Area::Pq => PlcArea::Pq,
+    }
+}
+
 fn area_of(a: &PlcArea) -> Option<Area> {
     Some(match a {
         PlcArea::I => Area::I,
@@ -164,8 +229,8 @@ fn size_of(s: &PlcSize) -> Option<Size> {
     })
 }
 
-/// The canonical form of a stored address.
-fn canonical(a: &ew_schema::PlcAddress) -> Option<ew_plcaddr::PlcAddress> {
+/// The canonical form of a stored address; `None` for an area or a size of a newer format.
+pub fn canonical(a: &ew_schema::PlcAddress) -> Option<ew_plcaddr::PlcAddress> {
     Some(ew_plcaddr::PlcAddress {
         area: area_of(&a.area)?,
         size: size_of(&a.size)?,
@@ -523,6 +588,25 @@ impl Query for ModuleStarts {
     }
 }
 
+/// `module_start_of(module)`: one module's entry of [`ModuleStarts`] of its configuration project, `None` for a module
+/// outside every configuration project (WP-S1.21 D9, FT-224). A projection read as a cut-off point: a start edit of one
+/// module re-runs [`ModuleStarts`] and every module's projection, but only the modules whose own start value changed
+/// pass the change on, so [`ChannelAddresses`] re-runs for them alone (AC-29: "only its 8 channels").
+#[derive(Debug)]
+pub struct ModuleStartOf;
+
+impl Query for ModuleStartOf {
+    type Key = Id<Device>;
+    type Value = Option<ModuleStart>;
+    const FAMILY: &'static str = "module_start_of";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, key: &Self::Key) -> Arc<Option<ModuleStart>> {
+        let start = module_cfg(q, *key).and_then(|(_, cfg)| q.get::<ModuleStarts>(cfg).get(key).copied());
+        Arc::new(start)
+    }
+}
+
 fn set(s: &mut ModuleStart, dir: &IoDir, start: Start) {
     match dir {
         IoDir::In => s.input = Some(start),
@@ -590,6 +674,10 @@ pub struct ChannelAddrEntry {
     pub number: u16,
     /// Its address.
     pub address: ChannelAddr,
+    /// The address A2 derives for it with the specification `auto` (the module's start and the part's map),
+    /// whatever its own specification: the value a `Manual` address deviates from (EW-PLC-012 `manual`). `None`
+    /// when that does not resolve to an address.
+    pub auto: Option<ew_plcaddr::PlcAddress>,
 }
 
 /// `channel_addresses(module)`: algorithm A2 of doc 10 §3.1, in channel-number order.
@@ -606,18 +694,143 @@ impl Query for ChannelAddresses {
         let channels = module_channels(q, *key);
         let cfg = module_cfg(q, *key).map(|(_, c)| c);
         let profile = cfg.and_then(|c| profile_of(q, c));
-        let start = cfg.and_then(|c| q.get::<ModuleStarts>(c).get(key).copied());
+        // D9: this module's start only, so another module's start edit cuts off before this family
+        let start = *q.get::<ModuleStartOf>(*key);
         let bit_of = module_part(q, *key).and_then(|(_, s)| s.bit_of);
         let out = channels
             .iter()
-            .map(|c| ChannelAddrEntry {
-                channel: c.id,
-                number: c.number,
-                address: address_of(c, profile, start, bit_of.as_ref()),
+            .map(|c| {
+                let address = address_of(c, profile, start, bit_of.as_ref());
+                let auto = match (&c.address, &address) {
+                    (AddrSpec::Auto, ChannelAddr::At { address, .. }) => Some(*address),
+                    (AddrSpec::Auto, _) => None,
+                    _ => {
+                        let derived = Channel {
+                            address: AddrSpec::Auto,
+                            ..c.as_ref().clone()
+                        };
+                        match address_of(&derived, profile, start, bit_of.as_ref()) {
+                            ChannelAddr::At { address, .. } => Some(address),
+                            _ => None,
+                        }
+                    }
+                };
+                ChannelAddrEntry {
+                    channel: c.id,
+                    number: c.number,
+                    address,
+                    auto,
+                }
             })
             .collect();
         Arc::new(out)
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// address_index(cfg)
+
+/// One channel address in use in a configuration project ([`AddressIndex`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct AddressUse {
+    /// The module device.
+    pub module: Id<Device>,
+    /// The channel.
+    pub channel: Id<Channel>,
+    /// Its number.
+    pub number: u16,
+    /// Its derived address.
+    pub address: ew_plcaddr::PlcAddress,
+    /// The address as the drawing prints it ("Q0.1").
+    pub text: String,
+    /// Whether the channel's own specification is `Manual`.
+    pub manual: bool,
+    /// The first bit of the address in its area (the byte times the profile's unit width, plus the bit).
+    pub from: u64,
+    /// One past the last bit: `from` plus the access size's width.
+    pub to: u64,
+}
+
+/// The value of [`AddressIndex`]: the addresses in use and the pairs among them that overlap.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct AddressIndexV {
+    /// Every channel of the configuration project that resolves to an address, in (area, first bit, module, number,
+    /// channel) order.
+    pub uses: Vec<AddressUse>,
+    /// The pairs `(i, j)`, `i < j`, of [`uses`](Self::uses) in one area whose bit ranges intersect (`IW0` against
+    /// `I1.3`), in (i, j) order.
+    pub overlaps: Vec<(usize, usize)>,
+}
+
+/// `address_index(cfg)` (doc 10 §2.10): the channel addresses of a configuration project as bit intervals per area,
+/// sorted, with the overlapping pairs (EW-PLC-001). The unit width is the configuration project's profile's; without a
+/// shipped profile no address resolves and the value is empty.
+#[derive(Debug)]
+pub struct AddressIndex;
+
+impl Query for AddressIndex {
+    type Key = Id<PlcConfigProject>;
+    type Value = AddressIndexV;
+    const FAMILY: &'static str = "address_index";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, key: &Self::Key) -> Arc<AddressIndexV> {
+        let Some(prof) = profile_of(q, *key) else {
+            return Arc::new(AddressIndexV::default());
+        };
+        let unit = u64::from(prof.unit_bits);
+        let channels = q.table::<Channel>();
+        let mut uses: Vec<AddressUse> = Vec::new();
+        for m in q.get::<ModuleOrder>(*key).iter() {
+            for e in q.get::<ChannelAddresses>(m.module).iter() {
+                let ChannelAddr::At { address, text } = &e.address else {
+                    continue;
+                };
+                let from = u64::from(address.byte) * unit + address.bit.map_or(0, u64::from);
+                uses.push(AddressUse {
+                    module: m.module,
+                    channel: e.channel,
+                    number: e.number,
+                    address: *address,
+                    text: text.clone(),
+                    manual: channels
+                        .get(e.channel)
+                        .is_some_and(|c| matches!(c.address, AddrSpec::Manual(_))),
+                    from,
+                    to: from + u64::from(address.size.bits()),
+                });
+            }
+        }
+        uses.sort_by(|a, b| {
+            (a.address.area, a.from, a.module, a.number, a.channel).cmp(&(
+                b.address.area,
+                b.from,
+                b.module,
+                b.number,
+                b.channel,
+            ))
+        });
+        let mut overlaps = Vec::new();
+        for i in 0..uses.len() {
+            for j in i + 1..uses.len() {
+                if uses[j].address.area != uses[i].address.area || uses[j].from >= uses[i].to {
+                    break;
+                }
+                overlaps.push((i, j));
+            }
+        }
+        Arc::new(AddressIndexV { uses, overlaps })
+    }
+}
+
+/// The derived (`auto`) address of channel `number` of `module` with the module's current start, whatever the
+/// channel's own address specification: the value a `Manual` address is compared against (EW-PLC-012 `manual`,
+/// `plc.convert_manual_to_auto`). `None` when the channel or the address does not resolve.
+pub fn auto_address(q: &Q, module: Id<Device>, channel: Id<Channel>) -> Option<ew_plcaddr::PlcAddress> {
+    q.get::<ChannelAddresses>(module)
+        .iter()
+        .find(|e| e.channel == channel)
+        .and_then(|e| e.auto)
 }
 
 fn address_of(

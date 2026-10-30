@@ -458,6 +458,28 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "plc.set_profile",
+      "params_version": 1,
+      "schema": "plc.set_profile.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "plc.set_start",
+      "params_version": 1,
+      "schema": "plc.set_start.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "potential.define",
       "params_version": 1,
       "schema": "potential.define.schema.json",

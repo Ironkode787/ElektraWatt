@@ -1,0 +1,30 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`plc.set_profile` (`SetProfile`, doc 10 §3.9 `plc.set_profile{cfg, profile}`, FR-PLC-008, FR-PLC-007; WP-S1.21\nD8): pins another shipped address profile on a configuration project.\n\n`profile` names a profile this build ships, by its reference `id@version` or its ID alone, without regard to case\n(`iec-61131-3` pins `iec-61131-3@2027.1`); every other text is rejected at `/profile` with the list of shipped\nprofiles. The change renders only: addresses are stored canonically, so the project files differ in the one\n`profile` member, and every address prints in the new notation (`Q0.1` → `%QX0.1`). A profile equal to the current\none writes nothing. The configuration project exists ([`CmdError::NotFound`]). One undo step. Outcome: the\nconfiguration project.",
+  "properties": {
+    "config_project": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The configuration project."
+    },
+    "profile": {
+      "description": "The shipped profile: `id@version` or the ID (`iec-61131-3`).",
+      "type": "string"
+    }
+  },
+  "required": [
+    "config_project",
+    "profile"
+  ],
+  "title": "plc.set_profile",
+  "type": "object"
+}

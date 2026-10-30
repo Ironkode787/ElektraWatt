@@ -1,0 +1,53 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "StartDir": {
+      "description": "A direction of a module's I/O range: the start `plc.set_start` sets.",
+      "oneOf": [
+        {
+          "const": "input",
+          "description": "The input start (area I).",
+          "type": "string"
+        },
+        {
+          "const": "output",
+          "description": "The output start (area Q).",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`plc.set_start` (`SetStart`, doc 10 §3.9 `plc.set_start{modules, dir, spec}`, FR-PLC-013, FR-PLC-014; WP-S1.21\nD8): sets the start of one direction of one or more modules.\n\n`spec` is `auto` (the default: the module takes the first free range after the modules before it, algorithm A1),\n`excluded` (not addressed), `tbd` (an open item, reported by EW-PLC-015) or a start text in the notation of the\nmodule's configuration project's profile (the shipped default profile while the module has no station): the area\nand the byte, as `Q10`, `Q10.0` or `QB10` under the TIA profile and `%QX10` under IEC, stored as a `manual` start.\nThe keywords are read without regard to case. Rejected: a module that does not exist ([`CmdError::NotFound`]) or\nhas no `plc_module` aspect; at `/spec`, a text the profile does not read (with the profile's example start) and a\nstart in another area than the direction's (an input start is in area I, an output start in area Q). A module\nwhose part has no range in `dir` takes the start anyway, with a notice that it has no effect. A start equal to the\ncurrent one writes nothing. One undo step. Outcome: the first module.\n\nRenders nothing by itself: only the modules whose start value changes are re-addressed (the per-module cut-off\nof D9: a manual start outside the automatic path moves no other module, doc 10 §3.1).",
+  "properties": {
+    "dir": {
+      "$ref": "#/$defs/StartDir",
+      "description": "The direction whose start is set."
+    },
+    "modules": {
+      "description": "The module devices (at least one).",
+      "items": {
+        "$ref": "#/$defs/CmdUuid"
+      },
+      "type": "array"
+    },
+    "spec": {
+      "description": "`auto`, `excluded`, `tbd` or a start text of the profile (`Q10`).",
+      "type": "string"
+    }
+  },
+  "required": [
+    "modules",
+    "dir",
+    "spec"
+  ],
+  "title": "plc.set_start",
+  "type": "object"
+}
