@@ -1,6 +1,6 @@
 # PLC, I/O and fieldbus
 
-**Status:** Draft v0.4 · **Date:** 2026-10-22 (v0.4: cycle-21 design pass: the map-language grammar as normative text, no subtraction, §2.6; decision log ID-523 to ID-525; v0.3: cycle-18 design pass: the solenoid-position map and the pin-designation map as built, derivation step 4, N1 to N3 and `plc.set_module_part`, the FR-PLC-051 rewording, §2.4, §2.6, §2.10, §3.2, §3.3, §3.9, §4; decision log ID-464 to ID-469; v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.5 · **Date:** 2026-10-30 (v0.5: cycle-38 design pass: the pin texts, the addressing commands, the MVP EW-PLC rules and the PLC navigator as built, §3.6, §3.9, §3.10, §6; decision log ID-870, ID-874, ID-876, ID-877; v0.4: cycle-21 design pass: the map-language grammar as normative text, no subtraction, §2.6; decision log ID-523 to ID-525; v0.3: cycle-18 design pass: the solenoid-position map and the pin-designation map as built, derivation step 4, N1 to N3 and `plc.set_module_part`, the FR-PLC-051 rewording, §2.4, §2.6, §2.10, §3.2, §3.3, §3.9, §4; decision log ID-464 to ID-469; v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) models PLC configuration projects, stations, modules,
 channels and fieldbus networks. It defines how EW derives addresses, symbols, function texts and targets instead of
@@ -755,6 +755,8 @@ them are internal valve-coil channels.
 - **Placing a channel symbol binds it**; it never copies properties (PBF §2.7, rule 2). Every representation
   renders the same determined values.
 
+*As built (cycles 37 and 38; decision log ID-860, ID-874, ID-876).* The `PlcAddress` slot prints as above; Golden A's embedded valve, lamp and position-switch symbols carry it since FT-698, so folios 203 to 206 print Q0.1 … Q6.7. A black box's pin text is the function CP's designation as stored and, for a CP bound to a channel, the printed address after one space ("1 I0.0"); a designation the symbol's `cp_designation` slot prints is left out. Pin texts never move; a cross-reference text that would overlap one drops below it (FT-707; folios 102 and 106 of Golden A).
+
 ### 3.7 Valve terminals
 
 The valve terminal is **one device tree in three disciplines** (ARCH §4.3, REF-098):
@@ -843,6 +845,8 @@ strict mode with the message "address owned by PLC1 (TIA import of <date>)" and 
 mode it is reported. Inserting the same module after an import moves nothing: the five later starts are
 `Manual` (PLC-owned), so A1 gives the new module the first free byte, Q7, and the preview lists only its 8 channels.
 
+*As built (cycle 38, WP-S1.21 part 3, decision log ID-870).* `plc.set_start` and `plc.set_profile` are built (Interactive; the IEC profile prints `%QX0.1`); a start edit re-derives only its own module's channel addresses (`ModuleStartOf`). `plc.readdress` and `plc.convert_manual_to_auto` are not built: both need A1 over the whole configuration project inside one transaction, which ADR-0008 amendment 4 forbids (FT-725). `plc.bind_channel` also takes tags in a command log: a channel as `<module tag>#<number>` or `<module tag>:<designation>`, a function as `<tag>` or `<tag>:<slot>` (FT-721).
+
 ### 3.10 Check rules
 
 The EW-PLC pack ships at MVP with the rules marked MVP and is complete at 1.0 (FR-CHK-005). Rules are registered
@@ -905,6 +909,8 @@ reference or the pilot's PLC program, PQ-15).
 EW-PLC-015 supersedes EW-CORE-044 for module starts and channel addresses. EW-PLC-015 covers only module starts and
 channel addresses, so it never reports the bus `Tbd`, and each `Tbd` yields exactly one finding. Every rule ID has
 its documentation page (NFR-DOC-02).
+
+*As built (cycle 38, WP-S1.21 part 3, decision log ID-870).* EW-PLC-001, -002, -003, -007, -008, -012 and -015 are built in the scopes `module` and `cfg`, with en-GB and nl-NL messages; EW-PLC-007 compares symbols exactly, and findings name a channel as `<full tag>:<designation>`. Their prevent half (EW-PLC-001, -007) is not built (FT-726). EW-PLC-012 offers "rebind to the map's channel" and carries the unverified-data marker; "open the part's PLC section" is FT-727; Golden A reports its 28 findings under H1 (EF-02). Two channels of one module with one number are reported by EW-CORE-008 `duplicate_number`, and the channel whose ID is v5 of its module and number wins (FT-350).
 
 ---
 
@@ -1217,6 +1223,8 @@ rows: JE-N1000-03 (master, external) and -201U1 (slave, `Tbd` flagged).
 | Rack/slot editor | drag modules from the device type into allowed slots; valve-terminal slot list next to the stored order code; live EW-PLC-011 | 1.0 | FR-PLC-028 |
 | Bus navigator | logical nets → ports; physical nets → derived segments with ends; termination toggles; rate at the net | 1.0 | FR-UI-006 |
 | Exchange dialog | format and version (CAEX 2.15 or 3.0 read; AR APC 1.4.0 or 1.2.0), station scope, document date, personal-data option; import preview tabs: added, removed, changed, conflicts, parking | 1.0 | FR-PLC-029 … -036, FR-EXP-009 |
+
+*As built (cycle 38, WP-S2.07 part 3, decision log ID-877).* The PLC navigator's tree is configuration project → station (role word) → module → channel, without racks and bus ports (FT-739); the grid has 14 columns without rack, data type, safety and signal range (FT-737), the flags spare, unplaced, unassigned, tbd and duplicate and the config facet, without safety and bus facets (FT-738); a channel row dropped on a CP binds it with one `plc.bind_channel`. Golden A's valve coils have no drawn CP to drop on (FT-740).
 
 - **Persona and journey.** The PLC grid is the main surface of persona P3 and of journey J4
   ([vision](00-vision-and-scope.md) §5, §6).

@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -281,7 +281,7 @@ lines of the drawing.
 | `canvas.hover` | `volt-600` | 5.69 | 1s-px dashed outline |
 | `canvas.ghost` | `volt-600` at 60 % | — | The placed symbol's strokes, its label chip (§7.3) |
 | `canvas.snap` | `volt-600` | 5.69 | Crosshair with a 6-px gap; CP ring 8s + 1 px |
-| `canvas.open_cp` | `volt-600` | 5.69 | A (4s + 1)-px hollow square with an s-px rim on each connection point without a connection on the page (screen only; drawn while a grid step is at least 4 points on screen; FT-705) |
+| `canvas.open_cp` | `volt-600` | 5.69 | A (4s + 1)-px hollow square with an s-px rim on each connection point without a connection on the page (screen only; drawn while a grid step is at least 4 points on screen; FT-705). *Ruled in cycle 38 (decision log ID-879):* a subdued neutral ink, not the accent, so the squares on a valve page do not read as selection handles; fluid ports keep the marker; built in the cycle-38 fix round (FT-745) |
 | `canvas.highlight.1` | vermillion #D55E00 | 3.87 | 45° hatch halo, name chip filled with the hue |
 | `canvas.highlight.2` | bluish green #009E73 | 3.42 | 135° hatch halo, name chip filled with the hue |
 | `canvas.highlight.3` | reddish purple #CC79A7 | 3.06 | 0° hatch halo, name chip filled with the hue |
@@ -299,6 +299,8 @@ accent #0B63CE, so the tree, the Properties header and the canvas show the selec
 blue, and the CVD renders of NFR-A11Y-03 are re-run with the new value. **Highlight name chips** are filled with
 their slot's hue (`radius.sm`, 20 px high), as in the mockup; their label is black, because white on the four hues
 is 3.87, 3.42, 3.06 and 4.25:1, under NFR-A11Y-04's 4.5:1 for text (one of the two corrections of §11).
+
+*As built (cycle 38; decision log ID-872, ID-876).* The open-CP squares are a session overlay, never in the display list, print or PDF. On paper, a black box's pins print their CP designations as stored, with the PLC address after one space when the CP is bound ("1 I0.0"); pin texts never move, and a cross-reference that would overlap one drops below it (FT-707).
 
 ### 4.7 High-contrast themes
 
@@ -653,6 +655,8 @@ placed" in `color.text.secondary`, turning to `color.success` with a check icon 
 placed, `color.warning` with "unplaced" when the part has functions not on any page. The Insert ▸ Symbol picker (I)
 stays as the keyboard path; both open the same Place tool.
 
+*As built (cycle 38; decision log ID-875, FT-712).* The part picker's rows lead with the part's description in words, not its code (`CataloguePart.description`); a disabled row says why on hover (`disabled_tip`), as the command bar's disabled tools already did; a change-over contact reads "changeover contact 11-12-14" by a display mapping.
+
 ### 5.7 Bottom: Messages, Find, Jobs, History, Preview
 
 One tab group below the canvas (WP-S2.09 D14), **closed by default**. It opens when the user asks: the status-bar
@@ -701,6 +705,8 @@ The language field leaves the status bar (it stays on the start page and in Sett
 year does not belong in the busiest strip of the window.
 
 *As built (cycle 32; decision log ID-749).* The save-state field shows exactly the three texts above: "Saved", "Unsaved changes" and "Read-only".
+
+*As built (cycle 38; decision log ID-875, FT-710).* The findings field, the check toast and the Messages tab's chip count by one rule, `MessageCounts::open`: the project's open errors, warnings and infos, without the waived and the pending ones (the completeness findings of the page being edited); the field adds "· N pending on this page" when there are any. The Properties chip stays scoped to its record or page.
 
 ### 5.9 Focus order
 
@@ -840,6 +846,8 @@ action depends on its time (NFR-A11Y-04). The **notifications log** is a popover
 in tree-row style, newest first, each with its time, message and still-valid actions; "Clear" at its foot.
 
 *As built (cycle 32; decision log ID-750).* The notification model has no severity and no secondary line, so **the toast's icon follows from whether it offers an action**, and the line row is not drawn. The log's foot has Close, not Clear.
+
+*As built (cycle 38; decision log ID-875, FT-709, FT-710).* Deleting a device's last representation names the device left without a symbol in the delete toast, with "(now <new tag>)" after a re-tag. The check toast counts findings by the status bar's rule (§5.8).
 
 ### 6.11 Banners
 

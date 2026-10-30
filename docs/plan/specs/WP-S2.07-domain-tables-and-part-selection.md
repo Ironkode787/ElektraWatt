@@ -5,7 +5,7 @@ the strip accessories and the bridge parts that close G-PP's H4 gap, terminal an
 the fallback bridge (1.4 pw, D4), part 2 the edit-cable table and the generic navigator row operations (0.6 pw, D3),
 part 3 the PLC navigator with drag-bind and the PLC grid (0.7 pw, D3), part 4 the part selection dialog and the part
 editor on WP-S1.19's catalogues (0.9 pw, D4); part 1 may run in cycle 34's later wave; parts 2 and 3 follow in any
-order; part 4 waits for WP-S1.19's catalogues · **Date:** 2026-10-29 · **Work package:**
+order; part 4 waits for WP-S1.19's catalogues · **Part 3 built in cycle 38** (lane D38, decision log ID-877; racks, bus ports, the safety and bus facets and four columns de-scoped, FT-737 to FT-739; PG2 on a starter project, FT-740) · **Date:** 2026-10-29 · **Work package:**
 [WP-S2.07](../02-work-packages.md#wp-s207-domain-tables-strip-cable-and-plc-editors-part-selection) ·
 **Decision log:** ID-782 · **Part of:** ElektraWatt plan, specifications
 
@@ -481,6 +481,8 @@ half 0.2, tests 0.05.
 drag-bind of FR-PLC-020, PG3 pasting 8 symbols from Excel into the grid is one undo step (FR-PLC-021), PG4 each facet on
 Golden A, PG5 the typed editors, PG6 transcript and counts. **Size 0.7 pw:** tree 0.15, drag-bind 0.2, grid columns and
 facets 0.2, editors 0.05, tests 0.1.
+
+*As built (cycle 38, lane D38, decision log ID-877; d7d17422, d437380a).* PG1 to PG5 hold. **Tree:** configuration project → station (its role word as the badge) → module → channel, with the `unplaced` and `spare` badges; modules not attached to a station are not shown. **Not built (de-scoped):** the rack level and the bus ports under their station (FT-739). **Grid:** 14 columns, station, module, slot, channel, designation, kind, address, symbol, function text, process tag, state, target, placed on and comment; the rack, data-type, safety and signal-range columns are not built (FT-737, FT-739). The slot prints the slot alone for rack 0 without a subslot, else `r.s` or `r.s.u`. **Facets:** the PLC flags `spare`, `unplaced` (no binding; a card pin bound by N3 counts as placed), `unassigned` (Excluded or Unresolved), `tbd` and `duplicate` (EW-PLC-007 and the EW-PLC-001 overlap), applying in the PLC navigator only, and the config facet; `safety` and `bus:<name>` are not built (FT-738). **Typed editors:** address (the profile's text through `fields.set`, FT-690), target (a device tag resolving to its main function), slot (`n`, `r.s`, `r.s.u`, `auto`) and the module start in the property grid through `plc.set_start` (no start column). **Drag-bind:** a hidden `navigator.bind` action runs `plc.bind_channel` (no new command). **PG2** was tested on a starter project (the generic CPU, the output card and a starter coil, channel 0 dropped on the coil's CP), not on -201U3's channel 1 onto -201U3-Q1 on folio 203: the orchestrator's feasibility ruling, because Golden A's valve coils have no drawn internal CPs to drop on (FT-740).
 
 ## 9. Part 4: part selection and the part editor
 

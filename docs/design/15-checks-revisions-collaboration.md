@@ -1,6 +1,6 @@
 # Checks, revisions and collaboration
 
-**Status:** Draft v0.7 · **Date:** 2026-10-25 (amended 2026-10-30, cycle 36: the typed waiver and its commands `check.waive` and `check.unwaive` as built, §2.5, decision log ID-844; amended 2026-10-29, cycle 34: the EW-POT pack as built, WP-S1.16 parts 1 and 2, §4 and §4.4; amended 2026-10-29, cycle 33: EW-POT-008 fires on an unlocated rail-bonded terminal only with two or more own locations, §4.4, G-PP ruling #20; EW-CORE-047 as built, §4.2, decision log ID-770; v0.7: FT-405's notice as built, §2.4, decision log ID-649; v0.6: the scheme slots' first reader, `ew check`, and the unshipped-scheme notice, §2.4, decision log ID-602; revision author and checker read-only in the property grid, §5.4, decision log ID-593, built in cycle 25, ID-626; v0.5: the cycle-14 rules EW-NUM-001, EW-CORE-023, EW-CORE-053, EW-POT-002 and EW-CORE-065 as built, the release gate of scheme content, decision log ID-349, ID-353, ID-354; v0.4: the check engine as built in cycle 12, decision log ID-305 to ID-313: scope deviations, EW-CORE-051/052 split, waiver semantics, the migration scheme on imports; v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.7 · **Date:** 2026-10-25 (amended 2026-10-30, cycle 38: the MVP EW-PLC rules, the content digest, `revision.approve` and the release gate as built, dates in records as UTC dates, §2.5, §4.5.1, §4.8, §5.4, decision log ID-870, ID-871; amended 2026-10-30, cycle 36: the typed waiver and its commands `check.waive` and `check.unwaive` as built, §2.5, decision log ID-844; amended 2026-10-29, cycle 34: the EW-POT pack as built, WP-S1.16 parts 1 and 2, §4 and §4.4; amended 2026-10-29, cycle 33: EW-POT-008 fires on an unlocated rail-bonded terminal only with two or more own locations, §4.4, G-PP ruling #20; EW-CORE-047 as built, §4.2, decision log ID-770; v0.7: FT-405's notice as built, §2.4, decision log ID-649; v0.6: the scheme slots' first reader, `ew check`, and the unshipped-scheme notice, §2.4, decision log ID-602; revision author and checker read-only in the property grid, §5.4, decision log ID-593, built in cycle 25, ID-626; v0.5: the cycle-14 rules EW-NUM-001, EW-CORE-023, EW-CORE-053, EW-POT-002 and EW-CORE-065 as built, the release gate of scheme content, decision log ID-349, ID-353, ID-354; v0.4: the check engine as built in cycle 12, decision log ID-305 to ID-313: scope deviations, EW-CORE-051/052 split, waiver semantics, the migration scheme on imports; v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -255,6 +255,8 @@ fingerprint = first 128 bits of SHA-256("ew-fp/1" ‖ rule_id ‖ sorted target 
   sessions and plugins get `CmdError::Exposure`. The same holds for scheme edits, pack enablement, strictness,
   `revision.approve`, `revision.release`, `revision.withdraw` (`ew revision withdraw <label> --reason <text>`,
   [17](17-extensibility.md) §3.3) and completing or reopening a project (GUI only, §5.10).
+
+*Dates (cycle 38, decision log ID-871).* Dates in records are UTC dates: a waiver's `date` is the window's UTC date (ID-858), and a sign-off's date is the system clock's UTC date the front-end passes (`ew revision approve`), so a sign-off made just after local midnight carries the UTC date. A local date is FT-697's wish.
 
 ### 2.6 Quick fixes
 
@@ -752,6 +754,8 @@ both 1.0, so it follows at 1.x (Could).
 | EW-PRC-001 | Process-tag scheme | A process tag that does not match the scheme, or one tag on different devices | hygiene | o r | warning | project | 1.0 | FR-PLC-049 | D-27 | 10 §3.10 |
 | EW-PRC-002 | Open instrument tag | An instrument-list tag without device or channel (open item) | completeness | o | info | project | 1.0 | FR-PLC-050 | D-27 | 10 §3.10 |
 
+*As built (cycle 38, WP-S1.21 part 3, decision log ID-870).* The seven MVP rules are built in the scopes `module` and `cfg` with en-GB and nl-NL messages and rule pages; EW-PLC-001 and EW-PLC-007 run online only (the prevent half is FT-726); EW-PLC-008 is a warning online (its export severity: FT-729); EW-PLC-012 has one quick fix and the unverified-data marker (FT-727 for the second); EW-PLC-015 supersedes EW-CORE-044 inside a configuration project. EF-02 joins AC-21's compared subset. Two channels of one module with one number: EW-CORE-008 with the discriminator `duplicate_number`.
+
 #### 4.5.2 EW-BUS
 
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (golden) | Def. |
@@ -906,6 +910,8 @@ or EW-CORE-083/084 at error level. Its named blockers are release-scheme rules a
 - EW-REL-001 (author = checker, missing or stale sign-off) and EW-REL-002 (stale committed computations).
 
 On Golden A at MVP, EW-REL-002 and EW-REL-004 report nothing; EW-REL-001 reports "checker not set".
+
+*As built (cycle 38, WP-S1.18 part 3, decision log ID-871).* EW-REL-001, -002 and -004 are the EW-REL pack, in the gate-only mode `g`. `ew_checks::gate` evaluates the release scheme in release mode with the EW-REL rules and returns the blockers, the safety waivers in force (the waivers that waive a safety-kind finding of the gate report) and the pack versions (the build version plus the SHA-256 of each pack's definition; per-pack versions are FT-732).
 
 ### 4.9 Shipped schemes
 
@@ -1088,6 +1094,8 @@ content_digest SHA-256 over the sorted (path, sha256) entries of the saved manif
   - Teams that need evidence use the git workflow, where the pull-request approval of a second account provides it
     (§6.3). EW creates the annotated tag `ew/rev/<label>` ([05](05-project-format-and-persistence.md) §14.1 step 5);
     it is signed when the user's git configuration enables tag signing (`tag.gpgSign`), which EW does not set up.
+
+*As built (cycle 38, WP-S1.18 part 3, decision log ID-871).* `content_digest` is `ew_format::content_digest`: SHA-256 over one `sha256sum` line per content file of the saved manifest, in path order, without `revisions.jsonl` and `comments.jsonl`. `revision.approve` is submitted only by `Session::approve` (execute and preview refuse it) and needs an author; `ew revision approve --as <role>` and `ew revision release <label>` ask for the typed label and exit 2 without a terminal; the release prints the gate's blockers when it refuses, and a passing gate exits 2 with "not built yet" until the release step of §5.5 is built (WP-S1.18 part 4). The sign-off date is a UTC date (§2.5).
 
 ### 5.5 Release
 

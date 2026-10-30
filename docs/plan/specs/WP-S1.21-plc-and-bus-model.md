@@ -5,7 +5,7 @@ work, in five parts: part 1 PLC records from the window and the channel members 
 PLC texts on the pages (0.6 pw, D7), part 3 addressing commands, the EW-PLC rules and AC-29 (1.1 pw, D8 to D10), part 4
 the bus model, the EW-BUS rules and AC-31 (1.2 pw, D11, D12), part 5 the I/O list, card supply groups and the model
 follow-ups (0.5 pw, D13); part 1 first; parts 2 and 3 after it in any order or side by side; part 4 after part 1;
-part 5 last; WP-S2.18 part 4 (`brief-plc-io`) waits for parts 1 and 2 and WP-S2.07 part 3 · **Parts 1 and 2 built in cycle 37** (lane A37, decision log ID-854; lane G37, ID-860; Golden A unchanged, its folios 203 to 206 wait for FT-698) · **Date:** 2026-10-30 ·
+part 5 last; WP-S2.18 part 4 (`brief-plc-io`) waits for parts 1 and 2 and WP-S2.07 part 3 · **Parts 1 and 2 built in cycle 37** (lane A37, decision log ID-854; lane G37, ID-860; Golden A unchanged, its folios 203 to 206 wait for FT-698) · **Part 3 built in cycle 38** (lane A38, decision log ID-870; PA-2 de-scoped, FT-725; the prevent half of EW-PLC-001 and -007 not built, FT-726); Golden A prints its Q addresses since FT-698 (lane F38, ID-874) · **Date:** 2026-10-30 ·
 **Work package:** [WP-S1.21](../02-work-packages.md#wp-s121-plc-and-bus-model-with-addressing-mvp) ·
 **Decision log:** ID-835 · **Part of:** ElektraWatt plan, specifications
 
@@ -224,7 +224,7 @@ address` of the channel changes the print and undo restores it. **PT-3** a bista
 fixture). **PT-4** (restated) Golden A stays byte-for-byte unchanged: its embedded symbols carry no `plc_address` slot
 and none of its black boxes has a bound pin. Folios 203 to 206 print their Q addresses once Golden A's embedded lamp,
 position-switch and valve symbols gain the slot through a library update (a follow-up proposed in cycle 37, a
-golden change). **PT-5** targeted checks as PW-8 for `ew-derive`, `ew-scene`, `ew-api`.
+golden change). *As built (cycle 38, FT-698, decision log ID-874):* Golden A prints its Q addresses since FT-698: the starter lamp, position switch and 5/2 valve gained the `plc_address` slot at 0.2.0 (`ew-starter` 0.3.0), Golden A's embedded copies followed through the bootstrap re-bless (a golden change, equal to what `update_from_library` gives), and folios 203 to 206 print Q0.1 … Q6.7, the addresses of folio 908's 28 bound channels; folio 101's lamp and position switch are unbound and print nothing. Since FT-707 (ID-876) the black boxes' pins also print their designations, as stored, before the address ("1 I0.0"). **PT-5** targeted checks as PW-8 for `ew-derive`, `ew-scene`, `ew-api`.
 
 ## 7. Part 3: addressing commands, the EW-PLC rules and AC-29
 
@@ -241,6 +241,8 @@ under H2 by a part-data edit only; changing -201U5's start recomputes only its 8
 **PA-7** two channels with one number give EW-CORE-008 `duplicate_number` once, the v5 one wins. **PA-8** the AC-21
 subset grows by EW-PLC-012 (EF-02); the rule pages and messages exist (`cargo xtask docs-gen` clean). **PA-9**
 targeted checks for `ew-commands`, `ew-derive`, `ew-checks`.
+
+*As built (cycle 38, lane A38, decision log ID-870; 7e283ab9, b2ef7020, eeca6037).* PA-1 and PA-3 to PA-8 pass; PA-5 on an in-memory edit, because Golden A's part 533361 carries no `test` mark (FT-728). **PA-2 is not met:** `plc.readdress` and `plc.convert_manual_to_auto` left under §12's de-scope rule, because both need A1 over the whole configuration project inside one transaction, which ADR-0008 amendment 4 forbids (FT-725). **D6's refusal is not built:** EW-PLC-001 and EW-PLC-007 report online only; their prevent half under a strict scheme is FT-726. **D10:** EW-PLC-012 has the rebind quick fix; "open the part's PLC section" is FT-727. As built: the IEC 61131-3 profile prints `%QX0.1`; `ModuleStartOf` gives D9's cut-off and `AddressIndex` lists every address of a configuration project with its overlaps (both memo families; AC-16 at 77 families); the check scopes are `Module` and `Cfg`; a duplicate number is won by the channel whose ID is v5 of its module and number, in the index and in N1; EW-PLC-007 compares symbols exactly; findings name channels as `<full tag>:<designation>`. FT-721's tag forms of `plc.bind_channel` (`<module tag>#<number>` or `<module tag>:<designation>`; `<tag>` or `<tag>:<slot>`) are resolved in `run_script` before the line runs. The cycle-38 review sends the IEC profile's refusal of `%Q0.1` (doc 10 §2.5; FT-746) and EW-PLC-001's pairwise overlap index (FT-747) to the fix round.
 
 ## 8. Part 4: the bus model, the EW-BUS rules and AC-31
 

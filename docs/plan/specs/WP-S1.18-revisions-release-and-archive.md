@@ -6,7 +6,7 @@ change status and the revision overview (0.8 pw, D6, D7), part 3 the content dig
 (0.8 pw, D8 to D10), part 4 the atomic release with the as-built archive (1.1 pw, D11 to D13), part 5 the archive's
 use, the dialogs and AC-23 (0.5 pw, D14, D15); part 1 first; part 2 after part 1; part 3 after parts 1 and 2 and
 WP-S1.16 part 5 (waivers; they exist since cycle 36, `crates/ew-schema/src/waiver.rs`); part 4 after part 3; part 5
-last · **Parts 1 and 2 built in cycle 37** (lane C37, decision log ID-856; lane H37, ID-861; folio 911 a golden change) · **Date:** 2026-10-30 · **Work package:**
+last · **Parts 1 and 2 built in cycle 37** (lane C37, decision log ID-856; lane H37, ID-861; folio 911 a golden change) · **Part 3 built in cycle 38** (lane B38, decision log ID-871; the release itself is part 4) · **Date:** 2026-10-30 · **Work package:**
 [WP-S1.18](../02-work-packages.md#wp-s118-revisions-release-gate-and-as-built-archive) · **Decision log:** ID-836 ·
 **Part of:** ElektraWatt plan, specifications
 
@@ -201,6 +201,8 @@ after approval makes EW-REL-001 report a stale sign-off; a comment edit or a pag
 Golden A lists the release scheme's errors plus EW-REL-001 "checker not set" (D15's refusal half). **RG-5** the three
 subcommands exit 2 without a terminal; with the test hook they submit; a `.ewcmd` line naming `revision.approve` is
 refused with the exposure error. **RG-6** targeted checks for `ew-format`, `ew-commands`, `ew-checks`, `ew-api`, `ew`.
+
+*As built (cycle 38, lane B38, decision log ID-871; ac2ffeac, 031affe2, 395075f3).* RG-1, RG-2, RG-4 and RG-5 pass; RG-3's comment edit through the session gets its test in the cycle-38 fix round (FT-748). The content digest is `ew_format::content_digest` over `content_lines`: one `sha256sum` line per content file of the saved manifest, in path order, `revisions.jsonl` and `comments.jsonl` excluded. The gate-only rule mode is `g`. `revision.approve` is `HumanOnly`, submitted only by `Session::approve` (execute and preview refuse it); it needs an author, a checker other than the author, a saved project and a release-mode gate with no unwaived error but EW-REL-001; the safety waivers in force (those that waive a safety-kind finding of the gate report) are printed and acknowledged by the typed label. A pack's version is the build version plus the SHA-256 of its definition text (per-pack versions: FT-732; the hash of `kind` and `scope` through `Debug`: FT-749, the fix round). The CLI's test confirmation is an injected terminal (no cargo feature). Exit codes: 0 approved or withdrawn and saved, 1 refused or not confirmed, 2 on usage, terminal, open and save errors and for a release whose gate passes ("not built yet"). The sign-off date is the system clock's UTC date, as a waiver's is (doc 15 §2.5). Follow-ups FT-731 (a party for the `--as` role), FT-733 (`ew check --gate`).
 
 ## 8. Part 4: the atomic release and the as-built archive
 

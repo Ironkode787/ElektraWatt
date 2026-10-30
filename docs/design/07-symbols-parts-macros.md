@@ -1,6 +1,6 @@
 # Symbols, parts and macros
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-10-29, cycle-35 design pass, WP-S1.19 parts 2 to 4 and WP-S2.18 parts 2 and 3 as built: the generic starter parts in `ew-starter-parts`, the tiers and the index, `part.assign`, `library.update`, the parts import and the manufacturer copies, §2.1, §2.2, §3.1, §3.3, §3.6, §4.5, §4.7, §9.2, decision log ID-818, ID-820, ID-824, ID-830; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-10-30, cycle-38 design pass, `macro.insert`'s orientation and the valve typical as built, §4.6, §9.3, decision log ID-878; 2026-10-29, cycle-35 design pass, WP-S1.19 parts 2 to 4 and WP-S2.18 parts 2 and 3 as built: the generic starter parts in `ew-starter-parts`, the tiers and the index, `part.assign`, `library.update`, the parts import and the manufacturer copies, §2.1, §2.2, §3.1, §3.3, §3.6, §4.5, §4.7, §9.2, decision log ID-818, ID-820, ID-824, ID-830; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies ElektraWatt's (EW) master data: symbols and function definitions (FnDefs), the
 parts database, macros with value sets, basic projects (company templates), and the libraries and governance that
@@ -1009,6 +1009,8 @@ the topological order of variable dependencies, and a cycle is a save-time error
 every connection to it. Folio 206 uses this to omit the second module, and folios 204–206 to omit the field
 devices that only folio 203 draws (§9.3).
 
+*As built (cycle 38, decision log ID-878; FT-672).* `macro.insert` takes `orient` (default r0, left out of the log at r0) and turns the fragment about its anchor before the move: representations compose it, route vertices, junctions, page items and box outlines turn as points in whole grid steps, text and arc angles turn as directions, markers modulo 180°, and route ends follow their CPs. A page macro refuses a non-default orient at `/orient`. A record a `DeviceRef` variable names stays referenced, a child tag's counter stays when its parent comes along, and a module landing on an occupied slot lists the addresses it doubles in the conflict list.
+
 ### 4.7 Library index build
 
 On start-up and on a watcher event:
@@ -1268,6 +1270,8 @@ Seven further symbols join the starter set for the pilot corpus (§2.3, decision
   element of E55 with its source name (FR-SYM-018). Step 3 of `c-fix.ewcmd` exchanges the elements for the
   `@qet10` starter symbols through `symbol-map.csv`, keeping CPs by index, and step 5 assigns starter-catalogue
   parts ([20](20-golden-project.md) §20.2).
+
+*As built (cycle 38, decision log ID-878; FT-671).* The valve-manifold page macro is saved from folio 203 with the groups A, B (`$has_b`) and `field` (`$has_field`). Because Golden A's modules use positional slots (`SlotPath::Positional`), each module group binds a position and a tag counter (`$a_pos`, `$a_counter`; the window macro `$pos`) instead of `$slot`, besides `$assembly`, the states, the function texts and the process tags: value set 1 places groups A and B at positions 2 and 3 (counters 3 and 4), value set 4 places -202U2 at position 10 (counter 2). Inserted four times into Golden A without folios 203 to 206, it rebuilds them with every report-row block equal (MC-4); the overview on 201 and 202 does not regenerate yet (FT-741). Golden A draws no fluid lines on 203 to 206, so the typical carries none (FT-744).
 
 ### 9.4 Defects prevented
 
