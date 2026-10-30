@@ -72,6 +72,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "tool-place" => "Place",
         "tool-exchange" => "Change symbol",
         "hint-place" => "Click or Enter to place; R, X, Y and V turn it; Escape ends",
+        "hint-choose-strip" => "Choose the terminal strip in the list; Escape cancels",
         "hint-place-proposals" => {
             "Click or Enter to place and connect the proposed wires; Alt+Click or Ctrl+Enter places without them; Tab tries the next target; Escape ends"
         }
@@ -142,6 +143,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "No terminal strip to add to: create one (Insert, Terminal strip). A terminal designation numbers a terminal;              a device's tag is set in its properties (Frozen tag)"
         }
         "reason-designation-needed" => "Give the terminal's designation",
+        "reason-choose-strip" => "Choose a terminal strip in the list first, or press Escape",
         "reason-ip-exchange" => "An interruption point keeps its symbol",
         "reason-no-next-rep-type" => "No other symbol draws this function on this page",
         "reason-no-picker-row" => "The picker shows no row",

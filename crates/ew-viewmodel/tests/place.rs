@@ -896,6 +896,43 @@ fn a_terminal_placed_from_a_part_is_named_by_its_own_tag() {
     );
 }
 
+/// Cycle 36 (play-test rv-txt-2): while the strip chooser is open the hint says it waits for a strip, and a press on
+/// the canvas starts no rubber band (refused with the reason, its release dropped); the chooser stays open and a
+/// chosen strip arms Place as before.
+#[test]
+fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() {
+    let tmp = Tmp::new("strip-chooser");
+    let mut s = shell(&tmp, "103");
+    let select_hint = state(&s)["status"][0].clone();
+    done(&mut s, "place.pick", json!({"symbol": "ew.iec.terminal@qet10"}));
+    assert_eq!(state(&s)["canvas"]["picker"]["mode"], "strip");
+    let hint = ew_viewmodel::strings::text("hint-choose-strip");
+    assert_eq!(state(&s)["status"][0], hint);
+    assert_eq!(s.tool_hint(), hint);
+    let here = sheet(&s, free_point(&s));
+    let away = sheet(&s, grid_point(&s, (70, 40)));
+    assert_eq!(
+        s.dispatch("canvas.press", &at(here, json!({}))),
+        Outcome::Refused {
+            reason_key: "reason-choose-strip"
+        }
+    );
+    done(&mut s, "canvas.pointer", at(away, json!({})));
+    done(&mut s, "canvas.release", at(away, json!({})));
+    let st = state(&s);
+    assert_eq!(st["canvas"]["tool"]["state"], "idle", "{st}");
+    assert_eq!(st["canvas"]["selection"], json!([]), "{st}");
+    assert_eq!(st["canvas"]["picker"]["mode"], "strip", "the chooser stays open");
+    // Escape closes it and the tool's own hint returns; a chosen strip arms Place.
+    done(&mut s, "ui.dismiss", json!({}));
+    assert!(s.picker().is_none());
+    assert_eq!(state(&s)["status"][0], select_hint);
+    done(&mut s, "place.pick", json!({"symbol": "ew.iec.terminal@qet10"}));
+    done(&mut s, "picker.choose", json!({}));
+    assert_eq!(s.tool().name(), "place");
+    assert_ne!(state(&s)["status"][0], hint);
+}
+
 #[test]
 fn a_page_type_without_symbol_tools_refuses_the_editing_actions() {
     let tmp = Tmp::new("pagetype");

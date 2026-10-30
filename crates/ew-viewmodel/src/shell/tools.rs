@@ -113,9 +113,21 @@ impl ShellModel {
         self.tools.announcement.as_deref()
     }
 
-    /// The active tool's status hint.
+    /// The active tool's status hint; while the picker's strip chooser is open (FT-421), what it waits for instead
+    /// (cycle 36, play-test rv-txt-2: the switch to the strip list was silent).
     pub fn tool_hint(&self) -> &'static str {
+        if self.strip_chooser_open() {
+            return strings::text("hint-choose-strip");
+        }
         strings::text(self.tools.tool.status_hint())
+    }
+
+    /// Whether the picker is open as the strip chooser of a terminal placement (FT-421).
+    fn strip_chooser_open(&self) -> bool {
+        self.tools
+            .picker
+            .as_ref()
+            .is_some_and(|p| p.mode == crate::tools::PickerMode::Strip)
     }
 
     /// The snap indicator the overlay shows: its last marker, with the connection point's label.
@@ -736,6 +748,16 @@ impl ShellModel {
         if button == Button::Primary {
             if release && std::mem::take(&mut self.tools.drop_release) {
                 return Outcome::Done;
+            }
+            // Cycle 36 (play-test rv-txt-2): while the strip chooser waits for a strip, a press on the canvas starts
+            // nothing (the Select tool under it began a rubber band); the hint says what is wanted, and the press's
+            // release is dropped with it.
+            if !release && self.strip_chooser_open() {
+                self.tools.press_held = false;
+                self.tools.drop_release = true;
+                return Outcome::Refused {
+                    reason_key: "reason-choose-strip",
+                };
             }
             // A new press: a release that never came is forgotten (before the focus moves, so the press's own
             // context change drops nothing).
