@@ -538,7 +538,7 @@ fn core045_reports_contacts_beyond_the_part() {
     assert_eq!(f[0].severity, Severity::Error);
     assert!(
         f[0].message
-            .ends_with("uses 2 NO, 0 NC, 0 CO contacts; its parts have 1 NO, 1 NC, 0 CO"),
+            .ends_with("uses 2 NO, 0 NC, 0 changeover contacts; its parts have 1 NO, 1 NC, 0 changeover"),
         "{}",
         f[0].message
     );
@@ -562,7 +562,7 @@ fn core045_a_change_over_contact_serves_one_no_or_nc_function() {
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(
         f[0].message
-            .ends_with("uses 2 NO, 0 NC, 0 CO contacts; its parts have 0 NO, 0 NC, 1 CO"),
+            .ends_with("uses 2 NO, 0 NC, 0 changeover contacts; its parts have 0 NO, 0 NC, 1 changeover"),
         "{}",
         f[0].message
     );

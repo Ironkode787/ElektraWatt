@@ -6,7 +6,7 @@
 //! Enter chooses (`picker.choose`), typing filters (`picker.filter`), Escape closes it (`ui.dismiss`, the topmost
 //! popup). Every change is a registry action, so the headless mode drives the same model.
 
-use egui::{Align2, Button, Id, Key, Modifiers, ScrollArea, TextEdit, Window};
+use egui::{Align2, AtomExt as _, Button, Id, Key, Modifiers, ScrollArea, TextEdit, Window};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use ew_viewmodel::tools::{PickerMode, PickerRow};
@@ -115,7 +115,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                                     .color(t.text_secondary.color32()),
                             );
                         }
-                        let (name, meta, tooltip) = row_texts(picker, *row);
+                        let (name, second, meta, tooltip) = row_texts(picker, *row);
                         let reason = picker.disabled(*row);
                         let meta = match reason {
                             Some(r) => strings::text(r).to_owned(),
@@ -129,17 +129,40 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         } else {
                             t.text_tertiary
                         };
-                        let button = Button::new((
-                            egui::RichText::new(&name).color(text_colour.color32()),
-                            egui::Atom::grow(),
+                        // FT-712: a part row leads with its description, cut with an ellipsis at the row's width
+                        // (whole in the tooltip), and shows its part number second in secondary text.
+                        let second_colour = if enabled {
+                            t.text_secondary
+                        } else {
+                            t.text_disabled
+                        };
+                        let mut atoms = egui::Atoms::new(
+                            egui::RichText::new(&name)
+                                .color(text_colour.color32())
+                                .atom_shrink(true),
+                        );
+                        if let Some(second) = &second {
+                            atoms.push_right(egui::RichText::new(second).color(second_colour.color32()));
+                        }
+                        atoms.push_right(egui::Atom::grow());
+                        atoms.push_right(
                             egui::RichText::new(&meta)
                                 .font(crate::theme::font(&t.type_small))
                                 .color(meta_colour.color32()),
-                        ))
-                        .selected(i == picker.row)
-                        .frame_when_inactive(false)
-                        .min_size(egui::vec2(ui.available_width(), t.size_row));
-                        let response = ui.add_enabled(enabled, button).tip(&tooltip);
+                        );
+                        let button = Button::new(atoms)
+                            .wrap_mode(egui::TextWrapMode::Truncate)
+                            .selected(i == picker.row)
+                            .frame_when_inactive(false)
+                            .min_size(egui::vec2(ui.available_width(), t.size_row));
+                        let response = ui.add_enabled(enabled, button);
+                        // A disabled row says its reason in its tooltip too (egui opens `.tip` on enabled widgets
+                        // only).
+                        let response = if enabled {
+                            response.tip(&tooltip)
+                        } else {
+                            response.disabled_tip(&tooltip)
+                        };
                         if response.clicked() {
                             events.push(Event::Action("picker.row", json!({ "to": i })));
                             events.push(Event::Action("picker.choose", json!({})));
@@ -149,9 +172,12 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         });
 }
 
-/// A row's name, its library or function line (a part's function in words, FT-664), and its tooltip with the raw IDs
-/// (WP-S2.17 part 4, §8 item 6).
-fn row_texts(picker: &ew_viewmodel::tools::Picker, row: PickerRow) -> (String, String, String) {
+/// A row's name, the text after it (a part row's part number, FT-712), its library or function line (a part's function
+/// in words, FT-664), and its tooltip with the full name and the raw IDs (WP-S2.17 part 4, §8 item 6).
+fn row_texts(
+    picker: &ew_viewmodel::tools::Picker,
+    row: PickerRow,
+) -> (String, Option<String>, String, String) {
     match row {
         PickerRow::Symbol(k) => {
             let s = &picker.catalogue.symbols[k];
@@ -162,7 +188,12 @@ fn row_texts(picker: &ew_viewmodel::tools::Picker, row: PickerRow) -> (String, S
             };
             // The name is the key's last segment without its grid variant (`ew.iec.mcb-1p@qet10` → `mcb-1p`).
             let name = ew_viewmodel::tools::symbol_name(&s.key).to_owned();
-            (name, library.to_owned(), format!("{}\n{}", s.key, s.fndef_key))
+            (
+                name,
+                None,
+                library.to_owned(),
+                format!("{}\n{}", s.key, s.fndef_key),
+            )
         }
         PickerRow::PartFn(p, k) => {
             let part = &picker.catalogue.parts[p];
@@ -179,20 +210,30 @@ fn row_texts(picker: &ew_viewmodel::tools::Picker, row: PickerRow) -> (String, S
                 meta.push(' ');
                 meta.push_str(strings::text("picker-main"));
             }
-            // FT-664: the function in words, never an ID; the tooltip adds the FnDef key that scripts name.
-            (
-                part.part_number.clone(),
-                meta,
-                format!(
-                    "{} {}\n{}\n{}",
-                    part.manufacturer, part.part_number, f.kind_text, f.fndef_key
-                ),
-            )
+            // FT-664: the function in words, never an ID; the tooltip adds the FnDef key that scripts name. FT-712:
+            // the description leads (the part number when the part has none), the part number follows it, and the
+            // tooltip starts with the whole description.
+            let (name, second) = if part.description.is_empty() {
+                (part.part_number.clone(), None)
+            } else {
+                (part.description.clone(), Some(part.part_number.clone()))
+            };
+            let mut tip = String::new();
+            if !part.description.is_empty() {
+                tip.push_str(&part.description);
+                tip.push('\n');
+            }
+            tip.push_str(&format!(
+                "{} {}\n{}\n{}",
+                part.manufacturer, part.part_number, f.kind_text, f.fndef_key
+            ));
+            (name, second, meta, tip)
         }
         PickerRow::Strip(k) => {
             let st = &picker.catalogue.strips[k];
             (
                 st.tag.clone(),
+                None,
                 strings::format("picker-strip-next", &[&st.next_designation]),
                 st.tag.clone(),
             )

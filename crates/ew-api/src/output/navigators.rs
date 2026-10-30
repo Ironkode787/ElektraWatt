@@ -816,7 +816,8 @@ pub(crate) fn fndef_name(q: &Q, f: &Function) -> String {
 /// lower-cased, then the CP designations of the function's template entry (else of the FnDef, in `idx` order) joined
 /// by `-`. Category `["Relay", "Contact", "NO"]` with CPs 13 and 14 gives `NO contact 13-14`; a last entry equal to
 /// the CP designations run together is dropped and the one before it capitalised (`["Relay", "Coil", "A1A2"]` with
-/// CPs A1 and A2 gives `Coil A1-A2`); a category of fewer
+/// CPs A1 and A2 gives `Coil A1-A2`); a last entry `CO` reads `changeover` (FT-712: `changeover contact 11-12-14`);
+/// a category of fewer
 /// than two non-empty entries, or a missing FnDef copy, gives [`fndef_name`]. The Properties grid's "Part function"
 /// row and the picker's meta line read it.
 pub(crate) fn function_kind_text(q: &Q, f: &Function) -> String {
@@ -858,6 +859,12 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
             .map(|c| c.to_uppercase().chain(chars).collect())
             .unwrap_or_default()
     } else {
+        // FT-712: the change-over kind is spelled out (`changeover contact 11-12-14`); the FnDef keeps its category.
+        let last = if last.eq_ignore_ascii_case("CO") {
+            "changeover"
+        } else {
+            last
+        };
         format!("{last} {}", before.to_lowercase())
     };
     if !cps.is_empty() {

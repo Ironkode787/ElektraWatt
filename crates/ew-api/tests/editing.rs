@@ -130,6 +130,10 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
             if f.fndef_key == "ew.fn.contact-no" {
                 assert!(f.kind_text.starts_with("NO contact "), "{}", f.kind_text);
             }
+            // FT-712: a change-over contact is spelled out, never "CO".
+            if f.fndef_key == "ew.fn.contact-co" {
+                assert!(f.kind_text.starts_with("changeover contact "), "{}", f.kind_text);
+            }
             if let Some(key) = &f.symbol {
                 let r = row(key);
                 assert_eq!(r.fndef_key, f.fndef_key);
@@ -147,6 +151,22 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     // Cycle 37 (window check W37): a coil's category entry that repeats its CPs (`A1A2`) is dropped.
     assert_eq!(con.functions[0].fndef_key, "ew.fn.coil");
     assert_eq!(con.functions[0].kind_text, "Coil A1-A2");
+    // FT-712: the picker leads with the part's description in words.
+    assert!(!con.description.is_empty(), "the generic contactor's description");
+    assert_ne!(con.description, con.part_number);
+    // The generic relay's change-over contacts read as words (rv-vis-1 friction 9: "CO").
+    let rly = cat
+        .parts
+        .iter()
+        .find(|p| p.part_number == "EW-GEN-RLY-1")
+        .expect("the generic relay");
+    assert!(
+        rly.functions
+            .iter()
+            .any(|f| f.kind_text.starts_with("changeover contact ")),
+        "{:?}",
+        rly.functions.iter().map(|f| &f.kind_text).collect::<Vec<_>>()
+    );
     // An unknown or generated page has no catalogue.
     assert!(s.place_catalogue("no such folio").is_none());
 }

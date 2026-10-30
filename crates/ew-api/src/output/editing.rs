@@ -115,6 +115,9 @@ pub struct CataloguePart {
     pub library: Option<(Uuid, Uuid)>,
     /// The part number.
     pub part_number: String,
+    /// The part's description in words (FT-712: the picker row leads with it): its neutral text, else its first
+    /// language's; empty when it has none.
+    pub description: String,
     /// The manufacturer's key.
     pub manufacturer: String,
     /// The template's functions, in template order.
@@ -334,6 +337,7 @@ fn catalogue_part(
         copy,
         library,
         part_number: part.part_number.as_str().to_owned(),
+        description: super::properties::neutral_or_first(&part.description),
         manufacturer: String::new(),
         functions,
         words,

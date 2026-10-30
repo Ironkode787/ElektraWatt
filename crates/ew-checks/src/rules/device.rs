@@ -376,8 +376,9 @@ impl ContactCount {
         }
     }
 
+    /// The counts in words (FT-712: a change-over contact is spelled out, `0 changeover`).
     fn text(self) -> String {
-        format!("{} NO, {} NC, {} CO", self.no, self.nc, self.co)
+        format!("{} NO, {} NC, {} changeover", self.no, self.nc, self.co)
     }
 
     /// Whether `need` fits these contacts: change-overs serve change-overs first, then any normally open or normally
