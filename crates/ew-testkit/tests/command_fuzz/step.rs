@@ -54,6 +54,7 @@ pub enum Table {
     Revisions,
     PageItems,
     StructureBoxes,
+    Waivers,
 }
 
 impl Table {
@@ -80,6 +81,7 @@ impl Table {
             Table::Revisions => q.table::<ew_schema::Revision>().len(),
             Table::PageItems => q.page_items().len(),
             Table::StructureBoxes => q.structure_boxes().len(),
+            Table::Waivers => q.table::<ew_schema::Waiver>().len(),
         }
     }
 }

@@ -234,6 +234,8 @@ pub const VOCABULARY: &[&str] = &[
     "revision",
     "page_item",
     "structure_box",
+    // WP-S1.16 part 5: the typed waiver kind has a property sheet (read-only members); a reviewed vocabulary change.
+    "waiver",
     // Find and replace (WP-S2.05 part 2, §7.6; ID-474 extended): 13 words and `text`, which no earlier part added,
     // so 14, a reviewed vocabulary change.
     "find",

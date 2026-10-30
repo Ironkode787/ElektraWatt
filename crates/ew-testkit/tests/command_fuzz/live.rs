@@ -337,6 +337,8 @@ pub struct Live {
     pub structure_boxes: Vec<(Value, Value)>,
     /// The connections drawn on each page that has one: `(page, connections)`.
     pub page_connections: Vec<(Value, Vec<Value>)>,
+    /// WP-S1.16 part 5: `(waiver, rule, fingerprint)` of every waiver.
+    pub waivers: Vec<(Value, String, String)>,
 }
 
 /// Whether a form of this kind can be a page's frame (`project.frames.set`).
@@ -893,6 +895,17 @@ impl Live {
                 .filter_map(|p| {
                     let conns: Vec<Value> = q.idx().connections_by_page(p).map(id_json).collect();
                     (!conns.is_empty()).then(|| (id_json(p), conns))
+                })
+                .collect(),
+            waivers: q
+                .table::<ew_schema::Waiver>()
+                .iter()
+                .map(|(id, w)| {
+                    (
+                        id_json(id),
+                        w.rule.to_string(),
+                        w.target.finding.clone().unwrap_or_default(),
+                    )
                 })
                 .collect(),
         }

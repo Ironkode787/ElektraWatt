@@ -1847,6 +1847,8 @@ const COMMAND_TITLES: &[(&str, &str)] = &[
     ("box.reshape", "Reshape box"),
     ("box.structure", "Draw structure box"),
     ("cable.create", "Create cable"),
+    ("check.unwaive", "Remove waiver"),
+    ("check.waive", "Waive finding"),
     ("conductor.add", "Add conductor"),
     ("connection.delete", "Delete wire"),
     ("connection.draw", "Draw wire"),

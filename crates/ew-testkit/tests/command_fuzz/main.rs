@@ -194,6 +194,16 @@ fn open_session_with(seed: u64, memo: MemoMode) -> Session {
         }
     }
     let project = project.expect("the batch holds the project");
+    // One waiver (WP-S1.16 part 5), so that `check.unwaive` has a record to remove from the first step on: Golden A
+    // itself holds none (W-1 is a test fixture, `ew-api/tests/checks_part5.rs`). Its fingerprint matches no finding.
+    records.push(Record::Waiver(
+        serde_json::from_value(serde_json::json!({
+            "id": "0c5e5b2a-7d1f-5e3a-9b6c-4f2a1d8e7c90", "rule": "EW-CORE-041",
+            "target": {"finding": "00000000000000000000000000000001"},
+            "reason": {"en-GB": "a waiver for the command fuzzer"}, "author": "engineer", "date": "2025-04-14"
+        }))
+        .expect("a waiver record"),
+    ));
     Session::from_records(
         project,
         records,

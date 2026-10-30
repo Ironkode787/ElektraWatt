@@ -71,6 +71,16 @@ pub const ARMS: &[Arm] = &[
         build: cable_create,
     },
     Arm {
+        command: "check.unwaive",
+        weight: 1,
+        build: check_unwaive,
+    },
+    Arm {
+        command: "check.waive",
+        weight: 1,
+        build: check_waive,
+    },
+    Arm {
         command: "conductor.add",
         weight: 2,
         build: conductor_add,
@@ -3370,6 +3380,76 @@ fn conductor_specs(rng: &mut SplitMix64, n: usize, taken: &std::collections::BTr
             json!({"core": core, "colour": colour, "csa": "1.5"})
         })
         .collect()
+}
+
+/// `check.waive` (WP-S1.16 part 5, D7): a `HumanOnly` command, which the fuzzer's session (the GUI) may submit. A
+/// well-formed waiver (a rule ID, 32 hex digits, a reason of at least ten characters) of a finding no waiver of
+/// that rule covers yet commits one waiver with the fingerprint in lower case; a malformed rule ID or fingerprint,
+/// a short reason and a finding a waiver already covers (in either case) are refused.
+fn check_waive(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let hex =
+        |rng: &mut SplitMix64| -> String { (0..16).map(|_| format!("{:02x}", rng.below(256))).collect() };
+    let params = |rule: &str, fingerprint: &str, reason: &str| {
+        json!({"rule": rule, "fingerprint": fingerprint, "reason": {"en-GB": reason},
+               "author": "engineer", "date": "2025-04-14"})
+    };
+    let reason = "accepted for the fuzz run";
+    match rng.below(6) {
+        0 => Some(Step::cmd("check.waive", params("EW-CORE-41", &hex(rng), reason)).refuse()),
+        1 => Some(Step::cmd("check.waive", params("EW-CORE-041", &rng.word(31), reason)).refuse()),
+        2 => Some(Step::cmd("check.waive", params("EW-CORE-041", &hex(rng), "too short")).refuse()),
+        3 => {
+            let (_, rule, fingerprint) = rng.pick(&live.waivers)?;
+            Some(
+                Step::cmd(
+                    "check.waive",
+                    params(rule, &fingerprint.to_ascii_uppercase(), reason),
+                )
+                .refuse(),
+            )
+        }
+        _ => {
+            let fingerprint = hex(rng).to_ascii_uppercase();
+            let rule = *rng.pick(&["EW-CORE-041", "EW-POT-013", "EW-RDS-003"])?;
+            if live
+                .waivers
+                .iter()
+                .any(|(_, r, f)| r == rule && f.eq_ignore_ascii_case(&fingerprint))
+            {
+                return None;
+            }
+            let lower = fingerprint.to_ascii_lowercase();
+            Some(
+                Step::cmd("check.waive", params(rule, &fingerprint, reason))
+                    .accept()
+                    .counts(&[(Table::Waivers, 1)])
+                    .check(move |_, after| {
+                        after
+                            .table::<ew_schema::Waiver>()
+                            .iter()
+                            .any(|(_, w)| {
+                                w.rule.as_str() == rule && w.target.finding.as_deref() == Some(&lower)
+                            })
+                            .then_some(())
+                            .ok_or_else(|| format!("no waiver of {rule} on {lower}"))
+                    }),
+            )
+        }
+    }
+}
+
+/// `check.unwaive` (WP-S1.16 part 5, D7): removing an existing waiver commits and drops one waiver; a waiver that
+/// does not exist is refused.
+fn check_unwaive(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    if rng.chance(4) {
+        return Some(Step::cmd("check.unwaive", json!({"waiver": rng.uuid()})).refuse());
+    }
+    let (waiver, _, _) = rng.pick(&live.waivers)?;
+    Some(
+        Step::cmd("check.unwaive", json!({"waiver": waiver}))
+            .accept()
+            .counts(&[(Table::Waivers, -1)]),
+    )
 }
 
 fn cable_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
