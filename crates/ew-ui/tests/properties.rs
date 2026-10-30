@@ -571,6 +571,18 @@ fn ft759_a_finding_chip_opens_messages_filtered_to_the_record() {
     );
     let nav = h.state().shell().nav(NavKind::Messages).expect("Messages is open");
     assert_eq!(nav.filter, header.title);
+    // The filter keeps the record's findings: every one of the header's rules has a row.
+    let shown: Vec<String> = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Messages)
+        .iter()
+        .map(|r| r.key.clone())
+        .collect();
+    assert!(
+        shown.iter().any(|k| k.contains("/finding:")),
+        "the record's findings are listed: {shown:?}"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 

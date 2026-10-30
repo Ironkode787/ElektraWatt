@@ -400,7 +400,7 @@ impl PropertiesPane {
                         crate::messages::severity_count_chip(ui, severity, of)
                     };
                     if chip.on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
-                        events.extend(findings_events(&sheet.header.title));
+                        events.extend(findings_events(&sheet.header));
                     }
                 }
                 ui.add_space(t.space_2);
@@ -1287,15 +1287,26 @@ fn count_words(severity: &str, n: usize) -> String {
 
 /// A severity's glyph chip (FT-664): the severity's subtle fill, its icon, and the count in `type.caption` when more
 /// than one; named like the count chip ("2 Warnings: <rule>: <message>; …"), every finding in its tooltip.
-/// The actions of a click on a Properties finding chip (FT-759): Messages opens, filtered to the record by its title.
-fn findings_events(title: &str) -> [Event; 2] {
+/// The actions of a click on a Properties finding chip (FT-759): Messages opens, filtered to the record
+/// ([`findings_filter`]).
+fn findings_events(header: &ew_viewmodel::ew_api::output::SheetHeader) -> [Event; 2] {
     [
         Event::Action("messages.show", json!({"on": true})),
         Event::Action(
             "navigator.filter",
-            json!({"kind": "messages", "text": title}),
+            json!({"kind": "messages", "text": findings_filter(header)}),
         ),
     ]
+}
+
+/// The Messages filter of a sheet's record: a page by its folio facet (`page:101`; its title "101 Control" is in no
+/// finding's text), any other record by its title (a device's tag, a wire's number).
+pub(crate) fn findings_filter(header: &ew_viewmodel::ew_api::output::SheetHeader) -> String {
+    let page = header.items == 1 && header.kinds.iter().any(|(k, n)| k == "page" && *n == 1);
+    match header.title.split_whitespace().next() {
+        Some(folio) if page => format!("page:{folio}"),
+        _ => header.title.clone(),
+    }
 }
 
 fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::Response {
@@ -1353,6 +1364,26 @@ mod tests {
     use egui::{Rect, pos2};
 
     use super::choices_placement;
+
+    /// FT-759: a page's chip filters Messages by its folio facet, a device's by its tag.
+    #[test]
+    fn a_finding_chip_filters_a_page_by_folio_and_a_device_by_tag() {
+        use ew_viewmodel::ew_api::output::SheetHeader;
+        let page = SheetHeader {
+            title: "101 Control".into(),
+            items: 1,
+            kinds: vec![("page".into(), 1)],
+            ..SheetHeader::default()
+        };
+        assert_eq!(super::findings_filter(&page), "page:101");
+        let device = SheetHeader {
+            title: "-101S1".into(),
+            items: 1,
+            kinds: vec![("device".into(), 1)],
+            ..SheetHeader::default()
+        };
+        assert_eq!(super::findings_filter(&device), "-101S1");
+    }
 
     /// The free area of a 1280 by 800 window: above the status bar, between the rails.
     fn bound() -> Rect {
