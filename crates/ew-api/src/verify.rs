@@ -42,6 +42,7 @@ use crate::{Mismatch, Session};
 /// The families the sweep reads: the `Memo` and `MemoLru` families of `ew_derive::FAMILIES`,
 /// `ew_reports::FAMILIES` and `ew_api::output::FAMILIES`, sorted.
 pub const SWEPT: &[&str] = &[
+    "address_index",
     "assembly_break_marks",
     "bom_rows",
     "bond_index",
@@ -71,6 +72,7 @@ pub const SWEPT: &[&str] = &[
     "ip_structure",
     "module_channel_ids",
     "module_order",
+    "module_start_of",
     "module_starts",
     "page_bindings",
     "page_cp_targets",
@@ -246,6 +248,9 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<PotentialNameOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<ew_derive::ModuleOrder>(memo, cold, keys.cfgs.iter().copied(), o);
     check::<ew_derive::ModuleStarts>(memo, cold, keys.cfgs.iter().copied(), o);
+    // WP-S1.21 part 3: the per-module start (D9) and the address index (EW-PLC-001).
+    check::<ew_derive::ModuleStartOf>(memo, cold, keys.devices.iter().copied(), o);
+    check::<ew_derive::AddressIndex>(memo, cold, keys.cfgs.iter().copied(), o);
     check::<ew_derive::ChannelAddresses>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::ChannelStates>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::ChannelTargets>(memo, cold, keys.devices.iter().copied(), o);

@@ -113,7 +113,7 @@ fn tag_of(q: &Q, device: Id<Device>) -> String {
 }
 
 /// The slot of `function`: its CP designations in index order, joined by `-`.
-fn slot_of(q: &Q, function: Id<Function>) -> String {
+pub(crate) fn slot_of(q: &Q, function: Id<Function>) -> String {
     q.get::<FunctionCps>(function)
         .iter()
         .map(|c| c.designation.as_str())

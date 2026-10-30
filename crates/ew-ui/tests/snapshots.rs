@@ -1086,7 +1086,8 @@ fn cp9_the_quick_fix_card_and_the_table_card_in_light() {
             .and_then(|t| {
                 t.nodes
                     .iter()
-                    .find(|n| n.badges.iter().any(|b| b == "fix"))
+                    // the page override's fix, not the rebind of EW-PLC-012 (Golden A's EF-02, WP-S1.21 part 3)
+                    .find(|n| n.badges.iter().any(|b| b == "fix") && !n.label.contains("drives solenoid"))
                     .map(|n| n.key.clone())
             })
             .expect("a finding with a fix");

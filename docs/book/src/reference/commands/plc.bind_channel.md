@@ -14,6 +14,13 @@ bound to the same CP is unbound in the same transaction (a CP is in at most one 
 and the outcome's notices name it. An explicit binding wins over the solenoid-position map: N2 never
 rebinds a coil that a channel binds, nor a channel that is bound. Outcome: the channel.
 
+In a command log (and the blind harness's `command.run`) the channel and the CP may also be named by tags
+(FT-721): the channel as `<module tag>#<number>` or `<module tag>:<designation>`, the function as `<device tag>`
+or `<device tag>:<slot>` with the CP by `designation` instead of `idx`, as
+`{"channel": "-201U5#3", "endpoint": {"cp": {"function": "-201Y3", "designation": "14"}}}`; the replay resolves
+them into this ID form before the command runs, and refuses an unknown or ambiguous name with up to five
+candidates.
+
 ## Registry entry
 
 | Item | Value |

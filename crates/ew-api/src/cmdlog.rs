@@ -28,6 +28,15 @@
 //! stops the replay with [`CmdLogError::Reference`] (exit code 2, [`CmdLogError::exit_code`]), never as a
 //! failing command; such targets need `id:<uuid>`, and an ambiguous tag's message names every candidate.
 //!
+//! **Tag forms of `plc.bind_channel`** (FT-721). Beside the IDs, a line of `plc.bind_channel` may name its channel
+//! as `<module tag>#<number>` (`-201U5#3`) or `<module tag>:<designation>` (the channel's determined designation: the
+//! manual one, else the part's pattern), and the CP's function as `<device tag>` or `<device tag>:<slot>` (the slot is
+//! the function's CP designations joined by `-`, as `place.pick` prints it), with the CP by `designation` (`"14"`) in
+//! place of `idx`: `{"channel": "-201U5#3", "endpoint": {"cp": {"function": "-201Y3", "designation": "14"}}}`. A
+//! device tag without a slot names the device's one function that has a CP of that designation. The forms resolve
+//! against the then-current model before the line runs, into the ID form; a name that matches nothing, or more than
+//! one channel, function or CP, stops the replay as a reference error that lists up to five candidates.
+//!
 //! **Semantics.** Each line commits as its own transaction with origin [`Origin::CmdLog`]: an interactive
 //! command through `execute`, a command that is bulk by its cost for these parameters (a command whose registry
 //! cost is `Bulk`, or one that `execute` refuses as needing a preview, such as `edit.delete` or `fields.set_many`
@@ -40,7 +49,9 @@ use std::fmt;
 use ew_commands::Cost;
 use serde_json::{Map, Value};
 
-use ew_derive::{DeviceTag, PageOrder, PageRef, Q};
+use ew_derive::ew_ids::Id;
+use ew_derive::ew_schema::{Channel, Device, Function};
+use ew_derive::{ChannelTexts, DeviceTag, FunctionCps, ModuleChannelIds, PageOrder, PageRef, Q};
 use ew_schema::AnyId;
 
 use crate::{AnyCommand, CmdError, DerivedDiff, ModelDiff, Origin, Receipt, Session, Submit, World};
@@ -293,8 +304,13 @@ impl Session {
         }
         let mut receipts = Vec::with_capacity(log.lines.len());
         for (line, cmd) in &log.lines {
+            let name = self
+                .registry()
+                .get(&cmd.name)
+                .map_or(cmd.name.as_str(), |e| e.meta().name);
             let params = self
                 .resolve_refs(&cmd.params)
+                .and_then(|p| self.tag_forms(name, p))
                 .map_err(|message| CmdLogError::Reference {
                     line: *line,
                     message,
@@ -459,6 +475,188 @@ impl Session {
             other => Ok(other.clone()),
         }
     }
+}
+
+impl Session {
+    /// FT-721: `params` of `command` with the tag forms of `plc.bind_channel` (see the module documentation) replaced
+    /// by IDs; other commands' parameters unchanged.
+    fn tag_forms(&self, command: &str, params: Value) -> Result<Value, String> {
+        if command != "plc.bind_channel" {
+            return Ok(params);
+        }
+        let Value::Object(mut map) = params else {
+            return Ok(params);
+        };
+        let q = self.query();
+        if let Some(text) = map.get("channel").and_then(Value::as_str).filter(|t| !is_uuid(t)) {
+            let id = self.channel_by_name(&q, text)?;
+            map.insert("channel".into(), Value::String(id.as_uuid().to_string()));
+        }
+        if let Some(Value::Object(cp)) = map.get_mut("endpoint").and_then(|e| e.get_mut("cp")) {
+            let designation = match cp.remove("designation") {
+                None => None,
+                Some(Value::String(d)) => Some(d),
+                Some(_) => return Err("`designation` names a CP by its printed designation, a text".into()),
+            };
+            let function: Id<Function> = match cp.get("function").and_then(Value::as_str) {
+                Some(text) if !is_uuid(text) => self.function_by_name(&q, text, designation.as_deref())?,
+                Some(text) => serde_json::from_value(Value::String(text.trim().to_owned()))
+                    .map_err(|_| format!("`{text}`: not a UUID"))?,
+                None => return Ok(Value::Object(map)),
+            };
+            cp.insert("function".into(), Value::String(function.as_uuid().to_string()));
+            if let Some(d) = designation {
+                let idx = cp_by_designation(&q, function, &d)?;
+                cp.insert("idx".into(), Value::from(idx));
+            }
+        }
+        Ok(Value::Object(map))
+    }
+
+    /// The channel `<module tag>#<number>` or `<module tag>:<designation>` names.
+    fn channel_by_name(&self, q: &Q, text: &str) -> Result<Id<Channel>, String> {
+        let module_of = |tag: &str| -> Result<Id<Device>, String> {
+            let id: Id<Device> = self.tag_target(tag, text)?.cast();
+            if q.devices()
+                .get(id)
+                .is_some_and(|d| d.aspects.plc_module.is_some())
+            {
+                Ok(id)
+            } else {
+                Err(format!("`{text}`: {tag} is not a PLC module"))
+            }
+        };
+        if let Some((tag, number)) = text.rsplit_once('#') {
+            let module = module_of(tag)?;
+            let channels = q.get::<ModuleChannelIds>(module);
+            let n: Option<u16> = number.trim().parse().ok();
+            return match channels.iter().find(|(c, _)| Some(*c) == n) {
+                Some((_, id)) => Ok(*id),
+                None => Err(format!(
+                    "`{text}`: {tag} has no channel {number}; its channels are {}",
+                    candidates(channels.iter().map(|(c, _)| format!("{tag}#{c}")))
+                )),
+            };
+        }
+        let Some((tag, designation)) = text.rsplit_once(':') else {
+            return Err(format!(
+                "`{text}`: a channel is `<module tag>#<number>`, `<module tag>:<designation>` or an ID"
+            ));
+        };
+        let module = module_of(tag)?;
+        let texts = q.get::<ChannelTexts>(module);
+        let named = |id: &Id<Channel>| -> String {
+            texts
+                .iter()
+                .find(|(c, _)| c == id)
+                .and_then(|(_, t)| t.designation.clone())
+                .unwrap_or_default()
+        };
+        let channels = q.get::<ModuleChannelIds>(module);
+        let matches: Vec<(u16, Id<Channel>)> = channels
+            .iter()
+            .filter(|(_, id)| named(id) == designation)
+            .copied()
+            .collect();
+        match matches.as_slice() {
+            [(_, id)] => Ok(*id),
+            [] => Err(format!(
+                "`{text}`: no channel of {tag} is designated `{designation}`; its channels are {}",
+                candidates(channels.iter().map(|(_, id)| format!("{tag}:{}", named(id))))
+            )),
+            many => Err(format!(
+                "`{text}` is ambiguous: {} channels of {tag} are designated `{designation}` ({}); name one by its \
+                 number",
+                many.len(),
+                candidates(many.iter().map(|(n, _)| format!("{tag}#{n}")))
+            )),
+        }
+    }
+
+    /// The function `<device tag>` or `<device tag>:<slot>` names; a device tag alone names the device's one function,
+    /// or its one function with a CP designated `designation`.
+    fn function_by_name(&self, q: &Q, text: &str, designation: Option<&str>) -> Result<Id<Function>, String> {
+        let (device, tag, slot): (Id<Device>, &str, Option<&str>) = match self.tag_target(text, text) {
+            Ok(id) => (id.cast(), text, None),
+            Err(whole) => match text.rsplit_once(':') {
+                Some((tag, slot)) if !tag.is_empty() && !slot.is_empty() => (
+                    self.tag_target(tag, text).map_err(|_| whole)?.cast(),
+                    tag,
+                    Some(slot),
+                ),
+                _ => return Err(whole),
+            },
+        };
+        let mut functions: Vec<(String, Id<Function>)> = q
+            .idx()
+            .functions_of_device(device)
+            .map(|f| (crate::output::join::slot_of(q, f), f))
+            .collect();
+        functions.sort();
+        let listed = |fs: &[(String, Id<Function>)]| candidates(fs.iter().map(|(s, _)| format!("{tag}:{s}")));
+        let has_cp = |f: Id<Function>| {
+            designation.is_none_or(|d| q.get::<FunctionCps>(f).iter().any(|c| c.designation == d))
+        };
+        let matches: Vec<(String, Id<Function>)> = functions
+            .iter()
+            .filter(|(s, f)| slot.is_none_or(|slot| s == slot) && has_cp(*f))
+            .cloned()
+            .collect();
+        match matches.as_slice() {
+            [(_, f)] => Ok(*f),
+            [] if functions.is_empty() => Err(format!("`{text}`: {tag} has no function")),
+            [] => Err(format!(
+                "`{text}`: no function of {tag} matches{}; its functions are {}",
+                designation.map_or_else(String::new, |d| format!(" with a CP `{d}`")),
+                listed(&functions)
+            )),
+            many => Err(format!(
+                "`{text}` is ambiguous: {} functions of {tag} match ({}); name one as `<tag>:<slot>`",
+                many.len(),
+                listed(many)
+            )),
+        }
+    }
+}
+
+/// The index of `function`'s one CP designated `designation`.
+fn cp_by_designation(q: &Q, function: Id<Function>, designation: &str) -> Result<u16, String> {
+    let cps = q.get::<FunctionCps>(function);
+    let found: Vec<u16> = cps
+        .iter()
+        .filter(|c| c.designation == designation)
+        .map(|c| c.idx)
+        .collect();
+    match found.as_slice() {
+        [idx] => Ok(*idx),
+        [] => Err(format!(
+            "the function has no CP designated `{designation}`; its CPs are {}",
+            candidates(cps.iter().map(|c| c.designation.clone()))
+        )),
+        many => Err(format!(
+            "{} CPs of the function are designated `{designation}`; name one by `idx` ({})",
+            many.len(),
+            candidates(many.iter().map(u16::to_string))
+        )),
+    }
+}
+
+/// Up to five candidates, joined, with the count of the rest (`a, b, c, d, e and 3 more`); `none` for none.
+fn candidates(items: impl Iterator<Item = String>) -> String {
+    let all: Vec<String> = items.collect();
+    if all.is_empty() {
+        return "none".to_owned();
+    }
+    let shown = all.iter().take(5).cloned().collect::<Vec<_>>().join(", ");
+    match all.len().saturating_sub(5) {
+        0 => shown,
+        more => format!("{shown} and {more} more"),
+    }
+}
+
+/// Whether `text` is a UUID (the ID form of a parameter).
+fn is_uuid(text: &str) -> bool {
+    ew_derive::ew_ids::Uuid::parse_str(text.trim()).is_ok()
 }
 
 /// The single item of `items`; an error naming `text` when there is none or more than one.

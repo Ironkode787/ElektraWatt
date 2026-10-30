@@ -51,6 +51,7 @@ const PACK_SECTIONS: &[(&str, &str, &str)] = &[
         "4.3 EW-IEC81346: designations and numbering",
         "43-ew-iec81346-designations-and-numbering",
     ),
+    ("EW-PLC", "4.5.1 EW-PLC", "451-ew-plc"),
     ("EW-POT", "4.4 EW-TERM and EW-POT", "44-ew-term-and-ew-pot"),
     ("EW-REL", "4.8 EW-REL: release gate", "48-ew-rel-release-gate"),
     ("EW-TERM", "4.4 EW-TERM and EW-POT", "44-ew-term-and-ew-pot"),

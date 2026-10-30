@@ -1881,7 +1881,7 @@ fn defects(r: &mut Runner) {
     );
     r.entry(
         "D-15",
-        "a TBD channel address is an open item that blocks release (EW-CORE-044)",
+        "a TBD channel address is an open item that blocks release (EW-PLC-015, superseding EW-CORE-044)",
         d15,
     );
     r.entry(
@@ -3837,15 +3837,15 @@ fn d13(c: &Ctx) -> Outcome {
     }
 }
 
-/// D-15, the MVP part: a `Tbd` channel address is a typed open item; EW-CORE-044 reports it as an error in
-/// release mode. EF-03 (EW-BUS-001 on the DP station address) and EF-16 (EW-BUS-004) come with WP-S1.21.
+/// D-15, the MVP part: a `Tbd` channel address is a typed open item; EW-PLC-015 reports it as an error in release mode
+/// and supersedes EW-CORE-044's finding for the same value (WP-S1.21 part 3, PA-4). EF-03 (EW-BUS-001 on the DP
+/// station address) and EF-16 (EW-BUS-004) come with WP-S1.21's bus part.
 fn d15(c: &Ctx) -> Outcome {
-    let before = golden_rows(c, "EW-CORE-044");
-    if !before.is_empty() {
-        return fail(format!(
-            "Golden A already reports EW-CORE-044: {}",
-            list(before, 3)
-        ));
+    for rule in ["EW-CORE-044", "EW-PLC-015"] {
+        let before = golden_rows(c, rule);
+        if !before.is_empty() {
+            return fail(format!("Golden A already reports {rule}: {}", list(before, 3)));
+        }
     }
     let mut done = false;
     let s = golden_common::session_with(&c.batch, |p, records| {
@@ -3863,21 +3863,27 @@ fn d15(c: &Ctx) -> Outcome {
     let open: Vec<&ew_api::checks::Finding> = report
         .findings
         .iter()
-        .filter(|f| f.rule == "EW-CORE-044" && f.is_open())
+        .filter(|f| (f.rule == "EW-CORE-044" || f.rule == "EW-PLC-015") && f.is_open())
         .collect();
     match open.as_slice() {
-        [f] if f.severity == ew_api::checks::Severity::Error
+        [f] if f.rule == "EW-PLC-015"
+            && f.severity == ew_api::checks::Severity::Error
             && f.message.contains("is TBD; enter it before release")
             && report.exit_code() == 1 =>
         {
             pass(format!(
-                "Golden A is clean; a channel address set to TBD makes EW-CORE-044 report one error, \"{}\", and the release check exits 1 (EF-03, EW-BUS-001 on the DP station address, and EF-16 come with WP-S1.21)",
+                "Golden A is clean; a channel address set to TBD makes EW-PLC-015 report one error, \"{}\", EW-CORE-044's finding is superseded, and the release check exits 1 (EF-03, EW-BUS-001 on the DP station address, and EF-16 come with WP-S1.21's bus part)",
                 f.message
             ))
         }
         other => fail(format!(
-            "with a TBD address EW-CORE-044 reports {}",
-            list(other.iter().map(|f| format!("{} {}", f.severity, f.message)), 3)
+            "with a TBD address EW-PLC-015 and EW-CORE-044 report {}",
+            list(
+                other
+                    .iter()
+                    .map(|f| format!("{} {} {}", f.rule, f.severity, f.message)),
+                3
+            )
         )),
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.16 part 5 on Golden A: the Fluent messages (P5-2), waiver recording with W-1 (P5-3) and the four-pack subset
+//! WP-S1.16 part 5 on Golden A: the Fluent messages (P5-2), waiver recording with W-1 (P5-3) and the built-pack subset
 //! of AC-21 against `tests/expected/findings_mvp.csv` (P5-4, D10).
 //!
 //! W-1 lives in a fixture built from a **copy** of the checked-in Golden A (`golden/J-E-2416.ew`): the test opens the
@@ -17,8 +17,9 @@ use ew_api::checks::{self, CheckMode, CheckReport, Finding, FindingState, PRE_DE
 use ew_api::{AnyCommand, CmdError, Origin, Recovery, Session, SessionOptions, Submit};
 use ew_store::StoreOptions;
 
-/// The packs of WP-S1.16 (doc 15 §4): EW-CORE, EW-IEC81346 (EW-RDS and EW-NUM), EW-TERM and EW-POT.
-const FOUR_PACKS: [&str; 4] = ["EW-CORE", "EW-IEC81346", "EW-TERM", "EW-POT"];
+/// The built packs of AC-21's subset (doc 15 §4): WP-S1.16's EW-CORE, EW-IEC81346 (EW-RDS and EW-NUM), EW-TERM and
+/// EW-POT, and WP-S1.21 part 3's EW-PLC (EF-02 joins the subset).
+const FOUR_PACKS: [&str; 5] = ["EW-CORE", "EW-IEC81346", "EW-TERM", "EW-POT", "EW-PLC"];
 
 /// The findings of the four packs that doc 20 §18.1 does not list, each with the follow-up that removes it (FT-638): the
 /// process valves are supplied by others and exempt once `supply_scope` exists (FT-209, WP-S7.01; decision log ID-322).
@@ -266,8 +267,8 @@ fn w1_waives_ef19_through_the_file_and_only_a_human_can_waive() {
     let _ = std::fs::remove_dir_all(&state);
 }
 
-/// P5-4 / D10 (AC-21, four-pack subset): `ew check --scheme pre-delivery` on the W-1 copy of Golden A reports, for the
-/// packs EW-CORE, EW-IEC81346, EW-TERM and EW-POT (EW-CORE-083 and -084 included), exactly the rows of
+/// P5-4 / D10 (AC-21, built-pack subset): `ew check --scheme pre-delivery` on the W-1 copy of Golden A reports, for the
+/// packs EW-CORE, EW-IEC81346, EW-TERM, EW-POT (EW-CORE-083 and -084 included) and EW-PLC (WP-S1.21 part 3, PA-8), exactly the rows of
 /// `findings_mvp.csv` that are not pending, plus the known excess of FT-638; the pending rows name their packages.
 #[test]
 fn ac21_four_pack_subset_equals_findings_mvp_csv() {
@@ -326,7 +327,6 @@ fn ac21_four_pack_subset_equals_findings_mvp_csv() {
     assert_eq!(
         pending,
         [
-            "EF-02 EW-PLC-012 (WP-S1.21)",
             "EF-03 EW-BUS-001 (WP-S1.21)",
             "EF-05 EW-LAY-001 (WP-S4.01)",
             "EF-13 EW-FL-001 (WP-S1.20)",

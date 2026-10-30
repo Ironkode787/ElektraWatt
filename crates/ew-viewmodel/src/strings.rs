@@ -1955,6 +1955,8 @@ const COMMAND_TITLES: &[(&str, &str)] = &[
     ("plc.bind_channel", "Bind PLC channel"),
     ("plc.config_project.create", "Create PLC configuration project"),
     ("plc.set_module_part", "Set PLC module part"),
+    ("plc.set_profile", "Set PLC address profile"),
+    ("plc.set_start", "Set PLC module start"),
     ("potential.define", "Define potential"),
     ("project.assets.purge", "Purge unused assets"),
     ("project.checks.set", "Set checks"),

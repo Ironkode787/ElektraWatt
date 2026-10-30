@@ -4,7 +4,7 @@
 
 A command is the one way to change a project (`Command` → `Transaction` → `Op`). The same command runs from the user interface, from a command log replayed by `ew apply`, from scripts and from the Session API. Each page below gives the command's registry entry, its parameters with types and constraints, and the exit codes of `ew apply`.
 
-67 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
+69 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
 
 | Command | Summary | Cost | Exposure | Stability |
 |---|---|---|---|---|
@@ -49,6 +49,8 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`plc.bind_channel`](plc.bind_channel.md) | `plc.bind_channel` (`BindChannel`, doc 10 §3.3, §3.9 `plc.bind_channel{channel, endpoint}`): binds a channel to its signal CP, rebinds it, or unbinds it (FR-PLC-020). | interactive | edit | preview |
 | [`plc.config_project.create`](plc.config_project.create.md) | `plc.config_project.create` (`CreatePlcConfigProject`): a configuration project, the target PLC-software project that scopes address and symbol uniqueness (doc 10 §2.2, FR-PLC-002). | interactive | edit | preview |
 | [`plc.set_module_part`](plc.set_module_part.md) | `plc.set_module_part` (`SetModulePart`, FR-PLC-053, doc 10 §3.3 N1, §8 item 3): changes a module's part and removes the channels the new part no longer has, after the confirmation that lists them. | bulk | edit | preview |
+| [`plc.set_profile`](plc.set_profile.md) | `plc.set_profile` (`SetProfile`, doc 10 §3.9 `plc.set_profile{cfg, profile}`, FR-PLC-008, FR-PLC-007; WP-S1.21 D8): pins another shipped address profile on a configuration project. | interactive | edit | preview |
+| [`plc.set_start`](plc.set_start.md) | `plc.set_start` (`SetStart`, doc 10 §3.9 `plc.set_start{modules, dir, spec}`, FR-PLC-013, FR-PLC-014; WP-S1.21 D8): sets the start of one direction of one or more modules. | interactive | edit | preview |
 | [`potential.define`](potential.define.md) | names and types a potential at a CP or a junction (FR-CON-010). | interactive | edit | preview |
 | [`project.assets.purge`](project.assets.purge.md) | `project.assets.purge` (`PurgeAssets`): deletes the project's asset files (`assets/<sha256>.<ext>`) that nothing names (doc 05 §13.3, FT-380). | bulk | human_only | preview |
 | [`project.checks.set`](project.checks.set.md) | `project.checks.set` (`SetCheckSchemes`): names the project's check schemes (doc 03 §15 `CheckSettings`): the online scheme of the message panel (`active_scheme`, default `drafting`) and the scheme of the release gate and `ew check` (`release_scheme`, default `pre-delivery`, doc 15 §3.2). | interactive | human_only | preview |

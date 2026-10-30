@@ -53,7 +53,7 @@ mod history;
 // WP-S2.09 part 1: the export as a job (D4).
 mod job;
 // WP-S2.18 part 1: the devices a placed symbol can join (D1, D2).
-mod join;
+pub(crate) mod join;
 mod layers;
 mod navigation;
 // WP-S2.06 part 1

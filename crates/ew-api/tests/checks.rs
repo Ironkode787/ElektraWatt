@@ -601,8 +601,8 @@ fn golden_a_part4_reports_the_ef_rows() {
     }
 }
 
-/// D-15 (P3-2): a `Tbd` channel address is an open item: EW-CORE-044 reports it as an error in release mode (EW-PLC-015
-/// supersedes it once built).
+/// D-15 (P3-2, WP-S1.21 PA-4): a `Tbd` channel address is an open item: EW-PLC-015 reports it as an error in release
+/// mode and supersedes EW-CORE-044's finding for the same value, so it prints once.
 #[test]
 fn golden_a_d15_a_tbd_channel_address_is_an_open_item() {
     let batch = golden_common::batch();
@@ -621,9 +621,10 @@ fn golden_a_d15_a_tbd_channel_address_is_an_open_item() {
     let open: Vec<&checks::Finding> = report
         .findings
         .iter()
-        .filter(|f| f.rule == "EW-CORE-044")
+        .filter(|f| f.rule == "EW-CORE-044" || f.rule == "EW-PLC-015")
         .collect();
     assert_eq!(open.len(), 1, "{open:#?}");
+    assert_eq!(open[0].rule, "EW-PLC-015");
     assert_eq!(open[0].severity, checks::Severity::Error);
     assert_eq!(open[0].discriminator, "address");
     assert!(
