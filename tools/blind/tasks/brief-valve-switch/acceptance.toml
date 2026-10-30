@@ -35,10 +35,13 @@ how = "connections"
 query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.tag IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil') AND COALESCE(b.kind, '') <> 'terminal') OR (b.tag IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil') AND COALESCE(a.kind, '') <> 'terminal')"
 expect = "== 0"
 
+# EW-CORE-061 ("cp.small" cap height 0.94 mm) is raised by every fresh project until per-project text styles land
+# (ADR-0032, WP-S1.12): it is tolerated without an explanation, and only it; every other finding still needs one.
+# `check-brief` decides this item by the check's exit (no error). Remove the exception with FT-662.
 [[item]]
 id = "A5"
 kind = "hard"
-what = "The check report is clean, or every remaining finding is explained in the tester's hand-back."
+what = "The check report is clean, or every remaining finding is explained in the tester's hand-back. EW-CORE-061 on the text style cp.small (a cap height of 0.94 mm, raised by every new project) needs no explanation."
 how = "check, handback"
 
 [[item]]
