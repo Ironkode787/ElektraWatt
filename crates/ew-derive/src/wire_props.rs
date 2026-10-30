@@ -177,6 +177,12 @@ pub struct WirePropsMap {
 ///   belongs to both potentials of the bond, so its result must not depend on the key: level 3 reads the
 ///   definitions of both potentials in `PhysicalWire::potentials` order, and level 2 follows the bond rule
 ///   (the PE colour row, the class of the non-PE potential, [`SizeRule::Bond`]).
+/// - **Merged 0 V/PE potential** (FT-654, decision log ID-828; doc 08 §3.6, doc 16a §7.5). A potential without a
+///   bond that holds a definition of type PE while another definition's type applies (two typed definitions
+///   merged by a plain wire: FT-587's natural order names it 0V and gives it type M) shows the PE colour, not the
+///   colour of its name: the level-3 colour comes from its PE definitions only, and levels 2 and 0 take the
+///   colour of a PE potential. The cross-section and the class keep the applied type. EW-POT-001 reports the
+///   type conflict (its canvas colour, which overrides this one, comes with the canvas's potential colours).
 /// - **PE rule.** A wire whose potential has class `Pe` takes the highest class at its two ends
 ///   (`Mains > Control > Analogue > Bus`, `Pe` and unknown classes ignored; no class found: `Control`):
 ///   at a device end the potentials of every CP of every function of the device, at a terminal end the
@@ -518,9 +524,21 @@ impl Ctx<'_> {
             })
             .filter_map(|d| q.potential_defs().get(d).map(|r| (d, r.clone())))
             .collect();
+        // FT-654: a merged 0 V/PE potential (a PE definition whose type does not apply) takes the PE colour.
+        let pe_defs: Vec<(Id<PotentialDef>, Arc<PotentialDef>)> = defs
+            .iter()
+            .filter(|(_, d)| d.ptype == Some(PotentialType::Pe))
+            .cloned()
+            .collect();
+        let pe_merged = !bond
+            && !pe_defs.is_empty()
+            && !matches!(
+                self.attrs(key).ptype,
+                Some(PotentialType::Pe | PotentialType::Pen)
+            );
         let l3 = Level {
             csa: from_defs(&defs, |p| p.csa.clone()),
-            colour: from_defs(&defs, |p| p.colour.clone()),
+            colour: from_defs(if pe_merged { &pe_defs } else { &defs }, |p| p.colour.clone()),
             wire_part: from_defs(&defs, |p| p.wire_part.clone()),
             insulation: from_defs(&defs, |p| p.insulation.clone()),
             function: from_defs(&defs, |p| p.function.clone()),
@@ -529,11 +547,11 @@ impl Ctx<'_> {
         };
 
         // Level 2: the colour row and the size row, and level 0 from the same attributes.
-        let (colour_attrs, colour_row, class, rule) = if bond {
-            let pe = Attrs {
-                ptype: Some(PotentialType::Pe),
-                ..Attrs::default()
-            };
+        let pe = Attrs {
+            ptype: Some(PotentialType::Pe),
+            ..Attrs::default()
+        };
+        let (size_attrs, colour_row, class, rule) = if bond {
             let colour_row = self.row(&pe, None);
             let non_pe = wire
                 .potentials
@@ -541,7 +559,7 @@ impl Ctx<'_> {
                 .map(|p| (*p, self.attrs(*p)))
                 .find(|(_, a)| a.ptype != Some(PotentialType::Pe));
             let class = non_pe.map_or(CircuitClass::Control, |(p, a)| self.class_of(p, &a));
-            (pe, colour_row, class, SizeRule::Bond)
+            (pe.clone(), colour_row, class, SizeRule::Bond)
         } else {
             let attrs = self.attrs(key);
             let row = self.row(&attrs, own_class(q, key));
@@ -550,8 +568,11 @@ impl Ctx<'_> {
             } else {
                 (row.class.clone(), SizeRule::Class)
             };
-            (attrs, row, class, rule)
+            // FT-654: the colour row of a PE potential; the class and the size row keep the applied type.
+            let colour_row = if pe_merged { self.row(&pe, None) } else { row };
+            (attrs, colour_row, class, rule)
         };
+        let colour_attrs = if bond || pe_merged { pe } else { size_attrs.clone() };
         let colour2 = match (&colour_row.colour, wire.core) {
             (Some((profile, row, c)), None) => Some(Prov::new(
                 c.clone(),
@@ -563,7 +584,7 @@ impl Ctx<'_> {
             _ => None,
         };
         // The size row of the final class (the key of the potential's own row when the class is its own).
-        let size_row = self.row(&colour_attrs, Some(class.clone()));
+        let size_row = self.row(&size_attrs, Some(class.clone()));
         let csa2 = size_row.csa.as_ref().map(|(profile, csa)| {
             Prov::new(
                 csa.clone(),

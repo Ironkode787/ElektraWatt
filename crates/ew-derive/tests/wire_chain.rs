@@ -424,3 +424,126 @@ fn a_profile_default_and_notes_are_read_as_parts() {
     let rows = store.commit_stats().family("profile_row_for");
     assert_eq!(rows.re_executions, rows.cut_offs, "{rows:?}");
 }
+
+/// The colour code of an effective colour, as its JSON text.
+fn colour_code(e: &ew_derive::EffectiveProps) -> String {
+    serde_json::to_string(&e.colour.as_ref().expect("a colour").value).expect("a colour serialises")
+}
+
+/// The fixture with M and PE merged by the plain wire 0x2201, the members of `m_extra` and `pe_extra` set on the
+/// M and PE definitions (a null value removes the member), and its potentials by name.
+fn merged(m_extra: Value, pe_extra: Value) -> (Model, BTreeMap<String, PotentialId>) {
+    let mut fx = fixture();
+    wire(&mut fx, 0x2201, (0x1006, 0), (PE_SRC, 0));
+    for (def, extra) in [(0x5003, m_extra), (0x5004, pe_extra)] {
+        // By kind and ID: the terminal functions 0x5001..0x5005 share the definitions' IDs.
+        let r = fx
+            .records
+            .iter_mut()
+            .find(|r| r["$k"] == "potential_def" && r["id"] == json!(uid(def)))
+            .expect("the definition");
+        for (k, v) in extra.as_object().expect("an object") {
+            if v.is_null() {
+                r.as_object_mut().expect("a record").remove(k);
+            } else {
+                r[k] = v.clone();
+            }
+        }
+    }
+    let model = fx.build();
+    let ps = potentials(&Q::new(&model));
+    (model, ps)
+}
+
+/// FT-654 (decision log ID-828; doc 08 §3.6, doc 16a §7.5): a plain wire that merges M and PE without a bond makes
+/// one potential named M (FT-587's natural order) of type M with a type conflict (EW-POT-001); every wire of it shows
+/// the PE colour (the PE colour row, level 2), while the cross-section and the class keep the applied type M. A
+/// colour on the M definition (level 3) does not apply, a colour on the PE definition does. The M potential alone,
+/// and a merge whose applied type is PE, are unchanged.
+#[test]
+fn a_merged_0v_pe_potential_shows_the_pe_colour() {
+    // Before: M is white.
+    let model = fixture().build();
+    let q = Q::new(&model);
+    let ps = potentials(&q);
+    let m = q.get::<WirePropsOf>(ps["M"]);
+    assert_eq!(colour_code(&m.wires[&id(0x2003)]), r#"["WH"]"#);
+
+    let (model, ps) = merged(json!({}), json!({}));
+    let q = Q::new(&model);
+    assert!(!ps.contains_key("PE"), "one potential: {ps:?}");
+    let p = ps["M"];
+    assert!(
+        !q.get::<ew_derive::PotentialAttrsOf>(p).conflicts.is_empty(),
+        "the merge is a type conflict (EW-POT-001)"
+    );
+    let map = q.get::<WirePropsOf>(p);
+    // M's wire, the merging wire and the three PE wires.
+    assert_eq!(map.wires.len(), 5, "{:?}", map.wires.keys());
+    for (w, e) in &map.wires {
+        assert_eq!(colour_code(e), r#"["GN","YE"]"#, "{w:?}");
+        assert!(
+            matches!(
+                &e.colour.as_ref().expect("a colour").source,
+                PropSource::ColourRow { row: 3, .. }
+            ),
+            "{w:?}: the PE colour row"
+        );
+        assert_eq!(e.class, Some(CircuitClass::Control), "{w:?}: the class of type M");
+        assert!(
+            matches!(
+                &e.csa.as_ref().expect("a cross-section").source,
+                PropSource::SizeRow {
+                    class: CircuitClass::Control,
+                    rule: SizeRule::Class,
+                    ..
+                }
+            ),
+            "{w:?}"
+        );
+    }
+    let store = MemoStore::new(&model);
+    assert_eq!(*store.query().get::<WirePropsOf>(p), *map, "memoised equals cold");
+
+    // Level 3: the M definition's colour does not apply; the PE definition's does.
+    let (model, ps) = merged(json!({"props": {"colour": ["WH", "RD"]}}), json!({}));
+    let q = Q::new(&model);
+    let map = q.get::<WirePropsOf>(ps["M"]);
+    assert!(
+        map.wires.values().all(|e| colour_code(e) == r#"["GN","YE"]"#),
+        "{map:?}"
+    );
+    let (model, ps) = merged(
+        json!({"props": {"colour": ["WH", "RD"]}}),
+        json!({"props": {"colour": ["VT"]}}),
+    );
+    let q = Q::new(&model);
+    let map = q.get::<WirePropsOf>(ps["M"]);
+    for e in map.wires.values() {
+        assert_eq!(colour_code(e), r#"["VT"]"#);
+        assert_eq!(
+            e.colour.as_ref().expect("a colour").source,
+            PropSource::PotentialDef(id(0x5004))
+        );
+    }
+
+    // A merge whose applied type is PE (the M definition untyped): no conflict, the PE rule as before.
+    let (model, ps) = merged(json!({"ptype": null}), json!({}));
+    let q = Q::new(&model);
+    let p = ps["M"];
+    assert!(q.get::<ew_derive::PotentialAttrsOf>(p).conflicts.is_empty());
+    let map = q.get::<WirePropsOf>(p);
+    for (w, e) in &map.wires {
+        assert_eq!(colour_code(e), r#"["GN","YE"]"#, "{w:?}");
+        assert!(
+            matches!(
+                &e.csa.as_ref().expect("a cross-section").source,
+                PropSource::SizeRow {
+                    rule: SizeRule::PeHighestAtEnds,
+                    ..
+                }
+            ),
+            "{w:?}: the PE rule, the highest class at the ends"
+        );
+    }
+}
