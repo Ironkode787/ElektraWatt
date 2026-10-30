@@ -73,6 +73,14 @@
 //!   A text that lists several items carries one link per item ([`SlotValue::item_links`], FT-86): an invisible
 //!   path item over the item's glyph span (the pen travel of the text up to the item's ends), after the text's
 //!   own items, with the text's entity and a [`Link::Source`].
+//! - **Slot text collisions** (FT-687). A cross-reference slot (`xref`) without a position override follows two
+//!   rules; every other text stays where its symbol puts it. (1) A list of several lines aligned to the middle keeps
+//!   its first line where a one-line text would sit and grows downward in its own frame (a coil's contact mirror
+//!   never climbs into the technical data above it). (2) A horizontal one whose layout box overlaps another slot
+//!   text's box on the page (its own symbol's or another representation's; the texts in print order, each seen where
+//!   it ended) drops straight down until its top is [`SLOT_TEXT_GAP`] below the lowest box it overlapped, when it
+//!   overlaps no slot text there; else it stays. At one-column spacing a contact's back-reference so moves below the
+//!   neighbour contact's tag. Printed text order and every other position are unchanged.
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome): the caller's marker text, centred in style
 //!   `marker` on the midpoint of the polyline's longest segment (the first of equal ones), turned 90° on a
 //!   vertical segment, over the marker symbol in the same orientation. Provisional, like the routes.
@@ -91,7 +99,7 @@ use ew_ids::{Id, Uuid};
 use ew_mltext::LangTag;
 use ew_schema::{
     Align, Connection, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, Page, Representation,
-    SymbolDef,
+    SlotKind, SymbolDef,
 };
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, Shaped, TextStyle, TextStyleTable};
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
@@ -890,6 +898,9 @@ impl Builder<'_> {
     }
 
     fn labels(&mut self, view: &PageView) {
+        // FT-687: the slot texts of every representation are gathered first, so the placement rules of
+        // [`SlotText`] can see the other representations' texts; they print in the same order as before.
+        let mut texts: Vec<SlotText<'_>> = Vec::new();
         for rv in sorted_reps(view) {
             let Some(def) = &rv.symbol else { continue };
             let rep = &rv.rep;
@@ -918,39 +929,82 @@ impl Builder<'_> {
                 if !visible {
                     continue;
                 }
+                let moved = ov.and_then(|o| o.pos).is_some();
                 let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
                 let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
                 let (style_key, unknown) = symbol::slot_style_key(slot, self.styles);
-                if let Some(name) = unknown {
-                    self.out.findings.push(PageFinding::UnknownSlotStyle {
-                        entity: entity.0,
-                        symbol: rep.symbol.as_uuid(),
-                        slot: value.slot,
-                        name: name.to_owned(),
-                    });
-                }
-                let conflict = value.link.is_some() && !value.item_links.is_empty();
-                if conflict {
-                    self.out.findings.push(PageFinding::ConflictingLinks {
-                        entity: entity.0,
-                        slot: value.slot,
-                    });
-                }
-                self.text(&TextSpec {
-                    text: &value.text,
+                texts.push(SlotText {
+                    symbol: rep.symbol.as_uuid(),
+                    value,
                     at: rep.pos + rep.orient.apply(pos),
                     angle: symbol::readable_angle(rot, rep.orient),
-                    align: &symbol::placed_align(&slot.align, rot, rep.orient),
+                    align: symbol::placed_align(&slot.align, rot, rep.orient),
                     style_key,
+                    unknown,
                     entity,
-                    link: value.link.filter(|_| !conflict).map(Link::Source),
-                    items: &value.item_links,
+                    xref: matches!(slot.kind, SlotKind::Xref) && !moved,
                 });
             }
+        }
+        self.place_slot_texts(&mut texts);
+        for t in &texts {
+            if let Some(name) = t.unknown {
+                self.out.findings.push(PageFinding::UnknownSlotStyle {
+                    entity: t.entity.0,
+                    symbol: t.symbol,
+                    slot: t.value.slot,
+                    name: name.to_owned(),
+                });
+            }
+            let conflict = t.value.link.is_some() && !t.value.item_links.is_empty();
+            if conflict {
+                self.out.findings.push(PageFinding::ConflictingLinks {
+                    entity: t.entity.0,
+                    slot: t.value.slot,
+                });
+            }
+            let spec = t.spec(conflict);
+            self.text_placed(&spec, t.xref);
         }
         self.connection_markers(view);
         // The free texts, wire-marker groups and structure-box captions (WP-S2.04 part 4a).
         self.item_labels(view);
+    }
+
+    /// The placement rules of the slot texts (FT-687, module documentation, "Slot text collisions"): a
+    /// horizontal cross-reference text that overlaps another slot text on the page (its own symbol's or another
+    /// representation's) drops below the lowest of those texts, [`SLOT_TEXT_GAP`] apart, when it overlaps no
+    /// slot text there; texts are taken in print order, each seeing the earlier ones where they ended.
+    fn place_slot_texts(&self, texts: &mut [SlotText<'_>]) {
+        let mut boxes: Vec<Option<Rect>> = texts
+            .iter()
+            .map(|t| self.text_box(&t.spec(false), t.xref))
+            .collect();
+        for i in 0..texts.len() {
+            let Some(own) = boxes[i] else { continue };
+            if !texts[i].xref || texts[i].angle != Angle2::ZERO {
+                continue;
+            }
+            let others = || {
+                boxes
+                    .iter()
+                    .enumerate()
+                    .filter(|(k, _)| *k != i)
+                    .filter_map(|(_, b)| *b)
+            };
+            let Some(bottom) = others().filter(|b| overlaps(own, *b)).map(|b| b.max().y).max() else {
+                continue;
+            };
+            let drop = Nm(bottom.0 + SLOT_TEXT_GAP.0 - own.min().y.0);
+            let moved = Rect::from_points(
+                Pt2::new(own.min().x, own.min().y + drop),
+                Pt2::new(own.max().x, own.max().y + drop),
+            );
+            if others().all(|b| !overlaps(moved, b)) {
+                texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, drop);
+                boxes[i] = Some(moved);
+            }
+        }
     }
 
     /// The per-connection wire markers, by connection ID.
@@ -1023,11 +1077,16 @@ impl Builder<'_> {
 
     /// Shapes `spec.text` and places it at `spec.at` with its alignment and angle, as form graphics do.
     pub(crate) fn text(&mut self, spec: &TextSpec<'_>) {
+        self.text_placed(spec, false);
+    }
+
+    /// [`text`](Builder::text); with `first_line` a text of several lines aligned to the middle keeps its first line
+    /// where a one-line text would sit and grows downward in its own frame (FT-687, module documentation).
+    fn text_placed(&mut self, spec: &TextSpec<'_>, first_line: bool) {
         if spec.text.is_empty() {
             return;
         }
         let style = self.style(spec.style_key, spec.entity);
-        let (halign, valign) = split_align(spec.align).unwrap_or((0, 0));
         let shaped = self.fonts.shape(spec.text, &style, None);
         if !shaped.missing.is_empty() {
             self.out.findings.push(PageFinding::MissingGlyphs {
@@ -1036,18 +1095,7 @@ impl Builder<'_> {
                 chars: shaped.missing.clone(),
             });
         }
-        let boxed = BoxSpec {
-            rect: Rect::from_point(spec.at),
-            halign,
-            valign,
-            padding: Nm::ZERO,
-            overflow: None,
-            max_lines: 1,
-            sheet: SheetMap::IDENTITY,
-        };
-        let lines = place(
-            self.fonts, &shaped, &style, spec.text, &boxed, spec.at, spec.angle,
-        );
+        let lines = self.lay_out(spec, &style, &shaped, first_line);
         let carriers = self.item_carriers(spec, &style, &shaped, &lines);
         for item in lines {
             let item = item.with_entity(spec.entity);
@@ -1059,6 +1107,73 @@ impl Builder<'_> {
         for item in carriers {
             self.push(item);
         }
+    }
+
+    /// The line items of `spec` shaped as `shaped` in `style` (see [`text_placed`](Builder::text_placed)).
+    fn lay_out(
+        &self,
+        spec: &TextSpec<'_>,
+        style: &TextStyle,
+        shaped: &Shaped,
+        first_line: bool,
+    ) -> Vec<Item> {
+        let (halign, valign) = split_align(spec.align).unwrap_or((0, 0));
+        // A middle-aligned block is centred from the first line's cap height to the last baseline; dropping the
+        // box's middle by half the last baseline puts the first line where a one-line text would be.
+        let last = shaped.lines.last().map_or(Nm::ZERO, |l| l.baseline);
+        let rect = if first_line && valign == 0 && shaped.lines.len() > 1 {
+            Rect::from_point(spec.at + Pt2::new(Nm::ZERO, Nm(last.0.div_euclid(2))))
+        } else {
+            Rect::from_point(spec.at)
+        };
+        let boxed = BoxSpec {
+            rect,
+            halign,
+            valign,
+            padding: Nm::ZERO,
+            overflow: None,
+            max_lines: 1,
+            sheet: SheetMap::IDENTITY,
+        };
+        place(self.fonts, shaped, style, spec.text, &boxed, spec.at, spec.angle)
+    }
+
+    /// The bounds of the layout boxes of `spec`'s lines as [`text_placed`](Builder::text_placed) would place
+    /// them; `None` for an empty text. Reports nothing (an unknown style measures in the default style).
+    fn text_box(&self, spec: &TextSpec<'_>, first_line: bool) -> Option<Rect> {
+        if spec.text.is_empty() {
+            return None;
+        }
+        let style = self
+            .styles
+            .resolve(spec.style_key)
+            .or_else(|| self.styles.resolve(DEFAULT_STYLE_KEY))
+            .unwrap_or(TextStyle::regular(Nm(3_175_000)));
+        let shaped = self.fonts.shape(spec.text, &style, None);
+        let lines = self.lay_out(spec, &style, &shaped, first_line);
+        let mut out: Option<Rect> = None;
+        for item in &lines {
+            let quad: Vec<Pt2> = match &item.kind {
+                ItemKind::Glyphs(run) => run.layout_quad().to_vec(),
+                ItemKind::Group(g) => {
+                    let t = g.transform.unwrap_or(Transform::IDENTITY);
+                    g.items
+                        .iter()
+                        .filter_map(|i| match &i.kind {
+                            ItemKind::Glyphs(run) => Some(run.layout_quad().map(|q| t.apply(q))),
+                            _ => None,
+                        })
+                        .flatten()
+                        .collect()
+                }
+                _ => Vec::new(),
+            };
+            for q in quad {
+                let r = Rect::from_point(q);
+                out = Some(out.map_or(r, |o| o.union(r)));
+            }
+        }
+        out
     }
 
     /// One invisible path item per entry of `spec.items`, over the box of that item's glyph span and
@@ -1108,6 +1223,45 @@ impl Builder<'_> {
             })
             .collect()
     }
+}
+
+/// The gap a dropped cross-reference text keeps below the text it moved away from (FT-687): 0.5 mm.
+pub const SLOT_TEXT_GAP: Nm = Nm(500_000);
+
+/// One visible slot text of a representation before it prints (FT-687): what [`TextSpec`] needs and whether the
+/// slot is a cross-reference the placement rules may move.
+struct SlotText<'v> {
+    symbol: Uuid,
+    value: &'v SlotValue,
+    at: Pt2,
+    angle: Angle2,
+    align: Align,
+    style_key: &'v str,
+    unknown: Option<&'v str>,
+    entity: EntityRef,
+    /// A cross-reference slot at the symbol's own position (no position override).
+    xref: bool,
+}
+
+impl SlotText<'_> {
+    /// The text spec; `conflict` drops the whole-text link (a value with both kinds of link).
+    fn spec(&self, conflict: bool) -> TextSpec<'_> {
+        TextSpec {
+            text: &self.value.text,
+            at: self.at,
+            angle: self.angle,
+            align: &self.align,
+            style_key: self.style_key,
+            entity: self.entity,
+            link: self.value.link.filter(|_| !conflict).map(Link::Source),
+            items: &self.value.item_links,
+        }
+    }
+}
+
+/// Whether two rectangles share interior points (touching edges do not count).
+fn overlaps(a: Rect, b: Rect) -> bool {
+    a.min().x < b.max().x && b.min().x < a.max().x && a.min().y < b.max().y && b.min().y < a.max().y
 }
 
 pub(crate) struct TextSpec<'a> {
