@@ -4377,7 +4377,110 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         )),
     ),
+    // WP-S2.07 part 4a (§9.4): the part selection dialog and the part editor.
+    with_params(
+        "target?:enum(parts|bridge_part|accessory_part), use?:uint, add?:bool",
+        act(
+            "part.choose",
+            View,
+            "action-part-choose",
+            Menu::Edit,
+            &[],
+            writable,
+            slot(Menu::Edit),
+        ),
+    ),
+    with_params(
+        "text?:text, kind?:text, category?:text, fits?:bool, view?:enum(all|project|favourites|recent), inactive?:bool",
+        hidden(act(
+            "part.search",
+            View,
+            "action-part-search",
+            Menu::Edit,
+            &[],
+            part_dialog_open,
+            None,
+        )),
+    ),
+    with_params(
+        "index?:uint, part?:text",
+        hidden(act(
+            "part.pick",
+            Command,
+            "action-part-pick",
+            Menu::Edit,
+            &[],
+            part_dialog_open,
+            None,
+        )),
+    ),
+    with_params(
+        "index?:uint",
+        hidden(act(
+            "part.favourite",
+            View,
+            "action-part-favourite",
+            Menu::Edit,
+            &[],
+            part_dialog_open,
+            None,
+        )),
+    ),
+    with_params(
+        "part?:text",
+        act(
+            "part.edit",
+            View,
+            "action-part-edit",
+            Menu::Edit,
+            &[],
+            writable,
+            slot(Menu::Edit),
+        ),
+    ),
+    with_params(
+        "field:text, value:text",
+        hidden(act(
+            "part.field",
+            View,
+            "action-part-field",
+            Menu::Edit,
+            &[],
+            part_editor_open,
+            None,
+        )),
+    ),
+    hidden(act(
+        "part.save",
+        Command,
+        "action-part-save",
+        Menu::Edit,
+        &[],
+        part_editor_open,
+        None,
+    )),
 ];
+
+// WP-S2.07 part 4a
+/// The part selection dialog's own actions need the dialog.
+fn part_dialog_open(m: &ShellModel) -> Result<(), &'static str> {
+    project_open(m)?;
+    if matches!(m.dialog(), Some(crate::shell::Dialog::PartChoose(_))) {
+        Ok(())
+    } else {
+        Err("reason-no-part-dialog")
+    }
+}
+
+/// The part editor's own actions need the editor and a writable project.
+fn part_editor_open(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    if matches!(m.dialog(), Some(crate::shell::Dialog::PartEdit(_))) {
+        Ok(())
+    } else {
+        Err("reason-no-part-editor")
+    }
+}
 
 /// One parameter of an action's signature (WP-S6.13 §5.5.2).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -5137,6 +5240,8 @@ mod tests {
         // WP-S2.09 part 1: the recovery dialog's answers.
         "journal.recover",
         "journal.keep",
+        // WP-S2.07 part 4a: the part editor's Save.
+        "part.save",
     ];
 
     #[test]

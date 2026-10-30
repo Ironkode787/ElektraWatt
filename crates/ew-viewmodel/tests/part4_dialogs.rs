@@ -280,6 +280,9 @@ const OPENS_INPUT: &[&str] = &[
     "macros.insert",
     "macros.save",
     "libraries.update",
+    // WP-S2.07 part 4a (D19, D20): Choose part… and Edit part… open the part dialog and the part editor.
+    "part.choose",
+    "part.edit",
 ];
 
 #[test]

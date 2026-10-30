@@ -1,4 +1,4 @@
-# ew.blindvocab/1: the 375 structural words of the describe text, then its free-text markers
+# ew.blindvocab/1: the 387 structural words of the describe text, then its free-text markers
 title:
 menu
 submenu
@@ -374,6 +374,18 @@ tier
 project_copies
 library_copy
 macro
+fits
+all
+inactive
+compatible
+same-fndef
+same-category
+other
+favourite
+favourites
+tech
+version
+fork
 markers:
 title:
 banner:

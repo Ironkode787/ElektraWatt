@@ -77,6 +77,8 @@ mod wiring;
 mod workspaces;
 // WP-S1.19 part 6: the Macros and Libraries navigators, Save as macro… and Make variable.
 mod macros;
+// WP-S2.07 part 4a
+pub mod part_dialog;
 pub use macros::MacroVariable;
 
 pub use creation::{FormDialog, FormField, PAGE_TYPES, STRUCTURE_KINDS};
@@ -293,6 +295,12 @@ pub enum Dialog {
         /// The assets they hold (the parameter of the purge).
         assets: Vec<String>,
     },
+    // WP-S2.07 part 4a
+    /// Choose part… (D19): the part selection dialog, a 640-px form with the search, the filters, the result list
+    /// and Choose.
+    PartChoose(Box<part_dialog::PartChooser>),
+    /// Edit part… (D20, D21): the part editor, a 640-px form with the editable members, the read-only ones and Save.
+    PartEdit(Box<part_dialog::PartEditor>),
 }
 
 /// A marker line of the history (WP-S2.09 D13, view state, never a `History` entry): an export, a recovery.
@@ -1669,6 +1677,14 @@ impl ShellModel {
             "macros.value_set" => self.act_macros_value_set(p),
             "macros.save" => self.act_macros_save(p),
             "libraries.update" => self.act_libraries_update(p),
+            // WP-S2.07 part 4a (§9.4)
+            "part.choose" => self.act_part_choose(p),
+            "part.search" => self.act_part_search(p),
+            "part.pick" => self.act_part_pick(p),
+            "part.favourite" => self.act_part_favourite(p),
+            "part.edit" => self.act_part_edit(p),
+            "part.field" => self.act_part_field(p),
+            "part.save" => self.act_part_save(),
             "props.make_variable" => self.act_props_make_variable(p),
             "picker.filter" => self.act_picker_filter(p),
             "picker.row" => self.act_picker_row(p),

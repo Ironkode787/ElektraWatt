@@ -195,6 +195,43 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 ..small(strings::text("confirm-purge-title").to_owned(), body, cancel())
             }
         }
+        // WP-S2.07 part 4a (D19): Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
+        Dialog::PartChoose(c) => {
+            let body = if c.offers.is_empty() {
+                vec![strings::format("part-choose-empty", &[&c.query.text])]
+            } else {
+                Vec::new()
+            };
+            DialogSpec {
+                secondary: vec![cancel()],
+                form: true,
+                ..small(
+                    c.title(),
+                    body,
+                    DialogButton::new(
+                        "dialog-part-choose-button",
+                        DialogAnswer::Action("part.pick", Value::Null),
+                    ),
+                )
+            }
+        }
+        // WP-S2.07 part 4a (D20): Save (Enter) and Cancel; a fork says that the library is not changed.
+        Dialog::PartEdit(e) => {
+            let body = if e.draft.fork {
+                vec![strings::text("part-edit-fork-note").to_owned()]
+            } else {
+                Vec::new()
+            };
+            DialogSpec {
+                secondary: vec![cancel()],
+                form: true,
+                ..small(
+                    e.title(),
+                    body,
+                    DialogButton::new("dialog-save", DialogAnswer::Action("part.save", Value::Null)),
+                )
+            }
+        }
         // Recover, Open read-only (also Escape), Discard… apart; after a failed recovery Open read-only leads.
         Dialog::Recovery {
             name,

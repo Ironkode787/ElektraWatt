@@ -918,7 +918,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
             strings::format("card-fix", &[&card.changes.to_string(), &tags, &xrefs])
         }
         // FT-580: the Preview tab's title (a table card's gesture title) and its summary line, as the window shows them.
-        CardOrigin::Bulk | CardOrigin::Table { .. } | CardOrigin::Macro(_) => format!(
+        CardOrigin::Bulk | CardOrigin::Table { .. } | CardOrigin::Macro(_) | CardOrigin::Part(_) => format!(
             "{} · {}",
             shell.table_gesture().map_or_else(
                 || strings::format("preview-title", &[strings::command_title(&card.preview.name)]),

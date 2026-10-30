@@ -8,7 +8,9 @@
 //! `keymap`, `theme`, `density` (WP-S2.17), `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
 //! project `basic_project` (FR-PRJ-009), the active workspace `workspace` (FR-UI-002) and, since WP-S2.02 part 2,
 //! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer) and, since cycle 37, the
-//! author name `author_name` of the Waive prompt (FT-674; written only once set). Unknown keys are kept
+//! author name `author_name` of the Waive prompt (FT-674; written only once set) and, since WP-S2.07 part 4a (D18), the
+//! part dialog's `[parts] favourites` (sorted) and `recent` (most recent first, at most [`MAX_RECENT_PARTS`]), each a
+//! list of `<library ID>/<item ID>` texts, written only once set. Unknown keys are kept
 //! and written back; a `toml::Table` holds them sorted, so the file is deterministic. An unreadable file yields
 //! the defaults and is copied to `settings.toml.bad-<n>`.
 
@@ -16,6 +18,9 @@ use std::path::{Path, PathBuf};
 
 /// The recent-projects list holds at most this many paths.
 pub const MAX_RECENT: usize = 10;
+
+/// The recently used parts list holds at most this many library items (WP-S2.07 D18).
+pub const MAX_RECENT_PARTS: usize = 20;
 
 /// The UI scales the user can choose, as factors on the native scale.
 pub const UI_SCALES: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
@@ -86,6 +91,11 @@ pub struct Settings {
     /// The main window's last size, position and maximised state (`[window]`, WP-S2.17 part 3 item 9, FT-348); `None`
     /// until a window has closed.
     pub window: Option<crate::window::WindowGeometry>,
+    /// The favourite parts, `<library ID>/<item ID>`, sorted (`[parts] favourites`, WP-S2.07 D18).
+    pub parts_favourites: Vec<String>,
+    /// The recently used parts, `<library ID>/<item ID>`, most recent first, at most [`MAX_RECENT_PARTS`] (`[parts]
+    /// recent`).
+    pub parts_recent: Vec<String>,
     /// Keys this version does not know, kept and written back.
     extra: toml::Table,
 }
@@ -109,6 +119,8 @@ impl Default for Settings {
             properties_show_advanced: false,
             author_name: None,
             window: None,
+            parts_favourites: Vec::new(),
+            parts_recent: Vec::new(),
             extra: toml::Table::new(),
         }
     }
@@ -139,6 +151,27 @@ impl Settings {
     /// Removes `path` from the recent projects.
     pub fn remove_recent(&mut self, path: &str) {
         self.recent_projects.retain(|p| p != path);
+    }
+
+    /// Adds or removes the favourite part `item` (`<library ID>/<item ID>`, D18); the list stays sorted. `true` when
+    /// it is a favourite afterwards.
+    pub fn toggle_favourite_part(&mut self, item: &str) -> bool {
+        if let Some(i) = self.parts_favourites.iter().position(|f| f == item) {
+            self.parts_favourites.remove(i);
+            false
+        } else {
+            self.parts_favourites.push(item.to_owned());
+            self.parts_favourites.sort();
+            true
+        }
+    }
+
+    /// Records the use of the part `item` (`<library ID>/<item ID>`, D18): first in the list, no duplicate, at most
+    /// [`MAX_RECENT_PARTS`].
+    pub fn record_part_use(&mut self, item: &str) {
+        self.parts_recent.retain(|p| p != item);
+        self.parts_recent.insert(0, item.to_owned());
+        self.parts_recent.truncate(MAX_RECENT_PARTS);
     }
 
     /// The settings of a TOML text; `None` when it is not valid TOML or a known key has the wrong type.
@@ -208,6 +241,34 @@ impl Settings {
         }
         properties_collapsed.sort();
         properties_collapsed.dedup();
+        // WP-S2.07 D18: `[parts] favourites` and `recent`, lists of texts; other members of the table are kept.
+        let mut parts_favourites: Vec<String> = Vec::new();
+        let mut parts_recent: Vec<String> = Vec::new();
+        if let Some(toml::Value::Table(parts)) = table.get_mut("parts") {
+            for (key, list) in [
+                ("favourites", &mut parts_favourites),
+                ("recent", &mut parts_recent),
+            ] {
+                match parts.remove(key) {
+                    None => {}
+                    Some(toml::Value::Array(items)) => {
+                        for v in items {
+                            match v {
+                                toml::Value::String(s) if !list.contains(&s) => list.push(s),
+                                toml::Value::String(_) => {}
+                                _ => return None,
+                            }
+                        }
+                    }
+                    Some(_) => return None,
+                }
+            }
+            if parts.is_empty() {
+                table.remove("parts");
+            }
+        }
+        parts_favourites.sort();
+        parts_recent.truncate(MAX_RECENT_PARTS);
         // WP-S2.17 part 3 (FT-348): `[window]`. Known members this version cannot read are dropped, not the whole
         // file: the window then opens at its default size. Other members of the table are kept (R1-6).
         let window = match table.remove("window") {
@@ -248,6 +309,8 @@ impl Settings {
             properties_show_advanced,
             author_name,
             window,
+            parts_favourites,
+            parts_recent,
             extra: table,
         };
         // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins.
@@ -365,6 +428,27 @@ impl Settings {
             };
             members.extend(w.to_toml());
             table.insert("window".to_owned(), toml::Value::Table(members));
+        }
+        // WP-S2.07 D18: written only once a part is a favourite or was chosen, merged into the kept members.
+        if !self.parts_favourites.is_empty() || !self.parts_recent.is_empty() {
+            let mut parts = match table.remove("parts") {
+                Some(toml::Value::Table(t)) => t,
+                _ => toml::Table::new(),
+            };
+            for (key, list) in [
+                ("favourites", &self.parts_favourites),
+                ("recent", &self.parts_recent),
+            ] {
+                if list.is_empty() {
+                    parts.remove(key);
+                } else {
+                    parts.insert(
+                        key.to_owned(),
+                        toml::Value::Array(list.iter().map(|k| toml::Value::String(k.clone())).collect()),
+                    );
+                }
+            }
+            table.insert("parts".to_owned(), toml::Value::Table(parts));
         }
         // A table of plain values always serialises.
         toml::to_string(&table).unwrap_or_default()
@@ -546,6 +630,36 @@ pub fn default_config_dir() -> Option<PathBuf> {
         var("XDG_CONFIG_HOME")
             .map(|p| p.join("elektrawatt"))
             .or_else(|| var("HOME").map(|p| p.join(".config/elektrawatt")))
+    }
+}
+
+#[cfg(test)]
+mod parts_tests {
+    use super::*;
+
+    /// D18, PS3: favourites sorted, recent most recent first without duplicates and at most 20; unknown members of
+    /// `[parts]` kept; an untouched file writes no `[parts]`.
+    #[test]
+    fn favourites_and_recent_parts_round_trip() {
+        assert!(!Settings::default().to_toml().contains("[parts]"));
+        let mut s = Settings::parse("[parts]\nkeep = 1\n").unwrap();
+        assert!(s.toggle_favourite_part("b/2"));
+        assert!(s.toggle_favourite_part("a/1"));
+        assert_eq!(s.parts_favourites, ["a/1", "b/2"]);
+        assert!(!s.toggle_favourite_part("b/2"));
+        for i in 0..21 {
+            s.record_part_use(&format!("l/{i}"));
+        }
+        s.record_part_use("l/5");
+        assert_eq!(s.parts_recent.len(), MAX_RECENT_PARTS);
+        assert_eq!(s.parts_recent[..2], ["l/5".to_owned(), "l/20".to_owned()]);
+        let text = s.to_toml();
+        assert!(text.contains("keep = 1"), "{text}");
+        let again = Settings::parse(&text).unwrap();
+        assert_eq!(
+            (again.parts_favourites, again.parts_recent),
+            (s.parts_favourites, s.parts_recent)
+        );
     }
 }
 

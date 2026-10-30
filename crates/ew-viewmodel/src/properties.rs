@@ -227,6 +227,27 @@ pub enum CardOrigin {
     /// A macro's insertion from the Macros navigator (`macro.insert`, §11, FR-MAC-005): the card in the Preview tab
     /// with the conflicts the user decides on before Apply; a refused preview (a prevent rule) still shows them.
     Macro(Box<MacroInsert>),
+    // WP-S2.07 part 4a
+    /// The part editor's Save (`part.edit_copy`, D20): the card in the Preview tab with the field diff, the devices
+    /// that use the copy, the BOM rows that change and, for a fork, the fork note.
+    Part(Box<PartCard>),
+}
+
+/// What a part card shows (WP-S2.07 D20).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PartCard {
+    /// The editor's title (`Edit part 5SY4204-7 (Siemens)`).
+    pub title: String,
+    /// The members that change: (member, old text, new text).
+    pub fields: Vec<(String, String, String)>,
+    /// The tags of the devices that use the copy.
+    pub devices: Vec<String>,
+    /// The component BOM's rows that go.
+    pub removed: Vec<String>,
+    /// The component BOM's rows that come.
+    pub added: Vec<String>,
+    /// Whether saving forks the copy.
+    pub fork: bool,
 }
 
 /// What a macro card inserts and the conflicts it lists (WP-S1.19 §11).
@@ -262,6 +283,7 @@ impl CardOrigin {
             CardOrigin::Bulk => "bulk",
             CardOrigin::Table { .. } => "table",
             CardOrigin::Macro(_) => "macro",
+            CardOrigin::Part(_) => "part",
         }
     }
 }
@@ -895,14 +917,25 @@ pub fn value_text(row: &PropRow) -> String {
     }
 }
 
-/// One entry of a row's actions menu (FT-530): a row action of the grid, or the shell's Make variable (WP-S1.19
-/// §11, FT-754 (h)), which remembers the row's field as a variable of the next Save as macro….
+/// One entry of a row's actions menu (FT-530): a row action of the grid, the shell's Make variable (WP-S1.19 §11,
+/// FT-754 (h)), which remembers the row's field as a variable of the next Save as macro…, or a Parts row's Choose
+/// part…, Add part… and Edit part… (WP-S2.07 part 4a, §9.4).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowMenuItem {
     /// A row action of the grid.
     Action(RowAction),
     /// Make variable (`props.make_variable`).
     MakeVariable,
+    /// Choose part… on a Parts row (WP-S2.07 part 4a, §9.4): `part.choose`, replacing the first use when the row
+    /// names a part (`use` 0).
+    ChoosePart {
+        /// Whether the row names a part (then the choice replaces its first use).
+        first_use: bool,
+    },
+    /// Add part… on a Parts row: `part.choose add=true`.
+    AddPart,
+    /// Edit part… on a Parts row that names a part: `part.edit`.
+    EditPart,
 }
 
 /// The label of an entry of the row's actions menu.
@@ -910,6 +943,9 @@ pub fn menu_label(item: RowMenuItem) -> &'static str {
     match item {
         RowMenuItem::Action(a) => action_label(a),
         RowMenuItem::MakeVariable => strings::text("props-action-make-variable"),
+        RowMenuItem::ChoosePart { .. } => strings::text("action-part-choose"),
+        RowMenuItem::AddPart => strings::text("action-part-add"),
+        RowMenuItem::EditPart => strings::text("action-part-edit"),
     }
 }
 

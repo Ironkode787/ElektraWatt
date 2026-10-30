@@ -239,6 +239,17 @@ impl ShellModel {
     /// the reason `reason`; Apply goes through [`ShellModel::apply_bulk_card`]. A refused preview opens no card and is
     /// the outcome's message.
     pub(super) fn preview_host_card(&mut self, name: &str, params: Value, reason: &'static str) -> Outcome {
+        self.preview_host_card_as(name, params, reason, CardOrigin::Bulk)
+    }
+
+    /// [`ShellModel::preview_host_card`] with the card's origin (WP-S2.07 part 4a: the part card).
+    pub(super) fn preview_host_card_as(
+        &mut self,
+        name: &str,
+        params: Value,
+        reason: &'static str,
+        origin: CardOrigin,
+    ) -> Outcome {
         let Some(rev) = self.revision() else {
             return Outcome::Refused {
                 reason_key: "reason-no-project",
@@ -289,7 +300,7 @@ impl ShellModel {
             targets: changes,
             changes,
             reason,
-            origin: CardOrigin::Bulk,
+            origin,
         });
         Outcome::Done
     }
@@ -309,7 +320,7 @@ impl ShellModel {
             let Card { preview, edit, .. } = card;
             return self.commit_kept(preview, &edit.name, &edit.params, None);
         }
-        self.preview_host_card(&card.edit.name, card.edit.params, card.reason)
+        self.preview_host_card_as(&card.edit.name, card.edit.params, card.reason, card.origin)
     }
 
     // -----------------------------------------------------------------------------------------------------------

@@ -461,6 +461,38 @@ pub const VOCABULARY: &[&str] = &[
     "project_copies",
     "library_copy",
     "macro",
+    // WP-S2.07 part 4a (§9.6): the 12 words of `PART_WORDS`, a reviewed vocabulary change.
+    "fits",
+    "all",
+    "inactive",
+    "compatible",
+    "same-fndef",
+    "same-category",
+    "other",
+    "favourite",
+    "favourites",
+    "tech",
+    "version",
+    "fork",
+];
+
+// WP-S2.07 part 4a
+/// The 12 words WP-S2.07 part 4a adds to [`VOCABULARY`] (§9.6): the part dialog's `query` line (`fits`, `all`,
+/// `inactive`, the views `favourites` and `all`), its `result` lines (`compatible`, the fits `same-fndef`,
+/// `same-category` and `other`, the mark `favourite`) and the part editor's `tech`, `source … version … fork` lines.
+pub const PART_WORDS: &[&str] = &[
+    "fits",
+    "all",
+    "inactive",
+    "compatible",
+    "same-fndef",
+    "same-category",
+    "other",
+    "favourite",
+    "favourites",
+    "tech",
+    "version",
+    "fork",
 ];
 
 // WP-S1.19 part 6
@@ -1561,6 +1593,33 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                         line.push_str(" table");
                     }
                     lines.push(line);
+                    // WP-S2.07 part 4a (§9.6): the part card names its origin, the field diff, the devices, the BOM
+                    // rows and a fork's note.
+                    if let crate::properties::CardOrigin::Part(p) = &card.origin {
+                        if let Some(last) = lines.last_mut() {
+                            last.push_str(" part");
+                        }
+                        for (member, old, new) in &p.fields {
+                            lines.push(format!(
+                                "  field \"{}\" \"{}\" \"{}\"",
+                                user(member),
+                                user(old),
+                                user(new)
+                            ));
+                        }
+                        for d in &p.devices {
+                            lines.push(format!("  device \"{}\"", user(d)));
+                        }
+                        for r in &p.removed {
+                            lines.push(format!("  removed \"{}\"", user(r)));
+                        }
+                        for r in &p.added {
+                            lines.push(format!("  added \"{}\"", user(r)));
+                        }
+                        if p.fork {
+                            lines.push(format!("  note \"{}\"", strings::text("part-edit-fork-note")));
+                        }
+                    }
                 }
             },
         }
@@ -2337,6 +2396,117 @@ fn wiring_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
+fn on_off(b: bool) -> &'static str {
+    if b { "on" } else { "off" }
+}
+
+/// The part dialog's lines (WP-S2.07 §9.6).
+fn part_choose_lines(
+    model: &ShellModel,
+    c: &crate::shell::part_dialog::PartChooser,
+    lines: &mut Vec<String>,
+) {
+    let q = &c.query;
+    lines.push(format!(
+        "  query \"{}\" kind {} category {} fits {} view {} inactive {}",
+        user(&q.text),
+        c.kind_word(),
+        c.category_word(),
+        on_off(q.fits_only),
+        q.view.word(),
+        on_off(q.include_inactive)
+    ));
+    let shown = c.offers.len().min(crate::shell::part_dialog::PART_ROWS);
+    lines.push(format!("  results showing {} to {shown}", usize::from(shown > 0)));
+    for (i, o) in c.offers.iter().take(shown).enumerate() {
+        let source = if o.held {
+            "project".to_owned()
+        } else {
+            format!(
+                "library \"{}\"",
+                user(&o.library.as_ref().map_or_else(String::new, |l| l.1.clone()))
+            )
+        };
+        let mut line = format!(
+            "  result {} \"{}\" \"{}\" \"{}\" {source} compatible {}",
+            i + 1,
+            user(&o.part_number),
+            user(&o.manufacturer),
+            user(&o.description),
+            o.fit.word()
+        );
+        if o.favourite {
+            line.push_str(" favourite");
+        }
+        if i == c.cursor {
+            line.push_str(" cursor");
+        }
+        lines.push(line);
+    }
+    if let Some(detail) = model.part_offer_detail(c.cursor) {
+        lines.push(format!("  detail \"{}\"", user(&detail)));
+    }
+}
+
+/// The part editor's lines (WP-S2.07 §9.6).
+fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<String>) {
+    let d = &e.draft;
+    for f in ew_api::DRAFT_FIELDS {
+        lines.push(format!(
+            "  field \"{}\" \"{}\"",
+            strings::text(&format!("part-field-{f}")),
+            user(d.text(f))
+        ));
+    }
+    for (k, v) in &d.tech {
+        lines.push(format!("  tech \"{}\" \"{}\"", user(k), user(v)));
+    }
+    let none = || strings::text("part-none").to_owned();
+    let functions = if d.functions.is_empty() {
+        none()
+    } else {
+        d.functions.join(", ")
+    };
+    let cps = if d.cps.is_empty() {
+        none()
+    } else {
+        d.cps.join(", ")
+    };
+    lines.push(format!(
+        "  read-only \"{}\" \"{}\"",
+        strings::text("part-field-functions"),
+        user(&functions)
+    ));
+    lines.push(format!(
+        "  read-only \"{}\" \"{}\"",
+        strings::text("part-field-cps"),
+        user(&cps)
+    ));
+    let source = match &d.library {
+        Some(name) => format!("library \"{}\"", user(name)),
+        None => "project".to_owned(),
+    };
+    lines.push(format!(
+        "  source {source} version \"{}\" fork {}",
+        user(&d.version),
+        on_off(d.fork)
+    ));
+    for m in &d.messages {
+        let label = match m.field.strip_prefix("tech:") {
+            Some(key) => key.to_owned(),
+            None => strings::text(&format!("part-field-{}", m.field)).to_owned(),
+        };
+        lines.push(format!(
+            "  invalid \"{}\" \"{}\"",
+            user(&label),
+            user(&crate::shell::part_dialog::message_text(m.key, &m.args))
+        ));
+    }
+    if let Some(err) = &e.error {
+        lines.push(format!("  error: {err}"));
+    }
+}
+
 fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
     let Some(d) = model.dialog() else {
         return;
@@ -2421,6 +2591,10 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 ));
             }
         }
+        // WP-S2.07 part 4a (§9.6): the query, the window of results (50 rows, never the total) and the active row's
+        // detail.
+        Dialog::PartChoose(c) => part_choose_lines(model, c, lines),
+        Dialog::PartEdit(e) => part_edit_lines(e, lines),
         // FT-408 and FT-409: a creation dialog, one `field` line per field in order; the refusal of the last attempt
         // follows the fields as an `error:` line.
         Dialog::Form(form) => {

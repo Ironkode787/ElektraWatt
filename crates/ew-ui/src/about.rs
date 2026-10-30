@@ -93,8 +93,19 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     let mut link_clicked: Option<DialogAnswer> = None;
     let has_field = matches!(
         d,
-        Dialog::GotoPage { .. } | Dialog::SaveWorkspace { .. } | Dialog::Form(_)
+        Dialog::GotoPage { .. }
+            | Dialog::SaveWorkspace { .. }
+            | Dialog::Form(_)
+            | Dialog::PartChoose(_)
+            | Dialog::PartEdit(_)
     );
+    // WP-S2.07 part 4a: Choose picks the list's active row, which the window keeps.
+    if matches!(d, Dialog::PartChoose(_)) {
+        spec.primary.answer = DialogAnswer::Action(
+            "part.pick",
+            json!({ "index": crate::part_dialog::active(ctx) + 1 }),
+        );
+    }
     // What Submit sends (the field's text as typed this frame) and whether Enter in a field submitted.
     let mut submit_text: Option<String> = None;
     let mut submit = false;
@@ -205,6 +216,8 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         Dialog::Form(form) => {
             submit |= form_fields(ui, form, just_opened, events);
         }
+        Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
+        Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
         Dialog::ConfirmDiscard { .. } | Dialog::ConfirmCheckScheme { .. } | Dialog::ConfirmJournalDiscard => {
         }
     });

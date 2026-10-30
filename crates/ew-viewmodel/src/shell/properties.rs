@@ -1613,6 +1613,20 @@ impl ShellModel {
                     params.insert("row".to_owned(), Value::String(row));
                     self.act_props_make_variable(&params)
                 }
+                // WP-S2.07 part 4a (§9.4): the Parts row's Choose part…, Add part… and Edit part….
+                RowMenuItem::ChoosePart { first_use } => {
+                    let mut params = Map::new();
+                    if first_use {
+                        params.insert("use".to_owned(), json!(0));
+                    }
+                    self.act_part_choose(&params)
+                }
+                RowMenuItem::AddPart => {
+                    let mut params = Map::new();
+                    params.insert("add".to_owned(), Value::Bool(true));
+                    self.act_part_choose(&params)
+                }
+                RowMenuItem::EditPart => self.act_part_edit(&Map::new()),
             };
         }
         let Some(choices) = self.props.choices.take() else {
@@ -1637,8 +1651,8 @@ impl ShellModel {
     }
 
     /// The entries of the actions menu of the row `key` (FT-530, FT-754 (h)): the row's actions, then Make variable
-    /// when the row can be a macro variable (a row of one record with an action, not a derived value); empty for a
-    /// row that is not on show.
+    /// when the row can be a macro variable (a row of one record with an action, not a derived value), then on a
+    /// Parts row Choose part…, Add part… and Edit part… (WP-S2.07 part 4a); empty for a row that is not on show.
     pub fn row_menu(&self, key: &str) -> Vec<RowMenuItem> {
         let Some((section, row)) = self.props_find(key) else {
             return Vec::new();
@@ -1646,6 +1660,16 @@ impl ShellModel {
         let mut out: Vec<RowMenuItem> = row.actions.iter().map(|a| RowMenuItem::Action(*a)).collect();
         if !out.is_empty() && section.targets.len() == 1 && !row.path.starts_with("derived.") {
             out.push(RowMenuItem::MakeVariable);
+        }
+        // WP-S2.07 part 4a (§9.4): an editable Parts row (a part-uses row) adds Choose part… (the first use when the
+        // row names a part), Add part… and, when it names a part, Edit part….
+        if row.ty.is_part_uses() && row.actions.contains(&RowAction::Edit) {
+            let has_part = matches!(&row.value, RowValue::One { json, .. } if json.as_array().is_some_and(|a| !a.is_empty()));
+            out.push(RowMenuItem::ChoosePart { first_use: has_part });
+            out.push(RowMenuItem::AddPart);
+            if has_part {
+                out.push(RowMenuItem::EditPart);
+            }
         }
         out
     }
@@ -1999,7 +2023,7 @@ impl ShellModel {
             return self.apply_fix_card(card);
         }
         // WP-S2.09 part 3: a bulk card is a renumber dialog's (§8.2).
-        if matches!(card.origin, CardOrigin::Bulk) {
+        if matches!(card.origin, CardOrigin::Bulk | CardOrigin::Part(_)) {
             return self.apply_bulk_card(card);
         }
         // WP-S1.19 part 6: a macro card is the Macros navigator's (`macro.insert`, §11).
