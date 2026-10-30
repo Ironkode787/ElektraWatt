@@ -528,8 +528,9 @@ fn severity_word(severity: &str) -> &'static str {
     }
 }
 
-/// FT-530 (doc 16a §6.8, §6.13, §6.16): the header's findings are severity chips, a named `Label` node each
-/// ("<word>, <rule>: <message>") with the rule and message as the tooltip, no "[severity] rule message" text; the row's
+/// FT-530 (doc 16a §6.8, §6.13, §6.16): the header's findings are severity chips, one named `Label` node per severity
+/// ("<n> <Word(s)>: <rule>: <message>; …", cycle 37) with each rule and message in the tooltip, no "[severity] rule
+/// message" text; the row's
 /// actions are a popup menu anchored on its "…" button, whose items choose and which Escape closes.
 #[test]
 fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
@@ -555,8 +556,27 @@ fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         "the finding's object has findings in the header"
     );
     let painted: Vec<String> = painted_texts(&h).into_iter().map(|(t, _)| t).collect();
-    for f in &findings {
-        let name = format!("{}, {}: {}", severity_word(&f.severity), f.rule, f.message);
+    // Cycle 37 (window check W37): one chip per severity with its count, also for one finding ("1 Warning").
+    for severity in ["error", "warning", "info"] {
+        let of: Vec<_> = findings
+            .iter()
+            .filter(|f| match severity {
+                "error" | "warning" => f.severity == severity,
+                _ => f.severity != "error" && f.severity != "warning",
+            })
+            .collect();
+        if of.is_empty() {
+            continue;
+        }
+        let word = match (severity, of.len()) {
+            (s, 1) => severity_word(s).to_owned(),
+            ("error", n) => format!("{n} Errors"),
+            ("warning", n) => format!("{n} Warnings"),
+            (_, n) => format!("{n} Infos"),
+        };
+        let word = if of.len() == 1 { format!("1 {word}") } else { word };
+        let lines: Vec<String> = of.iter().map(|f| format!("{}: {}", f.rule, f.message)).collect();
+        let name = format!("{word}: {}", lines.join("; "));
         let chip = h
             .query_by_label(&name)
             .unwrap_or_else(|| panic!("the chip {name}"));
@@ -566,19 +586,17 @@ fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
             "{name}"
         );
         assert!(
-            painted.iter().any(|t| t == severity_word(&f.severity)),
-            "the chip paints its word: {painted:?}"
+            painted.iter().any(|t| *t == word),
+            "the chip paints its count and word: {painted:?}"
         );
         assert!(
-            !painted
-                .iter()
-                .any(|t| t.starts_with(&format!("[{}]", f.severity))),
+            !painted.iter().any(|t| t.starts_with(&format!("[{severity}]"))),
             "no bracketed finding text: {painted:?}"
         );
-        // The tooltip: the rule and the message.
+        // The tooltip: every rule and message.
         chip.hover();
         h.run_steps(40);
-        let tip = format!("{}: {}", f.rule, f.message);
+        let tip = lines.join("\n");
         assert!(h.query_by_label(&tip).is_some(), "the tooltip {tip}");
     }
     // The actions menu: the cursor on a row with actions, its "…" button, the popup below or above it.
