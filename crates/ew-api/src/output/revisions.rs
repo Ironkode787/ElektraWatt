@@ -28,9 +28,10 @@
 //! ([`ew_derive::last_released_revision`]), `o` the open revision ([`ew_derive::open_revision`]):
 //!
 //! - [`changed_now`]: without an open revision, no page; when `r_last` carries page digests (the digest branch), a
-//!   page whose digest differs from `r_last`'s or that `r_last` does not list, and every page of a
-//!   `revision_overview` block; otherwise (the no-digest branch: Golden A's historic V1.0) a page `o`'s page notes
-//!   name.
+//!   page whose digest differs from `r_last`'s or that `r_last` does not list, every page of a `revision_overview`
+//!   block, and a page `o`'s page notes name (the release's `changed_pages(r)` unions `r.page_notes` into the
+//!   digest-changed pages, so the open revision shows what its release will record); otherwise (the no-digest
+//!   branch: Golden A's historic V1.0) a page `o`'s page notes name.
 //! - [`last_changed_in`]: `o`'s label if the page is changed now, else the latest released revision that recorded it,
 //!   else the first revision ([`ew_derive::last_changed_in`] with this module's `changed_now` in the digest branch).
 //! - [`changed_pages`]: of `o`, the pages changed now, in page order; of any other revision the pages it records
@@ -211,7 +212,12 @@ pub fn changed_now(q: &Q, page: PageRef) -> bool {
     };
     let id: Id<Page> = Id::from_uuid(page_uuid(page));
     match last_digests(q) {
-        Some(digests) => is_revision_overview(q, page) || digests.get(&id).copied() != page_digest(q, page),
+        // The digest branch takes `o`'s noted pages too, as the release's `changed_pages(r)` will (FX37a).
+        Some(digests) => {
+            open.page_notes.iter().any(|n| n.page == id)
+                || is_revision_overview(q, page)
+                || digests.get(&id).copied() != page_digest(q, page)
+        }
         None => open.page_notes.iter().any(|n| n.page == id),
     }
 }

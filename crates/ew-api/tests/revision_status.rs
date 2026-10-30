@@ -330,44 +330,64 @@ fn pd3_golden_a_changes_101_and_106_in_v2() {
     );
 }
 
-/// PD-2: with V1.0 released with page digests (the digest branch), V2.0's page notes no longer decide: no drawn page
-/// is changed now and only the revision overview is; after an edit on folio 102, 102 is changed in V2.0, 101 stays
-/// at V1.0, and folio 911 lists V2.0's pages from the digests.
+/// PD-2: with V1.0 released with page digests (the digest branch), a drawn page is changed now when its digest
+/// differs or V2.0's page notes name it (doc 15 §5.6: the release's `changed_pages(r)` unions `r.page_notes` into the
+/// digest-changed pages, FX37a). Golden A's V2.0 notes 101 and 106, whose digests did not change: they are changed
+/// in V2.0 in the overview and the "Changed in" column, 102 stays at V1.0 until an edit on it, and folio 911 lists
+/// V2.0's pages from the digests and the notes.
 #[test]
-fn pd2_a_digest_based_release_follows_the_digests() {
+fn pd2_a_digest_based_release_follows_the_digests_and_the_page_notes() {
     let digests = page_digests(&common::golden_session().query(), Parallelism::Serial);
     let mut s = golden_variant(false, Some(digests));
     let q = s.query();
-    assert_eq!(changed_folios(&q), ["911"], "only the revision overview");
-    assert_eq!(last_changed_in(&q, folio(&q, "101")).as_deref(), Some("V1.0"));
+    assert_eq!(
+        changed_folios(&q),
+        ["101", "106", "911"],
+        "the noted pages and the revision overview"
+    );
+    assert_eq!(last_changed_in(&q, folio(&q, "101")).as_deref(), Some("V2.0"));
+    assert_eq!(last_changed_in(&q, folio(&q, "102")).as_deref(), Some("V1.0"));
     assert_eq!(last_changed_in(&q, folio(&q, "911")).as_deref(), Some("V2.0"));
     drop(q);
-
-    move_within_cell(&mut s, "102");
-    let q = s.query();
-    assert_eq!(changed_folios(&q), ["102", "911"]);
-    assert_eq!(last_changed_in(&q, folio(&q, "102")).as_deref(), Some("V2.0"));
-    assert_eq!(last_changed_in(&q, folio(&q, "101")).as_deref(), Some("V1.0"));
-    assert_eq!(
-        folios(&q, &changed_pages(&q, &revision(&q, "V2.0"))),
-        ["102", "911"]
-    );
-    drop(q);
-    let rows = s.page_rows();
-    let changed = |f: &str| {
-        rows.iter()
+    let changed = |s: &Session, f: &str| {
+        s.page_rows()
+            .iter()
             .find(|r| r.folio == f)
             .and_then(|r| r.changed_in.clone())
     };
-    assert_eq!(changed("102").as_deref(), Some("V2.0"));
-    assert_eq!(changed("106").as_deref(), Some("V1.0"));
+    assert_eq!(
+        changed(&s, "101").as_deref(),
+        Some("V2.0"),
+        "noted, digest unchanged"
+    );
+    assert_eq!(changed(&s, "102").as_deref(), Some("V1.0"));
     let table = s.page_list_table("911").expect("folio 911 has a table");
     assert_eq!(table.rows[1].cells[0], "V2.0");
-    assert_eq!(table.rows[1].cells[5], "102, 911");
+    assert_eq!(table.rows[1].cells[5], "101, 106, 911");
+
+    move_within_cell(&mut s, "102");
+    let q = s.query();
+    assert_eq!(changed_folios(&q), ["101", "102", "106", "911"]);
+    assert_eq!(last_changed_in(&q, folio(&q, "102")).as_deref(), Some("V2.0"));
+    assert_eq!(
+        folios(&q, &changed_pages(&q, &revision(&q, "V2.0"))),
+        ["101", "102", "106", "911"]
+    );
+    drop(q);
+    assert_eq!(changed(&s, "102").as_deref(), Some("V2.0"));
+    assert_eq!(
+        changed(&s, "106").as_deref(),
+        Some("V2.0"),
+        "noted, digest unchanged"
+    );
+    let table = s.page_list_table("911").expect("folio 911 has a table");
+    assert_eq!(table.rows[1].cells[0], "V2.0");
+    assert_eq!(table.rows[1].cells[5], "101, 102, 106, 911");
 }
 
 /// PD-4: a title block that binds `{page.last_changed_in}` prints V2.0 on 101 and 106 and V1.0 on every other drawn
-/// page; in the digest branch the page bindings take the digest-based value (102 after an edit on it).
+/// page; in the digest branch the page bindings take the digest-based value (102 after an edit on it; the noted
+/// pages 101 and 106 stay V2.0, FX37a) and an unnoted, unchanged page keeps V1.0.
 #[test]
 fn pd4_the_placeholder_prints_the_revision_that_last_changed_the_page() {
     let s = golden_variant(true, None);
@@ -392,10 +412,21 @@ fn pd4_the_placeholder_prints_the_revision_that_last_changed_the_page() {
     let q = s.query();
     for (f, want) in [
         ("102", "Revision: V2.0"),
-        ("101", "Revision: V1.0"),
-        ("106", "Revision: V1.0"),
+        ("101", "Revision: V2.0"),
+        ("106", "Revision: V2.0"),
     ] {
         let texts = frame_texts(&q, folio(&q, f));
         assert!(texts.iter().any(|t| t == want), "{f}: {texts:?}");
+    }
+    for e in q.get::<PageOrder>(()).entries.iter() {
+        if !matches!(e.page, PageRef::Drawn(_)) || ["101", "102", "106"].contains(&e.folio.as_str()) {
+            continue;
+        }
+        let texts = frame_texts(&q, e.page);
+        assert!(
+            texts.iter().any(|t| t == "Revision: V1.0"),
+            "{}: {texts:?}",
+            e.folio
+        );
     }
 }
