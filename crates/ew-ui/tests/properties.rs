@@ -852,3 +852,53 @@ fn m33_a_refused_letter_edit_offers_use_tag_as_a_button() {
         Outcome::Done
     );
 }
+
+/// Cycle 37 (window check): the Tag field opened on its value starts with the whole text selected, so typing replaces
+/// it instead of appending ("-101K2-101K1"); a field opened by typing keeps what was typed and appends to it.
+#[test]
+fn c37_typing_into_an_opened_field_replaces_its_text() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
+    settle(&mut h);
+    dispatch(&mut h, "props.edit", json!({"row": "device/derived.tag"}));
+    settle(&mut h);
+    let opened = h.state().shell().properties().edit().expect("an editor").clone();
+    assert_eq!(opened.initial.as_deref(), Some(opened.buffer.as_str()));
+    assert!(!opened.buffer.is_empty(), "it opens on the stored value");
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.is_focused())
+        .expect("the focused field");
+    field.type_text("-102G7");
+    settle(&mut h);
+    let edit = h
+        .state()
+        .shell()
+        .properties()
+        .edit()
+        .expect("still editing")
+        .clone();
+    assert_eq!(edit.buffer, "-102G7", "typing replaced {:?}", opened.buffer);
+    // Opened by typing (the first character starts the editor): the next characters follow it.
+    dispatch(&mut h, "props.cancel", json!({}));
+    settle(&mut h);
+    dispatch(&mut h, "props.input", json!({"text": "-"}));
+    settle(&mut h);
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.is_focused())
+        .expect("the focused field");
+    field.type_text("102G8");
+    settle(&mut h);
+    let edit = h
+        .state()
+        .shell()
+        .properties()
+        .edit()
+        .expect("still editing")
+        .clone();
+    assert_eq!(edit.buffer, "-102G8");
+}

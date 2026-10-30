@@ -988,9 +988,15 @@ impl PropertiesPane {
         // 1-px `color.accent` border and a 1-px accent ring, `radius.sm`, `space.icon` padding.
         let t = crate::theme::current(ui.ctx());
         let background = ui.painter().add(egui::Shape::Noop);
+        // Cycle 37 (window check): an editor opened on the stored value (Enter, F2, Edit) starts with the whole text
+        // selected, so typing replaces it ("-101K2" then "-101K1" gave "-101K2-101K1"); one opened by typing keeps
+        // its caret after the typed text.
+        // The selection is set once the field holds the focus (egui collapses a selection of an unfocused field).
+        let field_id = ui.make_persistent_id(("props-editor", row.key.as_str()));
         let response = ui.add_sized(
             Vec2::new(ui.available_width(), t.size_control_inline),
             TextEdit::singleline(&mut self.buffer)
+                .id(field_id)
                 .frame(egui::Frame::NONE)
                 .margin(egui::Margin::symmetric(t.space_icon as i8, 0))
                 .desired_width(f32::INFINITY)
@@ -1016,6 +1022,14 @@ impl PropertiesPane {
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
         if fresh {
             response.request_focus();
+        }
+        if response.gained_focus() && edit.initial.as_deref() == Some(self.buffer.as_str()) {
+            let mut state = egui::text_edit::TextEditState::load(ui.ctx(), field_id).unwrap_or_default();
+            state
+                .cursor
+                .set_char_range(Some(egui::text::CCursorRange::select_all_str(&self.buffer)));
+            state.store(ui.ctx(), field_id);
+            ui.ctx().request_repaint();
         }
         if response.changed() {
             events.push(Event::Action("props.input", json!({ "text": self.buffer })));
