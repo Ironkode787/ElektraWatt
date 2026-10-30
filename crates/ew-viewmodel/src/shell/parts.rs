@@ -144,7 +144,7 @@ impl PartsMap {
     }
 
     /// A member in words, as the mapping card shows it (cycle 37, window check W37; doc 16a P2): "Manufacturer",
-    /// "Part number", "Description (de)", "Technical data: <header>", "Free property: <header>", with `header` the
+    /// "Part number", "Description (de)", "Technical data: Nennstrom", "Free property: Farbe", with `header` the
     /// column's header. A name that is no member is shown as it is. Describe text and scripts keep the member names.
     pub fn member_text(member: &str, header: &str) -> String {
         match catalog::Member::parse(member) {

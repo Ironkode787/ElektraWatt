@@ -226,7 +226,7 @@ impl Session {
     pub fn function_fndef_key(&self, record: Uuid) -> Option<String> {
         let q = self.query();
         let f = q.functions().get(Id::from_uuid(record))?;
-        Some(super::navigators::fndef_name(&q, &f))
+        Some(super::navigators::fndef_name(&q, f))
     }
 
     /// The main function of the device `record` and the key of its function definition (WP-S2.07 §6.8: an unplaced

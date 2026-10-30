@@ -569,12 +569,11 @@ fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
             continue;
         }
         let word = match (severity, of.len()) {
-            (s, 1) => severity_word(s).to_owned(),
+            (s, 1) => format!("1 {}", severity_word(s)),
             ("error", n) => format!("{n} Errors"),
             ("warning", n) => format!("{n} Warnings"),
             (_, n) => format!("{n} Infos"),
         };
-        let word = if of.len() == 1 { format!("1 {word}") } else { word };
         let lines: Vec<String> = of.iter().map(|f| format!("{}: {}", f.rule, f.message)).collect();
         let name = format!("{word}: {}", lines.join("; "));
         let chip = h
@@ -586,7 +585,7 @@ fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
             "{name}"
         );
         assert!(
-            painted.iter().any(|t| *t == word),
+            painted.contains(&word),
             "the chip paints its count and word: {painted:?}"
         );
         assert!(
