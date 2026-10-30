@@ -814,7 +814,9 @@ fn fndef_name(q: &Q, f: &Function) -> String {
 
 /// The human text of a function's kind (FT-670, FT-664): the FnDef's last category entry, then the one before it
 /// lower-cased, then the CP designations of the function's template entry (else of the FnDef, in `idx` order) joined
-/// by `-`. Category `["Relay", "Contact", "NO"]` with CPs 13 and 14 gives `NO contact 13-14`; a category of fewer
+/// by `-`. Category `["Relay", "Contact", "NO"]` with CPs 13 and 14 gives `NO contact 13-14`; a last entry equal to
+/// the CP designations run together is dropped and the one before it capitalised (`["Relay", "Coil", "A1A2"]` with
+/// CPs A1 and A2 gives `Coil A1-A2`); a category of fewer
 /// than two non-empty entries, or a missing FnDef copy, gives [`fndef_name`]. The Properties grid's "Part function"
 /// row and the picker's meta line read it.
 pub(crate) fn function_kind_text(q: &Q, f: &Function) -> String {
@@ -846,7 +848,18 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
     let [.., before, last] = cat.as_slice() else {
         return None;
     };
-    let mut out = format!("{last} {}", before.to_lowercase());
+    // Cycle 37 (window check W37): a last entry that only repeats the CP designations run together (a coil's
+    // `A1A2`) is dropped, and the entry before it leads, capitalised: `Coil A1-A2`, not `A1A2 coil A1-A2`.
+    let joined: String = cps.concat();
+    let mut out = if !joined.is_empty() && last.eq_ignore_ascii_case(&joined) {
+        let mut chars = before.chars();
+        chars
+            .next()
+            .map(|c| c.to_uppercase().chain(chars).collect())
+            .unwrap_or_default()
+    } else {
+        format!("{last} {}", before.to_lowercase())
+    };
     if !cps.is_empty() {
         out.push(' ');
         out.push_str(&cps.join("-"));

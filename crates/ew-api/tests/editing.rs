@@ -144,6 +144,9 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
         .find(|p| p.part_number == "EW-GEN-CON-1")
         .expect("the generic contactor");
     assert_eq!(con.functions[1].kind_text, "NO contact 1-2");
+    // Cycle 37 (window check W37): a coil's category entry that repeats its CPs (`A1A2`) is dropped.
+    assert_eq!(con.functions[0].fndef_key, "ew.fn.coil");
+    assert_eq!(con.functions[0].kind_text, "Coil A1-A2");
     // An unknown or generated page has no catalogue.
     assert!(s.place_catalogue("no such folio").is_none());
 }
