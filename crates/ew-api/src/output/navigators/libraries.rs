@@ -15,7 +15,7 @@
 //!
 //! Both read [`Session::libraries`] as it is now, never a command: the tables are front-end views (D7).
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::Q;
 use ew_derive::ew_ids::{Id, Uuid};
@@ -205,6 +205,17 @@ fn copy_label(q: &Q, kind: Kind, copy: Uuid) -> String {
             .manufacturers()
             .get(Id::from_uuid(copy))
             .map(|c| text(&c.item.name)),
+        Kind::Macro => q
+            .table::<LibCopy<MacroDef>>()
+            .get(Id::from_uuid(copy))
+            .and_then(|c| {
+                let name = text(&c.item.name);
+                if name.is_empty() {
+                    key(c, |i| &i.meta)
+                } else {
+                    Some(name)
+                }
+            }),
         _ => None,
     };
     label
@@ -422,6 +433,11 @@ impl Session {
             Kind::Symbol => item_key(q.symbols().get(Id::from_uuid(copy)).map(|c| &c.item.meta)),
             Kind::Fndef => item_key(q.fndefs().get(Id::from_uuid(copy)).map(|c| &c.item.meta)),
             Kind::Form => item_key(q.forms().get(Id::from_uuid(copy)).map(|c| &c.item.meta)),
+            Kind::Macro => item_key(
+                q.table::<LibCopy<MacroDef>>()
+                    .get(Id::from_uuid(copy))
+                    .map(|c| &c.item.meta),
+            ),
             _ => String::new(),
         };
         let library = self
@@ -455,9 +471,17 @@ impl Session {
     }
 
     /// Macros (WP-S1.19 §11): tier → macro of every installed library, then "In this project" → the macro copies the
-    /// project holds that no listed row names.
+    /// project holds that no listed row names. A macro the project holds carries its copy's state as a badge
+    /// ([`Session::library_status`]: a re-saved macro reads "Update available", FT-754 (e)).
     pub(super) fn macros_table(&self, q: &Q, b: &mut Builder) {
         let libs = self.libraries().libraries();
+        let states: BTreeMap<Uuid, &'static str> = self
+            .library_status()
+            .into_iter()
+            .filter(|s| s.kind == Kind::Macro)
+            .map(|s| (s.copy, copy_state(&s.state).0))
+            .collect();
+        let state = |c: &LibCopy<MacroDef>| states.get(&c.id.as_uuid()).copied();
         let mut listed: BTreeSet<Uuid> = BTreeSet::new();
         for tier in TIERS {
             let mut rows: Vec<(LibraryInfo, LibCopy<MacroDef>)> = Vec::new();
@@ -476,7 +500,7 @@ impl Session {
             for (lib, c) in rows {
                 listed.insert(c.id.as_uuid());
                 let segment = format!("macro:{}:{}", lib.id, c.item_id.as_uuid());
-                macro_row(b, tnode, &segment, &c, &lib.name, Some(word));
+                macro_row(b, tnode, &segment, &c, &lib.name, Some(word), state(&c));
             }
         }
         let held: Vec<LibCopy<MacroDef>> = q
@@ -491,7 +515,7 @@ impl Session {
         let gnode = project_group(b);
         for c in held {
             let segment = format!("held:{}", c.id.as_uuid());
-            macro_row(b, gnode, &segment, &c, IN_PROJECT, None);
+            macro_row(b, gnode, &segment, &c, IN_PROJECT, None, state(&c));
         }
     }
 
@@ -631,7 +655,8 @@ fn project_group(b: &mut Builder) -> u32 {
 }
 
 /// One macro row: its name, kind, version, library, device and variable counts; the facets `kind:macro`,
-/// `kind:<window|page|symbol>` and `tier:<name>`.
+/// `kind:<window|page|symbol>` and `tier:<name>`; for a macro the project holds, `state:<code>` (`current` for a
+/// current copy) and the state's badge ([`copy_state`]'s code, none when current).
 fn macro_row(
     b: &mut Builder,
     parent: u32,
@@ -639,6 +664,7 @@ fn macro_row(
     c: &LibCopy<MacroDef>,
     library: &str,
     tier: Option<&str>,
+    state: Option<&'static str>,
 ) {
     let name = text(&c.item.name);
     let kind = macro_kind_word(&c.item.kind);
@@ -657,12 +683,21 @@ fn macro_row(
     if let Some(t) = tier {
         facets.push(("tier".to_owned(), t.to_lowercase()));
     }
+    let mut badges = Vec::new();
+    match state {
+        Some("") => facets.push(("state".to_owned(), "current".to_owned())),
+        Some(code) => {
+            facets.push(("state".to_owned(), code.to_owned()));
+            badges.push(code.to_owned());
+        }
+        None => {}
+    }
     b.push(
         Some(parent),
         NavRole::Macro,
         segment,
         name,
-        Vec::new(),
+        badges,
         vec![c.id.as_uuid()],
         Vec::new(),
         Some(cells),

@@ -13,7 +13,9 @@ use ew_commands::commands::{
     classify_update,
 };
 use ew_derive::ew_ids::{Id, Uuid};
-use ew_schema::{Device, ItemStatus, Kind, LibCopy, LibDocument, LibRef, Part, Representation, Sha256};
+use ew_schema::{
+    Device, ItemStatus, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroInstance, Part, Representation, Sha256,
+};
 use ew_units::Dec3;
 
 use ew_derive::Q;
@@ -227,6 +229,10 @@ fn held(q: &Q, kind: Kind, copy: Uuid) -> Option<LibDocument> {
             .manufacturers()
             .get(Id::from_uuid(copy))
             .map(|c| LibDocument::Manufacturer((**c).clone())),
+        Kind::Macro => q
+            .table::<LibCopy<MacroDef>>()
+            .get(Id::from_uuid(copy))
+            .map(|c| LibDocument::Macro((**c).clone())),
         _ => None,
     }
 }
@@ -239,12 +245,14 @@ fn held_any(q: &Q, copy: Uuid) -> Option<LibDocument> {
         Kind::Fndef,
         Kind::Form,
         Kind::Manufacturer,
+        Kind::Macro,
     ]
     .into_iter()
     .find_map(|k| held(q, k, copy))
 }
 
-/// Every held library copy the session reads (parts, symbols, FnDefs, forms, manufacturers), in kind then ID order.
+/// Every held library copy the session reads (parts, symbols, FnDefs, forms, manufacturers, macros), in kind then ID
+/// order.
 fn held_copies(q: &Q) -> Vec<LibDocument> {
     let mut out: Vec<LibDocument> = Vec::new();
     out.extend(q.parts().iter().map(|(_, c)| LibDocument::Part((**c).clone())));
@@ -260,6 +268,11 @@ fn held_copies(q: &Q) -> Vec<LibDocument> {
             .iter()
             .map(|(_, c)| LibDocument::Manufacturer((**c).clone())),
     );
+    out.extend(
+        q.table::<LibCopy<MacroDef>>()
+            .iter()
+            .map(|(_, c)| LibDocument::Macro((**c).clone())),
+    );
     out
 }
 
@@ -268,7 +281,7 @@ fn to_value(doc: &LibDocument) -> serde_json::Value {
 }
 
 /// The devices that use a copy: a part's devices, a FnDef's functions' devices, a symbol's representations' devices,
-/// a manufacturer's parts' devices; in ID order.
+/// a manufacturer's parts' devices, a macro's devices that its placed instances created; in ID order.
 fn where_used(q: &Q, doc: &LibDocument) -> (Vec<Id<Device>>, Vec<Id<Representation>>) {
     let mut devices = BTreeSet::new();
     let mut reps = BTreeSet::new();
@@ -315,6 +328,18 @@ fn where_used(q: &Q, doc: &LibDocument) -> (Vec<Id<Device>>, Vec<Id<Representati
                 }
             }
         }
+        LibDocument::Macro(c) => {
+            for (_, inst) in q.table::<MacroInstance>().iter() {
+                if inst.macro_copy == c.id {
+                    for (_, made) in &inst.members {
+                        let d: Id<Device> = Id::from_uuid(made.as_uuid());
+                        if q.devices().get(d).is_some() {
+                            devices.insert(d);
+                        }
+                    }
+                }
+            }
+        }
         _ => {}
     }
     for (id, r) in q.reps().iter() {
@@ -347,6 +372,7 @@ fn is_fork(doc: &LibDocument) -> bool {
         LibDocument::Fndef(c) => meta(c, |i| &i.meta),
         LibDocument::Form(c) => meta(c, |i| &i.meta),
         LibDocument::Manufacturer(c) => meta(c, |i| &i.meta),
+        LibDocument::Macro(c) => meta(c, |i| &i.meta),
         _ => false,
     }
 }
@@ -391,7 +417,8 @@ impl Session {
                 if !seen.insert((kind, copy)) {
                     continue;
                 }
-                if let Some(h) = held(&q, kind, copy) {
+                // a macro in a closure (a part's macro links) is carried as before: the command reuses a held copy
+                if let Some(h) = held(&q, kind, copy).filter(|_| kind != Kind::Macro) {
                     let (_, _, _, _, held_version, held_sha) = identity(&h).expect("a held copy");
                     if held_sha != sha {
                         return Err(ApiError::OtherVersionHeld {

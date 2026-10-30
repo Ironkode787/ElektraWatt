@@ -340,4 +340,30 @@ fn ui1_the_macros_navigator_lists_a_saved_macro_and_its_detail() {
     // The project now holds the macro's copy, which the installed row names: no "In this project" row for it.
     let table = s.navigator_table(NavKind::Macros);
     assert!(!table.nodes.iter().any(|n| n.role == NavRole::ProjectCopies));
+    let m = row(&table, NavRole::Macro, "PSU 24 V DC");
+    assert!(m.badges.is_empty(), "a current copy has no badge: {:?}", m.badges);
+    assert!(m.facets.contains(&("state".to_owned(), "current".to_owned())));
+
+    // FT-754 (e): re-saving the macro with a new description bumps its version; the held copy then reads Update
+    // available in both navigators, and Update… plans the macro copy. (Equal content keeps the hash: no update.)
+    let spec = MacroSpec {
+        description: MlText::neutral("Power supply, two output breakers"),
+        ..spec
+    };
+    let resaved = s.save_macro(lib, &spec).unwrap();
+    assert_eq!(resaved.version, "1.1.0");
+    let table = s.navigator_table(NavKind::Macros);
+    let m = row(&table, NavRole::Macro, "PSU 24 V DC");
+    assert_eq!(m.badges, ["update_available"]);
+    let libs = s.navigator_table(NavKind::Libraries);
+    let copy = row(&libs, NavRole::LibCopy, "PSU 24 V DC");
+    assert_eq!(cell(&libs, copy, "kind"), "Macro");
+    assert_eq!(cell(&libs, copy, "state"), "Update available (1.1.0)");
+    assert!(
+        !cell(&libs, copy, "used_by").is_empty(),
+        "the inserted devices use the macro"
+    );
+    let plan = s.update_from_library(&[saved.copy], &[]).expect("an update plan");
+    assert_eq!(plan.copies.len(), 1);
+    assert_eq!(plan.copies[0].to, "1.1.0");
 }
