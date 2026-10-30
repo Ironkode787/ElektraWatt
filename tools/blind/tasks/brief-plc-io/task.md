@@ -1,4 +1,4 @@
-# Brief: three door switches and three solenoid valves on a small PLC
+# Brief: three selector switches and three solenoid valves on a small PLC
 
 A customer is adding three pneumatic functions to a machine, controlled by a small PLC in the cabinet. Each function is
 a 24 V DC solenoid valve out on the machine. An operator asks for each one with its own selector switch on the cabinet
