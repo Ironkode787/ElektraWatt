@@ -125,6 +125,11 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
         assert!(!p.functions.is_empty());
         for (i, f) in p.functions.iter().enumerate() {
             assert_eq!(usize::from(f.index), i);
+            // FT-664: the picker's words for the entry, never its FnDef key where the FnDef has a category.
+            assert!(!f.kind_text.is_empty());
+            if f.fndef_key == "ew.fn.contact-no" {
+                assert!(f.kind_text.starts_with("NO contact "), "{}", f.kind_text);
+            }
             if let Some(key) = &f.symbol {
                 let r = row(key);
                 assert_eq!(r.fndef_key, f.fndef_key);
@@ -132,6 +137,13 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
             }
         }
     }
+    // FT-664: the contactor's second entry reads as the part names it.
+    let con = cat
+        .parts
+        .iter()
+        .find(|p| p.part_number == "EW-GEN-CON-1")
+        .expect("the generic contactor");
+    assert_eq!(con.functions[1].kind_text, "NO contact 1-2");
     // An unknown or generated page has no catalogue.
     assert!(s.place_catalogue("no such folio").is_none());
 }

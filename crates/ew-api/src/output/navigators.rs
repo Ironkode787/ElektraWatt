@@ -31,7 +31,9 @@ pub use ew_derive::ew_ids::Uuid;
 pub use ew_derive::ew_mltext::NaturalKey;
 use ew_derive::ew_mltext::{natural_key, to_nfc};
 use ew_derive::ew_rds::Aspect;
-use ew_derive::ew_schema::{Device, DeviceState, FnRole, Function, Page, Representation};
+use ew_derive::ew_schema::{
+    Device, DeviceState, FnDef, FnRole, Function, Page, Representation, TemplateFn, template_entry_of,
+};
 use ew_derive::{DeviceTag, PageOrder, PageRef, Q, RepAnchorCell, StructureOf};
 
 use super::PageRow;
@@ -804,6 +806,98 @@ fn fndef_name(q: &Q, f: &Function) -> String {
                 .and_then(|c| c.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
         })
         .unwrap_or_else(|| f.def.as_uuid().to_string())
+}
+
+/// The human text of a function's kind (FT-670, FT-664): the FnDef's last category entry, then the one before it
+/// lower-cased, then the CP designations of the function's template entry (else of the FnDef, in `idx` order) joined
+/// by `-`. Category `["Relay", "Contact", "NO"]` with CPs 13 and 14 gives `NO contact 13-14`; a category of fewer
+/// than two non-empty entries, or a missing FnDef copy, gives [`fndef_name`]. The Properties grid's "Part function"
+/// row and the picker's meta line read it.
+pub(crate) fn function_kind_text(q: &Q, f: &Function) -> String {
+    let fndefs = q.fndefs();
+    let def = fndefs
+        .get(f.def)
+        .map(|c| &c.item)
+        .or_else(|| super::editing::starter_fndef(f.def).map(|c| &c.item));
+    let Some(def) = def else {
+        return fndef_name(q, f);
+    };
+    let cps = template_cp_designations(q, f, def).unwrap_or_else(|| {
+        let mut d: Vec<(u16, &str)> = def.cps.iter().map(|c| (c.idx, c.designation.as_str())).collect();
+        d.sort_unstable();
+        d.into_iter().map(|(_, s)| s.to_owned()).collect()
+    });
+    kind_text(def, &cps).unwrap_or_else(|| fndef_name(q, f))
+}
+
+/// The kind text of a FnDef with the given CP designations (see [`function_kind_text`]): `None` when its category has
+/// fewer than two non-empty entries. The place catalogue reads it for a template entry not yet placed.
+pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
+    let (a, b, c) = &def.category;
+    let cat: Vec<&str> = [a, b, c]
+        .iter()
+        .map(|i| i.as_str())
+        .filter(|s| !s.is_empty())
+        .collect();
+    let [.., before, last] = cat.as_slice() else {
+        return None;
+    };
+    let mut out = format!("{last} {}", before.to_lowercase());
+    if !cps.is_empty() {
+        out.push(' ');
+        out.push_str(&cps.join("-"));
+    }
+    Some(out)
+}
+
+/// The Properties grid's "Part function" text of a function (FT-670): [`function_kind_text`] when the function
+/// records `template_entry` and that entry resolves among its device's part uses (`ew_schema::template_entry_of`);
+/// `None` otherwise (the row is hidden).
+pub(crate) fn part_function_text(q: &Q, f: &Function) -> Option<String> {
+    f.template_entry?;
+    template_entry_resolves(q, f).then(|| function_kind_text(q, f))
+}
+
+/// Whether a function's device has a part use whose template has an entry naming the function's FnDef copy.
+fn template_entry_resolves(q: &Q, f: &Function) -> bool {
+    let Some(device) = f.device.and_then(|d| q.devices().get(d).cloned()) else {
+        return false;
+    };
+    let parts = q.parts();
+    let uses = device
+        .parts
+        .iter()
+        .filter_map(|u| parts.get(u.part.copy).map(|p| ((), &p.item)));
+    template_entry_of(uses, f.template_entry, |t| names_def(t, f)).is_some()
+}
+
+/// Whether a template entry names the function's FnDef copy (`v5(NS_LIBCOPY, library ‖ item)`).
+fn names_def(t: &TemplateFn, f: &Function) -> bool {
+    let copy: Id<FnDef> =
+        ew_derive::ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
+    copy == f.def
+}
+
+/// The CP designations of a template-origin function's entry, in function CP order (`ew_schema::template_entry_of`
+/// and `TemplateFn::function_cps`); `None` when the function follows no template entry or the entry selects none.
+fn template_cp_designations(q: &Q, f: &Function, def: &FnDef) -> Option<Vec<String>> {
+    let device = q.devices().get(f.device?)?;
+    let parts = q.parts();
+    let uses = device
+        .parts
+        .iter()
+        .filter_map(|u| parts.get(u.part.copy).map(|p| ((), &p.item)));
+    let ((), part, n) = template_entry_of(uses, f.template_entry, |t| names_def(t, f))?;
+    let pattern: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();
+    let def_idx: Vec<u16> = def.cps.iter().map(|c| c.idx).collect();
+    let mut pairs = part.function_template[n].function_cps(&pattern, &def_idx);
+    pairs.sort_by_key(|t| t.idx);
+    let out: Vec<String> = pairs
+        .iter()
+        .filter_map(|t| part.cp_pattern.iter().find(|c| c.idx == t.pattern))
+        .map(|c| c.designation.as_str().to_owned())
+        .collect();
+    (!out.is_empty()).then_some(out)
 }
 
 /// One device of the Devices table: the device row with its cells (from the structure overview).

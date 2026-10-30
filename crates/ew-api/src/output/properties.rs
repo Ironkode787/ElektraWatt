@@ -1043,6 +1043,35 @@ impl SectionCx<'_, '_> {
     }
 }
 
+/// The `template_entry` row of a function section (FT-670): read-only, labelled "Part function", its value the
+/// template entry's function and designations as the part names them (`NO contact 13-14`), never the bare index;
+/// removed when no target records the member or its entry does not resolve.
+fn part_function_row(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<Built>) {
+    let Some(at) = built.iter().position(|b| b.row.path == "template_entry") else {
+        return;
+    };
+    let functions = q.functions();
+    let texts: Vec<Option<Value>> = targets
+        .iter()
+        .map(|id| {
+            functions
+                .get(Id::from_uuid(*id))
+                .and_then(|f| super::navigators::part_function_text(q, f))
+                .map(Value::String)
+        })
+        .collect();
+    if texts.iter().all(Option::is_none) {
+        built.remove(at);
+        return;
+    }
+    let values: Vec<Option<&Value>> = texts.iter().map(Option::as_ref).collect();
+    let row = &mut built[at].row;
+    row.ty = FieldType::Text;
+    row.value = row_value(cx, &FieldType::Text, &values);
+    row.route = EditRoute::ReadOnly(FieldReadOnly::NoCommand);
+    row.actions = Vec::new();
+}
+
 /// The library provenance of a part reference: the embedded copy's library, item and version.
 fn library_provenance(q: &Q, json: &Value) -> Option<Provenance> {
     let copy = Uuid::parse_str(json.get("copy")?.as_str()?).ok()?;
@@ -1303,6 +1332,9 @@ impl Session {
             scx.emit(spec, &spec.path, 0, &mut built);
         }
         scx.emit_unlisted("", &listed, Category::Extra, 0, &mut built);
+        if kind == Kind::Function {
+            part_function_row(q, cx, &targets, &mut built);
+        }
         if generated.is_none() || kind != Kind::ReportBlock {
             built.extend(self.derived_rows(q, cx, kind, &targets, &jsons));
         }

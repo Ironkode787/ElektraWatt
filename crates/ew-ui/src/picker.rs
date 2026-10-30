@@ -141,7 +141,8 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         });
 }
 
-/// A row's name, its library or function line, and its tooltip with the raw IDs (WP-S2.17 part 4, §8 item 6).
+/// A row's name, its library or function line (a part's function in words, FT-664), and its tooltip with the raw IDs
+/// (WP-S2.17 part 4, §8 item 6).
 fn row_texts(picker: &ew_viewmodel::tools::Picker, row: PickerRow) -> (String, String, String) {
     match row {
         PickerRow::Symbol(k) => {
@@ -163,17 +164,21 @@ fn row_texts(picker: &ew_viewmodel::tools::Picker, row: PickerRow) -> (String, S
                 &[
                     &(k + 1).to_string(),
                     &part.functions.len().to_string(),
-                    &f.fndef_key,
+                    &f.kind_text,
                 ],
             );
             if f.main {
                 meta.push(' ');
                 meta.push_str(strings::text("picker-main"));
             }
+            // FT-664: the function in words, never an ID; the tooltip adds the FnDef key that scripts name.
             (
                 part.part_number.clone(),
                 meta,
-                format!("{} {}\n{}", part.manufacturer, part.part_number, f.fndef_key),
+                format!(
+                    "{} {}\n{}\n{}",
+                    part.manufacturer, part.part_number, f.kind_text, f.fndef_key
+                ),
             )
         }
         PickerRow::Strip(k) => {

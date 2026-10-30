@@ -131,6 +131,10 @@ pub struct CatalogueTemplateFn {
     pub index: u16,
     /// The key of the entry's function definition.
     pub fndef_key: String,
+    /// The entry's function in words, as the Properties grid names a placed one (FT-664, FT-670): the FnDef's last
+    /// category entry, the one before it lower-cased and the entry's CP designations (`NO contact 13-14`); the FnDef
+    /// key when its category has fewer than two entries or the FnDef is missing.
+    pub kind_text: String,
     /// Whether the entry is the part's main function.
     pub main: bool,
     /// The key of the first allowed symbol row that draws the entry's FnDef; `None` when no row does.
@@ -286,13 +290,33 @@ fn catalogue_part(
                         .unwrap_or_default();
                     (c.idx, d)
                 })
-                .collect();
+                .collect::<Vec<(u16, String)>>();
+            let fndef_key = def
+                .as_ref()
+                .and_then(|d| d.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
+                .unwrap_or_else(|| ref_key(&t.fndef));
+            let kind_text = def
+                .as_ref()
+                .and_then(|d| {
+                    // The entry's designations, else the FnDef's (as a placed function's text falls back).
+                    let mut designations: Vec<String> = cps.iter().map(|(_, s)| s.clone()).collect();
+                    if designations.is_empty() {
+                        let mut own: Vec<(u16, String)> = d
+                            .item
+                            .cps
+                            .iter()
+                            .map(|c| (c.idx, c.designation.as_str().to_owned()))
+                            .collect();
+                        own.sort();
+                        designations = own.into_iter().map(|(_, s)| s).collect();
+                    }
+                    super::navigators::kind_text(&d.item, &designations)
+                })
+                .unwrap_or_else(|| fndef_key.clone());
             CatalogueTemplateFn {
                 index: u16::try_from(i).unwrap_or(u16::MAX),
-                fndef_key: def
-                    .as_ref()
-                    .and_then(|d| d.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
-                    .unwrap_or_else(|| ref_key(&t.fndef)),
+                fndef_key,
+                kind_text,
                 main: t.main,
                 symbol,
                 black_box: def

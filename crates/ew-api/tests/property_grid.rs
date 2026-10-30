@@ -989,3 +989,85 @@ fn page_item_property_sheet_multi_selection_keeps_members_and_missing_counts() {
     assert_eq!(sheet.sections[0].targets, [texts[0]]);
     assert_eq!(one(row(&sheet, "page_item/kind.free_text.text")), "40x60");
 }
+
+/// FT-670: a templated function's `template_entry` row is read-only, labelled "Part function" (its label key), its
+/// value the entry's function and designations as the part names them, never the integer; a function without the
+/// member (every one of Golden A) has no such row.
+#[test]
+fn ft670_a_templated_function_shows_its_part_function() {
+    let mut s = golden();
+    let fixture: Value = serde_json::from_str(
+        &std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected/two_starter_fndef_part.json"),
+        )
+        .expect("the fixture"),
+    )
+    .expect("JSON");
+    let part = fixture["id"].as_str().expect("the part copy's ID").to_owned();
+    s.execute(&AnyCommand {
+        name: "library.embed".into(),
+        params: json!({"copies": [fixture]}),
+    })
+    .expect("library.embed");
+    let symbol_key = "ew.iec.contact-no@qet10";
+    let copies = s
+        .starter_embed_part(part.parse().expect("a UUID"), symbol_key)
+        .expect("the starter closure")
+        .expect("the symbol and both FnDefs");
+    let symbol = s.starter_symbol_copy(symbol_key).expect("a starter symbol");
+    let before: Vec<ew_derive::ew_ids::Uuid> =
+        s.query().functions().iter().map(|(id, _)| id.as_uuid()).collect();
+    let step = 7_937_500i64;
+    s.execute(&AnyCommand {
+        name: "device.place".into(),
+        params: json!({
+            "page": page(&s, "101").to_string(),
+            "symbol": symbol.to_string(),
+            "pos": [30 * step, 30 * step],
+            "target": {"from_part": {"part": part, "template": 0, "letter": "K"}},
+            "copies": copies["copies"],
+        }),
+    })
+    .expect("device.place");
+    let functions: Vec<ew_derive::ew_ids::Uuid> = s
+        .query()
+        .functions()
+        .iter()
+        .map(|(id, _)| id.as_uuid())
+        .filter(|id| !before.contains(id))
+        .collect();
+    assert_eq!(functions.len(), 2, "the part's two template functions");
+    let texts: Vec<String> = functions
+        .iter()
+        .map(|f| {
+            let sheet = s.property_sheet(&[*f]);
+            let r = row(&sheet, "function/template_entry");
+            assert_eq!(r.label_key, "field-function-template_entry");
+            assert_eq!(r.ty, FieldType::Text);
+            assert_eq!(r.route, EditRoute::ReadOnly(FieldReadOnly::NoCommand));
+            assert!(r.actions.is_empty());
+            one(r).to_owned()
+        })
+        .collect();
+    // Entry 0, the main NO contact on pattern CPs 13 and 14; entry 1, the NC contact on Out1 and Out2 (the part's
+    // designations, not the FnDef's 21 and 22).
+    assert!(texts.contains(&"NO contact 13-14".to_owned()), "{texts:?}");
+    assert!(texts.contains(&"NC contact Out1-Out2".to_owned()), "{texts:?}");
+    // A function without `template_entry` (Golden A's): no row.
+    let plain = s
+        .query()
+        .functions()
+        .iter()
+        .find(|(_, f)| f.template_entry.is_none() && f.device.is_some())
+        .map(|(id, _)| id.as_uuid())
+        .expect("a function without the member");
+    let sheet = s.property_sheet(&[plain]);
+    assert!(
+        sheet
+            .sections
+            .iter()
+            .flat_map(|s| &s.rows)
+            .all(|r| r.key != "function/template_entry"),
+        "no Part function row without the member"
+    );
+}

@@ -1736,6 +1736,8 @@ const FIELD_LABELS: &[(&str, &str, &str)] = &[
     // FT-399: an interruption point's members on its function.
     ("function", "kind.ip", "Interruption point"),
     ("function", "kind.ip.sort", "Chain order"),
+    // FT-670: a templated function's entry, shown as the part names it.
+    ("function", "template_entry", "Part function"),
     ("representation", "derived.xref", "Cross-reference"),
     ("representation", "text_slots", "Text slots"),
 ];
