@@ -82,7 +82,8 @@ pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
     });
     let mut response = response.inner;
     if let Some(reason) = &item.reason {
-        response = response.disabled_tip(reason.as_str());
+        // FT-759: beside the entry, so that the reason never covers the next entry.
+        response = response.disabled_tip_beside(reason.as_str());
     } else if item.topic.is_some() {
         response = response.tip(strings::text("tooltip-learn-more"));
     }
@@ -136,5 +137,58 @@ fn entries(ui: &mut Ui, list: &[MenuEntry], events: &mut Vec<Event>) {
 pub(crate) fn app_menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     for menu in menu_model(shell) {
         crate::components::submenu(ui, menu.label.as_str(), |ui| entries(ui, &menu.entries, events));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable as _;
+    use ew_viewmodel::actions::ActionItem;
+    use serde_json::Value;
+
+    fn entry(label: &str, reason: Option<&str>) -> ActionItem {
+        ActionItem {
+            id: "edit.paste",
+            params: Value::Null,
+            label: label.to_owned(),
+            shortcut: String::new(),
+            enabled: reason.is_none(),
+            reason: reason.map(str::to_owned),
+            checked: false,
+            topic: None,
+        }
+    }
+
+    /// FT-759: a disabled entry's reason stands beside the entry, never over the entry below it.
+    #[test]
+    fn a_disabled_entry_s_reason_does_not_cover_the_next_entry() {
+        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
+        let mut ready = false;
+        let mut h = Harness::builder()
+            .with_size(egui::vec2(600.0, 300.0))
+            .build_ui(move |ui| {
+                // The fonts apply from the next pass: the first draws nothing.
+                if !ready {
+                    crate::fonts::install(ui.ctx());
+                    crate::theme::install(ui.ctx(), &t);
+                    ready = true;
+                    return;
+                }
+                ui.set_width(160.0);
+                let mut events = Vec::new();
+                super::item(ui, &entry("Rotate clockwise", Some("Nothing is selected")), &mut events);
+                super::item(ui, &entry("Delete", None), &mut events);
+            });
+        h.run();
+        let first = h.get_by_label_contains("Rotate clockwise").rect();
+        h.hover_at(first.center());
+        for _ in 0..90 {
+            h.step();
+        }
+        let tip = h.get_by_label_contains("Nothing is selected").rect();
+        let next = h.get_by_label_contains("Delete").rect();
+        assert!(!tip.intersects(next), "{tip:?} covers {next:?}");
+        assert!(tip.min.x >= first.max.x - 1.0, "beside the entry: {tip:?} {first:?}");
     }
 }

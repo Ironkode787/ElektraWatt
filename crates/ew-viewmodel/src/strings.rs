@@ -872,6 +872,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "toast-joined-dropped" => "{0}; {1}",
         "count-wire" => "{0} wire",
         "count-wires" => "{0} wires",
+        "count-box-pin" => "{0} connection point",
+        "count-box-pins" => "{0} connection points",
         "toast-strip-new" => {
             "Created terminal strip {0}; it has no terminals yet. Place them with Insert ▸ Symbol… and the terminal symbol, whose strip picker lists it"
         }

@@ -7,7 +7,7 @@
 //! |---|---|---|---|
 //! | armed | `PointerMove`, `CursorMove` | armed | `Transient`: a grid marker at the snapped point |
 //! | armed | `Press` or `Activate` | outline | the first corner is fixed; `Transient`: a grid marker at it |
-//! | outline | `PointerMove`, `CursorMove` | outline | `Transient`: the rectangle to the snapped point (grown to the right until the default CPs fit), a marker per CP; a grid marker at the first corner while the rectangle has no area (FT-714) |
+//! | outline | `PointerMove`, `CursorMove` | outline | `Transient`: the rectangle to the snapped point (grown to the right until the default CPs fit), a marker per CP; a grid marker ringed by a CP marker at the first corner while the rectangle has no area (FT-714, FT-759) |
 //! | outline | `Dwell { ms ≥ 80 }` | outline | `Preview(box.black …)` |
 //! | outline | `Press` or `Activate` | armed | `Commit(box.black …)` (a rectangle without width or height commits nothing) |
 //! | outline | `Escape` | armed (the hint says a second Escape leaves the tool, FT-714) | `Cancel` |
@@ -238,10 +238,17 @@ impl BlackBoxTool {
                 let current = self.current(cx);
                 // While the rectangle has no area the first corner is marked, so the click visibly registered
                 // (FT-714: the tester saw nothing after the first click).
+                // FT-759: a ring around the cross, so the fixed corner stands out from the pointer's grid marker at
+                // 100 % zoom (the 7-pixel cross alone was missed).
                 if current.is_none() {
+                    let corner = cx.snapper.page_to_sheet(first);
                     items.push(OverlayItem::Marker {
-                        at: cx.snapper.page_to_sheet(first),
+                        at: corner,
                         kind: MarkerKind::Grid,
+                    });
+                    items.push(OverlayItem::Marker {
+                        at: corner,
+                        kind: MarkerKind::Cp,
                     });
                 }
                 if let Some((pos, outline, cps)) = current {

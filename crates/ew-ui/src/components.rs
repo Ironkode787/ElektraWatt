@@ -91,6 +91,9 @@ pub(crate) trait Tip: Sized {
     fn tip(self, text: impl Into<String>) -> Self;
     /// The tooltip `text` while the widget is disabled and hovered (its reason).
     fn disabled_tip(self, text: impl Into<String>) -> Self;
+    /// As [`Tip::disabled_tip`], beside the widget (right of it, else left) rather than under it, so that the reason
+    /// of a menu entry never covers the next entry (FT-759).
+    fn disabled_tip_beside(self, text: impl Into<String>) -> Self;
 }
 
 impl Tip for Response {
@@ -120,6 +123,16 @@ impl Tip for Response {
             egui::containers::Tooltip::for_disabled(&self),
             &text.into(),
         );
+        self
+    }
+
+    fn disabled_tip_beside(self, text: impl Into<String>) -> Response {
+        let mut tooltip = egui::containers::Tooltip::for_disabled(&self);
+        tooltip.popup = tooltip
+            .popup
+            .align(egui::RectAlign::RIGHT_START)
+            .align_alternatives(&[egui::RectAlign::LEFT_START]);
+        show_tip(&self.ctx, tooltip, &text.into());
         self
     }
 }

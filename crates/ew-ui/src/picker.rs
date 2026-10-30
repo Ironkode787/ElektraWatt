@@ -131,18 +131,13 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         };
                         // FT-712: a part row leads with its description, cut with an ellipsis at the row's width
                         // (whole in the tooltip), and shows its part number second in secondary text.
-                        let second_colour = if enabled {
-                            t.text_secondary
-                        } else {
-                            t.text_disabled
-                        };
                         let mut atoms = egui::Atoms::new(
                             egui::RichText::new(&name)
                                 .color(text_colour.color32())
                                 .atom_shrink(true),
                         );
                         if let Some(second) = &second {
-                            atoms.push_right(egui::RichText::new(second).color(second_colour.color32()));
+                            atoms.push_right(second_text(&t, second, enabled));
                         }
                         atoms.push_right(egui::Atom::grow());
                         atoms.push_right(
@@ -170,6 +165,19 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     }
                 });
         });
+}
+
+/// A part row's part number (FT-712, FT-759): visibly secondary, `type.small` in `color.text.secondary`
+/// (`color.text.disabled` on a disabled row).
+fn second_text(t: &crate::theme::Tokens, second: &str, enabled: bool) -> egui::RichText {
+    let colour = if enabled {
+        t.text_secondary
+    } else {
+        t.text_disabled
+    };
+    egui::RichText::new(second)
+        .font(crate::theme::font(&t.type_small))
+        .color(colour.color32())
 }
 
 /// A row's name, the text after it (a part row's part number, FT-712), its library or function line (a part's function
@@ -238,5 +246,27 @@ fn row_texts(
                 st.tag.clone(),
             )
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::theme::{Density, Theme, font, tokens};
+
+    /// FT-759: the part number after a part row's description is `type.small` in `color.text.secondary`.
+    #[test]
+    fn the_part_number_is_small_and_secondary() {
+        let t = tokens(Theme::Light, Density::Comfortable);
+        let ctx = egui::Context::default();
+        let style = ctx.global_style();
+        let job = egui::WidgetText::from(super::second_text(&t, "3RT2016-1AP01", true)).into_layout_job(
+            &style,
+            egui::FontSelection::Default,
+            egui::Align::Min,
+        );
+        let fmt = &job.sections[0].format;
+        assert_eq!(fmt.font_id, font(&t.type_small));
+        assert_eq!(fmt.color, t.text_secondary.color32());
+        assert!(t.type_small.size < t.type_body.size);
     }
 }

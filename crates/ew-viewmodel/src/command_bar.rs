@@ -666,7 +666,15 @@ pub fn hud(model: &ShellModel) -> HudModel {
             parts.extend(external);
             parts.join(" \u{b7} ")
         }
-        Some(Ghost::Box { cps, .. }) => format!("{} \u{b7} {cps}", hint()),
+        // FT-759: the count says what it counts ("7 connection points"), never a bare "· 7".
+        Some(Ghost::Box { cps, .. }) => format!(
+            "{} \u{b7} {}",
+            hint(),
+            strings::format(
+                if cps == 1 { "count-box-pin" } else { "count-box-pins" },
+                &[&cps.to_string()]
+            )
+        ),
         Some(Ghost::Text { text, bind, .. }) => {
             let shown = bind.map_or(text, |b| format!("{{{b}}}"));
             format!("{shown} \u{b7} {}", hint())

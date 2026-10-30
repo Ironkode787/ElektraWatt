@@ -505,6 +505,9 @@ fn ib5_the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_devic
         describe_line(&s, "canvas ghost box ").as_deref(),
         Some("canvas ghost box outline 4 cps 10")
     );
+    // FT-759: the HUD says what the count counts, never a bare "· 10".
+    let prompt = ew_viewmodel::command_bar::hud(&s).prompt;
+    assert!(prompt.ends_with(" \u{b7} 10 connection points"), "{prompt}");
     done(&mut s, "canvas.dwell", json!({"ms": 80}));
     assert_eq!(s.preview_state().unwrap().name, "box.black");
     assert!(s.preview_state().unwrap().result.is_ok());
@@ -572,7 +575,12 @@ fn ft714_the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
     enter_k(&mut s, (30, 30));
     assert_eq!(s.tool().state(), "outline");
     // No area yet: the corner marker and the target's label, so the click visibly registered.
-    assert_eq!(canvas(&s)["overlay"], 2, "the first corner and the label");
+    // FT-759: the corner is a grid cross ringed by a CP marker, visible at 100 % zoom.
+    assert_eq!(
+        canvas(&s)["overlay"],
+        3,
+        "the first corner's cross and ring, and the label"
+    );
     assert_eq!(
         s.tool_hint(),
         "Click or Enter at the opposite corner; Escape starts again"
