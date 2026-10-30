@@ -4,6 +4,8 @@ file.open_recent Command "Open recent project" menu "File ▸ Open recent" short
 file.open_sample Command "Open sample project" menu "File" shortcut none context global params "discard?:bool"
 file.import_qet Command "Import QElectroTech project…" menu "Project" shortcut none context global params "file?:path, dir?:path, discard?:bool"
 parts.import Command "Parts table…" menu "Project" shortcut none context global params "path?:path"
+parts.map Command "Map a column of the parts table" menu none shortcut none context global hidden params "source?:text, column?:text, member?:text"
+parts.map_import Command "Import the mapped parts table" menu none shortcut none context global hidden params ""
 file.save Command "Save" menu "File" shortcut "Ctrl+S" context global params ""
 file.save_as Command "Save as…" menu "File" shortcut "Ctrl+Shift+S" context global params "dir?:path"
 file.discard_journal Command "Discard unsaved changes of the earlier session…" menu "File" shortcut none context global params "confirm?:bool"

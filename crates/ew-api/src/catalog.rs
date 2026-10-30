@@ -23,7 +23,7 @@ use ew_schema::{Kind, LibCopy, LibDocument, LibRef, Manufacturer, Part};
 
 pub use ew_import_catalog::{
     CatalogTarget, ColumnMap, IMPORTER_ID, MapError, Member, PartsImport, RowCounts, RowOutcome, RowStatus,
-    SourceFormat, check_source_key, parse_parts, pn_norm, table_limits,
+    SourceFormat, TableColumn, check_source_key, parse_parts, pn_norm, table_columns, table_limits,
 };
 
 use crate::import::PARTS_IMPORT;
@@ -85,6 +85,27 @@ impl From<ImportError> for CatalogError {
 fn base_name(p: &Path) -> String {
     p.file_name()
         .map_or_else(|| p.display().to_string(), |n| n.to_string_lossy().into_owned())
+}
+
+/// The source key a table file proposes (FT-649, the column-mapping step's pre-filled key): the file stem in lower
+/// case with every character [`check_source_key`] refuses as `-`, a leading `.` dropped, at most 64 characters;
+/// `parts` for a stem that leaves nothing. `Supplier A.csv` gives `supplier-a`.
+pub fn source_key_for(file_name: &str) -> String {
+    let stem = Path::new(file_name)
+        .file_stem()
+        .map_or_else(String::new, |s| s.to_string_lossy().to_lowercase());
+    let key: String = stem
+        .chars()
+        .map(|c| {
+            if c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '-' | '_' | '.') {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    let key: String = key.trim_start_matches('.').chars().take(64).collect();
+    if key.is_empty() { "parts".to_owned() } else { key }
 }
 
 /// The file of the map saved for `source_key`: `<config_dir>/imports/<source key>.toml` (D11).

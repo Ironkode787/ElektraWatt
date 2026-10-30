@@ -100,7 +100,10 @@ fn tag_edit_of(shown: &str, letter: &str, counter: &str, typed: &str) -> Option<
     let rest = typed.trim().strip_prefix(before)?;
     let typed_letter: String = rest.chars().take_while(char::is_ascii_alphabetic).collect();
     let typed_counter = rest[typed_letter.len()..].strip_prefix(after)?;
-    if typed_letter.is_empty() || typed_counter.is_empty() || !typed_counter.bytes().all(|b| b.is_ascii_digit()) {
+    if typed_letter.is_empty()
+        || typed_counter.is_empty()
+        || !typed_counter.bytes().all(|b| b.is_ascii_digit())
+    {
         return None;
     }
     match (typed_letter != letter, typed_counter != counter) {

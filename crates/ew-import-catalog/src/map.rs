@@ -48,6 +48,24 @@ pub enum Member {
 }
 
 impl Member {
+    /// The members without a key, in declaration order (the column-mapping step's choices, FT-649); a description
+    /// per language, technical data and free properties take a key ([`Member::parse`]).
+    pub const FIXED: [Member; 8] = [
+        Member::Manufacturer,
+        Member::PartNumber,
+        Member::TypeDesignation,
+        Member::OrderNumber,
+        Member::Gtin,
+        Member::Description(None),
+        Member::Kind,
+        Member::Unit,
+    ];
+
+    /// Whether a part needs this member mapped (`manufacturer`, `part_number`; [`MapError::Missing`]).
+    pub fn required(&self) -> bool {
+        matches!(self, Member::Manufacturer | Member::PartNumber)
+    }
+
     /// The member's name in a map, such as `part_number` or `tech_data.i_n`.
     pub fn name(&self) -> String {
         match self {

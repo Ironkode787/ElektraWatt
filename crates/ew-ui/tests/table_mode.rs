@@ -217,6 +217,7 @@ fn se15_the_strip_editor_and_its_chooser_list() {
     {
         let shell = h.state_mut().shell_mut();
         done(shell, "parts.import", json!({"path": csv.to_string_lossy()}));
+        done(shell, "parts.map_import", json!({}));
         done(shell, "preview.apply", json!({}));
         done(shell, "strip.edit", json!({"strip": "-X1031"}));
         let k20 = strips_row(shell, "Terminal", "20");

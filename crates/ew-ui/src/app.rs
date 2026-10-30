@@ -838,6 +838,8 @@ impl App {
         crate::junction::show(&ctx, &self.shell, &mut events);
         crate::text_popup::show(&ctx, &self.shell, &mut self.text_buffer, &mut events);
         crate::parts_card::show(&ctx, &self.shell, &mut events);
+        // FT-649: the parts import's column mapping step.
+        crate::parts_map::show(&ctx, &self.shell, &mut events);
         // WP-S2.09 part 3: Show changes of the history panel.
         crate::history::show_changes(&ctx, &self.shell, &mut events);
         // WP-S2.09 part 1: the toasts and the notifications log.

@@ -59,6 +59,7 @@ fn run_flow(tag: &str) -> String {
         "parts.import",
         json!({"path": golden_parts().to_string_lossy()}),
     );
+    done(&mut shell, "parts.map_import", json!({}));
     transcript.push(shell.describe());
     done(&mut shell, "preview.apply", json!({}));
     transcript.push(shell.describe());
@@ -67,6 +68,7 @@ fn run_flow(tag: &str) -> String {
         "parts.import",
         json!({"path": golden_parts().to_string_lossy()}),
     );
+    done(&mut shell, "parts.map_import", json!({}));
     transcript.push(shell.describe());
     done(&mut shell, "preview.cancel", json!({}));
     transcript.push(shell.describe());
@@ -86,6 +88,7 @@ fn the_golden_parts_table_imports_through_the_card_once() {
         "parts.import",
         json!({"path": golden_parts().to_string_lossy()}),
     );
+    done(&mut shell, "parts.map_import", json!({}));
     assert_eq!(
         shell.session_calls().preview_with,
         calls.preview_with + 1,
@@ -121,12 +124,14 @@ fn the_golden_parts_table_imports_through_the_card_once() {
         "parts.import",
         json!({"path": golden_parts().to_string_lossy()}),
     );
+    done(&mut shell, "parts.map_import", json!({}));
     done(&mut shell, "preview.apply", json!({}));
     done(
         &mut shell,
         "parts.import",
         json!({"path": golden_parts().to_string_lossy()}),
     );
+    done(&mut shell, "parts.map_import", json!({}));
     let text = shell.describe();
     assert!(
         text.contains("card ready \"parts.import\" created 0 skipped 29 errors 0"),
@@ -148,6 +153,7 @@ fn the_picker_lists_the_imported_parts_under_their_manufacturer_in_part_number_o
         "parts.import",
         json!({"path": golden_parts().to_string_lossy()}),
     );
+    done(&mut shell, "parts.map_import", json!({}));
     done(&mut shell, "preview.apply", json!({}));
     done(&mut shell, "tool.place", json!({}));
     let picker = shell.picker().expect("the picker is open");
@@ -247,7 +253,8 @@ fn a_bad_table_is_refused_with_its_pointer_and_opens_no_card() {
     let tmp = Tmp::new("parts-bad");
     let table = tmp.0.join("tables");
     std::fs::create_dir_all(&table).unwrap();
-    std::fs::write(table.join("parts.csv"), "key,part_number\nA,A1\n").unwrap();
+    // FT-649: a table without a header row cannot be mapped.
+    std::fs::write(table.join("parts.csv"), "\n\n").unwrap();
     let mut shell = headless(&tmp);
     new_project(&mut shell, &tmp.0.join("proj.ew"));
     let out = shell.dispatch(
@@ -258,17 +265,205 @@ fn a_bad_table_is_refused_with_its_pointer_and_opens_no_card() {
         panic!("{out:?}");
     };
     assert!(message.starts_with("Parts table refused:"), "{message}");
-    assert!(message.contains("manufacturer"), "{message}");
+    assert!(message.contains("header row"), "{message}");
     assert!(shell.properties().card().is_none(), "no card");
+    assert!(shell.parts_map().is_none(), "no mapping step");
     let text = shell.describe();
     let banner = line_with(&text, "banner:");
     assert!(
-        banner.contains("Parts table refused:") && banner.contains("manufacturer"),
+        banner.contains("Parts table refused:") && banner.contains("header row"),
         "{banner}"
     );
     assert!(!text.lines().any(|l| l.starts_with("card ")), "{text}");
     assert!(shell.recorded_commands().is_empty());
     shell.shutdown();
+}
+
+/// A supplier's list with headers of its own (FT-649's fixture).
+const SUPPLIER: &str = "Hersteller;Artikelnummer;Bezeichnung;Nennstrom\n\
+                        Schneider Electric;A9F74210;Leitungsschutzschalter C10;10 A\n\
+                        Phoenix Contact;3044102;Durchgangsklemme;\n";
+
+/// The `card mapping` lines of the describe text.
+fn mapping_lines(shell: &ShellModel) -> Vec<String> {
+    let text = shell.describe();
+    let mut out = Vec::new();
+    let mut inside = false;
+    for l in text.lines() {
+        if l.starts_with("card mapping ") {
+            inside = true;
+        } else if inside && !l.starts_with("  ") {
+            break;
+        }
+        if inside {
+            out.push(l.to_owned());
+        }
+    }
+    out
+}
+
+/// FT-649: a table with other headers opens the mapping step (no member pre-filled, Import refused with the
+/// importer's message); mapped, it imports through the card and the parts are in the project; the map is saved for
+/// the source key and fills the next import of the same source.
+#[test]
+fn a_supplier_list_imports_after_mapping_and_its_map_is_saved() {
+    let tmp = Tmp::new("parts-map");
+    let file = tmp.0.join("Supplier List.csv");
+    std::fs::write(&file, SUPPLIER).unwrap();
+    let mut shell = headless(&tmp);
+    new_project(&mut shell, &tmp.0.join("proj.ew"));
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
+    );
+    let lines = mapping_lines(&shell);
+    assert_eq!(
+        lines[..3],
+        [
+            "card mapping \"Supplier List.csv\" source \"supplier-list\"",
+            "  column \"Hersteller\" sample \"Schneider Electric\" member none",
+            "  column \"Artikelnummer\" sample \"A9F74210\" member none",
+        ],
+        "{lines:?}"
+    );
+    assert_eq!(
+        lines.last().unwrap(),
+        "  error \"the column map needs a column for `manufacturer`\""
+    );
+    assert!(!shell.parts_map().unwrap().can_import());
+    let out = shell.dispatch("parts.map_import", &json!({}));
+    assert_eq!(
+        out,
+        Outcome::Failed {
+            message: "the column map needs a column for `manufacturer`".into()
+        }
+    );
+    assert!(shell.properties().card().is_none(), "no import card");
+    // The member choices of a column: the fixed members, then its own technical-data and free-property members.
+    let choices = ew_viewmodel::shell::PartsMap::choices("Nennstrom");
+    assert_eq!(choices[..2], ["manufacturer", "part_number"]);
+    assert!(choices.contains(&"tech_data.nennstrom".to_owned()), "{choices:?}");
+    for (column, member) in [
+        ("Hersteller", "manufacturer"),
+        ("Artikelnummer", "part_number"),
+        ("Bezeichnung", "description.de"),
+        ("Nennstrom", "tech_data.nennstrom"),
+    ] {
+        done(
+            &mut shell,
+            "parts.map",
+            json!({"column": column, "member": member}),
+        );
+    }
+    assert!(shell.parts_map().unwrap().can_import());
+    assert!(!mapping_lines(&shell).iter().any(|l| l.starts_with("  error")));
+    // A member that is no part member is refused with the importer's message.
+    let out = shell.dispatch("parts.map", &json!({"column": "Nennstrom", "member": "rating"}));
+    assert!(
+        matches!(&out, Outcome::Failed { message } if message.starts_with("`rating` is not a part member")),
+        "{out:?}"
+    );
+    done(&mut shell, "parts.map_import", json!({}));
+    assert!(shell.parts_map().is_none(), "the mapping step closed");
+    let text = shell.describe();
+    assert!(
+        text.contains("card ready \"parts.import\" created 2 skipped 0 errors 0"),
+        "{text}"
+    );
+    done(&mut shell, "preview.apply", json!({}));
+    assert!(shell.can_undo(), "one undo step");
+    // The parts are in the project: saved and read back.
+    done(&mut shell, "file.save", json!({}));
+    let (reopened, _) = Session::open_read_only(&tmp.0.join("proj.ew"), VERSION).unwrap();
+    let mut numbers: Vec<String> = reopened
+        .query()
+        .parts()
+        .iter()
+        .map(|(_, p)| p.item.part_number.to_string())
+        .collect();
+    numbers.sort();
+    assert_eq!(numbers, ["3044102", "A9F74210"]);
+    drop(reopened);
+    // The map is saved for the source key.
+    let saved = std::fs::read_to_string(tmp.0.join("config/imports/supplier-list.toml")).unwrap();
+    assert!(saved.contains("part_number = \"Artikelnummer\""), "{saved}");
+    assert!(
+        saved.contains("\"tech_data.nennstrom\" = \"Nennstrom\""),
+        "{saved}"
+    );
+    // The next import of the same source is pre-filled from it.
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
+    );
+    let lines = mapping_lines(&shell);
+    assert_eq!(
+        lines[..3],
+        [
+            "card mapping \"Supplier List.csv\" source \"supplier-list\" saved",
+            "  column \"Hersteller\" sample \"Schneider Electric\" member \"manufacturer\"",
+            "  column \"Artikelnummer\" sample \"A9F74210\" member \"part_number\"",
+        ],
+        "{lines:?}"
+    );
+    // Another source key without a saved map keeps the members; Escape closes the step.
+    done(&mut shell, "parts.map", json!({"source": "other-list"}));
+    let map = shell.parts_map().unwrap();
+    assert!(!map.saved && map.can_import(), "{map:?}");
+    let out = shell.dispatch("parts.map", &json!({"source": "Bad Key"}));
+    assert!(
+        matches!(&out, Outcome::Failed { message } if message.starts_with("`Bad Key` is not a source key")),
+        "{out:?}"
+    );
+    done(&mut shell, "ui.dismiss", json!({}));
+    assert!(shell.parts_map().is_none());
+    shell.shutdown();
+}
+
+/// FT-649: a required member left unmapped refuses the import with the importer's message, and nothing is imported.
+#[test]
+fn an_unmapped_part_number_refuses_with_the_importers_message() {
+    let tmp = Tmp::new("parts-map-required");
+    let file = tmp.0.join("list.csv");
+    std::fs::write(&file, SUPPLIER).unwrap();
+    let mut shell = headless(&tmp);
+    new_project(&mut shell, &tmp.0.join("proj.ew"));
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
+    );
+    done(
+        &mut shell,
+        "parts.map",
+        json!({"column": "Hersteller", "member": "manufacturer"}),
+    );
+    let message = "the column map needs a column for `part_number`";
+    assert_eq!(shell.parts_map().unwrap().error.as_deref(), Some(message));
+    assert_eq!(
+        shell.dispatch("parts.map_import", &json!({})),
+        Outcome::Failed {
+            message: message.into()
+        }
+    );
+    assert!(shell.parts_map().is_some(), "the step stays open");
+    assert!(shell.properties().card().is_none());
+    assert!(shell.recorded_commands().is_empty());
+    assert!(
+        !tmp.0.join("config/imports/list.toml").exists(),
+        "a refused map is not saved"
+    );
+    shell.shutdown();
+}
+
+#[test]
+fn the_five_mapping_words_are_in_the_vocabulary_once() {
+    use ew_viewmodel::describe::{MAP_WORDS, VOCABULARY};
+    for w in MAP_WORDS {
+        assert_eq!(VOCABULARY.iter().filter(|v| *v == w).count(), 1, "{w}");
+    }
 }
 
 #[test]
@@ -281,6 +476,7 @@ fn the_recorded_command_carries_the_parameters_of_the_read() {
         "parts.import",
         json!({"path": golden_parts().to_string_lossy()}),
     );
+    done(&mut shell, "parts.map_import", json!({}));
     assert!(shell.recorded_commands().is_empty(), "the card records nothing");
     done(&mut shell, "preview.apply", json!({}));
     let steps: Vec<(String, Value)> = shell
@@ -330,6 +526,7 @@ fn the_card_survives_selection_changes_and_goes_with_the_project() {
         "parts.import",
         json!({"path": golden_parts().to_string_lossy()}),
     );
+    done(&mut shell, "parts.map_import", json!({}));
     done(&mut shell, "props.show", json!({}));
     done(&mut shell, "find.open", json!({}));
     done(&mut shell, "find.close", json!({}));

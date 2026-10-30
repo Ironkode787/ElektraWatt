@@ -377,7 +377,11 @@ fn ct4_f2_renames_a_structure_node_code() {
         json!({"kind": "structure", "text": "J-E-2417"}),
     );
     assert!(s.nav_rename().is_none());
-    assert_eq!((steps(&s), s.revision()), (n + 1, rev.map(|r| r + 1)), "one commit");
+    assert_eq!(
+        (steps(&s), s.revision()),
+        (n + 1, rev.map(|r| r + 1)),
+        "one commit"
+    );
     let (name, params) = last(&s);
     assert_eq!(
         (name.as_str(), &params["kind"], &params["path"]),
@@ -440,10 +444,7 @@ fn ct4_f2_refuses_a_taken_device_tag_like_the_properties_grid() {
     done(&mut s, "navigator.row", json!({"kind": "devices", "key": key}));
     done(&mut s, "navigator.rename", json!({"kind": "devices"}));
     let (n, rev) = (steps(&s), s.revision());
-    let message = match s.dispatch(
-        "navigator.rename",
-        &json!({"kind": "devices", "text": "-102F2"}),
-    ) {
+    let message = match s.dispatch("navigator.rename", &json!({"kind": "devices", "text": "-102F2"})) {
         Outcome::Failed { message } => message,
         other => panic!("{other:?}"),
     };
@@ -454,7 +455,11 @@ fn ct4_f2_refuses_a_taken_device_tag_like_the_properties_grid() {
     let (shown, proposal) = s.nav_rename_error().expect("the refusal under the field");
     assert_eq!(shown, grid);
     assert!(proposal.is_none());
-    done(&mut s, "navigator.rename", json!({"kind": "devices", "cancel": true}));
+    done(
+        &mut s,
+        "navigator.rename",
+        json!({"kind": "devices", "cancel": true}),
+    );
     // A letter edit: -102G1 to F collides with -102F1 and proposes the next free counter.
     let key = device_key(&mut s, "-102G1");
     done(&mut s, "navigator.row", json!({"kind": "devices", "key": key}));

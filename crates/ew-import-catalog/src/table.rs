@@ -258,12 +258,90 @@ pub(crate) fn read_xlsx(bytes: &[u8], sheet: Option<&str>, limits: &Limits) -> R
     sheet_of(crate::xlsx::read(bytes, sheet, limits)?, limits)
 }
 
+/// One column of a parts table as the column-mapping step shows it (FT-649): its header and a sample value.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TableColumn {
+    /// The header, trimmed (empty for a column without one).
+    pub header: String,
+    /// The first non-empty value under the header, trimmed; empty when the column has none.
+    pub sample: String,
+}
+
+/// The columns of the table `input` (the window's column-mapping step, FT-649), read by the readers
+/// [`crate::parse_parts`] uses, under the same limits: CSV, or the XLSX `sheet` (the first when `None`).
+///
+/// # Errors
+///
+/// As [`crate::parse_parts`] for a table that cannot be read: [`ImportError::LimitExceeded`] for an input above
+/// `limits.max_input_bytes` or too many rows, columns or too long a cell; [`ImportError::Malformed`] for a table
+/// without a header row, not UTF-8 or not a workbook; [`ImportError::Unsupported`] for a ZIP64 workbook.
+pub fn table_columns(
+    input: &ew_interop_api::ImportInput,
+    sheet: Option<&str>,
+    limits: &Limits,
+) -> Result<Vec<TableColumn>, ImportError> {
+    let bytes = input.bytes();
+    if bytes.len() as u64 > limits.max_input_bytes {
+        return Err(ImportError::LimitExceeded {
+            what: "input size".into(),
+            limit: limits.max_input_bytes,
+        });
+    }
+    let sheet = match SourceFormat::detect(bytes) {
+        SourceFormat::Csv => read_csv(bytes, limits)?,
+        SourceFormat::Xlsx => read_xlsx(bytes, sheet, limits)?,
+    };
+    Ok(sheet
+        .headers
+        .iter()
+        .enumerate()
+        .map(|(i, header)| TableColumn {
+            header: header.clone(),
+            sample: sheet
+                .rows
+                .iter()
+                .map(|r| r.cells.get(i).map_or("", Cell::text).trim())
+                .find(|t| !t.is_empty())
+                .unwrap_or_default()
+                .to_owned(),
+        })
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn csv(text: &str) -> Result<Sheet, ImportError> {
         read_csv(text.as_bytes(), &Limits::default())
+    }
+
+    /// FT-649: the columns are the header row with the first non-empty value below each header.
+    #[test]
+    fn table_columns_give_headers_and_samples() {
+        let input = ew_interop_api::ImportInput::new(
+            "list.csv",
+            b"Hersteller; Artikel ;Notiz\nSchneider;;\n;A9F74210;x\n".to_vec(),
+        )
+        .unwrap();
+        let cols = table_columns(&input, None, &Limits::default()).unwrap();
+        let got: Vec<(&str, &str)> = cols
+            .iter()
+            .map(|c| (c.header.as_str(), c.sample.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                ("Hersteller", "Schneider"),
+                ("Artikel", "A9F74210"),
+                ("Notiz", "x")
+            ]
+        );
+        let empty = ew_interop_api::ImportInput::new("e.csv", b"\n\n".to_vec()).unwrap();
+        assert!(matches!(
+            table_columns(&empty, None, &Limits::default()),
+            Err(ImportError::Malformed { .. })
+        ));
     }
 
     fn texts(s: &Sheet) -> Vec<Vec<&str>> {

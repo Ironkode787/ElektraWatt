@@ -40,4 +40,6 @@ pub use parts::{
     CatalogTarget, FIRST_VERSION, IMPORTER_ID, IMPORTER_VERSION, PartsImport, RowCounts, RowOutcome,
     RowStatus, manufacturer_item, namespace, parse_parts, part_item, pn_norm,
 };
-pub use table::{MAX_CELL_BYTES, MAX_COLUMNS, MAX_ROWS, SourceFormat, table_limits};
+pub use table::{
+    MAX_CELL_BYTES, MAX_COLUMNS, MAX_ROWS, SourceFormat, TableColumn, table_columns, table_limits,
+};

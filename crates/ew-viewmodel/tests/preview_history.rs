@@ -459,6 +459,7 @@ fn pv3_every_origin_opens_the_tab_and_closing_it_cancels() {
     );
     let parts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv");
     done(&mut s, "parts.import", json!({"path": parts.to_string_lossy()}));
+    done(&mut s, "parts.map_import", json!({}));
     assert!(s.preview_shown());
     assert_eq!(
         lines_with(&s, "card ")[0],

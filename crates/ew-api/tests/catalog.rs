@@ -453,3 +453,32 @@ fn a_library_import_names_another_librarys_manufacturer_only_through_depends() {
         ]
     );
 }
+
+/// FT-649: the source key a file proposes is its stem as a key `check_source_key` takes; the columns of a table are
+/// its headers with a sample each; the fixed members are the map's members without a key.
+#[test]
+fn the_mapping_steps_accessors() {
+    for (file, key) in [
+        ("Supplier A.csv", "supplier-a"),
+        ("parts.csv", "parts"),
+        ("Liste_2026.v2.xlsx", "liste_2026.v2"),
+        (".hidden.csv", "hidden"),
+        ("€€.csv", "--"),
+        (".csv", "csv"),
+        ("", "parts"),
+    ] {
+        let got = catalog::source_key_for(file);
+        assert_eq!(got, key, "{file}");
+        assert!(catalog::check_source_key(&got).is_ok(), "{file}");
+    }
+    let names: Vec<String> = catalog::Member::FIXED.iter().map(catalog::Member::name).collect();
+    assert_eq!(names[..2], ["manufacturer", "part_number"]);
+    assert!(catalog::Member::FIXED.iter().filter(|m| m.required()).count() == 2);
+    let input =
+        ew_import_catalog::ew_interop_api::ImportInput::new("l.csv", LIST.as_bytes().to_vec()).unwrap();
+    let cols = catalog::table_columns(&input, None, &catalog::table_limits()).unwrap();
+    assert!(
+        !cols.is_empty() && cols.iter().all(|c| !c.header.is_empty()),
+        "{cols:?}"
+    );
+}

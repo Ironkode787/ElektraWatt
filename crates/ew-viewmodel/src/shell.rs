@@ -82,6 +82,8 @@ pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 // WP-S2.06 part 1
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
 pub use row_ops::NavRename;
+// FT-649
+pub use parts::{MapColumn, PartsMap};
 // WP-S2.09 part 3
 pub use bond::BOND_KINDS;
 pub use bulk::PURGE_LISTED;
@@ -419,6 +421,8 @@ pub struct ShellModel {
     pages_table: Option<crate::navigators::Navigator>,
     /// WP-S2.07 part 2 (FT-490): the tree row whose label is being renamed.
     rename: Option<NavRename>,
+    /// FT-649: the column mapping step of the parts import.
+    parts_map: Option<PartsMap>,
     /// The chips of the line "Not on this page" (§6.5), and the (selection generation, page) they were made for.
     chips: Vec<navigators::Chip>,
     chips_for: Option<(u64, Option<crate::canvas::PageId>)>,
@@ -940,6 +944,7 @@ impl ShellModel {
             navs: std::collections::BTreeMap::new(),
             pages_table: None,
             rename: None,
+            parts_map: None,
             chips: Vec::new(),
             chips_for: None,
             last_page: None,
@@ -1477,6 +1482,8 @@ impl ShellModel {
             "file.open_sample" => self.act_open_sample(p),
             "file.import_qet" => self.act_import_qet(p),
             "parts.import" => self.act_parts_import(p),
+            "parts.map" => self.act_parts_map(p),
+            "parts.map_import" => self.act_parts_map_import(),
             "file.discard_journal" => self.act_discard_journal(p),
             "view.workspace_load" => self.act_workspace_load(p),
             "view.workspace_save" => self.act_workspace_save(p),
@@ -2120,6 +2127,7 @@ impl ShellModel {
         self.focus = None;
         self.reset_tools();
         self.props = crate::properties::PropertiesState::default();
+        self.parts_map = None;
         // WP-S2.09: the toasts of the project go with it (the log keeps them; their Undo expires with the session), and
         // so do its history markers.
         self.notes.clear_visible();
@@ -2368,6 +2376,8 @@ impl ShellModel {
             || self.tools.picker.take().is_some()
             // WP-S2.18 D2: Escape closes the Join chooser and leaves the target as it was.
             || self.tools.chooser.take().is_some()
+            // FT-649: Escape closes the parts import's column mapping step.
+            || self.parts_map.take().is_some()
             || self.tools.junction_editor.take().is_some()
             || self.tools.link_preview.take().is_some()
         {

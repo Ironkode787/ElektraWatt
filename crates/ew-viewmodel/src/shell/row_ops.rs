@@ -62,12 +62,9 @@ fn rename_route(kind: NavKind, node: Option<&NavNode>) -> Option<RenameRoute> {
         (NavKind::Pages, _) => Some(RenameRoute::Field("page", "title")),
         (NavKind::Potentials, _) => Some(RenameRoute::Field("potential_def", "name")),
         (_, Some(NavRole::StructureNode)) => Some(RenameRoute::Field("structure_node", "code")),
-        (
-            _,
-            Some(NavRole::Device | NavRole::Strip | NavRole::Cable | NavRole::Station | NavRole::Module),
-        ) => node
-            .and_then(|n| n.records.first())
-            .map(|d| RenameRoute::Tag(*d)),
+        (_, Some(NavRole::Device | NavRole::Strip | NavRole::Cable | NavRole::Station | NavRole::Module)) => {
+            node.and_then(|n| n.records.first()).map(|d| RenameRoute::Tag(*d))
+        }
         _ => None,
     }
 }

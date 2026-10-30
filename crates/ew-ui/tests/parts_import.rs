@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! File, Import, Parts table… in the window without rendering (FT-410): the entry is disabled without a project;
-//! with a new project it raises the file prompt (`Prompt::OpenPartsTable`), the answer opens the import card
+//! with a new project it raises the file prompt (`Prompt::OpenPartsTable`), the answer opens the column mapping step
+//! (FT-649) and its Import the import card
 //! ("parts.csv: 29 created, 0 skipped, 0 errors"), Ctrl+Enter applies it from anywhere, and the project has the 29
 //! part copies; the accessible-name walker after every step.
 
@@ -65,6 +66,16 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     settle(&mut h);
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::OpenPartsTable]);
+    // FT-649: the column mapping step first, pre-filled from the golden dialect's headers; Import reads the table.
+    assert!(h.query_by_label("Map columns").is_some(), "the mapping card");
+    assert!(
+        h.query_by_label("Imports as part_number").is_some(),
+        "a member drop-down per column"
+    );
+    h.get_by_label("Import").click();
+    settle(&mut h);
+    settle(&mut h);
+    assert!(h.state().shell().parts_map().is_none());
     // The card: a window with the counts and the two buttons.
     assert!(
         h.query_by_label_contains("parts.csv: 29 created").is_some(),
@@ -118,6 +129,8 @@ fn cancel_drops_the_card_without_a_change() {
         .state_mut()
         .shell_mut()
         .dispatch("parts.import", &json!({"path": path.to_string_lossy()}));
+    assert_eq!(out, Outcome::Done);
+    let out = h.state_mut().shell_mut().dispatch("parts.map_import", &json!({}));
     assert_eq!(out, Outcome::Done);
     settle(&mut h);
     // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
@@ -191,8 +204,9 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
                 h.query_by_label("Parts table…").is_none(),
                 "the File menu closes in the frame that answers the pick"
             );
+            // FT-649: the column mapping step is the card that answers the pick.
             assert!(
-                h.state().shell().import_card_open(),
+                h.state().shell().parts_map().is_some(),
                 "the card is in the shell in the frame that answers the pick"
             );
             answered = true;
@@ -202,8 +216,19 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     assert!(answered, "the pick was answered");
     h.step();
     assert!(
+        h.query_by_label("Map columns").is_some(),
+        "the mapping card is painted"
+    );
+    h.get_by_label("Import").click();
+    h.step();
+    h.step();
+    h.step();
+    assert!(
         h.query_by_label_contains("parts.csv: 2 created").is_some(),
-        "the card's text is painted"
+        "the card's text is painted: {:?} {:?} {:?}",
+        h.state().shell().parts_map(),
+        h.state().shell().banner(),
+        h.state().shell().properties().card().map(|c| c.reason)
     );
     // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
     h.get_all_by_label("Apply").next().unwrap().click();
@@ -297,10 +322,15 @@ fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
     let tx = platform.answer.borrow_mut().take().unwrap();
     tx.send(Pick::Path(csv)).unwrap();
     h.step();
+    // FT-649: the column mapping step is the card the answer opens.
     assert!(
-        h.state().shell().import_card_open(),
+        h.state().shell().parts_map().is_some(),
         "the card is in the shell in the frame after the answer"
     );
+    h.step();
+    h.get_by_label("Import").click();
+    h.step();
+    h.step();
     h.step();
     assert!(
         h.query_by_label_contains("parts.csv: 2 created").is_some(),

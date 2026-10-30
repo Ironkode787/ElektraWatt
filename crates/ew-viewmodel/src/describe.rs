@@ -312,6 +312,12 @@ pub const VOCABULARY: &[&str] = &[
     "created",
     "skipped",
     "errors",
+    // The parts import's column mapping step (FT-649): 5 words, a reviewed vocabulary change.
+    "mapping",
+    "saved",
+    "column",
+    "sample",
+    "member",
     // Page items and structure boxes (WP-S2.04 part 4b, §10.7; ID-474 extended): 14 words, a reviewed vocabulary
     // change.
     "graphic",
@@ -581,6 +587,10 @@ pub const CLIP_WORDS: &[&str] = &["clipboard", "fragment", "records", "copies", 
 /// The 3 words FT-410 adds to [`VOCABULARY`]: the import card's line `card ready "parts.import" created 29 skipped 0
 /// errors 0`.
 pub const IMPORT_WORDS: &[&str] = &["created", "skipped", "errors"];
+
+/// The 5 words FT-649 adds to [`VOCABULARY`]: the column mapping step's lines `card mapping "list.csv" source "list"
+/// saved` and `column "Artikel" sample "A9F74210" member "part_number"`.
+pub const MAP_WORDS: &[&str] = &["mapping", "saved", "column", "sample", "member"];
 
 /// The 14 words of WP-S2.04 part 4b (§10.7 as ruled in cycle 28): its 11 tool words (`text` is WP-S2.05 part 2's and
 /// `connections` WP-S6.13 part 1's), `anticlockwise` (an arc drawn anticlockwise) and `page.describe`'s `boxes` and
@@ -1453,6 +1463,37 @@ fn find_lines(model: &ShellModel, lines: &mut Vec<String>) {
     }
 }
 
+/// FT-649: the column mapping step while open: `card mapping "list.csv" source "list" saved`, one `column` line per
+/// column with its sample and member (`none`: not imported), and the importer's refusal of the map as `error`.
+fn parts_map_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    let Some(map) = model.parts_map() else {
+        return;
+    };
+    let mut head = format!(
+        "card mapping \"{}\" source \"{}\"",
+        user(&map.file),
+        user(&map.source)
+    );
+    if map.saved {
+        head.push_str(" saved");
+    }
+    lines.push(head);
+    for c in &map.columns {
+        let member = c
+            .member
+            .as_deref()
+            .map_or_else(|| "none".to_owned(), |m| format!("\"{}\"", user(m)));
+        lines.push(format!(
+            "  column \"{}\" sample \"{}\" member {member}",
+            user(&c.header),
+            user(&c.sample)
+        ));
+    }
+    if let Some(e) = &map.error {
+        lines.push(format!("  error \"{}\"", user(e)));
+    }
+}
+
 /// The inline preview card and the toast (WP-S2.05 §6.11), after the panes' lines: the card of the property grid or of
 /// the find pane's replace.
 fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
@@ -1774,6 +1815,8 @@ fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
     // WP-S2.09 part 3
     preview_lines(model, lines);
     history_lines(model, lines);
+    // FT-649: the parts import's column mapping step.
+    parts_map_lines(model, lines);
     card_and_toast_lines(model, lines);
     // WP-S2.05 part 3: what the clipboard holds, never its text.
     lines.push(model.clipboard().describe_line());

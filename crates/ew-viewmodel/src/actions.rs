@@ -577,6 +577,16 @@ fn chooser_open(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+/// The parts import's column mapping step is open on a writable project (FT-649).
+fn parts_map_open(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    if m.parts_map().is_some() {
+        Ok(())
+    } else {
+        Err("reason-no-parts-map")
+    }
+}
+
 /// The picker is open (WP-S2.04 §7.1).
 fn picker_open(m: &ShellModel) -> Result<(), &'static str> {
     if m.picker().is_some() {
@@ -975,6 +985,28 @@ pub static ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // FT-649: the parts import's column mapping step (the card's fields and its Import button).
+    with_params(
+        "source?:text, column?:text, member?:text",
+        hidden(act(
+            "parts.map",
+            Command,
+            "action-parts-map",
+            Menu::Project,
+            &[],
+            parts_map_open,
+            None,
+        )),
+    ),
+    hidden(act(
+        "parts.map_import",
+        Command,
+        "action-parts-map-import",
+        Menu::Project,
+        &[],
+        parts_map_open,
+        None,
+    )),
     with_icon(
         "device-floppy",
         act(
@@ -4959,6 +4991,7 @@ mod tests {
         "first_run.next",
         "place.join",
         "props.accept_tag_proposal",
+        "parts.map_import",
         "first_run.back",
         "wizard.next",
         "wizard.back",

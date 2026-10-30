@@ -61,6 +61,7 @@ mod preview;
 mod rail;
 // FT-410: the parts table import card.
 mod parts_card;
+mod parts_map;
 // WP-S2.04 part 2: the junction sequence editor popup.
 mod junction;
 mod picker;
