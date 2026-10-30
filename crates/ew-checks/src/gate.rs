@@ -118,13 +118,13 @@ pub fn pack_definition(pack: &str) -> Option<String> {
         .filter_map(|(on, c)| on.then_some(*c))
         .collect();
         out.push_str(&format!(
-            "rule {} {} {:?} {letters} {} {} {:?} {} [{}] {}\n",
+            "rule {} {} {} {letters} {} {} {} {} [{}] {}\n",
             m.id,
             m.code,
-            m.kind,
+            m.kind.name(),
             m.severity.name(),
             m.release_severity.map_or("-", Severity::name),
-            m.scope,
+            m.scope.name(),
             m.release.name(),
             m.supersedes.join(","),
             m.title,

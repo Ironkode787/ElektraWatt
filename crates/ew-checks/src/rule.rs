@@ -24,6 +24,20 @@ pub enum RuleKind {
     Integrity,
 }
 
+impl RuleKind {
+    /// The catalogue's text (`rules.json`, the rule reference): `safety`, `conflict`, `completeness`, `hygiene`,
+    /// `integrity`. Stable: a sign-off's pack digest binds it ([`pack_definition`](crate::pack_definition)).
+    pub fn name(self) -> &'static str {
+        match self {
+            RuleKind::Safety => "safety",
+            RuleKind::Conflict => "conflict",
+            RuleKind::Completeness => "completeness",
+            RuleKind::Hygiene => "hygiene",
+            RuleKind::Integrity => "integrity",
+        }
+    }
+}
+
 /// The modes a rule runs in (doc 15 §3.1). The integrity-run, import-run and library-linter modes of the catalogue
 /// (n, i, l) are not modelled yet: no implemented rule has them.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -92,6 +106,24 @@ pub enum ScopeKind {
     Module,
     /// One PLC configuration project (doc 15 §2.3 `cfg`, requested by doc 10 §3.10).
     Cfg,
+}
+
+impl ScopeKind {
+    /// The catalogue's text (`rules.json`, the rule reference): `project`, `page`, `strip`, `device`, `cable`,
+    /// `potential`, `module`, `cfg`. Stable: a sign-off's pack digest binds it
+    /// ([`pack_definition`](crate::pack_definition)).
+    pub fn name(self) -> &'static str {
+        match self {
+            ScopeKind::Project => "project",
+            ScopeKind::Page => "page",
+            ScopeKind::Strip => "strip",
+            ScopeKind::Device => "device",
+            ScopeKind::Cable => "cable",
+            ScopeKind::Potential => "potential",
+            ScopeKind::Module => "module",
+            ScopeKind::Cfg => "cfg",
+        }
+    }
 }
 
 /// One evaluation scope: the key of the memo family [`CheckOf`](crate::CheckOf) together with a rule ID.

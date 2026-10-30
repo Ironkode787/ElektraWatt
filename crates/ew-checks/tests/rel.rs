@@ -253,9 +253,30 @@ fn pack_versions_name_every_evaluated_pack() {
     assert!(
         pack_definition("EW-REL")
             .expect("shipped")
-            .contains("rule EW-REL-004 190004 Integrity pg ")
+            .contains("rule EW-REL-004 190004 integrity pg ")
     );
     assert!(pack_definition("ACME-X").is_none());
     let distinct: std::collections::BTreeSet<[u8; 32]> = packs.iter().map(|p| p.sha256).collect();
     assert_eq!(distinct.len(), packs.len(), "each pack its own definition");
+}
+
+/// FX38a n1: the definition text a sign-off's pack SHA-256 binds names a rule's kind and scope by the catalogue's
+/// words (`rules.json`), never by `Debug`, so the digest does not move with a Rust spelling.
+#[test]
+fn the_pack_definition_text_is_pinned() {
+    let text = pack_definition("EW-REL").expect("shipped");
+    let want = format!(
+        "pack EW-REL {}\n\
+         rule EW-REL-001 190001 integrity g error - project MVP [] Four eyes\n\
+         rule EW-REL-002 190002 integrity g error - project MVP [] Stale committed computation\n\
+         rule EW-REL-004 190004 integrity pg error - project MVP [] Revision label order\n",
+        env!("CARGO_PKG_VERSION")
+    );
+    assert_eq!(text, want);
+    // The words are the catalogue's for every rule of every pack.
+    for r in ew_checks::rules() {
+        let m = r.meta();
+        assert_eq!(m.kind.name(), format!("{:?}", m.kind).to_lowercase(), "{}", m.id);
+        assert_eq!(m.scope.name(), format!("{:?}", m.scope).to_lowercase(), "{}", m.id);
+    }
 }
