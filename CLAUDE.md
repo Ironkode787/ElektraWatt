@@ -47,7 +47,17 @@ work is done by Claude subagents; there is no external coder.
 8. **Cycle rhythm.** Plan and dispatch → integrate → window checks of user-visible changes (a model that reads
    screenshots, on a normal build) → design pass (decision-log rows, FT rows, as-built spec text, doc 01 cycle
    section, next candidates) → the cycle review (rule 6), fix and re-review until accepted → one full gate → fast-forward `main`, push,
-   watch CI on the full SHA. Report outcomes faithfully, including what was skipped or not proven.
+   watch CI on the full SHA → the retro. Report outcomes faithfully, including what was skipped or not proven.
+   **Speed rules (owner, 2026-10-29):** before dispatch, a feasibility read of every brief against the code (Haiku at
+   `high` with a checklist: named items exist, a claimed bug reproduces, files and format touched; Opus at `low` only
+   for flagged briefs: file format/schema, a check rule's meaning, a core crate, or a bug that did not reproduce).
+   One merged-tip verify per wave, not per lane, covering every package the wave's changes can reach (bin crates
+   included). The review starts on the last wave's tip while the play-test and window checks run. Mechanical upkeep
+   (re-bless, regeneration, seed corpus) goes to Haiku. Tests never pin totals of growing sets (CONTRIBUTING.md).
+   **Retro after every delivery (owner, 2026-10-29):** measure the cycle from its own record (delivery spacing, time
+   per phase, rework: merge breakages, failed verifies, stopped lanes, fix-round size), name at most three recurring
+   problems with evidence, decide at most three process changes, check the previous retro's changes, and report it
+   with the next cycle's table.
    **Cycles are large (owner, 2026-10-28: "more wps, not parallel"):** plan about twice the work per cycle as
    sequential waves of lanes, still at most three builders at once; a finished lane's slot goes to the next queued WP
    instead of closing the cycle; a merged-tip verify between waves; the window checks, design pass, review loop and
