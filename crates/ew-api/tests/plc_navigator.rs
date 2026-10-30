@@ -107,7 +107,7 @@ fn pg4_each_facet_on_golden_a() {
     set(&mut s, &[&u3_1], "address", json!(other));
     let t = s.navigator_table(NavKind::Plc);
     let keys = |v: Vec<&NavNode>| -> Vec<String> { v.into_iter().map(|n| n.key.clone()).collect() };
-    assert_eq!(keys(with(&t, "unassigned", "")), [u3_0.key.clone()]);
+    assert_eq!(keys(with(&t, "unassigned", "")), std::slice::from_ref(&u3_0.key));
     assert_eq!(cell(&t, channel(&t, "-201U3", 0), "address"), "");
     let mut dup = keys(with(&t, "duplicate", ""));
     dup.sort();
@@ -122,7 +122,7 @@ fn pg4_each_facet_on_golden_a() {
 
     set(&mut s, &[&u3_1], "address", json!("tbd"));
     let t = s.navigator_table(NavKind::Plc);
-    assert_eq!(keys(with(&t, "tbd", "")), [u3_1.key.clone()]);
+    assert_eq!(keys(with(&t, "tbd", "")), std::slice::from_ref(&u3_1.key));
     assert_eq!(cell(&t, channel(&t, "-201U3", 1), "address"), "TBD");
     assert_eq!(cell(&t, channel(&t, "-201U4", 0), "symbol"), "B1_Start");
 }

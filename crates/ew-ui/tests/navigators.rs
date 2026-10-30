@@ -520,3 +520,129 @@ fn the_filter_field_clear_button_empties_the_filter_and_keeps_the_focus() {
     assert!(h.query_by_label("Clear the filter").is_none());
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The grid cursor of the focused canvas to grid index `k`.
+fn cursor_k(h: &mut Harness<'_, App>, k: (i64, i64)) {
+    let (x, y) = {
+        let c = h.state().shell().canvas().unwrap();
+        let sn = &c.page().snapper;
+        let s = sn.page_to_sheet((sn.page_of_index(k.0), sn.page_of_index(k.1)));
+        (s.0 as f64 / 1e6, s.1 as f64 / 1e6)
+    };
+    dispatch(h, "cursor.set", json!({"x_mm": x, "y_mm": y}));
+}
+
+/// WP-S2.07 §8 (FR-PLC-020, PG2) in the window: in a new project with the generic CPU, the digital output card and a
+/// starter coil attached to the card, the PLC navigator's row of the card's channel 0 dragged onto the coil's
+/// connection point binds it with one `plc.bind_channel`; the coil's CP then prints Q0.0.
+#[test]
+fn pg2_a_channel_row_dragged_onto_a_connection_point_binds_it() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), None);
+    h.set_size(egui::Vec2::new(1400.0, 1000.0));
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "file.new",
+        json!({"dir": tmp.0.join("new.ew").to_string_lossy(), "template": "builtin"}),
+    );
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "101", "type": "multi_line", "title": "Control"}),
+    );
+    settle(&mut h);
+    wait_for_page(&mut h);
+    for (part, a, b) in [
+        ("EW-GEN-CPU-1", (10, 10), (16, 18)),
+        ("EW-GEN-DO-1", (24, 10), (30, 18)),
+    ] {
+        dispatch(&mut h, "tool.black_box", json!({"part": part, "template": 0}));
+        cursor_k(&mut h, a);
+        dispatch(&mut h, "canvas.activate", json!({}));
+        cursor_k(&mut h, b);
+        dispatch(&mut h, "canvas.activate", json!({}));
+        dispatch(&mut h, "tool.select", json!({}));
+    }
+    dispatch(&mut h, "tool.place", json!({}));
+    dispatch(
+        &mut h,
+        "place.pick",
+        json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+    );
+    cursor_k(&mut h, (40, 30));
+    dispatch(&mut h, "canvas.activate", json!({"alt": true}));
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(&mut h, "navigator.show", json!({"kind": "plc"}));
+    settle(&mut h);
+    let (coil, module) = {
+        let shell = h.state().shell();
+        let t = std::sync::Arc::clone(&shell.canvas().unwrap().page().tables);
+        let coil = t
+            .reps
+            .iter()
+            .find(|r| r.black_box.is_none() && r.symbol_key.starts_with("ew.iec.coil"))
+            .expect("the coil")
+            .clone();
+        let table = shell.nav(NavKind::Plc).and_then(|n| n.table()).unwrap();
+        let module = table
+            .nodes
+            .iter()
+            .find(|n| n.role == NavRole::Channel)
+            .expect("the card's channels")
+            .records[1];
+        (coil, module)
+    };
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "assembly.attach", "params": {
+            "parent": module.to_string(),
+            "children": [{"device": coil.device.unwrap().to_string(), "position": 1}],
+        }}),
+    );
+    settle(&mut h);
+    settle(&mut h);
+    let cp = {
+        let shell = h.state().shell();
+        let t = std::sync::Arc::clone(&shell.canvas().unwrap().page().tables);
+        t.cps
+            .iter()
+            .filter(|c| c.rep == coil.id)
+            .min_by_key(|c| c.idx)
+            .expect("the coil's CP")
+            .clone()
+    };
+    assert_eq!(cp.plc_address, None);
+    let to = {
+        let bounds = h
+            .get_all_by_role(egui::Role::Canvas)
+            .next()
+            .expect("the canvas")
+            .accesskit_node()
+            .raw_bounds()
+            .expect("bounds");
+        let c = h.state().shell().canvas().unwrap();
+        let s = c.page().snapper.page_to_sheet(cp.at);
+        let k = c.points_per_nm();
+        Pos2::new(
+            bounds.x0 as f32 + ((s.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
+            bounds.y0 as f32 + ((s.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
+        )
+    };
+    let from = item_centre(&h, "Q0.0, channel");
+    let rev = h.state().shell().revision();
+    drag(&mut h, from, to);
+    assert_eq!(h.state().shell().revision(), rev.map(|r| r + 1), "one command");
+    let bound = {
+        let shell = h.state().shell();
+        let t = std::sync::Arc::clone(&shell.canvas().unwrap().page().tables);
+        t.cps
+            .iter()
+            .find(|c| c.rep == coil.id && c.idx == cp.idx)
+            .and_then(|c| c.plc_address.clone())
+    };
+    assert_eq!(bound.as_deref(), Some("Q0.0"));
+    h.state_mut().shell_mut().shutdown();
+}

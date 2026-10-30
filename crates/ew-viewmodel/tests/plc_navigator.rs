@@ -11,7 +11,7 @@ use common::{Tmp, done, refused};
 use ew_viewmodel::ew_api::output::{PageTables, Uuid};
 use ew_viewmodel::navigators::{NavKind, PLC_FLAGS, Query};
 use ew_viewmodel::shell::{DragSource, Mode, ShellConfig, ShellModel};
-use serde_json::{Value, json};
+use serde_json::json;
 
 /// A headless shell with a new project (the builtin template) and a new folio 101 shown at actual size.
 fn new_project(tmp: &Tmp) -> ShellModel {
@@ -251,5 +251,4 @@ fn pg3_pasting_eight_symbols_is_one_undo_step() {
     }
     done(&mut s, "edit.undo", json!({}));
     assert!(!s.describe().contains("TA05_V_01"));
-    let _ = Value::Null;
 }

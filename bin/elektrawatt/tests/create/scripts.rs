@@ -417,7 +417,8 @@ page view: {folio}
             "{d}"
         );
         assert!(d.contains("navigator \"PLC\" kind plc view tree"), "{d}");
-        assert!(d.contains("row level 1 station \"-201U1\""), "{d}");
+        assert!(d.contains("row level 1 plc_config_project \"PLC1\""), "{d}");
+        assert!(d.contains("row level 2 station \"-201U1\""), "{d}");
     }
     let cleared = steps[12]["describe"].as_str().unwrap();
     assert!(!cleared.contains("  highlight slot"), "{cleared}");

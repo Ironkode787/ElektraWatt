@@ -1355,8 +1355,10 @@ impl CanvasHost {
         let point = |p: (i64, i64)| point_with(p, mods);
         // WP-S2.07 §8: a PLC channel row dropped on this canvas binds the channel at the drop point.
         let dropped = ui.input(|i| i.pointer.any_released().then(|| i.pointer.latest_pos()).flatten());
+        // (`take_payload` empties the store whatever its type: a function's drop stays the canvas area's.)
         if let Some(pos) = dropped
             && rect.contains(pos)
+            && egui::DragAndDrop::has_payload_of_type::<crate::navigator::ChannelDrag>(ui.ctx())
             && let Some(channel) = egui::DragAndDrop::take_payload::<crate::navigator::ChannelDrag>(ui.ctx())
         {
             let mut p = point_with(Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
