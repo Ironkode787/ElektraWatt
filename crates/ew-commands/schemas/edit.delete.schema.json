@@ -94,6 +94,21 @@
           "const": "project",
           "description": "`project`: the single project row (FT-447); `fields.set` only, `edit.delete` refuses it.",
           "type": "string"
+        },
+        {
+          "const": "plc_config_project",
+          "description": "`plc_config_project` (WP-S1.21 D6, FT-226).",
+          "type": "string"
+        },
+        {
+          "const": "channel",
+          "description": "`channel` (WP-S1.21 D6, FT-226).",
+          "type": "string"
+        },
+        {
+          "const": "device_link",
+          "description": "`device_link` (WP-S1.21 D6, FT-226).",
+          "type": "string"
         }
       ]
     },

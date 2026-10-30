@@ -2,7 +2,7 @@
   "id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "key": "ew-starter-parts",
   "name": "ElektraWatt starter parts",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "licence": "CC0-1.0",
   "format": "0.1",
   "min_reader": "0.1",
@@ -11,6 +11,7 @@
   "files": {
     "manufacturers.2.jsonl": "sha256:11c1d44e43ccd86cdfe22bbfee0662b76cb60786de444e6b20d740d8c7e39d1c",
     "parts/0f.2.jsonl": "sha256:53c471ce8400e65e6b49c825a22c8ce2b7c0375b75a7caaea8d8c5213a3c0642",
+    "parts/19.2.jsonl": "sha256:c21e703faa32adde98d90433d5aab315ab20d82297260988ebed765d42d34aba",
     "parts/1d.2.jsonl": "sha256:45b25e6ebf3250bebe0e75f9fd90912f6a0f4407b29b813a13494449c3cb619f",
     "parts/22.2.jsonl": "sha256:e617a9dd576c5ead9f638c1f273b0db03a4de8bf7aa857a9ed39969cd4857b2e",
     "parts/2f.2.jsonl": "sha256:aa8748267024d9f302e788e25b4a3d6f1a7ce123b8022b3f4bd17a063c4ac988",

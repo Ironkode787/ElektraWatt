@@ -28,8 +28,9 @@ const NAME: &str = "ElektraWatt starter parts";
 const LICENCE: &str = "CC0-1.0";
 const VERSION: &str = "0.1.0";
 /// The library's version: 0.1.1 since FT-659 and FT-655 changed parts, 0.1.2 since FT-606 added the one-pole on/off
-/// switch EW-GEN-SW-1 (a library refuses other content under a published version, doc 05 §13.1).
-const LIBRARY_VERSION: &str = "0.1.2";
+/// switch EW-GEN-SW-1, 0.2.0 since WP-S1.21 D5 added the generic CPU EW-GEN-CPU-1 (a library refuses other content
+/// under a published version, doc 05 §13.1).
+const LIBRARY_VERSION: &str = "0.2.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. FT-655: the relay
 /// and the contactor template their contacts beside the coil).
@@ -324,6 +325,18 @@ fn defs() -> Vec<Def> {
             plc: Some(card("in", "di")),
         },
         Def {
+            number: "EW-GEN-CPU-1",
+            kind: None,
+            description: "PLC CPU without on-board I/O",
+            cps: vec![("L+", Some("l_plus")), ("M", Some("m"))],
+            template: vec![("ew.fn.blackbox", true, range(0, 2))],
+            contacts: Vec::new(),
+            tech: vec![("rated_voltage", q("24", "V"))],
+            // WP-S1.21 D5: a station without I/O ranges, so the cards' addresses start at byte 0; the typed DP port
+            // follows with the bus model (part 4).
+            plc: Some(json!({"role": "station"})),
+        },
+        Def {
             number: "EW-GEN-DO-1",
             kind: None,
             description: "PLC digital output card, 8 channels",
@@ -559,6 +572,7 @@ fn every_generic_part_is_usable() {
         numbers.contains(&"EW-GEN-SW-1"),
         "FT-606: the one-pole on/off switch"
     );
+    assert!(numbers.contains(&"EW-GEN-CPU-1"), "WP-S1.21 D5: the generic CPU");
     for doc in parts() {
         let LibDocument::Part(c) = doc else { panic!() };
         let p = &c.item;
@@ -652,4 +666,38 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
             Some(Kind::Manufacturer)
         ]
     );
+}
+
+/// WP-S1.21 D5: the generic CPU is a station without I/O ranges on a black box with the supply CPs L+ and M, a new
+/// item at 0.1.0 in the library's minor version 0.2.0; the cards are modules of 8 channels each.
+#[test]
+fn the_generic_cpu_is_a_station_without_io() {
+    assert_eq!(LIBRARY_VERSION, "0.2.0");
+    let part = |number: &str| {
+        parts()
+            .into_iter()
+            .find_map(|d| match d {
+                LibDocument::Part(c) if c.item.part_number.as_str() == number => Some(c),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("{number}"))
+    };
+    let cpu = part("EW-GEN-CPU-1");
+    assert_eq!(cpu.version, "0.1.0");
+    let plc = cpu.item.sections.plc.as_ref().expect("a PLC section");
+    assert_eq!(plc.role, ew_format::ew_schema::PlcRole::Station);
+    assert!(plc.io.is_empty() && plc.channels.is_none());
+    let designations: Vec<&str> = cpu
+        .item
+        .cp_pattern
+        .iter()
+        .map(|c| c.designation.as_str())
+        .collect();
+    assert_eq!(designations, ["L+", "M"]);
+    for card in ["EW-GEN-DI-1", "EW-GEN-DO-1"] {
+        let c = part(card);
+        let plc = c.item.sections.plc.as_ref().expect("a PLC section");
+        assert_eq!(plc.role, ew_format::ew_schema::PlcRole::Module, "{card}");
+        assert_eq!(plc.channels.as_ref().map(|s| s.count), Some(8), "{card}");
+    }
 }

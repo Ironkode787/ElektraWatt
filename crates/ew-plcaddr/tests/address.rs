@@ -124,3 +124,57 @@ proptest! {
         }
     }
 }
+
+/// WP-S1.21 D6: an address text is parsed by the profile, the inverse of `render`; the example names output 0.1.
+#[test]
+fn parse_and_example() {
+    let p = p();
+    assert_eq!(p.example(), "Q0.1");
+    assert_eq!(p.parse("I4.0"), Some(PlcAddress::bit(Area::I, 4, 0)));
+    assert_eq!(p.parse(" q0.7 "), Some(PlcAddress::bit(Area::Q, 0, 7)));
+    assert_eq!(p.parse("%Q6.7"), Some(PlcAddress::bit(Area::Q, 6, 7)));
+    assert_eq!(p.parse("PI3.2"), Some(PlcAddress::bit(Area::Pi, 3, 2)));
+    assert_eq!(p.parse("IW64"), Some(PlcAddress::unit(Area::I, Size::Word, 64)));
+    assert_eq!(p.parse("%PQL8"), Some(PlcAddress::unit(Area::Pq, Size::LWord, 8)));
+    assert_eq!(p.parse("MB10"), Some(PlcAddress::unit(Area::M, Size::Byte, 10)));
+    for bad in [
+        "",
+        "I4.9",
+        "I4.10",
+        "I4",
+        "4.0",
+        "I.0",
+        "I4.",
+        "X4.0",
+        "IW4.0",
+        "I4.0x",
+        "%%I4.0",
+        "I4294967296.0",
+        "I-1.0",
+        "auto",
+    ] {
+        assert_eq!(p.parse(bad), None, "{bad:?}");
+    }
+}
+
+proptest! {
+    /// Every bit address and every unit address of a size above a bit parses back from either rendering.
+    #[test]
+    fn parse_inverts_render(
+        area in 0usize..5,
+        size in 0usize..5,
+        byte in any::<u32>(),
+        bit in 0u8..8,
+        ex in any::<bool>(),
+    ) {
+        let areas = [Area::I, Area::Q, Area::M, Area::Pi, Area::Pq];
+        let sizes = [Size::Bit, Size::Byte, Size::Word, Size::DWord, Size::LWord];
+        let a = if size == 0 {
+            PlcAddress::bit(areas[area], byte, bit)
+        } else {
+            PlcAddress::unit(areas[area], sizes[size], byte)
+        };
+        let purpose = if ex { Purpose::Exchange } else { Purpose::Drawing };
+        prop_assert_eq!(p().parse(&p().render(&a, purpose)), Some(a));
+    }
+}

@@ -8,6 +8,7 @@
 //!
 //! | # | ID | Effect |
 //! |---|---|---|
+//! | 0 | `plc_aspects` | N0: a device that gains a part with a PLC section and carries neither PLC aspect gets `plc_module` or `plc_station` from the section's role; the first station creates the configuration project `PLC<n>`, a module without a station is attached to the project's only station (WP-S1.21 D2 to D4) |
 //! | 2 | `cp_instantiation` | No-op recorder: CPs are derived from the FnDef or part pattern and only overrides persist (doc 06 §3.2 row 2), so there is nothing to store |
 //! | 3 | `channel_instantiation` | N1: a new module, or a device that gained the `plc_module` aspect or changed its parts, gets the channels of its part data with v5 IDs and the part's channel kind (doc 10 §3.3; surplus channels stay until `plc.set_module_part` removes them after its preview) |
 //! | 4 | `online_numbering` | Gives a placed numbered device without a counter the next free counter of its page scope, and a device whose page-based tag collides (after a move of its main representation) the next free one (FR-NUM-007, FR-NUM-029) |
@@ -30,6 +31,7 @@ mod cp_instantiation;
 mod junction_cleanup;
 mod module_pin_binding;
 mod online_numbering;
+mod plc_aspects;
 mod solenoid_binding;
 mod wire_numbering;
 
@@ -39,6 +41,7 @@ pub use cp_instantiation::CpInstantiation;
 pub use junction_cleanup::JunctionCleanup;
 pub use module_pin_binding::ModulePinBinding;
 pub use online_numbering::OnlineNumbering;
+pub use plc_aspects::PlcAspects;
 pub use solenoid_binding::SolenoidBinding;
 pub use wire_numbering::WireNumbering;
 
@@ -56,7 +59,8 @@ pub trait Normaliser: Send + Sync {
 }
 
 /// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 8] = [
+pub const ORDER: [&str; 9] = [
+    "plc_aspects",
     "cp_instantiation",
     "channel_instantiation",
     "online_numbering",
@@ -73,6 +77,7 @@ pub const MAX_PASSES: usize = 3;
 /// The normalisers in registry order.
 pub fn registry() -> Vec<Box<dyn Normaliser>> {
     vec![
+        Box::new(PlcAspects),
         Box::new(CpInstantiation),
         Box::new(ChannelInstantiation),
         Box::new(OnlineNumbering),

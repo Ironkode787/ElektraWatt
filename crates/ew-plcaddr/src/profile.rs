@@ -110,6 +110,168 @@ impl AddressProfile {
     pub fn units(&self, bits: u32) -> u32 {
         bits.div_ceil(self.unit_bits)
     }
+
+    /// The example address of this notation that a refusal names (`Q0.1`): output byte 0, bit 1, rendered for the
+    /// drawing.
+    pub fn example(&self) -> String {
+        self.render(&PlcAddress::bit(Area::Q, 0, 1), Purpose::Drawing)
+    }
+
+    /// Parses an address text of this notation, the inverse of [`AddressProfile::render`] for either purpose: the
+    /// drawing or exchange prefix (when the profile has one) is optional, surrounding white space is ignored and the
+    /// mnemonics match without regard to ASCII case. A bit address follows the bit template and its bit must be below
+    /// `unit_bits` (`I4.9` is no address of an 8-bit unit); a unit address follows the unit template with a size
+    /// other than a bit. `None` for any other text, a byte beyond `u32` included.
+    pub fn parse(&self, text: &str) -> Option<PlcAddress> {
+        let text = text.trim();
+        let mut bodies = vec![text];
+        for prefix in [self.exchange_prefix, self.drawing_prefix] {
+            if let Some(rest) = strip_prefix_ci(text, prefix).filter(|_| !prefix.is_empty()) {
+                bodies.push(rest);
+            }
+        }
+        for body in bodies {
+            if let Some(a) = self.parse_template(self.render_bit, body, true) {
+                return Some(a);
+            }
+            if let Some(a) = self.parse_template(self.render_unit, body, false) {
+                return Some(a);
+            }
+        }
+        None
+    }
+
+    /// `text` matched against `template`: a bit address when `bit`, else a unit address.
+    fn parse_template(&self, template: &str, text: &str, bit: bool) -> Option<PlcAddress> {
+        let tokens = tokens(template);
+        let parsed = self.match_tokens(&tokens, text, Parsed::default())?;
+        let area = parsed.area?;
+        let size = parsed.size.unwrap_or(Size::Bit);
+        let byte = parsed.byte?;
+        if bit {
+            (size == Size::Bit).then_some(())?;
+            Some(PlcAddress::bit(area, byte, parsed.bit?))
+        } else {
+            (size != Size::Bit && parsed.bit.is_none()).then_some(())?;
+            Some(PlcAddress::unit(area, size, byte))
+        }
+    }
+
+    /// The first way `tokens` match all of `text` (backtracking over the mnemonics and digit runs).
+    fn match_tokens(&self, tokens: &[Token], text: &str, at: Parsed) -> Option<Parsed> {
+        let Some((first, rest)) = tokens.split_first() else {
+            return text.is_empty().then_some(at);
+        };
+        match first {
+            Token::Lit(c) => {
+                let mut chars = text.chars();
+                let next = chars.next()?;
+                if next.eq_ignore_ascii_case(c) {
+                    self.match_tokens(rest, chars.as_str(), at)
+                } else {
+                    None
+                }
+            }
+            Token::Area => AREAS.iter().zip(self.area_mnemonics).find_map(|(area, m)| {
+                let tail = strip_prefix_ci(text, m).filter(|_| !m.is_empty())?;
+                self.match_tokens(
+                    rest,
+                    tail,
+                    Parsed {
+                        area: Some(*area),
+                        ..at
+                    },
+                )
+            }),
+            Token::Size => SIZES.iter().zip(self.size_mnemonics).find_map(|(size, m)| {
+                let tail = strip_prefix_ci(text, m)?;
+                self.match_tokens(
+                    rest,
+                    tail,
+                    Parsed {
+                        size: Some(*size),
+                        ..at
+                    },
+                )
+            }),
+            Token::Byte | Token::Bit => {
+                let run = text.bytes().take_while(u8::is_ascii_digit).count();
+                (1..=run).rev().find_map(|n| {
+                    let (digits, tail) = text.split_at(n);
+                    let next = if *first == Token::Byte {
+                        Parsed {
+                            byte: Some(digits.parse().ok()?),
+                            ..at
+                        }
+                    } else {
+                        let b: u8 = digits.parse().ok()?;
+                        if u32::from(b) >= self.unit_bits {
+                            return None;
+                        }
+                        Parsed { bit: Some(b), ..at }
+                    };
+                    self.match_tokens(rest, tail, next)
+                })
+            }
+        }
+    }
+}
+
+/// The areas in the order of [`AddressProfile::area_mnemonics`].
+const AREAS: [Area; 5] = [Area::I, Area::Q, Area::M, Area::Pi, Area::Pq];
+
+/// The sizes in the order of [`AddressProfile::size_mnemonics`].
+const SIZES: [Size; 5] = [Size::Bit, Size::Byte, Size::Word, Size::DWord, Size::LWord];
+
+/// One element of a render template.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Token {
+    Lit(char),
+    Area,
+    Size,
+    Byte,
+    Bit,
+}
+
+/// What a parse has read so far.
+#[derive(Clone, Copy, Default)]
+struct Parsed {
+    area: Option<Area>,
+    size: Option<Size>,
+    byte: Option<u32>,
+    bit: Option<u8>,
+}
+
+/// The tokens of a render template; a `{` that opens no known token is a literal, as [`AddressProfile::render`]
+/// treats it.
+fn tokens(template: &str) -> Vec<Token> {
+    const NAMED: [(&str, Token); 4] = [
+        ("{area}", Token::Area),
+        ("{size}", Token::Size),
+        ("{byte}", Token::Byte),
+        ("{bit}", Token::Bit),
+    ];
+    let mut out = Vec::new();
+    let mut rest = template;
+    while let Some(c) = rest.chars().next() {
+        match NAMED.iter().find(|(name, _)| rest.starts_with(name)) {
+            Some((name, token)) => {
+                out.push(*token);
+                rest = &rest[name.len()..];
+            }
+            None => {
+                out.push(Token::Lit(c));
+                rest = &rest[c.len_utf8()..];
+            }
+        }
+    }
+    out
+}
+
+/// `text` without `prefix`, compared without regard to ASCII case.
+fn strip_prefix_ci<'t>(text: &'t str, prefix: &str) -> Option<&'t str> {
+    let head = text.get(..prefix.len())?;
+    head.eq_ignore_ascii_case(prefix).then(|| &text[prefix.len()..])
 }
 
 /// Siemens TIA, international mnemonics (doc 10 section 2.5).

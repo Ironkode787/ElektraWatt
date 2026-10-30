@@ -209,6 +209,8 @@ fn pg1_the_json_fallbacks_of_settable_paths_are_the_listed_ones() {
         "representation text_slots[].pos",
         "connection kind",
         "connection number",
+        // WP-S1.21 part 1: an address is a word or a text of the station's profile (fields.set reads either).
+        "channel address",
         // WP-S2.04 part 4a: the positions and the nested shape members (cut at the walker's depth) of the two kinds.
         "page_item kind.graphic.shape.line.a",
         "page_item kind.graphic.shape.line.b",

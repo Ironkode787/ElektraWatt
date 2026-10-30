@@ -107,6 +107,12 @@ pub enum KindName {
     StructureBox,
     /// `project`: the single project row (FT-447); `fields.set` only, `edit.delete` refuses it.
     Project,
+    /// `plc_config_project` (WP-S1.21 D6, FT-226).
+    PlcConfigProject,
+    /// `channel` (WP-S1.21 D6, FT-226).
+    Channel,
+    /// `device_link` (WP-S1.21 D6, FT-226).
+    DeviceLink,
 }
 
 impl KindName {
@@ -130,6 +136,9 @@ impl KindName {
             KindName::PageItem => Kind::PageItem,
             KindName::StructureBox => Kind::StructureBox,
             KindName::Project => Kind::Project,
+            KindName::PlcConfigProject => Kind::PlcConfigProject,
+            KindName::Channel => Kind::Channel,
+            KindName::DeviceLink => Kind::DeviceLink,
         }
     }
 }

@@ -9,8 +9,9 @@ use std::collections::BTreeSet;
 
 use ew_model::Entity;
 use ew_schema::{
-    AnyId, Conductor, Connection, Device, ExternalRef, Function, FunctionKind, IpDirection, Kind, Page,
-    PageItem, PotentialDef, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
+    AddrSpec, AnyId, Channel, ChannelState, Conductor, Connection, Device, DeviceLink, DeviceLinkKind,
+    ExternalRef, Function, FunctionKind, IpDirection, Kind, Page, PageItem, PlcArea, PlcConfigProject,
+    PlcSize, PotentialDef, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
@@ -56,6 +57,15 @@ use crate::tx::TxBuilder;
 /// The project row (kind `project`, its one ID as the target) takes `master.description`, the project
 /// description that title blocks and bound free texts print (FT-447, FR-SYM-024); the other project members
 /// keep their own commands.
+///
+/// The PLC kinds (WP-S1.21 D6, FT-226): a channel's `designation`, `address`, `state`, `symbol`, `comment` and
+/// `target`; a configuration project's `name` (unique, as `plc.config_project.create` requires; its profile
+/// changes only through its own command); a device link's `kind` (its devices are chosen by `device.link`). A
+/// channel's `address` takes `auto`, `excluded`, `tbd` or an address text in the notation of the channel's
+/// configuration project's profile (the shipped default profile while the module has no station), stored as a
+/// `manual` address: `"I4.0"`; a text that does not parse is refused at `/value` with the profile's example
+/// (`expected an address like Q0.1`). The stored JSON form is accepted as well. A value of a newer format
+/// (an unknown state, area, size or link kind) is refused at `/value`: an edit writes only what this build knows.
 pub const SETTABLE: &[(KindName, &[&str])] = &[
     (
         KindName::Device,
@@ -185,6 +195,12 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
         KindName::StructureBox,
         &["outline", "style", "caption", "assigns", "external"],
     ),
+    (
+        KindName::Channel,
+        &["designation", "address", "state", "symbol", "comment", "target"],
+    ),
+    (KindName::PlcConfigProject, &["name"]),
+    (KindName::DeviceLink, &["kind"]),
 ];
 
 /// The aspect members of a device: a path below one of them needs the aspect to exist.
@@ -350,6 +366,30 @@ impl SetFields {
                     )?;
                 }
                 KindName::Project => set_project_member(tx, *t, path, value)?,
+                KindName::Channel => {
+                    let value = if path == "address" {
+                        channel_address_value(tx, t.cast(), value)?
+                    } else {
+                        value.clone()
+                    };
+                    set_one::<Channel>(tx, *t, path, &value)?;
+                    refuse_unknown_channel_member(tx, t.cast())?;
+                }
+                KindName::PlcConfigProject => {
+                    set_one::<PlcConfigProject>(tx, *t, path, value)?;
+                    refuse_duplicate_config_name(tx, t.cast())?;
+                }
+                KindName::DeviceLink => {
+                    set_one::<DeviceLink>(tx, *t, path, value)?;
+                    let l = tx.require::<DeviceLink>(t.cast())?;
+                    if let DeviceLinkKind::Unknown(v) = &l.kind {
+                        return Err(CmdError::invalid_params(
+                            Self::NAME,
+                            "/value",
+                            format!("{v} is not a device link kind; give drives or linkage"),
+                        ));
+                    }
+                }
                 // Junctions and bonds have no settable fields: rejected above.
                 KindName::Junction | KindName::Bond => {
                     return Err(CmdError::internal("fields.set: kind without settable fields"));
@@ -419,6 +459,101 @@ fn refuse_unknown_conductor_colour(
         if let Some(p) = crate::commands::items::colour_problem(&company, colour) {
             return Err(CmdError::invalid_params(SetFields::NAME, "/value", p));
         }
+    }
+    Ok(())
+}
+
+// WP-S1.21 D6: the PLC kinds ------------------------------------------------------------------------------------
+
+/// The value `fields.set` writes for a channel's `address`: the words `auto`, `excluded` and `tbd` (in any ASCII
+/// case, trimmed) as they are; any other text parsed by the profile of the channel's configuration project into a
+/// `manual` address, refused at `/value` with the profile's example when it does not parse; a JSON value other
+/// than a string unchanged (the stored form, or `null` for `auto`).
+fn channel_address_value(
+    tx: &TxBuilder<'_>,
+    channel: ew_ids::Id<Channel>,
+    value: &Value,
+) -> Result<Value, CmdError> {
+    let Value::String(text) = value else {
+        return Ok(value.clone());
+    };
+    let word = text.trim().to_ascii_lowercase();
+    if matches!(word.as_str(), "auto" | "excluded" | "tbd") {
+        return Ok(Value::String(word));
+    }
+    let c = tx.require::<Channel>(channel)?;
+    let profile = channel_profile(tx, c.module);
+    let address = ew_derive::parse_plc_address(&profile, text)
+        .map_err(|m| CmdError::invalid_params(SetFields::NAME, "/value", m))?;
+    serde_json::to_value(AddrSpec::Manual(address))
+        .map_err(|e| CmdError::internal(format!("fields.set: cannot serialise an address ({e})")))
+}
+
+/// The profile reference that reads a channel's address texts: the profile of the configuration project of the
+/// module's station (the module device itself or its nearest ancestor with `plc_station`), else the shipped
+/// default profile (a module without a station, or a station whose configuration project is gone).
+fn channel_profile(tx: &TxBuilder<'_>, module: ew_ids::Id<Device>) -> String {
+    let mut at = Some(module);
+    let mut steps = 0usize;
+    while let Some(d) = at.and_then(|d| tx.get::<Device>(d)) {
+        if let Some(station) = &d.aspects.plc_station {
+            return tx
+                .get::<PlcConfigProject>(station.config_project)
+                .map_or_else(ew_derive::default_profile, |c| c.profile.to_string());
+        }
+        steps += 1;
+        if steps > 4096 {
+            break; // a parent cycle that the invariants report (EW-INV-009)
+        }
+        at = d.parent;
+    }
+    ew_derive::default_profile()
+}
+
+/// A channel member of a newer format as read back (an unknown state, an address form, area or size this build
+/// does not know): refused at `/value`, since an edit writes only what this build can judge.
+fn refuse_unknown_channel_member(tx: &TxBuilder<'_>, channel: ew_ids::Id<Channel>) -> Result<(), CmdError> {
+    let c = tx.require::<Channel>(channel)?;
+    let unknown_address = match &c.address {
+        AddrSpec::Unknown(_) => true,
+        AddrSpec::Manual(a) => matches!(a.area, PlcArea::Unknown(_)) || matches!(a.size, PlcSize::Unknown(_)),
+        AddrSpec::Auto | AddrSpec::Excluded | AddrSpec::Tbd => false,
+    };
+    if unknown_address {
+        return Err(CmdError::invalid_params(
+            SetFields::NAME,
+            "/value",
+            "not an address this build knows; give an address text, auto, excluded or tbd",
+        ));
+    }
+    if let Some(ChannelState::Unknown(v)) = &c.state {
+        return Err(CmdError::invalid_params(
+            SetFields::NAME,
+            "/value",
+            format!(
+                "{v} is not a channel state; give spare, reserved or deactivated, or null for the derived state"
+            ),
+        ));
+    }
+    Ok(())
+}
+
+/// A configuration project's name as `plc.config_project.create` keeps it: unique among the configuration
+/// projects (compared exactly), else rejected.
+fn refuse_duplicate_config_name(
+    tx: &TxBuilder<'_>,
+    cfg: ew_ids::Id<PlcConfigProject>,
+) -> Result<(), CmdError> {
+    let c = tx.require::<PlcConfigProject>(cfg)?;
+    if let Some(other) = tx
+        .iter::<PlcConfigProject>()
+        .into_iter()
+        .find(|o| o.id != cfg && o.name == c.name)
+    {
+        return tx.reject(format!(
+            "configuration project {} exists ({}); names are unique",
+            c.name, other.id
+        ));
     }
     Ok(())
 }

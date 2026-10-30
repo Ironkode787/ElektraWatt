@@ -90,6 +90,9 @@ The record kinds a command may name generically (`edit.delete`, `fields.set`).
 | `"page_item"` | `page_item` (WP-S2.04 part 4a). |
 | `"structure_box"` | `structure_box` (WP-S2.04 part 4a). |
 | `"project"` | `project`: the single project row (FT-447); `fields.set` only, `edit.delete` refuses it. |
+| `"plc_config_project"` | `plc_config_project` (WP-S1.21 D6, FT-226). |
+| `"channel"` | `channel` (WP-S1.21 D6, FT-226). |
+| `"device_link"` | `device_link` (WP-S1.21 D6, FT-226). |
 
 ## Exit codes
 

@@ -20,6 +20,10 @@ pub(crate) const FILES: &[(&str, &str)] = &[
         include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/0f.2.jsonl"),
     ),
     (
+        "parts/19.2.jsonl",
+        include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/19.2.jsonl"),
+    ),
+    (
         "parts/1d.2.jsonl",
         include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/1d.2.jsonl"),
     ),

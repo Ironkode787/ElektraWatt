@@ -96,6 +96,52 @@ pub fn profile_of(q: &Q, cfg: Id<PlcConfigProject>) -> Option<&'static AddressPr
     ew_plcaddr::builtin(c.profile.as_str())
 }
 
+/// The reference (`id@version`) of the address profile that a configuration project created on demand pins
+/// (FR-PLC-008's default, WP-S1.21 D3): the shipped TIA international profile.
+pub fn default_profile() -> String {
+    ew_plcaddr::SIEMENS_TIA_INTL.reference()
+}
+
+/// An address text in the notation of the shipped profile `profile` (`id@version`), in the stored form of a
+/// channel's `Manual` address (WP-S1.21 D6): `"I4.0"` under the TIA profile is input byte 4, bit 0. The error is
+/// the message a refusal shows: the profile's example (`expected an address like Q0.1`) for a text that does not
+/// parse, or that this build does not ship the profile.
+pub fn parse_plc_address(profile: &str, text: &str) -> Result<ew_schema::PlcAddress, String> {
+    let Some(p) = ew_plcaddr::builtin(profile) else {
+        return Err(format!(
+            "the address profile {profile} is not shipped by this build, so an address text cannot be read; give \
+             auto, excluded or tbd"
+        ));
+    };
+    let Some(a) = p.parse(text) else {
+        return Err(format!(
+            "`{text}` is not an address of profile {profile}: expected an address like {}",
+            p.example()
+        ));
+    };
+    let area = match a.area {
+        Area::I => PlcArea::I,
+        Area::Q => PlcArea::Q,
+        Area::M => PlcArea::M,
+        Area::Pi => PlcArea::Pi,
+        Area::Pq => PlcArea::Pq,
+    };
+    let size = match a.size {
+        Size::Bit => PlcSize::Bit,
+        Size::Byte => PlcSize::Byte,
+        Size::Word => PlcSize::Word,
+        Size::DWord => PlcSize::DWord,
+        Size::LWord => PlcSize::LWord,
+    };
+    Ok(ew_schema::PlcAddress {
+        area,
+        size,
+        byte: a.byte,
+        bit: a.bit,
+        extra: ew_schema::Extra::new(),
+    })
+}
+
 fn area_of(a: &PlcArea) -> Option<Area> {
     Some(match a {
         PlcArea::I => Area::I,

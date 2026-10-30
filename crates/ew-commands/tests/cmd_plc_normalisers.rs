@@ -117,12 +117,13 @@ fn uses(part: Id<Part>) -> Value {
     json!([{"part": {"copy": part}, "qty": "1"}])
 }
 
-/// Gives `DEV_102F2` the part `part` and the `plc_module` aspect.
+/// Gives `DEV_102F2` the `plc_module` aspect and then the part `part`; returns the part step's receipt, in which N1
+/// instantiates the channels (a part given to a device without an aspect is normaliser N0's case).
 fn make_module(e: &mut Engine, part: Id<Part>) -> Receipt {
-    e.execute(&set_device(DEV_102F2, "parts", uses(part)))
-        .expect("parts");
     e.execute(&set_device(DEV_102F2, "plc_module", json!({})))
-        .expect("plc_module")
+        .expect("plc_module");
+    e.execute(&set_device(DEV_102F2, "parts", uses(part)))
+        .expect("parts")
 }
 
 fn add_valve(e: &mut Engine, position: u32, fndef: Id<FnDef>) -> (Receipt, Id<Device>, Id<Function>) {
@@ -206,18 +207,18 @@ fn n2_ignores_a_valve_without_a_declared_solenoid() {
     assert!(r.outcome.notices.is_empty());
 }
 
-/// Valves added before the module has channels (the golden builder's order) are bound when N1 creates the
-/// channels: the new channels trigger N2.
+/// Valves added before the module has channels are bound when N1 creates the channels: the new channels trigger N2.
+/// (The aspect comes first and the part last, so that the channels appear only with the part.)
 #[test]
 fn n2_binds_existing_valves_when_n1_creates_the_channels() {
     let mut e = engine(model_with(vec![]));
-    e.execute(&set_device(DEV_102F2, "parts", uses(MODULE_H1)))
-        .expect("parts");
+    e.execute(&set_device(DEV_102F2, "plc_module", json!({})))
+        .expect("plc_module");
     let (_, _, f1) = add_valve(&mut e, 1, FNDEF_MONO);
     let (_, _, f4) = add_valve(&mut e, 4, FNDEF_MONO);
     assert!(e.model().table::<Channel>().iter().next().is_none());
-    e.execute(&set_device(DEV_102F2, "plc_module", json!({})))
-        .expect("plc_module");
+    e.execute(&set_device(DEV_102F2, "parts", uses(MODULE_H1)))
+        .expect("parts");
     assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f1, 5)));
     assert_eq!(binding(&e, 6), Some(Endpoint::Cp(f4, 5)));
     assert_eq!((0..8u16).filter(|n| binding(&e, *n).is_some()).count(), 2);

@@ -29,6 +29,7 @@
 //! | [`lib_copy_id`] | `v5(NS_LIBCOPY, library ‖ item)` | `"<library>\u{1F}<item>"` |
 //! | [`lib_copy_keep_both_id`] | `v5(NS_LIBCOPY, library ‖ item ‖ version)` | `"<library>\u{1F}<item>\u{1F}<version>"` |
 //! | [`route_id`] | `v5(connection, "route")` | `"route"` |
+//! | [`plc_config_project_id`] | `v5(station, "plc_config_project")` | `"plc_config_project"` |
 //!
 //! U+001F cannot occur in a UUID or a decimal integer, so the joined name is unambiguous. The module's
 //! constants are [`NS_LIBCOPY`] and [`NS_IMPORT`]; [`LineageAnchor`] and [`LineageNameError`] belong to
@@ -213,6 +214,13 @@ pub fn route_id<C, R>(connection: Id<C>) -> Id<R> {
     v5(connection.as_uuid(), "route")
 }
 
+/// The ID of the configuration project that the first PLC station of a project creates on demand:
+/// `v5(station, "plc_config_project")` (WP-S1.21 D3, normaliser N0). Stored; computed so that a replay or a redo
+/// of the placement mints the same record.
+pub fn plc_config_project_id<S, P>(station: Id<S>) -> Id<P> {
+    v5(station.as_uuid(), "plc_config_project")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,6 +292,10 @@ mod tests {
         assert_eq!(
             s(route_id(id(CONNECTION))),
             "aee2006f-142b-5569-a476-c57094452ca9"
+        );
+        assert_eq!(
+            s(plc_config_project_id(id(DEVICE))),
+            "e854e68b-948c-5290-a7d7-9db5bf1f9833"
         );
     }
 

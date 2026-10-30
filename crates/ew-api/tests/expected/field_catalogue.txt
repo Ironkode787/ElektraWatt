@@ -68,7 +68,7 @@ project supply.u_nom dec3 other read-only:no-command
 plc_config_project $v int[0..65535] identity read-only:identity
 plc_config_project cpu uuid? other read-only:no-command
 plc_config_project id uuid identity read-only:identity
-plc_config_project name ident identity read-only:no-command
+plc_config_project name ident identity fields.set:name
 plc_config_project profile ident other read-only:no-command
 plc_config_project source_ref group? other read-only:no-command
 plc_config_project source_ref.key text other read-only:no-command
@@ -323,10 +323,10 @@ conductor source_ref group? other read-only:no-command
 conductor source_ref.key text other read-only:no-command
 conductor source_ref.lineage uuid other read-only:no-command
 channel $v int[0..65535] identity read-only:identity
-channel address json other read-only:no-command
+channel address json other fields.set:address
 channel binding json? other read-only:no-command
-channel comment mltext other read-only:no-command
-channel designation ident? other read-only:no-command
+channel comment mltext other fields.set:comment
+channel designation ident? other fields.set:designation
 channel id uuid identity read-only:identity
 channel kind enum(di|do|ai|ao|counter|io_link_port|power_supply) identity read-only:no-command
 channel module uuid other read-only:no-command
@@ -334,9 +334,9 @@ channel number int[0..65535] identity read-only:no-command
 channel source_ref group? other read-only:no-command
 channel source_ref.key text other read-only:no-command
 channel source_ref.lineage uuid other read-only:no-command
-channel state enum(spare|reserved|deactivated)? identity read-only:no-command
-channel symbol ident? other read-only:no-command
-channel target uuid? other read-only:no-command
+channel state enum(spare|reserved|deactivated)? identity fields.set:state
+channel symbol ident? other fields.set:symbol
+channel target uuid? other fields.set:target
 potential_def $v int[0..65535] identity read-only:identity
 potential_def at json placement read-only:no-command
 potential_def circuit_class enum(mains|control|analogue|bus|pe)? electrical fields.set:circuit_class
@@ -372,7 +372,7 @@ bond via uuid? other read-only:no-command
 device_link $v int[0..65535] identity read-only:identity
 device_link from uuid other read-only:no-command
 device_link id uuid identity read-only:identity
-device_link kind enum(drives|linkage) identity read-only:no-command
+device_link kind enum(drives|linkage) identity fields.set:kind
 device_link source_ref group? other read-only:no-command
 device_link source_ref.key text other read-only:no-command
 device_link source_ref.lineage uuid other read-only:no-command
