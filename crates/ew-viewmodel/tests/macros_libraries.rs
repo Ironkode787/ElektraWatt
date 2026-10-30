@@ -520,3 +520,99 @@ fn ft754h_make_variable_is_in_the_row_menu() {
     let menu = shell.row_menu("device/process_tag");
     assert!(!menu.contains(&RowMenuItem::MakeVariable), "{menu:?}");
 }
+
+/// Saves the selection `ids` of folio 102 as the macro `name` into "Mine" with `description`.
+fn save_ids(shell: &mut ShellModel, name: &str, ids: Vec<String>, description: &str) {
+    done(shell, "page.goto", json!({"folio": "102"}));
+    done(shell, "select.set", json!({ "ids": ids }));
+    done(
+        shell,
+        "macros.save",
+        json!({"name": name, "library": "Mine", "description": description, "confirm": true}),
+    );
+}
+
+/// The copy IDs of the `library.update` card on show.
+fn card_copies(shell: &ShellModel) -> Vec<String> {
+    let card = shell.properties().card().expect("the Update… card");
+    assert_eq!(card.preview.name, "library.update");
+    assert!(card.preview.result.is_ok(), "{:?}", card.preview.result.as_ref().err());
+    let mut ids: Vec<String> = card.preview.command["copies"]
+        .as_array()
+        .expect("the copies")
+        .iter()
+        .map(|c| c["id"].as_str().expect("a copy ID").to_owned())
+        .collect();
+    ids.sort();
+    ids
+}
+
+/// FT-754 (d), UI-4's Update…: with two macro copies that have an update (both macros re-saved after their
+/// insertion), Update… previews the copies named by `keys`, else the marked copies, else the copy under the cursor,
+/// else every copy with an update; Apply makes both copies current.
+#[test]
+fn ft754d_update_previews_keys_then_marked_then_cursor_then_all() {
+    let tmp = Tmp::new("macros-update");
+    let (t, _) = user_library(&tmp.0);
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let all = psu_ids(&shell, false);
+    let devices_only: Vec<String> = {
+        let tables = &shell.canvas().expect("a page").page().tables;
+        tables
+            .reps
+            .iter()
+            .filter(|r| r.device.is_some())
+            .map(|r| r.id.to_string())
+            .collect()
+    };
+    save_ids(&mut shell, "Macro A", all.clone(), "first");
+    save_ids(&mut shell, "Macro B", devices_only.clone(), "first");
+    add_folio_105(&mut shell);
+    done(&mut shell, "navigator.show", json!({"kind": "macros"}));
+    for (name, x) in [("Macro A", 60.0), ("Macro B", 220.0)] {
+        let key = row_key(&shell, NavKind::Macros, NavRole::Macro, name);
+        done(
+            &mut shell,
+            "macros.place",
+            json!({"key": key, "x_mm": x, "y_mm": 60.0}),
+        );
+        done(&mut shell, "preview.apply", json!({}));
+    }
+    save_ids(&mut shell, "Macro A", all, "second");
+    save_ids(&mut shell, "Macro B", devices_only, "second");
+    done(&mut shell, "navigator.show", json!({"kind": "libraries"}));
+    let a = row_key(&shell, NavKind::Libraries, NavRole::LibCopy, "Macro A");
+    let b = row_key(&shell, NavKind::Libraries, NavRole::LibCopy, "Macro B");
+    let copy_of = |key: &str| key.rsplit("copy:").next().unwrap().to_owned();
+    let (ca, cb) = (copy_of(&a), copy_of(&b));
+    let mut both = vec![ca.clone(), cb.clone()];
+    both.sort();
+
+    // All: no keys, nothing marked, no cursor row.
+    done(&mut shell, "libraries.update", json!({}));
+    assert_eq!(card_copies(&shell), both, "every copy with an update");
+    done(&mut shell, "preview.cancel", json!({}));
+    // The cursor.
+    done(&mut shell, "navigator.row", json!({"kind": "libraries", "key": b}));
+    done(&mut shell, "libraries.update", json!({}));
+    assert_eq!(card_copies(&shell), [cb.clone()], "the cursor's copy");
+    done(&mut shell, "preview.cancel", json!({}));
+    // Marked over the cursor.
+    done(&mut shell, "navigator.mark", json!({"kind": "libraries", "key": a}));
+    done(&mut shell, "libraries.update", json!({}));
+    assert_eq!(card_copies(&shell), [ca.clone()], "the marked copy");
+    done(&mut shell, "preview.cancel", json!({}));
+    // Keys over the marks.
+    done(&mut shell, "libraries.update", json!({"keys": [b]}));
+    assert_eq!(card_copies(&shell), [cb], "the copies named");
+    done(&mut shell, "preview.cancel", json!({}));
+    // Apply on both: one transaction, then nothing left to update.
+    done(&mut shell, "libraries.update", json!({"keys": [a, b]}));
+    let rev = shell.revision().unwrap();
+    done(&mut shell, "preview.apply", json!({}));
+    assert_eq!(shell.revision(), Some(rev + 1), "one transaction");
+    assert_eq!(
+        refused(&mut shell, "libraries.update", json!({"keys": [a, b]})),
+        "reason-no-updates"
+    );
+}
