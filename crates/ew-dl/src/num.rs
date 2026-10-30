@@ -6,7 +6,8 @@
 //! # Why these must be bit-identical
 //!
 //! PDF and SVG exports are compared byte for byte across Windows and Linux (FR-OUT-019, NFR-REL-07;
-//! doc 09 §4.3; macOS was a third platform until ID-880, and the rules below hold for it too). A rotated text anchor or an arc control point that differs in its last bit on one platform
+//! doc 09 §4.3; macOS was a third platform until ID-880, and the rules below hold for it too). A rotated
+//! text anchor or an arc control point that differs in its last bit on one platform
 //! rounds to a different nanometre now and then, and the export hash breaks. Doc 09 §4.3 rule 4 therefore
 //! requires:
 //!
