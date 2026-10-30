@@ -767,8 +767,9 @@ mod tests {
 
     /// BV9 and the feasibility rule: the reference solutions replayed on the built product. Both briefs are runnable
     /// (every hard item met, the soft ones met or marked infeasible): `brief-relays-valves` since WP-S2.18 part 1, whose
-    /// `place.pick device=<tag>` puts each relay's contact on its relay (FT-599). Needs `elektrawatt` and `ew` built in
-    /// `target/debug` (the workspace run builds them); without them the test says so and checks nothing. Its scratch
+    /// `place.pick function=<tag>:13-14` puts each relay's contact on its relay's auxiliary slot (FT-599, WP-S2.18 D4;
+    /// since FT-655 the contactor's contacts are template slots and `device=<tag>` fills the first, 1-2). Needs
+    /// `elektrawatt` and `ew` built in `target/debug` (the workspace run builds them); without them the test says so and checks nothing. Its scratch
     /// folders live in a temporary folder of its own, removed after it, so a parallel run shares none of them.
     #[test]
     fn bv9_check_brief_replays_the_reference_solutions() {

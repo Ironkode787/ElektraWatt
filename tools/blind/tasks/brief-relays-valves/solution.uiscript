@@ -56,7 +56,7 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-E7"}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"symbol":"ew.iec.contact-no@qet10","device":"-101K1"}}
+{"action":"place.pick","params":{"symbol":"ew.iec.contact-no@qet10","function":"-101K1:13-14"}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-F7"}}
@@ -96,7 +96,7 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-E11"}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"symbol":"ew.iec.contact-no@qet10","device":"-101K2"}}
+{"action":"place.pick","params":{"symbol":"ew.iec.contact-no@qet10","function":"-101K2:13-14"}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-F11"}}
@@ -136,7 +136,7 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-E15"}}
 {"action":"tool.place","params":{}}
-{"action":"place.pick","params":{"symbol":"ew.iec.contact-no@qet10","device":"-101K3"}}
+{"action":"place.pick","params":{"symbol":"ew.iec.contact-no@qet10","function":"-101K3:13-14"}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"nav.goto","params":{"text":"101-F15"}}
