@@ -93,7 +93,8 @@ fn cp_indices(tx: &TxBuilder<'_>, func: &Function, device: &Device) -> BTreeSet<
 }
 
 /// The non-default members of the source device that its removal drops, in record order, as the user reads them. Its
-/// structure counts only where it differs from the target's (the representation reads the target's afterwards).
+/// kind and structure count only where they differ from the target's (the representation reads the target's
+/// afterwards).
 fn dropped_device_members(device: &Device, target: &Device) -> Vec<&'static str> {
     let mut out = Vec::new();
     let tag = &device.tag;
@@ -102,6 +103,9 @@ fn dropped_device_members(device: &Device, target: &Device) -> Vec<&'static str>
     }
     if tag.frozen.is_some() {
         out.push("frozen tag");
+    }
+    if device.kind.is_some() && device.kind != target.kind {
+        out.push("kind");
     }
     if device.parent.is_some() {
         out.push("parent device");
@@ -170,6 +174,15 @@ fn listed(items: &[&str]) -> String {
     }
 }
 
+/// The verb after [`listed`]: one member name is singular unless it ends in `s` (of the names above, only "unknown
+/// members" and "connection point overrides" do, and they are plurals).
+fn was_or_were(items: &[&str]) -> &'static str {
+    match items {
+        [one] if !one.ends_with('s') => "was",
+        _ => "were",
+    }
+}
+
 /// Whether `device` is a terminal or a strip.
 fn terminal_or_strip(device: &Device) -> bool {
     device.aspects.terminal.is_some() || device.aspects.strip.is_some()
@@ -230,7 +243,8 @@ impl Command for JoinDevice {
                 Self::NAME,
                 "/rep",
                 format!(
-                    "the representation's device takes part in device link {link}, which the join would lose;                      remove the link first"
+                    "the representation's device takes part in device link {link}, which the join would lose; \
+                     remove the link first"
                 ),
             ));
         }
@@ -413,7 +427,7 @@ impl Command for JoinDevice {
             outcome.notices.push(format!(
                 "the joined device's {} {} dropped with it",
                 listed(&device_members),
-                if device_members.len() == 1 { "was" } else { "were" }
+                was_or_were(&device_members)
             ));
         }
         if slot.is_some() {
@@ -422,11 +436,7 @@ impl Command for JoinDevice {
                 outcome.notices.push(format!(
                     "the old function's {} {} dropped with it",
                     listed(&function_members),
-                    if function_members.len() == 1 {
-                        "was"
-                    } else {
-                        "were"
-                    }
+                    was_or_were(&function_members)
                 ));
             }
         }

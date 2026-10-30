@@ -18,8 +18,8 @@ use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::{Id, Uuid};
 use ew_model::{Entity, Model};
 use ew_schema::{
-    Connection, ContactKind, CpData, Device, DeviceLinkKind, Endpoint, Extra, FnDef, FnRole, Function,
-    LibDocument, Part, PartRef, PartUse, Record, Representation, TemplateFn,
+    Connection, ContactKind, CpData, Device, DeviceKind, DeviceLinkKind, Endpoint, Extra, FnDef, FnRole,
+    Function, LibDocument, Part, PartRef, PartUse, Record, Representation, TemplateFn,
 };
 
 // ---------------------------------------------------------------------------------------------------------
@@ -132,6 +132,11 @@ fn slot(f: Id<Function>, device: Id<Device>, item: Uuid, role: FnRole, entry: u1
 }
 
 fn join_model() -> Model {
+    join_model_with(|_| {})
+}
+
+/// [`join_model`] with its records edited before the model is built.
+fn join_model_with(edit: impl FnOnce(&mut Vec<Record>)) -> Model {
     let (project, mut records, _) = mini_golden_parts();
     let mut k3 = device(DEV_K3, "K", 3);
     k3.parts = uses(PART_RLY);
@@ -162,6 +167,7 @@ fn join_model() -> Model {
         Record::Connection(connection(CON_A, Some(PAGE_102), cp(FN_K2, 0), cp(FN_T1, 2))),
         Record::Connection(connection(CON_B, Some(PAGE_102), cp(FN_T3, 2), cp(FN_K2, 1))),
     ]);
+    edit(&mut records);
     Model::from_records(project, records, join_library()).expect("valid model")
 }
 
@@ -338,7 +344,11 @@ fn a_source_device_in_a_device_link_is_refused_and_nothing_is_written() {
     })
     .expect("device.link");
     let rev = e.model().rev();
-    invalid_at(e.execute(&join(REP_K2, DEV_K1)), "/rep", "remove the link first");
+    invalid_at(
+        e.execute(&join(REP_K2, DEV_K1)),
+        "/rep",
+        "lose; remove the link first",
+    );
     invalid_at(e.execute(&join(REP_K2, DEV_K3)), "/rep", "device link");
     assert_eq!(e.model().rev(), rev, "the refused join wrote nothing");
     assert!(get(&e, DEV_K2).is_some(), "the source device stays");
@@ -370,4 +380,29 @@ fn a_join_that_drops_nothing_has_no_notice() {
     let mut e = engine(join_model());
     let r = e.execute(&join(REP_K2, DEV_K3)).expect("rep.join_device (slot)");
     assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
+}
+
+/// In the slot case the old function's own members go with its record, and a kind the target does not share goes
+/// with the source device: one notice each.
+#[test]
+fn a_slot_join_names_the_old_functions_dropped_members() {
+    let mut e = engine(join_model_with(|records| {
+        for r in records.iter_mut() {
+            match r {
+                Record::Device(d) if d.id == DEV_K2 => d.kind = Some(DeviceKind::Psu),
+                Record::Function(f) if f.id == FN_K2 => {
+                    f.extra.insert("x_newer".to_owned(), serde_json::json!(1));
+                }
+                _ => {}
+            }
+        }
+    }));
+    let r = e.execute(&join(REP_K2, DEV_K3)).expect("rep.join_device (slot)");
+    assert_eq!(
+        r.outcome.notices,
+        vec![
+            "the joined device's kind was dropped with it".to_owned(),
+            "the old function's unknown members were dropped with it".to_owned(),
+        ]
+    );
 }
