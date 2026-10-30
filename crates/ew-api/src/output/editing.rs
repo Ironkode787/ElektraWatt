@@ -480,8 +480,9 @@ impl Session {
     ///
     /// `part` may name a system library's part the project does not hold (a catalogue row with `library`, WP-S2.18
     /// D6): its closure (the part, its template FnDefs, its manufacturer; [`Session::embed_command`]'s reference form)
-    /// follows in the same parameters, so one host commit embeds everything the placement needs; a closure that does
-    /// not resolve is `Err` with the library's message.
+    /// follows in the same parameters; a closure that does not resolve is `Err` with the library's message. The
+    /// picker sends the `copies` with the placement itself (`device.place` or `box.black`, FT-656), so the placement
+    /// is one undo step.
     pub fn starter_embed_part(
         &self,
         part: Uuid,
@@ -569,6 +570,30 @@ impl Session {
             return Ok(None);
         }
         Ok(Some(serde_json::json!({ "copies": copies })))
+    }
+
+    /// The library documents of `copies` (`lib/` JSON form) that the project does not hold, by copy ID, in their
+    /// order (FT-656): the Place and black box tools carry the copies they armed with, and the host sends a placement
+    /// only those it still needs, so a placement after the first one carries none (and one after an undo of the
+    /// first carries them again). A document that does not read, or of a kind the project keeps no table of here,
+    /// is kept (the command checks it).
+    pub fn missing_copies(&self, copies: &[serde_json::Value]) -> Vec<serde_json::Value> {
+        let q = self.query();
+        copies
+            .iter()
+            .filter(|v| {
+                let held = match LibDocument::from_value((*v).clone()) {
+                    Ok(LibDocument::Part(c)) => q.parts().contains(c.id),
+                    Ok(LibDocument::Symbol(c)) => q.symbols().contains(c.id),
+                    Ok(LibDocument::Fndef(c)) => q.fndefs().contains(c.id),
+                    Ok(LibDocument::Form(c)) => q.forms().contains(c.id),
+                    Ok(LibDocument::Manufacturer(c)) => q.manufacturers().contains(c.id),
+                    _ => false,
+                };
+                !held
+            })
+            .cloned()
+            .collect()
     }
 }
 
@@ -867,7 +892,11 @@ fn flatten(els: &[PathEl], tol: f64, out: &mut Vec<Vec<(i64, i64)>>) {
 
 /// The shape of a symbol document.
 fn shape_of(q: &Q, copy: Uuid, def: &SymbolDef) -> SymbolShape {
-    let fndef = q.fndefs().get(fndef_copy(&def.fndef)).cloned();
+    shape_with(copy, def, q.fndefs().get(fndef_copy(&def.fndef)).cloned())
+}
+
+/// The shape of a symbol document whose CP designations come from `fndef`.
+fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -> SymbolShape {
     let designation = |fn_cp: u16| {
         fndef
             .as_ref()
@@ -912,11 +941,26 @@ impl Session {
     /// The embedded symbol copy `copy` at orientation A (R0), relative to its insertion point, in page nm
     /// (WP-S2.04 §4.3): every symbol CP with its FnDef CP and direction, the bounds of its graphics without texts
     /// (`body`), every stroked or filled path flattened to polylines with a tolerance of 50 000 nm in paint order
-    /// (`outline`). `None` for a copy the project does not hold.
+    /// (`outline`). A starter symbol the project does not hold yet has the shape of its starter copy (the copy
+    /// ID [`Session::starter_symbol_copy`] gives), its designations from the embedded FnDef, else the starter's
+    /// (FT-656: the Place tool floats it before the placement embeds it). `None` for any other copy.
     pub fn symbol_shape(&self, copy: Uuid) -> Option<SymbolShape> {
         let q = self.query();
-        let symbol = q.symbols().get(Id::from_uuid(copy))?.clone();
-        Some(shape_of(&q, copy, &symbol.item))
+        if let Some(symbol) = q.symbols().get(Id::from_uuid(copy)).cloned() {
+            return Some(shape_of(&q, copy, &symbol.item));
+        }
+        let starter = starter_docs().iter().find_map(|(_, _, d)| match d {
+            LibDocument::Symbol(c) if c.id.as_uuid() == copy => Some(c),
+            _ => None,
+        })?;
+        Some(shape_with(copy, &starter.item, fndef_of(&q, &starter.item.fndef)))
+    }
+
+    /// The copy ID the starter symbol `key` has once embedded, `v5(NS_LIBCOPY, library ‖ item)` (the ID of its
+    /// starter copy); `None` when `key` is not a starter symbol. The Place tool names the symbol by it before the
+    /// placement embeds it (FT-656).
+    pub fn starter_symbol_copy(&self, key: &str) -> Option<Uuid> {
+        starter_symbol(key).map(|c| c.id.as_uuid())
     }
 }
 

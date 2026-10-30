@@ -383,7 +383,7 @@ fn a_press_inside_a_box_starts_a_band_and_its_outline_picks_it() {
 // The part-first arm
 
 #[test]
-fn a_two_fndef_part_embeds_its_missing_fndef_once() {
+fn a_two_fndef_part_places_with_its_missing_fndef_in_one_step() {
     let tmp = Tmp::new("part4b-part-fndef");
     let mut s = shell(&tmp, "101");
     let fixture: Value =
@@ -393,14 +393,15 @@ fn a_two_fndef_part_embeds_its_missing_fndef_once() {
         "command.run",
         json!({"cmd": "library.embed", "params": {"copies": [fixture]}}),
     );
-    // The black box's template function: the arm embeds the part's missing contact FnDef once.
+    // The black box's template function: the arm commits nothing (FT-656); the box carries the part's missing
+    // contact FnDef.
     let rev = s.revision();
     done(
         &mut s,
         "place.pick",
         json!({"part": "MICO 4.10 TWO", "template": 0, "letter": "A"}),
     );
-    assert_eq!(s.revision(), rev.map(|r| r + 1), "one library.embed");
+    assert_eq!(s.revision(), rev, "the arm commits nothing");
     assert_eq!(s.tool().name(), "black_box");
     assert_eq!(s.tool().state(), "armed");
     // Two corners with the grid cursor and Enter.
@@ -413,7 +414,12 @@ fn a_two_fndef_part_embeds_its_missing_fndef_once() {
     done(&mut s, "cursor.set", at(second, json!({})));
     let rev = s.revision();
     done(&mut s, "canvas.activate", json!({}));
-    assert_eq!(s.revision(), rev.map(|r| r + 1), "box.black");
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "box.black, one undo step");
+    let last = s.recorded_commands().last().expect("the box.black");
+    assert_eq!(last.cmd, "box.black");
+    let copies = last.params["copies"].as_array().expect("copies");
+    assert_eq!(copies.len(), 1, "the missing FnDef, once: {copies:?}");
+    assert_eq!(copies[0]["$k"], "fndef");
     let t = tables(&s);
     let rep = t
         .reps
@@ -477,16 +483,23 @@ fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() 
         "place.pick",
         json!({"part": "MICO 4.10 STARTER", "template": 0, "letter": "K"}),
     );
-    assert_eq!(s.revision(), rev.map(|r| r + 1), "one library.embed");
+    assert_eq!(s.revision(), rev, "the arm commits nothing (FT-656)");
     assert_eq!(s.tool().name(), "place");
     assert_eq!(s.tool().state(), "floating");
     let ghost = &canvas(&s)["ghost"];
     assert_eq!(ghost["symbol"], "ew.iec.contact-no@qet10");
     assert_eq!(ghost["target"], "part");
-    // The one host commit embedded the symbol and both starter FnDefs, in that order.
-    let embed = s.recorded_commands().last().expect("the library.embed");
-    assert_eq!(embed.cmd, "library.embed");
-    let keys: Vec<&str> = embed.params["copies"]
+    // A checked-free grid point, then Alt+Enter: `from_part` refuses unless the template's second FnDef is
+    // embedded too, so the one placement carries the symbol and both starter FnDefs, in that order.
+    let (_, p) = free_rectangle(&s);
+    let cursor = sheet(&s, p);
+    done(&mut s, "cursor.set", at(cursor, json!({})));
+    let rev = s.revision();
+    done(&mut s, "canvas.activate", json!({"alt": true}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "device.place, one undo step");
+    let place = s.recorded_commands().last().expect("the device.place");
+    assert_eq!(place.cmd, "device.place");
+    let keys: Vec<&str> = place.params["copies"]
         .as_array()
         .expect("copies")
         .iter()
@@ -495,18 +508,6 @@ fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() 
     assert_eq!(
         keys,
         ["ew.iec.contact-no@qet10", "ew.fn.contact-no", "ew.fn.contact-nc"]
-    );
-    // A checked-free grid point, then Alt+Enter: `from_part` refuses unless the template's second FnDef is
-    // embedded too.
-    let (_, p) = free_rectangle(&s);
-    let cursor = sheet(&s, p);
-    done(&mut s, "cursor.set", at(cursor, json!({})));
-    let rev = s.revision();
-    done(&mut s, "canvas.activate", json!({"alt": true}));
-    assert_eq!(s.revision(), rev.map(|r| r + 1), "device.place");
-    assert_eq!(
-        s.recorded_commands().last().map(|c| c.cmd.as_str()),
-        Some("device.place")
     );
 }
 

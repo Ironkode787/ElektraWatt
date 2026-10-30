@@ -73,7 +73,7 @@ fn describe_line(shell: &ShellModel, prefix: &str) -> String {
 }
 
 #[test]
-fn the_picker_lists_the_grid_family_embeds_a_starter_symbol_once_and_disables_rows_with_reasons() {
+fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disables_rows_with_reasons() {
     let tmp = Tmp::new("pick");
     let mut s = shell(&tmp, "101");
     done(&mut s, "tool.place", json!({}));
@@ -122,37 +122,51 @@ fn the_picker_lists_the_grid_family_embeds_a_starter_symbol_once_and_disables_ro
         Outcome::Failed { message } => assert!(message.contains("`to`"), "{message}"),
         other => panic!("{other:?}"),
     }
-    // A starter symbol (Golden A has no NO contact): one `library.embed`, then the tool floats it.
+    // A starter symbol (Golden A has no NO contact): choosing it commits nothing, the tool floats it (FT-656).
     done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
     assert!(describe_line(&s, "  row symbol \"ew.iec.contact-no@qet10\"").contains("starter"));
     let undo_before = s.can_undo();
     let calls = s.session_calls();
+    let rev = s.revision();
     done(&mut s, "picker.choose", json!({"letter": "K"}));
     assert!(s.picker().is_none());
     assert_eq!(s.tool().name(), "place");
     assert_eq!(s.tool().state(), "floating");
-    assert!(!undo_before && s.can_undo(), "the embedding is an undo step");
-    assert_eq!(
-        s.session_calls().run_script,
-        calls.run_script + 1,
-        "one host commit"
-    );
-    // Escape ends the tool without a change; a second choice of the symbol embeds nothing.
-    let rev = s.revision();
-    done(&mut s, "ui.dismiss", json!({}));
-    assert_eq!(s.tool().name(), "select");
-    assert_eq!(s.revision(), rev, "Escape leaves the revision unchanged");
-    done(&mut s, "tool.place", json!({}));
-    done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
-    assert!(describe_line(&s, "  row symbol \"ew.iec.contact-no@qet10\"").contains("embedded"));
-    let calls = s.session_calls();
-    done(&mut s, "picker.choose", json!({"letter": "K"}));
-    assert_eq!(s.session_calls().run_script, calls.run_script, "nothing embedded");
+    assert!(!undo_before && !s.can_undo(), "choosing is no undo step");
+    assert_eq!(s.session_calls().run_script, calls.run_script, "no host commit");
     assert_eq!(s.revision(), rev);
-    // Undo takes back the embedding.
+    // The placement embeds the symbol and its FnDef with the device: one undo step.
+    let p = free_point(&s);
+    let pt = sheet(&s, p);
+    done(&mut s, "canvas.press", at(pt, json!({})));
+    done(&mut s, "canvas.release", at(pt, json!({})));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    let place = s.recorded_commands().last().expect("the placement");
+    assert_eq!(place.cmd, "device.place");
+    let kinds: Vec<&str> = place.params["copies"]
+        .as_array()
+        .expect("copies")
+        .iter()
+        .map(|c| c["$k"].as_str().unwrap_or_default())
+        .collect();
+    assert_eq!(kinds, ["symbol", "fndef"]);
+    // A second placement with the same tool carries no copies: the project holds them now.
+    let qt = sheet(&s, steps_from(&s, p, (8, 0)));
+    done(&mut s, "canvas.press", at(qt, json!({})));
+    done(&mut s, "canvas.release", at(qt, json!({})));
+    assert_eq!(s.revision(), rev.map(|r| r + 2), "a second commit");
+    let again = s.recorded_commands().last().expect("the second placement");
+    assert_eq!(again.cmd, "device.place");
+    assert!(again.params.get("copies").is_none(), "{:?}", again.params);
+    // Two undo steps take back both placements and the embedding: the row is a starter row again.
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "edit.undo", json!({}));
-    assert!(!s.can_undo());
+    done(&mut s, "edit.undo", json!({}));
+    assert!(!s.can_undo(), "two placements, two undo steps");
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
+    assert!(describe_line(&s, "  row symbol \"ew.iec.contact-no@qet10\"").contains("starter"));
+    done(&mut s, "ui.dismiss", json!({}));
 }
 
 #[test]

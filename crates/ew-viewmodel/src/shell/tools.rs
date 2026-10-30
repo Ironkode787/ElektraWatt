@@ -22,7 +22,7 @@ use std::sync::Arc;
 
 use ew_api::output::ew_dl::Destination;
 use ew_api::output::ew_dl::ew_units::Rect;
-use ew_api::{CmdError, DynCommand, Origin, Submit};
+use ew_api::{AnyCommand, CmdError, DynCommand, Origin, Submit};
 use serde_json::{Map, Value};
 
 use super::canvas_actions::point_mm;
@@ -336,10 +336,12 @@ impl ShellModel {
                 Outcome::Done
             }
             ToolOutput::Preview(cmd) => {
+                let cmd = self.without_held_copies(cmd);
                 self.run_preview(cmd.as_ref());
                 Outcome::Done
             }
             ToolOutput::Commit(cmd) => {
+                let cmd = self.without_held_copies(cmd);
                 self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
                 // FT-485 item 3: the wires a placement draws by its autoconnect hints, said in the toast.
                 let connects = self.autoconnect_words(cmd.as_ref());
@@ -421,6 +423,38 @@ impl ShellModel {
                 self.follow_dest(dest)
             }
         }
+    }
+
+    /// FT-656: a placement (`device.place`, `box.black`) with the `copies` its tool armed with, less those the project
+    /// holds now: the first placement embeds them, a later one carries none, and one after an undo of the first
+    /// carries them again. Any other command is returned as it is.
+    fn without_held_copies(&self, cmd: Box<dyn DynCommand>) -> Box<dyn DynCommand> {
+        if !matches!(cmd.name(), "device.place" | "box.black") {
+            return cmd;
+        }
+        let (Some(project), Ok(mut params)) = (self.project.as_ref(), cmd.to_json()) else {
+            return cmd;
+        };
+        let Some(copies) = params.get("copies").and_then(Value::as_array) else {
+            return cmd;
+        };
+        let missing = project.session.missing_copies(copies);
+        if missing.len() == copies.len() {
+            return cmd;
+        }
+        match params.as_object_mut() {
+            Some(m) if missing.is_empty() => {
+                m.remove("copies");
+            }
+            Some(m) => {
+                m.insert("copies".to_owned(), Value::Array(missing));
+            }
+            None => return cmd,
+        }
+        Box::new(AnyCommand {
+            name: cmd.name().to_owned(),
+            params,
+        })
     }
 
     /// For a `device.place` with autoconnect hints (`connect`): the number of wires it draws as words (`1 wire`,

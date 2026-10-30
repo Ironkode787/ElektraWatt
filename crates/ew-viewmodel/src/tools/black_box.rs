@@ -138,6 +138,9 @@ pub struct BlackBoxTool {
     symbol: String,
     target: BoxTarget,
     state: State,
+    /// The library documents the black box embeds (`box.black`'s `copies`, FT-656); the host sends only those the
+    /// project still lacks.
+    copies: Vec<Value>,
 }
 
 impl BlackBoxTool {
@@ -147,7 +150,14 @@ impl BlackBoxTool {
             symbol,
             target,
             state: State::Armed { at: None },
+            copies: Vec::new(),
         }
+    }
+
+    /// The tool with the library documents its black boxes embed (FT-656).
+    pub fn with_copies(mut self, copies: Vec<Value>) -> BlackBoxTool {
+        self.copies = copies;
+        self
     }
 
     /// The armed target.
@@ -196,15 +206,19 @@ impl BlackBoxTool {
         if !cps.is_empty() {
             b["cps"] = Value::Array(cps.iter().map(|(i, p, d)| cp_json(*i, *p, *d)).collect());
         }
+        let mut params = json!({
+            "page": cx.page.tables.page.to_string(),
+            "symbol": self.symbol,
+            "pos": [pos.0, pos.1],
+            "box": b,
+            "target": target,
+        });
+        if !self.copies.is_empty() {
+            params["copies"] = Value::Array(self.copies.clone());
+        }
         Some(Box::new(AnyCommand {
             name: "box.black".into(),
-            params: json!({
-                "page": cx.page.tables.page.to_string(),
-                "symbol": self.symbol,
-                "pos": [pos.0, pos.1],
-                "box": b,
-                "target": target,
-            }),
+            params,
         }))
     }
 

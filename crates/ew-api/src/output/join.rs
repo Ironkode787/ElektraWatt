@@ -122,14 +122,18 @@ fn takes_auxiliary(q: &Q, id: Id<Device>, device: &Device, def: Id<FnDef>) -> bo
 
 impl Session {
     /// Whether the FnDef copy `fndef` can be an auxiliary function (WP-S2.18 D2): an embedded contact (contact kind
-    /// NO, NC or change-over).
+    /// NO, NC or change-over), or a starter one the project does not embed yet (FT-656).
     pub fn auxiliary_fndef(&self, fndef: Uuid) -> bool {
-        self.query().fndefs().get(Id::from_uuid(fndef)).is_some_and(|c| {
-            matches!(
-                c.item.contact_kind,
-                ContactKind::No | ContactKind::Nc | ContactKind::Co
-            )
-        })
+        let id = Id::from_uuid(fndef);
+        let kind = match self.query().fndefs().get(id) {
+            Some(c) => c.item.contact_kind.clone(),
+            // A starter FnDef the placement embeds with its symbol (FT-656).
+            None => match super::editing::starter_fndef(id) {
+                Some(c) => c.item.contact_kind.clone(),
+                None => return false,
+            },
+        };
+        matches!(kind, ContactKind::No | ContactKind::Nc | ContactKind::Co)
     }
 
     /// The tag a report prints for `device` (`-101K1`; `Tag::short`); `None` for a missing device.
@@ -143,18 +147,21 @@ impl Session {
     /// function, and the rows of the Join chooser. A slot is an unplaced normal function of the FnDef (no
     /// representation draws it) on a device; its row comes first, so that a slot is filled before a new auxiliary
     /// function is made (D1). The second group is every other device whose main function is a coil, or one of
-    /// whose parts' templates has an entry of the FnDef; terminals and strips are never listed. An FnDef the
-    /// project has not embedded is not auxiliary and lists nothing.
+    /// whose parts' templates has an entry of the FnDef; terminals and strips are never listed. An FnDef neither
+    /// embedded nor a starter FnDef (which a placement embeds with its symbol, FT-656) is not auxiliary and lists
+    /// nothing.
     pub fn join_candidates(&self, fndef: Uuid) -> JoinCandidates {
         let q = self.query();
         let def: Id<FnDef> = Id::from_uuid(fndef);
-        let Some(copy) = q.fndefs().get(def) else {
-            return JoinCandidates::default();
+        // A starter FnDef the placement embeds with its symbol counts as held (FT-656).
+        let kind = match q.fndefs().get(def) {
+            Some(copy) => copy.item.contact_kind.clone(),
+            None => match super::editing::starter_fndef(def) {
+                Some(copy) => copy.item.contact_kind.clone(),
+                None => return JoinCandidates::default(),
+            },
         };
-        let auxiliary = matches!(
-            copy.item.contact_kind,
-            ContactKind::No | ContactKind::Nc | ContactKind::Co
-        );
+        let auxiliary = matches!(kind, ContactKind::No | ContactKind::Nc | ContactKind::Co);
         let idx = q.idx();
         let mut slots: Vec<JoinCandidate> = Vec::new();
         for (id, f) in q.functions().iter() {

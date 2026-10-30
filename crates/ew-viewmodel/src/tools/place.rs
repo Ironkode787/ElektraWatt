@@ -125,6 +125,9 @@ pub struct PlaceTool {
     joinable: bool,
     /// The target before the Join chooser set a [`PlaceTarget::Join`]: what its "New device" row restores.
     base: Option<PlaceTarget>,
+    /// The library documents the placement embeds (FT-656): the starter symbol, its FnDef and a part's closure the
+    /// project lacked when the tool armed. The host sends only those the project still lacks.
+    copies: Vec<Value>,
 }
 
 /// Whether `p` lies inside the polygon (even-odd rule, the boundary inside), exactly in `i128`.
@@ -198,12 +201,19 @@ impl PlaceTool {
             suppressed: false,
             joinable: false,
             base: None,
+            copies: Vec::new(),
         }
     }
 
     /// The tool with the Join chooser offered or not (WP-S2.18 D2: the symbol's FnDef can be an auxiliary function).
     pub fn with_joinable(mut self, on: bool) -> PlaceTool {
         self.joinable = on;
+        self
+    }
+
+    /// The tool with the library documents its placements embed (`device.place`'s `copies`, FT-656).
+    pub fn with_copies(mut self, copies: Vec<Value>) -> PlaceTool {
+        self.copies = copies;
         self
     }
 
@@ -458,6 +468,9 @@ impl PlaceTool {
         };
         if !hints.is_empty() {
             params["connect"] = Value::Array(hints);
+        }
+        if !self.copies.is_empty() {
+            params["copies"] = Value::Array(self.copies.clone());
         }
         Some(Box::new(AnyCommand {
             name: "device.place".into(),

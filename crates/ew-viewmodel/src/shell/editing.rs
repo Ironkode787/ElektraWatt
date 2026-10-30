@@ -352,34 +352,31 @@ impl ShellModel {
                 reason_key: "reason-black-box-tool",
             };
         }
-        // A starter symbol is embedded first (its own undo step). For a part's template function the arm is
-        // part-first (WP-S2.04 §7.1 as amended by the cycle-27 follow-up): the symbol and every FnDef the part's
-        // template needs go in one commit, so that the functions of the `from_part` target all have their
-        // definition.
-        let (cat, row_index) = if let Some(part_copy) = part_copy {
-            match self
+        // FT-656: what the project lacks travels in the placement itself, so that placing from the picker is one undo
+        // step and the recorded command replays without a library: a starter symbol with its FnDef and, for a part's
+        // template function (part-first, WP-S2.04 §7.1 as amended by the cycle-27 follow-up), every FnDef the part's
+        // template needs and a library part's closure. The tool names a starter symbol by the copy ID its embedding
+        // gives it.
+        let copies: Vec<Value> = match (&self.project, part_copy) {
+            (None, _) => Vec::new(),
+            (Some(project), Some(part_copy)) => match project.session.starter_embed_part(part_copy, &row.key)
+            {
+                Err(keys) => return failed("error-part-fndef-missing", &[&keys.join(", ")]),
+                Ok(params) => params.map(copies_of).unwrap_or_default(),
+            },
+            (Some(project), None) => project
+                .session
+                .starter_embed(&row.key)
+                .map(copies_of)
+                .unwrap_or_default(),
+        };
+        let mut row = row;
+        if row.copy.is_none() {
+            row.copy = self
                 .project
                 .as_ref()
-                .map(|p| p.session.starter_embed_part(part_copy, &row.key))
-            {
-                Some(Err(keys)) => return failed("error-part-fndef-missing", &[&keys.join(", ")]),
-                Some(Ok(Some(params))) => match self.host_commit("library.embed", params) {
-                    Outcome::Done => self.sync_views(),
-                    other => return other,
-                },
-                _ => {}
-            }
-            match self.embedded_row(&row.key) {
-                Ok(v) => v,
-                Err(e) => return e,
-            }
-        } else {
-            match self.embedded_row(&row.key) {
-                Ok(v) => v,
-                Err(e) => return e,
-            }
-        };
-        let row = cat.symbols[row_index].clone();
+                .and_then(|p| p.session.starter_symbol_copy(&row.key));
+        }
         if is_box {
             let Some(copy) = row.copy else {
                 return Outcome::Refused {
@@ -411,7 +408,9 @@ impl ShellModel {
                 }
             };
             self.tools.picker = None;
-            self.activate_tool(Box::new(BlackBoxTool::new(copy.to_string(), target)));
+            self.activate_tool(Box::new(
+                BlackBoxTool::new(copy.to_string(), target).with_copies(copies),
+            ));
             return Outcome::Done;
         }
         let Some(shape) = self.row_shape(&row) else {
@@ -508,7 +507,8 @@ impl ShellModel {
         self.activate_tool(Box::new(
             PlaceTool::new(shape, target)
                 .with_autoconnect(autoconnect)
-                .with_joinable(joinable),
+                .with_joinable(joinable)
+                .with_copies(copies),
         ));
         Outcome::Done
     }
@@ -1438,5 +1438,16 @@ impl ShellModel {
             Some(cell) => strings::format("announce-place", &[&symbol, &label, &v, &cell]),
             None => strings::format("announce-place-no-cell", &[&symbol, &label, &v]),
         });
+    }
+}
+
+/// The library documents of a `{"copies": [...]}` parameter object (FT-656).
+fn copies_of(params: Value) -> Vec<Value> {
+    match params {
+        Value::Object(mut m) => match m.remove("copies") {
+            Some(Value::Array(copies)) => copies,
+            _ => Vec::new(),
+        },
+        _ => Vec::new(),
     }
 }

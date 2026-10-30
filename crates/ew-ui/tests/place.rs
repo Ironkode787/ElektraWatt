@@ -117,7 +117,7 @@ fn pl6_a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the
 }
 
 #[test]
-fn the_picker_popup_is_driven_by_its_keys_and_embeds_a_starter_symbol() {
+fn the_picker_popup_is_driven_by_its_keys_and_floats_a_starter_symbol() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     // I opens the picker on the canvas; the filter field has the focus.
@@ -130,15 +130,15 @@ fn the_picker_popup_is_driven_by_its_keys_and_embeds_a_starter_symbol() {
     settle(&mut h);
     assert_eq!(h.state().shell().picker().unwrap().filter, "contact-no@");
     assert_eq!(h.state().shell().picker().unwrap().rows.len(), 1);
-    // Enter chooses the starter row: the symbol is embedded (one undo step) and floats; the letter comes from its
-    // category (K for a contact of the identifier set).
+    // Enter chooses the starter row: the symbol floats without a commit (FT-656: the placement embeds it, one undo
+    // step); the letter comes from its category (K for a contact of the identifier set).
+    let rev = h.state().shell().revision();
     press(&mut h, Key::Enter);
     let shell = h.state().shell();
     assert!(shell.picker().is_none());
     assert_eq!(shell.tool().name(), "place");
-    assert!(shell.can_undo(), "the embedding");
+    assert_eq!(shell.revision(), rev, "choosing commits nothing");
     // Escape returns to Select without a change; the menu's Insert items are registry entries.
-    let rev = shell.revision();
     press(&mut h, Key::Escape);
     assert_eq!(h.state().shell().tool().name(), "select");
     assert_eq!(h.state().shell().revision(), rev);

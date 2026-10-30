@@ -485,3 +485,78 @@ fn the_starter_relays_contacts_are_its_template_slots_with_their_own_designation
         "each contact fills its own template slot"
     );
 }
+
+/// Whether the project holds the relay EW-GEN-RLY-1 and the coil symbol, as the picker's catalogue lists them (a
+/// library part the project does not hold has `library`, a starter symbol it does not hold no `copy`).
+fn relay_held(s: &mut ShellModel) -> (bool, bool) {
+    done(s, "tool.place", json!({}));
+    let cat = std::sync::Arc::clone(&s.picker().expect("the picker").catalogue);
+    done(s, "ui.dismiss", json!({}));
+    let part = cat
+        .parts
+        .iter()
+        .find(|p| p.part_number == "EW-GEN-RLY-1")
+        .expect("the relay row");
+    let symbol = cat
+        .symbols
+        .iter()
+        .find(|r| r.key == "ew.iec.coil@qet10")
+        .expect("the coil row");
+    (part.library.is_none(), symbol.copy.is_some())
+}
+
+/// FT-656: placing EW-GEN-RLY-1 from the picker in a new project is one commit, so one undo step: the placement
+/// carries the relay's closure (the part, its FnDefs and manufacturer, the coil symbol), and undo takes the device
+/// and the copies back together. The recorded command alone places the relay in another new project.
+#[test]
+fn a_library_part_from_the_picker_is_one_undo_step_and_its_command_replays() {
+    let tmp = Tmp::new("ft656-relay");
+    let mut s = new_project(&tmp);
+    goto(&mut s, MULTI);
+    assert_eq!(relay_held(&mut s), (false, false), "a new project holds neither");
+    let before = reps(&s);
+    let rev = s.revision();
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "EW-GEN-RLY-1", "template": 0}),
+    );
+    assert_eq!(s.revision(), rev, "the pick commits nothing");
+    place_at(&mut s, (8, 10));
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    let placed = s.recorded_commands().last().expect("the placement").clone();
+    assert_eq!(placed.cmd, "device.place");
+    let kinds: Vec<&str> = placed.params["copies"]
+        .as_array()
+        .expect("copies")
+        .iter()
+        .map(|c| c["$k"].as_str().unwrap_or_default())
+        .collect();
+    for kind in ["symbol", "fndef", "part", "manufacturer"] {
+        assert!(kinds.contains(&kind), "{kind} in {kinds:?}");
+    }
+    assert_eq!(new_reps(&s, &before).len(), 1, "the coil");
+    assert_eq!(relay_held(&mut s), (true, true));
+    // One undo: the device and the copies go together.
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 2), "the undo is one step");
+    assert!(new_reps(&s, &before).is_empty(), "the coil is gone");
+    assert_eq!(relay_held(&mut s), (false, false), "and so are the copies");
+    // The recorded command, on another new project's page, places the relay without a library lookup.
+    let tmp2 = Tmp::new("ft656-replay");
+    let mut t = new_project(&tmp2);
+    goto(&mut t, MULTI);
+    let mut params = placed.params.clone();
+    params["page"] = json!(t.canvas().unwrap().page().tables.page.to_string());
+    let before = reps(&t);
+    done(
+        &mut t,
+        "command.run",
+        json!({"cmd": "device.place", "params": params}),
+    );
+    let new = new_reps(&t, &before);
+    assert_eq!(new.len(), 1, "the replayed coil");
+    assert_eq!(new[0].symbol_key, "ew.iec.coil@qet10");
+    assert_eq!(relay_held(&mut t), (true, true));
+}
