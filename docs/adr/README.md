@@ -2,7 +2,7 @@
 
 **Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt document set
 
-**Purpose.** This page lists every architecture decision record (ADR) of ElektraWatt (EW) with its status and the decision in one line. 26 ADRs are Accepted and 5 are Proposed. Status and date are read from each file; "amended 2026-10-18" means the Accepted record was revised in the consistency pass of that date; "2026-10-19" marks the amendments from the sixth implementation cycle.
+**Purpose.** This page lists every architecture decision record (ADR) of ElektraWatt (EW) with its status and the decision in one line. 27 ADRs are Accepted and 5 are Proposed. Status and date are read from each file; "amended 2026-10-18" means the Accepted record was revised in the consistency pass of that date; "2026-10-19" marks the amendments from the sixth implementation cycle.
 
 | ADR | Title | Status | Date | Decision |
 |---|---|---|---|---|
@@ -37,6 +37,7 @@
 | [0029](0029-network-telemetry-crash-reporting-policy.md) | Network, telemetry and crash-reporting policy | Proposed | 2026-10-17 | Network, telemetry and crash-reporting policy (pending) |
 | [0030](0030-legal-steward-cra-role-support-signing.md) | Legal steward, CRA role, support period and signing identity | Proposed | 2026-10-17 | Legal steward, CRA role, support period and signing identity (pending) |
 | [0031](0031-design-language-and-task-ordered-command-bar.md) | Design language and the task-ordered command bar | Accepted | 2026-10-28 | Design language (doc 16a) with the owner-approved mockup as visual reference, one token source, a single-row task-ordered command bar, Volt-blue accent, Tabler icons |
+| [0032](0032-per-project-text-styles.md) | Per-project text styles as overrides of the built-in table | Accepted | 2026-10-30 | A project stores text-style overrides in `ProjectSettings.text_styles` (absent: the built-in table, the 0.94 mm small styles kept); new projects write `cp.small` and `marker` at 7 px; one effective table for scene, exports and checks; no migration |
 
 ## How to add an ADR
 

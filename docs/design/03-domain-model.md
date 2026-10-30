@@ -695,6 +695,10 @@ derived marker texts. The per-page marker mode of FR-CON-024 is FT-375.
 
 Not shaped here, and kept in `extra` until their work packages: `checks` (WP-S1.15), `fluid` ([11](11-fluid-power.md)),
 `mfg` ([13](13-manufacturing-outputs.md)), text styles and export schemes (WP-S3.02, WP-S3.04).
+*Amended 2026-10-30 ([ADR-0032](../adr/0032-per-project-text-styles.md), decision log ID-837):* text styles are shaped
+as `ProjectSettings.text_styles`, overrides of the built-in table keyed by style key (`size` as em height in nm, an
+optional `weight`); an absent member means the built-in table; new projects write `cp.small` and `marker` at 7 px.
+Built by the lane of [WP-S1.12's text-style specification](../plan/specs/WP-S1.12-project-text-styles.md) (FT-662).
 
 ---
 
