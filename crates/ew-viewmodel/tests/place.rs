@@ -933,6 +933,46 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
     assert_ne!(state(&s)["status"][0], hint);
 }
 
+/// Cycle 36 (play-test rv-txt-2): the picker's filter matches a part's description and category and a symbol's name
+/// and keywords besides the keys, every typed token somewhere in the row: "relay" finds EW-GEN-RLY-1 ("Relay with
+/// four changeover contacts"), "relay changeover" too, "relay valve" nothing of it; "feed-through" (a keyword) finds
+/// the terminal symbol.
+#[test]
+fn the_picker_filter_matches_descriptions_names_and_keywords_by_token() {
+    use ew_viewmodel::tools::PickerRow;
+    let tmp = Tmp::new("picker-words");
+    let mut s = shell(&tmp, "101");
+    done(&mut s, "tool.place", json!({}));
+    let rows = |s: &ShellModel| -> (Vec<String>, Vec<String>) {
+        let p = s.picker().expect("the picker");
+        let (mut parts, mut symbols) = (Vec::new(), Vec::new());
+        for r in &p.rows {
+            match r {
+                PickerRow::PartFn(i, _) => parts.push(p.catalogue.parts[*i].part_number.clone()),
+                PickerRow::Symbol(i) => symbols.push(p.catalogue.symbols[*i].key.clone()),
+                PickerRow::Strip(_) => {}
+            }
+        }
+        (parts, symbols)
+    };
+    for filter in ["relay", "Relay  CHANGEOVER", "changeover relay"] {
+        done(&mut s, "picker.filter", json!({ "text": filter }));
+        let (parts, _) = rows(&s);
+        assert!(parts.iter().any(|n| n == "EW-GEN-RLY-1"), "{filter}: {parts:?}");
+    }
+    done(&mut s, "picker.filter", json!({"text": "relay valve"}));
+    assert!(!rows(&s).0.iter().any(|n| n == "EW-GEN-RLY-1"), "{:?}", rows(&s));
+    done(&mut s, "picker.filter", json!({"text": "feed-through"}));
+    let (_, symbols) = rows(&s);
+    assert!(
+        symbols.iter().any(|k| k == "ew.iec.terminal@qet10"),
+        "{symbols:?}"
+    );
+    // The keys still match as before.
+    done(&mut s, "picker.filter", json!({"text": "rly"}));
+    assert!(rows(&s).0.iter().any(|n| n == "EW-GEN-RLY-1"));
+}
+
 #[test]
 fn a_page_type_without_symbol_tools_refuses_the_editing_actions() {
     let tmp = Tmp::new("pagetype");

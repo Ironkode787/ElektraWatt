@@ -5,7 +5,9 @@
 //! (`Session::place_catalogue`, fetched once per (revision, folio) while it is open). Its rows are the symbol rows
 //! (the plain name, [`symbol_name`], with the badge `embedded` or `starter`, then the `<key>`; FT-606), then one row per function of each part's template
 //! (`<part number> <manufacturer>`, `<n> of <count> <fndef> [main]`). The filter matches case-folded substrings of
-//! the key, the part number, the manufacturer (FT-425: the part rows stand grouped under it) and the FnDef key; Up, Down, Home and End move the row; Enter chooses; Escape closes.
+//! the key, the part number, the manufacturer (FT-425: the part rows stand grouped under it), the FnDef key, a
+//! symbol's name and keywords and a part's description and category (cycle 36), every typed token somewhere in the
+//! row; Up, Down, Home and End move the row; Enter chooses; Escape closes.
 //!
 //! A row is disabled with a reason when the page's type does not allow the symbol's representation type or when a
 //! template function has no symbol on the page. In exchange mode (§7.5) only the allowed symbol rows are listed. A
@@ -123,12 +125,18 @@ impl Picker {
 
     /// Recomputes the rows after a filter change; the current row goes back to the first.
     pub fn refilter(&mut self) {
+        // Every typed token is a case-folded substring of one of the row's texts (cycle 36: "relay" found the generic
+        // relay only by its key).
         let f = self.filter.to_lowercase();
-        let hit = |s: &str| f.is_empty() || s.to_lowercase().contains(&f);
+        let tokens: Vec<&str> = f.split_whitespace().collect();
+        let hits = |texts: &[&str]| {
+            let texts: Vec<String> = texts.iter().map(|t| t.to_lowercase()).collect();
+            tokens.iter().all(|tok| texts.iter().any(|t| t.contains(tok)))
+        };
         let mut rows = Vec::new();
         if self.mode == PickerMode::Strip {
             for (i, strip) in self.catalogue.strips.iter().enumerate() {
-                if hit(&strip.tag) {
+                if hits(&[&strip.tag]) {
                     rows.push(PickerRow::Strip(i));
                 }
             }
@@ -144,7 +152,9 @@ impl Picker {
                 if self.mode == PickerMode::BlackBox && !s.black_box {
                     continue;
                 }
-                if hit(&s.key) || hit(&s.fndef_key) {
+                let mut texts = vec![s.key.as_str(), s.fndef_key.as_str()];
+                texts.extend(s.words.iter().map(String::as_str));
+                if hits(&texts) {
                     rows.push(PickerRow::Symbol(i));
                 }
             }
@@ -165,7 +175,13 @@ impl Picker {
                     if self.mode == PickerMode::BlackBox && !func.black_box {
                         continue;
                     }
-                    if hit(&part.part_number) || hit(&part.manufacturer) || hit(&func.fndef_key) {
+                    let mut texts = vec![
+                        part.part_number.as_str(),
+                        part.manufacturer.as_str(),
+                        func.fndef_key.as_str(),
+                    ];
+                    texts.extend(part.words.iter().map(String::as_str));
+                    if hits(&texts) {
                         rows.push(PickerRow::PartFn(p, k));
                     }
                 }

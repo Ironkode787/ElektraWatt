@@ -100,6 +100,9 @@ pub struct CatalogueSymbol {
     pub terminal: bool,
     /// Whether the page's type allows the symbol's representation type.
     pub allowed: bool,
+    /// The words the picker's filter matches besides the keys (cycle 36): the symbol's name in every language and its
+    /// keywords.
+    pub words: Vec<String>,
 }
 
 /// A part row of the place catalogue: an embedded part copy with a function template, or a system library's part the
@@ -116,6 +119,9 @@ pub struct CataloguePart {
     pub manufacturer: String,
     /// The template's functions, in template order.
     pub functions: Vec<CatalogueTemplateFn>,
+    /// The words the picker's filter matches besides the part number, the manufacturer and the FnDef keys (cycle 36:
+    /// "relay" found nothing): the description in every language and the category.
+    pub words: Vec<String>,
 }
 
 /// One function of a part's template in the place catalogue.
@@ -296,13 +302,30 @@ fn catalogue_part(
             }
         })
         .collect();
+    let mut words = ml_texts(&part.description);
+    if let Some((a, b, c)) = &part.category {
+        words.extend([a, b, c].map(|w| w.as_str().to_owned()));
+    }
     Some(CataloguePart {
         copy,
         library,
         part_number: part.part_number.as_str().to_owned(),
         manufacturer: String::new(),
         functions,
+        words,
     })
+}
+
+/// Every text of `m`: the neutral one, else each language's.
+fn ml_texts(m: &ew_derive::ew_mltext::MlText) -> Vec<String> {
+    match m.as_neutral() {
+        Some(t) => vec![t.to_owned()],
+        None => m
+            .languages()
+            .filter_map(|l| m.get(l))
+            .map(str::to_owned)
+            .collect(),
+    }
 }
 
 /// The letter the identifier set maps a FnDef's category to.
@@ -350,6 +373,10 @@ fn symbol_row(
             .as_ref()
             .is_some_and(|d| matches!(d.item.category.0.as_str(), "Terminal" | "TerminalEarth")),
         allowed: rep_type_allowed(page, &symbol.rep_type),
+        words: ml_texts(&symbol.name)
+            .into_iter()
+            .chain(symbol.keywords.as_slice().iter().map(|k| k.as_str().to_owned()))
+            .collect(),
     }
 }
 
