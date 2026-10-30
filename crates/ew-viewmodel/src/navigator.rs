@@ -246,7 +246,7 @@ impl PageNavigator {
             ("page".to_owned(), row.folio.to_lowercase()),
             ("kind".to_owned(), "page".to_owned()),
         ];
-        query.matches(&tokens, &facets, &label)
+        query.matches(&tokens, &facets, &label, &[])
     }
 
     /// The full tree of the rows the filter keeps.

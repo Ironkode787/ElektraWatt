@@ -250,7 +250,7 @@ pub fn table_rows(table: &NavTable, sort: &SortBy, descending: bool, query: &Que
     let mut rows: Vec<usize> = (0..table.nodes.len())
         .filter(|&i| {
             let n = &table.nodes[i];
-            n.table_row && (!filtering || query.matches(&n.tokens, &n.facets, &n.label))
+            n.table_row && (!filtering || query.matches(&n.tokens, &n.facets, &n.label, &n.cells))
         })
         .collect();
     rows.sort_by(|&a, &b| {

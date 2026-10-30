@@ -97,6 +97,9 @@ pub struct Query {
     pub flags: Vec<String>,
     /// The plain tokens.
     pub tokens: Vec<String>,
+    /// The sub-tokens of each typed plain word that splits into more than one (`24VDC-4` gives `24`, `vdc`, `4`):
+    /// each such group must match within one cell of a row (FT-663, §6.3).
+    pub words: Vec<Vec<String>>,
     /// The plain text, case-folded and trimmed (the substring alternative).
     pub text: String,
 }
@@ -123,6 +126,11 @@ impl Query {
         }
         let text = plain.join(" ");
         q.tokens = ew_api::output::nav_tokens(&text);
+        q.words = plain
+            .iter()
+            .map(|w| ew_api::output::nav_tokens(w))
+            .filter(|w| w.len() > 1)
+            .collect();
         q.text = text.to_lowercase().trim().to_owned();
         q
     }
@@ -132,8 +140,17 @@ impl Query {
         self.facets.is_empty() && self.flags.is_empty() && self.tokens.is_empty() && self.text.is_empty()
     }
 
-    /// Whether a node with these tokens (sorted), facets and label matches.
-    pub fn matches(&self, tokens: &[String], facets: &[(String, String)], label: &str) -> bool {
+    /// Whether a node with these tokens (sorted), facets, label and cells matches (§6.3): every facet and flag
+    /// holds, and either every query token is a prefix of one of the node's tokens, the sub-tokens of one typed word
+    /// all matching within one cell (the label or one column's value, FT-663), or the plain text is a substring of
+    /// the label.
+    pub fn matches(
+        &self,
+        tokens: &[String],
+        facets: &[(String, String)],
+        label: &str,
+        cells: &[String],
+    ) -> bool {
         let facet_ok = self
             .facets
             .iter()
@@ -146,13 +163,33 @@ impl Query {
             return true;
         }
         let prefixes = !self.tokens.is_empty()
-            && self.tokens.iter().all(|t| {
-                // The node tokens are sorted: the first token not below `t` is the only candidate prefix run.
-                let at = tokens.partition_point(|n| n.as_str() < t.as_str());
-                tokens.get(at).is_some_and(|n| n.starts_with(t.as_str()))
-            });
+            && self.tokens.iter().all(|t| has_prefix(tokens, t))
+            && (self.words.is_empty() || self.words_in_one_cell(label, cells));
         prefixes || (!self.text.is_empty() && label.to_lowercase().contains(&self.text))
     }
+
+    /// Whether every multi-token typed word has all its sub-tokens within one cell: the label or one cell.
+    fn words_in_one_cell(&self, label: &str, cells: &[String]) -> bool {
+        let cell_tokens: Vec<Vec<String>> = std::iter::once(label)
+            .chain(cells.iter().map(String::as_str))
+            .map(|c| {
+                let mut t = ew_api::output::nav_tokens(c);
+                t.sort();
+                t.dedup();
+                t
+            })
+            .collect();
+        self.words
+            .iter()
+            .all(|w| cell_tokens.iter().any(|c| w.iter().all(|t| has_prefix(c, t))))
+    }
+}
+
+/// Whether one of the sorted `tokens` starts with `t`.
+fn has_prefix(tokens: &[String], t: &str) -> bool {
+    // The tokens are sorted: the first token not below `t` is the only candidate prefix run.
+    let at = tokens.partition_point(|n| n.as_str() < t);
+    tokens.get(at).is_some_and(|n| n.starts_with(t))
 }
 
 /// One visible row of a navigator other than Pages, in display order.
@@ -439,7 +476,7 @@ pub fn visible_rows(
         table
             .nodes
             .iter()
-            .map(|x| query.matches(&x.tokens, &x.facets, &x.label))
+            .map(|x| query.matches(&x.tokens, &x.facets, &x.label, &x.cells))
             .collect()
     } else {
         Vec::new()
@@ -678,5 +715,37 @@ mod tests {
         );
         assert_eq!(labels(&t, &rows), ["=P01", "-201U3", "coil"]);
         assert_eq!(rows[1].expanded, Some(true));
+    }
+
+    /// A table row with cells, its tokens the label's and the cells' (as the provider builds them).
+    fn row(label: &str, cells: &[&str]) -> (Vec<String>, Vec<String>) {
+        let cells: Vec<String> = cells.iter().map(|c| (*c).to_owned()).collect();
+        let mut tokens: Vec<String> = std::iter::once(label)
+            .chain(cells.iter().map(String::as_str))
+            .flat_map(nav_tokens)
+            .collect();
+        tokens.sort();
+        tokens.dedup();
+        (tokens, cells)
+    }
+
+    /// FT-663 (§6.3): the sub-tokens of one typed word match within one cell; separate words may match different
+    /// cells.
+    #[test]
+    fn one_typed_word_matches_within_one_cell() {
+        let (t1, c1) = row("24VDC-1", &["24VDC-1", "4"]);
+        let (t2, c2) = row("24VDC-4", &["24VDC-4", "1"]);
+        let q = Query::parse("24VDC-4");
+        assert!(
+            !q.matches(&t1, &[], "24VDC-1", &c1),
+            "24vdc and 4 in different cells"
+        );
+        assert!(q.matches(&t2, &[], "24VDC-4", &c2));
+        // Two typed words may match different cells.
+        assert!(Query::parse("24VDC 4").matches(&t1, &[], "24VDC-1", &c1));
+        // A word with its sub-tokens in the label alone (no cells) still matches.
+        assert!(q.matches(&t2, &[], "24VDC-4", &[]));
+        // The label substring alternative is unchanged.
+        assert!(Query::parse("vdc-4").matches(&t2, &[], "24VDC-4", &c2));
     }
 }
