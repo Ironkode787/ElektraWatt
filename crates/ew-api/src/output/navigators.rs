@@ -42,7 +42,10 @@ use super::PageRow;
 use super::view::PageFrameOf;
 use crate::Session;
 
-/// The twelve navigators (D4; WP-S2.09 D8 adds the message panel last), in View ▸ Navigators order.
+mod libraries;
+pub use libraries::MacroDetail;
+
+/// The navigators (D4; WP-S2.09 D8 adds the message panel last), in View ▸ Navigators order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum NavKind {
     /// Pages.
@@ -67,13 +70,17 @@ pub enum NavKind {
     Parts,
     /// Report blocks (part 2).
     Blocks,
+    /// The macros of every library tier and of the project (WP-S1.19 §11, FR-MAC-006).
+    Macros,
+    /// The installed libraries and the project's library copies with their state (WP-S1.19 §11, FT-487).
+    Libraries,
     /// The message panel (WP-S2.09 part 2, D8): the findings of the project's online check scheme.
     Messages,
 }
 
 impl NavKind {
-    /// The twelve kinds in menu order.
-    pub const ALL: [NavKind; 12] = [
+    /// The kinds in menu order.
+    pub const ALL: [NavKind; 14] = [
         NavKind::Pages,
         NavKind::Devices,
         NavKind::Connections,
@@ -85,6 +92,8 @@ impl NavKind {
         NavKind::Structure,
         NavKind::Parts,
         NavKind::Blocks,
+        NavKind::Macros,
+        NavKind::Libraries,
         NavKind::Messages,
     ];
 
@@ -102,6 +111,8 @@ impl NavKind {
             NavKind::Structure => "structure",
             NavKind::Parts => "parts",
             NavKind::Blocks => "blocks",
+            NavKind::Macros => "macros",
+            NavKind::Libraries => "libraries",
             NavKind::Messages => "messages",
         }
     }
@@ -167,6 +178,16 @@ pub enum NavRole {
     Rule,
     /// A finding of the message panel.
     Finding,
+    /// A library tier group of the Macros and Libraries navigators (WP-S1.19 §11).
+    Tier,
+    /// An installed library.
+    Library,
+    /// The group of the project's own library copies ("In this project"), which is not a tier.
+    ProjectCopies,
+    /// A library copy the project holds.
+    LibCopy,
+    /// A macro.
+    Macro,
 }
 
 impl NavRole {
@@ -199,6 +220,11 @@ impl NavRole {
             NavRole::Severity => "severity",
             NavRole::Rule => "rule",
             NavRole::Finding => "finding",
+            NavRole::Tier => "tier",
+            NavRole::Library => "library",
+            NavRole::ProjectCopies => "project_copies",
+            NavRole::LibCopy => "library_copy",
+            NavRole::Macro => "macro",
         }
     }
 }
@@ -555,6 +581,9 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
         }
         NavKind::Parts => kind_columns("parts_summary"),
         NavKind::Blocks => own(&["title", "kind", "first_folio", "section", "pages"]),
+        // WP-S1.19 §11: the Macros and Libraries navigators' own columns.
+        NavKind::Macros => libraries::columns(&libraries::MACRO_COLUMNS),
+        NavKind::Libraries => libraries::columns(&libraries::LIBRARY_COLUMNS),
         // WP-S2.09 §7.1: every column is derived and read-only; `rule` is the key column.
         NavKind::Messages => MESSAGE_COLUMNS
             .iter()
@@ -662,6 +691,8 @@ impl Builder {
 impl Session {
     /// The table of navigator `kind` at the current revision (WP-S2.06 §4.2, §6.1): a plain function over `Q`,
     /// deterministic, reading memoised queries and `ew_reports::project_rows` only, for every kind of [`NavKind`].
+    /// The Macros and Libraries tables (WP-S1.19 §11) also read [`Session::libraries`] as it is now: a library write
+    /// changes them without a new revision, so the shell refetches them after one.
     pub fn navigator_table(&self, kind: NavKind) -> NavTable {
         let rev = self.world().rev.0;
         let mut b = Builder { nodes: Vec::new() };
@@ -678,6 +709,8 @@ impl Session {
             NavKind::Structure => structure_table(&q, &mut b),
             NavKind::Parts => parts_table(&q, &mut b),
             NavKind::Blocks => blocks_table(&q, &mut b),
+            NavKind::Macros => self.macros_table(&q, &mut b),
+            NavKind::Libraries => self.libraries_table(&q, &mut b),
             NavKind::Messages => self.messages_table(&q, &mut b),
         }
         b.finish(kind, rev)
@@ -3007,6 +3040,8 @@ mod tests {
                 "structure",
                 "parts",
                 "blocks",
+                "macros",
+                "libraries",
                 "messages"
             ]
         );

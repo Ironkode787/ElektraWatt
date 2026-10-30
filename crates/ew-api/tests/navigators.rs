@@ -172,11 +172,12 @@ fn keys_are_stable_across_a_revision() {
     let c = s.navigator_table(NavKind::Connections);
     assert!(!c.nodes.is_empty());
     assert!(!c.columns.is_empty());
-    // Determinism: two builds of every kind are equal, and every kind has rows on Golden A.
+    // Determinism: two builds of every kind are equal, and every kind has rows on Golden A, except Macros: no
+    // installed library holds a macro and Golden A holds none (WP-S1.19 §11).
     for k in NavKind::ALL {
         let a = s.navigator_table(k);
         assert_eq!(a, s.navigator_table(k), "{k:?}");
-        assert!(!a.nodes.is_empty(), "{k:?} has rows");
+        assert!(k == NavKind::Macros || !a.nodes.is_empty(), "{k:?} has rows");
     }
 }
 
