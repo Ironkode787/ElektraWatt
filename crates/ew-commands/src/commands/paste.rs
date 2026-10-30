@@ -12,8 +12,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_ids::{Id, Uuid};
 use ew_model::{LINKS, LinkDecl, Policy};
 use ew_schema::{
-    Connection, Device, Endpoint, GraphicShape, Junction, Kind, LibDocument, NumberSpec, Page, PageItemKind,
-    PageType, Record, Representation, StructureNode, TagScheme,
+    Connection, Device, Endpoint, GraphicShape, Junction, Kind, LibDocument, LibRef, NumberSpec, Page,
+    PageItemKind, PageType, Record, Representation, StructureNode, TagScheme,
 };
 use ew_units::{Grid, Nm, Pt2};
 use schemars::JsonSchema;
@@ -88,6 +88,15 @@ pub struct Fragment {
     /// The structure nodes the records name.
     #[serde(default)]
     pub nodes: Vec<FragmentNode>,
+    /// The page records of a page macro (WP-S1.19 D12; ADR-0011 amendment 5): `macro.insert` creates the pages after
+    /// its target page with proposed folios; `edit.paste` refuses them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pages: Vec<Value>,
+    /// The library references of the closure a macro's records name (WP-S1.19 D7; ADR-0011 amendment 5), in place of
+    /// `copies`: a library item holds no copies of other items, and the session resolves these into the documents
+    /// `macro.insert` carries. A paste does not read them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lib: Vec<LibRef>,
 }
 
 /// `edit.paste`: pastes a project fragment onto `page` with its anchor at `at` (doc 06 §3.6, FR-DEV-029,
@@ -142,7 +151,7 @@ pub struct PasteFragment {
 
 /// One step of a concrete path into a record's JSON.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-enum Step {
+pub(super) enum Step {
     /// An object member.
     Key(String),
     /// An element of a list walked as `name[]`.
@@ -166,7 +175,7 @@ fn segments(field: &str) -> Vec<(&str, Option<Option<usize>>)> {
 }
 
 /// Every UUID string at `field` (a `LINKS` path) in `v`, with its concrete path.
-fn occurrences(v: &Value, field: &str) -> Vec<(Vec<Step>, Uuid)> {
+pub(super) fn occurrences(v: &Value, field: &str) -> Vec<(Vec<Step>, Uuid)> {
     fn walk(
         v: &Value,
         segs: &[(&str, Option<Option<usize>>)],
@@ -248,7 +257,7 @@ fn reads(v: &Value) -> bool {
 /// member holding it (a CP endpoint's `cp` for `name[n]`), else the object member directly around that member
 /// when that object is not the record itself (`overrides.wire_part` for `overrides.wire_part.copy`); the first
 /// removal after which the record still reads. `None`: the reference is mandatory.
-fn cleared(v: &Value, path: &[Step]) -> Option<Value> {
+pub(super) fn cleared(v: &Value, path: &[Step]) -> Option<Value> {
     let target: &[Step] = match path.last() {
         Some(Step::At(_)) => &path[..path.len() - 1],
         _ => path,
@@ -349,11 +358,11 @@ enum Resolved {
 /// Library copies by (kind, copy ID).
 type CopySet = BTreeSet<(Kind, Uuid)>;
 
-/// What a paste learned about the fragment before it writes anything.
+/// What an insertion learned about the fragment before it writes anything.
 struct Plan {
     /// The new ID of every fragment record, by (kind, source ID).
     ids: BTreeMap<(Kind, Uuid), Uuid>,
-    /// The library copies the paste may name: held ones and those it embeds, by (kind, copy ID).
+    /// The library copies the insertion may name: held ones and those it embeds, by (kind, copy ID).
     copies: BTreeSet<(Kind, Uuid)>,
     /// The rebound node of every fragment node (`None`: not in this project), with its printed path.
     nodes: BTreeMap<Uuid, (Option<Uuid>, String)>,
@@ -361,12 +370,107 @@ struct Plan {
     same_project: bool,
 }
 
-/// A fragment record to paste: its index in the fragment, its kind and its source ID.
+/// A fragment record to insert: its index in [`Insertion::all`], its kind and its source ID.
 type RecordAt = (usize, Kind, Uuid);
 
-impl PasteFragment {
-    fn invalid(at: impl Into<String>, message: impl Into<String>) -> CmdError {
-        CmdError::invalid_params(Self::NAME, at, message)
+/// How the insertion engine gives the records their new IDs.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum NewIds {
+    /// `edit.paste`: a minted UUIDv7 per record, in (kind rank, fragment order).
+    Mint,
+    /// `macro.insert` (WP-S1.19 D13): `v5(instance, local ID)`, and a PLC channel `plc_channel_id(new module,
+    /// number)` (ADR-0004 amendment 2), so a replay reproduces every ID.
+    Instance(Uuid),
+}
+
+impl NewIds {
+    /// The ID of a non-channel record of local ID `local`.
+    fn of(self, tx: &mut TxBuilder<'_>, local: Uuid) -> Uuid {
+        match self {
+            NewIds::Mint => tx.mint::<()>().as_uuid(),
+            NewIds::Instance(instance) => instance_member_id(instance, local),
+        }
+    }
+}
+
+/// `v5(instance, local)`: the ID `macro.insert` gives the record of local ID `local` (WP-S1.19 D13).
+pub(crate) fn instance_member_id(instance: Uuid, local: Uuid) -> Uuid {
+    Uuid::new_v5(&instance, local.hyphenated().to_string().as_bytes())
+}
+
+/// The insertion engine of `edit.paste` and `macro.insert` (WP-S2.05 §8.4, WP-S1.19 §10): the effects 1 to 7 of
+/// [`PasteFragment`] on one fragment, with the differences a macro needs.
+pub(crate) struct Insertion<'f> {
+    /// The command, for its errors.
+    pub(crate) name: &'static str,
+    /// The JSON Pointer of the fragment in the command's parameters (`/fragment`), for the errors.
+    pub(crate) prefix: &'static str,
+    /// The target page, or for a fragment with page records the page after which the new pages go.
+    pub(crate) page: Id<Page>,
+    /// The new position of the fragment's anchor (ignored for a fragment with page records).
+    pub(crate) at: Pt2,
+    /// The fragment.
+    pub(crate) fragment: &'f Fragment,
+    /// The record kinds it may hold.
+    pub(crate) kinds: &'static [Kind],
+    /// Their refusal text: `is not pasted (only devices, …)`.
+    pub(crate) kinds_refusal: &'static str,
+    /// How the records get their IDs.
+    pub(crate) ids: NewIds,
+    /// Whether frozen tags stay (a macro clears them when it is saved, unless marked keep).
+    pub(crate) keep_frozen: bool,
+    /// The devices (source IDs) whose tag counter stays (set by a macro variable).
+    pub(crate) keep_counter: BTreeSet<Uuid>,
+}
+
+/// What an insertion wrote.
+#[derive(Default)]
+pub(crate) struct Inserted {
+    /// Every inserted record: its local ID and its new ID, in insertion order.
+    pub(crate) members: Vec<(Uuid, Uuid)>,
+    /// The first inserted device.
+    pub(crate) first_device: Option<ew_model::AnyKey>,
+    /// The first inserted representation.
+    pub(crate) first_rep: Option<ew_model::AnyKey>,
+    /// The new pages, in insertion order.
+    pub(crate) pages: Vec<Id<Page>>,
+    /// The notices.
+    pub(crate) notices: Vec<String>,
+}
+
+impl Insertion<'_> {
+    fn invalid(&self, at: impl Into<String>, message: impl Into<String>) -> CmdError {
+        CmdError::invalid_params(self.name, at, message)
+    }
+
+    /// The fragment's records, then its page records.
+    fn all(&self) -> impl Iterator<Item = &Value> {
+        self.fragment.records.iter().chain(&self.fragment.pages)
+    }
+
+    /// The JSON Pointer of record `i` of [`Insertion::all`].
+    fn pointer(&self, i: usize) -> String {
+        let n = self.fragment.records.len();
+        if i < n {
+            format!("{}/records/{i}", self.prefix)
+        } else {
+            format!("{}/pages/{}", self.prefix, i - n)
+        }
+    }
+
+    /// Record `i` of [`Insertion::all`].
+    fn record_value(&self, i: usize) -> &Value {
+        let n = self.fragment.records.len();
+        if i < n {
+            &self.fragment.records[i]
+        } else {
+            &self.fragment.pages[i - n]
+        }
+    }
+
+    /// Whether the fragment brings its own pages (a page macro).
+    fn has_pages(&self) -> bool {
+        !self.fragment.pages.is_empty()
     }
 
     /// The target of one reference of a record (see [`Resolved`]).
@@ -399,17 +503,28 @@ impl PasteFragment {
         }
     }
 
-    /// Checks the page, the grid, the anchor and the point; the grid and the steps `Δk`.
+    /// Checks the page, the grid, the anchor and the point; the page, the grid and the steps `Δk`. A fragment with
+    /// page records keeps its positions (no steps) on pages of its own grid after the page `page`.
     fn place(&self, tx: &TxBuilder<'_>) -> Result<(std::sync::Arc<Page>, Grid, [i64; 2]), CmdError> {
         let Some(page) = tx.get::<Page>(self.page) else {
-            return Err(Self::invalid("/page", format!("no page {}", self.page)));
+            return Err(self.invalid("/page", format!("no page {}", self.page)));
         };
+        if self.has_pages() {
+            let [num, den] = self.fragment.grid;
+            let grid = Grid::new(num, den).map_err(|_| {
+                self.invalid(
+                    format!("{}/grid", self.prefix),
+                    "the grid is [num, den] of positive integers",
+                )
+            })?;
+            return Ok((page, grid, [0, 0]));
+        }
         match &page.kind {
             PageType::Report | PageType::TableOfContents | PageType::SectionDivider => {
-                return Err(Self::invalid("/page", "a generated page takes no paste"));
+                return Err(self.invalid("/page", "a generated page takes no paste"));
             }
             kind if allowed_rep_types(kind).is_some_and(<[_]>::is_empty) => {
-                return Err(Self::invalid(
+                return Err(self.invalid(
                     "/page",
                     "the page's type takes no symbols or wires: paste on a schematic page",
                 ));
@@ -423,8 +538,8 @@ impl PasteFragment {
             } else {
                 format!("{}/{} nm", grid.num(), grid.den())
             };
-            return Err(Self::invalid(
-                "/fragment/grid",
+            return Err(self.invalid(
+                format!("{}/grid", self.prefix),
                 format!(
                     "the copied content uses another grid ({}/{} nm); paste on a page with that grid (this page \
                      has {size})",
@@ -433,7 +548,7 @@ impl PasteFragment {
             ));
         }
         if !point_in_range(self.at) || !point_on_grid(grid, self.at) {
-            return Err(Self::invalid(
+            return Err(self.invalid(
                 "/at",
                 format!(
                     "[{}, {}] is not a grid point of the page; snap it to the grid",
@@ -443,8 +558,8 @@ impl PasteFragment {
         }
         let anchor = self.fragment.anchor;
         if !point_in_range(anchor) || !point_on_grid(grid, anchor) {
-            return Err(Self::invalid(
-                "/fragment/anchor",
+            return Err(self.invalid(
+                format!("{}/anchor", self.prefix),
                 "the anchor is not a point of the fragment's grid",
             ));
         }
@@ -453,47 +568,64 @@ impl PasteFragment {
             grid.snap(self.at.y).checked_sub(grid.snap(anchor.y)),
         ];
         let [Some(kx), Some(ky)] = steps else {
-            return Err(Self::invalid("/at", "the point is too far from the anchor"));
+            return Err(self.invalid("/at", "the point is too far from the anchor"));
         };
         Ok((page, grid, [kx, ky]))
     }
 
-    /// Reads the records: kind, schema version, distinct IDs. Returns each record's fragment index, kind and source
-    /// ID; a page item of a kind this version does not know is left out here (before any ID is minted), with its
-    /// notice.
+    /// Reads the records: kind, schema version, distinct IDs. Returns each record's index in [`Insertion::all`],
+    /// kind and source ID; a page item of a kind this version does not know is left out here (before any ID is
+    /// minted), with its notice.
     fn records(&self) -> Result<(Vec<RecordAt>, Vec<String>), CmdError> {
         let records = &self.fragment.records;
-        if records.is_empty() {
-            return Err(Self::invalid("/fragment/records", "the fragment holds no record"));
+        if records.is_empty() && !self.has_pages() {
+            return Err(self.invalid(format!("{}/records", self.prefix), "the fragment holds no record"));
         }
-        if records.len() > PASTE_MAX_RECORDS {
-            return Err(Self::invalid(
-                "/fragment/records",
-                format!(
-                    "{} records; a paste takes at most {PASTE_MAX_RECORDS}",
-                    records.len()
-                ),
+        let total = records.len() + self.fragment.pages.len();
+        if total > PASTE_MAX_RECORDS {
+            return Err(self.invalid(
+                format!("{}/records", self.prefix),
+                format!("{total} records; a paste takes at most {PASTE_MAX_RECORDS}"),
             ));
         }
-        let mut out = Vec::with_capacity(records.len());
+        let n = records.len();
+        let mut out = Vec::with_capacity(total);
         let mut notices = Vec::new();
         let mut seen = BTreeSet::new();
-        for (i, v) in records.iter().enumerate() {
-            let at = format!("/fragment/records/{i}");
-            let record = Record::from_value(v.clone()).map_err(|e| Self::invalid(&at, e.to_string()))?;
-            let Some(kind) = record.kind().filter(|k| PASTE_KINDS.contains(k)) else {
-                return Err(Self::invalid(
-                    &at,
-                    format!(
-                        "a record of kind {} is not pasted (only devices, functions, representations, connections, \
-                         junctions, potential definitions, page items and structure boxes)",
-                        record.kind_name().unwrap_or("?")
-                    ),
-                ));
+        for (i, v) in self.all().enumerate() {
+            let at = self.pointer(i);
+            let record = Record::from_value(v.clone()).map_err(|e| self.invalid(&at, e.to_string()))?;
+            let kind = if i < n {
+                record.kind().filter(|k| self.kinds.contains(k)).ok_or_else(|| {
+                    self.invalid(
+                        &at,
+                        format!(
+                            "a record of kind {} {}",
+                            record.kind_name().unwrap_or("?"),
+                            self.kinds_refusal
+                        ),
+                    )
+                })?
+            } else {
+                match &record {
+                    Record::Page(p) => {
+                        if matches!(
+                            p.kind,
+                            PageType::Report | PageType::TableOfContents | PageType::SectionDivider
+                        ) {
+                            return Err(self.invalid(&at, "a generated page is not inserted"));
+                        }
+                        if p.grid.num() != self.fragment.grid[0] || p.grid.den() != self.fragment.grid[1] {
+                            return Err(self.invalid(&at, "the page's grid differs from the fragment's"));
+                        }
+                        Kind::Page
+                    }
+                    _ => return Err(self.invalid(&at, "a page record is of kind page")),
+                }
             };
             let version = v.get("$v").and_then(Value::as_u64).unwrap_or(1);
             if version != u64::from(kind.schema_version()) {
-                return Err(Self::invalid(
+                return Err(self.invalid(
                     &at,
                     format!(
                         "the record is of schema version {version}, this version reads {}",
@@ -503,7 +635,7 @@ impl PasteFragment {
             }
             let id = record.id().expect("an implemented kind has an ID");
             if !seen.insert(id) {
-                return Err(Self::invalid(&at, "the record is listed twice"));
+                return Err(self.invalid(&at, "the record is listed twice"));
             }
             if let Record::PageItem(item) = &record {
                 if matches!(item.kind, PageItemKind::Unknown(_)) {
@@ -526,9 +658,8 @@ impl PasteFragment {
         let mut usable = BTreeSet::new();
         let mut embed = Vec::new();
         for (i, value) in self.fragment.copies.iter().enumerate() {
-            let at = format!("/fragment/copies/{i}");
-            let doc =
-                LibDocument::from_value(value.clone()).map_err(|e| Self::invalid(&at, e.to_string()))?;
+            let at = format!("{}/copies/{i}", self.prefix);
+            let doc = LibDocument::from_value(value.clone()).map_err(|e| self.invalid(&at, e.to_string()))?;
             let (id, claimed): (Id<()>, ew_schema::Sha256) = match &doc {
                 LibDocument::Part(c) => (c.id.cast(), c.sha256),
                 LibDocument::Symbol(c) => (c.id.cast(), c.sha256),
@@ -538,7 +669,7 @@ impl PasteFragment {
                 LibDocument::Manufacturer(c) => (c.id.cast(), c.sha256),
                 // a fragment carries the closure of its records (doc 07 §3.5), which names no macro
                 LibDocument::Macro(_) | LibDocument::Unknown(_) => {
-                    return Err(Self::invalid(
+                    return Err(self.invalid(
                         &at,
                         "not a library document of kind part, symbol, fndef, form or manufacturer",
                     ));
@@ -546,13 +677,13 @@ impl PasteFragment {
             };
             let kind = doc.kind().expect("an implemented library kind");
             if !usable.insert((kind, id.as_uuid())) {
-                return Err(Self::invalid(&at, "the copy is listed twice"));
+                return Err(self.invalid(&at, "the copy is listed twice"));
             }
             match tx.row(&(kind, id)) {
                 // A held copy of the same version is reused as it is (also a project-local item of this project).
                 Some(row) => {
                     if held_sha(&row) != Some(claimed) {
-                        return Err(Self::invalid(
+                        return Err(self.invalid(
                             &at,
                             format!(
                                 "the project holds another version of {kind} {}; update from library first",
@@ -562,7 +693,7 @@ impl PasteFragment {
                     }
                 }
                 // Any other is embedded exactly as `library.embed` would embed it.
-                None => embed.push(check_copy(Self::NAME, &at, value, project)?.0),
+                None => embed.push(check_copy(self.name, &at, value, project)?.0),
             }
         }
         Ok((usable, embed))
@@ -593,9 +724,9 @@ impl PasteFragment {
         };
         let mut out = BTreeMap::new();
         for (i, n) in self.fragment.nodes.iter().enumerate() {
-            let at = format!("/fragment/nodes/{i}");
+            let at = format!("{}/nodes/{i}", self.prefix);
             if n.path.is_empty() {
-                return Err(Self::invalid(at, "a structure node without a path"));
+                return Err(self.invalid(at, "a structure node without a path"));
             }
             let leaf = n.path.last().map(String::as_str).unwrap_or_default();
             let same: Vec<&StructureNode> = by_id
@@ -618,64 +749,60 @@ impl PasteFragment {
                 .map(|t| t.id.as_uuid());
             let printed = format!("{} {}", n.aspect, n.path.join("."));
             if out.insert(n.id.as_uuid(), (target, printed)).is_some() {
-                return Err(Self::invalid(at, "the structure node is listed twice"));
+                return Err(self.invalid(at, "the structure node is listed twice"));
             }
         }
         Ok(out)
     }
-}
 
-/// A library document's printed name: the part number, else its `item_id`.
-fn lib_title(value: &Value) -> String {
-    value
-        .get("part_number")
-        .or_else(|| value.get("key"))
-        .and_then(Value::as_str)
-        .map_or_else(|| "the item".to_owned(), |s| format!("'{s}'"))
-}
-
-/// Drops a record's import lineage (`source_ref`): a pasted record is new, not imported, so its lineage is not a
-/// reference to resolve (the copy drops it too; a fragment from elsewhere may carry one).
-fn drop_lineage(v: &mut Value) {
-    if let Some(o) = v.as_object_mut() {
-        o.remove("source_ref");
-    }
-}
-
-/// Adds `text` to `notices` unless it is there already.
-fn notice(text: String, notices: &mut Vec<String>) {
-    if !notices.contains(&text) {
-        notices.push(text);
-    }
-}
-
-/// The printed tag of a device record before the paste clears its counter (`-F1`).
-fn old_tag(d: &Device) -> String {
-    match d.tag.counter {
-        Some(c) => format!("-{}{c}", d.tag.letter.as_str()),
-        None => format!("-{}", d.tag.letter.as_str()),
-    }
-}
-
-impl Command for PasteFragment {
-    const NAME: &'static str = "edit.paste";
-
-    fn meta() -> CommandMeta {
-        CommandMeta::edit(Self::NAME)
-    }
-
-    fn cost(&self, _model: &ew_model::Model) -> Cost {
-        if self.fragment.records.len() > BULK_ABOVE {
-            Cost::Bulk
-        } else {
-            Cost::Interactive
+    /// The new IDs (effect 3): in (kind rank, fragment order); a PLC channel of [`NewIds::Instance`] takes
+    /// `plc_channel_id(new module, number)` once its module's ID is known (modules rank before channels).
+    fn mint_ids(
+        &self,
+        tx: &mut TxBuilder<'_>,
+        keys: &[RecordAt],
+        order: &[usize],
+    ) -> Result<BTreeMap<(Kind, Uuid), Uuid>, CmdError> {
+        let mut ids = BTreeMap::new();
+        for &i in order {
+            let (index, kind, old) = keys[i];
+            let new = match (self.ids, kind) {
+                (NewIds::Instance(_), Kind::Channel) => {
+                    let v = self.record_value(index);
+                    let module = v
+                        .get("module")
+                        .and_then(Value::as_str)
+                        .and_then(|s| s.parse::<Uuid>().ok());
+                    let number = v
+                        .get("number")
+                        .and_then(Value::as_u64)
+                        .and_then(|n| u16::try_from(n).ok());
+                    match (module.and_then(|m| ids.get(&(Kind::Device, m))), number) {
+                        (Some(m), Some(n)) => {
+                            let id: Id<()> = ew_ids::v5::plc_channel_id(Id::<()>::from_uuid(*m), n);
+                            id.as_uuid()
+                        }
+                        _ => {
+                            return Err(self.invalid(
+                                self.pointer(index),
+                                "a channel's module is not in the fragment; copy them together",
+                            ));
+                        }
+                    }
+                }
+                _ => self.ids.of(tx, old),
+            };
+            ids.insert((kind, old), new);
         }
+        Ok(ids)
     }
 
-    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+    /// Runs the insertion (effects 1 to 7 of [`PasteFragment`]).
+    #[allow(clippy::too_many_lines)]
+    pub(crate) fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Inserted, CmdError> {
         if self.fragment.format != ew_schema::FORMAT {
-            return Err(Self::invalid(
-                "/fragment/format",
+            return Err(self.invalid(
+                format!("{}/format", self.prefix),
                 format!(
                     "the fragment is of project format {}, this version writes {}",
                     self.fragment.format,
@@ -691,27 +818,31 @@ impl Command for PasteFragment {
         for text in skipped_items {
             notice(text, &mut notices);
         }
-        // Effect 3: minted IDs in (kind rank, fragment order).
+        // Effect 3: new IDs in (kind rank, fragment order).
         let mut order: Vec<usize> = (0..keys.len()).collect();
         order.sort_by_key(|&i| (keys[i].1.rank(), keys[i].0));
-        let mut ids = BTreeMap::new();
-        for &i in &order {
-            let new: Id<()> = tx.mint();
-            ids.insert((keys[i].1, keys[i].2), new.as_uuid());
-        }
+        let ids = self.mint_ids(tx, &keys, &order)?;
         let plan = Plan {
             ids,
             copies,
             nodes,
             same_project: self.fragment.project.as_uuid() == tx.project().id.as_uuid(),
         };
+        // The page kinds of the new pages, for their representations.
+        let mut new_pages: BTreeMap<Uuid, PageType> = BTreeMap::new();
         // Effects 3 and 4 on each record's JSON, then the typed record.
-        let mut typed: Vec<(usize, Record)> = Vec::with_capacity(keys.len());
+        let mut typed: Vec<(usize, Uuid, Record)> = Vec::with_capacity(keys.len());
         for &i in &order {
             let (record_index, kind, old) = keys[i];
-            let at = format!("/fragment/records/{record_index}");
-            let mut v = self.fragment.records[record_index].clone();
+            let at = self.pointer(record_index);
+            let mut v = self.record_value(record_index).clone();
             drop_lineage(&mut v);
+            if kind == Kind::Page {
+                // the new page's section and folio are the target's (below), never the source's
+                if let Some(folio) = v.get_mut("folio").and_then(Value::as_object_mut) {
+                    folio.remove("section");
+                }
+            }
             if let Some(id) = v.get_mut("id") {
                 *id = Value::from(plan.ids[&(kind, old)].hyphenated().to_string());
             }
@@ -737,7 +868,7 @@ impl Command for PasteFragment {
                     .then(|| cleared(&v, &path))
                     .flatten();
                 let Some(next) = cleared else {
-                    return Err(Self::invalid(
+                    return Err(self.invalid(
                         &at,
                         format!(
                             "the {kind}'s {} names a {} that is neither in the fragment nor in this project; copy \
@@ -761,7 +892,7 @@ impl Command for PasteFragment {
                     );
                 }
             }
-            let mut record = Record::from_value(v).map_err(|e| Self::invalid(&at, e.to_string()))?;
+            let mut record = Record::from_value(v).map_err(|e| self.invalid(&at, e.to_string()))?;
             // Effect 7: a marker whose connections were all cleared is not inserted.
             if let Record::PageItem(item) = &record
                 && item.kind.wire_marker().is_some_and(|m| m.connections.is_empty())
@@ -773,6 +904,9 @@ impl Command for PasteFragment {
                 continue;
             }
             match &mut record {
+                Record::Page(p) => {
+                    new_pages.insert(p.id.as_uuid(), p.kind.clone());
+                }
                 Record::Device(d) => {
                     if parent_cleared {
                         notice(
@@ -785,22 +919,27 @@ impl Command for PasteFragment {
                         }
                     }
                     // Effect 6: the copies are numbered by the target's normalisers.
-                    d.tag.counter = None;
-                    d.tag.frozen = None;
+                    if !self.keep_counter.contains(&old) {
+                        d.tag.counter = None;
+                    }
+                    if !self.keep_frozen {
+                        d.tag.frozen = None;
+                    }
                 }
                 Record::Connection(c) => c.number = NumberSpec::Unassigned,
                 Record::Representation(r) => {
-                    if let Some(allowed) = allowed_rep_types(&page.kind)
+                    let kind_of_page = new_pages.get(&r.page.as_uuid()).unwrap_or(&page.kind);
+                    if let Some(allowed) = allowed_rep_types(kind_of_page)
                         && !matches!(r.rep_type, ew_schema::RepType::Unknown(_))
                         && !allowed.contains(&r.rep_type)
                     {
-                        return Err(Self::invalid(
+                        return Err(self.invalid(
                             &at,
                             format!("the page's type does not take a {:?} representation", r.rep_type),
                         ));
                     }
                     if !point_on_grid(grid, r.pos) {
-                        return Err(Self::invalid(
+                        return Err(self.invalid(
                             &at,
                             "the representation is not on the connection grid, so it cannot be pasted by grid steps",
                         ));
@@ -808,7 +947,7 @@ impl Command for PasteFragment {
                 }
                 _ => {}
             }
-            typed.push((record_index, record));
+            typed.push((record_index, old, record));
         }
         // Effect 1: the copies the project does not hold, in this transaction.
         for doc in embed {
@@ -836,14 +975,14 @@ impl Command for PasteFragment {
         // Effect 5: representations, junctions, page items and structure boxes by grid steps; routes follow their
         // ends.
         let too_far = |i: usize| {
-            Self::invalid(
-                format!("/fragment/records/{i}"),
+            self.invalid(
+                self.pointer(i),
                 "the paste moves the record outside the drawable range",
             )
         };
         let mut moved_reps: Vec<(Representation, Representation)> = Vec::new();
         let mut moved_junctions: BTreeMap<Id<Junction>, (Pt2, Pt2)> = BTreeMap::new();
-        for (i, record) in &mut typed {
+        for (i, _, record) in &mut typed {
             match record {
                 Record::Representation(r) => {
                     let before = r.clone();
@@ -900,7 +1039,7 @@ impl Command for PasteFragment {
                 Endpoint::Unknown(_) => None,
             }
         };
-        for (i, record) in &mut typed {
+        for (i, _, record) in &mut typed {
             let Record::Connection(c) = record else { continue };
             if c.route.is_empty() {
                 continue;
@@ -922,27 +1061,121 @@ impl Command for PasteFragment {
         // The records, in (kind rank, fragment order).
         // Effect 6 is completed by online numbering (normaliser #4), which numbers the new devices in the order
         // of their anchor cells (FR-NUM-028, FT-456), whatever IDs this transaction mints.
-        let mut primary = None;
-        for (_, record) in typed {
+        let mut out = Inserted::default();
+        let mut after = page;
+        for (_, old, record) in typed {
             let key = match record {
+                Record::Page(mut p) => {
+                    // FR-MAC-002: the folio proposed after the target page, then after each new page in turn.
+                    let (number, label) = super::page::propose_folio(tx, &after)?;
+                    p.folio.section = after.folio.section;
+                    p.folio.number = number;
+                    p.folio.label = label;
+                    let id = tx.insert(p)?;
+                    out.pages.push(id.cast());
+                    after = tx.require::<Page>(id.cast())?;
+                    (Kind::Page, id.cast())
+                }
                 Record::Device(r) => (Kind::Device, tx.insert(r)?.cast()),
                 Record::Function(r) => (Kind::Function, tx.insert(r)?.cast()),
                 Record::Representation(r) => (Kind::Representation, tx.insert(r)?.cast()),
                 Record::Connection(r) => (Kind::Connection, tx.insert::<Connection>(r)?.cast()),
                 Record::Junction(r) => (Kind::Junction, tx.insert(r)?.cast()),
+                Record::Channel(r) => (Kind::Channel, tx.insert(r)?.cast()),
                 Record::PotentialDef(r) => (Kind::PotentialDef, tx.insert(r)?.cast()),
+                Record::DeviceLink(r) => (Kind::DeviceLink, tx.insert(r)?.cast()),
                 Record::PageItem(r) => (Kind::PageItem, tx.insert(r)?.cast()),
                 Record::StructureBox(r) => (Kind::StructureBox, tx.insert(r)?.cast()),
                 _ => unreachable!("refused by the kind check"),
             };
-            if key.0 == Kind::Representation {
-                primary.get_or_insert(key);
+            out.members.push((old, key.1.as_uuid()));
+            match key.0 {
+                Kind::Representation => {
+                    out.first_rep.get_or_insert(key);
+                }
+                Kind::Device => {
+                    out.first_device.get_or_insert(key);
+                }
+                _ => {}
             }
         }
+        out.notices = notices;
+        Ok(out)
+    }
+}
+
+/// A library document's printed name: the part number, else its `item_id`.
+fn lib_title(value: &Value) -> String {
+    value
+        .get("part_number")
+        .or_else(|| value.get("key"))
+        .and_then(Value::as_str)
+        .map_or_else(|| "the item".to_owned(), |s| format!("'{s}'"))
+}
+
+/// Drops a record's import lineage (`source_ref`): a pasted record is new, not imported, so its lineage is not a
+/// reference to resolve (the copy drops it too; a fragment from elsewhere may carry one).
+fn drop_lineage(v: &mut Value) {
+    if let Some(o) = v.as_object_mut() {
+        o.remove("source_ref");
+    }
+}
+
+/// Adds `text` to `notices` unless it is there already.
+fn notice(text: String, notices: &mut Vec<String>) {
+    if !notices.contains(&text) {
+        notices.push(text);
+    }
+}
+
+/// The printed tag of a device record before the paste clears its counter (`-F1`).
+fn old_tag(d: &Device) -> String {
+    match d.tag.counter {
+        Some(c) => format!("-{}{c}", d.tag.letter.as_str()),
+        None => format!("-{}", d.tag.letter.as_str()),
+    }
+}
+
+impl Command for PasteFragment {
+    const NAME: &'static str = "edit.paste";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn cost(&self, _model: &ew_model::Model) -> Cost {
+        if self.fragment.records.len() > BULK_ABOVE {
+            Cost::Bulk
+        } else {
+            Cost::Interactive
+        }
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if !self.fragment.pages.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/fragment/pages",
+                "a page macro's pages are inserted with macro.insert, not pasted",
+            ));
+        }
+        let insertion = Insertion {
+            name: Self::NAME,
+            prefix: "/fragment",
+            page: self.page,
+            at: self.at,
+            fragment: &self.fragment,
+            kinds: &PASTE_KINDS,
+            kinds_refusal: "is not pasted (only devices, functions, representations, connections, junctions,                             potential definitions, page items and structure boxes)",
+            ids: NewIds::Mint,
+            keep_frozen: false,
+            keep_counter: BTreeSet::new(),
+        };
+        let out = insertion.run(tx)?;
         Ok(Outcome {
-            primary,
+            primary: out.first_rep,
             note: None,
-            notices,
+            notices: out.notices,
         })
     }
 }

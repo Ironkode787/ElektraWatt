@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::command::{Command, Outcome};
-use crate::commands::library::read_copy;
+use crate::commands::library::{check_copy, read_copy};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
@@ -366,6 +366,13 @@ pub struct CpMapParam {
 /// connection, potential definition, bond or channel binding that the mapping leaves without a CP (the list in the
 /// refusal). **Bulk**: always previewed; the session's update plan shows the class ([`classify_update`]), the field
 /// diff, the devices and representations touched and the BOM rows that change. Outcome: the first copy.
+///
+/// **The new version's closure (FT-640).** `embed` holds the documents the new versions name that the project does
+/// not hold (a new manufacturer, a new template FnDef, a symbol's new FnDef); they are embedded in the same
+/// transaction, each checked as `library.embed` checks it (`/embed/i`: a copy the project holds already, one listed
+/// twice or also in `copies` is refused). A FnDef or manufacturer that a new version names and its held version did
+/// not, which the project does not hold and `embed` does not bring, refuses the update with the list (a reference
+/// the held version already made is left as it is: the update does not repair an older closure).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct UpdateLibraryCopies {
@@ -374,6 +381,35 @@ pub struct UpdateLibraryCopies {
     /// CP mappings, per copy.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub cp_maps: Vec<CpMapParam>,
+    /// The closure documents the new versions name that the project does not hold (FT-640), embedded with the
+    /// update (`lib/` JSON form).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub embed: Vec<Value>,
+}
+
+/// The FnDefs and the manufacturer a part names, the FnDef a symbol names: the closure items an update checks
+/// (FT-640), by (kind, copy ID).
+fn named_items(doc: &LibDocument) -> BTreeSet<(ew_schema::Kind, AnyId)> {
+    use ew_schema::Kind;
+    let copy =
+        |r: &ew_schema::LibRef| -> AnyId { ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid()) };
+    let mut out = BTreeSet::new();
+    match doc {
+        LibDocument::Part(c) => {
+            out.extend(
+                c.item
+                    .function_template
+                    .iter()
+                    .map(|t| (Kind::Fndef, copy(&t.fndef))),
+            );
+            out.insert((Kind::Manufacturer, copy(&c.item.manufacturer)));
+        }
+        LibDocument::Symbol(c) => {
+            out.insert((Kind::Fndef, copy(&c.item.fndef)));
+        }
+        _ => {}
+    }
+    out
 }
 
 /// The functions whose CP endpoints a copy defines (see [`UpdateLibraryCopies`]).
@@ -579,6 +615,59 @@ impl Command for UpdateLibraryCopies {
                 "the update leaves connected CPs without a CP; map them in `cp_maps` (doc 07 §4.5): {}",
                 blocked.join("; ")
             ));
+        }
+        // FT-640: the closure documents to embed, and the new version's items the project would lack.
+        let project = tx.project().id.as_uuid();
+        let mut embed: Vec<(AnyKey, LibDocument)> = Vec::new();
+        for (i, value) in self.embed.iter().enumerate() {
+            let at = format!("/embed/{i}");
+            let (doc, l) = check_copy(name, &at, value, project)?;
+            let key = (doc.kind().expect("an implemented kind"), l.id);
+            if seen.contains(&key) || embed.iter().any(|(k, _)| *k == key) {
+                return Err(CmdError::invalid_params(name, at, "the copy is listed twice"));
+            }
+            if tx.row(&key).is_some() {
+                return Err(CmdError::invalid_params(
+                    name,
+                    at,
+                    format!("the project holds {} copy {} already; leave it out", key.0, key.1),
+                ));
+            }
+            embed.push((key, doc));
+        }
+        let mut missing: Vec<String> = Vec::new();
+        let mut listed: BTreeSet<AnyKey> = BTreeSet::new();
+        for (held, new, key, changed) in &updates {
+            if !changed {
+                continue;
+            }
+            let before = named_items(held);
+            for item in named_items(new).difference(&before) {
+                let lacking = tx.row(item).is_none() && !embed.iter().any(|(k, _)| k == item);
+                if lacking && listed.insert(*item) {
+                    missing.push(format!(
+                        "{} copy {} (named by {} {})",
+                        item.0, item.1, key.0, key.1
+                    ));
+                }
+            }
+        }
+        if !missing.is_empty() {
+            return tx.reject(format!(
+                "the new versions name items the project does not hold; give them in `embed` (FT-640): {}",
+                missing.join("; ")
+            ));
+        }
+        for (_, doc) in embed {
+            match doc {
+                LibDocument::Part(c) => tx.put(c),
+                LibDocument::Symbol(c) => tx.put(c),
+                LibDocument::Fndef(c) => tx.put(c),
+                LibDocument::Form(c) => tx.put(c),
+                LibDocument::Macro(c) => tx.put(c),
+                LibDocument::Manufacturer(c) => tx.put(c),
+                LibDocument::Unknown(_) => unreachable!("check_copy refuses an unknown kind"),
+            }
         }
         apply_remap(tx, &remap)?;
         for (_, new, _, changed) in updates {

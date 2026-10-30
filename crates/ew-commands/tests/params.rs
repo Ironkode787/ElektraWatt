@@ -290,7 +290,14 @@ fn examples() -> Vec<(&'static str, Value)> {
         ),
         (
             "library.update",
-            json!({"copies": [{"$k": "part"}], "cp_maps": [{"copy": FNDEF_TERMINAL.to_string(), "map": [[1, 2]]}]}),
+            json!({"copies": [{"$k": "part"}], "cp_maps": [{"copy": FNDEF_TERMINAL.to_string(), "map": [[1, 2]]}],
+                "embed": [{"$k": "manufacturer"}]}),
+        ),
+        // WP-S1.19 part 5
+        (
+            "macro.insert",
+            json!({"copies": [{"$k": "macro"}], "macro": FNDEF_TERMINAL.to_string(), "page": DEV_T1.to_string(),
+                "at": [0, 0], "value_set": "1", "values": {"pos": 2}, "instance": DEV_T3.to_string()}),
         ),
     ]
 }

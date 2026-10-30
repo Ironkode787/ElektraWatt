@@ -304,6 +304,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "macro.insert",
+      "params_version": 1,
+      "schema": "macro.insert.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "marker.place",
       "params_version": 1,
       "schema": "marker.place.schema.json",

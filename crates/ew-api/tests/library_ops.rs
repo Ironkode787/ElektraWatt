@@ -518,6 +518,72 @@ fn em5_a_patch_update_shows_the_field_diff_and_the_device() {
     assert_eq!(state(&s).0, CopyState::Current);
 }
 
+/// FT-640: the library's next version of 2904602 names a manufacturer the project does not hold. The plan's
+/// `library.update` embeds it in the same command; the command without it is refused with the missing item listed.
+#[test]
+fn em9_an_update_embeds_the_new_versions_missing_closure_or_is_refused() {
+    let (_root, t, lib) = company("ew-api-em9");
+    let mut s = golden(Some(t));
+    let g1 = device(&s, "-102G1");
+    let item = item_of("2904602");
+    let cmd = s
+        .assign_part(
+            &[g1.as_uuid()],
+            &lib_ref(lib, item),
+            AssignMode::Replace {
+                from: golden_copy("2904602"),
+            },
+            Dec3::ONE,
+        )
+        .unwrap();
+    s.execute(&cmd).unwrap();
+    let copy = copy_in(lib, item);
+    // The next version names a new manufacturer of the library.
+    let maker_item = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0640);
+    let mut maker = golden_manufacturer_of("2904602");
+    maker["item_id"] = json!(maker_item.to_string());
+    maker["key"] = json!("PowerCo");
+    maker["name"] = json!("PowerCo");
+    let mut next = serde_json::to_value(s.libraries().resolve(&lib_ref(lib, item)).unwrap()).unwrap();
+    next["version"] = json!("1.1.0");
+    next["manufacturer"]["item"] = json!(maker_item.to_string());
+    s.libraries_mut()
+        .write(
+            lib,
+            &[into_library(maker, lib), LibDocument::from_value(next).unwrap()],
+        )
+        .unwrap();
+    let plan = s.update_from_library(&[copy], &[]).unwrap();
+    let embed: Vec<(&str, &str)> = plan.command.params["embed"]
+        .as_array()
+        .expect("the closure the new version adds")
+        .iter()
+        .map(|d| (d["$k"].as_str().unwrap(), d["item_id"].as_str().unwrap()))
+        .collect();
+    let maker_text = maker_item.to_string();
+    assert_eq!(embed, [("manufacturer", maker_text.as_str())]);
+    // Without `embed`: refused, the missing item listed.
+    let mut bare = plan.command.clone();
+    bare.params.as_object_mut().unwrap().remove("embed");
+    let maker_copy = copy_in(lib, maker_item).to_string();
+    match s.preview(&bare).unwrap_err() {
+        CmdError::Rejected { reason, .. } => assert!(
+            reason.contains("FT-640") && reason.contains(&format!("manufacturer copy {maker_copy}")),
+            "{reason}"
+        ),
+        other => panic!("expected the missing closure refused, got {other:?}"),
+    }
+    // With it: one command, and the part names the embedded manufacturer.
+    commit(&mut s, &plan.command);
+    let q = s.query();
+    let held = q.parts().get(Id::from_uuid(copy)).unwrap();
+    assert_eq!(held.version.as_str(), "1.1.0");
+    assert_eq!(
+        ew_derive::manufacturer_name(&q, &held.item.manufacturer),
+        "PowerCo"
+    );
+}
+
 /// The held symbol copy with this key, as JSON.
 fn held_symbol(s: &Session, key: &str) -> Value {
     let q = s.query();

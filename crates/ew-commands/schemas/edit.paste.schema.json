@@ -55,6 +55,13 @@
           "minItems": 2,
           "type": "array"
         },
+        "lib": {
+          "description": "The library references of the closure a macro's records name (WP-S1.19 D7; ADR-0011 amendment 5), in place of\n`copies`: a library item holds no copies of other items, and the session resolves these into the documents\n`macro.insert` carries. A paste does not read them.",
+          "items": {
+            "$ref": "#/$defs/LibRef"
+          },
+          "type": "array"
+        },
         "nodes": {
           "default": [],
           "description": "The structure nodes the records name.",
@@ -66,6 +73,11 @@
         "page_kind": {
           "description": "The source page's type (`multi_line`).",
           "type": "string"
+        },
+        "pages": {
+          "description": "The page records of a page macro (WP-S1.19 D12; ADR-0011 amendment 5): `macro.insert` creates the pages after\nits target page with proposed folios; `edit.paste` refuses them.",
+          "items": true,
+          "type": "array"
         },
         "project": {
           "$ref": "#/$defs/CmdUuid",
@@ -121,6 +133,37 @@
         "path"
       ],
       "type": "object"
+    },
+    "LibRef": {
+      "additionalProperties": true,
+      "description": "A reference between library items (doc 07 §2.1): library, item and a semantic-version requirement.",
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The item's UUID, stable across versions."
+        },
+        "library": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The library's UUID."
+        },
+        "version_req": {
+          "description": "A semantic-version requirement such as `\"^1\"`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "library",
+        "item",
+        "version_req"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",

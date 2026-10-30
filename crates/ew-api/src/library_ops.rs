@@ -43,6 +43,8 @@ pub enum ApiError {
     NotHeld(Uuid),
     /// The resolved reference is not a part.
     NotAPart(Uuid),
+    /// The resolved reference is not a macro.
+    NotAMacro(Uuid),
     /// Nothing to do: the project holds every document already, or every copy is current.
     NothingToDo,
     /// The command was refused (the update plan's preview).
@@ -59,6 +61,7 @@ impl std::fmt::Display for ApiError {
             ),
             ApiError::NotHeld(c) => write!(f, "the project holds no library copy {c}"),
             ApiError::NotAPart(c) => write!(f, "{c} is not a part"),
+            ApiError::NotAMacro(c) => write!(f, "{c} is not a macro"),
             ApiError::NothingToDo => {
                 f.write_str("nothing to do: the project holds the documents as they are")
             }
@@ -615,6 +618,8 @@ impl Session {
     pub fn update_from_library(&self, copies: &[Uuid], cp_maps: &[CpMap]) -> Result<UpdatePlan, ApiError> {
         let q = self.query();
         let mut docs = Vec::new();
+        let mut embed: Vec<LibDocument> = Vec::new();
+        let mut embed_seen: BTreeSet<Uuid> = BTreeSet::new();
         let mut plan_copies = Vec::new();
         let mut devices = BTreeSet::new();
         let mut reps = BTreeSet::new();
@@ -634,6 +639,22 @@ impl Session {
             let (_, _, _, _, to, lib_sha) = identity(&lib).expect("a typed document");
             if lib_sha == sha {
                 continue;
+            }
+            // FT-640: the new version's closure that the project does not hold travels with the update.
+            for d in self
+                .libraries()
+                .closure(&r)
+                .unwrap_or_default()
+                .into_iter()
+                .skip(1)
+            {
+                let Some((kind, id, ..)) = identity(&d) else {
+                    continue;
+                };
+                // a part's macro links are not what its update needs
+                if kind != Kind::Macro && held_any(&q, id).is_none() && embed_seen.insert(id) {
+                    embed.push(d);
+                }
             }
             let diff = classify_update(&held_doc, &lib);
             let (d, rp) = where_used(&q, &held_doc);
@@ -662,6 +683,7 @@ impl Session {
                     map: m.map.iter().map(|(a, b)| [*a, *b]).collect(),
                 })
                 .collect(),
+            embed: embed.iter().map(to_value).collect(),
         };
         let command = AnyCommand::of(&cmd).map_err(ApiError::Cmd)?;
         // the preview on a throwaway engine over the current snapshot (the session's engine is not touched)

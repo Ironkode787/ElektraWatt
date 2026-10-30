@@ -66,6 +66,7 @@
 //! | `terminal.move` | [`MoveTerminals`] | Interactive |
 //! | `part.assign` | [`AssignPart`] | Interactive; Bulk from 50 devices |
 //! | `library.update` | [`UpdateLibraryCopies`] | Bulk |
+//! | `macro.insert` | [`InsertMacro`] | Interactive |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
@@ -90,6 +91,8 @@ pub(crate) mod items;
 mod languages;
 pub(crate) mod library;
 mod library_update;
+// WP-S1.19 part 5
+mod macro_insert;
 mod page;
 // WP-S2.05 part 3
 mod parts;
@@ -131,6 +134,10 @@ pub use languages::SetProjectLanguages;
 pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use library_update::{
     ChangeClass, CopyDiff, CpMapParam, FieldChange, UpdateLibraryCopies, classify_update,
+};
+pub use macro_insert::{
+    InsertMacro, InstantiateError, Instantiated, MACRO_FIELDS, MACRO_KINDS, binding_field_ok, coerce_value,
+    instantiate, pick_variant,
 };
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages, ReorderPages};
 // WP-S2.05 part 3
@@ -220,4 +227,6 @@ pub fn register_all(r: &mut CommandRegistry) {
     // WP-S1.19 part 3
     r.register::<AssignPart>();
     r.register::<UpdateLibraryCopies>();
+    // WP-S1.19 part 5
+    r.register::<InsertMacro>();
 }

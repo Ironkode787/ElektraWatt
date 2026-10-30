@@ -118,7 +118,7 @@ fn section_pages(tx: &TxBuilder<'_>, section: Option<Id<Section>>) -> Vec<(Id<Pa
 }
 
 /// The folio proposal of doc 06 §5.6 after `after`.
-fn propose_folio(tx: &TxBuilder<'_>, after: &Page) -> Result<(u32, Option<Ident>), CmdError> {
+pub(super) fn propose_folio(tx: &TxBuilder<'_>, after: &Page) -> Result<(u32, Option<Ident>), CmdError> {
     let section = after.folio.section;
     let pages = section_pages(tx, section);
     let sec = match section {
