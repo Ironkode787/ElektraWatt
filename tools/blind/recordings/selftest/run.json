@@ -17,12 +17,12 @@
   "files": {
     "tools/blind/HELP.md": "d05854152eb7dd672f84aa5d591cf6a5ec028c3b9aefc257981a68c38f236c2b",
     "tools/blind/reference/actions.txt": "4b65c83faa9fd44676379d82e2ae4fa835d517eb1e3ed8f983e14b3f66b688e2",
-    "tools/blind/reference/vocabulary.txt": "cf802747a7bc6f0f76b28fe43b4acdf1a8b61200625ea09372670bd006d794ca",
+    "tools/blind/reference/vocabulary.txt": "437b8a26d4652fd073fb1f9f1dee42feb42d264aa4d67c9745e31683b6eda826",
     "tools/blind/tasks/selftest/agent.jsonl": "cd698fab1d35d760d7c4777772bb745aa136acb223a3f60658ae323c6f657f20",
     "tools/blind/tasks/selftest/prelude.uiscript": "9f4d237925c52b4bb3ef91f708236f752fee11846f1582fe2737b05f3c99bb4c",
     "tools/blind/tasks/selftest/task.md": "8dc13e819e7de7afe56f8ee4a21719f1ec5a0825f13b9a1e442f13f0242afd0c"
   },
-  "golden": "aa3f2872a00e19b7827eae462de18c1e510a9749d8de75fc6b760b9b873d6ab1",
+  "golden": "ae4d3ac86ce28216ec4e6fb75e4d2d21e8c39e43820673c2e371b618a94a21da",
   "golden_scope": "project",
   "app_version": "0.0.0",
   "harness_version": "0.0.0",

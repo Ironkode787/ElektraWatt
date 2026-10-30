@@ -4,7 +4,7 @@
 //! The [`Rule`] trait and the rule metadata of doc 15 §2.3: ID, code, pack, kind, modes, severities, scope.
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AnyId, Device, Kind, Page, PlcConfigProject};
+use ew_derive::ew_schema::{AnyId, Device, Kind, LogicalNet, Page, PhysicalNet, PlcConfigProject};
 use ew_derive::{PotentialId, Q};
 
 use crate::finding::{Finding, Severity};
@@ -106,11 +106,15 @@ pub enum ScopeKind {
     Module,
     /// One PLC configuration project (doc 15 §2.3 `cfg`, requested by doc 10 §3.10).
     Cfg,
+    /// One logical bus net (doc 15 §2.3 `lnet`; WP-S1.21 D12).
+    Lnet,
+    /// One physical bus net (doc 15 §2.3 `pnet`; WP-S1.21 D12).
+    Pnet,
 }
 
 impl ScopeKind {
     /// The catalogue's text (`rules.json`, the rule reference): `project`, `page`, `strip`, `device`, `cable`,
-    /// `potential`, `module`, `cfg`. Stable: a sign-off's pack digest binds it
+    /// `potential`, `module`, `cfg`, `lnet`, `pnet`. Stable: a sign-off's pack digest binds it
     /// ([`pack_definition`](crate::pack_definition)).
     pub fn name(self) -> &'static str {
         match self {
@@ -122,6 +126,8 @@ impl ScopeKind {
             ScopeKind::Potential => "potential",
             ScopeKind::Module => "module",
             ScopeKind::Cfg => "cfg",
+            ScopeKind::Lnet => "lnet",
+            ScopeKind::Pnet => "pnet",
         }
     }
 }
@@ -145,6 +151,10 @@ pub enum Scope {
     Module(Id<Device>),
     /// A PLC configuration project.
     Cfg(Id<PlcConfigProject>),
+    /// A logical bus net.
+    Lnet(Id<LogicalNet>),
+    /// A physical bus net.
+    Pnet(Id<PhysicalNet>),
 }
 
 impl Scope {
@@ -159,6 +169,8 @@ impl Scope {
             Scope::Potential(_) => ScopeKind::Potential,
             Scope::Module(_) => ScopeKind::Module,
             Scope::Cfg(_) => ScopeKind::Cfg,
+            Scope::Lnet(_) => ScopeKind::Lnet,
+            Scope::Pnet(_) => ScopeKind::Pnet,
         }
     }
 }

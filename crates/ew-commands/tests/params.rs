@@ -156,6 +156,14 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"name": "PLC1", "profile": "siemens-tia-intl@2027.1"}),
         ),
         (
+            "bus.logical_net.create",
+            json!({"bus": "profibus_dp", "name": "DP", "rate": 1_500_000}),
+        ),
+        (
+            "bus.physical_net.create",
+            json!({"name": "DP", "medium": "copper"}),
+        ),
+        (
             "plc.bind_channel",
             json!({"channel": DEV_T1.to_string(), "endpoint": fn_a.clone()}),
         ),

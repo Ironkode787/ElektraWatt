@@ -544,6 +544,31 @@ pub static LINKS: &[LinkDecl] = &[
         }
         Some(AnyRow::Function(Arc::new(f)))
     })),
+    // The bus port (WP-S1.21 D11): a port whose net is removed leaves the net, as a channel's binding does.
+    link!(Function."bus_port.logical_net" -> LogicalNet, Unlink, None,
+    |v, out| opt(v.bus_port.as_ref().and_then(|p| p.logical_net), out),
+    Some(|row, del| {
+        let AnyRow::Function(f) = row else { return Some(row.clone()) };
+        let mut f = (**f).clone();
+        if let Some(p) = f.bus_port.as_mut() {
+            if p.logical_net.is_some_and(|n| gone(del, Kind::LogicalNet, n)) {
+                p.logical_net = None;
+            }
+        }
+        Some(AnyRow::Function(Arc::new(f)))
+    })),
+    link!(Function."bus_port.physical_net" -> PhysicalNet, Unlink, None,
+    |v, out| opt(v.bus_port.as_ref().and_then(|p| p.physical_net), out),
+    Some(|row, del| {
+        let AnyRow::Function(f) = row else { return Some(row.clone()) };
+        let mut f = (**f).clone();
+        if let Some(p) = f.bus_port.as_mut() {
+            if p.physical_net.is_some_and(|n| gone(del, Kind::PhysicalNet, n)) {
+                p.physical_net = None;
+            }
+        }
+        Some(AnyRow::Function(Arc::new(f)))
+    })),
     lineage_link!(Function),
     // representation
     link!(Representation."functions[]" -> Function, Cascade, Some(I::RepsByFunction), |v, out| {
@@ -664,6 +689,39 @@ pub static LINKS: &[LinkDecl] = &[
     link!(DeviceLink."from" -> Device, Cascade, None, |v, out| id(v.from, out)),
     link!(DeviceLink."to" -> Device, Cascade, None, |v, out| id(v.to, out)),
     lineage_link!(DeviceLink),
+    // logical_net and physical_net (WP-S1.21 D11): a removed master or ordered member leaves the net
+    link!(LogicalNet."master.cp[0]" -> Function, Unlink, None, |v, out| opt_cp(&v.master, out),
+    Some(|row, del| {
+        let AnyRow::LogicalNet(n) = row else { return Some(row.clone()) };
+        let mut n = (**n).clone();
+        if matches!(n.master, Some(Endpoint::Cp(f, _)) if gone(del, Kind::Function, f)) {
+            n.master = None;
+        }
+        Some(AnyRow::LogicalNet(Arc::new(n)))
+    })),
+    link!(LogicalNet."master.junction" -> Junction, Unlink, None, |v, out| opt_junction(&v.master, out),
+    Some(|row, del| {
+        let AnyRow::LogicalNet(n) = row else { return Some(row.clone()) };
+        let mut n = (**n).clone();
+        if matches!(n.master, Some(Endpoint::Junction(j)) if gone(del, Kind::Junction, j)) {
+            n.master = None;
+        }
+        Some(AnyRow::LogicalNet(Arc::new(n)))
+    })),
+    lineage_link!(LogicalNet),
+    link!(PhysicalNet."order_hint[]" -> Function, Unlink, None,
+    |v, out| {
+        for f in &v.order_hint {
+            id(*f, out);
+        }
+    },
+    Some(|row, del| {
+        let AnyRow::PhysicalNet(n) = row else { return Some(row.clone()) };
+        let mut n = (**n).clone();
+        n.order_hint.retain(|f| !gone(del, Kind::Function, *f));
+        Some(AnyRow::PhysicalNet(Arc::new(n)))
+    })),
+    lineage_link!(PhysicalNet),
     // page_item (WP-S2.04 part 4a; EW-INV-022, EW-INV-023)
     link!(PageItem."page" -> Page, Cascade, Some(I::PageItemsByPage), |v, out| id(v.page, out)),
     MARKER_LIST_LINK,

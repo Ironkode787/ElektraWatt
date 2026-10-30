@@ -2017,6 +2017,8 @@ pub fn kind_plural(kind: &str) -> String {
 const COMMAND_TITLES: &[(&str, &str)] = &[
     ("assembly.attach", "Attach assembly"),
     ("bond.create", "Bond potentials"),
+    ("bus.logical_net.create", "Create logical bus network"),
+    ("bus.physical_net.create", "Create physical bus network"),
     ("box.black", "Draw black box"),
     ("box.reshape", "Reshape box"),
     ("box.structure", "Draw structure box"),

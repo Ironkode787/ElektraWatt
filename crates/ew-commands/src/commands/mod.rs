@@ -76,6 +76,8 @@
 //! | `library.update` | [`UpdateLibraryCopies`] | Bulk |
 //! | `macro.insert` | [`InsertMacro`] | Interactive |
 //! | `rep.join_device` | [`JoinDevice`] | Interactive |
+//! | `bus.logical_net.create` | [`CreateLogicalNet`] | Interactive |
+//! | `bus.physical_net.create` | [`CreatePhysicalNet`] | Interactive |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380), and `revision.release`,
@@ -90,6 +92,8 @@ mod assembly;
 mod assets;
 mod assign;
 mod box_reshape;
+// WP-S1.21 part 4 (D11)
+mod bus;
 mod checks;
 pub mod common;
 mod company;
@@ -159,6 +163,7 @@ pub use macro_insert::{
 };
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages, ReorderPages};
 // WP-S2.05 part 3
+pub use bus::{CreateLogicalNet, CreatePhysicalNet};
 pub use parts::{ImportParts, import_counts};
 pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS, PasteFragment};
 pub use plc::{
@@ -216,6 +221,9 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<AddValve>();
     r.register::<LinkDevices>();
     r.register::<CreatePlcConfigProject>();
+    // WP-S1.21 part 4 (D11)
+    r.register::<CreateLogicalNet>();
+    r.register::<CreatePhysicalNet>();
     r.register::<BindChannel>();
     r.register::<SetModulePart>();
     // WP-S1.21 part 3 (D8)

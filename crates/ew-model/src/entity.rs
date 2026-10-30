@@ -11,9 +11,9 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, FnDef, FormDef, Function,
-    ImportLineage, Junction, Kind, LibCopy, MacroDef, MacroInstance, Manufacturer, Page, PageItem, Part,
-    PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, StructureBox,
-    StructureNode, SymbolDef, Waiver,
+    ImportLineage, Junction, Kind, LibCopy, LogicalNet, MacroDef, MacroInstance, Manufacturer, Page,
+    PageItem, Part, PhysicalNet, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation,
+    Revision, Section, StructureBox, StructureNode, SymbolDef, Waiver,
 };
 
 use crate::diff::Presence;
@@ -254,6 +254,8 @@ macro_rules! entities {
 
 entities! {
     PlcConfigProject: PlcConfigProject, PlcConfigProject, plc_config_projects;
+    LogicalNet: LogicalNet, LogicalNet, logical_nets;
+    PhysicalNet: PhysicalNet, PhysicalNet, physical_nets;
     ImportLineage: ImportLineage, ImportLineage, lineages;
     StructureNode: StructureNode, StructureNode, structure;
     Section: Section, Section, sections;

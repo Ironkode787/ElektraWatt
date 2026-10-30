@@ -561,7 +561,7 @@ pub enum CoreIdMode {
 /// Its connection points are instantiated from the definition or the part's pattern; only overrides are
 /// stored. `device` is `None` if and only if the kind is `Ip` (ADR-0006 amendment 1).
 ///
-/// Not in v0: `bus_port` (bus, doc 03 §14) and `CpOverride.closure` (fluid ports, doc 03 §15).
+/// Not in v0: `CpOverride.closure` (fluid ports, doc 03 §15).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Function {
     /// The record ID: UUIDv7, or `v5(device, template_index)` from a part's function template.
@@ -597,6 +597,11 @@ pub struct Function {
     /// semantics, additive within format 0.1 (ADR-0011 amendment 1, doc 05 §10.3 rule 1).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template_entry: Option<u16>,
+    /// The bus port of the function (doc 03 §14, doc 10 §2.7; WP-S1.21 D11, FT-225): a port of a device, a bus
+    /// connector's port, or the port of an external partner. Appended, since 0.1: an optional member typed within the
+    /// unreleased format under ADR-0011 amendment 4.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bus_port: Option<crate::BusPort>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

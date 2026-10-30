@@ -9,9 +9,9 @@ use std::sync::Arc;
 
 use ew_schema::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, FunctionKind,
-    ImportLineage, Junction, Kind, KindRegistry, LibDocument, MacroInstance, Page, PageItem,
-    PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section,
-    StructureBox, StructureNode, Waiver,
+    ImportLineage, Junction, Kind, KindRegistry, LibDocument, LogicalNet, MacroInstance, Page, PageItem,
+    PhysicalNet, PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation, Revision,
+    Section, StructureBox, StructureNode, Waiver,
 };
 
 use crate::asset::Asset;
@@ -35,6 +35,8 @@ pub struct Model {
     pub(crate) rev: Rev,
     pub(crate) project: Row<Project>,
     pub(crate) plc_config_projects: Table<PlcConfigProject>,
+    pub(crate) logical_nets: Table<LogicalNet>,
+    pub(crate) physical_nets: Table<PhysicalNet>,
     pub(crate) lineages: Table<ImportLineage>,
     pub(crate) structure: Table<StructureNode>,
     pub(crate) sections: Table<Section>,
@@ -74,6 +76,8 @@ impl Model {
             rev: Rev::ZERO,
             project: Row::new(Arc::new(project), Rev::ZERO),
             plc_config_projects: Table::default(),
+            logical_nets: Table::default(),
+            physical_nets: Table::default(),
             lineages: Table::default(),
             structure: Table::default(),
             sections: Table::default(),
@@ -129,6 +133,8 @@ impl Model {
             .filter_map(|r| match r {
                 Record::Project(p) => Some(AnyRow::Project(Arc::new(p))),
                 Record::PlcConfigProject(r) => Some(AnyRow::of(r)),
+                Record::LogicalNet(r) => Some(AnyRow::of(r)),
+                Record::PhysicalNet(r) => Some(AnyRow::of(r)),
                 Record::ImportLineage(r) => Some(AnyRow::of(r)),
                 Record::StructureNode(r) => Some(AnyRow::of(r)),
                 Record::Section(r) => Some(AnyRow::of(r)),

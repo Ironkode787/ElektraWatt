@@ -333,6 +333,20 @@ pub(crate) const CHANNELS: TableSpec = spec(
 /// `device_links.csv`.
 pub(crate) const DEVICE_LINKS: TableSpec = spec("device_links", &["key", "from", "to", "kind"], &[]);
 
+/// `logical_nets.csv` (WP-S1.21 D11).
+pub(crate) const LOGICAL_NETS: TableSpec = spec("logical_nets", &["key", "bus", "name"], &["master", "rate"]);
+
+/// `physical_nets.csv` (WP-S1.21 D11).
+pub(crate) const PHYSICAL_NETS: TableSpec =
+    spec("physical_nets", &["key", "name", "medium"], &["order_hint"]);
+
+/// `bus_ports.csv` (WP-S1.21 D11): the key is the function's.
+pub(crate) const BUS_PORTS: TableSpec = spec(
+    "bus_ports",
+    &["key", "interface", "bus", "role", "address"],
+    &["port_label", "termination", "logical_net", "physical_net"],
+);
+
 /// `assembly_configs.csv` (the order codes of an assembly device, doc 03 §7).
 pub(crate) const ASSEMBLY_CONFIGS: TableSpec = spec(
     "assembly_configs",
@@ -341,7 +355,7 @@ pub(crate) const ASSEMBLY_CONFIGS: TableSpec = spec(
 );
 
 /// Every known table.
-pub(crate) const ALL: [TableSpec; 29] = [
+pub(crate) const ALL: [TableSpec; 32] = [
     PROJECT,
     PARTIES,
     STRUCTURE,
@@ -371,4 +385,7 @@ pub(crate) const ALL: [TableSpec; 29] = [
     CHANNELS,
     DEVICE_LINKS,
     ASSEMBLY_CONFIGS,
+    LOGICAL_NETS,
+    PHYSICAL_NETS,
+    BUS_PORTS,
 ];

@@ -105,6 +105,7 @@ fn new_ip(
         cp_overrides: Default::default(),
         source_ref: None,
         template_entry: None,
+        bus_port: None,
         extra: Extra::new(),
     })?;
     tx.insert(Representation {

@@ -1406,6 +1406,10 @@ mod tests {
                 "assigns": {"functional_assignment": C, "function": C, "installation_site": C,
                     "location": C, "document_kind": C, "user_defined": C, "type": C},
                 "external": F}),
+            // last, as the tests above index the samples
+            json!({"$k": "function", "id": A, "device": B, "def": D,
+                "bus_port": {"interface": "DP", "bus": "profibus_dp", "role": "slave", "address": "tbd",
+                    "logical_net": C, "physical_net": F}}),
         ]
     }
 
@@ -1439,6 +1443,9 @@ mod tests {
         ("function.device", Some(true)),
         ("function.def", Some(true)),
         ("function.kind.ip.external", Some(false)),
+        // WP-S1.21 D11: a bus port's nets are optional (a port pasted where its net is missing is on no net).
+        ("function.bus_port.logical_net", Some(false)),
+        ("function.bus_port.physical_net", Some(false)),
         ("function.source_ref.lineage", None),
         ("representation.functions[]", Some(true)),
         ("representation.pin_map[].function", Some(true)),

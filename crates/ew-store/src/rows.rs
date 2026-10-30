@@ -87,6 +87,14 @@ macro_rules! with_row {
                 let $kind = Kind::DeviceLink;
                 $body
             }
+            AnyRow::LogicalNet($r) => {
+                let $kind = Kind::LogicalNet;
+                $body
+            }
+            AnyRow::PhysicalNet($r) => {
+                let $kind = Kind::PhysicalNet;
+                $body
+            }
             AnyRow::PageItem($r) => {
                 let $kind = Kind::PageItem;
                 $body
@@ -159,6 +167,8 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
         AnyRow::PotentialDef(r) => Record::PotentialDef((**r).clone()),
         AnyRow::Bond(r) => Record::Bond((**r).clone()),
         AnyRow::DeviceLink(r) => Record::DeviceLink((**r).clone()),
+        AnyRow::LogicalNet(r) => Record::LogicalNet((**r).clone()),
+        AnyRow::PhysicalNet(r) => Record::PhysicalNet((**r).clone()),
         AnyRow::PageItem(r) => Record::PageItem((**r).clone()),
         AnyRow::StructureBox(r) => Record::StructureBox((**r).clone()),
         AnyRow::ReportBlock(r) => Record::ReportBlock((**r).clone()),
@@ -194,6 +204,8 @@ pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
         Record::PotentialDef(r) => AnyRow::of(r),
         Record::Bond(r) => AnyRow::of(r),
         Record::DeviceLink(r) => AnyRow::of(r),
+        Record::LogicalNet(r) => AnyRow::of(r),
+        Record::PhysicalNet(r) => AnyRow::of(r),
         Record::PageItem(r) => AnyRow::of(r),
         Record::StructureBox(r) => AnyRow::of(r),
         Record::ReportBlock(r) => AnyRow::of(r),

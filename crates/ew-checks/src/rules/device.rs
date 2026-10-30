@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
-    AddrSpec, BomBasis, Channel, ContactKind, Device, FormDef, Kind, LibCopy, Page, Part,
+    AddrSpec, AddrValue, BomBasis, Channel, ContactKind, Device, FormDef, Function, Kind, LibCopy, Page, Part,
 };
 use ew_derive::{ChannelsByModule, FrameSettings, Q, folio_label, manufacturer_name};
 
@@ -288,13 +288,14 @@ pub const OPEN_TBD_VALUE: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// EW-CORE-044: a typed `Tbd` value of the device (FR-CHK-034, D-15): a PLC module's input or output start and the
-/// address of each of its channels (`AddrSpec::Tbd`). These are all the typed `Tbd` values of schema v0; a bus
-/// address is not typed yet (`BusPort`, doc 03 §14), so EW-BUS-001's `Tbd` addresses are not reachable here.
-/// EW-PLC-015 reports the same values of a module inside a configuration project with the same targets, and its
-/// findings supersede these (doc 15 §3.6); a module outside every configuration project stays this rule's. One finding per
-/// value: the module (and the channel) as targets, discriminator `start.input`, `start.output` or `address`. An info
-/// online, an error in release mode (an open item that blocks release).
+/// EW-CORE-044: a typed `Tbd` value of the device (FR-CHK-034, D-15): a PLC module's input or output start, the
+/// address of each of its channels (`AddrSpec::Tbd`), and the station address of each bus port of its functions
+/// (`AddrValue::Tbd`, WP-S1.21 D11). EW-PLC-015 reports the same module values of a module inside a configuration
+/// project with the same targets, and EW-BUS-001 the same port of a logical net with the port function as target;
+/// their findings supersede these (doc 15 §3.6), so a module outside every configuration project and a port outside
+/// every logical net stay this rule's. One finding per value: the module (and the channel) as targets,
+/// discriminator `start.input`, `start.output` or `address`; the device and the port function as targets,
+/// discriminator `bus_address`. An info online, an error in release mode (an open item that blocks release).
 #[derive(Clone, Copy, Debug)]
 pub struct OpenTbdValue;
 
@@ -307,11 +308,29 @@ impl Rule for OpenTbdValue {
         let Scope::Device(device) = *scope else {
             return Vec::new();
         };
+        let mut out = Vec::new();
+        let mut ports: Vec<Id<Function>> = q.idx().functions_of_device(device).collect();
+        ports.sort();
+        for f in ports {
+            let Some(function) = q.functions().get(f) else {
+                continue;
+            };
+            let Some(port) = function.bus_port.as_ref().filter(|p| p.address == AddrValue::Tbd) else {
+                continue;
+            };
+            let name = crate::rules::bus::port_name(q, function, port);
+            out.push(Finding::new(
+                &OPEN_TBD_VALUE,
+                [Target::new(Kind::Device, device), Target::new(Kind::Function, f)],
+                "bus_address",
+                name.clone(),
+                format!("{name}: the station address is TBD; enter it before release"),
+            ));
+        }
         let Some(module) = q.devices().get(device).and_then(|d| d.aspects.plc_module.clone()) else {
-            return Vec::new();
+            return out;
         };
         let tag = full_tag(q, device, "module");
-        let mut out = Vec::new();
         for (which, spec) in [("input", &module.start.input), ("output", &module.start.output)] {
             if *spec == AddrSpec::Tbd {
                 out.push(Finding::new(

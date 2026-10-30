@@ -9,9 +9,10 @@ use std::collections::BTreeSet;
 
 use ew_model::Entity;
 use ew_schema::{
-    AddrSpec, AnyId, Channel, ChannelState, Conductor, Connection, Device, DeviceLink, DeviceLinkKind,
-    ExternalRef, Function, FunctionKind, IpDirection, Kind, Page, PageItem, PlcArea, PlcConfigProject,
-    PlcSize, PotentialDef, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
+    AddrSpec, AddrValue, AnyId, BusMedium, BusSystem, Channel, ChannelState, Conductor, Connection, Device,
+    DeviceLink, DeviceLinkKind, Endpoint, ExternalRef, Function, FunctionKind, IpDirection, Kind, LogicalNet,
+    NetAddress, OnOff, Page, PageItem, PhysicalNet, PlcArea, PlcConfigProject, PlcSize, PortRole,
+    PotentialDef, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
@@ -69,6 +70,14 @@ use crate::tx::TxBuilder;
 /// `manual` address: `"I4.0"`; a text that does not parse is refused at `/value` with the profile's example
 /// (`expected an address like Q0.1`). The stored JSON form is accepted as well. A value of a newer format
 /// (an unknown state, area, size or link kind) is refused at `/value`: an edit writes only what this build knows.
+///
+/// The bus model (WP-S1.21 D11): a function's `bus_port` is set as a whole (a JSON object adds or replaces the
+/// port, `null` removes it) or member by member once it exists (a member of a function without a port is refused
+/// at `/path`); a logical net's `name`, `bus`, `master` and `rate`; a physical net's `name`, `medium` and
+/// `order_hint`. Net names are unique per kind, as `bus.logical_net.create` and `bus.physical_net.create` require.
+/// The nets a port names, a master's function and the functions of an `order_hint` must exist; a master is a CP. A
+/// value of a newer format (a bus system, role, address form, termination or medium this build does not know) is
+/// refused at `/value`.
 pub const SETTABLE: &[(KindName, &[&str])] = &[
     (
         KindName::Device,
@@ -118,6 +127,15 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "kind.ip.direction",
             "kind.ip.sort",
             "kind.ip.star_source",
+            "bus_port",
+            "bus_port.interface",
+            "bus_port.port_label",
+            "bus_port.bus",
+            "bus_port.role",
+            "bus_port.address",
+            "bus_port.termination",
+            "bus_port.logical_net",
+            "bus_port.physical_net",
         ],
     ),
     (
@@ -204,6 +222,8 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
     ),
     (KindName::PlcConfigProject, &["name"]),
     (KindName::DeviceLink, &["kind"]),
+    (KindName::LogicalNet, &["name", "bus", "master", "rate"]),
+    (KindName::PhysicalNet, &["name", "medium", "order_hint"]),
 ];
 
 /// The aspect members of a device: a path below one of them needs the aspect to exist.
@@ -320,7 +340,11 @@ impl SetFields {
                 KindName::Device => set_one::<Device>(tx, *t, path, value)?,
                 KindName::Function => {
                     refuse_not_ip(tx, *t, path)?;
+                    refuse_no_port(tx, *t, path)?;
                     set_one::<Function>(tx, *t, path, value)?;
+                    if path == "bus_port" || path.starts_with("bus_port.") {
+                        check_port(tx, t.cast())?;
+                    }
                     if path == "kind.ip.direction" {
                         refuse_unknown_direction(tx, *t)?;
                     }
@@ -406,6 +430,14 @@ impl SetFields {
                             format!("{v} is not a device link kind; give drives or linkage"),
                         ));
                     }
+                }
+                KindName::LogicalNet => {
+                    set_one::<LogicalNet>(tx, *t, path, value)?;
+                    check_logical_net(tx, t.cast())?;
+                }
+                KindName::PhysicalNet => {
+                    set_one::<PhysicalNet>(tx, *t, path, value)?;
+                    check_physical_net(tx, t.cast())?;
                 }
                 // Junctions and bonds have no settable fields: rejected above.
                 KindName::Junction | KindName::Bond => {
@@ -742,6 +774,111 @@ fn refuse_not_ip(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), Cm
         ));
     }
     Ok(())
+}
+
+// WP-S1.21 D11: the bus kinds ------------------------------------------------------------------------------------
+
+/// A member of a function's `bus_port` needs the port to exist (as a device aspect's members do): refused at `/path`.
+fn refuse_no_port(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), CmdError> {
+    if !path.starts_with("bus_port.") {
+        return Ok(());
+    }
+    let f = tx.require::<Function>(target.cast())?;
+    if f.bus_port.is_none() {
+        return Err(CmdError::invalid_params(
+            SetFields::NAME,
+            "/path",
+            format!("function {target} has no bus port; set `bus_port` first"),
+        ));
+    }
+    Ok(())
+}
+
+/// The refusal of a value of a newer format at `/value`: an edit writes only what this build knows.
+fn newer(what: &str, v: &Value, give: &str) -> CmdError {
+    CmdError::invalid_params(
+        SetFields::NAME,
+        "/value",
+        format!("{v} is not a {what}; give {give}"),
+    )
+}
+
+/// A function's bus port as read back: every enum value known to this build, and the nets it names exist.
+fn check_port(tx: &TxBuilder<'_>, function: ew_ids::Id<Function>) -> Result<(), CmdError> {
+    let f = tx.require::<Function>(function)?;
+    let Some(port) = &f.bus_port else {
+        return Ok(());
+    };
+    if let BusSystem::Unknown(v) = &port.bus {
+        return Err(crate::commands::bus::unknown_bus(SetFields::NAME, "/value", v));
+    }
+    if let PortRole::Unknown(v) = &port.role {
+        return Err(newer(
+            "port role",
+            v,
+            "master, slave, controller, device or passive",
+        ));
+    }
+    if let AddrValue::Unknown(v) | AddrValue::Value(NetAddress::Unknown(v)) = &port.address {
+        return Err(newer(
+            "bus address",
+            v,
+            r#"tbd, not_applicable or {"value": {"profibus": n}}"#,
+        ));
+    }
+    if let Some(OnOff::Unknown(v)) = &port.termination {
+        return Err(newer("termination", v, "on or off"));
+    }
+    if let Some(n) = port.logical_net {
+        tx.require::<LogicalNet>(n)?;
+    }
+    if let Some(n) = port.physical_net {
+        tx.require::<PhysicalNet>(n)?;
+    }
+    Ok(())
+}
+
+/// A logical net as read back: a bus system this build knows, a unique name, a rate above 0, and a master that is
+/// the CP of an existing function.
+fn check_logical_net(tx: &TxBuilder<'_>, net: ew_ids::Id<LogicalNet>) -> Result<(), CmdError> {
+    let n = tx.require::<LogicalNet>(net)?;
+    if let BusSystem::Unknown(v) = &n.bus {
+        return Err(crate::commands::bus::unknown_bus(SetFields::NAME, "/value", v));
+    }
+    if n.rate == Some(ew_schema::BusRate(0)) {
+        return Err(CmdError::invalid_params(
+            SetFields::NAME,
+            "/value",
+            "a data rate of 0 bit/s; give the rate in bit/s (1500000) or null",
+        ));
+    }
+    match &n.master {
+        None => {}
+        Some(Endpoint::Cp(f, _)) => {
+            tx.require::<Function>(*f)?;
+        }
+        Some(_) => {
+            return Err(CmdError::invalid_params(
+                SetFields::NAME,
+                "/value",
+                r#"a master is a CP: {"cp": [function, index]}"#,
+            ));
+        }
+    }
+    crate::commands::bus::refuse_duplicate_logical_name(tx, Some(net), &n.name)
+}
+
+/// A physical net as read back: a medium this build knows, a unique name, and an `order_hint` of existing
+/// functions.
+fn check_physical_net(tx: &TxBuilder<'_>, net: ew_ids::Id<PhysicalNet>) -> Result<(), CmdError> {
+    let n = tx.require::<PhysicalNet>(net)?;
+    if let BusMedium::Unknown(v) = &n.medium {
+        return Err(newer("medium", v, "copper or fibre"));
+    }
+    for f in &n.order_hint {
+        tx.require::<Function>(*f)?;
+    }
+    crate::commands::bus::refuse_duplicate_physical_name(tx, Some(net), &n.name)
 }
 
 /// An interruption point's direction as read back must be one this build knows (`IpDirection` keeps a newer word

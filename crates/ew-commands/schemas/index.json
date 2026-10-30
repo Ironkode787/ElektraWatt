@@ -60,6 +60,28 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "bus.logical_net.create",
+      "params_version": 1,
+      "schema": "bus.logical_net.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "bus.physical_net.create",
+      "params_version": 1,
+      "schema": "bus.physical_net.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "cable.create",
       "params_version": 1,
       "schema": "cable.create.schema.json",

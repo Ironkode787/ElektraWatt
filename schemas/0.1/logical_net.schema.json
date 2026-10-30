@@ -1,0 +1,200 @@
+{
+  "$defs": {
+    "BusRate": {
+      "description": "A bus data rate in bit/s (FR-BUS-009: 9 600 to 12 000 000 for PROFIBUS DP), an integer like every number of\nthe format.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "BusSystem": {
+      "description": "A bus system (doc 10 §2.7).",
+      "oneOf": [
+        {
+          "const": "profibus_dp",
+          "description": "PROFIBUS DP.",
+          "type": "string"
+        },
+        {
+          "const": "profinet",
+          "description": "PROFINET IO.",
+          "type": "string"
+        },
+        {
+          "const": "ethercat",
+          "description": "EtherCAT.",
+          "type": "string"
+        },
+        {
+          "const": "ethernet_ip",
+          "description": "EtherNet/IP.",
+          "type": "string"
+        },
+        {
+          "const": "io_link",
+          "description": "IO-Link.",
+          "type": "string"
+        },
+        {
+          "const": "asi",
+          "description": "AS-Interface.",
+          "type": "string"
+        },
+        {
+          "const": "canopen",
+          "description": "CANopen.",
+          "type": "string"
+        },
+        {
+          "const": "modbus_tcp",
+          "description": "Modbus TCP.",
+          "type": "string"
+        }
+      ]
+    },
+    "Endpoint": {
+      "description": "One end of a connection, a definition or a bond (ADR-0007, doc 03 §9): a connection point of a function\nor a junction. Encoding (doc 05 §3.2): `{\"cp\": [function, idx]}` or `{\"junction\": id}`.\n\n```\nuse ew_schema::Endpoint;\n\nlet e: Endpoint = serde_json::from_str(r#\"{\"cp\":[\"d40b6e93-25f7-5c1a-9e8d-7a3f1c05b6e2\",0]}\"#).unwrap();\nassert!(matches!(e, Endpoint::Cp(_, 0)));\n```",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Connection point `idx` of a function; its ID `v5(function, idx)` is derived, never stored.",
+          "properties": {
+            "cp": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "$ref": "#/$defs/Uuid"
+                },
+                {
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            }
+          },
+          "required": [
+            "cp"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A junction.",
+          "properties": {
+            "junction": {
+              "$ref": "#/$defs/Uuid"
+            }
+          },
+          "required": [
+            "junction"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "SourceRef": {
+      "additionalProperties": true,
+      "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
+      "properties": {
+        "key": {
+          "description": "The source key, byte for byte (NFC), such as `qet:el:<uuid>`.",
+          "type": "string"
+        },
+        "lineage": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The import lineage."
+        }
+      },
+      "required": [
+        "lineage",
+        "key"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "A logical bus network (doc 10 §2.7, rank 12, `project.jsonl`; FR-BUS-002): the scope of address uniqueness, with\nits master and rate, which its ports read and never copy.",
+  "properties": {
+    "$k": {
+      "const": "logical_net",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "bus": {
+      "$ref": "#/$defs/BusSystem",
+      "description": "The bus system."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "master": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Endpoint"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The master: a port's CP, or an external interruption point whose external reference names a partner\noutside the project (FR-BUS-005; doc 10 §3.8 A5 step 5)."
+    },
+    "name": {
+      "$ref": "#/$defs/Ident",
+      "description": "The name (\"PROFIBUS DP\")."
+    },
+    "rate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BusRate"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The data rate; absent: unset."
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Import provenance."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "bus",
+    "name"
+  ],
+  "title": "logical_net",
+  "type": "object"
+}

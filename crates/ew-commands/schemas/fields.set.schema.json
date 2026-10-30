@@ -109,6 +109,16 @@
           "const": "device_link",
           "description": "`device_link` (WP-S1.21 D6, FT-226).",
           "type": "string"
+        },
+        {
+          "const": "logical_net",
+          "description": "`logical_net` (WP-S1.21 D11).",
+          "type": "string"
+        },
+        {
+          "const": "physical_net",
+          "description": "`physical_net` (WP-S1.21 D11).",
+          "type": "string"
         }
       ]
     }

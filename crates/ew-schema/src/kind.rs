@@ -258,8 +258,8 @@ impl Kind {
         match self {
             Kind::Project => ("project", Some(10), F::ProjectFile, I),
             Kind::PlcConfigProject => ("plc_config_project", Some(11), F::ProjectFile, I),
-            Kind::LogicalNet => ("logical_net", Some(12), F::ProjectFile, R),
-            Kind::PhysicalNet => ("physical_net", Some(13), F::ProjectFile, R),
+            Kind::LogicalNet => ("logical_net", Some(12), F::ProjectFile, I),
+            Kind::PhysicalNet => ("physical_net", Some(13), F::ProjectFile, I),
             Kind::Medium => ("medium", Some(14), F::ProjectFile, R),
             Kind::ImportLineage => ("import_lineage", Some(15), F::ProjectFile, I),
             Kind::StructureNode => ("structure_node", Some(20), F::StructureFile, I),
@@ -371,6 +371,8 @@ impl fmt::Display for Kind {
 pub const SCHEMA_VERSIONS: &[(Kind, u16)] = &[
     (Kind::Project, 1),
     (Kind::PlcConfigProject, 1),
+    (Kind::LogicalNet, 1),
+    (Kind::PhysicalNet, 1),
     (Kind::ImportLineage, 1),
     (Kind::StructureNode, 1),
     (Kind::Section, 1),

@@ -89,6 +89,8 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::PotentialDef(r) => of(&**r),
         AnyRow::Bond(r) => of(&**r),
         AnyRow::DeviceLink(r) => of(&**r),
+        AnyRow::LogicalNet(r) => of(&**r),
+        AnyRow::PhysicalNet(r) => of(&**r),
         AnyRow::PageItem(r) => of(&**r),
         AnyRow::StructureBox(r) => of(&**r),
         AnyRow::ReportBlock(r) => of(&**r),
@@ -717,7 +719,33 @@ impl HeapSize for Function {
             FunctionKind::Unknown(v) => v.heap_size(),
             _ => 0,
         };
-        kind + self.cp_overrides.heap_size() + self.source_ref.heap_size() + self.extra.heap_size()
+        kind + self.cp_overrides.heap_size()
+            + self.source_ref.heap_size()
+            + self.bus_port.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+// ---- bus (WP-S1.21 D11): enum payloads of a newer format are not counted ----
+
+impl HeapSize for ew_schema::BusPort {
+    fn heap_size(&self) -> usize {
+        self.interface.heap_size() + self.port_label.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::LogicalNet {
+    fn heap_size(&self) -> usize {
+        self.name.heap_size() + self.source_ref.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::PhysicalNet {
+    fn heap_size(&self) -> usize {
+        self.name.heap_size()
+            + self.order_hint.heap_size()
+            + self.source_ref.heap_size()
+            + self.extra.heap_size()
     }
 }
 

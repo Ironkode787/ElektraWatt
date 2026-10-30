@@ -9,6 +9,12 @@
       "$ref": "plc_config_project.schema.json"
     },
     {
+      "$ref": "logical_net.schema.json"
+    },
+    {
+      "$ref": "physical_net.schema.json"
+    },
+    {
       "$ref": "import_lineage.schema.json"
     },
     {

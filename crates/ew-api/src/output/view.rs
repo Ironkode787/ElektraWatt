@@ -781,6 +781,15 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                     .collect();
                 Some(x.text.clone())
             }
+            // WP-S1.21 D11: the drawn function's bus port, its station address and its termination (FR-BUS-004).
+            SlotKind::BusAddress => f
+                .as_ref()
+                .and_then(|f| f.bus_port.as_ref())
+                .and_then(ew_derive::bus_address_text),
+            SlotKind::BusTermination => f
+                .as_ref()
+                .and_then(|f| f.bus_port.as_ref())
+                .and_then(ew_derive::bus_termination_text),
             // WP-S1.21 D7: the first drawn function's derived PLC address text.
             SlotKind::PlcAddress => rep
                 .functions

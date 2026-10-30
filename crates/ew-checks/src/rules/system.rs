@@ -177,6 +177,14 @@ fn scope_text(q: &Q, scope: &Scope) -> String {
                 || "a configuration project".to_owned(),
                 |c| format!("configuration project {}", c.name),
             ),
+        Scope::Lnet(n) => q.table::<ew_derive::ew_schema::LogicalNet>().get(n).map_or_else(
+            || "a logical bus net".to_owned(),
+            |n| format!("logical net {}", n.name),
+        ),
+        Scope::Pnet(n) => q.table::<ew_derive::ew_schema::PhysicalNet>().get(n).map_or_else(
+            || "a physical bus net".to_owned(),
+            |n| format!("physical net {}", n.name),
+        ),
     }
 }
 
@@ -189,6 +197,8 @@ fn scope_target(scope: &Scope) -> Option<Target> {
             Some(Target::new(Kind::Device, d))
         }
         Scope::Cfg(c) => Some(Target::new(Kind::PlcConfigProject, c)),
+        Scope::Lnet(n) => Some(Target::new(Kind::LogicalNet, n)),
+        Scope::Pnet(n) => Some(Target::new(Kind::PhysicalNet, n)),
     }
 }
 
@@ -203,6 +213,8 @@ fn scope_kind_name(kind: ScopeKind) -> &'static str {
         ScopeKind::Potential => "potential",
         ScopeKind::Module => "module",
         ScopeKind::Cfg => "cfg",
+        ScopeKind::Lnet => "lnet",
+        ScopeKind::Pnet => "pnet",
     }
 }
 

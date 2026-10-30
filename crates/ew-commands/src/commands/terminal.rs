@@ -248,6 +248,7 @@ pub(crate) fn insert_terminal(
         cp_overrides: Default::default(),
         source_ref: None,
         template_entry: None,
+        bus_port: None,
         extra: Extra::new(),
     })?;
     Ok((device, function))

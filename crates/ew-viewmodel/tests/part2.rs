@@ -1987,6 +1987,9 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
                 | "revision"
                 // WP-S1.16 part 5: no state of this sequence selects a waiver record.
                 | "waiver"
+                // WP-S1.21 part 4: no state of this sequence selects a bus net.
+                | "logical_net"
+                | "physical_net"
                 | "page_item"
                 | "structure_box"
                 // WP-S1.19 part 1: no command creates a macro instance yet, so no state selects one.

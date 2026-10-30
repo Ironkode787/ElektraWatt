@@ -1,5 +1,151 @@
 {
   "$defs": {
+    "AddrValue": {
+      "description": "An address value (doc 10 §2.7, §3.8): a value, a typed open item, or no address.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A set address.",
+          "properties": {
+            "value": {
+              "$ref": "#/$defs/NetAddress"
+            }
+          },
+          "required": [
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "tbd",
+          "description": "\"To be defined\": prints \"TBD\", appears in the open items and blocks release (EW-BUS-001, FR-CHK-034).",
+          "type": "string"
+        },
+        {
+          "const": "not_applicable",
+          "description": "The port has no address (a passive connector, an IO-Link device side).",
+          "type": "string"
+        }
+      ]
+    },
+    "BusPort": {
+      "additionalProperties": true,
+      "description": "The `BusPort` aspect of a function (doc 10 §2.7, FR-BUS-001): a bus interface of a device or a connector. Ports\nderive network properties such as the rate from their logical net and never copy them (FR-BUS-002).",
+      "properties": {
+        "address": {
+          "$ref": "#/$defs/AddrValue",
+          "description": "The station address: a value, the typed open item `tbd` (prints \"TBD\", blocks release, EW-BUS-001) or\n`not_applicable` (a port without an address: a passive connector)."
+        },
+        "bus": {
+          "$ref": "#/$defs/BusSystem",
+          "description": "The bus system."
+        },
+        "interface": {
+          "$ref": "#/$defs/Ident",
+          "description": "The interface name (\"DP\", \"X1\")."
+        },
+        "logical_net": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The logical net: the scope of address uniqueness, rate and master (FR-BUS-002)."
+        },
+        "physical_net": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The physical net whose derived segments the port belongs to (FR-BUS-003)."
+        },
+        "port_label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The port label of a multi-port interface (\"P1R\")."
+        },
+        "role": {
+          "$ref": "#/$defs/PortRole",
+          "description": "The port's role."
+        },
+        "termination": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OnOff"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The termination switch of a connector or device port (FR-BUS-004); absent: the port has none."
+        }
+      },
+      "required": [
+        "interface",
+        "bus",
+        "role",
+        "address"
+      ],
+      "type": "object"
+    },
+    "BusSystem": {
+      "description": "A bus system (doc 10 §2.7).",
+      "oneOf": [
+        {
+          "const": "profibus_dp",
+          "description": "PROFIBUS DP.",
+          "type": "string"
+        },
+        {
+          "const": "profinet",
+          "description": "PROFINET IO.",
+          "type": "string"
+        },
+        {
+          "const": "ethercat",
+          "description": "EtherCAT.",
+          "type": "string"
+        },
+        {
+          "const": "ethernet_ip",
+          "description": "EtherNet/IP.",
+          "type": "string"
+        },
+        {
+          "const": "io_link",
+          "description": "IO-Link.",
+          "type": "string"
+        },
+        {
+          "const": "asi",
+          "description": "AS-Interface.",
+          "type": "string"
+        },
+        {
+          "const": "canopen",
+          "description": "CANopen.",
+          "type": "string"
+        },
+        {
+          "const": "modbus_tcp",
+          "description": "Modbus TCP.",
+          "type": "string"
+        }
+      ]
+    },
     "CpOverride": {
       "additionalProperties": true,
       "description": "An override of one instantiated connection point (FR-DEV-008).",
@@ -185,6 +331,72 @@
       ],
       "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
     },
+    "NetAddress": {
+      "description": "A bus address (doc 10 §2.7). Format 0.1 types the PROFIBUS station address; the address forms of the other\nbuses (PROFINET name and IP, EtherCAT position, …) are kept verbatim as [`NetAddress::Unknown`] until WP-S1.24.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A PROFIBUS station address (nominally 0–125, a range from data, FR-BUS-009).",
+          "properties": {
+            "profibus": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "profibus"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "OnOff": {
+      "description": "A two-state switch (doc 10 §2.7: the termination of a connector, FR-BUS-004).",
+      "oneOf": [
+        {
+          "const": "on",
+          "description": "On.",
+          "type": "string"
+        },
+        {
+          "const": "off",
+          "description": "Off.",
+          "type": "string"
+        }
+      ]
+    },
+    "PortRole": {
+      "description": "The role of a bus port (doc 10 §2.7).",
+      "oneOf": [
+        {
+          "const": "master",
+          "description": "A bus master (PROFIBUS DP master).",
+          "type": "string"
+        },
+        {
+          "const": "slave",
+          "description": "A slave.",
+          "type": "string"
+        },
+        {
+          "const": "controller",
+          "description": "A controller (PROFINET IO controller).",
+          "type": "string"
+        },
+        {
+          "const": "device",
+          "description": "A device (PROFINET IO device).",
+          "type": "string"
+        },
+        {
+          "const": "passive",
+          "description": "A passive element without an address: a bus connector.",
+          "type": "string"
+        }
+      ]
+    },
     "SourceRef": {
       "additionalProperties": true,
       "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
@@ -214,7 +426,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "One logical element (doc 03 §7, rank 32): a pole set, a contact, a coil, a PSU, an interruption point.\nIts connection points are instantiated from the definition or the part's pattern; only overrides are\nstored. `device` is `None` if and only if the kind is `Ip` (ADR-0006 amendment 1).\n\nNot in v0: `bus_port` (bus, doc 03 §14) and `CpOverride.closure` (fluid ports, doc 03 §15).",
+  "description": "One logical element (doc 03 §7, rank 32): a pole set, a contact, a coil, a PSU, an interruption point.\nIts connection points are instantiated from the definition or the part's pattern; only overrides are\nstored. `device` is `None` if and only if the kind is `Ip` (ADR-0006 amendment 1).\n\nNot in v0: `CpOverride.closure` (fluid ports, doc 03 §15).",
   "properties": {
     "$k": {
       "const": "function",
@@ -226,6 +438,17 @@
       "maximum": 65535,
       "minimum": 0,
       "type": "integer"
+    },
+    "bus_port": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BusPort"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The bus port of the function (doc 03 §14, doc 10 §2.7; WP-S1.21 D11, FT-225): a port of a device, a bus\nconnector's port, or the port of an external partner. Appended, since 0.1: an optional member typed within the\nunreleased format under ADR-0011 amendment 4."
     },
     "cp_overrides": {
       "description": "CP overrides, keyed by `idx` (FR-DEV-008).",

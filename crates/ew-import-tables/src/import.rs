@@ -210,6 +210,10 @@ impl TablesImporter {
         emit::connect::emit_bonds(&mut cx, t("bonds"));
         emit::plc::emit_channels(&mut cx, t("channels"));
         emit::plc::emit_device_links(&mut cx, t("device_links"));
+        // WP-S1.21 D11: the bus nets after the functions their masters and member orders name, then the ports.
+        let lnets = emit::bus::emit_logical_nets(&mut cx, t("logical_nets"));
+        let pnets = emit::bus::emit_physical_nets(&mut cx, t("physical_nets"));
+        emit::bus::emit_bus_ports(&mut cx, t("bus_ports"), &lnets, &pnets);
         emit::assembly::emit_assembly_configs(&mut cx, t("assembly_configs"));
         emit::project::emit_report_blocks(&mut cx, t("report_blocks"));
         emit::project::emit_revisions(&mut cx, t("revisions"), t("parties"));

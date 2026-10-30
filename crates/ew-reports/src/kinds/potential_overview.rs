@@ -118,31 +118,10 @@ fn potential_pages(q: &Q, wires: &Wires, p: &Potential, order: &ew_derive::PageO
     pages.into_iter().map(|(_, p)| PageRef::Drawn(p)).collect()
 }
 
-/// The members of a potential as doc 20 §7.3 counts them: the connection points of devices, a terminal as one
-/// member whatever its clamps and sides, and the external interruption points (the other side of a field
-/// wire); the interruption points between pages are not members.
+/// The members of a potential as folio 909 counts them (doc 20 §7.3; a potential a bus segment carries counts the
+/// segment's members, WP-S1.21 D11): [`ew_derive::potential_member_count`], one reader for the report and the view.
 fn member_count(q: &Q, p: &Potential) -> usize {
-    use ew_derive::ew_schema::FunctionKind;
-    let mut members: BTreeSet<(ew_derive::ew_ids::Uuid, u16)> = BTreeSet::new();
-    for cp in &p.cps {
-        let Some(f) = q.functions().get(cp.function) else {
-            continue;
-        };
-        match (&f.kind, f.device) {
-            (FunctionKind::Ip(ip), _) => {
-                if ip.external.is_some() {
-                    members.insert((cp.function.as_uuid(), cp.idx));
-                }
-            }
-            (_, Some(d)) if q.devices().get(d).is_some_and(|d| d.aspects.terminal.is_some()) => {
-                members.insert((d.as_uuid(), 0));
-            }
-            _ => {
-                members.insert((cp.function.as_uuid(), cp.idx));
-            }
-        }
-    }
-    members.len()
+    ew_derive::potential_member_count(q, p)
 }
 
 fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Row {

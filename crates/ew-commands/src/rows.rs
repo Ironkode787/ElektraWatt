@@ -43,6 +43,8 @@ pub fn row_json(row: &AnyRow) -> Result<Value, CmdError> {
         AnyRow::PotentialDef(r) => v(&**r, row),
         AnyRow::Bond(r) => v(&**r, row),
         AnyRow::DeviceLink(r) => v(&**r, row),
+        AnyRow::LogicalNet(r) => v(&**r, row),
+        AnyRow::PhysicalNet(r) => v(&**r, row),
         AnyRow::PageItem(r) => v(&**r, row),
         AnyRow::StructureBox(r) => v(&**r, row),
         AnyRow::ReportBlock(r) => v(&**r, row),

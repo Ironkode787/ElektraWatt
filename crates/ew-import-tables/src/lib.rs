@@ -31,6 +31,7 @@
 //! | `functions`, `representations` | `function` (interruption points included), `representation` |
 //! | `connections`, `junctions`, `conductors`, `potentials`, `bonds` | `connection` (wire, core, bridge and bus), `junction`, `conductor`, `potential_def`, `bond` |
 //! | `plc_config_projects`, `channels`, `device_links` | `plc_config_project`, `channel` (ID `plc_channel_id(module, number)`, not the table rule), `device_link` |
+//! | `logical_nets`, `physical_nets`, `bus_ports` | `logical_net`, `physical_net`, and the `bus_port` aspect of the function the port's key names (WP-S1.21 D11; `emit/bus.rs`) |
 //! | `assembly_configs` | the `assembly` aspect of the device `assembly` (its `AssemblyConfig`s in `n` order; `emit/assembly.rs`) |
 //! | `revisions` | the reserved `revision` records |
 //! | `colour_profile`, `size_profile` | the `colour_profile` and `size_profile` members of the project settings (doc 03 §5.1; `emit/profiles.rs`) |

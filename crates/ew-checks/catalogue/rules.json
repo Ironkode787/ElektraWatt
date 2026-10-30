@@ -1,6 +1,86 @@
 {
   "rules": [
     {
+      "code": "111001",
+      "id": "EW-BUS-001",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-BUS",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "lnet",
+      "severity": "error",
+      "supersedes": [
+        "EW-CORE-044"
+      ],
+      "title": "Bus address missing or duplicate",
+      "waivable": true
+    },
+    {
+      "code": "111004",
+      "id": "EW-BUS-004",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-BUS",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "pnet",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Termination",
+      "waivable": true
+    },
+    {
       "code": "100008",
       "id": "EW-CORE-008",
       "kind": "integrity",

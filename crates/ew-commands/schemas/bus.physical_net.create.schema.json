@@ -1,0 +1,44 @@
+{
+  "$defs": {
+    "BusMedium": {
+      "description": "The transmission medium of a physical net (doc 10 §2.7).",
+      "oneOf": [
+        {
+          "const": "copper",
+          "description": "Copper (RS-485 twisted pair, Ethernet copper).",
+          "type": "string"
+        },
+        {
+          "const": "fibre",
+          "description": "Optical fibre.",
+          "type": "string"
+        }
+      ]
+    },
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`bus.physical_net.create` (`CreatePhysicalNet`): a physical bus network, whose segments are derived from the `Bus`\nconnections and the connectors (doc 10 §2.7, FR-BUS-003).\n\nCreates `PhysicalNet {name, medium}` without an `order_hint` (`fields.set` sets it). Rejected: a name another\nphysical net has (compared exactly); a medium of a newer format (at `/medium`). Outcome: the physical net.",
+  "properties": {
+    "medium": {
+      "$ref": "#/$defs/BusMedium",
+      "description": "The transmission medium (`copper`, `fibre`)."
+    },
+    "name": {
+      "$ref": "#/$defs/CmdIdent",
+      "description": "The name (\"DP\")."
+    }
+  },
+  "required": [
+    "name",
+    "medium"
+  ],
+  "title": "bus.physical_net.create",
+  "type": "object"
+}

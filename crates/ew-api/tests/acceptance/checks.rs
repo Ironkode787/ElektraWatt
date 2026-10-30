@@ -308,6 +308,11 @@ pub fn all(r: &mut Runner) {
         });
     }
     r.entry(
+        "AC-31",
+        "EW-BUS-004: no error with -3X1 On and one info for the external end, an error with -3X1 Off; JE-N1000-03 is the master and absent from the BOM",
+        ac31,
+    );
+    r.entry(
         "AC-39",
         "the anonymisation guard passes on golden/, docs/ and expected/",
         |_| {
@@ -1883,6 +1888,11 @@ fn defects(r: &mut Runner) {
         "D-15",
         "a TBD channel address is an open item that blocks release (EW-PLC-015, superseding EW-CORE-044)",
         d15,
+    );
+    r.entry(
+        "D-15",
+        "the TBD DP station address blocks release and prints \"Node TBD\" (EW-BUS-001 superseding EW-CORE-044, EF-03)",
+        d15_bus,
     );
     r.entry(
         "D-16",
@@ -3838,8 +3848,8 @@ fn d13(c: &Ctx) -> Outcome {
 }
 
 /// D-15, the MVP part: a `Tbd` channel address is a typed open item; EW-PLC-015 reports it as an error in release mode
-/// and supersedes EW-CORE-044's finding for the same value (WP-S1.21 part 3, PA-4). EF-03 (EW-BUS-001 on the DP
-/// station address) and EF-16 (EW-BUS-004) come with WP-S1.21's bus part.
+/// and supersedes EW-CORE-044's finding for the same value (WP-S1.21 part 3, PA-4). The TBD DP station address (EF-03,
+/// EW-BUS-001) is the entry [`d15_bus`].
 fn d15(c: &Ctx) -> Outcome {
     for rule in ["EW-CORE-044", "EW-PLC-015"] {
         let before = golden_rows(c, rule);
@@ -3872,7 +3882,7 @@ fn d15(c: &Ctx) -> Outcome {
             && report.exit_code() == 1 =>
         {
             pass(format!(
-                "Golden A is clean; a channel address set to TBD makes EW-PLC-015 report one error, \"{}\", EW-CORE-044's finding is superseded, and the release check exits 1 (EF-03, EW-BUS-001 on the DP station address, and EF-16 come with WP-S1.21's bus part)",
+                "Golden A is clean; a channel address set to TBD makes EW-PLC-015 report one error, \"{}\", EW-CORE-044's finding is superseded, and the release check exits 1 (the TBD DP station address, EF-03, is the bus entry of D-15)",
                 f.message
             ))
         }
@@ -3886,6 +3896,91 @@ fn d15(c: &Ctx) -> Outcome {
             )
         )),
     }
+}
+
+/// D-15, the bus part (WP-S1.21 part 4, D12): the DP station address of -201U1 is the open item `Tbd`; EW-BUS-001
+/// reports it once as an error (EF-03), EW-CORE-044's finding for it is superseded, and folio 3 prints "Node TBD".
+fn d15_bus(c: &Ctx) -> Outcome {
+    if let Err(o) = golden_ef(c, "EW-CORE-044", &[], "EW-CORE-044 reports nothing (superseded)") {
+        return o;
+    }
+    let why = match golden_ef(
+        c,
+        "EW-BUS-001",
+        &["error =P01+J-E-2416-201U1:DP"],
+        "EW-BUS-001 reports the TBD station address of -201U1:DP as an error (EF-03), EW-CORE-044's finding is superseded",
+    ) {
+        Ok(why) => why,
+        Err(o) => return o,
+    };
+    if !printed_runs(c, "3").iter().any(|t| t == "Node TBD") {
+        return fail("folio 3 does not print \"Node TBD\"".to_owned());
+    }
+    pass(format!("{why}; folio 3 prints \"Node TBD\""))
+}
+
+/// The external end of the DP segment as EW-BUS-004 prints it.
+const DP_EXTERNAL_END: &str = "external end DP (+J-E-206 / JE-N1000-03)";
+
+/// AC-31 (WP-S1.21 part 4, BU-3, BU-4, BU-6): on Golden A EW-BUS-004 reports no error and one info for the external
+/// end; with -3X1 Off it reports an error on -3X1; the master of the logical net DP is the external partner
+/// JE-N1000-03 (`net_members`; the network list report is not built), which is no device and in neither BOM.
+fn ac31(c: &Ctx) -> Outcome {
+    let want_info = vec![format!("info {DP_EXTERNAL_END}")];
+    let on = golden_rows(c, "EW-BUS-004");
+    if on != want_info {
+        return fail(format!("with -3X1 On EW-BUS-004 reports {}", list(on, 4)));
+    }
+    let mut s = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
+    let q = s.query();
+    let lnet: Id<ew_schema::LogicalNet> = id_of(c, "logical_nets|DP");
+    let master = match q.get::<ew_derive::NetMembersOf>(lnet).master {
+        Some(ew_derive::NetMaster::External { external, .. }) => {
+            ew_derive::external_partner_text(&q, external)
+        }
+        other => return fail(format!("the master of DP is {other:?}, not the external partner")),
+    };
+    if !master.ends_with("JE-N1000-03") {
+        return fail(format!("the master of DP is {master}"));
+    }
+    if s.resolve_reference("JE-N1000-03").is_ok() {
+        return fail("JE-N1000-03 is a device of the project".to_owned());
+    }
+    for mode in [BomMode::Component, BomMode::Assembly] {
+        match s.export_csv(Export::Bom(mode)) {
+            Ok(bom) if !bom.contains("JE-N1000-03") => {}
+            Ok(_) => return fail(format!("the {mode:?} BOM lists JE-N1000-03")),
+            Err(e) => return fail(format!("the {mode:?} BOM: {e:?}")),
+        }
+    }
+    let plug: Id<ew_schema::Function> = id_of(c, "functions|-3X1");
+    if let Err(e) = s.execute(&ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({
+            "kind": "function", "targets": [plug.to_string()], "path": "bus_port.termination", "value": "off",
+        }),
+    }) {
+        return fail(format!("-3X1 Off: {e:?}"));
+    }
+    let off = s.check(&PRE_DELIVERY, CheckMode::Release);
+    let mut got: Vec<String> = off
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-BUS-004" && f.is_open())
+        .map(|f| format!("{} {}", f.severity, f.subject))
+        .collect();
+    got.sort();
+    let mut want = vec![
+        "error =P01+J-E-2416-3X1".to_owned(),
+        format!("info {DP_EXTERNAL_END}"),
+    ];
+    want.sort();
+    if got != want {
+        return fail(format!("with -3X1 Off EW-BUS-004 reports {}", list(got, 4)));
+    }
+    pass(format!(
+        "with -3X1 On EW-BUS-004 reports one info, \"{DP_EXTERNAL_END}\", and no error; with -3X1 Off one error on -3X1 and the info; the master of DP is the external partner {master}, no device and in neither BOM"
+    ))
 }
 
 /// D-16: EF-10, EW-POT-003 on the CPX pins -201U1:3 and -202U1:3 (FE in the part data, fed from PE).

@@ -24,9 +24,9 @@ use ew_ids::Id;
 use ew_model::AnyKey;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, ConnectionKind, Device, DeviceLink, Endpoint, ExternalRef,
-    FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, LibDocument, Page, PageItem, Part,
-    PartUse, PlcConfigProject, PotentialDef, Record, ReportBlock, Representation, Revision, RevisionState,
-    Section, StructureBox, StructureNode, SymbolDef,
+    FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, LibDocument, LogicalNet, Page, PageItem,
+    Part, PartUse, PhysicalNet, PlcConfigProject, PotentialDef, Record, ReportBlock, Representation,
+    Revision, RevisionState, Section, StructureBox, StructureNode, SymbolDef,
 };
 use ew_units::Pt2;
 use serde_json::{Map, Value, json};
@@ -572,7 +572,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         for k in ["device", "def", "role", "kind"] {
             m.remove(k);
         }
-        self.set_rest("function", id.cast(), m, &["cp_overrides"])
+        self.set_rest("function", id.cast(), m, &["cp_overrides", "bus_port"])
     }
 
     /// `terminal.add` of `terminals` (devices with the terminal aspect, all of the strip `strip` and with
@@ -1262,6 +1262,60 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         }
         let (id, _) = self.primary::<PlcConfigProject>("plc.config_project.create", Value::Object(p))?;
         self.set_rest("plc_config_project", id.cast(), m, &[])?;
+        Ok(id)
+    }
+
+    /// `bus.logical_net.create` of `net`'s bus, name and rate (WP-S1.21 D11); its master names a function, so the
+    /// caller sets it with [`Builder::logical_net_master`] once the functions are built.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn logical_net(&mut self, net: &LogicalNet) -> Result<Id<LogicalNet>> {
+        let mut m = members(Record::LogicalNet(net.clone()));
+        let mut p = Map::new();
+        for k in ["bus", "name", "rate"] {
+            if let Some(v) = take(&mut m, k) {
+                p.insert(k.into(), v);
+            }
+        }
+        take(&mut m, "master");
+        let (id, _) = self.primary::<LogicalNet>("bus.logical_net.create", Value::Object(p))?;
+        self.set_rest("logical_net", id.cast(), m, &[])?;
+        Ok(id)
+    }
+
+    /// `fields.set` of a logical net's `master` (an endpoint of the built functions).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn logical_net_master(&mut self, id: Id<LogicalNet>, master: &Endpoint) -> Result<()> {
+        let value = serde_json::to_value(master).map_err(|e| BuildError {
+            command: "fields.set".into(),
+            params: Value::Null,
+            message: format!("an endpoint does not serialise: {e}"),
+        })?;
+        self.set("logical_net", &[id.cast()], "master", value)
+    }
+
+    /// `bus.physical_net.create` of `net`'s name and medium (WP-S1.21 D11); its `order_hint` names functions, so the
+    /// caller sets it with `fields.set` once they are built.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn physical_net(&mut self, net: &PhysicalNet) -> Result<Id<PhysicalNet>> {
+        let mut m = members(Record::PhysicalNet(net.clone()));
+        let mut p = Map::new();
+        for k in ["name", "medium"] {
+            if let Some(v) = take(&mut m, k) {
+                p.insert(k.into(), v);
+            }
+        }
+        take(&mut m, "order_hint");
+        let (id, _) = self.primary::<PhysicalNet>("bus.physical_net.create", Value::Object(p))?;
+        self.set_rest("physical_net", id.cast(), m, &[])?;
         Ok(id)
     }
 

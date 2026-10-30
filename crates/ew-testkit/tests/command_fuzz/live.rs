@@ -325,6 +325,9 @@ pub struct Live {
     pub links: BTreeSet<(String, String, String)>,
     pub channels: Vec<ChannelInfo>,
     pub cfg_names: BTreeSet<String>,
+    /// The names of the logical and of the physical bus nets (WP-S1.21 D11).
+    pub lnet_names: BTreeSet<String>,
+    pub pnet_names: BTreeSet<String>,
     pub ip_infos: Vec<IpInfo>,
     pub routes: Vec<RouteInfo>,
     /// The members of `ProjectSettings.extra` the settings command edits, as stored now.
@@ -947,6 +950,16 @@ impl Live {
                 .table::<ew_schema::PlcConfigProject>()
                 .iter()
                 .map(|(_, c)| c.name.as_str().to_owned())
+                .collect(),
+            lnet_names: q
+                .table::<ew_schema::LogicalNet>()
+                .iter()
+                .map(|(_, n)| n.name.as_str().to_owned())
+                .collect(),
+            pnet_names: q
+                .table::<ew_schema::PhysicalNet>()
+                .iter()
+                .map(|(_, n)| n.name.as_str().to_owned())
                 .collect(),
             ip_infos,
             routes,

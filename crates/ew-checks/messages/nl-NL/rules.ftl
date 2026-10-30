@@ -84,6 +84,23 @@ rule-ew-plc-015 = { $subject }: { $what ->
     .title = Tbd-adres
     .hint = Vul het adres in vóór de vrijgave.
 
+rule-ew-bus-001 = { $form ->
+        [duplicate] { $ports }: stationsadres { $address } komt meer dan eens voor in logisch net { $net }; geef elke poort een eigen adres
+       *[tbd] { $port }: het stationsadres is TBD; vul het in vóór de vrijgave
+    }
+    .title = Busadres ontbreekt of dubbel
+    .hint = Vul vóór de vrijgave een stationsadres in dat uniek is in het logische net.
+
+rule-ew-bus-004 = { $port }: { $form ->
+        [external] de afsluiting aan het externe einde is onbekend; controleer dat de partner het segment afsluit
+        [missing] geen afsluitend element aan dit segmenteinde; sluit het segment hier af
+        [end] de afsluiting staat uit aan het segmenteinde; zet haar aan
+        [middle] de afsluiting staat aan binnen het segment; zet haar uit
+       *[unknown] de afsluitstand is van een nieuwer formaat; controleer haar
+    }
+    .title = Afsluiting
+    .hint = Zet de afsluiting aan op beide segmenteinden en uit overal daartussen.
+
 rule-ew-pot-001 = { $conflicts }{ $more ->
         [none] {""}
        *[other] ; en nog { $more } aansluitpunten

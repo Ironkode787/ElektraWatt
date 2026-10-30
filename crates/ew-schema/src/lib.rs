@@ -52,6 +52,7 @@
 //! | Devices | `device` (31) with the `strip`, `terminal` and `cable` aspects, `function` (32) |
 //! | Connectivity | `connection` (34), `junction` (35), `conductor` (36), `potential_def` (38), `bond` (41) |
 //! | PLC | `plc_config_project` (11), `channel` (37), the `plc_station` and `plc_module` aspects, the part's `plc` section, `device_link` (42) |
+//! | Bus | `logical_net` (12), `physical_net` (13), the function's `bus_port` aspect |
 //! | Revisions and checks | `revision` (60), `waiver` (61) |
 //! | Library documents | `part`, `symbol`, `fndef`, `form`, each a [`LibCopy`] |
 //!
@@ -76,6 +77,7 @@
 
 mod anchor;
 mod asset;
+mod bus;
 mod connect;
 mod device;
 mod error;
@@ -103,6 +105,9 @@ pub use asset::{
     MAX_SVG_EXPANSION, MAX_SVG_MARKER_WORK, MAX_SVG_NODES, MAX_SVG_NUMBER, MAX_SVG_PATH_SEGMENTS,
     MAX_SVG_REF_DEPTH, SvgHazard, base64_decode, base64_encode, company_logo, sha256_mentions, sniff,
     svg_hazard, svg_path_segment_bound, svg_segment_bound,
+};
+pub use bus::{
+    AddrValue, BusMedium, BusPort, BusRate, BusSystem, LogicalNet, NetAddress, OnOff, PhysicalNet, PortRole,
 };
 pub use connect::{
     AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass,

@@ -1132,6 +1132,16 @@
           "const": "order_code",
           "description": "The order code of the device's first assembly config (doc 10 §6 folio 3, doc 20 §11.1, D-36).",
           "type": "string"
+        },
+        {
+          "const": "bus_address",
+          "description": "The station address of the drawn function's bus port, \"Node TBD\" or \"Node 3\" (doc 20 §11.1, FR-BUS-006;\nWP-S1.21 D11); empty for a port without an address.",
+          "type": "string"
+        },
+        {
+          "const": "bus_termination",
+          "description": "The termination of the drawn function's bus port, `Switch to \"ON\"` (FR-BUS-004; WP-S1.21 D11); empty for a\nport without a termination switch.",
+          "type": "string"
         }
       ]
     },

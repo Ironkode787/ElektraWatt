@@ -16,8 +16,8 @@ use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, w
 use crate::value::Endpoint;
 use crate::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    Page, PageItem, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision,
-    SchemaError, Section, StructureBox, StructureNode, Waiver,
+    LogicalNet, Page, PageItem, PhysicalNet, PlcConfigProject, PotentialDef, Project, ReportBlock,
+    Representation, Revision, SchemaError, Section, StructureBox, StructureNode, Waiver,
 };
 
 /// `$k` first, then the record's own members in declaration order.
@@ -123,6 +123,10 @@ pub enum Record {
     Project(Project),
     /// `plc_config_project` (11).
     PlcConfigProject(PlcConfigProject),
+    /// `logical_net` (12).
+    LogicalNet(LogicalNet),
+    /// `physical_net` (13).
+    PhysicalNet(PhysicalNet),
     /// `import_lineage` (15).
     ImportLineage(ImportLineage),
     /// `structure_node` (20).
@@ -178,6 +182,8 @@ impl Record {
         Some(match self {
             Record::Project(_) => Kind::Project,
             Record::PlcConfigProject(_) => Kind::PlcConfigProject,
+            Record::LogicalNet(_) => Kind::LogicalNet,
+            Record::PhysicalNet(_) => Kind::PhysicalNet,
             Record::ImportLineage(_) => Kind::ImportLineage,
             Record::StructureNode(_) => Kind::StructureNode,
             Record::Section(_) => Kind::Section,
@@ -216,6 +222,8 @@ impl Record {
         Some(match self {
             Record::Project(r) => r.id.as_uuid(),
             Record::PlcConfigProject(r) => r.id.as_uuid(),
+            Record::LogicalNet(r) => r.id.as_uuid(),
+            Record::PhysicalNet(r) => r.id.as_uuid(),
             Record::ImportLineage(r) => r.id.as_uuid(),
             Record::StructureNode(r) => r.id.as_uuid(),
             Record::Section(r) => r.id.as_uuid(),
@@ -252,6 +260,8 @@ impl Record {
         match self {
             Record::Project(_)
             | Record::PlcConfigProject(_)
+            | Record::LogicalNet(_)
+            | Record::PhysicalNet(_)
             | Record::ImportLineage(_)
             | Record::StructureNode(_)
             | Record::Section(_)
@@ -322,6 +332,8 @@ impl Serialize for Record {
         match self {
             Record::Project(r) => tagged(Kind::Project, r, serializer),
             Record::PlcConfigProject(r) => tagged(Kind::PlcConfigProject, r, serializer),
+            Record::LogicalNet(r) => tagged(Kind::LogicalNet, r, serializer),
+            Record::PhysicalNet(r) => tagged(Kind::PhysicalNet, r, serializer),
             Record::ImportLineage(r) => tagged(Kind::ImportLineage, r, serializer),
             Record::StructureNode(r) => tagged(Kind::StructureNode, r, serializer),
             Record::Section(r) => tagged(Kind::Section, r, serializer),
@@ -408,6 +420,8 @@ impl Record {
         Ok(match kind {
             Kind::Project => Record::Project(typed(kind, map, |r: &Project| r.v)?),
             Kind::PlcConfigProject => Record::PlcConfigProject(typed(kind, map, |r: &PlcConfigProject| r.v)?),
+            Kind::LogicalNet => Record::LogicalNet(typed(kind, map, |r: &LogicalNet| r.v)?),
+            Kind::PhysicalNet => Record::PhysicalNet(typed(kind, map, |r: &PhysicalNet| r.v)?),
             Kind::ImportLineage => Record::ImportLineage(typed(kind, map, |r: &ImportLineage| r.v)?),
             Kind::StructureNode => Record::StructureNode(typed(kind, map, |r: &StructureNode| r.v)?),
             Kind::Section => Record::Section(typed(kind, map, |r: &Section| r.v)?),

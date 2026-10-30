@@ -250,6 +250,7 @@ pub fn function(function_id: Id<Function>, device: Id<Device>, def: Id<FnDef>, r
         cp_overrides: Default::default(),
         source_ref: None,
         template_entry: None,
+        bus_port: None,
         extra: Extra::new(),
     }
 }
@@ -272,6 +273,7 @@ pub fn ip_function(function_id: Id<Function>, name: &str, direction: IpDirection
         cp_overrides: Default::default(),
         source_ref: None,
         template_entry: None,
+        bus_port: None,
         extra: Extra::new(),
     }
 }

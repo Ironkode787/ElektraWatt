@@ -1422,6 +1422,7 @@ fn insert_function_of_kind(
         cp_overrides: Default::default(),
         source_ref: None,
         template_entry,
+        bus_port: None,
         extra: Extra::new(),
     })
 }

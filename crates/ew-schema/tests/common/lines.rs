@@ -69,6 +69,14 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"channel","id":"@CH_U3_1","module":"@DEV_S51","number":1,"kind":"do","binding":{"cp":["@FN_S51",5]}}"#,
     r#"{"$k":"channel","id":"@CH_U3_1","module":"@DEV_S51","number":0,"designation":"DO 0","kind":"di","address":{"manual":{"area":"i","size":"word","byte":64}},"state":"deactivated","symbol":"TA05_V_15","comment":{"en-GB":"Valve"},"target":"@FN_S51"}"#,
     r#"{"$k":"device_link","id":"@DL_Q1","from":"@DEV_S51","to":"@DEV_G1","kind":"drives"}"#,
+    // the bus model (doc 20 §11.1, doc 10 §2.7; WP-S1.21 D11): the DP nets, the slave port of -201U1 (address `tbd`),
+    // the passive connector port of -3X1 (termination on), a set PROFIBUS address
+    r#"{"$k":"logical_net","id":"@LNET_DP","bus":"profibus_dp","name":"PROFIBUS DP","master":{"cp":["@FN_X1031",0]}}"#,
+    r#"{"$k":"logical_net","id":"@LNET_DP","bus":"profibus_dp","name":"DP2","rate":1500000}"#,
+    r#"{"$k":"physical_net","id":"@PNET_DP","name":"DP","medium":"copper","order_hint":["@FN_S51","@FN_F1"]}"#,
+    r#"{"$k":"function","id":"@FN_F1","device":"@DEV_G1","def":"@FNDEF_MCB","role":"aux","bus_port":{"interface":"DP","bus":"profibus_dp","role":"slave","address":"tbd","logical_net":"@LNET_DP","physical_net":"@PNET_DP"}}"#,
+    r#"{"$k":"function","id":"@FN_S51","device":"@DEV_S51","def":"@FNDEF_MCB","bus_port":{"interface":"DP","bus":"profibus_dp","role":"passive","address":"not_applicable","termination":"on","physical_net":"@PNET_DP"}}"#,
+    r#"{"$k":"function","id":"@FN_S51","device":"@DEV_S51","def":"@FNDEF_MCB","bus_port":{"interface":"DP","port_label":"P1","bus":"profibus_dp","role":"master","address":{"value":{"profibus":2}},"termination":"off"}}"#,
     // potentials and the bond (doc 20 §7.3, §7.4)
     r#"{"$k":"potential_def","id":"@POT_LS","at":{"cp":["@FN_S51",0]},"name":"L-S"}"#,
     r#"{"$k":"potential_def","id":"@POT_24","at":{"cp":["@FN_F2_102",8]},"name":"24VDC-1","ptype":"l_plus","voltage":"24","env":{"ac_dc":"dc","earthing":"pelv"},"circuit_class":"control","props":{"csa":"0.75","colour":["DBU"]}}"#,

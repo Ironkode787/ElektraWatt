@@ -341,6 +341,7 @@ fn function(function_id: Id<Function>, device: Id<Device>, def: Id<FnDef>, role:
         cp_overrides: Default::default(),
         source_ref: None,
         template_entry: None,
+        bus_port: None,
         extra: Extra::new(),
     }
 }
@@ -363,6 +364,7 @@ fn ip_function(function_id: Id<Function>, def: Id<FnDef>, name: &str, direction:
         cp_overrides: Default::default(),
         source_ref: None,
         template_entry: None,
+        bus_port: None,
         extra: Extra::new(),
     }
 }

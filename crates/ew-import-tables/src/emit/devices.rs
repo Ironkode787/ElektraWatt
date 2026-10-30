@@ -627,6 +627,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
                 cp_overrides,
                 source_ref: Some(source_ref("functions", row.key())),
                 template_entry: None,
+                bus_port: None,
                 extra: Default::default(),
             },
             FnInfo {

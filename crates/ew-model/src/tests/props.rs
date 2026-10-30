@@ -596,6 +596,8 @@ fn changed_at(m: &Model, key: &AnyKey) -> Option<Rev> {
         Kind::Conductor => of::<Conductor>(m, key),
         Kind::Channel => of::<ew_schema::Channel>(m, key),
         Kind::DeviceLink => of::<ew_schema::DeviceLink>(m, key),
+        Kind::LogicalNet => of::<ew_schema::LogicalNet>(m, key),
+        Kind::PhysicalNet => of::<ew_schema::PhysicalNet>(m, key),
         Kind::PlcConfigProject => of::<ew_schema::PlcConfigProject>(m, key),
         Kind::Revision => of::<ew_schema::Revision>(m, key),
         Kind::PotentialDef => of::<PotentialDef>(m, key),

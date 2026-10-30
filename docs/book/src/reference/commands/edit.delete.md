@@ -79,6 +79,8 @@ The record kinds a command may name generically (`edit.delete`, `fields.set`).
 | `"plc_config_project"` | `plc_config_project` (WP-S1.21 D6, FT-226). |
 | `"channel"` | `channel` (WP-S1.21 D6, FT-226). |
 | `"device_link"` | `device_link` (WP-S1.21 D6, FT-226). |
+| `"logical_net"` | `logical_net` (WP-S1.21 D11). |
+| `"physical_net"` | `physical_net` (WP-S1.21 D11). |
 
 ## Exit codes
 

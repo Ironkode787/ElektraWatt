@@ -106,9 +106,15 @@ fn pg1_the_catalogue_is_the_expected_one() {
     assert!(field_catalogue("macro").is_none());
     assert!(field_catalogue("manufacturer").is_none());
     assert!(field_catalogue("no_such_kind").is_none());
-    // 23 since `waiver` turned implemented (WP-S1.16 part 5; its members are read-only, the commands
-    // check.waive and check.unwaive write it).
-    assert_eq!(catalogue_kinds().count(), 23);
+    // An implemented kind has one: `waiver` since WP-S1.16 part 5 (its members are read-only, the commands
+    // check.waive and check.unwaive write it), `logical_net` and `physical_net` since WP-S1.21 part 4 (D11). The set
+    // grows, so its total is not pinned (CONTRIBUTING.md).
+    for kind in ["waiver", "logical_net", "physical_net"] {
+        assert!(
+            catalogue_kinds().any(|k| k.name() == kind),
+            "{kind} has a catalogue"
+        );
+    }
 }
 
 #[test]
@@ -201,6 +207,8 @@ fn pg1_the_json_fallbacks_of_settable_paths_are_the_listed_ones() {
         "project settings.numbering",
         "project settings.size_profile",
         "project settings.xref_format",
+        // WP-S1.21 D11: the master of a logical net is an endpoint (a port's CP or an external interruption point).
+        "logical_net master",
         "section folio_range",
         "page scale",
         "device cable.length",
@@ -209,6 +217,8 @@ fn pg1_the_json_fallbacks_of_settable_paths_are_the_listed_ones() {
         "device plc_module.start.output",
         "device tag.scheme",
         "device tech_data[].value",
+        // WP-S1.21 D11: a bus address is `tbd`, `not_applicable` or a value typed per bus system.
+        "function bus_port.address",
         "representation text_slots[].pos",
         "connection kind",
         "connection number",

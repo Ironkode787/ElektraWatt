@@ -18,8 +18,8 @@ use ew_api::{AnyCommand, CmdError, Origin, Recovery, Session, SessionOptions, Su
 use ew_store::StoreOptions;
 
 /// The built packs of AC-21's subset (doc 15 §4): WP-S1.16's EW-CORE, EW-IEC81346 (EW-RDS and EW-NUM), EW-TERM and
-/// EW-POT, and WP-S1.21 part 3's EW-PLC (EF-02 joins the subset).
-const FOUR_PACKS: [&str; 5] = ["EW-CORE", "EW-IEC81346", "EW-TERM", "EW-POT", "EW-PLC"];
+/// EW-POT, WP-S1.21 part 3's EW-PLC (EF-02 joins the subset) and part 4's EW-BUS (EF-03 and EF-16 join it, D12).
+const FOUR_PACKS: [&str; 6] = ["EW-CORE", "EW-IEC81346", "EW-TERM", "EW-POT", "EW-PLC", "EW-BUS"];
 
 /// The findings of the four packs that doc 20 §18.1 does not list, each with the follow-up that removes it (FT-638): the
 /// process valves are supplied by others and exempt once `supply_scope` exists (FT-209, WP-S7.01; decision log ID-322).
@@ -268,7 +268,8 @@ fn w1_waives_ef19_through_the_file_and_only_a_human_can_waive() {
 }
 
 /// P5-4 / D10 (AC-21, built-pack subset): `ew check --scheme pre-delivery` on the W-1 copy of Golden A reports, for the
-/// packs EW-CORE, EW-IEC81346, EW-TERM, EW-POT (EW-CORE-083 and -084 included) and EW-PLC (WP-S1.21 part 3, PA-8), exactly the rows of
+/// packs EW-CORE, EW-IEC81346, EW-TERM, EW-POT (EW-CORE-083 and -084 included), EW-PLC (WP-S1.21 part 3, PA-8) and EW-BUS
+/// (part 4, BU-6), exactly the rows of
 /// `findings_mvp.csv` that are not pending, plus the known excess of FT-638; the pending rows name their packages.
 #[test]
 fn ac21_four_pack_subset_equals_findings_mvp_csv() {
@@ -327,11 +328,9 @@ fn ac21_four_pack_subset_equals_findings_mvp_csv() {
     assert_eq!(
         pending,
         [
-            "EF-03 EW-BUS-001 (WP-S1.21)",
             "EF-05 EW-LAY-001 (WP-S4.01)",
             "EF-13 EW-FL-001 (WP-S1.20)",
             "EF-14 EW-FL-004 (WP-S1.20)",
-            "EF-16 EW-BUS-004 (WP-S1.21)",
         ]
     );
     // The rule system is quiet (EW-CORE-083, -084 run and report nothing).

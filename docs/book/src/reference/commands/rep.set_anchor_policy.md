@@ -145,6 +145,14 @@ One of the following forms:
 
    Shape: `"order_code"`
 
+14. **Form 14**: The station address of the drawn function's bus port, "Node TBD" or "Node 3" (doc 20 §11.1, FR-BUS-006; WP-S1.21 D11); empty for a port without an address.
+
+   Shape: `"bus_address"`
+
+15. **Form 15**: The termination of the drawn function's bus port, `Switch to "ON"` (FR-BUS-004; WP-S1.21 D11); empty for a port without a termination switch.
+
+   Shape: `"bus_termination"`
+
 ### Ident
 
 An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.

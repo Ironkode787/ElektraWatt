@@ -2590,6 +2590,100 @@ def build_plc(device_keys, part_keys, facts):
             links.append({"key": f"{valve}>{tag}", "from": valve, "to": tag, "kind": "drives"})
     register("device_links", ["key", "from", "to", "kind"], links, 8)
 
+
+# ---------------------------------------------------------------------------------------------------------------
+# bus (doc 20 section 11.1; WP-S1.21 D11)
+# ---------------------------------------------------------------------------------------------------------------
+
+BUS_NET_KEY = "DP"  # the key of the logical and of the physical net: the name of the DP potential (section 7.3)
+
+
+def build_bus():
+    """``logical_nets``, ``physical_nets`` and ``bus_ports`` (doc 20 section 11.1; doc 10 section 2.7; WP-S1.21 D11).
+
+    The logical net is PROFIBUS DP with the external partner as its master: the partner is outside the project, so
+    the master is the external interruption point whose external reference names it (connection DP), and no device.
+    The slave port is the DP port of the station (station address ``Tbd``), the plug -3X1 is a passive port with its
+    termination; both ports are on the physical net whose segments ``bus_segments`` derives from the bus
+    connections (section 11.1 "Physical segment")."""
+    items = {r["Item"]: r["Golden A value"] for r in table_dicts("### 11.1 Bus")}
+    lnet = items.get("Logical network", "")
+    m = re.fullmatch(
+        r"(PROFIBUS DP); master = external partner (\S+) in (\+\S+) \(FR-BUS-005\), not in the BOM; data rate"
+        r" unset ▲U-22",
+        lnet,
+    )
+    check(m, f"section 11.1: Logical network cell {lnet!r}")
+    net_name, partner, partner_location = m.group(1), m.group(2), m.group(3)
+    slave = items.get("Slave", "")
+    m = re.fullmatch(r'(-\S+), bus port "(\w+)", station address `?Tbd`? \(EF-03\)', slave)
+    check(m, f"section 11.1: Slave cell {slave!r}")
+    station, interface = m.group(1), m.group(2)
+    segment = items.get("Physical segment", "")
+    m = re.match(
+        r"master first: (\S+) \(external end, termination unknown, EF-16\) → (-\S+) → (-\S+) \(plugged on the port,"
+        r" termination (On|Off)\) → (-\S+):(\w+);",
+        segment,
+    )
+    check(m, f"section 11.1: Physical segment cell {segment!r}")
+    check(m.group(1) == partner, f"section 11.1: the segment starts at {m.group(1)}, the master is {partner}")
+    cable, plug, termination = m.group(2), m.group(3), m.group(4).lower()
+    check((m.group(5), m.group(6)) == (station, interface), f"section 11.1: the segment ends at {m.group(5)}:{m.group(6)}")
+    # the master end: the interruption point whose external reference is the partner's connection DP
+    externals = TABLES["external_refs"][1]
+    ext = [e for e in externals if e["device"] == partner and e["location"] == partner_location
+           and e["connection"] == interface]
+    check(len(ext) == 1, f"section 11.1: {len(ext)} external references of {partner} {interface}, 1 expected")
+    functions = TABLES["functions"][1]
+    ips = [f for f in functions if f.get("kind") == "ip" and f.get("ip_external") == ext[0]["key"]]
+    check(len(ips) == 1, f"section 11.1: {len(ips)} interruption points name {ext[0]['key']}, 1 expected")
+    master = ips[0]["key"]
+    port = next((f["key"] for f in functions if f.get("device") == station and f.get("fndef") == "ew.fn.dp-port"), None)
+    check(port, f"section 11.1: {station} has no function on ew.fn.dp-port")
+    plug_fn = next((f["key"] for f in functions if f.get("device") == plug and f.get("fndef") == "ew.fn.dp-connector"), None)
+    check(plug_fn, f"section 11.1: {plug} has no function on ew.fn.dp-connector")
+    check(any(c["key"] == "DP.1" and c.get("cable") == cable for c in TABLES["connections"][1]),
+          f"section 11.1: the bus connection DP.1 is not on the cable {cable}")
+    register(
+        "logical_nets", ["key", "bus", "name", "master", "rate"],
+        [{"key": BUS_NET_KEY, "bus": "profibus_dp", "name": net_name, "master": master}], 1,
+    )  # fmt: skip
+    fixture(
+        "logical_nets", "master", BUS_NET_KEY, master, "§11.1",
+        "the master is outside the project: the external interruption point whose external reference names it"
+        " (FR-BUS-005; the partner is no device, so it is in no BOM)",
+        marks=[],
+    )  # fmt: skip
+    fixture("logical_nets", "rate", BUS_NET_KEY, "", "§11.1", "the data rate is unset", cell=lnet)
+    register(
+        "physical_nets", ["key", "name", "medium", "order_hint"],
+        [{"key": BUS_NET_KEY, "name": BUS_NET_KEY, "medium": "copper"}], 1,
+    )  # fmt: skip
+    fixture(
+        "physical_nets", ["name", "medium"], BUS_NET_KEY, f"{BUS_NET_KEY}; copper", "§7.3, §10 (-3W1), §11.1",
+        "doc 20 names no physical net: it takes the name of the DP potential; the medium is the copper of the"
+        " PROFIBUS cable -3W1",
+        marks=[],
+    )  # fmt: skip
+    register(
+        "bus_ports",
+        ["key", "interface", "port_label", "bus", "role", "address", "termination", "logical_net", "physical_net"],
+        [
+            {"key": port, "interface": interface, "bus": "profibus_dp", "role": "slave", "address": "tbd",
+             "logical_net": BUS_NET_KEY, "physical_net": BUS_NET_KEY},
+            {"key": plug_fn, "interface": interface, "bus": "profibus_dp", "role": "passive",
+             "address": "not_applicable", "termination": termination, "physical_net": BUS_NET_KEY},
+        ],
+        2,
+    )  # fmt: skip
+    fixture(
+        "bus_ports", ["interface", "role", "address", "logical_net"], plug_fn,
+        f"{interface}; passive; not_applicable; (empty)", "§11.1",
+        "a bus connector is a passive port without an address (doc 10 §2.7) on the physical net only: it is no"
+        " station of the logical net",
+        marks=[],
+    )  # fmt: skip
+
 # ---------------------------------------------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------------------------------------------
@@ -2635,7 +2729,8 @@ def build_all():
         check(f in fkeys, f"section 11.1: the bus connections need the function {f!r}")
     build_plc(set(devices), part_keys, plc_station_facts())
     build_assembly_configs()
-    check(len(TABLES) == 29, f"{len(TABLES)} tables built, 29 expected: {sorted(TABLES)}")
+    build_bus()
+    check(len(TABLES) == 32, f"{len(TABLES)} tables built, 32 expected: {sorted(TABLES)}")
 
 
 def readme_with_block(text, block):

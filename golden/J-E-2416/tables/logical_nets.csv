@@ -1,0 +1,2 @@
+key,bus,name,master,rate
+DP,profibus_dp,PROFIBUS DP,DP@3,

@@ -1,7 +1,7 @@
 ef,rule,severity,count,subjects,targets,defect,pending
 EF-01,EW-POT-013,error,2,S56; T55,"T55 (N-55 → N-55T), S56 (N-55 → N-55S)",D-13,
 EF-02,EW-PLC-012,error,28,=P01+J-E-2416-201U3:1; =P01+J-E-2416-201U3:3; =P01+J-E-2416-201U3:5; =P01+J-E-2416-201U3:7; =P01+J-E-2416-201U4:1; =P01+J-E-2416-201U4:3; =P01+J-E-2416-201U4:5; =P01+J-E-2416-201U4:7; =P01+J-E-2416-201U5:1; =P01+J-E-2416-201U5:3; =P01+J-E-2416-201U5:5; =P01+J-E-2416-201U5:7; =P01+J-E-2416-201U6:1; =P01+J-E-2416-201U6:3; =P01+J-E-2416-201U6:5; =P01+J-E-2416-201U6:7; =P01+J-E-2416-201U7:1; =P01+J-E-2416-201U7:3; =P01+J-E-2416-201U7:5; =P01+J-E-2416-201U7:7; =P01+J-E-2416-201U8:1; =P01+J-E-2416-201U8:3; =P01+J-E-2416-201U8:5; =P01+J-E-2416-201U8:7; =P01+J-E-2416-202U2:1; =P01+J-E-2416-202U2:3; =P01+J-E-2416-202U2:5; =P01+J-E-2416-202U2:7,28 coil bindings Q0.1 … Q6.7 (odd bits),D-26,
-EF-03,EW-BUS-001,error,1,,-201U1 DP station address Tbd,D-15,WP-S1.21
+EF-03,EW-BUS-001,error,1,=P01+J-E-2416-201U1:DP,-201U1 DP station address Tbd,D-15,
 EF-04,EW-CORE-041,warning,2,=P01+J-E-2416-E56; =P01+J-E-2416-S56,"S56, E56",D-04,
 EF-05,EW-LAY-001,error,5,,"F55, E55, E56, S56, -201U9",D-32,WP-S4.01
 EF-06,EW-POT-006,error,1,101.8,W6 (1.5 < 2.5 at 1X1),D-38,
@@ -14,7 +14,7 @@ EF-12,EW-CORE-061,warning,2,cp.small; marker,"styles cp.small, marker",D-31,
 EF-13,EW-FL-001,warning,20,,"20 spare valves, ports 2 and 4",D-28,WP-S1.20
 EF-14,EW-FL-004,info,20,,20 spare valve positions,,WP-S1.20
 EF-15,EW-NUM-001,info,10,=P01+J-E-2416-1X1; =P01+J-E-2416-E55; =P01+J-E-2416-E56; =P01+J-E-2416-F55; =P01+J-E-2416-S51; =P01+J-E-2416-S56; =P01+J-E-2416-T55; =P01+J-E-2416-UC1; =P01+J-E-2416-UC1-plate; =P01+J-E-2416-XPE,"S51, F55, T55, E55, S56, E56, 1X1; the frozen test inputs -XPE, -UC1, -UC1-plate",D-03,
-EF-16,EW-BUS-004,info,1,,external end at JE-N1000-03,D-15,WP-S1.21
+EF-16,EW-BUS-004,info,1,external end DP (+J-E-206 / JE-N1000-03),external end at JE-N1000-03,D-15,
 EF-17,EW-CORE-043,error,4,TBD DIN rail TS 35; TBD End bracket; TBD Plug-in bridge; TBD Wiring duct 40×60,"TBD bridge, end bracket, rail, duct",D-04,
 EF-18,EW-RDS-003,warning,1,=P01+J-E-2416-T55,T55 (T for a temperature switch),D-03,
 EF-19,EW-CORE-041,waived,1,=P01+J-E-2416-XPE,-XPE (waiver W-1),,

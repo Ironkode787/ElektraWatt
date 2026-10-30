@@ -89,7 +89,11 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
         _ => None,
     };
     let file = match record {
-        Record::Project(_) | Record::PlcConfigProject(_) | Record::ImportLineage(_) => FilePath::project(),
+        Record::Project(_)
+        | Record::PlcConfigProject(_)
+        | Record::LogicalNet(_)
+        | Record::PhysicalNet(_)
+        | Record::ImportLineage(_) => FilePath::project(),
         Record::StructureNode(_) | Record::Section(_) | Record::ExternalRef(_) => FilePath::structure(),
         Record::Page(r) => FilePath::page(r.id.cast()),
         Record::Device(r) => FilePath::shard(r.id.cast()),

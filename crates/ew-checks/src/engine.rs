@@ -64,7 +64,7 @@ impl Query for CheckOf {
 
 /// The evaluation scopes of a scope kind in a snapshot, in key order: the project, every drawn page, every
 /// strip, device or cable device, every potential of the partition, every PLC module device, every PLC configuration
-/// project.
+/// project, every logical and every physical bus net.
 pub fn scopes(q: &Q, kind: ScopeKind) -> Vec<Scope> {
     match kind {
         ScopeKind::Project => vec![Scope::Project],
@@ -101,6 +101,16 @@ pub fn scopes(q: &Q, kind: ScopeKind) -> Vec<Scope> {
             .table::<ew_derive::ew_schema::PlcConfigProject>()
             .ids()
             .map(Scope::Cfg)
+            .collect(),
+        ScopeKind::Lnet => q
+            .table::<ew_derive::ew_schema::LogicalNet>()
+            .ids()
+            .map(Scope::Lnet)
+            .collect(),
+        ScopeKind::Pnet => q
+            .table::<ew_derive::ew_schema::PhysicalNet>()
+            .ids()
+            .map(Scope::Pnet)
             .collect(),
     }
 }

@@ -6,7 +6,7 @@ data,24VDC-1,L+,24 V DC,control,DBU,0.75 mm²,4,9,102–106
 data,24VDC-2,L+,24 V DC,control,DBU,0.75 mm²,0,3,"102, 103"
 data,24VDC-3,L+,24 V DC,control,DBU,0.75 mm²,0,3,"102, 103"
 data,24VDC-4,L+,24 V DC,control,DBU,0.75 mm²,0,3,"102, 103"
-data,DP,,,bus,(cable),(cable),0,3,3
+data,DP,,,bus,(cable),(cable),0,4,3
 data,L,L,230 V AC,mains,BK,1.5 mm²,1,3,101
 data,L-1,L,230 V AC,mains,BK,1.5 mm²,0,2,"101, 102"
 data,L-55,L,230 V AC,mains,BK,1.5 mm²,0,3,101

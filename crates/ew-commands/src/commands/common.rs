@@ -113,6 +113,10 @@ pub enum KindName {
     Channel,
     /// `device_link` (WP-S1.21 D6, FT-226).
     DeviceLink,
+    /// `logical_net` (WP-S1.21 D11).
+    LogicalNet,
+    /// `physical_net` (WP-S1.21 D11).
+    PhysicalNet,
 }
 
 impl KindName {
@@ -139,6 +143,8 @@ impl KindName {
             KindName::PlcConfigProject => Kind::PlcConfigProject,
             KindName::Channel => Kind::Channel,
             KindName::DeviceLink => Kind::DeviceLink,
+            KindName::LogicalNet => Kind::LogicalNet,
+            KindName::PhysicalNet => Kind::PhysicalNet,
         }
     }
 }

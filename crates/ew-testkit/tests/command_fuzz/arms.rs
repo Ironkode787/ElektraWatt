@@ -409,6 +409,17 @@ pub const ARMS: &[Arm] = &[
         weight: 3,
         build: valve_add,
     },
+    // WP-S1.21 part 4 (D11): last, so the per-arm seeds of the arms before them stay as they were.
+    Arm {
+        command: "bus.logical_net.create",
+        weight: 1,
+        build: bus_logical_net_create,
+    },
+    Arm {
+        command: "bus.physical_net.create",
+        weight: 1,
+        build: bus_physical_net_create,
+    },
 ];
 
 /// The representation types a page type allows (`allowed_rep_types` of `ew-commands`, in JSON form).
@@ -3998,6 +4009,84 @@ fn plc_config_project_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
                 Step::cmd("plc.config_project.create", p)
                     .accept()
                     .counts(&[(Table::PlcConfigProjects, 1)]),
+            )
+        }
+    }
+}
+
+/// A name no net of `taken` has.
+fn fresh_net_name(taken: &std::collections::BTreeSet<String>, rng: &mut SplitMix64) -> String {
+    let mut name = format!("NET{}", rng.below(10_000));
+    while taken.contains(&name) {
+        name.push('x');
+    }
+    name
+}
+
+fn bus_logical_net_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    const NAME: &str = "bus.logical_net.create";
+    match rng.below(8) {
+        // Refused: a name another logical net has.
+        0 => {
+            let name = rng
+                .pick(&live.lnet_names.iter().cloned().collect::<Vec<_>>())?
+                .to_owned();
+            Some(Step::cmd(NAME, json!({"bus": "profibus_dp", "name": name})).refuse())
+        }
+        // Refused: a rate of 0 bit/s.
+        1 => Some(
+            Step::cmd(
+                NAME,
+                json!({"bus": "profibus_dp", "name": fresh_net_name(&live.lnet_names, rng), "rate": 0}),
+            )
+            .refuse(),
+        ),
+        // Refused: a bus system this build does not know.
+        2 => Some(
+            Step::cmd(
+                NAME,
+                json!({"bus": "sercos", "name": fresh_net_name(&live.lnet_names, rng)}),
+            )
+            .refuse(),
+        ),
+        _ => {
+            let bus = *rng.pick(&["profibus_dp", "profinet", "ethercat", "io_link"])?;
+            let mut p = json!({"bus": bus, "name": fresh_net_name(&live.lnet_names, rng)});
+            if rng.chance(2) {
+                p["rate"] = json!(1_500_000);
+            }
+            Some(Step::cmd(NAME, p).accept().counts(&[(Table::LogicalNets, 1)]))
+        }
+    }
+}
+
+fn bus_physical_net_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    const NAME: &str = "bus.physical_net.create";
+    match rng.below(6) {
+        // Refused: a name another physical net has.
+        0 => {
+            let name = rng
+                .pick(&live.pnet_names.iter().cloned().collect::<Vec<_>>())?
+                .to_owned();
+            Some(Step::cmd(NAME, json!({"name": name, "medium": "copper"})).refuse())
+        }
+        // Refused: a medium this build does not know.
+        1 => Some(
+            Step::cmd(
+                NAME,
+                json!({"name": fresh_net_name(&live.pnet_names, rng), "medium": "radio"}),
+            )
+            .refuse(),
+        ),
+        _ => {
+            let medium = *rng.pick(&["copper", "fibre"])?;
+            Some(
+                Step::cmd(
+                    NAME,
+                    json!({"name": fresh_net_name(&live.pnet_names, rng), "medium": medium}),
+                )
+                .accept()
+                .counts(&[(Table::PhysicalNets, 1)]),
             )
         }
     }

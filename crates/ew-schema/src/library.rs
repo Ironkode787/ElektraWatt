@@ -770,6 +770,12 @@ pub enum SlotKind {
     ContactImage,
     /// The order code of the device's first assembly config (doc 10 §6 folio 3, doc 20 §11.1, D-36).
     OrderCode,
+    /// The station address of the drawn function's bus port, "Node TBD" or "Node 3" (doc 20 §11.1, FR-BUS-006;
+    /// WP-S1.21 D11); empty for a port without an address.
+    BusAddress,
+    /// The termination of the drawn function's bus port, `Switch to "ON"` (FR-BUS-004; WP-S1.21 D11); empty for a
+    /// port without a termination switch.
+    BusTermination,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

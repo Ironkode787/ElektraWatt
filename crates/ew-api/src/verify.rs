@@ -48,6 +48,7 @@ pub const SWEPT: &[&str] = &[
     "bond_index",
     "bond_paths",
     "bond_vias",
+    "bus_segments",
     "channel_addresses",
     "channel_states",
     "channel_targets",
@@ -74,6 +75,7 @@ pub const SWEPT: &[&str] = &[
     "module_order",
     "module_start_of",
     "module_starts",
+    "net_members",
     "page_bindings",
     "page_cp_targets",
     "page_digest",
@@ -130,6 +132,9 @@ struct Keys {
     /// The report blocks; the flag marks a table of contents (its pages are keyed by their count).
     blocks: Vec<(Id<ReportBlock>, bool)>,
     cfgs: Vec<Id<PlcConfigProject>>,
+    /// The logical and physical bus nets (WP-S1.21 D11).
+    lnets: Vec<Id<ew_schema::LogicalNet>>,
+    pnets: Vec<Id<ew_schema::PhysicalNet>>,
     devices: Vec<Id<Device>>,
     functions: Vec<Id<Function>>,
     pages: Vec<Id<Page>>,
@@ -168,6 +173,8 @@ impl Keys {
                 .map(|(id, b)| (id, matches!(b.source, ReportSource::Kind(ReportKind::Toc))))
                 .collect(),
             cfgs: q.table::<PlcConfigProject>().ids().collect(),
+            lnets: q.table::<ew_schema::LogicalNet>().ids().collect(),
+            pnets: q.table::<ew_schema::PhysicalNet>().ids().collect(),
             devices: q.devices().ids().collect(),
             functions: q.functions().ids().collect(),
             pages: q.pages().ids().collect(),
@@ -261,6 +268,9 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::ChannelsByCp>(memo, cold, [()], o);
     check::<ew_derive::ModuleChannelIds>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::SolenoidPositions>(memo, cold, keys.devices.iter().copied(), o);
+    // WP-S1.21 D11: the bus segments and the members of a logical net.
+    check::<ew_derive::BusSegments>(memo, cold, keys.pnets.iter().copied(), o);
+    check::<ew_derive::NetMembersOf>(memo, cold, keys.lnets.iter().copied(), o);
     check::<ew_derive::PlcRows>(memo, cold, keys.devices.iter().copied(), o);
     // WP-S1.21 part 2 (D7): the printed PLC addresses.
     check::<ew_derive::PlcAddressText>(memo, cold, keys.functions.iter().copied(), o);

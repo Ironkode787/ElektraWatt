@@ -21,17 +21,17 @@
       "file": "project.jsonl",
       "kind": "logical_net",
       "rank": 12,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "logical_net.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "project.jsonl",
       "kind": "physical_net",
       "rank": 13,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "physical_net.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "project.jsonl",

@@ -45,6 +45,7 @@ const SUMMARY: &str = "SUMMARY.md";
 const REPO_BLOB: &str = "https://github.com/Ironkode787/ElektraWatt/blob/main/";
 /// Doc 15 (checks): the section of the rule catalogue per pack, with the heading's anchor.
 const PACK_SECTIONS: &[(&str, &str, &str)] = &[
+    ("EW-BUS", "4.5.2 EW-BUS", "452-ew-bus"),
     ("EW-CORE", "4.2 EW-CORE", "42-ew-core"),
     (
         "EW-IEC81346",

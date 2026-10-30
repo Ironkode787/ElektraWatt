@@ -59,6 +59,8 @@ pub const IDS: &[(&str, &str)] = &[
     ("WAIVER_W1", "6c1d0a37-92e4-5f8b-a0d6-3e7b9c2f4a18"),
     ("CH_U3_1", "a3c7e019-4d62-5f8b-9e15-07b2d8c4f6a1"),
     ("DL_Q1", "e8b41d06-2a7c-5935-8f6e-b0d3c95a1e72"),
+    ("LNET_DP", "3c9e1f40-7b25-5d18-a6e4-2f0b8d71c593"),
+    ("PNET_DP", "8a2d5e17-4c60-5b93-9f1e-6d3a0c82b475"),
     ("JN_J5", "d3f8b1a4-7e62-5c09-a4d7-2b9e6f1c0a58"),
     ("JN_J1", "81c6e3d9-4a07-5b5f-9e28-c0f4a7d2b691"),
     ("COND_BN", "6a4d0e83-9f21-5c7b-8e06-d2b5c9a1f374"),

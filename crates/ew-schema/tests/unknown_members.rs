@@ -211,9 +211,11 @@ fn run(texts: &[(String, bool)], tally: &mut Tally) {
 /// five `kind` variants and two graphic `shape`s); WP-S1.19 part 1 three multi-language texts (the macro's `name`
 /// and `description`, a part fixture's `description`). The survivor floor was raised to the 298 objects counted
 /// then, so the new part, manufacturer, macro and macro-instance objects stay extensible. The waiver line (WP-S1.16
-/// part 5) adds one multi-language `reason`; its record and target objects keep unknown members.
+/// part 5) adds one multi-language `reason`; its record and target objects keep unknown members. The bus lines
+/// (WP-S1.21 part 4) add three enum wrappers (a logical net's `master` endpoint, a port's `address` value and its
+/// `profibus` form); their ports and nets keep unknown members.
 const MIN_SURVIVORS: usize = 300;
-const MAX_REJECTED: usize = 95;
+const MAX_REJECTED: usize = 98;
 
 fn examples() -> Vec<(String, bool)> {
     let mut all: Vec<(String, bool)> = DOC05_LINES.iter().map(|l| (fill(l), false)).collect();

@@ -249,7 +249,14 @@ fn mutated_golden_tables_never_panic() {
     const MUTATIONS_PER_TABLE: usize = 60;
     const SEED: u64 = 0xC5F0_7A11_0B5E_ED01;
     let golden = common::golden_inputs();
-    assert_eq!(golden.len(), 29, "the golden project has 29 tables");
+    // The set of golden tables grows (the bus tables of WP-S1.21 D11 are the latest), so its total is not pinned
+    // (CONTRIBUTING.md); the newest tables are mutated too.
+    for table in ["logical_nets.csv", "physical_nets.csv", "bus_ports.csv"] {
+        assert!(
+            golden.iter().any(|i| i.name() == table),
+            "{table} is a golden table"
+        );
+    }
     let importer = TablesImporter::new(common::library());
     let ctx = common::context();
     std::thread::scope(|scope| {

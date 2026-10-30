@@ -373,6 +373,16 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         let id = b.page(&map.apply(p))?;
         map.insert(p.id, id);
     }
+    // 2b. The bus nets (WP-S1.21 D11), before the functions whose ports name them; their masters and member orders
+    // name functions and follow in step 7.
+    for x in of!(PhysicalNet) {
+        let id = b.physical_net(&map.apply(x))?;
+        map.insert(x.id, id);
+    }
+    for x in of!(LogicalNet) {
+        let id = b.logical_net(&map.apply(x))?;
+        map.insert(x.id, id);
+    }
 
     // 3. Devices, terminals, cables.
     let functions: Vec<&Function> = of!(Function).collect();
@@ -770,6 +780,25 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         let id = b.device_link(&map.apply(x))?;
         map.insert(x.id, id);
     }
+    // 7b. The masters and member orders of the bus nets, now that every function is built.
+    for x in of!(LogicalNet) {
+        let (Some(id), Some(master)) = (map.get(x.id), map.apply(x).master) else {
+            continue;
+        };
+        b.logical_net_master(id, &master)?;
+    }
+    for x in of!(PhysicalNet) {
+        let Some(id) = map.get(x.id) else { continue };
+        let mapped = map.apply(x);
+        if !mapped.order_hint.is_empty() {
+            b.set(
+                "physical_net",
+                &[id.cast()],
+                "order_hint",
+                serde_json::json!(mapped.order_hint),
+            )?;
+        }
+    }
 
     // 8. Revisions (FT-165), after the pages their notes name.
     for x in of!(Revision) {
@@ -785,6 +814,8 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             Some(
                 Kind::Channel
                 | Kind::DeviceLink
+                | Kind::LogicalNet
+                | Kind::PhysicalNet
                 | Kind::PlcConfigProject
                 | Kind::StructureNode
                 | Kind::Section

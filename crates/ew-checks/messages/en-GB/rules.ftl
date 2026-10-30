@@ -190,6 +190,25 @@ rule-ew-plc-015 = { $subject }: the { $what ->
     .title = Tbd address
     .hint = Enter the address before release.
 
+## EW-BUS: bus networks
+
+rule-ew-bus-001 = { $form ->
+        [duplicate] { $ports }: station address { $address } is used more than once in logical net { $net }; give each port its own address
+       *[tbd] { $port }: the station address is TBD; enter it before release
+    }
+    .title = Bus address missing or duplicate
+    .hint = Enter a station address that is unique in the logical net before release.
+
+rule-ew-bus-004 = { $port }: { $form ->
+        [external] the termination at the external end is unknown; check that the partner terminates the segment
+        [missing] no terminating element at this segment end; terminate the segment here
+        [end] the termination is off at the segment end; switch it on
+        [middle] the termination is on inside the segment; switch it off
+       *[unknown] the termination state is of a newer format; check it
+    }
+    .title = Termination
+    .hint = Switch the termination on at both ends of the segment and off everywhere between them.
+
 ## EW-POT: potentials
 
 rule-ew-pot-001 = { $conflicts }{ $more ->

@@ -124,6 +124,8 @@ macro_rules! by_kind {
             Kind::PotentialDef => $f::<PotentialDef>($($arg),*),
             Kind::Bond => $f::<Bond>($($arg),*),
             Kind::DeviceLink => $f::<ew_schema::DeviceLink>($($arg),*),
+            Kind::LogicalNet => $f::<ew_schema::LogicalNet>($($arg),*),
+            Kind::PhysicalNet => $f::<ew_schema::PhysicalNet>($($arg),*),
             Kind::PageItem => $f::<PageItem>($($arg),*),
             Kind::StructureBox => $f::<StructureBox>($($arg),*),
             Kind::ReportBlock => $f::<ReportBlock>($($arg),*),
@@ -479,7 +481,7 @@ mod tests {
     const ABSENT: u128 = 0xdead;
 
     /// The kinds with a table, in the order of the `by_kind!` macro.
-    const TABLE_KINDS: [Kind; 23] = [
+    const TABLE_KINDS: [Kind; 25] = [
         Kind::PlcConfigProject,
         Kind::ImportLineage,
         Kind::StructureNode,
@@ -496,6 +498,8 @@ mod tests {
         Kind::PotentialDef,
         Kind::Bond,
         Kind::DeviceLink,
+        Kind::LogicalNet,
+        Kind::PhysicalNet,
         Kind::ReportBlock,
         Kind::Revision,
         Kind::Waiver,

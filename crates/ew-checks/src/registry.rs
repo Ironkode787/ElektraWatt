@@ -9,6 +9,8 @@ use crate::rules as shipped;
 
 /// Every shipped rule implementation, in rule-ID order.
 static RULES: &[&dyn Rule] = &[
+    &shipped::bus::BusAddress,
+    &shipped::bus::Termination,
     &shipped::device::DanglingReference,
     &shipped::page::FolioOutsideSection,
     &shipped::page::FolioCollision,
@@ -99,6 +101,7 @@ mod tests {
         ("TERM", "EW-TERM", 0),
         ("POT", "EW-POT", 0),
         ("PLC", "EW-PLC", 0),
+        ("BUS", "EW-BUS", 0),
         ("RDS", "EW-IEC81346", 0),
         ("NUM", "EW-IEC81346", 100),
         ("CORE", "EW-CORE", 0),
@@ -123,6 +126,7 @@ mod tests {
             "TERM" => "001",
             "POT" => "005",
             "PLC" => "110",
+            "BUS" => "111",
             "RDS" | "NUM" => "017",
             "CORE" => core_class(n),
             "REL" => "190",

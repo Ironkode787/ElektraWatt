@@ -16,8 +16,8 @@ use crate::kind::{FORMAT, Kind, KindStatus};
 use crate::library::{FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, SymbolDef};
 use crate::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    Page, PageItem, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section,
-    StructureBox, StructureNode, Waiver,
+    LogicalNet, Page, PageItem, PhysicalNet, PlcConfigProject, PotentialDef, Project, ReportBlock,
+    Representation, Revision, Section, StructureBox, StructureNode, Waiver,
 };
 
 /// The schema of `T`, titled and tagged as `kind`.
@@ -57,6 +57,8 @@ pub fn kind_schema(kind: Kind) -> Option<Value> {
     Some(match kind {
         Kind::Project => generate::<Project>(kind),
         Kind::PlcConfigProject => generate::<PlcConfigProject>(kind),
+        Kind::LogicalNet => generate::<LogicalNet>(kind),
+        Kind::PhysicalNet => generate::<PhysicalNet>(kind),
         Kind::ImportLineage => generate::<ImportLineage>(kind),
         Kind::StructureNode => generate::<StructureNode>(kind),
         Kind::Section => generate::<Section>(kind),

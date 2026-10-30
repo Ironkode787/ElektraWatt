@@ -126,7 +126,7 @@ fn the_command_log_replays_and_every_step_undoes() {
     // definitions (`part.function_template[].fndef`): the `LibRef` keep-alive is the delete-time rule
     // EW-INV-021, which undo skips, so the state before the embedding (a `LibRef` to an item the project
     // does not embed names nothing) is restored.
-    assert_eq!((steps, built.script.len()), (600, 609), "undo steps, commands");
+    assert_eq!((steps, built.script.len()), (605, 614), "undo steps, commands");
     assert_eq!(
         last.as_deref(),
         Some("library.embed"),
@@ -330,8 +330,9 @@ fn path_b_equals_path_a_record_by_record_up_to_ids() {
         .collect();
     assert_eq!(
         commands.join(", "),
-        "assembly.attach: 2, bond.create: 1, box.black: 11, cable.create: 3, connection.draw: 87, \
-         device.create: 37, device.link: 8, device.place: 76, external_ref.create: 4, fields.set: 204, \
+        "assembly.attach: 2, bond.create: 1, box.black: 11, bus.logical_net.create: 1, \
+         bus.physical_net.create: 1, cable.create: 3, connection.draw: 87, \
+         device.create: 37, device.link: 8, device.place: 76, external_ref.create: 4, fields.set: 207, \
          ip.place: 48, junction.edit: 6, library.embed: 1, page.create: 13, plc.bind_channel: 28, \
          plc.config_project.create: 1, potential.define: 19, project.settings.set: 3, \
          project.supply.set: 1, report_block.create: 15, revision.create: 2, section.create: 3, \

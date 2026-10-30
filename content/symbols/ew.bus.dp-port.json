@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "7543ab74-b0cc-5044-bf17-49dcb800dcd0",
   "version": "0.1.0",
-  "sha256": "sha256:56fdf56780e32e8c5265e7bda43b1acf6c06f423b36c961fcd2fd1ce11d0ed93",
+  "sha256": "sha256:664362eadb273799903303af3319f18790297f7d419abc78a437d9215c659092",
   "meta": {
     "key": "ew.bus.dp-port",
     "licence": "CC-BY-SA-4.0",
@@ -165,6 +165,15 @@
       ],
       "align": "middle_left",
       "visible": true
+    },
+    {
+      "kind": "bus_address",
+      "pos": [
+        14000000,
+        14000000
+      ],
+      "align": "middle_left",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -177,7 +186,8 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ]
     },
     {
