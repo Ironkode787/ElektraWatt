@@ -329,12 +329,27 @@ fn gpp_folio_102_wiring_survives_both_new_id_orders() {
         actions.extend(styles.iter().cloned());
         actions.extend(steps(&[("file.save", json!({})), ("file.close", json!({}))]));
         let parsed = script::parse(&support::script_text(&actions)).unwrap();
+        // The activations at each split point: a split per member past the second; the ones before them are bends of
+        // the junction's first wire (a split point further than its CP's stub, `wiring_steps`).
+        let at_point = |i: usize, point: (i64, i64)| {
+            let (x, y) = map.mm(point);
+            parsed[i].action == "canvas.activate"
+                && i > 0
+                && parsed[i - 1].action == "cursor.set"
+                && parsed[i - 1].params == json!({"x_mm": x, "y_mm": y})
+        };
+        let mut bends: Vec<usize> = points
+            .iter()
+            .zip(&golden_far)
+            .map(|(point, far)| (0..parsed.len()).filter(|i| at_point(*i, *point)).count() - (far.len() - 2))
+            .collect();
         let mut split_checks = 0;
         for (i, step) in parsed.iter().enumerate() {
-            if step.action == "canvas.activate" && i > 0 && parsed[i - 1].action == "cursor.set" {
-                for (point, far) in points.iter().zip(&golden_far) {
-                    let (x, y) = map.mm(*point);
-                    if parsed[i - 1].params == json!({"x_mm": x, "y_mm": y}) {
+            for (k, (point, far)) in points.iter().zip(&golden_far).enumerate() {
+                if at_point(i, *point) {
+                    if bends[k] > 0 {
+                        bends[k] -= 1;
+                    } else {
                         assert_unique_split_target(&shell, *point, far, name);
                         split_checks += 1;
                     }

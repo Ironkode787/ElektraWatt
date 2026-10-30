@@ -86,15 +86,35 @@
 //!   when another representation's text is there or it finds no free place. At one-column spacing a contact's back-reference so moves below the neighbour contact's
 //!   tag. (3) A horizontal technical-data text follows rule 2 against other representations' texts only (cycle 37: a
 //!   valve's "24 V" ran into the next valve's tag); within one symbol its author's layout stands. Printed text order
-//!   and every other position are unchanged.
+//!   and every other position are unchanged. The rules run after "Black-box captions" and "Device tags" below and
+//!   see those texts where they ended.
+//! - **Black-box captions** (FT-734). A black box's tag, part-number and manufacturer texts without a position or
+//!   angle override, printing horizontally, stack outward from the box's top edge in that order, each
+//!   [`SLOT_TEXT_GAP`] above the one before, the tag's anchor [`BLACK_BOX_CAPTION_GAP`] above the outline. Without a
+//!   CP on the top edge they are left-aligned on the outline's left edge (the tag where the symbol puts it); else
+//!   right-aligned one grid step left of the leftmost top CP, so no caption text stands over a CP, its pin text or
+//!   its wire. A text with an override stays where it says.
+//! - **Device tags** (FT-758). A device tag of a symbol that is no black box, without a position or angle override
+//!   and printing horizontally, moves when a wire runs through it, or when it collides (as in rule 2 above) with a
+//!   fixed text of another representation (a black-box caption, a CP designation, a pin text) or with the tag of a
+//!   representation printed before it. It takes the first free place of: turned to read bottom to top on its side of
+//!   the symbol; mirrored about the symbol's vertical axis; mirrored and turned; raised above what is in its way;
+//!   dropped below it. A place is free when no wire runs through it, it overlaps no other text of its own symbol and
+//!   collides with no text or pin text of another representation (a movable tag printed later yields in its own
+//!   turn). A raise or drop goes [`SLOT_TEXT_GAP`] past the texts and horizontal wires in the way, at most three
+//!   times, and stays within one tag height of the symbol's top or bottom. Without a free place the
+//!   tag stays (at two grid steps' spacing the neighbours leave none).
 //! - **Pin texts** (WP-S1.21 D7). A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
 //!   (drawn as in "Black boxes") in style `data.small`, inside the outline, [`PIN_TEXT_GAP`] from the pin along its
 //!   inward normal: a pin leaving up or down reads bottom to top (90°), its end towards the pin (aligned middle right
-//!   below a pin leaving up, middle left above a pin leaving down); a pin leaving left or right reads horizontally,
-//!   its start towards the pin (middle left right of a pin leaving left, middle right left of a pin leaving right).
-//!   They print after the slot texts and never move; in the slot-text collision rules they are fixed obstacles of
-//!   the cross-reference texts (FT-707): a cross-reference text that overlaps one drops below it as below a text of
-//!   its own symbol (rule 2). An entry without its box CP, or a pin of an unknown direction, prints nothing.
+//!   below a pin leaving up, middle left above a pin leaving down), but a text of signs only ("+", "−", no letter or
+//!   digit, FT-758: a turned "−" read as a tick) reads horizontally, centred on the pin at the same gap (aligned top
+//!   centre below a pin leaving up, bottom centre above a pin leaving down); a pin leaving left or right reads
+//!   horizontally, its start towards the pin (middle left right of a pin leaving left, middle right left of a pin
+//!   leaving right). They print after the slot texts and never move; in the slot-text collision rules they are fixed
+//!   obstacles of the cross-reference texts (FT-707): a cross-reference text that overlaps one drops below it as
+//!   below a text of its own symbol (rule 2); a device tag yields to one ("Device tags"). An entry without its box
+//!   CP, or a pin of an unknown direction, prints nothing.
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome): the caller's marker text, centred in style
 //!   `marker` on the midpoint of the polyline's longest segment (the first of equal ones), turned 90° on a
 //!   vertical segment, over the marker symbol in the same orientation. Provisional, like the routes.
@@ -933,6 +953,7 @@ impl Builder<'_> {
             let Some(def) = &rv.symbol else { continue };
             let rep = &rv.rep;
             let entity = EntityRef(rep.id.as_uuid());
+            let black_box = def.cps.is_empty() && rep.box_.is_some();
             let arrangement: Option<BTreeSet<u16>> = rep.arrangement.as_ref().and_then(|name| {
                 def.arrangements
                     .iter()
@@ -958,6 +979,7 @@ impl Builder<'_> {
                     continue;
                 }
                 let moved = ov.and_then(|o| o.pos).is_some();
+                let turned = ov.and_then(|o| o.angle).is_some();
                 let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
                 let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
                 let (style_key, unknown) = symbol::slot_style_key(slot, self.styles);
@@ -972,9 +994,14 @@ impl Builder<'_> {
                     entity,
                     xref: matches!(slot.kind, SlotKind::Xref) && !moved,
                     data: matches!(slot.kind, SlotKind::TechData) && !moved,
+                    caption: caption_rank(&slot.kind).filter(|_| black_box && !moved && !turned),
+                    tag: matches!(slot.kind, SlotKind::Tag),
+                    movable_tag: matches!(slot.kind, SlotKind::Tag) && !black_box && !moved && !turned,
+                    designation: matches!(slot.kind, SlotKind::CpDesignation(_)),
                 });
             }
         }
+        self.place_black_box_captions(view, &mut texts);
         let pins = pin_texts(view);
         // FT-707: the pin texts never move; they are fixed obstacles of the cross-reference texts.
         let pin_boxes: Vec<(EntityRef, Rect)> = pins
@@ -993,6 +1020,7 @@ impl Builder<'_> {
                 self.text_box(&spec, false).map(|b| (*entity, b))
             })
             .collect();
+        self.place_tags(view, &mut texts, &pin_boxes);
         self.place_slot_texts(&mut texts, &pin_boxes);
         for t in &texts {
             if let Some(name) = t.unknown {
@@ -1028,6 +1056,245 @@ impl Builder<'_> {
         self.connection_markers(view);
         // The free texts, wire-marker groups and structure-box captions (WP-S2.04 part 4a).
         self.item_labels(view);
+    }
+
+    /// The caption of each black box (FT-734, module documentation, "Black-box captions"): its tag, part-number and
+    /// manufacturer texts, each without a position or angle override and printing horizontally, stacked outward from
+    /// the box's top edge in that order, [`SLOT_TEXT_GAP`] apart, the tag's anchor [`BLACK_BOX_CAPTION_GAP`] above
+    /// the outline. Left-aligned on the outline's left edge when the top edge has no CP; else right-aligned one grid
+    /// step left of the leftmost top CP, so that no caption text stands over a CP, its pin text or its wire.
+    fn place_black_box_captions(&self, view: &PageView, texts: &mut [SlotText<'_>]) {
+        let step = view.grid.at(1).unwrap_or(Nm::ZERO);
+        for rv in sorted_reps(view) {
+            let rep = &rv.rep;
+            let (Some(def), Some(b)) = (&rv.symbol, &rep.box_) else {
+                continue;
+            };
+            if !def.cps.is_empty() {
+                continue;
+            }
+            let entity = EntityRef(rep.id.as_uuid());
+            let mut lines: Vec<(u8, usize)> = texts
+                .iter()
+                .enumerate()
+                .filter(|(_, t)| t.entity == entity && t.angle == Angle2::ZERO)
+                .filter_map(|(i, t)| t.caption.map(|r| (r, i)))
+                .collect();
+            if lines.is_empty() {
+                continue;
+            }
+            lines.sort_unstable();
+            let corners: Vec<Pt2> = b.outline.iter().map(|p| rep.pos + rep.orient.apply(*p)).collect();
+            let (Some(left), Some(top)) = (
+                corners.iter().map(|p| p.x).min(),
+                corners.iter().map(|p| p.y).min(),
+            ) else {
+                continue;
+            };
+            let first_top_cp = b
+                .cps
+                .iter()
+                .filter(|cp| symbol::transform_dir(&cp.dir, rep.orient) == Dir4::Up)
+                .map(|cp| (rep.pos + rep.orient.apply(cp.pos)).x)
+                .min();
+            let (x, align) = match first_top_cp {
+                Some(cx) => (cx - step, Align::BottomRight),
+                None => (left, Align::BottomLeft),
+            };
+            // The first line's anchor; each further line's box ends `SLOT_TEXT_GAP` above the previous one's.
+            let mut anchor = top - BLACK_BOX_CAPTION_GAP;
+            let mut above: Option<Nm> = None;
+            for (_, i) in lines {
+                texts[i].align = align.clone();
+                texts[i].at = Pt2::new(x, anchor);
+                let Some(bx) = self.text_box(&texts[i].spec(false), false) else {
+                    continue;
+                };
+                if let Some(limit) = above {
+                    let dy = Nm(limit.0 - SLOT_TEXT_GAP.0 - bx.max().y.0);
+                    texts[i].at = Pt2::new(x, anchor + dy);
+                    above = Some(bx.min().y + dy);
+                } else {
+                    above = Some(bx.min().y);
+                }
+                anchor = texts[i].at.y;
+            }
+        }
+    }
+
+    /// The tag rule (FT-758, module documentation, "Device tags"): a movable device tag that a wire runs through, or
+    /// that collides with a fixed text of another representation (a black box's caption or pin text, a CP
+    /// designation) or with the tag of a representation printed before it, takes the first free place of: turned to
+    /// read bottom to top on its side of its symbol; mirrored to the other side; mirrored and turned; raised above
+    /// what is in its way; dropped below it. A place is free when no wire runs through it, it overlaps no other text
+    /// of its own symbol and collides with no other representation's text or pin text (a movable tag printed later
+    /// does not count: it yields in its turn). A raise or drop goes [`SLOT_TEXT_GAP`] past the texts and horizontal
+    /// wires in the way, at most [`SLOT_TEXT_DROPS`] times, and keeps within one tag height of its symbol's top or
+    /// bottom; another wire in the way ends it. Without a free place the tag stays.
+    fn place_tags(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
+        if !texts.iter().any(|t| t.movable_tag) {
+            return;
+        }
+        let cps = cp_map(view);
+        let page = page_rect(view);
+        let mut wires: Vec<(Pt2, Pt2)> = Vec::new();
+        for cv in sorted_connections(view) {
+            if let Some(pts) = polyline_of(view, &cps, &cv.connection, page) {
+                wires.extend(pts.windows(2).map(|w| (w[0], w[1])));
+            }
+        }
+        let mut boxes: Vec<Option<Rect>> = texts
+            .iter()
+            .map(|t| self.text_box(&t.spec(false), t.xref))
+            .collect();
+        let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
+        let movable: Vec<bool> = texts
+            .iter()
+            .map(|t| t.movable_tag && t.angle == Angle2::ZERO)
+            .collect();
+        for i in 0..texts.len() {
+            let Some(own) = boxes[i] else { continue };
+            if !movable[i] {
+                continue;
+            }
+            let entity = entities[i];
+            // Where it stands it yields to the fixed texts (captions, pins, CP designations) and to tags printed
+            // before it.
+            let yields = boxes.iter().enumerate().any(|(k, b)| {
+                k != i
+                    && entities[k] != entity
+                    && (texts[k].caption.is_some() || texts[k].designation || (texts[k].tag && k < i))
+                    && b.is_some_and(|b| collides(own, b))
+            }) || pins.iter().any(|(e, b)| *e != entity && collides(own, *b))
+                || wires.iter().any(|w| wire_through(own, *w));
+            if !yields {
+                continue;
+            }
+            // What is in the way of a place `b`: the vertical extent of each text and horizontal wire there; `None`
+            // when another wire runs through it. Empty: the place is free.
+            let in_way = |b: Rect, boxes: &[Option<Rect>]| -> Option<Vec<(Nm, Nm)>> {
+                let mut out: Vec<(Nm, Nm)> = Vec::new();
+                for (k, o) in boxes.iter().enumerate() {
+                    // A movable tag printed later yields to this one in its turn.
+                    if k == i || (k > i && movable[k]) {
+                        continue;
+                    }
+                    let Some(o) = *o else { continue };
+                    let hit = if entities[k] == entity {
+                        overlaps(b, o)
+                    } else {
+                        collides(b, o)
+                    };
+                    if hit {
+                        out.push((o.min().y, o.max().y));
+                    }
+                }
+                for (e, o) in pins {
+                    let hit = if *e == entity {
+                        overlaps(b, *o)
+                    } else {
+                        collides(b, *o)
+                    };
+                    if hit {
+                        out.push((o.min().y, o.max().y));
+                    }
+                }
+                for &(a, c) in &wires {
+                    if wire_through(b, (a, c)) {
+                        if a.y != c.y {
+                            return None;
+                        }
+                        out.push((a.y, a.y));
+                    }
+                }
+                Some(out)
+            };
+            let free = |b: Rect, boxes: &[Option<Rect>]| in_way(b, boxes).is_some_and(|v| v.is_empty());
+            let Some(rv) = view.reps.iter().find(|r| EntityRef(r.rep.id.as_uuid()) == entity) else {
+                continue;
+            };
+            let Some(def) = &rv.symbol else { continue };
+            let bounds = symbol::lower(def, rv.rep.orient).bounds;
+            // Twice the x of the symbol's vertical axis, and the band a raised or dropped tag keeps within.
+            let axis2 = Nm(2 * rv.rep.pos.x.0 + bounds.min().x.0 + bounds.max().x.0);
+            let height = own.max().y - own.min().y;
+            let band = (
+                rv.rep.pos.y + bounds.min().y - height,
+                rv.rep.pos.y + bounds.max().y + height,
+            );
+            let at = texts[i].at;
+            let (angle, align) = (texts[i].angle, texts[i].align.clone());
+            let mirror_at = Pt2::new(axis2 - at.x, at.y);
+            let mirror_align = mirrored_align(&align);
+            let mut places: Vec<(Pt2, Angle2, Align)> = Vec::new();
+            if let Some(a) = turned_align(&align) {
+                places.push((at, TURNED, a));
+            }
+            places.push((mirror_at, Angle2::ZERO, mirror_align.clone()));
+            if let Some(a) = turned_align(&mirror_align) {
+                places.push((mirror_at, TURNED, a));
+            }
+            let mut found: Option<(Pt2, Angle2, Align, Rect)> = None;
+            for (to, angle, align) in places {
+                texts[i].at = to;
+                texts[i].angle = angle;
+                texts[i].align = align.clone();
+                if let Some(b) = self
+                    .text_box(&texts[i].spec(false), false)
+                    .filter(|b| free(*b, &boxes))
+                {
+                    found = Some((to, angle, align, b));
+                    break;
+                }
+            }
+            // Raised above, then dropped below, what is in its way.
+            for up in [true, false] {
+                if found.is_some() {
+                    break;
+                }
+                let mut b = own;
+                for _ in 0..SLOT_TEXT_DROPS {
+                    let Some(way) = in_way(b, &boxes) else { break };
+                    let dy = if up {
+                        let Some(top) = way.iter().map(|w| w.0).min() else {
+                            break;
+                        };
+                        Nm(top.0 - SLOT_TEXT_GAP.0 - b.max().y.0)
+                    } else {
+                        let Some(bottom) = way.iter().map(|w| w.1).max() else {
+                            break;
+                        };
+                        Nm(bottom.0 + SLOT_TEXT_GAP.0 - b.min().y.0)
+                    };
+                    b = Rect::from_points(
+                        Pt2::new(b.min().x, b.min().y + dy),
+                        Pt2::new(b.max().x, b.max().y + dy),
+                    );
+                    if b.max().y <= band.0 || b.min().y >= band.1 {
+                        break;
+                    }
+                    if free(b, &boxes) {
+                        let to = at + Pt2::new(Nm::ZERO, b.min().y - own.min().y);
+                        found = Some((to, angle, align.clone(), b));
+                        break;
+                    }
+                }
+            }
+            let t = &mut texts[i];
+            match found {
+                Some((to, angle, align, b)) => {
+                    t.at = to;
+                    t.angle = angle;
+                    t.align = align;
+                    boxes[i] = Some(b);
+                }
+                None => {
+                    t.at = at;
+                    t.angle = angle;
+                    t.align = align;
+                }
+            }
+        }
     }
 
     /// The placement rules of the slot texts (FT-687, module documentation, "Slot text collisions"): a
@@ -1341,7 +1608,11 @@ fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
             }
             let at = rep.pos + rep.orient.apply(cp.pos);
             let g = PIN_TEXT_GAP;
+            // FT-758: a text of signs only ("+", "−") reads the same upright, and turned a minus would read as a tick.
+            let signs = !pin.text.chars().any(char::is_alphanumeric);
             let (offset, angle, align) = match symbol::transform_dir(&cp.dir, rep.orient) {
+                Dir4::Up if signs => (Pt2::new(Nm::ZERO, g), Angle2::ZERO, Align::TopCentre),
+                Dir4::Down if signs => (Pt2::new(Nm::ZERO, Nm(-g.0)), Angle2::ZERO, Align::BottomCentre),
                 Dir4::Up => (Pt2::new(Nm::ZERO, g), Angle2(90_000), Align::MiddleRight),
                 Dir4::Down => (Pt2::new(Nm::ZERO, Nm(-g.0)), Angle2(90_000), Align::MiddleLeft),
                 Dir4::Left => (Pt2::new(g, Nm::ZERO), Angle2::ZERO, Align::MiddleLeft),
@@ -1359,6 +1630,10 @@ fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
     }
     out
 }
+
+/// How far a black box's caption stands above its outline (FT-734): the black-box symbol's own tag-slot offset, a
+/// quarter of a QET grid step (0.661 mm).
+pub const BLACK_BOX_CAPTION_GAP: Nm = Nm(661_458);
 
 /// The gap a dropped cross-reference text keeps below the text it moved away from (FT-687): 0.5 mm.
 pub const SLOT_TEXT_GAP: Nm = Nm(500_000);
@@ -1383,6 +1658,69 @@ struct SlotText<'v> {
     /// A technical-data slot at the symbol's own position (no position override): it drops like a cross-reference
     /// when it collides with another representation's text (cycle 37: a valve's "24 V" ran into the next tag).
     data: bool,
+    /// A black box's caption line at the symbol's own position and angle (no override): its place in the caption
+    /// stack ([`caption_rank`], FT-734).
+    caption: Option<u8>,
+    /// A device-tag slot.
+    tag: bool,
+    /// A device tag the tag rule may move (FT-758): not a black box's, without a position or angle override.
+    movable_tag: bool,
+    /// A CP designation slot: a fixed text the tag rule yields to.
+    designation: bool,
+}
+
+/// `align` mirrored left to right.
+fn mirrored_align(align: &Align) -> Align {
+    match align {
+        Align::TopLeft => Align::TopRight,
+        Align::TopRight => Align::TopLeft,
+        Align::MiddleLeft => Align::MiddleRight,
+        Align::MiddleRight => Align::MiddleLeft,
+        Align::BottomLeft => Align::BottomRight,
+        Align::BottomRight => Align::BottomLeft,
+        other => other.clone(),
+    }
+}
+
+/// The angle of a turned device tag (FT-758): it reads bottom to top.
+const TURNED: Angle2 = Angle2(90_000);
+
+/// The alignment of a horizontal tag aligned `align` once turned to read bottom to top on the same side of its symbol
+/// (FT-758): a tag that ends towards its symbol on the left (middle right) keeps its right edge there (its descent
+/// side, bottom centre), one that starts towards it on the right (middle left) its left edge (top centre); `None` for
+/// any other alignment.
+fn turned_align(align: &Align) -> Option<Align> {
+    match align {
+        Align::MiddleRight => Some(Align::BottomCentre),
+        Align::MiddleLeft => Some(Align::TopCentre),
+        _ => None,
+    }
+}
+
+/// Whether a wire segment `(a, b)` meets the open inside of `r` (FT-758).
+fn wire_through(r: Rect, (a, b): (Pt2, Pt2)) -> bool {
+    let (x0, x1) = (a.x.min(b.x), a.x.max(b.x));
+    let (y0, y1) = (a.y.min(b.y), a.y.max(b.y));
+    // A degenerate extent along an axis meets the open interval at a point inside it; a run by an overlap.
+    let meets = |lo: Nm, hi: Nm, rlo: Nm, rhi: Nm| {
+        if lo == hi {
+            rlo < lo && lo < rhi
+        } else {
+            lo < rhi && rlo < hi
+        }
+    };
+    meets(x0, x1, r.min().x, r.max().x) && meets(y0, y1, r.min().y, r.max().y)
+}
+
+/// The place of a black box's caption text in its stack, counted from the box outward (FT-734): the tag, the part
+/// number, the manufacturer; `None` for any other slot kind.
+fn caption_rank(kind: &SlotKind) -> Option<u8> {
+    match kind {
+        SlotKind::Tag => Some(0),
+        SlotKind::PartNumber => Some(1),
+        SlotKind::Manufacturer => Some(2),
+        _ => None,
+    }
 }
 
 impl SlotText<'_> {

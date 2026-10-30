@@ -606,9 +606,6 @@ pub fn wiring_steps_with(
             "every member of a golden junction ends at a CP"
         );
         let (f0, f1) = (far[0], far[1]);
-        enter(&mut steps, at(f0));
-        enter(&mut steps, at(f1));
-        commits += 1;
         // Distinct receiving lanes isolate the common downward supply bank from
         // earlier wires. Other junctions retain their original marker geometry.
         let use_receiving = folio == 102 && f0.dir == Some(Dir::Down);
@@ -640,6 +637,14 @@ pub fn wiring_steps_with(
             }
             distance += 1;
         };
+        // The first wire; a split point further than the stub is a bend of it (the bank's wires come in at the
+        // router's choice of corridor, cycle 39: the black boxes' captions are obstacles), so the wire runs there.
+        enter(&mut steps, at(f0));
+        if distance > 1 {
+            enter(&mut steps, stub);
+        }
+        enter(&mut steps, at(f1));
+        commits += 1;
         points.push(stub);
         for f in &far[2..] {
             enter(&mut steps, at(f));

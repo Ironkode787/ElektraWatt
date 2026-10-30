@@ -10,7 +10,7 @@
 //! | [`FrameLayer`] | [`Layer::Frame`] | `page_frame`, `page_bindings` (`title_block(page)`, the date format) |
 //! | [`SymbolsLayer`] | [`Layer::Symbols`] | `page_reps`, `page_cp_targets`, `assembly_break_marks`, `page_grid` (the pen of the break marks and graphics), the page items and structure boxes without texts |
 //! | [`WiresLayer`] | [`Layer::Wires`] | `page_reps`, `page_connections`, `page_junctions`, `page_grid`, `page_frame` (the page rectangle) |
-//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_frame`, the page items with texts and the structure boxes with captions |
+//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption, FT-734), `page_frame`, the page items with texts and the structure boxes with captions |
 //! | [`TablesLayer`] | [`Layer::Tables`] | `page_frame` (the sheet map), `page_table` or `page_embedded` |
 //!
 //! The other layers (revision marks, highlights, the panel layers) are drawn by no rule of `ew-scene` yet and are
@@ -141,6 +141,7 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
         Layer::Labels => {
             let p = drawn?;
             v.frame = bare_frame(q, page);
+            v.grid = page_grid(q, page);
             v.reps = reps_with_slots(q, p);
             v.connections = (*q.get::<PageConnectionsOf>(p)).clone();
             v.junctions = (*q.get::<PageJunctionsOf>(p)).clone();
