@@ -635,8 +635,8 @@ kind: `task.toml`, `acceptance.toml`, `check-brief`, `report connections|pages|p
 about 40 inputs, blessed `ci = pr`; (11) targeted checks.
 
 **De-scope order** (a projected overrun above 20 % at the lane's midpoint): `look --zoom` (then the reading probe decides
-whether frames must grow), `--stateless` for visual runs, the `--theme` and `--density` options, the replay on macOS and
-Linux (Windows only); the lane reports which left.
+whether frames must grow), `--stateless` for visual runs, the `--theme` and `--density` options, the replay on Linux
+(Windows only; macOS is not supported, ID-880); the lane reports which left.
 
 *As built (cycle 34).* Part 4 was built in cycle 34 by one Opus lane (P34) in nine commits, in the build-list order:
 the renderer move, FT-570's clocks, the dispatch log, the driver, the binary's flags, the dialogs' folder and the
@@ -674,7 +674,7 @@ through `ew-api`; no new package).
 | **Token cost per run** | About 2,000 image tokens per frame; a brief run of 100 to 150 turns with looks reads 150 to 250 frames (0.3 to 0.5 M image tokens fresh), and the agent's growing context multiplies the total; not measured (owner's rule) | Caps (§4.2); one frame per batch of up to 12 inputs; looks capped per turn; the prompt tells the tester the newest frame is the only one it needs; the calibration round records the cost and the orchestrator sets the round caps from it |
 | **Image size** | 80 to 200 KB per frame, tens of MB per run | Frames never committed; hashes only; `replay --frames` regenerates them |
 | **Flaky renders** | WARP or driver updates shift pixels; a frame differs between hosts | Replay decides on the dispatch log (R1v), frames are R4, a report; one host class (Windows) paints for live runs and readers |
-| **Layout differs across OSes** | R1v differs on Linux or macOS for the same inputs | Detected by BV4 and BV11; the de-scope keeps the visual replay on Windows only |
+| **Layout differs across OSes** | R1v differs on Linux for the same inputs | Detected by BV4 and BV11; the de-scope keeps the visual replay on Windows only |
 | **Misreading small text** | The tester reads `-1O1F1` for `-101F1` or clicks a neighbour; findings blame the product wrongly | 1.2 scale and the zoom; BV13's probe; U4 separates product causes (size, contrast) from the agent's vision by re-reading the zoom frame |
 | **Wall-clock leaks** | A timer in `ew-ui` that is not on the frame clock makes a replay diverge | BV4's check over the frame path; FT-570 closed by part 4 |
 | **Dialogs answered for the tester** | The system file dialogs' usability is untested | Out of scope by design; the window's reaction is in |

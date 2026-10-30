@@ -1,6 +1,6 @@
 # Reports, forms and page output
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-24, cycle-24 design pass: which renderers draw the logo, §2.6, decision log ID-605; amended 2026-10-23, cycle-23 design pass: `report_block.create` with `form_copies` and the wizard's golden layout in §2.2, the logo reference in §2.6, decision log ID-572, ID-573, ID-576; amended 2026-10-22, cycle-22 design pass: the stored frame defaults, the notice member and the frame fall-through rule as built, §2.6, §2.7, decision log ID-545, ID-547; amended 2026-10-22, cycle-19 design pass: the shell's PDF export as built, §4.3, decision log ID-485; amended 2026-10-22, cycle-20 design pass: the export still synchronous after WP-S2.01 part 2, §4.3, ID-504) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-30: no macOS print adapter, CI exports on Windows and Linux, macOS is not a supported platform (decision log ID-880); amended 2026-10-24, cycle-24 design pass: which renderers draw the logo, §2.6, decision log ID-605; amended 2026-10-23, cycle-23 design pass: `report_block.create` with `form_copies` and the wizard's golden layout in §2.2, the logo reference in §2.6, decision log ID-572, ID-573, ID-576; amended 2026-10-22, cycle-22 design pass: the stored frame defaults, the notice member and the frame fall-through rule as built, §2.6, §2.7, decision log ID-545, ID-547; amended 2026-10-22, cycle-19 design pass: the shell's PDF export as built, §4.3, decision log ID-485; amended 2026-10-22, cycle-20 design pass: the export still synchronous after WP-S2.01 part 2, §4.3, ID-504) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -811,7 +811,7 @@ profile, font files by hash). Rules:
    by one face stays one run (ADR-0015 amendment 8, decision log ID-239).
 6. **Images** are passed through or re-encoded with fixed encoder settings.
 
-GUI and CLI call the same exporter. CI exports Golden A on Windows, macOS and Linux and in a display-less Linux
+GUI and CLI call the same exporter. CI exports Golden A on Windows and Linux and in a display-less Linux
 container (NFR-PLAT-04) and compares SHA-256 for PDF, SVG, XLSX and CSV (FR-OUT-019, FR-OUT-022) and PNGs within
 the dify tolerance (§4.4); veraPDF validates PDF/A-2b; hayro rasterises the PDF for the ±0.2 mm frame check
 (ARCH §13).
@@ -863,14 +863,13 @@ link:
 | Platform | Adapter | Notes |
 |---|---|---|
 | Linux | xdg-desktop-portal Print (ashpd 0.13.13): `PreparePrint`, then `Print` with the PDF descriptor; CUPS fallback | Works in Flatpak |
-| macOS | PDFKit: `PDFDocument` + `printOperation(for:scalingMode:autoRotate:)` (objc2-pdf-kit 0.3.2) | native panel with preview |
 | Windows | `PrintDlgEx` (windows 0.62.2) → HDC; the **same display lists** that produced the PDF rendered by vello_cpu in bands at printer DPI | a 600 dpi A3 band of 256 lines is 7–10 MB RGBA |
 | All | "open in the system PDF viewer" fallback | — |
 
 - **Ranges** by pages, sections or folio list ("101-106" prints the drawn folios 101, 102, 103 and 106).
 - **Scale-to-fit** stamps the factor in the margin of the print PDF only: an A3 sheet on A4 carries "scaled 71 %"
   (FR-OUT-017). Monochrome follows §4.2.
-- **Print preview** renders the print PDF's display lists in the app; macOS uses its native preview.
+- **Print preview** renders the print PDF's display lists in the app. There is no macOS adapter: macOS is not a supported platform (decision log ID-880).
 - `ew print --pages 101-106 --printer <name>` uses the same adapters without a dialog (FR-EXT-009).
 
 ### 4.6 XLSX and CSV

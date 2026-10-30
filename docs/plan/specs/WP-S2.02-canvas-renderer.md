@@ -576,7 +576,7 @@ on temporary copies of Golden A with `EW_CONFIG_DIR` set to a temporary director
 
 *Manual check of part 2 (A15's form, by the lane on Windows, reported and not gated):* the canvas with the status bar
 `GPU DX12` and with `--no-gpu` (`CPU`) is identical at fit, at 283 % and after a pan; no lock was left behind. The
-Linux and macOS looks, a real device loss, exit 3 on a host without an adapter, the MSAA resolve on GL hardware and
+Linux look (macOS is not supported, ID-880), a real device loss, exit 3 on a host without an adapter, the MSAA resolve on GL hardware and
 `--no-gpu` choosing llvmpipe are manual-only and stay an owner item (ID-544).
 
 The workspace suite, the acceptance runner and the performance runs are not run by the lanes (testing policy); the

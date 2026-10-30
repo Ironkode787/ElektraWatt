@@ -878,7 +878,7 @@ second lane to integrate rebases on the first. Read-only for the lanes: every cr
 
 | Out of scope | Where it goes |
 |---|---|
-| Muda global menus on macOS and Windows | FT-310 |
+| Muda menus on Windows (the macOS part withdrawn by decision log ID-880) | FT-310 |
 | KeyTips, command-bar customisation, keymap editor | WP-S2.08, 1.x |
 | The full 300 % pass of every dialog, the minimum-font-size setting, the pseudo-locale | WP-S2.08 |
 | Page thumbnails in the Pages navigator | FT-492 (WP-S2.14) |

@@ -1,6 +1,6 @@
 # ADR-0015: One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20, 2026-10-22 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20, 2026-10-22, 2026-10-30 (no macOS print adapter, decision log ID-880) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -56,7 +56,8 @@ flowchart LR
    (PDF/UA-1). **No optional-content layers in v1.**
 6. **Other outputs.** An own SVG writer; DXF (AC1015, layer mapping) via dxf 0.6.2; PNG via vello_cpu.
 7. **Printing.** PDF is the print master. Small per-OS adapters hand it to the OS: the xdg Print portal or CUPS on
-   Linux, PDFKit on macOS, `PrintDlgEx` with banded vello_cpu rendering on Windows. Scale-to-fit stamps the scale;
+   Linux, `PrintDlgEx` with banded vello_cpu rendering on Windows (no macOS adapter: macOS is not supported, decision
+   log ID-880). Scale-to-fit stamps the scale;
    folio ranges and monochrome mode are supported; `ew print` prints from the CLI.
 
 **Scope by release.** MVP: the wgpu canvas with the CPU fallback, PDF/A-2b with outline, links, named destinations,

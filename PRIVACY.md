@@ -53,7 +53,7 @@ AI or translation service.
 The design (doc 18, section 12.2) is that continuous integration runs the application and the command line in a
 network namespace with only loopback up and fails the build on any socket, DNS lookup or listening port outside the
 list above. With the update check opted in, a second run against a local mock server asserts the exact request.
-Windows and macOS are observed by hand for each minor release with outbound firewall logging. The sandbox job
+Windows and Linux are observed by hand for each minor release with outbound firewall logging. The sandbox job
 is being built; until it runs on every change, "no network connection of its own" is a design rule that the code
 follows (the code has no network client of its own), not yet a proven one.
 

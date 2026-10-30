@@ -1336,7 +1336,7 @@ step.
 | QET `.qet` (FR-EXP-010) | `version="0.100.0"`; UUID conductor ends; EW symbols converted to embedded definitions; xref formula `%F-%l%c`; EW-only fields (process tag, channel, potential names) as folio `<properties>`; every lossy item listed in an export report | 1.x Could |
 | EPLAN-importable XML (FR-EXP-011) | not designed in v1 | Later |
 | Personal-data stripping (FR-EXP-009) | §2.2 | 1.0 |
-| Determinism (FR-EXP-006) | §2.2; CI compares SHA-256 of CSV, XLSX, AML, PLCopen, glTF and `.ewpp` of the golden project on Windows, macOS and Linux | MVP |
+| Determinism (FR-EXP-006) | §2.2; CI compares SHA-256 of CSV, XLSX, AML, PLCopen, glTF and `.ewpp` of the golden project on Windows and Linux | MVP |
 
 ---
 

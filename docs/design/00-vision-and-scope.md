@@ -1,6 +1,6 @@
 # ElektraWatt vision and scope
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: the QET project import spike, §9.1; cycle 14: product principle PR-13, §8; the 1.0 month of the plan of record, §9) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-10-30: Windows and Linux only, macOS is not a supported platform (decision log ID-880), the vision, §3, §5, K-4; cycle 11: the QET project import spike, §9.1; cycle 14: product principle PR-13, §8; the 1.0 month of the plan of record, §9) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document states why ElektraWatt (EW) exists, who it is for, what it must achieve and what it
 deliberately leaves out. It fixes the release targets (MVP, 1.0, 1.x, Later) per capability area, so that the
@@ -69,7 +69,7 @@ contact with one rule (EW-POT-013, [architecture](04-architecture.md) §14).
 
 > **ElektraWatt lets an engineer describe a control cabinet once, as a typed and checked engineering model, and
 > derives every drawing, list, machine file, PLC exchange file and 3D layout from it. The outputs are consistent by
-> construction, the project is an open text format the user owns, and the tool runs offline on Windows, macOS and
+> construction, the project is an open text format the user owns, and the tool runs offline on Windows and
 > Linux, with every feature in one free edition.**
 
 In concrete terms: renaming folio 103 to 104 updates about 25 tags, every cross-reference into 103, the TOC, the
@@ -95,7 +95,7 @@ anything else printed, because nothing printed is stored as a copy.
 ### 3.2 Measurable success criteria
 
 Performance figures are the G6 budgets adopted by ADR-0022 ([gaps](../research/gaps-and-corrections.md) G6), on
-the baseline machine (4-core 2018+ x64 or Apple M1, 8 GB RAM, integrated GPU).
+the baseline machine (4-core 2018+ x64, 8 GB RAM, integrated GPU).
 
 | ID | Criterion and target | Release | Measured by |
 |---|---|---|---|
@@ -238,7 +238,7 @@ EPLAN restructured its portfolio in 2026; Electric P8 now has four tiers
 | API extensions | Premium | CLI and rhai formulas MVP, read-only `ew mcp` MVP (Could); rhai automation and ask-first MCP writes 1.0; WASM plugins and Python 1.x |
 | Data Portal (> 2 million device data sets, about 500 manufacturers) | All tiers | No equivalent (see below) |
 | AI assistant (Copilot, Platform 2027) | Platform | MCP for a user-chosen agent; nothing bundled |
-| Linux, macOS | Not available | Supported |
+| Linux | Not available | Supported (macOS is not supported, ID-880) |
 
 **The Data Portal is EPLAN's moat**, with company macros, OEM-mandated EPLAN deliverables, 30+ mature report
 types, the Rittal/Komax machine chain and a large trained user base
@@ -272,7 +272,7 @@ Consequences for EW:
 |---|---|
 | Open, git-diffable format | JSONL directory, UUID identity, JSON Schemas, permissive reader crates, semantic merge and diff (ADR-0010, ADR-0012) |
 | No tiers, page limits or dongles | Every feature in one edition |
-| Every desktop OS | Windows, macOS, Linux; GPU-less fallback for RDP/VDI |
+| Windows and Linux | Windows, Linux (macOS is not supported, ID-880); GPU-less fallback for RDP/VDI |
 | Correct by construction, gated in CI | Derived outputs, prevent rules, `ew check` exit codes, jobsets |
 | Reports and rules without Rust | Read-only SQL projection (`api_v1_*`, ADR-0017), beyond EPLAN's predefined report types |
 | Scripting and AI without a licence | CLI, rhai, MCP, later WASM and Python, all on one command path |
@@ -398,7 +398,7 @@ the requirement rows carry the source "EPLAN feature inventory; scope-boundary d
 | K-1 | **Team:** 2–4 developers plus AI assistance. The spine runs as two lanes (core, output); its effort is in [architecture](04-architecture.md) §15.1, its calendar in the [global plan](../plan/01-global-plan.md) |
 | K-2 | **Rust:** core and application in Rust. FFI only where justified: OCCT in an out-of-process STEP worker, bundled SQLite |
 | K-3 | **Licences** (ADR-0024): application GPL-3.0-or-later with a plugin exception (wording pending, ADR-0025); a closed permissive layer; QET-derived code only in `ew-import-qet`; QET elements not merged into EW libraries |
-| K-4 | **Platforms** (ADR-0022): Windows 10 22H2+ and 11 x64, macOS on Apple silicon (Intel best effort), Ubuntu 22.04+ and Debian 12+; GPU-less operation through DX12 WARP or the CPU renderer |
+| K-4 | **Platforms** (ADR-0022): Windows 10 22H2+ and 11 x64, Ubuntu 22.04+ and Debian 12+ (macOS is not supported, decision log ID-880); GPU-less operation through DX12 WARP or the CPU renderer |
 | K-5 | **Third-party data:** no Data Portal content shipped; EDZ import user-initiated, part data only, no macro geometry; ECLASS content not redistributed; licensed standard texts and threshold tables never shipped |
 | K-6 | **Regulation:** CRA reporting obligations apply since 2026-09-11 and the rest from 2027-12-11; EW stays non-monetised with an open-source steward (ADR-0030, proposed); Machinery Regulation retention drives 10-year readability |
 | K-7 | **Public repository:** no customer, end-user, project or person identifiers from the reference set in any committed file |

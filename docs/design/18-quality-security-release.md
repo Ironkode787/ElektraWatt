@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · Amended 2026-10-29, cycle 34: the counts after WP-S2.07 part 1 (58 commands, 268 actions, 357 words). · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2; amended 2026-10-22, cycle-19 design pass: the scan's gaps and the sites at the integration tip in §3.5, the shell's UI tests in §3.11, the CI time after cycle 18 and the Windows cut in §3.14, the headless mode for the blind drafter in §3.17, CI-PR-02 to CI-PR-04 and CI-N-12 in §5.2, the UI crates' `rust-version` in §6.2; amended 2026-10-22, cycle 20 lane C: the supply-chain bullets of §5.4 (audit imports, version-keyed build scripts, the manifest advisory hold, x11-dl and reproducible builds) and the cargo-vet and build-script rows of §10; amended 2026-10-22, cycle-20 lane B: the cargo-fuzz crate, the deep nightly and ASan as built in §3.6, §3.12 and §5.2; amended 2026-10-22, cycle-20 design pass: the ODR justification in §3.6, the fuzz crate's PR check, deny job and NCSA exception in §3.12 and §5.4, FT-330 applied in §3.14, CI-PR-01, CI-PR-08 and CI-N-02 with the proptest budget in §5.2, the exemption count at the integration tip in §5.4 and §10; decision log ID-494 to ID-500; amended 2026-10-22, cycle-21 design pass: the canvas bench families in §4.2, the owner's ruling on performance runs and the bench-failure rule in §4.3, the canvas bench in §4.7, decision log ID-512, ID-518, ID-520; amended 2026-10-22, cycle-22 design pass: a test's program boundary in §3.5, the `renderer` words, the `HumanOnly` refusal and the WP-S2.03 vocabulary in §3.17, the CI time after cycles 20 and 21 in §3.14, the GPU bench families and `EW_REQUIRE_GPU_ADAPTER` in §4.2, FT-353 as built, the adapter in the test jobs, the required-check names and the golden change list in §5.2, the lyon exemptions and the count of 387 in §5.4, the first `fuzz-smoke` finding in §3.12; decision log ID-537, ID-540, ID-542, ID-543, ID-546, ID-548, ID-549, ID-551, ID-552; amended 2026-10-23, cycle-23 design pass: the viewer's headless actions and the transcript's `navigator` member in §3.17, the viewer's kittest flows in §3.11, the tile-count rule in §3.14, the CI time with the split proven, the two CI hotfixes and their lessons and the first Linux B2 proof in §3.14 and §5.2, the SVG row TM-18 in §11.1, `PRIVACY.md`, the stored-data table and the lock row in §12.1; decision log ID-556, ID-557, ID-559, ID-560, ID-576, ID-579 to ID-582; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2's headless actions, transcript members and vocabulary in §3.17, the CI time of the cycle-23 delivery in §3.14, usvg's six audits in §5.4, TM-18 as built and hardened in §11.1; decision log ID-586, ID-588, ID-605, ID-606; amended 2026-10-24, cycle-25 design pass: WP-S6.13 specified in §3.17 (the harness, the gate run kind, `page.describe`, `--keep-going`, the pinned reference files); decision log ID-610 to ID-619, the fix round ID-621 to ID-624; the editing tools and the property grid for the drafter, the vocabulary test over real output, 192 words and 145 actions, the alias grammar, §3.17, decision log ID-625, ID-626, ID-628, ID-630; three Windows partitions and the cycle-24 delivery chain, §3.14, §5.2, decision log ID-627; cycle-26 design pass 2026-10-24: FT-387 closed with the partition by time and the measured chain of 20:24, `test-macos` at 30:04, §3.14, §5.2; the wiring tools and find and replace for the drafter, 227 words and 167 actions, §3.17; the regex family, the raster crates and the exemption count, §5.4; the raster threat row TM-19, §11.1; decision log ID-633 to ID-638; amended 2026-10-25, cycle-27 design pass: the fuzzer sample's undo origin, §3.6; the cycle-26 delivery run and the re-balanced Windows partitions, §3.14, §5.2; 252 words and 188 actions at the integration tip, §3.17; decision log ID-644, ID-649, ID-652; amended in cycle 28, lane B: TM-18 and TM-19 as built after FT-418 and FT-436, §11.1; amended 2026-10-27, cycle-29 design pass: `test-macos` split into two parallel jobs, §5.2, decision log ID-672; amended 2026-10-28, cycle-30 design pass: FT-479's causes and changes and FT-438 measured, §5.2, decision log ID-706; TM-18 bounded (FT-470, FT-471, the path-segment caps), §11.1, decision log ID-708; the blind help v4, §3.17, decision log ID-703, ID-714) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · Amended 2026-10-30: macOS is not a supported platform, so the CI catalogue, runners, packaging, signing, updates, the manual tests and the release scope drop it; CI-PR-04 removed (decision log ID-880). · Amended 2026-10-29, cycle 34: the counts after WP-S2.07 part 1 (58 commands, 268 actions, 357 words). · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2; amended 2026-10-22, cycle-19 design pass: the scan's gaps and the sites at the integration tip in §3.5, the shell's UI tests in §3.11, the CI time after cycle 18 and the Windows cut in §3.14, the headless mode for the blind drafter in §3.17, CI-PR-02 to CI-PR-04 and CI-N-12 in §5.2, the UI crates' `rust-version` in §6.2; amended 2026-10-22, cycle 20 lane C: the supply-chain bullets of §5.4 (audit imports, version-keyed build scripts, the manifest advisory hold, x11-dl and reproducible builds) and the cargo-vet and build-script rows of §10; amended 2026-10-22, cycle-20 lane B: the cargo-fuzz crate, the deep nightly and ASan as built in §3.6, §3.12 and §5.2; amended 2026-10-22, cycle-20 design pass: the ODR justification in §3.6, the fuzz crate's PR check, deny job and NCSA exception in §3.12 and §5.4, FT-330 applied in §3.14, CI-PR-01, CI-PR-08 and CI-N-02 with the proptest budget in §5.2, the exemption count at the integration tip in §5.4 and §10; decision log ID-494 to ID-500; amended 2026-10-22, cycle-21 design pass: the canvas bench families in §4.2, the owner's ruling on performance runs and the bench-failure rule in §4.3, the canvas bench in §4.7, decision log ID-512, ID-518, ID-520; amended 2026-10-22, cycle-22 design pass: a test's program boundary in §3.5, the `renderer` words, the `HumanOnly` refusal and the WP-S2.03 vocabulary in §3.17, the CI time after cycles 20 and 21 in §3.14, the GPU bench families and `EW_REQUIRE_GPU_ADAPTER` in §4.2, FT-353 as built, the adapter in the test jobs, the required-check names and the golden change list in §5.2, the lyon exemptions and the count of 387 in §5.4, the first `fuzz-smoke` finding in §3.12; decision log ID-537, ID-540, ID-542, ID-543, ID-546, ID-548, ID-549, ID-551, ID-552; amended 2026-10-23, cycle-23 design pass: the viewer's headless actions and the transcript's `navigator` member in §3.17, the viewer's kittest flows in §3.11, the tile-count rule in §3.14, the CI time with the split proven, the two CI hotfixes and their lessons and the first Linux B2 proof in §3.14 and §5.2, the SVG row TM-18 in §11.1, `PRIVACY.md`, the stored-data table and the lock row in §12.1; decision log ID-556, ID-557, ID-559, ID-560, ID-576, ID-579 to ID-582; amended 2026-10-24, cycle-24 design pass: WP-S2.03 part 2's headless actions, transcript members and vocabulary in §3.17, the CI time of the cycle-23 delivery in §3.14, usvg's six audits in §5.4, TM-18 as built and hardened in §11.1; decision log ID-586, ID-588, ID-605, ID-606; amended 2026-10-24, cycle-25 design pass: WP-S6.13 specified in §3.17 (the harness, the gate run kind, `page.describe`, `--keep-going`, the pinned reference files); decision log ID-610 to ID-619, the fix round ID-621 to ID-624; the editing tools and the property grid for the drafter, the vocabulary test over real output, 192 words and 145 actions, the alias grammar, §3.17, decision log ID-625, ID-626, ID-628, ID-630; three Windows partitions and the cycle-24 delivery chain, §3.14, §5.2, decision log ID-627; cycle-26 design pass 2026-10-24: FT-387 closed with the partition by time and the measured chain of 20:24, `test-macos` at 30:04, §3.14, §5.2; the wiring tools and find and replace for the drafter, 227 words and 167 actions, §3.17; the regex family, the raster crates and the exemption count, §5.4; the raster threat row TM-19, §11.1; decision log ID-633 to ID-638; amended 2026-10-25, cycle-27 design pass: the fuzzer sample's undo origin, §3.6; the cycle-26 delivery run and the re-balanced Windows partitions, §3.14, §5.2; 252 words and 188 actions at the integration tip, §3.17; decision log ID-644, ID-649, ID-652; amended in cycle 28, lane B: TM-18 and TM-19 as built after FT-418 and FT-436, §11.1; amended 2026-10-27, cycle-29 design pass: `test-macos` split into two parallel jobs, §5.2, decision log ID-672; amended 2026-10-28, cycle-30 design pass: FT-479's causes and changes and FT-438 measured, §5.2, decision log ID-706; TM-18 bounded (FT-470, FT-471, the path-segment caps), §11.1, decision log ID-708; the blind help v4, §3.17, decision log ID-703, ID-714) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -193,7 +193,7 @@ after Session::commit(tx) in oracle mode:
 |---|---|---|---|
 | Record order | The loader permutes lines within each file and the file order (seeded) | JSONL after save, findings, PDF/SVG/CSV digests | PR |
 | Threads and spawn order | `RAYON_NUM_THREADS` = 1, 2 and 8; job submission order shuffled | Export digests, routing (1.0), `.ewpp` (1.0) | PR |
-| Platform | Same commit on Windows, macOS and Linux | SHA-256 of GP PDF, SVG, CSV, XLSX, JSONL and `.ewpp`; PNG within the dify tolerance (09 OQ 12; this relaxes the PNG part of NFR-REL-07 and FR-OUT-014, open question 9) | N; release gate (AC-14, FR-OUT-019) |
+| Platform | Same commit on Windows and Linux | SHA-256 of GP PDF, SVG, CSV, XLSX, JSONL and `.ewpp`; PNG within the dify tolerance (09 OQ 12; this relaxes the PNG part of NFR-REL-07 and FR-OUT-014, open question 9) | N; release gate (AC-14, FR-OUT-019) |
 | Locale, time zone | `LC_ALL` en_US, nl_NL, de_DE, tr_TR; `TZ` UTC−10 and UTC+14 | File and PDF digests | N |
 | Wall clock | Two runs with the clock faked 24 h apart; `SOURCE_DATE_EPOCH` unset | Output digests | PR |
 | Build-time data | Every CI and release build asserts that `ICU4X_DATA_DIR` is unset: the build scripts of the ICU4X data crates read it, and other segmentation data would change line breaks and so every text layout (decision log ID-52). Every release build of `elektrawatt` also asserts `PKG_CONFIG=false` and no target-specific `PKG_CONFIG_*` variable, so x11-dl's build script bakes no build-host library directory into the binary (§5.4; FT-333) | The assertion itself | PR; release (CI-R-03) |
@@ -977,7 +977,7 @@ allow site of the environment lint (§3.5).
 - **Cold benchmarks.** Cold-start and cold-open runs drop the page cache through a privileged helper.
 - **GPU-less.** BM-noGPU fps is measured on the same machine with the adapter hidden, forcing the CPU renderer. WARP
   fps runs on the Windows hosted job as an informational value.
-- **Hosted runners.** Windows and macOS hosted runners record weekly informational timings. They never gate,
+- **Hosted runners.** Windows hosted runners record weekly informational timings. They never gate,
   because their noise exceeds 15 %.
 - **Statistics.** Medians and p99 follow 02c §1.4. Gesture sequences are scripted, replayed through the `Session`
   API and timed with `tracing` spans.
@@ -1040,7 +1040,7 @@ A change in these counts is a reviewed snapshot change, never a silent one.
 
 ### 4.6 Memory gate
 
-- **Peak RSS.** Read from the OS: `VmHWM` on the Linux runner, `PeakWorkingSetSize` on Windows, `task_info` on macOS.
+- **Peak RSS.** Read from the OS: `VmHWM` on the Linux runner, `PeakWorkingSetSize` on Windows.
   It is measured after open, warm-up, full check and PDF export.
 - **Family budgets.** Memo bytes per query family come from `ew-memo` statistics. At XL the gate enforces memos
   ≤ 300 MB, undo ≤ 256 MB and the projection ≤ 500 MB file-backed (NFR-PERF-13).
@@ -1053,9 +1053,9 @@ A change in these counts is a reviewed snapshot change, never a silent one.
 - **Benchmarks.** The `spike` and `cold_ops` benches of `ew-testkit`, full mode, run from their executables. The nightly run measures class S only (owner ruling, cycle 16): the class M baseline does not exist yet and M takes over an hour; M runs on a manual dispatch (`classes: S,M`) until its baseline exists. The gate parses the `bench …` lines (median, p99, the memo counters of the engine statistics of §4.5, as counts per family of the last commit) and the `memory:` lines.
 - **Decision.** A committed baseline (`ci/perf-baseline.toml`, class S only for now, from a developer machine: medians in ms, memory estimates, peak RSS, the threshold of 15 %, a noise floor of 0.05 ms for medians and of 16 MiB for the peak RSS only, 0 for the memory estimates and entry counts, which are deterministic (§4.4; ID-413), the runner, the mode and the provenance: fixture generator version, commit, toolchain and date; a run with another generator version is not compared) instead of the median of the last 7 green nightly values: a value more than 15 % above its baseline and above the noise floor is a regression; the same test applies to the memory estimates and the peak RSS. The unit test `a_seeded_slowdown_of_twenty_percent_turns_the_gate_red_and_ten_percent_does_not` seeds the slowdown into parsed bench output (`open.session_from_records`, multiplied by 1.2 and by 1.1) and asserts that the comparison turns red at 20 % and stays green at 10 %. The seeded slowdown of §4.4, which slows `potential_partition` inside a running gate and asserts that the whole gate turns red, is not built.
 - **Report-only.** The hosted runner never gates (§4.3). `EW_PERF_ASSERT` (or `--enforce`) is the one switch that makes a regression a failing exit status; the nightly job does not set it. A baseline from another runner (`EW_PERF_RUNNER`, else `hosted:<os>-<arch>`), from the quick mode or with another generator version is reported as not comparable and never enforced. Under enforcement a baseline value that the run did not measure fails the gate (a removed family: re-bless); values new in the run never do; both are listed in the report. A bench that does not run (build failure, non-zero exit, unreadable output) is recorded in the report with the tail of its output, the others still run, and the command fails whatever `EW_PERF_ASSERT` says: an infrastructure failure, not a performance verdict. The report (job summary and artifact `perf-report`) carries the verdict, the regressions, the medians against the baseline, the memory table, the engine statistics and the CI-time trend of `ci.yml` against the 30-minute budget (FT-269). The trend reads the GitHub jobs API with the automatic, read-only job token (`actions: read` on the job, passed to that one step as `github.token`; there is no configured secret), because the hosted runners share egress addresses and the unauthenticated limit of 60 calls an hour is often used up.
-- **Memory.** The peak RSS is `VmHWM` of the bench process, polled every 50 ms, on Linux; Windows and macOS are a gap until `ew-sysprobe` (FT-89) provides `PeakWorkingSetSize` and `task_info`. There is no counting allocator yet: the workspace forbids `unsafe` in its own code, and a vetted bench-only dependency (dhat or stats_alloc) stays an option (ID-418, FT-292); the memory gate rests on the benches' deterministic estimates and on the peak RSS. The phases of §4.6 (after open, warm-up, full check, PDF export) and the XL budgets are not measured.
+- **Memory.** The peak RSS is `VmHWM` of the bench process, polled every 50 ms, on Linux; Windows is a gap until `ew-sysprobe` (FT-89) provides `PeakWorkingSetSize`. There is no counting allocator yet: the workspace forbids `unsafe` in its own code, and a vetted bench-only dependency (dhat or stats_alloc) stays an option (ID-418, FT-292); the memory gate rests on the benches' deterministic estimates and on the peak RSS. The phases of §4.6 (after open, warm-up, full check, PDF export) and the XL budgets are not measured.
 - **The `canvas` bench** (cycle 21, WP-S2.02 part 1; ID-509, ID-520). `perf-gate` runs the `canvas` bench of `ew-ui` once per gate run, not per class (class GP, Golden A's folio 103 and a dense A3 page), and reports its families (§4.2) without ever gating on them: a new family never fails the gate, the CPU families enter a baseline only by a bless on the BM-class runner in the release phase (FT-355), and the GPU families of part 2 never enter a hosted runner's baseline. Like every bench, a crash or its tile-wait limit running out fails the job (§4.3).
-- **Not built.** The BM-class runner (an owner item, DEC-034; a release-phase item since ID-512) and the class M baseline (FT-291), the rolling baseline with its MAD noise and p99 gating for latency (FT-287), the budget check (`over`) of §4.4 (FT-288), the bisect job on red (FT-289), the `perf-baseline-reset` label rule (FT-290), the counting allocator (FT-292), the peak RSS on Windows and macOS (FT-89), the in-gate seeded slowdown of §4.4 (FT-287), L and XL, and the benchmarks of §4.2 that the two benches do not cover (`open` to the first frame, `check.full`, `pdf.export`, `save.*`, `sql.*`).
+- **Not built.** The BM-class runner (an owner item, DEC-034; a release-phase item since ID-512) and the class M baseline (FT-291), the rolling baseline with its MAD noise and p99 gating for latency (FT-287), the budget check (`over`) of §4.4 (FT-288), the bisect job on red (FT-289), the `perf-baseline-reset` label rule (FT-290), the counting allocator (FT-292), the peak RSS on Windows (FT-89), the in-gate seeded slowdown of §4.4 (FT-287), L and XL, and the benchmarks of §4.2 that the two benches do not cover (`open` to the first frame, `check.full`, `pdf.export`, `save.*`, `sql.*`).
 
 ---
 
@@ -1082,7 +1082,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-PR-01 lint | `cargo fmt --check`; clippy `--workspace --all-targets -D warnings` with the §3.5 rules; `ew fmt --check` on fixtures; Fluent string-literal lint on `ew-ui` and `ew-checks`. Since cycle 20 also `cargo fmt`, `cargo check` and `cargo clippy` on the cargo-fuzz crate `fuzz/Cargo.toml` on the stable toolchain (§3.12, decision log ID-496) | Linux | Merge |
 | CI-PR-02 test-linux, test-linux-default | nextest, split by feature set from FT-353 (`test-linux`: the all-features run, with the acceptance tests and the fuzzer, and both doctest runs; `test-linux-default`: the default-features run without them; decision log ID-527) (since cycle 19 including the shell's tests: kittest flows, the headless smoke and `elektrawatt --smoke`, §3.11); insta check; proptest short; oracle on GP; engine-statistics counts; acceptance (gate subset); SQL compile test; schema/fixture check; permissive-only sample reader (FR-COL-012, SC-11); forced-panic test; release fault injection, one kill point per step (§3.13); hostile corpus; the security tests of §11.5 (trust, SQL sandbox and statement gate, MCP binding, `HumanOnly`); UI-thread watchdog | Linux container (C compiler only, NFR-MAINT-09) | Merge |
 | CI-PR-03 test-windows-build, test-windows-1, test-windows-2, test-windows-3 | nextest; kittest interaction; NTFS path and permission tests. From FT-330 only the all-features nextest run, from FT-353 no doctests, and the run is split: `test-windows-build` writes a `cargo nextest archive` and, since FT-387, three jobs run it: since cycle 27 parts 1 and 2 each run an explicit list of nine heavy test binaries named by `binary_id` and part 3 the complement of both (cycle 26: six binaries plus `count:1/2` and `count:2/2` of the complement; the filters built from `WINDOWS_PART1_BINARIES` and `WINDOWS_PART2_BINARIES` and checked complementary by an `xtask` test; `count:1/3` to `count:3/3` in cycle 25, two halves before; the acceptance tests and the fuzzer run once in total, in part 1; each run job sets `EW_REQUIRE_GPU_ADAPTER=1` on WARP; the chain measured at 20:24, then 29:34 in the cycle-26 delivery run; decision log ID-482, ID-527, ID-627, ID-633, ID-644) | windows-2025 | Merge |
-| CI-PR-04 test-macos, test-macos-all-features | nextest; kittest interaction (first run at the cycle-19 delivery); save and reopen on a case-sensitive APFS image. `test-macos` runs as two parallel jobs on separate macos-15 runners (FT-438): `test-macos` (build, the filtered default-features nextest run, default-features doctests) and `test-macos-all-features` (the unfiltered all-features nextest run with the acceptance tests and the fuzzer once, all-features doctests). Together they cover what the single job did. If either half passes 25 minutes, the next lever is a nextest archive built once and run in partitions, as the Windows jobs do. | macos-15 (arm64) | Merge |
+| CI-PR-04 (removed) | Removed by decision log ID-880: macOS is not a supported platform. The jobs `test-macos` and `test-macos-all-features` (FT-438) ran the filtered default-features nextest run, the unfiltered all-features run and both doctest runs on macos-15; all of these also run in CI-PR-02. The ID is not reused | — | — |
 | CI-PR-05 headless | `ew export pdf` and `ew render --page 103 --png` on GP with no display, no GPU, no system fonts and empty library directories (NFR-PLAT-04, NFR-REL-11); the PDF's SHA-256 equals that of the kittest GUI export of CI-PR-07 (FR-OUT-022, FR-EXT-001). *As built (cycle 18, FT-295; in part):* `ci.yml` job `headless` runs `ew export pdf golden/J-E-2416.ew` in a bare `ubuntu:24.04` container (image pinned by digest; `--network none`, a read-only root, no device; `ci/headless-export.sh` proves inside it that there is no display, GPU, font file or user-directory content) on one and four threads and compares both PDFs with `expected/pdf/sha256.txt`. The checks run as root with `DAC_READ_SEARCH` (the font search reads every directory and fails on any read error), and the export runs as the runner's user through `setpriv` with a cleared environment; the job keeps no other capability (decision log ID-457). `ew render --page 103 --png` (FT-254) and the equality with the GUI export wait for their commands and for CI-PR-07 | Linux container | Merge, once in the required checks after three green runs on `main` (FT-325, owner) |
 | CI-PR-06 output | Golden PNGs; PDF structure; veraPDF when `ew-scene`, `ew-export`, fonts or forms change; GPU smoke per backend where available (NFR-PLAT-02) | Linux, Windows | Merge |
 | CI-PR-07 ui-a11y | kittest flows and image snapshots; name walker; CVD renders; contrast lint; pseudo-locale; keymap reachability; 300 % | Linux (lavapipe) | Merge |
@@ -1106,11 +1106,11 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-N-09 pdf | veraPDF on every GP export variant; PDF/UA-1 at 1.0. *As built (cycle 18, FT-294; in part):* the job `verapdf` of `ci.yml` (on every pull request and push, not nightly) validates three exports of the golden PDF (all pages, dated by `SOURCE_DATE_EPOCH`, a page selection) against PDF/A-2b with veraPDF 1.30.3 (the `verapdf/cli` image pinned by digest, no network); `ci/verapdf-check.py` is the verdict over the XML report; AC-13's veraPDF entry of the acceptance runner reads that report through `EW_VERAPDF_REPORT` in the gate path only (the committed headless report keeps the entry `not_applicable`); the full export must equal the committed digest; PDF/UA-1 is not built (decision log ID-456) | Linux | Release; per push it blocks merge once in the required checks after three green runs on `main` (FT-325, owner) |
 | CI-N-10 private | Golden C, pilot QET projects, migration verifier; public log shows pass/fail and anonymised diffs only | Private runner | Release |
 | CI-N-11 corpora | QET corpus (24 examples at a pinned commit), DXF and EDZ corpora (14 §12) | Linux | Release |
-| CI-N-12 cli-artefact | The nightly `ew` CLI artefact. *As built (cycle 19, FT-299):* `.github/workflows/cli-artefact.yml` builds `ew` in the release profile on ubuntu-24.04, windows-2025 and macos-15 and runs `ew --version` and `ew --help` as a smoke test and uploads `ew-<os>-<arch>-unsigned-dev-<short sha>` with the licence texts (GPL-3.0-or-later, CC-BY-SA-4.0, OFL-1.1), `NOTICE`, `THIRD-PARTY-NOTICES.txt` from cargo-about 0.9.2 and a README that says "unsigned development build, not a release" (90-day retention; no signing, no release, no secret; gate criterion G-M1-22); publishing and signing stay release items (WP-S6.07) | All three hosted | — |
+| CI-N-12 cli-artefact | The nightly `ew` CLI artefact. *As built (cycle 19, FT-299):* `.github/workflows/cli-artefact.yml` builds `ew` in the release profile on ubuntu-24.04 and windows-2025 (the macos-15 entry was removed by ID-880) and runs `ew --version` and `ew --help` as a smoke test and uploads `ew-<os>-<arch>-unsigned-dev-<short sha>` with the licence texts (GPL-3.0-or-later, CC-BY-SA-4.0, OFL-1.1), `NOTICE`, `THIRD-PARTY-NOTICES.txt` from cargo-about 0.9.2 and a README that says "unsigned development build, not a release" (90-day retention; no signing, no release, no secret; gate criterion G-M1-22); publishing and signing stay release items (WP-S6.07) | Both hosted (Linux, Windows) | — |
 | CI-W-01 soak | 8 h on M (1.0) | Dedicated runner, idle window | Release |
 | CI-W-02 fuzz-maint | Corpus minimisation, coverage of fuzz targets | Linux | — |
 | CI-W-03 dependency age | Lag against the limits of NFR-MAINT-04; advisory waivers expiring within 14 days | Linux | — (issues) |
-| CI-W-04 timings | Informational Windows and macOS timings | Hosted | — |
+| CI-W-04 timings | Informational Windows timings | Hosted | — |
 | CI-R-03 (pre-release assertion) release-check | *As built before the release pipeline (cycle 21, FT-333; WP-S6.07 takes it over):* the job `release-check` of `.github/workflows/cli-artefact.yml` (nightly with CI-N-12, and on dispatch) builds `elektrawatt` with `cargo build -p elektrawatt --release --locked` with `PKG_CONFIG=false` and `--remap-path-prefix` for the cargo home, the rustup home and the checkout (Cargo's `trim-paths` is not stable on the pinned toolchain); `ci/release-check.sh env` first fails if `PKG_CONFIG` is not `false`, if any `PKG_CONFIG_*`, `HOST_PKG_CONFIG*` or `TARGET_PKG_CONFIG*` variable reaches the build, if `ICU4X_DATA_DIR` (§3.5) or `CARGO_ENCODED_RUSTFLAGS` is set, or if a cargo configuration file of the checkout or the cargo home has an `[env]` table; `ci/release-check.sh scan` then fails on any build-host path in the binary (`strings`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, the checkout, cargo and rustup homes, the runner's temp directory; a legitimate run-time search path passes only through the script's reviewed exception list, empty today), on a `NEEDED` entry for libwayland*, libxkbcommon*, libX11*, libxcb*, libEGL*, libGL* or libvulkan* (`readelf -d`; these are `dlopen`ed, and a hard link breaks NFR-PLAT-03's fallback chain) and on any `Some` library directory in x11-dl's generated `config.rs` (§5.4). It uploads its Markdown report (30 days), never the binary (ID-476). Report-only: it gates nothing, red on any hit | ubuntu-24.04 | — |
 | CI-R-01 … CI-R-11 | Release pipeline (§7.4) | All | Publishing |
 
@@ -1126,13 +1126,13 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 - **A graphics adapter in the test jobs** (WP-S2.02 part 2). The two Linux test jobs install Mesa's lavapipe
   (`mesa-vulkan-drivers`, an apt step), so the GPU canvas tests (§4.2) run there, and every test job with an adapter
   sets `EW_REQUIRE_GPU_ADAPTER=1`: `test-linux`, `test-linux-default` (lavapipe), `test-windows-1`, `test-windows-2`
-  (WARP) and `test-macos` (Metal). A missing adapter fails those jobs; the `headless` container, which has no GPU on
+  (WARP), and `test-macos` (Metal) until ID-880 removed it. A missing adapter fails those jobs; the `headless` container, which has no GPU on
   purpose (CI-PR-05), keeps the skip, as does a developer's host without the variable.
 - **Required checks.** FT-353 renamed and split the test jobs: `test-linux`, `test-linux-default`,
   `test-windows-build`, `test-windows-1`, `test-windows-2` and `test-macos` replace `test-linux`, `test-windows` and
   `test-macos` of the older list. The owner's required-check list (FT-284, FT-325, set after three green runs on
   `main`) must use the new names; a check still required under an old name never reports and blocks every merge. *Cycle 25 (FT-387,
-  ID-627):* `test-windows-3` joins the list (`ci/README.md`), which the owner sets. *Cycle 29 (FT-438, ID-672):* `test-macos-all-features` joins the list, which the owner sets.
+  ID-627):* `test-windows-3` joins the list (`ci/README.md`), which the owner sets. *Cycle 29 (FT-438, ID-672):* `test-macos-all-features` joins the list, which the owner sets. *Cycle 38 (ID-880):* `test-macos` and `test-macos-all-features` are removed and leave the list; the owner removes them from the repository settings, or every merge waits on them.
 - **The golden-table change list** (FT-300; `docs/plan/tools/golden_changes.py`, the list
   `docs/plan/gate-records/golden-change-list.md`). Its `--check` runs at every delivery gate and not in `docs.yml`: the
   list embeds commit hashes and a shallow checkout lacks the history. The decision log is read at HEAD on purpose, so
@@ -1175,10 +1175,10 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 
 ### 5.3 Runners and GPU-less coverage
 
-- **Hosted runners.** windows-2025, macos-15 (arm64) and ubuntu-24.04 (RE §10.3; confirmed valid in
-  [gaps-and-corrections](../research/gaps-and-corrections.md) §3.3). Best-effort artefacts build on the hosted
-  `windows-11-arm` and `macos-26-intel` images and an Ubuntu `-arm` image, which the same check lists; macOS 14
-  images are deprecated. Images are pinned by label. A runner-image change that breaks the build is fixed in its own
+- **Hosted runners.** windows-2025 and ubuntu-24.04 (RE §10.3; confirmed valid in
+  [gaps-and-corrections](../research/gaps-and-corrections.md) §3.3); macos-15 was dropped with macOS (decision log
+  ID-880). Best-effort artefacts build on the hosted `windows-11-arm` image and an Ubuntu `-arm` image, which the
+  same check lists. Images are pinned by label. A runner-image change that breaks the build is fixed in its own
   PR, never mixed with feature work.
 - **GPU-less paths.** Three paths are covered: DX12 WARP (Windows hosted runners have no hardware GPU), the CPU
   renderer (forced in CI-PR-05 and CI-N-01) and lavapipe (Linux). Together they test the fallback chain of
@@ -1466,11 +1466,11 @@ gantt
 | CI-R-03 | Hermetic build: `cargo fetch --locked`, then a network-less build on Linux (§10); `cargo auditable build --release --locked` for every target; the build fails if `ICU4X_DATA_DIR` is set (§3.5), or if `PKG_CONFIG` is not `false` or any `PKG_CONFIG_*` target override is set (§5.4, x11-dl; FT-333) |
 | CI-R-04 | `ew-step-worker` per target with cached OCCT artefacts (1.0) |
 | CI-R-05 | Packaging (§8) |
-| CI-R-06 | Signing and notarisation; `SHA256SUMS` and the update manifest signed (§9) |
+| CI-R-06 | Signing; `SHA256SUMS` and the update manifest signed (§9) |
 | CI-R-07 | CycloneDX SBOM per artefact (cargo-cyclonedx 0.5.9), merged with the non-Rust components (SQLite, OCCT, fonts); completeness check against `cargo metadata`; SBOM vulnerability scan; cargo-about notices for the crates plus the non-crate notices (fonts, with their copyright, licence and trademark lines) assembled from `NOTICE`, because cargo-about lists crates only; failing on any SBOM component without a notice (19 §5.3; NFR-SEC-13, NFR-LIC-08) |
 | CI-R-08 | SLSA provenance through `actions/attest-build-provenance` for every artefact; `gh attestation verify` on each (NFR-SEC-12) |
 | CI-R-09 | Assertions: the inspection canary string and the `test-confirm` canary string (§3.15) absent from every binary; the `ew-ids/testkit`, `ew/test-confirm` and egui `inspection` features and the `ew-testkit` and `egui_mcp` crates absent from the release dependency graph; smoke start opens no listening socket (NFR-SEC-09) |
-| CI-R-10 | Clean-VM offline installation on Windows 10 22H2, Windows 11, macOS, Ubuntu 22.04 and Debian 12: install, open the GP sample, pass its acceptance CSVs, and from 1.0 open the GP `.ewpp` in `ew-wiring-viewer`; uninstall (NFR-PLAT-06, AC-40). An upgrade over the previous release's installer keeps user settings, keymaps, the trust store and company catalogues; uninstall leaves them in place |
+| CI-R-10 | Clean-VM offline installation on Windows 10 22H2, Windows 11, Ubuntu 22.04 and Debian 12: install, open the GP sample, pass its acceptance CSVs, and from 1.0 open the GP `.ewpp` in `ew-wiring-viewer`; uninstall (NFR-PLAT-06, AC-40). An upgrade over the previous release's installer keeps user settings, keymaps, the trust store and company catalogues; uninstall leaves them in place |
 | CI-R-11 | Publish after two-maintainer approval: GitHub release, update manifest, crates.io through trusted publishing (1.0, **verify**), Flathub PR (1.0) |
 
 The release checklist holds the items that a pipeline cannot prove:
@@ -1481,7 +1481,7 @@ The release checklist holds the items that a pipeline cannot prove:
 | RC-02 | No open fuzz crash; quarantined tests ≤ 10 (§3.14) |
 | RC-03 | Advisory waivers valid ≤ 90 days, each with an owner (NFR-SEC-11) |
 | RC-04 | `SECURITY.md` supported-versions table and support end dates updated (NFR-COMP-03) |
-| RC-05 | Manual M tests: RDP without GPU, NVDA, VoiceOver and Orca, two printers, installers, Windows and macOS network observation (§12.2) |
+| RC-05 | Manual M tests: RDP without GPU, NVDA and Orca, two printers, installers, Windows network observation (§12.2) |
 | RC-06 | Translation status meets NFR-I18N-01; documentation built and bundled |
 | RC-07 | Content audit of bundled assets: licences, provenance, no standards text (NFR-LIC-06, NFR-COMP-05) |
 | RC-08 | New derivation profiles, format changes and CLI/API changes listed in the release notes |
@@ -1509,8 +1509,8 @@ The release checklist holds the items that a pipeline cannot prove:
 ## 8. Packaging per OS
 
 **Tool choice.** cargo-packager 0.11.8 (2025-11-27) builds the installer formats from one configuration (MSI through
-WiX, NSIS, DMG/.app, AppImage, deb). EW's own GitHub workflow drives it, because the pipeline needs custom signing,
-notarisation, SBOM and attestation steps. cargo-dist 0.32.0 (2026-05-22) stays an alternative: it lost its company
+WiX, NSIS, AppImage, deb; it also builds DMG/.app, which EW does not use). EW's own GitHub workflow drives it,
+because the pipeline needs custom signing, SBOM and attestation steps. cargo-dist 0.32.0 (2026-05-22) stays an alternative: it lost its company
 backing in 2025, and its 2026 maintenance status is unconfirmed (RE §10.1; open question 1).
 
 | OS | Artefact | Scope | Notes |
@@ -1518,12 +1518,13 @@ backing in 2025, and its 2026 maintenance status is unconfirmed (RE §10.1; open
 | Windows x64 (ARM64 best effort) | `ElektraWatt-<v>-x64.msi` | Per machine; silent `msiexec /qn` | Stable UpgradeCode, major-upgrade semantics; policy values under `HKLM\SOFTWARE\Policies\ElektraWatt` (`UpdateCheck` DWORD, `UpdateMirror` string, `CrashUpload` DWORD; NFR-PLAT-08), with `UpdateCheck = 0` written by default (NFR-PRIV-03); static CRT, so no redistributable |
 | | `ElektraWatt-<v>-x64-user-setup.exe` (NSIS) | Per user, no administrator rights | Detects a per-machine installation and offers to use it instead |
 | | `ew-<v>-x86_64-pc-windows-msvc.zip` | Portable CLI | Includes `ew-step-worker` from 1.0 |
-| macOS arm64 (x86_64 best effort) | `ElektraWatt-<v>-arm64.dmg` with the `.app` | Drag install | Developer ID, hardened runtime, notarised and stapled; `ew` inside the bundle, with a menu command to link it onto `PATH`; `MACOSX_DEPLOYMENT_TARGET` = the oldest macOS in the support window (02c OQ 4) |
 | Linux x64 (arm64 best effort) | `.deb` for Ubuntu 22.04+ and Debian 12+ | System | Built against glibc 2.35; depends on the Vulkan loader and xkbcommon; fonts bundled |
 | | `.AppImage` | User | Type-2 runtime; documents `--appimage-extract-and-run` where FUSE 2 is missing |
 | | Flatpak on Flathub | User | 1.0 Should; offline build with vendored crates; file and print portals (open question 11) |
-| All (1.0) | `ew-wiring-viewer` in every installer, plus a portable archive per target | Shop PCs; per user, no administrator rights | The read-only `.ewpp` wiring viewer (ARCH §3, [13](13-manufacturing-outputs.md) §11); signed, notarised and covered by SBOM and provenance like `elektrawatt` |
-| All | CLI archives, split debug symbols (PDB, dSYM, DWARF), SBOMs, notices | — | Symbols are public, so users can symbolicate their own crash dumps |
+| All (1.0) | `ew-wiring-viewer` in every installer, plus a portable archive per target | Shop PCs; per user, no administrator rights | The read-only `.ewpp` wiring viewer (ARCH §3, [13](13-manufacturing-outputs.md) §11); signed and covered by SBOM and provenance like `elektrawatt` |
+| All | CLI archives, split debug symbols (PDB, DWARF), SBOMs, notices | — | Symbols are public, so users can symbolicate their own crash dumps |
+
+There is no macOS artefact: macOS is not a supported platform (decision log ID-880).
 
 **Every installer is offline and complete** (NFR-PLAT-06): application, `ew` CLI, `ew-step-worker` (1.0, LGPL OCCT
 as a replaceable separate binary, NFR-LIC-08), `ew-wiring-viewer` (1.0), bundled fonts (ADR-0028), starter symbols, frames and forms, the GP
@@ -1539,12 +1540,11 @@ Installation needs no network. The installed tree is read-only at run time (NFR-
 | Platform | Mechanism | Identity |
 |---|---|---|
 | Windows | Authenticode through Artifact Signing (OIDC from the protected environment); every `.exe`, `.dll`, `.msi` and setup file; RFC 3161 timestamps, required because the certificates are short-lived (**verify** the lifetime) | Organisation identity of the steward (ADR-0030); not available to individual EU developers |
-| macOS | rcodesign (apple-codesign 0.29.0): sign every nested binary with hardened runtime, notarise through an App Store Connect API key, staple. Fallback: Apple's `codesign` and `notarytool` on a macOS runner, because rcodesign's last release dates from 2024-11-29 | Steward's Developer ID |
 | Linux and all artefacts | `SHA256SUMS` signed with the project release key (ed25519, minisign-compatible) | Release key (§9.2) |
 | Git | Release tags signed with maintainers' SSH keys listed in `.github/allowed_signers`; CI-R-01 verifies | Maintainers |
 
-**Entitlements.** macOS entitlements stay minimal. The wasmtime plugin host (1.x) needs a JIT entitlement or an
-interpreter mode, which is decided by [17](17-extensibility.md) open question 19 (open question 13 here).
+**No macOS signing.** macOS is not a supported platform (decision log ID-880), so there is no Developer ID, no
+notarisation and no entitlement question (open question 13 here is moot).
 
 ### 9.2 Provenance, sums and the release key
 
@@ -1573,8 +1573,7 @@ interpreter mode, which is decided by [17](17-extensibility.md) open question 19
   is installed (NFR-SEC-15).
 
 **1.0: in-app download.** On a click, EW downloads the platform installer and checks its size and the SHA-256 from
-the signed manifest. It then checks the OS signature (WinVerifyTrust; the code signature and notarisation ticket on
-macOS) and only then launches the installer. There is never a silent installation. Linux packages get the notice
+the signed manifest. It then checks the OS signature (WinVerifyTrust) and only then launches the installer. There is never a silent installation. Linux packages get the notice
 only.
 
 ```json
@@ -1701,7 +1700,7 @@ flowchart LR
 ### 11.4 Incident runbook: key or pipeline compromise
 
 1. Stop publishing and disable the release environment.
-2. Revoke the affected identity: Artifact Signing certificate, Apple Developer ID certificate, or the release key.
+2. Revoke the affected identity: Artifact Signing certificate or the release key.
    Revoking the release key means switching clients to the embedded next key and publishing a new next key.
 3. Publish an advisory naming the affected artefacts by SHA-256 and provenance.
 4. Rebuild from a clean runner and re-sign.
@@ -1790,7 +1789,7 @@ ignored: other AF_UNIX traffic (D-Bus, AT-SPI, Wayland) and AF_NETLINK (interfac
 
 - **Opted-in check.** A second run with the update check opted in targets a local mock server. It asserts the exact
   request (method, path, headers), so the check provably sends only version, OS and architecture (NFR-PRIV-03).
-- **Other OSs.** Windows and macOS are observed manually for each minor, with outbound firewall logging (RC-05).
+- **Other OSs.** Windows is observed manually for each minor, with outbound firewall logging (RC-05).
 - **Smoke flag.** `elektrawatt --smoke <project>`, as listed in the CLI catalogue of [17](17-extensibility.md)
   §3.3, opens the project, renders its pages and exits. It accepts no remote input, so it is no control endpoint.
 
@@ -1807,7 +1806,7 @@ ignored: other AF_UNIX traffic (D-Bus, AT-SPI, Wayland) and AF_NETLINK (interfac
 - **Storage.** `crashes/<UTC time>-<8 hex>/` in the OS state directory holds `minidump.dmp`, `log-tail.txt` (the
   last 2,000 lines at the redacted default level) and `report.json`. `report.json` holds version, build ID, target,
   OS version, render backend, uptime and panic location. Permissions are user-only (0700 directories and 0600 files
-  on Linux and macOS, a user-only ACL on Windows; NFR-PRIV-05). Reports are pruned after 30 days or beyond 20
+  on Linux, a user-only ACL on Windows; NFR-PRIV-05). Reports are pruned after 30 days or beyond 20
   reports.
 - **Upload payload** (NFR-PRIV-04, 1.0, only if ADR-0029 creates an endpoint). The raw minidump is **never** uploaded,
   because its stack memory can hold project text. Instead, a client-side stack walk (rust-minidump crates,
@@ -1917,12 +1916,12 @@ and any commercial edition needs a liability review first.
 
 ## 16. Edge cases and pitfalls
 
-1. **Signing breaks byte reproducibility.** Authenticode and notarisation modify the binaries. Reproducibility
+1. **Signing breaks byte reproducibility.** Authenticode modifies the binaries. Reproducibility
    checks (NFR-SEC-20) therefore compare unsigned artefacts, while provenance attests the signed digests.
 2. **Short-lived certificates.** Artifact Signing certificates are short-lived. Without an RFC 3161 timestamp a
    signature stops validating when its certificate expires.
-3. **Notarisation outages delay releases.** macOS is a Supported platform (NFR-PLAT-01 R), so the release waits;
-   the pipeline retries with backoff.
+3. **Notarisation outages delay releases.** Moot: macOS is not a supported platform and nothing is notarised
+   (decision log ID-880).
 4. **Self-hosted runners and fork PRs.** Running fork PRs on the performance runner would be remote code execution
    on project hardware (§5.4).
 5. **glibc drift.** A Linux binary built on ubuntu-24.04 needs glibc 2.39 and fails on Ubuntu 22.04. Release builds
@@ -1959,7 +1958,7 @@ and any commercial edition needs a liability review first.
 |---|---|
 | Oracle and property tests | AC-16 edits: rename T55, move -102F2 one cell, renumber 103 → 104, change the 24 V DC colour. After each edit the 63 xref texts (64 targets), `device_tag` of every device, `wire_props_of(24VDC-1)`, `bom_rows` and `title_block` must equal a cold recomputation |
 | Engine statistics | A wire on folio 102 re-executes nothing keyed to folio 203; the 24 V colour change touches only the 24 V potentials and folio 1's table |
-| Determinism | SHA-256 of the GP PDF equal on Windows, macOS and Linux and across 1, 2 and 8 threads (AC-14) |
+| Determinism | SHA-256 of the GP PDF equal on Windows and Linux and across 1, 2 and 8 threads (AC-14) |
 | PDF structure | 64 xref link annotations (one per item of the 63 linked texts); folio labels ("101" on physical page 6); "SK 3110.000" with its space; no Tahoma; no "-4W1", "T51", "JE2416" or "BR" in the text layer (AC-06, AC-13) |
 | Performance | AC-17 on BM: open ≤ 0.5 s, full check ≤ 2 s, `ew export pdf` ≤ 3 s. Golden B is the seed of every synthetic fixture (§4.1) |
 | Network sandbox | Open GP, edit, check, export the PDF and print to file with zero non-local socket calls |
@@ -1995,9 +1994,9 @@ prevention mechanisms from regressing.
 |---|---|---|---|
 | Test layers | 1–14 on GP, S and M, without the soak test; kittest flows of the MVP tasks; usability study before M2 (NFR-UX-01) | Layers for PLC, fluid, 3D, routing and `.ewpp`; 8 h soak (NFR-REL-14); PDF/UA-1 | Plugin sandbox tests (NFR-SEC-07); mutation testing of `ew-memo` (Could) |
 | Performance gate | S/M gating; L/XL measured and reported | L/XL gating; routing, collision, STEP benchmarks | — |
-| Platforms and CI | Windows, macOS arm64, Linux; WARP and CPU-renderer jobs; best-effort Windows ARM64, Intel macOS and Linux arm64 artefacts built per release, non-gating (NFR-PLAT-01) | lavapipe 3D smoke (from M4) | — |
-| Packaging | MSI, per-user setup, DMG, AppImage, `.deb`, CLI archives | Flathub; `ew-step-worker` and `ew-wiring-viewer` in every package, plus portable viewer archives | — |
-| Signing and provenance | Authenticode, notarisation, SLSA, signed `SHA256SUMS` (from the first Windows/macOS release; ADR-0030) | Reproducible Linux builds (NFR-SEC-20) | — |
+| Platforms and CI | Windows, Linux (macOS not supported, ID-880); WARP and CPU-renderer jobs; best-effort Windows ARM64 and Linux arm64 artefacts built per release, non-gating (NFR-PLAT-01) | lavapipe 3D smoke (from M4) | — |
+| Packaging | MSI, per-user setup, AppImage, `.deb`, CLI archives | Flathub; `ew-step-worker` and `ew-wiring-viewer` in every package, plus portable viewer archives | — |
+| Signing and provenance | Authenticode, SLSA, signed `SHA256SUMS` (from the first Windows release; ADR-0030) | Reproducible Linux builds (NFR-SEC-20) | — |
 | Updates | Opt-in check, signed manifest, browser download | In-app download with verification; policy mirror | — |
 | Supply chain | Full §10 set from the first commit | crates.io trusted publishing | — |
 | Security | `SECURITY.md`, threat model, fuzzing, `unsafe` allowlist, per-PR security tests (§11.5), CRA runbook | Tabletop exercise; OSS-Fuzz application | Worker OS sandbox (NFR-SEC-21) |
@@ -2037,7 +2036,7 @@ prevention mechanisms from regressing.
   - veraPDF; mermaid-cli (CI-PR-15);
   - cargo-deny, cargo-audit, cargo-vet, cargo-about, cargo-auditable, cargo-cyclonedx, cargo-llvm-cov, cargo-insta,
     cargo-nextest, cargo-fuzz;
-  - cargo-packager, rcodesign, strace, reuse-tool, git-cliff.
+  - cargo-packager, strace, reuse-tool, git-cliff.
 
 ---
 
@@ -2085,9 +2084,9 @@ CI-PR-10) and NFR-REL-15 (release atomicity, the fault-injection test of §3.13)
    timings informational.
 3. **Windows per-user installer format.** The candidates are NSIS, a dual-purpose MSI and MSIX. *Recommendation:*
    NSIS through cargo-packager at MVP. Consider MSIX only if enterprise users ask for it.
-4. **Signing identity and steward timing** (ADR-0030, [brainstorm](01-brainstorm.md) PQ-31). No Windows or macOS
-   release can be signed with Artifact Signing without an organisation, and Apple organisation enrolment requires a
-   D-U-N-S number for the legal entity (ADR-0030, 19 LG-4). *Recommendation:* name the phase-1 identity holder in the first
+4. **Signing identity and steward timing** (ADR-0030, [brainstorm](01-brainstorm.md) PQ-31). No Windows
+   release can be signed with Artifact Signing without an organisation (ADR-0030, 19 LG-4); macOS needs no Apple
+   enrolment, since it is not a supported platform (decision log ID-880). *Recommendation:* name the phase-1 identity holder in the first
    90 days (PD-7a, WP-S0.05a of the [global plan](../plan/01-global-plan.md) §14), because enrolment takes at least 12 months, and decide
    ADR-0030 in full by gate G-M1 (PD-7), so that the phase-1 steward (the pilot panel builder's company) can enrol in time for the MVP. Until then publish only nightlies
    labelled "unsigned development build" and no binary release (ADR-0023). Keep the SignPath Foundation OSS
@@ -2112,17 +2111,15 @@ CI-PR-10) and NFR-REL-15 (release atomicity, the fault-injection test of §3.13)
    PDF, SVG, CSV, XLSX, JSONL and `.ewpp`, and compare PNGs within the dify tolerance across platforms; if the performance
    spike (G-SP) finds a deterministic scalar mode of vello_cpu, `ew render` and the CI goldens use it and PNG is
    byte-identical again on the same platform.
-10. **Intel macOS and Windows ARM64 artefacts.** *Recommendation:* build, sign and notarise them as separate
-    best-effort artefacts that do not gate a release. Drop Intel macOS when Apple ends security updates for the last
-    Intel-capable macOS.
+10. **Windows ARM64 artefacts.** *Recommendation:* build and sign them as separate best-effort artefacts that do not
+    gate a release. (Intel macOS was part of this question; macOS is not a supported platform, decision log ID-880.)
 11. **Flatpak sandbox.** Projects on SMB shares and in arbitrary directories conflict with portal-only file access.
     *Recommendation:* ship `.deb` and AppImage at MVP. At 1.0 ship Flathub with `--filesystem=home` and documented
     limits for network shares, tested through GVFS in CI-PR-11.
 12. **kittest image snapshots on CI.** Software adapters can change rendering with Mesa updates. *Recommendation:*
-    pin the Mesa version in the CI image, take image snapshots only on Linux (lavapipe) and Windows (WARP), and keep
-    macOS kittest interaction-only.
-13. **wasmtime on hardened-runtime macOS** (1.x). This is the same question as [17](17-extensibility.md) open
-    question 19, which owns it; §9.1 follows its outcome. JIT code generation needs an entitlement that weakens the
+    pin the Mesa version in the CI image and take image snapshots only on Linux (lavapipe) and Windows (WARP).
+13. **wasmtime on hardened-runtime macOS** (1.x). **Moot** while macOS is not a supported platform (decision log
+    ID-880). This is the same question as [17](17-extensibility.md) open question 19, which owns it; §9.1 follows its outcome. JIT code generation needs an entitlement that weakens the
     hardened runtime. *Recommendation (as in 17):* measure wasmtime's portable interpreter (**verify**) on the
     sample importer and rule plugins before the plugin launch; ship the interpreter on macOS if a rule scope stays
     within the online budget of [17](17-extensibility.md) §8.4, otherwise add the JIT entitlement with an ADR.

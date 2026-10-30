@@ -1,6 +1,6 @@
 # ADR-0020: Extensibility tiers and security model (CLI, rhai, WASM on wasmtime LTS, MCP, Python)
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-30 (the macOS JIT note moot, decision log ID-880) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -121,7 +121,8 @@ above is unchanged; these entries refine it.
 - **Young tooling.** Component Model tooling is still young, and WIT versioning becomes a public contract: the host
   keeps `@1` for at least 24 months after `@2`.
 - **macOS JIT.** The wasmtime JIT needs an entitlement on macOS, or an interpreter mode
-  ([18](../design/18-quality-security-release.md) OQ13).
+  ([18](../design/18-quality-security-release.md) OQ13). Moot while macOS is not a supported platform (decision log
+  ID-880).
 - **Trust-prompt fatigue.** Prompts can train users to click through. Prompts are therefore per project and
   remembered, and nothing executable runs merely because a project was opened.
 - **Plugin dialogs are declarative only.** Rich custom plugin UI is not possible.

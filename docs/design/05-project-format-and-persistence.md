@@ -1927,7 +1927,7 @@ The eleven rows this document proposed are in the catalogues:
     (decision log DEC-080 item 1).
 14. **macOS package bundle.** A `.ew` bundle would show the project as one document in Finder, but would hinder git
     tools. *Recommendation:* no bundle in v1; reconsider at 1.x if macOS pilot users ask. **Decided** 2026-10-18 as
-    recommended (decision log DEC-080 item 2).
+    recommended (decision log DEC-080 item 2). Moot since 2026-10-30: macOS is not a supported platform (ID-880).
 15. **Catalogue storage form.** ARCH §7.7 and FR-PRT-012 described SQLite catalogues per tier, which an earlier
     draft of §13.1 followed with a versioned publication scheme on shares, while [07](07-symbols-parts-macros.md)
     §2.2 made `.ewlib` text directories canonical at every tier and SQLite a derived per-user index in the cache.

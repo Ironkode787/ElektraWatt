@@ -1,6 +1,6 @@
 # ADR-0022: Platform matrix and performance budgets (S/M/L/XL) as CI-enforced requirements
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-30 (macOS not supported, decision log ID-880) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -11,7 +11,8 @@
   demands it (ADR-0002). The performance spike (gate G-SP; effort weeks 3–5 of the spine, 04 §15.1) makes that go/fallback decision, and it is meaningless without
   agreed sizes and budgets.
 - **Rust platform tiers.** Tier 1 with host tools covers Windows 10+ (x64, ARM64), macOS 11+ on arm64 and Linux
-  with glibc 2.17+. Intel macOS has been Tier 2 since its demotion.
+  with glibc 2.17+. Intel macOS has been Tier 2 since its demotion. Since amendment 1, EW relies on the Windows and
+  Linux rows only.
 - **GPU-less hosts.** Panel builders work over RDP, Citrix or VDI without a GPU (G6, PQ-25). wgpu's DX12 backend
   handles WARP, and the always-built CPU renderer exists for exactly this case (ADR-0015).
 - **Budgets drift.** Performance budgets that are written down but not enforced drift silently. A memo-invalidation
@@ -24,20 +25,22 @@
    | Platform | Tier |
    |---|---|
    | Windows 11 and Windows 10 22H2+ (x64) | Supported |
-   | macOS on Apple silicon | Supported |
    | Ubuntu 22.04+ and Debian 12+ (x64), Wayland and X11 | Supported |
-   | Windows ARM64, macOS on Intel (Rust Tier 2), Linux arm64 | Best effort |
+   | Windows ARM64, Linux arm64 | Best effort |
    | Other Linux distributions through Flatpak or AppImage | Community |
+   | macOS on Apple silicon | Not supported (ID-880) |
+   | macOS on Intel | Not supported (ID-880) |
 
    - **Supported** platforms are built and tested in CI, and a failure blocks the release.
    - **Best-effort** platforms are built for every release and fixed when reported.
-   - **Backends.** wgpu runs on DX12, Metal and Vulkan. GL and GLES are untested.
+   - **Not supported** platforms are neither built nor tested (amendment 1).
+   - **Backends.** wgpu runs on DX12 and Vulkan. GL and GLES are untested.
    - **GPU-less fallback order:** DX12 WARP, then `ew-render-cpu`. The 3D view uses a software adapter where one
      exists (ADR-0016).
    - **The CLI**, including `ew mcp`, runs in a Linux container without a display or GPU.
 2. **Baseline machines.**
-   - **BM:** a 4-core 2018+ x64 CPU or Apple M1, 8 GB RAM (16 GB recommended at L/XL), an integrated GPU with DX12,
-     Vulkan or Metal, 1920 × 1080 and a local SSD.
+   - **BM:** a 4-core 2018+ x64 CPU, 8 GB RAM (16 GB recommended at L/XL), an integrated GPU with DX12 or Vulkan,
+     1920 × 1080 and a local SSD.
    - **BM-noGPU:** the same machine without a hardware adapter.
 3. **Size classes.** These are the G6 bounds, with the XL device bound raised from 40,000 to 50,000 to cover the
    ARCH §6.7 estimate case XL-A ([02c](../design/02c-nonfunctional-requirements.md) §2.1). XL always means the class
@@ -87,6 +90,18 @@
    - A budget changes only through a reviewed change to [02c](../design/02c-nonfunctional-requirements.md) that cites
      a measurement.
 
+## Amendments
+
+1. **macOS is not supported** (2026-10-30, project owner; decision log ID-880). macOS on Apple silicon (Supported
+   before) and on Intel (Best effort before) become **Not supported**: no CI job, no artefact, no installer, no
+   signing or notarisation, no Metal testing. The reasons: the two macOS CI jobs were the slowest of the pull-request
+   set and caused the cycle-36 float-drift incident; notarisation, an Apple Developer ID, a Mac installer and Metal
+   testing would add about 1.5–2.5 person-weeks to WP-S6.06 and WP-S6.07; the target users run Windows; determinism
+   now holds across Windows and Linux. **The code stays portable:** the existing `cfg(target_os = "macos")` branches,
+   the Apple-only dependency tables and the Cmd key display are kept, but EW writes no new macOS code and promises
+   nothing for macOS; a contributor may build there at their own risk. macOS can return only through a new decision.
+   The tier table, the backends, the baseline machine, the consequences and the alternatives follow this amendment.
+
 ## Consequences
 
 **Positive**
@@ -103,8 +118,9 @@
 - **A dedicated runner.** Stable timings need a dedicated bare-metal runner. On a public repository that runner must
   be isolated from secrets and must never run fork PRs
   ([18](../design/18-quality-security-release.md) OQ2).
-- **Intel Macs** get weaker guarantees than Apple-silicon Macs.
-- **CI cost.** It grows: per-platform suites, WARP and CPU jobs, nightly XL runs.
+- **No macOS** (amendment 1). Users on a Mac run EW only in a Windows or Linux virtual machine, or build it
+  themselves without support.
+- **CI cost.** It grows: per-platform suites (Windows and Linux), WARP and CPU jobs, nightly XL runs.
 
 ## Alternatives considered
 
@@ -113,8 +129,9 @@
 | **Budgets defined after M2** | Too late. The engine and memoisation decisions of ADR-0002 are taken at the performance spike (gate G-SP) and need targets |
 | **GPU-only rendering** | Fails on GPU-less RDP and VDI hosts, which pilot-type users run, and forces GPU runners into CI |
 | **Timing-only gates** (no engine statistics) | Noisy on shared runners, and blind to memo bugs that recompute too much but still fit the budget at S |
-| **Intel macOS as Supported** | It is Rust Tier 2, so EW could not promise more than the toolchain does |
-| **Supporting Windows 8.1 or macOS before 11** | Outside Rust Tier 1 host support (Windows 10+, macOS 11+) |
+| **Intel macOS as Supported** | It is Rust Tier 2, so EW could not promise more than the toolchain does (history: since amendment 1 no macOS is supported) |
+| **Supporting Windows 8.1 or macOS before 11** | Outside Rust Tier 1 host support (Windows 10+, macOS 11+) (history: since amendment 1 no macOS is supported) |
+| **Keeping macOS on Apple silicon Supported** (amendment 1) | Two slow CI jobs, notarisation, a Developer ID, a Mac installer and Metal testing for a platform the target users do not run |
 | **Hosted runners for the gate** | Their variance exceeds the 15 % threshold, so hosted timings stay informational only |
 
 ## Related

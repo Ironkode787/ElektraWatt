@@ -980,8 +980,8 @@ groups them (FR-UI-003).
 
 ## 13. Performance budgets
 
-Budgets hold on the baseline machine BM (4-core 2018+ x64 or Apple M1, 8 GB RAM, integrated GPU with DX12/Vulkan/
-Metal, 1920×1080, local SSD) and are gated nightly (NFR-PERF-20, ADR-0022).
+Budgets hold on the baseline machine BM (4-core 2018+ x64, 8 GB RAM, integrated GPU with DX12/Vulkan,
+1920×1080, local SSD) and are gated nightly (NFR-PERF-20, ADR-0022).
 
 | Operation | Budget | Requirement | Design measure |
 |---|---|---|---|

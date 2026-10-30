@@ -1,6 +1,6 @@
 # ADR-0029: Network, telemetry and crash-reporting policy
 
-**Status:** Proposed · **Date:** 2026-10-17 · **Deciders:** project owner
+**Status:** Proposed · amended 2026-10-30 (macOS not supported, decision log ID-880) · **Date:** 2026-10-17 · **Deciders:** project owner
 
 ## Context
 
@@ -79,7 +79,7 @@
      fails on any `AF_INET`/`AF_INET6` socket or DNS attempt outside the allowlisted `ew mcp --listen 127.0.0.1:0`
      test (loopback only; any non-loopback address is refused).
    - A second run with the update check opted in asserts the exact request against a mock server.
-   - Windows and macOS are observed manually for each minor.
+   - Windows is observed manually for each minor (macOS is not a supported platform, decision log ID-880).
 
 **The owner decides:**
 - whether "zero by default" is acceptable, given that it limits product analytics;

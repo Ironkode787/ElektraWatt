@@ -1,6 +1,6 @@
 # ADR-0023: Supply chain and release integrity
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21, 2026-10-22 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21, 2026-10-22, 2026-10-30 (no macOS signing, decision log ID-880) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -49,8 +49,6 @@
    - **SLSA build provenance** through `actions/attest-build-provenance`, signed via Sigstore;
    - **Windows:** Authenticode through Artifact Signing under the steward's organisation identity, with RFC 3161
      timestamps on every `.exe`, `.dll`, `.msi` and setup file;
-   - **macOS:** signing with hardened runtime and notarisation through rcodesign (apple-codesign 0.29.0), with
-     Apple's `codesign` and `notarytool` as a fallback;
    - **All artefacts:** `SHA256SUMS`, signed with the project's ed25519 release key (minisign-compatible). Users
      without Sigstore access can verify offline.
 3. **Assertions.**
@@ -118,6 +116,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    the project now relies on other organisations' review (only for the built-in criteria and only for the
    versions they name), against hundreds of hours of duplicate review; the scrub is a second step after every
    import refresh, enforced by CI.
+6. **No macOS signing** (2026-10-30, project owner; decision log ID-880, [ADR-0022](0022-platform-matrix-and-performance-budgets.md)
+   amendment 1). macOS is not a supported platform, so decision 2 no longer signs or notarises macOS builds: the
+   rcodesign (apple-codesign) step with its `codesign` and `notarytool` fallback is removed, and no Apple Developer ID
+   is needed.
 
 ## Consequences
 
@@ -137,7 +139,6 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
   needs maintenance.
 - **Key custody.** Custody of the release key is a standing responsibility: protected environment, yearly rotation
   with the next key embedded, and an incident runbook.
-- **rcodesign.** Its last release dates from 2024-11-29, so the macOS fallback path must be kept working.
 
 ## Alternatives considered
 

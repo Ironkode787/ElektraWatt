@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -531,7 +531,7 @@ the bar.
 1. **App button** (accessible name "Menu", Alt or F10): the product mark (a 16-px `color.accent` square with
    `radius.sm` and the bolt glyph in `color.text.on_accent`), the name "ElektraWatt" in `type.body.strong` and a
    16-px chevron; `size.control.inline` high, `radius.md`, `space.3` padding. It opens the full command tree as a
-   menu (§9.2). On macOS it is hidden and the global menu bar carries the same tree.
+   menu (§9.2). (A macOS global menu bar is not built: macOS is not a supported platform (decision log ID-880).)
 2. A 1 × 16 px `color.border.default` separator, then **quick access**: Save (Ctrl+S), Undo (Ctrl+Z), Redo (Ctrl+Y /
    Ctrl+Shift+Z) as `size.quick_access` icon buttons with `icon.sm` in `color.text.secondary`, `radius.sm`; then
    another separator. Microsoft's ribbon guidance pairs every ribbon with an application button and a quick-access
@@ -862,7 +862,7 @@ Modal only when the work cannot continue without the answer (doc 16 §4.1). `col
 `radius.lg`, width 440 px (small) or 640 px (forms), `space.5` padding, a backdrop of `slate-900` at 24 %. Anatomy:
 **title** in `type.title`, left-aligned, phrased as the question or the task ("Recover unsaved changes?"); **body** in
 `type.body`, at most three short paragraphs, facts as a two-column label and value list; **footer** with buttons
-right-aligned in the platform's order (Windows: Primary then Secondary; macOS and Linux: Secondary then Primary), a
+right-aligned in the platform's order (Windows: Primary then Secondary; Linux: Secondary then Primary), a
 destructive action left-aligned and apart from the others. Escape cancels; Enter runs the Primary; the first focus is
 the Primary unless it is destructive. No close cross: Cancel is the way out.
 
@@ -1206,7 +1206,8 @@ HUD; chips avoid it (§7.4).
 6. **Numbers**: a space between value and unit ("2.5 mm²", "69 %", as built); counts with their noun ("3 devices",
    "1 selected"); "of" for positions ("Page 6 of 36", "2 of 4 placed").
 7. **Keys** are written as on the keyboard with "+" ("Ctrl+Shift+H") in text and tooltips, and as spaced keys in a key
-   chip ("Ctrl K"); macOS shows the symbols (⌘⇧H) through the same registry text (doc 16 §3.9 Keyboard).
+   chip ("Ctrl K"). The macOS symbols (⌘⇧H) from the same registry text (doc 16 §3.9 Keyboard) are kept for
+   portability only: macOS is not a supported platform (decision log ID-880).
 8. **Abbreviations** only where the user's documents use them (PE, N, L1, IP for interruption point in EPLAN usage);
    tooltips spell them out the first time ("IP: interruption point").
 9. **Titles of dialogs** are the question or the task, not the subject: "Recover unsaved changes?", not "Recovery".

@@ -1,6 +1,6 @@
 # ADR-0031: Design language and the task-ordered command bar
 
-**Status:** Accepted · **Date:** 2026-10-28 · **Deciders:** lead designer; the project owner approved the look on
+**Status:** Accepted · amended 2026-10-30 (no macOS menu bar, decision log ID-880) · **Date:** 2026-10-28 · **Deciders:** lead designer; the project owner approved the look on
 [the mockup](../design/assets/design-language-mockup.html) (2026-10-28), and the orchestrator decided the remaining taste choices under the owner's delegation
 
 ## Context
@@ -49,7 +49,8 @@
    selection's surface. The command bar is generated from the action registry (`ActionMeta` gains its tab, group,
    size and icon), so menus, bar, palette and keys cannot disagree.
 4. **The menu bar becomes the app menu** on Windows and Linux (one button, the same tree as today, opened by its
-   button, Alt or F10); on macOS the global menu bar carries the same tree (muda, FT-310) and the button is hidden.
+   button, Alt or F10). The macOS global menu bar (muda, FT-310) is not built: macOS is not a supported platform
+   (2026-10-30, decision log ID-880).
    Nothing is reachable only from the bar or only from the menu.
 5. **The window layout:** command bar on top; on the left an icon rail of navigators and one navigator panel with
    Properties docked below it; the canvas in the centre with its tabs and a floating tool HUD; a right rail with the

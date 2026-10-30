@@ -376,7 +376,7 @@ and does not merge or push.
 | New project from the built-in or a company basic project, with the `ew-api` entry point it needs | FT-307 (WP-S2.01 part 2; the API by lead-programmer) |
 | First run (doc 16 §9.1) and the company-standard wizard steps 1–9 and 11 (§9.2) | FT-308 (WP-S2.01 part 2) |
 | Docking with egui_tiles, named workspaces and the workspace files (FR-UI-002) | FT-309 (WP-S2.01 part 2) |
-| Native menus through muda on macOS and Windows (FR-UI-001; ADR-0014 amendment 1), with the `unsafe` decision for the Windows attach | FT-310 (WP-S2.01 part 2; a lead decision first) |
+| Native menus through muda on macOS and Windows (FR-UI-001; ADR-0014 amendment 1), with the `unsafe` decision for the Windows attach (the macOS part withdrawn by decision log ID-880) | FT-310 (WP-S2.01 part 2; a lead decision first) |
 | F1 to documentation anchors and tooltip "learn more" links (FR-UI-031); the complete About dialog (FR-UI-038) | FT-311 (WP-S2.01 part 2) |
 | Start page: open sample project (NFR-DOC-04), import QET project, create company standard, tutorials, quick switches | FT-312 (WP-S2.01 part 2) |
 | Export as a job with progress and cancel off the UI thread (FR-UI-024, NFR-PERF-19); the crash-recovery dialog (doc 05 §8.3) | FT-313 (WP-S2.09) |

@@ -1169,7 +1169,7 @@ and history panels; the bulk preview dialog (FR-UI-022); and the command palette
 
 **Keyboard shortcuts** (canvas set; presets per FR-UI-013; "EPLAN-like" ships at 1.0 once two EPLAN users confirm
 it, FR-UI-014). On macOS, Ctrl reads Cmd, except where [16](16-ux-ui.md) §4.4 sets a macOS binding (find and
-replace is ⌥⌘F because ⌘H is reserved). Punctuation keys bind by physical key (16 §4.4), so `[` and `]` stay
+replace is ⌥⌘F because ⌘H is reserved); the key display is kept in `ew-ui` for portability only: macOS is not a supported platform and this is not tested (decision log ID-880). Punctuation keys bind by physical key (16 §4.4), so `[` and `]` stay
 reachable without AltGr on QWERTZ and AZERTY layouts.
 
 | Action | EW preset | KiCad-like preset |

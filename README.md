@@ -62,7 +62,7 @@ the canvas on the CPU. The user guide is built from [docs/book](docs/book) with 
 
 ## Continuous integration
 
-Every pull request builds and tests on Linux, Windows and macOS, runs the UI headlessly in a container, validates the
+Every pull request builds and tests on Linux and Windows, runs the UI headlessly in a container, validates the
 exported PDF with veraPDF, fuzzes the changed targets for a minute and checks the supply chain (`cargo deny`,
 `cargo vet`). Nightly runs fuzz for longer, run the memo oracle, property tests and sanitizers, build an unsigned
 development CLI and report performance without gating it; coverage runs weekly. The jobs are described in
@@ -74,7 +74,7 @@ rule, decision log ID-512); they are addressed in the release phase.
 | Topic | Decision |
 |---|---|
 | Language | Rust |
-| Platforms | Cross-platform desktop (Windows, macOS, Linux), offline-first ([ADR-0022](docs/adr/0022-platform-matrix-and-performance-budgets.md)) |
+| Platforms | Desktop for Windows and Linux (macOS is not supported), offline-first ([ADR-0022](docs/adr/0022-platform-matrix-and-performance-budgets.md)) |
 | Project format | Plain-text JSONL records in a directory, lossless on open, Git-friendly ([ADR-0010](docs/adr/0010-project-storage-jsonl-directory.md)) |
 | UI toolkit | egui on wgpu with a CPU fallback for the canvas ([ADR-0014](docs/adr/0014-gui-toolkit-egui.md), [ADR-0015](docs/adr/0015-display-list-renderers-pdf.md)) |
 | v1 scope | Electric P8-class schematics, PLC and I/O, fluid power, 3D panel layout, manufacturing outputs, QET/EDZ/DXF import ([vision](docs/design/00-vision-and-scope.md)) |

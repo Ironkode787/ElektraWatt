@@ -1,6 +1,6 @@
 # ADR-0030: Legal steward, CRA role, support period and signing identity
 
-**Status:** Proposed · **Date:** 2026-10-17 · **Deciders:** project owner, with legal advice
+**Status:** Proposed · amended 2026-10-30 (no Apple signing identity, decision log ID-880) · **Date:** 2026-10-17 · **Deciders:** project owner, with legal advice
 
 ## Context
 
@@ -22,7 +22,7 @@
     pilot preview 0.0.x (milestone M-PP, for the pilot only and unsigned) and the nightly CLI builds for the pilot
     also fall after 2027-12-11; whether such pilot-only builds are "made available on the market" is a question
     for counsel (global plan §5.3).
-- **Lead time.** Signing enrolment (D-U-N-S, Apple organisation, Artifact Signing identity validation) takes at
+- **Lead time.** Signing enrolment (D-U-N-S, Artifact Signing identity validation) takes at
   least 12 months of calendar time, so the phase-1 identity holder must be named in the first 90 days of the plan
   (PD-7a, global plan §14) even though this ADR is decided in full only by gate G-M1 (PD-7).
 - **Product Liability Directive (EU) 2024/2853** (**unverified**). Software is a product, for products placed on
@@ -31,8 +31,8 @@
 - **Signing identity.**
   - Artifact Signing issues public-trust Authenticode certificates to organisations in the EU, but not to individual
     EU developers (gaps §3.3).
-  - Apple's Developer Program enrolment as an organisation requires a D-U-N-S number for the legal entity.
-  - Without an organisation, no Windows or macOS release can be signed (ADR-0023). The organisation's name appears on
+  - Without an organisation, no Windows release can be signed (ADR-0023). macOS is not a supported platform, so no
+    Apple Developer ID is needed (decision log ID-880). The organisation's name appears on
     every signed binary and as publisher in the About dialog.
 - **Backport cost.** egui, wgpu and winit break every 6–10 weeks and are upgraded together once a quarter (ADR-0014,
   NFR-MAINT-04). Long backport windows on old UI stacks are therefore expensive for a team of 2–4 developers.
@@ -50,7 +50,7 @@
 
 1. **Steward and identity holder, in two phases** ([19](../design/19-open-source-governance.md) §3.10):
    - **Phase 1 (M0 to 1.0).** The pilot panel builder's company is the interim **open-source steward** of the
-     community edition. It holds the signing identity (Artifact Signing, Apple Developer ID) and the trademark, on two
+     community edition. It holds the signing identity (Artifact Signing) and the trademark, on two
      conditions:
      - it sells no EW services or builds;
      - it signs a commitment to transfer the trademark, the signing role and any donated funds to a stichting.

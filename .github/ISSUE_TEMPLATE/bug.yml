@@ -41,7 +41,6 @@ body:
       label: Operating system
       options:
         - Windows
-        - macOS
         - Linux
         - Other
   - type: textarea
