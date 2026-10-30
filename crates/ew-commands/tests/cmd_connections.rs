@@ -538,6 +538,7 @@ fn place(page: Id<ew_schema::Page>, name: &str, direction: IpDirection) -> Place
         star_source: false,
         sort: None,
         external: None,
+        copies: Vec::new(),
     }
 }
 

@@ -19,7 +19,8 @@ Nothing derived is read inside the transaction (the name and the direction are t
 `ip.place` (a missing page or symbol copy, a FnDef that is not embedded, `ip.pos` off the grid), as
 `connection.draw` (a missing endpoint record, off-grid geometry, a route that does not meet its CPs) and an `a` end
 that no representation of `page` draws; an IP symbol whose FnDef has not exactly one CP, or that does not draw it.
-Interactive. Outcome: the connection.
+`copies` (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction, as `ip.place`
+embeds them, so ending a wire in a starter IP symbol is one undo step. Interactive. Outcome: the connection.
 
 ## Registry entry
 
@@ -40,6 +41,7 @@ Interactive. Outcome: the connection.
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `a` | [`EndpointParam`](#endpointparam) | yes |  | The wire's first endpoint. |
+| `copies` | array of any JSON value | no |  | The library documents to embed with the wire (`lib/` JSON form; FT-673): the IP symbol and its FnDef as the caller resolved them; empty when the project holds them. |
 | `ip` | [`IpAtEnd`](#ipatend) | yes |  | The interruption point at the wire's end. |
 | `kind` | [`ConnectionKind`](#connectionkind) or `null` | no |  | The connection kind; default a wire. |
 | `page` | [`CmdUuid`](#cmduuid) | yes |  | The page the wire and the interruption point are drawn on. |

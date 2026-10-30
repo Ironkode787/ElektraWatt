@@ -100,7 +100,7 @@ pub use find::{FindField, FindHit, FindQuery, FindResults};
 // WP-S2.09 part 1
 pub use history::{HistoryRow, HistoryView};
 pub use job::ExportJob;
-pub use join::{JoinCandidate, JoinCandidates};
+pub use join::{JoinCandidate, JoinCandidates, JoinProposal, JoinedText};
 pub use layers::{
     FrameLayer, LabelsLayer, PageLayer, SymbolsLayer, TablesLayer, WiresLayer, page_kind, page_layer,
     page_scene, page_view, text_style_table,

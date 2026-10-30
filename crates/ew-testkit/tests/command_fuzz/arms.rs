@@ -305,6 +305,12 @@ pub const ARMS: &[Arm] = &[
         weight: 3,
         build: rep_exchange_symbol,
     },
+    // WP-S2.18 D3 (FT-628)
+    Arm {
+        command: "rep.join_device",
+        weight: 2,
+        build: rep_join_device,
+    },
     Arm {
         command: "rep.move",
         weight: 5,
@@ -789,6 +795,99 @@ fn rep_transform(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
         }
     }
+}
+
+/// `rep.join_device` (WP-S2.18 D3): a D3-eligible representation joins a device that takes its FnDef by D2's rule;
+/// refused: a representation whose device has several functions, the representation's own device, a device D2's rule
+/// refuses, a representation that does not exist. A target whose part's template names the FnDef is `Either` (its CPs
+/// may not line up with the wired ones).
+fn rep_join_device(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("rep.join_device", p);
+    match rng.below(10) {
+        0 => {
+            let rep = rng.pick(&live.join_blocked)?;
+            let device = rng.pick(&live.plain_devices)?;
+            Some(cmd(json!({"rep": rep, "device": device})).refuse())
+        }
+        1 => {
+            let j = rng.pick(&live.joins)?;
+            Some(cmd(json!({"rep": j.rep, "device": j.device})).refuse())
+        }
+        2 => {
+            let j = rng.pick(&live.joins)?;
+            let device = rng.pick(&j.refused)?;
+            Some(cmd(json!({"rep": j.rep, "device": device})).refuse())
+        }
+        3 => {
+            let device = rng.pick(&live.plain_devices)?;
+            Some(cmd(json!({"rep": rng.uuid(), "device": device})).refuse())
+        }
+        _ => {
+            let with: Vec<_> = live.joins.iter().filter(|j| !j.targets.is_empty()).collect();
+            let j = *rng.pick(&with)?;
+            let (device, slot, certain) = rng.pick(&j.targets)?.clone();
+            let rep = j.rep.clone();
+            let step = cmd(json!({"rep": j.rep, "device": device}))
+                .counts(&[
+                    (Table::Devices, -1),
+                    (Table::Functions, if slot { -1 } else { 0 }),
+                    (Table::Reps, 0),
+                    (Table::Connections, 0),
+                ])
+                .check(move |_, after| {
+                    // The representation now draws a function of the target device.
+                    let r = typed(&rep)
+                        .and_then(|id| after.reps().get(id))
+                        .ok_or_else(|| format!("representation {rep} is gone"))?;
+                    let owner = r
+                        .functions
+                        .first()
+                        .and_then(|f| after.functions().get(*f))
+                        .and_then(|f| f.device);
+                    (owner.map(id_json).as_ref() == Some(&device))
+                        .then_some(())
+                        .ok_or_else(|| format!("representation {rep} does not draw a function of {device}"))
+                });
+            Some(if certain { step.accept() } else { step })
+        }
+    }
+}
+
+/// The builder of an arm's setup steps ([`setup_of`]).
+pub type Setup = fn(&Live, &mut SplitMix64) -> Option<Vec<Step>>;
+
+/// The setup steps of an arm whose command finds nothing to act on in Golden A, for
+/// `every_arm_commits_and_refuses_what_it_should` (the fuzz loop reaches such states by itself): committed in order
+/// before the arm's step is built and undone after it. `None` for every other command.
+pub fn setup_of(command: &str) -> Option<Setup> {
+    match command {
+        // Golden A has no D3-eligible contact and no device that takes one: a contact placed as a new device is the
+        // source, a device created with an unplaced function of the contact's FnDef the slot it fills.
+        "rep.join_device" => Some(join_setup),
+        _ => None,
+    }
+}
+
+/// A contact symbol placed as a new device on a multi-line page (WP-S2.18 D3's source: one function, no part), and a
+/// device created with an unplaced main function of the same FnDef (a slot, D1).
+fn join_setup(live: &Live, rng: &mut SplitMix64) -> Option<Vec<Step>> {
+    let pages: Vec<&PageInfo> = live.page_info.iter().filter(|p| p.kind == "multi_line").collect();
+    let page = *rng.pick(&pages)?;
+    let contacts: Vec<&SymInfo> = live
+        .symbols
+        .iter()
+        .filter(|s| {
+            s.rep_type == "multi_line" && s.fndef.as_ref().is_some_and(|d| live.contact_fndefs.contains(d))
+        })
+        .collect();
+    let symbol = *rng.pick(&contacts)?;
+    let place = json!({"page": page.id, "symbol": symbol.id, "pos": on_page(page, rng),
+        "target": {"new_device": {"letter": "K"}}});
+    let create = json!({"letter": "K", "main_fndef": symbol.fndef});
+    Some(vec![
+        Step::cmd("device.place", place).accept(),
+        Step::cmd("device.create", create).accept(),
+    ])
 }
 
 fn rep_exchange_symbol(live: &Live, rng: &mut SplitMix64) -> Option<Step> {

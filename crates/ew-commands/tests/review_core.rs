@@ -451,6 +451,7 @@ fn place_ip(pos: Pt2) -> PlaceIp {
         star_source: false,
         sort: None,
         external: None,
+        copies: Vec::new(),
     }
 }
 

@@ -6,8 +6,9 @@
 //! black box with their keyboard forms.
 //!
 //! **Reads.** The IP symbol and the external arrow are rows of the place catalogue (fetched once per (session,
-//! revision, folio)) and their shapes come through the per-revision shape cache (§6.2); a starter symbol is embedded
-//! first, as the picker does (§7.1). The external references are read from the session's query when the IP tool's
+//! revision, folio)) and their shapes come through the per-revision shape cache (§6.2); a starter symbol the project
+//! lacks travels in the command's `copies`, as the picker's placements do (FT-656, FT-673: one undo step). The external
+//! references are read from the session's query when the IP tool's
 //! field is set. Pointer and cursor moves of the IP and black box tools read nothing (§12 item 4).
 //!
 //! **Commits** go through the tool's commit path (`execute_with` in the window, `run_script` headless).
@@ -30,7 +31,7 @@ use crate::tools::black_box::{
 use crate::tools::ip::{drawing_area, potential_at, potential_of_end, quarter_direction, unused_name};
 use crate::tools::wire::PageGridMap;
 use crate::tools::{
-    CanvasEvent, IpDir, IpExternal, IpMemory, IpTool, PickerMode, ToolKey, WireTool, black_box,
+    CanvasEvent, IpDir, IpExternal, IpMemory, IpTool, PickerMode, ToolKey, ToolOutput, WireTool, black_box,
     selection_kinds,
 };
 
@@ -134,8 +135,9 @@ impl ShellModel {
     // Reads
 
     /// The shape of the catalogue symbol whose key is `base` in the page's grid family (`ew.gen.ip`,
-    /// `ew.gen.ip@qet10`), embedded first when it is a starter symbol.
-    fn family_shape(&mut self, base: &str) -> Result<Arc<SymbolShape>, Outcome> {
+    /// `ew.gen.ip@qet10`), and the library documents a command drawing it carries (a starter symbol the project lacks,
+    /// with its FnDef; FT-673).
+    fn family_shape(&mut self, base: &str) -> Result<(Arc<SymbolShape>, Vec<Value>), Outcome> {
         let none = Outcome::Refused {
             reason_key: "reason-no-ip-symbol",
         };
@@ -148,9 +150,9 @@ impl ShellModel {
             .find(|s| s.key.split('@').next() == Some(base))
             .map(|s| s.key.clone())
             .ok_or(none.clone())?;
-        let (cat, i) = self.embedded_row(&key)?;
-        let row = cat.symbols[i].clone();
-        self.row_shape(&row).ok_or(none)
+        let (row, copies) = self.starter_row(&key)?;
+        let shape = self.row_shape(&row).ok_or(none)?;
+        Ok((shape, copies))
     }
 
     /// The drawing area of the focused page (page nm), or its sheet.
@@ -180,19 +182,19 @@ impl ShellModel {
         if self.tools.tool.name() == "wire" && self.tools.tool.state() == "routing" {
             return self.wire_end_in_ip();
         }
-        let shape = match self.family_shape("ew.gen.ip") {
+        let (shape, copies) = match self.family_shape("ew.gen.ip") {
             Ok(s) => s,
             Err(e) => return e,
         };
         let area = self.focused_area();
-        let tool = IpTool::new(shape, self.tools.ip_memory.clone(), area);
+        let tool = IpTool::new(shape, self.tools.ip_memory.clone(), area).with_copies(copies);
         self.activate_tool(Box::new(tool));
         Outcome::Done
     }
 
     /// P while the Wire tool routes: `connection.draw_to_ip` at the routed end (one transaction, one undo step).
     fn wire_end_in_ip(&mut self) -> Outcome {
-        let shape = match self.family_shape("ew.gen.ip") {
+        let (shape, copies) = match self.family_shape("ew.gen.ip") {
             Ok(s) => s,
             Err(e) => return e,
         };
@@ -215,6 +217,20 @@ impl ShellModel {
             .flatten();
         match result {
             Some(Ok((out, name, direction))) => {
+                // FT-673: the IP symbol the project lacks travels in the wire's command (one undo step).
+                let out = match out {
+                    ToolOutput::Commit(cmd) if !copies.is_empty() => match cmd.to_json() {
+                        Ok(mut params) => {
+                            params["copies"] = Value::Array(copies);
+                            ToolOutput::Commit(Box::new(ew_api::AnyCommand {
+                                name: cmd.name().to_owned(),
+                                params,
+                            }))
+                        }
+                        Err(_) => ToolOutput::Commit(cmd),
+                    },
+                    other => other,
+                };
                 let outcome = self.apply_tool_output(out);
                 if outcome == Outcome::Done {
                     self.tools.ip_memory = IpMemory {
@@ -394,15 +410,16 @@ impl ShellModel {
         } else {
             "ew.gen.ip"
         };
-        let shape = match self.family_shape(base) {
+        let (shape, copies) = match self.family_shape(base) {
             Ok(s) => s,
             Err(e) => return e,
         };
         let overlay = self
             .with_tool(|t, cx| {
-                t.as_any_mut()
-                    .and_then(|a| a.downcast_mut::<IpTool>())
-                    .map(|ip| ip.set_external(external, shape, cx))
+                t.as_any_mut().and_then(|a| a.downcast_mut::<IpTool>()).map(|ip| {
+                    ip.set_copies(copies);
+                    ip.set_external(external, shape, cx)
+                })
             })
             .flatten();
         if let Some(o) = overlay {

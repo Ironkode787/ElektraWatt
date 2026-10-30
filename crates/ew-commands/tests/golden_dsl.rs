@@ -334,6 +334,7 @@ fn build(seed: u64) -> (Dsl, Ids) {
         star_source: false,
         sort: None,
         external: None,
+        copies: Vec::new(),
     });
     let ip101: Id<Function> = primary(&r);
     let rep_ip101: Id<Representation> = created::<Representation>(&r, Kind::Representation)[0];

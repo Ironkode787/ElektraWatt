@@ -600,3 +600,169 @@ fn a_library_part_from_the_picker_is_one_undo_step_and_its_command_replays() {
     assert_eq!(new[0].symbol_key, "ew.iec.coil@qet10");
     assert_eq!(relay_held(&mut t), (true, true));
 }
+
+/// Whether the project holds the starter symbol `key` (its picker row has a `copy`).
+fn symbol_held(s: &mut ShellModel, key: &str) -> bool {
+    done(s, "tool.place", json!({}));
+    let cat = std::sync::Arc::clone(&s.picker().expect("the picker").catalogue);
+    done(s, "ui.dismiss", json!({}));
+    cat.symbols
+        .iter()
+        .find(|r| r.key == key)
+        .unwrap_or_else(|| panic!("no row {key}"))
+        .copy
+        .is_some()
+}
+
+/// Places the starter symbol `key` as a new device with `letter` at grid index `k` (one commit) and returns its
+/// representation.
+fn place_new(s: &mut ShellModel, key: &str, letter: &str, k: (i64, i64)) -> TableRep {
+    let before = reps(s);
+    done(s, "place.pick", json!({"symbol": key, "letter": letter}));
+    place_at(s, k);
+    done(s, "ui.dismiss", json!({}));
+    let new = new_reps(s, &before);
+    assert_eq!(new.len(), 1, "{key}");
+    new[0].clone()
+}
+
+/// The last recorded command's name and whether it carries `copies`.
+fn last_command(s: &ShellModel) -> (String, bool) {
+    let last = s.recorded_commands().last().expect("a command").clone();
+    let copies = last.params["copies"].as_array().is_some_and(|c| !c.is_empty());
+    (last.cmd, copies)
+}
+
+/// FT-673, the exchange flow: exchanging a symbol for a starter symbol the project lacks is one commit
+/// (`rep.exchange_symbol` with the symbol's copies), and one undo step takes the copies back with it.
+#[test]
+fn ft673_the_exchange_flow_embeds_its_symbol_in_the_same_undo_step() {
+    let tmp = Tmp::new("ft673-exchange");
+    let mut s = new_project(&tmp);
+    goto(&mut s, MULTI);
+    // A coil exchanged for the valve coil, another FnDef with the same CP designations (A1, A2).
+    let coil = place_new(&mut s, "ew.iec.coil@qet10", "K", (8, 10));
+    const OTHER: &str = "ew.iec.valve-coil@qet10";
+    assert!(!symbol_held(&mut s, OTHER), "a new project lacks it");
+    let centre = (
+        (coil.body[0] + coil.body[2]) / 2,
+        (coil.body[1] + coil.body[3]) / 2,
+    );
+    let p = s.canvas().unwrap().page().snapper.page_to_sheet(centre);
+    click(&mut s, p, json!({}));
+    let rev = s.revision();
+    done(&mut s, "rep.exchange", json!({"symbol": OTHER}));
+    assert_eq!(s.revision(), rev, "arming commits nothing");
+    done(&mut s, "canvas.press", at(p, json!({})));
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    assert_eq!(last_command(&s), ("rep.exchange_symbol".to_owned(), true));
+    assert_eq!(
+        reps(&s).iter().find(|r| r.id == coil.id).unwrap().symbol_key,
+        OTHER
+    );
+    assert!(symbol_held(&mut s, OTHER));
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 2), "the undo is one step");
+    assert_eq!(
+        reps(&s).iter().find(|r| r.id == coil.id).unwrap().symbol_key,
+        coil.symbol_key
+    );
+    assert!(!symbol_held(&mut s, OTHER), "no copy stays behind");
+}
+
+/// FT-673, the IP tool: placing an interruption point in a new project is one commit (`ip.place` with the IP
+/// symbol's copies), and one undo step takes the copies back with it.
+#[test]
+fn ft673_the_ip_tool_embeds_its_symbol_in_the_same_undo_step() {
+    let tmp = Tmp::new("ft673-ip");
+    let mut s = new_project(&tmp);
+    goto(&mut s, MULTI);
+    const IP: &str = "ew.gen.ip@qet10";
+    assert!(!symbol_held(&mut s, IP), "a new project lacks it");
+    let before = reps(&s);
+    let rev = s.revision();
+    done(&mut s, "tool.ip", json!({}));
+    assert_eq!(s.revision(), rev, "arming commits nothing");
+    let p = grid(&s, (20, 20));
+    click(&mut s, p, json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    assert_eq!(last_command(&s), ("ip.place".to_owned(), true));
+    assert_eq!(new_reps(&s, &before).len(), 1, "the IP");
+    assert!(symbol_held(&mut s, IP));
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 2), "the undo is one step");
+    assert!(new_reps(&s, &before).is_empty());
+    assert!(!symbol_held(&mut s, IP), "no copy stays behind");
+}
+
+/// FT-673, P while routing: a wire ended in a new interruption point in a new project is one commit
+/// (`connection.draw_to_ip` with the IP symbol's copies), and one undo step takes the copies back with it.
+#[test]
+fn ft673_p_while_routing_embeds_the_ip_symbol_in_the_same_undo_step() {
+    let tmp = Tmp::new("ft673-wire-ip");
+    let mut s = new_project(&tmp);
+    goto(&mut s, MULTI);
+    const IP: &str = "ew.gen.ip@qet10";
+    let lamp = place_new(&mut s, "ew.iec.lamp@qet10", "P", (8, 10));
+    assert!(!symbol_held(&mut s, IP), "a new project lacks it");
+    let cp = {
+        let t = &s.canvas().unwrap().page().tables;
+        t.cps
+            .iter()
+            .filter(|c| c.rep == lamp.id)
+            .max_by_key(|c| c.at.1)
+            .unwrap()
+            .at
+    };
+    let sn = s.canvas().unwrap().page().snapper.clone();
+    let before = reps(&s);
+    let rev = s.revision();
+    done(&mut s, "tool.wire", json!({}));
+    done(&mut s, "cursor.set", at(sn.page_to_sheet(cp), json!({})));
+    done(&mut s, "canvas.activate", json!({}));
+    assert_eq!(s.tool().state(), "routing");
+    let k = (sn.grid_index_of(cp.0), sn.grid_index_of(cp.1));
+    let end = (sn.page_of_index(k.0), sn.page_of_index(k.1 + 4));
+    done(&mut s, "cursor.set", at(sn.page_to_sheet(end), json!({})));
+    done(&mut s, "tool.ip", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    assert_eq!(last_command(&s), ("connection.draw_to_ip".to_owned(), true));
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(new_reps(&s, &before).len(), 1, "the IP");
+    assert!(symbol_held(&mut s, IP));
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 2), "the undo is one step");
+    assert!(new_reps(&s, &before).is_empty());
+    assert!(!symbol_held(&mut s, IP), "no copy stays behind");
+}
+
+/// FT-673, `place.pick device=`: a contact the project lacks joined to a relay is one commit (`device.place` with
+/// the contact's copies), and one undo step takes the copies back with it.
+#[test]
+fn ft673_place_pick_device_embeds_the_contact_in_the_same_undo_step() {
+    let tmp = Tmp::new("ft673-join");
+    let mut s = new_project(&tmp);
+    goto(&mut s, MULTI);
+    const NO: &str = "ew.iec.contact-no@qet10";
+    let coil = place_new(&mut s, "ew.iec.coil@qet10", "K", (8, 10));
+    let tag = tag_of(&s, &coil);
+    assert!(!symbol_held(&mut s, NO), "a new project lacks it");
+    let before = reps(&s);
+    let rev = s.revision();
+    done(&mut s, "place.pick", json!({"symbol": NO, "device": tag}));
+    assert_eq!(s.revision(), rev, "the pick commits nothing");
+    place_at(&mut s, (14, 10));
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    assert_eq!(last_command(&s), ("device.place".to_owned(), true));
+    let new = new_reps(&s, &before);
+    assert_eq!(new.len(), 1, "the contact");
+    assert_eq!(new[0].device, coil.device, "it joined the relay");
+    assert!(symbol_held(&mut s, NO));
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 2), "the undo is one step");
+    assert!(new_reps(&s, &before).is_empty());
+    assert!(!symbol_held(&mut s, NO), "no copy stays behind");
+}

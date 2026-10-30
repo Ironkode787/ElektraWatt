@@ -83,6 +83,8 @@ pub(super) fn replace_uuids(text: &str, name: &dyn Fn(&str) -> String) -> String
 /// WP-S2.07 D13: the key of a terminal's Group row and of its Printed label row.
 const GROUP_ROW: &str = "device/derived.group";
 const PRINTED_LABEL_ROW: &str = "device/derived.printed_label";
+/// WP-S2.18 D3 (FT-628): the key of a device's Tag row.
+const TAG_ROW: &str = "device/derived.tag";
 
 /// The sentence of a strip edit's refusal (the Group row's error line).
 fn message_of(result: &Result<AnyCommand, ew_api::output::StripEditError>) -> String {
@@ -829,6 +831,18 @@ impl ShellModel {
         if row.key == GROUP_ROW {
             return self.commit_group_label(&section, &row, text);
         }
+        // WP-S2.18 D3 (FT-628): an existing device's tag proposes Join; the shown tag again builds no command.
+        if row.key == TAG_ROW {
+            if let Some(outcome) = self.propose_join(&section, key, text) {
+                return outcome;
+            }
+            if matches!(&row.value, RowValue::One { text: shown, .. } if shown.trim() == text.trim()) {
+                self.props.edit = None;
+                self.props.error = None;
+                self.props.tag_proposal = None;
+                return Outcome::Done;
+            }
+        }
         if self
             .props
             .choices
@@ -1294,7 +1308,37 @@ impl ShellModel {
             counter,
             params,
             base_rev,
+            join: false,
         })
+    }
+
+    /// WP-S2.18 D3 (FT-628): `text` typed into one device's Tag field names another device the device's one
+    /// representation can join (`Session::join_proposal`): the rename is refused and the error line proposes the join,
+    /// accepted by `props.accept_tag_proposal` ("Join -K1"). `None` otherwise (the field's other behaviour).
+    fn propose_join(&mut self, section: &SheetSection, key: &str, text: &str) -> Option<Outcome> {
+        let [device] = section.targets.as_slice() else {
+            return None;
+        };
+        let base_rev = self.revision()?;
+        let proposal = self.project.as_ref()?.session.join_proposal(*device, text)?;
+        let shown = strings::format("props-join-proposal", &[&proposal.tag]);
+        // The window offers the "Join …" button; a script or blind transcript is told the action instead.
+        let message = if self.mode == Mode::Headless {
+            strings::format("props-join-proposal-script", &[&proposal.tag])
+        } else {
+            shown.clone()
+        };
+        self.props.choices = None;
+        self.props.error = Some((key.to_owned(), shown));
+        self.props.tag_proposal = Some(crate::properties::TagProposal {
+            row: key.to_owned(),
+            tag: proposal.tag,
+            counter: String::new(),
+            params: json!({"rep": proposal.rep.to_string(), "device": proposal.device.to_string()}),
+            base_rev,
+            join: true,
+        });
+        Some(Outcome::Failed { message })
     }
 
     /// `props.accept_tag_proposal` (the "Use -102F2" button under a refused tag-letter edit): commits the proposal
@@ -1314,15 +1358,30 @@ impl ShellModel {
             };
         }
         let section = self.props_find(&proposal.row).map(|(s, _)| s);
-        let outcome = self.run_logged_or_commit("fields.set_many", &proposal.params, section.as_ref());
+        let name = if proposal.join {
+            "rep.join_device"
+        } else {
+            "fields.set_many"
+        };
+        let outcome = self.run_logged_or_commit(name, &proposal.params, section.as_ref());
         if outcome == Outcome::Done {
             self.props.edit = None;
             self.props.error = None;
             self.props.tag_proposal = None;
-            self.notify(
-                strings::format("toast-tag-proposal", &[&proposal.tag, &proposal.counter]),
-                true,
-            );
+            let toast = if proposal.join {
+                // WP-S2.18 D3: "Joined -K1 (NO contact 13-14) at 102-C4".
+                let rep = proposal.params["rep"].as_str().and_then(|r| r.parse().ok());
+                let joined = rep.and_then(|r| self.project.as_ref()?.session.joined_text(r));
+                joined.map(|j| strings::format("toast-joined", &[&j.tag, &j.kind, &j.place]))
+            } else {
+                Some(strings::format(
+                    "toast-tag-proposal",
+                    &[&proposal.tag, &proposal.counter],
+                ))
+            };
+            if let Some(toast) = toast {
+                self.notify(toast, true);
+            }
         }
         outcome
     }

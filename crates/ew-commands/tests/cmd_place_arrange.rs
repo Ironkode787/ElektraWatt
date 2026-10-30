@@ -1196,6 +1196,7 @@ fn exchange(rep: Id<Representation>, symbol: Id<SymbolDef>) -> ExchangeSymbol {
         rep,
         symbol,
         pin_map: None,
+        copies: Vec::new(),
     }
 }
 
@@ -1364,6 +1365,7 @@ fn exchange_with_an_explicit_pin_map_stores_it_and_moves_the_routes() {
         rep: REP_L,
         symbol: SYM_SHIFT,
         pin_map: Some(vec![pin(0, 1), pin(1, 0)]),
+        copies: Vec::new(),
     };
     e.execute(&cmd).expect("rep.exchange_symbol");
     let rep = row(&e, REP_L);
@@ -1387,6 +1389,7 @@ fn exchange_with_an_explicit_pin_map_stores_it_and_moves_the_routes() {
         rep: REP_L,
         symbol: SYM_SHIFT,
         pin_map: Some(vec![pin(0, 0)]),
+        copies: Vec::new(),
     };
     invalid_at(e.execute(&cmd), "/pin_map");
     assert_eq!(lines(e.model()), before);
@@ -1440,6 +1443,7 @@ fn exchange_refuses_an_unmatched_symbol_cp_that_names_a_function_cp() {
         rep: REP_L,
         symbol: SYM_LACK,
         pin_map: Some(vec![pin(0, 0), pin(1, 1)]),
+        copies: Vec::new(),
     };
     e.execute(&cmd).expect("rep.exchange_symbol");
     // A symbol CP with no counterpart whose index default names no function CP is accepted.
@@ -1469,6 +1473,7 @@ fn exchange_rejections_write_nothing() {
         rep: REP_L,
         symbol: SYM_SHIFT,
         pin_map: Some(entries),
+        copies: Vec::new(),
     };
     invalid_at(e.execute(&with_map(vec![pin(9, 0)])), "/pin_map/0/symbol_cp");
     invalid_at(
@@ -2180,4 +2185,30 @@ fn a_positional_contacts_endpoints_survive_a_pattern_re_index() {
             .version,
         "9.0.0"
     );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-673: `copies` on rep.exchange_symbol
+
+#[test]
+fn ft673_exchange_embeds_its_copies_in_the_same_undo_step() {
+    type Symbols = ew_schema::LibCopy<SymbolDef>;
+    let mut e = engine(exchange_model(|_| {}));
+    let before = lines(e.model());
+    let symbols = held::<Symbols>(&e);
+    // A new symbol item of the lamp's FnDef (the FnDef is held), not held by the project.
+    let (symbol, doc) = relineaged(&fixture_doc(SYM_TWO.as_uuid()), 0xf673_0001);
+    let symbol: Id<SymbolDef> = Id::from_uuid(symbol);
+    let mut cmd = exchange(REP_L, symbol);
+    // Without its copies the exchange names a symbol the project does not hold.
+    not_found(e.execute(&cmd));
+    cmd.copies = vec![doc];
+    let r = e.execute(&cmd).expect("rep.exchange_symbol with copies");
+    assert_eq!(created::<SymbolDef>(&r, Kind::Symbol), vec![symbol]);
+    assert_eq!(held::<Symbols>(&e), symbols + 1);
+    assert_eq!(row(&e, REP_L).symbol, symbol);
+    // One undo removes the exchange and the copy together: no embedded copy stays behind.
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before, "one undo step");
+    assert_eq!(held::<Symbols>(&e), symbols, "the copy went with the undo");
 }

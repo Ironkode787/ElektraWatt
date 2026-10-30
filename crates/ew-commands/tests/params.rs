@@ -227,7 +227,7 @@ fn examples() -> Vec<(&'static str, Value)> {
         (
             "rep.exchange_symbol",
             json!({"rep": REP_102F2.to_string(), "symbol": SYM_TWO.to_string(),
-                "pin_map": [{"symbol_cp": 0, "function_cp": 1}]}),
+                "pin_map": [{"symbol_cp": 0, "function_cp": 1}], "copies": [{"$k": "symbol"}]}),
         ),
         (
             "project.drawing.set",
@@ -316,6 +316,11 @@ fn examples() -> Vec<(&'static str, Value)> {
             "macro.insert",
             json!({"copies": [{"$k": "macro"}], "macro": FNDEF_TERMINAL.to_string(), "page": DEV_T1.to_string(),
                 "at": [0, 0], "value_set": "1", "values": {"pos": 2}, "instance": DEV_T3.to_string()}),
+        ),
+        // WP-S2.18 D3 (FT-628)
+        (
+            "rep.join_device",
+            json!({"rep": REP_102F2.to_string(), "device": DEV_T3.to_string()}),
         ),
     ]
 }

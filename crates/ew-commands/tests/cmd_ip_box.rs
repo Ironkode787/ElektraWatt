@@ -182,6 +182,7 @@ fn draw_to_ip(a: EndpointParam, pos: Pt2, route: Vec<Pt2>) -> DrawToIp {
         route,
         kind: None,
         ip: ip_at_end(pos),
+        copies: Vec::new(),
     }
 }
 
@@ -907,4 +908,82 @@ fn fields_set_refuses_ip_members_on_other_functions_and_bad_values() {
         "/path",
     );
     assert_eq!(e.model().rev(), rev);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-673: `copies` on connection.draw_to_ip and ip.place
+
+/// The library of the FT-673 copies (another library than the fixture's, so the copy is a new item).
+const LIBRARY_F673: Uuid = Uuid::from_u128(0xf673_0000);
+
+/// [`SYM_IP`] as a document of a new item of [`LIBRARY_F673`] (`lib/` JSON form, its copy identity as its ID and the
+/// hash of its item), drawing the held FnDef of `ITEM_IP1`; with its copy ID.
+fn new_ip_symbol() -> (Id<SymbolDef>, serde_json::Value) {
+    let doc = ip_library()
+        .into_iter()
+        .find(|d| matches!(d, LibDocument::Symbol(c) if c.id == SYM_IP))
+        .expect("the IP symbol");
+    let (library, item) = (LIBRARY_F673, Uuid::from_u128(0xf673_0001));
+    let identity: Id<SymbolDef> = ew_ids::v5::lib_copy_id(library, item);
+    let mut v = serde_json::to_value(&doc).expect("a library document");
+    v["library_id"] = serde_json::json!(library.to_string());
+    v["item_id"] = serde_json::json!(item.to_string());
+    v["id"] = serde_json::json!(identity.to_string());
+    let hash =
+        ew_commands::commands::library_copy_hash(&LibDocument::from_value(v.clone()).expect("a document"))
+            .expect("a known kind");
+    let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
+    v["sha256"] = serde_json::json!(format!("sha256:{hex}"));
+    (identity, v)
+}
+
+fn held_symbols(e: &Engine) -> usize {
+    e.model().table::<ew_schema::LibCopy<SymbolDef>>().iter().count()
+}
+
+#[test]
+fn ft673_draw_to_ip_embeds_its_copies_in_the_same_undo_step() {
+    let mut e = engine(ip_model(|_| {}));
+    let before = lines(e.model());
+    let symbols = held_symbols(&e);
+    let (symbol, doc) = new_ip_symbol();
+    let mut cmd = draw_to_ip(cp_param(FN_102G1, 1), pt(5 * G, 0), vec![pt(0, 0), pt(6 * G, 0)]);
+    cmd.ip.symbol = symbol;
+    not_found(e.execute(&cmd));
+    cmd.copies = vec![doc];
+    let r = e.execute(&cmd).expect("connection.draw_to_ip with copies");
+    assert_eq!(created::<SymbolDef>(&r, Kind::Symbol), vec![symbol]);
+    assert_eq!(held_symbols(&e), symbols + 1);
+    e.undo(&Origin::Gui).expect("undo");
+    assert_eq!(lines(e.model()), before, "one undo step");
+    assert_eq!(held_symbols(&e), symbols, "the copy went with the undo");
+}
+
+#[test]
+fn ft673_ip_place_embeds_its_copies_in_the_same_undo_step() {
+    let mut e = engine(ip_model(|_| {}));
+    let before = lines(e.model());
+    let symbols = held_symbols(&e);
+    let (symbol, doc) = new_ip_symbol();
+    let mut cmd = ew_commands::commands::PlaceIp {
+        page: PAGE_102,
+        symbol,
+        fndef: None,
+        pos: pt(5 * G, 0),
+        orient: Orient2::default(),
+        name: ident(IP_NAME),
+        direction: IpDirection::Source,
+        star_source: false,
+        sort: None,
+        external: None,
+        copies: Vec::new(),
+    };
+    not_found(e.execute(&cmd));
+    cmd.copies = vec![doc];
+    let r = e.execute(&cmd).expect("ip.place with copies");
+    assert_eq!(created::<SymbolDef>(&r, Kind::Symbol), vec![symbol]);
+    assert_eq!(new_ips(&e).len(), 1);
+    e.undo(&Origin::Gui).expect("undo");
+    assert_eq!(lines(e.model()), before, "one undo step");
+    assert_eq!(held_symbols(&e), symbols, "the copy went with the undo");
 }

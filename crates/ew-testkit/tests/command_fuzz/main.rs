@@ -924,8 +924,29 @@ fn every_arm_commits_and_refuses_what_it_should() {
         let (mut committed, mut refused_ok, mut tried) = (0, 0, 0);
         for attempt in 0..60u64 {
             let mut rng = SplitMix64::new(1_000 * (i as u64 + 1) + attempt);
+            // An arm whose command finds nothing to act on in Golden A gets its setup step first (`arms::setup_of`),
+            // undone after the attempt.
+            let mut set_up = 0;
+            if let Some(setup) = arms::setup_of(arm.command) {
+                let live = Live::read(&session.query(), &fixture);
+                for step in setup(&live, &mut rng).unwrap_or_default() {
+                    let Step::Cmd(s) = step else { continue };
+                    let applied = apply(&mut session, &s, &mut stats)
+                        .unwrap_or_else(|e| panic!("setup of arm `{}` attempt {attempt}: {e}", arm.command));
+                    if applied.changed {
+                        set_up += 1;
+                    }
+                }
+            }
+            let undo_setup = |session: &mut Session, n: usize| {
+                for _ in 0..n {
+                    session.undo(&ew_api::Origin::Gui).expect("the setup undoes");
+                }
+            };
+            let base = session.world().model.clone();
             let live = Live::read(&session.query(), &fixture);
             let Some(Step::Cmd(c)) = (arm.build)(&live, &mut rng) else {
+                undo_setup(&mut session, set_up);
                 continue;
             };
             tried += 1;
@@ -949,12 +970,20 @@ fn every_arm_commits_and_refuses_what_it_should() {
                     .undo(&ew_api::Origin::Gui)
                     .expect("a committed step undoes");
                 assert!(
-                    session.world().model.content_eq(&initial),
+                    session.world().model.content_eq(&base),
                     "arm `{}`: undo did not restore the golden project\nstep: {line}",
                     arm.command
                 );
             } else if c.verdict == Verdict::Refuse {
                 refused_ok += 1;
+            }
+            if set_up > 0 {
+                undo_setup(&mut session, set_up);
+                assert!(
+                    session.world().model.content_eq(&initial),
+                    "arm `{}`: undoing the setup did not restore the golden project",
+                    arm.command
+                );
             }
             if committed >= 2 && (refused_ok >= 1 || attempt > 40) {
                 break;

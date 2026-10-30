@@ -88,17 +88,19 @@ impl ShellModel {
         Ok(id)
     }
 
-    /// The FnDef copy the catalogue's symbol row `i` draws, after embedding a starter symbol (its own undo step, as
-    /// every pick does).
+    /// The FnDef copy the catalogue's symbol row `i` draws; a starter symbol the project lacks is not embedded here: the
+    /// placement carries it (FT-656, FT-673), so `place.pick device=` is one undo step.
     fn row_fndef(
         &mut self,
         cat: &PlaceCatalogue,
         i: usize,
     ) -> Result<(Arc<PlaceCatalogue>, usize, Uuid), Outcome> {
-        let (cat, i) = self.embedded_row(&cat.symbols[i].key)?;
-        let row = cat.symbols[i].clone();
+        let (row, _) = self.starter_row(&cat.symbols[i].key)?;
         let shape = self.row_shape(&row).ok_or(Outcome::Refused {
             reason_key: "reason-unknown-symbol",
+        })?;
+        let cat = self.catalogue().ok_or(Outcome::Refused {
+            reason_key: "reason-no-catalogue",
         })?;
         Ok((cat, i, shape.fndef))
     }

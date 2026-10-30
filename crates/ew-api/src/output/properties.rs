@@ -1444,7 +1444,12 @@ impl Session {
                 {
                     *json = Value::String((*product).clone());
                 }
+                // WP-S2.18 D3 (FT-628): one device's Tag field is typed into: an existing device's tag proposes Join,
+                // another text freezes the typed tag (the partner write, as Override would).
                 let mut actions = Vec::new();
+                if devices.len() == 1 {
+                    actions.push(RowAction::Edit);
+                }
                 if any_frozen {
                     actions.push(RowAction::Unfreeze);
                 }

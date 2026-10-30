@@ -244,40 +244,36 @@ impl ShellModel {
         out
     }
 
-    /// Embeds starter symbol `key` (one `library.embed`, one undo step) when the project has not; then the row of
-    /// the refreshed catalogue.
-    pub(super) fn embedded_row(&mut self, key: &str) -> Result<(Arc<PlaceCatalogue>, usize), Outcome> {
+    /// The catalogue row of symbol `key` with the copy ID it has, or, for a starter symbol the project does not
+    /// embed yet, the one its embedding gives it; and the library documents (`copies`) that the command using it
+    /// carries, so that the embedding is part of that command's transaction (FT-656, FT-673: one undo step, and the
+    /// recorded command replays without a library). Nothing is committed here.
+    pub(super) fn starter_row(&mut self, key: &str) -> Result<(CatalogueSymbol, Vec<Value>), Outcome> {
         let no_row = Outcome::Refused {
             reason_key: "reason-unknown-symbol",
         };
         let cat = self.catalogue().ok_or(Outcome::Refused {
             reason_key: "reason-no-catalogue",
         })?;
-        let i = cat
+        let mut row = cat
             .symbols
             .iter()
-            .position(|s| s.key == key)
+            .find(|s| s.key == key)
+            .cloned()
             .ok_or(no_row.clone())?;
-        if cat.symbols[i].copy.is_some() {
-            return Ok((cat, i));
+        let project = self.project.as_ref().ok_or(no_row.clone())?;
+        let copies = project
+            .session
+            .starter_embed(key)
+            .map(copies_of)
+            .unwrap_or_default();
+        if row.copy.is_none() {
+            row.copy = project.session.starter_symbol_copy(key);
         }
-        let params = self
-            .project
-            .as_ref()
-            .and_then(|p| p.session.starter_embed(key))
-            .ok_or(no_row.clone())?;
-        match self.host_commit("library.embed", params) {
-            Outcome::Done => {}
-            other => return Err(other),
+        if row.copy.is_none() {
+            return Err(no_row);
         }
-        self.sync_views();
-        let cat = self.catalogue().ok_or(no_row.clone())?;
-        let i = cat
-            .symbols
-            .iter()
-            .position(|s| s.key == key && s.copy.is_some())
-            .ok_or(no_row)?;
-        Ok((cat, i))
+        Ok((row, copies))
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -521,11 +517,11 @@ impl ShellModel {
             };
         };
         let key = cat.symbols[i].key.clone();
-        let (cat, i) = match self.embedded_row(&key) {
+        // FT-673: a starter symbol the project lacks travels in the exchange itself (one undo step).
+        let (row, copies) = match self.starter_row(&key) {
             Ok(v) => v,
             Err(e) => return e,
         };
-        let row = cat.symbols[i].clone();
         let Some(shape) = self.row_shape(&row) else {
             return Outcome::Refused {
                 reason_key: "reason-unknown-symbol",
@@ -545,9 +541,9 @@ impl ShellModel {
         let current = self.cached_shape(old_symbol.to_string(), |s| s.symbol_shape(old_symbol));
         self.tools.picker = None;
         self.tools.exchange_rep = None;
-        let Some(tool) =
-            self.with_tool(|_, cx| ExchangeTool::new(rep, Arc::clone(&shape), current.as_deref(), cx))
-        else {
+        let Some(tool) = self.with_tool(|_, cx| {
+            ExchangeTool::new(rep, Arc::clone(&shape), current.as_deref(), cx).with_copies(copies)
+        }) else {
             return Outcome::Refused {
                 reason_key: "reason-no-page",
             };

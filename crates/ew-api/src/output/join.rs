@@ -12,8 +12,10 @@
 use std::cmp::Ordering;
 
 use ew_derive::ew_ids::{Id, Uuid, v5};
-use ew_derive::ew_schema::{ContactKind, Device, FnDef, FnRole, Function, FunctionKind, LibRef};
-use ew_derive::{DeviceTag, FunctionCps, Q};
+use ew_derive::ew_schema::{
+    ContactKind, Device, FnDef, FnRole, Function, FunctionKind, LibRef, Representation,
+};
+use ew_derive::{DeviceTag, FunctionCps, PageOrder, PageRef, Q, RepAnchorCell};
 
 use crate::Session;
 
@@ -39,6 +41,29 @@ pub struct JoinCandidate {
     pub function: Option<Uuid>,
     /// The slot's CP designations joined by `-` (`13-14`); empty for a new auxiliary function.
     pub slot: String,
+}
+
+/// The join the Properties Tag field proposes (WP-S2.18 D3): typing `tag`, an existing device's, into the Tag field of
+/// a device whose one representation can join it; accepting it is `rep.join_device {rep, device}`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct JoinProposal {
+    /// The representation that joins.
+    pub rep: Uuid,
+    /// The device it joins.
+    pub device: Uuid,
+    /// That device's tag as a report prints it (`-K1`).
+    pub tag: String,
+}
+
+/// What the toast of a join says (WP-S2.18 D3: "Joined -K1 (NO contact 13-14) at 102-C4").
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct JoinedText {
+    /// The device's tag as a report prints it.
+    pub tag: String,
+    /// The function's kind in words (`NO contact 13-14`).
+    pub kind: String,
+    /// `<folio>-<cell>` of the representation, the folio alone without a cell.
+    pub place: String,
 }
 
 /// The natural order of two tags: runs of decimal digits compare by their value, other runs by their text.
@@ -120,7 +145,80 @@ fn takes_auxiliary(q: &Q, id: Id<Device>, device: &Device, def: Id<FnDef>) -> bo
     })
 }
 
+/// The one representation of `device` when D3 lets it join another device: the device has exactly one function, a
+/// normal one, no part use and that one representation, which draws only it; terminals and strips never.
+fn joinable_rep(q: &Q, device: Id<Device>) -> Option<(Id<Representation>, Id<Function>)> {
+    let d = q.devices().get(device)?;
+    if d.aspects.terminal.is_some() || d.aspects.strip.is_some() || !d.parts.is_empty() {
+        return None;
+    }
+    let idx = q.idx();
+    let mut functions = idx.functions_of_device(device);
+    let (f, None) = (functions.next()?, functions.next()) else {
+        return None;
+    };
+    if q.functions().get(f)?.kind != FunctionKind::Normal {
+        return None;
+    }
+    let mut reps = idx.reps_of_function(f);
+    let (r, None) = (reps.next()?, reps.next()) else {
+        return None;
+    };
+    (q.reps().get(r)?.functions.as_slice() == [f]).then_some((r, f))
+}
+
 impl Session {
+    /// The join that typing `text` into the Tag field of `device` proposes (WP-S2.18 D3): `text` names another
+    /// existing device (FT-544's reference grammar: a bare tag such as `-K1`, `tag:`, `id:`), `device` has exactly one
+    /// function, no part and no other representation, and the named device takes the function's FnDef by D2's rule
+    /// (an unplaced function of it, else a contact joining a device whose family takes auxiliary functions). `None`
+    /// otherwise: the Tag field then keeps its other behaviour.
+    pub fn join_proposal(&self, device: Uuid, text: &str) -> Option<JoinProposal> {
+        let target = self.resolve_reference(text.trim()).ok()?;
+        let q = self.query();
+        let target_id: Id<Device> = Id::from_uuid(target);
+        let target_device = q.devices().get(target_id)?;
+        if target == device {
+            return None;
+        }
+        let (rep, f) = joinable_rep(&q, Id::from_uuid(device))?;
+        let def = q.functions().get(f)?.def;
+        let fndef = def.as_uuid();
+        let slot = !self.unplaced_slots(target, fndef).is_empty();
+        let joins =
+            slot || (self.auxiliary_fndef(fndef) && takes_auxiliary(&q, target_id, target_device, def));
+        joins.then(|| JoinProposal {
+            rep: rep.as_uuid(),
+            device: target,
+            tag: tag_of(&q, target_id),
+        })
+    }
+
+    /// The words of the toast after `rep` joined a device (WP-S2.18 D3): the device's tag, the kind of the function
+    /// the representation draws (its FnDef's last category entries and CP designations, `NO contact 13-14`) and the
+    /// representation's place (`102-C4`). `None` for a representation that draws no function of a device.
+    pub fn joined_text(&self, rep: Uuid) -> Option<JoinedText> {
+        let q = self.query();
+        let r = q.reps().get(Id::from_uuid(rep))?;
+        let f = q.functions().get(*r.functions.first()?)?;
+        let device = f.device?;
+        let folio = q
+            .get::<PageOrder>(())
+            .entries
+            .iter()
+            .find(|e| e.page == PageRef::Drawn(r.page))
+            .map(|e| e.folio.clone())?;
+        let place = match q.get::<RepAnchorCell>(Id::from_uuid(rep)).as_ref() {
+            Some(cell) => format!("{folio}-{cell}"),
+            None => folio,
+        };
+        Some(JoinedText {
+            tag: tag_of(&q, device),
+            kind: super::navigators::function_kind_text(&q, f),
+            place,
+        })
+    }
+
     /// Whether the FnDef copy `fndef` can be an auxiliary function (WP-S2.18 D2): an embedded contact (contact kind
     /// NO, NC or change-over), or a starter one the project does not embed yet (FT-656).
     pub fn auxiliary_fndef(&self, fndef: Uuid) -> bool {

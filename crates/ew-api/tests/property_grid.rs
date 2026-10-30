@@ -350,7 +350,8 @@ fn pg2_a_representation_reaches_three_sections_with_derived_rows() {
         "{:?}",
         tag.provenance
     );
-    assert_eq!(tag.actions, [RowAction::Freeze]);
+    // One device's Tag field is typed into (WP-S2.18 D3, FT-628).
+    assert_eq!(tag.actions, [RowAction::Edit, RowAction::Freeze]);
     let part = row(&sheet, "device/parts[0].part");
     assert!(
         matches!(part.provenance, Provenance::Library { .. }),
@@ -381,7 +382,7 @@ fn pg2_frozen_tags_wire_chips_and_the_page_description() {
             note: "frozen (sign hidden)".into()
         }
     );
-    assert_eq!(tag.actions, [RowAction::Unfreeze]);
+    assert_eq!(tag.actions, [RowAction::Edit, RowAction::Unfreeze]);
     // W29 (D15): the size profile and the colour profile name the supplying rows.
     let w29 = wire(&s, "W29");
     let sheet = s.property_sheet(&[w29]);

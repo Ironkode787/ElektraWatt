@@ -568,6 +568,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "rep.join_device",
+      "params_version": 1,
+      "schema": "rep.join_device.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "rep.move",
       "params_version": 1,
       "schema": "rep.move.schema.json",

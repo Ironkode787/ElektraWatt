@@ -71,6 +71,7 @@
 //! | `part.assign` | [`AssignPart`] | Interactive; Bulk from 50 devices |
 //! | `library.update` | [`UpdateLibraryCopies`] | Bulk |
 //! | `macro.insert` | [`InsertMacro`] | Interactive |
+//! | `rep.join_device` | [`JoinDevice`] | Interactive |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
@@ -94,6 +95,7 @@ mod exchange;
 mod fields;
 mod frames;
 pub(crate) mod items;
+mod join;
 mod languages;
 pub(crate) mod library;
 mod library_update;
@@ -139,6 +141,7 @@ pub use items::{
     AlignParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, PlaceItem, PlaceMarker,
     ShapeParam, StrokeParam,
 };
+pub use join::JoinDevice;
 pub use languages::SetProjectLanguages;
 pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use library_update::{
@@ -245,4 +248,6 @@ pub fn register_all(r: &mut CommandRegistry) {
     // WP-S1.16 part 5: waiver recording (D7, FT-494)
     r.register::<WaiveFinding>();
     r.register::<UnwaiveFinding>();
+    // WP-S2.18 D3 (FT-628)
+    r.register::<JoinDevice>();
 }

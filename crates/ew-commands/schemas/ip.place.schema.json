@@ -69,8 +69,13 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`ip.place`: an interruption point (FR-XRF-006 … FR-XRF-014, doc 03 §10): the IP function and its one\nrepresentation in one transaction (EW-INV-013).\n\nCreates `Function {device: none, def, role: main, kind: ip {name, direction, star_source, sort,\nexternal}}` and `Representation {functions: [f], page, symbol, pos, orient, rep_type: multi_line}`.\n`def` is `fndef` or the copy the symbol's `fndef` resolves to (must be embedded). The page, the symbol\ncopy and an external reference must exist. The pairing scope is the project's `ip_pairing` setting, not\na record field. Outcome: the IP function.",
+  "description": "`ip.place`: an interruption point (FR-XRF-006 … FR-XRF-014, doc 03 §10): the IP function and its one\nrepresentation in one transaction (EW-INV-013).\n\nCreates `Function {device: none, def, role: main, kind: ip {name, direction, star_source, sort,\nexternal}}` and `Representation {functions: [f], page, symbol, pos, orient, rep_type: multi_line}`.\n`def` is `fndef` or the copy the symbol's `fndef` resolves to (must be embedded). The page, the symbol\ncopy and an external reference must exist. The pairing scope is the project's `ip_pairing` setting, not\na record field. `copies` (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction,\nas `device.place` embeds its `copies` (checked as `library.embed` checks them, at `/copies/i`), so placing a starter\nIP symbol is one undo step and replays without a library. Outcome: the IP function.",
   "properties": {
+    "copies": {
+      "description": "The library documents to embed with the placement (`lib/` JSON form; FT-673): the IP symbol and its FnDef as\nthe caller resolved them; empty when the project holds them.",
+      "items": true,
+      "type": "array"
+    },
     "direction": {
       "$ref": "#/$defs/IpDirection",
       "description": "Signal direction."

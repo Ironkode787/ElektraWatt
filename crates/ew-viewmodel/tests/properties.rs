@@ -418,7 +418,7 @@ fn pg10_the_transcript_and_describe_members() {
     assert!(d.contains("  section device targets 1"), "{d}");
     assert!(d.contains("  category \"Identity\" expanded"), "{d}");
     assert!(
-        d.contains("    row \"device/derived.tag\" \"Tag\" \"-101F1\" derived \"numbering scheme 'page-based'\" actions freeze"),
+        d.contains("    row \"device/derived.tag\" \"Tag\" \"-101F1\" derived \"numbering scheme 'page-based'\" actions edit freeze"),
         "{d}"
     );
     // No UUID in the new members and lines.

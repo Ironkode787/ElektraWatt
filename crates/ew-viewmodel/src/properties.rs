@@ -295,6 +295,28 @@ pub struct TagProposal {
     pub(crate) params: Value,
     /// The revision the proposal was computed on: accepting it on another is refused.
     pub(crate) base_rev: u64,
+    /// WP-S2.18 D3 (FT-628): a join instead (an existing device's tag typed into the Tag field), whose `params` are
+    /// `rep.join_device`'s; `tag` is then that device's tag and `counter` empty.
+    pub(crate) join: bool,
+}
+
+impl TagProposal {
+    /// Whether it is a join (WP-S2.18 D3) rather than a tag.
+    pub fn join(&self) -> bool {
+        self.join
+    }
+
+    /// The button that accepts it: "Use -102F2", or "Join -K1" for a join.
+    pub fn button_text(&self) -> String {
+        strings::format(
+            if self.join {
+                "props-join-tag"
+            } else {
+                "props-use-tag"
+            },
+            &[&self.tag],
+        )
+    }
 }
 
 impl PropertiesState {

@@ -18,7 +18,7 @@ use ew_api::geometry::orient_point;
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_api::output::{SymbolShape, exchange_map};
-use serde_json::json;
+use serde_json::{Value, json};
 
 use super::{
     Button, CanvasEvent, Ghost, MarkerKind, Overlay, OverlayItem, Style, Token, Tool, ToolCx, ToolOutput,
@@ -46,6 +46,9 @@ pub struct ExchangeTool {
     drawn: Vec<DrawnCp>,
     /// The function CP indices left unmapped (`exchange_map`).
     unmapped: Vec<u16>,
+    /// The library documents the exchange embeds (`rep.exchange_symbol`'s `copies`, FT-673); the host sends only those
+    /// the project lacks.
+    copies: Vec<Value>,
 }
 
 impl ExchangeTool {
@@ -97,7 +100,14 @@ impl ExchangeTool {
             base,
             drawn,
             unmapped,
+            copies: Vec::new(),
         }
+    }
+
+    /// The tool with the library documents its exchange embeds (`rep.exchange_symbol`'s `copies`, FT-673).
+    pub fn with_copies(mut self, copies: Vec<Value>) -> ExchangeTool {
+        self.copies = copies;
+        self
     }
 
     /// The overlay (see the module documentation).
@@ -117,9 +127,13 @@ impl ExchangeTool {
     }
 
     fn command(&self) -> Box<AnyCommand> {
+        let mut params = json!({"rep": self.rep.0.to_string(), "symbol": self.shape.copy.to_string()});
+        if !self.copies.is_empty() {
+            params["copies"] = Value::Array(self.copies.clone());
+        }
         Box::new(AnyCommand {
             name: "rep.exchange_symbol".into(),
-            params: json!({"rep": self.rep.0.to_string(), "symbol": self.shape.copy.to_string()}),
+            params,
         })
     }
 }

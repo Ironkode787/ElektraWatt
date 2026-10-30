@@ -823,7 +823,19 @@ impl PropertiesPane {
             if let Some(p) = props.tag_proposal().filter(|p| p.row == row.key) {
                 ui.horizontal(|ui| {
                     ui.add_space(t.space_4 + t.icon_sm);
-                    if ui.button(strings::format("props-use-tag", &[&p.tag])).clicked() {
+                    // WP-S2.18 D3: "Join -K1" is a Secondary button (FT-628).
+                    let clicked = match p.join() {
+                        true => crate::components::button(
+                            ui,
+                            crate::components::Kind::Secondary,
+                            &p.button_text(),
+                            true,
+                            0.0,
+                        )
+                        .clicked(),
+                        false => ui.button(p.button_text()).clicked(),
+                    };
+                    if clicked {
                         events.push(Event::Action("props.accept_tag_proposal", json!({})));
                     }
                 });

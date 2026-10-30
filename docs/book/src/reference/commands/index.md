@@ -4,7 +4,7 @@
 
 A command is the one way to change a project (`Command` → `Transaction` → `Op`). The same command runs from the user interface, from a command log replayed by `ew apply`, from scripts and from the Session API. Each page below gives the command's registry entry, its parameters with types and constraints, and the exit codes of `ew apply`.
 
-65 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
+66 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
 
 | Command | Summary | Cost | Exposure | Stability |
 |---|---|---|---|---|
@@ -59,6 +59,7 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`project.settings.set`](project.settings.set.md) | `project.settings.set` (`SetProjectSettings`): sets one member of the project settings. | bulk | edit | preview |
 | [`project.supply.set`](project.supply.set.md) | `project.supply.set` (`SetProjectSupply`): sets one member of the project's supply; in v0 only its origin, the external reference the supply comes from ("J-E-206-L", doc 20 §4.2). | interactive | edit | preview |
 | [`rep.exchange_symbol`](rep.exchange_symbol.md) | `rep.exchange_symbol` (`ExchangeSymbol`, FR-SYM-022): the representation's `symbol` becomes `symbol`, `variant` 0, its orientation, position and functions kept. | interactive | edit | preview |
+| [`rep.join_device`](rep.join_device.md) | `rep.join_device` (`JoinDevice`, WP-S2.18 D3, FT-628): the placed representation `rep` joins `device` in one transaction, at the same page, position and orientation, its wires kept. | interactive | edit | preview |
 | [`rep.move`](rep.move.md) | moves representations by a delta or by grid steps, optionally (by a delta) to another page (doc 06 §3.4, §5.7). Moves never change connectivity (FR-CON-004). | interactive | edit | preview |
 | [`rep.set_anchor_policy`](rep.set_anchor_policy.md) | sets the cross-reference anchor policy of representations (FR-SYM-010; the quick fix of MF-13, doc 07 §3.6). | interactive | edit | preview |
 | [`rep.transform`](rep.transform.md) | rotates, mirrors or changes the variant of representations about their insertion point (doc 06 §3.4). | interactive | edit | preview |

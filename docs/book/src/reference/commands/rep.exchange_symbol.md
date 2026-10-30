@@ -5,6 +5,10 @@
 `rep.exchange_symbol` (`ExchangeSymbol`, FR-SYM-022): the representation's `symbol` becomes `symbol`, `variant` 0,
 its orientation, position and functions kept.
 
+- **`copies`** (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction, as
+  `device.place` embeds its `copies` (each checked as `library.embed` checks it, at `/copies/i`; a copy the project
+  holds with the same hash skipped, one held with another hash refused), so an exchange to a symbol from a library
+  is one undo step and replays without a library.
 - **The CP map.** With `pin_map`, each entry maps a CP of the new symbol to a CP of the representation's first
   function (every symbol CP and function CP named must exist, each symbol CP at most once). Without it the map is
   derived: when the new symbol's FnDef is the function's definition, by index (symbol CP → its `fn_cp`, the
@@ -41,6 +45,7 @@ interruption point's representation. Interactive. Outcome: the representation.
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
+| `copies` | array of any JSON value | no |  | The library documents to embed with the exchange (`lib/` JSON form; FT-673): the new symbol and its FnDef as the caller resolved them; empty when the project holds them. |
 | `pin_map` | array of [`ExchangePin`](#exchangepin) or `null` | no |  | An explicit CP map; absent derives it. |
 | `rep` | [`CmdUuid`](#cmduuid) | yes |  | The representation. |
 | `symbol` | [`CmdUuid`](#cmduuid) | yes |  | The new symbol copy (embedded). |

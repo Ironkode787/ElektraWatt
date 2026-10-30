@@ -237,6 +237,9 @@ pub struct IpTool {
     pending: Option<(String, IpDir)>,
     /// The name the last overlay showed (the ghost's).
     shown: String,
+    /// The library documents the placement embeds (`ip.place`'s `copies`, FT-673); the host sends only those the
+    /// project lacks.
+    copies: Vec<Value>,
 }
 
 impl IpTool {
@@ -256,7 +259,19 @@ impl IpTool {
             area,
             pending: None,
             shown: String::new(),
+            copies: Vec::new(),
         }
+    }
+
+    /// The tool with the library documents its placements embed (`ip.place`'s `copies`, FT-673).
+    pub fn with_copies(mut self, copies: Vec<Value>) -> IpTool {
+        self.copies = copies;
+        self
+    }
+
+    /// Replaces the library documents the placements embed (the symbol changed with the external reference).
+    pub fn set_copies(&mut self, copies: Vec<Value>) {
+        self.copies = copies;
     }
 
     /// The memory of the last committed name and direction.
@@ -363,6 +378,9 @@ impl IpTool {
         }
         if let Some(e) = &self.external {
             params["external"] = Value::from(e.id.clone());
+        }
+        if !self.copies.is_empty() {
+            params["copies"] = Value::Array(self.copies.clone());
         }
         let cmd = Box::new(AnyCommand {
             name: "ip.place".into(),

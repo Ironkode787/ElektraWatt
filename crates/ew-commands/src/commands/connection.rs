@@ -18,8 +18,10 @@ use ew_schema::{
 use ew_units::{Dec3, Orient2, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::command::{Command, Outcome};
+use crate::commands::assign::embed_closure;
 use crate::commands::common::EndpointParam;
 use crate::error::CmdError;
 use crate::geometry::{require_on_grid, require_route, require_split_point};
@@ -434,7 +436,9 @@ impl Command for EditJunction {
 /// external}}` and `Representation {functions: [f], page, symbol, pos, orient, rep_type: multi_line}`.
 /// `def` is `fndef` or the copy the symbol's `fndef` resolves to (must be embedded). The page, the symbol
 /// copy and an external reference must exist. The pairing scope is the project's `ip_pairing` setting, not
-/// a record field. Outcome: the IP function.
+/// a record field. `copies` (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction,
+/// as `device.place` embeds its `copies` (checked as `library.embed` checks them, at `/copies/i`), so placing a starter
+/// IP symbol is one undo step and replays without a library. Outcome: the IP function.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PlaceIp {
@@ -470,6 +474,10 @@ pub struct PlaceIp {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub external: Option<Id<ExternalRef>>,
+    /// The library documents to embed with the placement (`lib/` JSON form; FT-673): the IP symbol and its FnDef as
+    /// the caller resolved them; empty when the project holds them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<Value>,
 }
 
 impl Command for PlaceIp {
@@ -480,6 +488,8 @@ impl Command for PlaceIp {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        // FT-673: the copies first, so that the symbol and its FnDef resolve below.
+        embed_closure(Self::NAME, tx, &self.copies)?;
         tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
         require_on_grid(tx, self.page, self.pos, "/pos")?;
@@ -780,7 +790,8 @@ pub struct IpAtEnd {
 /// `ip.place` (a missing page or symbol copy, a FnDef that is not embedded, `ip.pos` off the grid), as
 /// `connection.draw` (a missing endpoint record, off-grid geometry, a route that does not meet its CPs) and an `a` end
 /// that no representation of `page` draws; an IP symbol whose FnDef has not exactly one CP, or that does not draw it.
-/// Interactive. Outcome: the connection.
+/// `copies` (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction, as `ip.place`
+/// embeds them, so ending a wire in a starter IP symbol is one undo step. Interactive. Outcome: the connection.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DrawToIp {
@@ -798,6 +809,10 @@ pub struct DrawToIp {
     pub kind: Option<ConnectionKind>,
     /// The interruption point at the wire's end.
     pub ip: IpAtEnd,
+    /// The library documents to embed with the wire (`lib/` JSON form; FT-673): the IP symbol and its FnDef as the
+    /// caller resolved them; empty when the project holds them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<Value>,
 }
 
 impl Command for DrawToIp {
@@ -808,6 +823,8 @@ impl Command for DrawToIp {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        // FT-673: the copies first, so that the IP symbol and its FnDef resolve below.
+        embed_closure(Self::NAME, tx, &self.copies)?;
         tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.ip.symbol)?;
         require_on_grid(tx, self.page, self.ip.pos, "/ip/pos")?;

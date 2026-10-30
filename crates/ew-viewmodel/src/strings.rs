@@ -855,6 +855,12 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "props-tag-proposal" => "{0}. Use {1} to accept it.",
         "props-tag-proposal-script" => "{0}. Use {1} to accept it: props.accept_tag_proposal takes it.",
         "props-use-tag" => "Use {0}",
+        "props-join-tag" => "Join {0}",
+        "props-join-proposal" => "{0} exists. Join it as an auxiliary contact?",
+        "props-join-proposal-script" => {
+            "{0} exists. Join it as an auxiliary contact? props.accept_tag_proposal joins it."
+        }
+        "toast-joined" => "Joined {0} ({1}) at {2}",
         "count-wire" => "{0} wire",
         "count-wires" => "{0} wires",
         "toast-strip-new" => {
@@ -1918,6 +1924,7 @@ const COMMAND_TITLES: &[(&str, &str)] = &[
     ("project.settings.set", "Set project settings"),
     ("project.supply.set", "Set supply"),
     ("rep.exchange_symbol", "Exchange symbol"),
+    ("rep.join_device", "Join device"),
     ("rep.move", "Move"),
     ("rep.set_anchor_policy", "Set anchor policy"),
     ("rep.transform", "Rotate or mirror"),

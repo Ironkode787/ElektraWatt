@@ -68,6 +68,7 @@
     - [`project.settings.set`](reference/commands/project.settings.set.md)
     - [`project.supply.set`](reference/commands/project.supply.set.md)
     - [`rep.exchange_symbol`](reference/commands/rep.exchange_symbol.md)
+    - [`rep.join_device`](reference/commands/rep.join_device.md)
     - [`rep.move`](reference/commands/rep.move.md)
     - [`rep.set_anchor_policy`](reference/commands/rep.set_anchor_policy.md)
     - [`rep.transform`](reference/commands/rep.transform.md)

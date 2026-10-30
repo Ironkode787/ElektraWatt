@@ -9,7 +9,9 @@ Creates `Function {device: none, def, role: main, kind: ip {name, direction, sta
 external}}` and `Representation {functions: [f], page, symbol, pos, orient, rep_type: multi_line}`.
 `def` is `fndef` or the copy the symbol's `fndef` resolves to (must be embedded). The page, the symbol
 copy and an external reference must exist. The pairing scope is the project's `ip_pairing` setting, not
-a record field. Outcome: the IP function.
+a record field. `copies` (FT-673): library documents (`lib/` JSON form) embedded first, in the same transaction,
+as `device.place` embeds its `copies` (checked as `library.embed` checks them, at `/copies/i`), so placing a starter
+IP symbol is one undo step and replays without a library. Outcome: the IP function.
 
 ## Registry entry
 
@@ -29,6 +31,7 @@ a record field. Outcome: the IP function.
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
+| `copies` | array of any JSON value | no |  | The library documents to embed with the placement (`lib/` JSON form; FT-673): the IP symbol and its FnDef as the caller resolved them; empty when the project holds them. |
 | `direction` | [`IpDirection`](#ipdirection) | yes |  | Signal direction. |
 | `external` | [`CmdUuid`](#cmduuid) or `null` | no |  | An external target (an external connection point). |
 | `fndef` | [`CmdUuid`](#cmduuid) or `null` | no |  | The FnDef copy; default the symbol's. |

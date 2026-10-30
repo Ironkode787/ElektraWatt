@@ -70,6 +70,19 @@ pub struct RepInfo {
     pub ip: bool,
 }
 
+/// A D3-eligible representation for `rep.join_device` (WP-S2.18, FT-628): its device has exactly one function (the
+/// representation's, normal), no part and no other representation, and is no terminal or strip.
+pub struct JoinInfo {
+    pub rep: Value,
+    pub device: Value,
+    /// The devices that take its FnDef by D2's rule: `(device, removes a function, certain)`. A slot of the FnDef
+    /// removes the old function; `certain` is false where a part's template names the FnDef (its CPs may not line
+    /// up with the wired ones, which the command refuses).
+    pub targets: Vec<(Value, bool, bool)>,
+    /// The other devices (not the representation's own), which D2's rule refuses.
+    pub refused: Vec<Value>,
+}
+
 /// A part copy with a function template, for the `from_part` target: per entry, the FnDef copy and whether it is a
 /// black box, `None` when the project does not embed the entry's FnDef.
 pub struct PartTemplate {
@@ -341,6 +354,91 @@ pub struct Live {
     pub page_connections: Vec<(Value, Vec<Value>)>,
     /// WP-S1.16 part 5: `(waiver, rule, fingerprint)` of every waiver.
     pub waivers: Vec<(Value, String, String)>,
+    /// WP-S2.18 D3: the D3-eligible representations, and the representations of devices with several functions.
+    pub joins: Vec<JoinInfo>,
+    pub join_blocked: Vec<Value>,
+    /// The embedded FnDef copies that are contacts (NO, NC, change-over).
+    pub contact_fndefs: Vec<Value>,
+}
+
+/// The FnDef copy a template entry names.
+fn entry_def(t: &ew_schema::TemplateFn) -> ew_ids::Id<ew_schema::FnDef> {
+    ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid())
+}
+
+/// `rep.join_device`'s sources and targets (WP-S2.18 D1 to D3), by the command's own rules.
+fn join_infos(q: &Q) -> (Vec<JoinInfo>, Vec<Value>) {
+    use ew_schema::{ContactKind, FnRole};
+    let idx = q.idx();
+    let terminal_or_strip = |d: &ew_schema::Device| d.aspects.terminal.is_some() || d.aspects.strip.is_some();
+    let mut joins = Vec::new();
+    let mut blocked = Vec::new();
+    for (rid, r) in q.reps().iter() {
+        let [f] = r.functions.as_slice() else { continue };
+        let Some(func) = q.functions().get(*f) else {
+            continue;
+        };
+        let Some(source) = func.device else { continue };
+        let Some(sd) = q.devices().get(source) else {
+            continue;
+        };
+        if func.kind != FunctionKind::Normal || terminal_or_strip(sd) {
+            continue;
+        }
+        let fns: Vec<_> = idx.functions_of_device(source).collect();
+        if fns.len() > 1 {
+            blocked.push(id_json(rid));
+            continue;
+        }
+        if !sd.parts.is_empty() || idx.reps_of_function(*f).count() != 1 {
+            continue;
+        }
+        let contact = q.fndefs().get(func.def).is_some_and(|d| {
+            matches!(
+                d.item.contact_kind,
+                ContactKind::No | ContactKind::Nc | ContactKind::Co
+            )
+        });
+        let mut targets = Vec::new();
+        let mut refused = Vec::new();
+        for (did, d) in q.devices().iter() {
+            if did == source {
+                continue;
+            }
+            let names_def = d.parts.iter().any(|u| {
+                q.parts()
+                    .get(u.part.copy)
+                    .is_some_and(|p| p.item.function_template.iter().any(|t| entry_def(t) == func.def))
+            });
+            let slot = idx.functions_of_device(did).any(|s| {
+                q.functions().get(s).is_some_and(|x| {
+                    x.def == func.def
+                        && x.kind == FunctionKind::Normal
+                        && idx.reps_of_function(s).next().is_none()
+                })
+            });
+            let coil = idx.functions_of_device(did).any(|m| {
+                q.functions().get(m).is_some_and(|m| {
+                    m.role == FnRole::Main
+                        && q.fndefs()
+                            .get(m.def)
+                            .is_some_and(|x| x.item.contact_kind == ContactKind::Coil)
+                })
+            });
+            if slot || (contact && !terminal_or_strip(d) && (coil || names_def)) {
+                targets.push((id_json(did), slot, !names_def));
+            } else {
+                refused.push(id_json(did));
+            }
+        }
+        joins.push(JoinInfo {
+            rep: id_json(rid),
+            device: id_json(source),
+            targets,
+            refused,
+        });
+    }
+    (joins, blocked)
 }
 
 /// Whether a form of this kind can be a page's frame (`project.frames.set`).
@@ -790,6 +888,7 @@ impl Live {
             })
             .collect::<BTreeMap<_, _>>();
 
+        let (joins, join_blocked) = join_infos(q);
         Live {
             fixture: fixture.clone(),
             reps,
@@ -910,6 +1009,19 @@ impl Live {
                         w.target.finding.clone().unwrap_or_default(),
                     )
                 })
+                .collect(),
+            joins,
+            join_blocked,
+            contact_fndefs: q
+                .fndefs()
+                .iter()
+                .filter(|(_, d)| {
+                    matches!(
+                        d.item.contact_kind,
+                        ew_schema::ContactKind::No | ew_schema::ContactKind::Nc | ew_schema::ContactKind::Co
+                    )
+                })
+                .map(|(id, _)| id_json(id))
                 .collect(),
         }
     }

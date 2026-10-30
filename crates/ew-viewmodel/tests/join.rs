@@ -343,3 +343,61 @@ fn the_join_chooser_lists_slots_then_relays_and_arms_the_join() {
     done(&mut s, "ui.dismiss", json!({}));
     assert_eq!(rep_at(&s, (66, 46)).unwrap().functions, a.functions);
 }
+
+/// WP-S2.18 D3 (FT-628): typing the relay's tag into the Tag field of a contact placed as a device of its own refuses
+/// the rename and proposes "Join -K1"; accepting it is one `rep.join_device` (one undo step), the contact prints the
+/// relay's tag and the toast names the function's kind and place. A new tag still freezes the typed tag.
+#[test]
+fn the_tag_field_proposes_join_for_an_existing_tag_and_commits_it() {
+    let tmp = Tmp::new("join-tag-field");
+    let mut s = shell(&tmp);
+    let coil = new_device(&mut s, COIL, "K", (60, 30));
+    let relay = tag_of(&s, &coil);
+    let contact = new_device(&mut s, NO, "K", (66, 30));
+    let own = tag_of(&s, &contact);
+    assert_ne!(own, relay);
+    done(&mut s, "select.set", json!({"refs": [format!("tag:{own}")]}));
+    let row = "device/derived.tag";
+    let rev = s.revision();
+    let message = failed(&mut s, "props.set", json!({"row": row, "value": relay}));
+    assert_eq!(
+        message,
+        format!("{relay} exists. Join it as an auxiliary contact? props.accept_tag_proposal joins it.")
+    );
+    assert_eq!(s.revision(), rev, "the rename is refused");
+    let (error_row, shown) = s.properties().error().expect("the error line");
+    assert_eq!(
+        (error_row, shown),
+        (
+            row,
+            format!("{relay} exists. Join it as an auxiliary contact?").as_str()
+        )
+    );
+    let proposal = s.properties().tag_proposal().expect("the proposal").clone();
+    assert!(proposal.join());
+    assert_eq!(proposal.button_text(), format!("Join {relay}"));
+    done(&mut s, "props.accept_tag_proposal", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    assert_eq!(s.recorded_commands().last().unwrap().cmd, "rep.join_device");
+    let joined = rep_at(&s, (66, 30)).expect("the contact stays where it was");
+    assert_eq!(joined.id, contact.id);
+    assert_eq!(joined.device, coil.device, "it is the relay's now");
+    assert_eq!(tag_of(&s, &joined), relay);
+    let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
+    assert!(
+        toast.starts_with(&format!("Joined {relay} (NO contact 13-14) at 101-")),
+        "{toast}"
+    );
+    // One undo step gives the contact its own device back.
+    done(&mut s, "edit.undo", json!({}));
+    let undone = rep_at(&s, (66, 30)).unwrap();
+    assert_eq!(undone.device, contact.device);
+    assert_eq!(tag_of(&s, &undone), own);
+    // A tag no device prints renames as before: the typed tag is frozen.
+    done(&mut s, "select.set", json!({"refs": [format!("tag:{own}")]}));
+    done(&mut s, "props.set", json!({"row": row, "value": "-101K77"}));
+    let last = s.recorded_commands().last().unwrap().clone();
+    assert_eq!(last.cmd, "fields.set", "{}", last.params);
+    assert_eq!(last.params["path"], "tag.frozen");
+    assert_eq!(tag_of(&s, &rep_at(&s, (66, 30)).unwrap()), "-101K77");
+}

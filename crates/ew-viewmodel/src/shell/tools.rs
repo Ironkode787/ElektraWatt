@@ -437,11 +437,15 @@ impl ShellModel {
         }
     }
 
-    /// FT-656: a placement (`device.place`, `box.black`) with the `copies` its tool armed with, less those the project
-    /// holds now: the first placement embeds them, a later one carries none, and one after an undo of the first
-    /// carries them again. Any other command is returned as it is.
+    /// FT-656, FT-673: a placement (`device.place`, `box.black`, `ip.place`, `connection.draw_to_ip`) or an exchange
+    /// (`rep.exchange_symbol`) with the `copies` its tool armed with, less those the project holds now: the first
+    /// placement embeds them, a later one carries none, and one after an undo of the first carries them again. Any
+    /// other command is returned as it is.
     fn without_held_copies(&self, cmd: Box<dyn DynCommand>) -> Box<dyn DynCommand> {
-        if !matches!(cmd.name(), "device.place" | "box.black") {
+        if !matches!(
+            cmd.name(),
+            "device.place" | "box.black" | "ip.place" | "connection.draw_to_ip" | "rep.exchange_symbol"
+        ) {
             return cmd;
         }
         let (Some(project), Ok(mut params)) = (self.project.as_ref(), cmd.to_json()) else {
