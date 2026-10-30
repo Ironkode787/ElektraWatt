@@ -5,7 +5,7 @@ and macro data within format 0.1 (1.2 pw, D5), part 2 the library tiers and the 
 (1.4 pw, D5), part 3 embedding by reference, `part.assign`, update from library and the manufacturer copies (1.3 pw,
 D4), part 4 the CSV and XLSX parts import with column mapping and the basic-project backend (0.8 pw, D3), part 5 save
 and insert macros with value sets and include flags (1.5 pw, D5), part 6 the macro and library panes (0.6 pw, D3);
-part 1 first; parts 2 and 4 after it in any order; part 3 after part 2; part 5 after parts 1 and 3; part 6 last · **Part 1 built in cycle 34** (lane K34, decision log ID-806; as built, two details differ from §6: `MechData.rail_offset` was a `Pt2`, now a `Vec2Nm` (FT-604, closed in cycle 35), and the one-cycle alias `BUILTIN_LIBRARY` has no `#[deprecated]` attribute so that the tests naming it stay warning-free, FT-596, removed in cycle 35); **Parts 2, 3 and 4 built in cycle 35** (lanes B35, D35 and J35, decision log ID-818, ID-820, ID-824; as built in §7, §8 and §9's notes: the lock's distinct `Stale` error, the manufacturer copies with Golden A re-blessed, 60 commands, and an own XLSX reader instead of calamine, ID-827); parts 5 and 6 open; WP-S2.18 part 2 fills the system library `ew-starter-parts` with the generic starter parts after parts 2 and 3 (ID-812) ·
+part 1 first; parts 2 and 4 after it in any order; part 3 after part 2; part 5 after parts 1 and 3; part 6 last · **Part 1 built in cycle 34** (lane K34, decision log ID-806; as built, two details differ from §6: `MechData.rail_offset` was a `Pt2`, now a `Vec2Nm` (FT-604, closed in cycle 35), and the one-cycle alias `BUILTIN_LIBRARY` has no `#[deprecated]` attribute so that the tests naming it stay warning-free, FT-596, removed in cycle 35); **Parts 2, 3 and 4 built in cycle 35** (lanes B35, D35 and J35, decision log ID-818, ID-820, ID-824; as built in §7, §8 and §9's notes: the lock's distinct `Stale` error, the manufacturer copies with Golden A re-blessed, 60 commands, and an own XLSX reader instead of calamine, ID-827); **part 5 built in cycle 36** (lane B36, decision log ID-842; as built in §10's note, with ADR-0011 amendment 5; MC-4 and MC-5 not built, FT-671, and no orientation on insert, FT-672); part 6 open; WP-S2.18 part 2 fills the system library `ew-starter-parts` with the generic starter parts after parts 2 and 3 (ID-812) ·
 **Date:** 2026-10-29 · **Work package:** [WP-S1.19](../02-work-packages.md#wp-s119-parts-libraries-and-macros) ·
 **Decision log:** ID-783 · **Part of:** ElektraWatt plan, specifications
 
@@ -467,6 +467,19 @@ saved as basic without devices keeps frame, profiles, sections and structure and
 folio 1 within ±0.2 mm; targeted checks as L1-6 for the changed crates.
 
 ## 10. Part 5: macros
+
+*As built (cycle 36, lane B36, decision log ID-842; df875523, 9aed8d0e, 25b85bc1, 29be9f8f, ba19db50).* The project
+fragment widens within v1 (ADR-0011 amendment 5): the object form gains `pages` and `lib`, and `edit.paste` keeps its
+eight kinds. `macro.insert` runs over one insertion engine shared with `edit.paste`; it takes `at` and no orientation
+(FT-672). A macro is referenced by `^version`, a library holding only an item's latest version; its item ID is
+`v5(library, "macro" ‖ key)`; source IDs are the fragment's local IDs; a closure item no installed library holds is
+reported at save, not refused, and insert skips items the project holds; frozen tags are kept at insert;
+`MACRO_FIELDS` lists the variable paths beyond the settable fields; address conflicts are grouped by address text and
+the conflict card lists the prevent findings first. FT-640: `library.update` takes `embed`. FT-651: a library import
+copies another library's manufacturer unless the target's manifest depends on it. Acceptance MC-1 to MC-3, MC-6 and
+MC-7 hold; in MC-3, folio 102's full PSU block inserted on folio 105 is refused by EW-CORE-052 (one source per
+interruption-point name), which is right, so the commit half uses the supply and the breakers without the IPs. MC-4
+and MC-5 are not built (FT-671).
 
 **Scope.** D12, D13, FR-MAC-001 to -005, -007, -018, FT-305's command half. **1.5 pw, D5.**
 

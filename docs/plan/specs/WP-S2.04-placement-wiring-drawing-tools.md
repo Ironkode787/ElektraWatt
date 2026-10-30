@@ -366,6 +366,13 @@ End move the row; Enter chooses; Escape closes (§6.4). Choosing:
 | Part function | Arms Place with the function's `symbol` row and target `from_part { part, template: index, letter }`; a function without `symbol` is disabled ("no symbol for this function on this page") |
 | Exchange mode (§7.5) | Commits nothing; returns the copy to the exchange flow |
 
+*As built (cycle 36, FT-656; decision log ID-843).* Choosing a starter symbol or a library part no longer commits
+`library.embed` first: the row arms Place (or the black-box tool) with the copies it needs (the starter symbol and its
+FnDef, or the part's closure), and every preview and commit sends them in the `copies` member of `device.place` or
+`box.black`, leaving out what the project already holds; the placement is one transaction and one undo step, and a
+placement after an undo carries the copies again. PL5's "one `library.embed`, one undo step" reads as one placement
+with its copies. The exchange flow (§7.5), the IP tools and `place.pick device=` still embed separately (FT-673).
+
 ### 7.2 The Place tool (`place`; FR-SYM-015, FR-UI-017, FR-DEV-038)
 
 State `floating` only (sticky: it stays floating after each commit with the same symbol and target; a `new_terminal`

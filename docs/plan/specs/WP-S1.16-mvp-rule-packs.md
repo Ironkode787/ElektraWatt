@@ -5,7 +5,7 @@ potential naming, the 0 V–PE bond quick fix of EW-POT-001 and the user-named p
 (0.5 pw, D3; FT-551, FT-577; lane F34 builds it in cycle 34), part 2 the EW-POT pack completed (1.0 pw, D4), part 3
 the EW-CORE rules of cables, parts and devices (1.1 pw, D4), part 4 pages, texts, designations, terminals and the rule
 system (1.0 pw, D4), part 5 Fluent messages, waivers, the AC-21 subset and the AC-24 rows (1.1 pw, D4); part 1 first;
-parts 2 to 4 after it in any order; part 5 last · **Parts 1 and 2 built in cycle 34** (lanes F34 and I34, decision log ID-801, ID-803; Golden A's data fixed to doc 08 by lane X34, ID-804); **parts 3 and 4 built in cycle 35** (lanes E35, I35 and K35, ID-821, ID-823, ID-825; as built in §7 and §8's notes); part 5 open · **Date:** 2026-10-29 · **Work package:**
+parts 2 to 4 after it in any order; part 5 last · **Parts 1 and 2 built in cycle 34** (lanes F34 and I34, decision log ID-801, ID-803; Golden A's data fixed to doc 08 by lane X34, ID-804); **parts 3 and 4 built in cycle 35** (lanes E35, I35 and K35, ID-821, ID-823, ID-825; as built in §7 and §8's notes); **part 5 built in cycle 36** (lane A36, decision log ID-844; as built in §9's note: the typed `waiver` with `check.waive` and `check.unwaive`, Fluent messages in en-GB for every rule and nl-NL for the twelve Golden A rules, W-1, the AC-21 subset and the AC-24 rows; de-scoped by §13.1: nl-NL beyond the twelve rules, FT-680, and FT-186's quick fix), so parts 1 to 5 are built · **Date:** 2026-10-29 · **Work package:**
 [WP-S1.16](../02-work-packages.md#wp-s116-mvp-rule-packs-ew-core-ew-iec81346-ew-term-ew-pot) · **Decision log:**
 ID-784 · **Part of:** ElektraWatt plan, specifications
 
@@ -229,6 +229,18 @@ P4-2 D-31 (exactly two EW-CORE-061 findings on Golden A); P4-3 a rule that panic
 rules' findings unchanged; P4-4 the Golden A rows; P4-5 targeted checks.
 
 ## 9. Part 5: messages, waivers and the acceptance sets
+
+*As built (cycle 36, lane A36, decision log ID-844; 891727cb, 4027873e, 6298298d, 320464ba).* D7: the kind `waiver` is
+typed with doc 15 §2.5's members `rule`, `target.finding`, `reason`, `author` and `date` (`author` and `date` optional
+for files written while the kind was reserved; `expires` and a 1.0 part target kept in `extra`); the commands are
+`check.waive` and `check.unwaive` (`HumanOnly`, one undo step each; a reason of at least ten characters; a second
+waiver of one finding refused), and doc 15 follows these names. D6: `fluent-bundle =0.16.0` and `unic-langid =0.9.6`
+in `ew-checks`; en-GB carries a title and a hint for every registered rule and value patterns for the twelve rules
+Golden A reports, nl-NL those twelve with en-GB as the fallback; Fluent arguments are strings; `ew check --lang`.
+D10: `findings_mvp.csv` holds doc 20 §18.1; AC-21's known excess is `=P01+FIELD-203Q1` to `Q8` (FT-638). W-1 waives
+EF-19 through the file. FT-654 built (the PE colour of an unbonded merged 0 V/PE potential); EW-POT-001's conflict
+colour has no canvas surface yet (FT-675); the window's Waive… action is FT-674. De-scoped by §13.1: nl-NL beyond the
+twelve rules (FT-680) and FT-186's quick fix (P5-6 not met).
 
 **Scope.** D6, D7, D10; FT-494; FT-186 (EW-TERM-002's "renumber 1–n, keep labels as function text" quick fix, a
 previewed `terminal.designate`). **1.1 pw, D4.** **Acceptance (outline closed to the checks):** P5-1 every registered

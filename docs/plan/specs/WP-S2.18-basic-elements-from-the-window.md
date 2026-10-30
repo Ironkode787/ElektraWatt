@@ -4,7 +4,7 @@
 existing device from the window (1.1 pw, D4), part 2 the generic starter parts and their reach from a new project
 (1.0 pw, D3, after WP-S1.19 parts 2 and 3), part 3 every starter symbol placeable and the briefs without embed lines
 (0.6 pw, D3), part 4 the brief `brief-plc-io` (0.3 pw, D2, after WP-S2.07 part 3 and WP-S1.21's channel assignment);
-part 1 first and alone of any dependency; parts 2 and 3 in that order; part 4 last · **Part 1 built in cycle 35** (lane A35, decision log ID-817; D3 deferred, FT-628); **parts 2 and 3 built in cycle 35** (lane G35, decision log ID-830); part 4 waits for WP-S1.21's channel assignment · **Date:** 2026-10-29 ·
+part 1 first and alone of any dependency; parts 2 and 3 in that order; part 4 last · **Part 1 built in cycle 35** (lane A35, decision log ID-817; D3 deferred, FT-628); **parts 2 and 3 built in cycle 35** (lane G35, decision log ID-830); D6's one undo step built in cycle 36 (lane E36, ID-843; FT-656) and the relay's and contactor's contacts templated (lane C36, ID-841; FT-655); part 4 waits for WP-S1.21's channel assignment · **Date:** 2026-10-29 ·
 **Work package:** [WP-S2.18](../02-work-packages.md#wp-s218-basic-elements-from-the-window-starter-symbols-parts-and-joined-functions)
 · **Decision log:** ID-812 · **Part of:** ElektraWatt plan, specifications
 
@@ -45,6 +45,18 @@ must equal the starter set; the D3 half of "both ways" is not built (FT-628). **
 `library.embed` lines pass `check-brief`, the potential-naming items still infeasible; `check-brief`'s `part:`
 requirement is also met by a shipped starter part (FT-592 closed). The documents of §7 are updated as built in the
 cycle-35 design pass.
+
+**As built (cycle 36, D5 and D6).** Lane C36 (f365a043, b30ddfdd; ID-841, FT-655): a function records its template
+entry, so EW-GEN-RLY-1 templates its coil and four change-over contacts and EW-GEN-CON-1 its coil and four NO
+contacts, created as slots that the Join chooser and `place.pick device=` fill (the first free slot) and
+`function=<tag>:<slot>` names. Lane F36 (ecdc79fc; ID-845): EW-GEN-SEL-1 has one NO contact on
+`ew.fn.selector-switch-no` (FT-658) and EW-GEN-VLV-1's coil is `ew.fn.valve-coil` (tag letter M under EN
+81346-2:2009), `ew-starter-parts` at 0.1.1. Lane E36 (f88e7c7a, fd556b8b; ID-843, FT-656): **D6's one undo step**:
+the picker no longer pre-arms with `library.embed`; the Place and black-box tools carry the armed copies (a starter
+symbol, its FnDef, a library part's closure) and each preview and commit sends them in `device.place`'s or
+`box.black`'s `copies` member, the host leaving out what the project holds, so the placement is one transaction and
+one undo step and replays without a library. The exchange flow, the IP tools and `place.pick device=` still embed
+in a step of their own (FT-673).
 
 ## 1. Goal and non-goals
 
