@@ -279,6 +279,7 @@ fn another_header_dialect_through_its_own_map_gives_the_same_parts() {
 fn a_project_target_copies_the_master_manufacturers_it_resolves() {
     let project = CatalogTarget {
         local_manufacturers: true,
+        shared: &[],
         ..target()
     };
     let i = import_bytes("liste.csv", LIST.as_bytes().to_vec(), &project).unwrap();

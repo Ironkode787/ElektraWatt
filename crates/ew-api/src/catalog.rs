@@ -256,6 +256,9 @@ pub fn import_into_library(
         return Err(CatalogError::Library(library::LibraryError::ReadOnly));
     }
     let master = manufacturer_master(reg);
+    // FT-651: a part names a manufacturer record of another library only when the target's manifest `depends` names
+    // that library; else the import writes a copy of the record into the target, and the part names the copy.
+    let shared = reg.depends(library);
     let import = {
         let held = |item| held_part(reg, library, item);
         let target = CatalogTarget {
@@ -264,7 +267,8 @@ pub fn import_into_library(
             bump,
             limits: Limits::default(),
             existing: &held,
-            local_manufacturers: false,
+            local_manufacturers: true,
+            shared: &shared,
         };
         parse_parts(input, map, &master, &target)?
     };
@@ -337,6 +341,7 @@ impl Session {
             limits: Limits::default(),
             existing: &existing,
             local_manufacturers: true,
+            shared: &[],
         };
         let import = parse_parts(input, map, master, &target)?;
         let new: std::collections::BTreeSet<_> = import

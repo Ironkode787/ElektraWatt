@@ -82,6 +82,9 @@ pub struct CatalogTarget<'a> {
     /// parts name embedded manufacturer copies, WP-S1.19 D10): item [`manufacturer_item`]`(library, key)`, version
     /// [`FIRST_VERSION`], the record's content; the parts name the copy. Without it the parts name the master record.
     pub local_manufacturers: bool,
+    /// With [`CatalogTarget::local_manufacturers`], the libraries whose master records the parts name directly
+    /// instead of a copy: a library target's manifest `depends` (FT-651, WP-S1.19 part 5).
+    pub shared: &'a [Uuid],
 }
 
 impl CatalogTarget<'static> {
@@ -95,6 +98,7 @@ impl CatalogTarget<'static> {
             limits: Limits::default(),
             existing: &no_existing,
             local_manufacturers: false,
+            shared: &[],
         }
     }
 }
@@ -289,6 +293,8 @@ struct Makers<'m> {
     /// The target library, and whether a master record of another library becomes a copy in it.
     library: Uuid,
     local: bool,
+    /// The libraries whose records the parts name directly even when `local`.
+    shared: &'m [Uuid],
     /// Folded name → the created manufacturer.
     created: BTreeMap<String, Maker>,
     /// Master index → its copy in the target.
@@ -300,7 +306,12 @@ struct Makers<'m> {
 }
 
 impl<'m> Makers<'m> {
-    fn new(master: &'m [LibCopy<Manufacturer>], library: Uuid, local: bool) -> Makers<'m> {
+    fn new(
+        master: &'m [LibCopy<Manufacturer>],
+        library: Uuid,
+        local: bool,
+        shared: &'m [Uuid],
+    ) -> Makers<'m> {
         let mut direct: BTreeMap<String, Vec<usize>> = BTreeMap::new();
         let mut alias: BTreeMap<String, Vec<usize>> = BTreeMap::new();
         for (i, m) in master.iter().enumerate() {
@@ -326,6 +337,7 @@ impl<'m> Makers<'m> {
             master,
             library,
             local,
+            shared,
             created: BTreeMap::new(),
             copied: BTreeMap::new(),
             emitted: BTreeMap::new(),
@@ -339,7 +351,8 @@ impl<'m> Makers<'m> {
         let master = self.master;
         let m = &master[i];
         let key = m.item.key.to_string();
-        if !self.local || m.library_id.as_uuid() == self.library {
+        let lib = m.library_id.as_uuid();
+        if !self.local || lib == self.library || self.shared.contains(&lib) {
             return Maker {
                 key,
                 library: m.library_id.as_uuid(),
@@ -374,9 +387,28 @@ impl<'m> Makers<'m> {
         at: &SourceLocation,
     ) -> Result<Maker, String> {
         let f = fold(text);
+        let own = self.library;
+        let shared = self.shared;
+        let local = self.local;
         let pick = |hits: &[usize], master: &[LibCopy<Manufacturer>]| -> Result<usize, String> {
-            match hits {
-                [one] => Ok(*one),
+            // FT-651: the target's own record wins over another library's of the same name (the copy a first import
+            // wrote into the target beside the master record it copies), then a single record of a library the
+            // target depends on; when the parts name a copy anyway and every hit has the same key, the first hit
+            // in master order is copied (the copies other imports wrote are not a choice the user has to make).
+            let of = |keep: &dyn Fn(Uuid) -> bool| -> Vec<usize> {
+                hits.iter()
+                    .copied()
+                    .filter(|i| keep(master[*i].library_id.as_uuid()))
+                    .collect()
+            };
+            let mine = of(&|l| l == own);
+            let depended = of(&|l| shared.contains(&l));
+            let one_key = hits
+                .windows(2)
+                .all(|w| master[w[0]].item.key == master[w[1]].item.key);
+            match (hits, mine.as_slice(), depended.as_slice()) {
+                ([one], _, _) | (_, [one], _) | (_, [], [one]) => Ok(*one),
+                ([first, ..], [], []) if local && one_key => Ok(*first),
                 _ => {
                     let keys: Vec<String> = hits.iter().map(|i| master[*i].item.key.to_string()).collect();
                     Err(format!(
@@ -814,7 +846,7 @@ pub fn parse_parts(
         .map(|(m, i)| (m.clone(), sheet.headers[*i].clone()))
         .collect();
     let library = target.library;
-    let mut makers = Makers::new(master, library, target.local_manufacturers);
+    let mut makers = Makers::new(master, library, target.local_manufacturers, target.shared);
     let mut rows: Vec<RowOutcome> = Vec::new();
     let mut parts: Vec<LibDocument> = Vec::new();
     // (manufacturer key, pn_norm) → (line, the part as first read).

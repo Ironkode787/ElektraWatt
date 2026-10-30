@@ -356,3 +356,100 @@ fn an_unknown_or_read_only_library_is_refused() {
         Err(CatalogError::Library(LibraryError::ReadOnly))
     ));
 }
+
+/// The library of the manufacturer record a held part names.
+fn maker_library(reg: &Registry, library: Uuid, item: Uuid) -> Uuid {
+    let r = LibRef {
+        library: ew_ids::Id::from_uuid(library),
+        item: ew_ids::Id::from_uuid(item),
+        version_req: "*".into(),
+        extra: Default::default(),
+    };
+    match reg.resolve(&r).unwrap() {
+        LibDocument::Part(p) => p.item.manufacturer.library.as_uuid(),
+        other => panic!("not a part: {:?}", other.kind()),
+    }
+}
+
+/// FT-651: a library-target import names another library's manufacturer record only when the target's manifest
+/// `depends` names that library. Without it, the import writes a copy of each manufacturer into the target and the
+/// parts name the copies, so a second import finds the target's copy first and is not ambiguous; with it, the
+/// parts name the depended-on library's records and only the new manufacturer is written.
+#[test]
+fn a_library_import_names_another_librarys_manufacturer_only_through_depends() {
+    let root = Dir(ew_testdir::fresh_dir("ew-api-catalog-ft651"));
+    std::fs::create_dir_all(&root.0).unwrap();
+    let mut reg = Registry::open(&tiers(&root.0)).unwrap();
+    let std_lib = company_library(&mut reg, &root.0);
+    let mine = reg
+        .create(
+            &root.0.join("company").join("mine.ewlib"),
+            "mine",
+            "Mine",
+            "CC0-1.0",
+        )
+        .unwrap();
+    let input = read_input(&write_file(&root.0, "supplier-a.csv", LIST), &Limits::default()).unwrap();
+    let one = import_into_library(&mut reg, mine, &input, &map(), date("2026-10-29"), false, false).unwrap();
+    let items: Vec<Uuid> = one.import.rows.iter().filter_map(|r| r.item).collect();
+    assert_eq!(items.len(), 3);
+    assert_eq!(
+        one.import.manufacturers.len(),
+        3,
+        "Schneider Electric and Phoenix Contact copied, Generic Panels new"
+    );
+    for item in &items {
+        assert_eq!(
+            maker_library(&reg, mine, *item),
+            mine,
+            "the part names the target's copy"
+        );
+    }
+    let again =
+        import_into_library(&mut reg, mine, &input, &map(), date("2026-10-29"), false, false).unwrap();
+    assert!(
+        statuses(&again)
+            .iter()
+            .all(|(_, s)| s == "unchanged" || s.starts_with("rejected")),
+        "{:?}",
+        statuses(&again)
+    );
+    assert!(
+        again.import.manufacturers.is_empty(),
+        "the target's copies are found first"
+    );
+
+    // A library whose manifest depends on `std`: the parts name std's records.
+    let dir = root.0.join("company").join("dep.ewlib");
+    let dep = reg.create(&dir, "dep", "Dependent", "CC0-1.0").unwrap();
+    let manifest = dir.join(ew_api::library::MANIFEST);
+    let text = std::fs::read_to_string(&manifest).unwrap();
+    let with = text.replace(
+        "\"depends\": []",
+        &format!("\"depends\": [{{\"library\":\"{std_lib}\",\"version_req\":\"^1\"}}]"),
+    );
+    assert_ne!(with, text, "the manifest names the dependency");
+    std::fs::write(&manifest, with).unwrap();
+    let mut reg = Registry::open(&tiers(&root.0)).unwrap();
+    assert_eq!(reg.depends(dep), [std_lib]);
+    let three = import_into_library(&mut reg, dep, &input, &map(), date("2026-10-29"), false, false).unwrap();
+    assert_eq!(
+        three.import.manufacturers.len(),
+        1,
+        "only Generic Panels is written"
+    );
+    let by_number: Vec<(String, Uuid)> = three
+        .import
+        .rows
+        .iter()
+        .filter_map(|r| Some((r.part_number.clone(), maker_library(&reg, dep, r.item?))))
+        .collect();
+    assert_eq!(
+        by_number,
+        [
+            ("A9P52610".to_owned(), std_lib),
+            ("3209510".to_owned(), std_lib),
+            ("GP-100".to_owned(), dep),
+        ]
+    );
+}

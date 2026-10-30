@@ -793,6 +793,21 @@ impl Registry {
         self.lib(id).map(|l| l.info.tier)
     }
 
+    /// The libraries `library`'s manifest names in `depends` (`[{library, version_req}]`), by ID in the order written;
+    /// entries without a readable `library` UUID are left out. Empty for a compiled-in library or one that is not
+    /// installed.
+    pub fn depends(&self, library: Uuid) -> Vec<Uuid> {
+        self.lib(library)
+            .and_then(|l| l.manifest.as_ref())
+            .map(|m| {
+                m.depends
+                    .iter()
+                    .filter_map(|d| d.get("library")?.as_str()?.parse().ok())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     /// The document of `r` in its library, with copy metadata, if the library holds the item at a version the
     /// reference accepts.
     pub fn resolve(&self, r: &LibRef) -> Result<LibDocument, LibraryError> {
