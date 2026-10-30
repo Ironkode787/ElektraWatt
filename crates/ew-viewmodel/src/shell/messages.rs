@@ -339,8 +339,28 @@ impl ShellModel {
                 .as_ref()
                 .map(|p| ((p.epoch, p.session.world().rev.0), c));
             self.notify_toned(check_summary(c), check_tone(c));
+            self.messages.check_toast = self
+                .messages
+                .checked
+                .map(|(at, _)| (at, self.notes.newest_serial()));
         }
         Outcome::Done
+    }
+
+    /// FT-759: the last check's toast goes once the project leaves the revision it counted (an edit, an undo, another
+    /// project), so its counts never disagree with the dock's pending ones; the log keeps it.
+    pub(super) fn sync_check_toast(&mut self) {
+        let Some((at, serial)) = self.messages.check_toast else {
+            return;
+        };
+        let now = self
+            .project
+            .as_ref()
+            .map(|p| (p.epoch, p.session.world().rev.0));
+        if now != Some(at) {
+            self.notes.dismiss(serial);
+            self.messages.check_toast = None;
+        }
     }
 
     /// F1 in the Messages pane with the cursor on a finding or rule row: the rule's page of the book (§7.3).

@@ -360,6 +360,19 @@ fn ft710_the_toast_the_status_bar_and_the_chip_agree() {
     place_ip(&mut shell, "MSGTEST", (60, 3), "target");
     let pending = agree(&shell, "after an edit on 101");
     assert!(pending.pending > 0, "{pending:?}");
+    // FT-759: the check's toast, whose counts the edit made stale, is off the screen (the log keeps it).
+    assert!(
+        shell.toast().is_none_or(|t| !t.text.starts_with("Check")),
+        "{:?}",
+        shell.toast()
+    );
+    assert!(
+        shell
+            .notifications()
+            .entries()
+            .any(|n| n.text.starts_with("Check")),
+        "the log keeps it"
+    );
     assert!(
         status_findings(&shell).contains("pending on this page"),
         "{}",

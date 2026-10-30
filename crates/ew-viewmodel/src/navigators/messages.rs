@@ -48,6 +48,9 @@ pub struct MessagesState {
     /// The counts of the last Check project, by (project session, revision): the status bar's findings field while
     /// the Messages pane is closed and the revision is the checked one (FX38d: its click opens the pane).
     pub(crate) checked: Option<((u64, u64), MessageCounts)>,
+    /// The serial of the last Check project's toast and the (project session, revision) it counted: the toast goes
+    /// once the revision leaves that one, so its counts never disagree with the dock's pending ones (FT-759).
+    pub(crate) check_toast: Option<((u64, u64), u64)>,
 }
 
 /// What the shell reads from the project's online check report (FT-674, FT-675), for one (project session,

@@ -1503,6 +1503,8 @@ impl ShellModel {
         // WP-S2.09 part 3: the Preview tab follows the card, the history panel the revision.
         self.sync_preview();
         self.sync_history();
+        // FT-759: a check toast whose revision is gone is taken off the screen.
+        self.sync_check_toast();
         // WP-S1.19 part 6: the Macros navigator's detail follows its cursor.
         self.sync_macros();
         self.sync_library_copy();

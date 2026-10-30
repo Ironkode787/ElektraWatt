@@ -228,6 +228,11 @@ impl NotificationLog {
         self.visible.last().and_then(|s| self.get(*s))
     }
 
+    /// The serial of the newest notification (0 before the first).
+    pub(crate) fn newest_serial(&self) -> u64 {
+        self.serials
+    }
+
     /// Takes the toast `serial` off the screen (the log keeps it); `false` when it was not visible.
     pub(crate) fn dismiss(&mut self, serial: u64) -> bool {
         let before = self.visible.len();
