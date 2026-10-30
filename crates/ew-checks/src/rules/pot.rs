@@ -33,6 +33,57 @@ use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::full_tag;
 
+/// A CP as a finding's sentence names it (FT-756, ID-889): a designation the function shares between pins carries
+/// its position in words, "-1A4 pin − (2nd)", never the label's `#2`; any other CP is named by its label. The parts
+/// go to the Fluent patterns as `cp_shared`, `cp_tag`, `cp_pin` and `cp_nth` (an ordinal number), so that each
+/// language words the position itself; `cp` stays the label.
+struct PinWords {
+    /// The English sentence form (the en-GB pattern renders the same text).
+    sentence: String,
+    /// The tag, the designation and the position, when the designation is shared.
+    shared: Option<(String, String, u32)>,
+}
+
+impl PinWords {
+    fn of(q: &Q, cp: CpRef, label: &str) -> PinWords {
+        match cp.label_parts(q) {
+            Some((tag, pin, Some(n))) => PinWords {
+                sentence: format!("{tag} pin {pin} ({})", ordinal_en(n)),
+                shared: Some((tag, pin, n)),
+            },
+            _ => PinWords {
+                sentence: label.to_owned(),
+                shared: None,
+            },
+        }
+    }
+
+    /// `finding` with the pin's Fluent arguments.
+    fn args(&self, finding: Finding) -> Finding {
+        match &self.shared {
+            Some((tag, pin, n)) => finding
+                .arg("cp_shared", "yes")
+                .arg("cp_tag", tag.clone())
+                .arg("cp_pin", pin.clone())
+                .arg("cp_nth", n.to_string()),
+            None => finding.arg("cp_shared", "no"),
+        }
+    }
+}
+
+/// An English ordinal (`1st`, `2nd`, `3rd`, `11th`, `21st`), as the en-GB pattern's `NUMBER($cp_nth, type:
+/// "ordinal")` selects it.
+fn ordinal_en(n: u32) -> String {
+    let suffix = match (n % 10, n % 100) {
+        (_, 11..=13) => "th",
+        (1, _) => "st",
+        (2, _) => "nd",
+        (3, _) => "rd",
+        _ => "th",
+    };
+    format!("{n}{suffix}")
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // The targets of a potential
 
@@ -620,18 +671,22 @@ impl Rule for FePinOnPe {
                 continue;
             }
             let label = cp_label(q, *cp);
-            out.push(Finding::new(
-                &FE_PIN_ON_PE,
-                [Target::new(Kind::Function, cp.function)],
-                format!("fe:{}", cp.idx),
-                label.clone(),
-                format!(
-                    "{label} has the role FE and is wired to the PE potential {name}; declare an FE–PE bond or \
-                     connect it to functional earth"
-                ),
-            )
-            .arg("cp", label)
-            .arg("potential", name.clone()));
+            let pin = PinWords::of(q, *cp, &label);
+            out.push(
+                pin.args(Finding::new(
+                    &FE_PIN_ON_PE,
+                    [Target::new(Kind::Function, cp.function)],
+                    format!("fe:{}", cp.idx),
+                    label.clone(),
+                    format!(
+                        "{} has the role FE and is wired to the PE potential {name}; declare an FE–PE bond or \
+                         connect it to functional earth",
+                        pin.sentence
+                    ),
+                ))
+                .arg("cp", label)
+                .arg("potential", name.clone()),
+            );
         }
         out
     }
@@ -1337,20 +1392,22 @@ impl Rule for UnconnectedCp {
                     continue;
                 }
                 let label = cp_label(q, CpRef::new(f, c.idx));
-                let finding = Finding::new(
-                    &UNCONNECTED_CP,
-                    [Target::new(Kind::Function, f)],
-                    c.idx.to_string(),
-                    label.clone(),
-                    if c.unused {
-                        format!("{label} is not connected (marked unused)")
-                    } else {
-                        format!("{label} is not connected; connect it or mark it unused")
-                    },
-                )
-                .arg("cp", label)
-                .arg("unused", if c.unused { "yes" } else { "no" })
-                .on_page(page);
+                let pin = PinWords::of(q, CpRef::new(f, c.idx), &label);
+                let finding = pin
+                    .args(Finding::new(
+                        &UNCONNECTED_CP,
+                        [Target::new(Kind::Function, f)],
+                        c.idx.to_string(),
+                        label.clone(),
+                        if c.unused {
+                            format!("{} is not connected (marked unused)", pin.sentence)
+                        } else {
+                            format!("{} is not connected; connect it or mark it unused", pin.sentence)
+                        },
+                    ))
+                    .arg("cp", label)
+                    .arg("unused", if c.unused { "yes" } else { "no" })
+                    .on_page(page);
                 out.push(if c.unused {
                     finding.with_severity(Severity::Info)
                 } else {
@@ -2081,17 +2138,19 @@ impl Rule for LoadNotReturned {
                     continue;
                 }
                 let label = cp_label(q, CpRef::new(f, here));
+                let pin = PinWords::of(q, CpRef::new(f, here), &label);
                 out.push(
-                    Finding::new(
+                    pin.args(Finding::new(
                         &LOAD_NOT_RETURNED,
                         [Target::new(Kind::Function, f)],
                         here.to_string(),
                         label.clone(),
                         format!(
-                            "{label} is on {name}, which reaches no supply: the load is fed but not returned; \
-                             connect it to the return conductor (0 V, N)"
+                            "{} is on {name}, which reaches no supply: the load is fed but not returned; \
+                             connect it to the return conductor (0 V, N)",
+                            pin.sentence
                         ),
-                    )
+                    ))
                     .arg("cp", label)
                     .arg("potential", name.clone()),
                 );

@@ -225,7 +225,15 @@ rule-ew-pot-002 =
     .title = PELV or SELV bonding
     .hint = Declare exactly one 0 V–PE bond for a PELV potential, and none for a SELV potential.
 
-rule-ew-pot-003 = { $cp } has the role FE and is wired to the PE potential { $potential }; declare an FE–PE bond or connect it to functional earth
+rule-ew-pot-003 = { $cp_shared ->
+        [yes] { $cp_tag } pin { $cp_pin } ({ NUMBER($cp_nth, type: "ordinal") ->
+            [one] { $cp_nth }st
+            [two] { $cp_nth }nd
+            [few] { $cp_nth }rd
+           *[other] { $cp_nth }th
+        })
+       *[no] { $cp }
+    } has the role FE and is wired to the PE potential { $potential }; declare an FE–PE bond or connect it to functional earth
     .title = FE pin on PE
     .hint = Declare an FE–PE bond, or connect the pin to functional earth.
 
@@ -251,7 +259,15 @@ rule-ew-pot-008 =
     .title = PE island
     .hint = Connect the PE potentials of the location, for example through the rail bonding of the terminals.
 
-rule-ew-pot-009 = { $cp } is not connected{ $unused ->
+rule-ew-pot-009 = { $cp_shared ->
+        [yes] { $cp_tag } pin { $cp_pin } ({ NUMBER($cp_nth, type: "ordinal") ->
+            [one] { $cp_nth }st
+            [two] { $cp_nth }nd
+            [few] { $cp_nth }rd
+           *[other] { $cp_nth }th
+        })
+       *[no] { $cp }
+    } is not connected{ $unused ->
         [yes] {" "}(marked unused)
        *[no] ; connect it or mark it unused
     }
@@ -289,7 +305,15 @@ rule-ew-pot-017 =
     .title = Two potential names
     .hint = Keep one definition of the potential, or rename the interruption points to one name.
 
-rule-ew-pot-021 = { $cp } is on { $potential }, which reaches no supply: the load is fed but not returned; connect it to the return conductor (0 V, N)
+rule-ew-pot-021 = { $cp_shared ->
+        [yes] { $cp_tag } pin { $cp_pin } ({ NUMBER($cp_nth, type: "ordinal") ->
+            [one] { $cp_nth }st
+            [two] { $cp_nth }nd
+            [few] { $cp_nth }rd
+           *[other] { $cp_nth }th
+        })
+       *[no] { $cp }
+    } is on { $potential }, which reaches no supply: the load is fed but not returned; connect it to the return conductor (0 V, N)
     .title = Load not returned
     .hint = Wire the load's return side to the return conductor of its supply (0 V, N), or link it to the module's return pin.
 

@@ -27,7 +27,7 @@
 use std::sync::OnceLock;
 
 use fluent_bundle::concurrent::FluentBundle;
-use fluent_bundle::{FluentArgs, FluentResource};
+use fluent_bundle::{FluentArgs, FluentResource, FluentValue};
 
 use crate::finding::Finding;
 
@@ -62,6 +62,8 @@ fn bundle(lang: &str) -> Option<&'static Bundle> {
                 let id: unic_langid::LanguageIdentifier = tag.parse().unwrap_or_default();
                 let mut b = Bundle::new_concurrent(vec![id]);
                 b.set_use_isolating(false);
+                // NUMBER(…, type: "ordinal") of a pin's position (FT-756)
+                let _ = b.add_builtins();
                 let resource = match FluentResource::try_new((*source).to_owned()) {
                     Ok(r) => r,
                     Err((r, _)) => r,
@@ -89,11 +91,18 @@ pub fn resource_errors() -> Vec<(&'static str, String)> {
     out
 }
 
-/// The arguments of a finding as Fluent arguments (every value a string).
+/// The arguments a pattern reads as numbers (an ordinal through `NUMBER(…, type: "ordinal")`, FT-756).
+const NUMBER_ARGS: &[&str] = &["cp_nth"];
+
+/// The arguments of a finding as Fluent arguments (every value a string, but [`NUMBER_ARGS`] as numbers).
 fn fluent_args(f: &Finding) -> FluentArgs<'_> {
     let mut args = FluentArgs::with_capacity(f.args.len());
     for (k, v) in &f.args {
-        args.set(*k, v.as_str());
+        if NUMBER_ARGS.contains(k) {
+            args.set(*k, FluentValue::try_number(v.as_str()));
+        } else {
+            args.set(*k, v.as_str());
+        }
     }
     args
 }

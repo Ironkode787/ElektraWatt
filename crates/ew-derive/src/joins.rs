@@ -243,14 +243,54 @@ pub fn cp_label(q: &Q, cp: CpRef) -> String {
     if this.designation.is_empty() {
         return short;
     }
+    match designation_nth(&cps, this.idx, &this.designation) {
+        Some(n) => format!("{short}:{}#{n}", this.designation),
+        None => format!("{short}:{}", this.designation),
+    }
+}
+
+/// The 1-based position of CP `idx` among the function's CPs of `designation` in index order, when the designation
+/// is shared by more than one CP (the label's `#n`); `None` when it is not shared.
+fn designation_nth(cps: &[crate::Cp], idx: u16, designation: &str) -> Option<u32> {
     let mut same: Vec<u16> = cps
         .iter()
-        .filter(|c| c.designation == this.designation)
+        .filter(|c| c.designation == designation)
         .map(|c| c.idx)
         .collect();
     same.sort_unstable();
-    match same.iter().position(|i| *i == cp.idx) {
-        Some(n) if same.len() > 1 => format!("{short}:{}#{}", this.designation, n + 1),
-        _ => format!("{short}:{}", this.designation),
+    match same.iter().position(|i| *i == idx) {
+        Some(n) if same.len() > 1 => u32::try_from(n + 1).ok(),
+        _ => None,
+    }
+}
+
+impl CpRef {
+    /// A device CP's label in parts, for a sentence that names the pin in words (FT-756, ID-889): the device's short
+    /// tag, the CP's designation and, when the function's CPs share that designation, the CP's 1-based position
+    /// among them (the `#n` of [`cp_label`]). No words of any language: the caller's string table or Fluent pattern
+    /// builds the sentence ("-1A4 pin − (2nd)"). `None` for a terminal's clamp, an interruption point, a CP
+    /// without a designation and an unknown function or CP; those keep [`cp_label`].
+    pub fn label_parts(self, q: &Q) -> Option<(String, String, Option<u32>)> {
+        let f = q.functions().get(self.function)?;
+        let device = f.device?;
+        if q.devices()
+            .get(device)
+            .is_some_and(|d| d.aspects.terminal.is_some())
+        {
+            return None;
+        }
+        let cps = q.get::<crate::FunctionCps>(self.function);
+        let this = cps.iter().find(|c| c.idx == self.idx)?;
+        if this.designation.is_empty() {
+            return None;
+        }
+        let short = q
+            .get::<crate::DeviceTag>(device)
+            .as_ref()
+            .as_ref()
+            .map(|t| t.short())
+            .unwrap_or_default();
+        let nth = designation_nth(&cps, this.idx, &this.designation);
+        Some((short, this.designation.clone(), nth))
     }
 }

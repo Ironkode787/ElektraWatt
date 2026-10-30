@@ -136,11 +136,33 @@ fn en_gb_renders_the_message_byte_for_byte_and_nl_nl_renders_dutch() {
     ] {
         let f = ew_checks::Finding::new(rule, [], "13", "-K1:13", en)
             .arg("cp", "-K1:13")
+            .arg("cp_shared", "no")
             .arg("unused", unused);
         assert_eq!(format(&f, DEFAULT_LANGUAGE).as_deref(), Some(en));
         assert_eq!(render(&f, DEFAULT_LANGUAGE), en);
         assert_eq!(render(&f, "nl-NL"), nl);
         assert_eq!(render(&f, "NL-nl"), nl, "language tags compare without case");
+    }
+    // FT-756 (ID-889): a pin whose designation the device shares is named in words with its position, in each
+    // language's ordinal, never by the label's `#n`.
+    for (nth, en, nl) in [
+        ("2", "-1A4 pin − (2nd)", "-1A4 pen − (2e)"),
+        ("12", "-1A4 pin − (12th)", "-1A4 pen − (12e)"),
+        ("21", "-1A4 pin − (21st)", "-1A4 pen − (21e)"),
+        ("3", "-1A4 pin − (3rd)", "-1A4 pen − (3e)"),
+    ] {
+        let message = format!("{en} is not connected; connect it or mark it unused");
+        let f = ew_checks::Finding::new(rule, [], "13", "-1A4:−#2", message.clone())
+            .arg("cp", "-1A4:−#2")
+            .arg("cp_shared", "yes")
+            .arg("cp_tag", "-1A4")
+            .arg("cp_pin", "−")
+            .arg("cp_nth", nth)
+            .arg("unused", "no");
+        assert_eq!(format(&f, DEFAULT_LANGUAGE).as_deref(), Some(message.as_str()));
+        let dutch = render(&f, "nl-NL");
+        assert!(dutch.starts_with(&format!("{nl} is niet aangesloten")), "{dutch}");
+        assert!(!dutch.contains('#'), "{dutch}");
     }
     // A missing argument is an error in the pattern: the en-GB message is kept.
     let partial = ew_checks::Finding::new(rule, [], "13", "-K1:13", "the en-GB text").arg("unused", "no");

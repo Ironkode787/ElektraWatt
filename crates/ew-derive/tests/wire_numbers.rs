@@ -968,3 +968,41 @@ fn a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not() {
         .collect();
     assert_eq!(tails, ["1/a", "1/b", "2/a#1", "2/a#2"], "{labels:?}");
 }
+
+/// `CpRef::label_parts` (FT-756, ID-889): a device CP's tag, designation and, for a designation the function shares,
+/// its 1-based position in index order (the label's `#n`) with no words; a terminal's clamp has none.
+#[test]
+fn label_parts_split_a_shared_designation_and_skip_a_terminal() {
+    const FN_PSU: u128 = 0x50b;
+    let mut fx = fixture();
+    fx.lib_item(
+        "fndef",
+        FN_PSU,
+        json!({
+            "meta": {}, "category": ["Misc", "Misc", "Supply"], "contact_kind": "none",
+            "cps": [
+                {"idx": 0, "designation": "L+"},
+                {"idx": 1, "designation": "−"},
+                {"idx": 2, "designation": "−"},
+            ],
+        }),
+    );
+    fx.device(0x5000, "A", Some(4));
+    fx.function(0x5001, Some(0x5000), FN_PSU, true);
+    fx.device(0x4000, "X", Some(1)).with("strip", json!({}));
+    fx.function(0x4001, Some(0x4000), FN_STRIP, true);
+    fx.device(0x4010, "X", None).with(
+        "terminal",
+        json!({"strip": uid(0x4000), "seq": 1, "designation": "1"}),
+    );
+    fx.function(0x4011, Some(0x4010), FN_TERM, true);
+    let m = fx.build();
+    let q = Q::new(&m);
+    let parts = |f, idx| cpr(f, idx).label_parts(&q).map(|(_, pin, n)| (pin, n));
+    assert_eq!(parts(0x5001, 0), Some(("L+".to_owned(), None)));
+    assert_eq!(parts(0x5001, 1), Some(("−".to_owned(), Some(1))));
+    assert_eq!(parts(0x5001, 2), Some(("−".to_owned(), Some(2))));
+    let (tag, _, _) = cpr(0x5001, 2).label_parts(&q).expect("a device CP");
+    assert!(cp_label(&q, cpr(0x5001, 2)).starts_with(&format!("{tag}:")));
+    assert_eq!(cpr(0x4011, 0).label_parts(&q), None, "a terminal keeps its label");
+}

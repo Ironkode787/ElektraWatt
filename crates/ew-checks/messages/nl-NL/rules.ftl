@@ -111,7 +111,10 @@ rule-ew-pot-001 = { $conflicts }{ $more ->
     .title = Type- of spanningsconflict
     .hint = Scheid de potentialen, corrigeer de definitie of declareer de verbinding die ze samenbrengt.
 
-rule-ew-pot-003 = { $cp } heeft de rol FE en is aangesloten op de PE-potentiaal { $potential }; declareer een FE–PE-verbinding of sluit het aan op functionele aarde
+rule-ew-pot-003 = { $cp_shared ->
+        [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
+       *[no] { $cp }
+    } heeft de rol FE en is aangesloten op de PE-potentiaal { $potential }; declareer een FE–PE-verbinding of sluit het aan op functionele aarde
     .title = FE-pen op PE
     .hint = Declareer een FE–PE-verbinding of sluit de pen aan op functionele aarde.
 
@@ -129,7 +132,10 @@ rule-ew-pot-006 = PE-draad { $wire } heeft { $pe } mm², minder dan de { $requir
     .title = PE te klein
     .hint = Vergroot de doorsnede van de beschermingsleider tot de vereiste maat.
 
-rule-ew-pot-009 = { $cp } is niet aangesloten{ $unused ->
+rule-ew-pot-009 = { $cp_shared ->
+        [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
+       *[no] { $cp }
+    } is niet aangesloten{ $unused ->
         [yes] {" "}(gemarkeerd als ongebruikt)
        *[no] ; sluit het aan of markeer het als ongebruikt
     }
@@ -147,7 +153,10 @@ rule-ew-pot-013 = { $device } schakelt de nulleider { $from } → { $to }{ $load
     .title = Schakelen in de nulleider
     .hint = Verplaats het contact naar de lijngeleider, of gebruik een apparaat dat L en N tegelijk opent.
 
-rule-ew-pot-021 = { $cp } ligt op { $potential }, dat geen voeding bereikt: de belasting wordt gevoed maar niet teruggevoerd; sluit het aan op de retourgeleider (0 V, N)
+rule-ew-pot-021 = { $cp_shared ->
+        [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
+       *[no] { $cp }
+    } ligt op { $potential }, dat geen voeding bereikt: de belasting wordt gevoed maar niet teruggevoerd; sluit het aan op de retourgeleider (0 V, N)
     .title = Belasting niet teruggevoerd
     .hint = Verbind de retourzijde van de belasting met de retourgeleider van de voeding (0 V, N), of met de retourpin van de module.
 
