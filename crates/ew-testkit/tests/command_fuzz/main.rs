@@ -989,7 +989,15 @@ fn every_arm_commits_and_refuses_what_it_should() {
                 break;
             }
         }
-        if committed == 0 {
+        if arms::SESSION_REFUSES.contains(&arm.command) {
+            // A command no submit path of the session commits (`revision.approve`, WP-S1.18 D9): every step is
+            // refused, and the arm proves it.
+            assert!(
+                committed == 0 && refused_ok > 0,
+                "arm `{}`: the session must refuse every step ({committed} committed, {refused_ok} refused)",
+                arm.command
+            );
+        } else if committed == 0 {
             dead.push(format!("{} (generated {tried} steps)", arm.command));
         }
     }

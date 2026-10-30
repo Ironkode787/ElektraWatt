@@ -4,7 +4,7 @@
 
 A command is the one way to change a project (`Command` → `Transaction` → `Op`). The same command runs from the user interface, from a command log replayed by `ew apply`, from scripts and from the Session API. Each page below gives the command's registry entry, its parameters with types and constraints, and the exit codes of `ew apply`.
 
-66 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
+67 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
 
 | Command | Summary | Cost | Exposure | Stability |
 |---|---|---|---|---|
@@ -64,6 +64,7 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`rep.set_anchor_policy`](rep.set_anchor_policy.md) | sets the cross-reference anchor policy of representations (FR-SYM-010; the quick fix of MF-13, doc 07 §3.6). | interactive | edit | preview |
 | [`rep.transform`](rep.transform.md) | rotates, mirrors or changes the variant of representations about their insertion point (doc 06 §3.4). | interactive | edit | preview |
 | [`report_block.create`](report_block.create.md) | a report block (doc 03 §6, doc 09 §2.2). | interactive | edit | preview |
+| [`revision.approve`](revision.approve.md) | `revision.approve` (`ApproveRevision`): the checker's sign-off on the open revision (doc 15 §5.4; FR-REV-005, FR-REV-021; WP-S1.18 D9): writes the revision's `checker` and its `sign_off {checker, content_digest, date, packs, scheme, waivers_ack}`, the one path that writes the checker of an open revision (D4, FT-402). A later content edit changes the content digest, and EW-REL-001 then reports the sign-off as stale; approving again replaces it. | interactive | human_only | preview |
 | [`revision.create`](revision.create.md) | `revision.create` (`CreateRevision`): a project revision (doc 03 §18, FR-REV-001, FT-165): the open revision that collects the current edits, or a historic released revision (released before the project came to ElektraWatt: no release record, no as-built archive). | interactive | edit | preview |
 | [`revision.set_author`](revision.set_author.md) | `revision.set_author` (`SetRevisionAuthor`): sets the author of the open revision (WP-S1.18 D4, FT-402), the one path that writes it once the revision exists (`fields.set` refuses `author` and `checker`). The GUI's Revision ▸ Set author dialog is WP-S1.18 part 5. | interactive | human_only | preview |
 | [`revision.withdraw`](revision.withdraw.md) | `revision.withdraw` (`WithdrawRevision`): withdraws a released revision (doc 15 §5.10, FR-REV-009; WP-S1.18 D5). The CLI's `ew revision withdraw <label> --reason <text>` and the GUI's Revision ▸ Withdraw are WP-S1.18 parts 3 and 5. | interactive | human_only | preview |

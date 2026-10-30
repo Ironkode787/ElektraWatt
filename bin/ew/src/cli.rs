@@ -30,6 +30,9 @@ pub const USAGE: &str = "usage:
   ew apply [<project-dir>] <file.ewcmd> [--preview] [--one-step]
   ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]
   ew project assets purge [<project-dir>] [--preview]
+  ew revision approve [<project-dir>] --as <role>
+  ew revision release <label> [<project-dir>]
+  ew revision withdraw <label> --reason <text> [<project-dir>]
   ew verify-derived [<project-dir>]
   ew lib list [--company <dir>]... [--json]
   ew lib search <text> [--kind <kind>]... [--all] [--limit <n>] [--company <dir>]... [--json]
@@ -105,6 +108,18 @@ changes of a crashed session, quarantined lines or an incomplete save, and in a 
 purged (or nothing to purge, or previewed), 1 when the purge is refused or not confirmed, 2 on usage, terminal, open
 and save errors.
 
+`revision` runs the release workflow's human-only commands (doc 15 section 5.4, doc 17 section 2.3). Each asks the
+person to type the revision's label on a controlling terminal; there is no `--yes` flag, and without a terminal it
+exits 2 before the project is opened. `revision approve --as <role>` records the checker's sign-off on the open
+revision (`revision.approve`): the checker is a party role (`checker`, `author`, `engineer`, ...), never the author's;
+the project must be saved; it runs the release gate on the saved generation (the release scheme in release mode with
+the EW-REL rules) and is refused while any error other than EW-REL-001 is open, prints the safety-kind waivers in
+force (the typed label acknowledges them), then approves and saves. `revision release <label>` runs the release gate
+for the open revision and prints its blockers when it refuses; the release itself (the as-built archive) is not built
+yet. `revision withdraw <label> --reason <text>` withdraws a released revision (`revision.withdraw`) and saves. Exit 0
+when approved or withdrawn and saved, 1 when refused (the gate's blockers, a wrong label, a refused command) or not
+confirmed, 2 on usage, terminal, open and save errors and for a release whose gate passes (not built yet).
+
 `verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
 the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.
 
@@ -158,6 +173,39 @@ pub enum Command {
     AssetsPurge(AssetsPurgeArgs),
     /// `ew lib`: list, search, reindex and create libraries.
     Lib(LibArgs),
+    /// `ew revision approve|release|withdraw` (WP-S1.18 part 3).
+    Revision(RevisionArgs),
+}
+
+/// What `ew revision` does.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum RevisionAction {
+    /// `revision approve --as <role>`: the checker's sign-off on the open revision.
+    Approve {
+        /// The checker's party role (`--as`).
+        role: String,
+    },
+    /// `revision release <label>`: the release gate (the release itself is WP-S1.18 part 4).
+    Release {
+        /// The open revision's label.
+        label: String,
+    },
+    /// `revision withdraw <label> --reason <text>`.
+    Withdraw {
+        /// The released revision's label.
+        label: String,
+        /// Why (`--reason`).
+        reason: String,
+    },
+}
+
+/// The arguments of `ew revision`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RevisionArgs {
+    /// The subcommand.
+    pub action: RevisionAction,
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
 }
 
 /// What `ew lib` does.
@@ -431,6 +479,7 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
         },
         "verify-derived" => parse_verify(it),
         "lib" => parse_lib(it),
+        "revision" => parse_revision(it),
         other => Err(format!("unknown command `{other}`")),
     }
 }
@@ -711,6 +760,44 @@ fn parse_checks_set(mut it: impl Iterator<Item = String>) -> Result<Command, Str
         return Err("`project checks set` needs `--active <scheme>` or `--release <scheme>`".to_owned());
     }
     Ok(Command::ChecksSet(args))
+}
+
+fn parse_revision(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let sub = it.next();
+    let mut positional: Vec<String> = Vec::new();
+    let (mut role, mut reason) = (None, None);
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--as" if sub.as_deref() == Some("approve") => role = Some(value(&mut it, "--as")?),
+            "--reason" if sub.as_deref() == Some("withdraw") => reason = Some(value(&mut it, "--reason")?),
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => positional.push(a),
+        }
+    }
+    let mut positional = positional.into_iter();
+    let action = match sub.as_deref() {
+        Some("approve") => RevisionAction::Approve {
+            role: role.ok_or("`revision approve` needs `--as <role>`")?,
+        },
+        Some("release") => RevisionAction::Release {
+            label: positional
+                .next()
+                .ok_or("`revision release` needs the revision's label")?,
+        },
+        Some("withdraw") => RevisionAction::Withdraw {
+            label: positional
+                .next()
+                .ok_or("`revision withdraw` needs the revision's label")?,
+            reason: reason.ok_or("`revision withdraw` needs `--reason <text>`")?,
+        },
+        Some(other) => return Err(format!("unknown revision command `{other}`")),
+        None => return Err("`revision` takes `approve`, `release` or `withdraw`".to_owned()),
+    };
+    let project = positional.next().map(PathBuf::from);
+    if let Some(extra) = positional.next() {
+        return Err(format!("unexpected argument `{extra}`"));
+    }
+    Ok(Command::Revision(RevisionArgs { action, project }))
 }
 
 fn parse_assets_purge(it: impl Iterator<Item = String>) -> Result<Command, String> {
@@ -1021,6 +1108,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::ChecksSet(a) => run_checks_set(&a),
         Command::AssetsPurge(a) => run_assets_purge(&a),
         Command::Lib(a) => run_lib(&a),
+        Command::Revision(a) => run_revision(&a),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());
             0
@@ -1426,6 +1514,16 @@ fn open_for_writing_with(
     origin: ew_api::Origin,
     store: ew_api::StoreOptions,
 ) -> Result<ew_api::Session, i32> {
+    open_for_writing_items(dir, origin, store).map(|(session, _)| session)
+}
+
+/// [`open_for_writing_with`] that also returns the integrity findings of opening (EW-CORE-001 … 019), which the release
+/// gate joins as `ew check` does.
+fn open_for_writing_items(
+    dir: &Path,
+    origin: ew_api::Origin,
+    store: ew_api::StoreOptions,
+) -> Result<(ew_api::Session, Vec<ew_api::checks::IntegrityItem>), i32> {
     let options = ew_api::SessionOptions {
         origin,
         ..ew_api::SessionOptions::default()
@@ -1455,7 +1553,8 @@ fn open_for_writing_with(
         session.close();
         return Err(2);
     }
-    Ok(session)
+    let items = ew_api::integrity_items(&opened);
+    Ok((session, items))
 }
 
 /// `ew project checks set`: `project.checks.set` from a confirmed CLI subcommand, the human origin the command's
@@ -1517,6 +1616,286 @@ fn run_checks_set(a: &ChecksSetArgs) -> i32 {
     };
     session.close();
     code
+}
+
+/// The subcommand name of a `ew revision` action, as the origin of its session names it.
+fn revision_subcommand(action: &RevisionAction) -> &'static str {
+    match action {
+        RevisionAction::Approve { .. } => "revision approve",
+        RevisionAction::Release { .. } => "revision release",
+        RevisionAction::Withdraw { .. } => "revision withdraw",
+    }
+}
+
+/// Today's date (UTC) from the system clock: the date of a sign-off. The CLI is the front-end that reads the clock;
+/// the command takes the date as a parameter (WP-S1.16 §10 rule 2).
+fn today() -> ew_api::catalog::Date {
+    use ew_api::Clock as _;
+    let seconds = ew_api::SystemClock
+        .now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(0));
+    date_from_epoch(seconds)
+        .and_then(|d| ew_api::catalog::Date::new(d.year, d.month, d.day).ok())
+        .unwrap_or_else(|| ew_api::catalog::Date::new(1980, 1, 1).expect("a valid date"))
+}
+
+/// `ew revision approve|release|withdraw` (WP-S1.18 part 3, D10): the `HumanOnly` commands of the release workflow,
+/// each submitted from the confirmed origin only after the person types the revision label on a controlling terminal
+/// (doc 15 section 5.4, doc 17 section 2.3); without a terminal nothing is opened (exit 2).
+fn run_revision(a: &RevisionArgs) -> i32 {
+    use std::io::IsTerminal;
+    let terminal = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+    let mut input = std::io::stdin().lock();
+    let mut output = std::io::stdout().lock();
+    run_revision_with(
+        a,
+        terminal,
+        &mut input,
+        &mut output,
+        ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
+        today(),
+    )
+}
+
+/// One finding as the report text prints it: `<severity> <rule> <code> <subject>: <message>`.
+fn finding_line(f: &ew_api::checks::Finding) -> String {
+    format!(
+        "{} {} {} {}: {}\n",
+        f.severity, f.rule, f.code, f.subject, f.message
+    )
+}
+
+/// Prints `prompt` to `output` and reads one line from `input`: `true` when it is exactly `word`, surrounding white
+/// space aside.
+fn typed_word(
+    input: &mut dyn std::io::BufRead,
+    output: &mut dyn std::io::Write,
+    prompt: &str,
+    word: &str,
+) -> bool {
+    let mut answer = String::new();
+    output
+        .write_all(prompt.as_bytes())
+        .and_then(|()| output.flush())
+        .is_ok()
+        && input.read_line(&mut answer).is_ok()
+        && answer.trim() == word
+}
+
+/// [`run_revision`] with the terminal test, the reader, the writer, the store options and the date injected: the
+/// confirmation hook of the tests (doc 18 section 3.15's `test-confirm`, realised as the injected terminal; the
+/// production binary reads the real terminal and exits 2 without one).
+fn run_revision_with(
+    a: &RevisionArgs,
+    terminal: bool,
+    input: &mut dyn std::io::BufRead,
+    output: &mut dyn std::io::Write,
+    store: ew_api::StoreOptions,
+    today: ew_api::catalog::Date,
+) -> i32 {
+    let subcommand = revision_subcommand(&a.action);
+    if !terminal {
+        eprintln!(
+            "error: HumanOnly: needs an interactive terminal (`{subcommand}` is confirmed by typing the revision \
+             label); nothing was changed"
+        );
+        return 2;
+    }
+    let checker = match &a.action {
+        RevisionAction::Approve { role } => {
+            match serde_json::from_value::<ew_api::PartyRole>(serde_json::Value::String(role.clone())) {
+                Ok(r) if !matches!(r, ew_api::PartyRole::Unknown(_)) => Some(r),
+                _ => {
+                    eprintln!(
+                        "error: `{role}` is not a party role (customer, end_user, panel_builder, author, checker, \
+                         engineer); nothing was changed"
+                    );
+                    return 2;
+                }
+            }
+        }
+        _ => None,
+    };
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let origin = ew_api::Origin::Cli {
+        subcommand: subcommand.to_owned(),
+        confirmed: true,
+    };
+    let (mut session, items) = match open_for_writing_items(&dir, origin, store) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    let code = match (&a.action, checker) {
+        (RevisionAction::Approve { .. }, Some(checker)) => {
+            approve_revision(&mut session, &items, &checker, input, output, today)
+        }
+        (RevisionAction::Release { label }, _) => release_revision(&session, &items, label, output),
+        (RevisionAction::Withdraw { label, reason }, _) => {
+            withdraw_revision(&mut session, label, reason, input, output)
+        }
+        (RevisionAction::Approve { .. }, None) => 2,
+    };
+    session.close();
+    code
+}
+
+/// Saves after a confirmed revision command: exit 0 with `done` printed, 2 when the save fails.
+fn save_revision(session: &mut ew_api::Session, output: &mut dyn std::io::Write, done: &str) -> i32 {
+    match session.save() {
+        Ok(report) => {
+            let _ = writeln!(output, "{done}; saved (generation {})", report.generation);
+            0
+        }
+        Err(e) => {
+            eprintln!("error: the save failed: {e:?}");
+            2
+        }
+    }
+}
+
+/// `ew revision approve --as <role>`: the gate on the saved generation, the safety-kind waivers to acknowledge, the
+/// typed label, then `revision.approve` through [`ew_api::Session::approve`] and a save.
+fn approve_revision(
+    session: &mut ew_api::Session,
+    items: &[ew_api::checks::IntegrityItem],
+    checker: &ew_api::PartyRole,
+    input: &mut dyn std::io::BufRead,
+    output: &mut dyn std::io::Write,
+    today: ew_api::catalog::Date,
+) -> i32 {
+    let Some(label) = session.open_revision_label() else {
+        eprintln!("error: the project has no open revision; nothing was approved");
+        return 1;
+    };
+    let gate = match session.release_gate(&label, items) {
+        Ok(g) => g,
+        Err(e) => {
+            eprintln!("error: {e}; nothing was approved");
+            return 1;
+        }
+    };
+    let blocked = gate.approval_blockers();
+    if !blocked.is_empty() {
+        let listing: String = blocked.iter().map(|f| finding_line(f)).collect();
+        let _ = output.write_all(listing.as_bytes());
+        eprintln!(
+            "error: the release gate has {} unwaived error(s) besides {}; nothing was approved",
+            blocked.len(),
+            ew_api::FOUR_EYES_RULE
+        );
+        return 1;
+    }
+    let role = ew_api::role_name(checker);
+    let mut summary = format!(
+        "approve revision {label} as {role} (author: {}): generation {}, content digest {}, scheme {}\n",
+        gate.author
+            .as_ref()
+            .map_or_else(|| "not set".to_owned(), ew_api::role_name),
+        gate.generation,
+        gate.content_digest,
+        gate.report.scheme
+    );
+    for w in &gate.safety_waivers {
+        let waived = gate.report.findings.iter().find(|f| {
+            matches!(&f.state, ew_api::checks::FindingState::Waived { waiver } if *waiver == w.to_string())
+        });
+        let what = waived.map_or_else(String::new, |f| format!(": {} {}", f.rule, f.subject));
+        summary.push_str(&format!("  safety waiver {w}{what}\n"));
+    }
+    let acknowledge = if gate.safety_waivers.is_empty() {
+        String::new()
+    } else {
+        format!(
+            " and acknowledge the {} safety waiver(s) above",
+            gate.safety_waivers.len()
+        )
+    };
+    let prompt = format!(
+        "{summary}Type the revision label `{label}` to approve it{acknowledge}, anything else to abort: "
+    );
+    if !typed_word(input, output, &prompt, &label) {
+        eprintln!("error: not confirmed; nothing was changed");
+        return 1;
+    }
+    let approval = ew_api::Approval {
+        label: label.clone(),
+        checker: checker.clone(),
+        date: today,
+        waivers_ack: gate.safety_waivers.clone(),
+    };
+    if let Err(e) = session.approve(&approval, items) {
+        if let ew_api::ApproveError::Blocked(list) = &e {
+            let listing: String = list.iter().map(finding_line).collect();
+            let _ = output.write_all(listing.as_bytes());
+        }
+        eprintln!("error: {e}; nothing was approved");
+        return 1;
+    }
+    save_revision(session, output, &format!("approved revision {label} as {role}"))
+}
+
+/// `ew revision release <label>`: the release gate on the saved generation; its blockers when it refuses. The atomic
+/// release with the as-built archive is WP-S1.18 part 4: a passing gate exits 2 and writes nothing.
+fn release_revision(
+    session: &ew_api::Session,
+    items: &[ew_api::checks::IntegrityItem],
+    label: &str,
+    output: &mut dyn std::io::Write,
+) -> i32 {
+    let gate = match session.release_gate(label, items) {
+        Ok(g) => g,
+        Err(e) => {
+            eprintln!("error: {e}; nothing was released");
+            return 1;
+        }
+    };
+    let blockers = gate.blockers();
+    if !blockers.is_empty() {
+        let listing: String = blockers.iter().map(|f| finding_line(f)).collect();
+        let _ = output.write_all(listing.as_bytes());
+        eprintln!(
+            "error: release of {label} refused: the gate has {} blocker(s); nothing was released",
+            blockers.len()
+        );
+        return 1;
+    }
+    eprintln!("error: the gate passes, but release is not built yet (WP-S1.18 part 4); nothing was written");
+    2
+}
+
+/// `ew revision withdraw <label> --reason <text>`: the typed label, then `revision.withdraw` of the released revision
+/// and a save.
+fn withdraw_revision(
+    session: &mut ew_api::Session,
+    label: &str,
+    reason: &str,
+    input: &mut dyn std::io::BufRead,
+    output: &mut dyn std::io::Write,
+) -> i32 {
+    let Some(id) = session.released_revision(label) else {
+        eprintln!("error: the project has no released revision {label}; nothing was withdrawn");
+        return 1;
+    };
+    let prompt = format!(
+        "withdraw revision {label}: {reason}\nA withdrawal stays in the revision history. Type the revision label \
+         `{label}` to withdraw it, anything else to abort: "
+    );
+    if !typed_word(input, output, &prompt, label) {
+        eprintln!("error: not confirmed; nothing was changed");
+        return 1;
+    }
+    let cmd = ew_api::AnyCommand {
+        name: "revision.withdraw".to_owned(),
+        params: serde_json::json!({"revision": id.to_string(), "reason": reason}),
+    };
+    if let Err(e) = session.execute(&cmd) {
+        eprintln!("error: {e}; nothing was withdrawn");
+        return 1;
+    }
+    save_revision(session, output, &format!("withdrew revision {label}"))
 }
 
 /// The word a person types to confirm `ew project assets purge`.
@@ -3223,6 +3602,271 @@ mod assets_purge_tests {
         let (code, shown) = purge(&dir, false, true, "");
         assert_eq!(code, 0);
         assert!(!shown.contains("Type `purge`"), "{shown}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(test)]
+mod revision_tests {
+    //! `ew revision approve|release|withdraw` (WP-S1.18 part 3, D10) with the injected terminal: the runs work on a
+    //! copy of Golden A in a fresh directory; nothing under `golden/` is opened for writing.
+    use super::*;
+
+    fn parse(a: &[&str]) -> Result<Command, String> {
+        super::parse(a.iter().map(|s| (*s).to_owned()))
+    }
+
+    #[test]
+    fn revision_subcommands_parse_their_label_role_reason_and_directory() {
+        assert_eq!(
+            parse(&["revision", "approve", "--as", "checker"]),
+            Ok(Command::Revision(RevisionArgs {
+                action: RevisionAction::Approve {
+                    role: "checker".into()
+                },
+                project: None,
+            }))
+        );
+        assert_eq!(
+            parse(&["revision", "release", "V2.0", "p.ew"]),
+            Ok(Command::Revision(RevisionArgs {
+                action: RevisionAction::Release { label: "V2.0".into() },
+                project: Some(PathBuf::from("p.ew")),
+            }))
+        );
+        assert_eq!(
+            parse(&["revision", "withdraw", "V1.0", "--reason", "wrong terminals"]),
+            Ok(Command::Revision(RevisionArgs {
+                action: RevisionAction::Withdraw {
+                    label: "V1.0".into(),
+                    reason: "wrong terminals".into()
+                },
+                project: None,
+            }))
+        );
+        for bad in [
+            &["revision"][..],
+            &["revision", "sign"],
+            &["revision", "approve"],
+            &["revision", "approve", "--as"],
+            &["revision", "approve", "--as", "checker", "--yes"],
+            &["revision", "release"],
+            &["revision", "release", "V2.0", "a", "b"],
+            &["revision", "release", "V2.0", "--as", "checker"],
+            &["revision", "withdraw", "V1.0"],
+            &["revision", "withdraw", "--reason", "r"],
+        ] {
+            assert!(parse(bad).is_err(), "{bad:?}");
+        }
+    }
+
+    fn golden() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew")
+    }
+
+    fn copy_dir(from: &Path, to: &Path) {
+        std::fs::create_dir_all(to).unwrap();
+        for e in std::fs::read_dir(from).unwrap() {
+            let e = e.unwrap();
+            let target = to.join(e.file_name());
+            if e.path().is_dir() {
+                copy_dir(&e.path(), &target);
+            } else {
+                std::fs::copy(e.path(), &target).unwrap();
+            }
+        }
+    }
+
+    /// A copy of Golden A in a fresh directory.
+    fn golden_copy(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("ew-cli-revision-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        copy_dir(&golden(), &dir);
+        dir
+    }
+
+    fn store() -> ew_api::StoreOptions {
+        let mut o = ew_api::StoreOptions::new("test");
+        o.state_dir = None;
+        o
+    }
+
+    fn date() -> ew_api::catalog::Date {
+        ew_api::catalog::Date::new(2025, 6, 2).unwrap()
+    }
+
+    /// The bytes of every file under `dir`, by relative path: "nothing was written" compares two of these.
+    fn files(dir: &Path) -> std::collections::BTreeMap<PathBuf, Vec<u8>> {
+        fn walk(root: &Path, dir: &Path, out: &mut std::collections::BTreeMap<PathBuf, Vec<u8>>) {
+            for e in std::fs::read_dir(dir).unwrap() {
+                let p = e.unwrap().path();
+                if p.is_dir() {
+                    walk(root, &p, out);
+                } else {
+                    out.insert(
+                        p.strip_prefix(root).unwrap().to_path_buf(),
+                        std::fs::read(&p).unwrap(),
+                    );
+                }
+            }
+        }
+        let mut out = std::collections::BTreeMap::new();
+        walk(dir, dir, &mut out);
+        out
+    }
+
+    /// Runs `ew revision <action> <dir>` with `terminal` and the typed `answer`; the exit code and what it printed.
+    fn run(dir: &Path, action: RevisionAction, terminal: bool, answer: &str) -> (i32, String) {
+        let args = RevisionArgs {
+            action,
+            project: Some(dir.to_path_buf()),
+        };
+        let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
+        let mut output = Vec::new();
+        let code = run_revision_with(&args, terminal, &mut input, &mut output, store(), date());
+        (code, String::from_utf8(output).unwrap())
+    }
+
+    fn approve(role: &str) -> RevisionAction {
+        RevisionAction::Approve { role: role.into() }
+    }
+
+    fn release(label: &str) -> RevisionAction {
+        RevisionAction::Release { label: label.into() }
+    }
+
+    fn withdraw(label: &str) -> RevisionAction {
+        RevisionAction::Withdraw {
+            label: label.into(),
+            reason: "the terminal plan was wrong".into(),
+        }
+    }
+
+    /// Waives every error of the release gate besides EW-REL-001 from the GUI and saves.
+    fn waive_the_gate(dir: &Path) {
+        let (mut s, report) = ew_api::Session::open(
+            dir,
+            store(),
+            ew_api::SessionOptions::default(),
+            ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        let items = ew_api::integrity_items(&report);
+        let gate = s.release_gate("V2.0", &items).unwrap();
+        let waive: Vec<(String, String)> = gate
+            .approval_blockers()
+            .iter()
+            .map(|f| (f.rule.to_owned(), f.fingerprint.to_string()))
+            .collect();
+        for (rule, fingerprint) in waive {
+            let cmd = ew_api::AnyCommand {
+                name: "check.waive".into(),
+                params: serde_json::json!({"rule": rule, "fingerprint": fingerprint,
+                    "reason": "accepted for the test release", "author": "engineer", "date": "2025-06-01"}),
+            };
+            s.execute_with(&cmd, ew_api::Submit::from(ew_api::Origin::Gui))
+                .unwrap();
+        }
+        s.save().unwrap();
+        s.close();
+    }
+
+    /// Without a terminal each subcommand exits 2 and writes nothing; a role that is no party role exits 2.
+    #[test]
+    fn revision_commands_need_a_terminal_and_a_party_role() {
+        let dir = golden_copy("terminal");
+        let before = files(&dir);
+        for action in [approve("checker"), release("V2.0"), withdraw("V1.0")] {
+            let (code, shown) = run(&dir, action.clone(), false, "V2.0\nV1.0\n");
+            assert_eq!(code, 2, "{action:?}");
+            assert_eq!(shown, "", "{action:?}: no prompt");
+        }
+        let (code, shown) = run(&dir, approve("boss"), true, "V2.0\n");
+        assert_eq!((code, shown.as_str()), (2, ""));
+        assert_eq!(files(&dir), before);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// RG-4/D15 through the CLI: the release of Golden A is refused with the gate's blockers listed (the release
+    /// scheme's errors and EW-REL-001's checker), and the approval is refused while those errors are open.
+    #[test]
+    fn the_gate_refuses_release_and_approval_of_golden_a_listing_the_blockers() {
+        let dir = golden_copy("refused");
+        let before = files(&dir);
+        let (code, shown) = run(&dir, release("V2.0"), true, "");
+        assert_eq!(code, 1, "{shown}");
+        assert!(
+            shown
+                .lines()
+                .any(|l| l.starts_with("error EW-REL-001 ") && l.contains("checker not set")),
+            "{shown}"
+        );
+        assert!(shown.lines().any(|l| l.starts_with("error EW-POT-")), "{shown}");
+        assert!(shown.lines().all(|l| l.starts_with("error ")), "{shown}");
+        let (code, listed) = run(&dir, approve("checker"), true, "V2.0\n");
+        assert_eq!(code, 1, "{listed}");
+        assert!(!listed.contains("EW-REL-001"), "{listed}");
+        assert!(!listed.contains("Type the revision label"), "no prompt: {listed}");
+        assert_eq!(listed.lines().count() + 1, shown.lines().count());
+        // A label that is not the open revision's.
+        let (code, _) = run(&dir, release("V1.0"), true, "");
+        assert_eq!(code, 1);
+        assert_eq!(files(&dir), before);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// RG-1/RG-3 through the CLI: the typed label approves (the safety waivers listed first), the author's role and
+    /// a wrong label do not; the release of the approved revision is not built yet and writes nothing; a released
+    /// revision is withdrawn on its typed label.
+    #[test]
+    fn approve_on_the_typed_label_then_release_is_not_built_and_withdraw() {
+        let dir = golden_copy("approve");
+        waive_the_gate(&dir);
+        let before = files(&dir);
+        for wrong in ["", "\n", "v2.0\n", "V2\n", "yes\n", "V1.0\n"] {
+            let (code, shown) = run(&dir, approve("checker"), true, wrong);
+            assert_eq!(code, 1, "{wrong:?}");
+            assert!(
+                shown.contains("Type the revision label `V2.0` to approve it and acknowledge the"),
+                "{shown}"
+            );
+            assert!(shown.contains("  safety waiver "), "{shown}");
+        }
+        // The author's party may not check (Golden A's V2.0 is authored by the engineer).
+        let (code, _) = run(&dir, approve("engineer"), true, "V2.0\n");
+        assert_eq!(code, 1);
+        assert_eq!(files(&dir), before);
+
+        let (code, shown) = run(&dir, approve("checker"), true, " V2.0 \r\n");
+        assert_eq!(code, 0, "{shown}");
+        assert!(
+            shown.contains("approved revision V2.0 as checker; saved"),
+            "{shown}"
+        );
+        let revisions = std::fs::read_to_string(dir.join("revisions.jsonl")).unwrap();
+        assert!(revisions.contains("\"sign_off\""), "{revisions}");
+        assert!(revisions.contains("\"checker\":\"checker\""), "{revisions}");
+
+        // The gate passes now; the release is part 4: exit 2, nothing written.
+        let approved = files(&dir);
+        let (code, shown) = run(&dir, release("V2.0"), true, "");
+        assert_eq!((code, shown.as_str()), (2, ""));
+        assert_eq!(files(&dir), approved);
+
+        // Withdraw: a revision that is not released, a wrong label, then the typed label.
+        let (code, _) = run(&dir, withdraw("V2.0"), true, "V2.0\n");
+        assert_eq!(code, 1);
+        let (code, shown) = run(&dir, withdraw("V1.0"), true, "V2.0\n");
+        assert_eq!(code, 1);
+        assert!(
+            shown.contains("Type the revision label `V1.0` to withdraw it"),
+            "{shown}"
+        );
+        assert_eq!(files(&dir), approved);
+        let (code, shown) = run(&dir, withdraw("V1.0"), true, "V1.0\n");
+        assert_eq!(code, 0, "{shown}");
+        let revisions = std::fs::read_to_string(dir.join("revisions.jsonl")).unwrap();
+        assert!(revisions.contains("the terminal plan was wrong"), "{revisions}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

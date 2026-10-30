@@ -73,6 +73,7 @@
     - [`rep.set_anchor_policy`](reference/commands/rep.set_anchor_policy.md)
     - [`rep.transform`](reference/commands/rep.transform.md)
     - [`report_block.create`](reference/commands/report_block.create.md)
+    - [`revision.approve`](reference/commands/revision.approve.md)
     - [`revision.create`](reference/commands/revision.create.md)
     - [`revision.set_author`](reference/commands/revision.set_author.md)
     - [`revision.withdraw`](reference/commands/revision.withdraw.md)
@@ -87,6 +88,7 @@
     - [EW-CORE](reference/rules/ew-core.md)
     - [EW-IEC81346](reference/rules/ew-iec81346.md)
     - [EW-POT](reference/rules/ew-pot.md)
+    - [EW-REL](reference/rules/ew-rel.md)
     - [EW-TERM](reference/rules/ew-term.md)
 
 # Explanation

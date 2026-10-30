@@ -1970,6 +1970,7 @@ const COMMAND_TITLES: &[(&str, &str)] = &[
     ("rep.set_anchor_policy", "Set anchor policy"),
     ("rep.transform", "Rotate or mirror"),
     ("report_block.create", "Create report block"),
+    ("revision.approve", "Approve revision"),
     ("revision.create", "Create revision"),
     ("revision.set_author", "Set revision author"),
     ("revision.withdraw", "Withdraw revision"),

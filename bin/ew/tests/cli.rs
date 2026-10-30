@@ -1418,6 +1418,36 @@ fn project_assets_purge_previews_and_is_refused_off_a_terminal() {
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
 }
 
+/// WP-S1.18 part 3 (D10): `ew revision approve|release|withdraw` run human-only commands, confirmed by the typed
+/// revision label; without a terminal (stdout captured here) each exits 2 before opening the project, and nothing is
+/// written. The typed confirmation is a unit test with an injected reader and writer.
+#[test]
+fn revision_commands_are_refused_off_a_terminal() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let dir = golden_copy(&t);
+    let manifest = std::fs::read(dir.join("manifest.json")).unwrap();
+    let dir_arg = dir.to_str().unwrap();
+    for args in [
+        &["revision", "approve", dir_arg, "--as", "checker"][..],
+        &["revision", "release", "V2.0", dir_arg],
+        &["revision", "withdraw", "V1.0", dir_arg, "--reason", "wrong"],
+    ] {
+        let args: Vec<&std::ffi::OsStr> = args.iter().map(std::ffi::OsStr::new).collect();
+        let o = ew_isolated(&home, &args);
+        assert_eq!(o.status.code(), Some(2), "{args:?}: {}{}", stdout(&o), stderr(&o));
+        assert!(
+            stderr(&o).contains("HumanOnly: needs an interactive terminal"),
+            "{}",
+            stderr(&o)
+        );
+        assert!(!dir.join(".~ew.lock").exists(), "the project was not opened");
+    }
+    assert_eq!(std::fs::read(dir.join("manifest.json")).unwrap(), manifest);
+    let o = ew_isolated(&home, &["revision".as_ref(), "approve".as_ref(), dir.as_os_str()]);
+    assert_eq!(o.status.code(), Some(2), "`--as` is required: {}", stderr(&o));
+}
+
 /// The recorded logs replay through `ew apply`: one log on a copy of Golden A, applied once, of
 /// - WP-S2.04 part 4a (§12 item 2): `project.drawing.set` (`marker_mode`), `box.structure`, `item.place`,
 ///   `marker.place` and `rep.move`;

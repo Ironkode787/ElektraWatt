@@ -26,6 +26,10 @@ use super::step::{Step, Table, typed};
 /// pages).
 pub const MOVE_UNIT: i64 = 7_937_500;
 
+/// Commands that no submit path of the session commits, so that their arms only ever refuse: `revision.approve` is
+/// recorded only by `Session::approve` on a saved generation (WP-S1.18 part 3, D9).
+pub const SESSION_REFUSES: &[&str] = &["revision.approve"];
+
 /// One generator arm.
 pub struct Arm {
     /// The canonical command name.
@@ -320,6 +324,12 @@ pub const ARMS: &[Arm] = &[
         command: "rep.set_anchor_policy",
         weight: 2,
         build: rep_set_anchor_policy,
+    },
+    // WP-S1.18 part 3 (D9)
+    Arm {
+        command: "revision.approve",
+        weight: 1,
+        build: revision_approve,
     },
     Arm {
         command: "revision.create",
@@ -5317,6 +5327,24 @@ fn revision_set_author(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             }))
         }
     }
+}
+
+/// `revision.approve` (WP-S1.18 part 3, D9; `HumanOnly`): the session refuses it on every submit path, from every
+/// origin, whatever its parameters; the sign-off is recorded only by `Session::approve`, which runs the release gate on
+/// the saved generation first (a fuzz session is never saved).
+fn revision_approve(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let revision = match rng.below(3) {
+        0 => json!(rng.uuid()),
+        _ => rng.pick(&live.revisions)?.id.clone(),
+    };
+    Some(
+        Step::cmd(
+            "revision.approve",
+            json!({"revision": revision, "checker": role(rng), "date": "2025-06-02", "scheme": "pre_delivery",
+                "content_digest": "0".repeat(64)}),
+        )
+        .refuse(),
+    )
 }
 
 /// `revision.withdraw` (WP-S1.18 D5; `HumanOnly`): a released revision gets one withdrawal record and stays as it
