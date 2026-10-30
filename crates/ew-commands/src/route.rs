@@ -317,6 +317,12 @@ pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
     let Some(Prepared { space, s, .. }) = prepare(req) else {
         return false;
     };
+    // FT-767: a first end without a direction (a fixed bend) starts on its own grid node, which the walk below never
+    // tests: it must be one the search may stand on. (`prepare` frees the ends' nodes, so the router starts from a
+    // blocked point too; the check keeps `clear` tied to the search space if that rule ever changes.)
+    if req.from.dir.is_none() && space.node(s).is_none_or(|n| space.blocked[n]) {
+        return false;
+    }
     let idx = |p: (i64, i64)| (space.grid.snap(Nm(p.0)), space.grid.snap(Nm(p.1)));
     let mut moves: Vec<Heading> = Vec::new();
     for w in points.windows(2) {
@@ -1490,6 +1496,113 @@ mod tests {
                 proptest::prop_assert!(clear(&rq, &routed.points), "{:?}", routed.points);
             }
         }
+    }
+
+    /// The cost of an orthogonal route on the 1 mm grid by the router's weights: one per step, [`BEND_COST`] per bend
+    /// between two moves (a turn at the first end is never a bend: a CP end's first move is its direction, and an
+    /// end without one turns freely at a fixed bend).
+    fn cost(points: &[(i64, i64)]) -> u32 {
+        let mut moves: Vec<Heading> = Vec::new();
+        for w in points.windows(2) {
+            let (dx, dy) = ((w[1].0 - w[0].0) / MM, (w[1].1 - w[0].1) / MM);
+            let (h, n) = match (dx.signum(), dy.signum()) {
+                (1, 0) => (Heading::Right, dx),
+                (-1, 0) => (Heading::Left, -dx),
+                (0, 1) => (Heading::Down, dy),
+                (0, -1) => (Heading::Up, -dy),
+                _ => continue,
+            };
+            moves.extend(std::iter::repeat_n(h, usize::try_from(n).unwrap()));
+        }
+        let bends = moves.windows(2).filter(|w| w[0] != w[1]).count();
+        u32::try_from(moves.len() + bends * BEND_COST as usize).unwrap()
+    }
+
+    proptest::proptest! {
+        /// FT-767, the converse of `every_found_route_is_clear`: a straight or L route between the ends that `clear`
+        /// accepts is one the router's search accepts. The search finds a route (not the fallback), and of least cost,
+        /// so no dearer than that one. The start may lie on a reserved point, another wire's vertex or inside an
+        /// obstacle, with and without a direction, with and without an arrival heading.
+        #[test]
+        fn every_clear_straight_or_l_route_is_one_the_router_finds(
+            fx in -6i64..6, fy in -6i64..6, tx in -6i64..6, ty in -6i64..6,
+            fd in proptest::option::of(0usize..4), td in proptest::option::of(0usize..4),
+            arrive in proptest::option::of(0usize..4),
+            ob in proptest::collection::vec((-8i64..8, -8i64..8, 1i64..4, 1i64..4), 0..3),
+            ws in proptest::collection::vec((-9i64..9, -9i64..9, -6i64..6, proptest::bool::ANY), 0..3),
+            rs in proptest::collection::vec((-8i64..8, -8i64..8), 0..3),
+            start_blocked in 0usize..4,
+        ) {
+            let mut obstacles: Vec<[i64; 4]> = ob.iter().map(|&(x, y, w, hh)| rect(x, y, x + w, y + hh)).collect();
+            let mut reserved: Vec<(i64, i64)> = rs.iter().map(|&(x, y)| p(x, y)).collect();
+            let mut wires: Vec<[(i64, i64); 2]> = ws
+                .iter()
+                .map(|&(x, y, len, horizontal)| {
+                    let b = if horizontal { (x + len, y) } else { (x, y + len) };
+                    [p(x, y), p(b.0, b.1)]
+                })
+                .collect();
+            // Put the start on something the search would otherwise block.
+            match start_blocked {
+                1 => reserved.push(p(fx, fy)),
+                2 => wires.push([p(fx, fy), p(fx + 3, fy)]),
+                3 => obstacles.push([p(fx, fy).0 - MM / 2, p(fx, fy).1 - MM / 2, p(fx, fy).0 + MM / 2, p(fx, fy).1 + MM / 2]),
+                _ => {}
+            }
+            let mut rq = RouteRequest {
+                wires,
+                reserved,
+                ..req(
+                    end(fx, fy, fd.map(|k| Heading::ALL[k])),
+                    end(tx, ty, td.map(|k| Heading::ALL[k])),
+                    obstacles,
+                )
+            };
+            rq.arrive = arrive.map(|k| Heading::ALL[k]);
+            let (a, b) = (p(fx, fy), p(tx, ty));
+            let candidates: Vec<Vec<(i64, i64)>> = if a == b {
+                Vec::new()
+            } else if a.0 == b.0 || a.1 == b.1 {
+                vec![vec![a, b]]
+            } else {
+                vec![vec![a, (a.0, b.1), b], vec![a, (b.0, a.1), b]]
+            };
+            for c in candidates {
+                if !clear(&rq, &c) {
+                    continue;
+                }
+                let routed = route(&rq);
+                proptest::prop_assert!(!routed.direct, "clear accepts {:?}, the search found none", c);
+                proptest::prop_assert!(
+                    cost(&routed.points) <= cost(&c),
+                    "clear accepts {:?} (cost {}), the search took {:?} (cost {})",
+                    c, cost(&c), routed.points, cost(&routed.points)
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn clear_checks_a_start_without_a_direction() {
+        // From a fixed bend at (0, 0) without a direction, the straight run down to a CP entered from above.
+        let rq = req(end(0, 0, None), end(0, 5, Some(Heading::Up)), vec![]);
+        assert!(clear(&rq, &[p(0, 0), p(0, 5)]));
+        // The bend on a reserved point or on another wire's vertex: the search frees the ends' own nodes, so the
+        // router starts there, and `clear` agrees.
+        let reserved = RouteRequest {
+            reserved: vec![p(0, 0)],
+            ..rq.clone()
+        };
+        assert!(clear(&reserved, &[p(0, 0), p(0, 5)]));
+        assert!(!route(&reserved).direct);
+        // Inside an obstacle the move out of it crosses the obstacle: neither takes it.
+        let inside = req(
+            end(0, 0, None),
+            end(0, 5, Some(Heading::Up)),
+            vec![rect(-1, -1, 1, 1)],
+        );
+        assert!(!clear(&inside, &[p(0, 0), p(0, 5)]));
+        assert!(route(&inside).direct);
     }
 
     proptest::proptest! {
