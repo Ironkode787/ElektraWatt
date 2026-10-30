@@ -575,6 +575,28 @@ fn an_old_waivers_file_loads_typed_and_is_rewritten_canonically() {
     assert!(again.rewrite.is_empty());
 }
 
+/// A waiver that fails the typed kind (no `reason`) is quarantined verbatim as EW-CORE-007, and the finding names it
+/// as an unreadable waiver whose finding is not waived (the dead waiver stays visible).
+#[test]
+fn an_unreadable_waiver_is_ew_core_007_and_named_as_a_waiver() {
+    let line = OLD_WAIVER.replace(r#""reason":"PE stud is part of NSYPMM107","#, "");
+    let loaded = load_lines("waivers.jsonl", &[line.as_str()]);
+    let found = of_kind(&loaded, FindingKind::SchemaViolation);
+    assert_eq!(found.len(), 1, "{:?}", loaded.findings);
+    assert_eq!(found[0].code(), Some("EW-CORE-007"));
+    assert_eq!(found[0].line, Some(1));
+    assert!(
+        found[0]
+            .message
+            .starts_with("unreadable waiver, kept verbatim; the finding it names is not waived: "),
+        "{}",
+        found[0].message
+    );
+    assert!(loaded.records.is_empty(), "{:?}", loaded.records);
+    assert_eq!(loaded.kept.len(), 1);
+    assert_eq!(loaded.kept[0].text, line.as_bytes());
+}
+
 const MALFORMED: &str = r#"{"$k":"function","id":"1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19","def":"5b9e2d70-3c41-5f8a-b6d2-19e4c7a03f58","kind":{"ip":{"direction":"source","name":" bad"}}}"#;
 
 #[test]

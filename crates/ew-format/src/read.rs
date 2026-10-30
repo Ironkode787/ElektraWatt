@@ -602,10 +602,18 @@ impl Loader<'_> {
         if ew_schema::normalize_nfc(&mut value) {
             st.non_canonical = true;
         }
+        // A waiver that fails its typing (no `reason`, a timestamp in `date`) waives nothing: the finding names it so
+        // the dead waiver is seen (doc 15 §2.5, EW-CORE-081 cannot report a waiver it never reads).
+        let waiver = value.get("$k").and_then(Value::as_str) == Some("waiver");
         let (record, malformed) = match Record::load(value) {
             Ok(loaded) => loaded,
             Err(e) => {
-                self.find(FindingKind::SchemaViolation, path, Some(ln), e.to_string());
+                let message = if waiver {
+                    format!("unreadable waiver, kept verbatim; the finding it names is not waived: {e}")
+                } else {
+                    e.to_string()
+                };
+                self.find(FindingKind::SchemaViolation, path, Some(ln), message);
                 self.quarantine(path, ln, quarantine_key, text.as_bytes().to_vec(), st);
                 return;
             }
