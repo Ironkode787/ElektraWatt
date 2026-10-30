@@ -163,6 +163,24 @@ impl ShellModel {
             .collect()
     }
 
+    // FT-705
+    /// The sheet points of the connection points of group `group`'s page that have no connection on the page, in the
+    /// page tables' order: the window marks each open (a session overlay like the CP rings, doc 16a §7), so that a
+    /// wire drawn across one is visibly not connected to it. The page's display list, its print and its export do not
+    /// change. A terminal left unwired by design (a spare) shows the mark too.
+    pub fn open_cps(&self, group: usize) -> Vec<(i64, i64)> {
+        let Some(c) = self.canvas_of(group) else {
+            return Vec::new();
+        };
+        let page = c.page();
+        page.tables
+            .cps
+            .iter()
+            .filter(|cp| cp.connections.is_empty())
+            .map(|cp| page.snapper.page_to_sheet(cp.at))
+            .collect()
+    }
+
     /// Makes `tool` the active tool, as a tool of the registry would be (feature `testkit` only: the probe tool of
     /// the tests exercises the commit path, which no shipped tool takes; spec §7.6).
     #[cfg(feature = "testkit")]
@@ -327,7 +345,12 @@ impl ShellModel {
                 // The Wire tool says where it routes from once it starts (WP-S2.04 §8.2).
                 if self.tools.tool.name() == "wire"
                     && self.tools.tool.state() == "routing"
-                    && matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate)
+                    && matches!(
+                        ev,
+                        CanvasEvent::Press { .. }
+                            | CanvasEvent::Activate
+                            | CanvasEvent::Key(crate::tools::ToolKey::Finish)
+                    )
                 {
                     self.announce_wire();
                 }

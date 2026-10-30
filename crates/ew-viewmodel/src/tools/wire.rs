@@ -25,7 +25,8 @@
 //! | routing | `Press` or `Activate` on the grid | routing | a bend is fixed there (the route so far becomes fixed vertices) |
 //! | routing | `Back` | routing | the last fixed bend is removed; without one `None` |
 //! | routing | `Dwell { ms ≥ 80 }` on a valid end | routing | `Preview(connection.draw)` |
-//! | routing | `Press` or `Activate` on a CP, junction or segment other than the start | armed | `Commit(connection.draw {a, b, page, route})` |
+//! | routing | `Press` or `Activate` on a CP, junction or segment other than the start | armed | `Commit(connection.draw {a, b, page, route})`, or `connection.draw_many` for a route through representations ([`pass_through`], FT-705) |
+//! | armed | `Key(Finish)` (a double click's second press) on a CP, junction or segment | routing | as `Press` there (FT-708) |
 //! | routing | `Escape` | armed | `Cancel` |
 //! | armed | `Escape` | — | `None` (the host returns to Select) |
 //!
@@ -37,6 +38,7 @@
 
 use ew_api::AnyCommand;
 use ew_api::geometry::Dir;
+use ew_api::output::Uuid;
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::routing::{RouteEnd, RouteRequest, auto_route};
@@ -44,7 +46,7 @@ use serde_json::{Value, json};
 
 use super::{
     Anchor, Button, CP_SNAP_PT, CanvasEvent, MarkerKind, Mods, Overlay, OverlayItem, RouteInfo, Style, Token,
-    Tool, ToolCx, ToolOutput, segment_dist2,
+    Tool, ToolCx, ToolKey, ToolOutput, segment_dist2,
 };
 use crate::canvas::mm3;
 use crate::strings;
@@ -360,6 +362,181 @@ pub(super) fn clean(pts: Vec<(i64, i64)>) -> Vec<(i64, i64)> {
     out
 }
 
+/// A function CP as `(function, index)`.
+type CpKey = (Uuid, u16);
+
+/// One connection of a route that passes through representations (FT-705): from the wire's start or a CP to a CP
+/// or the wire's end.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Piece {
+    /// The CP it starts at; `None` for the wire's start.
+    pub from: Option<CpKey>,
+    /// The CP it ends at; `None` for the wire's end.
+    pub to: Option<CpKey>,
+    /// Its route, ends exact.
+    pub route: Vec<(i64, i64)>,
+}
+
+/// The endpoint parameter of `connection.draw` for a function CP.
+fn cp_endpoint((function, idx): CpKey) -> Value {
+    json!({"cp": {"function": function.to_string(), "idx": idx}})
+}
+
+/// A free CP the route meets: where along the route and at which point of it.
+#[derive(Clone, Copy, Debug)]
+struct Hit<'t> {
+    cp: &'t ew_api::output::TableCp,
+    /// The distance along the route from its start to `proj`.
+    pos: i64,
+    /// The point of the route the CP is met at (the CP itself, or its foot on the segment for a CP beside it).
+    proj: (i64, i64),
+    /// The direction the route runs there.
+    travel: Option<Dir>,
+}
+
+/// The pieces of a route from `start` to `end` that passes through representations (FT-705, the cycle-38 ruling):
+/// the route meets two CPs of one other representation that have no connection on the page, the first where the run
+/// enters it and the second where it leaves, so the wire is drawn as two connections, start to the first and the
+/// second to the end, and the representation is in the circuit. Empty when the route passes through none, which is
+/// one `connection.draw`.
+///
+/// - **Met.** A CP is met when its foot on a segment of the route (the perpendicular one, inside the segment) is
+///   within the CP snap reach ([`CP_SNAP_PT`], the hit tolerance of the targets) of the CP on the sheet. A CP beside
+///   the route (not on it) is reached by a perpendicular jog from its foot, and only when the CP and the foot are on
+///   the connection grid, so that the pieces are routes `connection.draw` accepts.
+/// - **Counted.** CPs with a connection on the page, CPs of the start's or the end's representation and CPs at the
+///   route's ends are not counted. A representation is passed through when exactly two of its CPs are met, at two
+///   different places strictly inside the route, the first CP leaving against the run (or without a direction) and
+///   the second along it (or without one): a terminal in a vertical run. One CP met (a T) or a run along two CPs that
+///   face the same way (the top pins of a two-pole device) is not a pass.
+/// - **Several.** Every representation passed through is in the chain in the order of the route. When two of them
+///   overlap along the route, or a pass begins at the route's start or ends at its end, the route is one wire.
+pub fn pass_through(
+    cx: &ToolCx<'_>,
+    start: &WireTarget,
+    end: &WireTarget,
+    route: &[(i64, i64)],
+) -> Vec<Piece> {
+    let line = super::autoconnect::dedup(route);
+    if line.len() < 2 {
+        return Vec::new();
+    }
+    let tables = &cx.page.tables;
+    let reach = cx.nm_of_points(CP_SNAP_PT).floor().min(9.0e15) as i128;
+    let limit = reach * reach;
+    let grid = PageGridMap::new(tables.grid);
+    let on_grid = |p: (i64, i64)| grid.coord(grid.index(p.0)) == p.0 && grid.coord(grid.index(p.1)) == p.1;
+    let sheet = |p: (i64, i64)| cx.snapper.page_to_sheet(p);
+    // The distance along the route to each vertex.
+    let mut cum = vec![0i64; line.len()];
+    for k in 1..line.len() {
+        let (a, b) = (line[k - 1], line[k]);
+        cum[k] = cum[k - 1].saturating_add((b.0 - a.0).abs().saturating_add((b.1 - a.1).abs()));
+    }
+    let total = cum[line.len() - 1];
+    let own = [start.rep(), end.rep()];
+    let mut by_rep: std::collections::BTreeMap<Uuid, Vec<Hit<'_>>> = std::collections::BTreeMap::new();
+    for cp in &tables.cps {
+        if !cp.connections.is_empty()
+            || own.contains(&Some(EntityRef(cp.rep)))
+            || cp.at == start.at()
+            || cp.at == end.at()
+        {
+            continue;
+        }
+        let mut best: Option<(i128, Hit<'_>)> = None;
+        for (i, w) in line.windows(2).enumerate() {
+            let (a, b) = (w[0], w[1]);
+            let proj = if a.1 == b.1 && a.0 != b.0 && (a.0.min(b.0)..=a.0.max(b.0)).contains(&cp.at.0) {
+                (cp.at.0, a.1)
+            } else if a.0 == b.0 && a.1 != b.1 && (a.1.min(b.1)..=a.1.max(b.1)).contains(&cp.at.1) {
+                (a.0, cp.at.1)
+            } else {
+                continue;
+            };
+            let d = super::dist2(sheet(cp.at), sheet(proj));
+            if d > limit || (proj != cp.at && !(on_grid(proj) && on_grid(cp.at))) {
+                continue;
+            }
+            if best.is_none_or(|(bd, _)| d < bd) {
+                let along = (proj.0 - a.0).abs() + (proj.1 - a.1).abs();
+                let hit = Hit {
+                    cp,
+                    pos: cum[i] + along,
+                    proj,
+                    travel: heading_between(a, b),
+                };
+                best = Some((d, hit));
+            }
+        }
+        if let Some((_, hit)) = best {
+            by_rep.entry(cp.rep).or_default().push(hit);
+        }
+    }
+    let opposite = |d: Dir| Dir::of_vector((-d.vector().0, -d.vector().1));
+    let mut passes: Vec<(Hit<'_>, Hit<'_>)> = by_rep
+        .into_values()
+        .filter_map(|mut hits| {
+            let [_, _] = hits.as_slice() else {
+                return None;
+            };
+            hits.sort_by_key(|h| h.pos);
+            let (entry, exit) = (hits[0], hits[1]);
+            let enters = entry.cp.dir.is_none() || entry.travel.and_then(opposite) == entry.cp.dir;
+            let leaves = exit.cp.dir.is_none() || exit.travel == exit.cp.dir;
+            (entry.pos < exit.pos && enters && leaves).then_some((entry, exit))
+        })
+        .collect();
+    if passes.is_empty() {
+        return Vec::new();
+    }
+    passes.sort_by_key(|(entry, _)| entry.pos);
+    let mut last = 0;
+    for (entry, exit) in &passes {
+        if entry.pos <= last {
+            return Vec::new();
+        }
+        last = exit.pos;
+    }
+    if last >= total {
+        return Vec::new();
+    }
+    // The route between two places along it: the first point, the vertices strictly between, the second point.
+    let between = |s0: i64, q0: (i64, i64), s1: i64, q1: (i64, i64)| -> Vec<(i64, i64)> {
+        let mut pts = vec![q0];
+        pts.extend(
+            (0..line.len())
+                .filter(|&k| s0 < cum[k] && cum[k] < s1)
+                .map(|k| line[k]),
+        );
+        pts.push(q1);
+        pts
+    };
+    let key = |h: &Hit<'_>| (h.cp.function, h.cp.idx);
+    let mut pieces = Vec::with_capacity(passes.len() + 1);
+    let (mut from, mut s0, mut q0, mut head) = (None, 0, line[0], Vec::new());
+    for (entry, exit) in &passes {
+        let mut pts = head;
+        pts.extend(between(s0, q0, entry.pos, entry.proj));
+        pts.push(entry.cp.at);
+        pieces.push(Piece {
+            from,
+            to: Some(key(entry)),
+            route: clean(pts),
+        });
+        from = Some(key(exit));
+        (s0, q0, head) = (exit.pos, exit.proj, vec![exit.cp.at]);
+    }
+    let mut pts = head;
+    pts.extend(between(s0, q0, total, line[line.len() - 1]));
+    pieces.push(Piece {
+        from,
+        to: None,
+        route: clean(pts),
+    });
+    pieces
+}
+
 /// The tool's state.
 #[derive(Clone, Debug)]
 enum State {
@@ -556,7 +733,9 @@ impl WireTool {
         Overlay::new(items)
     }
 
-    /// The `connection.draw` of the current route to `end`; `None` without a valid end.
+    /// The command of the current route to `end`; `None` without a valid end. A route that passes through
+    /// representations (FT-705, [`pass_through`]) is `connection.draw_many` with one entry per piece, in one
+    /// transaction; any other is one `connection.draw`.
     fn command(&self, cx: &ToolCx<'_>) -> Option<Box<AnyCommand>> {
         let State::Routing {
             start, end, route, ..
@@ -565,18 +744,37 @@ impl WireTool {
             return None;
         };
         let end = end.as_ref().filter(|e| e.is_end() && !e.same_end(start))?;
-        let mut params = json!({
-            "a": start.endpoint()?,
-            "b": end.endpoint()?,
-            "page": cx.page.tables.page.to_string(),
-            "route": route.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
-        });
-        if let Some(kind) = self.kind {
-            params["kind"] = Value::from(kind);
+        let draw = |a: Value, b: Value, route: &[(i64, i64)]| {
+            let mut params = json!({
+                "a": a,
+                "b": b,
+                "page": cx.page.tables.page.to_string(),
+                "route": route.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
+            });
+            if let Some(kind) = self.kind {
+                params["kind"] = Value::from(kind);
+            }
+            params
+        };
+        let (a, b) = (start.endpoint()?, end.endpoint()?);
+        let pieces = pass_through(cx, start, end, route);
+        if pieces.is_empty() {
+            return Some(Box::new(AnyCommand {
+                name: "connection.draw".into(),
+                params: draw(a, b, route),
+            }));
         }
+        let connections: Vec<Value> = pieces
+            .iter()
+            .map(|p| {
+                let from = p.from.map_or_else(|| a.clone(), cp_endpoint);
+                let to = p.to.map_or_else(|| b.clone(), cp_endpoint);
+                draw(from, to, &p.route)
+            })
+            .collect();
         Some(Box::new(AnyCommand {
-            name: "connection.draw".into(),
-            params,
+            name: "connection.draw_many".into(),
+            params: json!({ "connections": connections }),
         }))
     }
 
@@ -797,6 +995,19 @@ impl Tool for WireTool {
                 button: Button::Primary,
                 mods,
             } => self.click(*at, *mods, cx),
+            // A double click is `Finish` in place of its second press (the window's rule, WP-S2.04 §6.1). Armed, it
+            // is that second press: a click that ends a wire on a CP and a second one there at once start the next
+            // wire from that CP, as two slower clicks do (FT-708: the wire was silently not drawn). Routing, it is
+            // nothing (the first press fixed the bend or ended the wire).
+            CanvasEvent::Key(ToolKey::Finish) if matches!(self.state, State::Armed { .. }) => {
+                match &self.state {
+                    State::Armed { target: Some(t) } if t.is_end() => {
+                        let at = cx.snapper.page_to_sheet(t.at());
+                        self.click(at, Mods::default(), cx)
+                    }
+                    _ => ToolOutput::None,
+                }
+            }
             CanvasEvent::Activate => {
                 let at = match &self.state {
                     State::Armed { target: Some(t) } => Some(cx.snapper.page_to_sheet(t.at())),
