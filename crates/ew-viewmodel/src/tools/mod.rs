@@ -382,6 +382,21 @@ pub enum ToolOutput {
     Select(SelectionChange),
     /// Follow the page's link to this destination (§6.4); the overlay is cleared.
     Follow(Destination),
+    /// A step only the host can take, because it reads what a tool may not (the libraries): no command.
+    Host(HostStep),
+}
+
+/// A step a tool asks of the host ([`ToolOutput::Host`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum HostStep {
+    /// The macro tool's click (WP-S1.19 §11): compose `macro.insert` of the Macros navigator's row `key` at `at`
+    /// (page nm) and open its card.
+    MacroPlace {
+        /// The Macros navigator's row key.
+        key: String,
+        /// The snapped point, page nm.
+        at: (i64, i64),
+    },
 }
 
 impl std::fmt::Debug for ToolOutput {
@@ -395,6 +410,7 @@ impl std::fmt::Debug for ToolOutput {
             ToolOutput::Refused(key) => f.debug_tuple("Refused").field(key).finish(),
             ToolOutput::Select(c) => f.debug_tuple("Select").field(c).finish(),
             ToolOutput::Follow(d) => f.debug_tuple("Follow").field(d).finish(),
+            ToolOutput::Host(h) => f.debug_tuple("Host").field(h).finish(),
         }
     }
 }

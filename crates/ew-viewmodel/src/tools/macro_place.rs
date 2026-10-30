@@ -5,25 +5,13 @@
 //! under the pointer or the grid cursor, as the paste tool floats a fragment (its ghost is the macro's extent and the
 //! label "Insert `<name>`").
 //!
-//! State `floating` (not sticky). `PointerMove` or `CursorMove` → `Transient`; `Press` or `Activate` → `Commit` of
-//! the host step `macro.place {key, at}`, which is no command: the host composes `macro.insert` there
+//! State `floating` (not sticky). `PointerMove` or `CursorMove` → `Transient`; `Press` or `Activate` → the host step
+//! [`HostStep::MacroPlace`] (`ToolOutput::Host`), which is no command: the host composes `macro.insert` there
 //! (`Session::insert_macro`, which reads the libraries) and opens its card with the conflicts, and Apply on the card
 //! commits it. `Escape` answers nothing, so the Escape chain ends the tool. The tool reads no `Session`.
 
-use ew_api::AnyCommand;
-use serde_json::json;
-
-use super::{Anchor, Button, CanvasEvent, Overlay, OverlayItem, Tool, ToolCx, ToolOutput, rect_of};
+use super::{Anchor, Button, CanvasEvent, HostStep, Overlay, OverlayItem, Tool, ToolCx, ToolOutput, rect_of};
 use crate::strings;
-
-/// The host step a click of the macro tool asks for (not a command; the shell intercepts it by the member `$host` of
-/// the output's parameters, [`is_macro_place`]).
-pub const MACRO_PLACE: &str = "macro.place";
-
-/// Whether the parameters of a tool's `Commit` are the macro tool's host step (`{"$host": "macro.place", …}`).
-pub fn is_macro_place(params: &serde_json::Value) -> bool {
-    params.get("$host").and_then(serde_json::Value::as_str) == Some(MACRO_PLACE)
-}
 
 /// The macro tool.
 pub struct MacroTool {
@@ -88,10 +76,10 @@ impl MacroTool {
     /// The host step at the anchor; `None` before the first move.
     fn place(&self) -> Option<ToolOutput> {
         let (_, at) = self.at?;
-        Some(ToolOutput::Commit(Box::new(AnyCommand {
-            name: MACRO_PLACE.into(),
-            params: json!({"$host": MACRO_PLACE, "key": self.key, "at": [at.0, at.1]}),
-        })))
+        Some(ToolOutput::Host(HostStep::MacroPlace {
+            key: self.key.clone(),
+            at,
+        }))
     }
 }
 

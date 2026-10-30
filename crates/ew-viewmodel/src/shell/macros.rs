@@ -321,19 +321,15 @@ impl ShellModel {
         self.open_macro_card(&key, page, page_nm, value_set)
     }
 
-    /// The macro tool's click (`ToolOutput::Commit` of the host step `macro.place {key, at}`, page nm): the card, and
+    /// The macro tool's click ([`crate::tools::HostStep::MacroPlace`] of row `key` at `at`, page nm): the card, and
     /// the tool returns to Select.
-    pub(super) fn macro_place_from_tool(&mut self, params: &Value) -> Outcome {
-        let key = params["key"].as_str().unwrap_or_default().to_owned();
-        let (Some(x), Some(y)) = (params["at"][0].as_i64(), params["at"][1].as_i64()) else {
-            return Outcome::Done;
-        };
+    pub(super) fn macro_place_from_tool(&mut self, key: &str, at: (i64, i64)) -> Outcome {
         let Some(page) = self.macro_page() else {
             return Outcome::Refused {
                 reason_key: "reason-no-page",
             };
         };
-        let out = self.open_macro_card(&key, page, (x, y), None);
+        let out = self.open_macro_card(key, page, at, None);
         let _ = self.act_tool("select");
         out
     }
