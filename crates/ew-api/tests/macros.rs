@@ -209,6 +209,7 @@ fn mc1_mc3_the_psu_block_saves_and_its_insertion_lists_the_conflicts() {
             &InsertAt {
                 page: p105,
                 at: Some(free_point()),
+                orient: ew_units::Orient2::R0,
             },
             &MacroValues::default(),
             INSTANCE,
@@ -264,6 +265,7 @@ fn mc3_the_psu_inserts_with_new_identities_and_derived_tags() {
             &InsertAt {
                 page: p105,
                 at: Some(free_point()),
+                orient: ew_units::Orient2::R0,
             },
             &MacroValues::default(),
             INSTANCE,
@@ -329,7 +331,11 @@ fn mc2_a_page_macro_inserted_after_206_proposes_207() {
     let cmd = s
         .insert_macro(
             &saved.reference,
-            &InsertAt { page: p206, at: None },
+            &InsertAt {
+                page: p206,
+                at: None,
+                orient: ew_units::Orient2::R0,
+            },
             &MacroValues::default(),
             INSTANCE,
         )
@@ -357,6 +363,7 @@ fn mc6_the_insertion_replays_with_no_library() {
             &InsertAt {
                 page: p105,
                 at: Some(free_point()),
+                orient: ew_units::Orient2::R0,
             },
             &MacroValues::default(),
             INSTANCE,
@@ -410,6 +417,7 @@ fn saved_bytes(name: &str) -> (SavedMacro, Value, AnyCommand) {
             &InsertAt {
                 page: p105,
                 at: Some(free_point()),
+                orient: ew_units::Orient2::R0,
             },
             &MacroValues::default(),
             INSTANCE,
@@ -472,6 +480,7 @@ fn values_bind_fields_and_a_false_group_is_dropped() {
             &InsertAt {
                 page: p105,
                 at: Some(free_point()),
+                orient: ew_units::Orient2::R0,
             },
             &values,
             Uuid::from_u128(instance),
@@ -525,6 +534,7 @@ fn values_bind_fields_and_a_false_group_is_dropped() {
                 &InsertAt {
                     page: p105,
                     at: Some(free_point()),
+                    orient: ew_units::Orient2::R0,
                 },
                 &MacroValues {
                     value_set: Some(name.into()),
@@ -601,6 +611,7 @@ fn macro_insert_refusals_name_their_pointer() {
             &InsertAt {
                 page: p105,
                 at: Some(free_point()),
+                orient: ew_units::Orient2::R0,
             },
             &MacroValues::default(),
             INSTANCE,

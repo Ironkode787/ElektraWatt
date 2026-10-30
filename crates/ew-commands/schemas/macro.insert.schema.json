@@ -6,6 +6,20 @@
       "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
+    "CmdOrient2": {
+      "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
+      "enum": [
+        "r0",
+        "r90",
+        "r180",
+        "r270",
+        "m0",
+        "m90",
+        "m180",
+        "m270"
+      ],
+      "type": "string"
+    },
     "CmdPt2": {
       "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
       "items": false,
@@ -35,7 +49,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`macro.insert` (`InsertMacro`, WP-S1.19 D13, doc 07 §3.5 and §4.6, FR-MAC-002 to FR-MAC-005, FR-MAC-018): inserts a\nwindow macro onto `page` with its anchor at `at`, or a page macro's pages after `page`, in one transaction (one\nundo step).\n\n`copies` holds the macro's document and the documents of its closure the project does not hold (the `lib/` JSON\nform; the session resolves them, D7); `macro` is the macro's copy ID, held or in `copies`. The pipeline: the\nvariant the page takes (a window macro: the first whose representation type the page's type takes; a page\nmacro: the first); the values (`values` over the value set `value_set` over the defaults), coerced and written at\ntheir bindings; the placeholder groups whose `include` is false dropped with what cannot stand without them;\nthen `edit.paste`'s effects with these differences: each record's new ID is `v5(instance, local ID)` and a\nchannel's `plc_channel_id(new module, number)` (ADR-0004 amendment 2); frozen tags stay; a tag counter a variable\nsets stays; a page macro's pages get folios proposed after `page` and then after each other (doc 06 §5.6) in its\nsection, and its records keep their positions. Finally the macro copy is embedded when the project lacks it, and\na `macro_instance` `instance` records the macro, the variant, the value set, the effective values, every created\nrecord by its local ID, and the anchor page (`page`, or a page macro's first page).\n\n**Rejected**: `/macro` no such macro, a symbol macro, a fragment that does not read or does not fit the macro's\nkind; `/copies/<i>` a document that `library.embed` refuses, a second macro, or a macro the project holds in\nanother version (\"update from library first\"); `/page` a missing page, or no variant for its representation\ntypes; `/at` missing for a window macro, or off the page's grid; `/value_set` and `/values/<name>` as\n[`instantiate`]; `/macro/fragment/…` as `edit.paste` refuses a fragment (a grid other than the page's, a\nrecord that does not read, …). Tag, address, interruption-point and process-tag conflicts are not refusals: the\nsession lists them on the preview (FR-MAC-005); the project's prevent rules apply as to every edit (a second\nsource point of an interruption point, EW-CORE-052), and the preview lists their findings first. Cost:\nInteractive. Outcome: the first created device, else representation, else the instance.",
+  "description": "`macro.insert` (`InsertMacro`, WP-S1.19 D13, doc 07 §3.5 and §4.6, FR-MAC-002 to FR-MAC-005, FR-MAC-018): inserts a\nwindow macro onto `page` with its anchor at `at`, turned and mirrored about the anchor by `orient` first (FT-672),\nor a page macro's pages after `page`, in one transaction (one undo step).\n\n`copies` holds the macro's document and the documents of its closure the project does not hold (the `lib/` JSON\nform; the session resolves them, D7); `macro` is the macro's copy ID, held or in `copies`. The pipeline: the variant\nthe page takes (a window macro: the first whose representation type the page's type takes; a page macro: the first);\nthe values (`values` over the value set `value_set` over the defaults), coerced and written at their bindings; the\nplaceholder groups whose `include` is false dropped with what cannot stand without them; then `edit.paste`'s effects\nwith these differences: `orient` turns the fragment about its anchor before effect 5's move (a grid coordinate keeps\nits whole grid steps from the anchor, any other its nanometres; a representation's orientation becomes `orient`\nafter its own, so its text-slot overrides and black-box outline, which are relative to it, turn with it; route\nvertices, junctions, page items and structure-box outlines turn as points, an arc's start and a free text's angle as\ndirections, a wire marker stays along its wire; a route end then meets its CP's new point); each record's new ID is\n`v5(instance, local ID)` and a channel's `plc_channel_id(new module, number)` (ADR-0004 amendment 2); frozen tags\nstay; a tag counter a variable sets stays, and a child tag's counter when its parent comes along (online numbering\nnumbers page-based tags only); a reference to a project device that a `device_ref` variable names stays\n(the assembly head a module is added to, doc 07 §2.7), where a paste would clear it; a page macro's pages get folios\nproposed after `page` and then after each other (doc 06 §5.6) in its section, and its records keep their positions.\nFinally the macro copy is embedded when the project lacks it, and a `macro_instance` `instance` records the macro,\nthe variant, the value set, the effective values, every created record by its local ID, and the anchor page (`page`,\nor a page macro's first page).\n\n**Rejected**: `/macro` no such macro, a symbol macro, a fragment that does not read or does not fit the macro's\nkind; `/copies/<i>` a document that `library.embed` refuses, a second macro, or a macro the project holds in another\nversion (\"update from library first\"); `/page` a missing page, or no variant for its representation types; `/at`\nmissing for a window macro, or off the page's grid; `/orient` other than `r0` for a page macro; `/value_set` and\n`/values/<name>` as [`instantiate`]; `/macro/fragment/…` as `edit.paste` refuses a fragment (a grid other than the\npage's, a record that does not read, …). Tag, address, interruption-point and process-tag conflicts are not\nrefusals: the session lists them on the preview (FR-MAC-005); the project's prevent rules apply as to every edit (a\nsecond source point of an interruption point, EW-CORE-052), and the preview lists their findings first. Cost:\nInteractive. Outcome: the first created device, else representation, else the instance.",
   "properties": {
     "at": {
       "anyOf": [
@@ -60,6 +74,10 @@
     "macro": {
       "$ref": "#/$defs/CmdUuid",
       "description": "The macro's copy ID."
+    },
+    "orient": {
+      "$ref": "#/$defs/CmdOrient2",
+      "description": "The orientation of a window macro about its anchor, applied before the move to `at` (FT-672): one of the\neight variants `r0` … `m270` of a symbol; default `r0`. A page macro takes none."
     },
     "page": {
       "$ref": "#/$defs/CmdUuid",

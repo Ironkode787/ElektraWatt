@@ -4959,7 +4959,9 @@ fn macro_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let good = doc(page.grid)?;
     let id = good["id"].clone();
     let instance = rng.uuid();
-    let params = |copies: Value| json!({"copies": copies, "macro": id, "page": page.id, "at": at, "instance": instance});
+    // FT-672: a window macro turns about its anchor by any of the eight orientations
+    let orient = *rng.pick(&["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"])?;
+    let params = |copies: Value| json!({"copies": copies, "macro": id, "page": page.id, "at": at, "orient": orient, "instance": instance});
     let cmd = |p: Value| Step::cmd("macro.insert", p);
     match rng.below(10) {
         0 => Some(cmd(params(json!([]))).refuse()),

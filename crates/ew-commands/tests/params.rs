@@ -334,7 +334,7 @@ fn examples() -> Vec<(&'static str, Value)> {
         (
             "macro.insert",
             json!({"copies": [{"$k": "macro"}], "macro": FNDEF_TERMINAL.to_string(), "page": DEV_T1.to_string(),
-                "at": [0, 0], "value_set": "1", "values": {"pos": 2}, "instance": DEV_T3.to_string()}),
+                "at": [0, 0], "orient": "r90", "value_set": "1", "values": {"pos": 2}, "instance": DEV_T3.to_string()}),
         ),
         // WP-S2.18 D3 (FT-628)
         (

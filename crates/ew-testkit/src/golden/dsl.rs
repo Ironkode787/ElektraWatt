@@ -167,6 +167,21 @@ pub struct Drawn {
     pub split: Option<Id<Connection>>,
 }
 
+/// The macro [`Builder::insert_macro`] inserts, and the values it fills in.
+#[derive(Clone, PartialEq, Debug)]
+pub struct MacroInsertion {
+    /// The macro's copy ID.
+    pub macro_copy: AnyId,
+    /// The macro's document and the closure documents the project does not hold (`lib/` JSON form).
+    pub copies: Vec<Value>,
+    /// The instance, minted by the caller.
+    pub instance: AnyId,
+    /// The value set, by name.
+    pub value_set: Option<String>,
+    /// Explicit values, by variable name.
+    pub values: Map<String, Value>,
+}
+
 /// The builder: runs commands through a [`CommandSink`] and records them.
 pub struct Builder<'s, S: CommandSink + ?Sized> {
     sink: &'s mut S,
@@ -311,6 +326,35 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             json!({"page": page, "at": at, "fragment": fragment}),
         )
         .map(|_| ())
+    }
+
+    /// `macro.insert` (FT-672): inserts `m` on `page` (a window macro: its anchor at `at`, nm, a grid point of the
+    /// page, turned by `orient` in the command's JSON form, `r0` … `m270`; a page macro: its pages after `page`, with
+    /// `at` `None` and `orient` `r0`). `r0` is left out of the parameters, as a log written before FT-672 has it.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn insert_macro(
+        &mut self,
+        page: AnyId,
+        at: Option<[i64; 2]>,
+        orient: &str,
+        m: &MacroInsertion,
+    ) -> Result<()> {
+        let mut params = json!({
+            "page": page,
+            "macro": m.macro_copy,
+            "copies": m.copies,
+            "instance": m.instance,
+            "at": at,
+            "value_set": m.value_set,
+            "values": m.values,
+        });
+        if orient != "r0" {
+            params["orient"] = json!(orient);
+        }
+        self.run("macro.insert", params).map(|_| ())
     }
 
     /// `fields.set` of each remaining member of `rest` that is in `settable`; the others are noted as not
@@ -1833,6 +1877,40 @@ mod tests {
             seen[0].1,
             json!({"page": page, "at": [10, 20], "fragment": fragment})
         );
+    }
+
+    // FT-672
+    /// `insert_macro` issues one `macro.insert` with the orientation, and leaves `r0` out as an old log has it.
+    #[test]
+    fn insert_macro_issues_one_command_with_its_orientation() {
+        let mut seen: Vec<(String, Value)> = Vec::new();
+        let mut sink = |name: &str, params: Value| {
+            seen.push((name.to_owned(), params));
+            Ok(Done::default())
+        };
+        let page = AnyId::from_uuid(ew_ids::Uuid::from_u128(3));
+        let m = MacroInsertion {
+            macro_copy: AnyId::from_uuid(ew_ids::Uuid::from_u128(4)),
+            copies: vec![json!({"format": "0.1"})],
+            instance: AnyId::from_uuid(ew_ids::Uuid::from_u128(5)),
+            value_set: Some("spare".into()),
+            values: Map::new(),
+        };
+        let mut builder = Builder::new(&mut sink);
+        builder.insert_macro(page, Some([10, 20]), "r90", &m).unwrap();
+        builder.insert_macro(page, None, "r0", &m).unwrap();
+        drop(builder);
+        assert_eq!(seen.len(), 2);
+        assert!(seen.iter().all(|(name, _)| name == "macro.insert"));
+        let base = json!({"page": page, "macro": m.macro_copy, "copies": m.copies, "instance": m.instance,
+            "value_set": "spare", "values": {}});
+        let mut turned = base.clone();
+        turned["at"] = json!([10, 20]);
+        turned["orient"] = json!("r90");
+        assert_eq!(seen[0].1, turned);
+        let mut page_macro = base;
+        page_macro["at"] = Value::Null;
+        assert_eq!(seen[1].1, page_macro);
     }
 
     // WP-S2.04 part 4a

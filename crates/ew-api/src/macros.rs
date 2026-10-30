@@ -119,6 +119,8 @@ pub struct InsertAt {
     pub page: Uuid,
     /// A window macro's anchor point on the page (a grid point); ignored for a page macro.
     pub at: Option<Pt2>,
+    /// A window macro's orientation about its anchor (FT-672); `R0` for a page macro, which takes no other.
+    pub orient: ew_units::Orient2,
 }
 
 /// The values of an insertion: a value set and literals that win over it.
@@ -768,6 +770,7 @@ impl Session {
             macro_copy: copy.id,
             page: Id::from_uuid(at.page),
             at: at.at,
+            orient: at.orient,
             value_set: values
                 .value_set
                 .as_deref()
@@ -798,7 +801,9 @@ impl Session {
     /// current snapshot without the prevent hook; the session is not touched. Every prevent finding the insertion
     /// causes (the command is refused until they are resolved), duplicate printed tags of the new devices, new
     /// interruption points that pair with points that were there, PLC addresses of new channels that other
-    /// channels take, and duplicate process tags; in that order, each sorted.
+    /// channels take and the addresses a new module on an occupied slot of its station doubles (those the replaced
+    /// module's channels derive, for the channels the new module binds), and duplicate process tags; in that order,
+    /// each sorted.
     ///
     /// # Errors
     ///
@@ -889,12 +894,50 @@ impl Session {
                 }
             }
         }
-        out.extend(
-            by_text
-                .into_iter()
-                .filter(|(_, (n, new))| *n > 1 && *new)
-                .map(|(t, _)| MacroConflict::Address(t)),
-        );
+        let mut addresses: BTreeSet<String> = by_text
+            .into_iter()
+            .filter(|(_, (n, new))| *n > 1 && *new)
+            .map(|(t, _)| t)
+            .collect();
+        // A derived address is allocated per module in station order, so it never repeats in the result; a new module
+        // on the slot of a module that was there (doc 07 §3.5: "a value set puts a module on an occupied slot of the
+        // same station") takes again what that module's channels derive, for the channels the new module binds. The
+        // folio-203 typical inserted twice doubles slots 1 and 2: Q0.1, Q0.3 … Q1.7 (FR-MAC-005).
+        let bound = |q: &Q, m: Id<Device>| -> BTreeSet<u16> {
+            let channels = q.table::<ew_schema::Channel>();
+            q.get::<ew_derive::ChannelAddresses>(m)
+                .iter()
+                .filter(|e| channels.get(e.channel).is_some_and(|c| c.binding.is_some()))
+                .map(|e| e.number)
+                .collect()
+        };
+        let before_slots: BTreeMap<ModuleSlot, Vec<Id<Device>>> = before
+            .devices()
+            .iter()
+            .filter_map(|(id, d)| Some((module_slot(&before, id, d)?, id)))
+            .fold(BTreeMap::new(), |mut m, (k, id)| {
+                m.entry(k).or_insert_with(Vec::new).push(id);
+                m
+            });
+        for m in &new_devices {
+            let Some(key) = after.devices().get(*m).and_then(|d| module_slot(&after, *m, d)) else {
+                continue;
+            };
+            let Some(olds) = before_slots.get(&key) else {
+                continue;
+            };
+            let numbers = bound(&after, *m);
+            for old in olds {
+                for e in before.get::<ew_derive::ChannelAddresses>(*old).iter() {
+                    if let ew_derive::ChannelAddr::At { text, .. } = &e.address
+                        && numbers.contains(&e.number)
+                    {
+                        addresses.insert(text.clone());
+                    }
+                }
+            }
+        }
+        out.extend(addresses.into_iter().map(MacroConflict::Address));
         // process tags
         let mut pts: BTreeMap<String, (usize, bool)> = BTreeMap::new();
         for (id, d) in after.devices().iter() {
@@ -916,6 +959,32 @@ impl Session {
         );
         Ok(out)
     }
+}
+
+/// The slot a PLC module takes in its station: an authored rack position, or for a positional module its parent and
+/// position (its rank follows from them).
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+enum SlotKey {
+    /// Rack, slot and subslot.
+    Rack(u16, u16, Option<u16>),
+    /// The parent and the position under it.
+    Positional(Id<Device>, u32),
+}
+
+/// A module's station and slot.
+type ModuleSlot = (Id<Device>, SlotKey);
+
+/// The station and slot of a PLC module; `None` for another device, a module outside a station, or a positional
+/// module without a parent or a position.
+fn module_slot(q: &Q, id: Id<Device>, d: &Device) -> Option<ModuleSlot> {
+    let m = d.aspects.plc_module.as_ref()?;
+    let station = ew_derive::station_of(q, id)?;
+    let key = match &m.slot {
+        ew_schema::SlotPath::Rack(r) => SlotKey::Rack(r.rack, r.slot, r.subslot),
+        ew_schema::SlotPath::Positional => SlotKey::Positional(d.parent?, d.position?),
+        ew_schema::SlotPath::Unknown(_) => return None,
+    };
+    Some((station, key))
 }
 
 /// The page of a device: the page of its first representation among the fragment's pages.

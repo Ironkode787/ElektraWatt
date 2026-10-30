@@ -15,7 +15,7 @@ use ew_schema::{
     Connection, Device, Endpoint, GraphicShape, Junction, Kind, LibDocument, LibRef, NumberSpec, Page,
     PageItemKind, PageType, Record, Representation, StructureNode, TagScheme,
 };
-use ew_units::{Grid, Nm, Pt2};
+use ew_units::{Angle2, Grid, Nm, Orient2, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -309,27 +309,165 @@ fn step_point(grid: Grid, p: Pt2, k: [i64; 2]) -> Result<Pt2, OutOfRange> {
     ))
 }
 
-/// Effect 5 on a graphic: every shape point moves, a radius and an arc's angles stay.
-fn step_shape(grid: Grid, shape: &mut GraphicShape, steps: [i64; 2]) -> Result<(), OutOfRange> {
-    match shape {
-        GraphicShape::Line(l) => {
-            l.a = step_point(grid, l.a, steps)?;
-            l.b = step_point(grid, l.b, steps)?;
+/// How effect 5 moves the fragment: by grid steps, or (a macro inserted with an orientation, FT-672) turned and
+/// mirrored about the anchor first.
+#[derive(Clone, Copy, Debug)]
+pub(super) struct Motion {
+    /// The page's connection grid.
+    grid: Grid,
+    /// `Δk = index(at) − index(anchor)` per axis.
+    steps: [i64; 2],
+    /// The orientation about the anchor; `None` for `R0`, which moves by the steps alone.
+    turn: Option<Turn>,
+}
+
+/// An orientation about the anchor, then the move to the target point ([`Motion`]).
+#[derive(Clone, Copy, Debug)]
+struct Turn {
+    orient: Orient2,
+    /// The anchor and its grid indices.
+    anchor: Pt2,
+    ka: [i64; 2],
+    /// The target point and its grid indices.
+    at: Pt2,
+    kt: [i64; 2],
+}
+
+/// One axis of a point relative to the anchor: whole grid steps for a grid coordinate, nanometres for any other.
+#[derive(Clone, Copy)]
+enum Off {
+    Steps(i64),
+    Nm(i64),
+}
+
+impl Off {
+    fn neg(self, yes: bool) -> Option<Off> {
+        if !yes {
+            return Some(self);
         }
-        GraphicShape::Polyline(p) | GraphicShape::Polygon(p) => {
-            for p in &mut p.points {
-                *p = step_point(grid, *p, steps)?;
-            }
-        }
-        GraphicShape::Rect(r) => {
-            r.min = step_point(grid, r.min, steps)?;
-            r.max = step_point(grid, r.max, steps)?;
-        }
-        GraphicShape::Circle(c) => c.centre = step_point(grid, c.centre, steps)?,
-        GraphicShape::Arc(a) => a.centre = step_point(grid, a.centre, steps)?,
-        GraphicShape::Unknown(_) => {}
+        Some(match self {
+            Off::Steps(s) => Off::Steps(s.checked_neg()?),
+            Off::Nm(n) => Off::Nm(n.checked_neg()?),
+        })
     }
-    Ok(())
+}
+
+impl Motion {
+    /// A move by `steps` grid steps.
+    pub(super) fn steps(grid: Grid, steps: [i64; 2]) -> Motion {
+        Motion {
+            grid,
+            steps,
+            turn: None,
+        }
+    }
+
+    /// The orientation `orient` about `anchor`, then the move of the anchor to `at` (both grid points); a move by
+    /// grid steps for `R0`.
+    pub(super) fn turned(grid: Grid, steps: [i64; 2], orient: Orient2, anchor: Pt2, at: Pt2) -> Motion {
+        let turn = (!orient.is_default()).then(|| Turn {
+            orient,
+            anchor,
+            ka: [grid.snap(anchor.x), grid.snap(anchor.y)],
+            at,
+            kt: [grid.snap(at.x), grid.snap(at.y)],
+        });
+        Motion { grid, steps, turn }
+    }
+
+    /// Whether the motion turns or mirrors.
+    fn turns(&self) -> bool {
+        self.turn.is_some()
+    }
+
+    /// The new position of a point: by the steps ([`step_point`]); turned, a grid coordinate keeps its whole steps
+    /// from the anchor and any other its nanometres, the orientation's matrix permutes and negates the two axes, and
+    /// the result is placed from the target point.
+    fn point(&self, p: Pt2) -> Result<Pt2, OutOfRange> {
+        let Some(t) = self.turn else {
+            return step_point(self.grid, p, self.steps);
+        };
+        let grid = self.grid;
+        let off = |v: Nm, k: i64, a: Nm| -> Option<Off> {
+            if crate::geometry::on_grid(grid, v) {
+                grid.snap(v).checked_sub(k).map(Off::Steps)
+            } else {
+                v.0.checked_sub(a.0).map(Off::Nm)
+            }
+        };
+        let (Some(ox), Some(oy)) = (off(p.x, t.ka[0], t.anchor.x), off(p.y, t.ka[1], t.anchor.y)) else {
+            return Err(OutOfRange);
+        };
+        let m = t.orient.matrix();
+        let pick = |row: [i8; 2]| {
+            if row[0] != 0 {
+                ox.neg(row[0] < 0)
+            } else {
+                oy.neg(row[1] < 0)
+            }
+        };
+        let place = |o: Option<Off>, k: i64, a: Nm| -> Result<Nm, OutOfRange> {
+            let v = match o.ok_or(OutOfRange)? {
+                Off::Steps(s) => k.checked_add(s).and_then(|k| grid.at(k)),
+                Off::Nm(n) => a.0.checked_add(n).map(Nm),
+            };
+            v.filter(|v| crate::geometry::in_range(*v)).ok_or(OutOfRange)
+        };
+        Ok(Pt2::new(
+            place(pick(m[0]), t.kt[0], t.at.x)?,
+            place(pick(m[1]), t.kt[1], t.at.y)?,
+        ))
+    }
+
+    /// A representation's new orientation: its own, then the motion's.
+    fn orient(&self, o: Orient2) -> Orient2 {
+        self.turn.map_or(o, |t| o.then(t.orient))
+    }
+
+    /// A direction (10⁻³ degree, counter-clockwise from +x in the y-down frame) after the motion: mirrored to
+    /// `180° − a`, then turned clockwise by the quarter turns, in `[0°, 360°)`; unchanged by a move.
+    fn angle(&self, a: Angle2) -> Angle2 {
+        let Some(t) = self.turn else { return a };
+        let mut v = i64::from(a.0);
+        if t.orient.is_mirrored() {
+            v = 180_000 - v;
+        }
+        v -= i64::from(t.orient.quarter_turns()) * 90_000;
+        Angle2(i32::try_from(v.rem_euclid(360_000)).unwrap_or(0))
+    }
+
+    /// Effect 5 on a graphic: every shape point moves; turned, a rectangle's corners are re-ordered, an arc's
+    /// start turns as a direction and its sweep changes sign under a mirror; a radius stays.
+    fn shape(&self, shape: &mut GraphicShape) -> Result<(), OutOfRange> {
+        match shape {
+            GraphicShape::Line(l) => {
+                l.a = self.point(l.a)?;
+                l.b = self.point(l.b)?;
+            }
+            GraphicShape::Polyline(p) | GraphicShape::Polygon(p) => {
+                for p in &mut p.points {
+                    *p = self.point(*p)?;
+                }
+            }
+            GraphicShape::Rect(r) => {
+                let (a, b) = (self.point(r.min)?, self.point(r.max)?);
+                r.min = Pt2::new(a.x.min(b.x), a.y.min(b.y));
+                r.max = Pt2::new(a.x.max(b.x), a.y.max(b.y));
+            }
+            GraphicShape::Circle(c) => c.centre = self.point(c.centre)?,
+            GraphicShape::Arc(a) => {
+                a.centre = self.point(a.centre)?;
+                if let Some(t) = self.turn {
+                    a.start = self.angle(a.start);
+                    if t.orient.is_mirrored() {
+                        a.sweep = Angle2(a.sweep.0.checked_neg().ok_or(OutOfRange)?);
+                    }
+                }
+            }
+            GraphicShape::Unknown(_) => {}
+        }
+        Ok(())
+    }
 }
 
 /// The SHA-256 a held library copy row claims.
@@ -409,6 +547,9 @@ pub(crate) struct Insertion<'f> {
     pub(crate) page: Id<Page>,
     /// The new position of the fragment's anchor (ignored for a fragment with page records).
     pub(crate) at: Pt2,
+    /// The orientation about the anchor, applied before the move to `at` (`macro.insert`, FT-672); `R0` for a paste
+    /// and for a fragment with page records.
+    pub(crate) orient: Orient2,
     /// The fragment.
     pub(crate) fragment: &'f Fragment,
     /// The record kinds it may hold.
@@ -421,6 +562,9 @@ pub(crate) struct Insertion<'f> {
     pub(crate) keep_frozen: bool,
     /// The devices (source IDs) whose tag counter stays (set by a macro variable).
     pub(crate) keep_counter: BTreeSet<Uuid>,
+    /// Project records a reference to which stays when the project holds them (the devices a macro's `device_ref`
+    /// variables name); any other reference outside the fragment resolves as effect 3 says.
+    pub(crate) keep_refs: BTreeSet<Uuid>,
 }
 
 /// What an insertion wrote.
@@ -477,6 +621,9 @@ impl Insertion<'_> {
     fn resolve(&self, tx: &TxBuilder<'_>, plan: &Plan, decl: &LinkDecl, old: Uuid) -> Resolved {
         if let Some(new) = plan.ids.get(&(decl.to, old)) {
             return Resolved::To(*new);
+        }
+        if self.keep_refs.contains(&old) && tx.row(&(decl.to, Id::from_uuid(old))).is_some() {
+            return Resolved::Keep;
         }
         match decl.to {
             Kind::Page => Resolved::To(self.page.as_uuid()),
@@ -972,8 +1119,13 @@ impl Insertion<'_> {
                 }
             }
         }
-        // Effect 5: representations, junctions, page items and structure boxes by grid steps; routes follow their
-        // ends.
+        // Effect 5: representations, junctions, page items and structure boxes by grid steps (turned about the
+        // anchor first for a macro inserted with an orientation, FT-672); routes follow their ends.
+        let motion = if self.has_pages() {
+            Motion::steps(grid, steps)
+        } else {
+            Motion::turned(grid, steps, self.orient, self.fragment.anchor, self.at)
+        };
         let too_far = |i: usize| {
             self.invalid(
                 self.pointer(i),
@@ -986,7 +1138,8 @@ impl Insertion<'_> {
             match record {
                 Record::Representation(r) => {
                     let before = r.clone();
-                    r.pos = step_point(grid, r.pos, steps).map_err(|_| too_far(*i))?;
+                    r.pos = motion.point(r.pos).map_err(|_| too_far(*i))?;
+                    r.orient = motion.orient(r.orient);
                     if rep_cps_checked(tx, r).is_err() {
                         return Err(too_far(*i));
                     }
@@ -994,18 +1147,21 @@ impl Insertion<'_> {
                 }
                 Record::Junction(j) => {
                     let before = j.at;
-                    j.at = step_point(grid, j.at, steps).map_err(|_| too_far(*i))?;
+                    j.at = motion.point(j.at).map_err(|_| too_far(*i))?;
                     moved_junctions.insert(j.id, (before, j.at));
                 }
                 Record::PageItem(item) => match &mut item.kind {
                     PageItemKind::Graphic(g) => {
-                        step_shape(grid, &mut g.shape, steps).map_err(|_| too_far(*i))?;
+                        motion.shape(&mut g.shape).map_err(|_| too_far(*i))?;
                     }
                     PageItemKind::FreeText(t) => {
-                        t.at = step_point(grid, t.at, steps).map_err(|_| too_far(*i))?;
+                        t.at = motion.point(t.at).map_err(|_| too_far(*i))?;
+                        t.angle = motion.angle(t.angle);
                     }
                     PageItemKind::WireMarker(m) => {
-                        m.at = step_point(grid, m.at, steps).map_err(|_| too_far(*i))?;
+                        m.at = motion.point(m.at).map_err(|_| too_far(*i))?;
+                        // a marker lies along its wire: 0 or 90°
+                        m.angle = Angle2(motion.angle(m.angle).0 % 180_000);
                     }
                     PageItemKind::Image(_) | PageItemKind::Unknown(_) => {
                         unreachable!("images and unknown page item kinds are left out")
@@ -1013,7 +1169,7 @@ impl Insertion<'_> {
                 },
                 Record::StructureBox(b) => {
                     for p in &mut b.outline {
-                        *p = step_point(grid, *p, steps).map_err(|_| too_far(*i))?;
+                        *p = motion.point(*p).map_err(|_| too_far(*i))?;
                     }
                 }
                 _ => {}
@@ -1044,10 +1200,30 @@ impl Insertion<'_> {
             if c.route.is_empty() {
                 continue;
             }
-            let own =
-                |p: Pt2| -> Result<(Pt2, Pt2), OutOfRange> { Ok((sub(step_point(grid, p, steps)?, p)?, p)) };
             let first = c.route[0];
             let last = c.route[c.route.len() - 1];
+            if motion.turns() {
+                // Every vertex turns with the fragment; an end at its CP's or junction's old point then follows the
+                // CP's new point (the two can part by the rounding of a fractional grid), keeping the axes.
+                let turned: Result<Vec<Pt2>, OutOfRange> = c.route.iter().map(|p| motion.point(*p)).collect();
+                let mut route = turned.map_err(|_| too_far(*i))?;
+                let n = route.len();
+                let follow = |e: &Endpoint, old: Pt2, now: Pt2| -> Result<Option<Pt2>, OutOfRange> {
+                    match end_of(tx, e) {
+                        Some((d, at)) if at == old => {
+                            let d = sub(crate::geometry::add(at, d)?, now)?;
+                            Ok((d != Pt2::ORIGIN).then_some(d))
+                        }
+                        _ => Ok(None),
+                    }
+                };
+                let da = follow(&c.a, first, route[0]).map_err(|_| too_far(*i))?;
+                let db = follow(&c.b, last, route[n - 1]).map_err(|_| too_far(*i))?;
+                crate::geometry::follow_ends(&mut route, grid, da, db).map_err(|_| too_far(*i))?;
+                c.route = route;
+                continue;
+            }
+            let own = |p: Pt2| -> Result<(Pt2, Pt2), OutOfRange> { Ok((sub(motion.point(p)?, p)?, p)) };
             let a = match end_of(tx, &c.a) {
                 Some(a) => a,
                 None => own(first).map_err(|_| too_far(*i))?,
@@ -1164,6 +1340,7 @@ impl Command for PasteFragment {
             prefix: "/fragment",
             page: self.page,
             at: self.at,
+            orient: Orient2::R0,
             fragment: &self.fragment,
             kinds: &PASTE_KINDS,
             kinds_refusal: "is not pasted (only devices, functions, representations, connections, junctions, \
@@ -1171,6 +1348,7 @@ impl Command for PasteFragment {
             ids: NewIds::Mint,
             keep_frozen: false,
             keep_counter: BTreeSet::new(),
+            keep_refs: BTreeSet::new(),
         };
         let out = insertion.run(tx)?;
         Ok(Outcome {

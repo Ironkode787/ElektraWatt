@@ -8,7 +8,8 @@
 //! The macro's variant is a project fragment (`#ew-fragment v1` in its object form, widened for macros by ADR-0011
 //! amendment 5); the insertion itself is `edit.paste`'s engine with three differences: the new IDs are
 //! `v5(instance, local ID)` (a channel `plc_channel_id(new module, number)`), frozen tags stay (saving a macro clears
-//! them unless marked keep), and a tag counter a variable sets stays.
+//! them unless marked keep), and a tag counter a variable sets stays, as does a child tag's counter under a parent that
+//! comes along.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -17,7 +18,7 @@ use ew_model::{LINKS, Policy};
 use ew_schema::{
     Kind, LibDocument, MacroDef, MacroInstance, MacroKind, MacroVariant, Page, Record, VarDef, VarType,
 };
-use ew_units::Pt2;
+use ew_units::{Orient2, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -29,7 +30,7 @@ use super::paste::{Fragment, Insertion, NewIds, cleared, occurrences};
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
-use crate::proxy::{IdentS, Pt2S, UuidS};
+use crate::proxy::{IdentS, Orient2S, Pt2S, UuidS};
 use crate::tx::TxBuilder;
 
 /// The record kinds a macro fragment may carry (ADR-0011 amendment 5): those of a paste, PLC channels and device
@@ -238,8 +239,12 @@ pub struct Instantiated {
     pub fragment: Fragment,
     /// The effective value of every variable that has one, by name.
     pub values: BTreeMap<String, Value>,
-    /// The devices whose tag counter a variable sets.
+    /// The devices whose tag counter stays: a variable sets it, or the device has a child tag and its parent comes
+    /// along.
     pub keep_counter: BTreeSet<Uuid>,
+    /// The project records the `device_ref` variables name (doc 07 §2.7: "an existing device chosen at insertion"):
+    /// a reference to one of them stays when the project holds it.
+    pub refs: BTreeSet<Uuid>,
 }
 
 /// Applies values to a macro's variant (doc 07 §4.6 steps 2 and 3, without rhai): each variable takes its literal
@@ -306,6 +311,12 @@ pub fn instantiate(
         })
         .collect();
     let mut keep_counter = BTreeSet::new();
+    let refs: BTreeSet<Uuid> = def
+        .variables
+        .iter()
+        .filter(|v| v.ty == VarType::DeviceRef)
+        .filter_map(|v| values.get(v.name.as_str())?.as_str()?.parse().ok())
+        .collect();
     for var in &def.variables {
         let name = var.name.as_str();
         let Some(value) = values.get(name) else { continue };
@@ -385,10 +396,31 @@ pub fn instantiate(
     if !dropped.is_empty() {
         drop_records(&mut fragment, &mut dropped);
     }
+    // A child tag (`-201U3-Q1`) counts under its parent, which online numbering does not number: a child whose parent
+    // comes along keeps its counter under the new parent (doc 07 §9.3: the valves of a module typical).
+    let devices: BTreeSet<Uuid> = fragment
+        .records
+        .iter()
+        .filter(|r| r.get("$k").and_then(Value::as_str) == Some(Kind::Device.name()))
+        .filter_map(id_of)
+        .collect();
+    for r in &fragment.records {
+        let child = r.pointer("/tag/scheme").and_then(Value::as_str) == Some("child");
+        let parent = r
+            .get("parent")
+            .and_then(Value::as_str)
+            .and_then(|p| p.parse().ok());
+        if let (true, Some(id), Some(parent)) = (child, id_of(r), parent)
+            && devices.contains(&parent)
+        {
+            keep_counter.insert(id);
+        }
+    }
     Ok(Instantiated {
         fragment,
         values,
         keep_counter,
+        refs,
     })
 }
 
@@ -440,29 +472,36 @@ fn drop_records(fragment: &mut Fragment, dropped: &mut BTreeSet<Uuid>) {
 }
 
 /// `macro.insert` (`InsertMacro`, WP-S1.19 D13, doc 07 §3.5 and §4.6, FR-MAC-002 to FR-MAC-005, FR-MAC-018): inserts a
-/// window macro onto `page` with its anchor at `at`, or a page macro's pages after `page`, in one transaction (one
-/// undo step).
+/// window macro onto `page` with its anchor at `at`, turned and mirrored about the anchor by `orient` first (FT-672),
+/// or a page macro's pages after `page`, in one transaction (one undo step).
 ///
 /// `copies` holds the macro's document and the documents of its closure the project does not hold (the `lib/` JSON
-/// form; the session resolves them, D7); `macro` is the macro's copy ID, held or in `copies`. The pipeline: the
-/// variant the page takes (a window macro: the first whose representation type the page's type takes; a page
-/// macro: the first); the values (`values` over the value set `value_set` over the defaults), coerced and written at
-/// their bindings; the placeholder groups whose `include` is false dropped with what cannot stand without them;
-/// then `edit.paste`'s effects with these differences: each record's new ID is `v5(instance, local ID)` and a
-/// channel's `plc_channel_id(new module, number)` (ADR-0004 amendment 2); frozen tags stay; a tag counter a variable
-/// sets stays; a page macro's pages get folios proposed after `page` and then after each other (doc 06 §5.6) in its
-/// section, and its records keep their positions. Finally the macro copy is embedded when the project lacks it, and
-/// a `macro_instance` `instance` records the macro, the variant, the value set, the effective values, every created
-/// record by its local ID, and the anchor page (`page`, or a page macro's first page).
+/// form; the session resolves them, D7); `macro` is the macro's copy ID, held or in `copies`. The pipeline: the variant
+/// the page takes (a window macro: the first whose representation type the page's type takes; a page macro: the first);
+/// the values (`values` over the value set `value_set` over the defaults), coerced and written at their bindings; the
+/// placeholder groups whose `include` is false dropped with what cannot stand without them; then `edit.paste`'s effects
+/// with these differences: `orient` turns the fragment about its anchor before effect 5's move (a grid coordinate keeps
+/// its whole grid steps from the anchor, any other its nanometres; a representation's orientation becomes `orient`
+/// after its own, so its text-slot overrides and black-box outline, which are relative to it, turn with it; route
+/// vertices, junctions, page items and structure-box outlines turn as points, an arc's start and a free text's angle as
+/// directions, a wire marker stays along its wire; a route end then meets its CP's new point); each record's new ID is
+/// `v5(instance, local ID)` and a channel's `plc_channel_id(new module, number)` (ADR-0004 amendment 2); frozen tags
+/// stay; a tag counter a variable sets stays, and a child tag's counter when its parent comes along (online numbering
+/// numbers page-based tags only); a reference to a project device that a `device_ref` variable names stays
+/// (the assembly head a module is added to, doc 07 §2.7), where a paste would clear it; a page macro's pages get folios
+/// proposed after `page` and then after each other (doc 06 §5.6) in its section, and its records keep their positions.
+/// Finally the macro copy is embedded when the project lacks it, and a `macro_instance` `instance` records the macro,
+/// the variant, the value set, the effective values, every created record by its local ID, and the anchor page (`page`,
+/// or a page macro's first page).
 ///
 /// **Rejected**: `/macro` no such macro, a symbol macro, a fragment that does not read or does not fit the macro's
-/// kind; `/copies/<i>` a document that `library.embed` refuses, a second macro, or a macro the project holds in
-/// another version ("update from library first"); `/page` a missing page, or no variant for its representation
-/// types; `/at` missing for a window macro, or off the page's grid; `/value_set` and `/values/<name>` as
-/// [`instantiate`]; `/macro/fragment/…` as `edit.paste` refuses a fragment (a grid other than the page's, a
-/// record that does not read, …). Tag, address, interruption-point and process-tag conflicts are not refusals: the
-/// session lists them on the preview (FR-MAC-005); the project's prevent rules apply as to every edit (a second
-/// source point of an interruption point, EW-CORE-052), and the preview lists their findings first. Cost:
+/// kind; `/copies/<i>` a document that `library.embed` refuses, a second macro, or a macro the project holds in another
+/// version ("update from library first"); `/page` a missing page, or no variant for its representation types; `/at`
+/// missing for a window macro, or off the page's grid; `/orient` other than `r0` for a page macro; `/value_set` and
+/// `/values/<name>` as [`instantiate`]; `/macro/fragment/…` as `edit.paste` refuses a fragment (a grid other than the
+/// page's, a record that does not read, …). Tag, address, interruption-point and process-tag conflicts are not
+/// refusals: the session lists them on the preview (FR-MAC-005); the project's prevent rules apply as to every edit (a
+/// second source point of an interruption point, EW-CORE-052), and the preview lists their findings first. Cost:
 /// Interactive. Outcome: the first created device, else representation, else the instance.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -481,6 +520,11 @@ pub struct InsertMacro {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<Pt2S>")]
     pub at: Option<Pt2>,
+    /// The orientation of a window macro about its anchor, applied before the move to `at` (FT-672): one of the
+    /// eight variants `r0` … `m270` of a symbol; default `r0`. A page macro takes none.
+    #[serde(default, skip_serializing_if = "is_r0")]
+    #[schemars(with = "Orient2S")]
+    pub orient: Orient2,
     /// The value set, by name.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
@@ -491,6 +535,12 @@ pub struct InsertMacro {
     /// The instance, minted by the caller: the `macro_instance`'s ID and the namespace of the new IDs.
     #[schemars(with = "UuidS")]
     pub instance: Id<MacroInstance>,
+}
+
+/// Whether an orientation is the default `r0` (omitted from the parameters, so a log written before FT-672 reads and
+/// writes unchanged).
+fn is_r0(o: &Orient2) -> bool {
+    o.is_default()
 }
 
 impl InsertMacro {
@@ -595,6 +645,12 @@ impl Command for InsertMacro {
                 "a window macro's fragment holds no pages",
             ));
         }
+        if page_macro && !self.orient.is_default() {
+            return Err(Self::invalid(
+                "/orient",
+                "a page macro keeps the layout of its pages and takes no orientation; insert it with `r0`",
+            ));
+        }
         let at = match (page_macro, self.at) {
             (true, _) => inst.fragment.anchor,
             (false, Some(at)) => at,
@@ -610,6 +666,7 @@ impl Command for InsertMacro {
             prefix: "/macro/fragment",
             page: self.page,
             at,
+            orient: self.orient,
             fragment: &inst.fragment,
             kinds: &MACRO_KINDS,
             kinds_refusal: "is not inserted (only devices, functions, representations, connections, junctions, \
@@ -617,6 +674,7 @@ impl Command for InsertMacro {
             ids: NewIds::Instance(self.instance.as_uuid()),
             keep_frozen: true,
             keep_counter: inst.keep_counter.clone(),
+            keep_refs: inst.refs.clone(),
         };
         let out = insertion.run(tx)?;
         let anchor = out.pages.first().copied().unwrap_or(self.page);
