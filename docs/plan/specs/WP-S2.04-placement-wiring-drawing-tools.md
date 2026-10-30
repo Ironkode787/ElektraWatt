@@ -287,8 +287,11 @@ maps a double click (two primary presses within the platform's double-click inte
 tool that finishes on one: `Tool::finishes_on_double_click` (default `false`) answers `true` for Wire, Select (a free
 text opens for editing), the polyline and polygon graphics and Structure box. Every other tool sees two plain presses,
 so two quick clicks with Place place twice; `two_quick_clicks_with_the_place_tool_place_twice`
-(`crates/ew-ui/tests/place.rs`) replaced the fix-round test `a_double_click_with_the_place_tool_places_once`. Two
-identical symbols stacked at one point by a quick double click are not yet flagged (FT-751).
+(`crates/ew-ui/tests/place.rs`) replaced the fix-round test `a_double_click_with_the_place_tool_places_once`.
+*As amended (cycle 39, lane H39; FT-751).* A placement that lands exactly on an identical representation (the same
+symbol copy, insertion point and orientation) is refused in words, `reason-place-stacked` ("An identical symbol already
+stands here; move the pointer to place another"), and the refusal stands until the pointer really moves; one grid step
+away places as before (`two_quick_clicks_with_the_place_tool_place_once_and_refuse_the_stacked_twin`).
 
 ### 6.2 The tool context
 

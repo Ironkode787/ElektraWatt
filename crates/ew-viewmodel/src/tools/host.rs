@@ -131,6 +131,9 @@ pub(crate) struct ToolHost {
     /// Whether `notice` is a tool refusal that survives the gesture's dwell, moves and release: the next primary
     /// press, key press, page change or tool change clears it.
     pub notice_sticky: bool,
+    /// The sheet point of the press a sticky refusal answered: a pointer move to that same point (the window reports
+    /// one after every press) keeps the notice while a tool is busy (FT-751).
+    pub notice_at: Option<(i64, i64)>,
     // WP-S2.05 part 3
     /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
     pub pasted: bool,
@@ -199,6 +202,7 @@ impl ToolHost {
             junction_editor: None,
             notice: None,
             notice_sticky: false,
+            notice_at: None,
             pasted: false,
             ip_memory: IpMemory::default(),
             black_box_pick: false,

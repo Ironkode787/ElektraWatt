@@ -567,7 +567,26 @@ impl PlaceTool {
         self.transient(cx)
     }
 
+    /// Whether a placement at `pos` lands exactly on an identical representation of the page: the same symbol copy,
+    /// insertion point and orientation (FT-751; a quick double click with Place). One grid step away is not.
+    fn lands_on_twin(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> bool {
+        let orient = self.orient % 8;
+        cx.page
+            .tables
+            .reps
+            .iter()
+            .any(|r| r.symbol == self.shape.copy && r.pos == pos && r.orient == orient)
+    }
+
     fn commit(&mut self, cx: &ToolCx<'_>, alt: bool) -> ToolOutput {
+        // FT-751: refused in words (doc 16a, a refusal leaves the model unchanged), never a stacked twin.
+        if !self.ask {
+            if let Some((_, at)) = self.at {
+                if self.lands_on_twin(cx, self.stacked_pos(cx, at)) {
+                    return ToolOutput::Refused("reason-place-stacked");
+                }
+            }
+        }
         let Some(cmd) = self.command(cx, alt || self.suppressed) else {
             return ToolOutput::None;
         };

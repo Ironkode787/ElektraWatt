@@ -320,12 +320,16 @@ impl ShellModel {
         let keeps = self.tools.notice_sticky
             && match ev {
                 CanvasEvent::Release { .. } => true,
-                CanvasEvent::PointerMove { .. } | CanvasEvent::Dwell { .. } => idle,
+                // FT-751: a move to the refused press's own point is no move (the window reports one after each
+                // press), so a busy tool's refusal stands until the pointer really moves.
+                CanvasEvent::PointerMove { at, .. } => idle || self.tools.notice_at == Some(*at),
+                CanvasEvent::Dwell { .. } => idle || self.tools.notice_at.is_some(),
                 _ => false,
             };
         if !keeps {
             self.tools.notice = None;
             self.tools.notice_sticky = false;
+            self.tools.notice_at = None;
         }
         // A place tool that asks for the next designation refuses a click or Enter with the reason (WP-S2.04 §7.2).
         if matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate) && self.place_needs_designation() {
@@ -335,7 +339,11 @@ impl ShellModel {
         }
         match self.run_tool(ev) {
             Some(out) => {
+                let refused = matches!(out, ToolOutput::Refused(_));
                 let out = self.apply_tool_output(out);
+                if refused && let CanvasEvent::Press { at, .. } = ev {
+                    self.tools.notice_at = Some(*at);
+                }
                 // The place tool says what it floats after a key or a cursor move (WP-S2.04 §7.2).
                 if self.tools.tool.name() == "place"
                     && matches!(ev, CanvasEvent::Key(_) | CanvasEvent::CursorMove { .. })

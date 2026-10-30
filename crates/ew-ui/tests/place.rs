@@ -287,16 +287,18 @@ fn double_click(h: &mut Harness<'_, App>, pos: Pos2) {
 }
 
 /// The cycle-38 double-click rule: the Place tool defines no finish on a double click, so two quick clicks are two
-/// plain presses and place twice (the window used to turn the second into `tool.finish` and place once).
+/// plain presses (the window used to turn the second into `tool.finish`). FT-751: the second lands exactly on the
+/// first's twin (same symbol, point and orientation) and is refused in words; one grid step away places again.
 #[test]
-fn two_quick_clicks_with_the_place_tool_place_twice() {
+fn two_quick_clicks_with_the_place_tool_place_once_and_refuse_the_stacked_twin() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     settle(&mut h);
     let before = reps(&h);
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    let pos = screen(&h, (w * 3 / 4, hh * 3 / 4));
+    let at = (w * 3 / 4, hh * 3 / 4);
+    let pos = screen(&h, at);
     double_click(&mut h, pos);
     let sent = h.state().dispatched();
     assert!(!sent.contains(&"tool.finish"), "{sent:?}");
@@ -305,8 +307,29 @@ fn two_quick_clicks_with_the_place_tool_place_twice() {
         2,
         "two plain presses: {sent:?}"
     );
-    assert_eq!(reps(&h), before + 2, "one placement per click");
+    assert_eq!(reps(&h), before + 1, "the stacked twin is refused");
+    assert_eq!(
+        h.state().shell().tool_notice(),
+        Some("An identical symbol already stands here; move the pointer to place another"),
+        "{sent:?}"
+    );
     assert_eq!(h.state().shell().tool().name(), "place");
+    // Two grid steps to the right is not a twin.
+    let grid = h.state().shell().canvas().unwrap().page().tables.grid;
+    let step = (grid.0 / grid.1.max(1)).max(1);
+    let next = screen(&h, (at.0 + step * 2, at.1));
+    h.event(egui::Event::PointerMoved(next));
+    settle(&mut h);
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos: next,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    assert_eq!(reps(&h), before + 2, "a placement off the twin's point places");
     h.state_mut().shell_mut().shutdown();
 }
 
