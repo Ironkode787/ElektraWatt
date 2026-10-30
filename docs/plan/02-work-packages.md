@@ -2335,6 +2335,8 @@ S4 starts with the thin MVP slice that [panel layout](../design/12-panel-layout.
 | Acceptance | AC-33 |
 | Owner role | Physical developer |
 
+*Status (2026-10-30, cycle 39).* **Specified** ([closed specification](specs/WP-S4.01-layout-model-and-2d-panel-pages.md); decision log ID-893): five parts, 5.1 pw plus 0.6 pw reserve: part 1 the layout records and commands (1.1, Opus `xhigh`, cycle 40), part 2 the queries and Golden A's layout data (1.1, `high`), part 3 the panel page (1.2, `high`), part 4 the BOM, legend and PART DATA (0.9, `high`; FT-204, FT-205), part 5 the EW-LAYOUT rules (0.8, `medium`); AC-33 passes after part 5 except R2's end brackets (WP-S4.02).
+
 #### WP-S4.02 2D panel editing tools
 
 | Field | Value |
