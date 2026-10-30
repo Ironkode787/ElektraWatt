@@ -27,12 +27,18 @@ const ZERO: &str = "sha256:00000000000000000000000000000000000000000000000000000
 const NAME: &str = "ElektraWatt starter parts";
 const LICENCE: &str = "CC0-1.0";
 const VERSION: &str = "0.1.0";
-/// The library's version: 0.1.1 since FT-659 changed two parts, 0.1.2 since FT-606 added the one-pole on/off switch
-/// EW-GEN-SW-1 (a library refuses other content under a published version, doc 05 §13.1).
+/// The library's version: 0.1.1 since FT-659 and FT-655 changed parts, 0.1.2 since FT-606 added the one-pole on/off
+/// switch EW-GEN-SW-1 (a library refuses other content under a published version, doc 05 §13.1).
 const LIBRARY_VERSION: &str = "0.1.2";
 /// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
-/// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y).
-const BUMPED: &[(&str, &str)] = &[("EW-GEN-SEL-1", "0.1.1"), ("EW-GEN-VLV-1", "0.1.1")];
+/// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. FT-655: the relay
+/// and the contactor template their contacts beside the coil).
+const BUMPED: &[(&str, &str)] = &[
+    ("EW-GEN-SEL-1", "0.1.1"),
+    ("EW-GEN-VLV-1", "0.1.1"),
+    ("EW-GEN-RLY-1", "0.1.1"),
+    ("EW-GEN-CON-1", "0.1.1"),
+];
 
 /// The version of part `number`.
 fn part_version(number: &str) -> &'static str {
