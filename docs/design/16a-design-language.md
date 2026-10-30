@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; amended 2026-10-30, cycle-38 design pass, part 2: the open-CP marker's value (§4.6), the double-click rule and the canvas context menu (§5.5), the one-toast import outcome (§6.10), a terminal in a sentence (§8), decision log ID-883, ID-884; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; amended 2026-10-30, cycle-38 design pass, part 3: the bottom dock's close control, the Messages toggle and Escape, the zoom kept across docks and the clamp at half the client height (§5.7), the last check's counts in the findings field (§5.8), a failed card's lead in words (§6.23), a shared pin by its ordinal (§8), decision log ID-889; amended 2026-10-30, cycle-38 design pass, part 2: the open-CP marker's value (§4.6), the double-click rule and the canvas context menu (§5.5), the one-toast import outcome (§6.10), a terminal in a sentence (§8), decision log ID-883, ID-884; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -681,6 +681,8 @@ toggle shows). The mockup's table, a data grid (§6.21) with the mockup's five c
 FT-522, not part of the restyle. The other bottom panes as built: Find (table
 rows), Jobs (§6.19 and §6.25), History (§6.24) and Preview (§6.23).
 
+*As amended (cycle 38, fix round FX38d; decision log ID-889, amending ID-743).* **Close.** A bottom pane alone in the dock, without the tab row, carries the dock's close button at its header's right end; the command that opens Messages closes it again (`messages.show` without `on` toggles, as History, Preview and Jobs do), and Escape with the focus in Messages closes it once a tool at work has had its Escape. **The canvas keeps its view.** Opening, closing or dragging a dock keeps each canvas tab's zoom and centre; a fit happens only on the host's first size of a canvas group, a page change or an explicit fit. The trade-off: with the Preview dock open the kept zoom crops the sheet's top row and title block, where the old refit showed the whole page; whether a fitted, untouched view should refit when a dock opens is FT-769. **The clamp.** The display clamp above also leaves the page view at least half the window's client height, so in a short window `size.dock.bottom_min` gives way to it (ID-743 as amended).
+
 ### 5.8 The status bar
 
 `size.status` (26 px) on `color.surface.chrome`, `type.small` with tabular digits, separated from the content by a
@@ -709,6 +711,8 @@ year does not belong in the busiest strip of the window.
 *As built (cycle 32; decision log ID-749).* The save-state field shows exactly the three texts above: "Saved", "Unsaved changes" and "Read-only".
 
 *As built (cycle 38; decision log ID-875, FT-710).* The findings field, the check toast and the Messages tab's chip count by one rule, `MessageCounts::open`: the project's open errors, warnings and infos, without the waived and the pending ones (the completeness findings of the page being edited); the field adds "· N pending on this page" when there are any. The Properties chip stays scoped to its record or page.
+
+*As built (cycle 38, fix round FX38d; decision log ID-889).* After Check project the findings field shows the last check's counts while the project is at the revision it checked, also with Messages closed, and its click opens Messages; an edit hides it until the pane or a new check counts again.
 
 ### 5.9 Focus order
 
@@ -1050,6 +1054,8 @@ scrolls, as built. Without a card the tab shows the empty state of §6.17 ("No p
 <summary>" in `type.small` with ellipsis and a tooltip when cut, then Apply (a Subtle button with its label in
 `color.accent` SemiBold), Cancel and Show (Subtle). Polite live region as built.
 
+*As built (cycle 38, fix round FX38d; decision log ID-889).* A failed card leads in words with what blocks the apply: a macro card reads "The macro clashes with this project and cannot be inserted here (3 conflicts)", and the rule code follows under it as secondary text in `type.small` `color.text.secondary` ("Rule …"); the conflict list below is not repeated in the lead. A macro failure without conflicts reads "The macro cannot be inserted here: …" with the refusal's words; every other failed card keeps its "card-failed" sentence.
+
 ### 6.24 Finding rows, History rows and the chip line
 
 **Finding rows** (the Messages tree, WP-S2.09 part 2) are tree rows (§6.6) with a severity icon of
@@ -1217,6 +1223,9 @@ HUD; chips avoid it (§7.4).
    *As built (cycle 38; decision log ID-883, FT-716):* a sentence names a terminal by strip and number in words,
    "-X1011 terminal 3" (a toast, the Place target "-X1031 terminal 21"), so the strip and the number read apart; tags,
    tables, Properties and print keep the designation `-X1011:3`.
+   *As built (cycle 38; decision log ID-889):* a pin whose designation the device shares is named in a sentence by
+   its position, "-1A4 pin − (2nd)" (the placement toast), never by the label's `#2`; tags, tables and print keep
+   the label `-1A4:-#2`. The ordinal is English only (FT-752).
 9. **Titles of dialogs** are the question or the task, not the subject: "Recover unsaved changes?", not "Recovery".
    Primary buttons repeat the verb ("Recover", "Export", "Discard"), never "OK" or "Yes".
 

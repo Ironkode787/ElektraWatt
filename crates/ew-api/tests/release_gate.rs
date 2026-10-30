@@ -59,7 +59,7 @@ const COMMENT_ID: &str = "3b9c1d72-5e48-7a06-8f13-2d6c0e9a4b51";
 
 /// Writes one comment record (the reserved `comment` kind) to `comments.jsonl` of the closed project at `dir` and
 /// lists it in the manifest, as a review tool that adds a comment does.
-// TODO(FT): switch to the comment command once one exists, instead of writing comments.jsonl and the manifest by
+// TODO(FT-761): switch to the comment command once one exists, instead of writing comments.jsonl and the manifest by
 // hand.
 fn add_comment(dir: &Path) {
     use ew_store::ew_format::{FileHash, FilePath, sha256};
