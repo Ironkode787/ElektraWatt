@@ -21,6 +21,7 @@
 
 use egui::text::LayoutJob;
 use egui::{Align, Layout, RichText, Ui};
+use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::Value;
