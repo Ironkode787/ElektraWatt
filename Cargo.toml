@@ -62,9 +62,10 @@ mem_forget = "warn"
 [profile.dev.package."*"]
 opt-level = 1
 
-# kurbo stays at opt-level 0: on macOS, LLVM's optimiser merges a `sin` and a `cos` of one angle into Apple's
-# `__sincos_stret`, whose last bit can differ, and the icon generator's arcs-to-cubics coordinates (rounded to 1/1000)
-# then differ from the committed table (CI on the cycle-36 delivery, test-macos and test-macos-all-features).
+# kurbo stays at opt-level 0, kept for portability (macOS is no longer a CI or supported platform, ID-880): on
+# macOS, LLVM's optimiser merges a `sin` and a `cos` of one angle into Apple's `__sincos_stret`, whose last bit can
+# differ, and the icon generator's arcs-to-cubics coordinates (rounded to 1/1000) then differ from the committed
+# table (historical: CI on the cycle-36 delivery, the former test-macos and test-macos-all-features jobs).
 [profile.dev.package.kurbo]
 opt-level = 0
 

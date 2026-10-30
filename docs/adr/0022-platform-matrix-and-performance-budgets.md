@@ -99,7 +99,9 @@
    testing would add about 1.5–2.5 person-weeks to WP-S6.06 and WP-S6.07; the target users run Windows; determinism
    now holds across Windows and Linux. **The code stays portable:** the existing `cfg(target_os = "macos")` branches,
    the Apple-only dependency tables and the Cmd key display are kept, but EW writes no new macOS code and promises
-   nothing for macOS; a contributor may build there at their own risk. macOS can return only through a new decision.
+   nothing for macOS; a contributor may build there at their own risk. The `cfg(target_os = "macos")` code kept for
+   portability is dormant and unmaintained: CI no longer compiles it, so it may not build. macOS can return only
+   through a new decision.
    The tier table, the backends, the baseline machine, the consequences and the alternatives follow this amendment.
 
 ## Consequences
