@@ -26,7 +26,6 @@ use ew_scene::page::{
     ConnectionView, PageFinding, PageKind, PageScene, PageView, RepView, page_display_list, page_scene,
 };
 use serde_json::json;
-use sha2::{Digest, Sha256};
 
 use golden_files::{
     blessing, check_or_bless, csv_rows, decode_rgba, differing_percent, expected_dir, frame_figure_errors,
@@ -317,81 +316,56 @@ fn the_printed_frame_matches_doc_20_section_17_1() {
     assert!(errors.is_empty(), "{errors:#?}");
 }
 
-/// The shards of the PNG comparison: nextest runs them in parallel. Shard `k` of [`PNG_SHARDS`] compares the
-/// pages `k * n / PNG_SHARDS .. (k + 1) * n / PNG_SHARDS` of the `n` golden pages in page order, so the shards
-/// together compare every page once whatever `n` is.
-const PNG_SHARDS: usize = 4;
+/// The folios of the per-gate PNG comparison: one of every page type of doc 20 §5 (title page, table of contents,
+/// bus topology, section divider, multi-line schematic, assembly overview, fluid-power schematic, parts list,
+/// panel layout, and two generated report pages: the wire list and the PLC overview).
+const PNG_SAMPLE: [&str; 11] = [
+    "1", "2", "3", "100", "101", "201", "203", "901", "902", "907", "908",
+];
 
+/// Per gate: one golden page of every page type ([`PNG_SAMPLE`]) renders to a 150 dpi PNG within doc 20's
+/// tolerance of the committed one (test audit g7). Every page is compared by the deep nightly
+/// (`nightly_the_png_candidates_match_within_the_doc_20_tolerance_on_every_page`) and by `cargo xtask acceptance`
+/// (AC-02's raster entry).
 #[test]
-fn the_png_candidates_match_within_the_doc_20_tolerance_shard_1_of_4() {
-    png_candidates_match(0);
-}
-
-#[test]
-fn the_png_candidates_match_within_the_doc_20_tolerance_shard_2_of_4() {
-    png_candidates_match(1);
-}
-
-#[test]
-fn the_png_candidates_match_within_the_doc_20_tolerance_shard_3_of_4() {
-    png_candidates_match(2);
-}
-
-#[test]
-fn the_png_candidates_match_within_the_doc_20_tolerance_shard_4_of_4() {
-    png_candidates_match(3);
-}
-
-/// The pages of PNG shard `shard` of `n` pages.
-fn png_shard_range(shard: usize, n: usize) -> std::ops::Range<usize> {
-    shard * n / PNG_SHARDS..(shard + 1) * n / PNG_SHARDS
-}
-
-#[test]
-fn the_png_shards_compare_every_page_once() {
-    for n in [0, 1, 3, 4, 36, 37] {
-        let covered: Vec<usize> = (0..PNG_SHARDS).flat_map(|k| png_shard_range(k, n)).collect();
-        assert_eq!(covered, (0..n).collect::<Vec<_>>(), "{n} pages");
-    }
-}
-
-/// Every golden page of shard `shard` renders to a 150 dpi PNG within doc 20's tolerance of the committed one.
-fn png_candidates_match(shard: usize) {
-    let f = fonts();
+fn the_png_candidates_match_within_the_doc_20_tolerance_one_page_per_type() {
     with_golden_pages(|pages| {
-        for g in &pages[png_shard_range(shard, pages.len())] {
-            let scene = page_scene(&g.view, ew_text::bundled());
-            let bytes = page_png(&scene, &f);
-            let path = expected_dir("png").join(format!("{}.png", g.entry.folio));
-            if blessing() {
-                check_or_bless(&path, &bytes);
-                continue;
-            }
-            let committed = std::fs::read(&path)
-                .unwrap_or_else(|e| panic!("{}: {e} (run with EW_BLESS=1)", path.display()));
-            let (w0, h0, a) = decode_rgba(&committed);
-            let (w1, h1, b) = decode_rgba(&bytes);
-            assert_eq!((w0, h0), (w1, h1), "folio {} size", g.entry.folio);
-            let pct = differing_percent(&a, &b, 16);
-            assert!(
-                pct <= 0.5,
-                "folio {}: {pct:.3} % of the pixels differ",
-                g.entry.folio
-            );
-        }
+        let sample: Vec<&GoldenPage> = PNG_SAMPLE.iter().map(|f| folio(pages, f)).collect();
+        png_candidates_match(&sample);
     });
 }
 
+/// Every golden page renders to a 150 dpi PNG within doc 20's tolerance of the committed one (the deep nightly,
+/// CI-N-02). `EW_BLESS=1` with `--run-ignored all` rewrites every committed PNG.
 #[test]
-fn the_png_of_a_folio_is_deterministic() {
+#[ignore = "deep nightly (CI-N-02): the 150 dpi PNG of every golden page"]
+fn nightly_the_png_candidates_match_within_the_doc_20_tolerance_on_every_page() {
+    with_golden_pages(|pages| png_candidates_match(&pages.iter().collect::<Vec<_>>()));
+}
+
+/// Every page of `pages` renders to a 150 dpi PNG within doc 20's tolerance of the committed one.
+fn png_candidates_match(pages: &[&GoldenPage]) {
     let f = fonts();
-    with_golden_pages(|pages| {
-        let g = folio(pages, "101");
+    for g in pages {
         let scene = page_scene(&g.view, ew_text::bundled());
-        let a = Sha256::digest(page_png(&scene, &f));
-        let b = Sha256::digest(page_png(&scene, &f));
-        assert_eq!(a, b);
-    });
+        let bytes = page_png(&scene, &f);
+        let path = expected_dir("png").join(format!("{}.png", g.entry.folio));
+        if blessing() {
+            check_or_bless(&path, &bytes);
+            continue;
+        }
+        let committed =
+            std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e} (run with EW_BLESS=1)", path.display()));
+        let (w0, h0, a) = decode_rgba(&committed);
+        let (w1, h1, b) = decode_rgba(&bytes);
+        assert_eq!((w0, h0), (w1, h1), "folio {} size", g.entry.folio);
+        let pct = differing_percent(&a, &b, 16);
+        assert!(
+            pct <= 0.5,
+            "folio {}: {pct:.3} % of the pixels differ",
+            g.entry.folio
+        );
+    }
 }
 
 #[test]

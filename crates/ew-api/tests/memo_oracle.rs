@@ -18,16 +18,17 @@
 //!   the snapshot through a memoising `Q` and through `Session::query_over`; the values are equal, so are the
 //!   derivation notes, and a second memoising `Q` (mostly memo hits) is equal again, with hits in the
 //!   commit statistics.
-//! - `oracle_finds_no_mismatch_over_every_state_shard_<k>_of_5` (`MemoMode::Oracle`): the same states with the
-//!   engine's own oracle re-running one memoised read in eight cold; no mismatch and no cycle. The five shards
-//!   check consecutive state ranges and run in parallel (cycle 32); together they sample exactly the reads of
-//!   one run over all states. Its `#[ignore]`d twin `oracle_finds_no_mismatch_over_every_state_on_every_read`
-//!   re-runs every read in one run (the deep nightly, FT-297).
+//! - `oracle_finds_no_mismatch_over_every_state` (`MemoMode::Oracle`): the same states with the engine's own
+//!   oracle re-running one memoised read in 64 cold (a fixed, deterministic sample); no mismatch and no cycle. Per
+//!   gate the value equality of every family and key is `memo_equals_cold_over_every_state`'s; this test checks
+//!   the engine's own oracle path (test audit g7: one sampled run instead of five shards at one in eight). Its
+//!   `#[ignore]`d twin `oracle_finds_no_mismatch_over_every_state_on_every_read` re-runs every read in one run
+//!   (the deep nightly, FT-297).
 //! - `the_family_list_is_the_memo_families` (the guard that a promotion or demotion of a family breaks the
 //!   test loudly).
 //! - `a_cold_q_evaluates_every_query_once` (review cycle 10, finding 1): a cold `Q` evaluates each (family,
 //!   key) once, detached scopes included.
-//! - `creating_and_deleting_a_page_300_times_does_not_grow_the_store` (review cycle 10, finding 3): the
+//! - `creating_and_deleting_a_page_60_times_does_not_grow_the_store` (review cycle 10, finding 3): the
 //!   memo store's dependencies, memos and push index stay within a small constant of the live set.
 
 // The profile edit of the last state applies raw ops to a snapshot (`Model::apply_unchecked`, `raw-read`).
@@ -54,7 +55,7 @@ use serde_json::{Value, json};
 use ew_api::verify::SWEPT;
 
 /// The oracle samples one memoised read in this many (see `oracle_finds_no_mismatch_over_every_state`).
-const ORACLE_ONE_IN: u32 = 8;
+const ORACLE_ONE_IN: u32 = 64;
 
 /// The golden session with the colour and size profiles, a seeded ID source and the given memo mode.
 fn session(batch: &ew_import_tables::ew_interop_api::ImportBatch, memo: MemoMode) -> Session {
@@ -644,64 +645,17 @@ fn memo_equals_cold_over_every_state() {
     );
 }
 
-/// The shards of `oracle_finds_no_mismatch_over_every_state`: the states each one checks, `(first, last)`.
-/// Together they check every state once (`the_oracle_shards_check_every_state_once`); about the same oracle
-/// time each (a debug build, cycle 32).
-const ORACLE_SHARDS: [(usize, usize); 5] = [(1, 5), (6, 10), (11, 14), (15, 17), (18, 20)];
-
+/// The sampled oracle over every state, per gate. `Oracle::Every` (the Session's own setting) re-runs every
+/// memoised read cold at every depth: about five minutes over the 20 states in a debug build, so the deep nightly
+/// runs it (the ignored twin below). One read in `ORACLE_ONE_IN`, counted over all reads of the store
+/// (deterministic), samples them instead.
 #[test]
-fn the_oracle_shards_check_every_state_once() {
-    let mut next = 1;
-    for (first, last) in ORACLE_SHARDS {
-        assert_eq!(first, next, "the shards are contiguous: {ORACLE_SHARDS:?}");
-        assert!(last >= first, "{ORACLE_SHARDS:?}");
-        next = last + 1;
-    }
-    assert_eq!(
-        next,
-        STATES + 1,
-        "the shards end at the last state: {ORACLE_SHARDS:?}"
-    );
-}
-
-/// One shard of the sampled oracle over the states. `Oracle::Every` (the Session's own setting) re-runs every
-/// memoised read cold at every depth: about five minutes over the 20 states in a debug build. One read in
-/// `ORACLE_ONE_IN`, counted over all reads of the store (deterministic), samples them instead; the states are
-/// split into the shards of [`ORACLE_SHARDS`] so that nextest runs them in parallel. A shard replays the states
-/// before its own with the same reads and the store's read counter running, so it samples exactly the reads
-/// that one run over all states samples in its states.
-fn oracle_shard(shard: usize) {
-    let (first, last) = ORACLE_SHARDS[shard];
+fn oracle_finds_no_mismatch_over_every_state() {
     oracle_finds_no_mismatch(
         Oracle::OneIn(NonZeroU32::new(ORACLE_ONE_IN).expect("n is not zero")),
-        first,
-        last,
+        1,
+        STATES,
     );
-}
-
-#[test]
-fn oracle_finds_no_mismatch_over_every_state_shard_1_of_5() {
-    oracle_shard(0);
-}
-
-#[test]
-fn oracle_finds_no_mismatch_over_every_state_shard_2_of_5() {
-    oracle_shard(1);
-}
-
-#[test]
-fn oracle_finds_no_mismatch_over_every_state_shard_3_of_5() {
-    oracle_shard(2);
-}
-
-#[test]
-fn oracle_finds_no_mismatch_over_every_state_shard_4_of_5() {
-    oracle_shard(3);
-}
-
-#[test]
-fn oracle_finds_no_mismatch_over_every_state_shard_5_of_5() {
-    oracle_shard(4);
 }
 
 /// The full oracle of the deep nightly (CI-N-02, FT-297; `.github/workflows/deep-nightly.yml`, run with
@@ -833,8 +787,10 @@ fn growth_counts(session: &Session) -> (usize, usize, usize, usize) {
 /// were never collected (the review's probe: partition dependencies 110 -> 410, `page_ids` dependencies
 /// 1 -> 301, `page_local_nets` memos 13 -> 313, push index 9,526 -> 10,726). Now every count stays within a
 /// small constant of the live set.
+/// 60 create-and-delete cycles (300 before the test audit g7): a leak of one dependency, memo or push-index entry
+/// per cycle exceeds every bound below.
 #[test]
-fn creating_and_deleting_a_page_300_times_does_not_grow_the_store() {
+fn creating_and_deleting_a_page_60_times_does_not_grow_the_store() {
     let batch = golden_common::batch();
     let mut session = session(&batch, MemoMode::On);
     let live_pages = session.world().model.table::<Page>().len();
@@ -870,7 +826,7 @@ fn creating_and_deleting_a_page_300_times_does_not_grow_the_store() {
         cycle(&mut session);
     }
     let before = growth_counts(&session);
-    for _ in 0..298 {
+    for _ in 0..58 {
         cycle(&mut session);
     }
     let after = growth_counts(&session);
@@ -898,7 +854,7 @@ fn creating_and_deleting_a_page_300_times_does_not_grow_the_store() {
         .total()
         .collected;
     assert!(
-        collected >= 290,
+        collected >= 50,
         "the deleted pages' memos are collected: {collected}"
     );
 
@@ -917,7 +873,8 @@ fn creating_and_deleting_a_page_300_times_does_not_grow_the_store() {
         cycle(&mut session);
     }
     let (before, push_before) = (families(&session), growth_counts(&session).3);
-    for _ in 0..20 {
+    // 12 sweeping cycles: more than the 8 dependency entries of slack per family below.
+    for _ in 0..12 {
         cycle(&mut session);
     }
     let (after, push_after) = (families(&session), growth_counts(&session).3);

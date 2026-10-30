@@ -10,8 +10,9 @@
 //! functions that `tests/page_output.rs` and `tests/connectivity_reports.rs` use to write them; doc 20's own
 //! tables where it states a value (§5 pages, §15 cross-references); the model through `Q`.
 //!
-//! **The oracle.** The sessions of the checks run with [`MemoMode::Oracle`]: every memoised read is also
-//! computed cold and compared, and the mismatches are in the report. The cross-reference scans (AC-05, D-01,
+//! **The oracle.** The sessions of the checks run with [`MemoMode::Oracle`]: memoised reads are also computed
+//! cold and compared (every read in the gate and the deep nightly, a fixed sample in the per-gate tests:
+//! [`Options::oracle`]), and the mismatches are in the report. The cross-reference scans (AC-05, D-01,
 //! D-14, AC-18) run on a memoised session: the oracle recomputes all 135 cross-reference texts cold, which
 //! takes about 25 s in a debug build.
 
@@ -44,6 +45,10 @@ pub struct Options {
     /// Measure and assert the AC-17 times (a milestone run: `cargo xtask acceptance --milestone`, which sets
     /// `EW_PERF_ASSERT=1`). Off, AC-17 is reported as not applicable and no clock is read.
     pub perf: bool,
+    /// The memo oracle of the two oracle sessions (`oracle`, `profiled`) once they are open: `Oracle::Every` in the
+    /// gate (`cargo xtask acceptance`) and the deep nightly, a fixed sample per gate in the ordinary tests (test
+    /// audit g7). The mismatch count is in the report either way.
+    pub oracle: ew_derive::Oracle,
     /// The veraPDF XML report that AC-13's veraPDF entry reads (the gate passes `EW_VERAPDF_REPORT` here; the
     /// headless run passes `None`, so the committed report never depends on the environment).
     pub verapdf: Option<std::path::PathBuf>,
@@ -86,6 +91,12 @@ impl Ctx {
         let ids = golden_common::ids_by_key(&batch);
         let oracle = golden_common::session_oracle(&batch);
         let profiled = golden_common::session_oracle_with(&batch, |p, _| golden_common::with_profiles(p));
+        for session in [&oracle, &profiled] {
+            session
+                .memo()
+                .expect("an oracle session memoises")
+                .set_oracle(options.oracle);
+        }
         let memoised = golden_common::session(&batch);
         let view = golden_session(None);
         let q = view.query();

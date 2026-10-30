@@ -66,13 +66,36 @@ fn committed_report() -> std::path::PathBuf {
 /// The ordinary run's options: no raster comparison (the 150 dpi PNGs are compared by `tests/page_output.rs`, and
 /// by the full run of `cargo xtask acceptance`), no performance measurements (milestone runs only), and no
 /// veraPDF report (the headless run never reads EW_VERAPDF_REPORT: the committed report does not depend on the
-/// environment).
+/// environment). The oracle sessions re-run one memoised read in 64 cold (a fixed, deterministic sample; test
+/// audit g7): the gate and the deep nightly's `nightly_the_headless_report_equals_the_committed_report_on_every_
+/// read` re-run every read.
 fn headless() -> Options {
     Options {
         raster: false,
         perf: false,
+        oracle: ew_derive::Oracle::OneIn(std::num::NonZeroU32::new(64).expect("n is not zero")),
         verapdf: None,
     }
+}
+
+/// The deep nightly's run of the headless report with the oracle on every read of the oracle sessions (CI-N-02):
+/// every row equals the committed report's and the oracle finds no mismatch.
+#[test]
+#[ignore = "deep nightly (CI-N-02): the headless acceptance report with the oracle on every read"]
+fn nightly_the_headless_report_equals_the_committed_report_on_every_read() {
+    let report = run(Options {
+        oracle: ew_derive::Oracle::Every,
+        ..headless()
+    });
+    assert_eq!(report.oracle_mismatches, 0, "the oracle found memo mismatches");
+    let path = committed_report();
+    let committed = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    assert_eq!(
+        report.markdown(),
+        committed,
+        "{} differs with the oracle on every read",
+        path.display()
+    );
 }
 
 /// The shards of the headless report: the entry indexes each one evaluates (an `entry_from` row goes with the
@@ -243,6 +266,7 @@ fn gate() {
     let report = run(Options {
         raster: true,
         perf: std::env::var_os("EW_PERF_ASSERT").is_some(),
+        oracle: ew_derive::Oracle::Every,
         verapdf: std::env::var_os(checks::VERAPDF_REPORT_ENV)
             .filter(|v| !v.is_empty())
             .map(std::path::PathBuf::from),

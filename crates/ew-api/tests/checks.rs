@@ -84,14 +84,39 @@ fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_memo() {
     assert_eq!(first, cold, "memoised and cold runs agree");
 }
 
-/// The oracle is quiet over the full online check and the pre-delivery check of Golden A.
+/// The oracle is quiet over the full online check and the pre-delivery check of Golden A, re-running one memoised
+/// read in 16 cold per gate (a fixed, deterministic sample; test audit g7). The value equality of the whole report
+/// is the `_memo` half's; every read runs through the oracle in the deep nightly
+/// (`nightly_golden_a_check_oracle_is_quiet_on_every_read`).
 #[test]
 fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle() {
+    check_oracle_is_quiet(ew_derive::Oracle::OneIn(
+        std::num::NonZeroU32::new(16).expect("n is not zero"),
+    ));
+}
+
+/// The deep nightly's twin of `golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle`: every memoised
+/// read of both checks re-run cold.
+#[test]
+#[ignore = "deep nightly (CI-N-02): the check oracle on every read, about two minutes in a debug build"]
+fn nightly_golden_a_check_oracle_is_quiet_on_every_read() {
+    check_oracle_is_quiet(ew_derive::Oracle::Every);
+}
+
+fn check_oracle_is_quiet(sample: ew_derive::Oracle) {
     let batch = golden_common::batch();
     let oracle = golden_common::session_oracle(&batch);
+    let _ = oracle.take_oracle_mismatches();
+    let store = oracle.memo().expect("memoising session");
+    store.set_oracle(sample);
+    let checks_before = store.total_stats().total().oracle_checks;
     let _ = oracle.check(&checks::FULL, CheckMode::Online);
     let _ = oracle.check(&PRE_DELIVERY, CheckMode::Release);
     assert!(oracle.take_oracle_mismatches().is_empty());
+    assert!(
+        store.total_stats().total().oracle_checks > checks_before,
+        "the oracle checked reads of the checks"
+    );
 }
 
 /// The golden batch with -X1031:4 renamed to "3", so the strip holds a duplicate before any edit (as a

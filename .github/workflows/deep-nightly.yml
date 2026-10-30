@@ -5,8 +5,11 @@
 # CI-N-03; ci/README.md "Deep nightly"): what is too slow for a pull request and for a hosted nightly of its own.
 #
 #   full-oracle        the memo oracle over Golden A (`memo_oracle`: every memoised read at every depth re-run cold,
-#                      the `#[ignore]`d twin of the pull-request test, which samples one read in eight) and over
-#                      Golden B (`golden_b`: the script runs with the oracle on), in the release profile with debug
+#                      the `#[ignore]`d twin of the pull-request test, which samples one read in 64) and over
+#                      Golden B (`golden_b`: the script runs with the oracle on), and the exhaustive twins of sampled
+#                      pull-request tests (every test named `nightly_*`, ignored in the gate: the check oracle and the
+#                      headless acceptance report on every read, the PNG of every golden page, the spike's memo path
+#                      under the full oracle, each headless script run twice), in the release profile with debug
 #                      assertions and overflow checks (as fuzz.yml);
 #   proptest           every test of the core crates (`ew-model`, `ew-commands`, `ew-store`, `ew-format`, `ew-memo`,
 #                      `ew-derive`, `ew-schema`), and so every property test, with PROPTEST_CASES=20000 (the variable
@@ -134,18 +137,19 @@ jobs:
         id: build
         continue-on-error: true
         shell: bash
-        run: cargo nextest run --release --locked --no-run -p ew-api --all-features -E 'binary(memo_oracle) or binary(golden_b)'
+        run: cargo nextest run --release --locked --no-run -p ew-api -p ew-testkit -p elektrawatt --all-features -E 'binary(memo_oracle) or binary(golden_b) or test(/(^|::)nightly_/)'
       # `--run-ignored all` adds the ignored twin of the memo-oracle test (every read re-run cold) to the tests of
-      # both binaries; no other test of them is ignored.
-      - name: memo oracle over Golden A and Golden B
+      # both binaries (no other test of them is ignored) and runs the ignored `nightly_*` tests of the other binaries;
+      # their other tests are filtered out (the gate runs them).
+      - name: memo oracle over Golden A and Golden B, and the nightly twins
         id: oracle
         if: steps.build.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
           mkdir -p target/deep
-          timeout 75m cargo nextest run --release --locked --profile ci -p ew-api --all-features \
-            -E 'binary(memo_oracle) or binary(golden_b)' --run-ignored all --no-fail-fast \
+          timeout 75m cargo nextest run --release --locked --profile ci -p ew-api -p ew-testkit -p elektrawatt --all-features \
+            -E 'binary(memo_oracle) or binary(golden_b) or test(/(^|::)nightly_/)' --run-ignored all --no-fail-fast \
             2>&1 | tee target/deep/oracle-log.txt
           exit "${PIPESTATUS[0]}"
       - name: verdict and job summary
