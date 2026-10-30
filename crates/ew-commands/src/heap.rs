@@ -297,13 +297,17 @@ impl HeapSize for ew_schema::Revision {
 }
 
 // WP-S1.18 part 1: the typed sign-off and release record (digests, dates and counts are inline).
-plain!(
-    u64,
-    ew_schema::Digest128,
-    ew_schema::Sha256,
-    ew_schema::Date,
-    ew_schema::LabelFormat
-);
+plain!(u64, ew_schema::Digest128, ew_schema::Sha256, ew_schema::Date);
+
+/// A label format of a newer build keeps its value verbatim on the heap (FX37a); the known formats are inline.
+impl HeapSize for ew_schema::LabelFormat {
+    fn heap_size(&self) -> usize {
+        match self {
+            ew_schema::LabelFormat::Unknown(v) => v.heap_size(),
+            _ => 0,
+        }
+    }
+}
 
 impl HeapSize for ew_schema::PackVersion {
     fn heap_size(&self) -> usize {
@@ -1236,6 +1240,15 @@ mod tests {
             .unwrap()
             .extend(extra.as_object().unwrap().clone());
         serde_json::from_value(v).expect("a text slot")
+    }
+
+    #[test]
+    fn a_label_format_of_a_newer_build_counts_its_value() {
+        assert_eq!(ew_schema::LabelFormat::Letter.heap_size(), 0);
+        let value = serde_json::json!({"roman": "upper case"});
+        let newer = ew_schema::LabelFormat::Unknown(value.clone());
+        assert_eq!(newer.heap_size(), value.heap_size());
+        assert!(newer.heap_size() > 0);
     }
 
     #[test]
