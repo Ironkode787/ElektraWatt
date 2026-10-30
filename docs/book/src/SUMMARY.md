@@ -23,6 +23,8 @@
     - [`box.reshape`](reference/commands/box.reshape.md)
     - [`box.structure`](reference/commands/box.structure.md)
     - [`cable.create`](reference/commands/cable.create.md)
+    - [`check.unwaive`](reference/commands/check.unwaive.md)
+    - [`check.waive`](reference/commands/check.waive.md)
     - [`conductor.add`](reference/commands/conductor.add.md)
     - [`connection.delete`](reference/commands/connection.delete.md)
     - [`connection.draw`](reference/commands/connection.draw.md)
