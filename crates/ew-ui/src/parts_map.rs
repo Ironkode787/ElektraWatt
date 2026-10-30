@@ -7,7 +7,7 @@
 //! **Layout.** "Map columns" in `type.title`, one line naming the file, the Source field (the key the map is saved
 //! under) with the "Saved map" caption when the members came from it, then the column table: Column, Sample (in
 //! `color.text.secondary`) and "Imports as", a drop-down of the members in words ("Not imported" first, then
-//! "Manufacturer", "Part number", …, "Technical data: <header>"). The importer's refusal of the map stands under the
+//! "Manufacturer", "Part number", …, "Technical data: `<header>`"). The importer's refusal of the map stands under the
 //! table in words in `color.error` ("Map a column to Manufacturer"); Import (Primary, disabled with that reason as its tooltip) and
 //! Cancel close the card.
 //!
