@@ -219,8 +219,9 @@ fn paint_severity_chip(ui: &mut Ui, severity: &str, word: &str, name: &str, tip:
         t.space_2 + icon + t.space_1 + galley.size().x + t.space_2,
         t.size_badge,
     );
-    let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, name));
+    // FT-759: the Properties header's chip is a button that opens Messages filtered to the record.
+    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, name));
     let painter = ui.painter();
     painter.rect_filled(rect, theme::radius(t.radius_sm), fill.color32());
     let icon_rect = egui::Rect::from_center_size(

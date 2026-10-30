@@ -118,7 +118,7 @@ impl PropertiesPane {
                 ui.label(strings::text("props-empty"));
                 return;
             };
-            Self::header(ui, sheet);
+            Self::header(ui, sheet, events);
             // FT-541 (doc 16a §6.8): "Filter properties" under the header while the open categories hold more than
             // twelve rows.
             let filter = shell.properties_filter().to_owned();
@@ -353,7 +353,7 @@ impl PropertiesPane {
     /// The header (§6.2): title, subtitle, location, finding chips (doc 16a §6.8: the title in `type.title`, the
     /// subtitle and the location in `type.small`, secondary; FT-530: one severity chip per finding at the right of the
     /// title line, its icon and word, the rule and message as the tooltip and in its node's name).
-    fn header(ui: &mut Ui, sheet: &PropertySheet) {
+    fn header(ui: &mut Ui, sheet: &PropertySheet, events: &mut Vec<Event>) {
         let t = crate::theme::current(ui.ctx());
         // Cycle 36 (window check W36): the chips are laid out first, at the right, and the title takes what is left,
         // ellipsised; the findings collapse into one count chip per severity ("3 Warnings", every rule and message in
@@ -391,15 +391,16 @@ impl PropertiesPane {
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.spacing_mut().item_spacing.x = t.space_1;
-                if compact {
-                    // Right to left: info, warning, error, so the most severe reads first.
-                    for (severity, of) in groups.iter().rev() {
-                        glyph_chip(ui, severity, of);
-                    }
-                } else {
-                    // Right to left: info, warning, error, so the most severe reads first.
-                    for (severity, of) in groups.iter().rev() {
-                        crate::messages::severity_count_chip(ui, severity, of);
+                // Right to left: info, warning, error, so the most severe reads first. FT-759: a chip is a button
+                // that opens Messages filtered to the record (the existing `messages.show` and `navigator.filter`).
+                for (severity, of) in groups.iter().rev() {
+                    let chip = if compact {
+                        glyph_chip(ui, severity, of)
+                    } else {
+                        crate::messages::severity_count_chip(ui, severity, of)
+                    };
+                    if chip.on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
+                        events.extend(findings_events(&sheet.header.title));
                     }
                 }
                 ui.add_space(t.space_2);
@@ -1286,6 +1287,17 @@ fn count_words(severity: &str, n: usize) -> String {
 
 /// A severity's glyph chip (FT-664): the severity's subtle fill, its icon, and the count in `type.caption` when more
 /// than one; named like the count chip ("2 Warnings: <rule>: <message>; …"), every finding in its tooltip.
+/// The actions of a click on a Properties finding chip (FT-759): Messages opens, filtered to the record by its title.
+fn findings_events(title: &str) -> [Event; 2] {
+    [
+        Event::Action("messages.show", json!({"on": true})),
+        Event::Action(
+            "navigator.filter",
+            json!({"kind": "messages", "text": title}),
+        ),
+    ]
+}
+
 fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::Response {
     let t = crate::theme::current(ui.ctx());
     let (fill, text, icon_colour) = match severity {
@@ -1302,7 +1314,8 @@ fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::R
     });
     let icon = t.type_caption.size + t.space_1;
     let width = t.space_1 + icon + count.as_ref().map_or(0.0, |g| t.space_1 + g.size().x) + t.space_1;
-    let (rect, response) = ui.allocate_exact_size(Vec2::new(width, t.size_badge), Sense::hover());
+    // FT-759: a button that opens Messages filtered to the record.
+    let (rect, response) = ui.allocate_exact_size(Vec2::new(width, t.size_badge), Sense::click());
     let lines: Vec<String> = findings
         .iter()
         .map(|(rule, message)| strings::format("props-finding-tip", &[rule, message]))
@@ -1311,7 +1324,7 @@ fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::R
         "props-findings-chip",
         &[&count_words(severity, findings.len()), &lines.join("; ")],
     );
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &name));
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
     let painter = ui.painter();
     painter.rect_filled(rect, crate::theme::radius(t.radius_sm), fill.color32());
     let icon_rect = egui::Rect::from_center_size(

@@ -519,6 +519,61 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
     );
 }
 
+/// FT-759 (rv-vis-2): the header's "N Warnings" chip is a button: a click opens Messages filtered to the record by
+/// its title, through the existing `messages.show` and `navigator.filter`.
+#[test]
+fn ft759_a_finding_chip_opens_messages_filtered_to_the_record() {
+    use ew_ui::ew_viewmodel::navigators::NavKind;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(&mut h, "messages.next", json!({}));
+    settle(&mut h);
+    // Close the pane F8 opened, so the click must open it.
+    dispatch(&mut h, "messages.show", json!({"on": false}));
+    settle(&mut h);
+    settle(&mut h);
+    let header = h
+        .state()
+        .shell()
+        .properties()
+        .sheet()
+        .expect("a sheet")
+        .header
+        .clone();
+    assert!(!header.findings.is_empty());
+    let chip = h
+        .get_all_by_role(egui::accesskit::Role::Button)
+        .find(|n| {
+            n.accesskit_node().label().is_some_and(|l| {
+                l.contains(" Warning") || l.contains(" Error") || l.contains(" Info")
+            }) && n.accesskit_node().label().is_some_and(|l| l.contains(": EW-"))
+        })
+        .expect("a finding chip");
+    let r = chip.accesskit_node().raw_bounds().expect("bounds");
+    let at = egui::pos2(((r.x0 + r.x1) / 2.0) as f32, ((r.y0 + r.y1) / 2.0) as f32);
+    h.event(egui::Event::PointerMoved(at));
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    settle(&mut h);
+    let calls = h.state().dispatched_calls();
+    assert!(
+        calls.contains(&("navigator.filter", json!({"kind": "messages", "text": header.title}))),
+        "{calls:?}"
+    );
+    let nav = h.state().shell().nav(NavKind::Messages).expect("Messages is open");
+    assert_eq!(nav.filter, header.title);
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The severity word of a finding chip.
 fn severity_word(severity: &str) -> &'static str {
     match severity {
@@ -579,9 +634,10 @@ fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         let chip = h
             .query_by_label(&name)
             .unwrap_or_else(|| panic!("the chip {name}"));
+        // FT-759: the chip is a button (it opens Messages filtered to the record).
         assert_eq!(
             chip.accesskit_node().role(),
-            egui::accesskit::Role::Label,
+            egui::accesskit::Role::Button,
             "{name}"
         );
         assert!(
