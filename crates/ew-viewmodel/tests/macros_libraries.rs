@@ -285,6 +285,68 @@ fn ui3_save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
     assert_eq!(reason, "reason-library-write-window");
 }
 
+/// FX38b: a name with no ASCII letter or digit gives no key and is refused in words before any write (the library
+/// directory is as it was); a typed key still saves it.
+#[test]
+fn fx38b_a_name_that_gives_no_key_is_refused_before_any_write() {
+    let tmp = Tmp::new("macros-nokey");
+    let (t, _) = user_library(&tmp.0);
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let ids = psu_ids(&shell, false);
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    let listing = |root: &Path| -> Vec<String> {
+        let mut out: Vec<String> = walk(root)
+            .into_iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect();
+        out.sort();
+        out
+    };
+    let before = listing(&t.user);
+    let reason = refused(
+        &mut shell,
+        "macros.save",
+        json!({"name": "Ωμέγα", "library": "Mine", "confirm": true}),
+    );
+    assert_eq!(reason, "reason-macro-no-key");
+    assert_eq!(listing(&t.user), before, "nothing written");
+    done(
+        &mut shell,
+        "macros.save",
+        json!({"name": "Ωμέγα", "key": "omega", "library": "Mine", "confirm": true}),
+    );
+    assert_ne!(listing(&t.user), before, "a typed key saves the macro");
+}
+
+/// FX38b: Save with an empty library field and no writable library installed says so, not "no library called \"\"".
+#[test]
+fn fx38b_save_without_a_writable_library_names_the_reason() {
+    let tmp = Tmp::new("macros-nowritable");
+    let t = tiers(&tmp.0);
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let ids = psu_ids(&shell, false);
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    let reason = refused(&mut shell, "macros.save", json!({"name": "PSU", "confirm": true}));
+    assert_eq!(reason, "reason-no-writable-library");
+}
+
+/// Every file under `root`, recursively (none when it does not exist).
+fn walk(root: &Path) -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return out;
+    };
+    for e in entries.flatten() {
+        let p = e.path();
+        if p.is_dir() {
+            out.extend(walk(&p));
+        } else {
+            out.push(p);
+        }
+    }
+    out
+}
+
 /// Make variable: the process tag row of -102G1 becomes the variable `process_tag` of the next save, which the
 /// detail then lists.
 #[test]

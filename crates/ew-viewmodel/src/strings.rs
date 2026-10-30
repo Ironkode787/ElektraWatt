@@ -1699,7 +1699,6 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "preview-title" => "Preview: {0}",
         "preview-stale" => "stale",
         "preview-summary" => "{0} · {1} · {2} · {3}",
-        "preview-summary-import" => "{0} created · {1} skipped",
         "preview-records" => "{0} records",
         "preview-records-one" => "1 record",
         "preview-tags-count" => "{0} tags",
@@ -1708,8 +1707,6 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "preview-xrefs-count-one" => "1 cross-reference text",
         "preview-pages-count" => "{0} pages",
         "preview-pages-count-one" => "1 page",
-        "preview-part-copies" => "{0} part copies",
-        "preview-part-copies-one" => "1 part copy",
         "preview-entities" => "Entities",
         "preview-tags" => "Tags",
         "preview-xrefs" => "Xrefs",
@@ -1813,6 +1810,10 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-library-update" => "Library items are updated",
         "reason-no-updates" => "No library item chosen has an update",
         "reason-library-read-only" => "The library is read-only; save into a user or company library",
+        "reason-no-writable-library" => {
+            "No writable library is installed; add a user or company library first"
+        }
+        "reason-macro-no-key" => "The name has no letter a–z or digit to make a key from; type a key",
         "reason-library-write-window" => {
             "Only a person saves a macro, in the window: a library write is not undoable and no script reaches it"
         }

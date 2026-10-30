@@ -668,6 +668,13 @@ impl ShellModel {
                 || l.key == library
                 || l.id.to_string() == library
         }) else {
+            // FX38b: an empty library field means "the first writable one"; with none installed that is the reason,
+            // not a library called "".
+            if library.is_empty() {
+                return self.save_done(Outcome::Refused {
+                    reason_key: "reason-no-writable-library",
+                });
+            }
             return self.save_done(failed("error-no-library", &[&library]));
         };
         if !target.writable {
@@ -677,6 +684,13 @@ impl ShellModel {
         }
         let (target, target_name) = (target.id, target.name.clone());
         let key = if key.is_empty() { key_of(&name) } else { key };
+        // FX38b: a name without an ASCII letter or digit gives no key; refused in words before any write, not left
+        // to the library's identifier error.
+        if key.is_empty() {
+            return self.save_done(Outcome::Refused {
+                reason_key: "reason-macro-no-key",
+            });
+        }
         let variables = match serde_json::from_value(Value::Array(
             self.macros
                 .variables
@@ -733,6 +747,10 @@ mod tests {
     fn keys_are_lower_case_words_joined_by_dashes() {
         assert_eq!(key_of("PSU 24 V DC"), "psu-24-v-dc");
         assert_eq!(key_of("  Motor (DOL) "), "motor-dol");
+        // ASCII only (FX38b): a non-ASCII letter is dropped, and a name of none gives the empty key `macros.save`
+        // refuses.
+        assert_eq!(key_of("Übersicht"), "bersicht");
+        assert_eq!(key_of("Ωμέγα"), "");
     }
 
     #[test]
