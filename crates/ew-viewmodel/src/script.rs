@@ -5,7 +5,11 @@
 //!
 //! **Script** (`ew.uiscript/1`, JSON Lines). The first non-empty line is the header
 //! `{"$schema":"ew.uiscript/1","label":"..."}`; every further line is `{"action":"<id>","params":{...}}` with
-//! `params` optional. A line has no other member, an action ID is one of the registry. The header, like that of
+//! `params` optional. A line has no other member, an action ID is one of the registry.
+//! A refused step ends the run (unless `--keep-going`). To frame a refusal's window and go on, wrap the step in
+//! `{"action":"script.expect_refused","params":{"action":"<id>","params":{...}}}` (FT-720): it runs the inner step and
+//! is `done` exactly when that step is refused, with the refusal's key in `reason`; an accepted inner step makes it
+//! `failed` ("expected a refusal; the step was accepted"). The refusal's window state stays for the next step. The header, like that of
 //! `ew.cmdlog/1`, ignores members other than `$schema` and `label`.
 //!
 //! **Transcript** (`ew.uitranscript/1`, JSON Lines). A header `{"$schema":"ew.uitranscript/1","version":"..."}`,
@@ -910,6 +914,54 @@ pub struct StepResult {
     pub ok: bool,
 }
 
+/// The action that expects its inner step to be refused (FT-720).
+pub const EXPECT_REFUSED: &str = "script.expect_refused";
+
+/// Runs one action as a step does: refused when its enabling rule says so, else the extension's or the shell's.
+fn step_outcome(
+    shell: &mut ShellModel,
+    ext: &mut dyn StepExtension,
+    action: &str,
+    params: &Value,
+) -> Outcome {
+    let empty = Map::new();
+    let map = params.as_object().unwrap_or(&empty);
+    match actions::find(action).map(|m| actions::enabled_with(m, shell, map)) {
+        Some(Err(reason_key)) => Outcome::Refused { reason_key },
+        _ => match ext.handle(shell, action, params) {
+            Some(outcome) => outcome,
+            None => shell.dispatch(action, params),
+        },
+    }
+}
+
+/// Runs the inner step of `script.expect_refused`: the refusal's key when it is refused, else the step's failure
+/// (an accepted step fails with `message-expected-refusal`; a malformed inner step with
+/// `message-expect-refused-inner`, and the inner step does not run).
+fn expect_refused(
+    shell: &mut ShellModel,
+    ext: &mut dyn StepExtension,
+    params: &Value,
+) -> Result<&'static str, Outcome> {
+    let inner_fail = |key: &str| Outcome::Failed {
+        message: strings::text(key).to_owned(),
+    };
+    let action = match params.get("action").and_then(Value::as_str) {
+        Some(a) if a != EXPECT_REFUSED && actions::find(a).is_some() => a.to_owned(),
+        _ => return Err(inner_fail("message-expect-refused-inner")),
+    };
+    let inner = match params.get("params") {
+        None => Value::Object(Map::new()),
+        Some(p @ Value::Object(_)) => p.clone(),
+        Some(_) => return Err(inner_fail("message-expect-refused-inner")),
+    };
+    match step_outcome(shell, ext, &action, &inner) {
+        Outcome::Refused { reason_key } => Ok(reason_key),
+        Outcome::Done => Err(inner_fail("message-expected-refusal")),
+        failed @ Outcome::Failed { .. } => Err(failed),
+    }
+}
+
 /// Runs step number `number` (1-based) and returns its transcript line.
 pub fn run_step(
     shell: &mut ShellModel,
@@ -919,26 +971,29 @@ pub fn run_step(
 ) -> StepResult {
     // WP-S2.09 §6.3 item 5: the ends of the jobs that finished since the last step are taken first.
     shell.poll_jobs();
-    let empty = Map::new();
-    let params = step.params.as_object().unwrap_or(&empty);
-    let outcome = match actions::find(&step.action).map(|m| actions::enabled_with(m, shell, params)) {
-        Some(Err(reason_key)) => Outcome::Refused { reason_key },
-        _ => match ext.handle(shell, &step.action, &step.params) {
-            Some(outcome) => outcome,
-            None => shell.dispatch(&step.action, &step.params),
-        },
+    // FT-720: `script.expect_refused` runs its inner step and is done exactly when that step is refused; the refusal's
+    // key stays in `reason` (with its sentence) so the transcript says which refusal was met.
+    let (outcome, met_refusal) = if step.action == EXPECT_REFUSED {
+        match expect_refused(shell, ext, &step.params) {
+            Ok(reason_key) => (Outcome::Done, Some(reason_key)),
+            Err(outcome) => (outcome, None),
+        }
+    } else {
+        (step_outcome(shell, ext, &step.action, &step.params), None)
     };
     let (word, reason, message) = match &outcome {
-        Outcome::Done => ("done", Value::Null, Value::Null),
+        Outcome::Done => ("done", met_refusal.map_or(Value::Null, Value::from), Value::Null),
         Outcome::Refused { reason_key } => ("refused", Value::from(*reason_key), Value::Null),
         Outcome::Failed { message } => ("failed", Value::Null, Value::from(message.as_str())),
     };
     // G-PP triage row 10: the sentence of a refusal's key beside the key (which stays as it is: recordings compare
     // `reason` by key), and the summary of a preview card the step leaves pending.
-    let reason_text = match &outcome {
-        Outcome::Refused { reason_key } => Value::from(strings::text(reason_key)),
-        _ => Value::Null,
+    let refusal = match &outcome {
+        Outcome::Refused { reason_key } => Some(*reason_key),
+        Outcome::Done => met_refusal,
+        Outcome::Failed { .. } => None,
     };
+    let reason_text = refusal.map_or(Value::Null, |key| Value::from(strings::text(key)));
     let pending = card_summary(shell).map_or(Value::Null, Value::from);
     let mut members = vec![
         member("step", &Value::from(number)),
@@ -1166,6 +1221,74 @@ mod tests {
         assert_eq!(step["pending"], Value::Null);
         assert_eq!(step["state"]["project"], Value::Null);
         assert_eq!(step["state"]["title"], "ElektraWatt");
+    }
+
+    #[test]
+    fn expect_refused_meets_a_refusal_and_the_run_goes_on() {
+        let mut shell = ShellModel::for_tests();
+        let text = format!(
+            "{HEADER}
+{}
+{}
+",
+            r#"{"action":"script.expect_refused","params":{"action":"file.save"}}"#,
+            r#"{"action":"help.about"}"#
+        );
+        let steps = parse(&text).unwrap();
+        let mut lines = Vec::new();
+        let end = run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
+            lines.push(l.to_owned());
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(end.exit_code(), 0);
+        assert_eq!(lines.len(), 3);
+        let step: Value = serde_json::from_str(&lines[1]).unwrap();
+        assert_eq!(step["action"], "script.expect_refused");
+        assert_eq!(step["outcome"], "done");
+        assert_eq!(step["reason"], "reason-no-project");
+        assert_eq!(step["reason_text"], strings::text("reason-no-project"));
+        let next: Value = serde_json::from_str(&lines[2]).unwrap();
+        assert_eq!(next["outcome"], "done");
+    }
+
+    #[test]
+    fn expect_refused_fails_when_the_step_is_accepted_or_malformed() {
+        for (inner, message) in [
+            (
+                r#"{"action":"help.about"}"#,
+                "expected a refusal; the step was accepted",
+            ),
+            (
+                r#"{"action":"no.such"}"#,
+                strings::text("message-expect-refused-inner"),
+            ),
+            (
+                r#"{"action":"file.save","params":3}"#,
+                strings::text("message-expect-refused-inner"),
+            ),
+        ] {
+            let mut shell = ShellModel::for_tests();
+            let text = format!(
+                "{HEADER}
+{{\"action\":\"script.expect_refused\",\"params\":{inner}}}
+{}
+",
+                r#"{"action":"help.about"}"#
+            );
+            let steps = parse(&text).unwrap();
+            let mut lines = Vec::new();
+            let end = run(&mut shell, &mut NoExtension, &steps, false, &mut |l| {
+                lines.push(l.to_owned());
+                Ok(())
+            })
+            .unwrap();
+            assert_eq!(end, RunEnd::StepFailed { step: 1 }, "{inner}");
+            let step: Value = serde_json::from_str(&lines[1]).unwrap();
+            assert_eq!(step["outcome"], "failed", "{inner}");
+            assert_eq!(step["reason"], Value::Null, "{inner}");
+            assert_eq!(step["message"], message, "{inner}");
+        }
     }
 
     #[test]

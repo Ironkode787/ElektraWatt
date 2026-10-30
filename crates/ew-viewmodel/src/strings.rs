@@ -537,6 +537,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-command-run" => "Run model command",
         "action-view-snapshot" => "Write page snapshot",
         "action-ui-describe" => "Describe the user interface",
+        "action-script-expect-refused" => "Expect a refusal",
         "action-ui-dismiss" => "Dismiss popup or dialog",
 
         // Why an action is disabled.
@@ -576,6 +577,10 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "banner-recent-removed" => "{0} could not be opened and was removed from the recent projects.",
         "banner-dismiss" => "Dismiss",
         "message-no-snapshot" => "The snapshot needs the page renderer, which this runner does not have.",
+        "message-expected-refusal" => "expected a refusal; the step was accepted",
+        "message-expect-refused-inner" => {
+            "script.expect_refused needs `action`, an action ID, and `params` as an object"
+        }
         "error-unknown-action" => "Unknown action `{0}`.",
         "error-missing-param" => "Missing parameter `{0}`.",
         "error-bad-param" => "Parameter `{0}` is not valid.",

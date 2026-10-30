@@ -173,6 +173,7 @@ canvas.preview_snapshot View "Link preview snapshot" menu none shortcut none con
 canvas.press View "Press on the canvas" menu none shortcut none context canvas hidden params "x_mm:mm, y_mm:mm, button?:enum(primary|middle), shift?:bool, ctrl?:bool, alt?:bool, group?:uint"
 canvas.release View "Release on the canvas" menu none shortcut none context canvas hidden params "x_mm:mm, y_mm:mm, button?:enum(primary|middle), shift?:bool, ctrl?:bool, alt?:bool, group?:uint"
 canvas.dwell View "Pointer at rest" menu none shortcut none context canvas hidden params "ms:uint"
+script.expect_refused View "Expect a refusal" menu none shortcut none context global headless params "action:text, params?:json"
 ui.describe View "Describe the user interface" menu none shortcut none context global headless params ""
 page.goto View "Go to page…" menu none shortcut none context global hidden params "folio:text"
 tab.activate View "Show tab" menu none shortcut none context global hidden params "group:uint, index:uint"

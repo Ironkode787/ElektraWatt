@@ -34,8 +34,8 @@ use ew_schema::{
 };
 
 use crate::output::{
-    CpTargetsByPage, FrameLayer, LabelsLayer, PageBindingsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf,
-    PageGridOf, PageRepsOf, PageSlotsOf, PageTableOf, SymbolsLayer, TablesLayer, WiresLayer,
+    CpTargetsByPage, FrameLayer, LabelsLayer, PageBindingsOf, PageCpTargetsOf, PageDigest, PageEmbeddedOf,
+    PageFrameOf, PageGridOf, PageRepsOf, PageSlotsOf, PageTableOf, SymbolsLayer, TablesLayer, WiresLayer,
 };
 use crate::{Mismatch, Session};
 
@@ -76,6 +76,7 @@ pub const SWEPT: &[&str] = &[
     "module_starts",
     "page_bindings",
     "page_cp_targets",
+    "page_digest",
     "page_display_list_frame",
     "page_display_list_labels",
     "page_display_list_symbols",
@@ -312,6 +313,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<WiresLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<LabelsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<TablesLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<PageDigest>(memo, cold, keys.page_refs.iter().copied(), o);
     out
 }
 

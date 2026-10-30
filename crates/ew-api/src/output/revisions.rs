@@ -22,7 +22,8 @@
 //! (FR-I18N-005); the loop over the documentation languages joins when they render.
 //!
 //! The digest reads the memoised layers and the memoised title block, so it is a function of `Q` (Class I), whatever
-//! the thread that encodes it ([`page_digests`] encodes on [`ew_export::par_map`]).
+//! the thread that encodes it; [`page_digest`] is itself memoised ([`PageDigest`], FT-722), so the change status
+//! reads each page's digest once per revision ([`page_digests`] encodes on [`ew_export::par_map`]).
 //!
 //! **The change status.** `r_last` is the latest released revision that is not withdrawn
 //! ([`ew_derive::last_released_revision`]), `o` the open revision ([`ew_derive::open_revision`]):
@@ -48,7 +49,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::{PageEntry, PageOrder, PageRef, Q, TbValue, TitleBlock, TitleBlockValues};
+use ew_derive::{PageEntry, PageOrder, PageRef, Policy, Q, Query, TbValue, TitleBlock, TitleBlockValues};
 use ew_dl::canonical::CANONICAL_VERSION;
 use ew_dl::{Canonical, Layer};
 use ew_export::{Parallelism, par_map};
@@ -178,10 +179,27 @@ fn title_value(c: &mut Canonical, value: &TbValue) {
     }
 }
 
+/// `page_digest(page)`: the memoised digest of one page (FT-722; Class I, doc 15 §5.6), `None` for a page that is
+/// not in the page order. It reads the page order, the page's memoised layers and its title block, so an edit on
+/// one page re-executes only that page's digest.
+#[derive(Debug)]
+pub struct PageDigest;
+
+impl Query for PageDigest {
+    type Key = PageRef;
+    type Value = Option<Digest128>;
+    const FAMILY: &'static str = "page_digest";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, key: &PageRef) -> Arc<Option<Digest128>> {
+        let order = q.get::<PageOrder>(());
+        Arc::new(order.entry(*key).map(|e| digest(&digest_input(q, e))))
+    }
+}
+
 /// The digest of `page` (see the module documentation); `None` for a page that is not in the page order.
 pub fn page_digest(q: &Q, page: PageRef) -> Option<Digest128> {
-    let order = q.get::<PageOrder>(());
-    order.entry(page).map(|e| digest(&digest_input(q, e)))
+    *q.get::<PageDigest>(page)
 }
 
 /// The digest of every page of the page order by page ID ([`page_uuid`]: a drawn page's ID, a divider's section ID,

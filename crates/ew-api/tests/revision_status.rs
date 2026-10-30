@@ -13,10 +13,11 @@ use std::sync::Arc;
 
 use ew_api::output::ew_dl::{Item, ItemKind, Layer};
 use ew_api::output::{
-    Parallelism, changed_now, changed_pages, last_changed_in, page_digest, page_digests, page_layer,
-    page_uuid,
+    PageDigest, Parallelism, changed_now, changed_pages, last_changed_in, page_digest, page_digests,
+    page_layer, page_uuid,
 };
 use ew_api::{AnyCommand, Origin, Recovery, Session, SessionOptions, Submit};
+use ew_derive::Query as _;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Digest128, LibDocument, Page, Record, ReleaseRecord, Revision};
 use ew_derive::{PageOrder, PageRef, Q, RepAnchorCell};
@@ -84,8 +85,8 @@ fn changed_folios(q: &Q) -> Vec<String> {
 
 /// Moves one representation of the drawn page `folio` by one grid step without leaving its frame cell, so that no
 /// cross-reference text elsewhere changes (a move into another cell is a change of the pages that print the
-/// cell). Panics when no representation of the page can move so.
-fn move_within_cell(s: &mut Session, folio_label: &str) {
+/// cell). Returns the move's command. Panics when no representation of the page can move so.
+fn move_within_cell(s: &mut Session, folio_label: &str) -> AnyCommand {
     let q = s.query();
     let PageRef::Drawn(page) = folio(&q, folio_label) else {
         panic!("{folio_label} is a drawn page");
@@ -97,15 +98,16 @@ fn move_within_cell(s: &mut Session, folio_label: &str) {
     for rep in reps {
         for dx in [step, -step] {
             let before = s.query().get::<RepAnchorCell>(rep).as_ref().clone();
-            let moved = s.execute(&cmd(
+            let command = cmd(
                 "rep.move",
                 json!({"reps": [rep.as_uuid().to_string()], "delta": [dx, 0]}),
-            ));
+            );
+            let moved = s.execute(&command);
             if moved.is_err() {
                 continue;
             }
             if before.is_some() && s.query().get::<RepAnchorCell>(rep).as_ref().clone() == before {
-                return;
+                return command;
             }
             s.undo(&Origin::Gui).expect("the move undoes");
         }
@@ -429,4 +431,48 @@ fn pd4_the_placeholder_prints_the_revision_that_last_changed_the_page() {
             e.folio
         );
     }
+}
+
+/// FT-722: the page digest is a memoised query (Class I, doc 15 §5.6). In the digest branch a second read of every
+/// page's change status runs no digest again, and a move on 102 runs only 102's digest again (101 and 106 are named
+/// by V2.0's page notes, so their status does not read their digests).
+#[test]
+fn pd5_the_digest_is_memoised_per_page() {
+    let digests = page_digests(&common::golden_session().query(), Parallelism::Serial);
+    let mut s = golden_variant(false, Some(digests));
+    let runs = |s: &Session| {
+        s.memo()
+            .expect("a memoising session")
+            .total_stats()
+            .family(PageDigest::FAMILY)
+            .re_executions
+    };
+    let status = |s: &Session| {
+        let q = s.query();
+        let pages: Vec<PageRef> = q.get::<PageOrder>(()).entries.iter().map(|e| e.page).collect();
+        pages
+            .iter()
+            .map(|p| (changed_now(&q, *p), last_changed_in(&q, *p)))
+            .collect::<Vec<_>>()
+    };
+    let first = status(&s);
+    let after_first = runs(&s);
+    assert!(after_first > 0, "the first read runs the digests");
+    assert_eq!(status(&s), first);
+    assert_eq!(runs(&s), after_first, "a second read runs no digest again");
+
+    // The move is found (and undone) first: the store drops the memos no read reaches at a closing revision, so the
+    // counted step is that move run again between two reads of every page's status.
+    let command = move_within_cell(&mut s, "102");
+    s.undo(&Origin::Gui).expect("the move undoes");
+    assert_eq!(status(&s), first, "undo");
+    s.execute(&command).expect("the move runs again");
+    let before_read = runs(&s);
+    let moved = status(&s);
+    assert_eq!(runs(&s) - before_read, 1, "only 102's digest runs again");
+    assert!(
+        changed_now(&s.query(), folio(&s.query(), "102")),
+        "102 is changed now"
+    );
+    assert_ne!(moved, first);
 }

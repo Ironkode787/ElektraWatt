@@ -3064,6 +3064,19 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ))),
     ),
+    // FT-720: a script step that expects its inner step to be refused, so a refusal's window state can be framed.
+    with_params(
+        "action:text, params?:json",
+        headless(act(
+            "script.expect_refused",
+            View,
+            "action-script-expect-refused",
+            Menu::View,
+            &[],
+            always,
+            None,
+        )),
+    ),
     headless(act(
         "ui.describe",
         View,

@@ -120,7 +120,7 @@ pub use navigators::{
 pub use properties::{
     FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetHeader, SheetSection,
 };
-pub use revisions::{changed_now, changed_pages, last_changed_in, page_digest, page_digests};
+pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
 // WP-S2.07 part 1
 pub use strip_edit::{
     ACCESSORY_KINDS, BridgeRow, StripCell, StripEdit, StripEditError, accessory_kind_word,
@@ -142,6 +142,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (PageBindingsOf::FAMILY, PageBindingsOf::POLICY),
     (PageConnectionsOf::FAMILY, PageConnectionsOf::POLICY),
     (PageCpTargetsOf::FAMILY, PageCpTargetsOf::POLICY),
+    (PageDigest::FAMILY, PageDigest::POLICY),
     (FrameLayer::FAMILY, FrameLayer::POLICY),
     (LabelsLayer::FAMILY, LabelsLayer::POLICY),
     (SymbolsLayer::FAMILY, SymbolsLayer::POLICY),

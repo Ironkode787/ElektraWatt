@@ -804,15 +804,19 @@ fn the_declared_bond_keeps_0v_and_pe_apart_and_satisfies_pot002() {
     );
 }
 
-#[test]
-fn pot001_without_a_carrier_has_no_fix_and_names_draw_bond() {
-    // Two parallel wires between the 0 V and the PE CP: removing either splits nothing.
+/// Two parallel wires between the 0 V and the PE CP: removing either splits nothing, so there is no bond carrier.
+fn zero_volt_meets_pe_without_a_carrier() -> Model {
     let mut fx = Fx::base();
     fx.func_m(M_FN, P1);
     fx.func_pe(PE_FN, P1);
     fx.conn(W1, P1, Ep::Cp(M_FN, 1), Ep::Cp(PE_FN, 1), &none());
     fx.conn(W27, P1, Ep::Cp(M_FN, 1), Ep::Cp(PE_FN, 1), &none());
-    let f = findings_of(&fx.build(), "EW-POT-001");
+    fx.build()
+}
+
+#[test]
+fn pot001_without_a_carrier_has_no_fix_and_names_draw_bond() {
+    let f = findings_of(&zero_volt_meets_pe_without_a_carrier(), "EW-POT-001");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(f[0].fix.is_none(), "{:?}", f[0].fix);
     assert_eq!(
@@ -867,4 +871,24 @@ fn pot001_names_every_member_cp_up_to_three() {
     let f = pe_members_against_m(3);
     assert_eq!(f.message.matches("member CP ").count(), 3, "{}", f.message);
     assert!(!f.message.contains("more"), "{}", f.message);
+}
+
+/// FT-724: EW-POT-001's text is built in the rule and in the Fluent pattern; the en-GB pattern rendered from the
+/// finding's arguments equals the rule's text for the "and N more" cut, the bond hint and a plain conflict.
+#[test]
+fn ft724_the_en_gb_pattern_equals_the_rule_text() {
+    let bond = findings_of(&zero_volt_meets_pe_without_a_carrier(), "EW-POT-001");
+    assert_eq!(bond.len(), 1, "{bond:#?}");
+    let cases = [
+        ("and N more", pe_members_against_m(6)),
+        ("bond hint", bond[0].clone()),
+        ("plain", pe_members_against_m(2)),
+    ];
+    for (case, f) in cases {
+        assert_eq!(
+            ew_checks::messages::format(&f, "en-GB").as_deref(),
+            Some(f.message.as_str()),
+            "{case}"
+        );
+    }
 }
