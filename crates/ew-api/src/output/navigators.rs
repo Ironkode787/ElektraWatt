@@ -2856,6 +2856,14 @@ fn primary_drawables<K: Ord>(candidates: impl Iterator<Item = (K, String, Vec<Dr
         .unwrap_or_default()
 }
 
+/// Whether a finding's `message` already leads with its `subject` (the subject, then a colon, a space or nothing), so
+/// that the Messages row shows the subject once.
+fn leads_with_subject(subject: &str, message: &str) -> bool {
+    message
+        .strip_prefix(subject)
+        .is_some_and(|rest| rest.is_empty() || rest.starts_with(':') || rest.starts_with(' '))
+}
+
 /// One finding row (§7.1): its records are the targets, its drawables theirs; its page is the finding's page, else the
 /// page of the primary target's first drawable; Enter opens that page with the targets' drawables on it selected.
 fn finding_node(
@@ -2933,7 +2941,9 @@ fn finding_node(
         facets.push(("page".to_owned(), folio.to_lowercase()));
     }
     facets.push(("state".to_owned(), state.to_owned()));
-    let label = if f.subject.is_empty() {
+    // Cycle 39 (window check): a rule whose message already leads with its subject (EW-BUS-001, EW-CORE-033: "X: X has
+    // no ...") shows the subject once; the findings themselves, the CSV and the reports are unchanged.
+    let label = if f.subject.is_empty() || leads_with_subject(&f.subject, &f.message) {
         f.message.clone()
     } else {
         format!("{}: {}", f.subject, f.message)
@@ -2972,6 +2982,16 @@ fn finding_node(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Cycle 39 (window check): a message that leads with its subject is shown without the subject a second time;
+    /// another message, and a longer tag that only starts like the subject, keep the prefix.
+    #[test]
+    fn a_message_leading_with_its_subject_is_shown_once() {
+        assert!(leads_with_subject("=P01+-201U1:DP", "=P01+-201U1:DP: the station address is TBD"));
+        assert!(leads_with_subject("-1K1", "-1K1 has no part"));
+        assert!(!leads_with_subject("-1K1", "-1K10 has no part"));
+        assert!(!leads_with_subject("-1K1", "the station address is TBD"));
+    }
 
     #[test]
     fn tokens_split_at_separators_and_letter_digit_boundaries() {

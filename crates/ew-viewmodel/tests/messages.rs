@@ -851,3 +851,21 @@ fn ft549_check_reports_its_counts_with_the_pane_closed() {
     assert!(toast.starts_with("Check: "), "{toast}");
     assert!(toast.contains("error") && toast.contains("warning"), "{toast}");
 }
+
+/// Cycle 39 (window check): EW-BUS-001's message leads with its subject, so Golden A's row shows the subject once
+/// ("=P01+...-201U1:DP: the station address is TBD; ..."), never "X: X: ...".
+#[test]
+fn a_finding_row_shows_its_subject_once() {
+    let tmp = Tmp::new("msg-subject-once");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "messages.check", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
+    let rows = findings(&shell, "EW-BUS-001", "-201U1:DP");
+    assert!(!rows.is_empty(), "Golden A's TBD station address");
+    for n in rows {
+        let subject = &n.cells[3];
+        assert_eq!(n.label.matches(subject.as_str()).count(), 1, "{}", n.label);
+        assert!(n.label.contains("the station address is TBD"), "{}", n.label);
+    }
+    shell.shutdown();
+}
