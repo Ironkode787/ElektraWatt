@@ -195,7 +195,13 @@ impl AddressProfile {
                 )
             }),
             Token::Byte | Token::Bit => {
-                let run = text.bytes().take_while(u8::is_ascii_digit).count();
+                // A byte is a `u32` (at most 10 digits) and a bit fewer: longer splits never parse, and capping the
+                // run keeps a long digit string from costing a quadratic search (FX37a).
+                let run = text
+                    .bytes()
+                    .take_while(u8::is_ascii_digit)
+                    .take(MAX_DIGITS)
+                    .count();
                 (1..=run).rev().find_map(|n| {
                     let (digits, tail) = text.split_at(n);
                     let next = if *first == Token::Byte {
@@ -216,6 +222,9 @@ impl AddressProfile {
         }
     }
 }
+
+/// The most digits a byte or bit number of an address has: the width of `u32::MAX`.
+const MAX_DIGITS: usize = 10;
 
 /// The areas in the order of [`AddressProfile::area_mnemonics`].
 const AREAS: [Area; 5] = [Area::I, Area::Q, Area::M, Area::Pi, Area::Pq];

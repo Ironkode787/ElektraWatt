@@ -157,6 +157,31 @@ fn parse_and_example() {
     }
 }
 
+/// FX37a: a very long digit string is refused (the digit runs are capped at the width of a `u32`; no timing is
+/// asserted, owner's rule), and the longest byte numbers still parse.
+#[test]
+fn a_ten_thousand_digit_address_is_refused() {
+    let p = p();
+    let digits = "1".repeat(10_000);
+    for text in [
+        format!("I{digits}.0"),
+        format!("I0.{digits}"),
+        format!("IW{digits}"),
+        format!("I{digits}"),
+    ] {
+        assert_eq!(p.parse(&text), None, "{} digits", text.len());
+    }
+    assert_eq!(
+        p.parse("I4294967295.7"),
+        Some(PlcAddress::bit(Area::I, u32::MAX, 7))
+    );
+    assert_eq!(
+        p.parse("MW4294967295"),
+        Some(PlcAddress::unit(Area::M, Size::Word, u32::MAX))
+    );
+    assert_eq!(p.parse("I04.0"), Some(PlcAddress::bit(Area::I, 4, 0)));
+}
+
 proptest! {
     /// Every bit address and every unit address of a size above a bit parses back from either rendering.
     #[test]
