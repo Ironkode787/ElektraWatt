@@ -279,6 +279,21 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
             "navigator \"Devices\" kind devices view tree sort \"Tag\" ascending filter \"\" rows {n} showing 1 to 50"
         )]
     );
+    // Cycle 37 (window check W37): a function row names the function's kind in words, never its FnDef key.
+    let functions: Vec<String> = shell
+        .nav(NavKind::Devices)
+        .and_then(|n| n.table())
+        .expect("the table")
+        .nodes
+        .iter()
+        .filter(|n| n.role == NavRole::Function && n.key.contains("function:") && !n.label.starts_with('='))
+        .map(|n| n.label.clone())
+        .collect();
+    assert!(!functions.is_empty());
+    assert!(
+        functions.iter().all(|l| !l.starts_with("ew.fn.")),
+        "{functions:?}"
+    );
     let lines = nav_rows(&shell, "Devices");
     assert_eq!(lines.len(), 50);
     assert!(
