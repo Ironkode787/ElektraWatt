@@ -1096,7 +1096,7 @@ fn ordered(members: &[(&str, Value)]) -> String {
 }
 
 /// The codes of a node's path, root first.
-fn node_path(q: &Q, node: Id<StructureNode>) -> Vec<String> {
+pub(crate) fn node_path(q: &Q, node: Id<StructureNode>) -> Vec<String> {
     let mut codes = Vec::new();
     let mut cur = Some(node);
     while let Some(n) = cur.and_then(|n| q.structure_nodes().get(n)) {

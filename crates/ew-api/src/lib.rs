@@ -69,6 +69,7 @@ mod cmdlog;
 pub mod geometry;
 pub mod import;
 mod library_ops;
+mod macros;
 mod new_project;
 pub mod output;
 // WP-S2.04 part 2: the router the canvas tools call (§4.3, §8.1).
@@ -89,6 +90,9 @@ use ew_store::{Changes, LockState, RecoverError, SaveReport, Store};
 pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA, ScriptDiff};
 pub use ew_commands::commands::{ChangeClass, CopyDiff, FieldChange, classify_update};
 pub use library_ops::{ApiError, AssignMode, CopyState, CopyStatus, CopyUpdate, CpMap, UpdatePlan};
+pub use macros::{
+    InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues, SavedMacro, macro_item_id,
+};
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a
 /// front-end reads from a file the user picked or dropped before it asks `item.place` to store it (WP-S2.04 part 5).
 ///
