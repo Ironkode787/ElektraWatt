@@ -1913,6 +1913,11 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "part-choose-more" => "Search all parts\u{2026}",
         "dialog-part-edit-title" => "Edit part {0}",
         "part-edit-fork-note" => "Saving creates a project copy of this part; the library is not changed",
+        // The part card in the Preview tab (D20): the field diff, the devices and the parts list rows.
+        "part-card-field" => "{0}: {1} \u{2192} {2}",
+        "part-card-devices" => "Used by {0}",
+        "part-card-removed" => "Parts list row removed: {0}",
+        "part-card-added" => "Parts list row added: {0}",
         "part-field-manufacturer" => "Manufacturer",
         "part-field-part_number" => "Part number",
         "part-field-type_designation" => "Type designation",

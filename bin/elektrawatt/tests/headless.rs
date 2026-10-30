@@ -37,6 +37,10 @@ mod messages_scripts;
 #[path = "preview/scripts.rs"]
 mod preview_scripts;
 
+/// The part dialog's and the part editor's flows headless (WP-S2.07 part 4a, PS1, PS4, PS5 and PS7).
+#[path = "parts/scripts.rs"]
+mod parts_scripts;
+
 /// The folio-script support; here for its UUID check (FT-422) and the runs of a script test.
 mod support;
 
@@ -751,6 +755,22 @@ fn nightly_every_script_transcript_is_byte_identical_twice() {
         (
             "headless::preview_scripts::pv2_golden_b_script_is_byte_identical_twice_and_replays",
             preview_scripts::pv2_golden_b_script_is_byte_identical_twice_and_replays_case,
+        ),
+        (
+            "headless::parts_scripts::ps1_the_part_dialog_script_is_deterministic",
+            parts_scripts::ps1_the_part_dialog_script_is_deterministic_case,
+        ),
+        (
+            "headless::parts_scripts::ps4_the_choose_script_is_deterministic_and_replays",
+            parts_scripts::ps4_the_choose_script_is_deterministic_and_replays_case,
+        ),
+        (
+            "headless::parts_scripts::ps5_the_editor_refusal_script_is_deterministic",
+            parts_scripts::ps5_the_editor_refusal_script_is_deterministic_case,
+        ),
+        (
+            "headless::parts_scripts::ps7_the_fork_script_is_deterministic_and_replays",
+            parts_scripts::ps7_the_fork_script_is_deterministic_and_replays_case,
         ),
     ];
     let mut failed = Vec::new();

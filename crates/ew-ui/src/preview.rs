@@ -126,6 +126,45 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
     [entities, tags, xrefs, pages]
 }
 
+/// WP-S2.07 part 4a (D20): a part card's field diff ("Description: old → new"), the devices that use the copy, the
+/// parts list rows that go and come, and a fork's note, one wrapped `type.small` label each.
+fn part_block(ui: &mut Ui, p: &ew_viewmodel::properties::PartCard) {
+    let t = components::tokens(ui);
+    let line = |ui: &mut Ui, text: &str, colour: Rgba| {
+        ui.add(
+            egui::Label::new(
+                RichText::new(text)
+                    .font(theme::font(&t.type_small))
+                    .color(colour.color32()),
+            )
+            .wrap(),
+        );
+    };
+    for (member, old, new) in &p.fields {
+        line(
+            ui,
+            &strings::format("part-card-field", &[member, old, new]),
+            t.text_primary,
+        );
+    }
+    if !p.devices.is_empty() {
+        line(
+            ui,
+            &strings::format("part-card-devices", &[&p.devices.join(", ")]),
+            t.text_secondary,
+        );
+    }
+    for r in &p.removed {
+        line(ui, &strings::format("part-card-removed", &[r]), t.text_secondary);
+    }
+    for r in &p.added {
+        line(ui, &strings::format("part-card-added", &[r]), t.text_secondary);
+    }
+    if p.fork {
+        line(ui, strings::text("part-edit-fork-note"), t.text_secondary);
+    }
+}
+
 /// WP-S1.19 part 6 (§11): a macro card's value set (a chooser of "Defaults" and the macro's value sets, which previews
 /// the card again with `macros.value_set`) and its conflicts, shown open and also on a refused preview (the rule's
 /// text first), so the user decides on them before Apply.
@@ -284,6 +323,9 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         inset(ui, &mut |ui| components::live_line(ui, &summary, false));
         if let CardOrigin::Macro(m) = &card.origin {
             inset(ui, &mut |ui| macro_block(ui, m, events));
+        }
+        if let CardOrigin::Part(p) = &card.origin {
+            inset(ui, &mut |ui| part_block(ui, p));
         }
         ui.add_space(t.space_2);
         let [entities, tags, xrefs, pages] = rows(&t, shell);
