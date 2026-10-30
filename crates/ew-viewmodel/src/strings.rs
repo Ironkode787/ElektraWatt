@@ -1468,6 +1468,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-navigator-select" => "Mark rows",
         "action-navigator-mark" => "Toggle mark",
         "action-navigator-jump" => "Jump to row",
+        // WP-S2.07 §8: a channel dragged from the PLC navigator onto a connection point.
+        "action-navigator-bind" => "Bind channel",
+        "reason-drop-on-cp" => "Drop the channel on a connection point",
         "action-navigator-apply" => "Apply the preview",
         "action-pages-reorder" => "Reorder pages",
         "action-pages-move-up" => "Move page up",

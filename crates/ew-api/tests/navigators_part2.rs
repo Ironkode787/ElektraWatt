@@ -227,15 +227,78 @@ fn np1_cables_plc_potentials_parts() {
         "a conductor draws as its core connections"
     );
 
-    // PLC: block 908's rows, station -201U1, 7 modules, 56 channels.
+    // PLC (PG1, WP-S2.07 §8): the configuration project, station -201U1, 7 modules, 56 channels; the grid's columns
+    // that the PLC overview prints hold block 908's texts, row for row.
     let t = s.navigator_table(NavKind::Plc);
     assert_tree_contract(&t);
-    assert_eq!(cells(&t), block_rows(&s, "908"));
-    let stations: Vec<&NavNode> = t.nodes.iter().filter(|n| n.role == NavRole::Station).collect();
+    let keys: Vec<&str> = t.columns.iter().map(|c| c.key.as_str()).collect();
+    assert_eq!(
+        keys,
+        [
+            "station",
+            "module",
+            "slot",
+            "channel",
+            "designation",
+            "kind",
+            "address",
+            "symbol",
+            "function_text",
+            "process_tag",
+            "state",
+            "target",
+            "placed_on",
+            "comment"
+        ]
+    );
+    let col = |k: &str| keys.iter().position(|x| *x == k).unwrap();
+    let shared = [
+        ("module", 0),
+        ("address", 2),
+        ("channel", 3),
+        ("designation", 4),
+        ("kind", 5),
+        ("symbol", 6),
+        ("function_text", 7),
+        ("process_tag", 8),
+        ("target", 9),
+        ("state", 10),
+    ];
+    let pick = |rows: Vec<Vec<String>>, grid: bool| -> Vec<Vec<String>> {
+        rows.into_iter()
+            .map(|r| {
+                shared
+                    .iter()
+                    .map(|(k, i)| r[if grid { col(k) } else { *i }].clone())
+                    .collect()
+            })
+            .collect()
+    };
+    let oracle = block_rows(&s, "908");
+    assert_eq!(pick(cells(&t), true), pick(oracle.clone(), false));
+    for (row, o) in cells(&t).iter().zip(&oracle) {
+        assert_eq!(row[col("station")], "-201U1");
+        // The overview's page cell names the coil's folio and cell, as Placed on does.
+        assert_eq!(row[col("placed_on")].is_empty(), o[11].is_empty(), "{row:?}");
+    }
+    let configs: Vec<&NavNode> = t
+        .nodes
+        .iter()
+        .filter(|n| n.role == NavRole::ConfigProject)
+        .collect();
+    assert_eq!(configs.len(), 1, "one configuration project");
+    assert_eq!(configs[0].parent, None);
+    let stations = children(&t, configs[0]);
     assert_eq!(stations.len(), 1);
+    assert_eq!(stations[0].role, NavRole::Station);
     assert_eq!(stations[0].label, "-201U1");
     let modules = children(&t, stations[0]);
-    assert_eq!(modules.len(), 7);
+    assert_eq!(
+        modules.iter().map(|m| m.label.as_str()).collect::<Vec<_>>(),
+        [
+            "-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-202U2"
+        ]
+    );
     let channels: usize = modules.iter().map(|m| children(&t, m).len()).sum();
     assert_eq!(channels, 56, "FR-UI-005: 56 channels under -201U1");
     let q01 = find(&t, NavRole::Channel, "Q0.1");

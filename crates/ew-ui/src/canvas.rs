@@ -1353,6 +1353,16 @@ impl CanvasHost {
         };
         let mods = ui.input(|i| i.modifiers);
         let point = |p: (i64, i64)| point_with(p, mods);
+        // WP-S2.07 §8: a PLC channel row dropped on this canvas binds the channel at the drop point.
+        let dropped = ui.input(|i| i.pointer.any_released().then(|| i.pointer.latest_pos()).flatten());
+        if let Some(pos) = dropped
+            && rect.contains(pos)
+            && let Some(channel) = egui::DragAndDrop::take_payload::<crate::navigator::ChannelDrag>(ui.ctx())
+        {
+            let mut p = point_with(Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
+            p["channel"] = json!(channel.0);
+            events.push(Event::Action("navigator.bind", p));
+        }
         let space = ui.input(|i| i.key_down(Key::Space));
         if response.hovered() {
             let (back, forward) = ui.input(|i| {

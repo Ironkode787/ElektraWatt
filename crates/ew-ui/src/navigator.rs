@@ -19,7 +19,8 @@
 //! **Drag and drop.** A page record row (flat and section views) drags its folio, or every marked page when it is
 //! marked; a drop on a page row of the Pages navigator dispatches `pages.reorder` before it, a drop on a section node
 //! to that section's end. An unplaced function row of the Devices navigator drags its function; the canvas area takes
-//! the drop (`place.pick {function}`).
+//! the drop (`place.pick {function}`). A channel row of the PLC navigator drags its channel; the canvas under the drop
+//! point takes it (`navigator.bind {channel, x_mm, y_mm}`, WP-S2.07 §8).
 //!
 //! **Accessibility.** The list is a node with the role `Tree`; a row is a `TreeItem` named `<label>, <role>[,
 //! <badges>]` (the Pages rows as built, `PageNavigator::accessible_name`), with AccessKit's own `level`,
@@ -55,6 +56,11 @@ pub struct PagesDrag(pub Vec<String>);
 /// The function a drag of an unplaced function row carries (its ID text).
 #[derive(Clone, Debug)]
 pub struct FunctionDrag(pub String);
+
+/// The channel a drag of a PLC channel row carries (its ID text, WP-S2.07 §8); a canvas takes the drop at its point
+/// (`navigator.bind`).
+#[derive(Clone, Debug)]
+pub struct ChannelDrag(pub String);
 
 /// What the rows on show were built for.
 #[derive(Clone, PartialEq, Debug)]
@@ -980,6 +986,7 @@ fn row_ui(
             response.dnd_set_drag_payload(PagesDrag(folios));
         }
         Some(DragSource::Function(id)) => response.dnd_set_drag_payload(FunctionDrag(id.clone())),
+        Some(DragSource::Channel(id)) => response.dnd_set_drag_payload(ChannelDrag(id.clone())),
         None => {}
     }
     // A drop of pages on a row of the Pages navigator.

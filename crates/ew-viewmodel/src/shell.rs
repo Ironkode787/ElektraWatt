@@ -1636,6 +1636,7 @@ impl ShellModel {
             "tool.place" => self.act_open_picker(crate::tools::PickerMode::Place),
             "tool.place_part" => self.act_open_picker(crate::tools::PickerMode::Parts),
             "place.pick" => self.act_place_pick(p),
+            "navigator.bind" => self.act_navigator_bind(p),
             "picker.filter" => self.act_picker_filter(p),
             "picker.row" => self.act_picker_row(p),
             "picker.choose" => self.act_picker_choose(p),

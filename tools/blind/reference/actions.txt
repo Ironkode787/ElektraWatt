@@ -198,6 +198,7 @@ navigator.filter View "Filter navigator" menu none shortcut none context global 
 navigator.toggle View "Expand or collapse" menu none shortcut none context navigator hidden params "kind:text, key:text"
 navigator.row View "Move in the navigator" menu none shortcut none context navigator hidden params "kind:text, key?:text, step?:int, to?:enum(first|last), extend?:bool"
 navigator.open View "Open row" menu none shortcut none context navigator hidden params "kind:text, key?:text, new_tab?:bool"
+navigator.bind Command "Bind channel" menu none shortcut none context canvas hidden params "channel:ref, x_mm:mm, y_mm:mm, group?:uint"
 navigator.select View "Mark rows" menu none shortcut none context global hidden params "kind:text, keys:list(text), add?:bool"
 navigator.mark View "Toggle mark" menu none shortcut "Space" context navigator hidden params "kind?:text, key?:text"
 navigator.jump View "Jump to row" menu none shortcut none context navigator hidden params "kind:text, prefix:text"

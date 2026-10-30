@@ -284,6 +284,9 @@ pub fn row_targets(node: &NavNode, route_kind: &str) -> Vec<Uuid> {
         "conductor" => Vec::new(),
         // A cable's length is edited on its cable row, not on a core row (WP-S2.07 §7).
         "device" if node.role == NavRole::Conductor => Vec::new(),
+        // A PLC channel row (WP-S2.07 §8): the channel, then its module device (the Slot column's record).
+        "channel" if node.role == NavRole::Channel => node.records.iter().take(1).copied().collect(),
+        "device" if node.role == NavRole::Channel => node.records.iter().skip(1).take(1).copied().collect(),
         "potential_def"
             if node.role == NavRole::Potential
                 && node.facets.iter().any(|(f, _)| f == "potential")
@@ -414,6 +417,14 @@ pub fn is_scalar(ty: &FieldType) -> bool {
     )
 }
 
+/// The PLC grid's cells whose field is not a scalar but has a typed editor in `Session::parse_field_input` (WP-S2.07
+/// §8): a channel's address and target, a module's slot.
+const TYPED_PLC: [(&str, &str); 3] = [
+    ("channel", "address"),
+    ("channel", "target"),
+    ("device", "plc_module.slot"),
+];
+
 /// Why a cell is read-only (§8.2's precedence), `None` for an editable cell: "derived", "generated", "no record of this
 /// kind", "edit in the property grid", "no command yet".
 pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<String> {
@@ -441,6 +452,8 @@ pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<St
         Some(ty) if is_scalar(&ty) => None,
         // WP-S2.07 part 2 (§7, FT-429): a cable's length source has its typed editor (`parse_field_input`).
         Some(_) if (kind.as_str(), path.as_str()) == ("device", "cable.length") => None,
+        // WP-S2.07 §8 (FT-429, FT-690): the PLC grid's typed editors.
+        Some(_) if TYPED_PLC.contains(&(kind.as_str(), path.as_str())) => None,
         Some(_) => Some(crate::strings::text("table-reason-property-grid").to_owned()),
         None => Some(crate::strings::text("table-reason-no-command").to_owned()),
     }

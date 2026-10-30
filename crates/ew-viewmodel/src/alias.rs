@@ -276,6 +276,8 @@ pub const ALIAS_PARAMS: &[(&str, &str, ParamForm)] = &[
     ("navigator.open", "key", ParamForm::Embedded),
     ("navigator.mark", "key", ParamForm::Embedded),
     ("navigator.select", "keys", ParamForm::EmbeddedList),
+    // WP-S2.07 §8: the channel a drop binds.
+    ("navigator.bind", "channel", ParamForm::Whole),
     ("props.input", "text", ParamForm::IdRef),
     ("props.set", "value", ParamForm::IdRef),
     ("structure.new", "parent", ParamForm::Whole),

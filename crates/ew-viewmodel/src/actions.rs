@@ -3366,6 +3366,20 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ))),
     ),
+    // WP-S2.07 §8 (FR-PLC-020): a channel row dropped on the canvas binds the channel to the connection point under
+    // the drop point with `plc.bind_channel`.
+    with_params(
+        "channel:ref, x_mm:mm, y_mm:mm, group?:uint",
+        hidden(in_canvas(act(
+            "navigator.bind",
+            Command,
+            "action-navigator-bind",
+            Menu::Edit,
+            &[],
+            editable_page,
+            None,
+        ))),
+    ),
     with_params(
         "kind:text, keys:list(text), add?:bool",
         hidden(act(

@@ -17,7 +17,8 @@
 //!
 //! **Filter** (§6.3). The query is split at whitespace: a part `<facet>:<value>` with a facet of the closed list
 //! (`page`, `potential`, `state`, `kind`, `part`) matches a node with that facet and a case-folded equal value;
-//! `unplaced` and `frozen` alone match the flag; every other part is plain text, split into tokens like the node tokens
+//! `unplaced` and `frozen` alone match the flag (in the PLC navigator also `unassigned`, `spare`, `tbd` and `duplicate`,
+//! and the facet `config:<name>`, WP-S2.07 §8); every other part is plain text, split into tokens like the node tokens
 //! (`ew_api::output::nav_tokens`). A node matches when every facet and flag matches, and either every plain token is a
 //! prefix of one of its tokens or the plain text, case-folded, is a substring of its case-folded label. Matches keep
 //! their ancestors, shown and expanded.
@@ -35,10 +36,15 @@ use std::sync::Arc;
 pub use ew_api::output::{Drawable, NaturalKey, NavKind, NavNode, NavRole, NavTable};
 
 /// The facets of the closed list that take a value (§6.1 item 5).
-pub const FACETS: [&str; 6] = ["page", "potential", "state", "kind", "part", "strip"];
+pub const FACETS: [&str; 7] = ["page", "potential", "state", "kind", "part", "strip", "config"];
 
 /// The flags that a query word alone matches.
 pub const FLAGS: [&str; 2] = ["unplaced", "frozen"];
+
+/// The flags that a query word alone matches in the PLC navigator besides [`FLAGS`] (WP-S2.07 §8, FR-PLC-021): a
+/// channel without an address, a spare channel, an open address, and a duplicate symbol or overlapping address. In
+/// the other navigators these words stay plain text.
+pub const PLC_FLAGS: [&str; 4] = ["unassigned", "spare", "tbd", "duplicate"];
 
 /// The two views of a navigator other than Pages.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -105,8 +111,20 @@ pub struct Query {
 }
 
 impl Query {
+    /// The query of a filter text in navigator `kind`: [`Query::parse`], with the PLC navigator's own flags
+    /// ([`PLC_FLAGS`]).
+    pub fn parse_for(kind: NavKind, filter: &str) -> Query {
+        let extra: &[&str] = if kind == NavKind::Plc { &PLC_FLAGS } else { &[] };
+        Query::parse_with(filter, extra)
+    }
+
     /// The query of a filter text.
     pub fn parse(filter: &str) -> Query {
+        Query::parse_with(filter, &[])
+    }
+
+    /// The query of a filter text with `extra` flags beside [`FLAGS`].
+    fn parse_with(filter: &str, extra: &[&str]) -> Query {
         let mut q = Query::default();
         let mut plain: Vec<&str> = Vec::new();
         for part in filter.split_whitespace() {
@@ -118,7 +136,7 @@ impl Query {
                 q.facets.push((facet.to_owned(), value.to_owned()));
                 continue;
             }
-            if FLAGS.contains(&lower.as_str()) {
+            if FLAGS.contains(&lower.as_str()) || extra.contains(&lower.as_str()) {
                 q.flags.push(lower);
                 continue;
             }
@@ -365,7 +383,7 @@ impl Navigator {
         {
             return Arc::clone(rows);
         }
-        let query = Query::parse(&self.filter);
+        let query = Query::parse_for(self.kind, &self.filter);
         let rows = Arc::new(if self.table_mode.is_some() {
             table::table_rows(table, &self.sort, self.descending, &query)
         } else {

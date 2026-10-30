@@ -1085,6 +1085,20 @@ impl ShellModel {
             Some(cmd) => (cmd.name, cmd.params),
             None => (name, params),
         };
+        // WP-S2.07 §8 (FT-429): a module's start typed as the profile's text or a keyword goes through
+        // `plc.set_start` (WP-S1.21 D8), which reads it with the module's profile.
+        let start_dir = match row.path.as_str() {
+            "plc_module.start.input" => Some("input"),
+            "plc_module.start.output" => Some("output"),
+            _ => None,
+        };
+        let (name, params) = match (section.kind.as_str(), start_dir, &leaf) {
+            ("device", Some(dir), Value::String(spec)) => (
+                "plc.set_start".to_owned(),
+                json!({ "modules": targets, "dir": dir, "spec": spec }),
+            ),
+            _ => (name, params),
+        };
         PendingEdit {
             row: row.key.clone(),
             kind: section.kind.clone(),

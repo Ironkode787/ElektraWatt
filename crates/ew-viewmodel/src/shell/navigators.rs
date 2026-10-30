@@ -75,6 +75,9 @@ pub enum DragSource {
     /// An unplaced function row of the Devices navigator (the function's ID text), or an unplaced terminal row of the
     /// Terminal strips navigator (the terminal device's ID text, WP-S2.07 §6.8).
     Function(String),
+    /// A channel row of the PLC navigator (the channel's ID text, WP-S2.07 §8): dropped on a connection point of the
+    /// canvas, `navigator.bind` binds it there with `plc.bind_channel`.
+    Channel(String),
 }
 
 /// One row on show of any navigator, as the widget paints it and the describe text prints it.
@@ -372,7 +375,13 @@ impl ShellModel {
                             ew_api::output::NavRole::Function | ew_api::output::NavRole::Terminal
                         ) && node.badges.iter().any(|b| b == "unplaced"))
                         .then(|| node.records.first().map(|r| DragSource::Function(r.to_string())))
-                        .flatten();
+                        .flatten()
+                        // WP-S2.07 §8: every channel row of the PLC navigator binds by drag-and-drop.
+                        .or_else(|| {
+                            (node.role == ew_api::output::NavRole::Channel)
+                                .then(|| node.records.first().map(|r| DragSource::Channel(r.to_string())))
+                                .flatten()
+                        });
                         ShownRow {
                             key: node.key.clone(),
                             parent: node.parent.map(|p| t.nodes[p as usize].key.clone()),

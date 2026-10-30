@@ -21,6 +21,8 @@
 //! overview, PLC from the PLC overview, Parts in use from the parts summary in component mode, Structure identifiers
 //! from the structure overview's node rows, and Interruption points and Report blocks with their own columns. A data
 //! row without records (a heading) is never a table row. Part 2 also adds [`Session::highlight_members`] (§7.3).
+//! WP-S2.07 part 3 (§8) rebuilds PLC as the PLC navigator and grid: configuration project → station → module →
+//! channel from `plc_rows(station)`, with the grid's own columns, typed editors and facets.
 
 use std::collections::BTreeMap;
 
@@ -139,6 +141,8 @@ pub enum NavRole {
     Cable,
     /// A cable conductor.
     Conductor,
+    /// A PLC configuration project (WP-S2.07 §8): the top level of the PLC navigator.
+    ConfigProject,
     /// A PLC station.
     Station,
     /// A PLC module.
@@ -182,6 +186,7 @@ impl NavRole {
             NavRole::Accessory => "accessory",
             NavRole::Cable => "cable",
             NavRole::Conductor => "conductor",
+            NavRole::ConfigProject => "plc_config_project",
             NavRole::Station => "station",
             NavRole::Module => "module",
             NavRole::Channel => "channel",
@@ -394,7 +399,7 @@ fn kind_columns(kind: &str) -> Vec<NavColumn> {
 
 /// The editable columns of table mode (WP-S2.06 part 3, §8.2; D10): (navigator, column key, route kind, route path).
 /// Every other column is read-only.
-const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 22] = [
+const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
     (NavKind::Pages, "title", "page", "title"),
     (NavKind::Pages, "type", "page", "kind"),
     (NavKind::Devices, "function_text", "device", "function_text"),
@@ -425,6 +430,15 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 22] = [
     (NavKind::Potentials, "class", "potential_def", "circuit_class"),
     (NavKind::Potentials, "colour", "potential_def", "props.colour"),
     (NavKind::Potentials, "cross_section", "potential_def", "props.csa"),
+    // WP-S2.07 §8 (FR-PLC-021): a channel's members through `fields.set` (WP-S1.21 D6); Address and Target through
+    // their typed editors (`Session::parse_field_input`), Slot the module's through its typed editor.
+    (NavKind::Plc, "slot", "device", "plc_module.slot"),
+    (NavKind::Plc, "designation", "channel", "designation"),
+    (NavKind::Plc, "address", "channel", "address"),
+    (NavKind::Plc, "symbol", "channel", "symbol"),
+    (NavKind::Plc, "state", "channel", "state"),
+    (NavKind::Plc, "target", "channel", "target"),
+    (NavKind::Plc, "comment", "channel", "comment"),
     (NavKind::Structure, "designation", "structure_node", "code"),
     (
         NavKind::Structure,
@@ -437,7 +451,7 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 22] = [
 /// The derived columns (WP-S2.06 part 3, §8.1, §8.2): cells the derivation computes from other records rather than a
 /// field of the row's record (a connection's or terminal's potential, the folios a row is drawn on, counts). Drawn
 /// italic in table mode and read-only with the reason "derived".
-const DERIVED_COLUMNS: [(NavKind, &str); 10] = [
+const DERIVED_COLUMNS: [(NavKind, &str); 13] = [
     (NavKind::Pages, "changed_in"),
     (NavKind::Connections, "potential"),
     (NavKind::Cables, "potential"),
@@ -448,6 +462,10 @@ const DERIVED_COLUMNS: [(NavKind, &str); 10] = [
     (NavKind::Potentials, "pages"),
     (NavKind::Structure, "usage"),
     (NavKind::Blocks, "pages"),
+    // WP-S2.07 §8: a channel's function text and process tag come from its target, its page from the bound coil.
+    (NavKind::Plc, "function_text"),
+    (NavKind::Plc, "process_tag"),
+    (NavKind::Plc, "placed_on"),
 ];
 
 /// The strip-editor columns of the Terminal strips navigator (WP-S2.07 §6.2, §6.3): (column key, its compile).
@@ -522,7 +540,12 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             c.extend(["potential", "shield", "pair"].map(|k| column(k, &key_label(k), false, None)));
             c
         }
-        NavKind::Plc => kind_columns("plc_overview"),
+        // WP-S2.07 §8: the PLC grid's own columns; the first, Station, is the key column.
+        NavKind::Plc => PLC_COLUMNS
+            .iter()
+            .enumerate()
+            .map(|(i, (k, l))| column(k, l, i == 0, None))
+            .collect(),
         NavKind::Potentials => kind_columns("potential_overview"),
         NavKind::Ips => own(&["name", "page_cell", "direction", "partner", "external"]),
         NavKind::Structure => {
@@ -1788,124 +1811,297 @@ fn cables_table(q: &Q, b: &mut Builder) {
     }
 }
 
-/// PLC (§7.1): station → module → channel rows of the PLC overview.
-fn plc_table(q: &Q, b: &mut Builder) {
-    use ew_derive::PlcRows;
-    let Some(set) = ew_reports::project_rows(q, "plc_overview", None) else {
-        return;
-    };
-    let folios = folios(q);
-    // The channel → (module, representation) of every station's PLC rows (the rows the PLC overview lists).
-    let mut channels: BTreeMap<Uuid, (Id<Device>, Option<Id<Representation>>)> = BTreeMap::new();
-    for station in ew_derive::stations(q) {
-        for r in q.get::<PlcRows>(station).iter() {
-            channels.insert(r.channel.as_uuid(), (r.module, r.rep));
+/// The PLC grid's columns (WP-S2.07 §8, FR-PLC-021): the members of PBF §2.8 that WP-S1.21's model has, in this order.
+/// Rack, data type, safety and signal range have no member yet and are left out.
+const PLC_COLUMNS: [(&str, &str); 14] = [
+    ("station", "Station"),
+    ("module", "Module"),
+    ("slot", "Slot"),
+    ("channel", "Channel"),
+    ("designation", "Designation"),
+    ("kind", "Kind"),
+    ("address", "Address"),
+    ("symbol", "Symbol"),
+    ("function_text", "Function text"),
+    ("process_tag", "Process tag"),
+    ("state", "State"),
+    ("target", "Target"),
+    ("placed_on", "Placed on"),
+    ("comment", "Comment"),
+];
+
+/// The word of a channel kind as the PLC overview prints it.
+fn channel_kind_word(k: &ew_derive::ew_schema::ChannelKind) -> &'static str {
+    use ew_derive::ew_schema::ChannelKind;
+    match k {
+        ChannelKind::Di => "DI",
+        ChannelKind::Do => "DO",
+        ChannelKind::Ai => "AI",
+        ChannelKind::Ao => "AO",
+        ChannelKind::Counter => "counter",
+        ChannelKind::IoLinkPort => "IO-Link",
+        ChannelKind::PowerSupply => "supply",
+        ChannelKind::Unknown(_) => "other",
+    }
+}
+
+/// A station's role as the badge of its row (doc 10 §6: the role word, not its identifier).
+fn station_role_word(r: &ew_derive::ew_schema::StationRole) -> &'static str {
+    use ew_derive::ew_schema::StationRole;
+    match r {
+        StationRole::Cpu => "CPU",
+        StationRole::HeadStation => "head station",
+        StationRole::IoDevice => "I/O device",
+        StationRole::ValveTerminal => "valve terminal",
+        StationRole::IoLinkMaster => "IO-Link master",
+        StationRole::Drive => "drive",
+        StationRole::ExternalPartner => "external partner",
+        StationRole::Unknown(_) => "station",
+    }
+}
+
+/// A module's slot as the grid prints it and its typed editor reads it back (`plc_slot_input`): a positional slot as
+/// its rank (`3`), an authored slot in rack 0 without a subslot as the slot alone (`3`), else `<rack>.<slot>` and
+/// `<rack>.<slot>.<subslot>`.
+fn slot_text(s: &ew_derive::Slot) -> String {
+    match s {
+        ew_derive::Slot::Positional(n) => n.to_string(),
+        ew_derive::Slot::Rack {
+            rack: 0,
+            slot,
+            subslot: None,
+        } => slot.to_string(),
+        ew_derive::Slot::Rack {
+            rack,
+            slot,
+            subslot: None,
+        } => format!("{rack}.{slot}"),
+        ew_derive::Slot::Rack {
+            rack,
+            slot,
+            subslot: Some(sub),
+        } => format!("{rack}.{slot}.{sub}"),
+        ew_derive::Slot::Unresolved => String::new(),
+    }
+}
+
+/// Where a drawable sits, as the Placed on column prints it: `<folio>-<cell>`, the folio alone without a cell.
+fn placed_on(d: &Drawable) -> String {
+    if d.cell.is_empty() {
+        d.folio.clone()
+    } else {
+        format!("{}-{}", d.folio, d.cell)
+    }
+}
+
+/// The channels that the `duplicate` flag marks (WP-S2.07 §8): the targets of EW-PLC-007 (duplicate symbol) and of
+/// EW-PLC-001's `overlap` findings (two addresses whose bit ranges overlap), in every configuration project.
+fn duplicate_channels(
+    q: &Q,
+    cfgs: &[Id<ew_derive::ew_schema::PlcConfigProject>],
+) -> std::collections::BTreeSet<Uuid> {
+    use crate::checks::Rule;
+    use crate::checks::rules::plc::{AddressOverlap, DuplicateSymbol};
+    let mut out = std::collections::BTreeSet::new();
+    for cfg in cfgs {
+        let scope = crate::checks::Scope::Cfg(*cfg);
+        let overlaps = AddressOverlap
+            .run(q, &scope)
+            .into_iter()
+            .filter(|f| f.discriminator == "overlap");
+        for f in DuplicateSymbol.run(q, &scope).into_iter().chain(overlaps) {
+            out.extend(f.targets.iter().map(|t| t.id.as_uuid()));
         }
     }
-    let mut stations: BTreeMap<Option<Uuid>, u32> = BTreeMap::new();
-    let mut modules: BTreeMap<Uuid, u32> = BTreeMap::new();
-    for (i, r) in set.rows.iter().enumerate() {
-        if r.kind != ew_reports::RowKind::Data {
-            continue;
-        }
-        let Some(ch) = row_entity(&r.id, 0) else { continue };
-        let Some(&(module, rep)) = channels.get(&ch) else {
+    out
+}
+
+/// PLC (WP-S2.07 §8, FR-PLC-020, FR-PLC-021): configuration project → station (its role word as the badge) → module →
+/// channel, from `plc_rows(station)` in slot and channel order. Configuration projects sort by name (natural, then ID),
+/// stations by their tag (natural, as the PLC overview lists them). A channel row carries the grid's cells
+/// ([`PLC_COLUMNS`]), the badges `spare` and `unplaced` (no binding), and the facets `kind`, `state`, `page`,
+/// `config:<name>` and the flags `unassigned` (no address: excluded or not derivable), `spare`, `unplaced`, `tbd` (an
+/// open address) and `duplicate` ([`duplicate_channels`]). Racks and bus ports wait for their records (WP-S1.21 part 4).
+fn plc_table(q: &Q, b: &mut Builder) {
+    use ew_derive::ew_schema::{Channel, PlcConfigProject};
+    use ew_derive::{ChannelAddr, EffectiveState, PlcRows};
+    let folios = folios(q);
+    let cfg_table = q.table::<PlcConfigProject>();
+    let channel_table = q.table::<Channel>();
+    // The stations of each configuration project, with their natural tag keys.
+    let mut by_cfg: BTreeMap<Id<PlcConfigProject>, Vec<(NaturalKey, Id<Device>)>> = BTreeMap::new();
+    for station in ew_derive::stations(q) {
+        let Some(cfg) = q
+            .devices()
+            .get(station)
+            .and_then(|d| d.aspects.plc_station.as_ref())
+            .map(|s| s.config_project)
+        else {
             continue;
         };
-        let texts = ew_reports::csv::row_texts(q, &set, i);
-        // The station: the module device's parent with the station aspect, else none.
-        let st = q
-            .devices()
-            .get(module)
-            .and_then(|d| d.parent)
-            .filter(|p| {
-                q.devices()
-                    .get(*p)
-                    .is_some_and(|x| x.aspects.plc_station.is_some())
-            })
-            .map(|s| s.as_uuid());
-        let snode = match stations.get(&st) {
-            Some(n) => *n,
-            None => {
-                let n = match st {
-                    Some(s) => {
-                        let id: Id<Device> = Id::from_uuid(s);
-                        let drawables = device_drawables(q, &folios, id);
-                        let facets = base_facets(NavRole::Station, &drawables);
-                        b.push(
-                            None,
-                            NavRole::Station,
-                            &format!("station:{s}"),
-                            short_tag(q, id),
+        by_cfg
+            .entry(cfg)
+            .or_default()
+            .push((natural_key(&short_tag(q, station)), station));
+    }
+    let mut cfgs: Vec<(NaturalKey, Id<PlcConfigProject>, String)> = by_cfg
+        .keys()
+        .map(|c| {
+            let name = cfg_table.get(*c).map_or_else(String::new, |x| x.name.to_string());
+            (natural_key(&name), *c, name)
+        })
+        .collect();
+    cfgs.sort();
+    let ids: Vec<Id<PlcConfigProject>> = cfgs.iter().map(|(_, c, _)| *c).collect();
+    let duplicates = duplicate_channels(q, &ids);
+    for (_, cfg, name) in cfgs {
+        let config = ("config".to_owned(), name.clone());
+        let cnode = b.push(
+            None,
+            NavRole::ConfigProject,
+            &format!("{}:{}", NavRole::ConfigProject.word(), cfg.as_uuid()),
+            name.clone(),
+            Vec::new(),
+            vec![cfg.as_uuid()],
+            Vec::new(),
+            None,
+            vec![
+                ("kind".to_owned(), NavRole::ConfigProject.word().to_owned()),
+                config.clone(),
+            ],
+        );
+        let mut stations = by_cfg.remove(&cfg).unwrap_or_default();
+        stations.sort();
+        for (_, station) in stations {
+            let role = q
+                .devices()
+                .get(station)
+                .and_then(|d| d.aspects.plc_station.as_ref())
+                .map(|s| station_role_word(&s.role));
+            let drawables = device_drawables(q, &folios, station);
+            let mut facets = base_facets(NavRole::Station, &drawables);
+            facets.push(config.clone());
+            let station_tag = short_tag(q, station);
+            let snode = b.push(
+                Some(cnode),
+                NavRole::Station,
+                &format!("station:{}", station.as_uuid()),
+                station_tag.clone(),
+                role.map(str::to_owned).into_iter().collect(),
+                vec![station.as_uuid()],
+                drawables,
+                None,
+                facets,
+            );
+            let mut modules: BTreeMap<Uuid, u32> = BTreeMap::new();
+            for r in q.get::<PlcRows>(station).iter() {
+                let module_tag = short_tag(q, r.module);
+                let mnode = match modules.get(&r.module.as_uuid()) {
+                    Some(n) => *n,
+                    None => {
+                        let drawables = device_drawables(q, &folios, r.module);
+                        let mut facets = base_facets(NavRole::Module, &drawables);
+                        facets.push(config.clone());
+                        let n = b.push(
+                            Some(snode),
+                            NavRole::Module,
+                            &format!("module:{}", r.module.as_uuid()),
+                            module_tag.clone(),
                             Vec::new(),
-                            vec![s],
+                            vec![r.module.as_uuid()],
                             drawables,
                             None,
                             facets,
-                        )
+                        );
+                        modules.insert(r.module.as_uuid(), n);
+                        n
                     }
-                    None => group(b, None, NavRole::Station, "station:-", "(none)".to_owned()),
                 };
-                stations.insert(st, n);
-                n
-            }
-        };
-        let mnode = match modules.get(&module.as_uuid()) {
-            Some(n) => *n,
-            None => {
-                let drawables = device_drawables(q, &folios, module);
-                let facets = base_facets(NavRole::Module, &drawables);
+                let ch = r.channel.as_uuid();
+                let address = match &r.address {
+                    ChannelAddr::At { text, .. } => text.clone(),
+                    ChannelAddr::Tbd => "TBD".to_owned(),
+                    ChannelAddr::Excluded | ChannelAddr::Unresolved => String::new(),
+                };
+                let page = r
+                    .rep
+                    .and_then(|rep| drawable(q, &folios, rep, true))
+                    .map(|(_, d)| d);
+                let comment = channel_table
+                    .get(r.channel)
+                    .map(|c| super::properties::neutral_or_first(&c.comment))
+                    .unwrap_or_default();
+                let cells: Vec<String> = vec![
+                    station_tag.clone(),
+                    module_tag.clone(),
+                    slot_text(&r.slot),
+                    r.number.to_string(),
+                    r.text.designation.clone().unwrap_or_default(),
+                    channel_kind_word(&r.kind).to_owned(),
+                    address.clone(),
+                    r.text.symbol.clone().unwrap_or_default(),
+                    r.text
+                        .function_text
+                        .as_ref()
+                        .map(super::properties::neutral_or_first)
+                        .unwrap_or_default(),
+                    r.text.process_tag.clone().unwrap_or_default(),
+                    r.state.name().to_owned(),
+                    r.target_device.map(|d| short_tag(q, d)).unwrap_or_default(),
+                    page.as_ref().map(placed_on).unwrap_or_default(),
+                    comment,
+                ];
+                let mut badges = Vec::new();
+                let mut facets = vec![
+                    ("kind".to_owned(), NavRole::Channel.word().to_owned()),
+                    ("state".to_owned(), r.state.name().to_lowercase()),
+                    config.clone(),
+                ];
+                if r.state == EffectiveState::Spare {
+                    badges.push("spare".to_owned());
+                    facets.push(("spare".to_owned(), String::new()));
+                }
+                if r.cp.is_none() {
+                    badges.push("unplaced".to_owned());
+                    facets.push(("unplaced".to_owned(), String::new()));
+                }
+                match r.address {
+                    ChannelAddr::Tbd => facets.push(("tbd".to_owned(), String::new())),
+                    ChannelAddr::Excluded | ChannelAddr::Unresolved => {
+                        facets.push(("unassigned".to_owned(), String::new()));
+                    }
+                    ChannelAddr::At { .. } => {}
+                }
+                if duplicates.contains(&ch) {
+                    facets.push(("duplicate".to_owned(), String::new()));
+                }
+                if let Some(d) = &page {
+                    facets.push(("page".to_owned(), d.folio.to_lowercase()));
+                }
+                let label = if address.is_empty() {
+                    r.number.to_string()
+                } else {
+                    address
+                };
                 let n = b.push(
-                    Some(snode),
-                    NavRole::Module,
-                    &format!("module:{}", module.as_uuid()),
-                    short_tag(q, module),
+                    Some(mnode),
+                    NavRole::Channel,
+                    &format!("channel:{ch}"),
+                    label,
+                    badges,
+                    vec![ch, r.module.as_uuid()],
                     Vec::new(),
-                    vec![module.as_uuid()],
-                    drawables,
-                    None,
+                    Some(cells),
                     facets,
                 );
-                modules.insert(module.as_uuid(), n);
-                n
+                let node = &mut b.nodes[n as usize];
+                node.kinds = vec!["channel".to_owned(), "device".to_owned()];
+                node.open = page.map(|d| NavOpen {
+                    page: d.page,
+                    select: Vec::new(),
+                });
             }
-        };
-        let state = cell_of(&set, &texts, "state").to_owned();
-        let mut badges = Vec::new();
-        let mut facets = vec![("kind".to_owned(), "channel".to_owned())];
-        if state == "spare" {
-            badges.push("spare".to_owned());
         }
-        if ["used", "spare", "reserved", "not_fitted"].contains(&state.as_str()) {
-            facets.push(("state".to_owned(), state));
-        }
-        let page = rep
-            .and_then(|r| q.reps().get(r))
-            .and_then(|r| folios.get(&r.page).cloned());
-        if let Some((_, folio, _)) = &page {
-            facets.push(("page".to_owned(), folio.to_lowercase()));
-        }
-        let address = cell_of(&set, &texts, "address");
-        let label = if address.is_empty() {
-            cell_of(&set, &texts, "channel").to_owned()
-        } else {
-            address.to_owned()
-        };
-        let n = b.push(
-            Some(mnode),
-            NavRole::Channel,
-            &format!("channel:{ch}"),
-            label,
-            badges,
-            vec![ch, module.as_uuid()],
-            Vec::new(),
-            Some(texts),
-            facets,
-        );
-        b.nodes[n as usize].open = page.map(|(_, _, p)| NavOpen {
-            page: p,
-            select: Vec::new(),
-        });
     }
 }
 
@@ -2780,6 +2976,8 @@ mod tests {
             ("device", "terminal.designation"),
             ("potential_def", "name"),
             ("structure_node", "code"),
+            // WP-S2.07 §8: a module's slot (the catalogue's identifier flag, FR-UI-044 rule 2).
+            ("device", "plc_module.slot"),
         ];
         for (nav, key, kind, path) in EDITABLE_COLUMNS {
             let catalogue = field_catalogue(kind).unwrap_or_else(|| panic!("{kind}: no catalogue"));
@@ -2793,7 +2991,14 @@ mod tests {
                 spec.route
             );
             // A cable's length source is JSON with its own typed editor (`parse_field_input`, WP-S2.07 §7).
-            let typed = (kind, path) == ("device", "cable.length");
+            // The PLC grid's address, target and slot have theirs too (WP-S2.07 §8).
+            let typed = [
+                ("device", "cable.length"),
+                ("channel", "address"),
+                ("channel", "target"),
+                ("device", "plc_module.slot"),
+            ]
+            .contains(&(kind, path));
             assert!(scalar(&spec.ty) || typed, "{kind}.{path}: {}", spec.ty.word());
             assert_eq!(
                 spec.identifier,

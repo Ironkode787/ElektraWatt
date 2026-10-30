@@ -2013,6 +2013,12 @@ impl Session {
         {
             return parsed;
         }
+        // WP-S2.07 §8 (FT-429, FT-690): the PLC grid's typed editors. A channel's address and a module's start as the
+        // profile's text or a keyword (the command reads it with the configuration project's profile), a channel's
+        // target as a device tag (its main function), a module's slot as a number.
+        if let Some(parsed) = self.plc_input(kind, row_path, text) {
+            return parsed;
+        }
         let q = self.query();
         let ty = row_type(kind, row_path)
             .ok_or_else(|| InputError::Invalid(format!("`{row_path}` is not a field of {kind}")))?;
@@ -2037,6 +2043,92 @@ impl Session {
         };
         choices(&cx, &ty, &last_member(row_path), filter)
     }
+}
+
+impl Session {
+    /// The PLC typed editors of [`Session::parse_field_input`] (WP-S2.07 §8; FT-429, FT-690); `None` for another field
+    /// or a JSON object, the field's own form, parsed as before.
+    fn plc_input(&self, kind: &str, row_path: &str, text: &str) -> Option<Result<ParsedInput, InputError>> {
+        let t = text.trim();
+        if t.starts_with('{') {
+            return None;
+        }
+        // A JSON string (`"excluded"`) is read as its text.
+        let decoded = match serde_json::from_str::<Value>(t) {
+            Ok(Value::String(s)) => Some(s),
+            _ => None,
+        };
+        let t = decoded.as_deref().map_or(t, str::trim);
+        let plain = |value: Value| {
+            Some(Ok(ParsedInput {
+                value,
+                notes: Vec::new(),
+            }))
+        };
+        match (kind, row_path) {
+            // `auto`, `excluded`, `tbd` or an address text (`I4.0`); `fields.set` reads it by the channel's profile and
+            // refuses a text that does not parse with the profile's example.
+            ("channel", "address") if !t.is_empty() => plain(Value::String(t.to_owned())),
+            ("channel", "address") => Some(Err(InputError::Invalid(
+                "give an address (for example Q0.1), auto, excluded or tbd".to_owned(),
+            ))),
+            // `auto`, `excluded`, `tbd` or a start text (`Q10`): `plc.set_start` reads it (WP-S1.21 D8).
+            ("device", "plc_module.start.input" | "plc_module.start.output") if !t.is_empty() => {
+                plain(Value::String(t.to_owned()))
+            }
+            ("device", "plc_module.slot") => Some(plc_slot_input(t)),
+            ("channel", "target") if t.is_empty() => plain(Value::Null),
+            ("channel", "target") => {
+                let q = self.query();
+                let id = match self.resolve_reference(t) {
+                    Ok(id) => id,
+                    Err(reason) => return Some(Err(InputError::Invalid(reason))),
+                };
+                if q.functions().get(Id::from_uuid(id)).is_some() {
+                    return plain(Value::String(id.to_string()));
+                }
+                let device: Id<ew_derive::ew_schema::Device> = Id::from_uuid(id);
+                match q
+                    .devices()
+                    .get(device)
+                    .and(*q.get::<ew_derive::MainFunction>(device))
+                {
+                    Some(f) => plain(Value::String(f.as_uuid().to_string())),
+                    None => Some(Err(InputError::Invalid(format!(
+                        "`{t}` names no device with a function to target"
+                    )))),
+                }
+            }
+            _ => None,
+        }
+    }
+}
+
+/// A module's slot typed as the PLC grid prints it (WP-S2.07 §8): empty, `auto` or `positional` for the positional
+/// slot, a number for that slot in rack 0, `<rack>.<slot>` and `<rack>.<slot>.<subslot>`.
+pub(crate) fn plc_slot_input(t: &str) -> Result<ParsedInput, InputError> {
+    let lower = t.to_ascii_lowercase();
+    if lower.is_empty() || lower == "auto" || lower == "positional" {
+        return Ok(ParsedInput {
+            value: Value::String("positional".to_owned()),
+            notes: Vec::new(),
+        });
+    }
+    let parts: Result<Vec<u16>, _> = lower.split('.').map(str::parse::<u16>).collect();
+    let rack = match parts.as_deref() {
+        Ok([slot]) => serde_json::json!({"rack": 0, "slot": slot}),
+        Ok([rack, slot]) => serde_json::json!({"rack": rack, "slot": slot}),
+        Ok([rack, slot, sub]) => serde_json::json!({"rack": rack, "slot": slot, "subslot": sub}),
+        _ => {
+            return Err(InputError::Invalid(format!(
+                "`{t}` is not a slot; give a number (3), <rack>.<slot> (1.3) or auto"
+            )));
+        }
+    };
+    Ok(ParsedInput {
+        value: serde_json::json!({ "rack": rack }),
+        notes: Vec::new(),
+    })
 }
 
 /// A cable's length source typed as its words (FT-429, WP-S2.07 §7): `<number> m` (or the number alone, in metres)

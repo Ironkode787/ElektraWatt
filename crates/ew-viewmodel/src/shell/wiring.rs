@@ -398,6 +398,64 @@ impl ShellModel {
         self.run_commit(&cmd)
     }
 
+    /// `navigator.bind {channel, x_mm, y_mm, group?}` (WP-S2.07 §8, FR-PLC-020): a PLC channel row dropped on the
+    /// canvas at the sheet point. The connection point under it, resolved as the Wire tool resolves its targets (the
+    /// nearest CP within 8 screen points), takes the channel: one `plc.bind_channel` with `endpoint: {cp: {function,
+    /// idx}}`, whose own rules decide (a CP outside the channel's module is refused there). A drop with no CP under it
+    /// is refused with `reason-drop-on-cp`.
+    pub(super) fn act_navigator_bind(&mut self, p: &Map<String, Value>) -> Outcome {
+        let channel = match string_param(p, "channel") {
+            Ok(Some(c)) => c.trim().trim_start_matches("id:").to_owned(),
+            Ok(None) => return failed("error-missing-param", &["channel"]),
+            Err(e) => return e,
+        };
+        if channel.parse::<ew_api::output::Uuid>().is_err() {
+            return failed("error-bad-param", &["channel"]);
+        }
+        let at = match super::canvas_actions::point_mm(p) {
+            Ok(Some(at)) => at,
+            Ok(None) => return failed("error-missing-param", &["x_mm"]),
+            Err(e) => return e,
+        };
+        let g = match self.group_param(p) {
+            Ok(g) => g,
+            Err(e) => return e,
+        };
+        if let Some(a) = &mut self.area
+            && a.focused != g
+        {
+            a.focused = g;
+        }
+        let Some(c) = self.canvas() else {
+            return Outcome::Refused {
+                reason_key: "reason-no-page",
+            };
+        };
+        let (page, ppn, pane) = (Arc::clone(c.page()), c.points_per_nm(), c.pane());
+        let cx = crate::tools::ToolCx {
+            page: &page,
+            points_per_nm: ppn,
+            pane,
+            snapper: &page.snapper,
+            selection: &self.tools.selection,
+        };
+        let crate::tools::wire::WireTarget::Cp { function, idx, .. } =
+            crate::tools::wire::resolve_target(&cx, at, false)
+        else {
+            return Outcome::Refused {
+                reason_key: "reason-drop-on-cp",
+            };
+        };
+        let cmd = ew_api::AnyCommand {
+            name: "plc.bind_channel".into(),
+            params: json!({
+                "channel": channel,
+                "endpoint": {"cp": {"function": function.0.to_string(), "idx": idx}},
+            }),
+        };
+        self.run_commit(&cmd)
+    }
+
     /// The tool context of the focused canvas for a host duty that calls the active tool directly.
     fn with_tool_cx<R>(
         &mut self,

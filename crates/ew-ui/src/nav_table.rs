@@ -956,7 +956,11 @@ impl TableDelegate for Delegate<'_> {
         let unplaced = (node.role == NavRole::Terminal && node.badges.iter().any(|b| b == "unplaced"))
             .then(|| node.records.first())
             .flatten();
-        let sense = if unplaced.is_some() {
+        // WP-S2.07 §8: a PLC channel row is a drag source onto a connection point (`navigator.bind`).
+        let channel = (node.role == NavRole::Channel)
+            .then(|| node.records.first())
+            .flatten();
+        let sense = if unplaced.is_some() || channel.is_some() {
             Sense::click_and_drag()
         } else {
             Sense::click()
@@ -964,6 +968,9 @@ impl TableDelegate for Delegate<'_> {
         let response = ui.allocate_rect(rect, sense);
         if let Some(record) = unplaced {
             response.dnd_set_drag_payload(crate::navigator::FunctionDrag(record.to_string()));
+        }
+        if let Some(record) = channel {
+            response.dnd_set_drag_payload(crate::navigator::ChannelDrag(record.to_string()));
         }
         // Doc 16a §6.21: text in `type.small`, primary (a derived cell secondary), `space.4` padding, cut with an
         // ellipsis at the column (W31-3).
