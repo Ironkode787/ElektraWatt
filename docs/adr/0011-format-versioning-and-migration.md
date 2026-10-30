@@ -1,6 +1,6 @@
 # ADR-0011: Format versioning, per-kind migration and format-change windows
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (amendment 4 annotated as applied again on 2026-10-23), 2026-10-30 (amendment 5, the project fragment's version rule, WP-S1.19 part 5) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -116,6 +116,37 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    bump, every `page_item` variant the reader does not type kept as `Unknown(Value)`. They add cascade and unlink links
    (ADR-0009 amendment 8), which an older 0.1 build does not enforce; because no format is released, the newer build
    reports a stale wire-marker entry as a load finding instead of raising `min_reader`.
+5. **The project fragment widens within v1 for macros** (2026-10-30, WP-S1.19 part 5, cycle 36; lead programmer,
+   delegated; [architecture](../design/04-architecture.md) §5.5, [project format](../design/05-project-format-and-persistence.md)
+   §12, [symbols, parts and macros](../design/07-symbols-parts-macros.md) §2.7). WP-S1.19 D12 makes a macro variant a
+   project fragment that also carries the record kinds `channel` and `device_link` and, for a page macro, the page
+   records. `#ew-fragment v1` was defined for the clipboard (cycle 27) with eight record kinds; no amendment so far
+   said how the fragment itself is versioned. The rule is:
+   - **A fragment version is bumped (`#ew-fragment v2`; the object form would then gain a version member, absent
+     meaning v1) only when a reader of the previous version would misread new content or drop it silently.** New content that every older reader refuses
+     with an error is an additive widening within the same version. Older fragments stay readable either way: a
+     reader keeps every older version it ever read.
+   - **New content never goes into an open place.** The `$fragment` header is open within v1 (an unknown member is
+     ignored) and every record keeps unknown members in `extra`, so content an older reader must not lose may not be
+     put there. It goes where an older reader refuses: a record line of a kind the older reader does not take, a
+     member of the closed object form (`edit.paste`'s `fragment` parameter refuses unknown members), or an unknown
+     `$` line of the text form.
+   - **Applied to the macro widening: v1 is widened additively, no bump.** The object form gains two optional,
+     default-empty, default-omitted members: `pages` (the page records of a page macro) and `lib` (the library
+     references, `LibRef`, of the closure a macro names instead of carrying its documents; a library item holds no
+     copies of other items). A macro fragment's records may also be of kinds `channel` and `device_link`. Every older
+     reader refuses this content instead of misreading it: the cycle-27 `edit.paste` and `parse_fragment` refuse a
+     record of a kind outside their eight with "is not pasted", and the object form's closed members refuse `pages`
+     and `lib`; the cycle-34 macro copy (WP-S1.19 part 1) keeps a variant's fragment as an opaque JSON value, so it
+     round-trips it byte-equal without reading it. A clipboard fragment written without the new content is unchanged
+     byte for byte, and `edit.paste` keeps its eight kinds: the macro-only content is taken by `macro.insert` alone,
+     and `edit.paste` refuses a fragment with page records.
+   - **The text form is unchanged by this widening.** A macro stores its fragment in the object form inside the macro
+     document (doc 07 §2.7). When a text export of a macro fragment is built, its new content is written as record
+     lines and `$` lines that a v1 clipboard reader refuses, never as header members.
+   Trade-off: one fragment version for clipboard and macros, so a fragment an older build cannot take is refused as a
+   whole rather than read in part; against a v2 that would turn away also the clipboard fragments older builds read
+   today.
 
 ## Consequences
 
