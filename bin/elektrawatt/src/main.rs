@@ -330,20 +330,39 @@ fn current_exe() -> Option<PathBuf> {
 
 /// The library tiers of the shell's sessions (WP-S1.19 §11): the system libraries of the installation's content
 /// (`content/libraries`), the user's data and cache directories. An isolated run (a script) reads libraries only when
-/// `EW_DATA_DIR` names its data directory, never the user's own.
+/// `EW_DATA_DIR` names its data directory, never the user's own, and keeps its search index in `EW_CACHE_DIR` when
+/// that is set, else in `<EW_DATA_DIR>/cache`, never in the user's own cache (FX38b j1).
 fn library_tiers(
     isolated: bool,
     content: Option<&Path>,
 ) -> Option<ew_ui::ew_viewmodel::ew_api::library::LibraryTiers> {
-    if isolated && env_path("EW_DATA_DIR").is_none() {
-        return None;
-    }
+    library_tiers_from(
+        isolated,
+        content,
+        env_path("EW_DATA_DIR"),
+        env_path("EW_CACHE_DIR"),
+    )
+}
+
+/// [`library_tiers`] with `EW_DATA_DIR` and `EW_CACHE_DIR` given (`None` when unset).
+fn library_tiers_from(
+    isolated: bool,
+    content: Option<&Path>,
+    data_dir: Option<PathBuf>,
+    cache_dir: Option<PathBuf>,
+) -> Option<ew_ui::ew_viewmodel::ew_api::library::LibraryTiers> {
+    use ew_ui::ew_viewmodel::ew_api::library::LibraryTiers;
     let system: Vec<PathBuf> = content
         .map(|c| c.join("libraries"))
         .filter(|p| p.is_dir())
         .into_iter()
         .collect();
-    ew_ui::ew_viewmodel::ew_api::library::LibraryTiers::for_user(system, Vec::new())
+    if isolated {
+        let data = data_dir?;
+        let cache = cache_dir.unwrap_or_else(|| data.join("cache"));
+        return Some(LibraryTiers::under(&data, &cache, system, Vec::new()));
+    }
+    LibraryTiers::for_user(system, Vec::new())
 }
 
 /// The configuration of the environment with the resources and the library tiers of this installation.
@@ -561,6 +580,23 @@ mod tests {
 
     fn parse(args: &[&str]) -> Result<Cli, String> {
         parse_args(args.iter().map(OsString::from))
+    }
+
+    /// FX38b j1: an isolated run with only `EW_DATA_DIR` keeps its search index under that directory, never in the
+    /// user's default cache; `EW_CACHE_DIR` still wins; without `EW_DATA_DIR` it reads no libraries.
+    #[test]
+    fn an_isolated_run_keeps_its_cache_under_its_data_dir() {
+        let data = PathBuf::from("isolated-data");
+        let tiers = library_tiers_from(true, None, Some(data.clone()), None).expect("tiers");
+        assert_eq!(tiers.cache, data.join("cache"));
+        assert_eq!(tiers.user, data.join("libraries"));
+        if let Some(user_cache) = ew_ui::ew_viewmodel::ew_api::library::default_cache_dir() {
+            assert!(!tiers.cache.starts_with(&user_cache), "{}", tiers.cache.display());
+        }
+        let cache = PathBuf::from("isolated-cache");
+        let tiers = library_tiers_from(true, None, Some(data), Some(cache.clone())).expect("tiers");
+        assert_eq!(tiers.cache, cache);
+        assert!(library_tiers_from(true, None, None, Some(PathBuf::from("c"))).is_none());
     }
 
     #[test]
