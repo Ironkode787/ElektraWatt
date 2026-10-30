@@ -773,8 +773,8 @@ mod tests {
     ];
 
     /// FT-268, FT-306, FT-330, FT-353, FT-387: the acceptance tests and the command fuzzer run once per job. The filtered
-    /// default-features run is in test-linux-default and test-macos; the unfiltered all-features run is in test-linux
-    /// and test-macos; test-windows-1, test-windows-2 and test-windows-3 run the all-features archive in three
+    /// default-features run is in test-linux-default; the unfiltered all-features run is in test-linux (the macOS jobs
+    /// were removed by ID-880); test-windows-1, test-windows-2 and test-windows-3 run the all-features archive in three
     /// disjoint parts that together cover every test: part 1 is `WINDOWS_PART1_BINARIES` (which contains the
     /// acceptance tests and the fuzzer), part 2 is `WINDOWS_PART2_BINARIES`, part 3 is the complement of both.
     /// The nextest config documents the same filter.
@@ -792,8 +792,8 @@ mod tests {
             direct.iter().partition(|l| l.contains("--all-features"));
         assert_eq!(
             (default.len(), all_features.len(), archive.len()),
-            (2, 2, 3),
-            "the filtered default-features run in test-linux-default and test-macos, the unfiltered all-features run in test-linux and test-macos, the three partitions of the Windows archive: {nextest_runs:#?}"
+            (1, 1, 3),
+            "the filtered default-features run in test-linux-default, the unfiltered all-features run in test-linux, the three partitions of the Windows archive: {nextest_runs:#?}"
         );
         for line in default {
             assert!(line.contains(&format!("-E '{ONCE_PER_JOB_FILTER}'")), "{line}");
@@ -855,7 +855,7 @@ mod tests {
                 });
             assert!(found, "{binary} is not a test binary of {krate}");
         }
-        // FT-353: the doctests run in test-linux and test-macos (default features and all features), nowhere else.
+        // FT-353, ID-880: the doctests run in test-linux (default features and all features), nowhere else.
         let doc_runs: Vec<&str> = ci
             .lines()
             .map(str::trim)
@@ -864,8 +864,8 @@ mod tests {
         let doc_all_features = doc_runs.iter().filter(|l| l.contains("--all-features")).count();
         assert_eq!(
             (doc_runs.len() - doc_all_features, doc_all_features),
-            (2, 2),
-            "doctests: test-linux and test-macos only, not test-windows (FT-353): {doc_runs:#?}"
+            (1, 1),
+            "doctests: test-linux only, not test-windows (FT-353, ID-880): {doc_runs:#?}"
         );
         let config = std::fs::read_to_string(workspace_root().join(".config/nextest.toml")).unwrap();
         assert!(

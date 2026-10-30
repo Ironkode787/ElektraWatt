@@ -20,7 +20,7 @@ path = "junit.xml"
 #   - the command fuzzer (crates/ew-testkit/tests/command_fuzz: `fuzz_smoke`, 15 to 19 s in a debug build, and the
 #     binary's other tests; FT-306).
 # The rule:
-#   - the first nextest run of the Linux and macOS jobs (default features) skips them with the filterset
+#   - the first nextest run of the Linux job test-linux-default (default features) skips them with the filterset
 #       -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
 #     (the constant ONCE_PER_JOB_FILTER of xtask/src/main.rs; a test of xtask keeps it equal to the filter in
 #     .github/workflows/ci.yml and to the line above);

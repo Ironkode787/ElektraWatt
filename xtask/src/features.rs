@@ -795,11 +795,7 @@ mod tests {
                 "{krate}/clipboard is required by the policy"
             );
         }
-        for target in [
-            "x86_64-pc-windows-msvc",
-            "x86_64-unknown-linux-gnu",
-            "aarch64-apple-darwin",
-        ] {
+        for target in ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"] {
             let output = std::process::Command::new(crate::cargo())
                 .current_dir(&root)
                 .args([

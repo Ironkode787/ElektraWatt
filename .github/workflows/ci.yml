@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # Per-PR CI set of gate G-M0 (docs/design/18-quality-security-release.md §5.2): CI-PR-01 lint,
-# CI-PR-02/03/04 tests on Linux, Windows and macOS, CI-PR-05 headless (the evidence job of G-M1-01), CI-PR-08
+# CI-PR-02/03 tests on Linux and Windows (CI-PR-04, macOS, was removed by ID-880), CI-PR-05 headless (the
+# evidence job of G-M1-01), CI-PR-08
 # fuzz-smoke (path-filtered, 60 s per affected cargo-fuzz target on the pinned nightly; G-M1-13), CI-N-09
 # verapdf (the evidence job of G-M1-02; a nightly in the catalogue, per push here), CI-PR-09 supply-chain. Job
 # names are the required status checks (ci/README.md). Hardening per §5.4 and NFR-SEC-19: actions pinned by
@@ -110,12 +111,12 @@ jobs:
       - name: wall clock, environment and randomness
         run: cargo xtask check-disallowed-methods
 
-  # CI-PR-02, CI-PR-03, CI-PR-04 (test-linux and test-linux-default; test-windows-build, -1, -2 and -3; test-macos and test-macos-all-features)
+  # CI-PR-02, CI-PR-03 (test-linux and test-linux-default; test-windows-build, -1, -2 and -3)
   test-linux:
     name: test-linux
     runs-on: ubuntu-24.04
     # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
-    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    # on Linux, WARP on Windows), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
     env:
       EW_REQUIRE_GPU_ADAPTER: "1"
     timeout-minutes: 50
@@ -188,7 +189,7 @@ jobs:
     name: test-linux-default
     runs-on: ubuntu-24.04
     # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
-    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    # on Linux, WARP on Windows), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
     env:
       EW_REQUIRE_GPU_ADAPTER: "1"
     timeout-minutes: 50
@@ -272,7 +273,7 @@ jobs:
           tool: cargo-nextest@0.9.148
       # Windows runs the all-features suite only (FT-330, decision log ID-482) and, from FT-353 (ID-527), builds it once
       # and runs it in three parts on the nextest archive: ci run 39797238020 took 33 min 20 s for one job. Doctests
-      # do not run on Windows (platform-neutral; Linux, macOS and `cargo xtask ci` run them). This job builds, saves
+      # do not run on Windows (platform-neutral; Linux and `cargo xtask ci` run them). This job builds, saves
       # the rust-cache (on main only, as `headless` does) and uploads the archive; the three run jobs have no cache:
       # their key would be their own job name, which never saves. The tests start the CLI binaries through
       # `NEXTEST_BIN_EXE_<name>` (xtask guards that) because the archive is unpacked elsewhere than the compile-time
@@ -299,7 +300,7 @@ jobs:
     needs: test-windows-build
     runs-on: windows-2025
     # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
-    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    # on Linux, WARP on Windows), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
     env:
       EW_REQUIRE_GPU_ADAPTER: "1"
     timeout-minutes: 50
@@ -360,7 +361,7 @@ jobs:
     needs: test-windows-build
     runs-on: windows-2025
     # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
-    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    # on Linux, WARP on Windows), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
     env:
       EW_REQUIRE_GPU_ADAPTER: "1"
     timeout-minutes: 50
@@ -420,7 +421,7 @@ jobs:
     needs: test-windows-build
     runs-on: windows-2025
     # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
-    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
+    # on Linux, WARP on Windows), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
     env:
       EW_REQUIRE_GPU_ADAPTER: "1"
     timeout-minutes: 50
@@ -489,125 +490,6 @@ jobs:
           path: target/ew-ui-snapshots/
           if-no-files-found: ignore
           retention-days: 7
-
-  # FT-438: test-macos is split in two jobs that run in parallel, as the Windows run is (FT-387): this one is the default-features
-  # half (build, the filtered nextest run, the default-features doctests), test-macos-all-features the other (the unfiltered
-  # all-features nextest run, which has the acceptance tests and the fuzzer once, and the all-features doctests). One job
-  # took 21 to 37 minutes in the recorded runs; the parts are projected at about 22 and 19 at worst (ci/README.md).
-  test-macos:
-    name: test-macos
-    runs-on: macos-15
-    # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
-    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
-    # The runner ran out of disk linking the test binaries with line tables (ld errno 28, cycle-35 delivery): this job
-    # builds without debug info; panics keep their messages, and the Linux and Windows jobs keep file and line.
-    env:
-      EW_REQUIRE_GPU_ADAPTER: "1"
-      CARGO_PROFILE_DEV_DEBUG: "0"
-    timeout-minutes: 50
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
-      - name: assert ICU4X_DATA_DIR is unset
-        shell: bash
-        run: test -z "${ICU4X_DATA_DIR:-}"
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
-        with:
-          tool: cargo-nextest@0.9.148
-      - name: cargo build
-        run: cargo build --workspace --locked
-      # The headless acceptance tests (about 2 min) and the command fuzzer's `fuzz_smoke` (15 to 19 s) run once per
-      # job, in the all-features run below: the filter is the rule of .config/nextest.toml and is kept equal to
-      # xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
-      - name: cargo nextest (without the acceptance tests and the fuzzer)
-        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
-      # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
-      - name: failed tests as annotations
-        if: failure()
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import xml.etree.ElementTree as ET, os
-          p = os.path.join("target", "nextest", "ci", "junit.xml")
-          if not os.path.exists(p):
-              print("::warning title=nextest::no junit.xml was written")
-              raise SystemExit(0)
-          n = 0
-          for tc in ET.parse(p).getroot().iter("testcase"):
-              f = tc.find("failure")
-              if f is None:
-                  f = tc.find("error")
-              if f is None:
-                  continue
-              n += 1
-              text = ((f.get("message") or "") + "\n" + (f.text or "")).strip()[:1500]
-              text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
-              print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
-          print(f"{n} failed test case(s) annotated")
-          PY
-      # nextest does not run doctests.
-      - name: cargo test --doc
-        run: cargo test --doc --workspace --locked
-
-  test-macos-all-features:
-    name: test-macos-all-features
-    runs-on: macos-15
-    # The GPU canvas tests fail instead of skipping when no adapter is found: these runners have one (Mesa's lavapipe
-    # on Linux, WARP on Windows, Metal on macOS), so a skip here would hide a broken setup (WP-S2.02 part 2, spec section 8).
-    env:
-      EW_REQUIRE_GPU_ADAPTER: "1"
-    timeout-minutes: 50
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
-      - name: assert ICU4X_DATA_DIR is unset
-        shell: bash
-        run: test -z "${ICU4X_DATA_DIR:-}"
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
-        with:
-          tool: cargo-nextest@0.9.148
-      # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
-      - name: cargo nextest (all features, with the acceptance tests and the fuzzer)
-        run: cargo nextest run --workspace --all-features --locked --profile ci
-      # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
-      - name: failed tests as annotations
-        if: failure()
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import xml.etree.ElementTree as ET, os
-          p = os.path.join("target", "nextest", "ci", "junit.xml")
-          if not os.path.exists(p):
-              print("::warning title=nextest::no junit.xml was written")
-              raise SystemExit(0)
-          n = 0
-          for tc in ET.parse(p).getroot().iter("testcase"):
-              f = tc.find("failure")
-              if f is None:
-                  f = tc.find("error")
-              if f is None:
-                  continue
-              n += 1
-              text = ((f.get("message") or "") + "\n" + (f.text or "")).strip()[:1500]
-              text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
-              print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
-          print(f"{n} failed test case(s) annotated")
-          PY
-      # nextest does not run doctests.
-      - name: cargo test --doc (all features)
-        run: cargo test --doc --workspace --all-features --locked
 
   # CI-PR-05 (FT-295, evidence for G-M1-01, NFR-PLAT-04, NFR-REL-11): the shipped `ew export pdf` over
   # golden/J-E-2416.ew inside a bare Linux container (ci/headless-export.sh checks inside it that there is no

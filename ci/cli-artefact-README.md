@@ -9,8 +9,8 @@ This archive holds the `ew` command-line program built by the nightly workflow `
 commit named below. It is an **unsigned development build, not a release**:
 
 - it has no version tag and no signature, and nothing in it is a statement of what a release will contain;
-- it is built in the release profile on a hosted CI runner, with no signing step and no notarisation, so
-  Windows and macOS may warn about an unknown publisher;
+- it is built in the release profile on a hosted CI runner, with no signing step, so Windows may warn about
+  an unknown publisher;
 - it is kept as an artefact of the CI run for 90 days and then deleted; it is not a release;
 - it is for people who work on ElektraWatt or test the CLI; do not use it for a project that matters, and do
   not redistribute it as a release.

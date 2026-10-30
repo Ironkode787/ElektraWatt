@@ -39,7 +39,7 @@ DEFAULT_REPO = "Ironkode787/ElektraWatt"
 BUDGET_SECONDS = 30 * 60
 MAX_RUNS = 9  # 1 call for the run list + 1 per run = at most 10 calls
 PAUSE_SECONDS = 0.5
-JOB_ORDER = ["lint", "test-linux", "test-linux-default", "test-windows-build", "test-windows-1", "test-windows-2", "test-windows-3", "test-macos", "test-macos-all-features", "supply-chain"]
+JOB_ORDER = ["lint", "test-linux", "test-linux-default", "test-windows-build", "test-windows-1", "test-windows-2", "test-windows-3", "supply-chain"]
 
 
 def parse_time(text):
