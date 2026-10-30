@@ -578,9 +578,12 @@ impl PlaceTool {
             .any(|r| r.symbol == self.shape.copy && r.pos == pos && r.orient == orient)
     }
 
-    /// Whether the placement at the current point would land on an identical twin (FT-751).
+    /// Whether the placement at the current point would land on an identical twin (FT-751). A terminal never does:
+    /// one of the same strip moves along it ([`Self::stacked_pos`]), and one of another strip may share the point
+    /// (FT-622's ruling).
     fn on_twin(&self, cx: &ToolCx<'_>) -> bool {
         !self.ask
+            && !matches!(self.target, PlaceTarget::Terminal { .. })
             && self
                 .at
                 .is_some_and(|(_, at)| self.lands_on_twin(cx, self.stacked_pos(cx, at)))
