@@ -449,6 +449,11 @@ The 50-row window of WP-S2.06 D15 applies unchanged.
 - **FT-490's generic half:** Delete in navigator trees with the cascade preview (one `edit.delete` of the marked rows'
   records, always the card); F2 renames the authored label of a tree row (a page title, a potential name, a structure
   node's code, a device's tag letter and counter through the tag proposal of FR-NUM-029) through the row's editable route.
+  *As built (cycle 37, lane I37, decision log ID-862; a2cd4760, FT-633):* F2 on a structure node edits its code through
+  the `fields.set` route on `structure_node.code`; F2 on a device row selects the device, opens Properties and sends the
+  typed tag through the Tag field's rows (the Join proposal, the Letter or Counter row with FR-NUM-029's refusal and
+  proposal, else the frozen tag; a tag that changes letter and counter is frozen); the refusal and the Use or Join
+  button show under the inline field.
 
 **Acceptance (outline):** CT1 swap on -106W1 (one `fields.set_many`, one undo step, the cable diagram's rows), CT2 the
 editable core columns' routes, CT3 the length editor, CT4 tree Delete with the card and F2 rename on Pages and

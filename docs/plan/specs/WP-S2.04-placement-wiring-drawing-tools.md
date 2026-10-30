@@ -371,7 +371,7 @@ End move the row; Enter chooses; Escape closes (§6.4). Choosing:
 FnDef, or the part's closure), and every preview and commit sends them in the `copies` member of `device.place` or
 `box.black`, leaving out what the project already holds; the placement is one transaction and one undo step, and a
 placement after an undo carries the copies again. PL5's "one `library.embed`, one undo step" reads as one placement
-with its copies. The exchange flow (§7.5), the IP tools and `place.pick device=` still embed separately (FT-673).
+with its copies. *As built (cycle 37, FT-673, decision log ID-859):* the exchange flow (§7.5), the IP tools, P while routing and `place.pick device=` carry their copies in the edit too (`rep.exchange_symbol`, `ip.place` and `connection.draw_to_ip` take `copies`), so each is one undo step.
 
 ### 7.2 The Place tool (`place`; FR-SYM-015, FR-UI-017, FR-DEV-038)
 
@@ -453,7 +453,7 @@ exactly one representation commits the `rep.transform` whose composition gives t
 picker in exchange mode listing symbols with `allowed` set; choosing one arms the `exchange` tool: state `armed`,
 `Transient` = the new shape's outline at the representation's position and orientation with a `Marker cp` per mapped
 CP and a dashed `Rect` around each function CP that would become unmapped; `Dwell` previews, `Activate` or a press
-commits `rep.exchange_symbol { rep, symbol }`, `Escape` cancels. A starter symbol is embedded first (§7.1).
+commits `rep.exchange_symbol { rep, symbol }`, `Escape` cancels. A starter symbol is embedded first (§7.1); since cycle 37 (FT-673) it travels in the command's `copies` member, in the same transaction.
 
 *As built (cycle 30, FT-424's second half; decision log ID-710).* `ew_commands::commands::derive_pin_map` is the
 command's map rule; `ew_api::output::exchange_map(current, new)` applies it to the two symbol shapes (`drawn`,

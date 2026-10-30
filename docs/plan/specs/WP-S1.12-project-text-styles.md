@@ -1,7 +1,7 @@
 # WP-S1.12: per-project text styles (closed specification, one lane)
 
 **Status:** specified in cycle 36 (documents only), one part of 0.4 pw for FT-662 under
-[ADR-0032](../../adr/0032-per-project-text-styles.md); a cycle-37 candidate · **Date:** 2026-10-30 · **Work package:**
+[ADR-0032](../../adr/0032-per-project-text-styles.md); **built in cycle 37** (lane B37, decision log ID-855; FT-662 closed; Golden A and C unchanged) · **Date:** 2026-10-30 · **Work package:**
 [WP-S1.12](../02-work-packages.md#wp-s112-project-structure-and-page-model-breadth) · **Decision log:** ID-837 ·
 **Part of:** ElektraWatt plan, specifications
 

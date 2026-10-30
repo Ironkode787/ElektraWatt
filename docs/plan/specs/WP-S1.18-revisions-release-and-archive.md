@@ -6,7 +6,7 @@ change status and the revision overview (0.8 pw, D6, D7), part 3 the content dig
 (0.8 pw, D8 to D10), part 4 the atomic release with the as-built archive (1.1 pw, D11 to D13), part 5 the archive's
 use, the dialogs and AC-23 (0.5 pw, D14, D15); part 1 first; part 2 after part 1; part 3 after parts 1 and 2 and
 WP-S1.16 part 5 (waivers; they exist since cycle 36, `crates/ew-schema/src/waiver.rs`); part 4 after part 3; part 5
-last · **Date:** 2026-10-30 · **Work package:**
+last · **Parts 1 and 2 built in cycle 37** (lane C37, decision log ID-856; lane H37, ID-861; folio 911 a golden change) · **Date:** 2026-10-30 · **Work package:**
 [WP-S1.18](../02-work-packages.md#wp-s118-revisions-release-gate-and-as-built-archive) · **Decision log:** ID-836 ·
 **Part of:** ElektraWatt plan, specifications
 
@@ -172,6 +172,8 @@ so a line that held them as extras stays canonical byte for byte. *EW-REL-004.* 
 be in the project's format. An open revision's label must follow every label in the format, and the refusal names
 the next label. A historic released revision's label must precede the open revision's. Part 3 builds the gate half.
 
+*As built (cycle 37, lane C37, decision log ID-856; f21c0581).* RL-1 to RL-7 pass. The normaliser is `revision_ensure_open` (doc 06 row 18, last in the pass); the latest released revision is the greatest in-format label, ties by ID; the next ID is v5 of the latest released and "next", chained up to 16 times; an `Unknown` format adds a notice and opens nothing; the opened revision has no author. The withdrawal record copies the label (Released state, a non-blank reason, one withdrawal). `ProjectSettings.revision_label` is declared before `text_styles` (byte order of the names; the integration ruling). Follow-ups: FT-691 to FT-694.
+
 ## 6. Part 2: page digests, change status and the revision overview
 
 **Scope.** D6, D7, FT-207. **0.8 pw.**
@@ -185,6 +187,8 @@ digests): `changed_pages(V2.0)` is {101, 106} from the page notes; folio 911 lis
 fixture title block prints V2.0 on 101 and 106 and V1.0 elsewhere. **PD-5** Golden A's exported bytes: folio 911
 changes from the placeholder to its rows (a golden change the lead decides under the owner's standing delegation,
 listed); every other byte equal. **PD-6** targeted checks for `ew-dl`, `ew-scene`, `ew-api`, `ew-reports`.
+
+*As built (cycle 37, lane H37, decision log ID-861; e49d7b93, a4928b76).* PD-1 to PD-6 pass. D6 as built: the digest covers every layer except frame, highlights and revision, each layer's geometry map in key order, and the bound title-block values minus every `revision.*` path, `page.last_changed_in` and every date, in the neutral language only (FT-702); `ew_dl::canonical_bytes` encodes `ew-dl`'s own display-list type, because `ew-dl` may depend only on `ew-units`. The change status is handed down as parameters (no new crate edge, ADR-0032's precedent). A revision-overview page leaves its tables layer out of its own digest and counts as always changed in the digest branch; withdrawn revisions are ignored for the last released and the open revision. Follow-ups: FT-703 (a free text bound to `page.last_changed_in`), FT-704 (`revision_rows` for the CSV and navigator consumers).
 
 ## 7. Part 3: content digest, sign-off and the release gate
 

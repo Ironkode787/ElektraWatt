@@ -1140,6 +1140,8 @@ column rounds that value times 0.986282578 to 0.01 mm (decision log ID-38).
 | `cp.small` | 5 | 3.75 | 3.70 | 1.30 | MCB and switch pin numbers, "DP" |
 | `marker` | 5 | 3.75 | 3.70 | 1.30 | wire- and cable-marker texts |
 
+*As built (cycle 37, [ADR-0032](../adr/0032-per-project-text-styles.md), decision log ID-855).* The table above is the built-in base every project's `text_styles` overrides apply to (in `ew-schema` as `BUILTIN_TEXT_STYLES`). Golden A and Golden C write no overrides and keep `cp.small` and `marker` at 5 px (EF-12 still reports its two EW-CORE-061 findings); a new project overrides both to 7 px (1.85 mm em, 1.32 mm cap height).
+
 **Fonts.** The fixture pins the bundled default family (Noto Sans Regular and Bold, OFL-1.1, ▲U-29, ADR-0028).
 **Tahoma is never bundled, embedded or required**: CI machines have no Tahoma, and AC-13 fails if any embedded font is
 Tahoma. Acceptance compares strings, anchors and sizes, not glyph outlines (§3.3). The PDF embeds subsets and records
@@ -1458,6 +1460,8 @@ stays a placeholder until FT-207; its note now reads "awaits the `revision_rows`
 revision records exist, which changed `911.csv`, the 911 PNG candidate, the PDF digest and the SVG digest of AC-14,
 while "Revision: V2.0" is byte-identical on every page. Headless counts: **94 entries, 88 pass, 0 fail, 0 not_built,
 6 not_applicable**: the headless M1 acceptance list has no blocking entry.
+
+*As built (cycle 37; decision log ID-861, FT-207).* Folio 911 is derived: it lists V1.0 released and V2.0 open with its changed pages 101 and 106, taken from the page notes because V1.0 has no digests (doc 15 §5.6). `911.csv`, the 911 PNG candidate, the PDF digest and the AC-13 and AC-14 entries (3717 glyph runs, the SVG digest) and D-05's text changed; every other folio's text is equal.
 
 *As built (cycle 18; FT-278).* The builder's first command is `library.embed` of the 46 non-local library copies
 (symbols, function definitions and forms of `content/`, as the raw documents of the bootstrap batch, in one

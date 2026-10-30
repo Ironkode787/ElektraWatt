@@ -698,7 +698,7 @@ Not shaped here, and kept in `extra` until their work packages: `checks` (WP-S1.
 *Amended 2026-10-30 ([ADR-0032](../adr/0032-per-project-text-styles.md), decision log ID-837):* text styles are shaped
 as `ProjectSettings.text_styles`, overrides of the built-in table keyed by style key (`size` as em height in nm, an
 optional `weight`); an absent member means the built-in table; new projects write `cp.small` and `marker` at 7 px.
-Built by the lane of [WP-S1.12's text-style specification](../plan/specs/WP-S1.12-project-text-styles.md) (FT-662).
+Built by the lane of [WP-S1.12's text-style specification](../plan/specs/WP-S1.12-project-text-styles.md) (FT-662). *As built (cycle 37, decision log ID-855):* the member is typed in `ew-schema` (`TextStyleSpec`, `BUILTIN_TEXT_STYLES`, `effective_text_styles`); an override whose size lies outside 0.5 … 50 mm is ignored on reading and a weight of a newer format reads as absent.
 
 ---
 

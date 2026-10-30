@@ -436,8 +436,10 @@ shared strings bounded by doc 05 §3.6's limits, because calamine's zip turned o
 the PDF bytes (ID-827); a project import embeds the manufacturer copies it resolves and writes no `extra.key` (D10),
 while a library import names the master's records and writes only the created ones; `save_as_basic` takes
 `StoreOptions`, returns `SaveAsBasicError`, and keeps potential definitions, page items and structure boxes when
-devices are omitted, so the result opens with no integrity findings; the window's mapping step below is not built
-(FT-649). Follow-ups FT-650 (a fuzz arm), FT-651 (a library target's manufacturer references, ruled) and FT-652.
+devices are omitted, so the result opens with no integrity findings; the window's mapping step below was not built
+(FT-649; built in cycle 37, below). Follow-ups FT-650 (a fuzz arm), FT-651 (a library target's manufacturer references, ruled) and FT-652.
+
+*As built (cycle 37, lane I37, decision log ID-862; 97f57ee7).* The mapping step: File ▸ Import ▸ Parts table… opens a mapping card for every CSV or XLSX table, with the source key (from the file name) and per column its header, a sample value and the member it imports as, pre-filled from the map saved for the key, else from the golden dialect's headers (one member per column). `parts.map` edits the key and members; `parts.map_import` saves the map and reads the table through `ew_api::catalog` into the import card. A golden-dialect table whose pre-filled map is unchanged is read by the golden reader with its sibling tables. Import is refused with the importer's message while `manufacturer` or `part_number` is unmapped; the import passes no date.
 
 **Scope.** D11, D14, FT-463, FR-MAC-011, FR-PRJ-009, FR-PRJ-010's check. **0.8 pw, D3.**
 

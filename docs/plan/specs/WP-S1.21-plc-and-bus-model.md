@@ -5,7 +5,7 @@ work, in five parts: part 1 PLC records from the window and the channel members 
 PLC texts on the pages (0.6 pw, D7), part 3 addressing commands, the EW-PLC rules and AC-29 (1.1 pw, D8 to D10), part 4
 the bus model, the EW-BUS rules and AC-31 (1.2 pw, D11, D12), part 5 the I/O list, card supply groups and the model
 follow-ups (0.5 pw, D13); part 1 first; parts 2 and 3 after it in any order or side by side; part 4 after part 1;
-part 5 last; WP-S2.18 part 4 (`brief-plc-io`) waits for parts 1 and 2 and WP-S2.07 part 3 · **Date:** 2026-10-30 ·
+part 5 last; WP-S2.18 part 4 (`brief-plc-io`) waits for parts 1 and 2 and WP-S2.07 part 3 · **Parts 1 and 2 built in cycle 37** (lane A37, decision log ID-854; lane G37, ID-860; Golden A unchanged, its folios 203 to 206 wait for FT-698) · **Date:** 2026-10-30 ·
 **Work package:** [WP-S1.21](../02-work-packages.md#wp-s121-plc-and-bus-model-with-addressing-mvp) ·
 **Decision log:** ID-835 · **Part of:** ElektraWatt plan, specifications
 
@@ -198,8 +198,10 @@ No decision changes an ADR.
   refused for "I4.9" with the profile's example), `address excluded`, `address tbd`, `address auto`; each one undo
   step; the row values of `PlcRows` follow.
 - **PW-6** Renumbering the devices after PW-1 changes no address (FR-PLC-055).
-- **PW-7** Golden A and AC-15 path (b): every exported byte and the acceptance result unchanged (N0 fires on no
-  golden device; if it fires, the lane stops, §10.2 item 3).
+- **PW-7** Golden A and AC-15 path (b): every exported byte and the acceptance result unchanged. N0 may fire in path
+  (b) (amended in cycle 37, decision log ID-854: path (b) creates the seven I/O modules with their parts and no aspect,
+  so N0 gives them their `plc_module` and channels at creation and the script's aspect steps become no-ops; a scripted
+  creation should get N0); equal bytes are the criterion, and a byte change still stops the lane (§10.2 item 3).
 - **PW-8** Twice-run determinism; `cargo nextest run -p ew-commands -p ew-library -p ew-api`, the matching clippy and
   `cargo fmt --all --check`; `cargo xtask check-deps`.
 

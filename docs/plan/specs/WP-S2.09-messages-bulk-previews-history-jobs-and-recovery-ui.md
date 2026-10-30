@@ -430,6 +430,8 @@ work from any context and open the pane first if it is closed. **F1** in the mes
 finding or rule row opens `reference/rules/<pack in lower case>.md#<rule ID in lower case>` through the help system (the
 pack page exists for every shipped rule; a new anchor test checks every shipped rule ID against the book).
 
+*As built (cycle 37, lane E37, decision log ID-858; FT-674, FT-664, FT-675).* The detail block's title line carries **Waive…** (on a waived finding "Waived" and **Unwaive**) before the rule page link, so the block keeps its height in a short pane. `messages.waive` opens a prompt with Reason (at least ten characters) and Author, prefilled from the app preference `author_name` and saved back on commit, and commits `check.waive` with the date the window passes (its UTC date; the shell reads no clock, FT-697); the headless shell refuses it as human-only. `messages.unwaive` commits `check.unwaive`. The check toast carries the waived and pending counts in its title ("Check · 1 waived"), so the severity counts stay on one line; title and line truncate, never wrap. On the canvas, a potential with an open EW-POT-001 finding gets the `canvas.conflict` overlay (screen only; FT-696 for CP-keyed potentials).
+
 ### 7.4 Quick fixes (D10)
 
 `messages.fix { key? }` (the cursor row by default) parses the finding's `QuickFix` (command name and parameters),

@@ -242,7 +242,7 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   symbol, the slot and the name, never as an error (decision log ID-227). As built (cycle 10, FT-84): `style` is
   an optional identifier, absent by default, and `ew-scene` reports an unknown name as
   `PageFinding::UnknownSlotStyle` (decision log ID-266). The styles of the golden project are `tag.main`,
-  `data.small`, `cp.small` and the others listed in [20](20-golden-project.md) §17.5, which removes D-29.
+  `data.small`, `cp.small` and the others listed in [20](20-golden-project.md) §17.5, which removes D-29. *As built (cycle 37, [ADR-0032](../adr/0032-per-project-text-styles.md), decision log ID-855):* a slot's `style` resolves against the project's effective table, so it may name a key the project's `text_styles` adds; the scene resolves keys through `ew_text::TextStyleTable::from_rows` over the rows its caller passes (the first row of a duplicated key wins).
 - **Built-in symbols.** The interruption point `ew.gen.ip`, the black-box frame `ew.gen.blackbox` (its outline and
   CPs live in the representation's `box: BoxSpec`, [03](03-domain-model.md) §6, [06](06-schematic-editor.md) §2.7),
   the junction dot and bevel, and the derived linkage are system symbols with fixed keys. Importers and the engine
