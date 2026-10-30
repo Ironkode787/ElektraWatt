@@ -5076,6 +5076,20 @@ pub enum PaletteRun {
     Action(&'static str),
     /// A model command of `Session::registry()`; part 1 only lists it (disabled).
     Command(String),
+    /// A page of the `#` prefix (WP-S2.08 D4): its folio; Enter shows it (`page.goto`).
+    Page(String),
+    /// The cell of the `:` prefix: the Go to text; Enter goes there (`nav.goto`, FR-UI-039).
+    Cell(String),
+    /// An object of the `@` prefix: the record's ID text and the Go to text of its cell or page; Enter selects it
+    /// (`select.set`) and shows its page.
+    Object {
+        /// The record's ID text.
+        record: String,
+        /// Its cell (`102-B3`) or folio, when it is on a page.
+        target: Option<String>,
+    },
+    /// A rule of the `?` prefix: its ID; Enter shows Messages filtered to it (`messages.show`, `navigator.filter`).
+    Rule(String),
 }
 
 #[cfg(test)]

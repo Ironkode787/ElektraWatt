@@ -33,6 +33,8 @@ pub mod dialogs;
 // WP-S2.05 part 2
 pub mod find;
 pub mod first_run;
+// WP-S2.08 part 1 (D5 (b)): the glossary file, the palette's aliases.
+pub mod glossary;
 pub mod help;
 // WP-S2.06 part 2
 pub mod highlight;
@@ -44,6 +46,8 @@ pub mod navigator;
 // WP-S2.06 part 1
 pub mod navigators;
 pub mod notifications;
+// WP-S2.08 part 1: the palette's ranking, recents, prefixes and parameter forms.
+pub mod palette;
 // WP-S2.09 part 3
 pub mod preview;
 pub mod properties;

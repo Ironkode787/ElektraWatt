@@ -1,0 +1,222 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# The product glossary (WP-S2.08 D5 (b), FR-UI-045): one source for the command palette's aliases, the glossary page
+# of the user guide (`cargo xtask docs-gen` writes docs/book/src/reference/glossary.md from it) and the glossary panel.
+# A design document is never read at run time; this file is.
+#
+# One [[term]] per EW term:
+#   ew          the EW term (English)
+#   eplan, qet  what an EPLAN or QElectroTech user calls it (lists; each entry is a palette alias)
+#   actions     the action IDs the aliases find; an empty list is a term the palette cannot act on (it still has its
+#               glossary row)
+#   [term.labels]      the term in each UI language (en-GB, nl-NL)
+#   [term.definition]  one sentence per UI language (en-GB, nl-NL)
+#
+# It starts with the terms of NFR-DOC-05 (EPLAN: function, device, part, CDP, interruption point, basic project, form,
+# message management; QET: element, master/slave, folio report, conductor) and the rows of the design glossary §4 that
+# map to an action. Dutch terms follow IEC 60050 and NEN-EN-IEC 81346 usage.
+
+[[term]]
+ew = "Function"
+eplan = ["Function"]
+qet = ["Element", "Element instance"]
+actions = ["tool.place"]
+[term.labels]
+en-GB = "Function"
+nl-NL = "Functie"
+[term.definition]
+en-GB = "One placed instance of a function definition: a coil, a contact, a terminal; it belongs to a device."
+nl-NL = "Een geplaatste instantie van een functiedefinitie: een spoel, een contact, een klem; zij hoort bij een apparaat."
+
+[[term]]
+ew = "Device"
+eplan = ["Device", "Device tag", "DT", "BMK"]
+qet = ["Element label"]
+actions = ["tool.place_part", "devices.renumber"]
+[term.labels]
+en-GB = "Device"
+nl-NL = "Apparaat"
+[term.definition]
+en-GB = "The product with a tag (-102F1) that groups its functions; the tag is derived from the structure and the counter."
+nl-NL = "Het product met een kenmerk (-102F1) dat zijn functies bundelt; het kenmerk volgt uit de structuur en de teller."
+
+[[term]]
+ew = "Part"
+eplan = ["Part", "Article"]
+qet = ["Manufacturer reference"]
+actions = ["tool.place_part", "parts.import"]
+[term.labels]
+en-GB = "Part"
+nl-NL = "Artikel"
+[term.definition]
+en-GB = "A manufacturer's article from a library; a project holds a copy of each part it uses, attached to devices."
+nl-NL = "Een artikel van een fabrikant uit een bibliotheek; een project bewaart een kopie van elk gebruikt artikel, gekoppeld aan apparaten."
+
+[[term]]
+ew = "Wire marker"
+eplan = ["CDP", "Connection definition point"]
+qet = ["Conductor text"]
+actions = ["tool.marker"]
+[term.labels]
+en-GB = "Wire marker"
+nl-NL = "Adermarkering"
+[term.definition]
+en-GB = "A marker on a connection that shows or overrides its number, colour and cross-section."
+nl-NL = "Een markering op een verbinding die haar nummer, aderkleur en doorsnede toont of overschrijft."
+
+[[term]]
+ew = "Interruption point"
+eplan = ["Interruption point"]
+qet = ["Folio report"]
+actions = ["tool.ip"]
+[term.labels]
+en-GB = "Interruption point"
+nl-NL = "Onderbrekingspunt"
+[term.definition]
+en-GB = "Where a potential leaves one page and continues on another; pairs are found by name, star or chain."
+nl-NL = "Waar een potentiaal een pagina verlaat en op een andere doorloopt; paren worden op naam gevonden, als ster of keten."
+
+[[term]]
+ew = "Basic project"
+eplan = ["Basic project"]
+qet = ["Template project"]
+actions = ["file.new", "tools.company_standard"]
+[term.labels]
+en-GB = "Basic project"
+nl-NL = "Basisproject"
+[term.definition]
+en-GB = "The project a new project starts from: frames, settings and libraries; the company standard wizard writes one."
+nl-NL = "Het project waarmee een nieuw project begint: kaders, instellingen en bibliotheken; de bedrijfsstandaardwizard schrijft er een."
+
+[[term]]
+ew = "Frame and title block"
+eplan = ["Form", "Plot frame"]
+qet = ["Title-block template"]
+actions = ["tools.company_standard"]
+[term.labels]
+en-GB = "Frame and title block"
+nl-NL = "Kader en titelblok"
+[term.definition]
+en-GB = "The form a page is drawn in; every title-block field binds to a project property, never to literal text."
+nl-NL = "Het formulier waarin een pagina wordt getekend; elk veld van het titelblok is aan een projecteigenschap gebonden, nooit aan losse tekst."
+
+[[term]]
+ew = "Messages"
+eplan = ["Message management"]
+qet = []
+actions = ["messages.show"]
+[term.labels]
+en-GB = "Messages"
+nl-NL = "Meldingen"
+[term.definition]
+en-GB = "The findings of the checks, each with its rule ID, cause and remedy; a finding can be waived with a reason."
+nl-NL = "De bevindingen van de controles, elk met regel-ID, oorzaak en oplossing; een bevinding kan met een reden worden vrijgesteld."
+
+[[term]]
+ew = "Main and auxiliary function"
+eplan = ["Main function", "Auxiliary function"]
+qet = ["Master/slave", "Master", "Slave"]
+actions = ["tool.place", "place.join"]
+[term.labels]
+en-GB = "Main and auxiliary function"
+nl-NL = "Hoofd- en hulpfunctie"
+[term.definition]
+en-GB = "A device's main function (a coil) and its auxiliary functions (its contacts), linked by data, not by text."
+nl-NL = "De hoofdfunctie van een apparaat (een spoel) en zijn hulpfuncties (zijn contacten), gekoppeld door gegevens, niet door tekst."
+
+[[term]]
+ew = "Connection"
+eplan = ["Connection"]
+qet = ["Conductor"]
+actions = ["tool.wire"]
+[term.labels]
+en-GB = "Connection"
+nl-NL = "Verbinding"
+[term.definition]
+en-GB = "An explicit wire between two connection points; its potential, number and wire colour are derived."
+nl-NL = "Een expliciete draad tussen twee aansluitpunten; potentiaal, nummer en aderkleur worden afgeleid."
+
+[[term]]
+ew = "Terminal strip"
+eplan = ["Terminal strip"]
+qet = ["Terminal strip"]
+actions = ["strip.new"]
+[term.labels]
+en-GB = "Terminal strip"
+nl-NL = "Klemmenstrook"
+[term.definition]
+en-GB = "A device whose functions are terminals in a fixed order, with levels, bridges and accessories."
+nl-NL = "Een apparaat waarvan de functies klemmen in een vaste volgorde zijn, met niveaus, bruggen en toebehoren."
+
+[[term]]
+ew = "Structure node"
+eplan = ["Structure identifier", "Identifier block", "Higher-level function", "Mounting location"]
+qet = ["Plant", "Location"]
+actions = ["structure.new"]
+[term.labels]
+en-GB = "Structure node"
+nl-NL = "Structuurknooppunt"
+[term.definition]
+en-GB = "A node of the function (=) or location (+) aspect; pages and devices are assigned to nodes."
+nl-NL = "Een knooppunt van het functie- (=) of plaatsaspect (+); pagina's en apparaten worden aan knooppunten toegewezen."
+
+[[term]]
+ew = "Black box"
+eplan = ["Black box"]
+qet = ["Rectangle"]
+actions = ["tool.black_box"]
+[term.labels]
+en-GB = "Black box"
+nl-NL = "Black box"
+[term.definition]
+en-GB = "A representation drawn as a rectangle with device connection points, for a device without a symbol."
+nl-NL = "Een weergave als rechthoek met aansluitpunten van het apparaat, voor een apparaat zonder symbool."
+
+[[term]]
+ew = "Structure box"
+eplan = ["Structure box"]
+qet = ["Dotted shape"]
+actions = ["tool.structure_box"]
+[term.labels]
+en-GB = "Structure box"
+nl-NL = "Structuurkader"
+[term.definition]
+en-GB = "A dashed frame on a page that assigns what it encloses to a structure node."
+nl-NL = "Een gestippeld kader op een pagina dat wat het omsluit aan een structuurknooppunt toewijst."
+
+[[term]]
+ew = "Report block"
+eplan = ["Report", "Update reports", "Embedded report"]
+qet = ["Summary", "Nomenclature", "Folio list"]
+actions = []
+[term.labels]
+en-GB = "Report block"
+nl-NL = "Rapportblok"
+[term.definition]
+en-GB = "A generated table (parts list, terminal diagram, table of contents); reports are always current, there is no update step."
+nl-NL = "Een gegenereerde tabel (stuklijst, klemmenplan, inhoudsopgave); rapporten zijn altijd actueel, er is geen bijwerkstap."
+
+[[term]]
+ew = "Potential"
+eplan = ["Potential", "Potential definition point"]
+qet = []
+actions = []
+[term.labels]
+en-GB = "Potential"
+nl-NL = "Potentiaal"
+[term.definition]
+en-GB = "The electrical net a connection belongs to (24VDC-1, PE); it is derived, and its wire colour follows from it."
+nl-NL = "Het elektrische net waartoe een verbinding behoort (24VDC-1, PE); het wordt afgeleid, en de aderkleur volgt eruit."
+
+[[term]]
+ew = "Cross-reference"
+eplan = ["Cross-reference", "Contact image"]
+qet = ["Cross-reference"]
+actions = []
+[term.labels]
+en-GB = "Cross-reference"
+nl-NL = "Kruisverwijzing"
+[term.definition]
+en-GB = "The derived reference between a device's main and auxiliary functions on their pages, with the contact image."
+nl-NL = "De afgeleide verwijzing tussen de hoofd- en hulpfuncties van een apparaat op hun pagina's, met het contactbeeld."

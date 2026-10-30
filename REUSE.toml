@@ -50,8 +50,13 @@ SPDX-License-Identifier = "CC-BY-4.0"
 # L1: the generated reference pages of the user guide (`cargo xtask docs-gen`). Their text is the doc comments of
 # the GPL crates, carried by the command schemas of ew-commands and the rule catalogue of ew-checks, so the pages
 # keep those crates' licence (owner ruling, cycle 16); `override` replaces the L9 annotation above for these paths.
+# The glossary page (WP-S2.08 part 1) is the text of ew-viewmodel's glossary file, so it is GPL too.
 [[annotations]]
-path = ["docs/book/src/reference/commands/**", "docs/book/src/reference/rules/**"]
+path = [
+    "docs/book/src/reference/commands/**",
+    "docs/book/src/reference/rules/**",
+    "docs/book/src/reference/glossary.md",
+]
 precedence = "override"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "GPL-3.0-or-later"

@@ -46,6 +46,8 @@ pub(crate) enum Event {
     PaletteQuery(String),
     /// An arrow key in the palette.
     PaletteMove(isize),
+    /// A row of the palette's parameter form changed (WP-S2.08 D5 (a)): its index and its text.
+    PaletteField(usize, String),
     /// An answer to the unsaved-changes dialog.
     Confirm(ConfirmAnswer),
     /// The go-to field changed.
@@ -1193,6 +1195,8 @@ impl App {
                 } else {
                     self.shell.shortcut_action(binding.action)
                 };
+                // WP-S2.08 D3 (PL-4): a shortcut invocation counts for the palette's recents.
+                self.shell.note_shortcut_use(action);
                 events.push(Event::Action(action, params));
                 return;
             }
@@ -1321,6 +1325,7 @@ impl App {
             }
             Event::PaletteQuery(query) => self.shell.set_palette_query(&query),
             Event::PaletteMove(delta) => self.shell.move_palette_selection(delta),
+            Event::PaletteField(i, text) => self.shell.set_palette_field(i, &text),
             Event::Confirm(answer) => {
                 let outcome = self.shell.answer_confirm(answer);
                 self.report(outcome);

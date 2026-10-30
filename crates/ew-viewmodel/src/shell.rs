@@ -20,7 +20,7 @@ use ew_api::{
 };
 use serde_json::{Map, Value, json};
 
-use crate::actions::{self, ACTIONS, PaletteEntry, PaletteRun};
+use crate::actions;
 use crate::area::CanvasArea;
 use crate::canvas::{CanvasBackend, HEADLESS_PANE};
 use crate::first_run::FirstRun;
@@ -66,6 +66,7 @@ mod row_ops;
 mod strip_editor;
 mod table;
 // FT-410
+mod palette;
 mod parts;
 mod projects;
 mod properties;
@@ -358,6 +359,8 @@ pub struct PaletteState {
     pub query: String,
     /// The index of the selected entry among the entries of the query.
     pub selected: usize,
+    /// The open parameter form (WP-S2.08 D5 (a)); the list is hidden while it is open.
+    pub form: Option<crate::palette::PaletteForm>,
 }
 
 /// One `command.run` step that committed, as the command log writes it.
@@ -414,6 +417,8 @@ pub struct ShellModel {
     project: Option<Project>,
     banner: Option<String>,
     palette: Option<PaletteState>,
+    /// The palette's recents (WP-S2.08 D3): the last 50 palette or shortcut invocations of this run.
+    recents: crate::palette::Recents,
     dialog: Option<Dialog>,
     prompt: Option<PromptRequest>,
     record: Record,
@@ -954,6 +959,7 @@ impl ShellModel {
             project: None,
             banner,
             palette: None,
+            recents: crate::palette::Recents::default(),
             dialog: None,
             prompt: None,
             record: Record::default(),
@@ -1303,96 +1309,6 @@ impl ShellModel {
 
     // -----------------------------------------------------------------------------------------------------------
     // The palette (transient widget state)
-
-    /// Sets the text of the palette's field and selects its first entry.
-    pub fn set_palette_query(&mut self, query: &str) {
-        if let Some(p) = &mut self.palette {
-            p.query = query.to_owned();
-            p.selected = 0;
-        }
-    }
-
-    /// Moves the palette's selection by `delta` entries, clamped to the entries of the query.
-    pub fn move_palette_selection(&mut self, delta: isize) {
-        let count = self.palette_entries().len();
-        if let Some(p) = &mut self.palette {
-            let last = count.saturating_sub(1);
-            p.selected = p.selected.saturating_add_signed(delta).min(last);
-        }
-    }
-
-    /// Selects the palette entry at `index` (a click), clamped to the entries of the query.
-    pub fn select_palette_entry(&mut self, index: usize) {
-        let last = self.palette_entries().len().saturating_sub(1);
-        if let Some(p) = &mut self.palette {
-            p.selected = index.min(last);
-        }
-    }
-
-    /// The palette entries for the current query: the registry actions whose label or ID contains the query
-    /// (case-insensitively); enabled entries first, disabled ones last with their reason. WP-S2.17 part 4 (doc 16a
-    /// §6.14, P3): an action the palette cannot run from the window (one that needs parameters it cannot supply) and
-    /// the model commands are not listed; scripts still reach them. Each entry carries its breadcrumb.
-    pub fn palette_entries(&self) -> Vec<PaletteEntry> {
-        let query = self
-            .palette
-            .as_ref()
-            .map(|p| p.query.to_lowercase())
-            .unwrap_or_default();
-        let matches = |label: &str, id: &str| {
-            query.is_empty() || label.to_lowercase().contains(&query) || id.to_lowercase().contains(&query)
-        };
-        let mut entries: Vec<PaletteEntry> = Vec::new();
-        for meta in ACTIONS
-            .iter()
-            .filter(|a| !a.headless_only && !a.hidden && !a.needs_parameters)
-        {
-            let label = strings::text(meta.label_key);
-            if !matches(label, meta.id) {
-                continue;
-            }
-            let state = (meta.enabled)(self);
-            entries.push(PaletteEntry {
-                run: PaletteRun::Action(meta.id),
-                label: label.to_owned(),
-                id: meta.id.to_owned(),
-                shortcut: actions::shortcut_text(meta),
-                enabled: state.is_ok(),
-                reason: state.err().map(|k| strings::text(k).to_owned()),
-                breadcrumb: actions::breadcrumb(meta),
-            });
-        }
-        // Enabled first; the sort is stable, so each group keeps registry order.
-        entries.sort_by_key(|e| !e.enabled);
-        entries
-    }
-
-    /// Runs the selected palette entry (Enter): closes the palette, then dispatches an enabled action.
-    pub fn run_palette_selection(&mut self) -> Outcome {
-        let entries = self.palette_entries();
-        let selected = self.palette.as_ref().map_or(0, |p| p.selected);
-        let Some(entry) = entries.get(selected) else {
-            return Outcome::Done;
-        };
-        if !entry.enabled {
-            return match &entry.run {
-                PaletteRun::Action(id) => match actions::find(id).map(|m| (m.enabled)(self)) {
-                    Some(Err(reason_key)) => Outcome::Refused { reason_key },
-                    _ => Outcome::Refused {
-                        reason_key: "reason-parameters-later",
-                    },
-                },
-                PaletteRun::Command(_) => Outcome::Refused {
-                    reason_key: "reason-parameters-later",
-                },
-            };
-        }
-        let PaletteRun::Action(id) = entry.run.clone() else {
-            return Outcome::Done;
-        };
-        self.palette = None;
-        self.dispatch(id, &Value::Null)
-    }
 
     /// Sets the text of the go-to-page dialog's field.
     pub fn set_goto_text(&mut self, text: &str) {
@@ -2413,6 +2329,7 @@ impl ShellModel {
             self.palette = Some(PaletteState {
                 query: query.unwrap_or("").to_owned(),
                 selected: 0,
+                form: None,
             });
         }
         Outcome::Done
@@ -2428,6 +2345,10 @@ impl ShellModel {
             && let Some(stashed) = self.recovery_stash.take()
         {
             self.dialog = Some(stashed);
+            return Outcome::Done;
+        }
+        // WP-S2.08 D5 (a): Escape in a parameter form returns to the palette's list.
+        if self.close_palette_form() {
             return Outcome::Done;
         }
         if self.palette.take().is_some()

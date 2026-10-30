@@ -382,3 +382,46 @@ fn the_zoom_is_set_when_the_setting_changes_not_every_frame() {
 
 // WP-S2.09 part 1: the one-frame "Exporting PDF…" label went with the export job; `tests/jobs.rs` holds the
 // window's export (the save dialog, the job, its progress and its end).
+
+/// WP-S2.08 part 1 (PL-6, PL-7): Enter on an action that needs parameters opens its inline form in the palette, named
+/// for the screen reader; Escape returns to the list; Enter in the form runs the action and closes the palette.
+#[test]
+fn the_palette_opens_a_parameter_form_and_runs_it_with_enter() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    h.key_press_modifiers(Modifiers::COMMAND, Key::K);
+    settle(&mut h);
+    // (The command bar's search field is a text input too: the query goes to the palette's state directly.)
+    h.state_mut().shell_mut().set_palette_query("pages.sort");
+    settle(&mut h);
+    let entries = h.state().shell().palette_entries();
+    assert_eq!(
+        entries[0].id,
+        "pages.sort",
+        "{:?}",
+        entries.iter().map(|e| &e.id).collect::<Vec<_>>()
+    );
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    let form = h.state().shell().palette().and_then(|p| p.form.clone());
+    assert_eq!(form.map(|f| f.action), Some("pages.sort"));
+    assert!(h.query_by_label("By").is_some(), "the form's row is named");
+    support::assert_named(&h);
+    // Escape returns to the list, the palette stays open.
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    assert!(h.state().shell().palette().is_some_and(|p| p.form.is_none()));
+    // Enter opens the form again; Enter in the form runs it.
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    assert!(h.state().shell().palette().is_some_and(|p| p.form.is_some()));
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    assert!(
+        h.state().shell().palette().is_none(),
+        "the form ran and the palette closed"
+    );
+}

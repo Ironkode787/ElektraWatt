@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command palette (WP-S2.01 part 1, spec section 5.3; FR-UI-012 part-1 subset), restyled by WP-S2.17 part 4 (doc
-//! 16a §6.14). Ctrl+K opens a popover with a search field over the registry actions the window can run (the shell
-//! leaves out what needs parameters, P3); matching is a case-insensitive substring on the label and the ID; disabled
-//! entries follow the enabled ones with their reason; Enter runs the selected enabled entry; Escape closes it.
+//! The command palette (WP-S2.01 part 1, spec section 5.3; FR-UI-012), restyled by WP-S2.17 part 4 (doc 16a §6.14);
+//! its behaviour is WP-S2.08 part 1's: Ctrl+K opens a popover with a search field; the shell ranks the entries
+//! (`ew_viewmodel::palette`: fuzzy score, glossary aliases, recents, the prefixes `>`, `@`, `#`, `:` and `?`);
+//! disabled entries follow the enabled ones with their reason; Enter runs the selected enabled entry or opens its
+//! parameter form (one row per parameter, Enter runs it, Escape returns to the list); Escape closes the palette.
 //!
 //! **Look.** No title: `size.palette` wide (560 px), anchored under the command bar's search field (or centred at the
 //! window's top fifth when opened by key), `color.surface.raised`, `elevation.2`, `radius.lg`; a 36-px search field
@@ -17,7 +18,8 @@
 
 use egui::text::LayoutJob;
 use egui::{Align, Align2, Id, Key, Layout, Modifiers, Rect, ScrollArea, Sense, TextEdit, Vec2};
-use ew_viewmodel::actions::PaletteEntry;
+use ew_viewmodel::actions::{PaletteEntry, PaletteRun};
+use ew_viewmodel::palette::{self, PaletteForm};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 
@@ -25,24 +27,30 @@ use crate::app::Event;
 use crate::icons::{self, IconId};
 use crate::theme::{self, Tokens};
 
-/// The label of `entry` with the characters that match `query` (case-insensitively, the first occurrence) in
-/// `type.body.strong`.
+/// The label of `entry` with the characters the query's best alignment matches (WP-S2.08 D2) in `type.body.strong`;
+/// `query` is the text after the prefix.
 fn label_job(t: &Tokens, label: &str, query: &str, colour: egui::Color32) -> LayoutJob {
     let mut job = LayoutJob::default();
     let normal = egui::TextFormat::simple(theme::font(&t.type_body), colour);
     let strong = egui::TextFormat::simple(theme::font(&t.type_body_strong), colour);
-    let lower = label.to_lowercase();
-    let q = query.to_lowercase();
-    match (!q.is_empty() && lower.len() == label.len())
-        .then(|| lower.find(&q))
-        .flatten()
-    {
-        Some(at) => {
-            job.append(&label[..at], 0.0, normal.clone());
-            job.append(&label[at..at + q.len()], 0.0, strong);
-            job.append(&label[at + q.len()..], 0.0, normal);
+    let hits = palette::matched(query, label);
+    let mut run = String::new();
+    let mut run_strong = false;
+    for (i, c) in label.chars().enumerate() {
+        let is_strong = hits.binary_search(&i).is_ok();
+        if is_strong != run_strong && !run.is_empty() {
+            let format = if run_strong {
+                strong.clone()
+            } else {
+                normal.clone()
+            };
+            job.append(&std::mem::take(&mut run), 0.0, format);
         }
-        None => job.append(label, 0.0, normal),
+        run_strong = is_strong;
+        run.push(c);
+    }
+    if !run.is_empty() {
+        job.append(&run, 0.0, if run_strong { strong } else { normal });
     }
     job
 }
@@ -72,10 +80,10 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
     };
     let mut x = rect.left() + t.space_3;
     let icon = match &entry.run {
-        ew_viewmodel::actions::PaletteRun::Action(id) => ew_viewmodel::actions::find(id)
+        PaletteRun::Action(id) => ew_viewmodel::actions::find(id)
             .and_then(|m| m.icon)
             .and_then(IconId::from_key),
-        ew_viewmodel::actions::PaletteRun::Command(_) => None,
+        _ => None,
     };
     if let Some(id) = icon {
         let r = Rect::from_center_size(
@@ -148,7 +156,21 @@ pub fn show(
         events.push(Event::PaletteRun);
     }
     let t = theme::current(ctx);
-    let entries = shell.palette_entries();
+    let form = state.form.as_ref();
+    let entries = if form.is_some() {
+        Vec::new()
+    } else {
+        shell.palette_entries()
+    };
+    let (_, rest) = palette::split_prefix(&state.query);
+    // The form's first row takes the focus once, when the form opens.
+    let form_key = Id::unique("command-palette-form");
+    let form_opened = ctx.data_mut(|d| {
+        let was: Option<&'static str> = d.get_temp(form_key).flatten();
+        let now = form.map(|f| f.action);
+        d.insert_temp(form_key, now);
+        now.is_some() && was != now
+    });
     let area = egui::Area::new(Id::unique("command-palette")).order(egui::Order::Foreground);
     let area = match anchor {
         Some(field) => area
@@ -190,7 +212,7 @@ pub fn show(
                             .font(theme::font(&t.type_body))
                             .desired_width(f32::INFINITY),
                     );
-                    if just_opened {
+                    if just_opened && form.is_none() {
                         edit.request_focus();
                     }
                     if query != state.query {
@@ -201,7 +223,9 @@ pub fn show(
                     ui.allocate_exact_size(Vec2::new(ui.available_width(), t.border_width), Sense::hover());
                 ui.painter()
                     .rect_filled(line, theme::SQUARE, t.border_subtle.color32());
-                if entries.is_empty() {
+                if let Some(form) = form {
+                    form_rows(ui, &t, form, form_opened, events);
+                } else if entries.is_empty() {
                     ui.add_space(t.space_3);
                     ui.horizontal(|ui| {
                         ui.add_space(t.space_3);
@@ -217,11 +241,97 @@ pub fn show(
                     .show(ui, |ui| {
                         ui.spacing_mut().item_spacing.y = 0.0;
                         for (i, entry) in entries.iter().enumerate() {
-                            if row(ui, &t, entry, &state.query, i == state.selected) {
+                            if row(ui, &t, entry, rest, i == state.selected) {
                                 events.push(Event::PaletteClick(i));
                             }
                         }
                     });
             });
     });
+}
+
+/// The rows of an open parameter form (WP-S2.08 D5 (a)): the action's label, then per parameter its label and a
+/// field (a check box for a `bool`, a list for an enumeration, a text field otherwise), then the last error. Enter
+/// runs the form (the palette's Enter); Escape returns to the list (`ui.dismiss`).
+fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, events: &mut Vec<Event>) {
+    let title = ew_viewmodel::actions::find(form.action).map_or(form.action, |m| strings::text(m.label_key));
+    ui.add_space(t.space_2);
+    ui.horizontal(|ui| {
+        ui.add_space(t.space_3);
+        ui.label(
+            egui::RichText::new(title)
+                .font(theme::font(&t.type_body_strong))
+                .color(t.text_primary.color32()),
+        );
+    });
+    let mut first = opened;
+    for (i, f) in form.fields.iter().enumerate() {
+        ui.horizontal(|ui| {
+            ui.set_min_height(t.size_palette_row);
+            ui.add_space(t.space_3);
+            ui.spacing_mut().item_spacing.x = 0.0;
+            let label = ui
+                .allocate_ui_with_layout(
+                    Vec2::new(t.size_dialog_label, t.size_control),
+                    Layout::left_to_right(Align::Center),
+                    |ui| {
+                        ui.set_min_size(Vec2::new(t.size_dialog_label, t.size_control));
+                        ui.add(egui::Label::new(f.label()).truncate())
+                    },
+                )
+                .inner;
+            ui.add_space(t.space_3);
+            let choices = f.choices();
+            let response = if f.ty == "bool" {
+                let mut on = f.value == "true";
+                let r = ui
+                    .add(egui::Checkbox::without_text(&mut on))
+                    .labelled_by(label.id);
+                if r.changed() {
+                    events.push(Event::PaletteField(i, on.to_string()));
+                }
+                r
+            } else if choices.is_empty() {
+                let mut text = f.value.clone();
+                let r = ui
+                    .add(
+                        TextEdit::singleline(&mut text)
+                            .desired_width(ui.available_width() - t.space_3)
+                            .min_size(Vec2::new(0.0, t.size_control)),
+                    )
+                    .labelled_by(label.id);
+                if text != f.value {
+                    events.push(Event::PaletteField(i, text));
+                }
+                r
+            } else {
+                let combo = egui::ComboBox::from_id_salt(("palette-form-choice", i))
+                    .selected_text(strings::choice_text(&f.value))
+                    .width(ui.available_width() - t.space_3)
+                    .icon(crate::components::combo_chevron)
+                    .show_ui(ui, |ui| {
+                        for choice in &choices {
+                            if ui
+                                .selectable_label(f.value == *choice, strings::choice_text(choice))
+                                .clicked()
+                            {
+                                events.push(Event::PaletteField(i, (*choice).to_owned()));
+                            }
+                        }
+                    });
+                combo.response.labelled_by(label.id)
+            };
+            if first {
+                response.request_focus();
+                first = false;
+            }
+        });
+    }
+    if let Some(error) = &form.error {
+        ui.horizontal(|ui| {
+            ui.add_space(t.space_3);
+            crate::components::live_line(ui, error, true);
+        });
+    }
+    ui.add_space(t.space_2);
 }

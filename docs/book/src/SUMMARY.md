@@ -98,6 +98,7 @@
     - [EW-POT](reference/rules/ew-pot.md)
     - [EW-REL](reference/rules/ew-rel.md)
     - [EW-TERM](reference/rules/ew-term.md)
+  - [Glossary](reference/glossary.md)
 
 # Explanation
 

@@ -3121,17 +3121,43 @@ pub fn describe(model: &ShellModel) -> String {
             strings::text("palette-title"),
             palette.query
         ));
-        let entries = model.palette_entries();
-        if entries.is_empty() {
+        // WP-S2.08 D5 (a): an open parameter form replaces the list: its action, then one field line per row.
+        if let Some(form) = &palette.form {
+            let label = actions::find(form.action)
+                .map(|m| strings::text(m.label_key))
+                .unwrap_or(form.action);
+            lines.push(format!("  action {} \"{label}\"", form.action));
+            for f in &form.fields {
+                lines.push(format!("  field \"{}\": \"{}\"", f.label(), f.value));
+            }
+            if let Some(e) = &form.error {
+                lines.push(format!("  error: {e}"));
+            }
+        }
+        let entries = if palette.form.is_some() {
+            Vec::new()
+        } else {
+            model.palette_entries()
+        };
+        if entries.is_empty() && palette.form.is_none() {
             lines.push(format!("  label \"{}\"", strings::text("palette-no-match")));
         }
         for (i, entry) in entries.iter().enumerate() {
             let mark = if i == palette.selected { ">" } else { " " };
-            let kind = match &entry.run {
-                PaletteRun::Action(_) => "action",
-                PaletteRun::Command(_) => "command",
+            // WP-S2.08 D4: the prefixes' entries reuse words of the vocabulary; their ID is inside the quoted label
+            // (a folio, a rule ID, a record's alias), so only actions and commands print it bare.
+            let (kind, id) = match &entry.run {
+                PaletteRun::Action(_) => ("action", Some(&entry.id)),
+                PaletteRun::Command(_) => ("command", Some(&entry.id)),
+                PaletteRun::Page(_) => ("page", None),
+                PaletteRun::Cell(_) => ("cell", None),
+                PaletteRun::Object { .. } => ("item", None),
+                PaletteRun::Rule(_) => ("rule", None),
             };
-            let mut line = format!("{mark} {kind} {} \"{}\"", entry.id, entry.label);
+            let mut line = match id {
+                Some(id) => format!("{mark} {kind} {id} \"{}\"", entry.label),
+                None => format!("{mark} {kind} \"{}\"", entry.label),
+            };
             if !entry.shortcut.is_empty() {
                 line.push_str(&format!(" [{}]", entry.shortcut));
             }

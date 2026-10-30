@@ -556,6 +556,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-no-recent" => "There are no recent projects",
         "reason-no-page" => "No page is shown",
         "reason-parameters-later" => "Parameter forms come with a later version; run it from a script",
+        // WP-S2.08 D5 (a): an action with a file or reference parameter in the palette.
+        "reason-palette-needs-file" => "Needs a file or a selection: use its menu",
 
         // Why a project is read-only.
         "readonly-requested" => "opened read-only on request",

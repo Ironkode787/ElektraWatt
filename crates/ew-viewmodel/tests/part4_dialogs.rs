@@ -354,10 +354,14 @@ fn cp4_the_palette_lists_only_what_the_window_can_run_with_breadcrumbs() {
             panic!("a model command is listed: {}", e.id);
         };
         let meta = ACTIONS.iter().find(|m| m.id == *id).unwrap();
-        assert!(
-            !meta.needs_parameters,
-            "{id} needs parameters the palette cannot supply"
-        );
+        // WP-S2.08 D5 (a) supersedes P3 for actions that need parameters: they are listed, with a parameter form
+        // or disabled with their reason.
+        if let ew_viewmodel::palette::FormPlan::Disabled(_) = ew_viewmodel::palette::form_plan(meta) {
+            assert!(
+                !e.enabled && e.reason.is_some(),
+                "{id} is disabled with its reason"
+            );
+        }
         assert!(!meta.headless_only && !meta.hidden, "{id}");
         assert!(!e.breadcrumb.is_empty(), "{id} has a breadcrumb");
     }
@@ -369,12 +373,13 @@ fn cp4_the_palette_lists_only_what_the_window_can_run_with_breadcrumbs() {
     assert_eq!(place.breadcrumb, "Draw · Place");
     let about = entries.iter().find(|e| e.id == "help.about").expect("About");
     assert_eq!(about.breadcrumb, "Help");
-    // The headless mode still reaches an action the palette leaves out.
-    let hidden: Vec<&str> = ACTIONS
+    // WP-S2.08 D5 (a): every action that needs parameters is listed now (with a form, or disabled with its reason);
+    // the hidden and headless-only ones stay out.
+    let needs: Vec<&str> = ACTIONS
         .iter()
         .filter(|m| m.needs_parameters && !m.headless_only && !m.hidden)
         .map(|m| m.id)
         .collect();
-    assert!(hidden.iter().all(|id| entries.iter().all(|e| e.id != *id)));
+    assert!(needs.iter().all(|id| entries.iter().any(|e| e.id == *id)));
     shell.shutdown();
 }
