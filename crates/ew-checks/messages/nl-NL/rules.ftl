@@ -37,10 +37,10 @@ rule-ew-plc-001 = { $form ->
        *[overlap] adressen overlappen in configuratieproject { $cfg }: { $channels }{ $more ->
             [none] {""}
            *[other] ; en nog { $more } kanalen
-        }; geef ze op één na allemaal een ander adres
+        }; wijzig adressen tot er geen meer overlappen
     }
     .title = Adresoverlap
-    .hint = Geef een van de overlappende kanalen een ander adres, of laat beide een automatisch adres nemen.
+    .hint = Wijzig de adressen van de kanalen tot er geen meer overlappen, of laat ze een automatisch adres nemen.
 
 rule-ew-plc-002 = { $channel }: het adres { $address } ligt buiten het I/O-bereik van { $module } ({ $range ->
         [none] geen byte van gebied { $area }

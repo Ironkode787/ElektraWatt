@@ -120,6 +120,11 @@ pub const ADDRESS_OVERLAP: RuleMeta = RuleMeta {
 /// byte that is not a multiple of the profile's word alignment, a warning (an unverified convention), discriminator
 /// `alignment`. Automatic starts never overlap (A1), so a finding involves a manual value or a part map that gives
 /// two channels one bit.
+///
+/// A group is chained, not a clique (FX38b): with `IW0`, `I0.0` and `I1.7` only `IW0` overlaps the others, so the
+/// text asks to change addresses until none overlap rather than to move all but one. Waiver drift, kept as is: the
+/// group's targets are all its members, so a waiver of an overlap group stops matching when the group's membership
+/// changes (a channel joins or leaves it), and the user waives the new group again.
 #[derive(Clone, Copy, Debug)]
 pub struct AddressOverlap;
 
@@ -155,7 +160,7 @@ impl Rule for AddressOverlap {
             if more > 0 {
                 message.push_str(&format!("; and {more} more channels"));
             }
-            message.push_str("; give all but one of them another address");
+            message.push_str("; change addresses until none overlap");
             out.push(
                 Finding::new(
                     &ADDRESS_OVERLAP,

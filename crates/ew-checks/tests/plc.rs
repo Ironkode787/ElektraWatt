@@ -166,8 +166,8 @@ fn ew_plc_001_reports_overlaps_and_word_alignment() {
     );
     assert_eq!(
         f[0].message,
-        "addresses overlap in configuration project PLC1: -1U2:3 (Q0.3), -1U3:0 (Q0.3); give all but one of them \
-         another address"
+        "addresses overlap in configuration project PLC1: -1U2:3 (Q0.3), -1U3:0 (Q0.3); change addresses until \
+         none overlap"
     );
     assert_eq!(f[0].targets.len(), 2);
     assert!(f[0].targets.iter().all(|t| t.kind == Kind::Channel));
@@ -198,8 +198,29 @@ fn ew_plc_001_reports_a_group_of_three_once() {
     assert_eq!(f[0].subject, "-1U2:3");
     assert_eq!(
         f[0].message,
-        "addresses overlap in configuration project PLC1: -1U2:3 (Q0.3), -1U3:0 (Q0.3), -1U3:1 (Q0.3); give all but \
-         one of them another address"
+        "addresses overlap in configuration project PLC1: -1U2:3 (Q0.3), -1U3:0 (Q0.3), -1U3:1 (Q0.3); change \
+         addresses until none overlap"
+    );
+}
+
+/// FX38b: an overlap group is chained, not a clique: `IW0` overlaps `I0.0` and `I1.7`, which do not overlap each
+/// other, and the three are one finding with the three channels as targets (moving `IW0` alone clears it, so the
+/// text asks to change addresses until none overlap, not to move all but one).
+#[test]
+fn ew_plc_001_reports_a_chained_group_once() {
+    let mut fx = fixture();
+    rec(&mut fx, &ch(M2, 0))["address"] = json!({"manual": {"area": "i", "size": "word", "byte": 0}});
+    rec(&mut fx, &ch(M2, 1))["address"] = json!({"manual": {"area": "i", "byte": 0, "bit": 0}});
+    rec(&mut fx, &ch(M2, 2))["address"] = json!({"manual": {"area": "i", "byte": 1, "bit": 7}});
+    let f = findings_of(&fx.build(), "EW-PLC-001");
+    let overlap: Vec<&ew_checks::Finding> = f.iter().filter(|f| f.discriminator == "overlap").collect();
+    assert_eq!(overlap.len(), 1, "{f:#?}");
+    assert_eq!(overlap[0].targets.len(), 3, "{f:#?}");
+    assert_eq!(overlap[0].subject, "-1U3:0");
+    assert_eq!(
+        overlap[0].message,
+        "addresses overlap in configuration project PLC1: -1U3:0 (IW0), -1U3:1 (I0.0), -1U3:2 (I1.7); change \
+         addresses until none overlap"
     );
 }
 
@@ -230,7 +251,7 @@ fn ew_plc_001_names_five_channels_and_counts_the_rest() {
     assert_eq!(f.message.matches("(Q0.3)").count(), 5, "{}", f.message);
     assert!(
         f.message
-            .ends_with("; and 4 more channels; give all but one of them another address"),
+            .ends_with("; and 4 more channels; change addresses until none overlap"),
         "{}",
         f.message
     );

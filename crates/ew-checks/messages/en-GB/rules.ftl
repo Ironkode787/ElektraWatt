@@ -143,10 +143,10 @@ rule-ew-plc-001 = { $form ->
        *[overlap] addresses overlap in configuration project { $cfg }: { $channels }{ $more ->
             [none] {""}
            *[other] ; and { $more } more channels
-        }; give all but one of them another address
+        }; change addresses until none overlap
     }
     .title = Address overlap
-    .hint = Give one of the overlapping channels another address, or let both take automatic addresses.
+    .hint = Change the channels' addresses until none overlap, or let them take automatic addresses.
 
 rule-ew-plc-002 = { $channel }: the address { $address } is outside the I/O range of { $module } ({ $range ->
         [none] no byte of area { $area }
