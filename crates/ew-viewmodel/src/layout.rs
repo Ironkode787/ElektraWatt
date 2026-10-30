@@ -36,6 +36,8 @@ pub fn nav_title_key(kind: NavKind) -> &'static str {
         NavKind::Structure => "nav-title-structure",
         NavKind::Parts => "nav-title-parts",
         NavKind::Blocks => "nav-title-blocks",
+        NavKind::Macros => "nav-title-macros",
+        NavKind::Libraries => "nav-title-libraries",
         NavKind::Messages => "nav-title-messages",
     }
 }

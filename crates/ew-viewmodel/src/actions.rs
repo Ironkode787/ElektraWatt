@@ -3379,6 +3379,80 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ))),
     ),
+    // WP-S1.19 part 6 (§11): Draw ▸ Insert macro… with the place tools; a macro row dropped on the canvas; the macro
+    // card's value set; Edit ▸ Save as macro…; the Libraries navigator's Update…; a property row's Make variable.
+    with_params(
+        "key?:text",
+        in_canvas(act(
+            "macros.insert",
+            Command,
+            "action-macros-insert",
+            Menu::Draw,
+            &[],
+            editable_page,
+            grp(Group::Place),
+        )),
+    ),
+    with_params(
+        "key:text, x_mm:mm, y_mm:mm, value_set?:text, group?:uint",
+        hidden(in_canvas(act(
+            "macros.place",
+            Command,
+            "action-macros-place",
+            Menu::Draw,
+            &[],
+            editable_page,
+            None,
+        ))),
+    ),
+    with_params(
+        "name?:text",
+        hidden(act(
+            "macros.value_set",
+            Command,
+            "action-macros-value-set",
+            Menu::Draw,
+            &[],
+            writable,
+            None,
+        )),
+    ),
+    with_params(
+        "name?:text, key?:text, description?:text, library?:text, confirm?:bool",
+        in_canvas(act(
+            "macros.save",
+            Command,
+            "action-macros-save",
+            Menu::Edit,
+            &[],
+            selection_shown,
+            slot(Menu::Edit),
+        )),
+    ),
+    with_params(
+        "keys?:list(text)",
+        in_navigator(act(
+            "libraries.update",
+            Command,
+            "action-libraries-update",
+            Menu::Project,
+            &[],
+            writable,
+            slot(Menu::Project),
+        )),
+    ),
+    with_params(
+        "row?:text, name?:text",
+        hidden(in_properties(act(
+            "props.make_variable",
+            View,
+            "action-props-make-variable",
+            Menu::Edit,
+            &[],
+            grid_shown,
+            None,
+        ))),
+    ),
     // WP-S2.07 §8 (FR-PLC-020): a channel row dropped on the canvas binds the channel to the connection point under
     // the drop point with `plc.bind_channel`.
     with_params(

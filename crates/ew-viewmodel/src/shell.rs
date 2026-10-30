@@ -75,6 +75,9 @@ mod undo_panel;
 // WP-S2.04 part 2: the wiring tools' host duties.
 mod wiring;
 mod workspaces;
+// WP-S1.19 part 6: the Macros and Libraries navigators, Save as macro… and Make variable.
+mod macros;
+pub use macros::MacroVariable;
 
 pub use creation::{FormDialog, FormField, PAGE_TYPES, STRUCTURE_KINDS};
 pub use drawing::TextPopup;
@@ -125,6 +128,9 @@ pub struct ShellConfig {
     pub app_version: String,
     /// The read-only resources.
     pub resources: Resources,
+    /// The library tiers the shell's sessions open (WP-S1.19 §11): the Macros and Libraries navigators, Save as
+    /// macro… and the parts picker read them. `None`: the compiled-in libraries only, with no file read.
+    pub libraries: Option<ew_api::library::LibraryTiers>,
 }
 
 impl ShellConfig {
@@ -143,6 +149,7 @@ impl ShellConfig {
             state_dir,
             app_version: app_version.to_owned(),
             resources: Resources::default(),
+            libraries: None,
         }
     }
 
@@ -158,6 +165,7 @@ impl ShellConfig {
                 state_dir: None,
                 app_version: app_version.to_owned(),
                 resources: Resources::default(),
+                libraries: None,
             }
         }
     }
@@ -169,7 +177,15 @@ impl ShellConfig {
             state_dir: Some(dir.join("state")),
             app_version: app_version.to_owned(),
             resources: Resources::default(),
+            libraries: None,
         }
+    }
+
+    /// The same configuration with these library tiers (WP-S1.19 §11).
+    #[must_use]
+    pub fn with_libraries(mut self, libraries: Option<ew_api::library::LibraryTiers>) -> ShellConfig {
+        self.libraries = libraries;
+        self
     }
 
     /// The same configuration with these resources.
@@ -499,6 +515,9 @@ pub struct ShellModel {
     // WP-S2.17 part 3
     /// Whether the left column is collapsed to its rail (`rail.show` on the shown entry); a session state.
     rail_collapsed: bool,
+    // WP-S1.19 part 6
+    /// The Macros navigator's detail and the variables of the next Save as macro….
+    macros: macros::MacroState,
     // WP-S6.13 part 4
     /// Every `dispatch` since the log was last taken, in call order, while the log is on (a visual run's evidence;
     /// off by default, so the window and the headless runner keep nothing).
@@ -980,6 +999,7 @@ impl ShellModel {
             command_tab: crate::command_bar::Tab::Draw,
             command_bar_collapsed: false,
             rail_collapsed: false,
+            macros: macros::MacroState::default(),
             dispatch_log: None,
         };
         model.load_active_workspace();
@@ -1472,6 +1492,8 @@ impl ShellModel {
         // WP-S2.09 part 3: the Preview tab follows the card, the history panel the revision.
         self.sync_preview();
         self.sync_history();
+        // WP-S1.19 part 6: the Macros navigator's detail follows its cursor.
+        self.sync_macros();
         outcome
     }
 
@@ -1637,6 +1659,13 @@ impl ShellModel {
             "tool.place_part" => self.act_open_picker(crate::tools::PickerMode::Parts),
             "place.pick" => self.act_place_pick(p),
             "navigator.bind" => self.act_navigator_bind(p),
+            // WP-S1.19 part 6
+            "macros.insert" => self.act_macros_insert(p),
+            "macros.place" => self.act_macros_place(p),
+            "macros.value_set" => self.act_macros_value_set(p),
+            "macros.save" => self.act_macros_save(p),
+            "libraries.update" => self.act_libraries_update(p),
+            "props.make_variable" => self.act_props_make_variable(p),
             "picker.filter" => self.act_picker_filter(p),
             "picker.row" => self.act_picker_row(p),
             "picker.choose" => self.act_picker_choose(p),
@@ -2048,6 +2077,7 @@ impl ShellModel {
         SessionOptions {
             origin: Origin::Gui,
             ids: self.id_source.map(|make| make()),
+            libraries: self.config.libraries.clone(),
             ..SessionOptions::default()
         }
     }

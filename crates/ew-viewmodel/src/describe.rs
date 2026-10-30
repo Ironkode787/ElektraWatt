@@ -450,6 +450,26 @@ pub const VOCABULARY: &[&str] = &[
     "note",
     // WP-S1.21 part 2 (D7): the printed PLC address of the hovered connection point, a reviewed vocabulary change.
     "address",
+    // WP-S1.19 part 6 (§11): the 6 words of `LIBRARY_WORDS`, a reviewed vocabulary change (`library` and `conflict` are
+    // older).
+    "macros",
+    "libraries",
+    "tier",
+    "project_copies",
+    "library_copy",
+    "macro",
+];
+
+// WP-S1.19 part 6
+/// The 6 words WP-S1.19 part 6 adds to [`VOCABULARY`] (§11): the navigator kinds `macros` and `libraries`, the row
+/// roles `tier`, `project_copies`, `library_copy` and `macro` (also the macro card's origin word).
+pub const LIBRARY_WORDS: &[&str] = &[
+    "macros",
+    "libraries",
+    "tier",
+    "project_copies",
+    "library_copy",
+    "macro",
 ];
 
 /// The word FT-660 adds to [`VOCABULARY`]: the `note` line of a generated page whose table prints a note instead of

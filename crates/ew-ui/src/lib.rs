@@ -47,6 +47,8 @@ mod hud;
 mod jobs;
 pub mod keys;
 mod latest;
+// WP-S1.19 part 6: the Macros navigator's detail and the Libraries navigator's Update….
+mod library_panes;
 mod menu;
 // WP-S2.09 part 2: the message panel's header, card, detail block and icons.
 mod messages;

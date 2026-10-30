@@ -275,6 +275,11 @@ const OPENS_INPUT: &[&str] = &[
     "messages.waive",
     // WP-S2.18 part 1: J opens the Join chooser.
     "place.join",
+    // WP-S1.19 part 6 (§11): Insert macro… shows the Macros navigator (or floats the macro under its cursor), Save as
+    // macro… opens its dialog, Update… opens the bulk card.
+    "macros.insert",
+    "macros.save",
+    "libraries.update",
 ];
 
 #[test]

@@ -223,6 +223,31 @@ pub enum CardOrigin {
         /// The gesture.
         gesture: crate::navigators::table::Gesture,
     },
+    // WP-S1.19 part 6
+    /// A macro's insertion from the Macros navigator (`macro.insert`, §11, FR-MAC-005): the card in the Preview tab
+    /// with the conflicts the user decides on before Apply; a refused preview (a prevent rule) still shows them.
+    Macro(Box<MacroInsert>),
+}
+
+/// What a macro card inserts and the conflicts it lists (WP-S1.19 §11).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct MacroInsert {
+    /// The Macros navigator's row key of the macro.
+    pub key: String,
+    /// The macro's name.
+    pub name: String,
+    /// The target page (its page UUID).
+    pub page: ew_api::output::Uuid,
+    /// The anchor on the page, nm.
+    pub at: (i64, i64),
+    /// The instance ID the shell minted (`Session::next_macro_instance`).
+    pub instance: ew_api::output::Uuid,
+    /// The value set chosen, `None` for the defaults.
+    pub value_set: Option<String>,
+    /// The macro's value sets.
+    pub value_sets: Vec<String>,
+    /// The conflicts in words, the refusals first (`Session::macro_conflicts`).
+    pub conflicts: Vec<String>,
 }
 
 impl CardOrigin {
@@ -236,6 +261,7 @@ impl CardOrigin {
             CardOrigin::QuickFix { .. } => "fix",
             CardOrigin::Bulk => "bulk",
             CardOrigin::Table { .. } => "table",
+            CardOrigin::Macro(_) => "macro",
         }
     }
 }

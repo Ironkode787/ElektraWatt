@@ -125,6 +125,60 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
     [entities, tags, xrefs, pages]
 }
 
+/// WP-S1.19 part 6 (§11): a macro card's value set (a chooser of "Defaults" and the macro's value sets, which previews
+/// the card again with `macros.value_set`) and its conflicts, shown open and also on a refused preview (the rule's
+/// text first), so the user decides on them before Apply.
+fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &mut Vec<Event>) {
+    let t = components::tokens(ui);
+    if !m.value_sets.is_empty() {
+        ui.horizontal(|ui| {
+            let label = ui.label(
+                RichText::new(strings::text("macro-value-set"))
+                    .font(theme::font(&t.type_small))
+                    .color(t.text_secondary.color32()),
+            );
+            let defaults = strings::text("macro-value-set-defaults");
+            let shown = m.value_set.as_deref().unwrap_or(defaults);
+            let combo = egui::ComboBox::from_id_salt("macro-value-set")
+                .selected_text(shown)
+                .icon(components::combo_chevron)
+                .show_ui(ui, |ui| {
+                    if ui.selectable_label(m.value_set.is_none(), defaults).clicked() {
+                        events.push(Event::Action("macros.value_set", serde_json::json!({})));
+                    }
+                    for v in &m.value_sets {
+                        if ui.selectable_label(m.value_set.as_ref() == Some(v), v).clicked() {
+                            events.push(Event::Action(
+                                "macros.value_set",
+                                serde_json::json!({ "name": v }),
+                            ));
+                        }
+                    }
+                });
+            combo.response.labelled_by(label.id);
+        });
+    }
+    if m.conflicts.is_empty() {
+        components::live_line(ui, strings::text("macro-no-conflicts"), false);
+        return;
+    }
+    let id = ui.scope_id().with("macro-conflicts");
+    if components::section_header(ui, id, strings::text("macro-conflicts"), m.conflicts.len(), true) {
+        for c in &m.conflicts {
+            let response = ui.add(
+                egui::Label::new(
+                    RichText::new(c)
+                        .font(theme::font(&t.type_small))
+                        .color(t.text_primary.color32()),
+                )
+                .wrap(),
+            );
+            let text = c.clone();
+            response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &text));
+        }
+    }
+}
+
 /// Paints the Preview tab of `shell`.
 pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let rect = ui.available_rect_before_wrap();
@@ -206,12 +260,18 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             inset(ui, &mut |ui| {
                 components::live_line(ui, &strings::format("card-failed", &[m]), true)
             });
+            if let CardOrigin::Macro(m) = &card.origin {
+                inset(ui, &mut |ui| macro_block(ui, m, events));
+            }
             return;
         }
         // FT-580: one summary line, shared with the text interface.
         let summary = shell.preview_summary().unwrap_or_default();
         // FT-719: an import's counts are the toast's sentence; the tab shows the summary and the lists only.
         inset(ui, &mut |ui| components::live_line(ui, &summary, false));
+        if let CardOrigin::Macro(m) = &card.origin {
+            inset(ui, &mut |ui| macro_block(ui, m, events));
+        }
         ui.add_space(t.space_2);
         let [entities, tags, xrefs, pages] = rows(&t, shell);
         egui::ScrollArea::vertical()

@@ -328,14 +328,34 @@ fn current_exe() -> Option<PathBuf> {
     std::env::current_exe().ok()
 }
 
-/// The configuration of the environment with the resources of this installation.
+/// The library tiers of the shell's sessions (WP-S1.19 §11): the system libraries of the installation's content
+/// (`content/libraries`), the user's data and cache directories. An isolated run (a script) reads libraries only when
+/// `EW_DATA_DIR` names its data directory, never the user's own.
+fn library_tiers(
+    isolated: bool,
+    content: Option<&Path>,
+) -> Option<ew_ui::ew_viewmodel::ew_api::library::LibraryTiers> {
+    if isolated && env_path("EW_DATA_DIR").is_none() {
+        return None;
+    }
+    let system: Vec<PathBuf> = content
+        .map(|c| c.join("libraries"))
+        .filter(|p| p.is_dir())
+        .into_iter()
+        .collect();
+    ew_ui::ew_viewmodel::ew_api::library::LibraryTiers::for_user(system, Vec::new())
+}
+
+/// The configuration of the environment with the resources and the library tiers of this installation.
 fn shell_config(isolated: bool) -> ShellConfig {
     let config = if isolated {
         ShellConfig::isolated_from_env(VERSION)
     } else {
         ShellConfig::from_env(VERSION)
     };
-    config.with_resources(locate_resources(current_exe().as_deref()))
+    let resources = locate_resources(current_exe().as_deref());
+    let libraries = library_tiers(isolated, resources.content_dir.as_deref());
+    config.with_resources(resources).with_libraries(libraries)
 }
 
 /// The eframe application: the shell frame of `ew-ui`, and whether the window has been placed on a monitor.

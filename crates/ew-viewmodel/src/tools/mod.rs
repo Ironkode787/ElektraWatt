@@ -55,6 +55,8 @@ pub mod marker;
 mod measure;
 pub mod move_keys;
 mod overlay;
+// WP-S1.19 part 6
+pub mod macro_place;
 // WP-S2.05 part 3
 mod paste;
 mod picker;
@@ -74,6 +76,7 @@ pub use graphic::{GraphicShape, GraphicTool};
 pub use image::{ImageAsset, ImageTool, fit_rect};
 pub use ip::{IpDir, IpExternal, IpMemory, IpTool};
 pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
+pub use macro_place::MacroTool;
 pub use marker::{MarkerTool, crossed_connections};
 // WP-S2.05 part 3
 pub use paste::PasteTool;

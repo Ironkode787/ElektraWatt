@@ -997,6 +997,8 @@ pub fn rows_word(kind: NavKind, n: usize) -> String {
         NavKind::Structure => ("structure node", "structure nodes"),
         NavKind::Parts => ("part", "parts"),
         NavKind::Blocks => ("report block", "report blocks"),
+        NavKind::Macros => ("macro", "macros"),
+        NavKind::Libraries => ("library item", "library items"),
         // The Messages pane has no table mode (`navigator.table` fails); its rows are findings.
         NavKind::Messages => ("finding", "findings"),
     };

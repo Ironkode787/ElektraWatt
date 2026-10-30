@@ -78,6 +78,10 @@ pub enum DragSource {
     /// A channel row of the PLC navigator (the channel's ID text, WP-S2.07 §8): dropped on a connection point of the
     /// canvas, `navigator.bind` binds it there with `plc.bind_channel`.
     Channel(String),
+    // WP-S1.19 part 6
+    /// A macro row of the Macros navigator (its row key, §11): dropped on a canvas, `macros.place` opens its card at
+    /// the drop point.
+    Macro(String),
 }
 
 /// One row on show of any navigator, as the widget paints it and the describe text prints it.
@@ -355,7 +359,8 @@ impl ShellModel {
                                 severity,
                                 pending: crate::navigators::messages::is_pending(node, editing.as_deref()),
                             });
-                        let mut badges: Vec<&str> = node.badges.iter().map(String::as_str).collect();
+                        let mut badges: Vec<&str> =
+                            node.badges.iter().map(|b| super::macros::badge_word(b)).collect();
                         if finding.is_some_and(|f| f.pending) {
                             badges.push("pending");
                         }
@@ -381,6 +386,11 @@ impl ShellModel {
                             (node.role == ew_api::output::NavRole::Channel)
                                 .then(|| node.records.first().map(|r| DragSource::Channel(r.to_string())))
                                 .flatten()
+                        })
+                        // WP-S1.19 part 6: a macro row of an installed library drops onto a canvas (§11).
+                        .or_else(|| {
+                            (node.role == ew_api::output::NavRole::Macro && node.key.contains("macro:"))
+                                .then(|| DragSource::Macro(node.key.clone()))
                         });
                         ShownRow {
                             key: node.key.clone(),
@@ -804,7 +814,8 @@ impl ShellModel {
             let layout = if kind == NavKind::Messages {
                 self.layout().with_bottom(pane)
             } else {
-                self.layout().with_navigator(pane)
+                // FT-720(b): a navigator already docked becomes the shown tab of its group.
+                self.layout().with_navigator(pane).showing(pane)
             };
             self.replace_layout(layout);
             if kind != NavKind::Pages {
@@ -1140,6 +1151,10 @@ impl ShellModel {
         let Some((_, node)) = self.generic(kind).and_then(|n| n.node_of(&key)) else {
             return failed("error-nav-key", &[&key, kind.word()]);
         };
+        // WP-S1.19 part 6: Enter on a macro row arms the macro tool (§11).
+        if kind == NavKind::Macros && node.role == ew_api::output::NavRole::Macro {
+            return self.arm_macro(&key);
+        }
         // WP-S2.07 §6.8: Enter on an unplaced terminal row arms the Place tool with its terminal's main function on the
         // page of the focused tab (the drop of the row onto a canvas does the same).
         if kind == NavKind::Strips

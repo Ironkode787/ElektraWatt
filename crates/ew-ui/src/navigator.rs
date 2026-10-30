@@ -62,6 +62,11 @@ pub struct FunctionDrag(pub String);
 #[derive(Clone, Debug)]
 pub struct ChannelDrag(pub String);
 
+/// The macro a drag of a Macros navigator row carries (its row key, WP-S1.19 §11); a canvas takes the drop at its
+/// point (`macros.place`).
+#[derive(Clone, Debug)]
+pub struct MacroDrag(pub String);
+
 /// What the rows on show were built for.
 #[derive(Clone, PartialEq, Debug)]
 enum Stamp {
@@ -332,6 +337,8 @@ impl NavigatorPane {
                     });
             }
         }
+        // WP-S1.19 part 6: the Libraries navigator's Update… and the Macros navigator's detail block.
+        crate::library_panes::show(ui, shell, self.kind, events);
         // WP-S2.06 part 3: the table card of this navigator's gesture.
         table_card(ui, shell, self.kind, events);
         let visible = self.visible_rows(shell);
@@ -724,6 +731,15 @@ pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str,
         NavKind::Structure => (IconId::sitemap, "empty-nav-structure"),
         NavKind::Parts => (IconId::packages, "empty-nav-parts"),
         NavKind::Blocks => (IconId::report, "empty-nav-blocks"),
+        // WP-S1.19 part 6 (§11).
+        NavKind::Macros => {
+            return (
+                IconId::package,
+                strings::text("empty-nav-macros"),
+                strings::text("empty-nav-macros-text"),
+            );
+        }
+        NavKind::Libraries => (IconId::books, "empty-nav-libraries"),
     };
     (icon, strings::text(line), strings::text("empty-nav-text"))
 }
@@ -987,6 +1003,7 @@ fn row_ui(
         }
         Some(DragSource::Function(id)) => response.dnd_set_drag_payload(FunctionDrag(id.clone())),
         Some(DragSource::Channel(id)) => response.dnd_set_drag_payload(ChannelDrag(id.clone())),
+        Some(DragSource::Macro(key)) => response.dnd_set_drag_payload(MacroDrag(key.clone())),
         None => {}
     }
     // A drop of pages on a row of the Pages navigator.

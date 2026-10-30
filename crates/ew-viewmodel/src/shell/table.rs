@@ -84,7 +84,7 @@ fn index_param(p: &Map<String, Value>, name: &str) -> Result<usize, Outcome> {
 }
 
 /// A list-of-text parameter: `Ok(None)` when absent.
-fn list_param(p: &Map<String, Value>, name: &str) -> Result<Option<Vec<String>>, Outcome> {
+pub(super) fn list_param(p: &Map<String, Value>, name: &str) -> Result<Option<Vec<String>>, Outcome> {
     match p.get(name) {
         None => Ok(None),
         Some(Value::Array(a)) => a

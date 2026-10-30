@@ -1411,6 +1411,16 @@ impl CanvasHost {
             p["channel"] = json!(channel.0);
             events.push(Event::Action("navigator.bind", p));
         }
+        // WP-S1.19 part 6: a macro row dropped on this canvas opens the macro's card at the drop point.
+        if let Some(pos) = dropped
+            && rect.contains(pos)
+            && egui::DragAndDrop::has_payload_of_type::<crate::navigator::MacroDrag>(ui.ctx())
+            && let Some(key) = egui::DragAndDrop::take_payload::<crate::navigator::MacroDrag>(ui.ctx())
+        {
+            let mut p = point_with(Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
+            p["key"] = json!(key.0);
+            events.push(Event::Action("macros.place", p));
+        }
         let space = ui.input(|i| i.key_down(Key::Space));
         if response.hovered() {
             let (back, forward) = ui.input(|i| {

@@ -1386,6 +1386,7 @@ fn a_headless_run_without_a_configuration_directory_writes_no_workspace() {
         state_dir: None,
         app_version: VERSION.to_owned(),
         resources: Resources::default(),
+        libraries: None,
     };
     let mut shell = ShellModel::new(Mode::Headless, config);
     done(&mut shell, "view.workspace_save", json!({"name": "Nowhere"}));
@@ -2024,6 +2025,9 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             || ew_viewmodel::describe::NAV_WORDS.contains(*w)
             // WP-S2.06 part 2: the further navigators' and the highlights' words: `tests/navigators_part2.rs`.
             || ew_viewmodel::describe::NAV2_WORDS.contains(*w)
+            // WP-S1.19 part 6: the Macros and Libraries navigators' words need a saved macro and a library:
+            // `tests/macros_libraries.rs` reaches them.
+            || ew_viewmodel::describe::LIBRARY_WORDS.contains(*w)
             // WP-S2.09 part 1: the job, log and recovery words need a job, the log popup or a leftover journal:
             // `tests/jobs.rs`, `tests/notifications.rs` and `tests/recovery.rs` reach them.
             || ew_viewmodel::describe::JOB_WORDS.contains(*w)

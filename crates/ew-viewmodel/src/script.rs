@@ -856,6 +856,23 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
     let card = shell.properties().card()?;
     let tags = card.preview.derived.tags.len().to_string();
     let xrefs = card.preview.derived.xrefs.len().to_string();
+    // WP-S1.19 part 6: a macro card's line ends with its conflicts, also when a prevent rule refused it (§11).
+    if let CardOrigin::Macro(m) = &card.origin {
+        let head = match &card.preview.result {
+            Err(message) => strings::format("card-failed", &[message]),
+            Ok(_) => format!(
+                "{} · {}",
+                strings::format("preview-title", &[strings::command_title(&card.preview.name)]),
+                shell.preview_summary().unwrap_or_default()
+            ),
+        };
+        let conflicts = if m.conflicts.is_empty() {
+            strings::text("macro-no-conflicts").to_owned()
+        } else {
+            m.conflicts.join("; ")
+        };
+        return Some(format!("{head} · {conflicts}"));
+    }
     if let Err(message) = &card.preview.result {
         return Some(strings::format("card-failed", &[message]));
     }
@@ -894,7 +911,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
             strings::format("card-fix", &[&card.changes.to_string(), &tags, &xrefs])
         }
         // FT-580: the Preview tab's title (a table card's gesture title) and its summary line, as the window shows them.
-        CardOrigin::Bulk | CardOrigin::Table { .. } => format!(
+        CardOrigin::Bulk | CardOrigin::Table { .. } | CardOrigin::Macro(_) => format!(
             "{} · {}",
             shell.table_gesture().map_or_else(
                 || strings::format("preview-title", &[strings::command_title(&card.preview.name)]),

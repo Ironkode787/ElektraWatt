@@ -362,7 +362,7 @@ impl ShellModel {
     }
 
     /// The row named by `row` in `p`, else the focused row.
-    fn props_row_param(&self, p: &Map<String, Value>) -> Result<String, Outcome> {
+    pub(super) fn props_row_param(&self, p: &Map<String, Value>) -> Result<String, Outcome> {
         match string_param(p, "row")? {
             Some(r) => {
                 let sheet = self.props.sheet().ok_or(Outcome::Refused {
@@ -380,7 +380,7 @@ impl ShellModel {
     }
 
     /// The section and row of `key` in the current sheet, cloned.
-    fn props_find(&self, key: &str) -> Option<(SheetSection, PropRow)> {
+    pub(super) fn props_find(&self, key: &str) -> Option<(SheetSection, PropRow)> {
         let sheet = self.props.sheet()?;
         find_row(sheet, key).map(|(s, r)| (s.clone(), r.clone()))
     }
@@ -1979,6 +1979,10 @@ impl ShellModel {
         // WP-S2.09 part 3: a bulk card is a renumber dialog's (§8.2).
         if matches!(card.origin, CardOrigin::Bulk) {
             return self.apply_bulk_card(card);
+        }
+        // WP-S1.19 part 6: a macro card is the Macros navigator's (`macro.insert`, §11).
+        if matches!(card.origin, CardOrigin::Macro(_)) {
+            return self.apply_macro_card(card);
         }
         // WP-S2.06 part 3: a table card is a navigator's table gesture (§8.7).
         if matches!(card.origin, CardOrigin::Table { .. }) {
