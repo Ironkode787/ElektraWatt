@@ -94,7 +94,8 @@ pub struct TabGroup {
     /// Its physical pixels per point.
     pub ppp: f64,
     /// Whether the host has sized the pane (`view.canvas_resize`): until then a resize fits a fitted page to the real
-    /// pane; after it a resize (a dock opened, closed or dragged) keeps the zoom and the centre (FX38d).
+    /// pane; after it a resize (a dock opened, closed or dragged) refits a fitted, untouched view and keeps a zoomed
+    /// or panned view's zoom and centre (FX38d, FT-769).
     pub sized: bool,
 }
 

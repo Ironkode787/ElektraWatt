@@ -364,12 +364,10 @@ fn fx38d_the_messages_dock_closes_and_keeps_the_zoom() {
         "view.canvas_resize",
         json!({"width": 1088.0, "height": 460.0}),
     );
-    assert_eq!(
-        view(&shell),
-        fitted,
-        "opening the dock keeps the zoom and the centre"
-    );
-    // The same command again closes it; the pane grows back, the view is unchanged.
+    // FT-769: the view is fitted and untouched, so it fits the shorter pane again.
+    assert!(shell.canvas().unwrap().is_fitted());
+    assert_ne!(view(&shell), fitted, "the untouched fit refits the shorter pane");
+    // The same command again closes it; the pane grows back, the fit is the first one again.
     done(&mut shell, "messages.show", json!({}));
     assert!(
         !messages_shown(&shell),
@@ -380,11 +378,26 @@ fn fx38d_the_messages_dock_closes_and_keeps_the_zoom() {
         "view.canvas_resize",
         json!({"width": 1088.0, "height": 760.0}),
     );
-    assert_eq!(
-        view(&shell),
-        fitted,
-        "closing the dock keeps the zoom and the centre"
+    assert_eq!(view(&shell), fitted, "closing the dock refits the first fit");
+    // A view the user zoomed keeps its zoom and centre through the dock (FX38d, ID-889).
+    done(&mut shell, "view.zoom_in", json!({}));
+    let zoomed = view(&shell);
+    assert!(!shell.canvas().unwrap().is_fitted());
+    done(&mut shell, "messages.show", json!({"on": true}));
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 1088.0, "height": 460.0}),
     );
+    assert_eq!(view(&shell), zoomed, "opening the dock keeps a zoomed view");
+    done(&mut shell, "messages.show", json!({"on": false}));
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 1088.0, "height": 760.0}),
+    );
+    assert_eq!(view(&shell), zoomed, "closing the dock keeps a zoomed view");
+    done(&mut shell, "view.fit_page", json!({}));
     // The close control.
     done(&mut shell, "messages.show", json!({}));
     done(&mut shell, "view.bottom_dock", json!({"on": false}));
@@ -408,9 +421,7 @@ fn fx38d_the_messages_dock_closes_and_keeps_the_zoom() {
         "view.canvas_resize",
         json!({"width": 1088.0, "height": 460.0}),
     );
-    assert_eq!(view(&shell), fitted);
-    // Only an explicit fit fits the page to the smaller pane.
-    done(&mut shell, "view.fit_page", json!({}));
+    // After the explicit fit above the view is fitted and untouched: the smaller pane refits it (FT-769).
     assert!(view(&shell).0 < fitted.0, "the fit to the smaller pane zooms out");
 }
 

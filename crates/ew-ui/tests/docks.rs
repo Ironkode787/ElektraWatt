@@ -411,7 +411,9 @@ fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
         h.state().shell().navigator_open(messages),
         "the badge opens Messages"
     );
-    assert_eq!(view(&h), before, "opening the dock keeps the zoom and the centre");
+    // FT-769: the untouched fit refits the shorter pane (the whole page stays in view).
+    assert!(h.state().shell().canvas().unwrap().is_fitted());
+    assert!(view(&h).0 < before.0, "the fit refits the shorter pane");
     let close = ew_ui::ew_viewmodel::strings::text("dock-close");
     h.get_by_role_and_label(egui::Role::Button, close).click();
     settle(&mut h);
@@ -419,6 +421,6 @@ fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
         !h.state().shell().navigator_open(messages),
         "the close button closes the dock"
     );
-    assert_eq!(view(&h), before, "closing the dock keeps the zoom and the centre");
+    assert_eq!(view(&h), before, "closing the dock refits the first fit");
     h.state_mut().shell_mut().shutdown();
 }

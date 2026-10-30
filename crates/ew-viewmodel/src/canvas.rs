@@ -19,7 +19,8 @@
 //! **Fit page** (on every page change and with Home): the zoom at which the sheet fits the pane with 16 points to
 //! spare on each side, centred. Until the host first sizes the pane the view stays fitted, so that first layout fits
 //! again (it comes after the page was opened); after it a resize ([`CanvasModel::relayout`]: a dock opened, closed or
-//! dragged) keeps the centre and the zoom (FX38d), as it does after a zoom or pan.
+//! dragged) fits a view that is still fitted and untouched again, and keeps the centre and the zoom of a view the user
+//! zoomed or panned (FX38d, FT-769).
 //!
 //! **Zoom about an anchor** `a`: `centre' = a − (a − centre) × zoom / zoom'`, each axis rounded toward zero to whole
 //! nanometres, then clamped to the sheet: the anchor keeps its screen position to within 1 nm while the clamp is
@@ -707,16 +708,20 @@ impl CanvasModel {
         }
     }
 
-    /// A new size of a pane already laid out (a dock opened, closed or dragged, the window resized; FX38d): the zoom and
-    /// the centre stay, also for a fitted view, which stops being fitted, so the page shows more or less of itself
-    /// and never shrinks with the pane. A fit happens only on a page change or an explicit fit.
+    /// A new size of a pane already laid out (a dock opened, closed or dragged, the window resized). FT-769 (amending
+    /// FX38d): a view that is fitted and untouched (no zoom or pan since the last fit) fits the new pane again, so the
+    /// whole page stays in view with a dock open; a view the user zoomed or panned keeps its zoom and centre, so the
+    /// page shows more or less of itself and never shrinks with the pane.
     pub fn relayout(&mut self, pane: (f64, f64), ppp: f64) {
         if pane == self.pane && ppp == self.ppp {
             return;
         }
         self.pane = pane;
         self.ppp = ppp;
-        self.fitted = false;
+        if self.fitted {
+            self.fit();
+            return;
+        }
         self.clamp_centre();
         self.update_hover();
     }
