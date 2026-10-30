@@ -340,6 +340,21 @@ fn a_supplier_list_imports_after_mapping_and_its_map_is_saved() {
         }
     );
     assert!(shell.properties().card().is_none(), "no import card");
+    // Cycle 37 (window check W37): the card shows the refusal and the members in words; the describe line and the
+    // outcome above keep the member names.
+    assert_eq!(
+        shell.parts_map().unwrap().error_text().as_deref(),
+        Some("Map a column to Manufacturer")
+    );
+    let words = |m: &str, h: &str| ew_viewmodel::shell::PartsMap::member_text(m, h);
+    assert_eq!(words("manufacturer", "Hersteller"), "Manufacturer");
+    assert_eq!(words("part_number", "Artikelnummer"), "Part number");
+    assert_eq!(words("description.de", "Bezeichnung"), "Description (de)");
+    assert_eq!(
+        words("tech_data.nennstrom", "Nennstrom"),
+        "Technical data: Nennstrom"
+    );
+    assert_eq!(words("free_props.farbe", "Farbe"), "Free property: Farbe");
     // The member choices of a column: the fixed members, then its own technical-data and free-property members.
     let choices = ew_viewmodel::shell::PartsMap::choices("Nennstrom");
     assert_eq!(choices[..2], ["manufacturer", "part_number"]);
@@ -358,6 +373,22 @@ fn a_supplier_list_imports_after_mapping_and_its_map_is_saved() {
     }
     assert!(shell.parts_map().unwrap().can_import());
     assert!(!mapping_lines(&shell).iter().any(|l| l.starts_with("  error")));
+    assert_eq!(shell.parts_map().unwrap().error_text(), None);
+    // A member chosen twice, in words on the card.
+    done(
+        &mut shell,
+        "parts.map",
+        json!({"column": "Artikelnummer", "member": "manufacturer"}),
+    );
+    assert_eq!(
+        shell.parts_map().unwrap().error_text().as_deref(),
+        Some("Manufacturer is chosen for two columns")
+    );
+    done(
+        &mut shell,
+        "parts.map",
+        json!({"column": "Artikelnummer", "member": "part_number"}),
+    );
     // A member that is no part member is refused with the importer's message.
     let out = shell.dispatch("parts.map", &json!({"column": "Nennstrom", "member": "rating"}));
     assert!(
@@ -442,6 +473,10 @@ fn an_unmapped_part_number_refuses_with_the_importers_message() {
     );
     let message = "the column map needs a column for `part_number`";
     assert_eq!(shell.parts_map().unwrap().error.as_deref(), Some(message));
+    assert_eq!(
+        shell.parts_map().unwrap().error_text().as_deref(),
+        Some("Map a column to Part number")
+    );
     assert_eq!(
         shell.dispatch("parts.map_import", &json!({})),
         Outcome::Failed {

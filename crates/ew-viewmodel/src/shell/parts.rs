@@ -142,6 +142,61 @@ impl PartsMap {
     pub fn can_import(&self) -> bool {
         self.column_map().is_ok()
     }
+
+    /// A member in words, as the mapping card shows it (cycle 37, window check W37; doc 16a P2): "Manufacturer",
+    /// "Part number", "Description (de)", "Technical data: <header>", "Free property: <header>", with `header` the
+    /// column's header. A name that is no member is shown as it is. Describe text and scripts keep the member names.
+    pub fn member_text(member: &str, header: &str) -> String {
+        match catalog::Member::parse(member) {
+            Ok(catalog::Member::Description(Some(lang))) => {
+                strings::format("parts-member-description-lang", &[&lang])
+            }
+            Ok(catalog::Member::TechData(_)) => strings::format("parts-member-tech-data", &[header]),
+            Ok(catalog::Member::FreeProp(_)) => strings::format("parts-member-free-prop", &[header]),
+            Ok(m) => strings::text(match m {
+                catalog::Member::Manufacturer => "parts-member-manufacturer",
+                catalog::Member::PartNumber => "parts-member-part-number",
+                catalog::Member::TypeDesignation => "parts-member-type-designation",
+                catalog::Member::OrderNumber => "parts-member-order-number",
+                catalog::Member::Gtin => "parts-member-gtin",
+                catalog::Member::Kind => "parts-member-kind",
+                catalog::Member::Unit => "parts-member-unit",
+                _ => "parts-member-description",
+            })
+            .to_owned(),
+            Err(_) => member.to_owned(),
+        }
+    }
+
+    /// The card's refusal line in words ("Map a column to Manufacturer", "Part number is chosen for two columns");
+    /// `None` without a refusal. A failure of the last import is shown as it is. [`PartsMap::error`] keeps the
+    /// importer's message for the describe text and the action's outcome.
+    pub fn error_text(&self) -> Option<String> {
+        let error = self.error.as_ref()?;
+        let mut chosen = std::collections::BTreeSet::new();
+        if let Some(c) = self
+            .columns
+            .iter()
+            .find(|c| c.member.as_deref().is_some_and(|m| !chosen.insert(m)))
+        {
+            let member = c.member.as_deref().unwrap_or_default();
+            return Some(strings::format(
+                "parts-map-twice-text",
+                &[&Self::member_text(member, &c.header)],
+            ));
+        }
+        let pairs = self
+            .columns
+            .iter()
+            .filter_map(|c| c.member.as_deref().map(|m| (m, c.header.as_str())));
+        Some(match catalog::ColumnMap::new(None, pairs) {
+            Err(catalog::MapError::Missing(m)) => {
+                strings::format("parts-map-missing", &[&Self::member_text(m, "")])
+            }
+            Err(catalog::MapError::MixedDescription) => strings::text("parts-map-mixed").to_owned(),
+            _ => error.clone(),
+        })
+    }
 }
 
 impl ShellModel {

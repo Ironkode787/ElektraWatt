@@ -6,8 +6,9 @@
 //!
 //! **Layout.** "Map columns" in `type.title`, one line naming the file, the Source field (the key the map is saved
 //! under) with the "Saved map" caption when the members came from it, then the column table: Column, Sample (in
-//! `color.text.secondary`) and "Imports as", a drop-down of the members ("Not imported" first). The importer's refusal
-//! of the map stands under the table in `color.error`; Import (Primary, disabled with that reason as its tooltip) and
+//! `color.text.secondary`) and "Imports as", a drop-down of the members in words ("Not imported" first, then
+//! "Manufacturer", "Part number", …, "Technical data: <header>"). The importer's refusal of the map stands under the
+//! table in words in `color.error` ("Map a column to Manufacturer"); Import (Primary, disabled with that reason as its tooltip) and
 //! Cancel close the card.
 //!
 //! **Input.** The Source field dispatches `parts.map {source}` on Enter or when it loses the focus; a member choice
@@ -59,8 +60,9 @@ fn body(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
     );
     source_row(ui, map, events);
     columns(ui, map, events);
-    if let Some(e) = &map.error {
-        crate::components::live_line(ui, e, true);
+    // Cycle 37 (window check W37): the refusal in words ("Map a column to Manufacturer").
+    if let Some(e) = map.error_text() {
+        crate::components::live_line(ui, &e, true);
     }
     buttons(ui, map, events);
 }
@@ -151,7 +153,12 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                         {
                             choices.push(m.clone());
                         }
-                        let shown = c.member.as_deref().unwrap_or(none);
+                        // Cycle 37 (window check W37): the members in words ("Part number"); the actions keep
+                        // their names.
+                        let shown = c
+                            .member
+                            .as_deref()
+                            .map_or_else(|| none.to_owned(), |m| PartsMap::member_text(m, &c.header));
                         let combo = egui::ComboBox::from_id_salt(("parts-map-member", i))
                             .selected_text(shown)
                             .width(t.size_dialog_label * 1.4)
@@ -165,7 +172,10 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                                 }
                                 for m in &choices {
                                     if ui
-                                        .selectable_label(c.member.as_deref() == Some(m.as_str()), m)
+                                        .selectable_label(
+                                            c.member.as_deref() == Some(m.as_str()),
+                                            PartsMap::member_text(m, &c.header),
+                                        )
                                         .clicked()
                                     {
                                         events.push(Event::Action(
@@ -200,8 +210,8 @@ fn buttons(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
             if import {
                 let enabled = map.can_import();
                 let r = button(ui, Kind::Primary, strings::text("parts-map-import"), enabled, 0.0);
-                let r = match (&map.error, enabled) {
-                    (Some(reason), false) => r.disabled_tip(reason),
+                let r = match (map.error_text(), enabled) {
+                    (Some(reason), false) => r.disabled_tip(&reason),
                     _ => r,
                 };
                 if r.clicked() {
