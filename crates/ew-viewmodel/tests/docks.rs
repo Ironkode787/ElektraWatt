@@ -190,16 +190,33 @@ fn dk1_the_rail_model_and_rail_show() {
             "plc",
             "ips",
             "parts",
-            "blocks"
+            "blocks",
+            "macros",
+            "libraries"
         ]
     );
     assert_eq!(model.left[0].shortcut, "Ctrl+1");
     assert_eq!(model.left[8].shortcut, "Ctrl+9");
     assert!(model.left[9].shortcut.is_empty());
     assert!(model.left[0].active, "Project shows Pages");
+    // FT-754 (g): Macros and Libraries are rail entries; `rail.show` shows their navigators.
+    for (word, kind, label) in [
+        ("macros", NavKind::Macros, "Macros"),
+        ("libraries", NavKind::Libraries, "Libraries"),
+    ] {
+        let b = model.left.iter().find(|b| b.word == word).expect(word);
+        assert_eq!(b.label, label);
+        assert_eq!(b.target, RailTarget::Pane(PaneKind::Navigator(kind)));
+    }
     assert_eq!(model.foot.word, "history");
     assert_eq!(model.right.len(), 2);
     assert!(matches!(model.right[0].target, RailTarget::Action(_)));
+    done(&mut shell, "rail.show", json!({"pane": "libraries"}));
+    assert_eq!(
+        shell.layout().shown_in_place_of(PaneKind::Pages),
+        Some(PaneKind::Navigator(NavKind::Libraries))
+    );
+    assert!(rail(&shell).left.iter().any(|b| b.word == "libraries" && b.active));
     done(&mut shell, "rail.show", json!({"pane": "cables"}));
     assert_eq!(
         shell.layout().shown_in_place_of(PaneKind::Pages),

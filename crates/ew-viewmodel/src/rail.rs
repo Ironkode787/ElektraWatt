@@ -78,9 +78,10 @@ pub struct RailModel {
     pub right: Vec<RailButton>,
 }
 
-/// The left rail's entries (doc 16a §5.4): the word, the title key, the icon and the entry's pane. Project shows the
-/// Pages pane and, through its segmented control, the Devices navigator.
-pub const LEFT: [(&str, &str, &str, PaneKind); 10] = [
+/// The left rail's entries (doc 16a §5.4, with Macros and Libraries after Report blocks, FT-754 (g)): the word, the
+/// title key, the icon and the entry's pane. Project shows the Pages pane and, through its segmented control, the
+/// Devices navigator.
+pub const LEFT: [(&str, &str, &str, PaneKind); 12] = [
     ("project", "rail-project", "files", PaneKind::Pages),
     (
         "strips",
@@ -130,6 +131,19 @@ pub const LEFT: [(&str, &str, &str, PaneKind); 10] = [
         "nav-title-blocks",
         "report",
         PaneKind::Navigator(NavKind::Blocks),
+    ),
+    // WP-S1.19 part 6 (FT-754 (g)): after Report blocks, without a Ctrl+<n> key (the ninth is the last).
+    (
+        "macros",
+        "nav-title-macros",
+        "package",
+        PaneKind::Navigator(NavKind::Macros),
+    ),
+    (
+        "libraries",
+        "nav-title-libraries",
+        "books",
+        PaneKind::Navigator(NavKind::Libraries),
     ),
 ];
 
