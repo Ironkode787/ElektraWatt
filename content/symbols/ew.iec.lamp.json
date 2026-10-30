@@ -3,8 +3,8 @@
   "id": "910b3784-95b2-50a6-af5d-d3e0bdd51271",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c0dedc82-6bdf-5b56-8911-a4871c827294",
-  "version": "0.1.0",
-  "sha256": "sha256:0be9510a084570c1f2cb26480323fbb8479b749c712480eb0ee7baad73f399ae",
+  "version": "0.2.0",
+  "sha256": "sha256:bbd7003f1659f4d79da954a72fe4a5de86cf98347ae4f468ab7a7047342f3715",
   "meta": {
     "key": "ew.iec.lamp",
     "licence": "CC-BY-SA-4.0",
@@ -173,6 +173,15 @@
       ],
       "align": "middle_left",
       "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        -5000000,
+        10000000
+      ],
+      "align": "middle_right",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -183,7 +192,8 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ]
     },
     {

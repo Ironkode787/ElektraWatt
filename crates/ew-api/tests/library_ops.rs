@@ -832,3 +832,130 @@ fn em8_a_deprecated_part_offers_its_successor() {
     s.execute(&cmd).unwrap();
     assert_eq!(part_uses(&s, f1), [copy_in(lib, A9P52616)]);
 }
+
+/// The 0.1.0 copies Golden A held before FT-698 (cycle 38), by key, with their published hashes.
+const GOLDEN_PRE_FT698: [(&str, &str); 3] = [
+    (
+        "ew.iec.lamp@qet10",
+        "sha256:6361cb1f5af892dcf3c76c6dd5a44f3bfb74172810e1b7275fad93de3e3e8955",
+    ),
+    (
+        "ew.iec.position-switch-no@qet10",
+        "sha256:f9bc6581347a7d9f8a1516604c5447cef1935fa3c57865597dfac2fde38c5d6f",
+    ),
+    (
+        "ew.iso.valve-5-2-sol-spring@qet10",
+        "sha256:3195e0603f56bbfdfb265ecb3055317d187fa0ef819c4737f81238d88a846cd3",
+    ),
+];
+
+/// A 0.2.0 starter symbol of FT-698 as its 0.1.0 predecessor: the appended `plc_address` slot and its arrangement
+/// entries removed, the version and the hash of the item put back.
+fn before_ft698(doc: &LibDocument) -> LibDocument {
+    let mut v = serde_json::to_value(doc).unwrap();
+    let slots = v["text_slots"].as_array_mut().unwrap();
+    let last = slots.pop().unwrap();
+    assert_eq!(last["kind"], json!("plc_address"), "the appended slot");
+    let index = json!(slots.len());
+    for a in v["arrangements"].as_array_mut().unwrap() {
+        a["slots"].as_array_mut().unwrap().retain(|i| *i != index);
+    }
+    v["version"] = json!("0.1.0");
+    let doc = LibDocument::from_value(v).unwrap();
+    let hash = ew_commands::commands::library_copy_hash(&doc).unwrap();
+    let mut v = serde_json::to_value(&doc).unwrap();
+    v["sha256"] = json!(ew_schema::Sha256(hash).to_string());
+    LibDocument::from_value(v).unwrap()
+}
+
+/// The key of a symbol document.
+fn symbol_key(d: &LibDocument) -> Option<String> {
+    match d {
+        LibDocument::Symbol(c) => c.item.meta.key.as_ref().map(|k| k.as_str().to_owned()),
+        _ => None,
+    }
+}
+
+/// FT-698 (cycle 38), the product path of Golden A's symbol change: over Golden A as it was (its lamp, position
+/// switch and 5/2 valve at 0.1.0, rebuilt from the new copies and checked against the published hashes), the library
+/// status offers exactly those three copies a minor update to the starter's 0.2.0; "update from library" updates them
+/// in one command, after which the held copies equal the bootstrap's (the committed fixture's), no copy has an update
+/// left and the valve of -201U3-Q1 prints its channel address Q0.1.
+#[test]
+fn ft698_update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
+    let batch = golden_common::batch();
+    let mut current = Vec::new();
+    let mut lib = batch.lib.clone();
+    for doc in &mut lib {
+        let Some((key, published)) =
+            symbol_key(doc).and_then(|k| GOLDEN_PRE_FT698.into_iter().find(|(p, _)| *p == k))
+        else {
+            continue;
+        };
+        current.push(doc.clone());
+        let before = before_ft698(doc);
+        let LibDocument::Symbol(c) = &before else {
+            unreachable!("a symbol stays a symbol")
+        };
+        assert_eq!(c.sha256.to_string(), published, "{key}");
+        *doc = before;
+    }
+    assert_eq!(current.len(), GOLDEN_PRE_FT698.len());
+    let mut project = None;
+    let mut records = Vec::new();
+    for r in &batch.records {
+        match r {
+            Record::Project(p) => project = Some(p.clone()),
+            other => records.push(other.clone()),
+        }
+    }
+    let mut s = Session::from_records(project.unwrap(), records, lib, options(None)).unwrap();
+    let copies: Vec<Uuid> = current
+        .iter()
+        .map(|d| match d {
+            LibDocument::Symbol(c) => c.id.as_uuid(),
+            _ => unreachable!("symbols only"),
+        })
+        .collect();
+    let valve = device(&s, "-201U3-Q1");
+    assert!(!slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
+    for c in s.library_status() {
+        if copies.contains(&c.copy) {
+            assert_eq!(
+                c.state,
+                CopyState::UpdateAvailable {
+                    class: ChangeClass::Minor,
+                    version: "0.2.0".into()
+                },
+                "{}",
+                c.copy
+            );
+        } else {
+            assert!(!matches!(c.state, CopyState::UpdateAvailable { .. }), "{c:?}");
+        }
+    }
+    let plan = s.update_from_library(&copies, &[]).unwrap();
+    let mut planned: Vec<(Uuid, &str, &str, ChangeClass)> = plan
+        .copies
+        .iter()
+        .map(|c| (c.copy, c.from.as_str(), c.to.as_str(), c.class))
+        .collect();
+    planned.sort_by_key(|p| p.0);
+    let mut expected: Vec<(Uuid, &str, &str, ChangeClass)> = copies
+        .iter()
+        .map(|c| (*c, "0.1.0", "0.2.0", ChangeClass::Minor))
+        .collect();
+    expected.sort_by_key(|p| p.0);
+    assert_eq!(planned, expected);
+    commit(&mut s, &plan.command);
+    for doc in &current {
+        let key = symbol_key(doc).unwrap();
+        assert_eq!(held_symbol(&s, &key), serde_json::to_value(doc).unwrap(), "{key}");
+    }
+    assert!(
+        s.library_status()
+            .iter()
+            .all(|c| !matches!(c.state, CopyState::UpdateAvailable { .. }))
+    );
+    assert!(slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
+}

@@ -3,8 +3,8 @@
   "id": "27de388b-93d5-5d7d-b224-cb590f5bcdc5",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "ae948a66-e07b-55fa-b47d-4fb2e8f02873",
-  "version": "0.1.0",
-  "sha256": "sha256:3195e0603f56bbfdfb265ecb3055317d187fa0ef819c4737f81238d88a846cd3",
+  "version": "0.2.0",
+  "sha256": "sha256:a9b9121f9f52b4d6b5956af7c7adc230c332948ccb1b1ef95b750386c6c9ba4a",
   "meta": {
     "key": "ew.iso.valve-5-2-sol-spring@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -96,12 +96,13 @@
     {"kind": {"cp_designation": 1}, "pos": [19182292, -1322917], "align": "middle_left", "visible": true},
     {"kind": {"cp_designation": 2}, "pos": [19182292, 11906250], "align": "middle_left", "visible": true},
     {"kind": {"cp_designation": 3}, "pos": [13890625, -1322917], "align": "middle_left", "visible": true},
-    {"kind": {"cp_designation": 4}, "pos": [13890625, 11906250], "align": "middle_left", "visible": true}
+    {"kind": {"cp_designation": 4}, "pos": [13890625, 11906250], "align": "middle_left", "visible": true},
+    {"kind": "plc_address", "pos": [-7937500, 1984375], "align": "bottom_left", "visible": true}
   ],
   "arrangements": [
-    {"name": "full", "slots": [0, 1, 2, 3, 4, 5, 6]},
+    {"name": "full", "slots": [0, 1, 2, 3, 4, 5, 6, 7]},
     {"name": "tag", "slots": [0]},
-    {"name": "ports", "slots": [1, 2, 3, 4, 5, 6]}
+    {"name": "ports", "slots": [1, 2, 3, 4, 5, 6, 7]}
   ],
   "anchor": {"named": [10583333, 5291667]}
 }

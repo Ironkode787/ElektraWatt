@@ -3,8 +3,8 @@
   "id": "6a8491f2-1df9-57c7-90ce-447a391145b9",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "d3ebbd5e-9b39-556c-a2f4-948b2ccb959a",
-  "version": "0.1.0",
-  "sha256": "sha256:f9bc6581347a7d9f8a1516604c5447cef1935fa3c57865597dfac2fde38c5d6f",
+  "version": "0.2.0",
+  "sha256": "sha256:de7438fd6519e745f8f05608e5252a2cca144614fd79b85f7b7f17edb2f429a0",
   "meta": {
     "key": "ew.iec.position-switch-no@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -34,8 +34,13 @@
     {"kind": "tag", "pos": [1984375, 3307292], "align": "middle_left", "visible": true},
     {"kind": "tech_data", "pos": [1984375, 5291667], "align": "middle_left", "visible": true},
     {"kind": {"cp_designation": 0}, "pos": [-661458, 661458], "align": "middle_right", "visible": true},
-    {"kind": {"cp_designation": 1}, "pos": [-661458, 7276042], "align": "middle_right", "visible": true}
+    {"kind": {"cp_designation": 1}, "pos": [-661458, 7276042], "align": "middle_right", "visible": true},
+    {"kind": "plc_address", "pos": [1984375, 7276042], "align": "middle_left", "visible": true}
   ],
-  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3]}, {"name": "tag", "slots": [0]}, {"name": "tag + rating", "slots": [0, 1]}],
+  "arrangements": [
+    {"name": "full", "slots": [0, 1, 2, 3, 4]},
+    {"name": "tag", "slots": [0]},
+    {"name": "tag + rating", "slots": [0, 1]}
+  ],
   "link_points": [{"name": "link", "pos": [-661458, 3968750]}]
 }

@@ -102,12 +102,15 @@ const LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
 const VERSION: &str = "0.1.0";
 /// The starter documents changed after their first publication on `main` (a published version is immutable; doc 07
 /// §3.1 classifies the change): key (both editions) → version. WP-S1.21 part 2 (cycle 37): the `plc_address` slot, a
-/// minor change.
+/// minor change; FT-698 (cycle 38): the same slot on the lamp, the position switch and the 5/2 valve.
 const BUMPED: &[(&str, &str)] = &[
     ("ew.iec.coil", "0.2.0"),
+    ("ew.iec.lamp", "0.2.0"),
+    ("ew.iec.position-switch-no", "0.2.0"),
     ("ew.iec.pushbutton-no", "0.2.0"),
     ("ew.iec.selector-switch-no", "0.2.0"),
     ("ew.iec.valve-coil", "0.2.0"),
+    ("ew.iso.valve-5-2-sol-spring", "0.2.0"),
 ];
 /// House pen width of the pen-independent tolerance of on-outline checks, in nm (native edition).
 const OUTLINE_TOL: i64 = 1000;

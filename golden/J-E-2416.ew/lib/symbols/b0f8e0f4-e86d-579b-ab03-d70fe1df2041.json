@@ -3,8 +3,8 @@
   "id": "b0f8e0f4-e86d-579b-ab03-d70fe1df2041",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "b16abfcc-ea37-5856-851f-da7c75e188f7",
-  "version": "0.1.0",
-  "sha256": "sha256:6361cb1f5af892dcf3c76c6dd5a44f3bfb74172810e1b7275fad93de3e3e8955",
+  "version": "0.2.0",
+  "sha256": "sha256:dab75274ac6ea9b9eb6547ebe99dd96d608ddd681a3dfaef333807b9faeecc3f",
   "meta": {"key": "ew.iec.lamp@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
   "name": {"en": "Lamp"},
   "keywords": ["lamp", "light", "load"],
@@ -28,7 +28,8 @@
     {"kind": "function_text", "pos": [3307292, 2645833], "align": "middle_left"},
     {"kind": "tech_data", "pos": [3307292, 5291667], "align": "middle_left", "visible": true},
     {"kind": {"cp_designation": 0}, "pos": [661458, 661458], "align": "middle_left", "visible": true},
-    {"kind": {"cp_designation": 1}, "pos": [661458, 7276042], "align": "middle_left", "visible": true}
+    {"kind": {"cp_designation": 1}, "pos": [661458, 7276042], "align": "middle_left", "visible": true},
+    {"kind": "plc_address", "pos": [-3307292, 6614583], "align": "middle_right", "visible": true}
   ],
-  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3, 4]}, {"name": "tag", "slots": [0]}]
+  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3, 4, 5]}, {"name": "tag", "slots": [0]}]
 }

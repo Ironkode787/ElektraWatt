@@ -3,8 +3,8 @@
   "id": "f89eb83d-94db-5efc-8ea9-fb89ed66b515",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "d32db5ff-36ed-53d6-9cf2-f82c50e7ad74",
-  "version": "0.1.0",
-  "sha256": "sha256:2da7e9646622766c33c6d724d0c5bd58633cdc8edd551a8f00df134ad177e932",
+  "version": "0.2.0",
+  "sha256": "sha256:f39c33313b243e973dc528b99b07cccb7a8e2475583fb1eb8230f92bf2d107bb",
   "meta": {
     "key": "ew.iso.valve-5-2-sol-spring",
     "licence": "CC-BY-SA-4.0",
@@ -503,6 +503,15 @@
       ],
       "align": "middle_left",
       "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        -12000000,
+        3000000
+      ],
+      "align": "bottom_left",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -515,7 +524,8 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ]
     },
     {
@@ -532,7 +542,8 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ]
     }
   ],

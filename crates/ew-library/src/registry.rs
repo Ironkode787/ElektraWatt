@@ -469,7 +469,9 @@ impl Registry {
                 key: starter::KEY.to_owned(),
                 name: "ElektraWatt starter library".to_owned(),
                 tier: Tier::System,
-                version: "0.2.0".to_owned(),
+                // 0.2.0: the plc_address slot of the coil, valve coil, pushbutton and selector (WP-S1.21 part 2);
+                // 0.3.0: the same slot on the lamp, position switch and 5/2 valve (FT-698).
+                version: "0.3.0".to_owned(),
                 licence: "CC-BY-SA-4.0".to_owned(),
                 writable: false,
                 path: None,
