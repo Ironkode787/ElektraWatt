@@ -66,7 +66,14 @@ fn the_iec_profile_renders_and_parses_its_notation() {
     assert_eq!(p.parse("%QX0.1"), Some(PlcAddress::bit(Area::Q, 0, 1)));
     assert_eq!(p.parse("ix4.7"), Some(PlcAddress::bit(Area::I, 4, 7)));
     assert_eq!(p.parse("%MB10"), Some(PlcAddress::unit(Area::M, Size::Byte, 10)));
-    for bad in ["Q0.1", "%Q0.1", "%QX0.8", "%QX0"] {
+    // Doc 10 §2.5: a bit address may omit the size; it parses as a bit and renders with X. The prefix stays
+    // optional, so the TIA text `Q0.1` reads as the same bit. A unit address keeps its size (`%Q10` is no address).
+    for (text, rendered) in [("%Q0.1", "%QX0.1"), ("Q0.1", "%QX0.1"), (" %i4.7 ", "%IX4.7")] {
+        let a = p.parse(text).unwrap_or_else(|| panic!("{text:?}"));
+        assert_eq!(p.render(&a, Purpose::Drawing), rendered, "{text:?}");
+    }
+    assert_eq!(p.parse("%Q0.1"), Some(PlcAddress::bit(Area::Q, 0, 1)));
+    for bad in ["%Q0.8", "%Q10", "%QX0.8", "%QX0", "%Q.1"] {
         assert_eq!(p.parse(bad), None, "{bad:?}");
     }
 }

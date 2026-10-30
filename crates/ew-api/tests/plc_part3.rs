@@ -151,6 +151,35 @@ fn pa3_the_iec_profile_changes_the_notation_only() {
     assert!(format!("{err}").contains("iec-61131-3"), "{err}");
 }
 
+/// Doc 10 §2.5 (FX38a): under the IEC profile a channel address typed without its size (`%Q20.1`) is the bit
+/// `%QX20.1`; a unit address without its size (`%Q20`) is refused with the profile's example.
+#[test]
+fn pa3_the_iec_profile_reads_a_bit_without_its_size() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session(&batch);
+    let c = cfg(&s.query());
+    run(
+        &mut s,
+        "plc.set_profile",
+        json!({"config_project": c.to_string(), "profile": "iec-61131-3"}),
+    );
+    let u5 = device(&s, "-201U5");
+    let ch = channel(&s.query(), u5, 1);
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "channel", "targets": [ch.to_string()], "path": "address", "value": "%Q20.1"}),
+    );
+    assert_eq!(texts(&s.query(), u5)[1], "%QX20.1");
+    let err = s
+        .execute(&AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "channel", "targets": [ch.to_string()], "path": "address", "value": "%Q20"}),
+        })
+        .expect_err("a unit address without its size");
+    assert!(format!("{err}").contains("%QX0.1"), "{err}");
+}
+
 /// Golden A's library with the solenoid-position map of part 533361 replaced by `map` (H2 swaps solenoids 14 and 12).
 fn lib_with_map(lib: &[LibDocument], map: &Value) -> Vec<LibDocument> {
     lib.iter()

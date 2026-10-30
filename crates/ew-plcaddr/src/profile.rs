@@ -121,7 +121,9 @@ impl AddressProfile {
     /// drawing or exchange prefix (when the profile has one) is optional, surrounding white space is ignored and the
     /// mnemonics match without regard to ASCII case. A bit address follows the bit template and its bit must be below
     /// `unit_bits` (`I4.9` is no address of an 8-bit unit); a unit address follows the unit template with a size
-    /// other than a bit. `None` for any other text, a byte beyond `u32` included.
+    /// other than a bit. When the bit template names a size (`{size}`, the IEC profile's `X`), a bit address may omit
+    /// it (doc 10 §2.5: `%Q0.1` parses as the bit `%QX0.1`); a unit address always names its size. `None` for any
+    /// other text, a byte beyond `u32` included.
     pub fn parse(&self, text: &str) -> Option<PlcAddress> {
         let text = text.trim();
         let mut bodies = vec![text];
@@ -130,11 +132,19 @@ impl AddressProfile {
                 bodies.push(rest);
             }
         }
+        let bit = tokens(self.render_bit);
+        let bit_unsized: Vec<Token> = bit.iter().copied().filter(|t| *t != Token::Size).collect();
+        let unit = tokens(self.render_unit);
         for body in bodies {
-            if let Some(a) = self.parse_template(self.render_bit, body, true) {
+            if let Some(a) = self.parse_template(&bit, body, true) {
                 return Some(a);
             }
-            if let Some(a) = self.parse_template(self.render_unit, body, false) {
+            if bit_unsized.len() < bit.len() {
+                if let Some(a) = self.parse_template(&bit_unsized, body, true) {
+                    return Some(a);
+                }
+            }
+            if let Some(a) = self.parse_template(&unit, body, false) {
                 return Some(a);
             }
         }
@@ -175,10 +185,9 @@ impl AddressProfile {
         None
     }
 
-    /// `text` matched against `template`: a bit address when `bit`, else a unit address.
-    fn parse_template(&self, template: &str, text: &str, bit: bool) -> Option<PlcAddress> {
-        let tokens = tokens(template);
-        let parsed = self.match_tokens(&tokens, text, Parsed::default())?;
+    /// `text` matched against the template `tokens`: a bit address when `bit`, else a unit address.
+    fn parse_template(&self, tokens: &[Token], text: &str, bit: bool) -> Option<PlcAddress> {
+        let parsed = self.match_tokens(tokens, text, Parsed::default())?;
         let area = parsed.area?;
         let size = parsed.size.unwrap_or(Size::Bit);
         let byte = parsed.byte?;
