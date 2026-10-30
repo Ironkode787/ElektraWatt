@@ -1261,9 +1261,12 @@ impl Builder<'_> {
 /// The distance of a black box's pin text from its pin, inward along the pin's normal (WP-S1.21 D7): 1 mm.
 pub const PIN_TEXT_GAP: Nm = Nm(1_000_000);
 
-/// The pin texts of the page's black boxes as `(entity, text, point, angle, alignment)`, by representation ID then
-/// box-CP order (module documentation, "Pin texts").
-fn pin_texts(view: &PageView) -> Vec<(EntityRef, String, Pt2, Angle2, Align)> {
+/// A placed pin text: its entity, text, point, angle and alignment.
+type PlacedPin = (EntityRef, String, Pt2, Angle2, Align);
+
+/// The pin texts of the page's black boxes, by representation ID then box-CP order (module documentation, "Pin
+/// texts").
+fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
     let mut out = Vec::new();
     for rv in sorted_reps(view) {
         let rep = &rv.rep;

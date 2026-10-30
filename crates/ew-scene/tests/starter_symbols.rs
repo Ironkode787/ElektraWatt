@@ -576,13 +576,19 @@ fn check_identity<T>(d: &Doc<T>, meta: &ItemMeta, out: &mut Vec<String>) {
             c.library_id
         ));
     }
-    let key = meta.key.as_ref().map(|k| k.as_str().trim_end_matches(QET_SUFFIX).to_owned());
+    let key = meta
+        .key
+        .as_ref()
+        .map(|k| k.as_str().trim_end_matches(QET_SUFFIX).to_owned());
     let expected = BUMPED
         .iter()
         .find(|(k, _)| key.as_deref() == Some(*k))
         .map_or(VERSION, |(_, v)| *v);
     if c.version != expected {
-        out.push(format!("{who}: version is {:?}, expected {expected:?}", c.version));
+        out.push(format!(
+            "{who}: version is {:?}, expected {expected:?}",
+            c.version
+        ));
     }
     let item = c.item_id.as_uuid();
     if item.is_nil() {

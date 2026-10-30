@@ -86,8 +86,11 @@ fn view(orient: &str) -> PageView {
     }
 }
 
-/// The labels layer's runs: (text, layout quad's min, its max).
-fn runs(v: &PageView) -> Vec<(String, (i64, i64), (i64, i64))> {
+/// A glyph run: its text, its layout quad's minimum and maximum.
+type Run = (String, (i64, i64), (i64, i64));
+
+/// The labels layer's runs.
+fn runs(v: &PageView) -> Vec<Run> {
     let list = page_display_list(v, Layer::Labels, bundled(), builtin());
     list.list
         .items
