@@ -3,7 +3,7 @@
 
 //! WP-S1.21 part 2 in the Session (acceptance PT-1 and the restated PT-2; D7, FT-227): the derived PLC texts on the
 //! page. The generic CPU and the two generic cards of the starter parts are placed from the picker's command
-//! (`box.black` from the part, here with the tool's default box CPs); the cards' pins print their channel addresses
+//! (`box.black` from the part, here with the tool's default box CPs); the cards' pins print their CP designation and channel address
 //! in the labels layer, and a `PlcAddress` slot of a starter coil prints the address of the channel bound to it. A
 //! `fields.set` of the channel's address changes the print; undo restores it. No address is stored as text.
 
@@ -132,6 +132,14 @@ fn count(texts: &[String], t: &str) -> usize {
     texts.iter().filter(|x| x.as_str() == t).count()
 }
 
+/// The number of pin texts printing address `a` after their CP designation (FT-707: "<designation> <address>").
+fn pins(texts: &[String], a: &str) -> usize {
+    texts
+        .iter()
+        .filter(|x| x.split_once(' ').is_some_and(|(_, addr)| addr == a))
+        .count()
+}
+
 fn channel(module: Uuid, n: u16) -> Id<Channel> {
     ew_ids::v5::plc_channel_id(Id::<Device>::from_uuid(module), n)
 }
@@ -155,22 +163,30 @@ fn pt1_the_card_pins_print_their_channel_addresses() {
     place(&mut s, "EW-GEN-DO-1", 3, true);
     let texts = labels(&s);
     for n in 0..8 {
-        assert_eq!(count(&texts, &format!("I0.{n}")), 1, "I0.{n} in {texts:?}");
-        assert_eq!(count(&texts, &format!("Q0.{n}")), 1, "Q0.{n} in {texts:?}");
+        // FT-707: the CP designation (the generic cards number their pins 1 … 8) comes first, one space before the
+        // address.
+        let (i, q) = (format!("{} I0.{n}", n + 1), format!("{} Q0.{n}", n + 1));
+        assert_eq!(count(&texts, &i), 1, "{i} in {texts:?}");
+        assert_eq!(count(&texts, &q), 1, "{q} in {texts:?}");
     }
     let c0 = channel(di, 0);
     set_address(&mut s, c0, "I4.0");
     let texts = labels(&s);
-    assert_eq!(count(&texts, "I4.0"), 1);
-    assert_eq!(count(&texts, "I0.0"), 0);
+    assert_eq!(pins(&texts, "I4.0"), 1);
+    assert_eq!(pins(&texts, "I0.0"), 0);
     s.undo(&ew_api::Origin::Gui).unwrap();
     let texts = labels(&s);
-    assert_eq!(count(&texts, "I4.0"), 0);
-    assert_eq!(count(&texts, "I0.0"), 1);
+    assert_eq!(pins(&texts, "I4.0"), 0);
+    assert_eq!(pins(&texts, "I0.0"), 1);
     set_address(&mut s, c0, "excluded");
     let texts = labels(&s);
-    assert_eq!(count(&texts, "I0.0"), 0);
-    assert_eq!(count(&texts, "I0.1"), 1);
+    assert_eq!(pins(&texts, "I0.0"), 0);
+    assert_eq!(pins(&texts, "I0.1"), 1);
+    assert_eq!(
+        count(&texts, "1"),
+        1,
+        "the excluded pin prints its designation alone: {texts:?}"
+    );
 }
 
 /// The pin texts sit inside the box, 1 mm from their pin: a top pin's text below it, read bottom to top.
@@ -185,7 +201,7 @@ fn pt1_a_pin_text_is_placed_inside_the_box_beside_its_pin() {
     let mut found = None;
     for item in &list.list.items {
         if let ItemKind::Glyphs(run) = &item.kind
-            && run.text == "I0.0"
+            && run.text == "1 I0.0"
         {
             found = Some(run.layout_quad());
         }
@@ -259,7 +275,8 @@ fn pt2_a_starter_coil_bound_to_an_output_channel_prints_its_address() {
 /// PT-2 and PT-4 with FT-698 (cycle 38): Golden A's lamp, position switch and 5/2 valve have a `PlcAddress` slot
 /// (0.2.0). Every valve on the valve-manifold folios 203 to 206 prints the address of the channel bound to its coil,
 /// the address folio 908 lists with that valve as its target; the unbound lamp and position switch of folio 101 print
-/// nothing, and none of Golden A's black boxes has a pin bound to a channel. The exported bytes are held by the golden
+/// nothing, and none of Golden A's black boxes has a pin bound to a channel (its pins print their designations only,
+/// FT-707). The exported bytes are held by the golden
 /// byte-equality and snapshot tests.
 #[test]
 fn golden_a_prints_the_valve_addresses_of_part_2() {
@@ -291,7 +308,13 @@ fn golden_a_prints_the_valve_addresses_of_part_2() {
     let mut folios: Vec<u32> = Vec::new();
     for (page, p) in q.pages().iter() {
         let slots = q.get::<ew_api::output::PageSlotsOf>(page);
-        assert!(slots.iter().all(|(_, _, pins)| pins.is_empty()), "{page}");
+        // FT-707: the black boxes' pins print their CP designations only, no address.
+        assert!(
+            slots
+                .iter()
+                .all(|(_, _, pins)| pins.iter().all(|p| !p.text.contains(' '))),
+            "{page}"
+        );
         for (rep, values, _) in slots.iter() {
             let rep = q.reps().get(*rep).unwrap();
             let symbol = q.symbols().get(rep.symbol).unwrap();

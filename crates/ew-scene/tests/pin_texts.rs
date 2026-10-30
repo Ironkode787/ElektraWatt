@@ -10,10 +10,10 @@ use std::sync::Arc;
 
 use ew_dl::{ItemKind, Layer};
 use ew_ids::{Id, Uuid};
-use ew_scene::page::{PageKind, PageView, PinText, RepView, page_display_list};
-use ew_schema::{LibCopy, LibDocument, Representation, SymbolDef};
+use ew_scene::page::{PageKind, PageView, PinText, RepView, SLOT_TEXT_GAP, SlotValue, page_display_list};
+use ew_schema::{LibCopy, LibDocument, Representation, SlotKind, SymbolDef};
 use ew_text::{builtin, bundled};
-use ew_units::Pt2;
+use ew_units::{Nm, Pt2};
 use serde_json::json;
 
 const BLACKBOX: &str = include_str!("../../../content/symbols/qet10/ew.gen.blackbox@qet10.json");
@@ -166,4 +166,53 @@ fn a_representation_without_a_box_prints_no_pin_text() {
     let mut v = view("r0");
     Arc::make_mut(&mut v.reps[0].rep).box_ = None;
     assert!(runs(&v).is_empty());
+}
+
+/// FT-707: a pin text is a fixed obstacle of the cross-reference text. A pin near the box's top-left corner prints
+/// its text where the box's cross-reference slot sits; the cross-reference drops below it, `SLOT_TEXT_GAP` apart,
+/// and the pin text stays 1 mm from its pin.
+#[test]
+fn a_cross_reference_drops_below_a_pin_text_it_would_overlap() {
+    let mut v = view("r0");
+    Arc::make_mut(&mut v.reps[0].rep).box_.as_mut().unwrap().cps[0].pos = Pt2::new(Nm(g(1)), Nm(0));
+    v.reps[0].pins = vec![PinText {
+        idx: 0,
+        text: "1".to_owned(),
+    }];
+    let xref = v.reps[0]
+        .symbol
+        .as_ref()
+        .unwrap()
+        .text_slots
+        .iter()
+        .position(|s| matches!(s.kind, SlotKind::Xref))
+        .unwrap();
+    v.reps[0].slots = vec![SlotValue {
+        slot: u16::try_from(xref).unwrap(),
+        text: "(201-E1)".to_owned(),
+        link: None,
+        item_links: Vec::new(),
+    }];
+    let find = |r: &[Run], t: &str| {
+        r.iter()
+            .find(|(x, _, _)| x == t)
+            .map(|(_, a, b)| (*a, *b))
+            .unwrap()
+    };
+    let r = runs(&v);
+    let (pa, pb) = find(&r, "1");
+    let (xa, xb) = find(&r, "(201-E1)");
+    // the pin text has not moved: 1 mm below its pin
+    assert!(near(pa.1, g(30) + MM), "{pa:?}");
+    // the cross-reference no longer overlaps it and sits the gap below it
+    let overlap = xa.0 < pb.0 && pa.0 < xb.0 && xa.1 < pb.1 && pa.1 < xb.1;
+    assert!(!overlap, "pin {pa:?} {pb:?}, xref {xa:?} {xb:?}");
+    assert!(
+        near(xa.1 - pb.1, SLOT_TEXT_GAP.0),
+        "pin {pa:?} {pb:?}, xref {xa:?} {xb:?}"
+    );
+    // without the pin text the cross-reference keeps its place at the top of the box, where the pin text would be
+    v.reps[0].pins.clear();
+    let (ya, _) = find(&runs(&v), "(201-E1)");
+    assert!(ya.1 < pb.1, "{ya:?}");
 }

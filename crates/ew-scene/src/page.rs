@@ -74,7 +74,8 @@
 //!   path item over the item's glyph span (the pen travel of the text up to the item's ends), after the text's
 //!   own items, with the text's entity and a [`Link::Source`].
 //! - **Slot text collisions** (FT-687). A cross-reference slot (`xref`) without a position override follows rules 1
-//!   and 2, a technical-data slot without one rule 3; every other text stays where its symbol puts it. (1) A list of
+//!   and 2, a technical-data slot without one rule 3; every other text stays where its symbol puts it. A black box's
+//!   pin texts ("Pin texts" below) take part as fixed obstacles of the cross-reference texts. (1) A list of
 //!   several lines aligned to the middle keeps its first line where a one-line text would sit and grows downward in
 //!   its own frame (a coil's contact mirror never climbs into the technical data above it). (2) A horizontal one
 //!   whose layout box overlaps another slot text's box on the page (its own symbol's or another representation's; the
@@ -91,8 +92,9 @@
 //!   inward normal: a pin leaving up or down reads bottom to top (90°), its end towards the pin (aligned middle right
 //!   below a pin leaving up, middle left above a pin leaving down); a pin leaving left or right reads horizontally,
 //!   its start towards the pin (middle left right of a pin leaving left, middle right left of a pin leaving right).
-//!   They print after the slot texts and take no part in the slot-text collision rules. An entry without its box
-//!   CP, or a pin of an unknown direction, prints nothing.
+//!   They print after the slot texts and never move; in the slot-text collision rules they are fixed obstacles of
+//!   the cross-reference texts (FT-707): a cross-reference text that overlaps one drops below it as below a text of
+//!   its own symbol (rule 2). An entry without its box CP, or a pin of an unknown direction, prints nothing.
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome): the caller's marker text, centred in style
 //!   `marker` on the midpoint of the polyline's longest segment (the first of equal ones), turned 90° on a
 //!   vertical segment, over the marker symbol in the same orientation. Provisional, like the routes.
@@ -210,13 +212,14 @@ pub struct RepView {
     /// For a strip-segment representation ([`ew_schema::RepType::StripSegment`]): the terminals it draws, in drawing
     /// order (doc 08 §6.7, FR-TRM-011); empty otherwise. See the module documentation for their CPs.
     pub terminals: Vec<SegmentTerminal>,
-    /// For a black box: the derived texts printed beside its pins (the PLC addresses of WP-S1.21 D7); empty
-    /// otherwise. See the module documentation ("Pin texts").
+    /// For a black box: the derived texts printed beside its pins (the CP designations of FT-707 and the PLC
+    /// addresses of WP-S1.21 D7); empty otherwise. See the module documentation ("Pin texts").
     pub pins: Vec<PinText>,
 }
 
-/// A derived text printed beside one pin of a black box (WP-S1.21 D7): the printed PLC address of the channel bound
-/// to function CP `idx` of the box's first function. Never stored (FR-PLC-007).
+/// A derived text printed beside one pin of a black box (WP-S1.21 D7, FT-707): the designation of function CP `idx`
+/// of the box's first function and, when that CP is bound to a PLC channel, the channel's printed address after one
+/// space. Never stored (FR-PLC-007).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PinText {
     /// The function CP index (a box CP's `idx`).
@@ -972,8 +975,25 @@ impl Builder<'_> {
                 });
             }
         }
-        self.place_slot_texts(&mut texts);
         let pins = pin_texts(view);
+        // FT-707: the pin texts never move; they are fixed obstacles of the cross-reference texts.
+        let pin_boxes: Vec<(EntityRef, Rect)> = pins
+            .iter()
+            .filter_map(|(entity, text, at, angle, align)| {
+                let spec = TextSpec {
+                    text,
+                    at: *at,
+                    angle: *angle,
+                    align,
+                    style_key: "data.small",
+                    entity: *entity,
+                    link: None,
+                    items: &[],
+                };
+                self.text_box(&spec, false).map(|b| (*entity, b))
+            })
+            .collect();
+        self.place_slot_texts(&mut texts, &pin_boxes);
         for t in &texts {
             if let Some(name) = t.unknown {
                 self.out.findings.push(PageFinding::UnknownSlotStyle {
@@ -1013,8 +1033,10 @@ impl Builder<'_> {
     /// The placement rules of the slot texts (FT-687, module documentation, "Slot text collisions"): a
     /// horizontal cross-reference text that overlaps another slot text on the page (its own symbol's or another
     /// representation's) drops below the lowest of those texts, [`SLOT_TEXT_GAP`] apart, when it overlaps no
-    /// slot text there; texts are taken in print order, each seeing the earlier ones where they ended.
-    fn place_slot_texts(&self, texts: &mut [SlotText<'_>]) {
+    /// slot text there; texts are taken in print order, each seeing the earlier ones where they ended. The black
+    /// boxes' pin texts (`pins`, FT-707) are fixed obstacles of the cross-reference texts only: one that a
+    /// cross-reference text overlaps sends it down like a slot text of the same representation does.
+    fn place_slot_texts(&self, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
         let mut boxes: Vec<Option<Rect>> = texts
             .iter()
             .map(|t| self.text_box(&t.spec(false), t.xref))
@@ -1027,12 +1049,16 @@ impl Builder<'_> {
             // Each other box with whether it is the same representation's: within one symbol only an overlap
             // collides (its author placed the texts), between representations also a gap below [`SLOT_TEXT_GAP`].
             // A technical-data text yields only to other representations' texts.
+            // A pin text counts as a text of the same representation: only an overlap collides, and it sends the
+            // text further down; a technical-data text ignores it (it takes part in rule 2 only).
+            let xref = texts[i].xref;
             let others = || {
                 boxes
                     .iter()
                     .enumerate()
                     .filter(|(k, _)| *k != i)
                     .filter_map(|(k, b)| b.map(|b| (texts[k].entity == texts[i].entity, b)))
+                    .chain(pins.iter().filter(|_| xref).map(|(_, b)| (true, *b)))
             };
             let hits = |at: Rect, (same, b): (bool, Rect)| {
                 if same {

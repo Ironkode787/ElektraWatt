@@ -51,9 +51,11 @@
 //!   `order_code` → `order_code_text(device)` (the order code of its first assembly config, D-36); `plc_address` →
 //!   the first drawn function's `ew_derive::PlcAddressText` text (WP-S1.21 D7); every other kind has no value. An
 //!   empty text is not listed.
-//! - **Pin addresses** (WP-S1.21 D7): a black box (`Representation.box` with CPs, a symbol without CPs) lists, per box CP whose function
-//!   CP is bound to a PLC channel, the channel's printed address (`PlcAddressText::pins` of its function), in
-//!   [`PageSlotsOf`] beside the slot texts; the scene prints them beside the pins.
+//! - **Pin texts** (WP-S1.21 D7, FT-707): a black box (`Representation.box` with CPs, a symbol without CPs) lists, per
+//!   box CP, the designation of that CP of its first function as stored and, when the function CP is bound to a PLC
+//!   channel, the channel's printed address (`PlcAddressText::pins` of its function) after one space
+//!   (`L+ I0.1`), in [`PageSlotsOf`] beside the slot texts; the scene prints them beside the pins. A designation the
+//!   symbol's own `cp_designation` slot prints, or an empty one, is left out.
 //! - **Break marks** (D-41, doc 11 §5.5 step 5): the `assembly_break_marks()` of a drawn page ([`page_break_marks`]),
 //!   drawn by the scene at the side of their representation.
 //! - **Wire markers** (ID-144; WP-S2.04 part 4a, `ew_derive::connection_marker`): with the project's `marker_mode`
@@ -640,8 +642,11 @@ pub(crate) fn page_grid(q: &Q, page: PageRef) -> Grid {
     *q.get::<PageGridOf>(page)
 }
 
-/// The pin texts of a black box (WP-S1.21 D7): per box CP of a representation whose symbol has no CPs, the printed
-/// PLC address of the channel bound to that CP of its first function, in box-CP order.
+/// The pin texts of a black box (WP-S1.21 D7, FT-707): per box CP of a representation whose symbol has no CPs, the
+/// designation of that CP of its first function as stored (repeated designations print as they are), then, when the
+/// CP is bound to a PLC channel, the channel's printed address after one space; in box-CP order. A designation that
+/// a `cp_designation` slot of the symbol already prints, or an empty one, is left out (no text twice); a box CP with
+/// neither a designation to print nor an address has no entry.
 fn pin_texts(q: &Q, rep: &Representation, def: &SymbolDef) -> Vec<PinText> {
     let (Some(b), Some(&function)) = (&rep.box_, rep.functions.first()) else {
         return Vec::new();
@@ -650,14 +655,52 @@ fn pin_texts(q: &Q, rep: &Representation, def: &SymbolDef) -> Vec<PinText> {
         return Vec::new();
     }
     let texts = q.get::<PlcAddressText>(function);
+    let cps = q.get::<FunctionCps>(function);
+    let designation = |idx: u16| cps.iter().find(|c| c.idx == idx).map(|c| c.designation.as_str());
+    compose_pin_texts(rep, def, function, designation, &texts.pins)
+}
+
+/// [`pin_texts`] from the function's CP designations (`designation`, by function CP index) and the printed
+/// addresses of its bound CPs (`addresses`, `(idx, text)`).
+fn compose_pin_texts<'a>(
+    rep: &Representation,
+    def: &SymbolDef,
+    function: Id<Function>,
+    designation: impl Fn(u16) -> Option<&'a str>,
+    addresses: &[(u16, String)],
+) -> Vec<PinText> {
+    let Some(b) = &rep.box_ else {
+        return Vec::new();
+    };
+    // The function CPs the symbol's own `cp_designation` slots print, resolved as `slot_values` does: through the
+    // representation's pin map, else (a symbol without CPs) slot CP `i` is function CP `i`. A slot that the pin map
+    // sends to another function prints none of this function's CPs.
+    let slotted: Vec<u16> = def
+        .text_slots
+        .iter()
+        .filter_map(|s| match s.kind {
+            SlotKind::CpDesignation(i) => match rep.pin_map.iter().find(|p| p.symbol_cp == i) {
+                Some(p) => (p.function == function).then_some(p.idx),
+                None => Some(i),
+            },
+            _ => None,
+        })
+        .collect();
     b.cps
         .iter()
         .filter_map(|cp| {
-            let (_, text) = texts.pins.iter().find(|(idx, _)| *idx == cp.idx)?;
-            Some(PinText {
-                idx: cp.idx,
-                text: text.clone(),
-            })
+            let designation = designation(cp.idx).filter(|d| !d.is_empty() && !slotted.contains(&cp.idx));
+            let address = addresses
+                .iter()
+                .find(|(idx, _)| *idx == cp.idx)
+                .map(|(_, a)| a.as_str());
+            let text = match (designation, address) {
+                (Some(d), Some(a)) => format!("{d} {a}"),
+                (Some(d), None) => d.to_owned(),
+                (None, Some(a)) => a.to_owned(),
+                (None, None) => return None,
+            };
+            Some(PinText { idx: cp.idx, text })
         })
         .collect()
 }
@@ -1007,6 +1050,62 @@ mod tests {
         assert_eq!(
             newest, GENERIC_SYMBOLS_PROFILE,
             "re-seal the generic symbols for the new profile"
+        );
+    }
+
+    /// FT-707: a black box's pin texts carry the CP designation, then (when the CP is bound) the printed address
+    /// after one space; repeated designations print as stored; an empty designation, or one a `cp_designation` slot
+    /// of the symbol already prints, is left out, and a pin with nothing left has no entry.
+    #[test]
+    fn pin_texts_carry_the_designation_then_the_address_and_skip_a_slotted_designation() {
+        const BLACKBOX: &str = include_str!("../../../../content/symbols/qet10/ew.gen.blackbox@qet10.json");
+        let Ok(LibDocument::Symbol(copy)) = LibDocument::from_json(BLACKBOX) else {
+            panic!("the black box is a symbol copy");
+        };
+        let mut def = copy.item;
+        assert!(def.cps.is_empty(), "a black-box symbol has no CPs");
+        let function = Id::<Function>::from_uuid(Uuid::from_u128(0x21));
+        let rep: Representation = serde_json::from_value(serde_json::json!({
+            "id": Uuid::from_u128(0x11).hyphenated().to_string(),
+            "functions": [function.as_uuid().hyphenated().to_string()],
+            "page": Uuid::from_u128(0x100).hyphenated().to_string(),
+            "symbol": copy.id.as_uuid().hyphenated().to_string(),
+            "pos": [0, 0],
+            "box": {
+                "outline": [[0, 0], [10_000_000, 0], [10_000_000, 10_000_000], [0, 10_000_000]],
+                "cps": (0..5u16)
+                    .map(|i| serde_json::json!({"idx": i, "pos": [i64::from(i) * 2_000_000, 0], "dir": "up"}))
+                    .collect::<Vec<_>>(),
+            },
+        }))
+        .expect("a representation");
+        let designations = ["L+", "+", "+", "", "13"];
+        let designation = |idx: u16| designations.get(usize::from(idx)).copied();
+        let addresses = vec![(1, "I0.1".to_owned()), (3, "I0.3".to_owned())];
+        let texts = |def: &SymbolDef| -> Vec<(u16, String)> {
+            compose_pin_texts(&rep, def, function, designation, &addresses)
+                .into_iter()
+                .map(|p| (p.idx, p.text))
+                .collect()
+        };
+        let own = |v: &[(u16, &str)]| -> Vec<(u16, String)> {
+            v.iter().map(|(i, t)| (*i, (*t).to_owned())).collect()
+        };
+        assert_eq!(
+            texts(&def),
+            own(&[(0, "L+"), (1, "+ I0.1"), (2, "+"), (3, "I0.3"), (4, "13")]),
+            "designation then address; repeated designations as stored; an empty one leaves the address alone"
+        );
+        // A `cp_designation` slot for CP 4 and one for CP 1: those designations print in the slot, not at the pin.
+        let mut slot = def.text_slots[0].clone();
+        slot.kind = SlotKind::CpDesignation(4);
+        def.text_slots.push(slot.clone());
+        slot.kind = SlotKind::CpDesignation(1);
+        def.text_slots.push(slot);
+        assert_eq!(
+            texts(&def),
+            own(&[(0, "L+"), (1, "I0.1"), (2, "+"), (3, "I0.3")]),
+            "a slotted designation is left out; CP 4 has nothing left to print"
         );
     }
 }
