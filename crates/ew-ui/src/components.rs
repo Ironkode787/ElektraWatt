@@ -48,16 +48,20 @@ pub(crate) const TIP_MAX_LINES: usize = 8;
 
 /// The laid-out text of a tooltip: `type.small` in `color.text.on_inverse`, wrapped at `size.tooltip.max`, at most
 /// [`TIP_MAX_LINES`] lines, the last ending in "…" when the text is longer.
-pub(crate) fn tip_galley(ctx: &egui::Context, t: &Tokens, text: &str) -> std::sync::Arc<egui::Galley> {
-    let mut job = egui::text::LayoutJob::simple(
-        text.to_owned(),
-        theme::font(&t.type_small),
-        t.text_on_inverse.color32(),
-        t.size_tooltip_max,
-    );
+pub(crate) fn tip_galley(ui: &Ui, t: &Tokens, text: &str) -> std::sync::Arc<egui::Galley> {
+    // Laid out as a label of that RichText is (style, vertical alignment), only with the line cap.
+    let rich = RichText::new(text)
+        .font(theme::font(&t.type_small))
+        .color(t.text_on_inverse.color32());
+    let mut job = std::sync::Arc::unwrap_or_clone(egui::WidgetText::from(rich).into_layout_job(
+        ui.style(),
+        egui::FontSelection::Default,
+        ui.text_valign(),
+    ));
+    job.wrap.max_width = t.size_tooltip_max;
     job.wrap.max_rows = TIP_MAX_LINES;
     job.wrap.overflow_character = Some('…');
-    ctx.fonts_mut(|f| f.layout_job(job))
+    ui.fonts_mut(|f| f.layout_job(job))
 }
 
 /// Shows `tooltip` in doc 16a §6.18's style: `color.surface.inverse` with `color.text.on_inverse` in `type.small`,
@@ -75,7 +79,7 @@ pub(crate) fn show_tip(ctx: &egui::Context, tooltip: egui::containers::Tooltip<'
     tooltip.popup = tooltip.popup.frame(frame);
     tooltip.show(|ui| {
         ui.set_max_width(t.size_tooltip_max);
-        ui.add(egui::Label::new(tip_galley(ui.ctx(), &t, text)));
+        ui.add(egui::Label::new(tip_galley(ui, &t, text)));
     });
 }
 
@@ -1135,8 +1139,8 @@ mod tests {
         let long = "member CP -X1032:1:a has role Pe; the defined type M applies; ".repeat(40);
         let mut seen = None;
         let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
-            let g = tip_galley(ui.ctx(), &t, &long);
-            let short = tip_galley(ui.ctx(), &t, "Wire");
+            let g = tip_galley(ui, &t, &long);
+            let short = tip_galley(ui, &t, "Wire");
             seen = Some((
                 g.rows.len(),
                 g.elided,
