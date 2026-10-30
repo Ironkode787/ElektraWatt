@@ -47,6 +47,7 @@
 //! | `revision.create` | [`CreateRevision`] | Interactive |
 //! | `revision.set_author` | [`SetRevisionAuthor`] | Interactive; exposure `HumanOnly` |
 //! | `revision.withdraw` | [`WithdrawRevision`] | Interactive; exposure `HumanOnly` |
+//! | `revision.approve` | [`ApproveRevision`] | Interactive; exposure `HumanOnly` |
 //! | `project.company.set` | [`SetCompany`] | Bulk |
 //! | `project.frames.set` | [`SetFrameDefaults`] | Bulk |
 //! | `project.languages.set` | [`SetProjectLanguages`] | Bulk |
@@ -76,8 +77,8 @@
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380); every one is of exposure
 //! class `Edit` except `project.checks.set`, `check.waive` and `check.unwaive`, which are `HumanOnly` (ADR-0008 amendment
-//! 3: they decide a check outcome), `revision.set_author` and `revision.withdraw`, which are `HumanOnly` because they
-//! decide the four-eyes sign-off and the release history (WP-S1.18 D4, D5),
+//! 3: they decide a check outcome), `revision.set_author`, `revision.withdraw` and `revision.approve`, which are
+//! `HumanOnly` because they decide the four-eyes sign-off and the release history (WP-S1.18 D4, D5, D9),
 //! and `project.assets.purge`, which is `HumanOnly` because deleted files do not come back (owner ruling, 2026-10-23).
 
 mod assembly;
@@ -158,7 +159,8 @@ pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS, PasteFra
 pub use plc::{BindChannel, CreatePlcConfigProject, SetModulePart};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
 pub use revision::{
-    CreateRevision, LABEL_ORDER_RULE, NewRevisionState, RevisionPageNote, SetRevisionAuthor, WithdrawRevision,
+    ApproveRevision, ApprovedPack, CreateRevision, LABEL_ORDER_RULE, NewRevisionState, RevisionPageNote,
+    SetRevisionAuthor, WithdrawRevision,
 };
 pub use settings::{SETTABLE_SETTINGS, SetProjectSettings, SettableSetting};
 pub use structure::{CreateExternalRef, CreateReportBlock, CreateSection, CreateStructureNode};
@@ -214,6 +216,8 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<CreateRevision>();
     r.register::<SetRevisionAuthor>();
     r.register::<WithdrawRevision>();
+    // WP-S1.18 part 3: the sign-off (D9)
+    r.register::<ApproveRevision>();
     r.register::<SetCompany>();
     r.register::<SetFrameDefaults>();
     r.register::<SetProjectLanguages>();

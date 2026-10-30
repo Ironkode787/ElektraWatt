@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "ApprovedPack": {
+      "additionalProperties": false,
+      "description": "One rule pack of the gate run a checker approved: its ID, version and the SHA-256 of its definition (doc 15 §3.9).",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/CmdIdent",
+          "description": "The pack ID (`EW-CORE`)."
+        },
+        "sha256": {
+          "$ref": "#/$defs/Sha256",
+          "description": "The SHA-256 of the pack's definition."
+        },
+        "version": {
+          "$ref": "#/$defs/CmdIdent",
+          "description": "The pack version."
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "Date": {
+      "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "PartyRole": {
+      "description": "The role of a [`Party`].",
+      "oneOf": [
+        {
+          "const": "customer",
+          "description": "Customer.",
+          "type": "string"
+        },
+        {
+          "const": "end_user",
+          "description": "End user.",
+          "type": "string"
+        },
+        {
+          "const": "panel_builder",
+          "description": "Panel builder (legal owner of the drawings).",
+          "type": "string"
+        },
+        {
+          "const": "author",
+          "description": "Author.",
+          "type": "string"
+        },
+        {
+          "const": "checker",
+          "description": "Checker.",
+          "type": "string"
+        },
+        {
+          "const": "engineer",
+          "description": "Engineer.",
+          "type": "string"
+        }
+      ]
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`revision.approve` (`ApproveRevision`): the checker's sign-off on the open revision (doc 15 §5.4; FR-REV-005,\nFR-REV-021; WP-S1.18 D9): writes the revision's `checker` and its `sign_off {checker, content_digest, date, packs,\nscheme, waivers_ack}`, the one path that writes the checker of an open revision (D4, FT-402). A later content edit\nchanges the content digest, and EW-REL-001 then reports the sign-off as stale; approving again replaces it.\n\nThe session submits it after the release gate on the saved generation (`ew_api::Session::approve`): the gate's\ncontent digest, scheme and pack versions are its parameters, and the session refuses it unless the gate's only open\nerrors are EW-REL-001's and every safety-kind waiver in force is acknowledged in `waivers_ack`. The command itself\nchecks what the snapshot decides. Rejected: a revision that does not exist, or is not open (released and withdrawn\nrevisions are immutable, FR-REV-009; at `/revision`); an open revision without an author (at `/revision`: four eyes\ncompare two parties, so the author is set first, `revision.set_author`); a checker equal to the author (at\n`/checker`, D-34, EW-INV-018); a scheme that does not ship (at `/scheme`); an acknowledged waiver that does not exist\nor is listed twice (at `/waivers_ack/<i>`). The acknowledged waivers are written in ID order.\n\n**Exposure `HumanOnly`** (doc 15 §5.4, ADR-0008 amendment 3): command logs, scripts, MCP and plugins get\n`CmdError::Exposure`; on the command line only `ew revision approve` submits it, after the person types the revision\nlabel on an interactive terminal. Interactive; undoable as one step. Outcome: none.",
+  "properties": {
+    "checker": {
+      "$ref": "#/$defs/PartyRole",
+      "description": "The checker, as a party role; never the author's."
+    },
+    "content_digest": {
+      "$ref": "#/$defs/Sha256",
+      "description": "The content digest of the saved generation the gate ran on (doc 15 §5.4)."
+    },
+    "date": {
+      "$ref": "#/$defs/Date",
+      "description": "The date of the approval."
+    },
+    "packs": {
+      "default": [],
+      "description": "The rule packs of the gate run.",
+      "items": {
+        "$ref": "#/$defs/ApprovedPack"
+      },
+      "type": "array"
+    },
+    "revision": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The open revision."
+    },
+    "scheme": {
+      "$ref": "#/$defs/CmdIdent",
+      "description": "The check scheme of the gate run (`pre-delivery`)."
+    },
+    "waivers_ack": {
+      "default": [],
+      "description": "The waivers of safety-kind rules the checker acknowledges, by ID.",
+      "items": {
+        "$ref": "#/$defs/CmdUuid"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "revision",
+    "checker",
+    "date",
+    "scheme",
+    "content_digest"
+  ],
+  "title": "revision.approve",
+  "type": "object"
+}

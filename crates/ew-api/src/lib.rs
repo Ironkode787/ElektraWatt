@@ -27,6 +27,10 @@
 //! The PDF export also runs as a job ([`Session::export_job`], WP-S2.09 part 1): a snapshot with a cold `Q` on a
 //! thread of [`ew_jobs`], with progress and cooperative cancel.
 //!
+//! **The release gate and the sign-off** (WP-S1.18 part 3). [`Session::release_gate`] runs the gate on the saved
+//! generation with its content digest; [`Session::approve`] records the checker's sign-off (`revision.approve`, which
+//! only it submits).
+//!
 //! Not in v0: the memo snapshot in [`World`] and the job pool for previews (WP-S1.05, FT-497), rule registration
 //! (WP-S1.15), the save on a writer thread, and the undo history of a recovered session (FR-COL-028: a recovered
 //! session opens dirty with an empty history).
@@ -72,6 +76,8 @@ mod library_ops;
 mod macros;
 mod new_project;
 pub mod output;
+// WP-S1.18 part 3: the release gate and the sign-off (D8 to D10).
+mod release;
 // WP-S2.04 part 2: the router the canvas tools call (§4.3, §8.1).
 pub mod routing;
 pub mod verify;
@@ -122,6 +128,8 @@ pub use ew_reports::export::{Export, ExportError, Exported};
 /// The project's revision label format (doc 15 §5.2, FR-REV-002): the new-project wizard checks the first label
 /// against it, as `revision.create` does (EW-REL-004).
 pub use ew_schema::LabelFormat;
+/// The party roles of a revision's author and checker (doc 03 `Party`): `ew revision approve --as <role>` names one.
+pub use ew_schema::PartyRole;
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
 pub use ew_schema::{
     AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, sniff as sniff_asset,
@@ -133,6 +141,7 @@ pub use ew_store::{
     StoreOptions, SystemClock,
 };
 pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError};
+pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
 
 pub use ew_commands::{
     AnyCommand, Change, ChangeKind, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand,
@@ -534,6 +543,7 @@ impl Session {
     /// Runs an interactive command through the commit pipeline (ARCH §5.2) from the session's origin.
     /// A bulk command is refused with [`CmdError::NeedsPreview`].
     pub fn execute(&mut self, cmd: &dyn DynCommand) -> Result<Receipt, CmdError> {
+        self.approval_only(cmd.name(), &self.submit_origin)?;
         let before = self.engine.model().clone();
         let result = self.engine.execute(cmd);
         self.committed(&before, cmd.name());
@@ -542,6 +552,7 @@ impl Session {
 
     /// [`Session::execute`] with an explicit origin, editor context or coalescing key.
     pub fn execute_with(&mut self, cmd: &dyn DynCommand, submit: Submit) -> Result<Receipt, CmdError> {
+        self.approval_only(cmd.name(), &submit.origin)?;
         let before = self.engine.model().clone();
         let result = self.engine.execute_with(cmd, submit);
         self.committed(&before, cmd.name());
@@ -552,14 +563,17 @@ impl Session {
     /// the entity and field diff and the affected pages. Nothing is committed. Synchronous in v0.
     ///
     /// `project.assets.purge` is refused here already when the purge would be refused (its file list is
-    /// [`Session::purge_preview`]).
+    /// [`Session::purge_preview`]). `revision.approve` is refused here and in [`Session::execute`]: its parameters are
+    /// the release gate's, so only [`Session::approve`] submits it.
     pub fn preview(&mut self, cmd: &dyn DynCommand) -> Result<Preview, CmdError> {
+        self.approval_only(cmd.name(), &self.submit_origin)?;
         self.purge_gate(cmd.name())?;
         self.engine.preview(cmd)
     }
 
     /// [`Session::preview`] with an explicit submission.
     pub fn preview_with(&mut self, cmd: &dyn DynCommand, submit: Submit) -> Result<Preview, CmdError> {
+        self.approval_only(cmd.name(), &submit.origin)?;
         self.purge_gate(cmd.name())?;
         self.engine.preview_with(cmd, submit)
     }

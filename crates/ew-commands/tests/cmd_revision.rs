@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Revisions (FT-165, doc 03 §18; WP-S1.18 part 1): `revision.create`, `revision.set_author`, `revision.withdraw`,
-//! `fields.set` on the revision kind, `edit.delete` of a revision, the automatic open revision (normaliser
+//! Revisions (FT-165, doc 03 §18; WP-S1.18 parts 1 and 3): `revision.create`, `revision.set_author`,
+//! `revision.withdraw`, `revision.approve`, `fields.set` on the revision kind, `edit.delete` of a revision, the automatic open revision (normaliser
 //! `revision_ensure_open`) and the open revision's notes on deleted pages; released and withdrawn revisions are
 //! immutable (FR-REV-009).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
@@ -13,14 +13,17 @@ mod common;
 use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
-    CreateRevision, DeletePages, DeleteSelection, KindName, LABEL_ORDER_RULE, NewRevisionState,
-    RevisionPageNote, SetFields, SetRevisionAuthor, TargetRef, WithdrawRevision,
+    ApproveRevision, ApprovedPack, CreateRevision, DeletePages, DeleteSelection, KindName, LABEL_ORDER_RULE,
+    NewRevisionState, RevisionPageNote, SetFields, SetRevisionAuthor, TargetRef, WaiveFinding,
+    WithdrawRevision,
 };
 use ew_commands::{CmdError, Engine, Exposure, Origin, Submit};
 use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_model::{AnyRow, Model, Op, Rev};
-use ew_schema::{Date, Extra, Kind, LabelFormat, PartyRole, Record, ReleaseRecord, Revision, RevisionState};
+use ew_schema::{
+    Date, Extra, Kind, LabelFormat, PartyRole, Record, ReleaseRecord, Revision, RevisionState, Sha256,
+};
 use serde_json::{Value, json};
 
 fn create(label: &str, state: NewRevisionState) -> CreateRevision {
@@ -815,5 +818,135 @@ fn withdraw_adds_a_record_and_leaves_the_released_one() {
     assert_eq!(
         invalid_at(e.execute(&withdraw(v1, "  ")).unwrap_err()),
         ("revision.withdraw".into(), "/reason".into())
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// WP-S1.18 part 3: the sign-off
+
+fn approve(revision: Id<Revision>, checker: PartyRole) -> ApproveRevision {
+    ApproveRevision {
+        revision,
+        checker,
+        date: Date::new(2025, 6, 2).unwrap(),
+        scheme: ident("pre-delivery"),
+        packs: vec![ApprovedPack {
+            id: ident("EW-CORE"),
+            version: ident("0.0.0"),
+            sha256: Sha256([7; 32]),
+        }],
+        waivers_ack: Vec::new(),
+        content_digest: Sha256([1; 32]),
+    }
+}
+
+/// RG-1 and RG-2 at the command (D9, D-34): `revision.approve` writes the checker and the complete sign-off of the
+/// open revision from a person; undo takes both back. Refused: a script origin (exposure), the author's party as
+/// checker, a released revision, an open revision without an author, a scheme that does not ship, a waiver that does
+/// not exist or is listed twice.
+#[test]
+fn approve_writes_the_checker_and_the_sign_off_from_a_person_only() {
+    let (mut e, v1, v2) = with_history();
+    let cmd = approve(v2, PartyRole::Checker);
+    for origin in scripted() {
+        let err = e.execute_with(&cmd, Submit::from(origin.clone())).unwrap_err();
+        assert_eq!(
+            err,
+            CmdError::Exposure {
+                command: "revision.approve".into(),
+                exposure: Exposure::HumanOnly,
+                origin,
+            }
+        );
+    }
+    let before = lines(e.model());
+    e.execute_with(&cmd, Submit::from(Origin::Gui)).expect("approved");
+    let r = revision(&e, v2);
+    assert_eq!(r.checker, Some(PartyRole::Checker));
+    let s = r.sign_off.as_ref().expect("signed off");
+    assert_eq!(s.checker, Some(PartyRole::Checker));
+    assert_eq!(s.content_digest, Some(Sha256([1; 32])));
+    assert_eq!(s.date, Date::new(2025, 6, 2).ok());
+    assert_eq!(s.scheme.as_ref().map(|x| x.as_str()), Some("pre-delivery"));
+    assert_eq!(s.waivers_ack, Some(Vec::new()));
+    let packs = s.packs.as_ref().expect("packs");
+    assert_eq!(packs.len(), 1);
+    assert_eq!(packs[0].id.as_ref().map(|x| x.as_str()), Some("EW-CORE"));
+    assert_eq!(packs[0].sha256, Some(Sha256([7; 32])));
+    // The sign-off is not content: no revision opened, nothing else changed.
+    assert_eq!(e.model().table::<Revision>().len(), 2);
+    e.undo(&Origin::Gui).expect("undo");
+    assert_eq!(lines(e.model()), before);
+
+    let eyes = approve(v2, PartyRole::Engineer);
+    assert_eq!(
+        invalid_at(e.execute(&eyes).unwrap_err()),
+        ("revision.approve".into(), "/checker".into())
+    );
+    assert_eq!(
+        invalid_at(e.execute(&approve(v1, PartyRole::Checker)).unwrap_err()),
+        ("revision.approve".into(), "/revision".into())
+    );
+    let unknown = ApproveRevision {
+        scheme: ident("nightly"),
+        ..cmd.clone()
+    };
+    assert_eq!(
+        invalid_at(e.execute(&unknown).unwrap_err()),
+        ("revision.approve".into(), "/scheme".into())
+    );
+    let ghost = ApproveRevision {
+        waivers_ack: vec![Id::from_uuid(uuid(0xdead))],
+        ..cmd.clone()
+    };
+    assert_eq!(
+        invalid_at(e.execute(&ghost).unwrap_err()),
+        ("revision.approve".into(), "/waivers_ack/0".into())
+    );
+    // A waiver acknowledged once is written; listed twice it is refused.
+    let waiver: Id<ew_schema::Waiver> = typed(
+        e.execute_with(
+            &WaiveFinding {
+                rule: ident("EW-POT-004"),
+                fingerprint: "0123456789abcdef0123456789abcdef".into(),
+                reason: MlText::neutral("Accepted by the customer"),
+                author: ident("A. Checker"),
+                date: Date::new(2025, 6, 1).unwrap(),
+            },
+            Submit::from(Origin::Gui),
+        )
+        .expect("waived")
+        .outcome
+        .primary
+        .expect("primary"),
+    );
+    let twice = ApproveRevision {
+        waivers_ack: vec![waiver, waiver],
+        ..cmd.clone()
+    };
+    assert_eq!(
+        invalid_at(e.execute(&twice).unwrap_err()),
+        ("revision.approve".into(), "/waivers_ack/1".into())
+    );
+    let once = ApproveRevision {
+        waivers_ack: vec![waiver],
+        ..cmd
+    };
+    e.execute(&once).expect("approved with the waiver acknowledged");
+    assert_eq!(
+        revision(&e, v2)
+            .sign_off
+            .as_ref()
+            .and_then(|s| s.waivers_ack.clone()),
+        Some(vec![waiver])
+    );
+
+    // An open revision without an author: four eyes compare two parties.
+    let open = raw(0x7101, "V1.0", RevisionState::Open);
+    let id = open.id;
+    let mut e = engine(model_with(None, vec![open]));
+    assert_eq!(
+        invalid_at(e.execute(&approve(id, PartyRole::Checker)).unwrap_err()),
+        ("revision.approve".into(), "/revision".into())
     );
 }

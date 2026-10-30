@@ -198,6 +198,7 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
                 | "check.unwaive"
                 | "revision.set_author"
                 | "revision.withdraw"
+                | "revision.approve"
         ) {
             Exposure::HumanOnly
         } else {

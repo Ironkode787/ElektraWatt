@@ -1,14 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Revisions (doc 03 §18, doc 15 §5; FR-REV-001, FR-REV-002, FR-REV-009, FR-REV-012; FT-165, WP-S1.18 part 1):
-//! `revision.create` (`CreateRevision`), `revision.set_author` (`SetRevisionAuthor`) and `revision.withdraw`
-//! (`WithdrawRevision`), with the checks that `fields.set`, `edit.delete` and `page.delete` share.
+//! Revisions (doc 03 §18, doc 15 §5; FR-REV-001, FR-REV-002, FR-REV-005, FR-REV-009, FR-REV-012, FR-REV-021; FT-165,
+//! WP-S1.18 parts 1 and 3): `revision.create` (`CreateRevision`), `revision.set_author` (`SetRevisionAuthor`),
+//! `revision.withdraw` (`WithdrawRevision`) and `revision.approve` (`ApproveRevision`), with the checks that
+//! `fields.set`, `edit.delete` and `page.delete` share.
 //!
 //! The editable members of the open revision (`label`, `date`, `description`, `page_notes`) are set with
 //! `fields.set` on the `revision` kind. **The roles have one confirmed path each** (WP-S1.18 D4, FT-402):
 //! `fields.set` refuses `author` and `checker` from every origin; the author of the open revision is set by
-//! `revision.set_author` (`HumanOnly`) and its checker only by `revision.approve` (part 3, with the sign-off);
+//! `revision.set_author` (`HumanOnly`) and its checker only by `revision.approve` (`HumanOnly`, with the sign-off);
 //! `revision.create` takes both roles for a historic released revision only. A released or withdrawn revision is
 //! immutable (FR-REV-009), so `fields.set` and `edit.delete` refuse it. The state of a revision never changes
 //! through these commands: Open → Released is `revision.release` (the release gate and the as-built archive,
@@ -24,7 +25,10 @@ use std::sync::Arc;
 
 use ew_ids::{Id, v5};
 use ew_mltext::{Ident, MlText};
-use ew_schema::{Date, Extra, Kind, LabelFormat, Page, PageNote, PartyRole, Revision, RevisionState};
+use ew_schema::{
+    Date, Extra, Kind, LabelFormat, PackVersion, Page, PageNote, PartyRole, Revision, RevisionState, Sha256,
+    SignOff, Waiver,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -421,6 +425,149 @@ impl Command for WithdrawRevision {
             extra: Extra::new(),
         })?;
         Ok(Outcome::primary((Kind::Revision, id.cast())))
+    }
+}
+
+/// One rule pack of the gate run a checker approved: its ID, version and the SHA-256 of its definition (doc 15 §3.9).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ApprovedPack {
+    /// The pack ID (`EW-CORE`).
+    #[schemars(with = "IdentS")]
+    pub id: Ident,
+    /// The pack version.
+    #[schemars(with = "IdentS")]
+    pub version: Ident,
+    /// The SHA-256 of the pack's definition.
+    pub sha256: Sha256,
+}
+
+/// `revision.approve` (`ApproveRevision`): the checker's sign-off on the open revision (doc 15 §5.4; FR-REV-005,
+/// FR-REV-021; WP-S1.18 D9): writes the revision's `checker` and its `sign_off {checker, content_digest, date, packs,
+/// scheme, waivers_ack}`, the one path that writes the checker of an open revision (D4, FT-402). A later content edit
+/// changes the content digest, and EW-REL-001 then reports the sign-off as stale; approving again replaces it.
+///
+/// The session submits it after the release gate on the saved generation (`ew_api::Session::approve`): the gate's
+/// content digest, scheme and pack versions are its parameters, and the session refuses it unless the gate's only open
+/// errors are EW-REL-001's and every safety-kind waiver in force is acknowledged in `waivers_ack`. The command itself
+/// checks what the snapshot decides. Rejected: a revision that does not exist, or is not open (released and withdrawn
+/// revisions are immutable, FR-REV-009; at `/revision`); an open revision without an author (at `/revision`: four eyes
+/// compare two parties, so the author is set first, `revision.set_author`); a checker equal to the author (at
+/// `/checker`, D-34, EW-INV-018); a scheme that does not ship (at `/scheme`); an acknowledged waiver that does not exist
+/// or is listed twice (at `/waivers_ack/<i>`). The acknowledged waivers are written in ID order.
+///
+/// **Exposure `HumanOnly`** (doc 15 §5.4, ADR-0008 amendment 3): command logs, scripts, MCP and plugins get
+/// `CmdError::Exposure`; on the command line only `ew revision approve` submits it, after the person types the revision
+/// label on an interactive terminal. Interactive; undoable as one step. Outcome: none.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ApproveRevision {
+    /// The open revision.
+    #[schemars(with = "UuidS")]
+    pub revision: Id<Revision>,
+    /// The checker, as a party role; never the author's.
+    pub checker: PartyRole,
+    /// The date of the approval.
+    pub date: Date,
+    /// The check scheme of the gate run (`pre-delivery`).
+    #[schemars(with = "IdentS")]
+    pub scheme: Ident,
+    /// The rule packs of the gate run.
+    #[serde(default)]
+    pub packs: Vec<ApprovedPack>,
+    /// The waivers of safety-kind rules the checker acknowledges, by ID.
+    #[serde(default)]
+    #[schemars(with = "Vec<UuidS>")]
+    pub waivers_ack: Vec<Id<Waiver>>,
+    /// The content digest of the saved generation the gate ran on (doc 15 §5.4).
+    pub content_digest: Sha256,
+}
+
+impl Command for ApproveRevision {
+    const NAME: &'static str = "revision.approve";
+
+    fn meta() -> CommandMeta {
+        CommandMeta {
+            exposure: Exposure::HumanOnly,
+            ..CommandMeta::edit(Self::NAME)
+        }
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let revision = require_revision(tx, Self::NAME, self.revision)?;
+        refuse_closed_revision(tx, Self::NAME, "/revision", self.revision)?;
+        let Some(author) = revision.author.clone() else {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/revision",
+                format!(
+                    "revision {} has no author; four eyes compare two parties, so set the author first (Revision ▸ \
+                     Set author)",
+                    revision.label
+                ),
+            ));
+        };
+        if author == self.checker {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/checker",
+                "the checker is the author's party; four eyes need another party (D-34, FR-REV-005)",
+            ));
+        }
+        let schemes = crate::commands::SHIPPED_CHECK_SCHEMES;
+        if !schemes.contains(&self.scheme.as_str()) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/scheme",
+                format!(
+                    "`{}` is not a shipped check scheme; the schemes are: {}",
+                    self.scheme.as_str(),
+                    schemes.join(", ")
+                ),
+            ));
+        }
+        let mut acknowledged = BTreeSet::new();
+        for (i, w) in self.waivers_ack.iter().enumerate() {
+            if !tx.exists::<Waiver>(*w) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/waivers_ack/{i}"),
+                    format!("waiver {w} does not exist"),
+                ));
+            }
+            if !acknowledged.insert(*w) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/waivers_ack/{i}"),
+                    format!("waiver {w} is listed twice"),
+                ));
+            }
+        }
+        let sign_off = SignOff {
+            checker: Some(self.checker.clone()),
+            content_digest: Some(self.content_digest),
+            date: Some(self.date),
+            packs: Some(
+                self.packs
+                    .iter()
+                    .map(|p| PackVersion {
+                        id: Some(p.id.clone()),
+                        sha256: Some(p.sha256),
+                        version: Some(p.version.clone()),
+                        extra: Extra::new(),
+                    })
+                    .collect(),
+            ),
+            scheme: Some(self.scheme.clone()),
+            waivers_ack: Some(acknowledged.into_iter().collect()),
+            extra: Extra::new(),
+        };
+        let checker = self.checker.clone();
+        tx.update::<Revision>(self.revision, |r| {
+            r.checker = Some(checker);
+            r.sign_off = Some(sign_off);
+        })?;
+        Ok(Outcome::default())
     }
 }
 

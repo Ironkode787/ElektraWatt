@@ -179,6 +179,16 @@ fn examples() -> Vec<(&'static str, Value)> {
             "revision.withdraw",
             json!({"revision": DEV_T1.to_string(), "reason": "Issued in error"}),
         ),
+        // WP-S1.18 part 3
+        (
+            "revision.approve",
+            json!({"revision": DEV_T1.to_string(), "checker": "checker", "date": "2025-06-02",
+                "scheme": "pre-delivery",
+                "packs": [{"id": "EW-CORE", "version": "0.0.0",
+                    "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"}],
+                "waivers_ack": [], "content_digest":
+                    "sha256:1111111111111111111111111111111111111111111111111111111111111111"}),
+        ),
         (
             "fields.set",
             json!({"kind": "device", "targets": [DEV_102F2.to_string()], "path": "tag.counter", "value": 5}),
