@@ -281,6 +281,7 @@ lines of the drawing.
 | `canvas.hover` | `volt-600` | 5.69 | 1s-px dashed outline |
 | `canvas.ghost` | `volt-600` at 60 % | — | The placed symbol's strokes, its label chip (§7.3) |
 | `canvas.snap` | `volt-600` | 5.69 | Crosshair with a 6-px gap; CP ring 8s + 1 px |
+| `canvas.open_cp` | `volt-600` | 5.69 | A (4s + 1)-px hollow square with an s-px rim on each connection point without a connection on the page (screen only; drawn while a grid step is at least 4 points on screen; FT-705) |
 | `canvas.highlight.1` | vermillion #D55E00 | 3.87 | 45° hatch halo, name chip filled with the hue |
 | `canvas.highlight.2` | bluish green #009E73 | 3.42 | 135° hatch halo, name chip filled with the hue |
 | `canvas.highlight.3` | reddish purple #CC79A7 | 3.06 | 0° hatch halo, name chip filled with the hue |
@@ -1135,6 +1136,12 @@ tooltip with its printed label, its symbol name and its potential (FT-512's tool
 "`<printed label> · <symbol name> · <potential>`", for example "1X1:1/a · terminal · L" on Golden A. *As built (cycle
 32; decision log ID-748):* this replaces the earlier "-X1031 : 21 · terminal · 24VDC-1" form; a part the page tables
 do not know is left out.
+
+*As built (cycle 38, FT-705; proposed decision row).* A connection point with no connection on its page shows a
+(4s + 1)-px hollow square in `canvas.open_cp` at all times, so that a wire drawn across it is visibly not connected; a
+connected CP shows none. It is a session overlay (never in the display list, so never in print or PDF), drawn while one
+step of the connection grid is at least 4 points on screen (QET's 2.6 mm step is about 6.8 points at the 69 % fit
+zoom; at 35 % none). A spare terminal, unwired by design, shows it too.
 
 ### 7.3 Ghosts and their labels
 

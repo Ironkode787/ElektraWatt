@@ -9,9 +9,10 @@
 //! mesh), and the headless snapshot composites them into its image with integer pixel fills ([`composite`]), so
 //! the window and the snapshot agree pixel for pixel. No meaning is in colour alone: the hover is dashed, a
 //! selection solid, the keyboard grid cursor a crosshair with a gap at its centre, a snap marker a cross (grid), a
-//! ring (connection point) or a filled square (junction), a rubber band solid while it encloses and dashed while it
-//! touches. The paint order is the surround, the page bounds, the grid dots, the hover, the selection, the tool's
-//! lines and ghosts, the snap markers and last the cursor. The tool overlay's text labels are not drawn here: the
+//! ring (connection point) or a filled square (junction), a free connection point a small hollow square (FT-705), a
+//! rubber band solid while it encloses and dashed while it touches. The paint order is the surround, the page bounds,
+//! the grid dots, the hover, the selection, the open markers of the free connection points, the tool's lines and
+//! ghosts, the snap markers and last the cursor. The tool overlay's text labels are not drawn here: the
 //! window draws them as chips in its own font, and the headless snapshot leaves them out (WP-S2.03 §7.4).
 //!
 //! **FT-391's scale rule** (WP-S2.17 part 5): every mark scales by the integer factor `s = max(1, ⌊ppp⌋)`
@@ -57,6 +58,8 @@ pub struct Theme {
     pub rubber_band: Color,
     /// The selection's casing and the faces of its handles (white, doc 16a §7.1).
     pub casing: Color,
+    /// The open marker of a connection point without a connection (`canvas.open_cp`, FT-705).
+    pub open_cp: Color,
 }
 
 const fn rgb(r: u8, g: u8, b: u8) -> Color {
@@ -85,6 +88,7 @@ pub const LIGHT: Theme = Theme {
     measure: rgb(0x1A, 0x1D, 0x21),
     rubber_band: ACCENT,
     casing: rgb(0xFF, 0xFF, 0xFF),
+    open_cp: ACCENT,
 };
 
 /// The dark theme's canvas tokens (doc 16a §4.6); the sheet and the marks on it stay as in [`LIGHT`].
@@ -118,6 +122,15 @@ pub const TOOL_DASH_PX: i64 = 4;
 
 /// The side of a selection handle at scale 1 (doc 16a §7.1: `8s`).
 pub const HANDLE_PX: i64 = 8;
+
+/// The smallest step of the connection grid on screen, in logical points, at which the open markers of the free
+/// connection points are drawn (FT-705): 4 points, so that they show at the fit zoom of an A3 or A4 page in a usual
+/// window (QET's 2.6 mm step is about 6.8 points at 69 %) and not on a page shrunk to a thumbnail.
+pub const OPEN_CP_MIN_STEP_PT: f64 = 4.0;
+
+/// The side of the open marker of a free connection point at scale 1 (FT-705: a `4s + 1`-pixel hollow square with an
+/// `s`-pixel rim; 5 pixels at scale 1).
+pub const OPEN_CP_PX: i64 = 5;
 
 /// The colour token of a tool line (WP-S2.03 §7.4; provisional until WP-S2.08's theme).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -263,6 +276,22 @@ pub struct OverlayInput<'a> {
     pub cursor: Option<(i64, i64)>,
     /// The active tool's overlay (WP-S2.03 §7.4): above the selection, below the cursor; markers above lines.
     pub tool: &'a [ToolMark],
+    /// The connection points without a connection, each marked open (FT-705), and the pitch that gates them.
+    pub open_cps: OpenCps<'a>,
+}
+
+/// The connection points of the page that have no connection on it (FT-705, the cycle-38 ruling): each is drawn as a
+/// small hollow square, so that a wire drawn across one is visibly not connected to it. Screen only: a session overlay
+/// like the CP rings (doc 16a §7), never in the display list, so never in print or PDF. Drawn only while one step of
+/// the page's connection grid is at least [`OPEN_CP_MIN_STEP_PT`] on screen, so that the marks of CPs one step apart
+/// stay apart (a mark is 5 pixels at scale 1); zoomed further out a dense page shows none.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OpenCps<'a> {
+    /// The connection points (sheet nm).
+    pub points: &'a [(i64, i64)],
+    /// One step of the page's connection grid on the sheet (nm, [`GridSpec::sheet_pitch_nm`]); `None` (a page without
+    /// a grid) draws none.
+    pub pitch_nm: Option<f64>,
 }
 
 /// The overlays of one frame, each a list of pixel rectangles clipped to the pane.
@@ -294,6 +323,8 @@ pub struct Overlay {
     pub tool: Vec<(PxRect, ToolToken)>,
     /// The tool's snap markers.
     pub markers: Vec<PxRect>,
+    /// The rims of the open markers of the free connection points (FT-705), under the tool's lines.
+    pub open_cps: Vec<PxRect>,
 }
 
 /// The sheet's rectangle on screen: with a settled transform exactly the pixels of the full-sheet raster at its
@@ -509,6 +540,7 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
             push_clipped(&mut cursor, arm, &pane);
         }
     }
+    let open_cps = open_cp_marks(input, s, &pane);
     let mut tool = Vec::new();
     let mut markers = Vec::new();
     let width = s;
@@ -566,7 +598,32 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
         cursor,
         tool,
         markers,
+        open_cps,
     }
+}
+
+/// The rims of the open markers of `input.open_cps` at scale `s` (see [`OpenCps`]): a `4s + 1`-pixel square centred
+/// on the CP's pixel with an `s`-pixel rim; none while a grid step is under [`OPEN_CP_MIN_STEP_PT`] on screen.
+fn open_cp_marks(input: &OverlayInput<'_>, s: i64, pane: &PxRect) -> Vec<PxRect> {
+    let mut out = Vec::new();
+    let Some(pitch) = input.open_cps.pitch_nm.filter(|p| p.is_finite() && *p > 0.0) else {
+        return out;
+    };
+    let ppp = if input.ppp > 0.0 { input.ppp } else { 1.0 };
+    if pitch * input.transform.px_per_nm() / ppp < OPEN_CP_MIN_STEP_PT {
+        return out;
+    }
+    let half = (OPEN_CP_PX - 1) / 2 * s;
+    for p in input.open_cps.points {
+        let (x, y) = input.transform.to_screen((p.0 as f64, p.1 as f64));
+        if !(x.is_finite() && y.is_finite()) {
+            continue;
+        }
+        let (px, py) = (x.floor() as i64, y.floor() as i64);
+        let r = PxRect::new(px - half, py - half, px + half + 1, py + half + 1);
+        solid(r, s, pane, &mut out);
+    }
+    out
 }
 
 /// Appends the pixel run `r` to `out`, extending the last rectangle when `r` continues its row or its column.
@@ -771,8 +828,8 @@ pub fn fill(image: &mut RgbaImage, r: PxRect, c: Color) {
 }
 
 /// Composites the overlays into a snapshot of the pane, in paint order: surround, page bounds, grid dots, hover,
-/// the selection (casing, outline, the handles' rims, then their faces), the tool's lines and ghosts, its snap
-/// markers, and last the grid cursor's crosshair.
+/// the selection (casing, outline, the handles' rims, then their faces), the open markers of the free connection
+/// points, the tool's lines and ghosts, its snap markers, and last the grid cursor's crosshair.
 pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     for &r in &overlay.surround {
         fill(image, r, theme.surround);
@@ -797,6 +854,9 @@ pub fn composite(image: &mut RgbaImage, overlay: &Overlay, theme: &Theme) {
     }
     for &r in &overlay.handle_faces {
         fill(image, r, theme.casing);
+    }
+    for &r in &overlay.open_cps {
+        fill(image, r, theme.open_cp);
     }
     for &(r, token) in &overlay.tool {
         fill(image, r, theme.token(token));
@@ -843,6 +903,7 @@ mod tests {
             selected: &[],
             cursor: None,
             tool: &[],
+            open_cps: OpenCps::default(),
         }
     }
 
@@ -957,6 +1018,7 @@ mod tests {
             measure: rgb(0xA8, 0x6F, 0x00),
             rubber_band: rgb(9, 9, 9),
             casing: rgb(10, 10, 10),
+            open_cp: rgb(11, 11, 11),
         }
     }
 
@@ -1076,6 +1138,66 @@ mod tests {
             }
         }
         out
+    }
+
+    // FT-705
+    #[test]
+    fn a_free_cp_is_a_hollow_square_drawn_only_at_a_zoom_where_grid_steps_are_4_points_apart() {
+        let points = [(100_000_000, 100_000_000), (120_000_000, 100_000_000)];
+        let pitch = qet().sheet_pitch_nm();
+        let marks = |v: &View, pitch: Option<f64>| {
+            build(&OverlayInput {
+                open_cps: OpenCps {
+                    points: &points,
+                    pitch_nm: pitch,
+                },
+                ..input(v, None, None)
+            })
+        };
+        // At 100 % (96 dpi) a 2.6 mm step is 9.8 points: drawn.
+        let v = view(1.0);
+        let t = v.settled_transform();
+        let o = marks(&v, pitch);
+        let px = pixels(o.open_cps.iter());
+        for p in points {
+            let (x, y) = px_of(&t, p);
+            // A 5-pixel square's rim: its corners and edge midpoints, not its centre (it is open).
+            for d in [(-2, -2), (2, -2), (-2, 2), (2, 2), (0, -2), (2, 0)] {
+                assert!(px.contains(&(x + d.0, y + d.1)), "{p:?} {d:?}");
+            }
+            assert!(!px.contains(&(x, y)), "the centre is open");
+            assert!(!px.contains(&(x + 3, y)), "5 pixels wide");
+        }
+        assert_eq!(px.len(), 2 * 16, "16 rim pixels each");
+        // None of the other overlays carries them.
+        assert!(o.markers.is_empty() && o.tool.is_empty());
+        // At 69 % the step is 6.8 points: drawn; at 25 % it is 2.4 points: none; nor on a page without a grid.
+        assert!(!marks(&view(0.69), pitch).open_cps.is_empty());
+        assert!(marks(&view(0.25), pitch).open_cps.is_empty());
+        assert!(marks(&v, None).open_cps.is_empty());
+        // At ppp 2 the square is 9 pixels with a 2-pixel rim.
+        let hidpi = View { ppp: 2.0, ..v };
+        let o = marks(&hidpi, pitch);
+        let t = hidpi.settled_transform();
+        let (x, y) = px_of(&t, points[0]);
+        let px = pixels(o.open_cps.iter());
+        assert!(px.contains(&(x - 4, y - 4)) && px.contains(&(x + 4, y + 4)) && px.contains(&(x - 3, y)));
+        assert!(!px.contains(&(x - 2, y)) && !px.contains(&(x + 5, y)));
+        // The snapshot composites them in `open_cp`.
+        let mut image = RgbaImage {
+            width: 1200,
+            height: 800,
+            pixels: vec![255; 1200 * 800 * 4],
+        };
+        let o = marks(&v, pitch);
+        composite(&mut image, &o, &LIGHT);
+        let (x, y) = px_of(&v.settled_transform(), points[0]);
+        let at = |x: i64, y: i64| {
+            let i = (y as usize * 1200 + x as usize) * 4;
+            image.pixels[i..i + 4].to_vec()
+        };
+        let c = LIGHT.open_cp;
+        assert_eq!(at(x - 2, y - 2), vec![c.r, c.g, c.b, 255]);
     }
 
     fn with_tool<'a>(view: &View, tool: &'a [ToolMark]) -> OverlayInput<'a> {

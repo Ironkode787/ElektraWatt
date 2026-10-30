@@ -126,6 +126,7 @@ fn overlay_of(shell: &ShellModel, hover: Option<SheetRect>, selected: &[SheetRec
         selected,
         cursor: None,
         tool: &[],
+        open_cps: overlay::OpenCps::default(),
     })
 }
 
@@ -615,4 +616,69 @@ fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
         }
     }
     h.state_mut().shell_mut().shutdown();
+}
+
+// FT-705
+/// The free connection points of Golden A's first multi-line page that has some (spare terminals are unwired by
+/// design) marked open in the canvas snapshot at 100 % (a hollow square in the accent: its corners accent), none at
+/// 25 % (a grid step under 4 points), and only in the session overlay: the page's display list, which print and PDF
+/// draw, does not change.
+#[test]
+fn ft705_free_cps_are_marked_open_on_screen_only() {
+    let tmp = Tmp::new();
+    let mut shell = headless_101(&tmp);
+    let folios: Vec<String> = shell
+        .page_rows()
+        .iter()
+        .filter(|r| r.kind == "multi_line")
+        .map(|r| r.folio.clone())
+        .collect();
+    let folio = folios
+        .into_iter()
+        .find(|f| {
+            done(&mut shell, "page.goto", json!({ "folio": f }));
+            !shell.open_cps(0).is_empty()
+        })
+        .expect("a page with free connection points");
+    let open = shell.open_cps(0);
+    assert!(!open.is_empty(), "{folio} has free connection points");
+    let items = shell.canvas().unwrap().page().list.items.len();
+    // At 25 % the step is under 4 points: no mark.
+    done(&mut shell, "view.zoom_to", json!({"percent": 25.0}));
+    let far = snapshot(&shell);
+    let far_accent = (0..far.width as usize * far.height as usize)
+        .filter(|i| far.pixels[i * 4..i * 4 + 3] == ACCENT)
+        .count();
+    assert_eq!(far_accent, 0, "no mark (nor any accent) at 25 %");
+    done(&mut shell, "view.zoom_actual", json!({}));
+    let c = shell.canvas().unwrap();
+    let view = View {
+        centre: c.centre(),
+        zoom: c.zoom(),
+        pane: c.native_pane(),
+        ppp: c.native_ppp(),
+    };
+    let t = view.settled_transform();
+    let image = snapshot(&shell);
+    // The CPs on screen, away from the pane's edges.
+    let (w, h) = (i64::from(image.width), i64::from(image.height));
+    let shown: Vec<(i64, i64)> = open
+        .iter()
+        .map(|p| {
+            let (x, y) = t.to_screen((p.0 as f64, p.1 as f64));
+            (x.floor() as i64, y.floor() as i64)
+        })
+        .filter(|(x, y)| *x >= 4 && *y >= 4 && *x < w - 4 && *y < h - 4)
+        .collect();
+    assert!(!shown.is_empty(), "a free CP on screen at 100 %");
+    for (x, y) in &shown {
+        for (dx, dy) in [(-2, -2), (2, -2), (-2, 2), (2, 2)] {
+            assert_eq!(
+                rgb(&image, x + dx, y + dy),
+                ACCENT,
+                "the mark's corner at {x},{y}"
+            );
+        }
+    }
+    assert_eq!(shell.canvas().unwrap().page().list.items.len(), items);
 }

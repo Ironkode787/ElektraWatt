@@ -54,7 +54,7 @@ use egui::{
 };
 use ew_render_cpu::{FontBytes, FontResolver, SheetSize};
 use ew_render2d::gpu::GpuView;
-use ew_render2d::overlay::{self, GridSpec, Overlay, OverlayInput, Theme};
+use ew_render2d::overlay::{self, GridSpec, OpenCps, Overlay, OverlayInput, Theme};
 use ew_render2d::pool::{Scene, TilePool, worker_count};
 use ew_render2d::stats::{FrameSample, FrameStats, Phase};
 
@@ -144,6 +144,7 @@ pub fn canvas_theme(t: &crate::theme::Tokens) -> Theme {
         measure: c(t.canvas_measure),
         rubber_band: c(t.canvas_selection),
         casing: c(t.canvas_sheet),
+        open_cp: c(t.canvas_open_cp),
     }
 }
 
@@ -154,6 +155,21 @@ fn grid_spec(shell: &ShellModel, c: &CanvasModel) -> Option<GridSpec> {
         den: g.den,
         sheet_scale_ppb: g.sheet_scale_ppb,
         sheet_offset_nm: g.sheet_offset_nm,
+    })
+}
+
+// FT-705
+/// One step of the page's connection grid on the sheet (nm), whether the grid is shown or not: the gate of the open
+/// markers of the free connection points.
+fn cp_pitch(c: &CanvasModel) -> Option<f64> {
+    c.page().grid.and_then(|g| {
+        GridSpec {
+            num_nm: g.num_nm,
+            den: g.den,
+            sheet_scale_ppb: g.sheet_scale_ppb,
+            sheet_offset_nm: g.sheet_offset_nm,
+        }
+        .sheet_pitch_nm()
     })
 }
 
@@ -173,6 +189,7 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
     };
     let selected = shell.selected_rects(group);
     let tool = crate::tool_view::marks_of(shell, group);
+    let open = shell.open_cps(group);
     let (mut image, dpi) = render_view(
         canvas,
         &theme_of(shell),
@@ -181,6 +198,10 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         &selected,
         canvas.cursor(),
         &tool,
+        OpenCps {
+            points: &open,
+            pitch_nm: cp_pitch(canvas),
+        },
     )?;
     let view = view_of(canvas);
     // FT-675: the conflict overlay under the highlights.
@@ -424,6 +445,7 @@ pub fn preview_snapshot_image(shell: &ShellModel) -> Result<(ew_render_cpu::Rgba
         &[],
         lp.target.at_nm,
         &[],
+        OpenCps::default(),
     )
 }
 
@@ -443,6 +465,7 @@ fn theme_of(shell: &ShellModel) -> Theme {
 }
 
 /// The settled pane of `canvas` rendered by `render_region` with the overlays composited (see [`snapshot_image`]).
+#[allow(clippy::too_many_arguments)]
 fn render_view(
     canvas: &CanvasModel,
     theme: &Theme,
@@ -451,6 +474,7 @@ fn render_view(
     selected: &[SheetRect],
     cursor: Option<(i64, i64)>,
     tool: &[ew_render2d::overlay::ToolMark],
+    open_cps: OpenCps<'_>,
 ) -> Result<(ew_render_cpu::RgbaImage, u32), String> {
     let view = view_of(canvas);
     let t = view.settled_transform();
@@ -502,6 +526,7 @@ fn render_view(
         selected,
         cursor,
         tool,
+        open_cps,
     });
     overlay::composite(&mut image, &o, theme);
     Ok((image, dpi))
@@ -695,6 +720,7 @@ fn paint_marks(painter: &egui::Painter, origin: Pos2, ppp: f32, overlay: &Overla
     fill(&overlay.dots, theme.grid_dot);
     fill(&overlay.hover, theme.hover);
     fill(&overlay.selected, theme.selection);
+    fill(&overlay.open_cps, theme.open_cp);
     if !overlay.tool.is_empty() {
         let mut mesh = Mesh::default();
         for &(r, token) in &overlay.tool {
@@ -963,6 +989,7 @@ impl CanvasHost {
         let transform = plan.as_ref().map_or_else(|| view.transform(), |p| p.transform);
         let selected = shell.selected_rects(group);
         let tool = crate::tool_view::marks_of(shell, group);
+        let open = shell.open_cps(group);
         let overlay = overlay::build(&OverlayInput {
             transform,
             pane_px,
@@ -974,6 +1001,11 @@ impl CanvasHost {
             selected: &selected,
             cursor: canvas.cursor(),
             tool: &tool,
+            // FT-705: the free connection points, marked open on screen only.
+            open_cps: OpenCps {
+                points: &open,
+                pitch_nm: cp_pitch(canvas),
+            },
         });
         match (&plan, gpu) {
             (Some(plan), _) => self.paint(ui, rect, ppp, group, plan, &overlay, &theme),
@@ -1599,6 +1631,7 @@ impl CanvasHost {
             selected: &[],
             cursor: lp.target.at_nm,
             tool: &[],
+            open_cps: OpenCps::default(),
         });
         crate::canvas_chips::paint_popup_frame(ui, rect, popup, &lp.target.folio);
         // FT-390: a named, non-focusable image region for the popup, so that a screen reader can tell that it is open

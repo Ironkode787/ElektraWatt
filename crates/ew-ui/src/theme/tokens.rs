@@ -300,6 +300,7 @@ pub struct Tokens {
     pub canvas_hover: Rgba,
     pub canvas_ghost: Rgba,
     pub canvas_snap: Rgba,
+    pub canvas_open_cp: Rgba,
     pub canvas_highlight: [Rgba; 4],
     pub canvas_measure: Rgba,
     pub canvas_conflict: Rgba,
@@ -528,6 +529,7 @@ pub const PAIRS: &[Pair] = &[
     pair("canvas.selection", "canvas.sheet", PairKind::Canvas),
     pair("canvas.hover", "canvas.sheet", PairKind::Canvas),
     pair("canvas.snap", "canvas.sheet", PairKind::Canvas),
+    pair("canvas.open_cp", "canvas.sheet", PairKind::Canvas),
     pair("canvas.highlight.1", "canvas.sheet", PairKind::Canvas),
     pair("canvas.highlight.2", "canvas.sheet", PairKind::Canvas),
     pair("canvas.highlight.3", "canvas.sheet", PairKind::Canvas),
@@ -608,6 +610,7 @@ impl Tokens {
             ("canvas.hover", Colour(self.canvas_hover)),
             ("canvas.ghost", Colour(self.canvas_ghost)),
             ("canvas.snap", Colour(self.canvas_snap)),
+            ("canvas.open_cp", Colour(self.canvas_open_cp)),
             ("canvas.highlight.1", Colour(self.canvas_highlight[0])),
             ("canvas.highlight.2", Colour(self.canvas_highlight[1])),
             ("canvas.highlight.3", Colour(self.canvas_highlight[2])),
@@ -994,6 +997,8 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         // volt-600 at 60 %.
         canvas_ghost: VOLT_600.alpha(153),
         canvas_snap: VOLT_600,
+        // FT-705: the open marker of a connection point without a connection (screen only).
+        canvas_open_cp: VOLT_600,
         canvas_highlight: [VERMILLION, BLUISH_GREEN, REDDISH_PURPLE, DARK_ORANGE],
         // `color.text.primary`'s light value in every theme (the sheet is white).
         canvas_measure: SLATE_900,

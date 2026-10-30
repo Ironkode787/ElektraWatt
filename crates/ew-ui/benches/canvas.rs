@@ -521,6 +521,7 @@ fn run_gesture(
             selected: &[],
             cursor: None,
             tool: &[],
+            open_cps: overlay::OpenCps::default(),
         });
         black_box(&overlay);
         host.cache.evict(frame);
