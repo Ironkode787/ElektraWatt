@@ -818,6 +818,8 @@ button that appears on hover and focus. Two rows never share a label: duplicate 
 
 *As built (cycle 32; decision log ID-749).* The chip words "inherited" and "varies" were added and "part" dropped, because the model has no part source of its own for a property value. Properties shows Main and Advanced as categories; **the other categories are open by default** (a deviation from the closed default of the spec's D11), and a collapse the user makes is kept in the settings. The header's finding chips and actions popup are FT-530; a filter for more than twelve rows is not built (FT-541).
 
+*As built (cycle 37; decision log ID-868).* The header shows one count chip per severity, also for one finding ("1 Warning", "2 Warnings"); glyphs replace the words when the title does not fit. An edit field opened on its stored value starts with the whole text selected, so typing replaces it.
+
 ### 6.9 Cards
 
 A card is a bounded panel inside a pane for one object that waits for a decision (the preview card of WP-S2.05 and
@@ -906,6 +908,8 @@ with their progress."), and at most one action. A filter with no hits says "No p
 
 `color.surface.inverse`, `color.text.on_inverse`, `type.small`, `radius.md`, max 320 px, after 500 ms of hover or at
 once on keyboard focus; the label, the key in a lighter tone, one sentence, and "F1: help" when a topic exists.
+
+*As built (cycle 37; decision log ID-868).* A tooltip stops at eight lines, ending in "…".
 
 ### 6.19 Progress
 

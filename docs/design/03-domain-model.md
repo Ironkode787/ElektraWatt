@@ -1242,6 +1242,9 @@ derived:
    the command layer's numbering and `ew-derive` both use a simpler rule, the smallest-ID representation of the
    smallest-ID main function, where a `ContactImage` representation never counts (decision log ID-102), so that tags stay unique wherever the counters are; this step is the WP-S1.11 target,
    and both crates change to it together (decision log ID-73; `ew-derive`'s agreement tests pin the two rules equal). A strip without a strip segment takes the main representation of its first placed terminal: the terminal on the lowest page (folio order, then folio label, then page ID), then the lowest designation in natural order, then the smallest ID; `ew-derive`'s `MainRep` and the command layer's numbering use the same rule, and online numbering treats a touched terminal as touching its strip (decision log ID-293). Golden A's 1X1 therefore takes page 101.
+
+   *As built (cycle 37; decision log ID-868):* a device whose main function is not drawn takes the smallest-ID representation of its other functions that is not a contact image, in the command layer's numbering, online numbering and `ew-derive`'s `MainRep` alike.
+
 5. **Structure:** each aspect slot of `Device.structure` resolves to an explicit node, else the structure box around
    the main representation, else the main representation's page. A slot left `Inherit` on a `Child`-scheme device
    takes its parent's resolved slot (`=P01+J-E-2416-201U3-Q1`), and an unplaced device with a parent takes the
