@@ -67,9 +67,10 @@ pub fn today() -> String {
     if on_frame_clock() {
         return FRAME_CLOCK_DATE.to_owned();
     }
-    // Reviewed: the window's click path only (a waiver's date), never on the frame clock, never in model or export.
-    #[allow(clippy::disallowed_methods)]
-    let secs = std::time::SystemTime::now()
+    // The clock the lock and the journal use (`ew_store::SystemClock`), as the About dialog reads it.
+    use ew_viewmodel::ew_api::Clock as _;
+    let secs = ew_viewmodel::ew_api::SystemClock
+        .now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
     civil_date(secs / 86_400)
