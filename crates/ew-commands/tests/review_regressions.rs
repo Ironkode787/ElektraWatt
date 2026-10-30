@@ -148,6 +148,7 @@ fn n1_an_off_grid_x_is_still_rejected() {
 fn n1_a_hint_onto_the_wire_takes_the_same_rule() {
     let (mut e, w, _) = engine_with_wire();
     let hint = |at: Pt2| PlaceSymbol {
+        copies: Vec::new(),
         page: PAGE_102,
         symbol: SYM_TWO,
         pos: pt(2 * G, 2 * G),

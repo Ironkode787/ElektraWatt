@@ -92,6 +92,7 @@ fn new_device(letter: &str) -> PlaceTarget {
 
 fn black(pos: Pt2, box_: Option<BoxSpec>, target: PlaceTarget) -> PlaceBlackBox {
     PlaceBlackBox {
+        copies: Vec::new(),
         page: PAGE_102,
         symbol: SYM_TWO,
         pos,

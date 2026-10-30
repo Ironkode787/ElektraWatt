@@ -88,6 +88,7 @@ fn new_device(letter: &str) -> PlaceTarget {
 
 fn place(page: ew_ids::Id<ew_schema::Page>, pos: Pt2, target: PlaceTarget) -> PlaceSymbol {
     PlaceSymbol {
+        copies: Vec::new(),
         page,
         symbol: SYM_TWO,
         pos,

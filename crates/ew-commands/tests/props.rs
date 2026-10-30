@@ -147,6 +147,7 @@ fn build(model: &Model, step: &Step) -> Option<Box<dyn DynCommand>> {
             x,
             y,
         } => boxed(PlaceSymbol {
+            copies: Vec::new(),
             page: if *page { PAGE_101 } else { PAGE_102 },
             symbol: if *two_cp { SYM_TWO } else { SYM },
             pos: pt(x * UNIT, y * UNIT),

@@ -80,6 +80,7 @@ fn add_placed(records: &mut Vec<Record>, n: u128, letter: &str, counter: u32, pa
 
 fn place_k(letter: &str, page: Id<Page>, pos: Pt2) -> PlaceSymbol {
     PlaceSymbol {
+        copies: Vec::new(),
         page,
         symbol: SYM_TWO,
         pos,

@@ -51,6 +51,7 @@ fn with_page_type(kind: PageType) -> Model {
 
 fn place(page: Id<Page>, rep_type: Option<RepType>) -> PlaceSymbol {
     PlaceSymbol {
+        copies: Vec::new(),
         page,
         symbol: SYM_TWO,
         pos: pt(0, 0),

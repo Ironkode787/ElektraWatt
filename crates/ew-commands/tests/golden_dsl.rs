@@ -192,6 +192,7 @@ impl Dsl {
         rep_type: Option<RepType>,
     ) -> Id<Representation> {
         let r = self.run(&PlaceSymbol {
+            copies: Vec::new(),
             page,
             symbol: SYM,
             pos: pt0(),
@@ -303,6 +304,7 @@ fn build(seed: u64) -> (Dsl, Ids) {
     let rep_x1031 = d.place_existing(p102, fx1031, Some(RepType::StripSegment));
     let rep_t1 = d.place_existing(p102, ft[0], None);
     let r = d.run(&PlaceSymbol {
+        copies: Vec::new(),
         page: p102,
         symbol: SYM,
         pos: pt0(),

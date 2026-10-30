@@ -5,6 +5,11 @@
 `device.place` (`PlaceSymbol`, doc 06 §3.3): places a symbol and creates the device and function as the
 target requires.
 
+- `copies` (FT-656): library documents (`lib/` JSON form) embedded first, in the same transaction, as
+  `part.assign` embeds its closure: each is checked as `library.embed` checks it, at `/copies/i`; a copy the
+  project holds with the same hash is skipped, one it holds with another hash is refused ("update from library
+  first", naming the item and the held version), the others are inserted. So a placement from a library is one
+  undo step and the command replays without a library.
 - The page and the symbol copy must exist. The representation is `{functions: [f], page, symbol,
   variant, pos, orient, rep_type}`; `rep_type` defaults to the symbol's.
 - `new_device`: a device `{tag: {letter, counter: none}, kind}` and a main function `{def}`; `def` is
@@ -36,7 +41,7 @@ target requires.
   else the placement is rejected with the list of allowed types.
 
 Rejected besides: a missing part copy or template index; a template without exactly one main entry (a device
-has one main function); a template FnDef that is not embedded (embed it
+has one main function); a template FnDef that is neither embedded nor in `copies` (embed it
 first); a strip that is not a strip; a designation or sequence number the strip uses already.
 
 Online numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it
@@ -61,6 +66,7 @@ Online numbering (normaliser #4) gives a new device its counter; a symbol droppe
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `connect` | array of [`ConnectHint`](#connecthint) | no |  | Accepted autoconnect hints. |
+| `copies` | array of any JSON value | no |  | The library documents to embed with the placement (`lib/` JSON form; FT-656): the symbol, the part and their closure as the caller resolved it; empty when the project holds them. |
 | `orient` | [`CmdOrient2`](#cmdorient2) | no | `"r0"` | The orientation. |
 | `page` | [`CmdUuid`](#cmduuid) | yes |  | The page. |
 | `pos` | [`CmdPt2`](#cmdpt2) | yes |  | The insertion point. |

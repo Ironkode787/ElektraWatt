@@ -2012,6 +2012,27 @@ fn from_part_target(part: &Value, template: usize, letter: &str) -> Value {
     json!({"from_part": {"part": part, "template": template, "letter": letter}})
 }
 
+/// FT-656: the held part copy `part` as an item of another library (a new copy with a consistent lineage and hash),
+/// for a placement that embeds it through `copies`; `None` when the fixture has no JSON of the part.
+fn part_of_another_library(live: &Live, part: &Value, rng: &mut SplitMix64) -> Option<Value> {
+    let (_, template) = live.fixture.part_json.iter().find(|(id, _)| id == part)?;
+    relineaged(template, &rng.uuid(), &rng.uuid())
+}
+
+/// FT-656: the held part copy `part` at another hash (its part number changed, the hash made consistent, the lineage
+/// kept), which a placement's `copies` must refuse ("update from library first"); `None` without the fixture's JSON.
+fn part_at_another_hash(live: &Live, part: &Value) -> Option<Value> {
+    let (_, template) = live.fixture.part_json.iter().find(|(id, _)| id == part)?;
+    let mut changed = template.clone();
+    let number = changed["part_number"].as_str()?.to_owned();
+    changed["part_number"] = json!(format!("{number}-FT656"));
+    relineaged(
+        &changed,
+        template["library_id"].as_str()?,
+        template["item_id"].as_str()?,
+    )
+}
+
 fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let pages = pages_taking_reps(live);
     let page = *rng.pick(&pages)?;
@@ -2036,16 +2057,41 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let mut p = base(from_part_target(&t.part, i, letter(rng)));
             p["symbol"] = symbol.id.clone();
             let entries = isize::try_from(t.entries.len()).unwrap_or(1);
+            // FT-656: one in three placements brings its part as another library's item in `copies`, embedded in the
+            // same transaction (one more part copy).
+            let mut parts = 0;
+            if rng.chance(3)
+                && let Some(c) = part_of_another_library(live, &t.part, rng)
+            {
+                p["target"] = from_part_target(&c["id"], i, letter(rng));
+                p["copies"] = json!([c]);
+                parts = 1;
+            }
             Some(Step::cmd("device.place", p).accept().counts(&[
                 (Table::Reps, 1),
                 (Table::Functions, entries),
                 (Table::Devices, 1),
                 (Table::Connections, 0),
+                (Table::Parts, parts),
             ]))
         }
         // Refused: a `from_part` target that cannot be made.
         21 => {
-            let target = match rng.below(6) {
+            let target = match rng.below(8) {
+                // FT-656: `copies` holding a held part at another hash ("update from library first"), or the same copy
+                // twice.
+                6 | 7 => {
+                    let (t, i, _) = template_entry(live, rng, false, true)?;
+                    let copies = if rng.chance(2) {
+                        json!([part_at_another_hash(live, &t.part)?])
+                    } else {
+                        let c = part_of_another_library(live, &t.part, rng)?;
+                        json!([c.clone(), c])
+                    };
+                    let mut p = base(from_part_target(&t.part, i, "K"));
+                    p["copies"] = copies;
+                    return Some(Step::cmd("device.place", p).refuse());
+                }
                 // The part copy does not exist.
                 0 => from_part_target(&json!(rng.uuid()), 0, "K"),
                 // A template index out of range.
@@ -2343,10 +2389,20 @@ fn box_black(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let (t, i, _) = template_entry(live, rng, true, true)?;
             p["target"] = from_part_target(&t.part, i, "A");
             let entries = isize::try_from(t.entries.len()).unwrap_or(1);
+            // FT-656: one in three brings its part as another library's item in `copies`.
+            let mut parts = 0;
+            if rng.chance(3)
+                && let Some(c) = part_of_another_library(live, &t.part, rng)
+            {
+                p["target"] = from_part_target(&c["id"], i, "A");
+                p["copies"] = json!([c]);
+                parts = 1;
+            }
             Some(Step::cmd("box.black", p).accept().counts(&[
                 (Table::Reps, 1),
                 (Table::Functions, entries),
                 (Table::Devices, 1),
+                (Table::Parts, parts),
             ]))
         }
         // Refused: an entry that is no black box belongs to `device.place`.

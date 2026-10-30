@@ -334,6 +334,7 @@ fn place_with(
     target: PlaceTarget,
 ) -> PlaceSymbol {
     PlaceSymbol {
+        copies: Vec::new(),
         page,
         symbol,
         pos,
@@ -347,6 +348,7 @@ fn place_with(
 
 fn black_with(symbol: Id<SymbolDef>, pos: Pt2, target: PlaceTarget) -> PlaceBlackBox {
     PlaceBlackBox {
+        copies: Vec::new(),
         page: PAGE_101,
         symbol,
         pos,
@@ -1640,6 +1642,7 @@ fn rep_move_without_steps_serialises_as_before() {
 #[test]
 fn device_place_with_an_old_target_serialises_as_before() {
     let cmd = PlaceSymbol {
+        copies: Vec::new(),
         page: PAGE_102,
         symbol: SYM_TWO,
         pos: pt(7_937_500, 0),
@@ -1914,4 +1917,162 @@ fn a_two_vertex_route_moved_at_one_end_keeps_its_far_end_with_a_dog_leg() {
     e.execute(&exchange(REP_L, SYM_SAME)).unwrap();
     let orthogonal = [CON_P1, CON_P2, CON_P3, CON_LOOP].into_iter().collect();
     assert_eq!(check_routes(&e, &orthogonal), Ok(()));
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-656: `copies` on device.place and box.black
+
+/// The library of the FT-656 copies (another library than the fixture's, so the copies are new items).
+const LIBRARY_F: u128 = 0xf656_0000;
+
+/// `doc` as a library document of item `item` of [`LIBRARY_F`]: the copy identity as its ID and the hash of its
+/// item, in the `lib/` JSON form; with its copy ID.
+fn relineaged(doc: &LibDocument, item: u128) -> (Uuid, Value) {
+    let (library, item) = (uuid(LIBRARY_F), uuid(item));
+    let identity: Id<()> = ew_ids::v5::lib_copy_id(library, item);
+    let mut v = serde_json::to_value(doc).expect("a library document");
+    v["library_id"] = json!(library.to_string());
+    v["item_id"] = json!(item.to_string());
+    v["id"] = json!(identity.to_string());
+    v["sha256"] = json!(sha_text(&v));
+    (identity.as_uuid(), v)
+}
+
+/// `sha256:<hex>` of a library document's item, as `library.embed` checks it.
+fn sha_text(v: &Value) -> String {
+    let doc = LibDocument::from_value(v.clone()).expect("a library document");
+    let hash = ew_commands::commands::library_copy_hash(&doc).expect("a known kind");
+    let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
+    format!("sha256:{hex}")
+}
+
+/// The fixture's library document with copy ID `copy`.
+fn fixture_doc(copy: Uuid) -> LibDocument {
+    library()
+        .into_iter()
+        .chain(extra_library())
+        .find(|d| match d {
+            LibDocument::Part(c) => c.id.as_uuid() == copy,
+            LibDocument::Symbol(c) => c.id.as_uuid() == copy,
+            _ => false,
+        })
+        .expect("a fixture document")
+}
+
+/// The FT-656 closure of `part` drawn with a copy of `SYM_TWO`: a new symbol item and a new part item (the part's
+/// FnDefs are the fixture's, held already); the symbol's and the part's copy IDs and the documents.
+fn closure(part: Id<ew_schema::Part>, part_item: u128) -> (Id<SymbolDef>, Id<ew_schema::Part>, Vec<Value>) {
+    let (symbol, s) = relineaged(&fixture_doc(SYM_TWO.as_uuid()), 0xf656_0001);
+    let (part, p) = relineaged(&fixture_doc(part.as_uuid()), part_item);
+    (Id::from_uuid(symbol), Id::from_uuid(part), vec![s, p])
+}
+
+fn held<T: Entity>(e: &Engine) -> usize {
+    e.model().table::<T>().iter().count()
+}
+
+#[test]
+fn ft656_device_place_embeds_its_copies_in_the_same_undo_step() {
+    type Parts = ew_schema::LibCopy<ew_schema::Part>;
+    type Symbols = ew_schema::LibCopy<SymbolDef>;
+    let mut e = arrange_engine();
+    let before = lines(e.model());
+    let (parts, symbols) = (held::<Parts>(&e), held::<Symbols>(&e));
+    let (symbol, part, copies) = closure(PART_TWO, 0xf656_0002);
+    let mut cmd = place_with(symbol, PAGE_101, gp(3, 3), from_part(part, 0, "K"));
+    // Without its copies the placement names a symbol the project does not hold.
+    not_found(e.execute(&cmd));
+    cmd.copies = copies;
+    let r = e.execute(&cmd).expect("device.place with copies");
+    assert_eq!(created::<Device>(&r, Kind::Device).len(), 1);
+    assert_eq!(
+        created::<Function>(&r, Kind::Function).len(),
+        2,
+        "a function per entry"
+    );
+    assert_eq!(
+        created::<ew_schema::Part>(&r, Kind::Part),
+        vec![part],
+        "the placement creates the part copy"
+    );
+    assert_eq!(created::<SymbolDef>(&r, Kind::Symbol), vec![symbol]);
+    assert_eq!((held::<Parts>(&e), held::<Symbols>(&e)), (parts + 1, symbols + 1));
+    assert_eq!(row(&e, primary::<Representation>(&r)).symbol, symbol);
+    // One undo removes the device and the copies together: the model is the one before, row for row.
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before, "one undo step");
+    // The command alone replays in a project that holds neither copy: its text, read back, gives the same records.
+    let text = serde_json::to_string(&cmd).unwrap();
+    let mut f = arrange_engine();
+    let replayed: PlaceSymbol = serde_json::from_str(&text).unwrap();
+    f.execute(&replayed).expect("the replayed placement");
+    e.redo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(
+        lines(f.model()),
+        lines(e.model()),
+        "the replay gives the redone records"
+    );
+}
+
+#[test]
+fn ft656_held_copies_are_skipped_and_another_hash_is_refused_by_item() {
+    let mut e = arrange_engine();
+    let (symbol, part, copies) = closure(PART_TWO, 0xf656_0003);
+    let mut cmd = place_with(symbol, PAGE_101, gp(3, 3), from_part(part, 0, "K"));
+    cmd.copies = copies.clone();
+    e.execute(&cmd).expect("the first placement embeds");
+    let parts = held::<ew_schema::LibCopy<ew_schema::Part>>(&e);
+    // The same copies again: held with the same hash, skipped; the placement goes on.
+    cmd.pos = gp(9, 3);
+    let r = e.execute(&cmd).expect("held copies are skipped");
+    assert!(
+        created::<ew_schema::Part>(&r, Kind::Part).is_empty(),
+        "no second copy"
+    );
+    assert_eq!(held::<ew_schema::LibCopy<ew_schema::Part>>(&e), parts);
+    // The part item at another hash (its part number changed, the hash made consistent): refused at its pointer,
+    // naming the item.
+    let mut other = copies[1].clone();
+    other["part_number"] = json!("KTWO-B");
+    other["sha256"] = json!(sha_text(&other));
+    let item = other["item_id"].as_str().unwrap().to_owned();
+    cmd.pos = gp(15, 3);
+    cmd.copies = vec![copies[0].clone(), other];
+    let rev = e.model().rev();
+    match e.execute(&cmd) {
+        Err(CmdError::InvalidParams {
+            path,
+            message: reason,
+            ..
+        }) => {
+            assert_eq!(path, "/copies/1");
+            assert!(reason.contains(&item), "`{reason}` names item {item}");
+            assert!(reason.contains("library.update"), "{reason}");
+        }
+        other => panic!("expected InvalidParams at /copies/1, got {other:?}"),
+    }
+    // The same copy twice, and a copy whose hash is not its item's.
+    cmd.copies = vec![copies[0].clone(), copies[0].clone()];
+    invalid_at(e.execute(&cmd), "/copies/1");
+    let mut bad = copies[1].clone();
+    bad["sha256"] = json!(format!("sha256:{}", "00".repeat(32)));
+    cmd.copies = vec![bad];
+    invalid_at(e.execute(&cmd), "/copies/0/sha256");
+    assert_eq!(e.model().rev(), rev, "no refused command wrote anything");
+}
+
+#[test]
+fn ft656_box_black_embeds_its_copies_in_the_same_undo_step() {
+    let mut e = arrange_engine();
+    let before = lines(e.model());
+    let (symbol, part, copies) = closure(PART_BOX, 0xf656_0004);
+    let mut cmd = black_with(symbol, gp(3, 3), from_part(part, 0, "A"));
+    not_found(e.execute(&cmd));
+    cmd.copies = copies;
+    let r = e.execute(&cmd).expect("box.black with copies");
+    assert_eq!(created::<Function>(&r, Kind::Function).len(), 2);
+    assert_eq!(created::<ew_schema::Part>(&r, Kind::Part), vec![part]);
+    assert_eq!(created::<SymbolDef>(&r, Kind::Symbol), vec![symbol]);
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before, "one undo step");
 }

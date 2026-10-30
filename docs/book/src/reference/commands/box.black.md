@@ -5,6 +5,7 @@
 `box.black` (`PlaceBlackBox`, doc 06 §2.7, §3.1): places a black box, a function of kind `black_box`
 drawn with the black-box symbol and its page geometry.
 
+- `copies` (FT-656) as in `device.place`: embedded first, in the same transaction.
 - The page and the symbol copy must exist (the built-in black-box symbol `ew.gen.blackbox` draws the
   outline, CPs and inner graphics of `box`). The representation is `{functions: [f], page, symbol, pos,
   orient, rep_type, box}`; `rep_type` defaults to the symbol's and must be one the page type allows (as
@@ -46,6 +47,7 @@ the place tool and is not done here. Outcome: the representation.
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `box` | [`BoxSpec`](#boxspec) or `null` | no |  | The outline, CPs and inner graphics; absent draws the symbol alone. |
+| `copies` | array of any JSON value | no |  | The library documents to embed with the placement (`lib/` JSON form; FT-656): the symbol, the part and their closure as the caller resolved it; empty when the project holds them. |
 | `orient` | [`CmdOrient2`](#cmdorient2) | no | `"r0"` | The orientation. |
 | `page` | [`CmdUuid`](#cmduuid) | yes |  | The page. |
 | `pos` | [`CmdPt2`](#cmdpt2) | yes |  | The insertion point. |

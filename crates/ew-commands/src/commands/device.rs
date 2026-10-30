@@ -18,8 +18,10 @@ use ew_schema::{
 use ew_units::{Dec3, Grid, Nm, Orient2, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::command::{Command, Outcome};
+use crate::commands::assign::embed_closure;
 use crate::commands::common::EndpointParam;
 use crate::commands::terminal::{TerminalSpec, insert_terminal, strip_usage};
 use crate::error::CmdError;
@@ -197,6 +199,11 @@ pub struct ConnectHint {
 /// `device.place` (`PlaceSymbol`, doc 06 §3.3): places a symbol and creates the device and function as the
 /// target requires.
 ///
+/// - `copies` (FT-656): library documents (`lib/` JSON form) embedded first, in the same transaction, as
+///   `part.assign` embeds its closure: each is checked as `library.embed` checks it, at `/copies/i`; a copy the
+///   project holds with the same hash is skipped, one it holds with another hash is refused ("update from library
+///   first", naming the item and the held version), the others are inserted. So a placement from a library is one
+///   undo step and the command replays without a library.
 /// - The page and the symbol copy must exist. The representation is `{functions: [f], page, symbol,
 ///   variant, pos, orient, rep_type}`; `rep_type` defaults to the symbol's.
 /// - `new_device`: a device `{tag: {letter, counter: none}, kind}` and a main function `{def}`; `def` is
@@ -228,7 +235,7 @@ pub struct ConnectHint {
 ///   else the placement is rejected with the list of allowed types.
 ///
 /// Rejected besides: a missing part copy or template index; a template without exactly one main entry (a device
-/// has one main function); a template FnDef that is not embedded (embed it
+/// has one main function); a template FnDef that is neither embedded nor in `copies` (embed it
 /// first); a strip that is not a strip; a designation or sequence number the strip uses already.
 ///
 /// Online numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it
@@ -260,6 +267,10 @@ pub struct PlaceSymbol {
     /// Accepted autoconnect hints.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub connect: Vec<ConnectHint>,
+    /// The library documents to embed with the placement (`lib/` JSON form; FT-656): the symbol, the part and their
+    /// closure as the caller resolved it; empty when the project holds them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<Value>,
 }
 
 impl Command for PlaceSymbol {
@@ -270,6 +281,8 @@ impl Command for PlaceSymbol {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        // FT-656: the copies first, so that the symbol, the part and the FnDefs they bring resolve below.
+        embed_closure(Self::NAME, tx, &self.copies)?;
         let page = tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
         require_on_grid(tx, self.page, self.pos, "/pos")?;
@@ -1187,6 +1200,7 @@ impl Command for SetAnchorPolicy {
 /// `box.black` (`PlaceBlackBox`, doc 06 §2.7, §3.1): places a black box, a function of kind `black_box`
 /// drawn with the black-box symbol and its page geometry.
 ///
+/// - `copies` (FT-656) as in `device.place`: embedded first, in the same transaction.
 /// - The page and the symbol copy must exist (the built-in black-box symbol `ew.gen.blackbox` draws the
 ///   outline, CPs and inner graphics of `box`). The representation is `{functions: [f], page, symbol, pos,
 ///   orient, rep_type, box}`; `rep_type` defaults to the symbol's and must be one the page type allows (as
@@ -1232,6 +1246,10 @@ pub struct PlaceBlackBox {
     pub box_: Option<BoxSpec>,
     /// Which device the black box belongs to.
     pub target: PlaceTarget,
+    /// The library documents to embed with the placement (`lib/` JSON form; FT-656): the symbol, the part and their
+    /// closure as the caller resolved it; empty when the project holds them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<Value>,
 }
 
 impl Command for PlaceBlackBox {
@@ -1242,6 +1260,8 @@ impl Command for PlaceBlackBox {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        // FT-656: the copies first, so that the symbol, the part and the FnDefs they bring resolve below.
+        embed_closure(Self::NAME, tx, &self.copies)?;
         let page = tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
         require_on_grid(tx, self.page, self.pos, "/pos")?;
