@@ -58,9 +58,15 @@ mem_forget = "warn"
 # optimised in the dev profile; that keeps the guard at a few seconds. Product crates are unaffected.
 # Dependencies build at opt-level 1 in dev and test builds: the test suite runs about 20 % faster (workspace nextest
 # 180 s -> 143 s) for about 50 s more on a clean build (cycle 36, measured on the owner's machine). The workspace's
-# own crates stay at opt-level 0; float semantics do not change with the level.
+# own crates stay at opt-level 0.
 [profile.dev.package."*"]
 opt-level = 1
+
+# kurbo stays at opt-level 0: on macOS, LLVM's optimiser merges a `sin` and a `cos` of one angle into Apple's
+# `__sincos_stret`, whose last bit can differ, and the icon generator's arcs-to-cubics coordinates (rounded to 1/1000)
+# then differ from the committed table (CI on the cycle-36 delivery, test-macos and test-macos-all-features).
+[profile.dev.package.kurbo]
+opt-level = 0
 
 [profile.dev.package.xtask]
 opt-level = 2
