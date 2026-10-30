@@ -1333,6 +1333,8 @@ save budgets (milestone performance run).
 
 *Status (2026-10-22, cycle 16).* No subcommand changed. The generated reference docs of this WP's scope exist for the command catalogue (36 pages from the parameter schemas) and the rule catalogue, built by `cargo xtask docs-gen` with a staleness check (NFR-DOC-06 in part; decision log ID-403); the CLI reference, the `api_v1` view reference and the format specification are not generated yet.
 
+*Status (2026-10-30, cycle 39, ID-895).* **Specified** ([closed specification](specs/WP-S1.22-cli-surface-and-api-guard.md)): the remaining 2.3 pw in five parts, part 1 the CLI conventions and result schemas (0.5 pw, Opus/medium) first, then parts 2 (page and row outputs, 0.4, Opus/medium), 3 (`ew fmt`, `ew recover`, `ew import csv`, 0.5, Opus/xhigh) and 4 (`ew query --explain`, 0.5, Opus/high), part 5 (the API guard and the generated references, 0.4, Opus/medium) last; `ew diff`, `ew upgrade`, `ew print`, XLSX and `--omit-personal-data` stay with their libraries' packages.
+
 #### WP-S1.23 Headless read-only MCP server
 
 | Field | Value |
@@ -1734,6 +1736,8 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 *Note (2026-10-28, design language).* 4.0 pw of this package's estimate moves to [WP-S2.17](specs/WP-S2.17-design-language-and-ui-polish.md), which delivers its theming, colour-vision and contrast half (the token set with its contrast test, the light, dark and high-contrast themes, the overlay hues and patterns) and the look of the palette, tooltips and menus; the requirements stay mapped here for their behaviour (orchestrator's ruling, 2026-10-28).
 
 *Note (2026-10-28, widget mapping).* A further 0.3 pw moves to [WP-S2.17](specs/WP-S2.17-design-language-and-ui-polish.md) (O 1.5 · L 2.5 · P 4.5 to O 1.2 · L 2.2 · P 4.2): the look of the table and list panes built alongside the design language (the table-mode data grid, the message panel, the Preview tab, History), mapped in [16a](../design/16a-design-language.md) §6.25 (the specification's §15.1).
+
+*Status (2026-10-30, cycle 39, ID-895).* **Specified** ([closed specification](specs/WP-S2.08-palette-keymaps-accessibility-localisation.md)): the 2.4 pw in six parts, part 1 the palette (0.5 pw, Opus/medium) first, then parts 2 (keymaps, 0.5), 3 (Fluent for the shell and the pseudo-locale, 0.4) and 5 (accessibility and 300 %, 0.4), each Opus/medium, part 4 (the Dutch UI, 0.2, Opus/low) after part 3, part 6 (glossary panel, tips, wire-colour view, 0.4, Opus/medium) last; no macOS keymap (ID-880).
 
 #### WP-S2.09 Messages, bulk previews, history, jobs and recovery UI
 
