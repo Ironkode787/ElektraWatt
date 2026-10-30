@@ -162,13 +162,17 @@ pub enum ResultNote {
         /// The wires' count and list.
         wires: Option<(String, String)>,
     },
-    /// A delete of interruption points: their names and the connections at their connection points that the
-    /// selection did not name (said only for those the delete removed).
-    IpsDeleted {
-        /// The names.
+    /// A delete of representations (Delete, the command bar's Delete): the names of the interruption points among
+    /// them and the connections at their connection points that the selection did not name (said only for those
+    /// the delete removed, FT-547); and the devices that keep no representation but stay in the project (FT-709),
+    /// each with its tag before the delete and whether it has a part (so it stays in the parts list).
+    Deleted {
+        /// The interruption points' names.
         names: Vec<String>,
         /// The connections.
         wires: Vec<EntityRef>,
+        /// The devices left without a symbol: (device, tag before the delete, has a part).
+        unplaced: Vec<(EntityRef, String, bool)>,
     },
 }
 

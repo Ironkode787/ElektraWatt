@@ -244,9 +244,16 @@ pub struct StatusField {
 }
 
 /// The findings field's text and tone: `1 error · 2 warnings`, the worst severity's tone; `None` when every count is
-/// zero.
+/// zero. FT-710: the counts are [`crate::navigators::messages::MessageCounts::open`]'s (the project's open findings without the
+/// pending and the waived ones, as the check's toast and the Messages tab's chip count them), and the pending ones
+/// follow as their own part (`6 warnings · 2 pending on this page`), so leaving the page, which ends them, is
+/// explained.
 fn findings(model: &ShellModel) -> Option<(String, Tone)> {
-    let c = model.messages_counts()?;
+    findings_text(model.messages_counts()?)
+}
+
+/// The findings field of counts `c` (see [`bar`]'s findings).
+pub fn findings_text(c: crate::navigators::messages::MessageCounts) -> Option<(String, Tone)> {
     let part = |n: usize, one: &str, many: &str| match n {
         0 => None,
         1 => Some(strings::text(one).to_owned()),
@@ -256,6 +263,11 @@ fn findings(model: &ShellModel) -> Option<(String, Tone)> {
         part(c.errors, "status-findings-error", "status-findings-errors"),
         part(c.warnings, "status-findings-warning", "status-findings-warnings"),
         part(c.infos, "status-findings-info", "status-findings-infos"),
+        part(
+            c.pending,
+            "status-findings-pending-one",
+            "status-findings-pending",
+        ),
     ]
     .into_iter()
     .flatten()

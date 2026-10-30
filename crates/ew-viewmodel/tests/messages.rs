@@ -285,6 +285,101 @@ fn ms2_a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves()
     shell.shutdown();
 }
 
+/// The status bar's findings field (WP-S2.17 D12), empty when it has none.
+fn status_findings(shell: &ShellModel) -> String {
+    ew_viewmodel::status::bar(shell, false)
+        .into_iter()
+        .find(|f| f.kind == ew_viewmodel::status::StatusKind::Findings)
+        .map(|f| f.text)
+        .unwrap_or_default()
+}
+
+/// The `n <word>` count of the field `text` (`6 warnings · 2 pending on this page`), 0 when it has none.
+fn count_in(text: &str, one: &str, many: &str) -> usize {
+    text.split(" · ")
+        .find_map(|p| {
+            if p == format!("1 {one}") {
+                return Some(1);
+            }
+            p.strip_suffix(&format!(" {many}"))?.parse().ok()
+        })
+        .unwrap_or(0)
+}
+
+/// FT-710 (rv-vis-1 frictions 18 and 23): the check's toast, the status bar and the Messages tab's count chip give
+/// the same numbers for the same scope, through one rule ([`MessageCounts::open`]: the project's open findings without
+/// the pending and the waived ones); the status bar adds the pending ones as their own part, so a count that changes
+/// when the tab leaves the page says why.
+#[test]
+fn ft710_the_toast_the_status_bar_and_the_chip_agree() {
+    let tmp = Tmp::new("msg-ft710");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut shell, "view.zoom_actual", json!({}));
+    done(&mut shell, "messages.show", json!({}));
+    let agree = |shell: &ShellModel, state: &str| {
+        let c = shell.messages_counts().expect("the counts");
+        let status = status_findings(shell);
+        assert_eq!(
+            count_in(&status, "error", "errors"),
+            c.errors,
+            "{state}: {status}"
+        );
+        assert_eq!(
+            count_in(&status, "warning", "warnings"),
+            c.warnings,
+            "{state}: {status}"
+        );
+        assert_eq!(count_in(&status, "info", "infos"), c.infos, "{state}: {status}");
+        assert_eq!(
+            count_in(&status, "pending on this page", "pending on this page"),
+            c.pending,
+            "{state}: {status}"
+        );
+        assert_eq!(
+            shell.messages_badge(),
+            c.errors + c.warnings + c.infos,
+            "{state}: the chip"
+        );
+        c
+    };
+    // After Run checks: nothing pending, and the toast says the status bar's numbers.
+    done(&mut shell, "messages.check", json!({}));
+    let c = agree(&shell, "after the check");
+    assert_eq!(c.pending, 0);
+    let toast = shell.toast().expect("the check toast").text.clone();
+    assert_eq!(
+        count_in(
+            &toast.replace(", ", " · ").replace("Check: ", ""),
+            "warning",
+            "warnings"
+        ),
+        c.warnings,
+        "{toast}"
+    );
+    // An edit on 101 makes its open completeness findings pending: the status bar says so as its own part.
+    place_ip(&mut shell, "MSGTEST", (60, 3), "target");
+    let pending = agree(&shell, "after an edit on 101");
+    assert!(pending.pending > 0, "{pending:?}");
+    assert!(
+        status_findings(&shell).contains("pending on this page"),
+        "{}",
+        status_findings(&shell)
+    );
+    // Leaving the page ends them: they count again, and the field no longer names a pending part.
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    let left = agree(&shell, "on 102");
+    assert_eq!(left.pending, 0);
+    assert_eq!(
+        left.open(),
+        pending.open() + pending.pending,
+        "the pending findings count again"
+    );
+    // No count changes without an edit or a check: back on 101 it stays.
+    done(&mut shell, "page.goto", json!({"folio": "101"}));
+    assert_eq!(agree(&shell, "back on 101"), left);
+    shell.shutdown();
+}
+
 #[test]
 fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     let tmp = Tmp::new("msg-ms2b");

@@ -877,6 +877,20 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "toast-ips-deleted-wires" => {
             "Deleted the interruption points {0} and the {1} wires connected to them"
         }
+        // FT-709: a delete that leaves a device without a symbol keeps the device; the toast says where it stays.
+        "toast-device-unplaced" => {
+            "{0} has no symbol on a page now; it stays in the Devices navigator and the parts list"
+        }
+        "toast-device-unplaced-no-part" => {
+            "{0} has no symbol on a page now; it stays in the Devices navigator"
+        }
+        "toast-devices-unplaced" => {
+            "{0} have no symbol on a page now; they stay in the Devices navigator and the parts list"
+        }
+        "toast-devices-unplaced-no-part" => {
+            "{0} have no symbol on a page now; they stay in the Devices navigator"
+        }
+        "toast-device-retagged" => "{0} (now {1})",
         "toast-autoconnect" => {
             "{0} and connected {1}: {2}. Alt+Click or Ctrl+Enter places without connecting"
         }
@@ -1749,6 +1763,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "status-findings-warning" => "1 warning",
         "status-findings-infos" => "{0} infos",
         "status-findings-info" => "1 info",
+        // FT-710: the pending findings, counted apart; they end when the tab leaves the page.
+        "status-findings-pending" => "{0} pending on this page",
+        "status-findings-pending-one" => "1 pending on this page",
         "status-renderer-why" => "The canvas draws on the CPU",
         "status-bar-saved" => "Saved",
         "table-sorted-ascending" => "{0}, sorted ascending",

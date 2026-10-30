@@ -51,16 +51,21 @@ fn terminal_designation(p: &Map<String, Value>) -> Result<Option<&str>, Outcome>
     }
 }
 
-/// The result note of a delete of the representations `reps` (FT-547): the names of the interruption points among
-/// them, in page-table order, and the connections at their connection points that `drawn` does not name; `None`
-/// when no interruption point is deleted.
-fn ips_deleted(reps: &[EntityRef], drawn: &crate::tools::Selection, t: &PageTables) -> Option<ResultNote> {
+/// The result note of a delete of the representations `reps` (FT-547, FT-709): the names of the interruption points
+/// among them, in page-table order, and the connections at their connection points that `drawn` does not name; and
+/// `unplaced`, the devices the delete leaves without a symbol; `None` when neither applies.
+fn delete_note(
+    reps: &[EntityRef],
+    drawn: &crate::tools::Selection,
+    t: &PageTables,
+    unplaced: Vec<(EntityRef, String, bool)>,
+) -> Option<ResultNote> {
     let ips: Vec<&ew_api::output::TableRep> = t
         .reps
         .iter()
         .filter(|r| r.ip.is_some() && reps.contains(&EntityRef(r.id)))
         .collect();
-    if ips.is_empty() {
+    if ips.is_empty() && unplaced.is_empty() {
         return None;
     }
     let mut wires: Vec<EntityRef> = Vec::new();
@@ -74,13 +79,40 @@ fn ips_deleted(reps: &[EntityRef], drawn: &crate::tools::Selection, t: &PageTabl
             }
         }
     }
-    Some(ResultNote::IpsDeleted {
+    Some(ResultNote::Deleted {
         names: ips
             .iter()
             .filter_map(|r| r.ip.as_ref().map(|ip| ip.name.clone()))
             .collect(),
         wires,
+        unplaced,
     })
+}
+
+/// The toast's sentence about the devices a delete left without a symbol (FT-709): `-101K1 (now -?K1) has no symbol on
+/// a page now; it stays in the Devices navigator and the parts list`. Each device is named by its tag before the
+/// delete, with the tag the navigator shows now when that differs (`now` gives it); the parts list is named when one
+/// of them has a part.
+fn unplaced_text(
+    unplaced: &[(EntityRef, String, bool)],
+    now: impl Fn(EntityRef) -> Option<String>,
+) -> Option<String> {
+    let tags: Vec<String> = unplaced
+        .iter()
+        .map(|(d, before, _)| match now(*d) {
+            Some(after) if after != *before => strings::format("toast-device-retagged", &[before, &after]),
+            _ => before.clone(),
+        })
+        .collect();
+    let part = unplaced.iter().any(|(_, _, p)| *p);
+    let key = match (tags.len(), part) {
+        (0, _) => return None,
+        (1, true) => "toast-device-unplaced",
+        (1, false) => "toast-device-unplaced-no-part",
+        (_, true) => "toast-devices-unplaced",
+        (_, false) => "toast-devices-unplaced-no-part",
+    };
+    Some(strings::format(key, &[&tags.join(", ")]))
 }
 
 impl ShellModel {
@@ -116,24 +148,34 @@ impl ShellModel {
                 };
                 self.notify(text, true);
             }
-            ResultNote::IpsDeleted { names, wires } => {
+            ResultNote::Deleted {
+                names,
+                wires,
+                unplaced,
+            } => {
                 let gone = wires
                     .iter()
                     .filter(|w| !now.connections.iter().any(|c| c.id == w.0))
                     .count();
-                if gone == 0 {
+                let ips = (!names.is_empty() && gone > 0).then(|| {
+                    let key = match (names.len(), gone) {
+                        (1, 1) => "toast-ip-deleted-wire",
+                        (1, _) => "toast-ip-deleted-wires",
+                        (_, 1) => "toast-ips-deleted-wire",
+                        _ => "toast-ips-deleted-wires",
+                    };
+                    strings::format(key, &[&names.join(", "), &gone.to_string()])
+                });
+                // FT-709: the devices left without a symbol stay in the project; the toast says where.
+                let unplaced = self
+                    .project
+                    .as_ref()
+                    .and_then(|p| unplaced_text(&unplaced, |d| p.session.device_tag(d.0)));
+                let text: Vec<String> = ips.into_iter().chain(unplaced).collect();
+                if text.is_empty() {
                     return;
                 }
-                let key = match (names.len(), gone) {
-                    (1, 1) => "toast-ip-deleted-wire",
-                    (1, _) => "toast-ip-deleted-wires",
-                    (_, 1) => "toast-ips-deleted-wire",
-                    _ => "toast-ips-deleted-wires",
-                };
-                self.notify(
-                    strings::format(key, &[&names.join(", "), &gone.to_string()]),
-                    true,
-                );
+                self.notify(text.join(". "), true);
             }
         }
     }
@@ -1083,8 +1125,10 @@ impl ShellModel {
                 },
             };
         };
-        // FT-547: an interruption point takes the wires at its connection point with it; the toast says so.
-        let note = ips_deleted(&reps, &drawn, &page.tables);
+        // FT-547: an interruption point takes the wires at its connection point with it; the toast says so. FT-709: a
+        // device that keeps no symbol but stays in the project (EW-CORE-047) is named, with where it stays.
+        let unplaced = self.devices_kept_unplaced(&reps, &unused);
+        let note = delete_note(&reps, &drawn, &page.tables, unplaced);
         let out = self.commit_from_host(cmd.as_ref());
         if out == Outcome::Done {
             self.tools.result_note = note;
@@ -1159,6 +1203,47 @@ impl ShellModel {
             }
         }
         out
+    }
+
+    /// The devices that deleting the representations `reps` leaves without any representation while the delete keeps
+    /// them (not in `deleted`, the devices the same command deletes), in ID order (FT-709): each as the device, its tag and whether
+    /// it has a part. Terminals and strips are left out (a terminal stays in its strip).
+    fn devices_kept_unplaced(
+        &self,
+        reps: &[EntityRef],
+        deleted: &[EntityRef],
+    ) -> Vec<(EntityRef, String, bool)> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        let q = project.session.query();
+        let idx = q.idx();
+        let gone: std::collections::BTreeSet<_> =
+            reps.iter().filter_map(|e| e.0.to_string().parse().ok()).collect();
+        let devices: std::collections::BTreeSet<_> = gone
+            .iter()
+            .filter_map(|r| q.reps().get(*r))
+            .flat_map(|r| r.functions.iter().copied())
+            .filter_map(|f| q.functions().get(f).and_then(|f| f.device))
+            .collect();
+        devices
+            .into_iter()
+            .filter(|d| !deleted.contains(&EntityRef(d.as_uuid())))
+            .filter_map(|d| {
+                let dev = q.devices().get(d)?;
+                if dev.aspects.terminal.is_some() || dev.aspects.strip.is_some() {
+                    return None;
+                }
+                let left = idx
+                    .functions_of_device(d)
+                    .any(|f| idx.reps_of_function(f).any(|r| !gone.contains(&r)));
+                if left {
+                    return None;
+                }
+                let tag = project.session.device_tag(d.as_uuid())?;
+                Some((EntityRef(d.as_uuid()), tag, !dev.parts.is_empty()))
+            })
+            .collect()
     }
 
     /// Of `targets`, the entities the page tables do not hold: the devices no representation of the project draws

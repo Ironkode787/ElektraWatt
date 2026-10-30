@@ -66,8 +66,9 @@ enum Stamp {
         ew_viewmodel::navigator::PageNavigator,
         Option<ew_viewmodel::canvas::PageId>,
     ),
-    /// Another navigator: its state.
-    Other(NavStamp),
+    /// Another navigator: its state, and for Messages the editing page's folio, which marks the pending rows
+    /// (FT-710: a row kept its `pending` badge after the tab left the page while the counts no longer had it).
+    Other(NavStamp, Option<String>),
 }
 
 /// A navigator pane's state between frames.
@@ -144,7 +145,10 @@ impl NavigatorPane {
                 shell.navigator().clone(),
                 shell.current_page(),
             )),
-            k => shell.nav(k).map(|n| Stamp::Other(n.stamp())),
+            k => shell.nav(k).map(|n| {
+                let editing = (k == NavKind::Messages).then(|| shell.editing_folio()).flatten();
+                Stamp::Other(n.stamp(), editing)
+            }),
         }
     }
 

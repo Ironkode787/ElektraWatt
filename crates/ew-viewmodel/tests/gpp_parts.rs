@@ -221,6 +221,8 @@ fn row5_deleting_the_last_representation_deletes_the_device_and_one_undo_restore
     let commands = s.recorded_commands().len();
     done(&mut s, "edit.delete_selection", json!({}));
     assert_eq!(s.recorded_commands().len(), commands + 1, "one command");
+    // FT-709: the device went too, so the toast names no device left without a symbol.
+    assert_eq!(unplaced_toast(&s), None);
     assert!(
         format!("{:?}", s.recorded_commands()[commands]).contains(E55),
         "the device went with its last representation"
@@ -248,6 +250,13 @@ fn row5_deleting_the_last_representation_deletes_the_device_and_one_undo_restore
         found[0].ends_with("has a part but no representation on any page; the parts list still counts it"),
         "{found:?}"
     );
+}
+
+/// The visible toast when it says that a device has no symbol on a page any more (FT-709).
+fn unplaced_toast(s: &ShellModel) -> Option<String> {
+    s.toast()
+        .map(|t| t.text.clone())
+        .filter(|t| t.contains("no symbol on a page now"))
 }
 
 /// The potential definition names (sorted), the bond count and the device IDs of the saved project.
@@ -280,6 +289,13 @@ fn row5_a_device_whose_cps_carry_potentials_and_a_bond_is_kept() {
     assert_eq!(reps_of(&s, device).len(), 1, "-102G1 is one black box");
     done(&mut s, "edit.delete_selection", json!({}));
     assert!(reps_of(&s, device).is_empty(), "the box is deleted");
+    // FT-709: the kept device is named in the delete's toast, with where it stays.
+    assert_eq!(
+        unplaced_toast(&s).as_deref(),
+        Some(
+            "-102G1 (now -?G1) has no symbol on a page now; it stays in the Devices navigator and the parts list"
+        )
+    );
     let (names_after, bonds_after, devices) = connect_intent(&tmp, &mut s);
     assert!(devices.contains(&device), "the device remains");
     assert_eq!(names_after, names_before, "+24V and 0V are still defined");
@@ -319,6 +335,8 @@ fn row5_a_device_with_another_representation_is_kept() {
         reps[1..],
         "the device keeps its other representations"
     );
+    // FT-709: another representation remains, so no notice.
+    assert_eq!(unplaced_toast(&s), None);
 }
 
 /// Finding 2, the run's own step: a new strip `-X??` and its first terminal placed from the part.

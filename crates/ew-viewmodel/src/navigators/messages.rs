@@ -75,6 +75,14 @@ pub struct MessageCounts {
     pub pending: usize,
 }
 
+impl MessageCounts {
+    /// The open findings that count (FT-710): errors, warnings and infos of the project, without the pending and the
+    /// waived ones. The check's toast, the status bar and the Messages tab's count chip all read this rule.
+    pub fn open(&self) -> usize {
+        self.errors + self.warnings + self.infos
+    }
+}
+
 /// The finding a detail block shows (§7.3): rule, title, kind, severity, message and the quick fix's label; and what
 /// Waive… and Unwaive need (FT-674): the fingerprint, whether it is waived and the waiver's ID.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -276,6 +284,19 @@ mod tests {
                 on_101.pending
             ),
             (1, 1, 1, 1, 1)
+        );
+        // FT-710: the status bar's field and the tab's chip read the same counts; the pending one is its own part.
+        assert_eq!(none.open(), 4);
+        assert_eq!(on_101.open(), 3);
+        let text = |c| {
+            crate::status::findings_text(c)
+                .map(|(t, _)| t)
+                .unwrap_or_default()
+        };
+        assert_eq!(text(none), "2 errors · 1 warning · 1 info");
+        assert_eq!(
+            text(on_101),
+            "1 error · 1 warning · 1 info · 1 pending on this page"
         );
     }
 

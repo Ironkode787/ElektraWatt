@@ -56,6 +56,12 @@ impl ShellModel {
         Some(messages::counts(t, self.editing_folio().as_deref()))
     }
 
+    /// The Messages tab's count chip (doc 16a §5.7, FT-710): [`MessageCounts::open`] of the open pane's counts, the
+    /// same rule as the status bar's and the check toast's counts; 0 while the pane is closed.
+    pub fn messages_badge(&self) -> usize {
+        self.messages_counts().map_or(0, |c| c.open())
+    }
+
     /// Whether row `key` of navigator `kind` is a pending finding (§7.2).
     pub fn row_pending(&self, kind: NavKind, key: &str) -> bool {
         if kind != NavKind::Messages {

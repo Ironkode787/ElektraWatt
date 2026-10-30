@@ -763,12 +763,10 @@ impl App {
                 } = self;
                 navigators.retain(|k, _| shell.navigator_open(*k));
                 let collapsed = shell.rail_collapsed();
-                // Doc 16a §5.7: the Messages tab's count chip shows the open findings.
+                // Doc 16a §5.7: the Messages tab's count chip shows the open findings (FT-710: the status bar's rule).
                 let counts = [(
                     PaneKind::Navigator(ew_viewmodel::navigators::NavKind::Messages),
-                    shell
-                        .messages_counts()
-                        .map_or(0, |c| c.errors + c.warnings + c.infos),
+                    shell.messages_badge(),
                 )];
                 let headers = dock.show(ui, collapsed, &counts, &mut |ui, pane| match pane {
                     PaneKind::Pages => navigator.show(ui, shell, &mut events),
