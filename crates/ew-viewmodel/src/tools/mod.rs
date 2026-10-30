@@ -77,7 +77,7 @@ pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
 pub use marker::{MarkerTool, crossed_connections};
 // WP-S2.05 part 3
 pub use paste::PasteTool;
-pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow};
+pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow, symbol_name};
 pub use place::{ORIENT_NAMES, PlaceTarget, PlaceTool, inside_polygon, next_designation};
 pub use route_edit::RouteEditTool;
 pub use structure_box::StructureBoxTool;

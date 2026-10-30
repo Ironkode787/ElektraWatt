@@ -96,13 +96,13 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
         "{text}"
     );
     assert!(
-        text.contains("  row symbol \"ew.iec.mcb-1p@qet10\" embedded"),
+        text.contains("  row symbol \"mcb-1p\" embedded \"ew.iec.mcb-1p@qet10\""),
         "{text}"
     );
     // A black-box symbol row is enabled from WP-S2.04 part 3 (§9.5): choosing it arms the black box tool
     // (`tests/part3.rs`).
     done(&mut s, "picker.filter", json!({"text": "blackbox"}));
-    let line = describe_line(&s, "  row symbol \"ew.gen.blackbox@qet10\"");
+    let line = describe_line(&s, "  row symbol \"blackbox\"");
     assert!(!line.contains("disabled"), "{line}");
     // Rows move and clamp.
     done(&mut s, "picker.filter", json!({"text": ""}));
@@ -124,7 +124,7 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
     }
     // A starter symbol (Golden A has no NO contact): choosing it commits nothing, the tool floats it (FT-656).
     done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
-    assert!(describe_line(&s, "  row symbol \"ew.iec.contact-no@qet10\"").contains("starter"));
+    assert!(describe_line(&s, "  row symbol \"contact-no\"").contains("starter"));
     let undo_before = s.can_undo();
     let calls = s.session_calls();
     let rev = s.revision();
@@ -165,7 +165,7 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
     assert!(!s.can_undo(), "two placements, two undo steps");
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "picker.filter", json!({"text": "contact-no@"}));
-    assert!(describe_line(&s, "  row symbol \"ew.iec.contact-no@qet10\"").contains("starter"));
+    assert!(describe_line(&s, "  row symbol \"contact-no\"").contains("starter"));
     done(&mut s, "ui.dismiss", json!({}));
 }
 

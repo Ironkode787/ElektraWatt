@@ -152,8 +152,7 @@ fn row_texts(picker: &ew_viewmodel::tools::Picker, row: PickerRow) -> (String, S
                 strings::text("picker-badge-starter")
             };
             // The name is the key's last segment without its grid variant (`ew.iec.mcb-1p@qet10` → `mcb-1p`).
-            let base = s.key.split('@').next().unwrap_or(&s.key);
-            let name = base.rsplit('.').next().unwrap_or(base).to_owned();
+            let name = ew_viewmodel::tools::symbol_name(&s.key).to_owned();
             (name, library.to_owned(), format!("{}\n{}", s.key, s.fndef_key))
         }
         PickerRow::PartFn(p, k) => {

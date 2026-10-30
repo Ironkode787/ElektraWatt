@@ -488,8 +488,8 @@ are quoted):
 
 ```text
 canvas picker filter "mcb" rows 3                      (while open; then one row line each)
-  row symbol "ew.iec.mcb-1pn@qet10" embedded
-  row symbol "ew.iec.mcb-1p@qet10" starter
+  row symbol "mcb-1pn" embedded "ew.iec.mcb-1pn@qet10"   (FT-606: the plain name, the badge, then the key)
+  row symbol "mcb-1p" starter "ew.iec.mcb-1p@qet10"
   row part "A9P52610" function 1 of 1 "ew.fn.mcb-1pn" main
 canvas ghost place symbol "ew.iec.mcb-1pn@qet10" variant "A" rep "multi_line" at 254.000 101.600 mm target new letter "F" tag "-101F2"
 canvas ghost move 2 steps 3 0 readout "dx 7.938 dy 0.000 mm"

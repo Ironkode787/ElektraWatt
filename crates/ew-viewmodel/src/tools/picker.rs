@@ -3,7 +3,7 @@
 
 //! The picker (WP-S2.04 §7.1): a popup of the tool host listing what can be placed on the focused page
 //! (`Session::place_catalogue`, fetched once per (revision, folio) while it is open). Its rows are the symbol rows
-//! (`<key>` with the badge `embedded` or `starter`), then one row per function of each part's template
+//! (the plain name, [`symbol_name`], with the badge `embedded` or `starter`, then the `<key>`; FT-606), then one row per function of each part's template
 //! (`<part number> <manufacturer>`, `<n> of <count> <fndef> [main]`). The filter matches case-folded substrings of
 //! the key, the part number, the manufacturer (FT-425: the part rows stand grouped under it) and the FnDef key; Up, Down, Home and End move the row; Enter chooses; Escape closes.
 //!
@@ -20,6 +20,13 @@
 use std::sync::Arc;
 
 use ew_api::output::{CatalogueSymbol, PlaceCatalogue};
+
+/// A symbol's plain name, as the picker shows it (WP-S2.17 part 4; FT-606): the key's last segment without its grid
+/// variant (`ew.iec.mcb-1p@qet10` → `mcb-1p`).
+pub fn symbol_name(key: &str) -> &str {
+    let base = key.split('@').next().unwrap_or(key);
+    base.rsplit('.').next().unwrap_or(base)
+}
 
 /// What the picker was opened for.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -254,11 +261,14 @@ impl Picker {
     pub fn row_line(&self, row: PickerRow) -> String {
         let mut line = match row {
             PickerRow::Symbol(i) => {
+                // FT-606: the plain name first, as the window shows it, then the badge, then the key (the window's
+                // tooltip), which `place` and the scripts name the symbol by.
                 let s = &self.catalogue.symbols[i];
                 format!(
-                    "row symbol \"{}\" {}",
-                    s.key,
-                    if s.copy.is_some() { "embedded" } else { "starter" }
+                    "row symbol \"{}\" {} \"{}\"",
+                    symbol_name(&s.key),
+                    if s.copy.is_some() { "embedded" } else { "starter" },
+                    s.key
                 )
             }
             PickerRow::PartFn(p, k) => {
