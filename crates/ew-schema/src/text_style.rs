@@ -263,8 +263,10 @@ pub fn check_text_styles(value: &Value) -> Result<BTreeMap<Ident, TextStyleSpec>
                 ),
             ));
         }
-        if let Some(w) = members.get("weight")
-            && !matches!(w.as_str(), Some("regular" | "bold"))
+        // No let chain: the permissive crates build on Rust 1.85 (the MSRV check in ci.yml's supply-chain job).
+        if let Some(w) = members
+            .get("weight")
+            .filter(|w| !matches!(w.as_str(), Some("regular" | "bold")))
         {
             return Err(err(
                 format!("{at}/weight"),

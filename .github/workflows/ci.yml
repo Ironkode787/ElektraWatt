@@ -213,6 +213,10 @@ jobs:
       # command, same runs), a stalled mirror connection; the timeouts and retries turn a stall into a retry of a few seconds.
       - name: install Mesa's lavapipe for the GPU canvas tests
         run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq --no-install-recommends mesa-vulkan-drivers
+      # The runner ran out of disk in the nextest run (no space left on device, cycle-37 delivery, run 41047161627), as
+      # test-linux did in cycle 36: remove the same preinstalled toolchains this job never uses before the first build.
+      - name: free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
       - name: cargo build
         run: cargo build --workspace --locked
       # The default-features run of the Linux test (FT-353, decision log ID-527), without the headless acceptance
