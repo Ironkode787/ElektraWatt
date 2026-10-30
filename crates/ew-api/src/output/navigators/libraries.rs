@@ -435,7 +435,7 @@ impl Session {
     /// macro of an installed library inserted with its defaults on a new blank page (a window macro at a grid point
     /// 20 steps from the page's corner; a page macro's first page after it) on a throwaway engine over the current
     /// snapshot, without the prevent rules, so the session is never touched and a conflict does not stop the
-    /// drawing. `None` for a macro no installed library holds, one that does not insert, or one that draws nothing.
+    /// drawing; a held copy of another version is updated there first. `None` for a macro no installed library holds, one that does not insert, or one that draws nothing.
     pub fn macro_thumbnail(&self, key: &str) -> Option<MacroThumbnail> {
         const PAD: i64 = 5_000_000;
         let detail = self.macro_detail(key)?;
@@ -463,6 +463,13 @@ impl Session {
             })
             .ok()?;
         engine.execute(create.as_ref()).ok()?;
+        // A project that holds another version of the macro first takes the library's (an insertion refuses a held
+        // copy of another version, D13); nothing to do when the held copy is current or there is none.
+        if let Ok(plan) = self.update_from_library(&[detail.copy], &[]) {
+            let update = engine.resolve(&plan.command).ok()?;
+            let preview = engine.preview(update.as_ref()).ok()?;
+            engine.commit(preview).ok()?;
+        }
         let blank = {
             let q = self.query_over(engine.model());
             q.pages()

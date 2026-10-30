@@ -384,6 +384,8 @@ fn ui1_the_macros_navigator_lists_a_saved_macro_and_its_detail() {
         !cell(&libs, copy, "used_by").is_empty(),
         "the inserted devices use the macro"
     );
+    // The thumbnail of the new version draws although the project holds the old one.
+    assert!(s.macro_thumbnail(&m.key).is_some(), "a thumbnail of 1.1.0");
     let plan = s.update_from_library(&[saved.copy], &[]).expect("an update plan");
     assert_eq!(plan.copies.len(), 1);
     assert_eq!(plan.copies[0].to, "1.1.0");
