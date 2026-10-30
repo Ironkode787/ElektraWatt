@@ -655,6 +655,36 @@ fn rep_rects(cx: &ToolCx<'_>, g: i64, texts: bool) -> std::collections::BTreeMap
     out
 }
 
+/// The obstacle rectangles of the page's frame (FT-758): the sheet outside the frame grid's drawing area, that is
+/// the header bands with their labels, the title block and its text fields, in page nm, the drawing area's edge grown
+/// inward by one grid step `g` as a box's outline is. On a side where one of the `ends` (the route's ends and their
+/// stubs) stands within that step, the edge is not grown: an interruption point one step inside the area, leaving
+/// towards the sheet's edge, turns on the area's edge as before. Empty for a page without a frame grid.
+fn frame_rects(cx: &ToolCx<'_>, g: i64, ends: &[(i64, i64)]) -> Vec<[i64; 4]> {
+    let Some([x0, y0, x1, y1]) = super::ip::drawing_area(cx.page) else {
+        return Vec::new();
+    };
+    let a = cx.snapper.sheet_to_page((0, 0));
+    let b = cx.snapper.sheet_to_page(cx.page.sheet);
+    let (sx0, sy0, sx1, sy1) = (a.0.min(b.0), a.1.min(b.1), a.0.max(b.0), a.1.max(b.1));
+    let inset = |near: &dyn Fn(&(i64, i64)) -> bool| if ends.iter().any(near) { 0 } else { g };
+    let ix0 = x0 + inset(&|p| p.0 < x0 + g);
+    let iy0 = y0 + inset(&|p| p.1 < y0 + g);
+    let ix1 = x1 - inset(&|p| p.0 > x1 - g);
+    let iy1 = y1 - inset(&|p| p.1 > y1 - g);
+    if ix0 >= ix1 || iy0 >= iy1 {
+        return Vec::new();
+    }
+    // Above, below, left of and right of the drawing area, each reaching a step past the sheet so that its far side
+    // blocks nothing the area holds.
+    vec![
+        [sx0 - g, sy0 - g, sx1 + g, iy0],
+        [sx0 - g, iy1, sx1 + g, sy1 + g],
+        [sx0 - g, iy0, ix0, iy1],
+        [ix1, iy0, sx1 + g, iy1],
+    ]
+}
+
 /// What a routing pass keeps clear (FT-706). The Wire tool tries the passes in turn and takes the first clear route;
 /// only when none is found does it draw the provisional L route and say so.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -694,7 +724,15 @@ fn request(
     for r in through {
         rects.remove(r);
     }
-    let obstacles: Vec<[i64; 4]> = rects.into_values().flatten().collect();
+    let mut obstacles: Vec<[i64; 4]> = rects.into_values().flatten().collect();
+    let stub = |p: (i64, i64), d: Option<Dir>| {
+        d.map_or(p, |d| {
+            let v = d.vector();
+            (p.0 + v.0 * g, p.1 + v.1 * g)
+        })
+    };
+    let ends = [from, stub(from, from_dir), t, stub(t, to.dir())];
+    obstacles.extend(frame_rects(cx, g, &ends));
     let mut wires: Vec<[(i64, i64); 2]> = Vec::new();
     // Every other CP and its stub is kept for its own wire.
     let mut reserved: Vec<(i64, i64)> = Vec::new();

@@ -421,3 +421,183 @@ fn a_direct_route_on_another_wire_s_track_is_left_to_the_router() {
     assert!(cp(&s, "-X1031:70/b").connections.is_empty());
     assert!(cp(&s, "-X1031:70/a").connections.is_empty());
 }
+
+// C39 (FT-734, FT-758): a black box's caption is an obstacle to the router, the through route of the cycle-38 window
+// fix (FX38c) included. Beside the line the through route is still taken; standing on the line it is not.
+
+/// Draws a MICO 4.10 black box with the grid corners `a` and `b` (it grows until its CPs fit) and returns the page
+/// rectangles `[x0, y0, x1, y1]` of its texts left of its outline (up to its edge): its caption.
+fn black_box_caption(s: &mut ShellModel, a: (i64, i64), b: (i64, i64)) -> Vec<[i64; 4]> {
+    done(s, "tool.black_box", json!({"part": "MICO 4.10", "template": 0}));
+    for k in [a, b] {
+        let p = page_point(s, k);
+        let q = s.canvas().unwrap().page().snapper.page_to_sheet(p);
+        done(s, "cursor.set", at(q, json!({})));
+        done(s, "canvas.dwell", json!({"ms": 80}));
+        done(s, "canvas.activate", json!({}));
+    }
+    done(s, "tool.select", json!({}));
+    let t = tables(s);
+    let rep = t.reps.iter().find(|r| r.black_box.is_some()).expect("the box");
+    let left = rep
+        .black_box
+        .as_ref()
+        .unwrap()
+        .outline
+        .iter()
+        .map(|p| p.0)
+        .min()
+        .unwrap();
+    let page = s.canvas().unwrap().page();
+    page.entities
+        .iter()
+        .filter(|(e, _)| e.0 == rep.id)
+        .map(|(_, r)| {
+            let p = page.snapper.sheet_to_page((r.min().x.0, r.min().y.0));
+            let q = page.snapper.sheet_to_page((r.max().x.0, r.max().y.0));
+            [p.0.min(q.0), p.1.min(q.1), p.0.max(q.0), p.1.max(q.1)]
+        })
+        .filter(|r| r[2] <= left)
+        .collect()
+}
+
+#[test]
+fn the_through_route_passes_a_black_box_whose_caption_stands_beside_the_line() {
+    let tmp = Tmp::new("c39-box-beside");
+    let mut s = circuit(&tmp, (60, 40));
+    let caption = black_box_caption(&mut s, (68, 34), (72, 40));
+    let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
+    let x = switch.at.0;
+    let g = page_point(&s, (1, 0)).0 - page_point(&s, (0, 0)).0;
+    // The case: the caption stands level with the run, within two grid steps of it, not on it.
+    assert_eq!(caption.len(), 3, "tag, part number, manufacturer");
+    assert!(
+        caption
+            .iter()
+            .any(|r| r[1] < coil.at.1 && r[3] > switch.at.1 && r[0] - x < 2 * g),
+        "beside the line: {caption:?}"
+    );
+    assert!(caption.iter().all(|r| r[0] > x), "{caption:?}");
+    let before = tables(&s);
+    let rev = s.revision();
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, switch.at, false);
+    click(&mut s, coil.at, false);
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    assert_eq!(
+        new_ends(&before, &s),
+        [pair("-103S1:14", "-X1031:70/b"), pair("-X1031:70/a", "-103K1:A1")],
+        "through the terminal in line"
+    );
+    for c in new_connections(&before, &tables(&s)) {
+        assert!(c.polyline.iter().all(|p| p.0 == x), "straight: {:?}", c.polyline);
+    }
+    done(&mut s, "edit.undo", json!({}));
+    assert!(new_ends(&before, &s).is_empty(), "one undo step removes both");
+}
+
+#[test]
+fn a_black_box_caption_on_the_line_turns_the_through_route_away() {
+    let tmp = Tmp::new("c39-box-on");
+    let mut s = circuit(&tmp, (60, 40));
+    let caption = black_box_caption(&mut s, (66, 36), (70, 42));
+    let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
+    let x = switch.at.0;
+    // The case: a caption line crosses the straight run between the terminal and the coil.
+    assert!(
+        caption
+            .iter()
+            .any(|r| r[0] < x && x < r[2] && r[1] < coil.at.1 && r[3] > cp(&s, "-X1031:70/a").at.1),
+        "on the line: {caption:?}"
+    );
+    let before = tables(&s);
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, switch.at, false);
+    click(&mut s, coil.at, false);
+    let new = new_connections(&before, &tables(&s));
+    assert_eq!(
+        new_ends(&before, &s),
+        [pair("-103S1:14", "-103K1:A1")],
+        "the router's route"
+    );
+    // It runs through no caption text.
+    let line = &new[0].polyline;
+    for w in line.windows(2) {
+        let (a, b) = (w[0], w[1]);
+        let (x0, x1, y0, y1) = (a.0.min(b.0), a.0.max(b.0), a.1.min(b.1), a.1.max(b.1));
+        for r in &caption {
+            assert!(
+                !(x0 < r[2] && r[0] < x1.max(x0 + 1) && y0 < r[3] && r[1] < y1.max(y0 + 1)),
+                "{line:?} through {r:?}"
+            );
+        }
+    }
+    assert!(cp(&s, "-X1031:70/b").connections.is_empty());
+    assert!(cp(&s, "-X1031:70/a").connections.is_empty());
+}
+
+// FT-758: an interruption point one step inside the drawing area, leaving towards the sheet's edge (Golden A's
+// folio 101 feeds), still turns on the area's edge: the frame's inward step gives way on that side.
+#[test]
+fn an_interruption_point_at_the_area_edge_still_routes() {
+    let tmp = Tmp::new("c39-edge");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut s, "view.zoom_actual", json!({}));
+    let area = ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("the drawing area");
+    let (from, to) = (cp(&s, "J-E-206-L"), cp(&s, "1X1:1/b"));
+    let g = page_point(&s, (1, 0)).0 - page_point(&s, (0, 0)).0;
+    // The case: one step inside the area's left edge, leaving left.
+    assert_eq!(from.at.0, area[0] + g);
+    let before = tables(&s);
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, from.at, false);
+    let q = s.canvas().unwrap().page().snapper.page_to_sheet(to.at);
+    done(&mut s, "canvas.pointer", at(q, json!({})));
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    assert!(!s.tool_hint().contains("drawn direct"), "{}", s.tool_hint());
+    click(&mut s, to.at, false);
+    let new = new_connections(&before, &tables(&s));
+    assert_eq!(new.len(), 1);
+    let line = &new[0].polyline;
+    assert!(line.iter().all(|p| p.0 >= area[0]), "{line:?}");
+}
+
+// FT-758: the frame outside the drawing area (the header bands, the title block and its fields) is an obstacle to
+// the router, its edge grown inward by a grid step as a box's outline is.
+#[test]
+fn a_wire_keeps_out_of_the_title_block() {
+    let tmp = Tmp::new("c39-frame");
+    let mut s = circuit(&tmp, (60, 40));
+    let area = ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("the drawing area");
+    // Folio 103's drawing area ends at grid row 66; a black box reaching down to a step above it leaves no way
+    // round below it inside the area.
+    assert_eq!(page_point(&s, (0, 66)).1, area[3]);
+    black_box_caption(&mut s, (70, 54), (80, 65));
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        (64, 56),
+    );
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        (88, 56),
+    );
+    let (a, b) = (cp(&s, "-103K2:A2"), cp(&s, "-103K3:A2"));
+    let before = tables(&s);
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, a.at, false);
+    click(&mut s, b.at, false);
+    assert_eq!(new_ends(&before, &s), [pair("-103K2:A2", "-103K3:A2")]);
+    let new = new_connections(&before, &tables(&s));
+    let line = &new[0].polyline;
+    assert!(
+        line.iter()
+            .all(|p| area[0] < p.0 && p.0 < area[2] && area[1] < p.1 && p.1 < area[3]),
+        "inside the drawing area {area:?}: {line:?}"
+    );
+    assert!(
+        line.iter().any(|p| p.1 < page_point(&s, (0, 54)).1),
+        "over the box: {line:?}"
+    );
+}
