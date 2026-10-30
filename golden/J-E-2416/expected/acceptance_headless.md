@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-94 entries: 88 pass, 0 fail, 0 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+101 entries: 95 pass, 0 fail, 0 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -78,12 +78,17 @@
 | D-11 | an empty terminal designation is rejected (parameter layer or invariant) | pass | terminals\|-X1031:8: designation `` is refused by the parameter layer (InvalidParams at /value) |
 | D-12 | a duplicate designation is rejected by the invariant | pass | terminals\|-X1031:3: designation `4` is refused by the prevent rule EW-TERM-002 |
 | D-12 | swapping two designations in one transaction is accepted | pass | one terminal.designate transaction swaps -X1031:3 and -X1031:4 (one undo step); EW-TERM-002 accepts the final state |
+| D-13 | T55 and S56 switch the neutral: EW-POT-013 reports both (EF-01) | pass | EW-POT-013 reports T55 and S56 as errors (EF-01; the unreported 2-pole switch in L and N is a table test of the rule, the A-R rewiring is not a fixture yet); e.g. "S56 switches the neutral N-55 → N-55S; load E56 stays connected to L-55." |
 | D-14 | the bus port prints "3-B2", never "3-B0" | pass | -201U1 prints "∞ 3-B2, 106-G3" |
 | D-14 | forcing an anchor that leaves the bus port's graphics reports "3-B0: empty cell" | pass | Golden A reports none; a named anchor two columns left of the bus port's graphics makes -201U1 print "∞ 3-B0, 106-G3" (no other cross-reference text changes) and EW-CORE-053 report "3-B0: empty cell" (warning); its quick fix "anchor at the graphics centre" restores "∞ 3-B2, 106-G3" |
+| D-15 | a TBD channel address is an open item that blocks release (EW-CORE-044) | pass | Golden A is clean; a channel address set to TBD makes EW-CORE-044 report one error, "=P01+J-E-2416-201U4: the address of channel 5 is TBD; enter it before release", and the release check exits 1 (EF-03, EW-BUS-001 on the DP station address, and EF-16 come with WP-S1.21) |
+| D-16 | the FE pins fed from PE are reported (EW-POT-003, EF-10) | pass | EW-POT-003 reports -201U1:3 and -202U1:3 as warnings (EF-10; EW-PLC-013 supersedes it at 1.0); e.g. "-201U1:3 has the role FE and is wired to the PE potential PE; declare an FE–PE bond or connect it to functional earth" |
 | D-17 | core colour BN is printed, never BR | pass | folio 906 prints core colour BN and no BR |
 | D-17 | strict import rejects "BR"; lenient import keeps it as a foreign code with the quick fix "use BN" | pass | strict import refuses "BR" (EW-IMP-002, EW-CORE-031); lenient keeps it as a foreign code with EW-IMP-008 and the quick fix "use BN" (fields.set {"kind":"conductor","path":"colour","targets":["bb5f3590-028d-53c1-88d3-ab6d802a2bb7"],"value":["BN"]}), which the session applies: the core is BN |
 | D-18 | the typed ratings and manufacturer names print on folios 101 and 102 | pass | all six values print |
+| D-19 | the supply without a cable and -3W1 without a length are reported (EF-07, EF-08) | pass | EW-CORE-034 reports +J-E-206 → 1X1 (EF-07); e.g. "the external connection +J-E-206 → 1X1 has no cable: wires 101.1, 101.2, 101.3 are not a cable core; add the cable and assign its cores"; EW-CORE-033 reports -3W1 as an error (EF-08); e.g. "=P01+J-E-2416-3W1 has no routed, manual or part length"; the release check exits 1 |
 | D-20 | W13/W14 are a star at F55:2, W7/W8 a chain on -101F1:1 | pass | folio 907 prints W13 "101-C11 star at F55:2", W14 "101-C11 star at F55:2", W7 "chain on -101F1:1", W8 "chain on -101F1:1", W20 "102-C6 chain on -102F1:1", W21 "102-C6 chain on -102F1:1", W24 "102-D7 chain on -102F1:2", W25 "102-D7 chain on -102F1:2", W22 "102-D5 star at -102G1:−#1", W27 "102-D5 star at -102G1:−#1; IP PE-0VDC", W23 "102-D6 star at -102G1:−#2", W26 "102-D6 star at -102G1:−#2; IP 0VDC" (the drawn dots and bevels are not checked by this entry) |
+| D-21 | clearing rail_bonded on -X1032 isolates its PE (EW-POT-008, the MVP part) | pass | Golden A is clean (1X1:PE and -X1032 share one PE potential); clearing rail_bonded on -X1032 makes EW-POT-008 report one warning: "+J-E-2416 holds 2 PE potentials: PE, PE-1.1; join them through a bonded rail or a PE wire" |
 | D-22 | the 0 V to PE connection is the bond B1 | pass | the model holds exactly one bond, B1 (the connectivity test bond_b1_links_0v_and_pe checks its ends) |
 | D-22 | replacing B1 by a plain wire is reported (EW-POT-001) | pass | Golden A is clean; without B1, W27 joins 0V and PE and EW-POT-001 reports 1 type conflict(s) |
 | D-22 | a PELV potential without exactly one 0 V-PE bond is reported | pass | Golden A is clean; without B1 EW-POT-002 reports one error: "PELV potential 0V has no 0 V–PE bond; a PELV circuit needs exactly one (declare the bond on the 0 V–PE wire)" |
@@ -93,8 +98,10 @@
 | D-30 | the title block binds the end user | pass | all 36 title blocks print "End user: <end user>" |
 | D-30 | the cover binds the customer | pass | the cover prints <customer> in "Company / Customer" and <end user> in "End User"; renaming the customer changes only the customer cell, renaming the end user changes the "End User" cell and the title block |
 | D-33 | "SK 3110.000" keeps its space and physical page 6 is labelled "101" | pass | both hold |
+| D-31 | the 3.70 pt styles cp.small and marker are reported (EW-CORE-061, EF-12) | pass | EW-CORE-061 reports the styles cp.small and marker (EF-12); e.g. "text style cp.small prints with a cap height of 0.94 mm, below the minimum of 1.20 mm" |
 | D-35 | BOM descriptions per §14, ratings only at symbols | pass | with the 1.0 content enabled, EW-CORE-065 reports no part description of Golden A (EF-25): the descriptions of §14.1 hold no ratings, which the technical data carries and the symbols print (D-18); the MVP schemes do not run it; the 27-row parts list is D-04 |
 | D-36 | assembly rows A1 and A2, order code on folio 3 | pass | rows A1 and A2 replace rows 16-21 (assembly export) and folio 3 prints order code 1 "51E-F13GCQP-D+H2GG" from -201U1's assembly aspect |
 | D-37 | profiles name their basis; the cover prints it | pass | the colour profile's basis is company_convention with DBU declared a company code on BU; the cover prints "IEC60757 / EN60204-1" and keeps the basis note as metadata (U-35) |
+| D-38 | the 1.5 mm² PE wire W6 is reported; at 2.5 mm² it clears (EW-POT-006, EF-06) | pass | EW-POT-006 reports W6 (101.8) as an error (EF-06); e.g. "PE wire 101.8 has 1.5 mm², below the 2.5 mm² required for the 2.5 mm² line conductors at 1X1 (the sizing table is not verified against the standard)"; W6 at 2.5 mm² clears it |
 | D-41 | one assembly -201U1 with children on both pages, break marks | pass | -201U1 is one assembly (order codes 1 and 2 covering the head, its 11 children on 201 and 202 and the 28 valves once each); break marks generated right after -201U9 on 201 and left before -202U1 on 202 |
 | D-42 | one strip -X1031 with segments at 103-A3 and 103-A10 | pass | one device -X1031 (of 3 strips) with segments at 103-A3 and 103-A10 (the single BOM row is part of D-04) |

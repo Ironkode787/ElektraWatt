@@ -101,13 +101,14 @@ fn pg1_the_catalogue_is_the_expected_one() {
         );
     }
     // A reserved, a library and an unknown kind have none.
-    assert!(field_catalogue("waiver").is_none());
+    assert!(field_catalogue("comment").is_none());
     assert!(field_catalogue("part").is_none());
     assert!(field_catalogue("macro").is_none());
     assert!(field_catalogue("manufacturer").is_none());
     assert!(field_catalogue("no_such_kind").is_none());
-    // 22 since `macro_instance` turned implemented (WP-S1.19 part 1).
-    assert_eq!(catalogue_kinds().count(), 22);
+    // 23 since `waiver` turned implemented (WP-S1.16 part 5; its members are read-only, the commands
+    // check.waive and check.unwaive write it).
+    assert_eq!(catalogue_kinds().count(), 23);
 }
 
 #[test]

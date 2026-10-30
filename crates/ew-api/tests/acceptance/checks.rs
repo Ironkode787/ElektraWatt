@@ -1857,6 +1857,11 @@ fn defects(r: &mut Runner) {
         "swapping two designations in one transaction is accepted",
         d12_swap,
     );
+    r.entry(
+        "D-13",
+        "T55 and S56 switch the neutral: EW-POT-013 reports both (EF-01)",
+        d13,
+    );
     r.entry("D-14", "the bus port prints \"3-B2\", never \"3-B0\"", |c| {
         let q = c.memoised.query();
         let text = q
@@ -1873,6 +1878,16 @@ fn defects(r: &mut Runner) {
         "D-14",
         "forcing an anchor that leaves the bus port's graphics reports \"3-B0: empty cell\"",
         d14_anchor,
+    );
+    r.entry(
+        "D-15",
+        "a TBD channel address is an open item that blocks release (EW-CORE-044)",
+        d15,
+    );
+    r.entry(
+        "D-16",
+        "the FE pins fed from PE are reported (EW-POT-003, EF-10)",
+        d16,
     );
     r.entry("D-17", "core colour BN is printed, never BR", |c| {
         let q = c.rows_q();
@@ -1914,9 +1929,19 @@ fn defects(r: &mut Runner) {
         },
     );
     r.entry(
+        "D-19",
+        "the supply without a cable and -3W1 without a length are reported (EF-07, EF-08)",
+        d19,
+    );
+    r.entry(
         "D-20",
         "W13/W14 are a star at F55:2, W7/W8 a chain on -101F1:1",
         d20,
+    );
+    r.entry(
+        "D-21",
+        "clearing rail_bonded on -X1032 isolates its PE (EW-POT-008, the MVP part)",
+        d21,
     );
     r.entry("D-22", "the 0 V to PE connection is the bond B1", |c| {
         let q = c.oracle.query();
@@ -1983,6 +2008,11 @@ fn defects(r: &mut Runner) {
             }
         },
     );
+    r.entry(
+        "D-31",
+        "the 3.70 pt styles cp.small and marker are reported (EW-CORE-061, EF-12)",
+        d31,
+    );
     r.entry("D-35", "BOM descriptions per §14, ratings only at symbols", d35);
     r.entry("D-36", "assembly rows A1 and A2, order code on folio 3", |c| {
         // Rows A1 and A2 (the export, §14.2) and the order code of the CPX terminal on folio 3 (§11.1: the text
@@ -2035,6 +2065,11 @@ fn defects(r: &mut Runner) {
             fail(wrong.join("; "))
         }
     });
+    r.entry(
+        "D-38",
+        "the 1.5 mm² PE wire W6 is reported; at 2.5 mm² it clears (EW-POT-006, EF-06)",
+        d38,
+    );
     r.entry(
         "D-41",
         "one assembly -201U1 with children on both pages, break marks",
@@ -3742,6 +3777,233 @@ fn open_findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
         .into_iter()
         .filter(|f| f.rule == rule && f.is_open())
         .collect()
+}
+
+/// The pre-delivery release report of Golden A with its profiles, computed once per process (the AC-24 rows of
+/// WP-S1.16 part 5 read it; the batch is the same for every run of the runner).
+fn golden_report(c: &Ctx) -> &'static ew_api::checks::CheckReport {
+    static REPORT: std::sync::OnceLock<ew_api::checks::CheckReport> = std::sync::OnceLock::new();
+    REPORT.get_or_init(|| {
+        golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p))
+            .check(&PRE_DELIVERY, CheckMode::Release)
+    })
+}
+
+/// The open findings of `rule` in [`golden_report`], as `severity subject`, sorted.
+fn golden_rows(c: &Ctx, rule: &str) -> Vec<String> {
+    let mut out: Vec<String> = golden_report(c)
+        .findings
+        .iter()
+        .filter(|f| f.rule == rule && f.is_open())
+        .map(|f| format!("{} {}", f.severity, f.subject))
+        .collect();
+    out.sort();
+    out
+}
+
+/// One AC-24 comparison of the open findings of `rule` on Golden A with doc 20 §18.1 (`want` as `severity
+/// subject`, any order); on a match, `why` with the first message.
+fn golden_ef(c: &Ctx, rule: &str, want: &[&str], why: &str) -> Result<String, Outcome> {
+    let got = golden_rows(c, rule);
+    let mut want: Vec<String> = want.iter().map(|w| (*w).to_owned()).collect();
+    want.sort();
+    if got != want {
+        return Err(fail(format!(
+            "{rule} reports {}, expected {}",
+            list(got, 12),
+            list(want, 12)
+        )));
+    }
+    let first = golden_report(c)
+        .findings
+        .iter()
+        .find(|f| f.rule == rule && f.is_open())
+        .map(|f| f.message.clone())
+        .unwrap_or_default();
+    Ok(format!("{why}; e.g. \"{first}\""))
+}
+
+/// D-13 (doc 20 §19): EF-01, EW-POT-013 on T55 and S56 as errors. The A-R rewiring is not a fixture yet; the
+/// 2-pole switch in L and N that is not reported is a table test of the rule.
+fn d13(c: &Ctx) -> Outcome {
+    match golden_ef(
+        c,
+        "EW-POT-013",
+        &["error T55", "error S56"],
+        "EW-POT-013 reports T55 and S56 as errors (EF-01; the unreported 2-pole switch in L and N is a table test of the rule, the A-R rewiring is not a fixture yet)",
+    ) {
+        Ok(why) => pass(why),
+        Err(o) => o,
+    }
+}
+
+/// D-15, the MVP part: a `Tbd` channel address is a typed open item; EW-CORE-044 reports it as an error in
+/// release mode. EF-03 (EW-BUS-001 on the DP station address) and EF-16 (EW-BUS-004) come with WP-S1.21.
+fn d15(c: &Ctx) -> Outcome {
+    let before = golden_rows(c, "EW-CORE-044");
+    if !before.is_empty() {
+        return fail(format!(
+            "Golden A already reports EW-CORE-044: {}",
+            list(before, 3)
+        ));
+    }
+    let mut done = false;
+    let s = golden_common::session_with(&c.batch, |p, records| {
+        golden_common::with_profiles(p);
+        for r in records.iter_mut() {
+            if let Record::Channel(ch) = r
+                && !done
+            {
+                ch.address = ew_schema::AddrSpec::Tbd;
+                done = true;
+            }
+        }
+    });
+    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
+    let open: Vec<&ew_api::checks::Finding> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-CORE-044" && f.is_open())
+        .collect();
+    match open.as_slice() {
+        [f] if f.severity == ew_api::checks::Severity::Error
+            && f.message.contains("is TBD; enter it before release")
+            && report.exit_code() == 1 =>
+        {
+            pass(format!(
+                "Golden A is clean; a channel address set to TBD makes EW-CORE-044 report one error, \"{}\", and the release check exits 1 (EF-03, EW-BUS-001 on the DP station address, and EF-16 come with WP-S1.21)",
+                f.message
+            ))
+        }
+        other => fail(format!(
+            "with a TBD address EW-CORE-044 reports {}",
+            list(other.iter().map(|f| format!("{} {}", f.severity, f.message)), 3)
+        )),
+    }
+}
+
+/// D-16: EF-10, EW-POT-003 on the CPX pins -201U1:3 and -202U1:3 (FE in the part data, fed from PE).
+fn d16(c: &Ctx) -> Outcome {
+    match golden_ef(
+        c,
+        "EW-POT-003",
+        &["warning -201U1:3", "warning -202U1:3"],
+        "EW-POT-003 reports -201U1:3 and -202U1:3 as warnings (EF-10; EW-PLC-013 supersedes it at 1.0)",
+    ) {
+        Ok(why) => pass(why),
+        Err(o) => o,
+    }
+}
+
+/// D-19: EF-07 (EW-CORE-034, the external connection +J-E-206 → 1X1 without a cable) and EF-08 (EW-CORE-033,
+/// -3W1 without a length, an error that blocks release).
+fn d19(c: &Ctx) -> Outcome {
+    let ef07 = match golden_ef(
+        c,
+        "EW-CORE-034",
+        &["warning +J-E-206 → 1X1"],
+        "EW-CORE-034 reports +J-E-206 → 1X1 (EF-07)",
+    ) {
+        Ok(why) => why,
+        Err(o) => return o,
+    };
+    let ef08 = match golden_ef(
+        c,
+        "EW-CORE-033",
+        &["error =P01+J-E-2416-3W1"],
+        "EW-CORE-033 reports -3W1 as an error (EF-08)",
+    ) {
+        Ok(why) => why,
+        Err(o) => return o,
+    };
+    if golden_report(c).exit_code() != 1 {
+        return fail("the release check of Golden A does not exit 1");
+    }
+    pass(format!("{ef07}; {ef08}; the release check exits 1"))
+}
+
+/// D-21, the MVP part: rail-bonded terminals join the location's PE node; clearing `rail_bonded` on the -X1032
+/// terminals cuts their PE off, so +J-E-2416 holds two PE potentials and EW-POT-008 warns once (the continuity
+/// through carriers, EW-POT-007, is 1.0).
+fn d21(c: &Ctx) -> Outcome {
+    let before = golden_rows(c, "EW-POT-008");
+    if !before.is_empty() {
+        return fail(format!(
+            "Golden A already reports EW-POT-008: {}",
+            list(before, 3)
+        ));
+    }
+    let strip = c.ids["devices|-X1032"].clone();
+    let s = golden_common::session_with(&c.batch, |p, records| {
+        golden_common::with_profiles(p);
+        for r in records.iter_mut() {
+            if let Record::Device(d) = r
+                && let Some(t) = d.aspects.terminal.as_mut()
+                && t.strip.to_string() == strip
+            {
+                t.rail_bonded = false;
+            }
+        }
+    });
+    let islands = open_findings(&s, "EW-POT-008");
+    match islands.as_slice() {
+        [f] if f.subject == "+J-E-2416" && f.message.starts_with("+J-E-2416 holds 2 PE potentials: ") => {
+            pass(format!(
+                "Golden A is clean (1X1:PE and -X1032 share one PE potential); clearing rail_bonded on -X1032 makes EW-POT-008 report one warning: \"{}\"",
+                f.message
+            ))
+        }
+        other => fail(format!(
+            "without rail bonding EW-POT-008 reports {}",
+            list(other.iter().map(|f| format!("{}: {}", f.subject, f.message)), 3)
+        )),
+    }
+}
+
+/// D-31: EF-12, EW-CORE-061 on the two text styles below the minimum printed height.
+fn d31(c: &Ctx) -> Outcome {
+    match golden_ef(
+        c,
+        "EW-CORE-061",
+        &["warning cp.small", "warning marker"],
+        "EW-CORE-061 reports the styles cp.small and marker (EF-12)",
+    ) {
+        Ok(why) => pass(why),
+        Err(o) => o,
+    }
+}
+
+/// D-38: EF-06, EW-POT-006 on W6 (numbered 101.8); W6 at 2.5 mm² clears it.
+fn d38(c: &Ctx) -> Outcome {
+    let ef06 = match golden_ef(
+        c,
+        "EW-POT-006",
+        &["error 101.8"],
+        "EW-POT-006 reports W6 (101.8) as an error (EF-06)",
+    ) {
+        Ok(why) => why,
+        Err(o) => return o,
+    };
+    let w6 = c.ids["connections|W6"].clone();
+    let s = golden_common::session_with(&c.batch, |p, records| {
+        golden_common::with_profiles(p);
+        for r in records.iter_mut() {
+            if let Record::Connection(w) = r
+                && w.id.to_string() == w6
+            {
+                w.overrides.csa = Some(ew_schema::Csa::Mm2("2.5".parse().expect("a decimal")));
+            }
+        }
+    });
+    let left = open_findings(&s, "EW-POT-006");
+    if left.is_empty() {
+        pass(format!("{ef06}; W6 at 2.5 mm² clears it"))
+    } else {
+        fail(format!(
+            "W6 at 2.5 mm² still reports {}",
+            list(left.iter().map(|f| f.message.clone()), 2)
+        ))
+    }
 }
 
 /// The frozen tags of doc 20 §18.1 EF-15, by device key.

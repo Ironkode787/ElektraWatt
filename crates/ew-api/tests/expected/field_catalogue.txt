@@ -491,3 +491,11 @@ revision source_ref.key text other read-only:no-command
 revision source_ref.lineage uuid other read-only:no-command
 revision state enum(open|released|withdrawn) identity read-only:no-command
 revision withdraws uuid? other read-only:no-command
+waiver $v int[0..65535] identity read-only:identity
+waiver author ident? other read-only:no-command
+waiver date text? other read-only:no-command
+waiver id uuid identity read-only:identity
+waiver reason mltext other read-only:no-command
+waiver rule ident other read-only:no-command
+waiver target group other read-only:no-command
+waiver target.finding text? other read-only:no-command
