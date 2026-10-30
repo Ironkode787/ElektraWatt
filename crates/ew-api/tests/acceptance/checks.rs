@@ -3690,7 +3690,7 @@ fn ac14_shuffle(c: &Ctx) -> Outcome {
     };
     if wrong.is_empty() {
         pass(format!(
-            "on the platform of this run, the model loaded with its records shuffled (seed {SHUFFLE_SEED:#x}) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the {} SVG files, the {} page text CSVs, the {} report CSVs and the {saved} files a save writes (JSONL and manifest) of the file-order load byte for byte (gate platform Linux; across Windows, macOS and Linux at MVP)",
+            "on the platform of this run, the model loaded with its records shuffled (seed {SHUFFLE_SEED:#x}) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the {} SVG files, the {} page text CSVs, the {} report CSVs and the {saved} files a save writes (JSONL and manifest) of the file-order load byte for byte (gate platform Linux; across Windows and Linux at MVP)",
             c.pdf_pages.len(),
             c.text.len(),
             ROW_PAIRS.len(),
