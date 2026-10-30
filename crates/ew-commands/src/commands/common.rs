@@ -170,3 +170,52 @@ pub(crate) fn yes() -> bool {
 pub(crate) fn one() -> u32 {
     1
 }
+
+/// The CP indices `func` has on `device` by the rule `ew_derive::FunctionCps` derives (doc 03 §7; FT-655): a
+/// template-origin function's from its part's pattern (`ew_schema::template_entry_of`, `TemplateFn::function_cps`, the
+/// entries the pattern holds); else, for a black box, the CP pattern of the device's first part use that has one
+/// (FX38a: the generic black-box FnDef defines no CPs, the card's part does); else its FnDef copy's. The one accessor
+/// the commands use (join, `plc.bind_channel`), so their CP checks agree with the CPs the pages draw.
+pub(crate) fn function_cp_indices(
+    tx: &TxBuilder<'_>,
+    func: &Function,
+    device: &ew_schema::Device,
+) -> std::collections::BTreeSet<u16> {
+    use ew_schema::{FnDef, FunctionKind, LibCopy, Part, TemplateFn, template_entry_of};
+    let def: Vec<u16> = tx
+        .get::<LibCopy<FnDef>>(func.def)
+        .map(|c| c.item.cps.iter().map(|d| d.idx).collect())
+        .unwrap_or_default();
+    let parts: Vec<(Id<Part>, std::sync::Arc<LibCopy<Part>>)> = device
+        .parts
+        .iter()
+        .filter_map(|u| tx.get::<LibCopy<Part>>(u.part.copy).map(|c| (u.part.copy, c)))
+        .collect();
+    let names_def = |t: &TemplateFn| {
+        let copy: Id<FnDef> = ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
+        copy == func.def
+    };
+    let template = template_entry_of(
+        parts.iter().map(|(id, c)| (*id, &c.item)),
+        func.template_entry,
+        names_def,
+    );
+    if let Some((_, part, n)) = template {
+        let pattern: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();
+        let cps: std::collections::BTreeSet<u16> = part.function_template[n]
+            .function_cps(&pattern, &def)
+            .into_iter()
+            .filter(|t| pattern.contains(&t.pattern))
+            .map(|t| t.idx)
+            .collect();
+        if !cps.is_empty() {
+            return cps;
+        }
+    }
+    if matches!(func.kind, FunctionKind::BlackBox) {
+        if let Some((_, part)) = parts.iter().find(|(_, p)| !p.item.cp_pattern.is_empty()) {
+            return part.item.cp_pattern.iter().map(|c| c.idx).collect();
+        }
+    }
+    def.into_iter().collect()
+}

@@ -174,12 +174,34 @@ impl Command for BindChannel {
                     channel.module
                 ));
             }
-            let def = tx.require::<LibCopy<FnDef>>(f.def)?;
-            if def.item.cps.get(&idx).is_none() {
-                return tx.reject(format!(
-                    "function {function} has no CP {idx} (its FnDef copy {} defines the CPs)",
-                    f.def
-                ));
+            // FX38a: the CPs the function has as the pages draw them (`function_cps`): a black-box card's come from
+            // its part's CP pattern, not from the generic black-box FnDef, which defines none
+            let device = match f.device {
+                Some(d) => tx.get::<Device>(d),
+                None => None,
+            };
+            let has = match &device {
+                Some(d) => super::common::function_cp_indices(tx, &f, d).contains(&idx),
+                None => tx
+                    .require::<LibCopy<FnDef>>(f.def)?
+                    .item
+                    .cps
+                    .get(&idx)
+                    .is_some(),
+            };
+            if !has {
+                let source = if device.as_ref().is_some_and(|d| {
+                    matches!(f.kind, ew_schema::FunctionKind::BlackBox)
+                        && d.parts.iter().any(|u| {
+                            tx.get::<LibCopy<Part>>(u.part.copy)
+                                .is_some_and(|p| !p.item.cp_pattern.is_empty())
+                        })
+                }) {
+                    "its device's part pattern defines the CPs of a black box".to_owned()
+                } else {
+                    format!("its FnDef copy {} or its part's template defines the CPs", f.def)
+                };
+                return tx.reject(format!("function {function} has no CP {idx} ({source})"));
             }
             // the channels that hold the CP: an index lookup, not a scan of the channel table (FT-319)
             let others: Vec<Id<Channel>> = tx

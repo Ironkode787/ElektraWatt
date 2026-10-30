@@ -11,7 +11,6 @@ use ew_model::EndpointKey;
 use ew_schema::{
     Bond, Channel, Connection, ContactKind, Device, DeviceLink, DeviceState, Endpoint, FnDef, FnRole,
     Function, FunctionKind, Kind, LibCopy, Part, PotentialDef, Representation, TagScheme, TemplateFn,
-    template_entry_of,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -63,33 +62,6 @@ pub struct JoinDevice {
 /// The FnDef copy a template entry names.
 fn entry_def(t: &TemplateFn) -> Id<FnDef> {
     ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid())
-}
-
-/// The CP indices `func` has on `device` by the rule `function_cps` derives (`ew_schema::template_entry_of`,
-/// `TemplateFn::function_cps`, FT-655): a template-origin function's from its part's pattern, else its FnDef's.
-fn cp_indices(tx: &TxBuilder<'_>, func: &Function, device: &Device) -> BTreeSet<u16> {
-    let def: Vec<u16> = tx
-        .get::<LibCopy<FnDef>>(func.def)
-        .map(|c| c.item.cps.iter().map(|d| d.idx).collect())
-        .unwrap_or_default();
-    let parts: Vec<(Id<Part>, std::sync::Arc<LibCopy<Part>>)> = device
-        .parts
-        .iter()
-        .filter_map(|u| tx.get::<LibCopy<Part>>(u.part.copy).map(|c| (u.part.copy, c)))
-        .collect();
-    let template = template_entry_of(
-        parts.iter().map(|(id, c)| (*id, &c.item)),
-        func.template_entry,
-        |t| entry_def(t) == func.def,
-    );
-    if let Some((_, part, n)) = template {
-        let pattern: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();
-        let cps = part.function_template[n].function_cps(&pattern, &def);
-        if !cps.is_empty() {
-            return cps.into_iter().map(|c| c.idx).collect();
-        }
-    }
-    def.into_iter().collect()
 }
 
 /// The non-default members of the source device that its removal drops, in record order, as the user reads them. Its
@@ -318,7 +290,7 @@ impl Command for JoinDevice {
         };
         // Every attached CP must exist on the new function (the same FnDef, so the indices line up unless a part's
         // template draws other CPs).
-        let now = cp_indices(tx, &after, &target);
+        let now = crate::commands::common::function_cp_indices(tx, &after, &target);
         let mut attached: BTreeSet<u16> = BTreeSet::new();
         for c in tx.connections_of_function(function) {
             if let Some(c) = tx.get::<Connection>(c) {
@@ -331,7 +303,7 @@ impl Command for JoinDevice {
                 }
             }
         }
-        let fn_cps = cp_indices(tx, &f, &source_device);
+        let fn_cps = crate::commands::common::function_cp_indices(tx, &f, &source_device);
         for i in &fn_cps {
             let at = EndpointKey::Cp(function, *i);
             if !tx.potential_defs_at(at).is_empty()

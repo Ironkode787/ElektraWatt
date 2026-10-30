@@ -382,3 +382,48 @@ fn pw8_twice_run_determinism() {
     let (b, ..) = three(18);
     assert!(a.world().model.content_eq(&b.world().model));
 }
+
+/// The binding of a channel.
+fn binding(s: &Session, channel: Id<Channel>) -> Option<ew_schema::Endpoint> {
+    s.query().table::<Channel>().get(channel).expect("the channel").binding.clone()
+}
+
+/// FX38a (found by lane K38): `plc.bind_channel` checks the CP against the CPs the function has as the pages draw
+/// them. A black-box card's CPs come from its part's pattern (the generic black-box FnDef defines none), so binding
+/// channel 2 of `EW-GEN-DO-1` to the pin of channel 5 moves the binding and unbinds channel 5 with the FR-PLC-005
+/// notice; an index the card does not have is refused, naming the part pattern as where its CPs come from.
+#[test]
+fn bind_channel_takes_a_pin_of_a_black_box_card() {
+    let (mut s, _, _, dout) = three(23);
+    let ids = s.query().get::<ew_derive::ModuleChannelIds>(Id::from_uuid(dout));
+    let ch = |n: u16| ids.iter().find(|(m, _)| *m == n).map(|(_, id)| *id).expect("the channel");
+    let (ch2, ch5) = (ch(2), ch(5));
+    let Some(ew_schema::Endpoint::Cp(function, idx)) = binding(&s, ch5) else {
+        panic!("channel 5 is bound to its card pin")
+    };
+    let receipt = s
+        .execute(&AnyCommand {
+            name: "plc.bind_channel".into(),
+            params: json!({"channel": ch2.to_string(),
+                "endpoint": {"cp": {"function": function.to_string(), "idx": idx}}}),
+        })
+        .expect("a black-box pin binds");
+    assert_eq!(binding(&s, ch2), Some(ew_schema::Endpoint::Cp(function, idx)));
+    assert_eq!(binding(&s, ch5), None);
+    let notice = format!("channel {ch5} was bound to the same CP and is unbound (FR-PLC-005)");
+    assert!(
+        receipt.outcome.notices.contains(&notice),
+        "{:?}",
+        receipt.outcome.notices
+    );
+    let err = s
+        .execute(&AnyCommand {
+            name: "plc.bind_channel".into(),
+            params: json!({"channel": ch2.to_string(),
+                "endpoint": {"cp": {"function": function.to_string(), "idx": 999}}}),
+        })
+        .expect_err("no CP 999 on the card");
+    let err = format!("{err}");
+    assert!(err.contains("has no CP 999"), "{err}");
+    assert!(err.contains("part pattern"), "{err}");
+}
