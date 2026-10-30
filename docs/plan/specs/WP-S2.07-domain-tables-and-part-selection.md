@@ -5,7 +5,7 @@ the strip accessories and the bridge parts that close G-PP's H4 gap, terminal an
 the fallback bridge (1.4 pw, D4), part 2 the edit-cable table and the generic navigator row operations (0.6 pw, D3),
 part 3 the PLC navigator with drag-bind and the PLC grid (0.7 pw, D3), part 4 the part selection dialog and the part
 editor on WP-S1.19's catalogues (0.9 pw, D4); part 1 may run in cycle 34's later wave; parts 2 and 3 follow in any
-order; part 4 waits for WP-S1.19's catalogues · **Part 3 built in cycle 38** (lane D38, decision log ID-877; racks, bus ports, the safety and bus facets and four columns de-scoped, FT-737 to FT-739; PG2 on a starter project, FT-740) · **Date:** 2026-10-29 · **Work package:**
+order; part 4 waits for WP-S1.19's catalogues · **Part 3 built in cycle 38** (lane D38, decision log ID-877; racks, bus ports, the safety and bus facets and four columns de-scoped, FT-737 to FT-739; PG2 on a starter project, FT-740) · **Part 4 specified in cycle 39** (decision log ID-894; §9 closed to its decisions D16 to D24, §11.3's PS1 to PS10; split into part 4a, the part selection dialog and the part editor, 0.9 pw, first, and part 4b, FT-396's paste choice, 0.2 pw, after it; the package's PERT is exceeded by 0.2 pw, §14.1) · **Date:** 2026-10-29 · **Work package:**
 [WP-S2.07](../02-work-packages.md#wp-s207-domain-tables-strip-cable-and-plc-editors-part-selection) ·
 **Decision log:** ID-782 · **Part of:** ElektraWatt plan, specifications
 
@@ -486,24 +486,190 @@ facets 0.2, editors 0.05, tests 0.1.
 
 ## 9. Part 4: part selection and the part editor
 
-**Scope.** FR-PRT-015 and FR-PRT-022, FT-394 and FT-396, after WP-S1.19 delivers its catalogue search (system, company
-and user catalogues with FTS5) and its previewed update of embedded copies.
+**Scope.** FR-PRT-015 and FR-PRT-022, FT-394 and FT-396, FT-629's ruling and FT-444's ruling, on WP-S1.19's catalogue
+search and previewed update as built (its parts 2, 3 and 6: `Session::part_search`, `Session::assign_part`,
+`part.assign`, `library.update`, `Session::library_status`, the Libraries navigator). *Specified in cycle 39 (decision
+log ID-894)*: the outline of cycle 34 is closed below to its decisions D16 to D24, its public items, actions, strings
+and describe lines, and the acceptance table of §11.3. Part 4 runs as **part 4a** (the part selection dialog and the
+part editor, 0.9 pw, first) and **part 4b** (FT-396's paste choice, 0.2 pw, after part 4a; §14.1).
 
-- **Part selection dialog** (`part.choose`, opened from a device's or terminal's Parts row, a strip-editor Part or
-  Bridge part cell, and `strip.add_accessory`'s ambiguity): search over the project's copies and the catalogues, filters
-  by category (part kind) and by FnDef (parts whose function template declares the device's FnDef first), favourites
-  and recently used (per user, in the view state); choosing a catalogue part embeds its copy and sets the row in one
-  command (`library.embed` and the set as one `fields.set_many`-backed composite, or a new command decided at the part's
-  specification pass if no single command can). FR-PRT-015's acceptance: assigning a part to F55 offers the MCB 1P+N
-  parts first. The minimal chooser of cycle 33 and D7's choice list stay as the keyboard path.
-- **Part editor** (`part.edit`): a project part copy's fields with validation of the mandatory fields (manufacturer,
-  part number, unit) and of units, through a previewed command that edits the copy (FT-394); saving without a
-  manufacturer is refused with a message (FR-PRT-022).
-- **FT-396:** the three-way choice (update, adapt, keep both) when a fragment carries another version of a held copy.
-- FT-444 (black-box CPs) is ruled at this part's specification pass, because the part editor shows a part's CP pattern.
+**What exists (the base contract of part 4).** The Parts row's choice list (cycle 33, D7): the project's part copies,
+then the system libraries' parts the project does not hold (WP-S2.18 D6), as `<part number> (<manufacturer>)`; a
+system-library choice commits `part.assign` (`replace_all`, `Session::part_uses_assign`), any other `fields.set`. The
+strip editor's Part, Bridge part and accessory Part cells resolve held copies only (D7), and `strip.add_accessory`'s
+ambiguity opens the chooser list (16a §6.22). `Session::part_search` searches every installed tier (the compiled-in
+starter libraries included) by WP-S1.19 D6, with `held` filled from the project; `PartHit.compatible` is the
+category-level rule (first two category levels and the contact kind), so a 1P MCB is compatible with a 1P+N function
+(FT-629). `part.assign` carries the closure in `copies`, accepts a held copy with no `copies`, and refuses a held copy of
+another version. No command edits a part copy's content (FR-DEV-032's amendment, ID-598); a copy whose
+`meta.source` names `fork_of` is a local fork (`is_fork`, as built). `edit.paste` refuses a copy the project holds in
+another version ("update from library first", doc 06 §3.6 item 4 as built). Company libraries from the settings are not
+wired into the tiers (FT-754 (f)), so the fixture catalogues of §11.3 are user libraries under `EW_DATA_DIR`.
 
-**Acceptance (outline):** PS1 the F55 offer order, PS2 search and the filters on a fixture catalogue, PS3 favourites and
-recent, PS4 the part editor's refusals, PS5 FT-394's previewed edit, PS6 FT-396's three choices. **Size 0.9 pw.**
+### 9.1 Decisions of part 4
+
+Lead rulings of the specification pass, recorded under ID-894; the owner may reverse them. They do not reopen D1 to
+D15.
+
+| # | Decision | Reason and trade-off |
+|---|---|---|
+| D16 | **Choosing a part is `part.assign` for devices and `fields.set` with copies for strip cells; no new command for choosing.** The dialog commits, for a device or terminal target, one `part.assign` (WP-S1.19 D8) for a held copy (no `copies`) and a catalogue part (its closure in `copies`) alike: opened on a part use row `parts[i]` it is `replace` with `from` = that use's copy (on a multi-selection whose row varies, `replace_all`); opened with **Add part…** or on a device without part uses, `append`; on the strip editor's Part cell, `replace_all` on the marked terminal rows (the cell's compile of D7). For the strip editor's Bridge part and accessory Part cells, `Session::strip_edit`'s compile (D5, D6) is unchanged except that **`fields.set` and `fields.set_many` gain an optional `copies` member** (the library documents a value names that the project lacks), embedded in the same transaction exactly as `device.place` and `box.black` do since FT-656; a held copy of another version is refused at `/copies/<i>` ("update from library first") | One command per gesture and one undo step (ADR-0008); a log replays without a library (WP-S1.19 D7). `part.assign` already embeds and sets in one transaction, so a composite of `library.embed` and a set (§9's outline) is not needed; the `copies` member follows the FT-656 and FT-673 precedent instead of a second embedding step. The trade-off is one more optional member on the most used edit command |
+| D17 | **One offer list, ordered for the target (FT-629 ruled: two levels).** `Session::part_offers` merges the project's part copies and the catalogue hits, one row per `(library, item)` (a library item the project holds is shown once, as the held copy). Order: (1) when the target has a function (a device's main function, a terminal's function), the fit: **same FnDef** (the part's function template declares the function's FnDef item, the same library and item at any version) before **same category** (WP-S1.19 D6's rule, as built) before **other** (no template, or neither); (2) the rank tier (exact `pn_norm`, prefix, trigram, words; no text: 0), applied to project copies by the same `pn_norm` rules and a word match on manufacturer and description; (3) held before not held; (4) favourites, then recently used (D18); (5) the full-text score (catalogue hits; project copies 0); (6) natural part number, manufacturer, library ID, item ID. `FnCompat` gains `fndef: Option<(library, item)>` and `PartHit` gains `same_fndef: Option<bool>`; `compatible` keeps its meaning. **Filters:** the text; the kind; the category (first level, then the second); **Only parts that fit** (hides `other`; off by default); the view **All**, **In this project**, **Favourites**, **Recent**; **Show deprecated and withdrawn** (off; a deprecated row names its successor in the detail line, FR-PRT-034). The strip editor's cells have no function and preset the kind filter by D7's kinds (`end_bracket`; `marker`, `accessory`; `accessory`) | FR-PRT-015: "offers MCB 1P+N parts first" needs the 1P+N parts above the 1P ones, which the category rule cannot tell apart; the function's FnDef can, and §9's outline already named it ("parts whose function template declares the device's FnDef first"). Ordering instead of hiding keeps near matches one scroll away; the filter hides them on request. Golden A's copies carry no function template (the bootstrap writes templates for coils only), so on Golden A they rank as `other` |
+| D18 | **Favourites and recently used live in the user settings, not in the project.** `settings.toml` gains a `[parts]` table: `favourites`, the sorted `<library ID>/<item ID>` texts, and `recent`, most recent first, no duplicates, at most 20 (`MAX_RECENT_PARTS`). Only library items are kept (a project-local copy has no identity outside its project); a choice is recorded when its command commits; a favourite is toggled by `part.favourite`. Unknown keys of the table are kept, as the file's other tables | Doc 16 §2.5 keeps per-user data out of the project (FR-UI-033); favourites span projects, so the per-project `view.json` (not built) is the wrong home, and §9's "view state" is read as the user half of doc 16 §2.5. The order is the order of the user's choices, not a clock (NFR-REL-07), and the file is written sorted, so it is deterministic |
+| D19 | **The part selection dialog is a modal form dialog** (16a §6.12, 640 px; `Dialog::PartChoose`), titled by its target ("Choose a part for F55", "Choose a bridge part for -X1031 BR1", "Choose a part for the end bracket -X1031 20.1"): the search field (first focus), a filter row (kind, category, Only parts that fit, the four-way view as a segmented control, 16a §6.20, Show deprecated and withdrawn), the result list and a detail line for the active row (library and tier, version, status and successor, the template's function names), then **Choose** (Primary) and **Cancel**. Rows: part number in `type.body.strong`, manufacturer, description (elided), the kind word, a source badge ("In this project", else the library's name), a fit badge ("Fits F55's function", "Same category"; none for `other`), a favourite star (icon with the accessible name "Favourite"). Keys: typing edits the search, Up and Down move the active row, Enter chooses, Escape cancels. **Opened from:** the Parts row (its row menu's Choose part… and Add part…, and a trailing button on the row), the strip editor's Part, Bridge part and accessory Part cells (their row menu's Choose part…), and the last row of the accessory chooser list, "Search all parts…", which opens it with the kind preset. D7's choice list stays the keyboard path for held copies | Choosing a part blocks the edit it belongs to, so the dialog is modal (doc 16 §4.1); the 640-px form dialog is the existing pattern (WP-S2.17 part 4), so no new widget is made. The trade-off is a modal over the canvas, where doc 07 §5's part browser was a dock; a dock browser stays a follow-up |
+| D20 | **The part editor's command is `part.edit_copy`, `Bulk` and always previewed (FT-394).** For a **project-local copy** (`library_id` is the project ID, forks included) it rewrites the copy in place: the same copy ID, item ID and version, the item replaced, `sha256` recomputed. For a **copy from a library** it forks the item (doc 07 §3.1, "local edits fork the item"): a new project-local copy, `item_id` = the `fork` parameter, `id` = `v5(NS_LIBCOPY, project ‖ fork)`, the original's version, `meta.source` = `{"fork_of": {"library", "item", "version"}}` (the member `is_fork` reads, kept untyped in `extra`), and every reference to the original copy that `ew_model::LINKS` lists as a part-copy link (the part uses, a connection's `overrides.wire_part`, a strip accessory's `part`, and any other link to a part copy that the table names) re-pointed to the fork in the same transaction; the original copy stays, unused, until purged. The fork ID is minted by `Session::next_fork_item(copy)` as `v5(copy ID, "fork")`, skipping held items with a counter as `next_macro_instance` does, and is carried in the command, so a replay reproduces it. **Editable members:** `manufacturer`, `part_number`, `type_designation`, `order_number`, `gtin`, `description`, `kind`, `category`, `unit`, `tech_data`; every other member must equal the copy's, so no edit changes a CP, the function template, the contacts, the sections or the mechanical data (no CP map is needed). The card shows the field diff, the devices and representations that use the copy, the BOM rows that change and, for a fork, "Saving creates a project copy of this part; the library is not changed" | A library item is never edited from inside a project (doc 07 §3.1, ARCH §5.3); the fork keeps `library_status` honest (Local fork, not Update available). Re-pointing every use keeps one copy per item and project in use, which is what the user sees as "the part". `Bulk` makes the preview the only door (FT-394's "previewed"). The trade-off is that the CP pattern, sections and mechanical data are not editable in part 4 (a follow-up, which needs the major class's CP map) |
+| D21 | **FR-PRT-022's validation, twice.** The draft (`ew-api`'s `PartDraft`) checks each field as it is typed and the dialog shows the message under the field; Save is refused while a field is invalid, with the first message as the refusal. The mandatory fields: a **manufacturer** (one of the project's manufacturer copies or a catalogue manufacturer, chosen from a list; a catalogue one travels in `copies`), a **part number** (not empty after trimming) and a **unit** (`piece`, `m` or `set`). Technical values parse by the property grid's quantity rule (`parse_field_input`, `FieldType::Quantity`: `4 A`, `0.75 mm²`) or as an identifier (`C`); a key given twice is refused. An unchanged draft is refused ("Nothing to save: the part is unchanged"). The command checks the same rules again and refuses with a JSON pointer, so a script or log cannot bypass them | FR-PRT-022's acceptance: "Saving a part without manufacturer is refused with a message"; the command's own check keeps the rule for every front end (the headless mode, the MCP, a log) |
+| D22 | **FT-396: two of the three choices in part 4b; "keep both" is not offered.** A paste whose fragment carries another version of a held copy opens a **choice card** in the Preview tab (16a §6.23) that lists each such copy ("FX-MCB-1PN (Fixture): this project 1.1.0, pasted 1.0.0, patch") and offers: **Use the project's copy** (adapt): one `edit.paste` with a new optional member `adapt: [copy ID]`, which reuses the held copies named there instead of refusing; offered when every listed copy differs by a patch or minor change (`classify_update`), else disabled with its reason, and the command refuses a major one at `/adapt/<i>`; one undo step. **Update the project's copy:** the bulk card of `library.update` built from the fragment's documents (`Session::update_from_documents`, the sibling of `update_from_library` that takes documents instead of reading the libraries); after its Apply the shell runs the pending paste again; offered when every listed pasted version is newer, else disabled with its reason; two commands and two undo steps. **Keep both** is not offered: `library.embed` and `edit.paste` refuse a copy ID that is not `v5(NS_LIBCOPY, library ‖ item)`, and every reference from a library item to another (a template's FnDef, a symbol's FnDef) resolves through that one identity, so a version-qualified second copy (doc 07 §2.1) needs a format-level change of its own (a follow-up). Headless: `edit.paste_clip` refuses with `reason-paste-versions`, and `paste.resolve` with `choice` `adapt` or `update` runs the choice | Copy IDs are equal across versions, so adapting is a matter of not refusing; updating is the existing previewed command, and keeping it a separate undo step lets the user undo the paste and keep the update. Keep both is the only choice that touches identity, which is a file-format concern above part 4's routing |
+| D23 | **FT-444 ruled; built outside part 4.** (a) A connection point added to a black box by hand (Edit ▸ Add connection point, or any CP of a box drawn without a part) is a **device CP** of the black-box function: an index above the function's FnDef and pattern CPs, designated by the function's `cp_overrides` entry at that index (`CpOverride.designation`, no format change); the tool asks for the designation and proposes the next free whole number among the function's designations (natural order); `function_cps` instantiates, for a function of kind black box only, each such override as a physical CP with that designation. (b) The property sheet's Connection points section lists every CP of the function (pattern, FnDef and device CPs) and marks one that no box CP draws "not drawn"; the box tool's ghost draws only what will be drawn. (c) **The part editor shows the part's CP pattern** (designation, alias, description, the clamp members) and the function template read-only (D20); device CPs belong to a device, not to the part, and never show there; making a device CP part of a pattern is a part edit of the CP pattern, which part 4 does not offer | The designation has a home in the format already (`CpOverride`), so no member is added; the rule touches `ew-derive` and the box tool, which are not part 4's crates, so the ruling is recorded here and FT-444 keeps its row for the build. Golden A's black boxes draw pattern CPs only, so no golden byte depends on the rule |
+| D24 | **Boundaries.** No `ew-schema` change, no new package, no new dependency edge, no change to Golden A's files or expected outputs; one new command (`part.edit_copy`, part 4a) and two new optional command members (`copies` on `fields.set` and `fields.set_many`, part 4a; `adapt` on `edit.paste`, part 4b), with their schemas, the DSL verb `part_edit_copy` and fuzzer arms; the `ew-library` change is additive (D17) | Part 4 is UI and commands on delivered data; the routing of §14.2 (Opus at `high`) fits commands that write copies and re-point references, not a format change |
+
+### 9.2 The public items added (part 4a, and part 4b where marked)
+
+```rust
+// ew-library (D17, FT-629)
+pub struct FnCompat { /* as built */ pub category: [String; 2], pub contact_kind: ContactKind,
+                      pub fndef: Option<(Uuid, Uuid)> }            // (library, item) of the function's FnDef
+pub struct PartHit  { /* as built */ pub same_fndef: Option<bool> }  // None without `fndef`
+
+// ew-commands
+pub struct EditPartCopy { copy: Id<Part>, part: Value /* the edited Part item, without the copy metadata */,
+                          fork: Option<Id<LibItem>>, copies: Vec<Value> /* a manufacturer the project lacks */ }
+// `fields.set`, `fields.set_many`: `copies: Vec<Value>` (optional, default empty)            (D16)
+// `edit.paste`: `adapt: Vec<Id<()>>` (optional, default empty)                               (D22, part 4b)
+
+// ew-api
+pub enum PartTarget {
+    Devices { devices: Vec<Uuid>, mode: AssignMode },                // part.assign (D16)
+    BridgePart { terminals: Vec<Uuid> },                             // StripEdit::BridgePart with copies
+    AccessoryPart { strip: Uuid, index: u32 },                       // StripEdit::AccessoryPart with copies
+}
+pub enum PartPick { Held(Uuid /* copy ID */), Library(LibRef) }
+pub enum Fit { SameFnDef, SameCategory, Other }
+pub enum OfferView { All, Project, Favourites, Recent }
+pub struct PartOfferQuery { pub text: String, pub kinds: Vec<PartKind>, pub category: Vec<String>,
+                            pub function: Option<Uuid> /* the target's function */, pub fits_only: bool,
+                            pub view: OfferView, pub include_inactive: bool,
+                            pub favourites: Vec<(Uuid, Uuid)>, pub recent: Vec<(Uuid, Uuid)> }
+pub struct PartOffer { pub pick: PartPick, pub part_number: String, pub manufacturer: String,
+                       pub description: String, pub kind: PartKind, pub fit: Fit, pub held: bool,
+                       pub library: Option<(Uuid, String /* name */, Tier)>, pub version: String,
+                       pub status: ItemStatus, pub favourite: bool, pub recent: bool }
+pub struct PartDraft { /* the editable members of D20 as texts, the copy, its source, the read-only members */ }
+pub enum PartDraftError { Refused(&'static str /* reason key */), Field { field: String, message: String } }
+impl Session {
+    pub fn part_offers(&self, q: &PartOfferQuery) -> Vec<PartOffer>;
+    pub fn part_pick_command(&self, target: &PartTarget, pick: &PartPick) -> Result<AnyCommand, ApiError>;
+    pub fn part_draft(&self, copy: Uuid) -> Result<PartDraft, ApiError>;
+    pub fn set_draft_field(&self, draft: &mut PartDraft, field: &str, text: &str) -> Result<(), PartDraftError>;
+    pub fn part_edit_command(&self, draft: &PartDraft) -> Result<AnyCommand, PartDraftError>;   // D20, D21
+    pub fn next_fork_item(&self, copy: Uuid) -> Uuid;                                         // D20
+    pub fn paste_versions(&self, fragment: &str) -> Vec<VersionConflict>;                      // part 4b
+    pub fn update_from_documents(&self, docs: &[LibDocument], cp_maps: &[CpMap])
+        -> Result<UpdatePlan, ApiError>;                                                      // part 4b
+}
+pub struct VersionConflict { pub copy: Uuid, pub title: String, pub held: String, pub pasted: String,
+                             pub class: ChangeClass, pub newer: bool }                        // part 4b
+```
+
+The exact field names may follow the crates' conventions; the variants, their meaning and the doors (`part_offers`,
+`part_pick_command`, `part_edit_command`) may not change without a lead ruling.
+
+### 9.3 `part.edit_copy` (part 4a)
+
+```text
+part.edit_copy { copy: uuid, part: object, fork?: uuid, copies?: [doc] }
+```
+
+`Bulk`, an edit command, with its JSON schema, the DSL verb `part_edit_copy` and an arm in the command fuzzer.
+**Rejected**, at the pointer named: `/copy` not a part copy the project holds; `/part` not a part item, or one whose
+members other than D20's editable ones differ from the copy's ("only the identity, the description, the category, the
+unit and the technical data can be edited"); `/part/manufacturer` a reference to a manufacturer copy the project does
+not hold and `copies` does not carry; `/part/part_number` empty; `/part/unit` not `piece`, `m` or `set`;
+`/part/tech_data/<i>` a key given twice; `/fork` absent for a copy from a library, given for a project-local copy, or
+naming an item whose copy the project holds; `/copies/<i>` as `library.embed` refuses, or another version of a held
+copy; the whole command when the item equals the copy's ("the part is unchanged"). **Effects:** D20 (in place or fork,
+the re-pointed references, the embedded manufacturer). **Outcome:** the edited copy (the fork's copy ID for a fork).
+Example on Golden A: `part.edit_copy { copy: <5SY4204-7's copy>, part: {…, "description": {"en": "MCB 1P+N C4"}},
+fork: <next_fork_item> }` adds one copy file under `lib/parts/`, re-points F55's part use, and leaves the original
+copy file unchanged.
+
+### 9.4 Actions (part 4a: 7; part 4b: 1)
+
+| ID | Kind | Label | Menu | Shortcut | Context | Params |
+|---|---|---|---|---|---|---|
+| `part.choose` | View | Choose part… | Edit | — | Properties on a device, or the strip editor's cursor on a Part, Bridge part or accessory Part cell; a writable project | `target?:enum(parts\|bridge_part\|accessory_part), use?:uint, add?:bool` |
+| `part.search` | View (hidden) | Search parts | — | — | the part dialog | `text?:text, kind?:text, category?:text, fits?:bool, view?:enum(all\|project\|favourites\|recent), inactive?:bool` |
+| `part.pick` | Command (hidden) | Choose | — | Enter (the dialog's Primary) | the part dialog | `index?:uint, part?:text` |
+| `part.favourite` | View (hidden) | Favourite | — | — | the part dialog | `index?:uint` |
+| `part.edit` | View | Edit part… | Edit | — | Properties on a device with a part use, or a `library_copy` row of kind part in the Libraries navigator | `part?:text` |
+| `part.field` | View (hidden) | Edit field | — | — | the part editor | `field:text, value:text` |
+| `part.save` | Command (hidden) | Save | — | Enter (the editor's Primary) | the part editor | `` |
+| `paste.resolve` (4b) | Command (hidden) | Resolve paste | — | — | the paste choice card | `choice:enum(adapt\|update)` |
+
+`part.pick` takes the active row, a 1-based `index` or a part text in D7's forms (`<part number> (<manufacturer>)`,
+with ` · <description>` when two match). `part.field`'s fields: `manufacturer`, `part_number`, `type_designation`,
+`order_number`, `gtin`, `description`, `kind`, `category`, `unit` and `tech:<key>` (an empty value removes the key).
+`part.save` opens the `part` card; its Apply and Cancel are the Preview tab's, unchanged. Both visible actions are in
+the Parts row's row menu (Choose part…, Add part… as `part.choose` with `add`, Edit part…) and `part.choose` in the
+strip editor's row menu; the Libraries navigator's part rows gain Edit part…. No shortcut is added, so the keymap test
+is unchanged.
+
+### 9.5 Strings
+
+New reason and error keys with their English text (part 4a): `reason-part-choose-target` "Select a device, a terminal
+or a part cell first", `reason-part-choose-none` "Choose a part from the list first", `reason-part-not-installed` "The
+library of this part is not installed", `reason-part-other-version` "The project holds another version of this part;
+update it from the Libraries navigator first", `reason-part-edit-target` "Select a device with a part, or a part in the
+Libraries navigator", `reason-part-no-manufacturer` "A part needs a manufacturer", `reason-part-no-number` "A part
+needs a part number", `reason-part-unit` "Choose the unit: piece, m or set", `reason-part-unchanged` "Nothing to save:
+the part is unchanged", `error-part-tech-value` "{key}: {message}", `error-part-tech-twice` "{key} is given twice",
+`error-part-manufacturer` "No manufacturer is called “{name}”; choose one from the list". Labels and lines:
+`dialog-part-choose-title` "Choose a part for {target}", `part-choose-fits` "Only parts that fit", `part-choose-view-all`
+"All", `part-choose-view-project` "In this project", `part-choose-view-favourites` "Favourites",
+`part-choose-view-recent` "Recent", `part-choose-inactive` "Show deprecated and withdrawn", `badge-fits-function` "Fits
+{tag}'s function", `badge-same-category` "Same category", `part-choose-empty` "No part matches “{text}”",
+`part-choose-more` "Search all parts…", `dialog-part-edit-title` "Edit part {part}", `part-edit-fork-note` "Saving
+creates a project copy of this part; the library is not changed", and the field labels Manufacturer, Part number, Type
+designation, Order number, GTIN, Description, Kind, Category, Unit, Technical data, Functions, Connection points,
+Source. Part 4b: `reason-paste-versions` "The pasted records use another version of {list}; choose Use the project's
+copy or Update the project's copy", `reason-paste-adapt-major` "The versions differ in their connection points; update
+instead", `reason-paste-update-older` "The pasted version is not newer than the project's", `card-paste-versions-title`
+"The pasted records use other part versions", `paste-adapt` "Use the project's copy", `paste-update` "Update the
+project's copy".
+
+### 9.6 Describe and transcript
+
+The dialogs print under `dialog` (WP-S2.17 part 4's line); the card under `card` with the origin word `part`, as the
+other cards. The result list is windowed like a navigator's (WP-S2.06 D15, 50 rows), and its count line names the rows
+shown, so a test asserts named rows and their order, never the total (the starter library grows):
+
+```text
+dialog "Choose a part for F55"
+  query "" kind all category all fits off view all inactive off
+  results showing 1 to 50
+  result 1 "EW-GEN-MCB-2" "Generic" "Miniature circuit breaker 1P+N" library "ew-starter-parts" compatible same-fndef cursor
+  result 2 "FX-MCB-1PN" "Fixture" "MCB 1P+N" library "Fixture parts" compatible same-fndef
+  result 3 "EW-GEN-MCB-1" "Generic" "Miniature circuit breaker 1P" library "ew-starter-parts" compatible same-category favourite
+  result 4 "FX-MCB-1P" "Fixture" "MCB 1P" library "Fixture parts" compatible same-category
+  result 5 "<Golden A's first copy in natural order>" "<its manufacturer>" "<its description>" project compatible other
+dialog "Edit part 5SY4204-7 (Siemens)"
+  field "Manufacturer" "Siemens"
+  field "Part number" "5SY4204-7"
+  field "Description" "MCB 1P+N C4"
+  field "Unit" "piece"
+  tech "rated_current" "4 A"
+  read-only "Connection points" "none"
+  source library "<the copy's library>" version "<its version>" fork on
+  invalid "Manufacturer" "A part needs a manufacturer"
+card part "Edit part 5SY4204-7" changes 1 devices 1
+```
+
+**New describe words, part 4a (at most 12; fewer where an existing word fits, a reviewed vocabulary change):**
+`fits`, `all`, `inactive`, `compatible`, `same-fndef`, `same-category`, `other`, `favourite`, `favourites`, `tech`,
+`version`, `fork`. **Part 4b (at most 5):** `adapt`, `update`, `patch`, `minor`, `major`, in the card's lines
+`conflict "<part>" project "<version>" fragment "<version>" <class>` and `choice adapt|update enabled` or `disabled:
+"<reason>"`. No new transcript member: the choices are the actions' own transcript lines, and the favourites and recent
+lists are not printed outside the dialog.
 
 ## 10. Determinism, the headless mode and exact counts
 
@@ -549,10 +715,32 @@ for a lead ruling.
 The workspace suite, the acceptance runner and the performance runs are not run by the lanes (testing policy, ID-512);
 the integrating session runs `cargo xtask ci` at the cycle delivery.
 
-### 11.2 Parts 2 to 4
+### 11.2 Parts 2 and 3
 
-As outlined in §7, §8 and §9; each part's specification pass (D15) turns its outline into a table like §11.1 before
-its dispatch.
+As outlined in §7 and §8 (built in cycles 35 and 38; their as-built notes record what holds). Part 4's outline is
+closed in §11.3 (D15).
+
+### 11.3 Part 4
+
+**The fixture catalogue** (PS1 to PS4, PS8): a user library "Fixture parts" written by the test into a temporary
+`EW_DATA_DIR` with the library writer (as `crates/ew-library/tests/starter_parts.rs` writes the starter parts), with
+the manufacturer "Fixture" and the parts FX-MCB-1PN (an MCB 1P+N whose template names the starter's `ew.fn.mcb-1pn`),
+FX-MCB-1P (template `ew.fn.mcb-1p`), FX-CON-1 (a contactor, template coil), FX-ENDB-1 (kind `end_bracket`, no
+template), FX-BRG-1 (kind `accessory`, a plug-in bridge) and FX-MCB-OLD (deprecated, successor FX-MCB-1PN). `EW_CONFIG_DIR` is a temporary directory in every test.
+No test pins the number of offers or of starter parts (CONTRIBUTING.md); they assert named rows and their order.
+
+| # | Check | Where | Proves |
+|---|---|---|---|
+| PS1 | **F55's offer order** (4a): on a temporary copy of Golden A with the fixture catalogue, F55 selected, `part.choose` on its Parts row (`use` 0), no text: the first four offers are EW-GEN-MCB-2 and FX-MCB-1PN (`same-fndef`), then EW-GEN-MCB-1 and FX-MCB-1P (`same-category`), in that order; every later offer is `other`, held copies first; FX-MCB-OLD is absent. `ew-library`: `search` with `fndef` set gives `same_fndef` true for the two 1P+N parts and false for the two 1P parts, which stay `compatible`; IX-5 holds unchanged without `fndef`. If F55's function's FnDef is not the starter's `ew.fn.mcb-1pn` item, the lane stops (a golden fact) | `ew-library`, `ew-api`, `ew-viewmodel` tests | FR-PRT-015's acceptance, D17, FT-629 |
+| PS2 | **Search and filters** (4a), on a wizard project with the fixture catalogue: "FX-MCB-1P" gives FX-MCB-1P (exact) before FX-MCB-1PN (prefix); "mcb 1p+n" finds both 1P+N parts by their descriptions; the kind `end_bracket` leaves FX-ENDB-1 and no MCB; the category's first level of the MCBs leaves MCBs only; Only parts that fit, for a 1P+N MCB device, hides `other`; Show deprecated and withdrawn adds FX-MCB-OLD with "successor FX-MCB-1PN" in the detail line; the view In this project lists held copies only; a library item the project holds shows once, as held | `ew-api`, `ew-viewmodel` tests | D17 |
+| PS3 | **Favourites and recent** (4a): `part.favourite` on FX-MCB-1P writes `[parts] favourites` to `settings.toml`; a new shell on the same `EW_CONFIG_DIR` lists it in the view Favourites and, in the view All with no text, before the non-favourite, not held offers of its fit and tier; choosing FX-CON-1 then EW-GEN-MCB-2 gives `recent` = [EW-GEN-MCB-2, FX-CON-1]; choosing a project-local copy records nothing; 21 recorded choices keep 20; no tracked project file changes through any of it | `ew-viewmodel` tests (`settings.rs`, the shell) | D18, FR-UI-033 |
+| PS4 | **Choosing commits one command** (4a): on Golden A, F55's use 0 → EW-GEN-MCB-2: one `part.assign` (`replace`, `from` = 5SY4204-7's copy, `copies` = the part, the manufacturer "Generic" and the FnDefs the project lacks), one undo step back to the original bytes, and its `--record` log applied with `ew apply` to the starting project with an empty `EW_DATA_DIR` gives equal records; Add part… gives `append`; a held copy gives `part.assign` without `copies`; the strip editor's Part cell on two marked terminals gives `replace_all` on both; BR1's Bridge part cell (kind preset `accessory`) with FX-BRG-1 gives one `fields.set` with `copies` and one undo step (the BOM's `Bridge` line names FX-BRG-1); "Search all parts…" in the accessory chooser opens the dialog with the kind preset. `ew-commands`: `fields.set` and `fields.set_many` with `copies` embed the closure in the same transaction, reuse a held copy of the same hash, and refuse another version at `/copies/<i>`; the fuzzer arms cover the member | `ew-commands`, `ew-api`, `ew-viewmodel` tests | D16 |
+| PS5 | **The part editor's refusals** (4a; FR-PRT-022), on a wizard project with a copy from `parts.import` (project-local): `part.edit`, `part.field manufacturer ""`, `part.save` is refused "A part needs a manufacturer", printed under the field and as the refusal line, and the history is unchanged; likewise an empty part number, the unit "pcs", the technical value "4 Amp" (the quantity rule's message after "rated_current: "), a key twice, an unchanged draft and a read-only project. `part.edit_copy` itself refuses each case of §9.3 at its pointer | `ew-api`, `ew-commands`, `ew-viewmodel` tests | D20, D21 |
+| PS6 | **FT-394's previewed edit in place** (4a), on the same project: the description changed opens the `part` card with the field diff, the devices that use the copy and the BOM rows that change; Apply is one undo step; the copy ID, item ID and version are unchanged and `sha256` is the hash of the new item (EW-CORE-014 silent); undo restores the copy file's bytes | `ew-api`, `ew-viewmodel` tests | D20, FT-394 |
+| PS7 | **FT-394's fork** (4a), on a temporary copy of Golden A: Edit part… on F55, the description "MCB 1P+N C4", Save: the card carries the fork line; Apply adds one copy under `lib/parts/` with the project's library ID, the item ID `next_fork_item` gave and `meta.source.fork_of` naming the original's library, item and version; F55's part use names the fork; the original copy's file is unchanged; the Libraries navigator shows the fork as Local fork; the exported parts list differs from Golden A's expected one only where it prints 5SY4204-7's description, every other export byte-equal; undo restores; the `--record` log replays equal; a second edit of the fork is in place (no second fork) | `ew-api`, `ew-viewmodel` tests | D20, doc 07 §3.1 |
+| PS8 | **FT-396's paste choice** (4b): wizard projects P1 holding FX-MCB-1PN 1.0.0 on -F1 and P2 holding 1.1.0 (a description change, patch). -F1 copied in P1 and pasted in P2: the choice card lists the copy with "patch"; Use the project's copy is one `edit.paste` with `adapt` (the pasted device's part use names P2's copy, one undo step); Update the project's copy is disabled with `reason-paste-update-older`. Pasted the other way: Update opens `library.update`'s card from the fragment's document, Apply, then the paste runs (two undo steps; P1 holds 1.1.0). A fixture version that removes a CP: Use the project's copy disabled with `reason-paste-adapt-major`, and `edit.paste` with that `adapt` refused at `/adapt/0`. Headless: `edit.paste_clip` refused with `reason-paste-versions`; `paste.resolve choice=adapt` runs. Keep both is not offered | `ew-commands`, `ew-api`, `ew-viewmodel` tests | D22, FT-396, doc 06 §3.6 item 4 |
+| PS9 | **Transcript, describe and the window** (4a and 4b): §9.6's lines; the actions of §9.4 and the words of §9.6 present in the registry and `VOCABULARY` (asserted by membership, not by totals); the blind references re-blessed; one `ew.uiscript/1` script per flow of PS1, PS4, PS5 and PS7 (and PS8 in 4b), twice byte-identical and replayed by `ew apply`; kittest flows of the dialog and the editor by keyboard alone (NFR-A11Y-01); AccessKit: the result list a `ListBox` named "Parts" with `ListBoxOption` rows (position and set size), the editor's fields named by their labels, the favourite star named "Favourite" | lane; `ew-viewmodel`, `ew-ui`, `bin/elektrawatt` tests | §9.4 to §9.6, §10 |
+| PS10 | **Golden unchanged and targeted checks:** golden output, acceptance and AC-15 tests unmodified; for the changed crates (`ew-library`, `ew-commands`, `ew-testkit`, `ew-api`, `ew-viewmodel` with and without `testkit`, `ew-ui`, `elektrawatt`): nextest, clippy `-D warnings`, `cargo fmt --all --check`, `check-deps`, `check-features`, `check-raw-read`, `check-licence-map`, `reuse lint`, `docs-gen --check`; no new package | lane | D24 |
 
 ## 12. Files owned and what a lane may not decide
 
@@ -570,7 +758,25 @@ a new `crates/ew-api/src/output/strip_edit.rs`, `crates/ew-api/src/lib.rs` (meth
 rows, the chooser list, the drag source); `tools/blind/reference/*.txt` (re-blessed); `tools/blind/recordings/gpp-2/**`
 only under SE14's rule; `bin/elektrawatt/tests/**`; the generated reference pages (`docs-gen`).
 
-**Parts 2 to 4:** named by their specification passes (D15).
+**Parts 2 and 3:** named by their dispatch briefs (built).
+
+**Part 4a:** `crates/ew-library/src/{search.rs,index.rs}` (D17's additive members) and `crates/ew-library/tests/**`;
+`crates/ew-commands/src/commands/{fields.rs,mod.rs}` (the `copies` member) and a new
+`crates/ew-commands/src/commands/part_edit.rs` (`part.edit_copy`), `crates/ew-commands/schemas/**`,
+`crates/ew-commands/tests/**`; `crates/ew-testkit/src/golden/dsl.rs` (the verb `part_edit_copy`),
+`crates/ew-testkit/tests/command_fuzz/**` (one arm, and `copies` on the `fields.set` arms);
+`crates/ew-api/src/library_ops.rs`, new `crates/ew-api/src/part_offers.rs` and `crates/ew-api/src/part_editor.rs`,
+`crates/ew-api/src/output/{strip_edit.rs,fields.rs}`, `crates/ew-api/src/lib.rs` (methods and re-exports only),
+`crates/ew-api/tests/**`; `crates/ew-viewmodel/src/**` (`dialogs.rs`, `settings.rs`, `actions.rs`, `describe.rs`,
+`strings.rs`, `script.rs`, `shell/properties.rs`, `shell/strip_editor.rs`, `shell/parts.rs` or a new
+`shell/part_dialog.rs`, the Libraries navigator's row menu); `crates/ew-ui/**` (`dialog.rs`, `chooser.rs`, a new
+part-dialog module, the kittest flows); `tools/blind/reference/*.txt` (re-blessed); `bin/elektrawatt/tests/**`; the
+generated reference pages (`docs-gen`).
+
+**Part 4b:** `crates/ew-commands/src/commands/paste.rs` (the `adapt` member), its schema and tests, the
+`edit.paste` fuzzer arm; `crates/ew-api/src/library_ops.rs` (`update_from_documents`, `paste_versions`),
+`crates/ew-api/tests/**`; `crates/ew-viewmodel/src/{shell/editing.rs,shell/clipboard.rs,preview.rs,actions.rs,describe.rs,strings.rs}`;
+`crates/ew-ui/src/preview.rs`; the blind references and the generated reference pages as part 4a.
 
 Shared append-only files (registry lists, `VOCABULARY`, `params.rs`, fuzzer arms, DSL verbs, the strings table) may be
 touched by other lanes; the second to integrate rebases onto the first. Read-only for the lanes: every other crate,
@@ -591,7 +797,17 @@ A lane stops and reports instead of choosing when:
 6. `gpp-2`'s replay differs beyond SE14's allowance, or its outcomes (not only its describe text) change;
 7. it would add a command beyond §5, an action beyond §6.9, a describe word beyond §6.10, or change the behaviour of
    an as-built action other than `strip.bridge` (D9, D10) and the Parts row's resolver (D7);
-8. part 2, 3 or 4 work is reached (D15).
+8. part 2, 3 or 4 work is reached (D15); for part 4's lanes: part 4a reaches part 4b's work (D22), or either reaches
+   FT-444's build (D23);
+9. (part 4) a command beyond `part.edit_copy`, a command member beyond `copies` on `fields.set` and `fields.set_many`
+   and `adapt` on `edit.paste`, an action beyond §9.4 or a describe word beyond §9.6 would be needed;
+10. (part 4) the part editor would edit a member outside D20's list (a CP, the function template, the contacts, the
+    sections, the mechanical data), write to a library (promoting a fork to a company library is a library write, not
+    part 4), or offer "keep both" (D22);
+11. (part 4) favourites or recently used parts would be written into the project or its `.ew/` directory (D18);
+12. (part 4) `PartHit.compatible` or WP-S1.19 D6's order without `fndef` would change (IX-5 must hold unchanged), or a
+    reference to a part copy that a fork must re-point is not in `ew_model::LINKS` (D20);
+13. (part 4) a golden fact of §11.3 is contradicted by the data (F55's FnDef, the starter's MCB templates).
 
 The lane decides freely: private helper names and module layout inside the owned files, the exact Rust field names of
 §4.2's items (their variants and meaning fixed), test fixtures, and the kittest mechanics.
@@ -606,6 +822,9 @@ The lane decides freely: private helper names and module layout inside the owned
 | R4 The group rewrite surprises a user who kept groups over empty ranges for future terminals | Low · low | Only groups touching the edit change (D8); a piece without terminals is the only loss, and undo restores it |
 | R5 The strip editor as a navigator filter (D1) is less discoverable than a dedicated pane | Medium · low | Edit ▸ Strip editor and the strip's row menu open it; the pane title names the strip while the `strip:` facet is set; doc 16's side-by-side editors are a follow-up |
 | R6 Part 1 overruns 1.4 pw | Medium · medium | The de-scope rule of §14.1 |
+| R7 A fork re-points a reference kind the lane did not foresee, or leaves the original copy referenced | Low · high | D20 reads the references from `ew_model::LINKS`, not from a hand list; PS7 checks every export byte-equal but the parts list; §12.2 item 12 stops the lane |
+| R8 `copies` on `fields.set` lets a cell edit embed a copy of another version beside a held one | Low · high | The same identity and version check as `library.embed` and `part.assign` at `/copies/<i>` (PS4); the copy ID rule of doc 07 §2.1 is unchanged |
+| R9 Part 4a overruns 0.9 pw | Medium · medium | The de-scope rule of §14.1 |
 
 ## 14. Size, order, routing and the documents to update
 
@@ -617,10 +836,22 @@ in cycle 33 and the strip accessories joined it; the four parts fill the PERT wi
 BOM lines and `bridges` on it 0.15; the provider's columns, accessory rows, facet and order 0.2; the resolver 0.08;
 `strip_edit` with the group, bridge-part and accessory compiles 0.2; the actions, the table plumbing, bridge rules D9
 to D11 and Properties 0.3; ew-ui and kittest 0.1; transcript, describe, scripts and re-bless 0.1), **part 2, 0.6 pw**,
-**part 3, 0.7 pw**, **part 4, 0.9 pw**. **De-scope rule:** when part 1 is projected (at its lane's midpoint report) or
+**part 3, 0.7 pw**, **part 4, 0.9 pw** (re-sized at its specification pass, below). **De-scope rule:** when part 1 is projected (at its lane's midpoint report) or
 found (at its review) more than 20 % over its size, these items leave it as follow-ups without a further ruling, in
 this order, until the projection fits: Enter-to-place (§6.8; the drag stays), then `strip.move`'s `before` parameter
 (the step stays), then the Properties "Group" row (the table column stays); the lane reports which ones left.
+
+**Part 4 at its specification pass (cycle 39, ID-894): 1.1 pw, split.** Part **4a, 0.9 pw:** the two-level fit in
+`ew-library` 0.05; `part_offers` and `part_pick_command` 0.15; `copies` on `fields.set` and `fields.set_many` with
+schemas, arms and tests 0.08; `part.edit_copy` (in place, fork, re-pointing, validation, schema, verb, arm, tests) 0.2;
+`PartDraft`, `part_edit_command` and the card's plan 0.1; the two dialogs, the actions, the settings table, describe and
+strings in `ew-viewmodel` 0.17; `ew-ui` and kittest 0.1; scripts, replay and re-bless 0.05. Part **4b, 0.2 pw:**
+`adapt` on `edit.paste` 0.05, `paste_versions` and `update_from_documents` 0.07, the choice card and `paste.resolve`
+0.05, tests 0.03. The package's 3.6 pw PERT has no reserve, so part 4b is **0.2 pw over it** (3.8 pw used); the CSV
+is unchanged and the overrun is recorded in ID-894. **De-scope rule for part 4a** (> 20 % over, as above): the
+favourites (the recent list stays), then the catalogue path of the Bridge part and accessory Part cells (held copies
+only; `copies` on `fields.set` leaves with it), then the part editor's technical data rows (the identity fields stay);
+the lane reports which ones left.
 
 ### 14.2 Order and routing
 
@@ -629,7 +860,11 @@ in any order after part 1's delivery (they share the table plumbing part 1 exten
 catalogue search is delivered. **Routing** (ID-667, ID-700: Opus or Haiku only): part 1 to one lead-programmer lane,
 **Opus at `high`** (two core commands, a memoised query below the reports, and compiles from user input into
 commands); parts 2 and 3 to programmer lanes, **Opus at `medium`** (closed work in a decided pattern with oracles);
-part 4 to a lead-programmer lane, Opus at `high`. Each part is one lane plus the cycle's single independent review and
+part 4 to a lead-programmer lane, Opus at `high`. *Part 4 at its specification pass (ID-894):* **part 4a first**,
+one lead-programmer lane, Opus at `high` (a command that writes copies and re-points references, and a member on the
+core edit command), in cycle 39's second wave; **part 4b after part 4a's integration**, one programmer lane, Opus at
+`medium` (closed work on `edit.paste` and the delivered `library.update`), in a later wave or cycle. FT-444's build
+(D23) is not part 4's. Each part is one lane plus the cycle's single independent review and
 its fix round.
 
 ### 14.3 Follow-ups to record (numbered by the design pass that records part 1's delivery)
@@ -651,7 +886,12 @@ printed label in Properties), §9 (the strip editor as built); doc 16 §5.2 (the
 (accessory rows) and §6.22 (the chooser list's first use); doc 06 §3.1 (the command count 58, `strip.bridge`'s
 predicate); doc 17 §2.1 (the count); doc 02a FR-TRM-013's and FR-TRM-016's notes (built, in part); WP-S1.26's row (strip
 accessories brought forward in part); `tools/blind/tasks/gpp-101-103/gaps.toml` (H4's gap entry removed); the
-traceability and the glossary (strip editor, accessory row, bridge carrier).
+traceability and the glossary (strip editor, accessory row, bridge carrier). **After part 4a:** doc 07 §3.1 (the fork
+as built), §3.3 (the dialog's commands), §4.3 (the two-level fit, FT-629), §5 (the part browser and the part editor as
+built); doc 06 §3.1 (the command count, `part.edit_copy`, `copies` on `fields.set`); doc 17 §2.1 (the count); doc 16
+§2.5 (the `[parts]` table of the user settings); doc 16a §6.12 (the part dialog as a form dialog with a list); doc 02a
+FR-PRT-015's and FR-PRT-022's notes; FT-394, FT-629 and FT-754 (i) closed; FT-444 annotated with D23. **After part
+4b:** doc 06 §3.6 (item 4 as built: adapt and update, keep both a follow-up); FT-396 closed or narrowed to keep both.
 
 ---
 
@@ -659,14 +899,15 @@ traceability and the glossary (strip editor, accessory row, bridge carrier).
 
 - [Work breakdown](../02-work-packages.md): WP-S1.14, WP-S1.19, WP-S1.21, WP-S1.26, WP-S1.28, WP-S2.04, WP-S2.05,
   WP-S2.06, WP-S2.07, WP-S2.13, WP-S2.14; Appendix B (FT-394, FT-396, FT-411, FT-429, FT-444, FT-490, FT-548, FT-553,
-  FT-576, FT-585).
-- [Decision log](../06-decision-log.md): ID-316, ID-512, ID-667, ID-681 to ID-689, ID-700, ID-768, ID-770, ID-771,
-  ID-776, ID-777, ID-779, ID-780.
+  FT-576, FT-585, FT-629, FT-656, FT-673, FT-754).
+- [Decision log](../06-decision-log.md): ID-316, ID-512, ID-598, ID-646, ID-667, ID-681 to ID-689, ID-700, ID-768,
+  ID-770, ID-771, ID-776, ID-777, ID-779, ID-780, ID-818, ID-820, ID-843, ID-885, ID-894.
 - [Gates](../03-gates.md) §5.4 (G-PP's record and its H4 gap).
 - [ADR-0006](../../adr/0006-function-device-representation-model.md),
   [ADR-0008](../../adr/0008-transactions-undo-preview.md), [ADR-0009](../../adr/0009-invariant-catalogue.md),
   [ADR-0014](../../adr/0014-gui-toolkit-egui.md);
-  [domain model](../../design/03-domain-model.md) §11, §12; [connections, terminals and
+  [domain model](../../design/03-domain-model.md) §11, §12; [schematic editor](../../design/06-schematic-editor.md) §2.7,
+  §3.6; [symbols, parts and macros](../../design/07-symbols-parts-macros.md) §2.1, §3.1, §3.3, §4.3, §5; [connections, terminals and
   cables](../../design/08-connections-terminals-cables.md) §2, §6, §9; [UX/UI](../../design/16-ux-ui.md) §3.4, §5.2,
   §7, §18.1; [design language](../../design/16a-design-language.md) §6.21, §6.22; [golden
   project](../../design/20-golden-project.md) §9, §14.1.
