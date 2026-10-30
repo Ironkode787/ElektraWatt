@@ -8,13 +8,17 @@
 //! the bulk card in the Preview tab. The rows' copy state is the API's column and badge, in words.
 //!
 //! **The Macros navigator** has a detail block under its rows for the macro under the cursor: its name
-//! (`type.body.strong`), version and library, description, "No preview" in place of a thumbnail (a thumbnail is never
-//! rendered on the fly), the devices, the variables and Insert macro… (Primary), which arms the macro tool.
+//! (`type.body.strong`), version and library, description, the thumbnail (FT-754 (a): the macro drawn on a blank page
+//! of a throwaway copy, `ShellModel::macro_thumbnail`, rendered by the CPU renderer once per macro version and shown
+//! on the white sheet with a 1-px `color.border.default` frame; "No preview" when there is none), the devices, the
+//! variables and Insert macro… (Primary), which arms the macro tool. The thumbnail is an `Image` named "Preview of
+//! <name>".
 //!
 //! **Accessibility.** The detail block is a `Group` named after the macro; each line is a label; the buttons are named
 //! by their text (NFR-A11Y-01).
 
 use egui::{RichText, Ui};
+use ew_viewmodel::ew_api::output::MacroThumbnail;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -48,7 +52,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut 
                 egui::Panel::bottom(ui.scope_id().with("macro-detail"))
                     .resizable(false)
                     .frame(frame)
-                    .show(ui, |ui| macro_detail(ui, detail, events));
+                    .show(ui, |ui| macro_detail(ui, detail, shell.macro_thumbnail(), events));
             }
         }
         _ => {}
@@ -120,8 +124,114 @@ fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail)
     });
 }
 
+/// The thumbnail box's height in points; its width is the detail block's.
+const THUMBNAIL_HEIGHT: f32 = 64.0;
+
+/// Paints a macro's thumbnail (FT-754 (a)) in a box of the block's width and [`THUMBNAIL_HEIGHT`]: the region of the
+/// sheet the macro covers, rendered at the dpi that fits the box in physical pixels (12 to 300), centred on white
+/// with a 1-px `color.border.default` frame. The texture of the macro on show is kept in the context's memory (by copy,
+/// version, dpi and region).
+/// `false` when the render fails (the caller then says "No preview").
+fn thumbnail_ui(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::MacroDetail, th: &MacroThumbnail) -> bool {
+    let t = components::tokens(ui);
+    let width = ui.available_width().max(1.0);
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, THUMBNAIL_HEIGHT), egui::Sense::hover());
+    let name = strings::format("macro-preview-name", &[&d.name]);
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Image, true, &name));
+    let [x0, y0, x1, y1] = th.region;
+    let (rw, rh) = ((x1 - x0).max(1) as f64, (y1 - y0).max(1) as f64);
+    let ppp = f64::from(ui.ctx().pixels_per_point());
+    let inner = (f64::from(width) - 8.0).max(1.0) * ppp;
+    let inner_h = (f64::from(THUMBNAIL_HEIGHT) - 8.0).max(1.0) * ppp;
+    // pixels per nm at 1 dpi: 1 / 25.4e6
+    let dpi = (inner / rw).min(inner_h / rh) * 25_400_000.0;
+    let dpi = (dpi.floor() as u32).clamp(12, 300);
+    let key = egui::Id::unique(("macro-thumbnail", d.copy, d.version.as_str(), dpi, th.region));
+    // One slot: the texture of the macro on show (another macro, version or size replaces it).
+    let slot = egui::Id::unique("macro-thumbnail-slot");
+    let kept = ui
+        .ctx()
+        .data(|m| m.get_temp::<(egui::Id, Option<egui::TextureHandle>)>(slot))
+        .filter(|(k, _)| *k == key)
+        .map(|(_, t)| t);
+    let texture = match kept {
+        Some(t) => t,
+        None => {
+            let made = render_thumbnail(th, dpi).map(|image| {
+                let colour = egui::ColorImage::from_rgba_unmultiplied(
+                    [image.width as usize, image.height as usize],
+                    &image.pixels,
+                );
+                ui.ctx()
+                    .load_texture("macro-thumbnail", colour, egui::TextureOptions::LINEAR)
+            });
+            ui.ctx().data_mut(|m| m.insert_temp(slot, (key, made.clone())));
+            made
+        }
+    };
+    let Some(texture) = texture else {
+        return false;
+    };
+    let size = texture.size_vec2() / ui.ctx().pixels_per_point();
+    let scale = (rect.width() / size.x).min(rect.height() / size.y).min(1.0);
+    let shown = egui::Rect::from_center_size(rect.center(), size * scale);
+    let painter = ui.painter();
+    painter.rect_filled(rect, theme::radius(t.radius_sm), egui::Color32::WHITE);
+    painter.image(
+        texture.id(),
+        shown,
+        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+        egui::Color32::WHITE,
+    );
+    painter.rect_stroke(
+        rect,
+        theme::radius(t.radius_sm),
+        egui::Stroke::new(1.0, t.border_default.color32()),
+        egui::StrokeKind::Inside,
+    );
+    true
+}
+
+/// The region of a thumbnail rendered at `dpi` by the CPU renderer with the bundled fonts; `None` on a render error.
+fn render_thumbnail(th: &MacroThumbnail, dpi: u32) -> Option<ew_render_cpu::RgbaImage> {
+    let [x0, y0, x1, y1] = th.region;
+    let px = |nm: i64| (i128::from(nm) * i128::from(dpi) / 25_400_000) as i64;
+    let (x, y) = (px(x0), px(y0));
+    let width = u32::try_from(px(x1) - x).ok()?.clamp(1, 4096);
+    let height = u32::try_from(px(y1) - y).ok()?.clamp(1, 4096);
+    let options = ew_render_cpu::RegionOptions {
+        dpi,
+        x,
+        y,
+        width,
+        height,
+        background: ew_viewmodel::ew_api::output::ew_dl::Color::WHITE,
+        surround: ew_viewmodel::ew_api::output::ew_dl::Color::WHITE,
+    };
+    let sheet = ew_render_cpu::SheetSize {
+        width: ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(th.sheet.0),
+        height: ew_viewmodel::ew_api::output::ew_dl::ew_units::Nm(th.sheet.1),
+    };
+    let bounds = ew_render_cpu::ItemBounds::of(&th.content, None);
+    ew_render_cpu::render_region(
+        &th.content,
+        Some(&bounds),
+        sheet,
+        &options,
+        ew_viewmodel::ew_api::output::font_bytes(),
+        None,
+    )
+    .ok()
+    .map(|(image, _)| image)
+}
+
 /// The detail block of a macro.
-fn macro_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::MacroDetail, events: &mut Vec<Event>) {
+fn macro_detail(
+    ui: &mut Ui,
+    d: &ew_viewmodel::ew_api::output::MacroDetail,
+    thumbnail: Option<&MacroThumbnail>,
+    events: &mut Vec<Event>,
+) {
     let t = components::tokens(ui);
     let id = ui.scope_id().with("macro-detail-group");
     let rect = ui.available_rect_before_wrap();
@@ -150,13 +260,15 @@ fn macro_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::MacroDetail, even
         if !d.description.is_empty() {
             line(ui, &d.description, &t.type_small, t.text_primary);
         }
-        // §11: the thumbnail, or "No preview" (never rendered on the fly).
-        line(
-            ui,
-            strings::text("macro-no-preview"),
-            &t.type_small,
-            t.text_tertiary,
-        );
+        // §11: the thumbnail, or "No preview".
+        if !thumbnail.is_some_and(|th| thumbnail_ui(ui, d, th)) {
+            line(
+                ui,
+                strings::text("macro-no-preview"),
+                &t.type_small,
+                t.text_tertiary,
+            );
+        }
         for (title, items) in [
             (strings::text("macro-devices"), &d.devices),
             (strings::text("macro-variables"), &d.variables),

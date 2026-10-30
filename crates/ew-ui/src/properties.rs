@@ -26,8 +26,8 @@
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::properties::{
     ChoiceKind, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
-    advanced_count, chip_text, chip_word, group_key, groups, is_header, read_only_reason,
-    row_label, row_matches, value_text,
+    advanced_count, chip_text, chip_word, group_key, groups, is_header, read_only_reason, row_label,
+    row_matches, value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::strings;

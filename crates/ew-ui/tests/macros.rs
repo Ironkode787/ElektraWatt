@@ -152,12 +152,22 @@ fn ui1_ui2_insert_the_psu_macro_on_folio_105_from_the_macros_navigator() {
     dispatch(&mut h, "page.goto", json!({"folio": "105"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "macros"}));
     settle(&mut h);
-    assert!(h.query_by_label("Macros").is_some(), "the Macros tab");
+    // The navigator's header and (FT-754 (g)) the rail's entry.
+    assert!(
+        h.query_all_by_label("Macros").count() >= 1,
+        "the Macros navigator"
+    );
     // UI-1: the detail of the macro under the cursor.
     dispatch(&mut h, "navigator.row", json!({"kind": "macros", "key": core}));
     settle(&mut h);
     assert!(group_named(&h, "PSU 24 V DC"), "the detail block");
-    assert!(has_text(&h, "No preview"));
+    // FT-754 (a): the thumbnail, an image named after the macro, in place of "No preview".
+    assert!(
+        h.get_all_by_role(egui::Role::Image)
+            .any(|n| n.accesskit_node().label().as_deref() == Some("Preview of PSU 24 V DC")),
+        "the thumbnail"
+    );
+    assert!(!has_text(&h, "No preview"));
     assert!(has_text(&h, "Devices (3)"));
     assert!(has_text_part(&h, "Version 1.0.0 · Mine"));
 

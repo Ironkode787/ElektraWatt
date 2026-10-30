@@ -1863,6 +1863,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "macro-value-set" => "Value set",
         "macro-value-set-defaults" => "Defaults",
         "macro-no-preview" => "No preview",
+        "macro-preview-name" => "Preview of {0}",
         "macro-devices" => "Devices",
         "macro-variables" => "Variables",
         "macro-version" => "Version {0} · {1}",

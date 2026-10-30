@@ -23,7 +23,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_api::output::ew_dl::ew_units::{Nm, Orient2, Pt2};
-use ew_api::output::{LibraryCopyDetail, MacroDetail, NavRole, NavTable, Uuid};
+use ew_api::output::{LibraryCopyDetail, MacroDetail, MacroThumbnail, NavRole, NavTable, Uuid};
 use ew_api::{AnyCommand, InsertAt, MacroConflict, MacroScope, MacroSpec, MacroValues, Submit};
 use serde_json::{Map, Value, json};
 
@@ -55,8 +55,8 @@ pub struct MacroVariable {
 /// The shell's macro state: the detail of the Macros navigator's cursor row, the variables of the next save.
 #[derive(Default, Debug)]
 pub(crate) struct MacroState {
-    /// The cursor row's key and its detail (`None`: no macro row).
-    detail: Option<(String, Option<Arc<MacroDetail>>)>,
+    /// The cursor row's key, its detail (`None`: no macro row) and its thumbnail (`None`: none drawn, FT-754 (a)).
+    detail: Option<(String, Option<Arc<MacroDetail>>, Option<Arc<MacroThumbnail>>)>,
     /// The variables Make variable remembered.
     variables: Vec<MacroVariable>,
     /// The Libraries navigator's cursor row key, the table it was read from (its address: a new table after a change
@@ -133,7 +133,14 @@ impl ShellModel {
     /// The detail of the macro under the Macros navigator's cursor (§11: name, description, "No preview", devices,
     /// variables); `None` when the cursor is on no macro row or the navigator is closed.
     pub fn macro_detail(&self) -> Option<&MacroDetail> {
-        self.macros.detail.as_ref().and_then(|(_, d)| d.as_deref())
+        self.macros.detail.as_ref().and_then(|(_, d, _)| d.as_deref())
+    }
+
+    /// The thumbnail of the macro under the Macros navigator's cursor (FT-754 (a): the macro drawn on a blank page of
+    /// a throwaway copy, `Session::macro_thumbnail`); `None` when there is none, and the detail then says "No
+    /// preview".
+    pub fn macro_thumbnail(&self) -> Option<&MacroThumbnail> {
+        self.macros.detail.as_ref().and_then(|(_, _, t)| t.as_deref())
     }
 
     /// The detail of the library copy under the Libraries navigator's cursor (FT-755: name, kind, key, library,
@@ -163,15 +170,16 @@ impl ShellModel {
             self.macros.detail = None;
             return;
         };
-        if self.macros.detail.as_ref().is_some_and(|(k, _)| *k == key) {
+        if self.macros.detail.as_ref().is_some_and(|(k, ..)| *k == key) {
             return;
         }
-        let detail = self
-            .project
-            .as_ref()
-            .and_then(|p| p.session.macro_detail(&key))
+        let session = self.project.as_ref().map(|p| &p.session);
+        let detail = session.and_then(|s| s.macro_detail(&key)).map(Arc::new);
+        let thumbnail = session
+            .filter(|_| detail.is_some())
+            .and_then(|s| s.macro_thumbnail(&key))
             .map(Arc::new);
-        self.macros.detail = Some((key, detail));
+        self.macros.detail = Some((key, detail, thumbnail));
     }
 
     /// The copy detail follows the Libraries navigator's cursor and table (end of every dispatch, FT-755): one

@@ -14,7 +14,8 @@ use ew_commands::commands::{
 };
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_schema::{
-    Device, ItemStatus, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroInstance, Part, Representation, Sha256,
+    Device, ItemStatus, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroInstance, Part, Representation,
+    Sha256,
 };
 use ew_units::Dec3;
 

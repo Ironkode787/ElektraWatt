@@ -16,6 +16,7 @@
 //! Both read [`Session::libraries`] as it is now, never a command: the tables are front-end views (D7).
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use ew_derive::Q;
 use ew_derive::ew_ids::{Id, Uuid};
@@ -26,6 +27,7 @@ use ew_schema::{
 
 use super::{Builder, NavColumn, NavRole, column, kind_text, short_tag};
 use crate::library::{IndexState, LibraryInfo, Tier};
+use crate::output::ew_dl;
 use crate::{CopyState, Session};
 
 /// The Macros navigator's columns (key, label); the first is the key column.
@@ -358,6 +360,18 @@ impl MacroDetail {
     }
 }
 
+/// A macro's thumbnail (WP-S1.19 §11, FT-754 (a)): the macro inserted on a blank page of a throwaway copy of the
+/// project, drawn as the page's sheet display list, and the region of the sheet its records cover.
+#[derive(Clone, Debug)]
+pub struct MacroThumbnail {
+    /// The sheet's width and height, nm.
+    pub sheet: (i64, i64),
+    /// The page's display list on the sheet (as an export draws it).
+    pub content: Arc<ew_dl::DisplayList>,
+    /// The region the macro's records cover, `[x0, y0, x1, y1]` in sheet nm, padded by 5 mm on every side.
+    pub region: [i64; 4],
+}
+
 /// What the Libraries navigator's detail shows of a project's library copy (FT-755): as the Macros navigator's
 /// detail shows a macro.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -415,6 +429,107 @@ impl Session {
         let q = self.query();
         let c = q.table::<LibCopy<MacroDef>>().get(Id::from_uuid(copy))?.clone();
         Some(MacroDetail::of(&c, IN_PROJECT.to_owned(), None))
+    }
+
+    /// The thumbnail of the macro a row key of the Macros navigator names (FT-754 (a); doc 16a's detail pane): the
+    /// macro of an installed library inserted with its defaults on a new blank page (a window macro at a grid point
+    /// 20 steps from the page's corner; a page macro's first page after it) on a throwaway engine over the current
+    /// snapshot, without the prevent rules, so the session is never touched and a conflict does not stop the
+    /// drawing. `None` for a macro no installed library holds, one that does not insert, or one that draws nothing.
+    pub fn macro_thumbnail(&self, key: &str) -> Option<MacroThumbnail> {
+        const PAD: i64 = 5_000_000;
+        let detail = self.macro_detail(key)?;
+        let reference = detail.reference.clone()?;
+        let (before, last) = {
+            let q = self.query();
+            let before: BTreeSet<Uuid> = q.pages().iter().map(|(id, _)| id.as_uuid()).collect();
+            let last = q
+                .get::<ew_derive::PageOrder>(())
+                .entries
+                .iter()
+                .rev()
+                .find_map(|e| match e.page {
+                    ew_derive::PageRef::Drawn(p) => Some(p.as_uuid()),
+                    _ => None,
+                })?;
+            (before, last)
+        };
+        let mut engine =
+            ew_commands::Engine::new(self.world().model.clone(), ew_commands::EngineOptions::default());
+        let create = engine
+            .resolve(&crate::AnyCommand {
+                name: "page.create".into(),
+                params: serde_json::json!({ "after": last.to_string() }),
+            })
+            .ok()?;
+        engine.execute(create.as_ref()).ok()?;
+        let blank = {
+            let q = self.query_over(engine.model());
+            q.pages()
+                .iter()
+                .map(|(id, _)| id.as_uuid())
+                .find(|id| !before.contains(id))?
+        };
+        let g = ew_units::Grid::QET_10PX;
+        let corner = g.at(20).unwrap_or_default();
+        let at = crate::InsertAt {
+            page: blank,
+            at: (detail.kind == "Window").then(|| ew_units::Pt2::new(corner, corner)),
+            orient: ew_units::Orient2::R0,
+        };
+        let instance = Uuid::new_v5(&detail.copy, b"thumbnail");
+        let cmd = self
+            .insert_macro(&reference, &at, &crate::MacroValues::default(), instance)
+            .ok()?;
+        let resolved = engine.resolve(&cmd).ok()?;
+        let preview = engine.preview(resolved.as_ref()).ok()?;
+        let q = self.query_over(preview.candidate());
+        let window = detail.kind == "Window";
+        let order = q.get::<ew_derive::PageOrder>(());
+        let label = order
+            .entries
+            .iter()
+            .find(|e| match e.page {
+                ew_derive::PageRef::Drawn(p) => {
+                    let p = p.as_uuid();
+                    if window {
+                        p == blank
+                    } else {
+                        !before.contains(&p) && p != blank
+                    }
+                }
+                _ => false,
+            })?
+            .folio
+            .clone();
+        let pages = crate::output::export_pages(
+            &q,
+            &crate::output::ExportOptions {
+                pages: crate::output::PageSelection::Folios(vec![label]),
+                ..crate::output::ExportOptions::default()
+            },
+        )
+        .ok()?;
+        let first = pages.pages.into_iter().next()?;
+        let mut region: Option<[i64; 4]> = None;
+        for (_, r) in first.content.entity_bounds() {
+            let (x0, y0, x1, y1) = (r.min().x.0, r.min().y.0, r.max().x.0, r.max().y.0);
+            region = Some(match region {
+                None => [x0, y0, x1, y1],
+                Some([a, b, c, d]) => [a.min(x0), b.min(y0), c.max(x1), d.max(y1)],
+            });
+        }
+        let [x0, y0, x1, y1] = region?;
+        Some(MacroThumbnail {
+            sheet: (first.width.0, first.height.0),
+            content: Arc::new(first.content),
+            region: [
+                x0.saturating_sub(PAD),
+                y0.saturating_sub(PAD),
+                x1.saturating_add(PAD),
+                y1.saturating_add(PAD),
+            ],
+        })
     }
 
     /// The project's library copy a row key of the Libraries navigator names (its last segment `copy:<copy>`), as

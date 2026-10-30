@@ -376,7 +376,9 @@ impl ShellModel {
                 Outcome::Done
             }
             // WP-S1.19 part 6: the macro tool's click is a host step, no command.
-            ToolOutput::Host(crate::tools::HostStep::MacroPlace { key, at }) => self.macro_place_from_tool(&key, at),
+            ToolOutput::Host(crate::tools::HostStep::MacroPlace { key, at }) => {
+                self.macro_place_from_tool(&key, at)
+            }
             ToolOutput::Commit(cmd) => {
                 let cmd = self.without_held_copies(cmd);
                 self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));

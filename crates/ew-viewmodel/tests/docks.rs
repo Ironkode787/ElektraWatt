@@ -216,7 +216,12 @@ fn dk1_the_rail_model_and_rail_show() {
         shell.layout().shown_in_place_of(PaneKind::Pages),
         Some(PaneKind::Navigator(NavKind::Libraries))
     );
-    assert!(rail(&shell).left.iter().any(|b| b.word == "libraries" && b.active));
+    assert!(
+        rail(&shell)
+            .left
+            .iter()
+            .any(|b| b.word == "libraries" && b.active)
+    );
     done(&mut shell, "rail.show", json!({"pane": "cables"}));
     assert_eq!(
         shell.layout().shown_in_place_of(PaneKind::Pages),

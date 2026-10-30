@@ -28,9 +28,9 @@ use super::navigation::{Focus, bump};
 use super::{Mode, Outcome, RecordedCommand, ShellModel, failed, string_param};
 use crate::properties::{
     Card, CardOrigin, ChoiceKind, Choices, Decision, EditBuffer, PendingEdit, Popup, PropRow,
-    PropertiesState, PropertySheet, Provenance, RowAction, RowMenuItem, RowValue, SheetKey, SheetSection, compose,
-    filter_shown, find_row, is_derived, item_default, kind_plural, member_path, policy, read_only_reason,
-    visible_rows,
+    PropertiesState, PropertySheet, Provenance, RowAction, RowMenuItem, RowValue, SheetKey, SheetSection,
+    compose, filter_shown, find_row, is_derived, item_default, kind_plural, member_path, policy,
+    read_only_reason, visible_rows,
 };
 use crate::strings;
 use crate::tools::PreviewState;

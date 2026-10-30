@@ -302,6 +302,27 @@ fn ui1_the_macros_navigator_lists_a_saved_macro_and_its_detail() {
     let reference = detail.reference.clone().expect("installed");
     assert_eq!(reference.item, saved.reference.item);
     assert!(detail.extent.is_some());
+    // FT-754 (a): the thumbnail draws the macro on a blank page of a throwaway copy; the project is not touched.
+    let pages = s.query().pages().iter().count();
+    let thumb = s.macro_thumbnail(&m.key).expect("a thumbnail");
+    assert_eq!(
+        s.query().pages().iter().count(),
+        pages,
+        "the session is not touched"
+    );
+    let [x0, y0, x1, y1] = thumb.region;
+    assert!(x0 < x1 && y0 < y1, "{:?}", thumb.region);
+    assert!(
+        x1 > 0 && y1 > 0 && x0 < thumb.sheet.0 && y0 < thumb.sheet.1,
+        "{:?} on {:?}",
+        thumb.region,
+        thumb.sheet
+    );
+    assert!(
+        !thumb.content.entity_bounds().is_empty(),
+        "the macro's records are drawn"
+    );
+    assert!(s.macro_thumbnail("tier:user/macro:nonsense").is_none());
     assert_eq!(s.macro_detail("tier:user/macro:nonsense"), None);
 
     // The instance: deterministic, and the next one after an insertion differs.

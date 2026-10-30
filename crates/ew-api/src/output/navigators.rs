@@ -43,7 +43,7 @@ use super::view::PageFrameOf;
 use crate::Session;
 
 mod libraries;
-pub use libraries::{LibraryCopyDetail, MacroDetail};
+pub use libraries::{LibraryCopyDetail, MacroDetail, MacroThumbnail};
 
 /// The navigators (D4; WP-S2.09 D8 adds the message panel last), in View ▸ Navigators order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

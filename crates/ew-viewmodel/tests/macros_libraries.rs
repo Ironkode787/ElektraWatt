@@ -120,7 +120,7 @@ fn reps_on_show(shell: &ShellModel) -> usize {
 }
 
 /// UI-1: the Macros navigator lists the saved PSU macro under "User" and its detail shows its name, version,
-/// library, no thumbnail ("No preview" in the window) and its three devices.
+/// library, its thumbnail drawn from the scene (FT-754 (a)) and its three devices.
 #[test]
 fn ui1_the_macros_navigator_shows_the_psu_macro_and_its_detail() {
     let tmp = Tmp::new("macros-ui1");
@@ -135,8 +135,11 @@ fn ui1_the_macros_navigator_shows_the_psu_macro_and_its_detail() {
     assert_eq!(d.name, "PSU 24 V DC");
     assert_eq!(d.version, "1.0.0");
     assert_eq!(d.library, "Mine");
-    assert!(d.thumbnail.is_none());
+    assert!(d.thumbnail.is_none(), "no stored thumbnail asset");
     assert_eq!(d.devices.len(), 3, "{:?}", d.devices);
+    // FT-754 (a): the detail's thumbnail is drawn from the scene.
+    let th = shell.macro_thumbnail().expect("a drawn thumbnail");
+    assert!(th.region[0] < th.region[2] && th.region[1] < th.region[3]);
     assert!(d.devices.iter().any(|x| x.starts_with("-G")), "{:?}", d.devices);
     // The describe text names the navigator and its rows' roles in words (`LIBRARY_WORDS`).
     let text = ew_viewmodel::describe::describe(&shell);
@@ -536,7 +539,11 @@ fn save_ids(shell: &mut ShellModel, name: &str, ids: Vec<String>, description: &
 fn card_copies(shell: &ShellModel) -> Vec<String> {
     let card = shell.properties().card().expect("the Update… card");
     assert_eq!(card.preview.name, "library.update");
-    assert!(card.preview.result.is_ok(), "{:?}", card.preview.result.as_ref().err());
+    assert!(
+        card.preview.result.is_ok(),
+        "{:?}",
+        card.preview.result.as_ref().err()
+    );
     let mut ids: Vec<String> = card.preview.command["copies"]
         .as_array()
         .expect("the copies")
@@ -593,12 +600,20 @@ fn ft754d_update_previews_keys_then_marked_then_cursor_then_all() {
     assert_eq!(card_copies(&shell), both, "every copy with an update");
     done(&mut shell, "preview.cancel", json!({}));
     // The cursor.
-    done(&mut shell, "navigator.row", json!({"kind": "libraries", "key": b}));
+    done(
+        &mut shell,
+        "navigator.row",
+        json!({"kind": "libraries", "key": b}),
+    );
     done(&mut shell, "libraries.update", json!({}));
     assert_eq!(card_copies(&shell), [cb.clone()], "the cursor's copy");
     done(&mut shell, "preview.cancel", json!({}));
     // Marked over the cursor.
-    done(&mut shell, "navigator.mark", json!({"kind": "libraries", "key": a}));
+    done(
+        &mut shell,
+        "navigator.mark",
+        json!({"kind": "libraries", "key": a}),
+    );
     done(&mut shell, "libraries.update", json!({}));
     assert_eq!(card_copies(&shell), [ca.clone()], "the marked copy");
     done(&mut shell, "preview.cancel", json!({}));
