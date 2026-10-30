@@ -321,6 +321,16 @@ pub const ARMS: &[Arm] = &[
         build: revision_create,
     },
     Arm {
+        command: "revision.set_author",
+        weight: 1,
+        build: revision_set_author,
+    },
+    Arm {
+        command: "revision.withdraw",
+        weight: 1,
+        build: revision_withdraw,
+    },
+    Arm {
         command: "rep.transform",
         weight: 4,
         build: rep_transform,
@@ -4931,7 +4941,7 @@ fn max_major(live: &Live) -> u32 {
         .unwrap_or(0)
 }
 
-/// A label no revision has, above every major number (the order of labels is the release gate's rule).
+/// A label no revision has, above every major number (EW-REL-004: an open revision's label follows every label).
 fn fresh_label(live: &Live, rng: &mut SplitMix64) -> String {
     format!(
         "V{}.{}",
@@ -4978,11 +4988,32 @@ fn title_block_follows(after: &ew_derive::Q) -> Result<(), String> {
     }
 }
 
+/// A `V0.<minor>` label no revision has, below the open revision's label (EW-REL-004: a historic released revision
+/// precedes the open one); `None` when the open label is not above `V0.*` or the pick is taken.
+fn history_label(live: &Live, rng: &mut SplitMix64) -> Option<String> {
+    let open = live.revisions.iter().find(|r| r.state == "open")?;
+    let major: u32 = open.label.strip_prefix('V')?.split('.').next()?.parse().ok()?;
+    let label = format!("V0.{}", 1 + rng.below(500));
+    (major >= 1 && live.revisions.iter().all(|r| r.label != label)).then_some(label)
+}
+
 fn revision_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let label = fresh_label(live, rng);
     let open = live.revisions.iter().any(|r| r.state == "open");
     let create = |p: Value| Step::cmd("revision.create", p);
-    match rng.below(12) {
+    match rng.below(15) {
+        // Prevented (EW-REL-004): a label out of the `V{major}.{minor}` format, in either state.
+        12 => {
+            let state = *rng.pick(&["open", "released"])?;
+            let bad = *rng.pick(&["2", "V2", "v3.0", "V01.0", "Rev 4"])?;
+            Some(create(json!({"label": bad, "state": state})).refuse())
+        }
+        // Prevented (EW-REL-004): a historic released revision above the open one.
+        13 if open && !live.any_release => {
+            Some(create(json!({"label": label, "state": "released"})).refuse())
+        }
+        // Refused (D4, FT-402): a checker on an open revision.
+        14 if !open => Some(create(json!({"label": label, "checker": "checker"})).refuse()),
         // Refused: a label another revision has (EW-INV-017).
         0 => {
             let r = rng.pick(&live.revisions)?;
@@ -5011,11 +5042,12 @@ fn revision_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .refuse(),
         ),
         _ => {
-            // The open revision when there is none; else a historic released one, unless a release record exists.
-            let state = if !open {
-                "open"
+            // The open revision when there is none; else a historic released one below it, unless a release record
+            // exists.
+            let (state, label) = if !open {
+                ("open", label)
             } else if !live.any_release {
-                "released"
+                ("released", history_label(live, rng)?)
             } else {
                 return None;
             };
@@ -5029,9 +5061,10 @@ fn revision_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 ));
             }
             if rng.chance(2) {
+                // The checker of an open revision is approval's (D4): a historic released revision only.
                 let (a, b) = (role(rng), role(rng));
-                if a != b {
-                    p["author"] = json!(a);
+                p["author"] = json!(a);
+                if a != b && state == "released" {
                     p["checker"] = json!(b);
                 }
             }
@@ -5135,21 +5168,9 @@ pub fn revision_fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     .ok_or_else(|| format!("the notes are on {have:?}, expected {pages:?}"))
             }))
         }
-        // The author, never the checker's party.
-        11 => {
-            let new = role(rng);
-            if r.checker.as_deref() == Some(new) {
-                return None;
-            }
-            Some(one(&r.id, "author", json!(new)).accept())
-        }
-        12 => {
-            let new = role(rng);
-            if r.author.as_deref() == Some(new) {
-                return None;
-            }
-            Some(one(&r.id, "checker", json!(new)).accept())
-        }
+        // Refused (D4, FT-402): the roles are set by `revision.set_author` and by approval, never by fields.set.
+        11 => Some(one(&r.id, "author", json!(role(rng))).refuse()),
+        12 => Some(one(&r.id, "checker", json!(role(rng))).refuse()),
         // A new label above every other (the order of labels is the release gate's rule); the title block
         // prints it.
         _ => {
@@ -5162,6 +5183,84 @@ pub fn revision_fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 }
                 title_block_follows(after)
             }))
+        }
+    }
+}
+
+/// `revision.set_author` (WP-S1.18 D4; `HumanOnly`, the fuzz session's origin is the GUI): the open revision's
+/// author, never the checker's party; a released or withdrawn revision and a missing one are refused.
+fn revision_set_author(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let step = |revision: &Value, role: &str| {
+        Step::cmd("revision.set_author", json!({"revision": revision, "role": role}))
+    };
+    match rng.below(6) {
+        0 => {
+            let closed: Vec<_> = live.revisions.iter().filter(|r| r.state != "open").collect();
+            let r = *rng.pick(&closed)?;
+            Some(step(&r.id, role(rng)).refuse())
+        }
+        1 => Some(step(&json!(rng.uuid()), role(rng)).refuse()),
+        _ => {
+            let r = live.revisions.iter().find(|r| r.state == "open")?;
+            let new = role(rng);
+            if r.checker.as_deref() == Some(new) {
+                return Some(step(&r.id, new).refuse());
+            }
+            let id = r.id.clone();
+            let want = json!(new);
+            Some(step(&r.id, new).accept().check(move |_, after| {
+                let have = typed::<ew_schema::Revision>(&id)
+                    .and_then(|i| after.table::<ew_schema::Revision>().get(i).cloned())
+                    .and_then(|r| serde_json::to_value(&r.author).ok());
+                (have.as_ref() == Some(&want))
+                    .then_some(())
+                    .ok_or_else(|| format!("the author is {have:?}, expected {want}"))
+            }))
+        }
+    }
+}
+
+/// `revision.withdraw` (WP-S1.18 D5; `HumanOnly`): a released revision gets one withdrawal record and stays as it
+/// was; an open revision, a withdrawal record, a revision withdrawn already and a blank reason are refused.
+fn revision_withdraw(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let step = |revision: &Value, reason: &str| {
+        Step::cmd(
+            "revision.withdraw",
+            json!({"revision": revision, "reason": reason}),
+        )
+    };
+    let withdrawn = |id: &Value| live.revisions.iter().any(|w| w.withdraws.as_ref() == Some(id));
+    match rng.below(6) {
+        0 => {
+            let others: Vec<_> = live.revisions.iter().filter(|r| r.state != "released").collect();
+            let r = *rng.pick(&others)?;
+            Some(step(&r.id, "not a released revision").refuse())
+        }
+        1 => {
+            let r = rng.pick(&live.revisions)?;
+            Some(step(&r.id, "   ").refuse())
+        }
+        _ => {
+            let released: Vec<_> = live.revisions.iter().filter(|r| r.state == "released").collect();
+            let r = *rng.pick(&released)?;
+            if withdrawn(&r.id) {
+                return Some(step(&r.id, "withdrawn again").refuse());
+            }
+            let id = r.id.clone();
+            let before = typed::<ew_schema::Revision>(&id);
+            Some(
+                step(&r.id, &format!("withdrawn: {}", rng.word(8)))
+                    .accept()
+                    .counts(&[(Table::Revisions, 1)])
+                    .check(move |q_before, after| {
+                        let get = |q: &ew_derive::Q| {
+                            before.and_then(|i| q.table::<ew_schema::Revision>().get(i).cloned())
+                        };
+                        (get(q_before) == get(after))
+                            .then_some(())
+                            .ok_or_else(|| "the withdrawn revision changed".to_owned())
+                    }),
+            )
         }
     }
 }

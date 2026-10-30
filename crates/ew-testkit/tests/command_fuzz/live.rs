@@ -160,6 +160,8 @@ pub struct RevInfo {
     pub state: String,
     pub author: Option<String>,
     pub checker: Option<String>,
+    /// On a withdrawal record, the revision it withdraws.
+    pub withdraws: Option<Value>,
 }
 
 pub struct IpInfo {
@@ -329,7 +331,7 @@ pub struct Live {
     /// The location-aspect structure nodes.
     pub locations: Vec<Value>,
     pub revisions: Vec<RevInfo>,
-    /// Whether a revision has a release record (the `release` member of its extras).
+    /// Whether a revision has a release record (the typed `release` member, FT-302).
     pub any_release: bool,
     /// WP-S2.04 part 4a: `(item, page)` of every page item that `rep.move` can move (a typed variant), and of every
     /// structure box.
@@ -872,12 +874,13 @@ impl Live {
                     state: kind_text(&r.state),
                     author: r.author.as_ref().map(kind_text),
                     checker: r.checker.as_ref().map(kind_text),
+                    withdraws: r.withdraws.map(id_json),
                 })
                 .collect(),
             any_release: q
                 .table::<ew_schema::Revision>()
                 .iter()
-                .any(|(_, r)| r.extra.contains_key("release")),
+                .any(|(_, r)| r.release.is_some()),
             page_items: q
                 .page_items()
                 .iter()

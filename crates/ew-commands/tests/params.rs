@@ -170,6 +170,15 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"label": "V3.0", "date": "2025-06-02", "author": "engineer",
                 "description": "Changes on 102", "page_notes": [{"page": PAGE_102.to_string()}]}),
         ),
+        // WP-S1.18 part 1
+        (
+            "revision.set_author",
+            json!({"revision": DEV_T1.to_string(), "role": "engineer"}),
+        ),
+        (
+            "revision.withdraw",
+            json!({"revision": DEV_T1.to_string(), "reason": "Issued in error"}),
+        ),
         (
             "fields.set",
             json!({"kind": "device", "targets": [DEV_102F2.to_string()], "path": "tag.counter", "value": 5}),

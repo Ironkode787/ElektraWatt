@@ -10,7 +10,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`page.delete`: removes pages with everything they own (FR-PAG-025, doc 06 §3.4).\n\nEach page is removed through the delete policies: its representations, connections and junctions\ncascade, and an interruption-point function goes with its representation. Devices stay, unplaced,\nunless `delete_devices` is set: then every device that had a representation of one of its functions on\na deleted page and has none left anywhere is removed too (with its functions and their remaining\nconnections). Bulk: it always previews (doc 06 §3.1).",
+  "description": "`page.delete`: removes pages with everything they own (FR-PAG-025, doc 06 §3.4).\n\nEach page is removed through the delete policies: its representations, connections and junctions\ncascade, and an interruption-point function goes with its representation. Devices stay, unplaced,\nunless `delete_devices` is set: then every device that had a representation of one of its functions on\na deleted page and has none left anywhere is removed too (with its functions and their remaining\nconnections). The open revision's notes on the deleted pages go in the same transaction (FT-303, WP-S1.18 D5);\nthe notes of released and withdrawn revisions stay. Bulk: it always previews (doc 06 §3.1).",
   "properties": {
     "delete_devices": {
       "default": false,

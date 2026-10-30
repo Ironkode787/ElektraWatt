@@ -222,6 +222,26 @@
         }
       ]
     },
+    "LabelFormat": {
+      "description": "The project's one revision label format (doc 15 §5.2, FR-REV-002), `ProjectSettings.revision_label`;\nabsent means [`LabelFormat::VMajorMinor`], the golden form, so every file written before the setting existed\nreads as it did.\n\nLabels increase in natural order, which is the format's own order ([`LabelFormat::order_key`]): `V2.0 <\nV10.0`, `09 < 10`, `Z < AA`. The proposal for the next revision bumps the major part ([`LabelFormat::next`]).",
+      "oneOf": [
+        {
+          "const": "v_major_minor",
+          "description": "`V{major}.{minor}`: V1.0, V2.0, V2.1 (decimal parts without leading zeros).",
+          "type": "string"
+        },
+        {
+          "const": "two_digit",
+          "description": "`{nn}`: 00, 01 … 99, 100 (decimal, at least two digits: one leading zero below ten).",
+          "type": "string"
+        },
+        {
+          "const": "letter",
+          "description": "`{A}`: A, B … Z, AA, AB … (the letters without I and O, counted like spreadsheet columns).",
+          "type": "string"
+        }
+      ]
+    },
     "LangTag": {
       "description": "A canonical BCP 47 language tag such as en-GB (language in lower case, script in title case, region in upper case). JSON Schema cannot express that variant and extension subtags are unique; no registry is consulted, so qq-QQ is accepted.",
       "minLength": 2,
@@ -477,6 +497,17 @@
             }
           ],
           "description": "Interruption-point pairing (FR-XRF-007, FR-XRF-010)."
+        },
+        "revision_label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LabelFormat"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The project's one revision label format (doc 15 §5.2, FR-REV-002; WP-S1.18 D2); absent means\n`v_major_minor`, the golden form ([`ProjectSettings::revision_label_format`])."
         },
         "text_styles": {
           "additionalProperties": {

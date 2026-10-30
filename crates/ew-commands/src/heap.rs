@@ -289,6 +289,52 @@ impl HeapSize for ew_schema::Revision {
             + self.page_notes.heap_size()
             + self.withdraws.heap_size()
             + self.source_ref.heap_size()
+            + self.reason.heap_size()
+            + self.release.heap_size()
+            + self.sign_off.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+// WP-S1.18 part 1: the typed sign-off and release record (digests, dates and counts are inline).
+plain!(
+    u64,
+    ew_schema::Digest128,
+    ew_schema::Sha256,
+    ew_schema::Date,
+    ew_schema::LabelFormat
+);
+
+impl HeapSize for ew_schema::PackVersion {
+    fn heap_size(&self) -> usize {
+        self.id.heap_size() + self.version.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::SignOff {
+    fn heap_size(&self) -> usize {
+        self.packs.heap_size()
+            + self.scheme.heap_size()
+            + self.waivers_ack.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::ArchiveRef {
+    fn heap_size(&self) -> usize {
+        self.name.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::ReleaseRecord {
+    fn heap_size(&self) -> usize {
+        self.approval.heap_size()
+            + self.archive.heap_size()
+            + self.changed_pages.heap_size()
+            + self.derivation_profile.heap_size()
+            + self.git_tag.heap_size()
+            + self.page_digests.heap_size()
+            + self.rule_packs.heap_size()
             + self.extra.heap_size()
     }
 }
@@ -466,6 +512,7 @@ impl HeapSize for ProjectSettings {
         self.identifier_set.heap_size()
             + self.ip_pairing.heap_size()
             + self.formatting.heap_size()
+            + self.revision_label.heap_size()
             + self.text_styles.heap_size()
             + self.extra.heap_size()
     }

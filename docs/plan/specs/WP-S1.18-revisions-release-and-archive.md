@@ -5,7 +5,8 @@
 change status and the revision overview (0.8 pw, D6, D7), part 3 the content digest, sign-off and the release gate
 (0.8 pw, D8 to D10), part 4 the atomic release with the as-built archive (1.1 pw, D11 to D13), part 5 the archive's
 use, the dialogs and AC-23 (0.5 pw, D14, D15); part 1 first; part 2 after part 1; part 3 after parts 1 and 2 and
-WP-S1.16 part 5 (waivers); part 4 after part 3; part 5 last · **Date:** 2026-10-30 · **Work package:**
+WP-S1.16 part 5 (waivers; they exist since cycle 36, `crates/ew-schema/src/waiver.rs`); part 4 after part 3; part 5
+last · **Date:** 2026-10-30 · **Work package:**
 [WP-S1.18](../02-work-packages.md#wp-s118-revisions-release-gate-and-as-built-archive) · **Decision log:** ID-836 ·
 **Part of:** ElektraWatt plan, specifications
 
@@ -158,6 +159,18 @@ V2.0 in the same transaction; undo removes both; a comment edit opens nothing. *
 **RL-5** `revision.withdraw` adds the withdrawal record with its reason; the released record is byte-identical.
 **RL-6** deleting a page drops the open revision's note on it; a released revision's note stays. **RL-7** targeted
 checks for `ew-schema`, `ew-format`, `ew-commands`, `ew-api`.
+
+**Rulings for part 1 (cycle 37, orchestrator).** *Content edit.* D3's trigger is a content edit after a released
+revision. Part 1 states the content set once, in `ew-schema` (`is_content_kind`, `NOT_CONTENT_FILES`): a record is
+content when its file is in the content digest's manifest set of D8, which is every file except `revisions.jsonl`
+(revisions and transmittals) and `comments.jsonl`. The project row, library copies and waivers are content. View
+state is never in the manifest. Part 3's digest and stale sign-off reuse this set. *Partial payloads.* Every member of
+`SignOff`, `ReleaseRecord` (with `PackVersion` and `ArchiveRef`) is optional, so a partial sign-off or release record
+of an older file loads typed instead of as EW-CORE-017. The typed members are declared in byte order of their names,
+so a line that held them as extras stays canonical byte for byte. *EW-REL-004.* The rule is prevent and release-gate
+(ADR-0009). Part 1 builds the prevent half as a refusal of `revision.create` (`CmdError::Prevented`). The label must
+be in the project's format. An open revision's label must follow every label in the format, and the refusal names
+the next label. A historic released revision's label must precede the open revision's. Part 3 builds the gate half.
 
 ## 6. Part 2: page digests, change status and the revision overview
 

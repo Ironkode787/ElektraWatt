@@ -109,7 +109,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`revision.create` (`CreateRevision`): a project revision (doc 03 §18, FR-REV-001, FT-165): the open\nrevision that collects the current edits, or a historic released revision (released before the project\ncame to ElektraWatt: no release record, no as-built archive).\n\nCreates `Revision {label, date, author, checker, description, state, page_notes}` with a new ID; author\nand checker are party roles (FR-PRJ-003). Rejected: a label that another revision has, other than a\nwithdrawal record (EW-INV-017); state `open` while another revision is open (EW-INV-016); a checker\nequal to the author (at `/checker`, EW-INV-018); a page note on a page that does not exist (at\n`/page_notes/<i>/page`) or a second note on one page (at `/page_notes/<i>`, EW-INV-019); state\n`released` once a revision has a release record (the `release` member): a historic release precedes\nElektraWatt's first release and never bypasses the release gate of `revision.release`. The label's\nformat and order (FR-REV-002) are the release-gate and prevent rule EW-REL-004's, not this command's.\nThe command never changes an existing revision. Outcome: the revision.",
+  "description": "`revision.create` (`CreateRevision`): a project revision (doc 03 §18, FR-REV-001, FT-165): the open\nrevision that collects the current edits, or a historic released revision (released before the project\ncame to ElektraWatt: no release record, no as-built archive).\n\nCreates `Revision {label, date, author, checker, description, state, page_notes}` with a new ID; author\nand checker are party roles (FR-PRJ-003). Rejected: a checker on an open revision (at `/checker`: the checker\nof an open revision is written only by approval, WP-S1.18 D4, FT-402); a checker equal to the author (at\n`/checker`, EW-INV-018); a page note on a page that does not exist (at `/page_notes/<i>/page`) or a second\nnote on one page (at `/page_notes/<i>`, EW-INV-019); a label that another revision has, other than a\nwithdrawal record (EW-INV-017); state `open` while another revision is open (EW-INV-016); state `released`\nonce a revision has a release record (the typed `release` member, FT-302): a historic release precedes\nElektraWatt's first release and never bypasses the release gate of `revision.release`. Prevented by\n**EW-REL-004** (the prevent half of the label rule, doc 15 §4.8 and §5.2; its release-gate half is WP-S1.18 part\n3): a label that is not in the project's label format (`settings.revision_label`, absent meaning\n`V{major}.{minor}`); for an open revision, a label that does not follow every label in the format in natural\norder (the refusal names the next label); for a historic released revision, a label that does not precede the\nopen revision's, so the open revision stays the last in order. A label format of a newer build is not judged.\nThe command never changes an existing revision. Outcome: the revision.",
   "properties": {
     "author": {
       "anyOf": [
@@ -131,7 +131,7 @@
           "type": "null"
         }
       ],
-      "description": "The checker, as a party role; never the author's."
+      "description": "The checker, as a party role; never the author's. A historic released revision only."
     },
     "date": {
       "anyOf": [

@@ -47,8 +47,10 @@ use crate::tx::TxBuilder;
 ///
 /// A revision's members are settable while it is open; a released or withdrawn revision is immutable
 /// (FR-REV-009) and refused at `/targets/<i>`. Its `state` is not settable (Open → Released is
-/// `revision.release`). A `page_notes` value names existing pages, one note per page (EW-INV-019), and its
-/// notes take no member other than `page` and `description`.
+/// `revision.release`), nor are its roles (WP-S1.18 D4, FT-402): `author` and `checker` are refused at `/path` from
+/// every origin, because the author is set by `revision.set_author` and the checker by approval. A `page_notes`
+/// value names existing pages, one note per page (EW-INV-019), and its notes take no member other than `page` and
+/// `description`.
 ///
 /// An interruption point's `name`, `direction`, `sort` and `star_source` are settable on its function as
 /// `kind.ip.<member>` (FT-399: renaming an interruption point from the grid); on any other function they are refused
@@ -171,7 +173,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
     (KindName::ExternalRef, &["project", "device", "connection"]),
     (
         KindName::Revision,
-        &["label", "date", "author", "checker", "description", "page_notes"],
+        &["label", "date", "description", "page_notes"],
     ),
     (
         KindName::PageItem,
@@ -272,6 +274,17 @@ impl SetFields {
                     "the target is listed twice",
                 ));
             }
+        }
+        if self.kind == KindName::Revision && matches!(self.path.as_str(), "author" | "checker") {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/path",
+                format!(
+                    "`{}` of a revision is not set here: set by Revision ▸ Set author or by approval (four eyes \
+                     need one confirmed path per role, FT-402)",
+                    self.path
+                ),
+            ));
         }
         let allowed = SETTABLE
             .iter()

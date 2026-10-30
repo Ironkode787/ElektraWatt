@@ -616,6 +616,7 @@ pub(crate) fn emit_project(
             tag_case: None,
             extra: Default::default(),
         },
+        revision_label: None,
         // Importers write no text styles: the golden project prints with the built-in table (ADR-0032 decision 3).
         text_styles: Default::default(),
         extra: numbering(&mut r)
@@ -792,6 +793,9 @@ pub(crate) fn emit_revisions(cx: &mut Cx<'_>, table: Option<&Table>, parties: Op
             page_notes: notes,
             withdraws: None,
             source_ref: Some(source_ref("revisions", row.key())),
+            reason: MlText::default(),
+            release: None,
+            sign_off: None,
             extra: Default::default(),
         }));
     }

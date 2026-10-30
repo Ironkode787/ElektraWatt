@@ -7,13 +7,18 @@ revision that collects the current edits, or a historic released revision (relea
 came to ElektraWatt: no release record, no as-built archive).
 
 Creates `Revision {label, date, author, checker, description, state, page_notes}` with a new ID; author
-and checker are party roles (FR-PRJ-003). Rejected: a label that another revision has, other than a
-withdrawal record (EW-INV-017); state `open` while another revision is open (EW-INV-016); a checker
-equal to the author (at `/checker`, EW-INV-018); a page note on a page that does not exist (at
-`/page_notes/<i>/page`) or a second note on one page (at `/page_notes/<i>`, EW-INV-019); state
-`released` once a revision has a release record (the `release` member): a historic release precedes
-ElektraWatt's first release and never bypasses the release gate of `revision.release`. The label's
-format and order (FR-REV-002) are the release-gate and prevent rule EW-REL-004's, not this command's.
+and checker are party roles (FR-PRJ-003). Rejected: a checker on an open revision (at `/checker`: the checker
+of an open revision is written only by approval, WP-S1.18 D4, FT-402); a checker equal to the author (at
+`/checker`, EW-INV-018); a page note on a page that does not exist (at `/page_notes/<i>/page`) or a second
+note on one page (at `/page_notes/<i>`, EW-INV-019); a label that another revision has, other than a
+withdrawal record (EW-INV-017); state `open` while another revision is open (EW-INV-016); state `released`
+once a revision has a release record (the typed `release` member, FT-302): a historic release precedes
+ElektraWatt's first release and never bypasses the release gate of `revision.release`. Prevented by
+**EW-REL-004** (the prevent half of the label rule, doc 15 §4.8 and §5.2; its release-gate half is WP-S1.18 part
+3): a label that is not in the project's label format (`settings.revision_label`, absent meaning
+`V{major}.{minor}`); for an open revision, a label that does not follow every label in the format in natural
+order (the refusal names the next label); for a historic released revision, a label that does not precede the
+open revision's, so the open revision stays the last in order. A label format of a newer build is not judged.
 The command never changes an existing revision. Outcome: the revision.
 
 ## Registry entry
@@ -35,7 +40,7 @@ The command never changes an existing revision. Outcome: the revision.
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `author` | [`PartyRole`](#partyrole) or `null` | no |  | The author, as a party role. |
-| `checker` | [`PartyRole`](#partyrole) or `null` | no |  | The checker, as a party role; never the author's. |
+| `checker` | [`PartyRole`](#partyrole) or `null` | no |  | The checker, as a party role; never the author's. A historic released revision only. |
 | `date` | [`Date`](#date) or `null` | no |  | The revision date. |
 | `description` | [`CmdMlText`](#cmdmltext) | no |  | What the revision changes. |
 | `label` | [`CmdIdent`](#cmdident) | yes |  | The label in the project's one format ("V2.0"). |

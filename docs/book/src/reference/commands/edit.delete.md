@@ -11,7 +11,8 @@ connections. A target that does not exist at the start is `NotFound`; a forbid l
 terminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:
 `Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by
 `cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at
-`/targets/<i>`; the open revision may be deleted. Outcome: none.
+`/targets/<i>`; the open revision may be deleted. A deleted page takes the open revision's note on it along
+(FT-303, WP-S1.18 D5). Outcome: none.
 
 ## Registry entry
 

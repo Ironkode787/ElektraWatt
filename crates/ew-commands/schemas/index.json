@@ -622,6 +622,28 @@
       "aliases": [],
       "confirmation": "none",
       "cost": "interactive",
+      "exposure": "human_only",
+      "name": "revision.set_author",
+      "params_version": 1,
+      "schema": "revision.set_author.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "human_only",
+      "name": "revision.withdraw",
+      "params_version": 1,
+      "schema": "revision.withdraw.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
       "exposure": "edit",
       "name": "section.create",
       "params_version": 1,

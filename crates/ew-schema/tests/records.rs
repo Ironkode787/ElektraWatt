@@ -433,25 +433,129 @@ fn a_historic_released_revision_needs_only_label_and_state() {
     assert!(r.date.is_none() && r.author.is_none() && r.page_notes.is_empty() && r.extra.is_empty());
 }
 
-/// The members of doc 03 §18 that later commands write (`purpose`, `sign_off`, `release`, `reason`) are kept
-/// in `extra` and written after the known members in byte-wise order, nested unknown members of a page note
-/// too; `withdraws` (the ID of the withdrawn revision) is typed.
+/// WP-S1.18 part 1 (D2, RL-1): `reason`, `release` and `sign_off` are typed, appended after the earlier members in
+/// byte order of their names; `purpose` (1.0) stays in `extra` and is written after them, nested unknown members of
+/// a page note too; `withdraws` (the ID of the withdrawn revision) is typed.
 #[test]
-fn revision_members_of_later_commands_stay_in_extra() {
+fn revision_members_of_part_1_are_typed() {
     let line = fill(
-        r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","state":"withdrawn","page_notes":[{"page":"@P1","cloud":true}],"withdraws":"@REV_V1","purpose":"approval","reason":{"en-GB":"wrong customer"},"release":{"changed_pages":["@P1"],"generation":3},"sign_off":{"checker":"checker"}}"#,
+        r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","state":"withdrawn","page_notes":[{"page":"@P1","cloud":true}],"withdraws":"@REV_V1","reason":{"en-GB":"wrong customer"},"release":{"changed_pages":["@P1"],"generation":3},"sign_off":{"checker":"checker"},"purpose":"approval"}"#,
     );
     let Record::Revision(r) = assert_canonical(&line) else {
         panic!("a revision");
     };
     let keys: Vec<&str> = r.extra.keys().map(String::as_str).collect();
-    assert_eq!(keys, ["purpose", "reason", "release", "sign_off"]);
+    assert_eq!(keys, ["purpose"]);
+    assert_eq!(r.reason.get(&"en-GB".parse().unwrap()), Some("wrong customer"));
+    let release = r.release.as_ref().expect("the release record");
+    assert_eq!(release.generation, Some(3));
+    assert_eq!(
+        release
+            .changed_pages
+            .as_ref()
+            .map(|p| p.iter().map(ToString::to_string).collect::<Vec<_>>()),
+        Some(vec![fill("@P1")])
+    );
+    assert!(release.archive.is_none() && release.page_digests.is_none() && release.extra.is_empty());
+    assert_eq!(
+        r.sign_off.as_ref().and_then(|s| s.checker.clone()),
+        Some(ew_schema::PartyRole::Checker)
+    );
     assert_eq!(r.withdraws.map(|w| w.to_string()), Some(fill("@REV_V1")));
     assert_eq!(
         r.page_notes[0].extra.keys().next().map(String::as_str),
         Some("cloud")
     );
     assert_eq!(r.state, ew_schema::RevisionState::Withdrawn);
+}
+
+/// RL-1: a line written while the members were untyped (in `extra`, byte-wise order, nested objects too) loads into
+/// the typed members, a partial sign-off and a partial release record included, and writes back byte for byte;
+/// with `purpose` (still in `extra`, sorting before them) it loads with the same values and writes the canonical
+/// order, `purpose` last.
+#[test]
+fn a_revision_line_from_before_the_typing_loads_into_the_typed_members() {
+    let old = fill(
+        r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","state":"released","reason":"wrong customer","release":{"changed_pages":[],"generation":3},"sign_off":{"checker":"checker"},"x-plugin":1}"#,
+    );
+    let Record::Revision(r) = assert_canonical(&old) else {
+        panic!("a revision");
+    };
+    assert_eq!(r.reason.as_neutral(), Some("wrong customer"));
+    assert_eq!(
+        r.release.as_ref().and_then(|x| x.changed_pages.clone()),
+        Some(vec![])
+    );
+    assert_eq!(r.sign_off.as_ref().map(|s| s.checker.is_some()), Some(true));
+    assert_eq!(
+        r.extra.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["x-plugin"]
+    );
+
+    let with_purpose = fill(
+        r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","state":"released","purpose":"approval","release":{"generation":3},"sign_off":{"checker":"checker"}}"#,
+    );
+    let canonical = fill(
+        r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","state":"released","release":{"generation":3},"sign_off":{"checker":"checker"},"purpose":"approval"}"#,
+    );
+    assert_eq!(round_trip(&with_purpose), canonical);
+    assert_eq!(
+        serde_json::to_value(serde_json::from_str::<Record>(&with_purpose).unwrap()).unwrap(),
+        serde_json::from_str::<Value>(&with_purpose).unwrap(),
+        "the same values"
+    );
+}
+
+/// RL-1: every member of the sign-off and the release record, with a page digest map keyed by page ID, round-trips;
+/// a member of the wrong type is a schema violation of the line (damage, not newer data), never silently dropped.
+#[test]
+fn a_complete_release_record_round_trips_and_a_malformed_member_is_refused() {
+    let hash = |c: &str| format!("sha256:{}", c.repeat(64));
+    let line = fill(&format!(
+        concat!(
+            r#"{{"$k":"revision","id":"@REV_V2","label":"V2.0","state":"released","release":{{"#,
+            r#""approval":{{"checker":"checker","content_digest":"{h1}","date":"2025-04-20","packs":[{{"id":"EW-CORE","sha256":"{h2}","version":"1.0.0"}}],"scheme":"pre-delivery","waivers_ack":["@WAIVER_W1"]}},"#,
+            r#""archive":{{"name":"V2.0.ewarchive","sha256":"{h3}"}},"changed_pages":["@P1","@P103"],"content_digest":"{h1}","#,
+            r#""derivation_profile":"2027.1","generation":7,"git_tag":"ew/rev/V2.0","#,
+            r#""page_digests":{{"@P1":"0123456789abcdef0123456789abcdef","@P103":"fedcba9876543210fedcba9876543210"}},"#,
+            r#""released_on":"2025-04-21","rule_packs":[{{"id":"EW-CORE","version":"1.0.0"}}]}}}}"#
+        ),
+        h1 = hash("a"),
+        h2 = hash("b"),
+        h3 = hash("c"),
+    ));
+    let Record::Revision(r) = assert_canonical(&line) else {
+        panic!("a revision");
+    };
+    let release = r.release.expect("a release record");
+    let digests = release.page_digests.expect("page digests");
+    assert_eq!(digests.len(), 2);
+    assert_eq!(
+        digests.values().map(|d| d.0).collect::<Vec<_>>(),
+        [
+            0x0123_4567_89ab_cdef_0123_4567_89ab_cdef,
+            0xfedc_ba98_7654_3210_fedc_ba98_7654_3210
+        ]
+    );
+    let approval = release.approval.expect("the approval");
+    assert_eq!(approval.waivers_ack.map(|w| w.len()), Some(1));
+    assert_eq!(
+        approval.scheme.map(|s| s.as_str().to_owned()).as_deref(),
+        Some("pre-delivery")
+    );
+
+    for bad in [
+        r#""sign_off":{"date":"2025-13-40"}"#,
+        r#""sign_off":"approved""#,
+        r#""release":{"changed_pages":["not a page"]}"#,
+        r#""release":{"page_digests":{"@P1":"0123456789ABCDEF0123456789ABCDEF"}}"#,
+        r#""release":{"generation":-1}"#,
+    ] {
+        let line = fill(&format!(
+            r#"{{"$k":"revision","id":"@REV_V2","label":"V2.0","state":"released",{bad}}}"#
+        ));
+        assert!(serde_json::from_str::<Record>(&line).is_err(), "accepted {bad}");
+    }
 }
 
 /// A state of a newer format is newer data, kept verbatim (ADR-0011 amendment 1); the stored form is

@@ -17,6 +17,7 @@
 //! | 12 | `wire_numbering` | Online wire numbering is off in v0 (no scheme before WP-S1.11): every new connection is `NumberSpec::Unassigned` |
 //! | 13 | `solenoid_binding` | N2: a valve added to or moved within a module whose part has a solenoid-position map, or a new channel of such a module, binds the declared coil to the channel the map assigns when both are free (doc 10 §3.3, FR-PLC-051) |
 //! | 14 | `module_pin_binding` | N3: a new unbound channel of a module whose part has a channel → pin map binds the module pin (doc 10 §3.3) |
+//! | 18 | `revision_ensure_open` | `revision.ensure_open`: a content edit in a project with a released revision and no open one adds the open revision with the next label and the ID `v5(latest released, "next")` (doc 15 §5.3, WP-S1.18 D3) |
 //!
 //! A pass runs every normaliser in order; a normaliser whose input another one creates later in the same
 //! pass sees it in the next pass. The pipeline runs passes until one changes nothing. [`MAX_PASSES`]
@@ -32,6 +33,7 @@ mod junction_cleanup;
 mod module_pin_binding;
 mod online_numbering;
 mod plc_aspects;
+mod revision_ensure_open;
 mod solenoid_binding;
 mod wire_numbering;
 
@@ -42,6 +44,7 @@ pub use junction_cleanup::JunctionCleanup;
 pub use module_pin_binding::ModulePinBinding;
 pub use online_numbering::OnlineNumbering;
 pub use plc_aspects::PlcAspects;
+pub use revision_ensure_open::RevisionEnsureOpen;
 pub use solenoid_binding::SolenoidBinding;
 pub use wire_numbering::WireNumbering;
 
@@ -59,7 +62,7 @@ pub trait Normaliser: Send + Sync {
 }
 
 /// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 9] = [
+pub const ORDER: [&str; 10] = [
     "plc_aspects",
     "cp_instantiation",
     "channel_instantiation",
@@ -69,6 +72,7 @@ pub const ORDER: [&str; 9] = [
     "wire_numbering",
     "solenoid_binding",
     "module_pin_binding",
+    "revision_ensure_open",
 ];
 
 /// The maximum number of productive passes (passes that change something); one confirming pass follows.
@@ -86,6 +90,7 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
         Box::new(WireNumbering),
         Box::new(SolenoidBinding),
         Box::new(ModulePinBinding),
+        Box::new(RevisionEnsureOpen),
     ]
 }
 

@@ -189,10 +189,15 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
     for c in r.commands() {
         // ADR-0008 amendment 3: the release scheme decides a check outcome, so its command is `HumanOnly`; the asset
         // purge deletes files that do not come back (owner ruling, 2026-10-23); a scripted waiver would defeat the record
-        // (ADR-0019 decision 8, WP-S1.16 D7).
+        // (ADR-0019 decision 8, WP-S1.16 D7); the revision author and a withdrawal are a person's (WP-S1.18 D4, D5).
         let expected = if matches!(
             c.meta().name,
-            "project.checks.set" | "project.assets.purge" | "check.waive" | "check.unwaive"
+            "project.checks.set"
+                | "project.assets.purge"
+                | "check.waive"
+                | "check.unwaive"
+                | "revision.set_author"
+                | "revision.withdraw"
         ) {
             Exposure::HumanOnly
         } else {

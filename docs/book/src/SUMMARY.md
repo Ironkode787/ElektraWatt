@@ -73,6 +73,8 @@
     - [`rep.transform`](reference/commands/rep.transform.md)
     - [`report_block.create`](reference/commands/report_block.create.md)
     - [`revision.create`](reference/commands/revision.create.md)
+    - [`revision.set_author`](reference/commands/revision.set_author.md)
+    - [`revision.withdraw`](reference/commands/revision.withdraw.md)
     - [`section.create`](reference/commands/section.create.md)
     - [`structure.create_node`](reference/commands/structure.create_node.md)
     - [`terminal.add`](reference/commands/terminal.add.md)

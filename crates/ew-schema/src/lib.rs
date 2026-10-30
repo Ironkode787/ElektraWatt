@@ -153,7 +153,10 @@ pub use project::{
     StructureNode, SupplyOrigin, SupplySpec, TagCase,
 };
 pub use record::{AnchorRef, AnyRecord, LibDocument, Record};
-pub use revision::{PageNote, Revision, RevisionState};
+pub use revision::{
+    ArchiveRef, Digest128, LabelFormat, NOT_CONTENT_FILES, PackVersion, PageNote, ReleaseRecord, Revision,
+    RevisionState, SignOff, is_content_kind,
+};
 pub use schema::{kind_schema, schema_file_name, schema_files};
 pub use set::{Keyed, KeyedList, Set};
 pub use template::{TemplateCp, pair_template_cps, template_entry_of};

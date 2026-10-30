@@ -20,6 +20,7 @@ use serde_json::Value;
 
 use crate::json::{Extra, Open, de_extra, is_default, is_false, is_v1, v1};
 use crate::proxy::{AspectS, Dec3S, IdentS, LangTagS, MlTextS, UuidS};
+use crate::revision::LabelFormat;
 use crate::set::Set;
 use crate::text_style::TextStyleSpec;
 use crate::track::{invalid, malformed, open_enum};
@@ -295,6 +296,10 @@ pub struct ProjectSettings {
     /// Formatting conventions.
     #[serde(default, skip_serializing_if = "Formatting::is_empty")]
     pub formatting: Formatting,
+    /// The project's one revision label format (doc 15 §5.2, FR-REV-002; WP-S1.18 D2); absent means
+    /// `v_major_minor`, the golden form ([`ProjectSettings::revision_label_format`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub revision_label: Option<LabelFormat>,
     /// The text styles as overrides of the built-in table of doc 20 §17.5, by style key (ADR-0032): a key of the
     /// table takes the entry's size and weight, any other key adds a style. Absent is the built-in table.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -309,6 +314,11 @@ impl ProjectSettings {
     /// Whether nothing is set.
     pub fn is_empty(&self) -> bool {
         *self == ProjectSettings::default()
+    }
+
+    /// The revision label format in force: `revision_label`, or `v_major_minor` when it is absent.
+    pub fn revision_label_format(&self) -> LabelFormat {
+        self.revision_label.clone().unwrap_or(LabelFormat::VMajorMinor)
     }
 }
 

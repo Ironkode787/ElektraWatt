@@ -19,9 +19,8 @@
 //!   (doc 09 §2.6, doc 15 §5.6; the no-digest branch, page digests do not exist yet): the current open
 //!   revision if it names the page in its `page_notes`; else the latest released revision whose changed
 //!   pages contain it (`release.changed_pages` if present, else the pages of its `page_notes`); else the
-//!   first (lowest ranked) revision. The release record is not typed yet (it comes with
-//!   `revision.release`), so `release.changed_pages` is read from the record's `extra` as an array of UUID
-//!   strings; malformed entries are skipped.
+//!   first (lowest ranked) revision. `release.changed_pages` is the typed release record's member (WP-S1.18
+//!   part 1, D2); a line whose entries are not page IDs does not load as a record.
 //! - `revision.current.*`: the typed `revision` records (doc 03 §18, FT-165): `label`, `date`, `state`
 //!   (printed as its stored name; a state of a newer format as its text), `author` and `checker`.
 //!   Withdrawal records (state `withdrawn`) are ignored, and so is the revision whose label a withdrawal
@@ -299,7 +298,7 @@ struct RevisionView<'q> {
     rev: &'q Revision,
     /// The pages named in `page_notes`.
     noted_pages: Vec<Id<Page>>,
-    /// `release.changed_pages`, if that member is present (the untyped release record, `extra`).
+    /// `release.changed_pages`, if that member is present (the typed release record, WP-S1.18 D2).
     changed_pages: Option<Vec<Id<Page>>>,
 }
 
@@ -308,12 +307,7 @@ impl<'q> RevisionView<'q> {
         RevisionView {
             rev,
             noted_pages: rev.page_notes.iter().map(|n| n.page).collect(),
-            changed_pages: rev
-                .extra
-                .get("release")
-                .and_then(|r| r.get("changed_pages"))
-                .and_then(serde_json::Value::as_array)
-                .map(|pages| pages.iter().filter_map(page_id).collect()),
+            changed_pages: rev.release.as_ref().and_then(|r| r.changed_pages.clone()),
         }
     }
 
@@ -342,11 +336,6 @@ fn state_text(state: &RevisionState) -> Option<String> {
         RevisionState::Withdrawn => Some("withdrawn".into()),
         RevisionState::Unknown(v) => v.as_str().map(str::to_owned),
     }
-}
-
-/// A page ID from a UUID string.
-fn page_id(v: &serde_json::Value) -> Option<Id<Page>> {
-    serde_json::from_value(v.clone()).ok()
 }
 
 /// The revisions that are neither withdrawal records nor withdrawn by one (`withdraws` names the ID).

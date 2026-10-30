@@ -519,8 +519,9 @@ pub fn validate(meta: &FieldMeta, value: &str) -> Result<(), &'static str> {
                 Err("wizard-error-text")
             }
         }
+        // A new project has the default label format, which `revision.create` holds the label to (EW-REL-004).
         (_, "first_revision") => {
-            if !value.is_empty() && value.len() <= 20 && !value.contains(char::is_whitespace) {
+            if value.len() <= 20 && ew_api::LabelFormat::VMajorMinor.order_key(value).is_some() {
                 Ok(())
             } else {
                 Err("wizard-error-revision")
@@ -1233,6 +1234,8 @@ mod tests {
         assert_eq!(d.set("function_node", ""), Ok(()));
         assert_eq!(d.set("xref", "kicad"), Err("wizard-error-choice"));
         assert_eq!(d.set("first_revision", "V 1"), Err("wizard-error-revision"));
+        assert_eq!(d.set("first_revision", "01"), Err("wizard-error-revision"));
+        assert_eq!(d.set("first_revision", "V0.1"), Ok(()));
         assert_eq!(d.set("sections", "1 100-99 X"), Err("wizard-error-sections"));
         assert_eq!(
             d.set("sections", "1 100-199 A\n2 150-250 B"),

@@ -754,6 +754,25 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
         "history: a released revision is immutable (FR-REV-009), so its notes keep naming a page that a later \
          revision deletes; a note on a page that does not exist selects nothing",
     ),
+    // WP-S1.18 part 1 (D2): the typed sign-off and release record are history, like the page notes.
+    (
+        "revision",
+        "release.approval.waivers_ack[]",
+        "history: the sign-off copied at release names the waivers the checker acknowledged then; a released \
+         revision is immutable (FR-REV-009)",
+    ),
+    (
+        "revision",
+        "release.changed_pages[]",
+        "history: the frozen changed pages of a release keep naming a page that a later revision deletes \
+         (FR-REV-009, FR-REV-022)",
+    ),
+    (
+        "revision",
+        "sign_off.waivers_ack[]",
+        "history: the waivers the checker acknowledged; removing one changes `waivers.jsonl`, so the content \
+         digest and the sign-off no longer match (doc 15 §5.4)",
+    ),
     (
         "part",
         "library_id",

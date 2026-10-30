@@ -457,11 +457,10 @@ fn last_changed_in_follows_page_notes() {
     assert_eq!(last(&fx, PAGE102), Some(text("V2.0")));
     assert_eq!(last(&fx, PAGE103), Some(text("V1.0")));
 
-    // A released revision's `changed_pages` wins over its page notes.
-    // The release record is not typed yet: its `changed_pages` is read from `extra`; malformed entries
-    // are skipped.
+    // A released revision's `changed_pages` wins over its page notes: the typed release record's member
+    // (WP-S1.18 part 1); an entry that is not a page ID is a schema violation of the line (ew-schema's tests).
     fx.record(0x601)["page_notes"] = json!([{"page": uid(PAGE103)}]);
-    fx.record(0x601)["release"] = json!({"changed_pages": [uid(PAGE201), "not a uuid", 42]});
+    fx.record(0x601)["release"] = json!({"changed_pages": [uid(PAGE201)]});
     assert_eq!(last(&fx, PAGE201), Some(text("V1.0")));
     assert_eq!(last(&fx, PAGE103), Some(text("V1.0")));
 

@@ -1330,7 +1330,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "wizard-error-sections" => {
             "One section per line: number, first-last folio, title. Numbers and folio ranges must not repeat or overlap."
         }
-        "wizard-error-revision" => "A revision label has no spaces and up to 20 characters.",
+        "wizard-error-revision" => {
+            "A revision label has the form V1.0: V, the major number, a point, the minor number."
+        }
         "wizard-error-text" => "That text is too long.",
         "wizard-error-command" => "The command {0} was refused: {1}",
         "wizard-written" => "written to the basic project",
@@ -1904,6 +1906,8 @@ const COMMAND_TITLES: &[(&str, &str)] = &[
     ("rep.transform", "Rotate or mirror"),
     ("report_block.create", "Create report block"),
     ("revision.create", "Create revision"),
+    ("revision.set_author", "Set revision author"),
+    ("revision.withdraw", "Withdraw revision"),
     ("section.create", "Create section"),
     ("structure.create_node", "Create structure node"),
     ("terminal.add", "Add terminal"),

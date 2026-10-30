@@ -1,0 +1,65 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "PartyRole": {
+      "description": "The role of a [`Party`].",
+      "oneOf": [
+        {
+          "const": "customer",
+          "description": "Customer.",
+          "type": "string"
+        },
+        {
+          "const": "end_user",
+          "description": "End user.",
+          "type": "string"
+        },
+        {
+          "const": "panel_builder",
+          "description": "Panel builder (legal owner of the drawings).",
+          "type": "string"
+        },
+        {
+          "const": "author",
+          "description": "Author.",
+          "type": "string"
+        },
+        {
+          "const": "checker",
+          "description": "Checker.",
+          "type": "string"
+        },
+        {
+          "const": "engineer",
+          "description": "Engineer.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`revision.set_author` (`SetRevisionAuthor`): sets the author of the open revision (WP-S1.18 D4, FT-402), the one\npath that writes it once the revision exists (`fields.set` refuses `author` and `checker`). The GUI's Revision ▸\nSet author dialog is WP-S1.18 part 5.\n\n`role` is the author's party role (FR-PRJ-003). Rejected: a revision that does not exist (at `/revision`); a\nreleased or withdrawn revision, which is immutable (at `/revision`, FR-REV-009); the checker's role (at `/role`,\nfour eyes, EW-INV-018). The same author again changes nothing. **Exposure `HumanOnly`** (ADR-0008 amendment 3):\nthe author decides the four-eyes sign-off, so command logs, scripts, MCP and plugins get `CmdError::Exposure`.\nInteractive; undoable as one step. Outcome: none.",
+  "properties": {
+    "revision": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The open revision."
+    },
+    "role": {
+      "$ref": "#/$defs/PartyRole",
+      "description": "The author, as a party role."
+    }
+  },
+  "required": [
+    "revision",
+    "role"
+  ],
+  "title": "revision.set_author",
+  "type": "object"
+}

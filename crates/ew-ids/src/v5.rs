@@ -30,6 +30,8 @@
 //! | [`lib_copy_keep_both_id`] | `v5(NS_LIBCOPY, library ‖ item ‖ version)` | `"<library>\u{1F}<item>\u{1F}<version>"` |
 //! | [`route_id`] | `v5(connection, "route")` | `"route"` |
 //! | [`plc_config_project_id`] | `v5(station, "plc_config_project")` | `"plc_config_project"` |
+//! | [`revision_next_id`] | `v5(latest released revision, "next")` | `"next"` |
+//! | [`revision_withdrawal_id`] | `v5(revision, "withdrawal")` | `"withdrawal"` |
 //!
 //! U+001F cannot occur in a UUID or a decimal integer, so the joined name is unambiguous. The module's
 //! constants are [`NS_LIBCOPY`] and [`NS_IMPORT`]; [`LineageAnchor`] and [`LineageNameError`] belong to
@@ -221,6 +223,19 @@ pub fn plc_config_project_id<S, P>(station: Id<S>) -> Id<P> {
     v5(station.as_uuid(), "plc_config_project")
 }
 
+/// The ID of the open revision that the first content edit after a release adds (`revision.ensure_open`):
+/// `v5(latest, "next")`, where `latest` is the latest released revision (WP-S1.18 D3). Computed, so a replay of
+/// the edit opens the same record.
+pub fn revision_next_id<R>(latest: Id<R>) -> Id<R> {
+    v5(latest.as_uuid(), "next")
+}
+
+/// The ID of the withdrawal record of `revision` (`revision.withdraw`): `v5(revision, "withdrawal")` (WP-S1.18 D5).
+/// One withdrawal per revision, so a second one is the same record.
+pub fn revision_withdrawal_id<R>(revision: Id<R>) -> Id<R> {
+    v5(revision.as_uuid(), "withdrawal")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -242,6 +257,7 @@ mod tests {
     const CONNECTION: &str = "0192f3a4-5b6c-7d8e-9f01-23456789abd1";
     const LIBRARY: &str = "0192f3a4-5b6c-7d8e-af01-23456789abd2";
     const ITEM: &str = "0192f3a4-5b6c-7d8e-bf01-23456789abd3";
+    const REVISION: &str = "0192f3a4-5b6c-7d8e-af01-23456789abd4";
     const LINEAGE: &str = "6f1c9a0e-3b7d-4e2f-8a5c-1d0e9b8a7c6f";
 
     /// Fixed vectors, computed independently (Python's `uuid.uuid5` over the documented name bytes).
@@ -297,6 +313,14 @@ mod tests {
             s(plc_config_project_id(id(DEVICE))),
             "e854e68b-948c-5290-a7d7-9db5bf1f9833"
         );
+        assert_eq!(
+            s(revision_next_id(id(REVISION))),
+            "247e2e70-0e5b-5a39-bcef-3356e6ef9577"
+        );
+        assert_eq!(
+            s(revision_withdrawal_id(id(REVISION))),
+            "c5147bfd-2854-507d-92aa-c18d958f88a0"
+        );
     }
 
     #[test]
@@ -347,6 +371,11 @@ mod tests {
         );
         // Different parents, same index.
         assert_ne!(cp_id::<_, K>(id(FUNCTION), 0), cp_id::<_, K>(id(DEVICE), 0));
+        // The next revision and the withdrawal record of one revision.
+        assert_ne!(
+            revision_next_id(id(REVISION)),
+            revision_withdrawal_id(id(REVISION))
+        );
         // Keep-both differs from the plain copy and between versions.
         let (l, i) = (uuid(LIBRARY), uuid(ITEM));
         assert_ne!(lib_copy_id::<K>(l, i), lib_copy_keep_both_id::<K>(l, i, "2.1.0"));

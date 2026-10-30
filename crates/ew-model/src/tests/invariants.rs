@@ -899,6 +899,9 @@ fn revision(n: u128, label: &str, state: RevisionState) -> Revision {
         page_notes: Vec::new(),
         withdraws: None,
         source_ref: None,
+        reason: ew_mltext::MlText::default(),
+        release: None,
+        sign_off: None,
         extra: Default::default(),
     }
 }

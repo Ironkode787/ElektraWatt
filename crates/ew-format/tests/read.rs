@@ -502,26 +502,47 @@ fn an_old_revisions_file_loads_typed_and_is_rewritten_canonically() {
     assert!(again.rewrite.is_empty());
 }
 
-/// Members a newer build writes (the release record, the sign-off) survive in `extra`; a revision line that
-/// does not parse (a page note as a bare page ID, which no writer produced) is quarantined verbatim with
-/// EW-CORE-007, never dropped.
+/// WP-S1.18 part 1 (RL-1): a line written while the release record and the sign-off were untyped members (in
+/// `extra`, byte-wise order) loads into the typed members, partial payloads included, without a finding and without a
+/// rewrite: it is already canonical and writes back byte for byte. With `purpose` (still untyped, sorting before
+/// them) it loads with the same values and is rewritten canonically, `purpose` last. A revision line that does not
+/// parse (a page note as a bare page ID, which no writer produced) is quarantined verbatim with EW-CORE-007, never
+/// dropped.
 #[test]
-fn revision_members_of_a_newer_build_survive_and_a_broken_line_is_quarantined() {
-    let newer = r#"{"$k":"revision","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","state":"released","release":{"changed_pages":[]},"sign_off":{"checker":"checker"}}"#;
-    let loaded = load_lines("revisions.jsonl", &[newer]);
-    assert!(
-        loaded.findings.iter().all(|f| f.kind == FindingKind::NewerData),
-        "{:?}",
-        loaded.findings
-    );
+fn revision_members_typed_in_part_1_load_from_an_older_line_and_a_broken_line_is_quarantined() {
+    let older = r#"{"$k":"revision","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","state":"released","release":{"changed_pages":[]},"sign_off":{"checker":"checker"}}"#;
+    let loaded = load_lines("revisions.jsonl", &[older]);
+    assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
+    assert!(loaded.rewrite.is_empty() && loaded.kept.is_empty());
     let [Record::Revision(r)] = loaded.records.as_slice() else {
         panic!("one revision: {:?}", loaded.records);
     };
+    assert!(r.extra.is_empty(), "{:?}", r.extra);
     assert_eq!(
-        r.extra.keys().map(String::as_str).collect::<Vec<_>>(),
-        ["release", "sign_off"]
+        r.release.as_ref().and_then(|x| x.changed_pages.as_deref()),
+        Some(&[][..])
     );
-    assert_eq!(record_line(&loaded.records[0]).unwrap(), newer);
+    assert_eq!(
+        r.sign_off.as_ref().and_then(|s| s.checker.clone()),
+        Some(ew_schema::PartyRole::Checker)
+    );
+    assert_eq!(record_line(&loaded.records[0]).unwrap(), older);
+
+    let with_purpose = r#"{"$k":"revision","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","state":"released","purpose":"approval","sign_off":{"checker":"checker"}}"#;
+    let loaded = load_lines("revisions.jsonl", &[with_purpose]);
+    assert!(
+        loaded
+            .findings
+            .iter()
+            .all(|f| matches!(f.kind, FindingKind::NewerData | FindingKind::NonCanonical)),
+        "{:?}",
+        loaded.findings
+    );
+    assert!(loaded.rewrite.contains(&p("revisions.jsonl")));
+    assert_eq!(
+        record_line(&loaded.records[0]).unwrap(),
+        r#"{"$k":"revision","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","state":"released","sign_off":{"checker":"checker"},"purpose":"approval"}"#
+    );
 
     let broken = r#"{"$k":"revision","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","page_notes":["71260e59-ea02-5e16-8678-401d4044d9d7"],"state":"open"}"#;
     let loaded = load_lines("revisions.jsonl", &[broken]);

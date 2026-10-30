@@ -119,6 +119,9 @@ pub use ew_jobs;
 pub use ew_library as library;
 /// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
 pub use ew_reports::export::{Export, ExportError, Exported};
+/// The project's revision label format (doc 15 §5.2, FR-REV-002): the new-project wizard checks the first label
+/// against it, as `revision.create` does (EW-REL-004).
+pub use ew_schema::LabelFormat;
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
 pub use ew_schema::{
     AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, SvgHazard, base64_encode, sniff as sniff_asset,

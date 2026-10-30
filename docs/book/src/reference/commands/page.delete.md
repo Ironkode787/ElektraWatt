@@ -8,7 +8,8 @@ Each page is removed through the delete policies: its representations, connectio
 cascade, and an interruption-point function goes with its representation. Devices stay, unplaced,
 unless `delete_devices` is set: then every device that had a representation of one of its functions on
 a deleted page and has none left anywhere is removed too (with its functions and their remaining
-connections). Bulk: it always previews (doc 06 §3.1).
+connections). The open revision's notes on the deleted pages go in the same transaction (FT-303, WP-S1.18 D5);
+the notes of released and withdrawn revisions stay. Bulk: it always previews (doc 06 §3.1).
 
 ## Registry entry
 
