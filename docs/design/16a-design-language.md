@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; amended 2026-10-30, cycle-38 design pass, part 2: the open-CP marker's value (§4.6), the double-click rule and the canvas context menu (§5.5), the one-toast import outcome (§6.10), a terminal in a sentence (§8), decision log ID-883, ID-884; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -281,7 +281,7 @@ lines of the drawing.
 | `canvas.hover` | `volt-600` | 5.69 | 1s-px dashed outline |
 | `canvas.ghost` | `volt-600` at 60 % | — | The placed symbol's strokes, its label chip (§7.3) |
 | `canvas.snap` | `volt-600` | 5.69 | Crosshair with a 6-px gap; CP ring 8s + 1 px |
-| `canvas.open_cp` | `volt-600` | 5.69 | A (4s + 1)-px hollow square with an s-px rim on each connection point without a connection on the page (screen only; drawn while a grid step is at least 4 points on screen; FT-705). *Ruled in cycle 38 (decision log ID-879):* a subdued neutral ink, not the accent, so the squares on a valve page do not read as selection handles; fluid ports keep the marker; built in the cycle-38 fix round (FT-745) |
+| `canvas.open_cp` | `slate-400` #868E99 (as built, ID-884; `volt-600` before) | 3.31 | A (4s + 1)-px hollow square with an s-px rim on each connection point without a connection on the page (screen only; drawn while a grid step is at least 4 points on screen; FT-705). *Ruled in cycle 38 (decision log ID-879):* a subdued neutral ink, not the accent, so the squares on a valve page do not read as selection handles; fluid ports keep the marker; built in the cycle-38 fix round as `slate-400`, 3.31:1 on the sheet, never an accent shade (FT-745, ID-884) |
 | `canvas.highlight.1` | vermillion #D55E00 | 3.87 | 45° hatch halo, name chip filled with the hue |
 | `canvas.highlight.2` | bluish green #009E73 | 3.42 | 135° hatch halo, name chip filled with the hue |
 | `canvas.highlight.3` | reddish purple #CC79A7 | 3.06 | 0° hatch halo, name chip filled with the hue |
@@ -645,6 +645,8 @@ live in the app menu's Edit, the canvas context menu and their keys, as everywhe
 
 *As built (cycle 32; decision log ID-747, ID-755).* The HUD is one status node holding the zoom control, **centred on the page-view pane** (not on the canvas sheet), on the inverse surface (light in dark mode, as specified). The Place prompt reads "`<target>` · R rotates · V variant · Esc done"; a repeated click on a pick stack reads "`<n>` here · click again for the next". The tool strip's fields are on the tool options card (§5.2).
 
+*As built (cycle 38; decision log ID-883).* **The double-click rule:** the window turns a double click's second press into `tool.finish` only for a tool that finishes on a double click (`Tool::finishes_on_double_click`): Wire, Select (a free text opens for editing), the polyline and polygon graphics and Structure box. Every other tool sees two plain presses, so two quick clicks with Place place twice (WP-S2.04 §6.1 as amended; FT-751 for the stacked twin). A right-click on the canvas opens a context menu: over an object the selection's Arrange commands in the command bar's order, then Delete; over nothing Paste when it is enabled; no menu when there is nothing to offer (FT-715). The Black box tool marks its first corner, and after an Escape its hint says that a second Escape leaves the tool (FT-714).
+
 ### 5.6 Right: the palettes
 
 A right rail (`size.rail`) with **Symbols** and **Parts**; the right column is closed by default and opens to
@@ -848,6 +850,8 @@ in tree-row style, newest first, each with its time, message and still-valid act
 *As built (cycle 32; decision log ID-750).* The notification model has no severity and no secondary line, so **the toast's icon follows from whether it offers an action**, and the line row is not drawn. The log's foot has Close, not Clear.
 
 *As built (cycle 38; decision log ID-875, FT-709, FT-710).* Deleting a device's last representation names the device left without a symbol in the delete toast, with "(now <new tag>)" after a re-tag. The check toast counts findings by the status bar's rule (§5.8).
+
+*As built (cycle 38; decision log ID-883, FT-719).* A parts import says each outcome in one toast, the applied import's with Undo; the banner over the tab title is gone (a banner is for a state of the whole project, §6.11), and the Preview tab shows the summary and the lists without repeating the counts.
 
 ### 6.11 Banners
 
@@ -1210,6 +1214,9 @@ HUD; chips avoid it (§7.4).
    portability only: macOS is not a supported platform (decision log ID-880).
 8. **Abbreviations** only where the user's documents use them (PE, N, L1, IP for interruption point in EPLAN usage);
    tooltips spell them out the first time ("IP: interruption point").
+   *As built (cycle 38; decision log ID-883, FT-716):* a sentence names a terminal by strip and number in words,
+   "-X1011 terminal 3" (a toast, the Place target "-X1031 terminal 21"), so the strip and the number read apart; tags,
+   tables, Properties and print keep the designation `-X1011:3`.
 9. **Titles of dialogs** are the question or the task, not the subject: "Recover unsaved changes?", not "Recovery".
    Primary buttons repeat the verb ("Recover", "Export", "Discard"), never "OK" or "Yes".
 

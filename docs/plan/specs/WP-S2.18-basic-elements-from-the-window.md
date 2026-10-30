@@ -4,7 +4,7 @@
 existing device from the window (1.1 pw, D4), part 2 the generic starter parts and their reach from a new project
 (1.0 pw, D3, after WP-S1.19 parts 2 and 3), part 3 every starter symbol placeable and the briefs without embed lines
 (0.6 pw, D3), part 4 the brief `brief-plc-io` (0.3 pw, D2, after WP-S2.07 part 3 and WP-S1.21's channel assignment);
-part 1 first and alone of any dependency; parts 2 and 3 in that order; part 4 last · **Part 1 built in cycle 35** (lane A35, decision log ID-817; D3 deferred, FT-628); **parts 2 and 3 built in cycle 35** (lane G35, decision log ID-830); D6's one undo step built in cycle 36 (lane E36, ID-843; FT-656) and the relay's and contactor's contacts templated (lane C36, ID-841; FT-655); part 4 waits for WP-S1.21's channel assignment, which exists since cycle 37 (ID-854, ID-860); **D3 built in cycle 37** as `rep.join_device` (lane F37, decision log ID-859; FT-628) · **Date:** 2026-10-29 ·
+part 1 first and alone of any dependency; parts 2 and 3 in that order; part 4 last · **Part 1 built in cycle 35** (lane A35, decision log ID-817; D3 deferred, FT-628); **parts 2 and 3 built in cycle 35** (lane G35, decision log ID-830); D6's one undo step built in cycle 36 (lane E36, ID-843; FT-656) and the relay's and contactor's contacts templated (lane C36, ID-841; FT-655); **part 4 built in cycle 38** (lane K38, decision log ID-882; FT-593), **so WP-S2.18 is complete**; **D3 built in cycle 37** as `rep.join_device` (lane F37, decision log ID-859; FT-628) · **Date:** 2026-10-29 ·
 **Work package:** [WP-S2.18](../02-work-packages.md#wp-s218-basic-elements-from-the-window-starter-symbols-parts-and-joined-functions)
 · **Decision log:** ID-812 · **Part of:** ElektraWatt plan, specifications
 
@@ -57,6 +57,17 @@ symbol, its FnDef, a library part's closure) and each preview and commit sends t
 `box.black`'s `copies` member, the host leaving out what the project holds, so the placement is one transaction and
 one undo step and replays without a library. The exchange flow, the IP tools and `place.pick device=` still embed
 in a step of their own (FT-673).
+
+**As built (cycle 38, part 4).** Lane K38 (c2e0d74a, e4990ee7; decision log ID-882). **D8's third brief:**
+`tools/blind/tasks/brief-plc-io/`, grade 3: three selector switches on the cabinet door read by a digital input card and
+three 24 V DC solenoid valves on the machine switched directly by a digital output card, on the generic CPU with the
+starter parts `EW-GEN-DI-1` and `EW-GEN-DO-1` drawn as black boxes; a setup-only prelude without `library.embed` lines;
+the reference solution and fourteen items, A1 to A10 hard and A11 to A14 soft. A11 (every used channel's address on
+the drawing) is marked infeasible: no `api_v1` view carries a channel's binding or address, and no window flow
+attaches a field device to a card, so the PLC navigator's drop moves a channel only between the card's own pins
+(FT-753). The lane found that `plc.bind_channel` refused a black-box card's pins; the cycle-38 fix round made it check
+the CPs the function draws (FT-750, ID-884). The `check-brief` replay is the lane's; the BV9 tests in
+`xtask/src/blind/brief.rs` list only `brief-valve-switch` and `brief-relays-valves`.
 
 ## 1. Goal and non-goals
 

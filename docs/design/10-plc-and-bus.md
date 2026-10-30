@@ -1,6 +1,6 @@
 # PLC, I/O and fieldbus
 
-**Status:** Draft v0.5 · **Date:** 2026-10-30 (v0.5: cycle-38 design pass: the pin texts, the addressing commands, the MVP EW-PLC rules and the PLC navigator as built, §3.6, §3.9, §3.10, §6; decision log ID-870, ID-874, ID-876, ID-877; v0.4: cycle-21 design pass: the map-language grammar as normative text, no subtraction, §2.6; decision log ID-523 to ID-525; v0.3: cycle-18 design pass: the solenoid-position map and the pin-designation map as built, derivation step 4, N1 to N3 and `plc.set_module_part`, the FR-PLC-051 rewording, §2.4, §2.6, §2.10, §3.2, §3.3, §3.9, §4; decision log ID-464 to ID-469; v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.6 · **Date:** 2026-10-30 (v0.6: cycle-38 design pass, part 2: the IEC bit address without its size, EW-PLC-001 per overlap group and a black-box card's pins in `plc.bind_channel` as built, §2.5, §3.9, §3.10; decision log ID-884; v0.5: cycle-38 design pass: the pin texts, the addressing commands, the MVP EW-PLC rules and the PLC navigator as built, §3.6, §3.9, §3.10, §6; decision log ID-870, ID-874, ID-876, ID-877; v0.4: cycle-21 design pass: the map-language grammar as normative text, no subtraction, §2.6; decision log ID-523 to ID-525; v0.3: cycle-18 design pass: the solenoid-position map and the pin-designation map as built, derivation step 4, N1 to N3 and `plc.set_module_part`, the FR-PLC-051 rewording, §2.4, §2.6, §2.10, §3.2, §3.3, §3.9, §4; decision log ID-464 to ID-469; v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) models PLC configuration projects, stations, modules,
 channels and fieldbus networks. It defines how EW derives addresses, symbols, function texts and targets instead of
@@ -271,6 +271,10 @@ absolute profile. Tag-based profiles render from the station and slot model inst
 | `beckhoff-twincat` | 1.x | `AT %Q*` | `AT %I*` | link-based | No absolute address; the I/O list shows terminal and channel |
 | `siemens-de`, `step7-classic` | 1.x | A0.1 / Q4.0 | EW64 / PIW256 | absolute | Mnemonics; slot-based allocation (FR-PLC-010) |
 | `mitsubishi`, `omron`, `schneider` | 1.x | Y1 / CIO 100.00 / %Q0.2.1 | D0 / D0 (data registers) / %IW0.3.0 | absolute or topological | Octal or hexadecimal base; word.bit; rack.slot.channel; all (unverified) |
+
+*As built (cycle-38 fix round, decision log ID-884; FT-746).* The `iec-61131-3` profile reads a bit address without
+its size as X: `%Q0.1` parses as `%QX0.1`, and because the prefix is optional `Q0.1` parses as the same bit. A unit
+address must name its size (`%Q10` is no address), because the row above covers only the bit case.
 
 ### 2.6 PLC and bus part data
 
@@ -847,6 +851,8 @@ mode it is reported. Inserting the same module after an import moves nothing: th
 
 *As built (cycle 38, WP-S1.21 part 3, decision log ID-870).* `plc.set_start` and `plc.set_profile` are built (Interactive; the IEC profile prints `%QX0.1`); a start edit re-derives only its own module's channel addresses (`ModuleStartOf`). `plc.readdress` and `plc.convert_manual_to_auto` are not built: both need A1 over the whole configuration project inside one transaction, which ADR-0008 amendment 4 forbids (FT-725). `plc.bind_channel` also takes tags in a command log: a channel as `<module tag>#<number>` or `<module tag>:<designation>`, a function as `<tag>` or `<tag>:<slot>` (FT-721).
 
+*As built (cycle-38 fix round, decision log ID-884; FT-750).* `plc.bind_channel` checks the CP against the CPs the function draws, by the one accessor the commands share with the join (`common::function_cp_indices`): the template entry's pattern, else a black box's part pattern, else the FnDef. A black-box card's pins therefore bind; before, the check read the generic black-box FnDef, which defines no CPs, and refused every pin (found by the play-test brief `brief-plc-io`, ID-882).
+
 ### 3.10 Check rules
 
 The EW-PLC pack ships at MVP with the rules marked MVP and is complete at 1.0 (FR-CHK-005). Rules are registered
@@ -911,6 +917,8 @@ channel addresses, so it never reports the bus `Tbd`, and each `Tbd` yields exac
 its documentation page (NFR-DOC-02).
 
 *As built (cycle 38, WP-S1.21 part 3, decision log ID-870).* EW-PLC-001, -002, -003, -007, -008, -012 and -015 are built in the scopes `module` and `cfg`, with en-GB and nl-NL messages; EW-PLC-007 compares symbols exactly, and findings name a channel as `<full tag>:<designation>`. Their prevent half (EW-PLC-001, -007) is not built (FT-726). EW-PLC-012 offers "rebind to the map's channel" and carries the unverified-data marker; "open the part's PLC section" is FT-727; Golden A reports its 28 findings under H1 (EF-02). Two channels of one module with one number are reported by EW-CORE-008 `duplicate_number`, and the channel whose ID is v5 of its module and number wins (FT-350).
+
+*As built (cycle-38 fix round, decision log ID-884; FT-747).* `address_index(cfg)` holds overlap groups, not pairs: each connected run of channel addresses in one area whose bit ranges overlap in a chain, once, so N channels on one address make one group of N. EW-PLC-001 reports one finding per group, with every member channel as a target and the first in address order as the subject; the text names the first five channels with their addresses and counts the rest (`addresses overlap in configuration project <cfg>: <channel> (<address>), …; and <N> more channels; give all but one of them another address`, the "and N more" clause only beyond five), in en-GB and nl-NL.
 
 ---
 

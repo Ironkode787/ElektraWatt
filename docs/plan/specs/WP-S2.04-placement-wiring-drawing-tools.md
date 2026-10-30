@@ -1,6 +1,6 @@
 # WP-S2.04: placement, wiring and drawing tools (closed specification)
 
-**Status:** amended 2026-10-29, cycle-33 design pass: the G-PP findings as built in §10.7 (decision log ID-768 to ID-773) · specified in cycle 23 (documents only; fix round after the independent Opus design review, whose items
+**Status:** amended 2026-10-30, cycle-38 design pass: §6.1's double click as amended (decision log ID-883) · amended 2026-10-29, cycle-33 design pass: the G-PP findings as built in §10.7 (decision log ID-768 to ID-773) · specified in cycle 23 (documents only; fix round after the independent Opus design review, whose items
 the owner's delegate ruled) for six lead-programmer parts: part 1 (place and arrange, D4), part 2 (wiring, D4), part 3
 (interruption points and black boxes, D4), part 4a (the page-item and structure-box record kinds, derivation, drawing
 and commands, D5), part 4b (their tools and the G-PP rehearsal, D4) and part 5 (images, D4, after FT-337); every part
@@ -282,6 +282,13 @@ Each key is a registry action (§7.6, §8.7, §9.6, §10.7) whose handler sends 
 (hidden; `text`) sends `Text(s)`. Select and Measure answer `None` to both, except Select's handling of §7.4. The window
 maps a double click (two primary presses within the platform's double-click interval, measured by the window with
 `ew_render2d::stats::now`, never by the model) onto `tool.finish`.
+
+*As amended (cycle 38, lane I38; decision log ID-883).* The window maps a double click onto `tool.finish` only for a
+tool that finishes on one: `Tool::finishes_on_double_click` (default `false`) answers `true` for Wire, Select (a free
+text opens for editing), the polyline and polygon graphics and Structure box. Every other tool sees two plain presses,
+so two quick clicks with Place place twice; `two_quick_clicks_with_the_place_tool_place_twice`
+(`crates/ew-ui/tests/place.rs`) replaced the fix-round test `a_double_click_with_the_place_tool_places_once`. Two
+identical symbols stacked at one point by a quick double click are not yet flagged (FT-751).
 
 ### 6.2 The tool context
 
