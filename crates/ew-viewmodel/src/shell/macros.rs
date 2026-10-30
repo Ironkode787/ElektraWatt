@@ -189,7 +189,7 @@ impl ShellModel {
         let table = self
             .generic(NavKind::Libraries)
             .and_then(|n| n.table())
-            .map_or(0, |t| Arc::as_ptr(&t) as usize);
+            .map_or(0, |t| Arc::as_ptr(t) as usize);
         if self
             .macros
             .copy_detail
@@ -622,10 +622,10 @@ impl ShellModel {
     /// refusal before the dialog opens (nothing selected, no project) shows its reason in the banner (FT-755: a refused
     /// save leaves a trace in the window; a failure becomes the banner through the window's report).
     fn save_done(&mut self, out: Outcome) -> Outcome {
-        if !self.in_save_form() {
-            if let Outcome::Refused { reason_key } = &out {
-                self.show_banner(strings::text(reason_key));
-            }
+        if !self.in_save_form()
+            && let Outcome::Refused { reason_key } = &out
+        {
+            self.show_banner(strings::text(reason_key));
         }
         if self.in_save_form() {
             let text = match &out {

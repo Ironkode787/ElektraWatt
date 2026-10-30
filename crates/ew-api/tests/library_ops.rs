@@ -292,7 +292,7 @@ fn em2_every_rejection_of_part_assign_names_its_pointer() {
         (
             json!({"devices": [Uuid::from_u128(7).to_string()], "part": held_part}),
             "/devices/0",
-            "no device",
+            "the device is not in the project",
         ),
         (
             json!({"devices": [f55, f55], "part": held_part}),
@@ -317,7 +317,7 @@ fn em2_every_rejection_of_part_assign_names_its_pointer() {
         (
             json!({"devices": [f55], "part": held_part, "mode": "replace", "from": held_part}),
             "/devices/0",
-            "does not use part",
+            "does not use the part to replace",
         ),
         (
             json!({"devices": [f1], "part": held_part, "qty": "0"}),

@@ -438,6 +438,8 @@ fn bind_channel_takes_a_pin_of_a_black_box_card() {
         })
         .expect_err("no CP 999 on the card");
     let err = format!("{err}");
-    assert!(err.contains("has no CP 999"), "{err}");
+    // FT-756: the card by its tag, never its ID
+    assert!(err.contains("-1A3 has no connection point number 999"), "{err}");
+    assert!(!err.contains(&function.to_string()), "{err}");
     assert!(err.contains("part pattern"), "{err}");
 }
