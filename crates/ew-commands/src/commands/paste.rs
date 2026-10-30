@@ -1166,7 +1166,8 @@ impl Command for PasteFragment {
             at: self.at,
             fragment: &self.fragment,
             kinds: &PASTE_KINDS,
-            kinds_refusal: "is not pasted (only devices, functions, representations, connections, junctions,                             potential definitions, page items and structure boxes)",
+            kinds_refusal: "is not pasted (only devices, functions, representations, connections, junctions, \
+                            potential definitions, page items and structure boxes)",
             ids: NewIds::Mint,
             keep_frozen: false,
             keep_counter: BTreeSet::new(),

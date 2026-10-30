@@ -519,11 +519,18 @@ fn cb3_every_rejection_at_its_pointer() {
         .as_array_mut()
         .unwrap()
         .push(json!({"$k": "section", "id": Uuid::from_u128(3).to_string(),
-        "number": 9, "title": "x"}));
-    assert_eq!(
-        pointer(run(page, at, &foreign).unwrap_err()),
-        "/fragment/records/4"
-    );
+        "number": 9, "folio_range": [1, 2], "title": "x"}));
+    match run(page, at, &foreign).unwrap_err() {
+        CmdError::InvalidParams { path, message, .. } => {
+            assert_eq!(path, "/fragment/records/4");
+            assert_eq!(
+                message,
+                "a record of kind section is not pasted (only devices, functions, representations, connections, \
+                 junctions, potential definitions, page items and structure boxes)"
+            );
+        }
+        other => panic!("expected InvalidParams, got {other:?}"),
+    }
     // A mandatory reference that resolves to nothing: the representation's function is not in the fragment.
     let mut orphan = frag.clone();
     orphan["records"].as_array_mut().unwrap().remove(1);
