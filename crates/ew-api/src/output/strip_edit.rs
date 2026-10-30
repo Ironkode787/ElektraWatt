@@ -263,6 +263,17 @@ impl Session {
     /// [`StripEditError`] of the first edit that cannot apply; `Invalid` for no edit, or an `Insert` or `Move` among
     /// others.
     pub fn strip_edits(&self, edits: &[StripEdit]) -> Result<AnyCommand, StripEditError> {
+        self.strip_edits_with(edits, Vec::new())
+    }
+
+    /// [`Session::strip_edits`] with parts the project does not hold yet resolving beside its copies (WP-S2.07 D16: a
+    /// catalogue part the part dialog chose, whose closure the command carries in `copies`): each `[copy ID, part
+    /// number, manufacturer, kind word, description]`.
+    pub(crate) fn strip_edits_with(
+        &self,
+        edits: &[StripEdit],
+        pending: Vec<[String; 5]>,
+    ) -> Result<AnyCommand, StripEditError> {
         let q = self.query();
         match edits {
             [
@@ -287,7 +298,20 @@ impl Session {
             [] => return Err(StripEditError::Invalid("nothing to edit".into())),
             _ => {}
         }
-        let cx = SheetCx::new(&q);
+        let sheet = SheetCx::new(&q);
+        let cx = WithPending {
+            inner: &sheet,
+            pending: pending
+                .into_iter()
+                .map(|[id, number, manufacturer, kind, description]| PartCopyText {
+                    id,
+                    number,
+                    manufacturer,
+                    kind,
+                    description,
+                })
+                .collect(),
+        };
         let mut work = Work::default();
         for edit in edits {
             match edit {
@@ -364,6 +388,32 @@ impl Session {
             }
         }
         Ok(work.command())
+    }
+}
+
+/// A parse context with parts the project does not hold yet among its copies (WP-S2.07 D16).
+struct WithPending<'a> {
+    inner: &'a dyn ParseCx,
+    pending: Vec<PartCopyText>,
+}
+
+impl ParseCx for WithPending<'_> {
+    fn company_codes(&self) -> Vec<(String, String)> {
+        self.inner.company_codes()
+    }
+
+    fn part_copies(&self) -> Vec<PartCopyText> {
+        let mut out = self.inner.part_copies();
+        out.extend(self.pending.iter().cloned());
+        out
+    }
+
+    fn library_parts(&self) -> Vec<PartCopyText> {
+        self.inner.library_parts()
+    }
+
+    fn slot_nodes(&self, member: &str) -> Vec<(String, String, Vec<String>)> {
+        self.inner.slot_nodes(member)
     }
 }
 

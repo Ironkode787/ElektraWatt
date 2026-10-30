@@ -52,6 +52,8 @@ pub enum ApiError {
     NothingToDo,
     /// The command was refused (the update plan's preview).
     Cmd(CmdError),
+    /// The strip cell's compile refused the chosen part (WP-S2.07 D16, [`Session::part_pick_command`]).
+    Strip(crate::output::StripEditError),
 }
 
 impl std::fmt::Display for ApiError {
@@ -69,6 +71,11 @@ impl std::fmt::Display for ApiError {
                 f.write_str("nothing to do: the project holds the documents as they are")
             }
             ApiError::Cmd(e) => write!(f, "{e}"),
+            ApiError::Strip(crate::output::StripEditError::Refused(key)) => f.write_str(key),
+            ApiError::Strip(crate::output::StripEditError::Invalid(m)) => f.write_str(m),
+            ApiError::Strip(crate::output::StripEditError::Ambiguous(c)) => {
+                write!(f, "{} parts fit; choose one", c.len())
+            }
         }
     }
 }
@@ -434,6 +441,22 @@ impl Session {
             }
         }
         Ok(out)
+    }
+
+    /// The item ID of the next fork of the held copy `copy` (WP-S2.07 D20): `v5(copy, "fork")`, else
+    /// `v5(copy, "fork\u{1f}<n>")` for the first `n` from 1 whose copy the project does not hold, as
+    /// [`Session::next_macro_instance`] mints instance IDs. The command carries the ID, so a replay reproduces it.
+    pub fn next_fork_item(&self, copy: Uuid) -> Uuid {
+        let q = self.query();
+        let project = q.project().id.as_uuid();
+        let held = |item: Uuid| {
+            q.parts()
+                .contains(ew_derive::ew_ids::v5::lib_copy_id(project, item))
+        };
+        std::iter::once(Uuid::new_v5(&copy, b"fork"))
+            .chain((1u64..).map(|n| Uuid::new_v5(&copy, format!("fork\u{1f}{n}").as_bytes())))
+            .find(|item| !held(*item))
+            .expect("an unbounded sequence has a free item")
     }
 
     /// The parts of the system libraries (WP-S2.18 D6: the compiled-in generic starter parts, and any installed system

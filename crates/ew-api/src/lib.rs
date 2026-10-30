@@ -82,6 +82,8 @@ mod library_ops;
 mod macros;
 mod new_project;
 pub mod output;
+mod part_editor;
+mod part_offers;
 // WP-S1.18 part 3: the release gate and the sign-off (D8 to D10).
 mod release;
 // WP-S1.18 part 4: the atomic release and the as-built archive (D11 to D13).
@@ -107,6 +109,8 @@ pub use library_ops::{ApiError, AssignMode, CopyState, CopyStatus, CopyUpdate, C
 pub use macros::{
     InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues, SavedMacro, macro_item_id,
 };
+pub use part_editor::{DRAFT_FIELDS, DraftMessage, PartDraft, PartDraftError, PartEditPlan};
+pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a
 /// front-end reads from a file the user picked or dropped before it asks `item.place` to store it (WP-S2.04 part 5).
 ///

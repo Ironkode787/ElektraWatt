@@ -1845,6 +1845,16 @@ pub(crate) fn generic_path(row_path: &str) -> String {
     out
 }
 
+impl crate::Session {
+    /// A text by the property grid's quantity rule (`4 A`, `0.75 mm²`; [`FieldType::Quantity`]), as the quantity's
+    /// JSON form: the part editor's technical values (WP-S2.07 D21).
+    pub(crate) fn parse_quantity_text(&self, text: &str) -> Result<Value, InputError> {
+        let q = self.query();
+        let cx = super::properties::SheetCx::new(&q);
+        parse_input(&cx, &FieldType::Quantity, "", text).map(|p| p.value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
