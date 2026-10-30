@@ -74,16 +74,18 @@
 //!   path item over the item's glyph span (the pen travel of the text up to the item's ends), after the text's
 //!   own items, with the text's entity and a [`Link::Source`].
 //! - **Slot text collisions** (FT-687). A cross-reference slot (`xref`) without a position override follows rules 1
-//!   and 2, a technical-data slot without one rule 3; every other text stays where its symbol puts it. (1) A list of several lines aligned to the middle keeps
-//!   its first line where a one-line text would sit and grows downward in its own frame (a coil's contact mirror
-//!   never climbs into the technical data above it). (2) A horizontal one whose layout box overlaps another slot
-//!   text's box on the page (its own symbol's or another representation's; the texts in print order, each seen where
-//!   it ended), or stands beside another representation's text less than [`SLOT_TEXT_GAP`] away (cycle 37:
-//!   "(101-D6)" ran into "-101K1"), drops straight down until its top is [`SLOT_TEXT_GAP`] below the lowest box it so
-//!   collided with, when it collides with no slot text there; else it stays. (3) A horizontal technical-data text
-//!   (no position override) follows rule 2 against other representations' texts only (cycle 37: a valve's "24 V"
-//!   ran into the next valve's tag); within one symbol its author's layout stands. At one-column spacing a contact's back-reference so moves below the
-//!   neighbour contact's tag. Printed text order and every other position are unchanged.
+//!   and 2, a technical-data slot without one rule 3; every other text stays where its symbol puts it. (1) A list of
+//!   several lines aligned to the middle keeps its first line where a one-line text would sit and grows downward in
+//!   its own frame (a coil's contact mirror never climbs into the technical data above it). (2) A horizontal one
+//!   whose layout box overlaps another slot text's box on the page (its own symbol's or another representation's; the
+//!   texts in print order, each seen where it ended), or stands beside another representation's text less than
+//!   [`SLOT_TEXT_GAP`] away (cycle 37: "(101-D6)" ran into "-101K1"), drops straight down until its top is
+//!   [`SLOT_TEXT_GAP`] below the lowest box it so collided with; when it meets only its own symbol's texts there
+//!   (its CP designation reaching under it) it drops below those too, at most three times, and it stays where it was
+//!   when another representation's text is there or it finds no free place. At one-column spacing a contact's back-reference so moves below the neighbour contact's
+//!   tag. (3) A horizontal technical-data text follows rule 2 against other representations' texts only (cycle 37: a
+//!   valve's "24 V" ran into the next valve's tag); within one symbol its author's layout stands. Printed text order
+//!   and every other position are unchanged.
 //! - **Pin texts** (WP-S1.21 D7). A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
 //!   (drawn as in "Black boxes") in style `data.small`, inside the outline, [`PIN_TEXT_GAP`] from the pin along its
 //!   inward normal: a pin leaving up or down reads bottom to top (90°), its end towards the pin (aligned middle right
@@ -1039,23 +1041,31 @@ impl Builder<'_> {
                     collides(at, b)
                 }
             };
-            let Some(bottom) = others().filter(|o| hits(own, *o)).map(|(_, b)| b.max().y).max() else {
+            let Some(mut bottom) = others().filter(|o| hits(own, *o)).map(|(_, b)| b.max().y).max() else {
                 continue;
             };
-            let drop = Nm(bottom.0 + SLOT_TEXT_GAP.0 - own.min().y.0);
-            let moved = Rect::from_points(
-                Pt2::new(own.min().x, own.min().y + drop),
-                Pt2::new(own.max().x, own.max().y + drop),
-            );
-            if others().all(|(same, b)| {
-                if same {
-                    !overlaps(moved, b)
-                } else {
-                    !collides(moved, b)
+            // Where it lands it may still meet a text of its own symbol (its CP designation reaching under it): it
+            // drops below that one too, at most [`SLOT_TEXT_DROPS`] times; else it stays where it was.
+            let blocked =
+                |at: Rect, (same, b): (bool, Rect)| if same { overlaps(at, b) } else { collides(at, b) };
+            for _ in 0..SLOT_TEXT_DROPS {
+                let drop = Nm(bottom.0 + SLOT_TEXT_GAP.0 - own.min().y.0);
+                let moved = Rect::from_points(
+                    Pt2::new(own.min().x, own.min().y + drop),
+                    Pt2::new(own.max().x, own.max().y + drop),
+                );
+                let blockers: Vec<(bool, Rect)> = others().filter(|o| blocked(moved, *o)).collect();
+                if blockers.is_empty() {
+                    texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, drop);
+                    boxes[i] = Some(moved);
+                    break;
                 }
-            }) {
-                texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, drop);
-                boxes[i] = Some(moved);
+                // Only its own symbol's texts send it further down; another representation's text there means no
+                // free place nearby, and it stays.
+                if blockers.iter().any(|(same, _)| !same) {
+                    break;
+                }
+                bottom = blockers.iter().map(|(_, b)| b.max().y).max().unwrap_or(bottom);
             }
         }
     }
@@ -1326,6 +1336,10 @@ fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
 
 /// The gap a dropped cross-reference text keeps below the text it moved away from (FT-687): 0.5 mm.
 pub const SLOT_TEXT_GAP: Nm = Nm(500_000);
+
+/// The most times one slot text drops (FT-687, cycle 37): below the text it collided with, then below a text it
+/// meets there, and so on.
+const SLOT_TEXT_DROPS: usize = 3;
 
 /// One visible slot text of a representation before it prints (FT-687): what [`TextSpec`] needs and whether the
 /// slot is a cross-reference the placement rules may move.

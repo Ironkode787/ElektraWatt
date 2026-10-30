@@ -18,6 +18,7 @@ use serde_json::json;
 const COIL: &str = include_str!("../../../content/symbols/qet10/ew.iec.coil@qet10.json");
 const VALVE: &str = include_str!("../../../content/symbols/qet10/ew.iec.valve-coil@qet10.json");
 const CONTACT: &str = include_str!("../../../content/symbols/qet10/ew.iec.contact-co@qet10.json");
+const CONTACT_NO: &str = include_str!("../../../content/symbols/qet10/ew.iec.contact-no@qet10.json");
 
 const PAGE: u128 = 0x100;
 
@@ -141,17 +142,27 @@ fn overlap(a: Rect, b: Rect) -> bool {
 
 /// Two change-over contacts of `-101K1` one column apart, each with its tag and its back-reference.
 fn contacts(spacing: i64) -> PageView {
-    contacts_with(spacing, "(101-B2)")
+    contacts_with(CONTACT, spacing, "(101-B2)", false)
 }
 
-/// [`contacts`] with the back-reference `back`.
-fn contacts_with(spacing: i64, back: &str) -> PageView {
-    let c = symbol(CONTACT);
+/// [`contacts`] with the contact symbol `json` and the back-reference `back`; with `designations` every CP
+/// designation slot prints too ("13", "14", "12" by CP index), as a placed contact does.
+fn contacts_with(json: &str, spacing: i64, back: &str, designations: bool) -> PageView {
+    let c = symbol(json);
     let (tag, xref) = (slot(&c, &SlotKind::Tag), slot(&c, &SlotKind::Xref));
+    let mut slots = vec![value(tag, "-101K1"), value(xref, back)];
+    if designations {
+        for (i, t) in c.def.text_slots.iter().enumerate() {
+            if let SlotKind::CpDesignation(cp) = t.kind {
+                let text = ["13", "14", "12"].get(usize::from(cp)).copied().unwrap_or("9");
+                slots.push(value(u16::try_from(i).unwrap(), text));
+            }
+        }
+    }
     let contact = |n: u128, x: i64| RepView {
         rep: rep(n, c.id, x, 20),
         symbol: Some(c.def.clone()),
-        slots: vec![value(tag, "-101K1"), value(xref, back)],
+        slots: slots.clone(),
         terminals: Vec::new(),
         pins: Vec::new(),
     };
@@ -261,20 +272,32 @@ fn side_gap(a: Rect, b: Rect) -> Option<i64> {
 #[test]
 fn a_back_reference_keeps_the_gap_from_the_neighbour_contacts_tag() {
     let gap = ew_scene::page::SLOT_TEXT_GAP.0;
-    for (back, spacing) in [
-        ("(101-B2)", 9),
-        ("(101-D6)", 9),
-        ("(101-D6)", 10),
-        ("(101-D6)", COLUMN),
-    ] {
-        let v = contacts_with(spacing, back);
+    let cases = [
+        (CONTACT, "(101-B2)", 9),
+        (CONTACT, "(101-D6)", 9),
+        (CONTACT, "(101-D6)", 10),
+        (CONTACT, "(101-D6)", COLUMN),
+        // The window check's case: two make contacts 9 grid steps apart, tag and back-reference on one line.
+        (CONTACT_NO, "(101-D6)", 9),
+        (CONTACT_NO, "(101-D6)", 10),
+        (CONTACT_NO, "(101-D6)", COLUMN),
+    ];
+    for (json, back, spacing) in cases {
+        let v = contacts_with(json, spacing, back, true);
         let b = text_box(&v, 0x11, &[back]);
         let tag = text_box(&v, 0x12, &["-101K1"]);
         assert!(!overlap(b, tag), "{back}: {b:?} overlaps {tag:?}");
         assert!(
             side_gap(b, tag).is_none_or(|g| g >= gap - 1_000),
-            "{back}: {b:?} runs into {tag:?}"
+            "{back} at {spacing}: {b:?} runs into {tag:?}"
         );
+        for own in ["13", "14"] {
+            let d = text_box(&v, 0x11, &[own]);
+            assert!(
+                !overlap(b, d),
+                "{back} at {spacing}: {b:?} overlaps its {own} {d:?}"
+            );
+        }
     }
 }
 
@@ -307,4 +330,32 @@ fn a_valves_technical_data_keeps_the_gap_from_the_next_valves_tag() {
     }
     // Far apart, the data stays where the symbol puts it.
     assert_eq!(text_box(&valves(20), 0x31, &["24 V"]), alone);
+}
+
+/// Cycle 37: a dropped back-reference that lands on its own CP designation (a three-digit "114" reaching under it)
+/// drops below that too, clear of the neighbour's tag and of its own texts.
+#[test]
+fn a_dropped_back_reference_also_clears_its_own_designation() {
+    let c = symbol(CONTACT_NO);
+    let (tag, xref) = (slot(&c, &SlotKind::Tag), slot(&c, &SlotKind::Xref));
+    let end = slot(&c, &SlotKind::CpDesignation(1));
+    let contact = |n: u128, x: i64| RepView {
+        rep: rep(n, c.id, x, 20),
+        symbol: Some(c.def.clone()),
+        slots: vec![value(tag, "-101K1"), value(xref, "(101-D6)"), value(end, "114")],
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let v = page(vec![contact(0x11, 20), contact(0x12, 29)]);
+    let back = text_box(&v, 0x11, &["(101-D6)"]);
+    let next = text_box(&v, 0x12, &["-101K1"]);
+    let own = text_box(&v, 0x11, &["114"]);
+    assert!(
+        !overlap(back, next) && !overlap(back, own),
+        "{back:?} {next:?} {own:?}"
+    );
+    assert!(
+        (back.min().y.0 - own.max().y.0 - ew_scene::page::SLOT_TEXT_GAP.0).abs() <= 1_000,
+        "one gap below its own designation: {back:?} {own:?}"
+    );
 }
