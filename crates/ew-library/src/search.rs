@@ -5,6 +5,8 @@
 //!
 //! **Order** (WP-S1.19 D6, deterministic and without a clock):
 //! 1. with a compatibility filter, compatible parts before the others (doc 07 §4.3: "offers MCB 1P+N parts first");
+//!    when the filter names the function's FnDef ([`FnCompat::fndef`], WP-S2.07 D17), the parts whose function
+//!    template declares that FnDef come before the other compatible ones;
 //! 2. the rank tier: exact `pn_norm` (1), `pn_norm` prefix (2), trigram substring (3), full text (4); a query
 //!    without text lists every part in tier 0;
 //! 3. inside a tier: parts the project holds, then the caller's boost list (favourites, recently used);
@@ -34,6 +36,10 @@ pub struct FnCompat {
     pub category: [String; 2],
     /// The function's contact kind.
     pub contact_kind: ContactKind,
+    /// `(library, item)` of the function's FnDef (WP-S2.07 D17, FT-629): a part whose function template declares
+    /// that FnDef, at any version, ranks before the other compatible parts and reports [`PartHit::same_fndef`]; `None`
+    /// keeps WP-S1.19 D6's order and meaning unchanged.
+    pub fndef: Option<(Uuid, Uuid)>,
 }
 
 /// A part search (WP-S1.19 §5.2, D6).
@@ -82,6 +88,9 @@ pub struct PartHit {
     pub status: ItemStatus,
     /// Whether the part fits [`PartQuery::compatible_with`]; `None` without that filter.
     pub compatible: Option<bool>,
+    /// Whether the part's function template declares [`FnCompat::fndef`] (the same library and item at any version);
+    /// `None` without a filter or without `fndef` (WP-S2.07 D17).
+    pub same_fndef: Option<bool>,
     /// 0 (no text), 1 exact part number, 2 prefix, 3 trigram, 4 full text.
     pub rank_tier: u8,
 }
@@ -161,7 +170,8 @@ pub(crate) fn natural_key(s: &str) -> Result<impl Ord + use<>, String> {
 
 /// The sort key of a hit after its rank: held, boost, score, natural part number, manufacturer key, library, item.
 pub(crate) struct OrderKey {
-    pub incompatible: bool,
+    /// 0 the same FnDef (D17), 1 compatible or no filter, 2 incompatible.
+    pub fit: u8,
     pub rank_tier: u8,
     pub not_held: bool,
     pub not_boosted: bool,
@@ -179,8 +189,8 @@ pub(crate) fn sort_by_order<T>(items: Vec<(OrderKey, T)>) -> Vec<T> {
         .map(|(k, t)| (natural_key(&k.part_number), k, t))
         .collect();
     keyed.sort_by(|(na, a, _), (nb, b, _)| {
-        a.incompatible
-            .cmp(&b.incompatible)
+        a.fit
+            .cmp(&b.fit)
             .then(a.rank_tier.cmp(&b.rank_tier))
             .then(a.not_held.cmp(&b.not_held))
             .then(a.not_boosted.cmp(&b.not_boosted))
@@ -226,7 +236,7 @@ mod tests {
     fn key(pn: &str, score: f64, item: u128) -> (OrderKey, u128) {
         (
             OrderKey {
-                incompatible: false,
+                fit: 1,
                 rank_tier: 4,
                 not_held: true,
                 not_boosted: true,

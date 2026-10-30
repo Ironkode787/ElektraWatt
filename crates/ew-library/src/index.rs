@@ -354,7 +354,7 @@ impl Index {
                 self.part_tier(
                     1,
                     "part p",
-                    "p.pn_norm = ?4",
+                    "p.pn_norm = ?6",
                     vec![Sql::Text(norm.clone())],
                     "0.0",
                     compat,
@@ -364,7 +364,7 @@ impl Index {
                 self.part_tier(
                     2,
                     "part p",
-                    "p.pn_norm > ?4 AND p.pn_norm < ?5",
+                    "p.pn_norm > ?6 AND p.pn_norm < ?7",
                     vec![Sql::Text(norm.clone()), Sql::Text(hi)],
                     "0.0",
                     compat,
@@ -375,7 +375,7 @@ impl Index {
                 self.part_tier(
                     3,
                     "part_pn JOIN part p ON p.id = part_pn.rowid",
-                    "part_pn MATCH ?4",
+                    "part_pn MATCH ?6",
                     vec![Sql::Text(format!("\"{}\"", norm.replace('"', "\"\"")))],
                     "0.0",
                     compat,
@@ -386,7 +386,7 @@ impl Index {
                 self.part_tier(
                     4,
                     "part_text JOIN part p ON p.id = part_text.rowid",
-                    "part_text MATCH ?4",
+                    "part_text MATCH ?6",
                     vec![Sql::Text(fts)],
                     "bm25(part_text, 10.0, 6.0, 3.0, 3.0, 1.0, 2.0, 1.0)",
                     compat,
@@ -397,6 +397,7 @@ impl Index {
         let held: BTreeSet<(Uuid, Uuid)> = q.held.iter().copied().collect();
         let boost: BTreeSet<(Uuid, Uuid)> = q.boost.iter().copied().collect();
         let mut keyed = Vec::new();
+        let fndef = compat.and_then(|c| c.fndef);
         for raw in found.into_values() {
             let Some(tier) = tier_of(raw.lib) else {
                 continue;
@@ -418,8 +419,14 @@ impl Index {
             if !q.include_inactive && !active(&status) {
                 continue;
             }
+            let same_fndef = fndef.map(|_| raw.same_fndef);
+            let fit = match (raw.compatible, same_fndef) {
+                (_, Some(true)) => 0,
+                (Some(false), _) => 2,
+                _ => 1,
+            };
             let key = OrderKey {
-                incompatible: raw.compatible == Some(false),
+                fit,
                 rank_tier: raw.rank_tier,
                 not_held: !held.contains(&(raw.lib, raw.item)),
                 not_boosted: !boost.contains(&(raw.lib, raw.item)),
@@ -442,6 +449,7 @@ impl Index {
                     kind,
                     status,
                     compatible: raw.compatible,
+                    same_fndef,
                     rank_tier: raw.rank_tier,
                 },
             ));
@@ -470,7 +478,9 @@ impl Index {
                     CASE WHEN ?1 IS NULL THEN NULL ELSE EXISTS(
                       SELECT 1 FROM part_fn f JOIN item i
                         ON i.kind = 'fndef' AND i.lib = f.fndef_lib AND i.item = f.fndef_item
-                      WHERE f.part = p.id AND i.cat0 = ?1 AND i.cat1 = ?2 AND i.contact = ?3) END
+                      WHERE f.part = p.id AND i.cat0 = ?1 AND i.cat1 = ?2 AND i.contact = ?3) END,
+                    CASE WHEN ?4 IS NULL THEN 0 ELSE EXISTS(
+                      SELECT 1 FROM part_fn g WHERE g.part = p.id AND g.fndef_lib = ?4 AND g.fndef_item = ?5) END
              FROM {from}
              LEFT JOIN item m ON m.kind = 'manufacturer' AND m.lib = p.mfr_lib AND m.item = p.mfr_item
              WHERE {cond}"
@@ -483,6 +493,13 @@ impl Index {
             ],
             None => vec![Sql::Null, Sql::Null, Sql::Null],
         };
+        match compat.and_then(|c| c.fndef) {
+            Some((lib, item)) => params.extend([
+                Sql::Text(lib.hyphenated().to_string()),
+                Sql::Text(item.hyphenated().to_string()),
+            ]),
+            None => params.extend([Sql::Null, Sql::Null]),
+        }
         params.extend(extra);
         let mut stmt = self.conn.prepare(&sql)?;
         let rows = stmt.query_map(params_from_iter(params), |r| {
@@ -501,6 +518,7 @@ impl Index {
                     mfr_key: r.get(10)?,
                     score: r.get(11)?,
                     compatible: r.get::<_, Option<bool>>(12)?,
+                    same_fndef: r.get::<_, bool>(13)?,
                 },
             ))
         })?;
@@ -527,6 +545,7 @@ impl Index {
                     mfr_key: row.mfr_key,
                     score: quantise(row.score),
                     compatible: row.compatible,
+                    same_fndef: row.same_fndef,
                     rank_tier: tier,
                 },
             );
@@ -626,7 +645,7 @@ impl Index {
             }
             keyed.push((
                 OrderKey {
-                    incompatible: false,
+                    fit: 1,
                     rank_tier,
                     not_held: true,
                     not_boosted: true,
@@ -681,6 +700,7 @@ struct RawPartRow {
     mfr_key: String,
     score: f64,
     compatible: Option<bool>,
+    same_fndef: bool,
 }
 
 struct RawPart {
@@ -696,6 +716,7 @@ struct RawPart {
     mfr_key: String,
     score: i64,
     compatible: Option<bool>,
+    same_fndef: bool,
     rank_tier: u8,
 }
 

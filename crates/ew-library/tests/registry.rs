@@ -765,6 +765,7 @@ fn ix5_the_compatibility_filter_ranks_fitting_parts_first() {
             compatible_with: Some(FnCompat {
                 category: ["ProtectionOvercurrent".into(), "MCB".into()],
                 contact_kind: ContactKind::Pole,
+                fndef: None,
             }),
             ..PartQuery::default()
         },
@@ -799,6 +800,7 @@ fn ix5_the_compatibility_filter_ranks_fitting_parts_first() {
             compatible_with: Some(FnCompat {
                 category: category.clone(),
                 contact_kind: c.item.contact_kind.clone(),
+                fndef: None,
             }),
             ..PartQuery::default()
         },
@@ -819,11 +821,66 @@ fn ix5_the_compatibility_filter_ranks_fitting_parts_first() {
             compatible_with: Some(FnCompat {
                 category,
                 contact_kind: other_kind,
+                fndef: None,
             }),
             ..PartQuery::default()
         },
     );
     assert!(none.iter().all(|h| h.compatible == Some(false)));
+}
+
+/// PS1's library half (WP-S2.07 D17, FT-629): with the function's FnDef named, the parts whose template declares
+/// that FnDef report `same_fndef` true and come first; the 1P parts stay `compatible` with `same_fndef` false and
+/// follow; the others are `compatible = false` and last. Without `fndef`, `same_fndef` is not reported (IX-5 holds).
+#[test]
+fn ps1_the_fndef_ranks_the_same_function_before_the_same_category() {
+    let f = Fixture::new("ew-library-ps1");
+    let mut reg = f.open();
+    company(&f, &mut reg);
+    let hits = fixture_hits(
+        &reg,
+        PartQuery {
+            compatible_with: Some(FnCompat {
+                category: ["ProtectionOvercurrent".into(), "MCB".into()],
+                contact_kind: ContactKind::Pole,
+                fndef: Some((starter::LIBRARY, starter_item("ew.fn.mcb-1pn"))),
+            }),
+            ..PartQuery::default()
+        },
+    );
+    let fits: Vec<(&str, Option<bool>, Option<bool>)> = hits
+        .iter()
+        .map(|h| (h.part_number.as_str(), h.compatible, h.same_fndef))
+        .collect();
+    assert_eq!(
+        fits[..3],
+        [
+            ("A9P52610", Some(true), Some(true)),
+            ("A9P52616", Some(true), Some(true)),
+            ("A9F78116", Some(true), Some(false)),
+        ]
+    );
+    assert!(
+        fits[3..]
+            .iter()
+            .all(|(_, c, s)| *c == Some(false) && *s == Some(false)),
+        "{fits:?}"
+    );
+    // Without `fndef` the order and the meaning of IX-5 hold, and `same_fndef` is not reported.
+    let plain = fixture_hits(
+        &reg,
+        PartQuery {
+            compatible_with: Some(FnCompat {
+                category: ["ProtectionOvercurrent".into(), "MCB".into()],
+                contact_kind: ContactKind::Pole,
+                fndef: None,
+            }),
+            ..PartQuery::default()
+        },
+    );
+    assert!(plain.iter().all(|h| h.same_fndef.is_none()));
+    assert_eq!(plain[0].part_number, "A9F78116", "IX-5's natural order");
+    assert!(search(&reg, "").iter().all(|h| h.same_fndef.is_none()));
 }
 
 /// IX-6: deprecated and withdrawn parts are hidden unless asked for; the successor is reported.
