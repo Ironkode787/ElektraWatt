@@ -1870,6 +1870,7 @@ const COMMAND_TITLES: &[(&str, &str)] = &[
     ("junction.edit", "Edit junction"),
     ("library.embed", "Embed library item"),
     ("library.update", "Update library item"),
+    ("macro.insert", "Insert macro"),
     ("marker.place", "Place wire marker"),
     ("numbering.renumber", "Renumber"),
     ("page.create", "Create page"),

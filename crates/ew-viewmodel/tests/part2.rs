@@ -1984,6 +1984,8 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
                 | "device_link"
                 | "report_block"
                 | "revision"
+                // WP-S1.16 part 5: no state of this sequence selects a waiver record.
+                | "waiver"
                 | "page_item"
                 | "structure_box"
                 // WP-S1.19 part 1: no command creates a macro instance yet, so no state selects one.
