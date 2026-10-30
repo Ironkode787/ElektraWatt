@@ -684,7 +684,9 @@ An estimate, not a commitment.
 | 3 | G37 | WP-S1.21 part 2 (the derived PLC address texts; FT-227 in part) | ID-860 |
 | 3 | H37 | WP-S1.18 part 2 (page digests, the change status, the revision overview; FT-207) | ID-861 |
 | 3 | I37 | FT-633 (F2 on structure nodes and devices), FT-649 (the parts-table mapping card) | ID-862 |
-| end | — | The play-test, the window check, this design pass, the review loop, the gate | Not yet recorded |
+| end | — | The window check (W37) | ID-865 |
+| end | — | The play-test (rv-vis-1) | ID-866 |
+| end | — | The review loop and the gate | Not yet recorded |
 
 **Rulings:** N0 may fire in AC-15 path (b), equal bytes being the criterion (PW-7 amended; ID-854); `ProjectSettings.revision_label` is declared before `text_styles`, in byte order of the names, so older lines stay canonical (ID-856); Golden A stays byte-for-byte unchanged by WP-S1.21 part 2, and only the starter coil, valve-coil, pushbutton and selector symbols gain the `plc_address` slot (0.2.0), so folios 203 to 206 wait for a library update (FT-698; ID-860); folio 911 is derived, a golden change (ID-861); the waiver date reads the store's system clock, not `SystemTime` (ID-858). All nine briefs of waves 2 and 3 were flagged by the feasibility read and resolved by rulings before dispatch; no lane stopped on a premise; the wave verify gains `check-raw-read`, the fuzz lock check and the workspace rustdoc (ID-853, ID-863). **66 commands, 279 actions, 367 describe words.** FT-207, FT-303, FT-628, FT-633, FT-649, FT-662, FT-663, FT-664, FT-670, FT-673, FT-674, FT-675 and FT-687 are closed; FT-227, FT-302 and FT-402 are in part and open; FT-690 to FT-704 are new. The play-test, the window check, the review loop and the gate: not yet recorded.
 
