@@ -61,8 +61,16 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         .default_width(t.size_palette)
         .show(ctx, |ui| {
             let mut filter = picker.filter.clone();
+            // Cycle 37 (window check W37): the focus is taken before the field reads this frame's input, so the key
+            // typed in the frame that first shows the picker reaches the filter ("relay", not "elay"); it is asked for
+            // again once the field is laid out, so it outlives the window's first (sizing) pass.
+            let id = ui.make_persistent_id("picker-filter");
+            if just_opened {
+                ui.memory_mut(|m| m.request_focus(id));
+            }
             let edit = ui.add(
                 TextEdit::singleline(&mut filter)
+                    .id(id)
                     .hint_text(strings::text("picker-filter-hint"))
                     .desired_width(f32::INFINITY),
             );

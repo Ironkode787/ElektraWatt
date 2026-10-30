@@ -145,6 +145,23 @@ fn the_picker_popup_is_driven_by_its_keys_and_floats_a_starter_symbol() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// Cycle 37 (window check W37): the picker opened by `tool.place` takes the keyboard from the first key; text typed in
+/// the frame that first shows it reaches its filter field ("relay", not "elay").
+#[test]
+fn the_picker_filter_keeps_the_first_typed_character() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    dispatch(&mut h, "tool.place", json!({}));
+    assert!(h.state().shell().picker().is_some(), "tool.place opens the picker");
+    // No frame between the action and the typing: the first frame that paints the picker carries the text.
+    h.event(egui::Event::Text("r".to_owned()));
+    h.step();
+    h.event(egui::Event::Text("elay".to_owned()));
+    settle(&mut h);
+    assert_eq!(h.state().shell().picker().unwrap().filter, "relay");
+    h.state_mut().shell_mut().shutdown();
+}
+
 #[test]
 fn pl8_exact_counts_of_place_move_and_the_picker_in_the_window() {
     let tmp = Tmp::new();
