@@ -1390,7 +1390,7 @@ impl ShellModel {
         } else {
             "fields.set_many"
         };
-        let (outcome, notices) = self.run_logged_or_commit_noticed(name, &proposal.params, section.as_ref());
+        let (outcome, notices) = self.run_logged_or_commit(name, &proposal.params, section.as_ref());
         if outcome == Outcome::Done {
             self.props.edit = None;
             self.props.error = None;
@@ -1494,19 +1494,9 @@ impl ShellModel {
         Some((message, proposal))
     }
 
-    /// One command through the grid's commit path: a fresh preview, then [`ShellModel::commit_kept`].
+    /// One command through the grid's commit path: a fresh preview, then [`ShellModel::commit_kept`]; with the
+    /// notices of the command's outcome (what it dropped instead of refusing), read on its preview.
     fn run_logged_or_commit(
-        &mut self,
-        name: &str,
-        params: &Value,
-        section: Option<&SheetSection>,
-    ) -> Outcome {
-        self.run_logged_or_commit_noticed(name, params, section).0
-    }
-
-    /// [`ShellModel::run_logged_or_commit`], with the notices of the command's outcome (what it dropped instead of
-    /// refusing), read on its preview.
-    fn run_logged_or_commit_noticed(
         &mut self,
         name: &str,
         params: &Value,
