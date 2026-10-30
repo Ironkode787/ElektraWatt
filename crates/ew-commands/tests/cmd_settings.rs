@@ -166,3 +166,77 @@ fn settings_set_null_removes_and_equal_values_change_nothing() {
     let p = e.preview(&set("numbering", Value::Null)).unwrap();
     assert_eq!(p.op_count(), 0);
 }
+
+/// TS-3 (ADR-0032 decision 6, FR-SYM-013): `text_styles` replaces the typed member as a whole in one undo step, `{}`
+/// and `null` remove it, and a value outside the rules is refused at the member path.
+#[test]
+fn settings_set_text_styles_replaces_the_member_and_undoes() {
+    let mut e = engine(golden_model());
+    let before = lines(e.model());
+    let tag = json!({"tag.main": {"size": 4_000_000}});
+    commit(&mut e, &set("text_styles", tag.clone()));
+    let styles = &e.model().project().settings.text_styles;
+    assert_eq!(serde_json::to_value(styles).unwrap(), tag);
+    assert!(stored(&e, "text_styles").is_none(), "typed, never in extra");
+    // One undo step restores the record.
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before);
+    // A replacement drops the other overrides; `{}` and `null` remove the member.
+    commit(&mut e, &set("text_styles", tag));
+    let two = json!({"marker": {"size": 1_852_083, "weight": "bold"}, "note.big": {"size": 6_000_000}});
+    commit(&mut e, &set("text_styles", two.clone()));
+    assert_eq!(
+        serde_json::to_value(&e.model().project().settings.text_styles).unwrap(),
+        two
+    );
+    commit(&mut e, &set("text_styles", json!({})));
+    assert!(e.model().project().settings.text_styles.is_empty());
+    commit(&mut e, &set("text_styles", json!({"pin": {"size": 2_000_000}})));
+    commit(&mut e, &set("text_styles", Value::Null));
+    assert!(e.model().project().settings.text_styles.is_empty());
+}
+
+#[test]
+fn settings_set_text_styles_refuses_at_the_member_path() {
+    let mut e = engine(golden_model());
+    let cases = [
+        (
+            json!({"tag.main": {"size": 100}}),
+            "/text_styles/tag.main/size",
+            "lies outside",
+        ),
+        (
+            json!({"tag.main": {"size": 50_000_001}}),
+            "/text_styles/tag.main/size",
+            "lies outside",
+        ),
+        (
+            json!({"tag.main": {"size": "4000000"}}),
+            "/text_styles/tag.main/size",
+            "integer size",
+        ),
+        (
+            json!({"tag.main": {"weight": "bold"}}),
+            "/text_styles/tag.main/size",
+            "integer size",
+        ),
+        (
+            json!({"tag.main": {"size": 4_000_000, "weight": "black"}}),
+            "/text_styles/tag.main/weight",
+            "\"black\"",
+        ),
+        (
+            json!({" tag": {"size": 4_000_000}}),
+            "/text_styles/ tag",
+            "not an identifier",
+        ),
+        (json!({"tag.main": 4}), "/text_styles/tag.main", "not an object"),
+        (json!([1]), "/text_styles", "an object"),
+    ];
+    for (value, want_path, want_message) in cases {
+        let (path, message) = invalid(&mut e, &set("text_styles", value.clone()));
+        assert_eq!(path, want_path, "{value}");
+        assert!(message.contains(want_message), "{value}: {message}");
+    }
+    assert!(e.model().project().settings.text_styles.is_empty());
+}

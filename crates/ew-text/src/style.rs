@@ -5,8 +5,14 @@
 //!
 //! Native pt = QET px × 0.75. The em height in nm is `round(px × 793 750 / 3)`, because 1 px = 25.4/96 mm = 0.75 pt.
 //! The printed pt of the doc (× 0.986282578) is a consequence of the frame's page-to-sheet transform, not a second
-//! size. Project-level text styles (model data, FR-SYM-013) arrive with WP-S1.12 and will override or extend this
-//! table. The golden table has no italic style.
+//! size. The golden table has no italic style.
+//!
+//! A project overrides and extends this table (ADR-0032): `ew_schema::effective_text_styles` computes the
+//! project's rows, and the renderers resolve keys through a table built from them ([`TextStyleTable::from_rows`]).
+//! [`builtin()`] is for callers without a project (font tests, library previews); a test in `ew-scene` keeps its rows
+//! equal to `ew_schema::BUILTIN_TEXT_STYLES`.
+
+use std::sync::LazyLock;
 
 use ew_units::{Grid, Nm};
 
@@ -15,7 +21,7 @@ use crate::{Family, TextStyle, Weight};
 /// The style key used when a key is unknown or absent (`text.normal`, doc 20 §17.5).
 pub const DEFAULT_STYLE_KEY: &str = "text.normal";
 
-/// One row of a [`TextStyleTable`].
+/// One row of the built-in table ([`builtin_rows`]), in QET pixels.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct StyleDef {
     /// The style key (`text.normal`).
@@ -48,10 +54,34 @@ impl StyleDef {
     }
 }
 
-/// A table of text styles.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+/// One row of a [`TextStyleTable`]: a key, an em height and a weight.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct StyleRow {
+    /// The style key (`text.normal`).
+    pub key: String,
+    /// The em height.
+    pub em: Nm,
+    /// The weight.
+    pub weight: Weight,
+}
+
+impl StyleRow {
+    /// The text style: default family, this em height and weight, upright.
+    pub fn text_style(&self) -> TextStyle {
+        TextStyle {
+            family: Family::Default,
+            size: self.em,
+            weight: self.weight,
+            italic: false,
+        }
+    }
+}
+
+/// A table of text styles: the built-in one ([`builtin()`]) or a project's effective table
+/// ([`TextStyleTable::from_rows`]).
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct TextStyleTable {
-    rows: &'static [StyleDef],
+    rows: Vec<StyleRow>,
 }
 
 const ROWS: &[StyleDef] = &[
@@ -127,7 +157,13 @@ const ROWS: &[StyleDef] = &[
     },
 ];
 
-static BUILTIN: TextStyleTable = TextStyleTable { rows: ROWS };
+static BUILTIN: LazyLock<TextStyleTable> =
+    LazyLock::new(|| TextStyleTable::from_rows(ROWS.iter().map(|r| (r.key, r.em(), r.weight))));
+
+/// The rows of the built-in table in QET pixels, in table order (doc 20 §17.5).
+pub fn builtin_rows() -> &'static [StyleDef] {
+    ROWS
+}
 
 /// The built-in table.
 ///
@@ -145,19 +181,40 @@ pub fn builtin() -> &'static TextStyleTable {
 }
 
 impl TextStyleTable {
+    /// A table of `(key, em height, weight)` rows in the given order; a repeated key keeps its first row.
+    ///
+    /// ```
+    /// use ew_text::{TextStyleTable, Weight};
+    /// use ew_units::Nm;
+    ///
+    /// let table = TextStyleTable::from_rows([("marker", Nm(1_852_083), Weight::Regular)]);
+    /// assert_eq!(table.resolve("marker").unwrap().size, Nm(1_852_083));
+    /// assert!(table.resolve("text.normal").is_none());
+    /// ```
+    pub fn from_rows<K: Into<String>>(rows: impl IntoIterator<Item = (K, Nm, Weight)>) -> TextStyleTable {
+        let mut out: Vec<StyleRow> = Vec::new();
+        for (key, em, weight) in rows {
+            let key = key.into();
+            if !out.iter().any(|r| r.key == key) {
+                out.push(StyleRow { key, em, weight });
+            }
+        }
+        TextStyleTable { rows: out }
+    }
+
     /// The rows in table order.
-    pub fn rows(&self) -> &'static [StyleDef] {
-        self.rows
+    pub fn rows(&self) -> &[StyleRow] {
+        &self.rows
     }
 
     /// The row of `key`.
-    pub fn get(&self, key: &str) -> Option<&'static StyleDef> {
+    pub fn get(&self, key: &str) -> Option<&StyleRow> {
         self.rows.iter().find(|r| r.key == key)
     }
 
     /// The text style of `key`.
     pub fn resolve(&self, key: &str) -> Option<TextStyle> {
-        self.get(key).map(StyleDef::text_style)
+        self.get(key).map(StyleRow::text_style)
     }
 }
 
@@ -211,7 +268,7 @@ mod tests {
     /// to nm) must lie within half a step, 0.005 mm, of the doc value.
     #[test]
     fn rows_keys_and_order() {
-        let rows = builtin().rows();
+        let rows = builtin_rows();
         assert_eq!(rows.len(), 14);
         let keys: Vec<&str> = rows.iter().map(|r| r.key).collect();
         assert_eq!(keys, KEYS);
@@ -219,6 +276,13 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(sorted.len(), 14);
+        let table: Vec<(&str, Nm, Weight)> = builtin()
+            .rows()
+            .iter()
+            .map(|r| (r.key.as_str(), r.em, r.weight))
+            .collect();
+        let defs: Vec<(&str, Nm, Weight)> = rows.iter().map(|r| (r.key, r.em(), r.weight)).collect();
+        assert_eq!(table, defs);
         assert!(builtin().get(DEFAULT_STYLE_KEY).is_some());
         assert!(builtin().resolve(DEFAULT_STYLE_KEY).is_some());
         assert!(builtin().get("unknown").is_none());
@@ -250,7 +314,7 @@ mod tests {
 
     #[test]
     fn resolve_builds_upright_default_family_style() {
-        for r in builtin().rows() {
+        for r in builtin_rows() {
             assert_eq!(
                 builtin().resolve(r.key),
                 Some(TextStyle {

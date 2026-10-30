@@ -6,8 +6,9 @@
 //! project directory. The front-end writes it with [`Session::create`] (Save As into an empty directory).
 //!
 //! **The built-in basic project** holds the project record with the shipped defaults (the derivation profile of
-//! this release, the identifier set EN 81346-2:2009, ADR-0026) and one empty page, folio 1, on the built-in
-//! frame. **A company basic project** is any project directory of kind [`NewProjectKind::Basic`] (the
+//! this release, the identifier set EN 81346-2:2009, ADR-0026, the text-style overrides of
+//! `ew_schema::NEW_PROJECT_TEXT_STYLES`, ADR-0032) and one empty page, folio 1, on the built-in frame. **A company
+//! basic project** is any project directory of kind [`NewProjectKind::Basic`] (the
 //! company-standard wizard writes one): its records are copied with new identities, `v5(new project ID, source
 //! ID)` per record (doc 07 §2.8; library copies keep theirs, their IDs derive from library and item), and the
 //! project record keeps its schemes, profiles and settings under a new project ID and the requested kind. A
@@ -237,6 +238,9 @@ fn builtin(id: Id<Project>, kind: NewProjectKind) -> (Project, Vec<Record>, Vec<
         rated_consumption: None,
         settings: ProjectSettings {
             identifier_set: IDENTIFIER_SET.parse().ok(),
+            // ADR-0032 decision 3: `cp.small` and `marker` at 7 QET px (1.32 mm cap height, above EW-CORE-061's
+            // minimum); a company basic project is copied as it is.
+            text_styles: ew_schema::new_project_text_styles(),
             ..ProjectSettings::default()
         },
         languages: None,

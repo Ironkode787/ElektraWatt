@@ -466,7 +466,18 @@ impl HeapSize for ProjectSettings {
         self.identifier_set.heap_size()
             + self.ip_pairing.heap_size()
             + self.formatting.heap_size()
+            + self.text_styles.heap_size()
             + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::TextStyleSpec {
+    fn heap_size(&self) -> usize {
+        let weight = match &self.weight {
+            Some(ew_schema::TextWeight::Unknown(v)) => v.heap_size(),
+            _ => 0,
+        };
+        weight + self.extra.heap_size()
     }
 }
 

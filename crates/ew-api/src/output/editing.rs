@@ -1455,8 +1455,8 @@ fn page_rect(q: &Q, page: PageRef) -> Rect {
 /// The position in the symbol frame of the tag text `rep` prints with `def` (FT-502), by the scene's rules
 /// (`ew_scene::page`'s labels): the first tag slot, visible by the representation's override, else by its named
 /// arrangement, else by the slot's default; the override's position, else the slot's. With it the em height (nm)
-/// of the slot's text style.
-fn tag_anchor(rep: &Representation, def: &SymbolDef) -> Option<(Pt2, i64)> {
+/// of the slot's text style in the project's table `styles`.
+fn tag_anchor(rep: &Representation, def: &SymbolDef, styles: &ew_text::TextStyleTable) -> Option<(Pt2, i64)> {
     let (i, slot) = def
         .text_slots
         .iter()
@@ -1470,8 +1470,8 @@ fn tag_anchor(rep: &Representation, def: &SymbolDef) -> Option<(Pt2, i64)> {
             .and_then(|name| def.arrangements.iter().find(|a| a.name == *name))
             .map_or(slot.visible, |a| a.slots.contains(&index))
     });
-    let (style, _) = ew_scene::symbol::slot_style_key(slot);
-    let em = ew_text::builtin().resolve(style).map_or(0, |t| t.size.0.max(0));
+    let (style, _) = ew_scene::symbol::slot_style_key(slot, styles);
+    let em = styles.resolve(style).map_or(0, |t| t.size.0.max(0));
     visible.then(|| (ov.and_then(|o| o.pos).unwrap_or(slot.pos), em))
 }
 
@@ -1522,6 +1522,7 @@ impl Session {
             i64::try_from(page.grid.den()).unwrap_or(1),
         );
         let drawn = drawn_cps(&q, page_id);
+        let styles = super::layers::text_style_table(&q);
         let mut shapes: BTreeMap<Id<SymbolDef>, Option<SymbolShape>> = BTreeMap::new();
         let mut rep_ids: Vec<(i64, i64, Id<Representation>)> = q
             .idx()
@@ -1570,7 +1571,7 @@ impl Session {
                 .then(|| {
                     q.symbols()
                         .get(rep.symbol)
-                        .and_then(|s| tag_anchor(&rep, &s.item))
+                        .and_then(|s| tag_anchor(&rep, &s.item, &styles))
                 })
                 .flatten()
                 .map(|(p, em)| {

@@ -622,7 +622,7 @@ fn compare(a: &Session, c: &Session, san: &San, details: &mut Vec<String>) -> Ve
             absent.push(folio);
             continue;
         };
-        let scene = ew_scene::page::page_scene(&page.view, ew_text::bundled());
+        let scene = ew_scene::page::page_scene(&page.view, ew_text::bundled(), ew_text::builtin());
         let c_texts = counts(text_column(&golden_files::text_csv(&scene)));
         let a_texts = counts(text_column(&std::fs::read_to_string(&path).unwrap()));
         out.push(multiset(

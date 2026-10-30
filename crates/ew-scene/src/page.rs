@@ -93,7 +93,7 @@ use ew_schema::{
     Align, Connection, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, Page, Representation,
     SymbolDef,
 };
-use ew_text::{DEFAULT_STYLE_KEY, FontSet, Shaped, TextStyle, builtin};
+use ew_text::{DEFAULT_STYLE_KEY, FontSet, Shaped, TextStyle, TextStyleTable};
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
 
 use crate::embedded::{EmbeddedView, lower_embedded};
@@ -389,10 +389,18 @@ pub struct LayerList {
 }
 
 /// `page_display_list(page, layer, lang)` for a drawn page (see the module documentation). The language is
-/// the view's; the result is deterministic and independent of the order of the view's records.
-pub fn page_display_list(view: &PageView, layer: Layer, fonts: &FontSet) -> LayerList {
+/// the view's; the result is deterministic and independent of the order of the view's records. Text style keys
+/// resolve through `styles`, the project's effective table (ADR-0032: the caller builds it from
+/// `ew_derive::text_styles`; `ew_text::builtin()` for a caller without a project).
+pub fn page_display_list(
+    view: &PageView,
+    layer: Layer,
+    fonts: &FontSet,
+    styles: &TextStyleTable,
+) -> LayerList {
     let mut b = Builder {
         fonts,
+        styles,
         out: LayerList::default(),
     };
     match layer {
@@ -442,13 +450,14 @@ pub struct PageScene {
     pub findings: Vec<PageFinding>,
 }
 
-/// Every layer of `view`'s page kind, with the sheet size and map of its frame form.
-pub fn page_scene(view: &PageView, fonts: &FontSet) -> PageScene {
+/// Every layer of `view`'s page kind, with the sheet size and map of its frame form; text styles resolve through
+/// `styles` ([`page_display_list`]).
+pub fn page_scene(view: &PageView, fonts: &FontSet, styles: &TextStyleTable) -> PageScene {
     let mut layers = Vec::new();
     let mut geometry = BTreeMap::new();
     let mut findings = Vec::new();
     for &layer in view.kind.layers() {
-        let l = page_display_list(view, layer, fonts);
+        let l = page_display_list(view, layer, fonts, styles);
         geometry.extend(l.geometry);
         findings.extend(l.findings);
         layers.push((layer, Arc::new(l.list)));
@@ -491,6 +500,7 @@ impl PageScene {
 
 pub(crate) struct Builder<'a> {
     fonts: &'a FontSet,
+    styles: &'a TextStyleTable,
     out: LayerList,
 }
 
@@ -614,7 +624,13 @@ impl Builder<'_> {
 
     fn frame(&mut self, view: &PageView) {
         let Some(f) = &view.frame else { return };
-        let lowered = lower_form(&f.form, f.title_block.as_deref(), &f.bindings, self.fonts);
+        let lowered = lower_form(
+            &f.form,
+            f.title_block.as_deref(),
+            &f.bindings,
+            self.fonts,
+            self.styles,
+        );
         self.out.list = lowered.display_list;
         self.out
             .findings
@@ -627,7 +643,7 @@ impl Builder<'_> {
             .as_ref()
             .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form));
         if let Some(table) = &view.table {
-            let lowered = lower_table(table, sheet, self.fonts);
+            let lowered = lower_table(table, sheet, self.fonts, self.styles);
             for item in lowered.items {
                 self.push(item);
             }
@@ -639,7 +655,7 @@ impl Builder<'_> {
         let mut embedded: Vec<&EmbeddedView> = view.embedded.iter().collect();
         embedded.sort_by_key(|e| (e.rect.min().y, e.rect.min().x, e.rect.max().y, e.rect.max().x));
         for e in embedded {
-            let lowered = lower_embedded(e, sheet, self.fonts);
+            let lowered = lower_embedded(e, sheet, self.fonts, self.styles);
             for item in lowered.items {
                 self.push(item);
             }
@@ -904,7 +920,7 @@ impl Builder<'_> {
                 }
                 let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
                 let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
-                let (style_key, unknown) = symbol::slot_style_key(slot);
+                let (style_key, unknown) = symbol::slot_style_key(slot, self.styles);
                 if let Some(name) = unknown {
                     self.out.findings.push(PageFinding::UnknownSlotStyle {
                         entity: entity.0,
@@ -994,12 +1010,12 @@ impl Builder<'_> {
     }
 
     fn style(&mut self, key: &str, entity: EntityRef) -> TextStyle {
-        builtin().resolve(key).unwrap_or_else(|| {
+        self.styles.resolve(key).unwrap_or_else(|| {
             self.out.findings.push(PageFinding::UnknownStyle {
                 entity: entity.0,
                 key: key.to_owned(),
             });
-            builtin()
+            self.styles
                 .resolve(DEFAULT_STYLE_KEY)
                 .unwrap_or(TextStyle::regular(Nm(3_175_000)))
         })

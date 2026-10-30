@@ -12,7 +12,7 @@ use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedView, RegionTable
 use ew_scene::forms::PageBindings;
 use ew_scene::page::{FrameView, PageKind, PageView, page_display_list};
 use ew_schema::{FormDef, LibCopy, LibDocument};
-use ew_text::bundled;
+use ew_text::{builtin, bundled};
 use ew_units::{Nm, Pt2, Rect};
 
 const FRAME: &str = include_str!("../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json");
@@ -107,13 +107,13 @@ fn glyph_texts(list: &ew_dl::DisplayList) -> Vec<String> {
 
 #[test]
 fn a_page_without_embedded_blocks_has_an_empty_tables_layer() {
-    let l = page_display_list(&view(Vec::new()), Layer::Tables, bundled());
+    let l = page_display_list(&view(Vec::new()), Layer::Tables, bundled(), builtin());
     assert!(l.list.is_empty() && l.findings.is_empty());
 }
 
 #[test]
 fn the_cover_tables_print_title_header_rows_and_caption_in_reading_order() {
-    let l = page_display_list(&view(vec![cover()]), Layer::Tables, bundled());
+    let l = page_display_list(&view(vec![cover()]), Layer::Tables, bundled(), builtin());
     assert!(l.findings.is_empty(), "{:?}", l.findings);
     assert_eq!(
         glyph_texts(&l.list),
@@ -157,7 +157,7 @@ fn the_cover_tables_print_title_header_rows_and_caption_in_reading_order() {
 
 #[test]
 fn everything_lies_inside_the_blocks_rectangle_and_the_note_row_below_it() {
-    let l = page_display_list(&view(vec![cover()]), Layer::Tables, bundled());
+    let l = page_display_list(&view(vec![cover()]), Layer::Tables, bundled(), builtin());
     let r = rect();
     // The note sits in the row below the rectangle: a 24th of its height.
     let below = Nm(r.height().0 / 24);
@@ -178,8 +178,13 @@ fn the_tables_layer_does_not_depend_on_the_order_of_the_embedded_blocks() {
         Pt2::new(Nm(10_000_000), Nm(10_000_000)),
         Pt2::new(Nm(100_000_000), Nm(100_000_000)),
     );
-    let a = page_display_list(&view(vec![cover(), other.clone()]), Layer::Tables, bundled());
-    let b = page_display_list(&view(vec![other, cover()]), Layer::Tables, bundled());
+    let a = page_display_list(
+        &view(vec![cover(), other.clone()]),
+        Layer::Tables,
+        bundled(),
+        builtin(),
+    );
+    let b = page_display_list(&view(vec![other, cover()]), Layer::Tables, bundled(), builtin());
     assert_eq!(a, b);
 }
 
@@ -189,7 +194,7 @@ fn a_text_that_does_not_fit_its_cell_shrinks_and_is_reported_not_clipped() {
     let EmbeddedContent::Cover(c) = &mut v.content;
     c.mains.rows[0][0] =
         "A colour name far too long for the cell it sits in, really much too long".to_owned();
-    let l = page_display_list(&view(vec![v]), Layer::Tables, bundled());
+    let l = page_display_list(&view(vec![v]), Layer::Tables, bundled(), builtin());
     assert_eq!(l.findings.len(), 1, "{:?}", l.findings);
     assert!(
         glyph_texts(&l.list)

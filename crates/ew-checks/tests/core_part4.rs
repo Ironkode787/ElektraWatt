@@ -250,12 +250,53 @@ fn core061_reports_a_shown_wire_marker() {
     let f = findings_of(&fx.build(), "EW-CORE-061");
     assert_eq!(texts(&f), [small_text("cp.small"), small_text("marker")]);
     // Every other style of the table is at or above the minimum.
-    let small: Vec<&str> = ew_checks::rules::page::TEXT_STYLES
+    let small: Vec<&str> = ew_derive::ew_schema::BUILTIN_TEXT_STYLES
         .iter()
-        .map(|(k, _)| *k)
+        .map(|(k, _, _)| *k)
         .filter(|k| !["cp.small", "marker"].contains(k))
         .collect();
     assert!(small.iter().all(|k| f.iter().all(|x| x.subject != *k)));
+}
+
+/// A shown wire marker and the CP labels of [`core061_reports_a_shown_wire_marker`] under the project settings
+/// `settings`.
+fn marker_fx(settings: Value) -> Fx {
+    let mut fx = slots_fx(cp_slots(true));
+    fx.settings = settings;
+    fx.conn(
+        0x3001,
+        P1,
+        cp(0x1001),
+        cp(0x1002),
+        &json!({"overrides": {"csa": "2.5", "colour": ["BK"], "show_marker": true}}),
+    );
+    fx
+}
+
+/// EW-CORE-061 reads the project's effective text styles (ADR-0032 decision 5): the overrides of a new project
+/// (`cp.small` and `marker` at 7 QET px, 1.32 mm cap height) silence it; an override that makes a used style small
+/// is reported with its own height, and a size the effective table ignores (below 0.5 mm em) keeps the built-in row.
+#[test]
+fn core061_reads_the_project_text_styles() {
+    let fresh = json!({"text_styles": {"cp.small": {"size": 1_852_083}, "marker": {"size": 1_852_083}}});
+    assert!(findings_of(&marker_fx(fresh).build(), "EW-CORE-061").is_empty());
+    // One of the two overridden: only the other is reported.
+    let half = json!({"text_styles": {"marker": {"size": 1_852_083}}});
+    let f = findings_of(&marker_fx(half).build(), "EW-CORE-061");
+    assert_eq!(texts(&f), [small_text("cp.small")]);
+    // A tag style shrunk below the minimum: 1.5 mm em is a 1.07 mm cap height.
+    let mut fx = slots_fx(json!([
+        {"kind": "tag", "pos": [0, 0], "align": "middle_left", "visible": true},
+    ]));
+    fx.settings = json!({"text_styles": {"tag.main": {"size": 1_500_000}}});
+    let f = findings_of(&fx.build(), "EW-CORE-061");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].subject, "tag.main");
+    assert!(f[0].message.contains("cap height of 1.07 mm"), "{}", f[0].message);
+    // An out-of-range size in a file is ignored: the built-in 5 px row applies.
+    let tiny = json!({"text_styles": {"cp.small": {"size": 100}, "marker": {"size": 100}}});
+    let f = findings_of(&marker_fx(tiny).build(), "EW-CORE-061");
+    assert_eq!(texts(&f), [small_text("cp.small"), small_text("marker")]);
 }
 
 /// A free text on P1 with the style `style` (none: the default).
@@ -282,6 +323,26 @@ fn core063_reports_a_text_outside_the_style_table() {
     assert!(f[0].message.contains("qet.9"), "{}", f[0].message);
     assert!(findings_of(&text_fx(Some("text.normal")).build(), "EW-CORE-063").is_empty());
     assert!(findings_of(&text_fx(None).build(), "EW-CORE-063").is_empty());
+}
+
+/// EW-CORE-063 and -061 read the project's effective table (ADR-0032): a free text naming a key the project extends
+/// the table with (`note.big`) is styled; without the extension it is reported, as before.
+#[test]
+fn core063_accepts_a_project_extended_style() {
+    assert_eq!(
+        findings_of(&text_fx(Some("note.big")).build(), "EW-CORE-063").len(),
+        1
+    );
+    let mut fx = text_fx(Some("note.big"));
+    fx.settings = json!({"text_styles": {"note.big": {"size": 6_000_000}}});
+    let model = fx.build();
+    assert!(findings_of(&model, "EW-CORE-063").is_empty());
+    // An extending style below the minimum is reported once it is used.
+    let mut fx = text_fx(Some("note.tiny"));
+    fx.settings = json!({"text_styles": {"note.tiny": {"size": 1_000_000}}});
+    let f = findings_of(&fx.build(), "EW-CORE-061");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].subject, "note.tiny");
 }
 
 /// A line on P1 from the connection point of function 0x1001 (CP 0 at `(0, 0x1001 mm)`) to `b`, offset by `dy` nm.

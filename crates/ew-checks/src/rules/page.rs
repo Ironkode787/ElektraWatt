@@ -16,13 +16,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
-    AnyId, Device, Function, GraphicShape, Kind, Page, PageItem, PageItemKind, Primitive, ReportBlock,
-    ReportKind, ReportSource, SlotKind, TextSlot,
+    AnyId, Device, EffectiveStyle, Function, GraphicShape, Kind, Page, PageItem, PageItemKind, Primitive,
+    ReportBlock, ReportKind, ReportSource, SlotKind, TextSlot,
 };
 use ew_derive::ew_units::Pt2;
 use ew_derive::{
     CpRef, FunctionCps, Origin, PageOrder, PageRef, Q, box_caption, connection_marker, cp_label, cp_point,
-    folio_label, free_text, group_marker, live_connections,
+    folio_label, free_text, group_marker, live_connections, text_styles,
 };
 
 use crate::engine::touched_ids;
@@ -431,30 +431,9 @@ impl Rule for ReportCoverageGap {
 // ---------------------------------------------------------------------------------------------------------
 // Text styles (EW-CORE-061, -063)
 
-/// The text styles of the project: the built-in table of doc 20 §17.5 as `(key, size in QET px)`, in the table's
-/// order. A copy of `ew_text::builtin()`'s rows, which this crate may not link (`ci/dep-rules.toml`: `ew-checks`
-/// depends on `ew-derive` and `ew-rhai` only); `ew-api`'s test `text_styles_of_the_checks_match_ew_text` keeps the
-/// two equal. Project text styles (FR-SYM-013, WP-S1.12) will replace it.
-pub const TEXT_STYLES: &[(&str, u16)] = &[
-    ("cover.title", 48),
-    ("section.id", 37),
-    ("section.subtitle", 29),
-    ("cover.subtitle", 27),
-    ("box.title", 21),
-    ("cover.table", 16),
-    ("tag.main", 13),
-    ("text.normal", 12),
-    ("field.label", 11),
-    ("data.small", 9),
-    ("pin", 8),
-    ("xref.device", 7),
-    ("cp.small", 5),
-    ("marker", 5),
-];
-
-/// The em height of a style of `px` QET pixels, in nm: `round(px × 793 750 / 3)` (1 px = 25.4/96 mm; doc 20 §17.5).
-fn em_nm(px: u16) -> i64 {
-    (i64::from(px) * 793_750 * 2 + 3) / 6
+/// Whether `key` is a style of the project's effective text-style table (`ew_derive::text_styles`, ADR-0032).
+fn is_style(table: &[EffectiveStyle], key: &str) -> bool {
+    table.iter().any(|s| s.key.as_str() == key)
 }
 
 /// The cap ratio of the default face, in thousandths (doc 20 §18.1: 0.714 ▲).
@@ -485,10 +464,11 @@ pub const TEXT_BELOW_MINIMUM: RuleMeta = RuleMeta {
 };
 
 /// EW-CORE-061: a text style the project prints with ([`used_text_styles`]) whose cap height (the ISO 3098 nominal
-/// size: the em height of [`TEXT_STYLES`] times the face's cap ratio 0.714) is below the minimum of 1.2 mm
-/// (FR-CHK-023, FR-CHK-051; D-31, EF-12). One finding per text style, not per text (FR-CHK-051): no target,
-/// discriminator the style's key. A style no text of the project prints with is not reported, so a new project has
-/// none; on Golden A exactly `cp.small` and `marker` (0.94 mm). The project has no style overrides yet (FR-SYM-013).
+/// size: the em height of the project's effective text-style table, `ew_derive::text_styles`, times the face's cap
+/// ratio 0.714) is below the minimum of 1.2 mm (FR-CHK-023, FR-CHK-051; D-31, EF-12; ADR-0032 decision 5). One
+/// finding per text style, not per text (FR-CHK-051): no target, discriminator the style's key. A style no text of
+/// the project prints with is not reported. On Golden A (no overrides: the built-in table) exactly `cp.small` and
+/// `marker` (0.94 mm); a new project overrides both to 7 QET px (1.32 mm), so its markers and pin numbers pass.
 #[derive(Clone, Copy, Debug)]
 pub struct TextBelowMinimum;
 
@@ -501,9 +481,10 @@ impl Rule for TextBelowMinimum {
         if *scope != Scope::Project {
             return Vec::new();
         }
-        let small: Vec<(&str, i64)> = TEXT_STYLES
+        let table = text_styles(q);
+        let small: Vec<(&str, i64)> = table
             .iter()
-            .map(|(key, px)| (*key, em_nm(*px) * CAP_RATIO_MILLI / 1000))
+            .map(|s| (s.key.as_str(), s.em.0 * CAP_RATIO_MILLI / 1000))
             .filter(|(_, cap)| *cap < MIN_CAP_HEIGHT_NM)
             .collect();
         if small.is_empty() {
@@ -512,7 +493,7 @@ impl Rule for TextBelowMinimum {
         let used = used_text_styles(q);
         small
             .into_iter()
-            .filter(|(key, _)| used.contains(key))
+            .filter(|(key, _)| used.contains(*key))
             .map(|(key, cap)| {
                 Finding::new(
                     &TEXT_BELOW_MINIMUM,
@@ -537,20 +518,20 @@ impl Rule for TextBelowMinimum {
 /// `ew_text::DEFAULT_STYLE_KEY`).
 const DEFAULT_TEXT_STYLE: &str = "text.normal";
 
-/// The key a text naming `key` prints with: `key` when it is one of [`TEXT_STYLES`], else the default style (the
-/// scene's fallback for an absent or unknown key).
-fn printed_style(key: Option<&str>) -> &str {
+/// The key a text naming `key` prints with: `key` when it is a style of `table`, else the default style (the scene's
+/// fallback for an absent or unknown key).
+fn printed_style<'a>(table: &[EffectiveStyle], key: Option<&'a str>) -> &'a str {
     match key {
-        Some(k) if TEXT_STYLES.iter().any(|(t, _)| *t == k) => k,
+        Some(k) if is_style(table, k) => k,
         _ => DEFAULT_TEXT_STYLE,
     }
 }
 
-/// The style a symbol's text slot prints with: its own `style` when that is one of [`TEXT_STYLES`], else the style
-/// bound to its kind (doc 20 §17.5; decision log ID-197, ID-227; the scene's `symbol::slot_style_key`).
-fn slot_style(slot: &TextSlot) -> &str {
+/// The style a symbol's text slot prints with: its own `style` when that is a style of `table`, else the style bound
+/// to its kind (doc 20 §17.5; decision log ID-197, ID-227; the scene's `symbol::slot_style_key`).
+fn slot_style<'a>(table: &[EffectiveStyle], slot: &'a TextSlot) -> &'a str {
     match slot.style.as_ref().map(|s| s.as_str()) {
-        Some(k) if TEXT_STYLES.iter().any(|(t, _)| *t == k) => k,
+        Some(k) if is_style(table, k) => k,
         _ => match slot.kind {
             SlotKind::Tag => "tag.main",
             SlotKind::CpDesignation(_) => "cp.small",
@@ -565,13 +546,15 @@ fn slot_style(slot: &TextSlot) -> &str {
 /// wire-marker items and of single connections (`marker`), the structure-box captions (`tag.main`), the static texts
 /// and the visible slots of every placed representation's symbol (slots only on a representation with a function;
 /// the kind's style unless the slot names a table style), and the texts and cells of the forms the project holds
-/// (its frames and title blocks). A set of keys, independent of record IDs.
-pub fn used_text_styles(q: &Q) -> BTreeSet<&'static str> {
-    let mut used: BTreeSet<&'static str> = BTreeSet::new();
+/// (its frames and title blocks). Keys resolve against the project's effective text-style table
+/// (`ew_derive::text_styles`). A set of keys, independent of record IDs.
+pub fn used_text_styles(q: &Q) -> BTreeSet<String> {
+    let table = text_styles(q);
+    let mut used: BTreeSet<String> = BTreeSet::new();
     let mut mark = |key: Option<&str>| {
-        let k = printed_style(key);
-        if let Some((t, _)) = TEXT_STYLES.iter().find(|(t, _)| *t == k) {
-            used.insert(*t);
+        let k = printed_style(&table, key);
+        if is_style(&table, k) && !used.contains(k) {
+            used.insert(k.to_owned());
         }
     };
     let mut grouped = BTreeSet::new();
@@ -630,7 +613,7 @@ pub fn used_text_styles(q: &Q) -> BTreeSet<&'static str> {
                 .and_then(|o| o.visible)
                 .unwrap_or_else(|| arrangement.map_or(slot.visible, |a| a.slots.contains(&idx)));
             if visible {
-                mark(Some(slot_style(slot)));
+                mark(Some(slot_style(&table, slot)));
             }
         }
     }
@@ -663,7 +646,7 @@ pub const UNSTYLED_TEXT_SIZE: RuleMeta = RuleMeta {
 };
 
 /// EW-CORE-063: a free text whose style is an explicit size that no text style binds (FR-SYM-013; D-29, MF-26): a key
-/// that is not one of the project's text styles ([`TEXT_STYLES`]), such as the `qet.9` an imported legacy `size`
+/// that is not one of the project's text styles (`ew_derive::text_styles`), such as the `qet.9` an imported legacy `size`
 /// becomes. One finding per text: target the page item, discriminator `style`, shown on the page. Online only.
 #[derive(Clone, Copy, Debug)]
 pub struct UnstyledTextSize;
@@ -681,6 +664,7 @@ impl Rule for UnstyledTextSize {
             return Vec::new();
         };
         let items = q.page_items();
+        let table = text_styles(q);
         let mut rows: Vec<(String, Id<PageItem>)> = Vec::new();
         for id in q.idx().page_items_by_page(page) {
             let Some(PageItemKind::FreeText(t)) = items.get(id).map(|i| &i.kind) else {
@@ -689,7 +673,7 @@ impl Rule for UnstyledTextSize {
             let Some(style) = t.style.as_ref().map(|s| s.as_str()) else {
                 continue;
             };
-            if TEXT_STYLES.iter().any(|(k, _)| *k == style) {
+            if is_style(&table, style) {
                 continue;
             }
             rows.push((style.to_owned(), id));

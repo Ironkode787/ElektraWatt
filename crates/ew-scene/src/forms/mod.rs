@@ -32,7 +32,7 @@
 //!   With a known intrinsic size ([`AssetRef::size`]) the image is fitted inside the inset with its aspect
 //!   ratio preserved and centred; without one it fills the inset. A cell too small to hold the inset
 //!   reports [`OverflowKind::Error`] and draws no image.
-//! - The style key resolves through the built-in table ([`ew_text::builtin`]); an unknown key uses
+//! - The style key resolves through the caller's table (the project's effective table, ADR-0032); an unknown key uses
 //!   `text.normal` and is reported.
 //! - Placement: see [`CELL_PADDING`]; left/right text is inset by it, middle alignment centres the cap
 //!   height on the cell's midline. A cell's `ew.cell.max_lines` extra member (default 1) allows greedy
@@ -70,7 +70,7 @@ use std::sync::Arc;
 
 use ew_dl::{DisplayList, ImageData, Item, Path, Stroke as DlStroke, Transform};
 use ew_schema::{FormCell, FormDef, Primitive};
-use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, builtin};
+use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
 use ew_units::{Nm, Pt2, Rect};
 use serde_json::Value;
 
@@ -164,15 +164,17 @@ pub struct LoweredForm {
 }
 
 /// Lowers `form` (and `title_block`, the form its `title_block` names, resolved by the caller) with
-/// `bindings`, shaping text with `fonts`. See the module documentation.
+/// `bindings`, shaping text with `fonts` in the styles of `styles`. See the module documentation.
 pub fn lower_form(
     form: &FormDef,
     title_block: Option<&FormDef>,
     bindings: &dyn Bindings,
     fonts: &FontSet,
+    styles: &TextStyleTable,
 ) -> LoweredForm {
     let mut l = Lowerer {
         fonts,
+        styles,
         bindings,
         sheet: SheetMap::of(form),
         out: LoweredForm::default(),
@@ -195,6 +197,7 @@ pub fn lower_form(
 
 struct Lowerer<'a> {
     fonts: &'a FontSet,
+    styles: &'a TextStyleTable,
     bindings: &'a dyn Bindings,
     sheet: SheetMap,
     out: LoweredForm,
@@ -206,12 +209,12 @@ impl Lowerer<'_> {
     }
 
     fn style(&mut self, key: &str, site: TextSite) -> TextStyle {
-        builtin().resolve(key).unwrap_or_else(|| {
+        self.styles.resolve(key).unwrap_or_else(|| {
             self.out.findings.push(FormFinding::UnknownStyle {
                 site,
                 key: key.to_owned(),
             });
-            builtin()
+            self.styles
                 .resolve(DEFAULT_STYLE_KEY)
                 .unwrap_or(TextStyle::regular(Nm(3_175_000)))
         })

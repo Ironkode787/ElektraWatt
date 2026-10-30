@@ -159,11 +159,24 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
     Some(v)
 }
 
+/// The project's effective text-style table (ADR-0032) as the scene's table: the rows of `ew_derive::text_styles`
+/// in their order. Every page layer, the editing outputs and the exports resolve text styles through it.
+pub fn text_style_table(q: &Q) -> ew_text::TextStyleTable {
+    ew_text::TextStyleTable::from_rows(ew_derive::text_styles(q).iter().map(|s| {
+        let weight = if s.is_bold() {
+            ew_text::Weight::Bold
+        } else {
+            ew_text::Weight::Regular
+        };
+        (s.key.as_str(), s.em, weight)
+    }))
+}
+
 fn build(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
     let Some(view) = layer_view(q, page, layer) else {
         return Arc::new(PageLayer::default());
     };
-    let l = page_display_list(&view, layer, ew_text::bundled());
+    let l = page_display_list(&view, layer, ew_text::bundled(), &text_style_table(q));
     Arc::new(PageLayer {
         list: Arc::new(l.list),
         geometry: l.geometry,

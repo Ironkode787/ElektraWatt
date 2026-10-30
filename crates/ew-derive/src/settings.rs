@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use ew_schema::IpPairing;
+use ew_schema::{EffectiveStyle, IpPairing};
 use serde_json::Value;
 
 use crate::Q;
@@ -39,6 +39,8 @@ pub enum Member {
     XrefFormat,
     /// The pinned derivation profile key, `Project.derivation_profile` (ADR-0003).
     DerivationProfile,
+    /// `ProjectSettings.text_styles` (typed; ADR-0032): the overrides of the built-in text-style table.
+    TextStyles,
 }
 
 impl Member {
@@ -53,11 +55,12 @@ impl Member {
             Member::Frames => "frames",
             Member::XrefFormat => "xref_format",
             Member::DerivationProfile => "derivation_profile",
+            Member::TextStyles => "text_styles",
         }
     }
 
     /// Every member, in declaration order.
-    pub const ALL: [Member; 8] = [
+    pub const ALL: [Member; 9] = [
         Member::IpPairing,
         Member::ColourProfile,
         Member::SizeProfile,
@@ -66,6 +69,7 @@ impl Member {
         Member::Frames,
         Member::XrefFormat,
         Member::DerivationProfile,
+        Member::TextStyles,
     ];
 
     /// The member stored under `name` ([`Member::name`]).
@@ -88,7 +92,8 @@ impl Member {
 ///   `ip`, `aux_to_main` and `main_to_aux`;
 /// - `colour_profile`: every colour code an IEC 60757 code or a company code that the profile's `codes`
 ///   declare on an IEC 60757 base; `size_profile`: every cross-section a positive number (mm², AWG or kcmil);
-/// - `wire_default` and `ip_pairing`: their shapes.
+/// - `wire_default` and `ip_pairing`: their shapes;
+/// - `text_styles`: [`ew_schema::check_text_styles`] (identifier keys, sizes of 0.5 … 50 mm, known weights).
 ///
 /// `frames` and `derivation_profile` have no checker here and are refused with a message saying so.
 pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
@@ -134,6 +139,9 @@ pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
         Member::IpPairing => serde_json::from_value::<IpPairing>(value.clone())
             .map(drop)
             .map_err(|e| e.to_string()),
+        Member::TextStyles => ew_schema::check_text_styles(value)
+            .map(drop)
+            .map_err(|e| format!("{}: {}", e.pointer, e.message)),
         Member::Frames | Member::DerivationProfile => {
             Err(format!("`{}` has no value checker", member.name()))
         }
@@ -190,6 +198,10 @@ impl Query for SettingsMember {
                 .as_ref()
                 .map(|p| serde_json::to_value(p).expect("a typed settings member serialises")),
             Member::DerivationProfile => Some(Value::String(project.derivation_profile.as_str().to_owned())),
+            Member::TextStyles => (!project.settings.text_styles.is_empty()).then(|| {
+                serde_json::to_value(&project.settings.text_styles)
+                    .expect("a typed settings member serialises")
+            }),
             other => project.settings.extra.get(other.name()).cloned(),
         };
         Arc::new(value)
@@ -229,6 +241,38 @@ impl Query for DrawingSettingsQ {
             .and_then(crate::items::MarkerMode::from_name);
         Arc::new(DrawingSettings { hops, marker_mode })
     }
+}
+
+/// `text_styles()`: the project's effective text-style table (ADR-0032 decision 5): the built-in rows with the
+/// project's overrides applied, then its extending keys ([`ew_schema::effective_text_styles`]). Policy Memo: a
+/// cut-off point over the project row, read through [`text_styles`], so an edit of another member of the row leaves
+/// every page's texts and EW-CORE-061 valid.
+#[derive(Debug)]
+pub struct TextStyles;
+
+impl Query for TextStyles {
+    type Key = ();
+    type Value = Vec<EffectiveStyle>;
+    const FAMILY: &'static str = "text_styles";
+    const POLICY: Policy = Policy::Memo;
+
+    fn bytes(value: &Self::Value) -> usize {
+        std::mem::size_of::<Self::Value>()
+            + value
+                .iter()
+                .map(|s| std::mem::size_of::<EffectiveStyle>() + s.key.as_str().len())
+                .sum::<usize>()
+    }
+
+    fn run(q: &Q, _: &()) -> Arc<Vec<EffectiveStyle>> {
+        Arc::new(ew_schema::effective_text_styles(&q.project().settings))
+    }
+}
+
+/// The project's effective text-style table ([`TextStyles`]), read as a cut-off point: a reader is invalidated only
+/// when the table changes.
+pub fn text_styles(q: &Q) -> Arc<Vec<EffectiveStyle>> {
+    q.get_value_part::<TextStyles>(())
 }
 
 /// The value of member `m`, read as a cut-off point (see the module documentation).

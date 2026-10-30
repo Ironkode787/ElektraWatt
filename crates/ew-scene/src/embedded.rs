@@ -27,7 +27,7 @@
 
 use ew_dl::{Item, Path, Stroke};
 use ew_schema::{Overflow, ShrinkSpec};
-use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, builtin};
+use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
 use ew_units::{Nm, Pt2, Rect};
 
 use crate::forms::{BoxSpec, CELL_PADDING, SheetMap, lay_out};
@@ -81,10 +81,16 @@ pub struct EmbeddedView {
     pub content: EmbeddedContent,
 }
 
-/// Lowers `view` (see the module documentation). `sheet` is the frame form's page-to-sheet map.
-pub fn lower_embedded(view: &EmbeddedView, sheet: SheetMap, fonts: &FontSet) -> LoweredTable {
+/// Lowers `view` (see the module documentation). `sheet` is the frame form's page-to-sheet map; texts print in the
+/// styles of `styles`.
+pub fn lower_embedded(
+    view: &EmbeddedView,
+    sheet: SheetMap,
+    fonts: &FontSet,
+    styles: &TextStyleTable,
+) -> LoweredTable {
     match &view.content {
-        EmbeddedContent::Cover(cover) => lower_cover(view.rect, cover, sheet, fonts),
+        EmbeddedContent::Cover(cover) => lower_cover(view.rect, cover, sheet, fonts, styles),
     }
 }
 
@@ -93,7 +99,13 @@ fn at(lo: Nm, len: Nm, num: i64, den: i64) -> Nm {
     Nm(lo.0 + i64::try_from(i128::from(len.0) * i128::from(num) / i128::from(den)).unwrap_or(0))
 }
 
-fn lower_cover(rect: Rect, cover: &CoverTables, sheet: SheetMap, fonts: &FontSet) -> LoweredTable {
+fn lower_cover(
+    rect: Rect,
+    cover: &CoverTables,
+    sheet: SheetMap,
+    fonts: &FontSet,
+    styles: &TextStyleTable,
+) -> LoweredTable {
     let (x0, y0) = (rect.min().x, rect.min().y);
     let (w, h) = (rect.width(), rect.height());
     // Columns in 560ths of the width; rows in units of a 24th of the height.
@@ -101,6 +113,7 @@ fn lower_cover(rect: Rect, cover: &CoverTables, sheet: SheetMap, fonts: &FontSet
     let row = Nm(h.0 / 24);
     let mut p = Painter {
         fonts,
+        styles,
         sheet,
         row,
         out: LoweredTable::default(),
@@ -126,6 +139,7 @@ fn lower_cover(rect: Rect, cover: &CoverTables, sheet: SheetMap, fonts: &FontSet
 /// Draws the tables of one block into a [`LoweredTable`].
 struct Painter<'a> {
     fonts: &'a FontSet,
+    styles: &'a TextStyleTable,
     sheet: SheetMap,
     /// The height of a row.
     row: Nm,
@@ -221,7 +235,8 @@ impl Painter<'_> {
         if s.is_empty() {
             return;
         }
-        let style = builtin()
+        let style = self
+            .styles
             .resolve(style_key)
             .unwrap_or(TextStyle::regular(Nm(3_175_000)));
         let shrink = Overflow::ShrinkToFit(ShrinkSpec {
@@ -297,8 +312,8 @@ mod tests {
     #[test]
     fn the_tables_stay_inside_the_block_and_are_deterministic() {
         let v = view();
-        let a = lower_embedded(&v, SheetMap::IDENTITY, ew_text::bundled());
-        let b = lower_embedded(&v, SheetMap::IDENTITY, ew_text::bundled());
+        let a = lower_embedded(&v, SheetMap::IDENTITY, ew_text::bundled(), ew_text::builtin());
+        let b = lower_embedded(&v, SheetMap::IDENTITY, ew_text::bundled(), ew_text::builtin());
         assert_eq!(a, b);
         assert!(!a.items.is_empty());
         assert!(a.findings.is_empty(), "{:?}", a.findings);
@@ -310,7 +325,7 @@ mod tests {
             content: EmbeddedContent::Cover(CoverTables::default()),
             ..view()
         };
-        let out = lower_embedded(&v, SheetMap::IDENTITY, ew_text::bundled());
+        let out = lower_embedded(&v, SheetMap::IDENTITY, ew_text::bundled(), ew_text::builtin());
         assert!(out.items.is_empty() && out.findings.is_empty());
     }
 }

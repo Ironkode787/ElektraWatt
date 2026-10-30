@@ -92,6 +92,7 @@ mod revision;
 mod schema;
 mod set;
 mod template;
+mod text_style;
 mod track;
 mod value;
 mod waiver;
@@ -156,6 +157,11 @@ pub use revision::{PageNote, Revision, RevisionState};
 pub use schema::{kind_schema, schema_file_name, schema_files};
 pub use set::{Keyed, KeyedList, Set};
 pub use template::{TemplateCp, pair_template_cps, template_entry_of};
+pub use text_style::{
+    BUILTIN_TEXT_STYLES, EffectiveStyle, NEW_PROJECT_TEXT_STYLES, TEXT_STYLE_MAX_SIZE, TEXT_STYLE_MIN_SIZE,
+    TextStyleError, TextStyleSpec, TextWeight, check_text_styles, effective_text_styles,
+    new_project_text_styles, qet_px_em, text_style_size_ok,
+};
 pub use track::parse_value;
 pub use value::{
     AnyId, Bounds, ColourCode, ColourSpec, Csa, Date, Endpoint, ExternalRefId, IecColour, LibRef, PartRef,

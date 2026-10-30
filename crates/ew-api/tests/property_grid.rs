@@ -194,6 +194,9 @@ fn pg1_the_json_fallbacks_of_settable_paths_are_the_listed_ones() {
     // The spec's list (§6.1.3) as the schemas give it: `device assembly`, `plc_station` and `plc_module` and
     // `function cp_overrides` are groups and lists the walker types; the time-of-writing list predicted them as json.
     let expected = [
+        // ADR-0032: the text-style overrides, an object keyed by style key (typed, so first; a table editor is
+        // FT-669).
+        "project settings.text_styles",
         "project settings.colour_profile",
         "project settings.numbering",
         "project settings.size_profile",

@@ -47,7 +47,11 @@ fn the_memoised_layers_equal_the_scene_of_the_full_view_on_every_page() {
     assert_eq!(order.entries.len(), 36);
     for entry in &order.entries {
         let job = ew_api::output::page_scene(&q, entry);
-        let full = page_scene(&ew_api::output::page_view(&q, entry), ew_text::bundled());
+        let full = page_scene(
+            &ew_api::output::page_view(&q, entry),
+            ew_text::bundled(),
+            &ew_api::output::text_style_table(&q),
+        );
         assert!(job == full, "folio {}: the job's scene differs", entry.folio);
     }
     // A second pass reads the layers from the memo store: the same values.
@@ -192,7 +196,7 @@ fn the_items_of_a_cross_reference_list_have_disjoint_ordered_link_boxes() {
     with_golden_pages(|pages| {
         let mut lists = 0;
         for g in pages {
-            let scene = page_scene(&g.view, ew_text::bundled());
+            let scene = page_scene(&g.view, ew_text::bundled(), ew_text::builtin());
             let Some((_, labels)) = scene.layers.iter().find(|(l, _)| *l == Layer::Labels) else {
                 continue;
             };
@@ -276,7 +280,7 @@ fn the_text_csv_of_every_folio_matches_the_committed_file() {
     with_golden_pages(|pages| {
         assert_eq!(pages.len(), 36);
         for g in pages {
-            let scene = page_scene(&g.view, ew_text::bundled());
+            let scene = page_scene(&g.view, ew_text::bundled(), ew_text::builtin());
             let csv = text_csv(&scene);
             if std::env::var_os("EW_CSV_ROWS").is_some() {
                 eprintln!("{} rows {}", g.entry.folio, csv_rows(&csv));
@@ -347,7 +351,7 @@ fn nightly_the_png_candidates_match_within_the_doc_20_tolerance_on_every_page() 
 fn png_candidates_match(pages: &[&GoldenPage]) {
     let f = fonts();
     for g in pages {
-        let scene = page_scene(&g.view, ew_text::bundled());
+        let scene = page_scene(&g.view, ew_text::bundled(), ew_text::builtin());
         let bytes = page_png(&scene, &f);
         let path = expected_dir("png").join(format!("{}.png", g.entry.folio));
         if blessing() {
@@ -393,7 +397,7 @@ fn folio<'a>(pages: &'a [GoldenPage], folio: &str) -> &'a GoldenPage {
 #[test]
 fn the_display_list_of_folio_101_is_stable() {
     with_golden_pages(|pages| {
-        let scene = page_scene(&folio(pages, "101").view, ew_text::bundled());
+        let scene = page_scene(&folio(pages, "101").view, ew_text::bundled(), ew_text::builtin());
         let text = snapshot::display_list_text(&scene, &[Layer::Symbols, Layer::Wires, Layer::Labels]);
         insta::assert_snapshot!(text, @r#"
         symbols instance 20d847a1 sym=6a8491f2 variant=A translate=(235479167,79375000)
@@ -530,7 +534,7 @@ const FRAME_RUNS: usize = 41;
 fn the_frame_layer_of_folio_101_has_the_items_the_frame_rules_give() {
     with_golden_pages(|pages| {
         let v = &folio(pages, "101").view;
-        let scene = page_scene(v, ew_text::bundled());
+        let scene = page_scene(v, ew_text::bundled(), ew_text::builtin());
         let (paths, runs) = count(scene.layer(Layer::Frame).unwrap());
         // Frame rules of `forms/mod.rs`: outer rectangle 1, title-block separator 1, 2 header-band lines,
         // 16 column ticks and 7 row ticks = 27 paths; grid labels 17 columns + 8 rows = 25 runs. Title
@@ -547,7 +551,7 @@ fn the_frame_layer_of_folio_101_has_the_items_the_frame_rules_give() {
         bare.reps.clear();
         bare.connections.clear();
         bare.junctions.clear();
-        let bare = page_display_list(&bare, Layer::Frame, ew_text::bundled());
+        let bare = page_display_list(&bare, Layer::Frame, ew_text::bundled(), ew_text::builtin());
         assert!(bare.list == **scene.layer(Layer::Frame).unwrap());
     });
 }
@@ -561,8 +565,8 @@ fn the_display_lists_do_not_depend_on_the_order_of_the_view_records() {
             r.connections.reverse();
             r.junctions.reverse();
             for &layer in g.view.kind.layers() {
-                let a = page_display_list(&g.view, layer, ew_text::bundled());
-                let b = page_display_list(&r, layer, ew_text::bundled());
+                let a = page_display_list(&g.view, layer, ew_text::bundled(), ew_text::builtin());
+                let b = page_display_list(&r, layer, ew_text::bundled(), ew_text::builtin());
                 assert!(a == b, "folio {} layer {}", g.entry.folio, layer.name());
             }
         }
@@ -654,7 +658,7 @@ fn hostile_view() -> PageView {
 #[test]
 fn a_hostile_page_renders_and_exports_without_panic() {
     let view = hostile_view();
-    let scene: PageScene = page_scene(&view, ew_text::bundled());
+    let scene: PageScene = page_scene(&view, ew_text::bundled(), ew_text::builtin());
     let unresolved = scene
         .findings
         .iter()
@@ -797,7 +801,7 @@ fn every_page_wire_of_the_golden_model_is_drawn() {
     with_golden_pages(|pages| {
         let mut total = 0;
         for g in pages {
-            let wires = page_display_list(&g.view, Layer::Wires, ew_text::bundled());
+            let wires = page_display_list(&g.view, Layer::Wires, ew_text::bundled(), ew_text::builtin());
             let unresolved: Vec<_> = wires
                 .findings
                 .iter()
@@ -832,7 +836,7 @@ fn the_full_region_of_folio_103_is_the_render_byte_for_byte() {
     let f = fonts();
     with_golden_pages(|pages| {
         let g = folio(pages, "103");
-        let scene = page_scene(&g.view, ew_text::bundled());
+        let scene = page_scene(&g.view, ew_text::bundled(), ew_text::builtin());
         let list = scene.sheet_list();
         let sheet = ew_render_cpu::SheetSize {
             width: scene.sheet_width,

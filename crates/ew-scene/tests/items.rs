@@ -12,7 +12,7 @@ use ew_ids::{Id, Uuid};
 use ew_scene::items::{DASH_DOT, DOTTED, ItemView, StructureBoxView};
 use ew_scene::page::{PageKind, PageView, SymbolRef, page_display_list, page_scene, wire_stroke};
 use ew_schema::{LibCopy, LibDocument, PageItem, StructureBox};
-use ew_text::bundled;
+use ew_text::{builtin, bundled};
 use ew_units::{Grid, Nm};
 use serde_json::{Value, json};
 
@@ -145,7 +145,7 @@ fn sample() -> PageView {
 /// with its record.
 #[test]
 fn graphics_and_box_outlines_are_drawn_in_the_symbols_layer() {
-    let l = page_display_list(&sample(), Layer::Symbols, bundled());
+    let l = page_display_list(&sample(), Layer::Symbols, bundled(), builtin());
     let paths: Vec<_> = l
         .list
         .items
@@ -196,7 +196,7 @@ fn graphics_and_box_outlines_are_drawn_in_the_symbols_layer() {
 /// group and the empty caption draw nothing.
 #[test]
 fn texts_markers_and_captions_are_drawn_in_the_labels_layer() {
-    let l = page_display_list(&sample(), Layer::Labels, bundled());
+    let l = page_display_list(&sample(), Layer::Labels, bundled(), builtin());
     assert!(l.findings.is_empty(), "{:?}", l.findings);
     let entities: Vec<Option<EntityRef>> = l.list.items.iter().map(|i| i.entity).collect();
     assert!(entities.contains(&entity(0x13)), "the free text");
@@ -244,12 +244,12 @@ fn items_are_drawn_in_id_order_and_an_empty_page_is_unchanged() {
     b.structure_boxes.reverse();
     for layer in [Layer::Symbols, Layer::Labels] {
         assert_eq!(
-            page_display_list(&a, layer, bundled()),
-            page_display_list(&b, layer, bundled())
+            page_display_list(&a, layer, bundled(), builtin()),
+            page_display_list(&b, layer, bundled(), builtin())
         );
     }
     let empty = view(Vec::new(), Vec::new());
-    let scene = page_scene(&empty, bundled());
+    let scene = page_scene(&empty, bundled(), builtin());
     assert!(scene.layers.iter().all(|(_, l)| l.is_empty()));
 }
 
@@ -268,7 +268,7 @@ fn an_image_item_is_drawn_in_the_symbols_layer_without_bytes() {
         ],
         Vec::new(),
     );
-    let l = page_display_list(&v, Layer::Symbols, bundled());
+    let l = page_display_list(&v, Layer::Symbols, bundled(), builtin());
     let images: Vec<_> = l
         .list
         .items
@@ -297,6 +297,6 @@ fn an_image_item_is_drawn_in_the_symbols_layer_without_bytes() {
             (entity(0x33), 4, ew_dl::ImageFormat::Jpeg, 0, rect),
         ]
     );
-    let labels = page_display_list(&v, Layer::Labels, bundled());
+    let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
     assert!(labels.list.items.is_empty(), "an image has no label");
 }

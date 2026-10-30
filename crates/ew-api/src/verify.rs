@@ -107,6 +107,7 @@ pub const SWEPT: &[&str] = &[
     "stitch_graph",
     "strip_bridges",
     "tag_class_members",
+    "text_styles",
     "title_block",
     "toc_rows",
     "wire_default_props",
@@ -118,16 +119,7 @@ pub const SWEPT: &[&str] = &[
 ];
 
 /// Every settings member (the keys of `settings_member`).
-const ALL_MEMBERS: [Member; 8] = [
-    Member::IpPairing,
-    Member::ColourProfile,
-    Member::SizeProfile,
-    Member::WireDefault,
-    Member::Numbering,
-    Member::Frames,
-    Member::XrefFormat,
-    Member::DerivationProfile,
-];
+const ALL_MEMBERS: [Member; 9] = Member::ALL;
 
 /// The keys of the snapshot a `Q` sees, for the families with a non-trivial key.
 struct Keys {
@@ -286,6 +278,8 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ProfileRowFor>(memo, cold, keys.profile_keys.iter().cloned(), o);
     check::<SettingsMember>(memo, cold, ALL_MEMBERS, o);
     check::<StitchGraphQ>(memo, cold, [()], o);
+    // ADR-0032: the project's effective text-style table.
+    check::<ew_derive::TextStyles>(memo, cold, [()], o);
     check::<ew_derive::StripBridges>(memo, cold, keys.devices.iter().copied(), o);
     check::<TitleBlockValues>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<TocRows>(memo, cold, [()], o);

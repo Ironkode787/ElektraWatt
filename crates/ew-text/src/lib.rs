@@ -14,8 +14,8 @@
 //!   [`ShapedRun`](ew_dl::ShapedRun) in integer nm, its lines and the characters without a glyph
 //!   ([`Shaped::missing`], FR-OUT-027) and which face drew which glyphs ([`Shaped::faces`]). Lines break only when a maximum width is given (one paragraph,
 //!   parley's greedy breaking); `\n` always breaks.
-//! - [`TextStyleTable`]: the built-in style table of doc 20 §17.5 ([`builtin()`]); project-level styles
-//!   arrive with WP-S1.12.
+//! - [`TextStyleTable`]: a style table, the built-in one of doc 20 §17.5 ([`builtin()`]) or a project's effective
+//!   table built by its caller ([`TextStyleTable::from_rows`], ADR-0032).
 //!
 //! There is **no cache** here: the memoised `shaped_text` query of ADR-0015 is built on `ew-memo`
 //! (WP-S1.05) over [`FontSet::shape`], which is a pure function of its inputs.
@@ -81,4 +81,4 @@ pub use fonts::{NOTO_SANS_BOLD_SHA256, NOTO_SANS_MATH_REGULAR_SHA256, NOTO_SANS_
 #[cfg(feature = "bundled-fonts")]
 pub use fonts::{bundled, bundled_sources};
 pub use shape::{FaceSpan, LineSpan, Shaped, TextStyle, VerticalMetrics, units_to_nm};
-pub use style::{DEFAULT_STYLE_KEY, StyleDef, TextStyleTable, builtin};
+pub use style::{DEFAULT_STYLE_KEY, StyleDef, StyleRow, TextStyleTable, builtin, builtin_rows};

@@ -12,7 +12,7 @@ use ew_scene::forms::PageBindings;
 use ew_scene::page::{FrameView, PageFinding, PageKind, PageView, page_display_list, page_scene};
 use ew_scene::table::{HEADER_FILL, TableColumn, TableFinding, TableRow, TableRowKind, TableView};
 use ew_schema::{FormDef, LibCopy, LibDocument};
-use ew_text::bundled;
+use ew_text::{builtin, bundled};
 use ew_units::Nm;
 
 const FRAME: &str = include_str!("../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json");
@@ -85,7 +85,7 @@ fn glyph_texts(list: &ew_dl::DisplayList) -> Vec<String> {
 
 #[test]
 fn the_layer_is_empty_without_a_table() {
-    let l = page_display_list(&view(None), Layer::Tables, bundled());
+    let l = page_display_list(&view(None), Layer::Tables, bundled(), builtin());
     assert!(l.list.is_empty() && l.findings.is_empty());
 }
 
@@ -95,7 +95,7 @@ fn the_house_table_has_a_grey_header_a_grid_and_the_texts_in_row_order() {
         &["1", "Title Page", ""],
         &["2", "Table of Contents 1", "+J-E-2416"],
     ])));
-    let l = page_display_list(&v, Layer::Tables, bundled());
+    let l = page_display_list(&v, Layer::Tables, bundled(), builtin());
     // Header texts, then the row texts in row order (an empty cell prints nothing).
     assert_eq!(
         glyph_texts(&l.list),
@@ -130,7 +130,7 @@ fn the_house_table_has_a_grey_header_a_grid_and_the_texts_in_row_order() {
 #[test]
 fn the_table_prints_at_the_house_position_on_the_sheet() {
     let v = view(Some(table(&[&["1", "Title Page", ""], &["2", "Contents", ""]])));
-    let scene = page_scene(&v, bundled());
+    let scene = page_scene(&v, bundled(), builtin());
     let layer = scene.layer(Layer::Tables).expect("the layer");
     let outline = layer
         .items
@@ -154,7 +154,7 @@ fn the_table_prints_at_the_house_position_on_the_sheet() {
 fn text_that_does_not_fit_is_shrunk_and_reported_never_cut() {
     let long = "A description far too long for the narrow location column of the house form, and then some";
     let v = view(Some(table(&[&["1", "Title", long]])));
-    let l = page_display_list(&v, Layer::Tables, bundled());
+    let l = page_display_list(&v, Layer::Tables, bundled(), builtin());
     assert!(
         l.findings.iter().any(|f| matches!(
             f,
@@ -180,7 +180,7 @@ fn rows_beyond_the_page_capacity_are_not_drawn_and_are_reported() {
         .map(|r| r.iter().map(String::as_str).collect())
         .collect();
     let slices: Vec<&[&str]> = refs.iter().map(Vec::as_slice).collect();
-    let l = page_display_list(&view(Some(table(&slices))), Layer::Tables, bundled());
+    let l = page_display_list(&view(Some(table(&slices))), Layer::Tables, bundled(), builtin());
     assert!(
         l.findings.iter().any(|f| matches!(
             f,
@@ -192,7 +192,12 @@ fn rows_beyond_the_page_capacity_are_not_drawn_and_are_reported() {
     // The header's three texts and the first column of the 23 rows drawn.
     assert_eq!(glyph_texts(&l.list).len(), 3 + 23);
     // 23 rows fit without a finding.
-    let l = page_display_list(&view(Some(table(&slices[..23]))), Layer::Tables, bundled());
+    let l = page_display_list(
+        &view(Some(table(&slices[..23]))),
+        Layer::Tables,
+        bundled(),
+        builtin(),
+    );
     assert!(l.findings.is_empty(), "{:?}", l.findings);
 }
 
@@ -200,7 +205,7 @@ fn rows_beyond_the_page_capacity_are_not_drawn_and_are_reported() {
 fn a_note_takes_one_row_and_a_heading_spans_the_columns() {
     let mut t = table(&[]);
     t.note = Some("Not derived yet".to_owned());
-    let l = page_display_list(&view(Some(t)), Layer::Tables, bundled());
+    let l = page_display_list(&view(Some(t)), Layer::Tables, bundled(), builtin());
     assert_eq!(
         glyph_texts(&l.list),
         ["Folio", "Title", "Location", "Not derived yet"]
@@ -215,7 +220,7 @@ fn a_note_takes_one_row_and_a_heading_spans_the_columns() {
             links: Vec::new(),
         },
     );
-    let l = page_display_list(&view(Some(t)), Layer::Tables, bundled());
+    let l = page_display_list(&view(Some(t)), Layer::Tables, bundled(), builtin());
     assert_eq!(
         glyph_texts(&l.list),
         ["Folio", "Title", "Location", "Bridges", "1", "Title", "+J"]
@@ -236,7 +241,7 @@ fn a_linked_cell_carries_a_link_source() {
     let mut t = table(&[&["1", "Title", "+J"]]);
     let d = ew_dl::Destination::Cp(Uuid::from_u128(0x77));
     t.rows[0].links = vec![(1, d)];
-    let l = page_display_list(&view(Some(t)), Layer::Tables, bundled());
+    let l = page_display_list(&view(Some(t)), Layer::Tables, bundled(), builtin());
     let linked: Vec<&ew_dl::Item> = l
         .list
         .items

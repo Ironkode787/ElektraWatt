@@ -84,7 +84,7 @@ fn ellipsis_cuts_and_reports() {
         json!("ellipsis"),
         json!({}),
     );
-    let out = lower_form(&form, None, &bindings(text), bundled());
+    let out = lower_form(&form, None, &bindings(text), bundled(), builtin());
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::Truncated]);
     let r = runs(&out.display_list);
     assert_eq!(r.len(), 1);
@@ -96,7 +96,7 @@ fn ellipsis_cuts_and_reports() {
         .advance();
     assert!(adv.0 <= 40_000_000 - 2 * CELL_PADDING.0);
     // Text that fits is not touched.
-    let out = lower_form(&form, None, &bindings("Short"), bundled());
+    let out = lower_form(&form, None, &bindings("Short"), bundled(), builtin());
     assert!(out.findings.is_empty());
     assert_eq!(runs(&out.display_list)[0].text, "Short");
 }
@@ -115,7 +115,7 @@ fn ellipsis_of_20000_chars_is_fast() {
         json!({}),
     );
     let t = std::env::var_os("EW_PERF_ASSERT").is_some().then(Instant::now);
-    let out = lower_form(&form, None, &bindings(&text), bundled());
+    let out = lower_form(&form, None, &bindings(&text), bundled(), builtin());
     // Timing acquisition, reporting and the bound are opt-in.
     if let Some(t) = t {
         let elapsed = t.elapsed();
@@ -142,7 +142,7 @@ fn error_policy_draws_the_text_unchanged_and_reports() {
         json!("error"),
         json!({}),
     );
-    let out = lower_form(&form, None, &bindings(text), bundled());
+    let out = lower_form(&form, None, &bindings(text), bundled(), builtin());
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::Error]);
     let r = runs(&out.display_list);
     assert_eq!(r.len(), 1);
@@ -163,7 +163,13 @@ fn shrink_to_fit_reduces_the_size_until_it_fits() {
         SHRINK_1_2(),
         json!({}),
     );
-    let out = lower_form(&form, None, &bindings("Power Supply 1 - Main Current"), bundled());
+    let out = lower_form(
+        &form,
+        None,
+        &bindings("Power Supply 1 - Main Current"),
+        bundled(),
+        builtin(),
+    );
     assert!(out.findings.is_empty(), "{:?}", out.findings);
     let r = runs(&out.display_list);
     assert_eq!(r.len(), 1);
@@ -186,7 +192,7 @@ fn shrink_to_fit_stops_at_the_minimum_cap_height_and_reports() {
         SHRINK_1_2(),
         json!({}),
     );
-    let out = lower_form(&form, None, &bindings(&text), bundled());
+    let out = lower_form(&form, None, &bindings(&text), bundled(), builtin());
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::ShrinkLimit]);
     let r = runs(&out.display_list);
     assert_eq!(r.len(), 1);
@@ -209,7 +215,7 @@ fn shrink_to_fit_never_enlarges_a_small_style() {
         SHRINK_1_2(),
         json!({}),
     );
-    let out = lower_form(&form, None, &bindings(text), bundled());
+    let out = lower_form(&form, None, &bindings(text), bundled(), builtin());
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::ShrinkLimit]);
     let r = runs(&out.display_list);
     assert_eq!(r.len(), 1);
@@ -233,7 +239,7 @@ fn wrapping_up_to_max_lines() {
         json!("error"),
         max2.clone(),
     );
-    let out = lower_form(&form, None, &bindings(WORDS), bundled());
+    let out = lower_form(&form, None, &bindings(WORDS), bundled(), builtin());
     assert!(out.findings.is_empty(), "{:?}", out.findings);
     assert_eq!(runs(&out.display_list).len(), 2);
 }
@@ -252,7 +258,7 @@ fn wrapping_beyond_max_lines_follows_the_policy() {
         json!("error"),
         max2.clone(),
     );
-    let out = lower_form(&form, None, &bindings(text), bundled());
+    let out = lower_form(&form, None, &bindings(text), bundled(), builtin());
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::Error]);
     assert!(runs(&out.display_list).len() > 2);
     // shrink_to_fit: shrinks until two lines suffice.
@@ -264,7 +270,7 @@ fn wrapping_beyond_max_lines_follows_the_policy() {
         SHRINK_1_2(),
         max2.clone(),
     );
-    let out = lower_form(&form, None, &bindings(text), bundled());
+    let out = lower_form(&form, None, &bindings(text), bundled(), builtin());
     let r = runs(&out.display_list);
     assert!(r.len() <= 2, "{} runs", r.len());
     assert!(r[0].size < style.size);
@@ -273,7 +279,7 @@ fn wrapping_beyond_max_lines_follows_the_policy() {
     // lines drawn, size at the minimum (about 2.8 mm for a 2 mm cap height).
     let json = json!({"shrink_to_fit": {"min_cap_height": 2_000_000}});
     let form = cell_form(40_000_000, 30_000_000, "text.normal", "top_left", json, max2);
-    let out = lower_form(&form, None, &bindings(text), bundled());
+    let out = lower_form(&form, None, &bindings(text), bundled(), builtin());
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::ShrinkLimit]);
     let r = runs(&out.display_list);
     assert!(r.len() > 2);
@@ -293,7 +299,7 @@ fn cell_narrower_than_its_insets_reports_and_draws_nothing() {
         SHRINK_1_2(),
         json!({}),
     );
-    let out = lower_form(&form, None, &bindings("V3.0"), bundled());
+    let out = lower_form(&form, None, &bindings("V3.0"), bundled(), builtin());
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::ShrinkLimit]);
     assert!(runs(&out.display_list).is_empty());
     // The other policies report under their own kind and also draw nothing.
@@ -309,7 +315,7 @@ fn cell_narrower_than_its_insets_reports_and_draws_nothing() {
             policy,
             json!({}),
         );
-        let out = lower_form(&form, None, &bindings("V3.0"), bundled());
+        let out = lower_form(&form, None, &bindings("V3.0"), bundled(), builtin());
         assert_eq!(overflow_kinds(&out.findings), vec![kind]);
         assert!(runs(&out.display_list).is_empty());
     }
@@ -321,7 +327,7 @@ fn shrinking_to_size_zero_draws_nothing() {
     let w = 2 * CELL_PADDING.0 + 1;
     let json = json!({"shrink_to_fit": {"min_cap_height": 0}});
     let form = cell_form(w, 4_497_917, "text.normal", "middle_left", json, json!({}));
-    let out = lower_form(&form, None, &bindings("Wide text"), bundled());
+    let out = lower_form(&form, None, &bindings("Wide text"), bundled(), builtin());
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::ShrinkLimit]);
     assert!(runs(&out.display_list).is_empty());
 }
@@ -343,7 +349,7 @@ fn visible_if_hides_a_cell_when_false() {
         if let Some(s) = show {
             b.text("page.show", s).unwrap();
         }
-        lower_form(&form, None, &b, bundled())
+        lower_form(&form, None, &b, bundled(), builtin())
     };
     for shown in ["true", "1", "yes"] {
         assert_eq!(runs(&with(Some(shown)).display_list).len(), 1, "{shown}");
@@ -364,7 +370,7 @@ fn visible_if_hides_a_cell_when_false() {
     );
     let mut b = bindings("A text that is too long for this cell");
     b.text("page.hide", "true").unwrap();
-    let out = lower_form(&form, None, &b, bundled());
+    let out = lower_form(&form, None, &b, bundled(), builtin());
     assert!(out.display_list.items.is_empty());
     assert!(overflow_kinds(&out.findings).is_empty());
 }
@@ -380,7 +386,7 @@ fn rotated_text_primitive_is_placed_about_its_anchor() {
     let lower = |angle: i32| {
         let graphics = json!([{"text": {"pos": pos, "text": "F", "align": "middle_left", "angle": angle}}]);
         let form = form_with(100_000_000, 100_000_000, json!([]), graphics);
-        lower_form(&form, None, &PageBindings::new(), bundled())
+        lower_form(&form, None, &PageBindings::new(), bundled(), builtin())
     };
     let anchor = Pt2::new(Nm(pos[0]), Nm(pos[1]));
     // Unrotated: the baseline sits half a cap height below the anchor (middle alignment).
@@ -440,7 +446,13 @@ fn logo(asset: AssetRef) -> PageBindings {
 fn logo_carries_its_format() {
     let form = logo_form(20_000_000, 20_000_000);
     for format in [ImageFormat::Png, ImageFormat::Jpeg, ImageFormat::Svg] {
-        let out = lower_form(&form, None, &logo(AssetRef::new([9; 32], format)), bundled());
+        let out = lower_form(
+            &form,
+            None,
+            &logo(AssetRef::new([9; 32], format)),
+            bundled(),
+            builtin(),
+        );
         let imgs = images(&out.display_list);
         assert_eq!(imgs.len(), 1);
         assert_eq!((imgs[0].0, imgs[0].1), (format, [9; 32]));
@@ -459,7 +471,7 @@ fn logo_fit_preserves_the_aspect_ratio_and_centres() {
     let side = 20_000_000 - 2 * pad;
     // 2:1 image in a square cell: full width, half the height, centred vertically.
     let asset = AssetRef::new([1; 32], ImageFormat::Png).with_size(200, 100);
-    let out = lower_form(&form, None, &logo(asset), bundled());
+    let out = lower_form(&form, None, &logo(asset), bundled(), builtin());
     let imgs = images(&out.display_list);
     assert_eq!(imgs.len(), 1);
     let r = imgs[0].2;
@@ -467,14 +479,14 @@ fn logo_fit_preserves_the_aspect_ratio_and_centres() {
     assert_eq!(r.min(), Pt2::new(Nm(pad), Nm(pad + (side - side / 2) / 2)));
     // 1:2 image: full height, half the width, centred horizontally.
     let asset = AssetRef::new([1; 32], ImageFormat::Png).with_size(50, 100);
-    let out = lower_form(&form, None, &logo(asset), bundled());
+    let out = lower_form(&form, None, &logo(asset), bundled(), builtin());
     let r = images(&out.display_list)[0].2;
     assert_eq!((r.width(), r.height()), (Nm(side / 2), Nm(side)));
     assert_eq!(r.min(), Pt2::new(Nm(pad + (side - side / 2) / 2), Nm(pad)));
     // The same ratio in other units gives the same placement; a wide box limits an image by its height.
     let wide = logo_form(60_000_000, 20_000_000);
     let asset = AssetRef::new([1; 32], ImageFormat::Svg).with_size(2, 1);
-    let r = images(&lower_form(&wide, None, &logo(asset), bundled()).display_list)[0].2;
+    let r = images(&lower_form(&wide, None, &logo(asset), bundled(), builtin()).display_list)[0].2;
     let h = 20_000_000 - 2 * pad;
     assert_eq!((r.width(), r.height()), (Nm(h * 2), Nm(h)));
     assert_eq!(r.min().x, Nm(pad + (60_000_000 - 2 * pad - h * 2) / 2));
@@ -487,13 +499,13 @@ fn logo_fit_rounds_ties_toward_zero() {
     let pad = CELL_PADDING.0;
     let form = logo_form(2 * pad + 19, 2 * pad + 19);
     let asset = AssetRef::new([1; 32], ImageFormat::Png).with_size(2, 1);
-    let out = lower_form(&form, None, &logo(asset), bundled());
+    let out = lower_form(&form, None, &logo(asset), bundled(), builtin());
     let r = images(&out.display_list)[0].2;
     assert_eq!((r.width(), r.height()), (Nm(19), Nm(9)));
     assert_eq!(r.min(), Pt2::new(Nm(pad), Nm(pad + 5)));
     // 3:2 into 19 × 19: height 12.67 rounds to 13.
     let asset = AssetRef::new([1; 32], ImageFormat::Png).with_size(3, 2);
-    let r = images(&lower_form(&form, None, &logo(asset), bundled()).display_list)[0].2;
+    let r = images(&lower_form(&form, None, &logo(asset), bundled(), builtin()).display_list)[0].2;
     assert_eq!((r.width(), r.height()), (Nm(19), Nm(13)));
 }
 
@@ -501,7 +513,7 @@ fn logo_fit_rounds_ties_toward_zero() {
 fn logo_in_a_cell_smaller_than_its_insets_is_reported() {
     let form = logo_form(1_000_000, 1_000_000);
     let asset = AssetRef::new([1; 32], ImageFormat::Png).with_size(2, 1);
-    let out = lower_form(&form, None, &logo(asset), bundled());
+    let out = lower_form(&form, None, &logo(asset), bundled(), builtin());
     assert!(images(&out.display_list).is_empty());
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::Error]);
 }
@@ -538,7 +550,7 @@ fn unresolved_placeholder_draws_nothing_and_is_reported() {
         json!([cell("{revision.current.checker.name}")]),
         json!([]),
     );
-    let out = lower_form(&form, None, &PageBindings::new(), bundled());
+    let out = lower_form(&form, None, &PageBindings::new(), bundled(), builtin());
     assert!(runs(&out.display_list).is_empty());
     assert_eq!(unresolved(&out.findings), vec!["{revision.current.checker.name}"]);
     // A mixed template keeps its resolved parts and literals; the unresolved part is empty.
@@ -548,7 +560,7 @@ fn unresolved_placeholder_draws_nothing_and_is_reported() {
         json!([cell("A {page.title} B {page.nope | upper} C")]),
         json!([]),
     );
-    let out = lower_form(&form, None, &bindings("T"), bundled());
+    let out = lower_form(&form, None, &bindings("T"), bundled(), builtin());
     let r = runs(&out.display_list);
     assert_eq!(r.len(), 1);
     assert_eq!(r[0].text, "A T B  C");
@@ -566,7 +578,7 @@ fn lower_template(value: &str) -> (Vec<String>, Vec<BindingFinding>) {
         "overflow": "error",
     });
     let form = form_with(40_000_000, 8_000_000, json!([cell]), json!([]));
-    let out = lower_form(&form, None, &bindings("T"), bundled());
+    let out = lower_form(&form, None, &bindings("T"), bundled(), builtin());
     let texts = runs(&out.display_list).iter().map(|r| r.text.clone()).collect();
     let findings = out
         .findings

@@ -164,8 +164,8 @@ pub use profile::{
 pub use q::{Cycle, Diagnostics, IdxView, Q, TableView};
 pub use query::{Changes, Policy, Query};
 pub use settings::{
-    DrawingSettings, DrawingSettingsQ, Member, SettingsMember, check_member as check_settings_member,
-    company_codes,
+    DrawingSettings, DrawingSettingsQ, Member, SettingsMember, TextStyles,
+    check_member as check_settings_member, company_codes, text_styles,
 };
 pub use stitch::{
     EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchGraph, StitchGraphQ,
@@ -285,6 +285,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (StripBridges::FAMILY, StripBridges::POLICY),
     (StructureOf::FAMILY, StructureOf::POLICY),
     (StructurePath::FAMILY, StructurePath::POLICY),
+    (TextStyles::FAMILY, TextStyles::POLICY),
     (TitleBlockValues::FAMILY, TitleBlockValues::POLICY),
     (TocRows::FAMILY, TocRows::POLICY),
     (WireDefaultProps::FAMILY, WireDefaultProps::POLICY),

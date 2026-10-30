@@ -38,7 +38,7 @@
 
 use ew_dl::{Brush, Color, Destination, Item, Link, Path, Stroke};
 use ew_schema::{Overflow, ShrinkSpec};
-use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, builtin};
+use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
 use ew_units::{Nm, Pt2, Rect};
 
 use crate::forms::{BoxSpec, CELL_PADDING, OverflowKind, SheetMap, lay_out};
@@ -161,13 +161,19 @@ pub fn column_edges(columns: &[TableColumn]) -> Vec<Nm> {
     edges
 }
 
-/// Lowers `view` (see the module documentation). `sheet` is the frame form's page-to-sheet map.
-pub fn lower_table(view: &TableView, sheet: SheetMap, fonts: &FontSet) -> LoweredTable {
+/// Lowers `view` (see the module documentation). `sheet` is the frame form's page-to-sheet map; the rows print in
+/// the default style of `styles`.
+pub fn lower_table(
+    view: &TableView,
+    sheet: SheetMap,
+    fonts: &FontSet,
+    styles: &TextStyleTable,
+) -> LoweredTable {
     let mut out = LoweredTable::default();
     if view.columns.is_empty() {
         return out;
     }
-    let style = builtin()
+    let style = styles
         .resolve(DEFAULT_STYLE_KEY)
         .unwrap_or(TextStyle::regular(Nm(3_175_000)));
     let shrink = Overflow::ShrinkToFit(ShrinkSpec {

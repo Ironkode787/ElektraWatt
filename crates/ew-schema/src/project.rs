@@ -8,6 +8,8 @@
 //! members are normalised with every other string by the loader's [`normalize_nfc`](crate::normalize_nfc)
 //! pass before typed reading.
 
+use std::collections::BTreeMap;
+
 use ew_ids::Id;
 use ew_mltext::{Ident, LangTag, MlText};
 use ew_rds::Aspect;
@@ -19,6 +21,7 @@ use serde_json::Value;
 use crate::json::{Extra, Open, de_extra, is_default, is_false, is_v1, v1};
 use crate::proxy::{AspectS, Dec3S, IdentS, LangTagS, MlTextS, UuidS};
 use crate::set::Set;
+use crate::text_style::TextStyleSpec;
 use crate::track::{invalid, malformed, open_enum};
 use crate::value::{AnyId, Date, Quantity, Sha256, SourceRef};
 
@@ -292,6 +295,11 @@ pub struct ProjectSettings {
     /// Formatting conventions.
     #[serde(default, skip_serializing_if = "Formatting::is_empty")]
     pub formatting: Formatting,
+    /// The text styles as overrides of the built-in table of doc 20 §17.5, by style key (ADR-0032): a key of the
+    /// table takes the entry's size and weight, any other key adds a style. Absent is the built-in table.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(with = "BTreeMap<String, TextStyleSpec>")]
+    pub text_styles: BTreeMap<Ident, TextStyleSpec>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

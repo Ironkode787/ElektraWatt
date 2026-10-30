@@ -46,6 +46,7 @@ project settings.identifier_set ident? other read-only:no-command
 project settings.ip_pairing group? other read-only:no-command
 project settings.ip_pairing.mode enum(star|chain) other read-only:no-command
 project settings.ip_pairing.scope enum(project|function|location) other read-only:no-command
+project settings.text_styles json other settings:text_styles
 project settings.checks json other read-only:human-only:project.checks.set
 project settings.colour_profile json other settings:colour_profile
 project settings.numbering json other settings:numbering

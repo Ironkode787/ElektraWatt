@@ -11,7 +11,7 @@ use ew_scene::forms::{
     PageBindings, SheetMap, lower_form,
 };
 use ew_schema::{Date, FormDef, LibDocument};
-use ew_text::bundled;
+use ew_text::{builtin, bundled};
 use ew_units::{Grid, Nm, Pt2};
 
 fn form(text: &str) -> FormDef {
@@ -134,7 +134,7 @@ fn cell_padding_is_two_qet_px() {
 #[test]
 fn grid_frame_layer() {
     let tb = title_block();
-    let out = lower_form(&grid_frame(), Some(&tb), &bindings(), bundled());
+    let out = lower_form(&grid_frame(), Some(&tb), &bindings(), bundled(), builtin());
     // Frame: outer, separator, two band lines, 16 column ticks, 7 row ticks, 17 + 8 labels; title block:
     // 11 lines, logo image and 17 texts (the logo cell prints no text).
     let paths = out
@@ -275,7 +275,7 @@ fn grid_frame_layer() {
 #[test]
 fn nogrid_frame_has_no_bands_or_labels() {
     let tb = title_block();
-    let out = lower_form(&nogrid_frame(), Some(&tb), &bindings(), bundled());
+    let out = lower_form(&nogrid_frame(), Some(&tb), &bindings(), bundled(), builtin());
     let first: Vec<String> = summary(&out.display_list)
         .lines()
         .take(3)
@@ -298,7 +298,7 @@ fn unresolved_and_overflowing_cells_are_reported() {
     b.text("page.title", &long).unwrap();
     let mut empty = PageBindings::new();
     empty.text("page.folio", "1").unwrap();
-    let out = lower_form(&grid_frame(), Some(&tb), &b, bundled());
+    let out = lower_form(&grid_frame(), Some(&tb), &b, bundled(), builtin());
     assert!(out.findings.iter().any(|f| matches!(
         f,
         FormFinding::Overflow {
@@ -310,7 +310,7 @@ fn unresolved_and_overflowing_cells_are_reported() {
             ..
         }
     )));
-    let out = lower_form(&grid_frame(), Some(&tb), &empty, bundled());
+    let out = lower_form(&grid_frame(), Some(&tb), &empty, bundled(), builtin());
     let unresolved: Vec<&str> = out
         .findings
         .iter()
@@ -333,15 +333,15 @@ fn unresolved_and_overflowing_cells_are_reported() {
 
 #[test]
 fn missing_title_block_is_reported() {
-    let out = lower_form(&grid_frame(), None, &bindings(), bundled());
+    let out = lower_form(&grid_frame(), None, &bindings(), bundled(), builtin());
     assert_eq!(out.findings, vec![FormFinding::TitleBlockMissing]);
 }
 
 #[test]
 fn deterministic_and_sheet_mapped() {
     let tb = title_block();
-    let a = lower_form(&grid_frame(), Some(&tb), &bindings(), bundled());
-    let b = lower_form(&grid_frame(), Some(&tb), &bindings(), bundled());
+    let a = lower_form(&grid_frame(), Some(&tb), &bindings(), bundled(), builtin());
+    let b = lower_form(&grid_frame(), Some(&tb), &bindings(), bundled(), builtin());
     assert_eq!(a, b);
     let map = SheetMap::of(&grid_frame());
     let sheet = map.apply_display_list(&a.display_list, None);
@@ -371,7 +371,7 @@ fn the_cover_prints_the_bound_values_and_a_cell_may_hold_two_placeholders() {
     ] {
         b.text(path, text).unwrap();
     }
-    let out = lower_form(&cover_frame(), Some(&title_block()), &b, bundled());
+    let out = lower_form(&cover_frame(), Some(&title_block()), &b, bundled(), builtin());
     let text = summary(&out.display_list);
     for want in [
         "\"J-E-2416\"",

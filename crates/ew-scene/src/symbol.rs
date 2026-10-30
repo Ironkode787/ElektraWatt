@@ -72,8 +72,9 @@
 //! |---|---|---|---|---|---|---|---|---|
 //! | Horizontal | kept | flipped | flipped | kept | flipped | kept | kept | flipped |
 //! | Vertical | kept | flipped | flipped | kept | kept | flipped | flipped | kept |
-//! Slot texts come after static texts; slot style keys are the default bindings of
-//! [`default_style_key`] until project text-style bindings (FR-SYM-013) reach the scene.
+//! Slot texts come after static texts; a slot text's style key is the slot's own `style`, else the binding of
+//! [`default_style_key`]. The page resolves it against the project's table ([`slot_style_key`], ADR-0032), which
+//! a symbol's geometry does not depend on.
 //!
 //! # Anchor
 //!
@@ -99,7 +100,7 @@ use ew_mltext::MlText;
 use ew_schema::{
     Align, AnchorPolicy, Colour, Dash, Dir4, Pen, Primitive, RectPrim, SlotKind, Stroke, SymbolDef, TextSlot,
 };
-use ew_text::builtin;
+use ew_text::TextStyleTable;
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
 
 /// The colour `Colour::ByLayer` resolves to until layer colours exist: black.
@@ -200,7 +201,10 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
             pos: variant.apply(slot.pos),
             angle: placement(slot.rot, variant).0,
             align: placed_align(&slot.align, slot.rot, variant),
-            style_key: slot_style_key(slot).0.to_owned(),
+            style_key: slot.style.as_ref().map_or_else(
+                || default_style_key(&slot.kind).to_owned(),
+                |s| s.as_str().to_owned(),
+            ),
             max_width: slot.max_width,
             visible: slot.visible,
         });
@@ -472,12 +476,12 @@ pub fn placed_align(align: &Align, angle: Angle2, variant: Orient2) -> Align {
     }
 }
 
-/// The text-style key of a slot: its own `style` member when it names a style of the style table, else
-/// [`default_style_key`] of its kind (decision log ID-197, ID-227). The second value is the unknown name when
-/// the slot's style is not in the table and the kind's style was used instead.
-pub fn slot_style_key(slot: &TextSlot) -> (&str, Option<&str>) {
+/// The text-style key of a slot: its own `style` member when it names a style of `styles` (the project's
+/// effective table, ADR-0032), else [`default_style_key`] of its kind (decision log ID-197, ID-227). The second
+/// value is the unknown name when the slot's style is not in the table and the kind's style was used instead.
+pub fn slot_style_key<'a>(slot: &'a TextSlot, styles: &TextStyleTable) -> (&'a str, Option<&'a str>) {
     match &slot.style {
-        Some(name) if builtin().resolve(name.as_str()).is_some() => (name.as_str(), None),
+        Some(name) if styles.get(name.as_str()).is_some() => (name.as_str(), None),
         Some(name) => (default_style_key(&slot.kind), Some(name.as_str())),
         None => (default_style_key(&slot.kind), None),
     }

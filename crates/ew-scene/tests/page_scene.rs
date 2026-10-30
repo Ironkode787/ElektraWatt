@@ -15,7 +15,7 @@ use ew_scene::page::{
     SymbolRef, page_display_list, page_scene,
 };
 use ew_schema::{Connection, FormDef, Junction, LibCopy, LibDocument, Representation, SymbolDef};
-use ew_text::bundled;
+use ew_text::{builtin, bundled};
 use ew_units::{Angle2, Nm, Pt2};
 use serde_json::json;
 
@@ -192,7 +192,7 @@ fn p(x: i64, y: i64) -> Pt2 {
 #[test]
 fn wires_run_between_the_drawn_cps_and_junction_arms_meet_at_the_junction() {
     let v = view();
-    let wires = page_display_list(&v, Layer::Wires, bundled());
+    let wires = page_display_list(&v, Layer::Wires, bundled(), builtin());
     let lines = polylines(&wires.list);
     // Sorted by connection ID; 0x24 is unresolved (function 0xF9 is not on the page).
     let ids: Vec<u128> = lines.iter().map(|(u, _)| u.as_u128()).collect();
@@ -228,7 +228,7 @@ fn wires_run_between_the_drawn_cps_and_junction_arms_meet_at_the_junction() {
 #[test]
 fn symbols_are_instances_tagged_and_link_targets() {
     let v = view();
-    let symbols = page_display_list(&v, Layer::Symbols, bundled());
+    let symbols = page_display_list(&v, Layer::Symbols, bundled(), builtin());
     let instances: Vec<_> = symbols
         .list
         .items
@@ -258,7 +258,7 @@ fn symbols_are_instances_tagged_and_link_targets() {
 #[test]
 fn slot_texts_print_their_values_with_links_and_markers_their_text() {
     let v = view();
-    let labels = page_display_list(&v, Layer::Labels, bundled());
+    let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
     let runs: Vec<(&str, Option<Link>, Angle2)> = labels
         .list
         .items
@@ -288,7 +288,7 @@ fn slot_texts_print_their_values_with_links_and_markers_their_text() {
 
 /// The em size of the run printing `text` on the labels layer of `v`.
 fn run_size(v: &PageView, text: &str) -> Nm {
-    let labels = page_display_list(v, Layer::Labels, bundled());
+    let labels = page_display_list(v, Layer::Labels, bundled(), builtin());
     labels
         .list
         .items
@@ -315,7 +315,7 @@ fn a_slot_style_replaces_the_style_of_the_slot_kind() {
     v.reps[1].symbol = Some(Arc::new(def));
     assert_eq!(run_size(&v, "-X1"), style_size("xref.device"));
     assert_ne!(style_size("xref.device"), style_size("tag.main"));
-    let labels = page_display_list(&v, Layer::Labels, bundled());
+    let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
     assert!(
         !labels
             .findings
@@ -326,6 +326,54 @@ fn a_slot_style_replaces_the_style_of_the_slot_kind() {
     );
 }
 
+/// The project's effective table (ADR-0032) reaches the slot texts: an override of `tag.main` resizes the tag, and a
+/// slot naming a key the project extends the table with prints in that style without a note.
+#[test]
+fn the_callers_style_table_overrides_and_extends_the_slot_styles() {
+    let mut v = view();
+    let mut rows: Vec<(String, Nm, ew_text::Weight)> = builtin()
+        .rows()
+        .iter()
+        .map(|r| {
+            (
+                r.key.clone(),
+                if r.key == "tag.main" { Nm(4_000_000) } else { r.em },
+                r.weight,
+            )
+        })
+        .collect();
+    rows.push(("note.big".to_owned(), Nm(6_000_000), ew_text::Weight::Regular));
+    let table = ew_text::TextStyleTable::from_rows(rows);
+    let size_in = |v: &PageView, table: &ew_text::TextStyleTable| {
+        page_display_list(v, Layer::Labels, bundled(), table)
+            .list
+            .items
+            .iter()
+            .find_map(|i| match &i.kind {
+                ItemKind::Glyphs(r) if r.text == "-X1" => Some(r.size),
+                _ => None,
+            })
+            .expect("the tag run")
+    };
+    assert_eq!(size_in(&v, &table), Nm(4_000_000));
+    assert_eq!(size_in(&v, builtin()), style_size("tag.main"));
+    let mut def = (**v.reps[1].symbol.as_ref().unwrap()).clone();
+    def.text_slots[0].style = Some(Ident::from_input("note.big").unwrap());
+    v.reps[1].symbol = Some(Arc::new(def));
+    assert_eq!(size_in(&v, &table), Nm(6_000_000));
+    let labels = page_display_list(&v, Layer::Labels, bundled(), &table);
+    assert!(
+        !labels
+            .findings
+            .iter()
+            .any(|f| matches!(f, PageFinding::UnknownSlotStyle { .. })),
+        "{:?}",
+        labels.findings
+    );
+    // Without the extension the slot falls back to the kind's style, as before.
+    assert_eq!(size_in(&v, builtin()), style_size("tag.main"));
+}
+
 #[test]
 fn an_unknown_slot_style_falls_back_to_the_kind_style_with_a_note() {
     let mut v = view();
@@ -333,7 +381,7 @@ fn an_unknown_slot_style_falls_back_to_the_kind_style_with_a_note() {
     def.text_slots[0].style = Some(Ident::from_input("no.such.style").unwrap());
     v.reps[1].symbol = Some(Arc::new(def));
     assert_eq!(run_size(&v, "-X1"), style_size("tag.main"));
-    let labels = page_display_list(&v, Layer::Labels, bundled());
+    let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
     let notes: Vec<&PageFinding> = labels
         .findings
         .iter()
@@ -374,7 +422,7 @@ fn a_text_with_several_items_carries_one_link_per_item_over_its_own_span() {
             link(second..second + "106-G3".len(), 0x72),
         ],
     }];
-    let labels = page_display_list(&v, Layer::Labels, bundled());
+    let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
     // The text itself carries no link; each item has an invisible box with its own.
     let mut boxes = Vec::new();
     let mut text_items = Vec::new();
@@ -425,7 +473,7 @@ fn a_whole_text_link_and_item_links_are_exclusive() {
             dest: dest(0x71),
         }],
     }];
-    let labels = page_display_list(&v, Layer::Labels, bundled());
+    let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
     let notes: Vec<&PageFinding> = labels
         .findings
         .iter()
@@ -454,7 +502,7 @@ fn a_whole_text_link_and_item_links_are_exclusive() {
     ] {
         v.reps[1].slots[0].link = link;
         v.reps[1].slots[0].item_links = item_links;
-        let labels = page_display_list(&v, Layer::Labels, bundled());
+        let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
         assert!(
             !labels
                 .findings
@@ -474,7 +522,7 @@ fn hidden_slots_stay_hidden_and_overrides_move_texts() {
         { "slot": 0, "visible": false },
     ]))
     .unwrap();
-    let labels = page_display_list(&v, Layer::Labels, bundled());
+    let labels = page_display_list(&v, Layer::Labels, bundled(), builtin());
     let texts: Vec<String> = labels
         .list
         .items
@@ -496,8 +544,8 @@ fn the_frame_layer_reads_only_the_frame_and_record_order_does_not_matter() {
     bare.connections.clear();
     bare.junctions.clear();
     assert_eq!(
-        page_display_list(&v, Layer::Frame, bundled()),
-        page_display_list(&bare, Layer::Frame, bundled())
+        page_display_list(&v, Layer::Frame, bundled(), builtin()),
+        page_display_list(&bare, Layer::Frame, bundled(), builtin())
     );
     let mut reversed = v.clone();
     reversed.reps.reverse();
@@ -505,20 +553,20 @@ fn the_frame_layer_reads_only_the_frame_and_record_order_does_not_matter() {
     reversed.junctions.reverse();
     for layer in Layer::SCHEMATIC {
         assert_eq!(
-            page_display_list(&v, layer, bundled()),
-            page_display_list(&reversed, layer, bundled()),
+            page_display_list(&v, layer, bundled(), builtin()),
+            page_display_list(&reversed, layer, bundled(), builtin()),
             "{layer:?}"
         );
     }
     for layer in [Layer::Tables, Layer::Revision, Layer::Highlights] {
-        assert!(page_display_list(&v, layer, bundled()).list.is_empty());
+        assert!(page_display_list(&v, layer, bundled(), builtin()).list.is_empty());
     }
 }
 
 #[test]
 fn the_sheet_list_maps_the_page_and_inlines_instances() {
     let v = view();
-    let scene = page_scene(&v, bundled());
+    let scene = page_scene(&v, bundled(), builtin());
     assert_eq!(scene.layers.len(), Layer::SCHEMATIC.len());
     assert_eq!(
         (scene.sheet_width, scene.sheet_height),
@@ -555,13 +603,13 @@ fn the_sheet_list_maps_the_page_and_inlines_instances() {
 fn a_page_without_frame_uses_a4_and_the_identity_map() {
     let mut v = view();
     v.frame = None;
-    let scene = page_scene(&v, bundled());
+    let scene = page_scene(&v, bundled(), builtin());
     assert_eq!(scene.map, SheetMap::IDENTITY);
     assert_eq!(scene.sheet_width, Nm(297_000_000));
     assert!(scene.layer(Layer::Frame).unwrap().is_empty());
     let mut panel = view();
     panel.kind = PageKind::Panel;
-    let s = page_scene(&panel, bundled());
+    let s = page_scene(&panel, bundled(), builtin());
     assert_eq!(s.layers.len(), Layer::PANEL.len());
     assert!(s.layer(Layer::Wires).is_none());
 }
@@ -611,12 +659,12 @@ fn stroke_widths(list: &ew_dl::DisplayList) -> Vec<i64> {
 #[test]
 fn wires_use_the_1_px_pen_on_the_qet_grid_and_the_house_pen_elsewhere() {
     let mut v = view();
-    let wires = page_display_list(&v, Layer::Wires, bundled());
+    let wires = page_display_list(&v, Layer::Wires, bundled(), builtin());
     let w = stroke_widths(&wires.list);
     assert_eq!(w.len(), 3);
     assert!(w.iter().all(|&w| w == ew_scene::page::QET_PEN_1PX.0), "{w:?}");
     v.grid = ew_units::Grid::MM4;
-    let wires = page_display_list(&v, Layer::Wires, bundled());
+    let wires = page_display_list(&v, Layer::Wires, bundled(), builtin());
     assert!(stroke_widths(&wires.list).iter().all(|&w| w == 260_000));
 }
 
@@ -654,19 +702,19 @@ fn a_black_box_draws_its_box_cps() {
         wire(0x52, cp(0xB1, 7), cp(0xF1, 1)),
     ];
     let v = bare(reps(boxed.clone()), conns.clone());
-    let lines = polylines(&page_display_list(&v, Layer::Wires, bundled()).list);
+    let lines = polylines(&page_display_list(&v, Layer::Wires, bundled(), builtin()).list);
     assert_eq!(lines.len(), 2);
     assert_eq!(lines[0].1.first(), Some(&p(11, 10)));
     assert_eq!(lines[1].1.first(), Some(&p(13, 16)));
     // The box CPs turn with the representation: R90 maps (x, y) to (-y, x).
     boxed.orient = ew_units::Orient2::R90;
     let v = bare(reps(boxed.clone()), conns.clone());
-    let lines = polylines(&page_display_list(&v, Layer::Wires, bundled()).list);
+    let lines = polylines(&page_display_list(&v, Layer::Wires, bundled(), builtin()).list);
     assert_eq!(lines[0].1.first(), Some(&p(10, 11)));
     // Without a box nothing is drawn: both connections have an unresolved end.
     boxed.box_ = None;
     let v = bare(reps(boxed), conns);
-    let wires = page_display_list(&v, Layer::Wires, bundled());
+    let wires = page_display_list(&v, Layer::Wires, bundled(), builtin());
     assert!(polylines(&wires.list).is_empty());
     assert_eq!(wires.findings.len(), 2);
 }
@@ -703,7 +751,7 @@ fn a_strip_segment_draws_one_point_per_terminal_and_side() {
             wire(0x74, cp(0xC2, 3), cp(0xF1, 1)),
         ],
     );
-    let wires = page_display_list(&v, Layer::Wires, bundled());
+    let wires = page_display_list(&v, Layer::Wires, bundled(), builtin());
     let lines = polylines(&wires.list);
     assert_eq!(lines.len(), 3);
     // Terminal k at x = (k + 1) grid steps right of the origin; side 1 on y = 0, side 2 on the segment's
@@ -740,7 +788,7 @@ fn cp_targets_are_named_destinations_at_the_cp_else_at_the_representation() {
         idx,
     };
     v.cp_targets = vec![target(9), target(0), target(0)];
-    let list = page_display_list(&v, Layer::Symbols, bundled()).list;
+    let list = page_display_list(&v, Layer::Symbols, bundled(), builtin()).list;
     let dest = |idx: u16| {
         let cp: Id<()> = ew_ids::v5::cp_id(Id::<()>::from_uuid(Uuid::from_u128(0xF1)), u32::from(idx));
         Destination::Cp(cp.as_uuid())
@@ -786,7 +834,7 @@ fn break_marks_close_the_overview_at_the_symbol_bounds() {
             side: BreakSide::Left,
         },
     ];
-    let lines = polylines(&page_display_list(&v, Layer::Symbols, bundled()).list);
+    let lines = polylines(&page_display_list(&v, Layer::Symbols, bundled(), builtin()).list);
     assert_eq!(lines.len(), 2, "one path per side");
     let bounds = ew_scene::symbol::lower(&t.def, ew_units::Orient2::R0).bounds;
     let pos = p(40, 40);
@@ -848,7 +896,7 @@ fn a_widened_black_box_draws_its_stored_outline_under_its_own_geometry_key() {
         ],
         Vec::new(),
     );
-    let symbols = page_display_list(&v, Layer::Symbols, bundled());
+    let symbols = page_display_list(&v, Layer::Symbols, bundled(), builtin());
     let keys: Vec<ew_dl::SymbolGeomId> = symbols
         .list
         .items

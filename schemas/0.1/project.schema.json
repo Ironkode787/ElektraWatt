@@ -332,6 +332,12 @@
       ],
       "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
     },
+    "Nm": {
+      "description": "A length in nanometres (doc 05 §3.2). Written without fraction or exponent; JSON Schema cannot tell 5 from 5.0, the reader rejects the latter.",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
     "Party": {
       "additionalProperties": true,
       "description": "A person or organisation in a role (doc 03 §5). Name and address are personal data (NFR-PRIV-06).",
@@ -471,6 +477,13 @@
             }
           ],
           "description": "Interruption-point pairing (FR-XRF-007, FR-XRF-010)."
+        },
+        "text_styles": {
+          "additionalProperties": {
+            "$ref": "#/$defs/TextStyleSpec"
+          },
+          "description": "The text styles as overrides of the built-in table of doc 20 §17.5, by style key (ADR-0032): a key of the\ntable takes the entry's size and weight, any other key adds a style. Absent is the built-in table.",
+          "type": "object"
         }
       },
       "type": "object"
@@ -621,6 +634,46 @@
         {
           "const": "insensitive",
           "description": "Tags differing only in case collide.",
+          "type": "string"
+        }
+      ]
+    },
+    "TextStyleSpec": {
+      "additionalProperties": true,
+      "description": "One entry of `ProjectSettings.text_styles`: an override of a built-in style or a new style (ADR-0032).\n\nFamily, italic and alignment are not typed (the bundled face is the only family at MVP, ADR-0028; alignment\nbelongs to the slot) and stay in `extra`.",
+      "properties": {
+        "size": {
+          "$ref": "#/$defs/Nm",
+          "description": "The em height in nm, 500,000 … 50,000,000 (0.5 mm … 50 mm)."
+        },
+        "weight": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextWeight"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The weight; absent keeps the built-in row's weight (regular for a new style)."
+        }
+      },
+      "required": [
+        "size"
+      ],
+      "type": "object"
+    },
+    "TextWeight": {
+      "description": "The weight of a text style (ADR-0032 decision 1).",
+      "oneOf": [
+        {
+          "const": "regular",
+          "description": "Regular.",
+          "type": "string"
+        },
+        {
+          "const": "bold",
+          "description": "Bold.",
           "type": "string"
         }
       ]

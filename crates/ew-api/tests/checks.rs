@@ -632,15 +632,3 @@ fn golden_a_d15_a_tbd_channel_address_is_an_open_item() {
         open[0].message
     );
 }
-
-/// EW-CORE-061 and -063 read a copy of the built-in text-style table (ew-checks may not depend on ew-text,
-/// `ci/dep-rules.toml`); the copy holds the same keys and sizes in the same order.
-#[test]
-fn text_styles_of_the_checks_match_ew_text() {
-    let theirs: Vec<(&str, u16)> = ew_text::builtin()
-        .rows()
-        .iter()
-        .map(|r| (r.key, r.qet_px))
-        .collect();
-    assert_eq!(checks::rules::page::TEXT_STYLES, theirs.as_slice());
-}
