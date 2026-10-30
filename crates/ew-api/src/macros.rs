@@ -183,13 +183,14 @@ pub fn macro_item_id(library: Uuid, key: &str) -> Uuid {
     Uuid::new_v5(&library, format!("macro\u{1f}{key}").as_bytes())
 }
 
-/// The next minor version after `v` (`1.2.3` → `1.3.0`); 1.0.0 when `v` does not parse.
-fn next_minor(v: &str) -> String {
+/// The next minor version after `v` (`1.2.3` → `1.3.0`); 1.0.0 when `v` does not parse; `None` when the minor
+/// number is the largest one (a held version read from a library file has no next minor version then).
+fn next_minor(v: &str) -> Option<String> {
     let core = v.split(['-', '+']).next().unwrap_or_default();
     let parts: Option<Vec<u64>> = core.split('.').map(|p| p.parse().ok()).collect();
     match parts.as_deref() {
-        Some([a, b, _]) => format!("{a}.{}.0", b + 1),
-        _ => "1.0.0".to_owned(),
+        Some([a, b, _]) => Some(format!("{a}.{}.0", b.checked_add(1)?)),
+        _ => Some("1.0.0".to_owned()),
     }
 }
 
@@ -453,7 +454,7 @@ impl Session {
     /// # Errors
     ///
     /// [`MacroError::Copy`] or [`MacroError::Pages`] for a scope that does not copy; [`MacroError::Spec`] for a
-    /// variable, group or value set that does not fit; [`MacroError::Library`] for a library that is not installed,
+    /// variable, group or value set that does not fit, or at `version` for a held version with no next minor; [`MacroError::Library`] for a library that is not installed,
     /// read-only, locked, or a write that fails.
     pub fn save_macro(&mut self, target: Uuid, spec_in: &MacroSpec) -> Result<SavedMacro, MacroError> {
         let info = self
@@ -672,7 +673,12 @@ impl Session {
             extra: ew_schema::Extra::new(),
         });
         let version = match held {
-            Ok(LibDocument::Macro(c)) => next_minor(&c.version),
+            Ok(LibDocument::Macro(c)) => next_minor(&c.version).ok_or_else(|| {
+                spec(
+                    "version",
+                    format!("the held version {} has no next minor version", c.version),
+                )
+            })?,
             _ => "1.0.0".to_owned(),
         };
         let copy: Id<MacroDef> = v5::lib_copy_id(target, item);
@@ -716,7 +722,8 @@ impl Session {
     ///
     /// [`crate::ApiError::Library`] for the macro or a closure item the libraries do not resolve;
     /// [`crate::ApiError::NotAPart`]'s sibling [`crate::ApiError::NotAMacro`] when the reference resolves to
-    /// another kind.
+    /// another kind; [`crate::ApiError::Cmd`] with a refusal at `/value_set` for a value set the macro does not have
+    /// (the message names it and the macro's sets).
     pub fn insert_macro(
         &self,
         m: &LibRef,
@@ -764,7 +771,22 @@ impl Session {
             value_set: values
                 .value_set
                 .as_deref()
-                .map(|s| s.parse::<Ident>().map_err(|_| crate::ApiError::NothingToDo))
+                .map(|s| {
+                    let known = |n: &Ident| copy.item.value_sets.iter().any(|v| v.name == *n);
+                    s.parse::<Ident>().ok().filter(known).ok_or_else(|| {
+                        let names: Vec<&str> = copy.item.value_sets.iter().map(|v| v.name.as_str()).collect();
+                        let has = if names.is_empty() {
+                            "the macro has none".to_owned()
+                        } else {
+                            format!("the macro has {}", names.join(", "))
+                        };
+                        crate::ApiError::Cmd(crate::CmdError::invalid_params(
+                            <InsertMacro as ew_commands::Command>::NAME,
+                            "/value_set",
+                            format!("no value set `{s}`: {has}"),
+                        ))
+                    })
+                })
                 .transpose()?,
             values: values.values.clone(),
             instance: Id::from_uuid(instance),
@@ -933,9 +955,11 @@ mod tests {
 
     #[test]
     fn the_next_minor_version_resets_the_patch() {
-        assert_eq!(next_minor("1.0.0"), "1.1.0");
-        assert_eq!(next_minor("1.4.7"), "1.5.0");
-        assert_eq!(next_minor("one"), "1.0.0");
+        assert_eq!(next_minor("1.0.0").as_deref(), Some("1.1.0"));
+        assert_eq!(next_minor("1.4.7").as_deref(), Some("1.5.0"));
+        assert_eq!(next_minor("one").as_deref(), Some("1.0.0"));
+        // The largest minor number has no successor: refused, not an overflow.
+        assert_eq!(next_minor(&format!("1.{}.0", u64::MAX)), None);
     }
 
     #[test]

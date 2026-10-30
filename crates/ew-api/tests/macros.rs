@@ -516,6 +516,31 @@ fn values_bind_fields_and_a_false_group_is_dropped() {
     commit(&mut s, &cmd);
     assert_eq!(process_tag(&s, "-105G1").as_deref(), Some("PSU-B"));
     assert!(s.resolve_reference("tag:-105F2").is_ok());
+    // A value set the macro does not have (or a name that is no identifier) is refused at `/value_set`, naming it
+    // and the macro's sets.
+    for name in ["zzz", "not a name"] {
+        let e = s
+            .insert_macro(
+                &saved.reference,
+                &InsertAt {
+                    page: p105,
+                    at: Some(free_point()),
+                },
+                &MacroValues {
+                    value_set: Some(name.into()),
+                    values: Default::default(),
+                },
+                Uuid::from_u128(3),
+            )
+            .unwrap_err();
+        match e {
+            ew_api::ApiError::Cmd(ew_api::CmdError::InvalidParams { path, message, .. }) => {
+                assert_eq!(path, "/value_set");
+                assert_eq!(message, format!("no value set `{name}`: the macro has a"));
+            }
+            other => panic!("expected a refusal at /value_set, got {other:?}"),
+        }
+    }
 }
 
 /// A variable bound to a field outside the catalogue, and a value of the wrong type, are refused at save time with
