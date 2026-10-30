@@ -684,7 +684,12 @@ fn the_address_index_lists_overlaps() {
         let v = q.get::<ew_derive::AddressIndex>(cfg());
         v.groups
             .iter()
-            .map(|g| g.iter().map(|i| v.uses[*i].text.as_str()).collect::<Vec<_>>().join(" ~ "))
+            .map(|g| {
+                g.iter()
+                    .map(|i| v.uses[*i].text.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" ~ ")
+            })
             .collect::<Vec<_>>()
     };
     assert!(q_groups(fixture()).is_empty(), "automatic starts never overlap");
@@ -718,10 +723,21 @@ fn the_address_index_stays_linear_for_identical_addresses() {
         let q = Q::new(&m);
         let v = q.get::<ew_derive::AddressIndex>(cfg());
         assert_eq!(v.groups.len(), 1, "n {n}: {:?}", v.groups);
-        assert_eq!(v.groups[0].len(), usize::from(n) + 1, "n {n}: the M1 channel on Q0.3 and the n of M3");
+        assert_eq!(
+            v.groups[0].len(),
+            usize::from(n) + 1,
+            "n {n}: the M1 channel on Q0.3 and the n of M3"
+        );
         let members: usize = v.groups.iter().map(Vec::len).sum();
-        assert!(members <= v.uses.len(), "n {n}: {members} members over {} uses", v.uses.len());
-        assert!(v.groups[0].windows(2).all(|w| w[0] < w[1]), "n {n}: ascending, so address order");
+        assert!(
+            members <= v.uses.len(),
+            "n {n}: {members} members over {} uses",
+            v.uses.len()
+        );
+        assert!(
+            v.groups[0].windows(2).all(|w| w[0] < w[1]),
+            "n {n}: ascending, so address order"
+        );
     }
 }
 

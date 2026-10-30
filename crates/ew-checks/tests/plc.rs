@@ -229,7 +229,8 @@ fn ew_plc_001_names_five_channels_and_counts_the_rest() {
     assert_eq!(f.targets.len(), 9);
     assert_eq!(f.message.matches("(Q0.3)").count(), 5, "{}", f.message);
     assert!(
-        f.message.ends_with("; and 4 more channels; give all but one of them another address"),
+        f.message
+            .ends_with("; and 4 more channels; give all but one of them another address"),
         "{}",
         f.message
     );

@@ -666,7 +666,10 @@ fn ft705_free_cps_are_marked_open_on_screen_only() {
     let accent = (0..image.width as usize * image.height as usize)
         .filter(|i| image.pixels[i * 4..i * 4 + 3] == ACCENT)
         .count();
-    assert_eq!(accent, 0, "no accent on the plain page: the open marks are not handles");
+    assert_eq!(
+        accent, 0,
+        "no accent on the plain page: the open marks are not handles"
+    );
     // The CPs on screen, away from the pane's edges.
     let (w, h) = (i64::from(image.width), i64::from(image.height));
     let shown: Vec<(i64, i64)> = open

@@ -182,12 +182,7 @@ impl Command for BindChannel {
             };
             let has = match &device {
                 Some(d) => super::common::function_cp_indices(tx, &f, d).contains(&idx),
-                None => tx
-                    .require::<LibCopy<FnDef>>(f.def)?
-                    .item
-                    .cps
-                    .get(&idx)
-                    .is_some(),
+                None => tx.require::<LibCopy<FnDef>>(f.def)?.item.cps.get(&idx).is_some(),
             };
             if !has {
                 let source = if device.as_ref().is_some_and(|d| {

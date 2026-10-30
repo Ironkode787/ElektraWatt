@@ -277,6 +277,11 @@ fn the_pack_definition_text_is_pinned() {
     for r in ew_checks::rules() {
         let m = r.meta();
         assert_eq!(m.kind.name(), format!("{:?}", m.kind).to_lowercase(), "{}", m.id);
-        assert_eq!(m.scope.name(), format!("{:?}", m.scope).to_lowercase(), "{}", m.id);
+        assert_eq!(
+            m.scope.name(),
+            format!("{:?}", m.scope).to_lowercase(),
+            "{}",
+            m.id
+        );
     }
 }
