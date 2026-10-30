@@ -809,6 +809,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "props-action-reset" => "Reset to derived",
         "props-action-freeze" => "Freeze",
         "props-action-unfreeze" => "Unfreeze",
+        "props-action-make-variable" => "Make variable",
         "action-props-action" => "Run a property action",
         "action-props-list" => "Change a list property",
         "action-props-mltext" => "Texts per language",

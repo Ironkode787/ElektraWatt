@@ -28,7 +28,7 @@ use super::navigation::{Focus, bump};
 use super::{Mode, Outcome, RecordedCommand, ShellModel, failed, string_param};
 use crate::properties::{
     Card, CardOrigin, ChoiceKind, Choices, Decision, EditBuffer, PendingEdit, Popup, PropRow,
-    PropertiesState, PropertySheet, Provenance, RowAction, RowValue, SheetKey, SheetSection, compose,
+    PropertiesState, PropertySheet, Provenance, RowAction, RowMenuItem, RowValue, SheetKey, SheetSection, compose,
     filter_shown, find_row, is_derived, item_default, kind_plural, member_path, policy, read_only_reason,
     visible_rows,
 };
@@ -1599,14 +1599,21 @@ impl ShellModel {
             },
         };
         if let Some(Popup::Actions { row, .. }) = self.props.popup.clone() {
-            let Some((_, r)) = self.props_find(&row) else {
+            if self.props_find(&row).is_none() {
                 return failed("error-no-row", &[&row]);
-            };
-            let Some(action) = r.actions.get(index) else {
+            }
+            let Some(item) = self.row_menu(&row).get(index).copied() else {
                 return failed("error-bad-param", &["index"]);
             };
             self.props.popup = None;
-            return self.row_action(&row, *action);
+            return match item {
+                RowMenuItem::Action(action) => self.row_action(&row, action),
+                RowMenuItem::MakeVariable => {
+                    let mut params = Map::new();
+                    params.insert("row".to_owned(), Value::String(row));
+                    self.act_props_make_variable(&params)
+                }
+            };
         }
         let Some(choices) = self.props.choices.take() else {
             return Outcome::Refused {
@@ -1629,6 +1636,20 @@ impl ShellModel {
         }
     }
 
+    /// The entries of the actions menu of the row `key` (FT-530, FT-754 (h)): the row's actions, then Make variable
+    /// when the row can be a macro variable (a row of one record with an action, not a derived value); empty for a
+    /// row that is not on show.
+    pub fn row_menu(&self, key: &str) -> Vec<RowMenuItem> {
+        let Some((section, row)) = self.props_find(key) else {
+            return Vec::new();
+        };
+        let mut out: Vec<RowMenuItem> = row.actions.iter().map(|a| RowMenuItem::Action(*a)).collect();
+        if !out.is_empty() && section.targets.len() == 1 && !row.path.starts_with("derived.") {
+            out.push(RowMenuItem::MakeVariable);
+        }
+        out
+    }
+
     /// `props.row_menu` (Shift+F10, the Menu key): the focused row's actions as a popup list; with the list open,
     /// `step` (±1) moves its highlight (Up, Down) and Enter is `props.choose` with the highlighted index.
     pub(super) fn act_props_row_menu(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1636,7 +1657,7 @@ impl ShellModel {
             let Some(step) = step.as_i64() else {
                 return failed("error-bad-param", &["step"]);
             };
-            let n = self.props_find(&row).map_or(1, |(_, r)| r.actions.len().max(1));
+            let n = self.row_menu(&row).len().max(1);
             let index = (index as i64 + step).clamp(0, n as i64 - 1) as usize;
             self.props.popup = Some(Popup::Actions { row, index });
             return Outcome::Done;
@@ -1646,7 +1667,7 @@ impl ShellModel {
                 reason_key: "reason-no-row",
             };
         };
-        let has_actions = self.props_find(&key).is_some_and(|(_, r)| !r.actions.is_empty());
+        let has_actions = !self.row_menu(&key).is_empty();
         if !has_actions {
             return Outcome::Refused {
                 reason_key: "reason-no-actions",

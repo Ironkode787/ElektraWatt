@@ -26,7 +26,7 @@
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
 use ew_viewmodel::properties::{
     ChoiceKind, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
-    action_label, advanced_count, chip_text, chip_word, group_key, groups, is_header, read_only_reason,
+    advanced_count, chip_text, chip_word, group_key, groups, is_header, read_only_reason,
     row_label, row_matches, value_text,
 };
 use ew_viewmodel::shell::{Focus, ShellModel};
@@ -785,7 +785,7 @@ impl PropertiesPane {
                         events.push(Event::Action("props.row_menu", json!({})));
                     }
                 } else if let Some(Popup::Actions { index, .. }) = props.popup().filter(|_| open) {
-                    actions_menu(&t, &response, &name, row, *index, events);
+                    actions_menu(&t, &response, &name, &shell.row_menu(&row.key), *index, events);
                 }
             }
         }
@@ -1176,7 +1176,7 @@ fn actions_menu(
     t: &crate::theme::Tokens,
     anchor: &egui::Response,
     name: &str,
-    row: &PropRow,
+    items: &[ew_viewmodel::properties::RowMenuItem],
     index: usize,
     events: &mut Vec<Event>,
 ) {
@@ -1190,8 +1190,8 @@ fn actions_menu(
         .width(t.size_chooser_min_width)
         .show(|ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
-            for (i, a) in row.actions.iter().enumerate() {
-                let label = action_label(*a);
+            for (i, a) in items.iter().enumerate() {
+                let label = ew_viewmodel::properties::menu_label(*a);
                 let (r, response) =
                     ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::click());
                 response.widget_info(|| {

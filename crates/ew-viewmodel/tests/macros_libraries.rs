@@ -483,3 +483,40 @@ fn ft754f_company_libraries_of_the_settings_are_the_company_tier() {
     let m = row_key(&shell, NavKind::Macros, NavRole::Macro, "PSU plant");
     assert!(m.starts_with("tier:company/"), "{m}");
 }
+
+/// FT-754 (h): Make variable is an entry of the property row's actions menu: the process tag row of -102G1 lists it
+/// after the row's own actions, and choosing it remembers the row as a variable of the next save; a row of several
+/// records does not list it.
+#[test]
+fn ft754h_make_variable_is_in_the_row_menu() {
+    use ew_viewmodel::properties::RowMenuItem;
+    let tmp = Tmp::new("macros-rowmenu");
+    let (t, _) = user_library(&tmp.0);
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-102G1"]}));
+    done(&mut shell, "props.show", json!({"on": true}));
+    done(&mut shell, "props.row", json!({"to": "device/process_tag"}));
+    let menu = shell.row_menu("device/process_tag");
+    let at = menu
+        .iter()
+        .position(|i| *i == RowMenuItem::MakeVariable)
+        .unwrap_or_else(|| panic!("Make variable in {menu:?}"));
+    assert_eq!(at, menu.len() - 1, "after the row's own actions: {menu:?}");
+    assert_eq!(
+        ew_viewmodel::properties::menu_label(RowMenuItem::MakeVariable),
+        "Make variable"
+    );
+    done(&mut shell, "props.row_menu", json!({}));
+    done(&mut shell, "props.choose", json!({ "index": at }));
+    assert!(shell.properties().popup().is_none(), "the menu closes");
+    assert_eq!(shell.macro_variables().len(), 1);
+    assert_eq!(shell.macro_variables()[0].field, "device.process_tag");
+    // Two devices: the row stands for two records, so no Make variable.
+    done(
+        &mut shell,
+        "select.set",
+        json!({"refs": ["tag:-102G1", "tag:-102F1"]}),
+    );
+    let menu = shell.row_menu("device/process_tag");
+    assert!(!menu.contains(&RowMenuItem::MakeVariable), "{menu:?}");
+}

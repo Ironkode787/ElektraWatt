@@ -895,6 +895,24 @@ pub fn value_text(row: &PropRow) -> String {
     }
 }
 
+/// One entry of a row's actions menu (FT-530): a row action of the grid, or the shell's Make variable (WP-S1.19
+/// §11, FT-754 (h)), which remembers the row's field as a variable of the next Save as macro….
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RowMenuItem {
+    /// A row action of the grid.
+    Action(RowAction),
+    /// Make variable (`props.make_variable`).
+    MakeVariable,
+}
+
+/// The label of an entry of the row's actions menu.
+pub fn menu_label(item: RowMenuItem) -> &'static str {
+    match item {
+        RowMenuItem::Action(a) => action_label(a),
+        RowMenuItem::MakeVariable => strings::text("props-action-make-variable"),
+    }
+}
+
 /// The label of a row action in the row's actions menu (FT-530; doc 16a §6.8: "Reset to derived", "Freeze").
 pub fn action_label(action: RowAction) -> &'static str {
     strings::text(match action {
