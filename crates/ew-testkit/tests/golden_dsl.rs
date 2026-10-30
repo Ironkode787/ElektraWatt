@@ -118,13 +118,15 @@ fn the_command_log_replays_and_every_step_undoes() {
         steps += 1;
         last = Some(restored.label);
     }
-    // One undo step per command that changed the model: two of the commands leave the model as it was (a
-    // value the record already had), so they leave no step. FT-316 (cycle 19): the last step undone is the
+    // One undo step per command that changed the model: nine of the commands leave the model as it was (a
+    // value the record already had), so they leave no step: two from before, and since WP-S1.21 part 1 the
+    // `plc_module` aspect step of each of the seven modules, which normaliser N0 gave the aspect (and N1 the
+    // channels) when `device.create` gave the device its module part. FT-316 (cycle 19): the last step undone is the
     // first command, `library.embed`, although the shell's project-local parts name the embedded function
     // definitions (`part.function_template[].fndef`): the `LibRef` keep-alive is the delete-time rule
     // EW-INV-021, which undo skips, so the state before the embedding (a `LibRef` to an item the project
     // does not embed names nothing) is restored.
-    assert_eq!((steps, built.script.len()), (607, 609), "undo steps, commands");
+    assert_eq!((steps, built.script.len()), (600, 609), "undo steps, commands");
     assert_eq!(
         last.as_deref(),
         Some("library.embed"),

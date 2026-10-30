@@ -174,9 +174,9 @@ fn without_tree(mut d: Device) -> Device {
     d
 }
 
-/// The channel kind that normaliser N1 instantiates for the module `d`: the `plc.channels` kind of the
-/// part use `plc_module.part_use`, else of the first part use whose part has a channel spec.
-fn module_channel_kind(batch: &ImportBatch, d: &Device) -> Option<ew_schema::ChannelKind> {
+/// The channel count and kind that normaliser N1 instantiates for the module `d`: the `plc.channels` spec of
+/// the part use `plc_module.part_use`, else of the first part use whose part has a channel spec.
+fn module_channel_spec(batch: &ImportBatch, d: &Device) -> Option<(u16, ew_schema::ChannelKind)> {
     let spec_of = |i: usize| {
         let copy = d.parts.get(i)?.part.copy;
         batch.lib.iter().find_map(|doc| match doc {
@@ -186,7 +186,7 @@ fn module_channel_kind(batch: &ImportBatch, d: &Device) -> Option<ew_schema::Cha
                 .plc
                 .as_ref()
                 .and_then(|s| s.channels.as_ref())
-                .map(|c| c.kind.clone()),
+                .map(|c| (c.count, c.kind.clone())),
             _ => None,
         })
     };
@@ -508,7 +508,8 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
     }
 
     // 3c. PLC configuration projects, station and module aspects (a new module instantiates its channels,
-    // normaliser N1), then the assembly aspects (their covers name the children built above).
+    // normaliser N1; a device created with a module part has them already, normaliser N0 gave it the aspect),
+    // then the assembly aspects (their covers name the children built above).
     for cfg in of!(PlcConfigProject) {
         let id = b.config_project(&map.apply(cfg))?;
         map.insert(cfg.id, id);
@@ -522,23 +523,20 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             b.aspect(built, "plc_station", v)?;
         }
         if let Some(v) = aspect_value(&mapped, "plc_module") {
-            let done = b.aspect(built, "plc_module", v)?;
-            let created: BTreeSet<String> = done
-                .created
-                .iter()
-                .filter(|k| k.0 == Kind::Channel)
-                .map(|k| k.1.to_string())
-                .collect();
-            let part_kind = module_channel_kind(batch, d);
+            b.aspect(built, "plc_module", v)?;
+            // N1 instantiates the channels 0 … count − 1 of the module's part with v5 IDs, whichever command
+            // gave the device its module data (N0 at `device.create`, or this aspect step)
+            let spec = module_channel_spec(batch, d);
             for ch in of!(Channel).filter(|c| c.module == d.id) {
                 let id: Id<Channel> = ew_ids::v5::plc_channel_id(built, ch.number);
-                if created.contains(&id.to_string()) {
-                    map.insert(ch.id, id);
-                    if part_kind.as_ref() != Some(&ch.kind) {
-                        b.not_written("channel.kind (other than the part's)", 1);
+                match &spec {
+                    Some((count, kind)) if ch.number < *count => {
+                        map.insert(ch.id, id);
+                        if *kind != ch.kind {
+                            b.not_written("channel.kind (other than the part's)", 1);
+                        }
                     }
-                } else {
-                    b.not_written("channel (not instantiated from the module's part)", 1);
+                    _ => b.not_written("channel (not instantiated from the module's part)", 1),
                 }
             }
         }
