@@ -259,6 +259,31 @@ impl Settings {
         Some(settings)
     }
 
+    /// The company library directories of the settings key `libraries.company` (`[libraries] company = [...]`,
+    /// WP-S1.19 D4), in order: the company tier. A relative path is read against `config_dir` (the settings'
+    /// directory) when there is one; a member that is not a text, and a malformed key, are left out. The key is
+    /// kept and written back as it was (it is one of the kept keys, edited in the file).
+    pub fn company_libraries(&self, config_dir: Option<&Path>) -> Vec<PathBuf> {
+        let Some(toml::Value::Table(libraries)) = self.extra.get("libraries") else {
+            return Vec::new();
+        };
+        let Some(toml::Value::Array(items)) = libraries.get("company") else {
+            return Vec::new();
+        };
+        items
+            .iter()
+            .filter_map(|v| v.as_str())
+            .filter(|p| !p.trim().is_empty())
+            .map(|p| {
+                let path = PathBuf::from(p);
+                match config_dir {
+                    Some(dir) if path.is_relative() => dir.join(path),
+                    _ => path,
+                }
+            })
+            .collect()
+    }
+
     /// The TOML text of the settings: `version`, the known keys and the kept unknown ones, keys sorted.
     pub fn to_toml(&self) -> String {
         let mut table = self.extra.clone();

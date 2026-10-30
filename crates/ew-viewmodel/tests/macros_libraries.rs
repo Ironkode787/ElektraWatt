@@ -449,3 +449,37 @@ fn ft720b_navigator_show_shows_the_pane_asked_for() {
         Some(PaneKind::Navigator(NavKind::Devices))
     );
 }
+
+/// FT-754 (f): the company libraries of the settings key `libraries.company` are the company tier: a library in a
+/// directory the settings name stands under "Company", writable, in the Libraries navigator, and Save as macro…
+/// writes into it. A relative path is read against the settings' directory.
+#[test]
+fn ft754f_company_libraries_of_the_settings_are_the_company_tier() {
+    let tmp = Tmp::new("macros-company");
+    let (t, _) = user_library(&tmp.0);
+    let company = tmp.0.join("config-a").join("shared");
+    let mut reg = Registry::open(&t).unwrap();
+    reg.create(&company.join("plant.ewlib"), "plant", "Plant standard", "CC0-1.0")
+        .unwrap();
+    drop(reg);
+    std::fs::write(
+        tmp.0.join("config-a").join("settings.toml"),
+        "version = 1\n\n[libraries]\ncompany = [\"shared\"]\n",
+    )
+    .unwrap();
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    done(&mut shell, "navigator.show", json!({"kind": "libraries"}));
+    let tier = row_key(&shell, NavKind::Libraries, NavRole::Tier, "Company");
+    let lib = row_key(&shell, NavKind::Libraries, NavRole::Library, "Plant standard");
+    assert!(lib.starts_with(&format!("{tier}/")), "{lib} under {tier}");
+    let ids = psu_ids(&shell, false);
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    done(
+        &mut shell,
+        "macros.save",
+        json!({"name": "PSU plant", "library": "Plant standard", "confirm": true}),
+    );
+    done(&mut shell, "navigator.show", json!({"kind": "macros"}));
+    let m = row_key(&shell, NavKind::Macros, NavRole::Macro, "PSU plant");
+    assert!(m.starts_with("tier:company/"), "{m}");
+}

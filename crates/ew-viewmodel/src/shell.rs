@@ -2076,12 +2076,22 @@ impl ShellModel {
     }
 
     /// The session options of the shell's own sessions: the origin is the GUI, new IDs from the system unless a test
-    /// set a source (`set_id_source_for_tests`, feature `testkit`).
+    /// set a source (`set_id_source_for_tests`, feature `testkit`); the configuration's library tiers with the
+    /// company libraries of the settings key `libraries.company` after any the configuration names (WP-S1.19 D4,
+    /// FT-754 (f)).
     fn session_options(&self) -> SessionOptions {
+        let libraries = self.config.libraries.clone().map(|mut tiers| {
+            for dir in self.settings.company_libraries(self.config.config_dir.as_deref()) {
+                if !tiers.company.contains(&dir) {
+                    tiers.company.push(dir);
+                }
+            }
+            tiers
+        });
         SessionOptions {
             origin: Origin::Gui,
             ids: self.id_source.map(|make| make()),
-            libraries: self.config.libraries.clone(),
+            libraries,
             ..SessionOptions::default()
         }
     }
