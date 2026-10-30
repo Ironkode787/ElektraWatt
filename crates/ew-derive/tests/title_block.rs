@@ -439,6 +439,25 @@ fn current_revision_cases() {
     }
 }
 
+/// FX37a: the revisions rank in the project's label order (`ew_derive::revision_label_key`): in the `letter` format
+/// `AA` follows `Z` (natural order would put it first), and a label outside the format ranks below every label in it.
+#[test]
+fn the_current_revision_follows_the_project_label_order_past_z() {
+    let rev = |n: u128, label: &str| json!({"$k": "revision", "id": uid(n), "label": label, "state": "released", "date": "2026-01-05"});
+    let mut fx = Fx::new();
+    fx.project_set("settings", json!({"revision_label": "letter"}));
+    for (n, label) in [(1, "AA"), (2, "Z"), (3, "Y"), (4, "zz-imported")] {
+        fx.push(rev(n, label));
+    }
+    assert_eq!(label_of(&fx), Some(text("AA")));
+    // The same labels under the default format are all outside it: the natural order decides, as before.
+    let mut fx = Fx::new();
+    for (n, label) in [(1, "AA"), (2, "Z"), (3, "Y")] {
+        fx.push(rev(n, label));
+    }
+    assert_eq!(label_of(&fx), Some(text("Z")));
+}
+
 #[test]
 fn last_changed_in_follows_page_notes() {
     let mut fx = golden();

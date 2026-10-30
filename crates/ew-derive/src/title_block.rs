@@ -25,7 +25,7 @@
 //!   (printed as its stored name; a state of a newer format as its text), `author` and `checker`.
 //!   Withdrawal records (state `withdrawn`) are ignored, and so is the revision whose label a withdrawal
 //!   record names by ID in `withdraws` (it stays `released`, EW-INV-020). The current revision is the greatest by (open
-//!   before any other state, undated before dated, `date`, natural order of `label`, `id`): the open
+//!   before any other state, undated before dated, `date`, the label order of [`revision_label_key`], `id`): the open
 //!   revision (EW-INV-016: at most one) wins over released ones, and a missing date counts as newest
 //!   within its state. Author and checker are party roles; the first party with that role gives the name.
 //!
@@ -55,7 +55,9 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_rds::{Aspect, RdsSyntax};
-use ew_schema::{Date, Page, Party, PartyRole, Project, Revision, RevisionState, Scale, SupplySpec};
+use ew_schema::{
+    Date, LabelFormat, Page, Party, PartyRole, Project, Revision, RevisionState, Scale, SupplySpec,
+};
 
 use crate::Q;
 use crate::pages::{PageOrder, PageRef, PageRefStructure, PageTitle};
@@ -293,9 +295,20 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
     );
 }
 
+/// The order of revision labels everywhere they are ranked (the title block's current revision, `r_last`, the
+/// revision overview's rows; doc 15 §5.2, FR-REV-002): a label in the project's label `format` by
+/// [`LabelFormat::order_key`] (`Y < Z < AA` in the `letter` format), after every label outside the format, which
+/// keep their natural order ([`natural_key`]) among themselves, as the open-revision normaliser ranks them. Two
+/// labels of one position (`V1.0` twice) fall back to the natural order too; callers break the rest by ID.
+pub fn revision_label_key(format: &LabelFormat, label: &str) -> (Option<(u64, u64)>, NaturalKey) {
+    (format.order_key(label), natural_key(label))
+}
+
 /// What this query reads of one `revision` record.
 struct RevisionView<'q> {
     rev: &'q Revision,
+    /// The label's place in the project's label order ([`revision_label_key`]).
+    label: (Option<(u64, u64)>, NaturalKey),
     /// The pages named in `page_notes`.
     noted_pages: Vec<Id<Page>>,
     /// `release.changed_pages`, if that member is present (the typed release record, WP-S1.18 D2).
@@ -303,9 +316,10 @@ struct RevisionView<'q> {
 }
 
 impl<'q> RevisionView<'q> {
-    fn read(rev: &'q Revision) -> RevisionView<'q> {
+    fn read(rev: &'q Revision, format: &LabelFormat) -> RevisionView<'q> {
         RevisionView {
             rev,
+            label: revision_label_key(format, rev.label.as_str()),
             noted_pages: rev.page_notes.iter().map(|n| n.page).collect(),
             changed_pages: rev.release.as_ref().and_then(|r| r.changed_pages.clone()),
         }
@@ -315,14 +329,23 @@ impl<'q> RevisionView<'q> {
         self.rev.is_open()
     }
 
-    /// Ranking: open above everything else; within a rank a missing date is newest, then the date, the
-    /// natural order of the label and the id.
-    fn order_key(&self) -> (bool, bool, Option<Date>, NaturalKey, Id<Revision>) {
+    /// Ranking: open above everything else; within a rank a missing date is newest, then the date, the label
+    /// order ([`revision_label_key`]) and the id.
+    #[allow(clippy::type_complexity)]
+    fn order_key(
+        &self,
+    ) -> (
+        bool,
+        bool,
+        Option<Date>,
+        (Option<(u64, u64)>, NaturalKey),
+        Id<Revision>,
+    ) {
         (
             self.is_open(),
             self.rev.date.is_none(),
             self.rev.date,
-            natural_key(self.rev.label.as_str()),
+            self.label.clone(),
             self.rev.id,
         )
     }
@@ -341,6 +364,7 @@ fn state_text(state: &RevisionState) -> Option<String> {
 /// The revisions that are neither withdrawal records nor withdrawn by one (`withdraws` names the ID).
 fn live_revisions(q: &Q) -> Vec<RevisionView<'_>> {
     let table = q.table::<Revision>();
+    let format = q.project().settings.revision_label_format();
     let withdrawn: Vec<Id<Revision>> = table
         .iter()
         .filter(|(_, r)| r.state == RevisionState::Withdrawn)
@@ -349,7 +373,7 @@ fn live_revisions(q: &Q) -> Vec<RevisionView<'_>> {
     table
         .iter()
         .filter(|(_, r)| r.state != RevisionState::Withdrawn && !withdrawn.contains(&r.id))
-        .map(|(_, r)| RevisionView::read(r))
+        .map(|(_, r)| RevisionView::read(r, &format))
         .collect()
 }
 
@@ -395,13 +419,14 @@ fn last_changed_scope(out: &mut Out, q: &Q, page: PageRef) {
 /// pages its `page_notes` name, in their order (doc 15 §5.6: a release without previous digests changes the pages of
 /// its notes). A page ID may name a page that no longer exists, or a generated page by its v5 ID.
 pub fn recorded_changed_pages(rev: &Revision) -> Vec<Id<Page>> {
-    RevisionView::read(rev)
-        .changed_pages
+    rev.release
+        .as_ref()
+        .and_then(|r| r.changed_pages.clone())
         .unwrap_or_else(|| rev.page_notes.iter().map(|n| n.page).collect())
 }
 
 /// `r_last` of doc 15 §5.6: the latest released revision that no withdrawal record withdraws, in the title block's
-/// rank (date, then the natural order of the label, then the ID).
+/// rank (date, then the label order of [`revision_label_key`], then the ID).
 pub fn last_released_revision(q: &Q) -> Option<Arc<Revision>> {
     live_revisions(q)
         .into_iter()

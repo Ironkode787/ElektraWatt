@@ -363,8 +363,10 @@ impl JsonSchema for Digest128 {
 /// absent means [`LabelFormat::VMajorMinor`], the golden form, so every file written before the setting existed
 /// reads as it did.
 ///
-/// Labels increase in natural order, which is the format's own order ([`LabelFormat::order_key`]): `V2.0 <
-/// V10.0`, `09 < 10`, `Z < AA`. The proposal for the next revision bumps the major part ([`LabelFormat::next`]).
+/// Labels increase in the format's own order ([`LabelFormat::order_key`]): `V2.0 < V10.0`, `09 < 10`, `Z < AA`.
+/// That is not the natural (text) order everywhere: natural order puts `AA` before `Z`, so every ranking of
+/// revisions orders by this key (labels outside the format, which it does not order, by their natural order).
+/// The proposal for the next revision bumps the major part ([`LabelFormat::next`]).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[serde(remote = "Self")]

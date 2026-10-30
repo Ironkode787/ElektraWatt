@@ -5,9 +5,8 @@
 //! WP-S1.18 part 2, D7 and FT-207).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::natural_key;
 use ew_derive::ew_schema::{Page, PartyRole, ReportBlock, Revision, RevisionState, Section};
-use ew_derive::{DrawnPageOrder, PageRef, Q, recorded_changed_pages};
+use ew_derive::{DrawnPageOrder, PageRef, Q, recorded_changed_pages, revision_label_key};
 
 use super::conn::text_cell;
 use crate::kind::ReportKindDef;
@@ -40,7 +39,9 @@ impl ReportKindDef for RevisionOverview {
 
 /// `revision_rows`: one row per `revision` record (FT-207).
 ///
-/// **Order.** The revisions in label order (the natural order of the label, then the ID); a withdrawal record
+/// **Order.** The revisions in label order (the project's label order, [`ew_derive::revision_label_key`]: a label in
+/// the project's format by its position, `Y < Z < AA`, after the labels outside it in natural order; then the ID);
+/// a withdrawal record
 /// directly after the revision it withdraws (doc 15 §5.10), several in ID order; a withdrawal record whose revision
 /// does not exist in its own label's place, after the revisions of that label.
 ///
@@ -59,7 +60,8 @@ pub fn revision_rows(q: &Q) -> RowSet {
     let columns = RevisionOverview.columns();
     let mut set = RowSet::new(columns);
     let table = q.table::<Revision>();
-    let key = |r: &Revision| (natural_key(r.label.as_str()), r.id);
+    let format = q.project().settings.revision_label_format();
+    let key = |r: &Revision| (revision_label_key(&format, r.label.as_str()), r.id);
     let mut main: Vec<&Revision> = table
         .iter()
         .map(|(_, r)| r.as_ref())
@@ -129,4 +131,59 @@ fn page_ref(q: &Q, id: Id<Page>) -> Option<PageRef> {
     q.sections()
         .contains(section)
         .then_some(PageRef::Divider(section))
+}
+
+#[cfg(test)]
+mod tests {
+    use ew_derive::ew_ids::Uuid;
+    use ew_derive::ew_schema::{Project, Record};
+    use serde_json::json;
+
+    use super::*;
+
+    fn uid(n: u128) -> String {
+        Uuid::from_u128(n).hyphenated().to_string()
+    }
+
+    /// Released revisions labelled in the `letter` format past Z, stored out of order, plus a label outside the
+    /// format; all undated, so only the label decides.
+    fn model() -> ew_model::Model {
+        let project: Project = serde_json::from_value(json!({
+            "id": uid(1), "derivation_profile": "2027.1", "settings": {"revision_label": "letter"},
+        }))
+        .unwrap();
+        let records: Vec<Record> = [
+            (0x10u128, "AA"),
+            (0x11, "Z"),
+            (0x12, "Y"),
+            (0x13, "AB"),
+            (0x14, "pre-1"),
+        ]
+        .into_iter()
+        .map(|(n, label)| {
+            serde_json::from_value(json!({
+                "$k": "revision", "id": uid(n), "label": label, "state": "released",
+            }))
+            .unwrap()
+        })
+        .collect();
+        ew_model::Model::from_records(project, records, []).unwrap()
+    }
+
+    /// FX37a: folio 911 lists the revisions in the project's label order (`Y < Z < AA < AB`), not the natural order
+    /// that puts `AA` before `Z`; a label outside the format comes first.
+    #[test]
+    fn the_rows_follow_the_project_label_order_past_z() {
+        let m = model();
+        let q = Q::new(&m);
+        let labels: Vec<String> = revision_rows(&q)
+            .rows
+            .iter()
+            .map(|r| match &r.cells[0] {
+                Cell::Ident(l) => l.to_string(),
+                other => panic!("label cell {other:?}"),
+            })
+            .collect();
+        assert_eq!(labels, ["pre-1", "Y", "Z", "AA", "AB"]);
+    }
 }
