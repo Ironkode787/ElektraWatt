@@ -546,9 +546,10 @@ fn ft759_a_finding_chip_opens_messages_filtered_to_the_record() {
     let chip = h
         .get_all_by_role(egui::accesskit::Role::Button)
         .find(|n| {
-            n.accesskit_node().label().is_some_and(|l| {
-                l.contains(" Warning") || l.contains(" Error") || l.contains(" Info")
-            }) && n.accesskit_node().label().is_some_and(|l| l.contains(": EW-"))
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| l.contains(" Warning") || l.contains(" Error") || l.contains(" Info"))
+                && n.accesskit_node().label().is_some_and(|l| l.contains(": EW-"))
         })
         .expect("a finding chip");
     let r = chip.accesskit_node().raw_bounds().expect("bounds");
@@ -566,10 +567,17 @@ fn ft759_a_finding_chip_opens_messages_filtered_to_the_record() {
     settle(&mut h);
     let calls = h.state().dispatched_calls();
     assert!(
-        calls.contains(&("navigator.filter", json!({"kind": "messages", "text": header.title}))),
+        calls.contains(&(
+            "navigator.filter",
+            json!({"kind": "messages", "text": header.title})
+        )),
         "{calls:?}"
     );
-    let nav = h.state().shell().nav(NavKind::Messages).expect("Messages is open");
+    let nav = h
+        .state()
+        .shell()
+        .nav(NavKind::Messages)
+        .expect("Messages is open");
     assert_eq!(nav.filter, header.title);
     // The filter keeps the record's findings: every one of the header's rules has a row.
     let shown: Vec<String> = h

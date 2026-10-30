@@ -1141,7 +1141,11 @@ impl Builder<'_> {
             if !t.movable_tag || t.angle != Angle2::ZERO || t.align != Align::Centre {
                 continue;
             }
-            let Some(rv) = view.reps.iter().find(|r| EntityRef(r.rep.id.as_uuid()) == t.entity) else {
+            let Some(rv) = view
+                .reps
+                .iter()
+                .find(|r| EntityRef(r.rep.id.as_uuid()) == t.entity)
+            else {
                 continue;
             };
             let Some(def) = &rv.symbol else { continue };
@@ -1151,9 +1155,8 @@ impl Builder<'_> {
                 Pt2::new(pos.x + b.min().x, pos.y + b.min().y),
                 Pt2::new(pos.x + b.max().x, pos.y + b.max().y),
             );
-            let inside = |p: Pt2| {
-                p.x > body.min().x && p.x < body.max().x && p.y > body.min().y && p.y < body.max().y
-            };
+            let inside =
+                |p: Pt2| p.x > body.min().x && p.x < body.max().x && p.y > body.min().y && p.y < body.max().y;
             if !inside(t.at) {
                 continue;
             }

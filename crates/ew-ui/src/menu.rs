@@ -177,7 +177,11 @@ mod tests {
                 }
                 ui.set_width(160.0);
                 let mut events = Vec::new();
-                super::item(ui, &entry("Rotate clockwise", Some("Nothing is selected")), &mut events);
+                super::item(
+                    ui,
+                    &entry("Rotate clockwise", Some("Nothing is selected")),
+                    &mut events,
+                );
                 super::item(ui, &entry("Delete", None), &mut events);
             });
         h.run();
@@ -189,6 +193,9 @@ mod tests {
         let tip = h.get_by_label_contains("Nothing is selected").rect();
         let next = h.get_by_label_contains("Delete").rect();
         assert!(!tip.intersects(next), "{tip:?} covers {next:?}");
-        assert!(tip.min.x >= first.max.x - 1.0, "beside the entry: {tip:?} {first:?}");
+        assert!(
+            tip.min.x >= first.max.x - 1.0,
+            "beside the entry: {tip:?} {first:?}"
+        );
     }
 }

@@ -671,7 +671,11 @@ pub fn hud(model: &ShellModel) -> HudModel {
             "{} \u{b7} {}",
             hint(),
             strings::format(
-                if cps == 1 { "count-box-pin" } else { "count-box-pins" },
+                if cps == 1 {
+                    "count-box-pin"
+                } else {
+                    "count-box-pins"
+                },
                 &[&cps.to_string()]
             )
         ),

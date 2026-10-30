@@ -440,7 +440,11 @@ fn a_cable_tag_stands_clear_of_its_mark() {
         Pt2::new(ew_units::Nm(g(40)) + b.min().x, ew_units::Nm(g(40)) + b.min().y),
         Pt2::new(ew_units::Nm(g(40)) + b.max().x, ew_units::Nm(g(40)) + b.max().y),
     );
-    assert!(!overlap(t.rect, mark), "the tag {:?} crosses the mark {mark:?}", t.rect);
+    assert!(
+        !overlap(t.rect, mark),
+        "the tag {:?} crosses the mark {mark:?}",
+        t.rect
+    );
     assert!(t.rect.min().x >= mark.max().x, "beside the mark on the right");
     assert!(upright(t));
 }

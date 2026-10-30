@@ -353,10 +353,7 @@ impl ShellModel {
         let Some((at, serial)) = self.messages.check_toast else {
             return;
         };
-        let now = self
-            .project
-            .as_ref()
-            .map(|p| (p.epoch, p.session.world().rev.0));
+        let now = self.project.as_ref().map(|p| (p.epoch, p.session.world().rev.0));
         if now != Some(at) {
             self.notes.dismiss(serial);
             self.messages.check_toast = None;

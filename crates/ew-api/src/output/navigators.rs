@@ -2987,7 +2987,10 @@ mod tests {
     /// another message, and a longer tag that only starts like the subject, keep the prefix.
     #[test]
     fn a_message_leading_with_its_subject_is_shown_once() {
-        assert!(leads_with_subject("=P01+-201U1:DP", "=P01+-201U1:DP: the station address is TBD"));
+        assert!(leads_with_subject(
+            "=P01+-201U1:DP",
+            "=P01+-201U1:DP: the station address is TBD"
+        ));
         assert!(leads_with_subject("-1K1", "-1K1 has no part"));
         assert!(!leads_with_subject("-1K1", "-1K10 has no part"));
         assert!(!leads_with_subject("-1K1", "the station address is TBD"));

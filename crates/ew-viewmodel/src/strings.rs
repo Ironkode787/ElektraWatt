@@ -107,7 +107,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-one-rep" => "Select exactly one representation",
         "reason-nothing-to-move" => "Nothing movable is selected",
         "reason-place-only" => "Only while placing a symbol",
-        "reason-place-stacked" => "An identical symbol already stands here; move the pointer to place another",
+        "reason-place-stacked" => {
+            "An identical symbol already stands here; move the pointer to place another"
+        }
         "reason-nothing-selected" => "Nothing is selected",
         "error-wire-reference" => {
             "No wire of the page shown runs \"{0}\"; name one as the page text does: wire:<end> -> <end>"

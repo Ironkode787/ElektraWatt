@@ -150,9 +150,7 @@ impl ShellModel {
                 };
                 // FT-759: a symbol dropped on a wire is split into it (normaliser 7) and drew no wire of its own: the
                 // toast says that it is in the circuit, where a connection of the page now ends on it.
-                let ends_on_rep = |e: &ew_api::output::TableEnd| {
-                    matches!(e, ew_api::output::TableEnd::Cp { function, .. } if rep.functions.contains(function))
-                };
+                let ends_on_rep = |e: &ew_api::output::TableEnd| matches!(e, ew_api::output::TableEnd::Cp { function, .. } if rep.functions.contains(function));
                 let in_wire = now
                     .connections
                     .iter()
