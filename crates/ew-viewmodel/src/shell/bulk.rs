@@ -108,13 +108,14 @@ impl ShellModel {
     pub fn preview_summary(&self) -> Option<String> {
         let card = self.props.card()?;
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
+        // Cycle 37 (window check W37): a count of one takes the singular ("1 record · 1 page").
         Some(strings::format(
             "preview-summary",
             &[
-                &records.to_string(),
-                &self.preview.tags().len().to_string(),
-                &self.preview.xrefs().len().to_string(),
-                &self.preview.pages().len().to_string(),
+                &strings::format_count("preview-records", records),
+                &strings::format_count("preview-tags-count", self.preview.tags().len()),
+                &strings::format_count("preview-xrefs-count", self.preview.xrefs().len()),
+                &strings::format_count("preview-pages-count", self.preview.pages().len()),
             ],
         ))
     }

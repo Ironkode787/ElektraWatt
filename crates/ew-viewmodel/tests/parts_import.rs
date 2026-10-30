@@ -402,6 +402,15 @@ fn a_supplier_list_imports_after_mapping_and_its_map_is_saved() {
         text.contains("card ready \"parts.import\" created 2 skipped 0 errors 0"),
         "{text}"
     );
+    // Cycle 37 (window check W37): the Preview tab names the added parts by their numbers.
+    let parts: Vec<String> = shell
+        .preview_pane()
+        .entities()
+        .iter()
+        .filter(|e| e.kind == "part")
+        .map(|e| e.label.clone())
+        .collect();
+    assert_eq!(parts, ["3044102", "A9F74210"]);
     done(&mut shell, "preview.apply", json!({}));
     assert!(shell.can_undo(), "one undo step");
     // The parts are in the project: saved and read back.

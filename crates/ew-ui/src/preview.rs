@@ -218,7 +218,10 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     ui,
                     &strings::format(
                         "preview-summary-import",
-                        &[&created.to_string(), &skipped.to_string()],
+                        &[
+                            &strings::format_count("preview-part-copies", *created),
+                            &skipped.to_string(),
+                        ],
                     ),
                     false,
                 );

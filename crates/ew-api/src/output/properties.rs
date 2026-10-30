@@ -295,7 +295,7 @@ fn folio_of(q: &Q, page: Id<Page>) -> Option<String> {
 }
 
 /// The neutral text of a multi-language value, else its source language's, else its first.
-fn ml_text(value: &Value, source: Option<&str>) -> String {
+pub(super) fn ml_text(value: &Value, source: Option<&str>) -> String {
     match value {
         Value::String(s) => s.clone(),
         Value::Object(m) => source

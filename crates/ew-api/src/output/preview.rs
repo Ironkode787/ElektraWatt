@@ -15,7 +15,7 @@ use ew_derive::Q;
 use ew_derive::ew_ids::Uuid;
 use ew_derive::ew_mltext::natural_cmp;
 
-use super::properties::record_title;
+use super::properties::{ml_text, record_title};
 use crate::Session;
 
 /// One record a preview (or a history entry) changes, with its printed label.
@@ -71,7 +71,13 @@ fn entity(change: &EntityChange, current: &Q, candidate: Option<&Q>) -> PreviewE
         (ChangeKind::Added, Some(c)) => c,
         _ => current,
     };
-    let label = record_title(q, id, source_language(q).as_deref()).unwrap_or_default();
+    let source = source_language(q);
+    // Cycle 37 (window check W37): a library copy is named too (a part by its number, a manufacturer by its name), and
+    // a label that only repeats the kind word ("bond") is left out, so the line never reads "added bond bond".
+    let label = record_title(q, id, source.as_deref())
+        .or_else(|| library_name(q, kind, id, source.as_deref()))
+        .filter(|l| l != kind.name())
+        .unwrap_or_default();
     let mut fields: Vec<String> = change.fields.iter().map(|f| top_member(f).to_owned()).collect();
     fields.sort();
     fields.dedup();
@@ -81,6 +87,22 @@ fn entity(change: &EntityChange, current: &Q, candidate: Option<&Q>) -> PreviewE
         id,
         label,
         fields,
+    }
+}
+
+/// The name of a library copy in the project: a part's number, a manufacturer's name; `None` for any other kind.
+fn library_name(q: &Q, kind: ew_schema::Kind, id: Uuid, source: Option<&str>) -> Option<String> {
+    match kind {
+        ew_schema::Kind::Part => q
+            .parts()
+            .get(ew_derive::ew_ids::Id::from_uuid(id))
+            .map(|c| c.item.part_number.to_string()),
+        ew_schema::Kind::Manufacturer => q
+            .manufacturers()
+            .get(ew_derive::ew_ids::Id::from_uuid(id))
+            .and_then(|c| serde_json::to_value(&c.item.name).ok())
+            .map(|v| ml_text(&v, source)),
+        _ => None,
     }
 }
 

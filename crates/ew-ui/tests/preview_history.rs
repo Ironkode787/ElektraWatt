@@ -65,7 +65,7 @@ fn pv2_renumber_devices_through_the_dialog_and_the_preview_tab() {
     assert!(has_text(&h, "Preview: Renumber · as of rev 1"), "the header");
     assert!(has_text(
         &h,
-        "8 records · 11 tags · 0 cross-reference texts · 1 pages"
+        "8 records · 11 tags · 0 cross-reference texts · 1 page"
     ));
     assert!(
         has_text(&h, "-XPE → -101X2"),

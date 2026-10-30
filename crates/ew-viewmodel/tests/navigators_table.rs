@@ -510,7 +510,7 @@ fn tb4_an_ambiguous_number_is_resolved_on_the_card() {
     let title = shell.table_gesture().unwrap().title();
     assert_eq!(line, format!("{title} · {}", shell.preview_summary().unwrap()));
     assert!(
-        line.starts_with("Preview: ") && line.contains(" records · "),
+        line.starts_with("Preview: ") && line.contains(" record · "),
         "{line}"
     );
     let m = failed(&mut shell, "navigator.apply", json!({}));
