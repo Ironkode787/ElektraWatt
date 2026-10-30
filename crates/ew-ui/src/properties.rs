@@ -359,29 +359,58 @@ impl PropertiesPane {
         // ellipsised; more than two findings collapse into one count chip per severity ("3 Warnings", every rule and
         // message in its tooltip), so the header keeps its width whatever the count (doc 16a §6.8: "the findings
         // badge").
+        // FT-664 (cycle 37): the chips never take the title's room. When the title at its full width and the chips
+        // with their words do not fit the line, each severity becomes one glyph chip (its icon, and the count when
+        // more than one), the words in its tooltip and node name; the title is then ellipsised by the panel only.
         let findings = &sheet.header.findings;
+        let groups = severity_groups(findings);
+        let compact = {
+            let measure = |text: String, font: &crate::theme::TypeToken| {
+                ui.painter()
+                    .layout_no_wrap(text, crate::theme::font(font), t.text_primary.color32())
+                    .size()
+                    .x
+            };
+            let chip = |word: String| {
+                t.space_2
+                    + t.type_caption.size
+                    + t.space_1
+                    + t.space_1
+                    + measure(word, &t.type_caption)
+                    + t.space_2
+            };
+            let chips: f32 = if findings.len() <= 2 {
+                findings
+                    .iter()
+                    .map(|f| chip(crate::messages::severity_word(&f.severity).to_owned()))
+                    .sum()
+            } else {
+                groups
+                    .iter()
+                    .map(|(severity, of)| chip(count_words(severity, of.len())))
+                    .sum()
+            };
+            let gaps = t.space_1 * findings.len().saturating_sub(1) as f32;
+            let title = measure(sheet.header.title.clone(), &t.type_title);
+            !findings.is_empty() && title + t.space_2 + chips + gaps > ui.available_width()
+        };
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.spacing_mut().item_spacing.x = t.space_1;
-                if findings.len() <= 2 {
+                if compact {
+                    // Right to left: info, warning, error, so the most severe reads first.
+                    for (severity, of) in groups.iter().rev() {
+                        glyph_chip(ui, severity, of);
+                    }
+                } else if findings.len() <= 2 {
                     // Right to left: the last finding first, so the chips read in the header's order.
                     for f in findings.iter().rev() {
                         crate::messages::severity_chip(ui, &f.severity, &f.rule, &f.message);
                     }
                 } else {
                     // Right to left: info, warning, error, so the most severe reads first.
-                    for severity in ["info", "warning", "error"] {
-                        let of: Vec<(&str, &str)> = findings
-                            .iter()
-                            .filter(|f| match severity {
-                                "error" | "warning" => f.severity == severity,
-                                _ => f.severity != "error" && f.severity != "warning",
-                            })
-                            .map(|f| (f.rule.as_str(), f.message.as_str()))
-                            .collect();
-                        if !of.is_empty() {
-                            crate::messages::severity_count_chip(ui, severity, &of);
-                        }
+                    for (severity, of) in groups.iter().rev() {
+                        crate::messages::severity_count_chip(ui, severity, of);
                     }
                 }
                 ui.add_space(t.space_2);
@@ -1211,6 +1240,89 @@ fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, 
         );
     }
     response.clicked()
+}
+
+/// The header's findings by severity, most severe first (`error`, `warning`, then every other severity as `info`),
+/// each with its `(rule, message)` pairs; severities without a finding are left out.
+fn severity_groups(
+    findings: &[ew_viewmodel::ew_api::output::FindingChip],
+) -> Vec<(&'static str, Vec<(&str, &str)>)> {
+    ["error", "warning", "info"]
+        .into_iter()
+        .map(|severity| {
+            let of: Vec<(&str, &str)> = findings
+                .iter()
+                .filter(|f| match severity {
+                    "error" | "warning" => f.severity == severity,
+                    _ => f.severity != "error" && f.severity != "warning",
+                })
+                .map(|f| (f.rule.as_str(), f.message.as_str()))
+                .collect();
+            (severity, of)
+        })
+        .filter(|(_, of)| !of.is_empty())
+        .collect()
+}
+
+/// "<n> <Words>" ("3 Warnings"), a count chip's word.
+fn count_words(severity: &str, n: usize) -> String {
+    let words = strings::text(match severity {
+        "error" => "severity-errors",
+        "warning" => "severity-warnings",
+        _ => "severity-infos",
+    });
+    strings::format("props-findings-count", &[&n.to_string(), words])
+}
+
+/// A severity's glyph chip (FT-664): the severity's subtle fill, its icon, and the count in `type.caption` when more
+/// than one; named like the count chip ("2 Warnings: <rule>: <message>; …"), every finding in its tooltip.
+fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::Response {
+    let t = crate::theme::current(ui.ctx());
+    let (fill, text, icon_colour) = match severity {
+        "error" => (t.error_subtle, t.error, t.error),
+        "warning" => (t.warning_subtle, t.warning, t.warning_icon),
+        _ => (t.info_subtle, t.info, t.info),
+    };
+    let count = (findings.len() > 1).then(|| {
+        ui.painter().layout_no_wrap(
+            findings.len().to_string(),
+            crate::theme::font(&t.type_caption),
+            text.color32(),
+        )
+    });
+    let icon = t.type_caption.size + t.space_1;
+    let width = t.space_1 + icon + count.as_ref().map_or(0.0, |g| t.space_1 + g.size().x) + t.space_1;
+    let (rect, response) = ui.allocate_exact_size(Vec2::new(width, t.size_badge), Sense::hover());
+    let lines: Vec<String> = findings
+        .iter()
+        .map(|(rule, message)| strings::format("props-finding-tip", &[rule, message]))
+        .collect();
+    let name = strings::format(
+        "props-findings-chip",
+        &[&count_words(severity, findings.len()), &lines.join("; ")],
+    );
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &name));
+    let painter = ui.painter();
+    painter.rect_filled(rect, crate::theme::radius(t.radius_sm), fill.color32());
+    let icon_rect = egui::Rect::from_center_size(
+        egui::pos2(rect.left() + t.space_1 + icon / 2.0, rect.center().y),
+        Vec2::splat(icon),
+    );
+    crate::icons::paint(
+        painter,
+        crate::messages::severity_icon_id(severity),
+        icon_rect,
+        icon_colour.color32(),
+        t.icon_stroke,
+    );
+    if let Some(g) = count {
+        painter.galley(
+            egui::pos2(icon_rect.right() + t.space_1, rect.center().y - g.size().y / 2.0),
+            g,
+            text.color32(),
+        );
+    }
+    response.tip(lines.join("\n"))
 }
 
 #[cfg(test)]
