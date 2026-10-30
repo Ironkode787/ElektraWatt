@@ -409,26 +409,25 @@ fn draw_to_ip_refuses_a_start_on_another_page() {
     let rev = e.model().rev();
     let before = lines(e.model());
     let good = || draw_to_ip(cp_param(FN_102G1, 1), pt(5 * G, 0), vec![pt(0, 0), pt(6 * G, 0)]);
-    let refusal = |other: Id<Page>| {
-        format!(
-            "the wire's start is drawn on page {other}, not on page {PAGE_102}; start the wire on page {PAGE_102}"
-        )
+    // FT-756: the pages by their folios, never their IDs
+    let refusal = |other: &str| {
+        format!("the wire's start is drawn on page {other}, not on page 102; start the wire on page 102")
     };
     // A CP of a function whose only representation is on the other page.
     let mut cmd = good();
     cmd.a = cp_param(FN_101F1, 0);
-    rejected_with(e.execute(&cmd), &refusal(PAGE_101));
+    rejected_with(e.execute(&cmd), &refusal("101"));
     // A junction on the other page.
     let mut cmd = good();
     cmd.a = EndpointParam::Junction { junction: J_OTHER };
-    rejected_with(e.execute(&cmd), &refusal(OTHER_PAGE));
+    rejected_with(e.execute(&cmd), &refusal("103"));
     // A point on a connection drawn on the other page.
     let mut cmd = good();
     cmd.a = EndpointParam::OnConnection {
         connection: CON_OTHER,
         at: pt(0, 0),
     };
-    rejected_with(e.execute(&cmd), &refusal(OTHER_PAGE));
+    rejected_with(e.execute(&cmd), &refusal("103"));
     assert_eq!(e.model().rev(), rev);
     assert_eq!(lines(e.model()), before);
     // A black-box CP whose box is on page 102 is a start.

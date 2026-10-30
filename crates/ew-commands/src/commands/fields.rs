@@ -732,9 +732,11 @@ fn refuse_foreign_covers(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Resu
                     SetFields::NAME,
                     "/value",
                     format!(
-                        "the configuration {} covers device {covered}, which is neither the assembly device \
-                         {device} nor one of its descendants",
-                        config.order_code
+                        "the configuration {} covers {}, which is neither the assembly device {} nor one of its \
+                         descendants",
+                        config.order_code,
+                        crate::words::device(tx, *covered),
+                        crate::words::device(tx, device)
                     ),
                 ));
             }
@@ -754,7 +756,7 @@ fn refuse_other_variant(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/path",
-            format!("page item {target} is a {own}, not a {variant}; `{path}` is not one of its fields"),
+            format!("the page item is a {own}, not a {variant}; `{path}` is not one of its fields"),
         ));
     }
     Ok(())
@@ -770,7 +772,10 @@ fn refuse_not_ip(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), Cm
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/path",
-            format!("function {target} is not an interruption point; `{path}` is not one of its fields"),
+            format!(
+                "{} is not an interruption point; `{path}` is not one of its fields",
+                crate::words::function(tx, target.cast())
+            ),
         ));
     }
     Ok(())
@@ -970,9 +975,10 @@ fn refuse_tag_collision(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Resul
     }
     let free = next_free_counter(tx, &dev.tag.letter, scope, Some(device));
     tx.reject(format!(
-        "counter {counter} with letter {} is already used on page {page} by another device; use {free}, \
-         the next free counter",
-        dev.tag.letter
+        "counter {counter} with letter {} is already used on {} by another device; use {free}, the next free \
+         counter",
+        dev.tag.letter,
+        crate::words::page(tx, page)
     ))
 }
 

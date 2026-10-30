@@ -212,7 +212,7 @@ impl Command for AssignPart {
                 return Err(CmdError::invalid_params(
                     name,
                     format!("/devices/{i}"),
-                    format!("no device {d}"),
+                    "the device is not in the project",
                 ));
             }
         }
@@ -249,7 +249,10 @@ impl Command for AssignPart {
                     return Err(CmdError::invalid_params(
                         name,
                         format!("/devices/{i}"),
-                        format!("device {d} does not use part {from}"),
+                        format!(
+                            "{} does not use the part to replace",
+                            crate::words::device(tx, *d)
+                        ),
                     ));
                 }
             }

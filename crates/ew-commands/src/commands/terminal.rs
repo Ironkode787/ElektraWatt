@@ -592,7 +592,7 @@ impl Command for MoveTerminals {
             if !seen.insert(*id) {
                 return Self::bad(
                     format!("/terminals/{i}"),
-                    format!("terminal {id} is listed twice"),
+                    format!("terminal {} is listed twice", crate::words::device(tx, *id)),
                 );
             }
         }

@@ -887,10 +887,13 @@ impl Command for DrawToIp {
             let page = self.page;
             return match other {
                 Some(other) => tx.reject(format!(
-                    "the wire's start is drawn on page {other}, not on page {page}; start the wire on page {page}"
+                    "the wire's start is drawn on {}, not on {}; start the wire on {1}",
+                    crate::words::page(tx, other),
+                    crate::words::page(tx, page)
                 )),
                 None => tx.reject(format!(
-                    "the wire's start is drawn on no page, not on page {page}; start the wire on page {page}"
+                    "the wire's start is drawn on no page, not on {}; start the wire there",
+                    crate::words::page(tx, page)
                 )),
             };
         }

@@ -330,8 +330,9 @@ pub fn require_on_grid(tx: &TxBuilder<'_>, page: Id<Page>, pos: Pt2, field: &str
         return Ok(());
     }
     tx.reject(format!(
-        "`{field}` {} is not on the connection grid of page {page} ({}); snap it, for example to {}",
+        "`{field}` {} is not on the connection grid of {} ({}); snap it, for example to {}",
         fmt_pt(pos),
+        crate::words::page(tx, page),
         grid_name(grid),
         nearest(grid, pos)
     ))
@@ -422,9 +423,10 @@ pub fn require_route(
         };
         if v != cp {
             return tx.reject(format!(
-                "`{field}/{i}` {} does not meet connection point {idx} of function {function} at {}; \
-                 end the route at its CP",
+                "`{field}/{i}` {} does not meet connection point {idx} of {} at {}; end the route at its \
+                 connection point",
                 fmt_pt(v),
+                crate::words::function(tx, *function),
                 fmt_pt(cp)
             ));
         }
@@ -435,9 +437,9 @@ pub fn require_route(
         let ok_y = on_grid(grid, v.y) || exact.iter().any(|c| c.y == v.y);
         if !(ok_x && ok_y) {
             return tx.reject(format!(
-                "`{field}/{i}` {} is not on the connection grid of page {page} ({}); snap it, for \
-                 example to {}",
+                "`{field}/{i}` {} is not on the connection grid of {} ({}); snap it, for example to {}",
                 fmt_pt(*v),
+                crate::words::page(tx, page),
                 grid_name(grid),
                 nearest(grid, *v)
             ));

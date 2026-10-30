@@ -698,7 +698,10 @@ impl Command for UpdateLibraryCopies {
                     match to {
                         None => {
                             for what in attached(tx, f, endpoint) {
-                                blocked.push(format!("function {f} CP {endpoint} ({designation}): {what}"));
+                                blocked.push(format!(
+                                    "{} pin {designation}: {what}",
+                                    crate::words::function(tx, f)
+                                ));
                             }
                         }
                         Some(to) => {

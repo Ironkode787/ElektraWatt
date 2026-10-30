@@ -612,7 +612,7 @@ impl Command for InsertMacro {
         let (def, embed, rest) = self.split_copies(tx)?;
         let page = tx
             .get::<Page>(self.page)
-            .ok_or_else(|| Self::invalid("/page", format!("no page {}", self.page)))?;
+            .ok_or_else(|| Self::invalid("/page", "the page is not in the project"))?;
         let page_macro = match &def.kind {
             MacroKind::Window => false,
             MacroKind::Page => true,

@@ -673,7 +673,7 @@ impl MoveReps {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 format!("/items/{i}"),
-                format!("every item lies on one page ({page})"),
+                "every item lies on one page".to_owned(),
             ));
         }
         for (i, r) in self.reps.iter().enumerate() {
@@ -683,8 +683,10 @@ impl MoveReps {
                     Self::NAME,
                     format!("/reps/{i}"),
                     format!(
-                        "representation {r} is on page {}, the items on page {page}; move one page at a time",
-                        rep.page
+                        "{} is on {}, the items on {}; move one page at a time",
+                        crate::words::symbol(tx, *r),
+                        crate::words::page(tx, rep.page),
+                        crate::words::page(tx, page)
                     ),
                 ));
             }
@@ -748,9 +750,11 @@ impl MoveReps {
             let grid = tx.require::<Page>(rep.page)?.grid;
             if !crate::geometry::point_on_grid(grid, rep.pos) {
                 return tx.reject(format!(
-                    "representation {id} at [{}, {}] is not on the connection grid of its page, so it cannot be \
+                    "{sym} at [{}, {}] is not on the connection grid of its page, so it cannot be \
                      moved by grid steps; move it onto the grid with `delta` first",
-                    rep.pos.x.0, rep.pos.y.0
+                    rep.pos.x.0,
+                    rep.pos.y.0,
+                    sym = crate::words::symbol(tx, *id)
                 ));
             }
             let (Some(x), Some(y)) = (
@@ -758,7 +762,8 @@ impl MoveReps {
                 step_axis(grid, rep.pos.y, steps[1]),
             ) else {
                 return tx.reject(format!(
-                    "`/steps` moves representation {id} outside the drawable range; move it less far"
+                    "`/steps` moves {sym} outside the drawable range; move it less far",
+                    sym = crate::words::symbol(tx, *id)
                 ));
             };
             let mut next = (*rep).clone();
@@ -766,12 +771,16 @@ impl MoveReps {
             require_on_grid(tx, next.page, next.pos, "/steps")?;
             if rep_cps_checked(tx, &next).is_err() {
                 return tx.reject(format!(
-                    "`/steps` moves a connection point of representation {id} outside the drawable range; move \
-                     it less far"
+                    "`/steps` moves a connection point of {sym} outside the drawable range; move \
+                     it less far",
+                    sym = crate::words::symbol(tx, *id)
                 ));
             }
             let Ok(d) = sub(next.pos, rep.pos) else {
-                return tx.reject(format!("`/steps` moves representation {id} too far"));
+                return tx.reject(format!(
+                    "`/steps` moves {sym} too far",
+                    sym = crate::words::symbol(tx, *id)
+                ));
             };
             shift.insert(*id, d);
             reps.push(rep);
@@ -939,7 +948,8 @@ impl Command for MoveReps {
                 Ok(p) => p,
                 Err(OutOfRange) => {
                     return tx.reject(format!(
-                        "`/delta` moves representation {id} outside the drawable range; move it less far"
+                        "`/delta` moves {sym} outside the drawable range; move it less far",
+                        sym = crate::words::symbol(tx, *id)
                     ));
                 }
             };
@@ -950,8 +960,9 @@ impl Command for MoveReps {
             require_on_grid(tx, next.page, next.pos, "/delta")?;
             if rep_cps_checked(tx, &next).is_err() {
                 return tx.reject(format!(
-                    "`/delta` moves a connection point of representation {id} outside the drawable range; \
-                     move it less far"
+                    "`/delta` moves a connection point of {sym} outside the drawable range; \
+                     move it less far",
+                    sym = crate::words::symbol(tx, *id)
                 ));
             }
             reps.push(rep);
@@ -1077,8 +1088,9 @@ impl Command for TransformReps {
             }
             let out_of_range = |tx: &TxBuilder<'_>| {
                 tx.reject::<()>(format!(
-                    "the transform puts a connection point of representation {id} outside the drawable \
-                     range"
+                    "the transform puts a connection point of {sym} outside the drawable \
+                     range",
+                    sym = crate::words::symbol(tx, *id)
                 ))
             };
             let (Ok(before), Ok(after_cps)) = (rep_cps_checked(tx, &old), rep_cps_checked(tx, &new)) else {

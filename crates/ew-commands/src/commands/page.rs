@@ -605,18 +605,21 @@ impl Command for ReorderPages {
         let mut seen = BTreeSet::new();
         for (i, id) in self.pages.iter().enumerate() {
             if !seen.insert(*id) {
-                return Self::bad(format!("/pages/{i}"), format!("page {id} is listed twice"));
+                return Self::bad(
+                    format!("/pages/{i}"),
+                    format!("{} is listed twice", crate::words::page(tx, *id)),
+                );
             }
         }
         for (i, id) in self.pages.iter().enumerate() {
             if tx.get::<Page>(*id).is_none() {
-                return Self::bad(format!("/pages/{i}"), format!("no page {id}"));
+                return Self::bad(format!("/pages/{i}"), "the page is not in the project");
             }
         }
         let target = match self.before {
             Some(b) => match tx.get::<Page>(b) {
                 Some(page) => Some(page),
-                None => return Self::bad("/before", format!("no page {b}")),
+                None => return Self::bad("/before", "the page is not in the project"),
             },
             None => None,
         };

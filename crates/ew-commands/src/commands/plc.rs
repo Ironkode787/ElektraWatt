@@ -183,9 +183,10 @@ impl Command for BindChannel {
             });
             if !inside {
                 return tx.reject(format!(
-                    "function {function} is not on module {} or one of its children; a channel binds a pin of \
-                     its module or the coil of a valve on it",
-                    channel.module
+                    "{} is not on module {} or one of its children; a channel binds a pin of its module or the \
+                     coil of a valve on it",
+                    crate::words::function(tx, function),
+                    crate::words::device(tx, channel.module)
                 ));
             }
             // FX38a: the CPs the function has as the pages draw them (`function_cps`): a black-box card's come from
@@ -208,9 +209,12 @@ impl Command for BindChannel {
                 }) {
                     "its device's part pattern defines the CPs of a black box".to_owned()
                 } else {
-                    format!("its FnDef copy {} or its part's template defines the CPs", f.def)
+                    "its function definition or its part's template defines the CPs".to_owned()
                 };
-                return tx.reject(format!("function {function} has no CP {idx} ({source})"));
+                return tx.reject(format!(
+                    "{} has no connection point number {idx} ({source})",
+                    crate::words::function(tx, function)
+                ));
             }
             // the channels that hold the CP: an index lookup, not a scan of the channel table (FT-319)
             let others: Vec<Id<Channel>> = tx

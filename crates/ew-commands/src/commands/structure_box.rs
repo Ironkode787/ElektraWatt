@@ -109,7 +109,7 @@ pub(crate) fn check_box(
             return Err(CmdError::invalid_params(
                 command,
                 format!("{pointer}/external"),
-                format!("external reference {e} does not exist"),
+                "the external reference is not in the project",
             ));
         }
     }

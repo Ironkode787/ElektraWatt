@@ -624,7 +624,7 @@ impl Command for PlaceMarker {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/connections/{i}"),
-                    format!("connection {c} is not drawn on page {}", self.page),
+                    format!("the wire is not drawn on {}", crate::words::page(tx, self.page)),
                 ));
             }
         }

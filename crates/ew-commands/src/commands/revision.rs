@@ -532,14 +532,18 @@ impl Command for ApproveRevision {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/waivers_ack/{i}"),
-                    format!("waiver {w} does not exist"),
+                    "the waiver is not in the project",
                 ));
             }
             if !acknowledged.insert(*w) {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
                     format!("/waivers_ack/{i}"),
-                    format!("waiver {w} is listed twice"),
+                    format!(
+                        "the waiver of {} is listed twice",
+                        tx.get::<Waiver>(*w)
+                            .map_or_else(String::new, |x| x.rule.as_str().to_owned())
+                    ),
                 ));
             }
         }
@@ -721,9 +725,8 @@ impl Command for ReleaseRevision {
 
 /// The revision a command names, or the refusal at `/revision`.
 fn require_revision(tx: &TxBuilder<'_>, command: &str, id: Id<Revision>) -> Result<Arc<Revision>, CmdError> {
-    tx.get::<Revision>(id).ok_or_else(|| {
-        CmdError::invalid_params(command, "/revision", format!("revision {id} does not exist"))
-    })
+    tx.get::<Revision>(id)
+        .ok_or_else(|| CmdError::invalid_params(command, "/revision", "the revision is not in the project"))
 }
 
 /// The page notes of a revision written by `command`: every page exists, and no page has two notes

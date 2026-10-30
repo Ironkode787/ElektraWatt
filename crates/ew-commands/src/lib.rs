@@ -86,6 +86,7 @@ mod rows;
 pub mod testkit;
 mod transaction;
 mod tx;
+mod words;
 
 pub use command::{Command, DynCommand, Outcome};
 pub use derived::{DerivedChange, DerivedDiff, derived_diff};

@@ -580,7 +580,8 @@ fn reorder_rejects_a_page_listed_twice() {
         &reorder(&[PAGE_101, PAGE_102, PAGE_101], None, Some(SEC1)),
     ));
     assert_eq!(path, "/pages/2");
-    assert_eq!(message, format!("page {PAGE_101} is listed twice"));
+    // FT-756: the page by its folio, never its ID
+    assert_eq!(message, "page 101 is listed twice");
 }
 
 #[test]
@@ -589,7 +590,7 @@ fn reorder_rejects_an_unknown_page() {
     let missing: Id<Page> = id(0x9999);
     let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101, missing], None, Some(SEC1))));
     assert_eq!(path, "/pages/1");
-    assert_eq!(message, format!("no page {missing}"));
+    assert_eq!(message, "the page is not in the project");
 }
 
 #[test]
@@ -598,7 +599,7 @@ fn reorder_rejects_an_unknown_before() {
     let missing: Id<Page> = id(0x9999);
     let (path, message) = reorder_error(bulk(&mut e, &reorder(&[PAGE_101], Some(missing), None)));
     assert_eq!(path, "/before");
-    assert_eq!(message, format!("no page {missing}"));
+    assert_eq!(message, "the page is not in the project");
 }
 
 #[test]

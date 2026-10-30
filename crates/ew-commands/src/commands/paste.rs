@@ -654,7 +654,7 @@ impl Insertion<'_> {
     /// page records keeps its positions (no steps) on pages of its own grid after the page `page`.
     fn place(&self, tx: &TxBuilder<'_>) -> Result<(std::sync::Arc<Page>, Grid, [i64; 2]), CmdError> {
         let Some(page) = tx.get::<Page>(self.page) else {
-            return Err(self.invalid("/page", format!("no page {}", self.page)));
+            return Err(self.invalid("/page", "the page is not in the project"));
         };
         if self.has_pages() {
             let [num, den] = self.fragment.grid;
