@@ -815,3 +815,37 @@ fn pot001_a_conflict_without_pe_has_no_fix_and_no_hint() {
     assert!(f[0].fix.is_none());
     assert!(!f[0].message.contains("Draw"), "{}", f[0].message);
 }
+
+/// A type-M definition on a terminal wired to `n` PE-role functions: one member-CP conflict each.
+fn pe_members_against_m(n: u128) -> ew_checks::Finding {
+    let mut fx = Fx::base();
+    fx.func(TERMINAL, P1);
+    fx.def(0x5001, cp(TERMINAL), &json!({"ptype": "m"}));
+    for i in 0..n {
+        fx.func_pe(0x1100 + i, P1);
+        fx.conn(0x2100 + i, P1, cp(TERMINAL), Ep::Cp(0x1100 + i, 1), &none());
+    }
+    attrs_finding(&fx.build())
+}
+
+/// Cycle 37 (window check): EW-POT-001's message names at most three member CPs and then "and N more member CPs";
+/// the finding's `members` argument keeps every conflict, and nl-NL renders the same cut from the arguments.
+#[test]
+fn pot001_names_three_member_cps_and_counts_the_rest() {
+    let f = pe_members_against_m(6);
+    assert_eq!(f.message.matches("member CP ").count(), 3, "{}", f.message);
+    assert!(f.message.ends_with("; and 3 more member CPs"), "{}", f.message);
+    let members = &f.args.iter().find(|(k, _)| *k == "members").expect("members").1;
+    assert_eq!(members.matches("member CP ").count(), 6, "{members}");
+    let nl = ew_checks::messages::render(&f, "nl-NL");
+    assert!(nl.ends_with("; en nog 3 aansluitpunten"), "{nl}");
+    assert_eq!(nl.matches("member CP ").count(), 3, "{nl}");
+}
+
+/// Three member CPs or fewer are all named, with no count.
+#[test]
+fn pot001_names_every_member_cp_up_to_three() {
+    let f = pe_members_against_m(3);
+    assert_eq!(f.message.matches("member CP ").count(), 3, "{}", f.message);
+    assert!(!f.message.contains("more"), "{}", f.message);
+}

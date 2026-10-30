@@ -32,6 +32,16 @@ rule-ew-num-001 = { $frozen }: bevroren, wijkt af van het schema (afgeleide waar
     .title = Tag wijkt af van het schema
     .hint = Ontdooi de tag om de afgeleide waarde over te nemen, of laat hem bevroren als de afwijking bedoeld is.
 
+rule-ew-pot-001 = { $conflicts }{ $more ->
+        [none] {""}
+       *[other] ; en nog { $more } aansluitpunten
+    }{ $hint ->
+        [bond] ; declareer de verbinding met Draw ▸ Bond
+       *[none] {""}
+    }
+    .title = Type- of spanningsconflict
+    .hint = Scheid de potentialen, corrigeer de definitie of declareer de verbinding die ze samenbrengt.
+
 rule-ew-pot-003 = { $cp } heeft de rol FE en is aangesloten op de PE-potentiaal { $potential }; declareer een FE–PE-verbinding of sluit het aan op functionele aarde
     .title = FE-pen op PE
     .hint = Declareer een FE–PE-verbinding of sluit de pen aan op functionele aarde.

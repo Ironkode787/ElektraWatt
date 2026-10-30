@@ -465,3 +465,58 @@ fn the_dock_tab_counts_the_findings_and_the_close_button_closes_the_dock() {
     let shell = h.state().shell();
     assert!(shell.navigator_open(NavKind::Messages) && !shell.history_shown());
 }
+
+/// Cycle 37 (window check): Golden A's folio 103 without its bond B1 (0 V and PE merge, EW-POT-001 stands). The
+/// finding's message names three member CPs and counts the rest, and in a short window its detail block scrolls to
+/// the message's last line above the footer instead of cutting it at the pane's edge.
+#[test]
+fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, Scripted::default());
+    h.set_size(egui::Vec2::new(1000.0, 600.0));
+    dispatch(&mut h, "page.goto", json!({"folio": "103"}));
+    dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
+    let bond = {
+        let shell = h.state().shell();
+        let t = shell
+            .nav(NavKind::Potentials)
+            .and_then(|n| n.table())
+            .expect("the Potentials table");
+        let rows: Vec<_> = t.nodes.iter().filter(|n| n.kinds == ["bond"]).collect();
+        assert_eq!(rows.len(), 1, "Golden A has the one bond B1");
+        rows[0].records[0]
+    };
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "bond", "id": bond.to_string()}]}}),
+    );
+    dispatch(&mut h, "messages.show", json!({}));
+    dispatch(&mut h, "messages.check", json!({}));
+    settle(&mut h);
+    let row = table_nodes(&h)
+        .into_iter()
+        .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-POT-001")
+        .expect("the EW-POT-001 finding");
+    dispatch(
+        &mut h,
+        "navigator.row",
+        json!({"kind": "messages", "key": row.key}),
+    );
+    settle(&mut h);
+    settle(&mut h);
+    let message = h.state().shell().messages_detail().expect("the detail").message;
+    assert_eq!(message.matches("member CP ").count(), 3, "{message}");
+    assert!(message.contains(" more member CPs"), "{message}");
+    let node = h.get_by_label(&message);
+    node.scroll_to_me();
+    settle(&mut h);
+    let footer = h
+        .get_by_label("Checks support, but do not replace, engineering verification.")
+        .rect();
+    let text = h.get_by_label(&message).rect();
+    assert!(
+        text.bottom() <= footer.top() + 0.5,
+        "{text:?} ends above the footer at {footer:?}"
+    );
+}

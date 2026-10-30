@@ -310,7 +310,12 @@ impl Rule for TypeOrVoltageConflict {
         let suffix = &pt.suffix;
         let attrs = q.get::<PotentialAttrsOf>(p);
         if !attrs.conflicts.is_empty() {
-            let mut message = attrs.conflicts.join("; ");
+            let (shown, more) = shown_conflicts(&attrs.conflicts);
+            let mut message = shown.clone();
+            if more > 0 {
+                message.push_str(&format!("; and {more} more member CPs"));
+            }
+            let mut hint = "none";
             let mut fix = None;
             if zero_volt_meets_pe(q, p) {
                 match *q.get::<BondCarrierQ>(p) {
@@ -326,16 +331,32 @@ impl Rule for TypeOrVoltageConflict {
                             }),
                         });
                     }
-                    None => message.push_str("; declare the bond with Draw ▸ Bond"),
+                    None => {
+                        message.push_str("; declare the bond with Draw ▸ Bond");
+                        hint = "bond";
+                    }
                 }
             }
-            let finding = pt.finding(
-                &TYPE_OR_VOLTAGE_CONFLICT,
-                &[],
-                format!("attrs{suffix}"),
-                potential_name(q, p),
-                message,
-            );
+            // The text names at most [`SHOWN_MEMBER_CPS`] member CPs; the `members` argument keeps every conflict.
+            let finding = pt
+                .finding(
+                    &TYPE_OR_VOLTAGE_CONFLICT,
+                    &[],
+                    format!("attrs{suffix}"),
+                    potential_name(q, p),
+                    message,
+                )
+                .arg("conflicts", shown)
+                .arg(
+                    "more",
+                    if more > 0 {
+                        more.to_string()
+                    } else {
+                        "none".to_owned()
+                    },
+                )
+                .arg("hint", hint)
+                .arg("members", attrs.conflicts.join("; "));
             out.push(match fix {
                 Some(fix) => finding.with_fix(fix),
                 None => finding,
@@ -362,6 +383,26 @@ impl Rule for TypeOrVoltageConflict {
         }
         out
     }
+}
+
+/// The most member-CP conflicts an EW-POT-001 message names; the rest are counted ("and 23 more member CPs").
+pub(crate) const SHOWN_MEMBER_CPS: usize = 3;
+
+/// The conflicts an EW-POT-001 message shows, joined with "; " in the order found: every definition conflict and the
+/// first [`SHOWN_MEMBER_CPS`] member-CP conflicts (`member CP …`); and how many member-CP conflicts it leaves out.
+fn shown_conflicts(conflicts: &[String]) -> (String, usize) {
+    let mut members = 0;
+    let mut shown = Vec::new();
+    for c in conflicts {
+        if c.starts_with("member CP ") {
+            members += 1;
+            if members > SHOWN_MEMBER_CPS {
+                continue;
+            }
+        }
+        shown.push(c.as_str());
+    }
+    (shown.join("; "), members.saturating_sub(SHOWN_MEMBER_CPS))
 }
 
 /// Whether the member CPs of a potential (interruption points aside) carry both the role `M` and the role `PE`: a

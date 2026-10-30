@@ -138,7 +138,13 @@ rule-ew-num-002 =
 
 ## EW-POT: potentials
 
-rule-ew-pot-001 =
+rule-ew-pot-001 = { $conflicts }{ $more ->
+        [none] {""}
+       *[other] ; and { $more } more member CPs
+    }{ $hint ->
+        [bond] ; declare the bond with Draw ▸ Bond
+       *[none] {""}
+    }
     .title = Type or voltage conflict
     .hint = Separate the potentials, correct the definition, or declare the bond that joins them.
 

@@ -42,9 +42,28 @@ pub(crate) fn tokens(ui: &Ui) -> std::sync::Arc<Tokens> {
     theme::current(ui.ctx())
 }
 
+/// The most lines a tooltip shows; a longer text ends its last line in "…" (cycle 37: a finding's tooltip covered
+/// half the canvas). The whole text stays the widget's accessible description ([`Tip::tip`]).
+pub(crate) const TIP_MAX_LINES: usize = 8;
+
+/// The laid-out text of a tooltip: `type.small` in `color.text.on_inverse`, wrapped at `size.tooltip.max`, at most
+/// [`TIP_MAX_LINES`] lines, the last ending in "…" when the text is longer.
+pub(crate) fn tip_galley(ctx: &egui::Context, t: &Tokens, text: &str) -> std::sync::Arc<egui::Galley> {
+    let mut job = egui::text::LayoutJob::simple(
+        text.to_owned(),
+        theme::font(&t.type_small),
+        t.text_on_inverse.color32(),
+        t.size_tooltip_max,
+    );
+    job.wrap.max_rows = TIP_MAX_LINES;
+    job.wrap.overflow_character = Some('…');
+    ctx.fonts_mut(|f| f.layout_job(job))
+}
+
 /// Shows `tooltip` in doc 16a §6.18's style: `color.surface.inverse` with `color.text.on_inverse` in `type.small`,
-/// `radius.md`, `elevation.1`, at most `size.tooltip.max` wide. egui's own tooltip (`on_hover_text`) draws on the
-/// popup frame, `color.surface.raised` (the window fill), which hardly stands off the chrome (FT-597).
+/// `radius.md`, `elevation.1`, at most `size.tooltip.max` wide and [`TIP_MAX_LINES`] lines ([`tip_galley`]). egui's
+/// own tooltip (`on_hover_text`) draws on the popup frame, `color.surface.raised` (the window fill), which hardly
+/// stands off the chrome (FT-597).
 pub(crate) fn show_tip(ctx: &egui::Context, tooltip: egui::containers::Tooltip<'_>, text: &str) {
     let t = theme::current(ctx);
     let mut tooltip = tooltip;
@@ -56,11 +75,7 @@ pub(crate) fn show_tip(ctx: &egui::Context, tooltip: egui::containers::Tooltip<'
     tooltip.popup = tooltip.popup.frame(frame);
     tooltip.show(|ui| {
         ui.set_max_width(t.size_tooltip_max);
-        ui.add(egui::Label::new(
-            RichText::new(text)
-                .font(theme::font(&t.type_small))
-                .color(t.text_on_inverse.color32()),
-        ));
+        ui.add(egui::Label::new(tip_galley(ui.ctx(), &t, text)));
     });
 }
 
@@ -1108,8 +1123,37 @@ pub(crate) fn section_header(
 
 #[cfg(test)]
 mod tests {
-    use super::{Kind, button_look};
+    use super::{Kind, TIP_MAX_LINES, button_look, tip_galley};
     use crate::theme::{Density, Theme, contrast, tokens};
+
+    /// Cycle 37 (window check): a tooltip is at most `size.tooltip.max` wide and [`TIP_MAX_LINES`] lines; a longer
+    /// text ends in "…", a short one is shown whole.
+    #[test]
+    fn a_long_tooltip_is_cut_to_eight_lines_ending_in_an_ellipsis() {
+        let t = tokens(Theme::Light, Density::Comfortable);
+        let ctx = egui::Context::default();
+        let long = "member CP -X1032:1:a has role Pe; the defined type M applies; ".repeat(40);
+        let mut seen = None;
+        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let g = tip_galley(ui.ctx(), &t, &long);
+            let short = tip_galley(ui.ctx(), &t, "Wire");
+            seen = Some((
+                g.rows.len(),
+                g.elided,
+                g.rows.last().and_then(|r| r.glyphs.last()).map(|c| c.chr) == Some('…'),
+                g.size().x,
+                short.text().to_owned(),
+                short.elided,
+            ));
+        });
+        // The font atlas the pass built is never uploaded here.
+        out.textures_delta.clear();
+        let (rows, elided, ellipsis, width, short, short_elided) = seen.expect("a pass ran");
+        assert_eq!(rows, TIP_MAX_LINES);
+        assert!(elided && ellipsis, "the cut text ends in …");
+        assert!(width <= t.size_tooltip_max + 0.5, "{width}");
+        assert_eq!((short.as_str(), short_elided), ("Wire", false));
+    }
 
     /// Cycle 33 ruling: a disabled Primary draws as a Secondary (panel fill, default border) with the disabled text
     /// colour, in light and dark; enabled it keeps the accent fill.

@@ -299,6 +299,9 @@ impl NavigatorPane {
                         // Scrolled inside the panel's own height: egui's default minimum of 64 points would grow the
                         // panel past `size` and push its top over the rows.
                         let inner = ui.available_height().max(0.0);
+                        // Cycle 37 (window check): a solid bar, shown whenever the text is longer than the block's
+                        // room, so a cut message reads as one that scrolls (the floating bar is invisible at rest).
+                        ui.spacing_mut().scroll = egui::style::ScrollStyle::solid();
                         let shown = egui::ScrollArea::vertical()
                             .id_salt("messages-detail-scroll")
                             .max_height(inner)
