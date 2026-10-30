@@ -360,19 +360,17 @@ fn a_new_project_gives_each_starter_part_its_iec_81346_letter() {
     let tmp = Tmp::new("starter-letters");
     let mut s = new_project(&tmp);
     goto(&mut s, MULTI);
-    let mut k = 0i64;
-    for (number, letter) in [
+    for (k, (number, letter)) in (0i64..).zip([
         ("EW-GEN-RLY-1", "K"),
         ("EW-GEN-PB-1", "S"),
         ("EW-GEN-SEL-1", "S"),
         ("EW-GEN-POS-1", "B"),
         ("EW-GEN-LMP-1", "E"),
         ("EW-GEN-VLV-1", "M"),
-    ] {
+    ]) {
         let before = reps(&s);
         done(&mut s, "place.pick", json!({"part": number, "template": 0}));
         place_at(&mut s, (8 + k * 24, 10));
-        k += 1;
         done(&mut s, "ui.dismiss", json!({}));
         done(&mut s, "ui.dismiss", json!({}));
         let new = new_reps(&s, &before);
