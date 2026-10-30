@@ -22,6 +22,8 @@
 //!   with its [`GeometryResolver`].
 //! - [`Layer`]: the schematic and panel-layout layers.
 //! - [`num`]: the deterministic numerics (rotations, arcs, DXF bulges, nm → milli-pt).
+//! - [`canonical`]: the canonical byte encoding of a display list, the input of the page
+//!   digests (doc 15 §5.6, WP-S1.18 D6).
 //!
 //! # Coordinates and angles
 //!
@@ -92,6 +94,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod canonical;
 mod item;
 mod layer;
 mod link;
@@ -101,6 +104,7 @@ mod path;
 mod text;
 mod transform;
 
+pub use canonical::{CANONICAL_VERSION, Canonical, canonical_bytes};
 pub use item::{
     DisplayList, GeometryResolver, GroupItem, ImageData, ImageFormat, ImageItem, InstanceItem, Item,
     ItemKind, MAX_INSTANCE_DEPTH, PathItem, SymbolGeomId,
