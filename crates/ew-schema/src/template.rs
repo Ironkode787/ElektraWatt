@@ -107,7 +107,7 @@ where
         parts.into_iter().find_map(|(k, part)| {
             part.function_template
                 .iter()
-                .position(|t| names_def(t))
+                .position(&names_def)
                 .map(|n| (k, part, n))
         })
     })

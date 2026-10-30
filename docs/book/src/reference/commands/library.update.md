@@ -13,7 +13,10 @@ copy, else by index where the designation is unchanged, else by designation; the
 `Cp{function, idx}` endpoints of connections, potential definitions, bonds and channel bindings and the
 `cp_overrides` of the affected functions (a FnDef's: the functions of that definition; a part's: the functions
 of its devices that its template or pattern gives CPs; a symbol's: the functions its representations draw, by
-the FnDef CP each symbol CP draws). Referencing records change nowhere else.
+the FnDef CP each symbol CP draws). A template-origin function's CP stays on the part pattern entry it is drawn as
+(FT-655: its endpoint is a FnDef CP index where the template entry pairs by position, so it is not mapped as a
+pattern index): a part update moves it with that entry, a FnDef update keeps the entry and takes the endpoint the
+new FnDef gives it. Referencing records change nowhere else.
 
 Rejected: no copy (`/copies`), a copy listed twice, one the project does not hold (`/copies/i`), a version that
 is not semantic or is lower than the held one (`/copies/i/version`, a downgrade), a mapping for a copy not in

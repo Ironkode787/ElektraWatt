@@ -64,7 +64,7 @@ fn imported_connection_ends_are_derived_cps_of_a_positional_template() {
     let batch = TablesImporter::new(golden_common::library())
         .import(&inputs(), &bootstrap_context())
         .expect("the extended tables import");
-    // The contactor's functions record their template entries, so the derivation follows the importer's choice.
+    // The importer records no template entry: both it and the derivation take the first entry naming the FnDef.
     let k9: Vec<&ew_schema::Function> = batch
         .records
         .iter()
@@ -78,16 +78,16 @@ fn imported_connection_ends_are_derived_cps_of_a_positional_template() {
                 .is_some_and(|s| format!("{s:?}").contains("-102K9"))
         })
         .collect();
-    let mut entries: Vec<Option<u16>> = k9.iter().map(|f| f.template_entry).collect();
-    entries.sort_unstable();
-    assert_eq!(entries, [Some(0), Some(1)]);
+    assert_eq!(k9.len(), 2);
+    assert!(k9.iter().all(|f| f.template_entry.is_none()));
     let s = golden_common::session(&batch);
     let q = s.query();
     // Positional pairing: both functions have CPs 0 and 1, drawn as their pattern entries.
     for f in &k9 {
         let cps = q.get::<FunctionCps>(f.id);
         let got: Vec<(u16, &str)> = cps.iter().map(|c| (c.idx, c.designation.as_str())).collect();
-        let want: &[(u16, &str)] = if f.template_entry == Some(1) {
+        let aux = f.role == ew_schema::FnRole::Aux;
+        let want: &[(u16, &str)] = if aux {
             &[(0, "13"), (1, "14")]
         } else {
             &[(0, "A1"), (1, "A2")]

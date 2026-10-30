@@ -381,8 +381,8 @@ pub(crate) fn emit_terminals(cx: &mut Cx<'_>, table: Option<&Table>) {
 /// The template-origin rule (doc 03 §7 "CP instantiation", README "CP and endpoint notation"): the first part
 /// use of `device` (in `Device.parts` order) whose part template declares a function with FnDef `fndef` and the
 /// role `role` (`TemplateFn.main` ⇔ `FnRole::Main`), first matching template entry in `n` order; its part key
-/// and template position. The function records the position as `Function.template_entry`, so `ew-derive`'s
-/// `function_cps` follows the same entry (`ew_schema::template_entry_of`).
+/// and template position: the origin the `part` and `template` columns state. The CPs follow the entry `ew-derive`
+/// reads for a function without `template_entry` (see [`function_cps`]).
 fn template_origin<'c>(
     cx: &'c Cx<'_>,
     device: Option<&str>,
@@ -403,17 +403,16 @@ fn template_origin<'c>(
 
 /// The CP list of a function row, in CP index order:
 ///
-/// 1. **template origin** ([`template_origin`]): the template entry's pattern entries paired with the FnDef's CPs
-///    by `ew_schema::pair_template_cps` (FT-655), the rule `ew-derive`'s `function_cps` applies: by position, with
-///    the FnDef CP indices, when the entry names as many pattern entries as the FnDef has CPs; else each with its
-///    pattern index. The entry is the one `ew-derive` reads at the recorded `template_entry` (the first part use
-///    whose template at that position declares the FnDef);
+/// 1. **template origin**: the first template entry naming the FnDef, whatever its role, in part-use order (the
+///    entry `ew-derive` reads for a function without `template_entry`, which the importer does not record), its
+///    pattern entries paired with the FnDef's CPs by `ew_schema::pair_template_cps` (FT-655), the rule `ew-derive`'s
+///    `function_cps` applies: by position, with the FnDef CP indices, when the entry names as many pattern entries
+///    as the FnDef has CPs; else each with its pattern index;
 /// 2. a **black box**: every entry of the first part use whose part has a CP pattern, with its pattern index;
 /// 3. otherwise the FnDef's CPs.
 ///
 /// The optional `part` and `template` columns state the expected origin: the row is malformed (EW-IMP-002) when
-/// the rule does not select exactly that part and template position. The second value is the template position of
-/// a template-origin function (`Function.template_entry`).
+/// the rule does not select exactly that part and template position.
 fn function_cps(
     cx: &Cx<'_>,
     r: &mut Rd<'_>,
@@ -421,7 +420,7 @@ fn function_cps(
     device: Option<&str>,
     role: &FnRole,
     black_box: bool,
-) -> (Vec<CpInfo>, Option<u16>) {
+) -> Vec<CpInfo> {
     let named = r.text("part");
     let template = r.uint::<usize>("template");
     let origin = template_origin(cx, device, fndef, role);
@@ -439,23 +438,22 @@ fn function_cps(
     } else if template.is_some() {
         r.fail("column `template` needs column `part`");
     }
-    if let Some((_, n, part, t)) = origin {
-        // `ew-derive` reads the entry at `template_entry` in the first part use whose template declares the FnDef
-        // there, whatever its role.
-        let (part, t) = device
-            .and_then(|d| cx.devices.get(d))
-            .into_iter()
-            .flat_map(|d| d.parts.iter())
-            .filter_map(|k| cx.parts.get(k))
-            .find_map(|p| p.templates.get(n).filter(|t| t.fndef == fndef).map(|t| (p, t)))
-            .unwrap_or((part, t));
+    // The CPs follow the entry `ew-derive` reads for a function without `template_entry`
+    // (`ew_schema::template_entry_of`): the first entry naming the FnDef, whatever its role, in part-use order.
+    let entry = device
+        .and_then(|d| cx.devices.get(d))
+        .into_iter()
+        .flat_map(|d| d.parts.iter())
+        .filter_map(|k| cx.parts.get(k))
+        .find_map(|p| p.templates.iter().find(|t| t.fndef == fndef).map(|t| (p, t)));
+    if let Some((part, t)) = entry {
         let pattern: Vec<u16> = part.pattern.keys().copied().collect();
         let def: Vec<u16> = cx
             .lib
             .fndef(fndef)
             .map(|c| c.item.cps.as_slice().iter().map(|d| d.idx).collect())
             .unwrap_or_default();
-        let cps = pair_template_cps(&t.cps, &pattern, &def)
+        return pair_template_cps(&t.cps, &pattern, &def)
             .into_iter()
             .filter_map(|c| {
                 part.pattern.get(&c.pattern).map(|p| CpInfo {
@@ -464,7 +462,6 @@ fn function_cps(
                 })
             })
             .collect();
-        return (cps, u16::try_from(n).ok());
     }
     if black_box
         && let Some(part) = device
@@ -474,9 +471,9 @@ fn function_cps(
             .filter_map(|k| cx.parts.get(k))
             .find(|p| !p.pattern.is_empty())
     {
-        return (part.pattern.values().cloned().collect(), None);
+        return part.pattern.values().cloned().collect();
     }
-    let cps = match cx.lib.fndef(fndef) {
+    match cx.lib.fndef(fndef) {
         Some(c) => c
             .item
             .cps
@@ -490,8 +487,7 @@ fn function_cps(
             })
             .collect(),
         None => Vec::new(),
-    };
-    (cps, None)
+    }
 }
 
 /// `functions.csv` → `function`. A device that ends with functions but no main function loses them
@@ -555,7 +551,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
             r.fail("column `device` is empty (only interruption points have no device)");
         }
         let black_box = kind_name == 1;
-        let (cps, template_entry) = fndef
+        let cps = fndef
             .as_deref()
             .map(|f| function_cps(cx, &mut r, f, device.as_deref(), &role, black_box))
             .unwrap_or_default();
@@ -630,7 +626,7 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
                 kind,
                 cp_overrides,
                 source_ref: Some(source_ref("functions", row.key())),
-                template_entry,
+                template_entry: None,
                 extra: Default::default(),
             },
             FnInfo {
