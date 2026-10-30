@@ -111,13 +111,13 @@ fn pl3_each_glossary_term_finds_its_action() {
     ];
     for (term, action) in rows {
         let entries = query(&mut shell, term);
-        match action {
-            Some(id) => assert!(
+        // A term with no action fails nothing (PL-3); its query still runs.
+        if let Some(id) = action {
+            assert!(
                 ids(&entries).iter().take(3).any(|e| e == id),
                 "{term} → {id}: {:?}",
                 &ids(&entries)[..entries.len().min(5)]
-            ),
-            None => {}
+            );
         }
     }
     // The headline terms rank their action first.

@@ -236,8 +236,13 @@ pub fn show(
                     });
                     ui.add_space(t.space_3);
                 }
+                // The list asks for its own rows' height (up to ten): an egui area lays out in the size it had the
+                // frame before, so without it a list that grows (a reopened palette, a shorter query) stayed as short
+                // as the previous one (WP-S2.08 part 1's window check).
+                let rows = entries.len().min(10) as f32;
                 ScrollArea::vertical()
                     .max_height(t.size_palette_row * 10.0)
+                    .min_scrolled_height(t.size_palette_row * rows)
                     .show(ui, |ui| {
                         ui.spacing_mut().item_spacing.y = 0.0;
                         for (i, entry) in entries.iter().enumerate() {

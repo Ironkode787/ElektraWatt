@@ -101,10 +101,11 @@ pub fn score(query: &str, text: &str) -> Option<i32> {
                 -(j as i32).min(GAP_CAP)
             } else {
                 let mut best = far;
-                for k in j.saturating_sub(cap)..j {
-                    if prev[k] > NONE {
+                let from = j.saturating_sub(cap);
+                for (k, &p) in prev.iter().enumerate().take(j).skip(from) {
+                    if p > NONE {
                         let gap = (j - k - 1) as i32;
-                        let v = prev[k] - gap.min(GAP_CAP) + if gap == 0 { MATCH_NEXT } else { 0 };
+                        let v = p - gap.min(GAP_CAP) + if gap == 0 { MATCH_NEXT } else { 0 };
                         best = best.max(v);
                     }
                 }
