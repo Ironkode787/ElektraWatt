@@ -1,0 +1,33 @@
+# An open design brief (WP-S2.18 part 4, FT-593; visual spec section 6.1): `brief-relays-valves`' circuit driven by a
+# small PLC. `check-brief brief-plc-io` proves it runnable by replaying `solution.uiscript` and deciding
+# `acceptance.toml` on its exports.
+kind = "brief"
+grade = 3
+version = 1
+turn_budget = 120
+senses = ["text", "visual"]
+requires = [
+    "symbol: ew.iec.mcb-1pn@qet10",
+    "symbol: ew.iec.fuse@qet10",
+    "symbol: ew.iec.terminal@qet10",
+    "symbol: ew.iec.terminal-pe@qet10",
+    "part: EW-GEN-PSU-1",
+    "part: EW-GEN-CPU-1",
+    "part: EW-GEN-DI-1",
+    "part: EW-GEN-DO-1",
+    "action: tool.place_part",
+    "action: tool.black_box",
+    "action: strip.new",
+    "action: tool.wire",
+    "action: file.export_pdf",
+]
+areas = [
+    "new page",
+    "symbol picker",
+    "device from part",
+    "black boxes",
+    "PLC cards and channels",
+    "terminal strips",
+    "wiring",
+    "save and export",
+]

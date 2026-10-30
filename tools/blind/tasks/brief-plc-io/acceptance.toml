@@ -1,0 +1,114 @@
+# The acceptance list (visual spec section 6.2). The checker decides each item `ok`, `miss` or `unclear` from the
+# exports of the tester's run. `query` and `expect` prove the item on the reference solution (`check-brief`): a
+# read-only SELECT over the `api_v1_*` views and the row count it must give. `infeasible` marks a soft item the current
+# build cannot meet, with the reason and the package that brings it.
+
+[[item]]
+id = "A1"
+kind = "hard"
+what = "Three selector switches each reach their own input channel of the digital input card through a terminal of the strip: the switch to the terminal, the terminal to the card's channel pin, whose channel the card binds."
+how = "connections, pages"
+query = "SELECT DISTINCT c.acp FROM (SELECT from_tag AS a, from_cp AS acp, to_tag AS b, to_cp AS bcp FROM api_v1_wire UNION ALL SELECT to_tag, to_cp, from_tag, from_cp FROM api_v1_wire) c JOIN api_v1_device k ON k.tag = c.a AND k.part_number = 'EW-GEN-DI-1' JOIN api_v1_device t ON t.tag = c.b AND t.kind = 'terminal' JOIN (SELECT from_tag AS a, from_cp AS acp, to_tag AS b, to_cp AS bcp FROM api_v1_wire UNION ALL SELECT to_tag, to_cp, from_tag, from_cp FROM api_v1_wire) s ON s.a = c.b JOIN api_v1_device sw ON sw.tag = s.b AND sw.letter = 'S' WHERE c.acp <> 'M'"
+expect = ">= 3"
+
+[[item]]
+id = "A2"
+kind = "hard"
+what = "Three output channels of the digital output card each switch their own valve through a terminal of the strip."
+how = "connections, pages"
+query = "SELECT DISTINCT c.acp FROM (SELECT from_tag AS a, from_cp AS acp, to_tag AS b, to_cp AS bcp FROM api_v1_wire UNION ALL SELECT to_tag, to_cp, from_tag, from_cp FROM api_v1_wire) c JOIN api_v1_device k ON k.tag = c.a AND k.part_number = 'EW-GEN-DO-1' JOIN api_v1_device t ON t.tag = c.b AND t.kind = 'terminal' JOIN (SELECT from_tag AS a, from_cp AS acp, to_tag AS b, to_cp AS bcp FROM api_v1_wire UNION ALL SELECT to_tag, to_cp, from_tag, from_cp FROM api_v1_wire) s ON s.a = c.b WHERE c.acp NOT IN ('L+', 'M') AND s.b IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil')"
+expect = ">= 3"
+
+[[item]]
+id = "A3"
+kind = "hard"
+what = "Field wiring: every connection of a valve goes to a terminal of the strip, none to a cabinet device."
+how = "connections, pages"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.tag IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil') AND COALESCE(b.kind, '') <> 'terminal') OR (b.tag IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil') AND COALESCE(a.kind, '') <> 'terminal')"
+expect = "== 0"
+
+[[item]]
+id = "A4"
+kind = "hard"
+what = "Door wiring: every connection of a selector switch goes to a terminal of the strip, none straight to a cabinet device."
+how = "connections, pages"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'S' AND COALESCE(b.kind, '') <> 'terminal') OR (b.letter = 'S' AND COALESCE(a.kind, '') <> 'terminal')"
+expect = "== 0"
+
+[[item]]
+id = "A5"
+kind = "hard"
+what = "The 0 V side: the input card's and the output card's M and each valve coil's return terminal (A2) are on 0 V, the potential of the power supply's - output."
+how = "connections"
+query = "SELECT DISTINCT c.a, c.acp FROM (SELECT from_tag AS a, from_cp AS acp, to_tag AS b, to_cp AS bcp FROM api_v1_wire UNION ALL SELECT to_tag, to_cp, from_tag, from_cp FROM api_v1_wire) c JOIN api_v1_device k ON k.tag = c.a WHERE ((k.part_number IN ('EW-GEN-DI-1', 'EW-GEN-DO-1') AND c.acp = 'M') OR (c.acp = 'A2' AND k.tag IN (SELECT vd.tag FROM api_v1_device vd WHERE vd.letter IN ('M', 'Y') UNION SELECT vf.device_tag FROM api_v1_function vf WHERE vf.fndef = 'ew.fn.valve-coil'))) AND (SELECT w.potential_id FROM api_v1_wire w WHERE (w.from_tag = c.a AND w.from_cp = c.acp) OR (w.to_tag = c.a AND w.to_cp = c.acp) LIMIT 1) IN (SELECT m.potential_id FROM api_v1_wire m JOIN api_v1_device g ON (g.tag = m.from_tag AND m.from_cp = '-') OR (g.tag = m.to_tag AND m.to_cp = '-') WHERE g.part_number = 'EW-GEN-PSU-1')"
+expect = ">= 5"
+
+[[item]]
+id = "A6"
+kind = "hard"
+what = "The output card's L+ is fed from the fused 24 V: on a potential of the fuse, not straight on the power supply's + output."
+how = "connections"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device k ON (k.tag = w.from_tag AND w.from_cp = 'L+') OR (k.tag = w.to_tag AND w.to_cp = 'L+') WHERE k.part_number = 'EW-GEN-DO-1' AND w.potential_id IN (SELECT m.potential_id FROM api_v1_wire m JOIN api_v1_device f ON f.tag = m.from_tag OR f.tag = m.to_tag WHERE f.part_number = 'EW-GEN-FUS-1') AND w.potential_id NOT IN (SELECT m.potential_id FROM api_v1_wire m JOIN api_v1_device g ON (g.tag = m.from_tag AND m.from_cp = '+') OR (g.tag = m.to_tag AND m.to_cp = '+') WHERE g.part_number = 'EW-GEN-PSU-1')"
+expect = ">= 1"
+
+[[item]]
+id = "A7"
+kind = "hard"
+what = "Protection on both sides: the power supply unit is fed through a circuit breaker, and its 24 V output goes through a fuse."
+how = "connections, pages"
+query = "SELECT w.seq FROM api_v1_wire w JOIN api_v1_device a ON a.tag = w.from_tag JOIN api_v1_device b ON b.tag = w.to_tag WHERE (a.letter = 'F' AND b.has_part = 1) OR (b.letter = 'F' AND a.has_part = 1)"
+expect = ">= 3"
+
+[[item]]
+id = "A8"
+kind = "hard"
+what = "The PLC's digital input and output cards carry their parts and are in the parts list."
+how = "bom"
+query = "SELECT part_number FROM api_v1_bom_component WHERE part_number IN ('EW-GEN-DI-1', 'EW-GEN-DO-1')"
+expect = ">= 2"
+
+# `check-brief` decides this item by the check's exit (no error). A new project prints its small texts at 7 QET px
+# (ADR-0032), so EW-CORE-061 is no longer raised by every fresh project and needs an explanation like any finding.
+[[item]]
+id = "A9"
+kind = "hard"
+what = "The check report is clean, or every remaining finding is explained in the tester's hand-back."
+how = "check, handback"
+
+[[item]]
+id = "A10"
+kind = "hard"
+what = "Delivered: the tester saved the project and exported the PDF itself."
+how = "pdf, work, outcomes"
+
+[[item]]
+id = "A11"
+kind = "soft"
+what = "Every channel used shows its derived PLC address (I0.0, Q0.0, ...) on the drawing, at the card's pin or at the device it was assigned to."
+how = "pages"
+infeasible = "the cards' pins print their channels' addresses on the reference solution's page, but no api_v1 view carries a channel's binding or address, so only the checker's reading of the pages decides it; and the window cannot reassign a channel yet: the PLC navigator's drop refuses a black-box card's pin (`has no CP 0`) and a field device not attached to the card, and attaching one has no window flow (WP-S2.07 part 3 follow-up)"
+
+[[item]]
+id = "A12"
+kind = "soft"
+what = "The supply potentials are named and typed: L, N, PE, +24 V DC and 0 V."
+how = "connections"
+query = "SELECT name FROM api_v1_potential WHERE ac_dc IS NOT NULL AND voltage IS NOT NULL"
+expect = ">= 4"
+infeasible = "the window cannot name or type a potential yet (potential naming, F34 lane of cycle 34)"
+
+[[item]]
+id = "A13"
+kind = "soft"
+what = "Every placed device carries a part; the parts list has nothing foreign."
+how = "bom"
+query = "SELECT tag FROM api_v1_device WHERE has_part = 0 AND COALESCE(kind, '') NOT IN ('terminal', 'strip') AND COALESCE(aspects, '') NOT LIKE '%strip%'"
+expect = "== 0"
+
+[[item]]
+id = "A14"
+kind = "soft"
+what = "Each page the tester drew on carries a title that says what it shows."
+how = "pages"
+query = "SELECT p.folio FROM api_v1_page p WHERE p.generated = 0 AND (p.title IS NULL OR p.title = '') AND EXISTS (SELECT 1 FROM api_v1_device d WHERE d.main_folio = p.folio)"
+expect = "== 0"

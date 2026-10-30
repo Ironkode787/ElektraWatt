@@ -1,0 +1,19 @@
+# The class of every step of `prelude.uiscript`, in order: a brief's prelude is `setup` only (the first-run flow's
+# company-standard wizard with its defaults and the new project; the parts come from the generic starter parts every
+# new project lists, WP-S2.18 D5 and FT-592); the page and the drawing are the tester's work.
+
+[[step]]
+action = "tools.company_standard"
+class = "setup"
+
+[[step]]
+action = "wizard.finish"
+class = "setup"
+
+[[step]]
+action = "wizard.cancel"
+class = "setup"
+
+[[step]]
+action = "file.new"
+class = "setup"
