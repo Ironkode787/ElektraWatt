@@ -609,6 +609,21 @@ impl App {
 
         let mut events: Vec<Event> = Vec::new();
         self.route_keys(&ctx, &mut events);
+        // Cycle 38 (window check W38): while the picker is open it owns the keyboard. The panes paint before it and
+        // a focused one (the navigator's type-ahead, a Properties row, the canvas) would take the frame's keys and
+        // text first: the key typed in the frame that opens the picker went to the focused navigator ("elay" for
+        // "relay"). The keyboard events are held back from the panes and handed to the picker when it paints.
+        let held_for_picker: Vec<egui::Event> = if self.shell.picker().is_some() {
+            ctx.input_mut(|i| {
+                let (held, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut i.events)
+                    .into_iter()
+                    .partition(is_keyboard_event);
+                i.events = rest;
+                held
+            })
+        } else {
+            Vec::new()
+        };
         // A file from the OS dropped on the window (doc 16 §4.8): an image becomes the Image tool's asset.
         let dropped: Vec<PathBuf> = ctx.input(|i| {
             i.raw
@@ -823,6 +838,9 @@ impl App {
         );
         self.palette_was_open = palette_open;
         let picker_open = self.shell.picker().is_some();
+        if !held_for_picker.is_empty() {
+            ctx.input_mut(|i| i.events.extend(held_for_picker));
+        }
         crate::picker::show(
             &ctx,
             &self.shell,
@@ -1411,6 +1429,19 @@ impl App {
             }
         }
     }
+}
+
+/// Whether `e` is keyboard input (a key, typed text, an IME step, a clipboard key): what an open picker owns.
+fn is_keyboard_event(e: &egui::Event) -> bool {
+    matches!(
+        e,
+        egui::Event::Key { .. }
+            | egui::Event::Text(_)
+            | egui::Event::Ime(_)
+            | egui::Event::Paste(_)
+            | egui::Event::Copy
+            | egui::Event::Cut
+    )
 }
 
 /// The first of the dropped files that doc 16 §4.8 maps onto the Image tool: every file that is no QElectroTech

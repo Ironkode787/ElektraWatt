@@ -165,6 +165,30 @@ fn the_picker_filter_keeps_the_first_typed_character() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// Cycle 38 (window check W38): with a navigator focused (it paints before the picker and takes typed text as its
+/// type-ahead), the first key typed after `tool.place` still reaches the picker's filter ("relay", not "elay").
+#[test]
+fn the_picker_filter_keeps_the_first_typed_character_over_a_focused_navigator() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    dispatch(&mut h, "navigator.show", json!({"kind": "connections"}));
+    settle(&mut h);
+    assert!(
+        matches!(
+            h.state().shell().focus(),
+            Some(ew_ui::ew_viewmodel::shell::Focus::Navigator(_))
+        ),
+        "the navigator has the focus"
+    );
+    dispatch(&mut h, "tool.place", json!({}));
+    h.event(egui::Event::Text("r".to_owned()));
+    h.step();
+    h.event(egui::Event::Text("elay".to_owned()));
+    settle(&mut h);
+    assert_eq!(h.state().shell().picker().unwrap().filter, "relay");
+    h.state_mut().shell_mut().shutdown();
+}
+
 #[test]
 fn pl8_exact_counts_of_place_move_and_the_picker_in_the_window() {
     let tmp = Tmp::new();
