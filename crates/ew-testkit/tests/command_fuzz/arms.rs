@@ -182,6 +182,12 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: library_update,
     },
+    // WP-S1.19 part 5
+    Arm {
+        command: "macro.insert",
+        weight: 2,
+        build: macro_insert,
+    },
     // WP-S2.04 part 4a
     Arm {
         command: "marker.place",
@@ -4533,9 +4539,101 @@ fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
+// WP-S1.19 part 5
+/// `macro.insert` (D12, D13): a window macro of one device with its main function drawn by an embedded symbol,
+/// carried in the command and inserted at a grid point of a page that takes it; the new device's ID is
+/// v5(instance, local). Refused: the macro not carried, no anchor, an unknown value set, a fragment of another grid,
+/// a point off the grid, a macro whose hash is not its item's.
+fn macro_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let pages = pages_taking_reps(live);
+    let page = *rng.pick(&pages)?;
+    let fits: Vec<&SymInfo> = live
+        .symbols
+        .iter()
+        .filter(|s| s.fndef.is_some() && allowed(&page.kind).contains(&s.rep_type.as_str()))
+        .collect();
+    let symbol = *rng.pick(&fits)?;
+    let (d, f, r) = (rng.uuid(), rng.uuid(), rng.uuid());
+    let anchor = on_page(page, rng);
+    let at = on_page(page, rng);
+    let device =
+        json!({"$k": "device", "id": d, "tag": {"letter": letter(rng), "counter": 1 + rng.below(9)}});
+    let function = json!({"$k": "function", "id": f, "device": d, "def": symbol.fndef});
+    let rep = json!({"$k": "representation", "id": r, "functions": [f], "page": page.id, "symbol": symbol.id,
+        "rep_type": symbol.rep_type, "pos": anchor});
+    let (library, item) = (rng.uuid(), rng.uuid());
+    let doc = |grid: (u64, u64)| -> Option<Value> {
+        let fragment = json!({"format": "0.1", "project": live.fixture.project_id, "grid": [grid.0, grid.1],
+            "page_kind": page.kind, "anchor": anchor, "records": [device, function, rep], "copies": [],
+            "nodes": []});
+        let template = json!({"$k": "macro", "id": item, "library_id": library, "item_id": item,
+            "version": "1.0.0", "sha256": format!("sha256:{}", "00".repeat(32)), "name": "fuzz", "kind": "window",
+            "variants": [{"rep_type": symbol.rep_type, "key": "A", "fragment": fragment}],
+            "value_sets": [{"name": "one"}]});
+        relineaged(&template, &library, &item)
+    };
+    let good = doc(page.grid)?;
+    let id = good["id"].clone();
+    let instance = rng.uuid();
+    let params = |copies: Value| json!({"copies": copies, "macro": id, "page": page.id, "at": at, "instance": instance});
+    let cmd = |p: Value| Step::cmd("macro.insert", p);
+    match rng.below(10) {
+        0 => Some(cmd(params(json!([]))).refuse()),
+        1 => {
+            let mut p = params(json!([good]));
+            p.as_object_mut()?.remove("at");
+            Some(cmd(p).refuse())
+        }
+        2 => {
+            let mut p = params(json!([good]));
+            p["value_set"] = json!("none");
+            Some(cmd(p).refuse())
+        }
+        3 => {
+            let other = if page.grid == (4_000_000, 1) {
+                (7_937_500, 3)
+            } else {
+                (4_000_000, 1)
+            };
+            let mut p = params(json!([doc(other)?]));
+            p["macro"] = p["copies"][0]["id"].clone();
+            Some(cmd(p).refuse())
+        }
+        4 => {
+            let mut p = params(json!([good]));
+            p["at"] = json!([at[0].as_i64()? + 1, at[1]]);
+            Some(cmd(p).refuse())
+        }
+        5 => {
+            let mut c = good.clone();
+            c["sha256"] = json!(format!("sha256:{}", "00".repeat(32)));
+            Some(cmd(params(json!([c]))).refuse())
+        }
+        _ => {
+            let local: ew_ids::Uuid = d.parse().ok()?;
+            let inst: ew_ids::Uuid = instance.parse().ok()?;
+            let new = ew_ids::Uuid::new_v5(&inst, local.hyphenated().to_string().as_bytes());
+            Some(
+                cmd(params(json!([good])))
+                    .accept()
+                    .counts(&[(Table::Devices, 1), (Table::Functions, 1), (Table::Reps, 1)])
+                    .check(move |_, after| {
+                        after
+                            .devices()
+                            .contains(ew_ids::Id::from_uuid(new))
+                            .then_some(())
+                            .ok_or_else(|| "the device is not v5(instance, local)".to_owned())
+                    }),
+            )
+        }
+    }
+}
+
 /// `library.update` (Bulk, WP-S1.19 D9): a held part copy replaced by another version with another description.
 /// Refused: no copies, a copy the project does not hold, a version that is not semantic, a copy twice, a mapping for a
-/// copy not given, a CP mapping that is not injective (an old CP twice, or two old CPs onto one new). The version is drawn at random, so an update may be a downgrade of an earlier one: either.
+/// copy not given, a CP mapping that is not injective (an old CP twice, or two old CPs onto one new), a version that
+/// names a manufacturer the project does not hold without embedding it (FT-640). The version is drawn at random, so
+/// an update may be a downgrade of an earlier one: either.
 fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (held, template) = rng.pick(&live.fixture.part_json)?;
     let library = template["library_id"].as_str()?.to_owned();
@@ -4579,6 +4677,14 @@ fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 json!([[a, a], [a, b]])
             };
             Some(cmd(json!({"copies": [c], "cp_maps": [{"copy": held, "map": map}]})).refuse())
+        }
+        // FT-640: the new version names a manufacturer the project does not hold and the command does not embed.
+        6 => {
+            let mut t = template.clone();
+            t["version"] = json!("9.0.0");
+            t["manufacturer"]["item"] = json!(rng.uuid());
+            let c = relineaged(&t, &library, &item)?;
+            Some(cmd(json!({"copies": [c]})).refuse())
         }
         _ => {
             let minor = rng.below(50);

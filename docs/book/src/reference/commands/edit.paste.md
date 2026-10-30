@@ -89,8 +89,10 @@ the library copies and the structure nodes. The ghost rectangles of the text for
 | `copies` | array of any JSON value | no | `[]` | The library copies the records name, in the `lib/` JSON form `library.embed` takes. |
 | `format` | string | yes |  | The project format of the records (`0.1`). |
 | `grid` | array of integer (format `uint64`, min 0) (at least 2 item(s), at most 2 item(s)) | yes |  | The source page's connection grid `[num, den]` in nanometres. |
+| `lib` | array of [`LibRef`](#libref) | no |  | The library references of the closure a macro's records name (WP-S1.19 D7; ADR-0011 amendment 5), in place of `copies`: a library item holds no copies of other items, and the session resolves these into the documents `macro.insert` carries. A paste does not read them. |
 | `nodes` | array of [`FragmentNode`](#fragmentnode) | no | `[]` | The structure nodes the records name. |
 | `page_kind` | string | yes |  | The source page's type (`multi_line`). |
+| `pages` | array of any JSON value | no |  | The page records of a page macro (WP-S1.19 D12; ADR-0011 amendment 5): `macro.insert` creates the pages after its target page with proposed folios; `edit.paste` refuses them. |
 | `project` | [`CmdUuid`](#cmduuid) | yes |  | The source project's ID. |
 | `records` | array of any JSON value | yes |  | The records, canonical record objects (`$k` first), in fragment order. |
 
@@ -105,6 +107,24 @@ path from the root down and its aliases.
 | `aspect` | string | yes |  | The aspect (`location`, `function`, …), as the node record writes it. |
 | `id` | [`CmdUuid`](#cmduuid) | yes |  | The node's ID in the source project. |
 | `path` | array of string | yes |  | The codes of the node's path, root first; the last is the node's own code. |
+
+### LibRef
+
+A reference between library items (doc 07 §2.1): library, item and a semantic-version requirement.
+
+| Name | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `item` | [`Uuid`](#uuid) | yes |  | The item's UUID, stable across versions. |
+| `library` | [`Uuid`](#uuid) | yes |  | The library's UUID. |
+| `version_req` | string | yes |  | A semantic-version requirement such as `"^1"`. |
+
+### Uuid
+
+A lower-case hyphenated UUID (doc 05 §3.2).
+
+Type: string (at least 36 character(s), at most 36 character(s))
+
+Pattern: `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`
 
 ## Exit codes
 

@@ -44,6 +44,7 @@
     - [`junction.edit`](reference/commands/junction.edit.md)
     - [`library.embed`](reference/commands/library.embed.md)
     - [`library.update`](reference/commands/library.update.md)
+    - [`macro.insert`](reference/commands/macro.insert.md)
     - [`marker.place`](reference/commands/marker.place.md)
     - [`numbering.renumber`](reference/commands/numbering.renumber.md)
     - [`page.create`](reference/commands/page.create.md)

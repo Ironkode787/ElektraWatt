@@ -23,6 +23,13 @@ connection, potential definition, bond or channel binding that the mapping leave
 refusal). **Bulk**: always previewed; the session's update plan shows the class (`classify_update`), the field
 diff, the devices and representations touched and the BOM rows that change. Outcome: the first copy.
 
+**The new version's closure (FT-640).** `embed` holds the documents the new versions name that the project does
+not hold (a new manufacturer, a new template FnDef, a symbol's new FnDef); they are embedded in the same
+transaction, each checked as `library.embed` checks it (`/embed/i`: a copy the project holds already, one listed
+twice or also in `copies` is refused). A FnDef or manufacturer that a new version names and its held version did
+not, which the project does not hold and `embed` does not bring, refuses the update with the list (a reference
+the held version already made is left as it is: the update does not repair an older closure).
+
 ## Registry entry
 
 | Item | Value |
@@ -43,6 +50,7 @@ diff, the devices and representations touched and the BOM rows that change. Outc
 |---|---|---|---|---|
 | `copies` | array of any JSON value | yes |  | The new library documents (`lib/` JSON form), at least one. |
 | `cp_maps` | array of [`CpMapParam`](#cpmapparam) | no |  | CP mappings, per copy. |
+| `embed` | array of any JSON value | no |  | The closure documents the new versions name that the project does not hold (FT-640), embedded with the update (`lib/` JSON form). |
 
 ## Types
 
