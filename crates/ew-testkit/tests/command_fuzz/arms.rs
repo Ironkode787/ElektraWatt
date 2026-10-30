@@ -420,6 +420,12 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: bus_physical_net_create,
     },
+    // WP-S2.07 part 4a: last, for the same reason.
+    Arm {
+        command: "part.edit_copy",
+        weight: 2,
+        build: part_edit_copy,
+    },
 ];
 
 /// The representation types a page type allows (`allowed_rep_types` of `ew-commands`, in JSON form).
@@ -1032,6 +1038,11 @@ fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     {
         return Some(step);
     }
+    if rng.chance(9)
+        && let Some(step) = fields_set_copies(live, rng)
+    {
+        return Some(step);
+    }
     let one = |kind: &str, target: &Value, path: &str, value: Value| {
         Step::cmd(
             "fields.set",
@@ -1345,11 +1356,64 @@ fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
+// WP-S2.07 part 4a
+/// `fields.set` with `copies` (D16): a connection's wire part set to a part of another library carried in the command
+/// (embedded in the same transaction); refused: the copy listed twice, and a part neither held nor carried.
+fn fields_set_copies(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let (_, template) = rng.pick(&live.fixture.part_json)?;
+    let c = relineaged(template, &rng.uuid(), &rng.uuid())?;
+    let id = c["id"].clone();
+    let con = rng.pick(&live.connections)?.clone();
+    let params = |copies: Value| {
+        json!({"kind": "connection", "targets": [con], "path": "overrides.wire_part", "value": {"copy": id},
+            "copies": copies})
+    };
+    match rng.below(4) {
+        0 => Some(Step::cmd("fields.set", params(json!([c.clone(), c]))).refuse()),
+        1 => Some(Step::cmd("fields.set", params(json!([]))).refuse()),
+        _ => {
+            let (part, connection) = (id.clone(), con.clone());
+            Some(
+                Step::cmd("fields.set", params(json!([c])))
+                    .accept()
+                    .counts(&[(Table::Parts, 1)])
+                    .check(move |_, after| {
+                        let cid = typed::<ew_schema::Connection>(&connection).ok_or("a connection ID")?;
+                        let pid = typed::<ew_schema::Part>(&part).ok_or("a part ID")?;
+                        let set = after
+                            .connections()
+                            .get(cid)
+                            .and_then(|c| c.overrides.wire_part.as_ref().map(|p| p.copy));
+                        (set == Some(pid))
+                            .then_some(())
+                            .ok_or_else(|| "the wire part is not the embedded copy".to_owned())
+                    }),
+            )
+        }
+    }
+}
+
 // WP-S2.05 part 2
 /// `fields.set_many`: one function text per device (distinct devices, one entry each), checked afterwards; refused: no
 /// entry, a (target, path) pair in two entries, and an entry `fields.set` would refuse (a path that is not settable).
 fn fields_set_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let entry = |device: &Value, value: &str| json!({"kind": "device", "targets": [device], "path": "function_text", "value": value});
+    // WP-S2.07 part 4a (D16): the command's `copies` embed; an entry's own `copies` are refused.
+    if rng.chance(9) {
+        let (_, template) = rng.pick(&live.fixture.part_json)?;
+        let c = relineaged(template, &rng.uuid(), &rng.uuid())?;
+        let con = rng.pick(&live.connections)?;
+        let e = json!({"kind": "connection", "targets": [con], "path": "overrides.wire_part", "value": {"copy": c["id"]}});
+        return Some(if rng.chance(2) {
+            let mut bad = e;
+            bad["copies"] = json!([c]);
+            Step::cmd("fields.set_many", json!({"edits": [bad]})).refuse()
+        } else {
+            Step::cmd("fields.set_many", json!({"edits": [e], "copies": [c]}))
+                .accept()
+                .counts(&[(Table::Parts, 1)])
+        });
+    }
     match rng.below(8) {
         0 => Some(Step::cmd("fields.set_many", json!({"edits": []})).refuse()),
         1 => {
@@ -5014,6 +5078,58 @@ fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     .accept()
                     .counts(&[(Table::Parts, 0)])
                     .check(move |_, after| uses(after, &d, &part)),
+            )
+        }
+    }
+}
+
+// WP-S2.07 part 4a
+/// `part.edit_copy` (Bulk, D20, D21): a held project-local part copy (Golden A's are) edited in place with a new
+/// description. Refused: a copy the project does not hold, a fork for a project-local copy, a changed CP pattern, an
+/// empty part number, the unit `pcs`, a technical key twice, and the unchanged item.
+fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let (held, template) = rng.pick(&live.fixture.part_json)?;
+    let project = live.fixture.project_id.as_str()?;
+    if template["library_id"].as_str()? != project {
+        return None;
+    }
+    let mut item = template.as_object()?.clone();
+    for k in ["$k", "$v", "id", "library_id", "item_id", "version", "sha256"] {
+        item.remove(k);
+    }
+    let item = Value::Object(item);
+    let with = |k: &str, v: Value| {
+        let mut p = item.clone();
+        p[k] = v;
+        p
+    };
+    let cmd = |p: Value| Step::cmd("part.edit_copy", p);
+    match rng.below(10) {
+        0 => Some(cmd(json!({"copy": rng.uuid(), "part": item})).refuse()),
+        1 => Some(cmd(json!({"copy": held, "part": with("description", json!("x")), "fork": rng.uuid()})).refuse()),
+        2 => Some(cmd(json!({"copy": held, "part": with("cp_pattern", json!([{"idx": 99, "designation": "99"}]))})).refuse()),
+        3 => Some(cmd(json!({"copy": held, "part": with("part_number", json!(" "))})).refuse()),
+        4 => Some(cmd(json!({"copy": held, "part": with("unit", json!("pcs"))})).refuse()),
+        5 => Some(
+            cmd(json!({"copy": held, "part": with("tech_data", json!([{"key": "k", "value": "A"}, {"key": "k", "value": "B"}]))}))
+                .refuse(),
+        ),
+        // Either: an earlier step may have edited the copy, so its own template is no longer the held item.
+        6 => Some(cmd(json!({"copy": held, "part": item}))),
+        _ => {
+            let description = format!("fuzz {}", &rng.uuid()[..8]);
+            let (id, text) = (held.clone(), description.clone());
+            Some(
+                cmd(json!({"copy": held, "part": with("description", json!(description))}))
+                    .accept()
+                    .counts(&[(Table::Parts, 0)])
+                    .check(move |_, after| {
+                        let id = typed::<ew_schema::Part>(&id).ok_or("a copy ID")?;
+                        let copy = after.parts().get(id).ok_or("the edited copy is gone")?;
+                        (copy.item.description.as_neutral() == Some(text.as_str()))
+                            .then_some(())
+                            .ok_or_else(|| "the copy does not carry the new description".to_owned())
+                    }),
             )
         }
     }

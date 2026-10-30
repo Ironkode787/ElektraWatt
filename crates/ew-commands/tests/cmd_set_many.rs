@@ -25,6 +25,7 @@ fn set(kind: KindName, targets: &[AnyId], path: &str, value: Value) -> SetFields
         targets: targets.to_vec(),
         path: path.into(),
         value,
+        copies: Vec::new(),
     }
 }
 
@@ -33,7 +34,10 @@ fn dev(d: Id<Device>) -> AnyId {
 }
 
 fn many(edits: Vec<SetFields>) -> SetManyFields {
-    SetManyFields { edits }
+    SetManyFields {
+        edits,
+        copies: Vec::new(),
+    }
 }
 
 /// `(command, pointer)` of an `InvalidParams` error.

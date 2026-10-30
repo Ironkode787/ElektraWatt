@@ -55,6 +55,7 @@ fn set(targets: &[Id<Revision>], path: &str, value: Value) -> SetFields {
         targets: targets.iter().map(|t| t.cast()).collect(),
         path: path.into(),
         value,
+        copies: Vec::new(),
     }
 }
 
@@ -456,6 +457,7 @@ fn device_edit(text: &str) -> SetFields {
         targets: vec![DEV_102F2.cast()],
         path: "function_text".into(),
         value: json!(text),
+        copies: Vec::new(),
     }
 }
 

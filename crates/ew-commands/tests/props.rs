@@ -213,6 +213,7 @@ fn build(model: &Model, step: &Step) -> Option<Box<dyn DynCommand>> {
             targets: vec![nth::<Device>(model, *device)?.id.cast()],
             path: "function_text".into(),
             value: serde_json::json!(format!("text {text}")),
+            copies: Vec::new(),
         }),
         Step::DeleteRep { rep } => boxed(DeleteSelection {
             targets: vec![TargetRef {

@@ -847,6 +847,7 @@ fn set_ip(f: Id<Function>, member: &str, value: serde_json::Value) -> ew_command
         targets: vec![f.cast()],
         path: format!("kind.ip.{member}"),
         value,
+        copies: Vec::new(),
     }
 }
 

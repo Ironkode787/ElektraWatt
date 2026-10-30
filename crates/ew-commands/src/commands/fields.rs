@@ -249,6 +249,12 @@ pub const ASPECTS: &[&str] = &[
 /// transaction, so a swap of two terminal designations over two commands is not possible here, but one
 /// `fields.set` that leaves a duplicate is caught later by prevent rules (ADR-0009). Outcome: none.
 /// Coalesce typing in one cell with a key (FR-UI-009).
+///
+/// `copies` (WP-S2.07 D16, as `device.place` since FT-656): library documents (`lib/` JSON form) that the value names
+/// and the project lacks (a catalogue part chosen for a strip's bridge or accessory), embedded first, in the same
+/// transaction, as `part.assign` embeds its closure: each is checked as `library.embed` checks it, at `/copies/i`; a
+/// copy the project holds with the same hash is reused, one it holds with another hash (another version of the item)
+/// is refused ("update from library first").
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetFields {
@@ -261,6 +267,9 @@ pub struct SetFields {
     pub path: String,
     /// The new value in the field's JSON encoding; `null` resets it.
     pub value: Value,
+    /// The library documents to embed first (`lib/` JSON form): what the value names that the project lacks.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<Value>,
 }
 
 impl Command for SetFields {
@@ -271,6 +280,7 @@ impl Command for SetFields {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        crate::commands::assign::embed_closure(Self::NAME, tx, &self.copies)?;
         self.apply(tx)?;
         Ok(Outcome::default())
     }
@@ -623,11 +633,17 @@ pub const SET_MANY_MAX_EDITS: usize = 10_000;
 /// more than 10,000 entries; at `/edits/<j>/targets/<k>`: a (target, path) pair that an earlier entry already names.
 /// Cost: `Bulk` when the entries name more than 500 targets in total (`BULK_ABOVE`, as `edit.delete`),
 /// else interactive. Outcome: none.
+///
+/// `copies` (WP-S2.07 D16): library documents the values name that the project lacks, embedded first as
+/// `fields.set`'s `copies` (refused at `/copies/i`); an entry carries none of its own (refused at `/edits/<i>/copies`).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetManyFields {
-    /// The entries, each the parameters of one `fields.set` (1 to 10,000).
+    /// The entries, each the parameters of one `fields.set` (1 to 10,000), without `copies`.
     pub edits: Vec<SetFields>,
+    /// The library documents to embed first (`lib/` JSON form): what the values name that the project lacks.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<Value>,
 }
 
 impl Command for SetManyFields {
@@ -682,6 +698,14 @@ impl Command for SetManyFields {
                 }
             }
         }
+        if let Some(i) = self.edits.iter().position(|e| !e.copies.is_empty()) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                format!("/edits/{i}/copies"),
+                "give the library documents in the command's `copies`, not in an entry",
+            ));
+        }
+        crate::commands::assign::embed_closure(Self::NAME, tx, &self.copies)?;
         for (i, e) in self.edits.iter().enumerate() {
             e.apply(tx).map_err(|err| match err {
                 CmdError::InvalidParams { path, message, .. } => {

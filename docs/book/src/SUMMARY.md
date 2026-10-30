@@ -56,6 +56,7 @@
     - [`page.renumber`](reference/commands/page.renumber.md)
     - [`page.reorder`](reference/commands/page.reorder.md)
     - [`part.assign`](reference/commands/part.assign.md)
+    - [`part.edit_copy`](reference/commands/part.edit_copy.md)
     - [`parts.import`](reference/commands/parts.import.md)
     - [`plc.bind_channel`](reference/commands/plc.bind_channel.md)
     - [`plc.config_project.create`](reference/commands/plc.config_project.create.md)

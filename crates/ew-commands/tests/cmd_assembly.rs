@@ -83,6 +83,7 @@ fn set_device(device: Id<Device>, path: &str, value: Value) -> SetFields {
         targets: vec![device.cast()],
         path: path.into(),
         value,
+        copies: Vec::new(),
     }
 }
 

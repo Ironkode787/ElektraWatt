@@ -51,6 +51,7 @@ fn set_text(devices: &[Id<Device>], text: &str) -> SetFields {
         targets: devices.iter().map(|d| d.cast()).collect(),
         path: "function_text".into(),
         value: json!(text),
+        copies: Vec::new(),
     }
 }
 

@@ -21,6 +21,7 @@ fn prevent_rules_are_not_wired_until_wp_s1_15() {
         targets: vec![DEV_T2.cast()],
         path: "terminal.designation".into(),
         value: json!("1"),
+        copies: Vec::new(),
     };
     // Known gap (README "Known gaps"): no prevent rule is wired until WP-S1.15; when ew-checks plugs in, D-12
     // rejects this in strict mode and this test must be inverted.

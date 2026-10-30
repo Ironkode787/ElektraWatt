@@ -222,7 +222,8 @@ fn examples() -> Vec<(&'static str, Value)> {
         ),
         (
             "fields.set",
-            json!({"kind": "device", "targets": [DEV_102F2.to_string()], "path": "tag.counter", "value": 5}),
+            json!({"kind": "device", "targets": [DEV_102F2.to_string()], "path": "tag.counter", "value": 5,
+                "copies": [{"$k": "part"}]}),
         ),
         (
             "edit.delete",
@@ -279,7 +280,8 @@ fn examples() -> Vec<(&'static str, Value)> {
             "fields.set_many",
             json!({"edits": [
                 {"kind": "device", "targets": [DEV_102F2.to_string()], "path": "function_text", "value": "Spare"},
-                {"kind": "device", "targets": [DEV_101F1.to_string()], "path": "function_text", "value": "Reserve"}]}),
+                {"kind": "device", "targets": [DEV_101F1.to_string()], "path": "function_text", "value": "Reserve"}],
+                "copies": [{"$k": "part"}]}),
         ),
         // WP-S2.05 part 3
         (
@@ -362,6 +364,12 @@ fn examples() -> Vec<(&'static str, Value)> {
         (
             "rep.join_device",
             json!({"rep": REP_102F2.to_string(), "device": DEV_T3.to_string()}),
+        ),
+        // WP-S2.07 part 4a (D20)
+        (
+            "part.edit_copy",
+            json!({"copy": PART_MCB.to_string(), "part": {"description": "MCB"}, "fork": DEV_T3.to_string(),
+                "copies": [{"$k": "manufacturer"}]}),
         ),
     ]
 }

@@ -791,6 +791,38 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("library.update", Value::Object(p)).map(|_| ())
     }
 
+    // WP-S2.07 part 4a
+    /// `part.edit_copy` (WP-S2.07 D20): the part copy `copy` edited to the part item `part` (its members, without the
+    /// copy metadata), in place for a project-local copy, else forked to the item `fork`; `copies` are library
+    /// documents the edit names that the project lacks (a manufacturer). The command is Bulk: the sink previews and
+    /// commits it. Returns the edited copy (the fork's for a fork).
+    ///
+    /// # Errors
+    ///
+    /// The command's error, or a document that does not serialise.
+    pub fn part_edit_copy(
+        &mut self,
+        copy: Id<ew_schema::Part>,
+        part: Value,
+        fork: Option<ew_ids::Uuid>,
+        copies: &[LibDocument],
+    ) -> Result<Id<ew_schema::Part>> {
+        let mut p = Map::new();
+        p.insert("copy".into(), json!(copy));
+        p.insert("part".into(), part);
+        if let Some(fork) = fork {
+            p.insert("fork".into(), json!(fork.to_string()));
+        }
+        if !copies.is_empty() {
+            p.insert(
+                "copies".into(),
+                Value::Array(self.lib_values("part.edit_copy", copies)?),
+            );
+        }
+        self.primary::<ew_schema::Part>("part.edit_copy", Value::Object(p))
+            .map(|(id, _)| id)
+    }
+
     /// Library documents as command parameter values.
     fn lib_values(&self, command: &str, docs: &[LibDocument]) -> Result<Vec<Value>> {
         docs.iter()

@@ -159,3 +159,32 @@ fn the_assign_and_update_verbs_change_part_uses_and_copies() {
             .any(|u| u.part.copy == copy_id(&psu))
     );
 }
+
+/// The DSL verb `part_edit_copy` (WP-S2.07 D20): on Golden A, 5SY4204-7's copy is project-local, so the edit is in
+/// place (the same copy ID, the new description, the hash of the new item); a fork for it is refused at `/fork`.
+#[test]
+fn part_edit_copy_edits_a_project_local_copy_in_place() {
+    let mut s = golden_a();
+    let mcb = part(&s, "5SY4204-7");
+    let LibDocument::Part(c) = &mcb else {
+        unreachable!()
+    };
+    let mut edited = serde_json::to_value(&c.item).unwrap();
+    edited["description"] = json!("MCB 1P+N C4");
+    {
+        let mut sink = Sink(&mut s);
+        let mut b = Builder::new(&mut sink);
+        let e = b
+            .part_edit_copy(c.id, edited.clone(), Some(Uuid::from_u128(7)), &[])
+            .unwrap_err();
+        assert!(e.message.contains("/fork"), "{e}");
+        assert_eq!(b.part_edit_copy(c.id, edited, None, &[]).unwrap(), c.id);
+    }
+    let q = s.query();
+    let held = q.parts().get(c.id).unwrap();
+    assert_eq!(held.item.description.as_neutral(), Some("MCB 1P+N C4"));
+    assert_eq!(
+        Some(held.sha256.0),
+        ew_commands::commands::library_copy_hash(&LibDocument::Part((**held).clone()))
+    );
+}

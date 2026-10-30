@@ -134,6 +134,7 @@ fn set(kind: KindName, target: AnyId, path: &str, value: Value) -> SetFields {
         targets: vec![target],
         path: path.into(),
         value,
+        copies: Vec::new(),
     }
 }
 
@@ -765,6 +766,7 @@ fn fields_set_refuses_a_conductor_colour_the_profile_does_not_know() {
     match e
         .execute(&SetManyFields {
             edits: vec![set(KindName::Conductor, target, "colour", json!(["DBU"]))],
+            copies: Vec::new(),
         })
         .unwrap_err()
     {

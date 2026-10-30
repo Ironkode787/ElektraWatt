@@ -1,0 +1,45 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`part.edit_copy` (`EditPartCopy`, WP-S2.07 D20, D21; FT-394): edits the identity, description, category, unit\nand technical data of a part copy the project holds, in one undo step. Always previewed (`Bulk`).\n\n- A **project-local copy** (`library_id` is the project ID, local forks included) is rewritten in place: the same\n  copy ID, item ID and version, the item replaced and `sha256` recomputed.\n- A **copy from a library** is forked (doc 07 §3.1, \"local edits fork the item\"; a library item is never edited\n  from inside a project): a new project-local copy with item ID `fork`, copy ID `v5(NS_LIBCOPY, project ‖ fork)`,\n  the original's version and `meta.source` = `{\"fork_of\": {\"library\", \"item\", \"version\"}}`; every reference to the\n  original copy that the link table (`ew_model::LINKS`) lists as a part-copy link (the part uses, a strip\n  accessory's part, an assembly configuration's part, a connection's `overrides.wire_part`, a potential\n  definition's `props.wire_part`) names the fork afterwards. The original copy stays, unused, until purged. The\n  caller mints `fork` (the session's `next_fork_item`), so a replay reproduces it.\n\n`part` is the edited part item (its members, without the copy metadata). Only `manufacturer`, `part_number`,\n`type_designation`, `order_number`, `gtin`, `description`, `kind`, `category`, `unit` and `tech_data` may differ\nfrom the copy's; so no edit changes a connection point, the function template, the contacts, the sections or the\nmechanical data. `copies` carries library documents the edit names that the project lacks (a manufacturer),\nembedded as `part.assign` embeds its closure.\n\nRejected, with the pointer: `/copy` not a part copy the project holds; `/part` not a part item, or one whose\nother members differ from the copy's; `/part/manufacturer` missing, or a changed reference to a manufacturer copy\nthe project does not hold and `copies` does not carry; `/part/part_number` empty; `/part/unit` not `piece`, `m` or\n`set`; `/part/tech_data/<i>` not a technical value, or a key given twice; `/fork` absent for a copy from a library,\ngiven for a project-local copy, or naming an item whose copy the project holds; `/copies/<i>` as `library.embed`\nrefuses, or another version of a held copy. The whole command is refused when the item equals the copy's (\"the\npart is unchanged\"). Bulk. Outcome: the edited copy (the fork's copy for a fork).",
+  "properties": {
+    "copies": {
+      "description": "Library documents to embed (`lib/` JSON form): a manufacturer the project lacks.",
+      "items": true,
+      "type": "array"
+    },
+    "copy": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The part copy to edit."
+    },
+    "fork": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The item ID of the fork, for a copy from a library only."
+    },
+    "part": {
+      "description": "The edited part item: the part's members, without the copy metadata."
+    }
+  },
+  "required": [
+    "copy",
+    "part"
+  ],
+  "title": "part.edit_copy",
+  "type": "object"
+}

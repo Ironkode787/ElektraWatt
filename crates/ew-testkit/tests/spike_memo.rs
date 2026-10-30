@@ -200,6 +200,7 @@ fn nightly_memoised_connectivity_equals_cold_after_hit_unrelated_edit_move_and_w
         targets: vec![conductor.cast()],
         path: "colour".into(),
         value: serde_json::json!([new_colour]),
+        copies: Vec::new(),
     })
     .expect("conductor colour accepted");
     let after = s.world().model;

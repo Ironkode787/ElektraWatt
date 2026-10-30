@@ -333,6 +333,7 @@ fn external_ref_device_is_editable_with_fields_set() {
         targets: vec![x.cast()],
         path: "device".into(),
         value: serde_json::json!("JE-N2000-01"),
+        copies: Vec::new(),
     })
     .expect("fields.set device");
     assert_eq!(row(&e, x).device, ident("JE-N2000-01"));

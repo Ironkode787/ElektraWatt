@@ -78,6 +78,7 @@
 //! | `rep.join_device` | [`JoinDevice`] | Interactive |
 //! | `bus.logical_net.create` | [`CreateLogicalNet`] | Interactive |
 //! | `bus.physical_net.create` | [`CreatePhysicalNet`] | Interactive |
+//! | `part.edit_copy` | [`EditPartCopy`] | Bulk |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380), and `revision.release`,
@@ -112,6 +113,8 @@ mod library_update;
 // WP-S1.19 part 5
 mod macro_insert;
 mod page;
+// WP-S2.07 part 4a
+mod part_edit;
 // WP-S2.05 part 3
 mod parts;
 mod paste;
@@ -162,6 +165,7 @@ pub use macro_insert::{
     instantiate, pick_variant,
 };
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages, ReorderPages};
+pub use part_edit::{EditPartCopy, PART_EDITABLE};
 // WP-S2.05 part 3
 pub use bus::{CreateLogicalNet, CreatePhysicalNet};
 pub use parts::{ImportParts, import_counts};
@@ -274,4 +278,6 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<UnwaiveFinding>();
     // WP-S2.18 D3 (FT-628)
     r.register::<JoinDevice>();
+    // WP-S2.07 part 4a (D20, FT-394)
+    r.register::<EditPartCopy>();
 }

@@ -49,6 +49,7 @@ fn set_strip(e: &mut Engine, path: &str, value: serde_json::Value) -> Result<(),
         targets: vec![DEV_X1031.cast()],
         path: path.into(),
         value,
+        copies: Vec::new(),
     })
     .map(|_| ())
 }
@@ -354,6 +355,7 @@ fn insert_rejects_a_seq_beyond_u32_max() {
         targets: vec![t20.cast()],
         path: "terminal.seq".into(),
         value: json!(u32::MAX),
+        copies: Vec::new(),
     })
     .unwrap();
     let rev = e.model().rev();

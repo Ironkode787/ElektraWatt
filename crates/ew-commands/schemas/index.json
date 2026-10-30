@@ -436,6 +436,17 @@
       "confirmation": "none",
       "cost": "bulk",
       "exposure": "edit",
+      "name": "part.edit_copy",
+      "params_version": 1,
+      "schema": "part.edit_copy.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "bulk",
+      "exposure": "edit",
       "name": "parts.import",
       "params_version": 1,
       "schema": "parts.import.schema.json",

@@ -16,6 +16,12 @@ transaction, so a swap of two terminal designations over two commands is not pos
 `fields.set` that leaves a duplicate is caught later by prevent rules (ADR-0009). Outcome: none.
 Coalesce typing in one cell with a key (FR-UI-009).
 
+`copies` (WP-S2.07 D16, as `device.place` since FT-656): library documents (`lib/` JSON form) that the value names
+and the project lacks (a catalogue part chosen for a strip's bridge or accessory), embedded first, in the same
+transaction, as `part.assign` embeds its closure: each is checked as `library.embed` checks it, at `/copies/i`; a
+copy the project holds with the same hash is reused, one it holds with another hash (another version of the item)
+is refused ("update from library first").
+
 ## Registry entry
 
 | Item | Value |
@@ -34,6 +40,7 @@ Coalesce typing in one cell with a key (FR-UI-009).
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
+| `copies` | array of any JSON value | no |  | The library documents to embed first (`lib/` JSON form): what the value names that the project lacks. |
 | `kind` | [`KindName`](#kindname) | yes |  | The kind of every target. |
 | `path` | string | yes |  | The dotted field path. |
 | `targets` | array of [`CmdUuid`](#cmduuid) | yes |  | The records. |

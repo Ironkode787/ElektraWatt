@@ -29,6 +29,7 @@ fn set(kind: KindName, targets: &[AnyId], path: &str, value: Value) -> SetFields
         targets: targets.to_vec(),
         path: path.into(),
         value,
+        copies: Vec::new(),
     }
 }
 

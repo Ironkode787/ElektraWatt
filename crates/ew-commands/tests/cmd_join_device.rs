@@ -356,6 +356,7 @@ fn set_device(device: Id<Device>, path: &str, value: serde_json::Value) -> SetFi
         targets: vec![device.cast()],
         path: path.into(),
         value,
+        copies: Vec::new(),
     }
 }
 

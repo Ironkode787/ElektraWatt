@@ -1532,6 +1532,7 @@ fn bench_memo(
                     targets: vec![c.id.cast()],
                     path: "colour".into(),
                     value: json!([colour]),
+                    copies: Vec::new(),
                 })
             }
             _ => None,

@@ -103,6 +103,7 @@ fn set(kind: KindName, target: ew_schema::AnyId, path: &str, value: Value) -> Se
         targets: vec![target],
         path: path.into(),
         value,
+        copies: Vec::new(),
     }
 }
 
