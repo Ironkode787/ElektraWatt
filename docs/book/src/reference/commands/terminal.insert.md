@@ -9,7 +9,8 @@ the number of terminals. In one transaction every terminal of the strip with `se
 and designation stay), every group bound (`from_seq`, `to_seq`) and every accessory `after_seq` at or above s is
 raised by n, and the new terminals are inserted as `terminal.add` inserts them, with `seq` s, s + 1, … in list
 order and `parts` on each. Rejected: the strip is not a device with the strip aspect; `before` is not a terminal of
-the strip; no terminal; a spec with `seq`; a designation already used in the strip or twice in the list; a
+the strip; new terminals between two terminals of one consecutive bridge group (FT-641, CI-06: the message names
+the group and the places outside it); no terminal; a spec with `seq`; a designation already used in the strip or twice in the list; a
 sequence number beyond 4294967295. A missing strip, `before`, function definition or part copy is `NotFound`.
 Cost Interactive. Outcome: the first new terminal device.
 

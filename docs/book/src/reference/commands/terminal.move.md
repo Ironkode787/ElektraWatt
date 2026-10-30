@@ -9,7 +9,10 @@ Let T be the strip's terminals in (`seq`, ID) order. The new order O is T withou
 (in their T order) inserted directly before `before` (absent: at the end). For every index i from the first to the
 last where T and O differ, the terminal at index i of O takes the old `seq` of the one at index i of T: the
 sequence values of the changed range are permuted (the rule of `page.reorder`). Groups, accessories and
-designations stay, so a moved terminal takes the group of its new place. Rejected: no terminal; a terminal listed
+designations stay, so a moved terminal takes the group of its new place. Bridges belong to their terminals (they
+are connections), so a bridge group follows its terminals: a move that keeps every bridge group consecutive is
+accepted, one that splits a group that was consecutive is refused with a message naming the group and the way out
+(FT-641, CI-06). Rejected: no terminal; a terminal listed
 twice; a device that is not a terminal; terminals of two strips; a `before` that is one of the moved terminals or
 not a terminal of their strip; an order that does not change. A missing device is `NotFound`. Cost Interactive, Outcome none.
 

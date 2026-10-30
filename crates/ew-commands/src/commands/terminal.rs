@@ -4,13 +4,14 @@
 //! Terminal and cable commands (doc 03 §11–§12): `terminal.add`, `terminal.designate`, `terminal.insert`,
 //! `terminal.move`, `cable.create`, `conductor.add`.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    Cable, ColourSpec, Conductor, Csa, Device, DeviceAspects, DeviceKind, Extra, FnDef, FnRole, Function,
-    FunctionKind, Kind, LevelSpec, LibCopy, Part, PartUse, StructureAssignment, TagSpec, Terminal,
+    Cable, ColourSpec, Conductor, Connection, ConnectionKind, Csa, Device, DeviceAspects, DeviceKind, Extra,
+    FnDef, FnRole, Function, FunctionKind, Kind, LevelSpec, LibCopy, Part, PartUse, StructureAssignment,
+    TagSpec, Terminal,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -252,6 +253,89 @@ pub(crate) fn insert_terminal(
     Ok((device, function))
 }
 
+/// The bridge groups of a strip (doc 08 §2.3): per `BridgeSpec.group`, the terminals of the strip its bridge
+/// connections end at. A bridge belongs to a terminal by its connection, so the group follows its terminals through
+/// any reorder.
+fn bridge_groups(tx: &TxBuilder<'_>, strip: Id<Device>) -> BTreeMap<u16, BTreeSet<Id<Device>>> {
+    let mut groups: BTreeMap<u16, BTreeSet<Id<Device>>> = BTreeMap::new();
+    let terminal_of = |f: Id<Function>| -> Option<Id<Device>> {
+        let d = tx.get::<Function>(f)?.device?;
+        let on_strip = tx
+            .get::<Device>(d)?
+            .aspects
+            .terminal
+            .as_ref()
+            .is_some_and(|t| t.strip == strip);
+        on_strip.then_some(d)
+    };
+    for t in tx.terminals_of_strip(strip) {
+        for f in tx.functions_of_device(t) {
+            for c in tx.connections_of_function(f) {
+                let Some(conn) = tx.get::<Connection>(c) else {
+                    continue;
+                };
+                let ConnectionKind::Bridge(spec) = &conn.kind else {
+                    continue;
+                };
+                let members = groups.entry(spec.group).or_default();
+                for end in [&conn.a, &conn.b] {
+                    if let Some(d) = end.function().and_then(terminal_of) {
+                        members.insert(d);
+                    }
+                }
+            }
+        }
+    }
+    groups
+}
+
+/// Whether the members of `group` sit at consecutive places of `order`.
+fn consecutive<T: PartialEq>(order: &[T], group: impl Fn(&T) -> bool) -> bool {
+    let at: Vec<usize> = order
+        .iter()
+        .enumerate()
+        .filter(|(_, x)| group(x))
+        .map(|(i, _)| i)
+        .collect();
+    at.windows(2).all(|w| w[1] == w[0] + 1)
+}
+
+/// The first bridge group (by number) whose terminals are consecutive in `before` but not in `after` (FT-641, CI-06):
+/// its number and its terminals' designations in `before` order. A group that was not consecutive already (a lenient
+/// import's) is EW-TERM-004's finding, not a refusal here.
+fn split_bridge_group(
+    tx: &TxBuilder<'_>,
+    strip: Id<Device>,
+    before: &[Id<Device>],
+    after: &[Option<Id<Device>>],
+) -> Option<(u16, Vec<String>)> {
+    for (group, members) in bridge_groups(tx, strip) {
+        let was = consecutive(before, |t| members.contains(t));
+        let is = consecutive(after, |t| t.is_some_and(|t| members.contains(&t)));
+        if was && !is {
+            let names = before
+                .iter()
+                .filter(|t| members.contains(t))
+                .map(|t| designation_of(tx, *t))
+                .collect();
+            return Some((group, names));
+        }
+    }
+    None
+}
+
+/// A terminal's designation, `?` for a device that is not a terminal.
+fn designation_of(tx: &TxBuilder<'_>, t: Id<Device>) -> String {
+    tx.get::<Device>(t)
+        .and_then(|d| {
+            d.aspects
+                .terminal
+                .as_ref()
+                .map(|x| x.designation.as_str().to_owned())
+        })
+        .unwrap_or_else(|| "?".to_owned())
+}
+
 /// `terminal.insert`: new terminals of a strip at a position, the following terminals moved up (WP-S2.07 §5.1, D4).
 ///
 /// Let s be the `seq` of `before` (absent: one more than the strip's highest `seq`, or 1 for an empty strip) and n
@@ -259,7 +343,8 @@ pub(crate) fn insert_terminal(
 /// and designation stay), every group bound (`from_seq`, `to_seq`) and every accessory `after_seq` at or above s is
 /// raised by n, and the new terminals are inserted as `terminal.add` inserts them, with `seq` s, s + 1, … in list
 /// order and `parts` on each. Rejected: the strip is not a device with the strip aspect; `before` is not a terminal of
-/// the strip; no terminal; a spec with `seq`; a designation already used in the strip or twice in the list; a
+/// the strip; new terminals between two terminals of one consecutive bridge group (FT-641, CI-06: the message names
+/// the group and the places outside it); no terminal; a spec with `seq`; a designation already used in the strip or twice in the list; a
 /// sequence number beyond 4294967295. A missing strip, `before`, function definition or part copy is `NotFound`.
 /// Cost Interactive. Outcome: the first new terminal device.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -356,6 +441,34 @@ impl Command for InsertTerminals {
                 );
             }
         }
+        // FT-641 (CI-06): new terminals inside a bridge group would split it.
+        if let Some(b) = self.before {
+            let mut order: Vec<(u32, Id<Device>)> = tx
+                .terminals_of_strip(self.strip)
+                .into_iter()
+                .filter_map(|id| {
+                    tx.get::<Device>(id)
+                        .and_then(|d| d.aspects.terminal.as_ref().map(|t| (t.seq, id)))
+                })
+                .collect();
+            order.sort();
+            let current: Vec<Id<Device>> = order.into_iter().map(|(_, id)| id).collect();
+            let mut after: Vec<Option<Id<Device>>> = current.iter().copied().map(Some).collect();
+            if let Some(k) = current.iter().position(|t| *t == b) {
+                after.insert(k, None);
+            }
+            if let Some((group, names)) = split_bridge_group(tx, self.strip, &current, &after) {
+                let (first, last) = (names.first().cloned(), names.last().cloned());
+                return tx.reject(format!(
+                    "inserting before terminal {} would split bridge group {group} (terminals {}); insert before \
+                     terminal {} or after terminal {}, or delete the group's bridge there first",
+                    designation_of(tx, b),
+                    names.join(", "),
+                    first.unwrap_or_default(),
+                    last.unwrap_or_default(),
+                ));
+            }
+        }
         let s = match at {
             Some(seq) => seq,
             None => match seqs.last() {
@@ -437,7 +550,10 @@ impl Command for InsertTerminals {
 /// (in their T order) inserted directly before `before` (absent: at the end). For every index i from the first to the
 /// last where T and O differ, the terminal at index i of O takes the old `seq` of the one at index i of T: the
 /// sequence values of the changed range are permuted (the rule of `page.reorder`). Groups, accessories and
-/// designations stay, so a moved terminal takes the group of its new place. Rejected: no terminal; a terminal listed
+/// designations stay, so a moved terminal takes the group of its new place. Bridges belong to their terminals (they
+/// are connections), so a bridge group follows its terminals: a move that keeps every bridge group consecutive is
+/// accepted, one that splits a group that was consecutive is refused with a message naming the group and the way out
+/// (FT-641, CI-06). Rejected: no terminal; a terminal listed
 /// twice; a device that is not a terminal; terminals of two strips; a `before` that is one of the moved terminals or
 /// not a terminal of their strip; an order that does not change. A missing device is `NotFound`. Cost Interactive, Outcome none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -543,6 +659,35 @@ impl Command for MoveTerminals {
         let (Some(&first), Some(&last)) = (changed.first(), changed.last()) else {
             return Self::bad("/terminals", "the terminals are already there");
         };
+        // FT-641 (CI-06): a bridge group follows its terminals, so a move that keeps every group consecutive is
+        // allowed; one that splits a group is refused, naming the group and the way out.
+        let before_ids: Vec<Id<Device>> = current.iter().map(|(_, id)| *id).collect();
+        let after_ids: Vec<Option<Id<Device>>> = order.iter().copied().map(Some).collect();
+        if let Some((group, names)) = split_bridge_group(tx, strip, &before_ids, &after_ids) {
+            let moved_names: Vec<String> = before_ids
+                .iter()
+                .filter(|t| seen.contains(t))
+                .map(|t| designation_of(tx, *t))
+                .filter(|n| names.contains(n))
+                .collect();
+            let remedy = if moved_names.is_empty() {
+                format!(
+                    "put the terminals before terminal {} or after terminal {}, or delete the group's bridge there \
+                     first",
+                    names.first().cloned().unwrap_or_default(),
+                    names.last().cloned().unwrap_or_default()
+                )
+            } else {
+                format!(
+                    "remove terminal {} from the group first (delete its bridges), or move the whole group",
+                    moved_names.join(", ")
+                )
+            };
+            return tx.reject(format!(
+                "the move would split bridge group {group} (terminals {}); {remedy}",
+                names.join(", ")
+            ));
+        }
         // The terminal that comes to position k takes the sequence number of the terminal that held k.
         for k in first..=last {
             if order[k] == current[k].1 {

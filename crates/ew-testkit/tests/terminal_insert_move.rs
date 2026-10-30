@@ -209,6 +209,27 @@ fn insert_before_5_on_golden_a() {
     // One undo step restores the project.
     s.undo(&Origin::Gui).expect("one undo step");
     assert_eq!(lines(&s), before);
+    // Before :3, inside BR1 (1 to 4): refused, naming the group and the places outside it (FT-641).
+    let t3 = device(&s, "3");
+    let err = with_builder(&mut s, |b| {
+        b.terminal_insert(
+            id(STRIP_X1031),
+            Some(t3),
+            id::<FnDef>(FNDEF_TERMINAL),
+            &[json!({"designation": "21"})],
+            &[],
+        )
+    })
+    .expect_err("an insert inside a bridge group is refused");
+    assert!(
+        err.message.contains("inserting before terminal 3 would split bridge group")
+            && err.message.contains(
+                "(terminals 1, 2, 3, 4); insert before terminal 1 or after terminal 4, or delete the group's bridge \
+                 there first"
+            ),
+        "{err:?}"
+    );
+    assert_eq!(lines(&s), before);
 }
 
 /// §5.2's example: -X1031:13 before :11, then a move to the end.
@@ -227,11 +248,24 @@ fn move_13_before_11_on_golden_a() {
     assert_eq!(bridges(&s), bridges_before);
     s.undo(&Origin::Gui).expect("one undo step");
     assert_eq!(lines(&s), before);
-    // To the end: :1 would leave bridge group BR1 (1 to 4) over terminals that are not consecutive, which
-    // EW-TERM-004 prevents (CI-06); nothing changes.
+    // To the end: :1 would leave bridge group BR1 (1 to 4) over terminals that are not consecutive (CI-06);
+    // terminal.move refuses, naming the group and the way out (FT-641); nothing changes.
     let t1 = device(&s, "1");
-    let err = with_builder(&mut s, |b| b.terminal_move(&[t1], None)).expect_err("EW-TERM-004 refuses");
-    assert!(err.message.contains("EW-TERM-004"), "{err:?}");
+    let err = with_builder(&mut s, |b| b.terminal_move(&[t1], None)).expect_err("the split is refused");
+    assert!(
+        err.message.contains("the move would split bridge group")
+            && err
+                .message
+                .contains("(terminals 1, 2, 3, 4); remove terminal 1 from the group first"),
+        "{err:?}"
+    );
+    assert_eq!(lines(&s), before);
+    // The whole of BR1 to the end: the group stays consecutive and follows its terminals.
+    let block: Vec<_> = ["1", "2", "3", "4"].iter().map(|d| device(&s, d)).collect();
+    with_builder(&mut s, |b| b.terminal_move(&block, None)).expect("the whole group moves");
+    assert_eq!((seq(&s, "1"), seq(&s, "4"), seq(&s, "5")), (17, 20, 1));
+    assert_eq!(bridges(&s), bridges_before, "the bridges follow their terminals");
+    s.undo(&Origin::Gui).expect("one undo step");
     assert_eq!(lines(&s), before);
     // :20, the end of BR5, before :11: BR5's terminals stay consecutive, so the move commits.
     let (t20, t11) = (device(&s, "20"), device(&s, "11"));

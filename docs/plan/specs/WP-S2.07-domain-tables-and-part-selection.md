@@ -245,6 +245,12 @@ them (its `insert_terminal`), with `seq` s, s + 1, … in list order, tag counte
 spec with `seq`; a designation already used in the strip or twice in the list; `seq + n` beyond `u32::MAX`. A missing
 `fndef` or part copy is `NotFound`. **Outcome:** the first new terminal device.
 
+*Bridge groups (FT-641, cycle 36).* A bridge is a connection between terminal CPs, so a bridge group follows its
+terminals. New terminals between two terminals of a bridge group that is consecutive would split it (CI-06): the
+command refuses before EW-TERM-004's prevent check, with "inserting before terminal 3 would split bridge group 1
+(terminals 1, 2, 3, 4); insert before terminal 1 or after terminal 4, or delete the group's bridge there first". A group
+that was not consecutive already (a lenient import's) is EW-TERM-004's finding, not a refusal.
+
 *Example (Golden A):* before -X1031:5 with one terminal designated 21: terminals 5 … 20 become seq 6 … 21; the groups
 1–4, 5–10, 11–14, 15–20 become 1–4, 6–11, 12–15, 16–21; the new terminal has seq 5 and no group; no designation and no
 bridge changes; BR1 still joins 1–4.
@@ -261,6 +267,13 @@ T and O differ; for i in a..=b, O[i] gets T[i]'s old `seq`. Nothing else changes
 moved terminal takes the group and neighbours of its new place. **Rejected:** an empty list; a terminal listed twice;
 terminals of two strips; a device that is not a terminal; `before` among the moved or of another strip; an order that
 does not change ("the terminals are already there"). **Outcome:** none.
+
+*Bridge groups (FT-641, cycle 36).* The bridge connections stay with their terminals, so a move that keeps every bridge
+group consecutive is accepted and the group follows (the whole of BR1 to the end commits). A move that would split a
+consecutive group is refused, naming the group and the way out: "the move would split bridge group 1 (terminals 1, 2,
+3, 4); remove terminal 1 from the group first (delete its bridges), or move the whole group", or, when the moved
+terminals are not in the group, "put the terminals before terminal 1 or after terminal 4, or delete the group's bridge
+there first". Bridges are never moved, split or deleted by the command itself.
 
 *Example (Golden A):* -X1031:13 before :11 gives seq 11 to :13, 12 to :11 and 13 to :12; :1 to :10 and :14 to :20 keep
 theirs; all three stay in the group 11–14 "Pneumatics"; BR5 still joins 11 to 20.

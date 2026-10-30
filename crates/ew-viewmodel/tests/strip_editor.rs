@@ -430,10 +430,16 @@ fn se9_insert_delete_and_move_rows() {
     mark(&mut shell, std::slice::from_ref(&k2));
     done(&mut shell, "strip.move", json!({"step": 1}));
     assert_eq!(texts(&shell, "Terminal")[..4], ["1", "3", "2", "4"]);
-    // To the end: :2 would leave bridge group BR1 (1 to 4), which EW-TERM-004 prevents; nothing is committed.
+    // To the end: :2 would leave bridge group BR1 (1 to 4); terminal.move refuses, naming the group and the way
+    // out (FT-641, CI-06); nothing is committed.
     let n = steps(&shell);
     match shell.dispatch("strip.move", &json!({"before": "end"})) {
-        Outcome::Failed { message } => assert!(message.contains("EW-TERM-004"), "{message}"),
+        Outcome::Failed { message } => assert!(
+            message.contains(
+                "the move would split bridge group 1 (terminals 1, 3, 2, 4); remove terminal 2 from the group first"
+            ),
+            "{message}"
+        ),
         other => panic!("{other:?}"),
     }
     assert_eq!(steps(&shell), n, "nothing committed");
