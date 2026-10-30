@@ -892,6 +892,17 @@ fn selection_shown(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+/// Save as macro… (WP-S1.19 §11, FT-754 (b)): a page on show with something selected (a window macro) or pages
+/// marked in the Pages navigator (a page macro).
+fn macro_scope_shown(m: &ShellModel) -> Result<(), &'static str> {
+    page_shown(m)?;
+    if m.selection().is_empty() && m.navigator().marked().is_empty() {
+        Err("reason-nothing-selected")
+    } else {
+        Ok(())
+    }
+}
+
 /// Cut and Duplicate: an editable page with something selected.
 fn selection_editable(m: &ShellModel) -> Result<(), &'static str> {
     editable_page(m)?;
@@ -3418,14 +3429,15 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "name?:text, key?:text, description?:text, library?:text, confirm?:bool",
+        "name?:text, key?:text, description?:text, library?:text, kind?:text, pages?:list(text), x_mm?:mm, \
+         y_mm?:mm, confirm?:bool",
         in_canvas(act(
             "macros.save",
             Command,
             "action-macros-save",
             Menu::Edit,
             &[],
-            selection_shown,
+            macro_scope_shown,
             slot(Menu::Edit),
         )),
     ),

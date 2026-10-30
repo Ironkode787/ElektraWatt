@@ -39,6 +39,9 @@ use crate::tools::{MacroTool, PreviewState};
 /// The action of Save as macro… (its dialog dispatches it).
 const SAVE: &str = "macros.save";
 
+/// The kinds Save as macro… offers (FT-754 (b)).
+const MACRO_KINDS: [&str; 2] = ["window", "page"];
+
 /// A variable Make variable remembered for the next Save as macro… (doc 07 §2.7 `VarDef` with one binding).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MacroVariable {
@@ -617,6 +620,26 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// The pages of a page macro (FT-754 (b)): the folios of `pages`, else the marked pages of the Pages navigator
+    /// (else its cursor's page), as page IDs in page order; generated pages refuse.
+    fn macro_pages(&self, p: &Map<String, Value>) -> Result<Vec<Uuid>, Outcome> {
+        let folios = super::table::list_param(p, "pages")?;
+        match folios.filter(|f| !f.is_empty()) {
+            Some(folios) => {
+                let rows = self.page_rows();
+                folios
+                    .iter()
+                    .map(|f| match rows.iter().find(|r| r.folio == *f) {
+                        Some(r) if !r.generated && r.kind != "section_divider" => Ok(r.id),
+                        Some(_) => Err(failed("error-generated-page-order", &[])),
+                        None => Err(failed("error-no-folio", &[f])),
+                    })
+                    .collect()
+            }
+            None => Ok(self.marked_pages()?.into_iter().map(|r| r.id).collect()),
+        }
+    }
+
     /// Whether the open dialog is Save as macro….
     fn in_save_form(&self) -> bool {
         matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == SAVE)
@@ -647,10 +670,16 @@ impl ShellModel {
         out
     }
 
-    /// `macros.save {name?, key?, description?, library?, confirm?}` (Edit ▸ Save as macro…): writes the selection as
-    /// a window macro into a writable library (by name, key or ID; default the first writable one). Without `name`
-    /// or `confirm` the window opens the dialog, which is the confirmation (the write is not undoable, D12); headless
-    /// the action refuses (a library write is a front-end operation, §13.2 item 7).
+    /// `macros.save {name?, key?, description?, library?, kind?, pages?, x_mm?, y_mm?, confirm?}` (Edit ▸ Save as
+    /// macro…): writes the selection as a window macro, or pages as a page macro, into a writable library (by name,
+    /// key or ID; default the first writable one). `kind` is `window` or `page` (FT-754 (b)); without it a selection
+    /// of drawn records makes a window macro, and no selection or one of pages only (marking pages selects them) a
+    /// page macro. A page macro's pages are
+    /// `pages` (folios), else the marked pages (else the Pages cursor's page). A window macro's insertion point is
+    /// `x_mm`/`y_mm` (a sheet point of the page on show, snapped to its grid), else the selection's anchor. Without
+    /// `name` or `confirm` the window opens the dialog (name, key, description, library, kind, insertion point), which
+    /// is the confirmation (the write is not undoable, D12); headless the action refuses (a library write is a
+    /// front-end operation, §13.2 item 7).
     pub(super) fn act_macros_save(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::Refused {
@@ -669,16 +698,78 @@ impl ShellModel {
                     return self.save_done(e);
                 }
             };
+        let kind = match text("kind") {
+            Ok(k) => k.to_lowercase(),
+            Err(e) => return self.save_done(e),
+        };
+        // The insertion point's coordinates: a number (a script) or a text (the dialog's field), mm.
+        let coordinate = |name: &str| -> Result<Option<f64>, Outcome> {
+            match p.get(name) {
+                None | Some(Value::Null) => Ok(None),
+                Some(Value::Number(n)) => Ok(n.as_f64().filter(|v| v.is_finite())),
+                Some(Value::String(t)) if t.trim().is_empty() => Ok(None),
+                Some(Value::String(t)) => t
+                    .trim()
+                    .replace(',', ".")
+                    .parse::<f64>()
+                    .ok()
+                    .filter(|v| v.is_finite())
+                    .map(Some)
+                    .ok_or_else(|| failed("error-bad-param", &[name])),
+                Some(_) => Err(failed("error-bad-param", &[name])),
+            }
+        };
+        let (x_mm, y_mm) = match (coordinate("x_mm"), coordinate("y_mm")) {
+            (Ok(x), Ok(y)) => (x, y),
+            (Err(e), _) | (_, Err(e)) => return self.save_done(e),
+        };
+        let mm_text = |v: Option<f64>| v.map(|v| format!("{v}")).unwrap_or_default();
+        let (x_text, y_text) = (mm_text(x_mm), mm_text(y_mm));
         let confirm = match super::jobs::bool_param(p, "confirm", false) {
             Ok(c) => c || self.in_save_form(),
             Err(e) => return self.save_done(e),
         };
-        let scope: Vec<Uuid> = self.copy_targets().iter().map(|e| e.0).collect();
-        if scope.is_empty() {
+        let selection: Vec<Uuid> = self.copy_targets().iter().map(|e| e.0).collect();
+        let page_macro = match kind.as_str() {
+            "window" => false,
+            "page" => true,
+            // No kind: pages (nothing selected, or only pages, as marking pages selects them) make a page macro.
+            "" => {
+                let rows = self.page_rows();
+                selection.iter().all(|id| rows.iter().any(|r| r.id == *id))
+            }
+            _ => return self.save_done(failed("error-bad-param", &["kind"])),
+        };
+        let scope = if page_macro {
+            match self.macro_pages(p) {
+                Ok(pages) => MacroScope::Pages(pages),
+                Err(e) => return self.save_done(e),
+            }
+        } else if selection.is_empty() {
             return self.save_done(Outcome::Refused {
                 reason_key: "reason-nothing-selected",
             });
-        }
+        } else {
+            MacroScope::Window(selection)
+        };
+        // The insertion point: the form's texts or the parameters' numbers (a sheet point in mm), snapped to the page
+        // grid; a page macro has none.
+        let origin = if page_macro {
+            None
+        } else {
+            match (x_mm, y_mm) {
+                (Some(x), Some(y)) => {
+                    let at = ((x * 1_000_000.0).round() as i64, (y * 1_000_000.0).round() as i64);
+                    self.canvas().map(|c| {
+                        let (px, py) = c.page().snapper.snap_grid(at).page_nm;
+                        Pt2::new(Nm(px), Nm(py))
+                    })
+                }
+                (None, None) => None,
+                (None, _) => return self.save_done(failed("error-missing-param", &["x_mm"])),
+                (_, None) => return self.save_done(failed("error-missing-param", &["y_mm"])),
+            }
+        };
         if self.project.is_none() {
             return self.save_done(Outcome::Refused {
                 reason_key: "reason-no-project",
@@ -709,16 +800,29 @@ impl ShellModel {
                 choices: &[],
                 value,
             };
+            let mut fields = vec![
+                field("name", "form-macro-name", name),
+                field("key", "form-macro-key", key),
+                field("description", "form-macro-description", description),
+                field("library", "form-macro-library", library),
+                FormField {
+                    name: "kind",
+                    label_key: "form-macro-kind",
+                    choices: &MACRO_KINDS,
+                    value: if page_macro { "page" } else { "window" }.to_owned(),
+                },
+            ];
+            // A window macro's insertion point, prefilled with the point the save would take (empty: the selection's
+            // anchor).
+            if !page_macro {
+                fields.push(field("x_mm", "form-macro-x", x_text));
+                fields.push(field("y_mm", "form-macro-y", y_text));
+            }
             let form = FormDialog {
                 action: SAVE,
                 title_key: "save-macro-title",
                 ok_key: "dialog-save-macro",
-                fields: vec![
-                    field("name", "form-macro-name", name),
-                    field("key", "form-macro-key", key),
-                    field("description", "form-macro-description", description),
-                    field("library", "form-macro-library", library),
-                ],
+                fields,
                 error: None,
             };
             return self.open_dialog(Dialog::Form(form));
@@ -776,8 +880,8 @@ impl ShellModel {
             key,
             name: name_text,
             description: description_text,
-            scope: MacroScope::Window(scope),
-            origin: None,
+            scope,
+            origin,
             keep_tags: Vec::new(),
             variables,
             groups: Vec::new(),

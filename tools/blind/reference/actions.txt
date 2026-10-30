@@ -202,7 +202,7 @@ navigator.open View "Open row" menu none shortcut none context navigator hidden 
 macros.insert Command "Insert macro…" menu "Draw" shortcut none context canvas params "key?:text"
 macros.place Command "Place a macro" menu none shortcut none context canvas hidden params "key:text, x_mm:mm, y_mm:mm, value_set?:text, group?:uint"
 macros.value_set Command "Choose the macro's value set" menu none shortcut none context global hidden params "name?:text"
-macros.save Command "Save as macro…" menu "Edit" shortcut none context canvas params "name?:text, key?:text, description?:text, library?:text, confirm?:bool"
+macros.save Command "Save as macro…" menu "Edit" shortcut none context canvas params "name?:text, key?:text, description?:text, library?:text, kind?:text, pages?:list(text), x_mm?:mm, y_mm?:mm, confirm?:bool"
 libraries.update Command "Update…" menu "Project" shortcut none context navigator params "keys?:list(text)"
 props.make_variable View "Make variable" menu none shortcut none context properties hidden params "row?:text, name?:text"
 navigator.bind Command "Bind channel" menu none shortcut none context canvas hidden params "channel:ref, x_mm:mm, y_mm:mm, group?:uint"

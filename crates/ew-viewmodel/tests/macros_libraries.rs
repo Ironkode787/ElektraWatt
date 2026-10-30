@@ -631,3 +631,112 @@ fn ft754d_update_previews_keys_then_marked_then_cursor_then_all() {
         "reason-no-updates"
     );
 }
+
+/// The detail of the Macros navigator's row `name`.
+fn detail_of(shell: &mut ShellModel, name: &str) -> ew_viewmodel::ew_api::output::MacroDetail {
+    done(shell, "navigator.show", json!({"kind": "macros"}));
+    let key = row_key(shell, NavKind::Macros, NavRole::Macro, name);
+    done(shell, "navigator.row", json!({"kind": "macros", "key": key}));
+    shell.macro_detail().expect("the detail").clone()
+}
+
+/// FT-754 (b): Save as macro… takes a kind and an insertion point. The dialog offers the kind (window with a
+/// selection, with the insertion point's fields) and page when only pages are marked (no insertion point); a window
+/// macro saved with an insertion point at the sheet's corner has its records right of and below the anchor, where the
+/// selection's own anchor puts it at the records' corner; a page macro saves the marked pages and lists as "Page".
+#[test]
+fn ft754b_save_as_macro_takes_kind_insertion_point_and_marked_pages() {
+    let tmp = Tmp::new("macros-kind");
+    let (t, _) = user_library(&tmp.0);
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let ids = psu_ids(&shell, false);
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    // The dialog: kind window, the insertion point's fields.
+    done(&mut shell, "macros.save", json!({}));
+    let Some(Dialog::Form(f)) = shell.dialog() else {
+        panic!("the Save as macro dialog")
+    };
+    let field = |n: &str| f.fields.iter().find(|x| x.name == n).map(|x| x.value.clone());
+    assert_eq!(field("kind").as_deref(), Some("window"));
+    assert!(field("x_mm").is_some() && field("y_mm").is_some());
+    done(&mut shell, "ui.dismiss", json!({}));
+    // Default anchor, then an insertion point at the sheet's corner (the dialog's texts).
+    save_ids(&mut shell, "PSU anchored", ids.clone(), "default anchor");
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    done(
+        &mut shell,
+        "macros.save",
+        json!({"name": "PSU corner", "library": "Mine", "x_mm": "1", "y_mm": "1", "confirm": true}),
+    );
+    let anchored = detail_of(&mut shell, "PSU anchored").extent.expect("an extent");
+    let corner = detail_of(&mut shell, "PSU corner").extent.expect("an extent");
+    assert!(
+        anchored[0] <= 0,
+        "the selection's anchor is at its records: {anchored:?}"
+    );
+    assert!(
+        corner[0] > 0 && corner[1] > 0,
+        "the records lie right of and below the corner: {corner:?}"
+    );
+    assert_eq!(
+        corner[2] - corner[0],
+        anchored[2] - anchored[0],
+        "the same records"
+    );
+    // A bad coordinate is refused in words.
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    assert!(matches!(
+        shell.dispatch(
+            "macros.save",
+            &json!({"name": "PSU bad", "library": "Mine", "x_mm": "left", "y_mm": "1", "confirm": true})
+        ),
+        Outcome::Failed { .. }
+    ));
+    // Page macro: mark folio 102 in the Pages navigator.
+    done(&mut shell, "select.set", json!({ "ids": [] }));
+    done(&mut shell, "navigator.show", json!({"kind": "pages"}));
+    let k102 = {
+        let rows = shell.page_rows();
+        shell
+            .navigator_rows()
+            .into_iter()
+            .find(|r| matches!(r.kind, ew_viewmodel::navigator::RowKind::Page(i) if rows[i].folio == "102"))
+            .map(|r| r.key)
+            .expect("the row of 102")
+    };
+    done(&mut shell, "pages.row", json!({ "key": k102 }));
+    done(&mut shell, "navigator.mark", json!({"kind": "pages"}));
+    assert!(!shell.navigator().marked().is_empty(), "102 is marked");
+    done(&mut shell, "macros.save", json!({}));
+    let Some(Dialog::Form(f)) = shell.dialog() else {
+        panic!("the Save as macro dialog")
+    };
+    assert_eq!(
+        f.fields
+            .iter()
+            .find(|x| x.name == "kind")
+            .map(|x| x.value.as_str()),
+        Some("page")
+    );
+    assert!(
+        f.fields.iter().all(|x| x.name != "x_mm"),
+        "a page macro has no insertion point"
+    );
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(
+        &mut shell,
+        "macros.save",
+        json!({"name": "Power supply page", "library": "Mine", "kind": "page", "confirm": true}),
+    );
+    let d = detail_of(&mut shell, "Power supply page");
+    assert_eq!(d.kind, "Page");
+    assert!(d.devices.iter().any(|x| x.starts_with("-G")), "{:?}", d.devices);
+    // Folios by name.
+    done(
+        &mut shell,
+        "macros.save",
+        json!({"name": "Two pages", "library": "Mine", "kind": "page", "pages": ["102", "103"], "confirm": true}),
+    );
+    assert_eq!(detail_of(&mut shell, "Two pages").kind, "Page");
+}
