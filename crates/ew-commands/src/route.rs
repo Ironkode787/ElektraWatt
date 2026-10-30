@@ -297,9 +297,73 @@ pub fn route(req: &RouteRequest) -> Routed {
     }
 }
 
+/// Whether the given route `points` from `req.from.at` to `req.to.at` is one the router could take: walked on the
+/// grid nodes the router searches, every unit move is free and lands on a node that is not blocked, by the router's
+/// own rules for `req` (obstacles, the ends' own rectangles but for their corridors, other wires, reserved points;
+/// module documentation); a CP end is left along its direction and entered against the second end's; the first move
+/// does not reverse [`RouteRequest::arrive`] and no move reverses the one before it. `req.area` only has to hold the
+/// route. A route that is not orthogonal on the grid, that does not start and end at the ends, or a request the
+/// router would refuse (an unusable grid, an area over [`MAX_NODES`]) is not clear.
+///
+/// The Wire tool asks it of the direct route through a free terminal in line (FT-705 with FT-706), with the
+/// terminal's own body, texts, CPs and stubs left out of `req`.
+pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
+    let (Some(&first), Some(&last)) = (points.first(), points.last()) else {
+        return false;
+    };
+    if first != req.from.at || last != req.to.at {
+        return false;
+    }
+    let Some(Prepared { space, s, .. }) = prepare(req) else {
+        return false;
+    };
+    let idx = |p: (i64, i64)| (space.grid.snap(Nm(p.0)), space.grid.snap(Nm(p.1)));
+    let mut moves: Vec<Heading> = Vec::new();
+    for w in points.windows(2) {
+        let (a, b) = (idx(w[0]), idx(w[1]));
+        let (h, n) = match (b.0 - a.0, b.1 - a.1) {
+            (0, 0) => continue,
+            (dx, 0) if dx > 0 => (Heading::Right, dx),
+            (dx, 0) => (Heading::Left, -dx),
+            (0, dy) if dy > 0 => (Heading::Down, dy),
+            (0, dy) => (Heading::Up, -dy),
+            _ => return false,
+        };
+        if usize::try_from(n).map_or(true, |n| moves.len().saturating_add(n) > space.blocked.len()) {
+            return false;
+        }
+        moves.extend(std::iter::repeat_n(h, usize::try_from(n).unwrap_or(0)));
+    }
+    let (Some(&m0), Some(&mn)) = (moves.first(), moves.last()) else {
+        return true;
+    };
+    if req.from.dir.is_some_and(|d| d != m0)
+        || req.to.dir.is_some_and(|d| d.opposite() != mn)
+        || (req.from.dir.is_none() && req.arrive.is_some_and(|h| reverses(Some(h), m0)))
+    {
+        return false;
+    }
+    let mut p = s;
+    let mut heading: Option<Heading> = None;
+    for m in moves {
+        if reverses(heading, m) {
+            return false;
+        }
+        let q = (p.0 + m.step().0, p.1 + m.step().1);
+        let free = space
+            .node(q)
+            .is_some_and(|n| !space.blocked[n] && space.move_free(p, m));
+        if !free {
+            return false;
+        }
+        (p, heading) = (q, Some(m));
+    }
+    true
+}
+
 /// The L route of the fallback; with an arrival heading at a first end without a direction, the corner whose first
 /// leg does not reverse it (FT-437; aligned ends behind the arrival stay the straight segment, the only L there is).
-fn fallback(req: &RouteRequest) -> Vec<(i64, i64)> {
+pub fn fallback(req: &RouteRequest) -> Vec<(i64, i64)> {
     let (a, b) = (req.from, req.to);
     let (pa, pb) = (a.at, b.at);
     if let (None, Some(h)) = (a.dir, req.arrive)
@@ -332,11 +396,22 @@ fn fallback(req: &RouteRequest) -> Vec<(i64, i64)> {
     l_route(a, b)
 }
 
-fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
+/// The search space of a request with every rule of the module documentation applied: the blocked nodes and the
+/// moves not taken, with the ends' grid nodes and the first end's stub.
+struct Prepared {
+    space: Space,
+    /// The first end's grid node.
+    s: (i64, i64),
+    /// The second end's grid node.
+    t: (i64, i64),
+    /// The first end's stub node (`None` without a direction).
+    s1: Option<(i64, i64)>,
+}
+
+/// The search space of `req` (`None` with an unusable grid, an index at the edge of `i64` or an area over
+/// [`MAX_NODES`]).
+fn prepare(req: &RouteRequest) -> Option<Prepared> {
     let (from, to) = (req.from, req.to);
-    if from.at == to.at {
-        return Some(vec![from.at]);
-    }
     let num = u64::try_from(req.grid.0).ok()?;
     let den = u64::try_from(req.grid.1).ok()?;
     let grid = Grid::new(num, den).ok()?;
@@ -506,6 +581,16 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
         }
     }
     space.blocked = blocked;
+    Some(Prepared { space, s, t, s1 })
+}
+
+fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
+    let (from, to) = (req.from, req.to);
+    if from.at == to.at {
+        return Some(vec![from.at]);
+    }
+    let Prepared { space, s, t, s1 } = prepare(req)?;
+    let (lo, width, nodes) = (space.lo, space.width, space.blocked.len());
     let goal = space.node(t)?;
     // The state the forward walk starts from: the first end's stub with its heading, else the first end with its
     // arrival heading (FT-437), else the first end.
@@ -1334,6 +1419,77 @@ mod tests {
         // The ends themselves are never reserved away.
         rq.reserved = vec![p(0, 0), p(10, 0)];
         assert_eq!(auto_route(&rq), vec![p(0, 0), p(10, 0)]);
+    }
+
+    #[test]
+    fn clear_judges_a_given_route_by_the_router_s_rules() {
+        let (a, b) = (end(0, 0, Some(Heading::Down)), end(0, 10, Some(Heading::Up)));
+        let straight = vec![p(0, 0), p(0, 10)];
+        assert!(clear(&req(a, b, vec![]), &straight));
+        // An obstacle across the run, a reserved point on it, another wire on its track: not clear.
+        assert!(!clear(&req(a, b, vec![rect(-1, 4, 1, 6)]), &straight));
+        let reserved = RouteRequest {
+            reserved: vec![p(0, 5)],
+            ..req(a, b, vec![])
+        };
+        assert!(!clear(&reserved, &straight));
+        let on_track = RouteRequest {
+            wires: vec![[p(0, 3), p(0, 7)]],
+            ..req(a, b, vec![])
+        };
+        assert!(!clear(&on_track, &straight));
+        // A wire crossing at a right angle through the inside of its segment is allowed, as in the router.
+        let across = RouteRequest {
+            wires: vec![[p(-3, 5), p(3, 5)]],
+            ..req(a, b, vec![])
+        };
+        assert!(clear(&across, &straight));
+        // A CP end left against its direction, or a route that misses an end or is not orthogonal: not clear.
+        assert!(!clear(&req(end(0, 0, Some(Heading::Up)), b, vec![]), &straight));
+        assert!(!clear(&req(a, b, vec![]), &[p(0, 0), p(0, 9)]));
+        assert!(!clear(&req(a, end(1, 10, None), vec![]), &[p(0, 0), p(1, 10)]));
+        // An L between perpendicular CPs.
+        let l = req(
+            end(0, 0, Some(Heading::Down)),
+            end(5, 5, Some(Heading::Left)),
+            vec![],
+        );
+        assert!(clear(&l, &[p(0, 0), p(0, 5), p(5, 5)]));
+        assert!(!clear(&l, &[p(0, 0), p(5, 0), p(5, 5)]));
+    }
+
+    proptest::proptest! {
+        /// The oracle of `clear`: every route the router finds (not the fallback) is clear by `clear`, among
+        /// obstacles, other wires and reserved points.
+        #[test]
+        fn every_found_route_is_clear(
+            fx in -6i64..6, fy in -6i64..6, tx in -6i64..6, ty in -6i64..6,
+            fd in proptest::option::of(0usize..4), td in proptest::option::of(0usize..4),
+            ob in proptest::collection::vec((-8i64..8, -8i64..8, 1i64..4, 1i64..4), 0..3),
+            ws in proptest::collection::vec((-9i64..9, -9i64..9, -6i64..6, proptest::bool::ANY), 0..3),
+            rs in proptest::collection::vec((-8i64..8, -8i64..8), 0..3),
+        ) {
+            let obstacles = ob.iter().map(|&(x, y, w, hh)| rect(x, y, x + w, y + hh)).collect();
+            let rq = RouteRequest {
+                wires: ws
+                    .iter()
+                    .map(|&(x, y, len, horizontal)| {
+                        let b = if horizontal { (x + len, y) } else { (x, y + len) };
+                        [p(x, y), p(b.0, b.1)]
+                    })
+                    .collect(),
+                reserved: rs.iter().map(|&(x, y)| p(x, y)).collect(),
+                ..req(
+                    end(fx, fy, fd.map(|k| Heading::ALL[k])),
+                    end(tx, ty, td.map(|k| Heading::ALL[k])),
+                    obstacles,
+                )
+            };
+            let routed = route(&rq);
+            if !routed.direct {
+                proptest::prop_assert!(clear(&rq, &routed.points), "{:?}", routed.points);
+            }
+        }
     }
 
     proptest::proptest! {

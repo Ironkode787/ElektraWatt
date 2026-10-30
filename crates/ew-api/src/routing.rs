@@ -86,9 +86,8 @@ pub fn auto_route(req: &RouteRequest) -> Vec<(i64, i64)> {
     route(req).points
 }
 
-/// The route of `req` with whether it is the fallback (see the module documentation).
-pub fn route(req: &RouteRequest) -> Routed {
-    let r = route::route(&route::RouteRequest {
+fn request(req: &RouteRequest) -> route::RouteRequest {
+    route::RouteRequest {
         from: end(req.from),
         to: end(req.to),
         obstacles: req.obstacles.clone(),
@@ -98,11 +97,29 @@ pub fn route(req: &RouteRequest) -> Routed {
         own: req.own.clone(),
         wires: req.wires.clone(),
         reserved: req.reserved.clone(),
-    });
+    }
+}
+
+/// The route of `req` with whether it is the fallback (see the module documentation).
+pub fn route(req: &RouteRequest) -> Routed {
+    let r = route::route(&request(req));
     Routed {
         points: r.points,
         direct: r.direct,
     }
+}
+
+/// Whether the route `points` is one the router could take for `req`: every unit move on the grid free and on no
+/// blocked node by the router's own rules, a CP end left and entered along its direction (`ew_commands::route::clear`).
+/// The Wire tool asks it of the direct route through a free terminal in line (FT-705 with FT-706).
+pub fn clear(req: &RouteRequest, points: &[(i64, i64)]) -> bool {
+    route::clear(&request(req), points)
+}
+
+/// The provisional L route of `req`, the one [`route()`] falls back to (a straight segment for aligned ends, else one
+/// corner; `ew_commands::route::fallback`).
+pub fn direct_route(req: &RouteRequest) -> Vec<(i64, i64)> {
+    route::fallback(&request(req))
 }
 
 #[cfg(test)]

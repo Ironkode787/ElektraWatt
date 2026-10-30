@@ -223,7 +223,7 @@ fn a_double_click_on_the_pin_a_wire_just_ended_on_starts_the_next_wire_there() {
     let mut s = circuit(&tmp, (60, 40));
     let (switch, coil, coil_out) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"), cp(&s, "-103K1:A2"));
     done(&mut s, "tool.wire", json!({}));
-    // The first wire, from the switch to the coil (round the terminal, as the router goes).
+    // The first wire, from the switch to the coil (through the terminal in line, two connections in one step).
     wire(&mut s, switch.at, coil.at);
     assert_eq!(cp(&s, "-103K1:A1").connections.len(), 1);
     assert_eq!(s.tool().state(), "armed");
@@ -259,4 +259,165 @@ fn a_double_click_on_the_pin_a_wire_just_ended_on_starts_the_next_wire_there() {
     done(&mut s, "canvas.pointer", at(q, json!({})));
     done(&mut s, "tool.finish", json!({}));
     assert_eq!(s.tool().state(), "armed");
+}
+
+// The cycle-38 window fix (W38, rv-vis-2): the router of FT-706 reserves every other CP and its stub, so a wire drawn
+// with two clicks from a contact to a coil went round a free terminal standing in line between them and FT-705's
+// pass-through never saw it. The direct route through a free terminal in line is taken when nothing else is in its
+// way; elsewhere the router is unchanged.
+
+/// A shell like [`circuit`] with a terminal of -X1031 at each of `terminals` (grid index, designation).
+fn circuit_with(tmp: &Tmp, terminals: &[((i64, i64), &str)], coil: (i64, i64)) -> ShellModel {
+    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    done(&mut s, "view.zoom_actual", json!({}));
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "S"}),
+        (60, 20),
+    );
+    for (k, designation) in terminals {
+        place(
+            &mut s,
+            json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "terminal_designation": designation}),
+            *k,
+        );
+    }
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        coil,
+    );
+    s
+}
+
+/// The new connections' end labels, sorted.
+fn new_ends(before: &PageTables, s: &ShellModel) -> Vec<[String; 2]> {
+    let after = tables(s);
+    let mut new: Vec<[String; 2]> = new_connections(before, &after)
+        .iter()
+        .map(|c| ends(&after, c))
+        .collect();
+    new.sort();
+    new
+}
+
+fn pair(a: &str, b: &str) -> [String; 2] {
+    [a.to_owned(), b.to_owned()]
+}
+
+#[test]
+fn two_clicks_through_a_terminal_in_line_connect_it_in_one_undo_step() {
+    let tmp = Tmp::new("fx38c-inline");
+    let mut s = circuit(&tmp, (60, 40));
+    let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
+    let before = tables(&s);
+    let rev = s.revision();
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, switch.at, false);
+    // Before the second click the preview is the very command: what the user sees is what commits.
+    let q = s.canvas().unwrap().page().snapper.page_to_sheet(coil.at);
+    done(&mut s, "canvas.pointer", at(q, json!({})));
+    done(&mut s, "canvas.dwell", json!({"ms": 80}));
+    let preview = s.preview_state().expect("a preview");
+    assert_eq!(preview.name, "connection.draw_many");
+    assert!(preview.result.is_ok(), "{:?}", preview.result.as_ref().err());
+    click(&mut s, coil.at, false);
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    assert_eq!(
+        new_ends(&before, &s),
+        [pair("-103S1:14", "-X1031:70/b"), pair("-X1031:70/a", "-103K1:A1")],
+        "the contact to the terminal's top, the terminal's bottom to the coil"
+    );
+    for c in new_connections(&before, &tables(&s)) {
+        assert!(
+            c.polyline.iter().all(|p| p.0 == switch.at.0),
+            "straight: {:?}",
+            c.polyline
+        );
+    }
+    // No open square: both of the terminal's CPs are connected.
+    assert_eq!(cp(&s, "-X1031:70/b").connections.len(), 1);
+    assert_eq!(cp(&s, "-X1031:70/a").connections.len(), 1);
+    done(&mut s, "edit.undo", json!({}));
+    assert!(new_ends(&before, &s).is_empty(), "one undo step removes both");
+}
+
+#[test]
+fn a_terminal_one_step_off_the_line_is_routed_around() {
+    let tmp = Tmp::new("fx38c-off");
+    let mut s = circuit_with(&tmp, &[((61, 30), "70")], (60, 40));
+    let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
+    let before = tables(&s);
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, switch.at, false);
+    click(&mut s, coil.at, false);
+    assert_eq!(new_ends(&before, &s), [pair("-103S1:14", "-103K1:A1")]);
+    assert!(cp(&s, "-X1031:70/b").connections.is_empty());
+    assert!(cp(&s, "-X1031:70/a").connections.is_empty());
+}
+
+#[test]
+fn two_terminals_in_line_are_both_passed() {
+    let tmp = Tmp::new("fx38c-two");
+    let mut s = circuit_with(&tmp, &[((60, 28), "70"), ((60, 34), "71")], (60, 44));
+    let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
+    let before = tables(&s);
+    let rev = s.revision();
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, switch.at, false);
+    click(&mut s, coil.at, false);
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    assert_eq!(
+        new_ends(&before, &s),
+        [
+            pair("-103S1:14", "-X1031:70/b"),
+            pair("-X1031:70/a", "-X1031:71/b"),
+            pair("-X1031:71/a", "-103K1:A1"),
+        ]
+    );
+}
+
+#[test]
+fn a_direct_route_on_another_wire_s_track_is_left_to_the_router() {
+    let tmp = Tmp::new("fx38c-track");
+    let mut s = circuit(&tmp, (60, 50));
+    // Another wire with a run on the line between the terminal and the coil: from a second contact's 14 over
+    // (66, 40), (60, 40), (60, 44), (54, 44) to a second coil's A1 (the bends fixed with Alt).
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "S"}),
+        (66, 34),
+    );
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        (54, 48),
+    );
+    let (s2, k2) = (cp(&s, "-103S2:14"), cp(&s, "-103K2:A1"));
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, s2.at, false);
+    for k in [(66, 40), (60, 40), (60, 44), (54, 44)] {
+        let p = page_point(&s, k);
+        click(&mut s, p, true);
+    }
+    click(&mut s, k2.at, false);
+    assert_eq!(cp(&s, "-103K2:A1").connections.len(), 1, "the other wire");
+    let other = &tables(&s).connections;
+    let on_line = other.iter().any(|c| {
+        c.polyline
+            .windows(2)
+            .any(|w| w[0].0 == w[1].0 && w[0].0 == page_point(&s, (60, 0)).0)
+    });
+    assert!(on_line, "the other wire runs on the line");
+    let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
+    let before = tables(&s);
+    click(&mut s, switch.at, false);
+    click(&mut s, coil.at, false);
+    assert_eq!(
+        new_ends(&before, &s),
+        [pair("-103S1:14", "-103K1:A1")],
+        "the router's route, round the terminal"
+    );
+    assert!(cp(&s, "-X1031:70/b").connections.is_empty());
+    assert!(cp(&s, "-X1031:70/a").connections.is_empty());
 }

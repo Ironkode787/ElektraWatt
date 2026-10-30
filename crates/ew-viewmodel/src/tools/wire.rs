@@ -31,7 +31,9 @@
 //! | armed | `Escape` | — | `None` (the host returns to Select) |
 //!
 //! The committed route is the fixed vertices joined with the router's route from the last fixed vertex to the end,
-//! exactly the ghost (the router never runs on replay). The connection kind is the page type's (doc 06 §2.2), given
+//! exactly the ghost (the router never runs on replay); a free terminal in line between the last fixed vertex and the
+//! end is connected through on the direct route instead when nothing else is in its way (`through_route`, FT-705
+//! with FT-706). The connection kind is the page type's (doc 06 §2.2), given
 //! by the host ([`WireTool::with_kind`]): a wire on a multi-line page (`connection.draw`'s default, so no `kind` is
 //! sent), `overview` on single-line, overview and assembly-overview pages; on the other page types the host refuses
 //! `tool.wire` until their kinds are drawn (fix round of WP-S2.04 part 2, item 1).
@@ -417,9 +419,74 @@ pub fn pass_through(
     end: &WireTarget,
     route: &[(i64, i64)],
 ) -> Vec<Piece> {
+    let Some(Passes {
+        line,
+        cum,
+        total,
+        passes,
+    }) = passes(cx, [start.rep(), end.rep()], [start.at(), end.at()], route)
+    else {
+        return Vec::new();
+    };
+    // The route between two places along it: the first point, the vertices strictly between, the second point.
+    let between = |s0: i64, q0: (i64, i64), s1: i64, q1: (i64, i64)| -> Vec<(i64, i64)> {
+        let mut pts = vec![q0];
+        pts.extend(
+            (0..line.len())
+                .filter(|&k| s0 < cum[k] && cum[k] < s1)
+                .map(|k| line[k]),
+        );
+        pts.push(q1);
+        pts
+    };
+    let key = |h: &Hit<'_>| (h.cp.function, h.cp.idx);
+    let mut pieces = Vec::with_capacity(passes.len() + 1);
+    let (mut from, mut s0, mut q0, mut head) = (None, 0, line[0], Vec::new());
+    for (entry, exit) in &passes {
+        let mut pts = head;
+        pts.extend(between(s0, q0, entry.pos, entry.proj));
+        pts.push(entry.cp.at);
+        pieces.push(Piece {
+            from,
+            to: Some(key(entry)),
+            route: clean(pts),
+        });
+        from = Some(key(exit));
+        (s0, q0, head) = (exit.pos, exit.proj, vec![exit.cp.at]);
+    }
+    let mut pts = head;
+    pts.extend(between(s0, q0, total, line[line.len() - 1]));
+    pieces.push(Piece {
+        from,
+        to: None,
+        route: clean(pts),
+    });
+    pieces
+}
+
+/// The representations a route passes through ([`pass_through`]'s rule) and where.
+struct Passes<'t> {
+    /// The route, duplicates removed.
+    line: Vec<(i64, i64)>,
+    /// The distance along the route to each vertex of `line`.
+    cum: Vec<i64>,
+    /// The route's length.
+    total: i64,
+    /// Each pass's entry and exit, in the order of the route; never empty.
+    passes: Vec<(Hit<'t>, Hit<'t>)>,
+}
+
+/// The passes of `route` by [`pass_through`]'s rule, the CPs of the representations `own` and at the points `ends`
+/// not counted; `None` when it passes through none.
+fn passes<'t>(
+    cx: &'t ToolCx<'_>,
+    own: [Option<EntityRef>; 2],
+    ends: [(i64, i64); 2],
+    route: &[(i64, i64)],
+) -> Option<Passes<'t>> {
     let line = super::autoconnect::dedup(route);
     if line.len() < 2 {
-        return Vec::new();
+        return None;
     }
     let tables = &cx.page.tables;
     let reach = cx.nm_of_points(CP_SNAP_PT).floor().min(9.0e15) as i128;
@@ -434,14 +501,9 @@ pub fn pass_through(
         cum[k] = cum[k - 1].saturating_add((b.0 - a.0).abs().saturating_add((b.1 - a.1).abs()));
     }
     let total = cum[line.len() - 1];
-    let own = [start.rep(), end.rep()];
     let mut by_rep: std::collections::BTreeMap<Uuid, Vec<Hit<'_>>> = std::collections::BTreeMap::new();
     for cp in &tables.cps {
-        if !cp.connections.is_empty()
-            || own.contains(&Some(EntityRef(cp.rep)))
-            || cp.at == start.at()
-            || cp.at == end.at()
-        {
+        if !cp.connections.is_empty() || own.contains(&Some(EntityRef(cp.rep))) || ends.contains(&cp.at) {
             continue;
         }
         let mut best: Option<(i128, Hit<'_>)> = None;
@@ -488,53 +550,25 @@ pub fn pass_through(
         })
         .collect();
     if passes.is_empty() {
-        return Vec::new();
+        return None;
     }
     passes.sort_by_key(|(entry, _)| entry.pos);
     let mut last = 0;
     for (entry, exit) in &passes {
         if entry.pos <= last {
-            return Vec::new();
+            return None;
         }
         last = exit.pos;
     }
     if last >= total {
-        return Vec::new();
+        return None;
     }
-    // The route between two places along it: the first point, the vertices strictly between, the second point.
-    let between = |s0: i64, q0: (i64, i64), s1: i64, q1: (i64, i64)| -> Vec<(i64, i64)> {
-        let mut pts = vec![q0];
-        pts.extend(
-            (0..line.len())
-                .filter(|&k| s0 < cum[k] && cum[k] < s1)
-                .map(|k| line[k]),
-        );
-        pts.push(q1);
-        pts
-    };
-    let key = |h: &Hit<'_>| (h.cp.function, h.cp.idx);
-    let mut pieces = Vec::with_capacity(passes.len() + 1);
-    let (mut from, mut s0, mut q0, mut head) = (None, 0, line[0], Vec::new());
-    for (entry, exit) in &passes {
-        let mut pts = head;
-        pts.extend(between(s0, q0, entry.pos, entry.proj));
-        pts.push(entry.cp.at);
-        pieces.push(Piece {
-            from,
-            to: Some(key(entry)),
-            route: clean(pts),
-        });
-        from = Some(key(exit));
-        (s0, q0, head) = (exit.pos, exit.proj, vec![exit.cp.at]);
-    }
-    let mut pts = head;
-    pts.extend(between(s0, q0, total, line[line.len() - 1]));
-    pieces.push(Piece {
-        from,
-        to: None,
-        route: clean(pts),
-    });
-    pieces
+    Some(Passes {
+        line,
+        cum,
+        total,
+        passes,
+    })
 }
 
 /// The tool's state.
@@ -639,7 +673,8 @@ impl Pass {
 }
 
 /// The route request of `pass` from `from` (leaving along `from_dir`, or arrived at along `arrive`) to `to`, the area
-/// left for the caller; `own` are the representations of the two ends (FT-706).
+/// left for the caller; `own` are the representations of the two ends (FT-706). The representations `through` (the
+/// ones a direct route passes through, FT-705) are left out: their bodies, texts, CPs and stubs.
 fn request(
     cx: &ToolCx<'_>,
     g: i64,
@@ -647,6 +682,7 @@ fn request(
     (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
     own: [Option<EntityRef>; 2],
     to: &WireTarget,
+    through: &[Uuid],
 ) -> RouteRequest {
     let tables = &cx.page.tables;
     let t = to.at();
@@ -654,6 +690,9 @@ fn request(
     let mut own_rects = own.map(|r| r.and_then(|r| rects.get(&r.0).cloned()).unwrap_or_default());
     for r in own.into_iter().flatten() {
         rects.remove(&r.0);
+    }
+    for r in through {
+        rects.remove(r);
     }
     let obstacles: Vec<[i64; 4]> = rects.into_values().flatten().collect();
     let mut wires: Vec<[(i64, i64); 2]> = Vec::new();
@@ -667,7 +706,7 @@ fn request(
             wires.extend(line.windows(2).map(|w| [w[0], w[1]]));
         }
         for cp in &tables.cps {
-            if cp.at == from || cp.at == t {
+            if cp.at == from || cp.at == t || through.contains(&cp.rep) {
                 continue;
             }
             reserved.push(cp.at);
@@ -691,6 +730,55 @@ fn request(
         wires,
         reserved,
     }
+}
+
+/// The direct route of a tail from `from` to `to` when it passes through a free representation in line (FT-705 with
+/// FT-706, the cycle-38 window-fix ruling): the router reserves every other CP and its stub, so it never routes into
+/// a free terminal and [`pass_through`] would never see one; a terminal standing in line between the ends is to be
+/// connected through, not avoided.
+///
+/// The direct route is the straight run between aligned ends, else the router's own provisional L
+/// ([`ew_api::routing::direct_route`]). It is taken when [`pass_through`]'s rule finds at least one representation
+/// passed on it (the CPs of `own` and at the two ends not counted), every passed CP lying on the route itself (not
+/// beside it, a jog away), and the router's own tests
+/// ([`ew_api::routing::clear`], [`Pass::Clear`]: other boxes and texts, other wires, other CPs and stubs) find it
+/// clear with the passed representations' bodies, texts, CPs and stubs left out. Otherwise `None`, and the router
+/// runs as before.
+fn through_route(
+    cx: &ToolCx<'_>,
+    g: i64,
+    (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
+    own: [Option<EntityRef>; 2],
+    to: &WireTarget,
+) -> Option<Vec<(i64, i64)>> {
+    let t = to.at();
+    if from == t {
+        return None;
+    }
+    let mut req = request(cx, g, Pass::Clear, (from, from_dir, arrive), own, to, &[]);
+    let direct = clean(ew_api::routing::direct_route(&req));
+    let found = passes(cx, own, [from, t], &direct)?;
+    // In line: the route runs over the passed CPs themselves, not beside them.
+    if found
+        .passes
+        .iter()
+        .any(|(entry, exit)| entry.proj != entry.cp.at || exit.proj != exit.cp.at)
+    {
+        return None;
+    }
+    let mut through: Vec<Uuid> = found.passes.iter().map(|(entry, _)| entry.cp.rep).collect();
+    through.sort_unstable();
+    through.dedup();
+    req = request(cx, g, Pass::Clear, (from, from_dir, arrive), own, to, &through);
+    let xs = direct.iter().map(|p| p.0);
+    let ys = direct.iter().map(|p| p.1);
+    req.area = [
+        xs.clone().min()? - g,
+        ys.clone().min()? - g,
+        xs.max()? + g,
+        ys.max()? + g,
+    ];
+    ew_api::routing::clear(&req, &direct).then_some(direct)
 }
 
 /// The Wire tool.
@@ -754,7 +842,8 @@ impl WireTool {
     /// The obstacles are every representation of the page ([`rep_rects`]); those of `own` (the start's while the
     /// tail starts at it, the end's) are the ends' own, left only along a CP's escape corridor; the other wires are
     /// every connection on the page, and the other CPs and their stubs are reserved (FT-706). The passes ([`Pass`])
-    /// are tried in turn, each with the search area grown by [`AREA_MARGINS`], until a route is found.
+    /// are tried in turn, each with the search area grown by [`AREA_MARGINS`], until a route is found. Before them,
+    /// the direct route through a free terminal in line is taken when it qualifies ([`through_route`], FT-705).
     fn tail(
         &mut self,
         cx: &ToolCx<'_>,
@@ -772,9 +861,15 @@ impl WireTool {
         let g = PageGridMap::new(cx.page.tables.grid).step();
         let t = to.at();
         let page = drawing_area(cx);
+        if let Some(points) = through_route(cx, g, (from, from_dir, arrive), own, to) {
+            self.routes += 1;
+            self.direct = false;
+            self.cache = Some((key, points.clone(), false));
+            return points;
+        }
         let mut routed = None;
         'passes: for pass in Pass::ALL {
-            let req = request(cx, g, pass, (from, from_dir, arrive), own, to);
+            let req = request(cx, g, pass, (from, from_dir, arrive), own, to, &[]);
             for m in AREA_MARGINS {
                 let area = [
                     (from.0.min(t.0) - m * g).max(page[0]),
