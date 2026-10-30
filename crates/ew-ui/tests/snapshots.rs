@@ -1405,6 +1405,87 @@ fn the_join_chooser_in_light() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
+/// Cycle 36 (window check W36, doc 16a §6.8): the Properties header of a changeover contact of a relay placed from
+/// EW-GEN-RLY-1 on folio 101, whose open findings are more than two: one count chip per severity at the right, the title kept whole at the left,
+/// the filter and the rows under it in place; cropped to the header and the first rows, light Comfortable, gated.
+#[test]
+fn the_properties_header_with_many_findings_in_light() {
+    let dev = device();
+    let mut failures = Vec::new();
+    {
+        let theme = "light";
+        let (mut h, recorder, tmp) = main_window(theme, "comfortable");
+        act(&mut h, "place.pick", json!({"part": "EW-GEN-RLY-1"}));
+        place_at(&mut h, (60, 30));
+        act(&mut h, "ui.dismiss", json!({}));
+        let (_, tag) = rep_at(&h, (60, 30));
+        // A changeover contact of the relay, its three points open: three warnings beside the coil's two.
+        act(
+            &mut h,
+            "place.pick",
+            json!({"symbol": "ew.iec.contact-co@qet10", "device": tag}),
+        );
+        place_at(&mut h, (68, 30));
+        act(&mut h, "ui.dismiss", json!({}));
+        let (contact, _) = rep_at(&h, (68, 30));
+        act(&mut h, "select.set", json!({"ids": [contact]}));
+        act(&mut h, "props.show", json!({"on": true}));
+        dismiss_toasts(&mut h);
+        support::settle(&mut h);
+        support::wait_for_page(&mut h);
+        h.run_ok();
+        let findings = {
+            let shell = h.state().shell();
+            let sheet = shell.properties().sheet().expect("a sheet");
+            assert_eq!(sheet.header.title, tag);
+            sheet.header.findings.clone()
+        };
+        assert!(findings.len() > 2, "{findings:?}");
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        // One chip per severity, named "<n> <Words>: <rule>: <message>; …", and the title's own node.
+        let chips: Vec<String> = {
+            use egui_kittest::kittest::NodeT as _;
+            h.root()
+                .children_recursive()
+                .filter_map(|n| {
+                    let a = n.accesskit_node();
+                    a.label().or_else(|| a.value())
+                })
+                .filter(|l| l.contains(" Warnings: ") || l.contains(" Errors: "))
+                .collect()
+        };
+        assert!(!chips.is_empty() && chips.len() <= 3, "{chips:?}");
+        let title = node_rect(&h, &tag).expect("the header's title");
+        let right = h
+            .get_all_by_role(egui::Role::Splitter)
+            .find(|n| {
+                use egui_kittest::kittest::NodeT as _;
+                n.accesskit_node()
+                    .label()
+                    .is_some_and(|l| l.ends_with(" and Page view"))
+            })
+            .map(|n| n.rect().left())
+            .expect("the left column's splitter");
+        assert!(
+            title.right() <= right,
+            "the title stays in the pane: {title:?}, {right}"
+        );
+        let region = egui::Rect::from_min_max(
+            egui::pos2(title.left() - 24.0, title.top() - 40.0),
+            egui::pos2(right, title.bottom() + 200.0),
+        );
+        failures.extend(record(
+            &format!("props-header-findings-{theme}-comfortable"),
+            &crop(&image, region),
+            true,
+        ));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
 /// FT-597 (doc 16a §6.18): the quick-access Save button's tooltip, cropped to the button and the tooltip under it,
 /// light Comfortable, gated: the tooltip is drawn on `color.surface.inverse` with `color.text.on_inverse`.
 #[test]

@@ -355,17 +355,45 @@ impl PropertiesPane {
     /// title line, its icon and word, the rule and message as the tooltip and in its node's name).
     fn header(ui: &mut Ui, sheet: &PropertySheet) {
         let t = crate::theme::current(ui.ctx());
+        // Cycle 36 (window check W36): the chips are laid out first, at the right, and the title takes what is left,
+        // ellipsised; more than two findings collapse into one count chip per severity ("3 Warnings", every rule and
+        // message in its tooltip), so the header keeps its width whatever the count (doc 16a §6.8: "the findings
+        // badge").
+        let findings = &sheet.header.findings;
         ui.horizontal(|ui| {
-            ui.label(RichText::new(&sheet.header.title).font(crate::theme::font(&t.type_title)));
-            if !sheet.header.findings.is_empty() {
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.spacing_mut().item_spacing.x = t.space_1;
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.spacing_mut().item_spacing.x = t.space_1;
+                if findings.len() <= 2 {
                     // Right to left: the last finding first, so the chips read in the header's order.
-                    for f in sheet.header.findings.iter().rev() {
+                    for f in findings.iter().rev() {
                         crate::messages::severity_chip(ui, &f.severity, &f.rule, &f.message);
                     }
+                } else {
+                    // Right to left: info, warning, error, so the most severe reads first.
+                    for severity in ["info", "warning", "error"] {
+                        let of: Vec<(&str, &str)> = findings
+                            .iter()
+                            .filter(|f| match severity {
+                                "error" | "warning" => f.severity == severity,
+                                _ => f.severity != "error" && f.severity != "warning",
+                            })
+                            .map(|f| (f.rule.as_str(), f.message.as_str()))
+                            .collect();
+                        if !of.is_empty() {
+                            crate::messages::severity_count_chip(ui, severity, &of);
+                        }
+                    }
+                }
+                ui.add_space(t.space_2);
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.add(
+                        egui::Label::new(
+                            RichText::new(&sheet.header.title).font(crate::theme::font(&t.type_title)),
+                        )
+                        .truncate(),
+                    );
                 });
-            }
+            });
         });
         let small = |s: &str| {
             RichText::new(s)

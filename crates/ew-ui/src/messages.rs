@@ -184,9 +184,39 @@ fn count_badge(ui: &mut Ui, t: &Tokens, severity: &'static str, count: usize) {
 /// the severity's subtle fill, its icon and word in `type.caption` in its text colour; a `Label` node named "<word>,
 /// <rule>: <message>", the rule and message as the tooltip.
 pub(crate) fn severity_chip(ui: &mut Ui, severity: &str, rule: &str, message: &str) -> egui::Response {
+    let word = severity_word(severity);
+    let name = strings::format("props-finding-chip", &[word, rule, message]);
+    paint_severity_chip(
+        ui,
+        severity,
+        word,
+        &name,
+        &strings::format("props-finding-tip", &[rule, message]),
+    )
+}
+
+/// One chip for `findings.len()` findings of one severity (cycle 36, window check W36: more than two findings no longer
+/// fit the Properties header one chip each): the icon and "<n> <Words>" ("3 Warnings"), a `Label` node named by that
+/// and each "<rule>: <message>", the same lines as the tooltip.
+pub(crate) fn severity_count_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::Response {
+    let words = strings::text(match severity {
+        "error" => "severity-errors",
+        "warning" => "severity-warnings",
+        _ => "severity-infos",
+    });
+    let word = strings::format("props-findings-count", &[&findings.len().to_string(), words]);
+    let lines: Vec<String> = findings
+        .iter()
+        .map(|(rule, message)| strings::format("props-finding-tip", &[rule, message]))
+        .collect();
+    let name = strings::format("props-findings-chip", &[&word, &lines.join("; ")]);
+    paint_severity_chip(ui, severity, &word, &name, &lines.join("\n"))
+}
+
+/// Paints a severity chip with `word`, its node named `name`, `tip` as the tooltip.
+fn paint_severity_chip(ui: &mut Ui, severity: &str, word: &str, name: &str, tip: &str) -> egui::Response {
     let t = theme::current(ui.ctx());
     let (fill, text) = count_colours(&t, severity);
-    let word = severity_word(severity);
     let galley = ui
         .painter()
         .layout_no_wrap(word.to_owned(), theme::font(&t.type_caption), text.color32());
@@ -196,8 +226,7 @@ pub(crate) fn severity_chip(ui: &mut Ui, severity: &str, rule: &str, message: &s
         t.size_badge,
     );
     let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
-    let name = strings::format("props-finding-chip", &[word, rule, message]);
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &name));
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, name));
     let painter = ui.painter();
     painter.rect_filled(rect, theme::radius(t.radius_sm), fill.color32());
     let icon_rect = egui::Rect::from_center_size(
@@ -227,7 +256,7 @@ pub(crate) fn severity_chip(ui: &mut Ui, severity: &str, rule: &str, message: &s
         galley,
         text.color32(),
     );
-    response.tip(strings::format("props-finding-tip", &[rule, message]))
+    response.tip(tip)
 }
 
 /// The header (doc 16a §6.24): the scheme in `type.small` `color.text.secondary`, one count badge per severity, then
