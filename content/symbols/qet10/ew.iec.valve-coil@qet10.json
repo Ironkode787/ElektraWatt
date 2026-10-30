@@ -1,0 +1,212 @@
+{
+  "$k": "symbol",
+  "id": "5811ca09-3d26-5848-9a43-0e2eda03c613",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "dd36eb84-d1d1-5718-b238-cdb2076b6b8e",
+  "version": "0.1.0",
+  "sha256": "sha256:cddd742a04e7e3fa7e66368de079287a2e66c114bc6aefdceadaa13f6cf30e7d",
+  "meta": {
+    "key": "ew.iec.valve-coil@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Coil of a solenoid valve"
+  },
+  "keywords": [
+    "actuator",
+    "coil",
+    "solenoid",
+    "valve"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "2d4f905a-c447-597b-8339-fca3fc933399",
+    "version_req": "^0.1",
+    "key": "ew.fn.valve-coil"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            -1322917,
+            2645833
+          ],
+          [
+            1322917,
+            7937500
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1322917,
+          7937500
+        ],
+        "to": [
+          1322917,
+          2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          7937500
+        ],
+        "to": [
+          0,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        10583333
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -2645833,
+        5291667
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        2645833,
+        6614583
+      ],
+      "align": "middle_left",
+      "visible": true,
+      "style": "xref.device"
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        2645833,
+        3968750
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        661458,
+        1322917
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        661458,
+        9260417
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      0,
+      5291667
+    ]
+  },
+  "link_points": [
+    {
+      "name": "link",
+      "pos": [
+        1322917,
+        5291667
+      ]
+    }
+  ]
+}

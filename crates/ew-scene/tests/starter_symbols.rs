@@ -51,12 +51,13 @@ use ew_units::{Grid, Nm, Orient2, Pt2};
 /// The interruption-point symbols: their xref slot keeps the default style of its kind.
 const INTERRUPTION_POINTS: [&str; 2] = ["ew.gen.ip", "ew.gen.external-arrow"];
 
-/// The 36 keys of the native starter library; the qet10 edition has the same keys with `@qet10`.
-const STARTER_KEYS: [&str; 36] = [
+/// The keys of the native starter library; the qet10 edition has the same keys with `@qet10`.
+const STARTER_KEYS: &[&str] = &[
     "ew.iec.contact-no",
     "ew.iec.contact-nc",
     "ew.iec.contact-co",
     "ew.iec.coil",
+    "ew.iec.valve-coil",
     "ew.iec.fuse",
     "ew.iec.switch-2p-manual",
     "ew.iec.mcb-1pn",
@@ -64,6 +65,7 @@ const STARTER_KEYS: [&str; 36] = [
     "ew.iec.thermostat-nc",
     "ew.iec.position-switch-no",
     "ew.iec.pushbutton-no",
+    "ew.iec.selector-switch-no",
     "ew.iec.lamp",
     "ew.iec.heater",
     "ew.iec.resistor",

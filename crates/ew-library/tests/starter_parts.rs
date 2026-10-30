@@ -27,6 +27,20 @@ const ZERO: &str = "sha256:00000000000000000000000000000000000000000000000000000
 const NAME: &str = "ElektraWatt starter parts";
 const LICENCE: &str = "CC0-1.0";
 const VERSION: &str = "0.1.0";
+/// The library's version: 0.1.1 since FT-659 changed two parts (a library refuses other content under a published
+/// version, doc 05 §13.1).
+const LIBRARY_VERSION: &str = "0.1.1";
+/// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
+/// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y).
+const BUMPED: &[(&str, &str)] = &[("EW-GEN-SEL-1", "0.1.1"), ("EW-GEN-VLV-1", "0.1.1")];
+
+/// The version of part `number`.
+fn part_version(number: &str) -> &'static str {
+    BUMPED
+        .iter()
+        .find(|(n, _)| *n == number)
+        .map_or(VERSION, |(_, v)| v)
+}
 /// The manufacturer of every generic part.
 const GENERIC: &str = "Generic";
 
@@ -181,10 +195,10 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-SEL-1",
             kind: None,
-            description: "Selector switch, two positions, with two normally open contacts",
-            cps: cps(&["1", "2", "3", "4"]),
-            template: vec![("ew.fn.switch-2p-manual", true, vec![0, 1, 2, 3])],
-            contacts: vec![("no", vec!["1", "2"]), ("no", vec!["3", "4"])],
+            description: "Selector switch, two positions, with one normally open contact",
+            cps: cps(&["13", "14"]),
+            template: vec![("ew.fn.selector-switch-no", true, vec![0, 1])],
+            contacts: vec![("no", vec!["13", "14"])],
             tech: Vec::new(),
             plc: None,
         },
@@ -246,7 +260,7 @@ fn defs() -> Vec<Def> {
             description: "Solenoid valve 5/2, spring return",
             cps: cps(&["A1", "A2", "1", "2", "3", "4", "5", "14"]),
             template: vec![
-                ("ew.fn.coil", true, vec![0, 1]),
+                ("ew.fn.valve-coil", true, vec![0, 1]),
                 ("ew.fn.valve-5-2-sol-spring", false, range(2, 8)),
             ],
             contacts: Vec::new(),
@@ -345,7 +359,7 @@ fn parts() -> Vec<LibDocument> {
             };
             let mut v = json!({
                 "$k": "part", "id": item.to_string(), "library_id": lib.to_string(),
-                "item_id": item.to_string(), "version": VERSION, "sha256": ZERO,
+                "item_id": item.to_string(), "version": part_version(d.number), "sha256": ZERO,
                 "meta": {"key": d.number, "licence": LICENCE, "sources": ["ew.original"]},
                 "manufacturer": {"library": lib.to_string(), "item": mfr.to_string(), "version_req": "^0.1"},
                 "part_number": d.number,
@@ -467,11 +481,9 @@ fn the_shipped_library_is_the_generated_one() {
     let root = ew_testdir::fresh_dir("ew-library-starter-parts");
     let dir = root.join("company").join("ew-starter-parts.ewlib");
     std::fs::create_dir_all(&dir).unwrap();
-    std::fs::write(
-        dir.join("library.json"),
-        LibManifest::new(starter_parts_library(), STARTER_PARTS_KEY, NAME, LICENCE).to_text(),
-    )
-    .unwrap();
+    let mut manifest = LibManifest::new(starter_parts_library(), STARTER_PARTS_KEY, NAME, LICENCE);
+    manifest.version = LIBRARY_VERSION.to_owned();
+    std::fs::write(dir.join("library.json"), manifest.to_text()).unwrap();
     let mut reg = Registry::open(&LibraryTiers {
         system: Vec::new(),
         community: root.join("data").join("packs"),

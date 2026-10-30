@@ -78,13 +78,15 @@ const PATHS: &[(&str, Path)] = &[
     ("ew.iec.pushbutton-no@qet10", Path::Part("EW-GEN-PB-1", 0, MULTI)),
     ("ew.iec.resistor@qet10", Path::Device("R", MULTI)),
     (
-        "ew.iec.switch-2p-manual@qet10",
+        "ew.iec.selector-switch-no@qet10",
         Path::Part("EW-GEN-SEL-1", 0, MULTI),
     ),
+    ("ew.iec.switch-2p-manual@qet10", Path::Device("Q", MULTI)),
     ("ew.iec.terminal-pe@qet10", Path::Terminal("EW-GEN-TRM-2")),
     ("ew.iec.terminal@qet10", Path::Terminal("EW-GEN-TRM-1")),
     ("ew.iec.thermostat-nc@qet10", Path::Device("B", MULTI)),
     ("ew.iec.transformer-1ph@qet10", Path::Device("T", MULTI)),
+    ("ew.iec.valve-coil@qet10", Path::Part("EW-GEN-VLV-1", 0, MULTI)),
     ("ew.iso.cylinder-double-acting@qet10", Path::Device("M", FLUID)),
     ("ew.iso.process-valve-2way@qet10", Path::Device("Q", FLUID)),
     (
@@ -348,6 +350,42 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
         findings.is_empty(),
         "the starter parts are complete: {findings:?}"
     );
+}
+
+/// FT-659: the letter a new project (identifier set EN 81346-2:2009) gives each generic starter part placed from the
+/// picker without a letter of its own: the selector switch S (a manual command), the valve's coil M (a solenoid
+/// actuator), not the switching device's Q or the relay's K.
+#[test]
+fn a_new_project_gives_each_starter_part_its_iec_81346_letter() {
+    let tmp = Tmp::new("starter-letters");
+    let mut s = new_project(&tmp);
+    goto(&mut s, MULTI);
+    let mut k = 0i64;
+    for (number, letter) in [
+        ("EW-GEN-RLY-1", "K"),
+        ("EW-GEN-PB-1", "S"),
+        ("EW-GEN-SEL-1", "S"),
+        ("EW-GEN-POS-1", "B"),
+        ("EW-GEN-LMP-1", "E"),
+        ("EW-GEN-VLV-1", "M"),
+    ] {
+        let before = reps(&s);
+        done(&mut s, "place.pick", json!({"part": number, "template": 0}));
+        place_at(&mut s, (8 + k * 24, 10));
+        k += 1;
+        done(&mut s, "ui.dismiss", json!({}));
+        done(&mut s, "ui.dismiss", json!({}));
+        let new = new_reps(&s, &before);
+        let rep = new.first().unwrap_or_else(|| panic!("{number} placed nothing"));
+        let tag = tag_of(&s, rep);
+        let got: String = tag
+            .trim_start_matches('-')
+            .chars()
+            .skip_while(char::is_ascii_digit)
+            .take_while(char::is_ascii_uppercase)
+            .collect();
+        assert_eq!(got, letter, "{number}: tag {tag}");
+    }
 }
 
 /// A drawing aid is no device symbol: its function definition is no device function (no letter, no slot).

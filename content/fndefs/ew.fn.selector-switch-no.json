@@ -1,0 +1,43 @@
+{
+  "$k": "fndef",
+  "id": "dc399163-5aef-5aa1-b55f-f5f242364c9e",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "72bbd02c-64dc-5867-863c-ed2f865a5a15",
+  "version": "0.1.0",
+  "sha256": "sha256:bb3e5bb23e99247e3568f271e2930d741d9cfe665637384d914c11e13530a875",
+  "meta": {
+    "key": "ew.fn.selector-switch-no",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ManualCommand",
+    "SelectorSwitch",
+    "NO"
+  ],
+  "contact_kind": "no",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "3"
+    },
+    {
+      "idx": 1,
+      "designation": "4"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ]
+}

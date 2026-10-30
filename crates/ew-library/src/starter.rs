@@ -97,6 +97,11 @@ const ITEMS: &[StarterItem] = &[
     ),
     item!("ew.fn.pushbutton-no", Fndef, "fndefs/ew.fn.pushbutton-no.json"),
     item!("ew.fn.resistor", Fndef, "fndefs/ew.fn.resistor.json"),
+    item!(
+        "ew.fn.selector-switch-no",
+        Fndef,
+        "fndefs/ew.fn.selector-switch-no.json"
+    ),
     item!("ew.fn.strip-segment", Fndef, "fndefs/ew.fn.strip-segment.json"),
     item!(
         "ew.fn.switch-2p-manual",
@@ -116,6 +121,7 @@ const ITEMS: &[StarterItem] = &[
         Fndef,
         "fndefs/ew.fn.valve-5-2-sol-spring.json"
     ),
+    item!("ew.fn.valve-coil", Fndef, "fndefs/ew.fn.valve-coil.json"),
     item!("ew.gen.blackbox", Symbol, "symbols/ew.gen.blackbox.json"),
     item!(
         "ew.gen.blackbox@qet10",
@@ -269,6 +275,16 @@ const ITEMS: &[StarterItem] = &[
         "symbols/qet10/ew.iec.resistor@qet10.json"
     ),
     item!(
+        "ew.iec.selector-switch-no",
+        Symbol,
+        "symbols/ew.iec.selector-switch-no.json"
+    ),
+    item!(
+        "ew.iec.selector-switch-no@qet10",
+        Symbol,
+        "symbols/qet10/ew.iec.selector-switch-no@qet10.json"
+    ),
+    item!(
         "ew.iec.switch-2p-manual",
         Symbol,
         "symbols/ew.iec.switch-2p-manual.json"
@@ -309,6 +325,12 @@ const ITEMS: &[StarterItem] = &[
         "ew.iec.transformer-1ph@qet10",
         Symbol,
         "symbols/qet10/ew.iec.transformer-1ph@qet10.json"
+    ),
+    item!("ew.iec.valve-coil", Symbol, "symbols/ew.iec.valve-coil.json"),
+    item!(
+        "ew.iec.valve-coil@qet10",
+        Symbol,
+        "symbols/qet10/ew.iec.valve-coil@qet10.json"
     ),
     item!(
         "ew.iso.cylinder-double-acting",
