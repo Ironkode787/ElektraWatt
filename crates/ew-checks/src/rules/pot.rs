@@ -826,7 +826,7 @@ pub const PE_UNDERSIZED: RuleMeta = RuleMeta {
 };
 
 /// The rule data of EW-POT-006 (`data/pe_sizing.toml`, WP-S1.16 D5).
-const PE_SIZING_TOML: &str = include_str!("../../data/pe_sizing.toml");
+pub(crate) const PE_SIZING_TOML: &str = include_str!("../../data/pe_sizing.toml");
 
 /// One row of the PE sizing table: up to which line cross-section it applies, and the PE it requires.
 #[derive(Clone, Debug, PartialEq, Eq)]

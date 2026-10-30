@@ -25,6 +25,10 @@
 //!   [`CheckReport`] is in canonical order (code, printed subject and message, fingerprint) and carries the totals and `ew check`'s exit code.
 //!   [`prevent`] is the commit validator's entry (ADR-0009): `ew-api` installs it as the model's
 //!   `PreventHook`.
+//! - **The release gate** ([`gate`], WP-S1.18 D10): the release scheme in release mode together with the gate-only
+//!   EW-REL rules (mode `g`, which no plain run evaluates), with the saved generation's content digest handed in
+//!   ([`GateInput`]); [`blockers`] are the release's refusal list, [`safety_waivers`] what a checker acknowledges, and
+//!   [`pack_versions`] the `{id, version, sha256}` of every evaluated pack (doc 15 §3.9).
 //!
 //! # Example
 //!
@@ -41,6 +45,7 @@
 
 mod engine;
 mod finding;
+mod gate;
 pub mod messages;
 mod registry;
 pub mod report;
@@ -50,6 +55,10 @@ mod scheme;
 
 pub use engine::{CheckOf, CheckReport, Counts, IntegrityItem, prevent, run, scopes};
 pub use finding::{Finding, FindingState, Fingerprint, QuickFix, Severity, Target, sort_findings};
+pub use gate::{
+    GateInput, PackVersion, SHIPPED_PACK_VERSION, blockers, gate, pack_definition, pack_versions,
+    safety_waivers,
+};
 pub use messages::render;
 pub use registry::{rule, rules};
 pub use rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};

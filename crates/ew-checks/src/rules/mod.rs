@@ -12,5 +12,6 @@ pub mod num;
 pub mod page;
 pub mod pot;
 pub mod rds;
+pub mod rel;
 pub mod system;
 pub mod term;

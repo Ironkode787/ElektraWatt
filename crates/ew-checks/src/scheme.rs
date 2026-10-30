@@ -31,8 +31,13 @@ impl CheckMode {
         }
     }
 
-    /// Whether a rule with these metadata runs in this mode.
+    /// Whether a rule with these metadata runs in this mode. A gate-only rule (the catalogue's `g`, the EW-REL rules)
+    /// runs in neither: only the release gate evaluates it ([`gate`](crate::gate), doc 15 §3.2), so `ew check` and the
+    /// message panel never report "checker not set".
     pub fn runs(self, meta: &RuleMeta) -> bool {
+        if meta.modes.gate {
+            return false;
+        }
         match self {
             CheckMode::Online => meta.modes.online,
             CheckMode::Release => meta.modes.release || meta.modes.prevent,

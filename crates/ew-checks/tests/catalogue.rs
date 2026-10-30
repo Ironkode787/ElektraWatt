@@ -30,6 +30,7 @@ fn modes(m: Modes) -> Vec<&'static str> {
         (m.prevent, "prevent"),
         (m.release, "release"),
         (m.export, "export"),
+        (m.gate, "gate"),
     ]
     .into_iter()
     .filter_map(|(on, name)| on.then_some(name))

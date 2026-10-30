@@ -23,7 +23,8 @@
 //!   bytes 8–15, the full ID), LF only and a final LF; library documents pretty-printed with short containers
 //!   inline (§3.4).
 //! - **Manifest** ([`Manifest`]): format stamps, generation and the SHA-256 of every file (§4), with the
-//!   reader decisions of §10.1 ([`reader_access`]).
+//!   reader decisions of §10.1 ([`reader_access`]), and the content digest of a generation that a sign-off binds to
+//!   ([`content_digest`], doc 15 §5.4).
 //! - **Reading** ([`plan`], [`load`]): which files to read, then records, lines kept verbatim (unknown kinds,
 //!   malformed variants, quarantined lines), the rewrite set and the integrity findings of §6.2 and §6.3
 //!   ([`Finding`]), under the hostile-input [`Limits`] of §3.6.
@@ -70,6 +71,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod content;
 mod error;
 mod finding;
 mod layout;
@@ -86,6 +88,7 @@ mod write;
 /// same types without a dependency edge of their own (ARCH §3).
 pub use ew_schema;
 
+pub use content::{ContentDigestError, content_digest, content_lines};
 pub use error::FormatError;
 pub use finding::{Finding, FindingKind, Findings, Severity};
 pub use layout::{Anchors, RecordAnchors, lib_dir, lib_file, lib_key, record_file, unknown_record_file};

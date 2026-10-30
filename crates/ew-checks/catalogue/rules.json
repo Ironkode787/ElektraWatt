@@ -2112,6 +2112,121 @@
       "waivable": true
     },
     {
+      "code": "190001",
+      "id": "EW-REL-001",
+      "kind": "integrity",
+      "modes": [
+        "gate"
+      ],
+      "pack": "EW-REL",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Four eyes",
+      "waivable": false
+    },
+    {
+      "code": "190002",
+      "id": "EW-REL-002",
+      "kind": "integrity",
+      "modes": [
+        "gate"
+      ],
+      "pack": "EW-REL",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Stale committed computation",
+      "waivable": false
+    },
+    {
+      "code": "190004",
+      "id": "EW-REL-004",
+      "kind": "integrity",
+      "modes": [
+        "prevent",
+        "gate"
+      ],
+      "pack": "EW-REL",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Revision label order",
+      "waivable": false
+    },
+    {
       "code": "001001",
       "id": "EW-TERM-001",
       "kind": "conflict",

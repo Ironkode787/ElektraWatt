@@ -63,6 +63,9 @@ static RULES: &[&dyn Rule] = &[
     &shipped::rds::ReservedLetters,
     &shipped::rds::ConfusableCharacter,
     &shipped::rds::StructureCodeVariants,
+    &shipped::rel::FourEyes,
+    &shipped::rel::StaleCommitted,
+    &shipped::rel::LabelOrder,
     &shipped::term::TerminalWithoutDesignation,
     &shipped::term::DuplicateDesignation,
     &shipped::term::SpareWiredOnFieldSide,
@@ -91,6 +94,7 @@ mod tests {
         ("RDS", "EW-IEC81346", 0),
         ("NUM", "EW-IEC81346", 100),
         ("CORE", "EW-CORE", 0),
+        ("REL", "EW-REL", 0),
     ];
 
     /// The class of an EW-CORE number block (doc 15 §2.2).
@@ -112,6 +116,7 @@ mod tests {
             "POT" => "005",
             "RDS" | "NUM" => "017",
             "CORE" => core_class(n),
+            "REL" => "190",
             _ => "???",
         }
     }

@@ -181,7 +181,7 @@ pub struct IntegrityItem {
 }
 
 /// The totals of a finding list.
-fn count(findings: &[Finding]) -> Counts {
+pub(crate) fn count(findings: &[Finding]) -> Counts {
     let mut counts = Counts::default();
     for f in findings {
         match (&f.state, f.severity) {

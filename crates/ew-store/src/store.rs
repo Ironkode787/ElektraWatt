@@ -2099,6 +2099,13 @@ impl Store {
         self.generation
     }
 
+    /// The manifest of the generation on disk: the one opened or the one the last save wrote (`None`: the project has
+    /// no usable manifest yet; the next save writes one). The content digest of a sign-off is computed from it
+    /// ([`ew_format::content_digest`], doc 15 §5.4).
+    pub fn manifest(&self) -> Option<&Manifest> {
+        self.manifest.as_ref()
+    }
+
     /// The project directory.
     pub fn root(&self) -> &Path {
         &self.root

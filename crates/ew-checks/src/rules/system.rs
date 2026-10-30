@@ -106,6 +106,11 @@ pub struct DataTable {
     pub error: Option<String>,
 }
 
+/// The text of every data table a shipped pack's rules read, as (pack, file, text), in rule order: part of the pack's
+/// definition whose SHA-256 a release records ([`pack_definition`](crate::pack_definition), doc 15 §3.9).
+pub(crate) const DATA_SOURCES: &[(&str, &str, &str)] =
+    &[("EW-POT", "data/pe_sizing.toml", crate::rules::pot::PE_SIZING_TOML)];
+
 /// The data tables of the shipped rules, in rule order.
 pub fn data_tables() -> Vec<DataTable> {
     vec![DataTable {

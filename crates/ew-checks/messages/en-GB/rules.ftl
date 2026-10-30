@@ -253,6 +253,20 @@ rule-ew-rds-010 =
     .title = Structure-code variants
     .hint = Merge the structure nodes whose codes differ only in spelling.
 
+## EW-REL: the release gate
+
+rule-ew-rel-001 =
+    .title = Four eyes
+    .hint = Set the author, then let another party approve the saved revision (ew revision approve); approve again after a content edit.
+
+rule-ew-rel-002 =
+    .title = Stale committed computation
+    .hint = Recompute the stale result and commit it again before the release.
+
+rule-ew-rel-004 =
+    .title = Revision label order
+    .hint = Give the revision a label in the project's label format that follows every earlier label.
+
 ## EW-TERM: terminals
 
 rule-ew-term-001 =
