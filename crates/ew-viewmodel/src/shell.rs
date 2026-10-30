@@ -1497,6 +1497,7 @@ impl ShellModel {
         self.sync_history();
         // WP-S1.19 part 6: the Macros navigator's detail follows its cursor.
         self.sync_macros();
+        self.sync_library_copy();
         outcome
     }
 

@@ -19,6 +19,7 @@ use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
+use ew_viewmodel::strings;
 use serde_json::json;
 
 /// The tiers of a fixture under `root`: no system path (the compiled-in libraries), a user directory.
@@ -271,6 +272,8 @@ fn ui3_save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
         json!({"name": "PSU", "library": "ElektraWatt starter library", "confirm": true}),
     );
     assert_eq!(system, "reason-library-read-only");
+    // FT-755: the refusal leaves its reason in the window's banner.
+    assert_eq!(shell.banner(), Some(strings::text("reason-library-read-only")));
     // The dialog: prefilled with the first writable library; OK saves.
     done(&mut shell, "macros.save", json!({}));
     let Some(Dialog::Form(f)) = shell.dialog() else {
@@ -404,17 +407,17 @@ fn ui4_update_refuses_without_an_update_and_badges_are_words() {
         refused(&mut shell, "libraries.update", json!({})),
         "reason-no-updates"
     );
-    let key = row_key(
-        &shell,
-        NavKind::Libraries,
-        NavRole::LibCopy,
-        "ew.titleblock.qet-a4",
-    );
+    let key = row_key(&shell, NavKind::Libraries, NavRole::LibCopy, "Title block QET A4");
     done(
         &mut shell,
         "navigator.row",
         json!({"kind": "libraries", "key": key}),
     );
+    // FT-755: the cursor row's detail, in words, the key secondary.
+    let detail = shell.library_copy_detail().expect("the copy's detail");
+    assert_eq!(detail.name, "Title block QET A4");
+    assert_eq!(detail.key, "ew.titleblock.qet-a4");
+    assert_eq!(detail.state, "Source missing");
     let row = shell
         .shown_rows(NavKind::Libraries)
         .into_iter()

@@ -20,9 +20,11 @@ use std::collections::BTreeSet;
 use ew_derive::Q;
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_mltext::MlText;
-use ew_schema::{Device, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroKind, Representation, Sha256};
+use ew_schema::{
+    Device, FormKind, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroKind, Representation, Sha256,
+};
 
-use super::{Builder, NavColumn, NavRole, column, short_tag};
+use super::{Builder, NavColumn, NavRole, column, kind_text, short_tag};
 use crate::library::{IndexState, LibraryInfo, Tier};
 use crate::{CopyState, Session};
 
@@ -123,7 +125,47 @@ fn index_word(s: &IndexState) -> String {
     }
 }
 
-/// The name a held copy is listed by: a part's number, a symbol's or manufacturer's name, else its key.
+/// A form kind in words.
+fn form_kind_word(k: &FormKind) -> &'static str {
+    match k {
+        FormKind::Frame => "Frame",
+        FormKind::TitleBlock => "Title block",
+        FormKind::Cover => "Cover",
+        FormKind::Divider => "Section divider",
+        FormKind::Report => "Report page",
+        FormKind::Label => "Label",
+        _ => "Form",
+    }
+}
+
+/// A form's name in words (FT-755): its kind and the last segment of its key read as words, a segment of up to three
+/// letters and digits in capitals (`ew.titleblock.qet-a4` → "Title block QET A4", `ew.frame.qet-a4-landscape-cover`
+/// → "Frame QET A4 landscape cover"); the kind alone without a key. Forms carry no name of their own.
+fn form_name(kind: &FormKind, key: Option<&str>) -> String {
+    let word = form_kind_word(kind);
+    let Some(last) = key.and_then(|k| k.rsplit('.').next()).filter(|l| !l.is_empty()) else {
+        return word.to_owned();
+    };
+    let words: Vec<String> = last
+        .split(['-', '_'])
+        .filter(|w| !w.is_empty())
+        .map(|w| {
+            if w.len() <= 3 && w.chars().all(|c| c.is_ascii_alphanumeric()) {
+                w.to_ascii_uppercase()
+            } else {
+                w.to_owned()
+            }
+        })
+        .collect();
+    if words.is_empty() {
+        word.to_owned()
+    } else {
+        format!("{word} {}", words.join(" "))
+    }
+}
+
+/// The name a held copy is listed by (FT-755: words, never an ID): a part's number, a symbol's or manufacturer's
+/// name, a function definition's kind text ("Black box", "NO contact 13-14"), a form's [`form_name`], else its key.
 fn copy_label(q: &Q, kind: Kind, copy: Uuid) -> String {
     fn key<T>(c: &LibCopy<T>, meta: impl Fn(&T) -> &ew_schema::ItemMeta) -> Option<String> {
         meta(&c.item).key.as_ref().map(ToString::to_string)
@@ -142,13 +184,23 @@ fn copy_label(q: &Q, kind: Kind, copy: Uuid) -> String {
             }
         }),
         Kind::Fndef => q.fndefs().get(Id::from_uuid(copy)).and_then(|c| {
+            let mut cps: Vec<(u16, String)> = c
+                .item
+                .cps
+                .iter()
+                .map(|p| (p.idx, p.designation.to_string()))
+                .collect();
+            cps.sort_unstable();
+            let cps: Vec<String> = cps.into_iter().map(|(_, d)| d).collect();
             let (a, b, d) = &c.item.category;
-            key(c, |i| &i.meta).or_else(|| Some(format!("{a}.{b}.{d}")))
+            kind_text(&c.item, &cps)
+                .or_else(|| key(c, |i| &i.meta))
+                .or_else(|| Some(format!("{a}.{b}.{d}")))
         }),
         Kind::Form => q
             .forms()
             .get(Id::from_uuid(copy))
-            .and_then(|c| key(c, |i| &i.meta)),
+            .map(|c| form_name(&c.item.kind, c.item.meta.key.as_ref().map(|k| k.as_str()))),
         Kind::Manufacturer => q
             .manufacturers()
             .get(Id::from_uuid(copy))
@@ -295,6 +347,24 @@ impl MacroDetail {
     }
 }
 
+/// What the Libraries navigator's detail shows of a project's library copy (FT-755): as the Macros navigator's
+/// detail shows a macro.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct LibraryCopyDetail {
+    /// The name, as the row lists it.
+    pub name: String,
+    /// The kind in words (`Form`, `Function definition`).
+    pub kind: &'static str,
+    /// The item's key (`ew.titleblock.qet-a4`), empty without one: secondary text, after the name.
+    pub key: String,
+    /// The installed library's name, empty when no installed library holds the item.
+    pub library: String,
+    /// The copy's version (`1.0.0`).
+    pub version: String,
+    /// The copy's state in words (`Current`, `Source missing`).
+    pub state: String,
+}
+
 /// The installed libraries of a tier, in the registry's order.
 fn of_tier(libs: &[LibraryInfo], tier: Tier) -> impl Iterator<Item = &LibraryInfo> {
     libs.iter().filter(move |l| l.tier == tier)
@@ -334,6 +404,41 @@ impl Session {
         let q = self.query();
         let c = q.table::<LibCopy<MacroDef>>().get(Id::from_uuid(copy))?.clone();
         Some(MacroDetail::of(&c, IN_PROJECT.to_owned(), None))
+    }
+
+    /// The project's library copy a row key of the Libraries navigator names (its last segment `copy:<copy>`), as
+    /// its detail shows it (FT-755); `None` for another key or a copy the project no longer holds.
+    pub fn library_copy_detail(&self, key: &str) -> Option<LibraryCopyDetail> {
+        let copy: Uuid = key.rsplit('/').next()?.strip_prefix("copy:")?.parse().ok()?;
+        let s = self.library_status().into_iter().find(|s| s.copy == copy)?;
+        let q = self.query();
+        let item_key = |meta: Option<&ew_schema::ItemMeta>| {
+            meta.and_then(|m| m.key.as_ref())
+                .map(ToString::to_string)
+                .unwrap_or_default()
+        };
+        let key = match s.kind {
+            Kind::Part => item_key(q.parts().get(Id::from_uuid(copy)).map(|c| &c.item.meta)),
+            Kind::Symbol => item_key(q.symbols().get(Id::from_uuid(copy)).map(|c| &c.item.meta)),
+            Kind::Fndef => item_key(q.fndefs().get(Id::from_uuid(copy)).map(|c| &c.item.meta)),
+            Kind::Form => item_key(q.forms().get(Id::from_uuid(copy)).map(|c| &c.item.meta)),
+            _ => String::new(),
+        };
+        let library = self
+            .libraries()
+            .libraries()
+            .into_iter()
+            .find(|l| l.id == s.library)
+            .map(|l| l.name)
+            .unwrap_or_default();
+        Some(LibraryCopyDetail {
+            name: copy_label(&q, s.kind, copy),
+            kind: kind_word(s.kind),
+            key,
+            library,
+            version: s.version.clone(),
+            state: copy_state(&s.state).1,
+        })
     }
 
     /// A new macro instance ID for an insertion of the macro copy `copy` (WP-S1.19 §12 item 2: the shell mints it and

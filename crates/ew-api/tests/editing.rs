@@ -132,7 +132,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
             }
             // FT-712: a change-over contact is spelled out, never "CO".
             if f.fndef_key == "ew.fn.contact-co" {
-                assert!(f.kind_text.starts_with("changeover contact "), "{}", f.kind_text);
+                assert!(f.kind_text.starts_with("Changeover contact "), "{}", f.kind_text);
             }
             if let Some(key) = &f.symbol {
                 let r = row(key);
@@ -163,7 +163,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     assert!(
         rly.functions
             .iter()
-            .any(|f| f.kind_text.starts_with("changeover contact ")),
+            .any(|f| f.kind_text.starts_with("Changeover contact ")),
         "{:?}",
         rly.functions.iter().map(|f| &f.kind_text).collect::<Vec<_>>()
     );

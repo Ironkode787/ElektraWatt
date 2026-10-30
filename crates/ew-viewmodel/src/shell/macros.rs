@@ -23,7 +23,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_api::output::ew_dl::ew_units::{Nm, Orient2, Pt2};
-use ew_api::output::{MacroDetail, NavRole, NavTable, Uuid};
+use ew_api::output::{LibraryCopyDetail, MacroDetail, NavRole, NavTable, Uuid};
 use ew_api::{AnyCommand, InsertAt, MacroConflict, MacroScope, MacroSpec, MacroValues, Submit};
 use serde_json::{Map, Value, json};
 
@@ -59,6 +59,9 @@ pub(crate) struct MacroState {
     detail: Option<(String, Option<Arc<MacroDetail>>)>,
     /// The variables Make variable remembered.
     variables: Vec<MacroVariable>,
+    /// The Libraries navigator's cursor row key, the table it was read from (its address: a new table after a change
+    /// reads it again) and the copy's detail (`None`: no copy row) (FT-755).
+    copy_detail: Option<(String, usize, Option<Arc<LibraryCopyDetail>>)>,
 }
 
 /// The word of a variable type a property row's field takes (`Session::save_macro` checks the binding).
@@ -133,6 +136,16 @@ impl ShellModel {
         self.macros.detail.as_ref().and_then(|(_, d)| d.as_deref())
     }
 
+    /// The detail of the library copy under the Libraries navigator's cursor (FT-755: name, kind, key, library,
+    /// version, state, as the Macros navigator's detail shows a macro); `None` when the cursor is on no copy row or
+    /// the navigator is closed.
+    pub fn library_copy_detail(&self) -> Option<&LibraryCopyDetail> {
+        self.macros
+            .copy_detail
+            .as_ref()
+            .and_then(|(_, _, d)| d.as_deref())
+    }
+
     /// The variables Make variable remembered for the next Save as macro….
     pub fn macro_variables(&self) -> &[MacroVariable] {
         &self.macros.variables
@@ -161,6 +174,38 @@ impl ShellModel {
         self.macros.detail = Some((key, detail));
     }
 
+    /// The copy detail follows the Libraries navigator's cursor and table (end of every dispatch, FT-755): one
+    /// `Session::library_copy_detail` per new cursor row or new table.
+    pub(super) fn sync_library_copy(&mut self) {
+        let key = self
+            .navs
+            .contains_key(&NavKind::Libraries)
+            .then(|| self.nav_cursor(NavKind::Libraries))
+            .flatten();
+        let Some(key) = key else {
+            self.macros.copy_detail = None;
+            return;
+        };
+        let table = self
+            .generic(NavKind::Libraries)
+            .and_then(|n| n.table())
+            .map_or(0, |t| Arc::as_ptr(&t) as usize);
+        if self
+            .macros
+            .copy_detail
+            .as_ref()
+            .is_some_and(|(k, t, _)| *k == key && *t == table)
+        {
+            return;
+        }
+        let detail = self
+            .project
+            .as_ref()
+            .and_then(|p| p.session.library_copy_detail(&key))
+            .map(Arc::new);
+        self.macros.copy_detail = Some((key, table, detail));
+    }
+
     /// Drops what reads the libraries (after a library write): the tables of the Macros and Libraries navigators and
     /// the detail; the next sync fetches them again.
     fn libraries_changed(&mut self) {
@@ -170,6 +215,7 @@ impl ShellModel {
             }
         }
         self.macros.detail = None;
+        self.macros.copy_detail = None;
     }
 
     /// The page UUID of the focused tab, `None` without a drawn page.
@@ -572,8 +618,15 @@ impl ShellModel {
         matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == SAVE)
     }
 
-    /// The end of Save as macro…: a failure or refusal stays in its dialog with its text, a success closes it.
+    /// The end of Save as macro…: a failure or refusal stays in its dialog with its text, a success closes it. A
+    /// refusal before the dialog opens (nothing selected, no project) shows its reason in the banner (FT-755: a refused
+    /// save leaves a trace in the window; a failure becomes the banner through the window's report).
     fn save_done(&mut self, out: Outcome) -> Outcome {
+        if !self.in_save_form() {
+            if let Outcome::Refused { reason_key } = &out {
+                self.show_banner(strings::text(reason_key));
+            }
+        }
         if self.in_save_form() {
             let text = match &out {
                 Outcome::Done => {
@@ -620,6 +673,11 @@ impl ShellModel {
         if scope.is_empty() {
             return self.save_done(Outcome::Refused {
                 reason_key: "reason-nothing-selected",
+            });
+        }
+        if self.project.is_none() {
+            return self.save_done(Outcome::Refused {
+                reason_key: "reason-no-project",
             });
         }
         let Some(project) = &self.project else {

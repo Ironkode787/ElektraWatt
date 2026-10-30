@@ -1865,6 +1865,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "macro-devices" => "Devices",
         "macro-variables" => "Variables",
         "macro-version" => "Version {0} · {1}",
+        // FT-755: the Libraries navigator's copy detail
+        "library-copy-kind-key" => "{0} · {1}",
+        "library-copy-not-installed" => "no installed library",
         "save-macro-title" => "Save as macro",
         "dialog-save-macro" => "Save to library",
         "form-macro-name" => "Name",

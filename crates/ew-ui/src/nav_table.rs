@@ -704,9 +704,11 @@ fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
 }
 
 /// The width a column's content may not widen it past: the Pages table's Title stays at `size.table_column` and
-/// elides, its whole text in the cell's tooltip, so that "Changed in" fits the default navigator width (FT-718).
+/// elides, its whole text in the cell's tooltip, so that "Changed in" fits the default navigator width (FT-718); the
+/// Libraries table's Name likewise, so that its Kind ("Function definition") fits the default rail width (FT-755).
 fn cap_width(t: &Tokens, kind: NavKind, key: &str) -> Option<f32> {
-    (kind == NavKind::Pages && key == "title").then_some(t.size_table_column)
+    ((kind == NavKind::Pages && key == "title") || (kind == NavKind::Libraries && key == "name"))
+        .then_some(t.size_table_column)
 }
 
 /// The unwrapped width of `text` in `font`.

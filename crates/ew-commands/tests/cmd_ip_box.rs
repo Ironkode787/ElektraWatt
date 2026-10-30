@@ -897,6 +897,16 @@ fn fields_set_refuses_ip_members_on_other_functions_and_bad_values() {
         e.execute(&set_ip(FN_T3, "name", serde_json::json!("L-9"))),
         "/path",
     );
+    // FT-756: the refusal names the function by its device's tag, never by its ID.
+    match e.execute(&set_ip(FN_T3, "name", serde_json::json!("L-9"))) {
+        Err(CmdError::InvalidParams { message, .. }) => {
+            assert!(!message.contains(&FN_T3.to_string()), "{message}");
+            assert!(!message.contains('@'), "{message}");
+            assert!(message.starts_with('-'), "a tag first: {message}");
+            assert!(message.contains(" is not an interruption point;"), "{message}");
+        }
+        other => panic!("expected InvalidParams, got {other:?}"),
+    }
     invalid_at(
         e.execute(&set_ip(IP_A, "direction", serde_json::json!("sideways"))),
         "/value",

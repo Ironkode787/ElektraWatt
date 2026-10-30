@@ -5,32 +5,46 @@
 //! (`error-command`), so it names a record by its tag, page folio or label, never by its ID. A record that does
 //! not exist has no words: the refusal says so and its JSON Pointer names the parameter.
 
+use ew_derive::{DeviceTag, Q};
 use ew_schema::{Device, Function, Page, Representation};
 
 use crate::tx::TxBuilder;
 
-/// A device's tag as a refusal names it (`-K1`; `-K` before online numbering gives it a counter).
-pub(crate) fn tag_of(dev: &Device) -> String {
+/// A device's printed tag (`-102G1`): the derived short tag of the transaction's base model, else, for a device
+/// the transaction made, its letter and counter (`-K1`; `-K` before online numbering gives it a counter).
+fn tag_of(tx: &TxBuilder<'_>, id: ew_ids::Id<Device>, dev: &Device) -> String {
+    let q = Q::new(tx.base_model());
+    let short = q
+        .get::<DeviceTag>(id)
+        .as_ref()
+        .as_ref()
+        .map(ew_derive::Tag::short)
+        .unwrap_or_default();
+    if !short.is_empty() {
+        return short;
+    }
     match dev.tag.counter {
         Some(c) => format!("-{}{c}", dev.tag.letter.as_str()),
         None => format!("-{}", dev.tag.letter.as_str()),
     }
 }
 
+/// The tag of a device that exists.
+fn existing_tag(tx: &TxBuilder<'_>, id: ew_ids::Id<Device>) -> Option<String> {
+    tx.get::<Device>(id).map(|d| tag_of(tx, id, &d))
+}
+
 /// A device by its tag, or "a device that is not in the project".
 pub(crate) fn device(tx: &TxBuilder<'_>, id: ew_ids::Id<Device>) -> String {
-    tx.get::<Device>(id).map_or_else(
-        || "a device that is not in the project".to_owned(),
-        |d| tag_of(&d),
-    )
+    existing_tag(tx, id).unwrap_or_else(|| "a device that is not in the project".to_owned())
 }
 
 /// A function by its device's tag, or "a function without a device".
 pub(crate) fn function(tx: &TxBuilder<'_>, id: ew_ids::Id<Function>) -> String {
     tx.get::<Function>(id)
         .and_then(|f| f.device)
-        .and_then(|d| tx.get::<Device>(d))
-        .map_or_else(|| "a function without a device".to_owned(), |d| tag_of(&d))
+        .and_then(|d| existing_tag(tx, d))
+        .unwrap_or_else(|| "a function without a device".to_owned())
 }
 
 /// The printed folio of a page (its label, else its number), or `None` when the page does not exist.
@@ -58,7 +72,6 @@ pub(crate) fn symbol(tx: &TxBuilder<'_>, id: ew_ids::Id<Representation>) -> Stri
         .and_then(|r| r.functions.first().copied())
         .and_then(|f| tx.get::<Function>(f))
         .and_then(|f| f.device)
-        .and_then(|d| tx.get::<Device>(d))
-        .map(|d| tag_of(&d));
+        .and_then(|d| existing_tag(tx, d));
     tag.map_or_else(|| "a symbol".to_owned(), |t| format!("the symbol of {t}"))
 }

@@ -28,7 +28,18 @@ use crate::theme;
 /// Macros navigator's detail block as a bottom panel; nothing for another kind.
 pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<Event>) {
     match kind {
-        NavKind::Libraries => update_bar(ui, shell, events),
+        NavKind::Libraries => {
+            update_bar(ui, shell, events);
+            if let Some(detail) = shell.library_copy_detail() {
+                let t = components::tokens(ui);
+                let frame = egui::Frame::new()
+                    .inner_margin(egui::Margin::symmetric(t.space_4 as i8, t.space_2 as i8));
+                egui::Panel::bottom(ui.scope_id().with("copy-detail"))
+                    .resizable(false)
+                    .frame(frame)
+                    .show(ui, |ui| copy_detail(ui, detail));
+            }
+        }
         NavKind::Macros => {
             if let Some(detail) = shell.macro_detail() {
                 let t = components::tokens(ui);
@@ -64,6 +75,49 @@ fn update_bar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         }
     });
     ui.add_space(t.space_2);
+}
+
+/// The detail block of a project's library copy (FT-755): its name (`type.body.strong`), its kind and key, its version
+/// and library, its state; a `Group` named after the copy.
+fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail) {
+    let t = components::tokens(ui);
+    let id = ui.scope_id().with("copy-detail-group");
+    let rect = ui.available_rect_before_wrap();
+    let group = ui.interact(rect, id, egui::Sense::hover());
+    let name = d.name.clone();
+    group.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, &name));
+    ui.scope_builder(egui::UiBuilder::new().accessibility_parent(id), |ui| {
+        ui.spacing_mut().item_spacing.y = t.space_1;
+        let line = |ui: &mut Ui, text: &str, font: &theme::TypeToken, colour: theme::Rgba| {
+            ui.add(
+                egui::Label::new(
+                    RichText::new(text)
+                        .font(theme::font(font))
+                        .color(colour.color32()),
+                )
+                .wrap(),
+            );
+        };
+        line(ui, &d.name, &t.type_body_strong, t.text_primary);
+        let kind = if d.key.is_empty() {
+            d.kind.to_owned()
+        } else {
+            strings::format("library-copy-kind-key", &[d.kind, &d.key])
+        };
+        line(ui, &kind, &t.type_small, t.text_secondary);
+        let library = if d.library.is_empty() {
+            strings::text("library-copy-not-installed")
+        } else {
+            &d.library
+        };
+        line(
+            ui,
+            &strings::format("macro-version", &[&d.version, library]),
+            &t.type_small,
+            t.text_secondary,
+        );
+        line(ui, &d.state, &t.type_small, t.text_primary);
+    });
 }
 
 /// The detail block of a macro.

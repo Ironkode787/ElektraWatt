@@ -43,7 +43,7 @@ use super::view::PageFrameOf;
 use crate::Session;
 
 mod libraries;
-pub use libraries::MacroDetail;
+pub use libraries::{LibraryCopyDetail, MacroDetail};
 
 /// The navigators (D4; WP-S2.09 D8 adds the message panel last), in View ▸ Navigators order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -872,7 +872,7 @@ pub(crate) fn fndef_name(q: &Q, f: &Function) -> String {
 /// lower-cased, then the CP designations of the function's template entry (else of the FnDef, in `idx` order) joined
 /// by `-`. Category `["Relay", "Contact", "NO"]` with CPs 13 and 14 gives `NO contact 13-14`; a last entry equal to
 /// the CP designations run together is dropped and the one before it capitalised (`["Relay", "Coil", "A1A2"]` with
-/// CPs A1 and A2 gives `Coil A1-A2`); a last entry `CO` reads `changeover` (FT-712: `changeover contact 11-12-14`);
+/// CPs A1 and A2 gives `Coil A1-A2`); a last entry `CO` reads `Changeover` (FT-712, FT-752: `Changeover contact 11-12-14`);
 /// a category of fewer
 /// than two non-empty entries, or a missing FnDef copy, gives [`fndef_name`]. The Properties grid's "Part function"
 /// row and the picker's meta line read it.
@@ -925,12 +925,17 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
             .map(|c| c.to_uppercase().chain(chars).collect())
             .unwrap_or_default()
     } else {
-        // FT-712: the change-over kind is spelled out (`changeover contact 11-12-14`); the FnDef keeps its category.
-        let last = if last.eq_ignore_ascii_case("CO") {
-            "changeover"
-        } else {
-            last
-        };
+        // FT-712: the change-over kind is spelled out; FT-752: in sentence case (`Changeover contact 11-12-14` beside
+        // `NO contact 13-14`). The FnDef keeps its category.
+        let last = LAST_ENTRY_WORDS
+            .iter()
+            .find(|(entry, _)| last.eq_ignore_ascii_case(entry))
+            .map_or(*last, |(_, word)| *word);
+        let mut chars = last.chars();
+        let last: String = chars
+            .next()
+            .map(|c| c.to_uppercase().chain(chars).collect())
+            .unwrap_or_default();
         format!("{last} {}", before.to_lowercase())
     };
     if !cps.is_empty() {
@@ -940,36 +945,47 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
     Some(out)
 }
 
-/// The display words of a FnDef category by its last two entries (FT-723), where the generic rule of [`kind_text`]
-/// reads poorly ("Generic decoration", "Point ip 1"), with whether the CP designations follow; `None` for every other
-/// category, which keeps the generic rule. Display text only: the FnDef keeps its category.
+/// The display words of FnDef categories by their last two entries (FT-723), where the generic rule of [`kind_text`]
+/// reads poorly ("Generic decoration", "Point ip 1"): the entry before the last, the last entry, the words in sentence
+/// case, and whether the CP designations follow. Display text only: the FnDef keeps its category. English only for
+/// now: this table is what WP-S2.08 part 3 (the shell's Fluent tables) localises (FT-752).
+const KIND_WORDS: &[(&str, &str, &str, bool)] = &[
+    ("Decoration", "Generic", "Decoration", false),
+    ("Overview", "Generic", "Overview", false),
+    ("BlackBox", "Generic", "Black box", false),
+    ("Ip", "Point", "Interruption point", true),
+    ("Arrow", "Point", "External reference", true),
+    ("ProtectiveEarth", "Point", "Protective earth bar", true),
+    ("FunctionalEarth", "Point", "Functional earth bar", true),
+    ("BusConnector", "Profibus", "PROFIBUS connector", true),
+    ("BusPort", "Profibus", "PROFIBUS port", true),
+    ("PlugPin", "Single", "Plug pin", true),
+    ("Strip", "Segment", "Terminal strip segment", false),
+    ("FeedThrough", "1Level", "Feed-through terminal", true),
+    ("PE", "1Level", "PE terminal", true),
+    ("MCB", "1P", "1P MCB", true),
+    ("MCB", "1P+N", "1P+N MCB", true),
+    ("ManualSwitch", "1P", "1P manual switch", true),
+    ("ManualSwitch", "2P", "2P manual switch", true),
+    ("PositionSwitch", "NO", "NO position switch", true),
+    ("SelectorSwitch", "NO", "NO selector switch", true),
+    ("EnclosureHeater", "1P", "Enclosure heater", true),
+    ("DoubleActing", "Cylinder", "Double-acting cylinder", true),
+    ("ProcessValve", "TwoWay", "Two-way process valve", true),
+    ("Valve52", "SolenoidSpring", "5/2 valve", true),
+];
+
+/// The word of a category's last entry where the generic rule of [`kind_text`] spells it out (FT-712: `CO` reads
+/// "changeover"); in the same localisation as [`KIND_WORDS`] (WP-S2.08 part 3).
+const LAST_ENTRY_WORDS: &[(&str, &str)] = &[("CO", "changeover")];
+
+/// The display words of a FnDef category by its last two entries ([`KIND_WORDS`]), with whether the CP designations
+/// follow; `None` for every other category, which keeps the generic rule.
 fn kind_words(before: &str, last: &str) -> Option<(&'static str, bool)> {
-    Some(match (before, last) {
-        ("Decoration", "Generic") => ("Decoration", false),
-        ("Overview", "Generic") => ("Overview", false),
-        ("BlackBox", "Generic") => ("Black box", false),
-        ("Ip", "Point") => ("Interruption point", true),
-        ("Arrow", "Point") => ("External reference", true),
-        ("ProtectiveEarth", "Point") => ("Protective earth bar", true),
-        ("FunctionalEarth", "Point") => ("Functional earth bar", true),
-        ("BusConnector", "Profibus") => ("PROFIBUS connector", true),
-        ("BusPort", "Profibus") => ("PROFIBUS port", true),
-        ("PlugPin", "Single") => ("Plug pin", true),
-        ("Strip", "Segment") => ("Terminal strip segment", false),
-        ("FeedThrough", "1Level") => ("Feed-through terminal", true),
-        ("PE", "1Level") => ("PE terminal", true),
-        ("MCB", "1P") => ("1P MCB", true),
-        ("MCB", "1P+N") => ("1P+N MCB", true),
-        ("ManualSwitch", "1P") => ("1P manual switch", true),
-        ("ManualSwitch", "2P") => ("2P manual switch", true),
-        ("PositionSwitch", "NO") => ("NO position switch", true),
-        ("SelectorSwitch", "NO") => ("NO selector switch", true),
-        ("EnclosureHeater", "1P") => ("Enclosure heater", true),
-        ("DoubleActing", "Cylinder") => ("Double-acting cylinder", true),
-        ("ProcessValve", "TwoWay") => ("Two-way process valve", true),
-        ("Valve52", "SolenoidSpring") => ("5/2 valve", true),
-        _ => return None,
-    })
+    KIND_WORDS
+        .iter()
+        .find(|(b, l, _, _)| *b == before && *l == last)
+        .map(|(_, _, words, with_cps)| (*words, *with_cps))
 }
 
 /// The Properties grid's "Part function" text of a function (FT-670): [`function_kind_text`] when the function
@@ -3023,7 +3039,8 @@ mod tests {
         assert_eq!(text("ew.fn.coil", &["A1", "A2"]), "Coil A1-A2");
         assert_eq!(
             text("ew.fn.contact-co", &["11", "12", "14"]),
-            "changeover contact 11-12-14"
+            "Changeover contact 11-12-14",
+            "FT-752: sentence case"
         );
     }
 

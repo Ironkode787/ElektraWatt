@@ -117,8 +117,8 @@ pub use plc_bind::{CardPin, OffCardBind};
 pub use preview::PreviewEntity;
 // WP-S2.06 parts 1 and 2
 pub use navigators::{
-    Drawable, HighlightTarget, MacroDetail, NaturalKey, NavColumn, NavKind, NavNode, NavOpen, NavRole,
-    NavTable, Uuid, nav_natural_key, tokens as nav_tokens,
+    Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, NaturalKey, NavColumn, NavKind, NavNode,
+    NavOpen, NavRole, NavTable, Uuid, nav_natural_key, tokens as nav_tokens,
 };
 // WP-S1.18 part 2
 pub use properties::{

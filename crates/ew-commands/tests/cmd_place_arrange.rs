@@ -1083,7 +1083,7 @@ fn move_by_steps_rejections() {
         Err(CmdError::Rejected { reason, .. }) => {
             // FT-756: the symbol by its device's tag, never its ID
             assert!(!reason.contains(&REP_102F2.to_string()), "{reason}");
-            assert!(reason.starts_with("the symbol of -F2 "), "{reason}");
+            assert!(reason.starts_with("the symbol of -102F2 at "), "{reason}");
             assert!(reason.contains("not on the connection grid"), "{reason}");
         }
         other => panic!("expected a rejection, got {other:?}"),

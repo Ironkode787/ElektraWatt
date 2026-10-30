@@ -2537,14 +2537,20 @@ pub(crate) fn pin_in_sentence(label: &str) -> String {
     }
 }
 
-/// An English ordinal: `1st`, `2nd`, `3rd`, `4th`, `11th`, `12th`, `13th`, `21st`.
+/// The English ordinal suffixes, for a number ending in 1, 2 or 3 and for every other number (the teens 11 to 13
+/// take the last). English only for now: this table is what WP-S2.08 part 3 (the shell's Fluent tables) localises
+/// (FT-752), where a language's ordinal rule replaces the choice in [`ordinal`].
+const ORDINAL_SUFFIXES: [&str; 4] = ["st", "nd", "rd", "th"];
+
+/// An English ordinal: `1st`, `2nd`, `3rd`, `4th`, `11th`, `12th`, `13th`, `21st` ([`ORDINAL_SUFFIXES`]).
 fn ordinal(n: u32) -> String {
+    let [st, nd, rd, th] = ORDINAL_SUFFIXES;
     let suffix = match (n % 10, n % 100) {
-        (_, 11..=13) => "th",
-        (1, _) => "st",
-        (2, _) => "nd",
-        (3, _) => "rd",
-        _ => "th",
+        (_, 11..=13) => th,
+        (1, _) => st,
+        (2, _) => nd,
+        (3, _) => rd,
+        _ => th,
     };
     format!("{n}{suffix}")
 }
