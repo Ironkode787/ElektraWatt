@@ -79,4 +79,8 @@ pub(crate) const FILES: &[(&str, &str)] = &[
         "parts/eb.2.jsonl",
         include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/eb.2.jsonl"),
     ),
+    (
+        "parts/fa.2.jsonl",
+        include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/fa.2.jsonl"),
+    ),
 ];

@@ -59,6 +59,7 @@ const STARTER_KEYS: &[&str] = &[
     "ew.iec.coil",
     "ew.iec.valve-coil",
     "ew.iec.fuse",
+    "ew.iec.switch-1p",
     "ew.iec.switch-2p-manual",
     "ew.iec.mcb-1pn",
     "ew.iec.mcb-1p",

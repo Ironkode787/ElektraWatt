@@ -1,0 +1,43 @@
+{
+  "$k": "fndef",
+  "id": "041787e4-a5ee-5712-9ef2-fa8e8d24176b",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "a73aad5d-791a-540d-95d6-7364604c4e8f",
+  "version": "0.1.0",
+  "sha256": "sha256:6c386c8fb8d745983074b288a2c304616cebdf59c9764dadeb79c160836adf4f",
+  "meta": {
+    "key": "ew.fn.switch-1p",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "SwitchingMain",
+    "ManualSwitch",
+    "1P"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1"
+    },
+    {
+      "idx": 1,
+      "designation": "2"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ]
+}

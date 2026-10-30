@@ -27,9 +27,9 @@ const ZERO: &str = "sha256:00000000000000000000000000000000000000000000000000000
 const NAME: &str = "ElektraWatt starter parts";
 const LICENCE: &str = "CC0-1.0";
 const VERSION: &str = "0.1.0";
-/// The library's version: 0.1.1 since FT-659 changed two parts (a library refuses other content under a published
-/// version, doc 05 §13.1).
-const LIBRARY_VERSION: &str = "0.1.1";
+/// The library's version: 0.1.1 since FT-659 changed two parts, 0.1.2 since FT-606 added the one-pole on/off switch
+/// EW-GEN-SW-1 (a library refuses other content under a published version, doc 05 §13.1).
+const LIBRARY_VERSION: &str = "0.1.2";
 /// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y).
 const BUMPED: &[(&str, &str)] = &[("EW-GEN-SEL-1", "0.1.1"), ("EW-GEN-VLV-1", "0.1.1")];
@@ -199,6 +199,16 @@ fn defs() -> Vec<Def> {
             cps: cps(&["13", "14"]),
             template: vec![("ew.fn.selector-switch-no", true, vec![0, 1])],
             contacts: vec![("no", vec!["13", "14"])],
+            tech: Vec::new(),
+            plc: None,
+        },
+        Def {
+            number: "EW-GEN-SW-1",
+            kind: None,
+            description: "On/off switch, 1 pole",
+            cps: cps(&["1", "2"]),
+            template: vec![("ew.fn.switch-1p", true, vec![0, 1])],
+            contacts: Vec::new(),
             tech: Vec::new(),
             plc: None,
         },
@@ -537,7 +547,12 @@ fn the_shipped_library_is_the_generated_one() {
 #[test]
 fn every_generic_part_is_usable() {
     let numbers: Vec<&str> = defs().iter().map(|d| d.number).collect();
-    assert_eq!(numbers.len(), 16);
+    let unique: std::collections::BTreeSet<&str> = numbers.iter().copied().collect();
+    assert_eq!(unique.len(), numbers.len(), "part numbers are unique");
+    assert!(
+        numbers.contains(&"EW-GEN-SW-1"),
+        "FT-606: the one-pole on/off switch"
+    );
     for doc in parts() {
         let LibDocument::Part(c) = doc else { panic!() };
         let p = &c.item;

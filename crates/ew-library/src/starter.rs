@@ -103,6 +103,7 @@ const ITEMS: &[StarterItem] = &[
         "fndefs/ew.fn.selector-switch-no.json"
     ),
     item!("ew.fn.strip-segment", Fndef, "fndefs/ew.fn.strip-segment.json"),
+    item!("ew.fn.switch-1p", Fndef, "fndefs/ew.fn.switch-1p.json"),
     item!(
         "ew.fn.switch-2p-manual",
         Fndef,
@@ -283,6 +284,12 @@ const ITEMS: &[StarterItem] = &[
         "ew.iec.selector-switch-no@qet10",
         Symbol,
         "symbols/qet10/ew.iec.selector-switch-no@qet10.json"
+    ),
+    item!("ew.iec.switch-1p", Symbol, "symbols/ew.iec.switch-1p.json"),
+    item!(
+        "ew.iec.switch-1p@qet10",
+        Symbol,
+        "symbols/qet10/ew.iec.switch-1p@qet10.json"
     ),
     item!(
         "ew.iec.switch-2p-manual",

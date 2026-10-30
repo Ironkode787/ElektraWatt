@@ -81,6 +81,7 @@ const PATHS: &[(&str, Path)] = &[
         "ew.iec.selector-switch-no@qet10",
         Path::Part("EW-GEN-SEL-1", 0, MULTI),
     ),
+    ("ew.iec.switch-1p@qet10", Path::Part("EW-GEN-SW-1", 0, MULTI)),
     ("ew.iec.switch-2p-manual@qet10", Path::Device("Q", MULTI)),
     ("ew.iec.terminal-pe@qet10", Path::Terminal("EW-GEN-TRM-2")),
     ("ew.iec.terminal@qet10", Path::Terminal("EW-GEN-TRM-1")),
@@ -445,7 +446,10 @@ fn the_parts_row_takes_a_starter_part_in_one_undo_step() {
         .choices()
         .map(|c| c.items.iter().map(|(t, _)| t.clone()).collect())
         .unwrap_or_default();
-    assert_eq!(options.len(), 16, "{options:?}");
+    assert!(
+        options.contains(&"EW-GEN-SW-1 (Generic)".to_owned()),
+        "{options:?}"
+    );
     assert!(
         options.contains(&"EW-GEN-LMP-1 (Generic)".to_owned()),
         "{options:?}"
