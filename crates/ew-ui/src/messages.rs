@@ -180,31 +180,25 @@ fn count_badge(ui: &mut Ui, t: &Tokens, severity: &'static str, count: usize) {
     );
 }
 
-/// A severity chip (FT-530; doc 16a §6.8's findings in the Properties header, drawn as §6.16's status badge): `radius.sm`,
-/// the severity's subtle fill, its icon and word in `type.caption` in its text colour; a `Label` node named "<word>,
-/// <rule>: <message>", the rule and message as the tooltip.
-pub(crate) fn severity_chip(ui: &mut Ui, severity: &str, rule: &str, message: &str) -> egui::Response {
-    let word = severity_word(severity);
-    let name = strings::format("props-finding-chip", &[word, rule, message]);
-    paint_severity_chip(
-        ui,
-        severity,
-        word,
-        &name,
-        &strings::format("props-finding-tip", &[rule, message]),
-    )
+/// "<n> <Word>" of a severity, singular for one ("1 Warning", "3 Warnings"): a count chip's word.
+pub(crate) fn count_words(severity: &str, n: usize) -> String {
+    let words = if n == 1 {
+        severity_word(severity)
+    } else {
+        strings::text(match severity {
+            "error" => "severity-errors",
+            "warning" => "severity-warnings",
+            _ => "severity-infos",
+        })
+    };
+    strings::format("props-findings-count", &[&n.to_string(), words])
 }
 
-/// One chip for `findings.len()` findings of one severity (cycle 36, window check W36: more than two findings no longer
-/// fit the Properties header one chip each): the icon and "<n> <Words>" ("3 Warnings"), a `Label` node named by that
-/// and each "<rule>: <message>", the same lines as the tooltip.
+/// One chip for `findings.len()` findings of one severity (cycle 36, window check W36; cycle 37: always one chip per
+/// severity): the icon and "<n> <Word(s)>" ("1 Warning", "3 Warnings"), a `Label` node named by that and each
+/// "<rule>: <message>", the same lines as the tooltip.
 pub(crate) fn severity_count_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::Response {
-    let words = strings::text(match severity {
-        "error" => "severity-errors",
-        "warning" => "severity-warnings",
-        _ => "severity-infos",
-    });
-    let word = strings::format("props-findings-count", &[&findings.len().to_string(), words]);
+    let word = count_words(severity, findings.len());
     let lines: Vec<String> = findings
         .iter()
         .map(|(rule, message)| strings::format("props-finding-tip", &[rule, message]))

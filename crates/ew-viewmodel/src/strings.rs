@@ -793,7 +793,6 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-props-row-menu" => "Property actions",
         "action-props-filter" => "Filter the properties",
         "props-filter-hint" => "Filter properties",
-        "props-finding-chip" => "{0}, {1}: {2}",
         "props-finding-tip" => "{0}: {1}",
         "props-findings-count" => "{0} {1}",
         "props-findings-chip" => "{0}: {1}",

@@ -356,9 +356,10 @@ impl PropertiesPane {
     fn header(ui: &mut Ui, sheet: &PropertySheet) {
         let t = crate::theme::current(ui.ctx());
         // Cycle 36 (window check W36): the chips are laid out first, at the right, and the title takes what is left,
-        // ellipsised; more than two findings collapse into one count chip per severity ("3 Warnings", every rule and
-        // message in its tooltip), so the header keeps its width whatever the count (doc 16a §6.8: "the findings
-        // badge").
+        // ellipsised; the findings collapse into one count chip per severity ("3 Warnings", every rule and message in
+        // its tooltip), so the header keeps its width whatever the count (doc 16a §6.8: "the findings badge").
+        // Cycle 37 (window check W37): always one chip per severity, also for one or two findings ("2 Warnings", not
+        // "Warning Warning").
         // FT-664 (cycle 37): the chips never take the title's room. When the title at its full width and the chips
         // with their words do not fit the line, each severity becomes one glyph chip (its icon, and the count when
         // more than one), the words in its tooltip and node name; the title is then ellipsised by the panel only.
@@ -379,18 +380,11 @@ impl PropertiesPane {
                     + measure(word, &t.type_caption)
                     + t.space_2
             };
-            let chips: f32 = if findings.len() <= 2 {
-                findings
-                    .iter()
-                    .map(|f| chip(crate::messages::severity_word(&f.severity).to_owned()))
-                    .sum()
-            } else {
-                groups
-                    .iter()
-                    .map(|(severity, of)| chip(count_words(severity, of.len())))
-                    .sum()
-            };
-            let gaps = t.space_1 * findings.len().saturating_sub(1) as f32;
+            let chips: f32 = groups
+                .iter()
+                .map(|(severity, of)| chip(count_words(severity, of.len())))
+                .sum();
+            let gaps = t.space_1 * groups.len().saturating_sub(1) as f32;
             let title = measure(sheet.header.title.clone(), &t.type_title);
             !findings.is_empty() && title + t.space_2 + chips + gaps > ui.available_width()
         };
@@ -401,11 +395,6 @@ impl PropertiesPane {
                     // Right to left: info, warning, error, so the most severe reads first.
                     for (severity, of) in groups.iter().rev() {
                         glyph_chip(ui, severity, of);
-                    }
-                } else if findings.len() <= 2 {
-                    // Right to left: the last finding first, so the chips read in the header's order.
-                    for f in findings.iter().rev() {
-                        crate::messages::severity_chip(ui, &f.severity, &f.rule, &f.message);
                     }
                 } else {
                     // Right to left: info, warning, error, so the most severe reads first.
@@ -1276,14 +1265,9 @@ fn severity_groups(
         .collect()
 }
 
-/// "<n> <Words>" ("3 Warnings"), a count chip's word.
+/// "<n> <Word(s)>" ("1 Warning", "3 Warnings"), a count chip's word.
 fn count_words(severity: &str, n: usize) -> String {
-    let words = strings::text(match severity {
-        "error" => "severity-errors",
-        "warning" => "severity-warnings",
-        _ => "severity-infos",
-    });
-    strings::format("props-findings-count", &[&n.to_string(), words])
+    crate::messages::count_words(severity, n)
 }
 
 /// A severity's glyph chip (FT-664): the severity's subtle fill, its icon, and the count in `type.caption` when more
