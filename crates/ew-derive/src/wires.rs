@@ -617,8 +617,8 @@ impl Drawing<'_> {
                     code: "EW-POT-011",
                     subject: source.to_string(),
                     detail: format!(
-                        "the star source of interruption point group {} has {} drawn connections (one \
-                         expected); the group is no hub and its wires end open",
+                        "it is unclear which wire feeds interruption point group {}: its source has {} wires where \
+                         one is expected, so the group's wires end open",
                         group.name,
                         self.drawn_at(scp.key()).len()
                     ),
@@ -771,8 +771,9 @@ impl Drawing<'_> {
                 notes.insert(DeriveNote::Connectivity {
                     code: "EW-POT-011",
                     subject,
-                    detail: "an arm between two junctions is the feed arm of both or of neither, or the \
-                             junctions have no root; the tree is rooted at the lowest junction ID"
+                    detail: "it is unclear which wire feeds these junctions: a wire between two of them feeds \
+                             both or neither, or no wire reaches them from a device; the wires are numbered from \
+                             the first junction"
                         .to_owned(),
                 });
             }

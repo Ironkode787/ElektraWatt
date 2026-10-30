@@ -214,7 +214,7 @@ fn star_source_with_two_drawn_connections_is_no_hub_and_noted() {
     let part = q.get::<PotentialPartition>(());
     assert_eq!(part.potential_count(), 1);
     let wires = q.get::<PhysicalWiresOf>(part.potentials().next().unwrap().id);
-    let found = notes_with(&mut q, "EW-POT-011", "2 drawn connections");
+    let found = notes_with(&mut q, "EW-POT-011", "has 2 wires");
     assert_eq!(found.len(), 1, "{:?}", q.diagnostics().notes());
     assert_eq!(found[0].0, uid(0x1101));
     assert!(found[0].1.contains("group S"), "{}", found[0].1);
@@ -239,7 +239,7 @@ fn star_source_without_a_drawn_connection_is_no_hub_and_noted() {
         .expect("potential")
         .id;
     let _ = q.get::<PhysicalWiresOf>(pid);
-    let found = notes_with(&mut q, "EW-POT-011", "0 drawn connections");
+    let found = notes_with(&mut q, "EW-POT-011", "has 0 wires");
     assert_eq!(found.len(), 1, "{:?}", q.diagnostics().notes());
     assert_eq!(found[0].0, uid(0x1101));
 }

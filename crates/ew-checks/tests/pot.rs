@@ -406,7 +406,26 @@ fn pot011_cases() {
                         "case {c}"
                     );
                     assert!(!f[0].discriminator.is_empty(), "case {c}");
-                    assert!(!f[0].message.is_empty(), "case {c}");
+                    // FT-711: plain words from the Fluent pattern, never the derivation's arm-and-root text.
+                    let p = &f[0].subject;
+                    assert_eq!(
+                        f[0].message,
+                        format!(
+                            "on {p} it is unclear which wire feeds a junction or a group of interruption points; \
+                             draw one wire into it from the supply side"
+                        ),
+                        "case {c}"
+                    );
+                    assert_eq!(
+                        ew_checks::messages::format(&f[0], "en-GB").as_deref(),
+                        Some(f[0].message.as_str()),
+                        "case {c}: the en-GB pattern renders the message"
+                    );
+                    let nl = ew_checks::messages::render(&f[0], "nl-NL");
+                    assert!(
+                        nl.starts_with(&format!("op {p} is niet duidelijk welke draad")),
+                        "case {c}: {nl}"
+                    );
                 },
             ),
             Case::silent(

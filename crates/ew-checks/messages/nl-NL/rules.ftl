@@ -116,6 +116,10 @@ rule-ew-pot-009 = { $cp } is niet aangesloten{ $unused ->
     .title = Niet-aangesloten aansluitpunt
     .hint = Sluit het aansluitpunt aan of markeer het als ongebruikt.
 
+rule-ew-pot-011 = op { $potential } is niet duidelijk welke draad een knooppunt of een groep onderbrekingspunten voedt; teken één draad ernaartoe vanaf de voedingszijde
+    .title = Voeding van knooppunt onduidelijk
+    .hint = Teken het knooppunt zo dat één draad het voedt, of stel de bedradingsvolgorde in.
+
 rule-ew-pot-013 = { $device } schakelt de nulleider { $from } → { $to }{ $loads ->
         [one] ; belasting { $load } blijft verbonden met { $line }
        *[none] {""}

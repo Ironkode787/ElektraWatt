@@ -214,6 +214,18 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                 subject,
                 detail,
             } if *code == meta.id && note_owner(q, p, &wires.wires, subject) == Some(p) => {
+                // FT-711: EW-POT-011's message in plain words, from its Fluent pattern; the note's detail stays the
+                // derivation's own text.
+                if meta.id == JUNCTION_FEED_AMBIGUOUS.id {
+                    let message = format!(
+                        "on {name} it is unclear which wire feeds a junction or a group of interruption points; \
+                         draw one wire into it from the supply side"
+                    );
+                    return Some(
+                        pt.finding(meta, &[], subject.clone(), name.clone(), message)
+                            .arg("potential", name.clone()),
+                    );
+                }
                 Some(pt.finding(meta, &[], subject.clone(), name.clone(), detail.clone()))
             }
             _ => None,

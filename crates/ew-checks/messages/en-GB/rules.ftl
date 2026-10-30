@@ -236,7 +236,7 @@ rule-ew-pot-009 = { $cp } is not connected{ $unused ->
     .title = Unconnected CP
     .hint = Connect the connection point, or mark it unused.
 
-rule-ew-pot-011 =
+rule-ew-pot-011 = on { $potential } it is unclear which wire feeds a junction or a group of interruption points; draw one wire into it from the supply side
     .title = Junction feed ambiguous
     .hint = Draw the junction so that one end feeds it, or set its wiring order.
 
