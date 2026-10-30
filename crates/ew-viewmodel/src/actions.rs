@@ -1685,6 +1685,31 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         ))),
     ),
+    // FT-674: Waive… and Unwaive in the Messages detail (`check.waive`, `check.unwaive`; window only).
+    with_params(
+        "key?:text, reason?:text, author?:text, date?:text",
+        hidden(in_navigator(act(
+            "messages.waive",
+            Command,
+            "action-messages-waive",
+            Menu::Check,
+            &[],
+            writable,
+            None,
+        ))),
+    ),
+    with_params(
+        "key?:text",
+        hidden(in_navigator(act(
+            "messages.unwaive",
+            Command,
+            "action-messages-unwaive",
+            Menu::Check,
+            &[],
+            writable,
+            None,
+        ))),
+    ),
     with_params(
         "scale:json",
         needs_parameters(placed(

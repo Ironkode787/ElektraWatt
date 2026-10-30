@@ -182,8 +182,16 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         canvas.cursor(),
         &tool,
     )?;
-    // WP-S2.06 part 2: the highlights, composited like the ghost (§7.3).
     let view = view_of(canvas);
+    // FT-675: the conflict overlay under the highlights.
+    composite_conflicts(
+        &mut image,
+        &view.settled_transform(),
+        view.ppp,
+        &shell.conflict_overlay(group),
+        conflict_colour(shell),
+    );
+    // WP-S2.06 part 2: the highlights, composited like the ghost (§7.3).
     let items: Vec<OverlayItem> = shell
         .highlight_overlay(group)
         .into_iter()
@@ -191,6 +199,107 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         .collect();
     composite_highlights(&mut image, &view.settled_transform(), view.ppp, &items);
     Ok((image, dpi))
+}
+
+// FT-675
+/// The pen width of the conflict overlay in logical points: the selection outline's 2 points, so it covers the black
+/// wire it is drawn over.
+pub const CONFLICT_PT: f64 = 2.0;
+
+/// The conflict overlay's colour: `canvas.conflict` of the settings' theme (the light value of `color.error` in every
+/// theme: the sheet is white).
+fn conflict_colour(shell: &ShellModel) -> crate::theme::Rgba {
+    let settings = shell.settings();
+    let (light, _, _) = crate::theme::themes_of_setting(settings.theme.as_str());
+    crate::theme::tokens(
+        light,
+        crate::theme::Density::of_setting(settings.density.as_str()),
+    )
+    .canvas_conflict
+}
+
+/// Composites the conflict overlay (FT-675) into a snapshot: every pixel whose centre lies within half of
+/// [`CONFLICT_PT`] (in pixels) of a segment of `lines` (sheet coordinates) is painted opaque in `colour`, once.
+fn composite_conflicts(
+    image: &mut ew_render_cpu::RgbaImage,
+    t: &DrawTransform,
+    ppp: f64,
+    lines: &[Vec<(i64, i64)>],
+    colour: crate::theme::Rgba,
+) {
+    let (w, h) = (i64::from(image.width), i64::from(image.height));
+    let half = CONFLICT_PT * ppp / 2.0;
+    let mut paint: std::collections::BTreeSet<(i64, i64)> = std::collections::BTreeSet::new();
+    for line in lines {
+        let pts: Vec<(f64, f64)> = line
+            .iter()
+            .map(|p| t.to_screen((p.0 as f64, p.1 as f64)))
+            .collect();
+        for s in pts.windows(2) {
+            let (a, b) = (s[0], s[1]);
+            let x0 = ((a.0.min(b.0) - half).floor() as i64).max(0);
+            let x1 = ((a.0.max(b.0) + half).ceil() as i64).min(w);
+            let y0 = ((a.1.min(b.1) - half).floor() as i64).max(0);
+            let y1 = ((a.1.max(b.1) + half).ceil() as i64).min(h);
+            for y in y0..y1 {
+                for x in x0..x1 {
+                    if segment_distance((x as f64 + 0.5, y as f64 + 0.5), a, b) <= half {
+                        paint.insert((x, y));
+                    }
+                }
+            }
+        }
+    }
+    let c = Color {
+        r: colour.r,
+        g: colour.g,
+        b: colour.b,
+        a: u8::MAX,
+    };
+    for (x, y) in paint {
+        overlay::fill(image, PxRect::new(x, y, x + 1, y + 1), c);
+    }
+}
+
+/// The distance of `p` from the segment `a`–`b`.
+fn segment_distance(p: (f64, f64), a: (f64, f64), b: (f64, f64)) -> f64 {
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let len2 = dx * dx + dy * dy;
+    let k = if len2 > 0.0 {
+        (((p.0 - a.0) * dx + (p.1 - a.1) * dy) / len2).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    let (cx, cy) = (a.0 + k * dx, a.1 + k * dy);
+    ((p.0 - cx).powi(2) + (p.1 - cy).powi(2)).sqrt()
+}
+
+/// Paints the conflict overlay of canvas group `group` in the window (FT-675): each wire of a potential whose
+/// EW-POT-001 finding stands as a [`CONFLICT_PT`] line in `canvas.conflict` over the page, under the highlights.
+fn paint_conflicts(
+    ui: &egui::Ui,
+    rect: egui::Rect,
+    ppp: f32,
+    t: &DrawTransform,
+    shell: &ShellModel,
+    group: usize,
+) {
+    let lines = shell.conflict_overlay(group);
+    if lines.is_empty() {
+        return;
+    }
+    let painter = ui.painter_at(rect);
+    let stroke = egui::Stroke::new(CONFLICT_PT as f32, conflict_colour(shell).color32());
+    for line in &lines {
+        let pts: Vec<egui::Pos2> = line
+            .iter()
+            .map(|p| {
+                let s = t.to_screen((p.0 as f64, p.1 as f64));
+                rect.min + egui::Vec2::new(s.0 as f32, s.1 as f32) / ppp
+            })
+            .collect();
+        painter.add(egui::Shape::line(pts, stroke));
+    }
 }
 
 // WP-S2.06 part 2
@@ -874,6 +983,8 @@ impl CanvasHost {
             }
             (None, None) => {}
         }
+        // FT-675: the conflict overlay, under the highlights.
+        paint_conflicts(ui, rect, ppp, &transform, shell, group);
         // WP-S2.06 part 2: the window's highlights on this page (§7.3).
         paint_highlights(ui, rect, ppp, &transform, shell, group);
         let stats = shell

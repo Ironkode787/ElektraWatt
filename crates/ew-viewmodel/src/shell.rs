@@ -1579,6 +1579,8 @@ impl ShellModel {
             "messages.next" => self.act_messages_walk(true),
             "messages.previous" => self.act_messages_walk(false),
             "messages.fix" => self.act_messages_fix(p),
+            "messages.waive" => self.act_messages_waive(p),
+            "messages.unwaive" => self.act_messages_unwaive(p),
             "messages.check" => self.act_messages_check(),
             // WP-S2.06 part 3
             "navigator.table" => self.act_navigator_table(p),

@@ -7,7 +7,8 @@
 //! of [`UI_SCALES`]) and, since part 2, the first-run answers and quick switches: `first_run_done`, `language`,
 //! `keymap`, `theme`, `density` (WP-S2.17), `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
 //! project `basic_project` (FR-PRJ-009), the active workspace `workspace` (FR-UI-002) and, since WP-S2.02 part 2,
-//! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer). Unknown keys are kept
+//! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer) and, since cycle 37, the
+//! author name `author_name` of the Waive prompt (FT-674; written only once set). Unknown keys are kept
 //! and written back; a `toml::Table` holds them sorted, so the file is deterministic. An unreadable file yields
 //! the defaults and is copied to `settings.toml.bad-<n>`.
 
@@ -79,6 +80,9 @@ pub struct Settings {
     pub properties_collapsed: Vec<String>,
     /// Whether the property grid shows the Advanced rows (`[properties] show_advanced`, WP-S2.17 D11).
     pub properties_show_advanced: bool,
+    /// The author name (FT-674): the display name a waiver records as its author, prefilled in the Waive prompt and
+    /// saved back when a waiver is committed; `None` until one is typed (`author_name`, written only when set).
+    pub author_name: Option<String>,
     /// The main window's last size, position and maximised state (`[window]`, WP-S2.17 part 3 item 9, FT-348); `None`
     /// until a window has closed.
     pub window: Option<crate::window::WindowGeometry>,
@@ -103,6 +107,7 @@ impl Default for Settings {
             canvas_backend: CANVAS_BACKENDS[0].to_owned(),
             properties_collapsed: Vec::new(),
             properties_show_advanced: false,
+            author_name: None,
             window: None,
             extra: toml::Table::new(),
         }
@@ -169,6 +174,9 @@ impl Settings {
             _ => String::new(),
         };
         let basic_project = take_string(&mut table, "basic_project")?.filter(|v| !v.is_empty());
+        let author_name = take_string(&mut table, "author_name")?
+            .map(|v| v.trim().to_owned())
+            .filter(|v| !v.is_empty());
         let workspace = take_string(&mut table, "workspace")?
             .filter(|v| valid_workspace_name(v))
             .unwrap_or_else(|| DEFAULT_WORKSPACE.to_owned());
@@ -238,6 +246,7 @@ impl Settings {
             canvas_backend,
             properties_collapsed,
             properties_show_advanced,
+            author_name,
             window,
             extra: table,
         };
@@ -289,6 +298,14 @@ impl Settings {
             }
             None => {
                 table.remove("basic_project");
+            }
+        }
+        match &self.author_name {
+            Some(name) => {
+                table.insert("author_name".to_owned(), toml::Value::String(name.clone()));
+            }
+            None => {
+                table.remove("author_name");
             }
         }
         // Written only when a category is collapsed or Advanced is shown, so an untouched settings file keeps its
@@ -597,6 +614,30 @@ mod tests {
         assert_eq!(s.recent_projects.len(), MAX_RECENT);
         s.remove_recent("p13");
         assert!(!s.recent_projects.contains(&"p13".to_owned()));
+    }
+
+    /// FT-674: the author name round-trips, is trimmed, and is written only once set (an untouched file keeps its
+    /// bytes); a blank one reads as unset.
+    #[test]
+    fn the_author_name_round_trips_and_is_written_only_once_set() {
+        assert!(!Settings::default().to_toml().contains("author_name"));
+        let s = Settings {
+            author_name: Some("A. Engineer".to_owned()),
+            ..Settings::default()
+        };
+        let back = Settings::parse(&s.to_toml()).unwrap();
+        assert_eq!(back.author_name.as_deref(), Some("A. Engineer"));
+        let padded = Settings::parse("author_name = \"  B  \"\n").unwrap();
+        assert_eq!(padded.author_name.as_deref(), Some("B"));
+        assert_eq!(
+            Settings::parse("author_name = \" \"\n").unwrap().author_name,
+            None
+        );
+        assert_eq!(
+            Settings::parse("author_name = 3\n"),
+            None,
+            "a known key of the wrong type"
+        );
     }
 
     #[test]

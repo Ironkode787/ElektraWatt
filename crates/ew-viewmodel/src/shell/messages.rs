@@ -10,16 +10,16 @@
 //! without a call. `messages.check` drops the table, so the end of the dispatch fetches it again; `messages.fix` runs
 //! the online check once more to read the finding's quick fix (memoised), then previews the fix.
 
-use ew_api::checks::CheckMode;
+use ew_api::checks::{CheckMode, FindingState};
 use ew_api::output::NavKind;
 use ew_api::{AnyCommand, Origin, Submit};
 use serde_json::{Map, Value};
 
 use super::navigation::{Focus, bump};
-use super::{Mode, Outcome, ShellModel, failed, string_param};
+use super::{Dialog, FormDialog, FormField, Mode, Outcome, ShellModel, failed, string_param};
 use crate::canvas::PageId;
 use crate::layout::PaneKind;
-use crate::navigators::messages::{self, FindingDetail, MessageCounts};
+use crate::navigators::messages::{self, FindingDetail, MessageCounts, OnlineFacts};
 use crate::navigators::{NavRole, Navigator, Query, visible_rows};
 use crate::notifications::NoteTone;
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
@@ -68,11 +68,88 @@ impl ShellModel {
             .is_some_and(|(_, n)| messages::is_pending(n, editing.as_deref()))
     }
 
-    /// The detail block of the Messages cursor's finding (§7.3).
+    /// The detail block of the Messages cursor's finding (§7.3), with the waiver's ID while it is waived (FT-674).
     pub fn messages_detail(&self) -> Option<FindingDetail> {
         let nav = self.navs.get(&NavKind::Messages)?;
         let key = nav.cursor_key()?;
-        nav.node_of(&key).and_then(|(_, n)| messages::detail(n))
+        let mut d = nav.node_of(&key).and_then(|(_, n)| messages::detail(n))?;
+        if d.waived {
+            d.waiver = self
+                .with_online(|o| o.waivers.get(&d.fingerprint).cloned())
+                .flatten();
+        }
+        Some(d)
+    }
+
+    /// The polylines (sheet coordinates) of the wires of canvas group `group`'s page that belong to the potential of
+    /// an open EW-POT-001 finding (FT-675, ID-828): the window draws them in the conflict colour over the page, a
+    /// screen-only overlay like the selection; the page's display list, its print and its export do not change.
+    pub fn conflict_overlay(&self, group: usize) -> Vec<Vec<(i64, i64)>> {
+        let Some(c) = self.canvas_of(group) else {
+            return Vec::new();
+        };
+        let page = c.page();
+        let Some(members) = self.with_online(|o| o.conflict.clone()) else {
+            return Vec::new();
+        };
+        if members.is_empty() {
+            return Vec::new();
+        }
+        page.tables
+            .connections
+            .iter()
+            .filter(|t| members.binary_search(&t.id).is_ok())
+            .map(|t| {
+                t.polyline
+                    .iter()
+                    .map(|p| page.snapper.page_to_sheet(*p))
+                    .collect()
+            })
+            .collect()
+    }
+
+    /// The connection IDs of the potentials of the open EW-POT-001 findings of the online report, sorted (FT-675).
+    pub fn conflict_members(&self) -> Vec<ew_api::output::Uuid> {
+        self.with_online(|o| o.conflict.clone()).unwrap_or_default()
+    }
+
+    /// `f` over the online facts of the current revision: one online check per (project session, revision), read
+    /// only when a getter asks (memoised in the session's store, so a revision re-checks what it touched).
+    fn with_online<R>(&self, f: impl FnOnce(&OnlineFacts) -> R) -> Option<R> {
+        let project = self.project.as_ref()?;
+        let at = (project.epoch, project.session.world().rev.0);
+        let mut cache = self.messages.online.borrow_mut();
+        if cache.as_ref().is_none_or(|c| c.at != at) {
+            let report = project
+                .session
+                .check(project.session.online_scheme(), CheckMode::Online);
+            let mut facts = OnlineFacts {
+                at,
+                ..OnlineFacts::default()
+            };
+            for finding in &report.findings {
+                match &finding.state {
+                    FindingState::Waived { waiver } => {
+                        facts
+                            .waivers
+                            .insert(finding.fingerprint.to_string(), waiver.clone());
+                    }
+                    FindingState::Open if finding.rule == CONFLICT_RULE => {
+                        // The finding names the potential's definitions (or its CPs' functions); the members are
+                        // those of the definition that is the potential's ID, the others give none.
+                        for t in &finding.targets {
+                            let target = ew_api::output::HighlightTarget::Potential(t.id.as_uuid());
+                            facts.conflict.extend(project.session.highlight_members(&target));
+                        }
+                    }
+                    FindingState::Open => {}
+                }
+            }
+            facts.conflict.sort_unstable();
+            facts.conflict.dedup();
+            *cache = Some(facts);
+        }
+        cache.as_ref().map(f)
     }
 
     /// The origin annotation the shell keeps for the commit that made revision `rev` of the open project session
@@ -246,6 +323,178 @@ impl ShellModel {
     }
 
     // -----------------------------------------------------------------------------------------------------------
+    // Waive… and Unwaive (FT-674; WP-S2.09, WP-S1.16 D7)
+
+    /// The finding row `key` of the Messages pane (default the open Waive prompt's row, else the cursor row) when it
+    /// is a finding in state `state`: (key, rule, fingerprint); else the refusal.
+    fn finding_row(&self, p: &Map<String, Value>, state: &str) -> Result<(String, String, String), Outcome> {
+        let key = match string_param(p, "key")? {
+            Some(k) => k.to_owned(),
+            None => match self.messages.waive.as_ref().filter(|_| self.in_waive_form()) {
+                Some((k, _)) => k.clone(),
+                None => self.nav_cursor(NavKind::Messages).ok_or(Outcome::Refused {
+                    reason_key: "reason-no-nav-row",
+                })?,
+            },
+        };
+        let Some(nav) = self.navs.get(&NavKind::Messages) else {
+            return Err(failed("error-nav-closed", &[NavKind::Messages.word()]));
+        };
+        let Some((_, node)) = nav.node_of(&key) else {
+            return Err(failed("error-nav-key", &[&key, NavKind::Messages.word()]));
+        };
+        let refusal = Outcome::Refused {
+            reason_key: if state == "open" {
+                "reason-not-open-finding"
+            } else {
+                "reason-not-waived"
+            },
+        };
+        let Some(d) = messages::detail(node) else {
+            return Err(refusal);
+        };
+        if d.waived != (state == "waived") || d.fingerprint.is_empty() {
+            return Err(refusal);
+        }
+        Ok((key, d.rule, d.fingerprint))
+    }
+
+    /// Whether the open dialog is the Waive prompt.
+    fn in_waive_form(&self) -> bool {
+        matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == "messages.waive")
+    }
+
+    /// A refusal of the Waive prompt's fields: it stays in the prompt when the prompt is open.
+    fn waive_failed(&mut self, message: String) -> Outcome {
+        if self.in_waive_form()
+            && let Some(Dialog::Form(f)) = &mut self.dialog
+        {
+            f.error = Some(message.clone());
+        }
+        Outcome::Failed { message }
+    }
+
+    /// `messages.waive {key?, reason?, author?, date?}` (Waive… in the Messages detail, FT-674): on an open finding
+    /// row (default the cursor row) commits one `check.waive` with the rule, the fingerprint, the reason (at least
+    /// ten characters once trimmed, as the command checks), the author and the date. Without a reason the window
+    /// opens the Waive prompt (Reason; Author prefilled from the preference "Author name"), which keeps the row and
+    /// the date the window passed (`YYYY-MM-DD`: the window reads the clock, the shell never does). A short reason,
+    /// an empty author or a missing date stays in the prompt and commits nothing; a commit saves the author back to
+    /// the preference. `check.waive` is `HumanOnly`: headless the action refuses.
+    pub(super) fn act_messages_waive(&mut self, p: &Map<String, Value>) -> Outcome {
+        if self.mode == Mode::Headless {
+            return Outcome::Refused {
+                reason_key: "reason-human-only",
+            };
+        }
+        let (key, rule, fingerprint) = match self.finding_row(p, "open") {
+            Ok(r) => r,
+            Err(e) => return e,
+        };
+        let text = |name: &str| -> Result<String, Outcome> {
+            Ok(string_param(p, name)?.unwrap_or_default().trim().to_owned())
+        };
+        let (reason, author, date) = match (text("reason"), text("author"), text("date")) {
+            (Ok(r), Ok(a), Ok(d)) => (r, a, d),
+            (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => return e,
+        };
+        let date = if date.is_empty() {
+            self.messages
+                .waive
+                .as_ref()
+                .filter(|(k, _)| self.in_waive_form() && *k == key)
+                .and_then(|(_, d)| d.clone())
+                .unwrap_or_default()
+        } else {
+            date
+        };
+        if !self.in_waive_form() && reason.is_empty() {
+            let author = self.settings.author_name.clone().unwrap_or_default();
+            self.messages.waive = Some((key, (!date.is_empty()).then_some(date)));
+            return self.open_dialog(Dialog::Form(FormDialog {
+                action: "messages.waive",
+                title_key: "waive-title",
+                ok_key: "dialog-waive",
+                fields: vec![
+                    FormField {
+                        name: "reason",
+                        label_key: "form-reason",
+                        choices: &[],
+                        value: String::new(),
+                    },
+                    FormField {
+                        name: "author",
+                        label_key: "form-author",
+                        choices: &[],
+                        value: author,
+                    },
+                ],
+                error: None,
+            }));
+        }
+        let min = WAIVER_REASON_MIN_CHARS;
+        if reason.chars().count() < min {
+            return self.waive_failed(strings::format("error-waive-reason", &[&min.to_string()]));
+        }
+        if author.is_empty() {
+            return self.waive_failed(strings::text("error-waive-author").to_owned());
+        }
+        if date.parse::<ew_api::catalog::Date>().is_err() {
+            return self.waive_failed(strings::format("error-missing-param", &["date"]));
+        }
+        let cmd = AnyCommand {
+            name: "check.waive".to_owned(),
+            params: serde_json::json!({
+                "rule": rule, "fingerprint": fingerprint, "reason": reason, "author": author, "date": date,
+            }),
+        };
+        let out = self.run_commit(&cmd);
+        match out {
+            Outcome::Done => {
+                if self.in_waive_form() {
+                    self.dialog = None;
+                }
+                self.messages.waive = None;
+                if self.settings.author_name.as_deref() != Some(author.as_str()) {
+                    self.settings.author_name = Some(author);
+                    self.save_settings();
+                }
+                Outcome::Done
+            }
+            Outcome::Failed { message } => self.waive_failed(message),
+            other => other,
+        }
+    }
+
+    /// `messages.unwaive {key?}` (Unwaive in the Messages detail, FT-674): on a waived finding row (default the cursor
+    /// row) commits one `check.unwaive` of its waiver, after which the finding is open again. Headless it refuses
+    /// (`HumanOnly`).
+    pub(super) fn act_messages_unwaive(&mut self, p: &Map<String, Value>) -> Outcome {
+        if self.mode == Mode::Headless {
+            return Outcome::Refused {
+                reason_key: "reason-human-only",
+            };
+        }
+        let (_, _, fingerprint) = match self.finding_row(p, "waived") {
+            Ok(r) => r,
+            Err(e) => return e,
+        };
+        let Some(waiver) = self
+            .with_online(|o| o.waivers.get(&fingerprint).cloned())
+            .flatten()
+        else {
+            return Outcome::Refused {
+                reason_key: "reason-not-waived",
+            };
+        };
+        let cmd = AnyCommand {
+            name: "check.unwaive".to_owned(),
+            params: serde_json::json!({ "waiver": waiver }),
+        };
+        self.run_commit(&cmd)
+    }
+
+    // -----------------------------------------------------------------------------------------------------------
     // Quick fixes (§7.4, D10)
 
     /// `messages.fix {key?}`: previews the quick fix of a finding row (default the cursor row) and opens its card in the
@@ -390,8 +639,16 @@ impl ShellModel {
     }
 }
 
-/// The toast of `messages.check` (FT-549): the errors and warnings always, the infos, waived and pending findings when
-/// there are any: `Check: 1 error, 0 warnings`.
+/// The shortest reason of a waiver in characters, trimmed: `check.waive`'s own minimum (doc 15 §2.5), checked here so
+/// the prompt keeps a short reason without a command round trip; the command checks it again.
+const WAIVER_REASON_MIN_CHARS: usize = 10;
+
+/// The rule whose open findings colour their potential's wires on the canvas (FT-675).
+const CONFLICT_RULE: &str = "EW-POT-001";
+
+/// The toast of `messages.check` (FT-549): the errors and warnings always, the infos when there are any; the waived and
+/// pending findings, when there are any, qualify the title so the line of counts stays one line (FT-664):
+/// `Check: 1 error, 0 warnings`, `Check · 1 waived: 1 error, 0 warnings`.
 pub(crate) fn check_summary(c: MessageCounts) -> String {
     let count = |n: usize, one: &str, many: &str| match n {
         1 => strings::text(one).to_owned(),
@@ -401,16 +658,27 @@ pub(crate) fn check_summary(c: MessageCounts) -> String {
         count(c.errors, "check-error", "check-errors"),
         count(c.warnings, "check-warning", "check-warnings"),
     ];
-    for (n, one, many) in [
-        (c.infos, "check-info", "check-infos"),
+    if c.infos > 0 {
+        parts.push(count(c.infos, "check-info", "check-infos"));
+    }
+    // FT-664: the waived and pending counts qualify the title ("Check · 4 waived · 1 pending"), so the line of
+    // severity counts stays one line in the toast.
+    let qualifiers: Vec<String> = [
         (c.waived, "check-waived-one", "check-waived"),
         (c.pending, "check-pending-one", "check-pending"),
-    ] {
-        if n > 0 {
-            parts.push(count(n, one, many));
-        }
+    ]
+    .into_iter()
+    .filter(|(n, _, _)| *n > 0)
+    .map(|(n, one, many)| count(n, one, many))
+    .collect();
+    if qualifiers.is_empty() {
+        strings::format("toast-check", &[&parts.join(", ")])
+    } else {
+        strings::format(
+            "toast-check-qualified",
+            &[&parts.join(", "), &qualifiers.join(" · ")],
+        )
     }
-    strings::format("toast-check", &[&parts.join(", ")])
 }
 /// The icon of the check's toast (doc 16a §6.10, §6.24): the worst severity present, error before warning before info;
 /// a check that finds nothing is a success. Waived and pending findings set no tone.
@@ -457,9 +725,14 @@ mod tests {
         };
         assert_eq!(check_summary(c(1, 0, 0, 0, 0)), "Check: 1 error, 0 warnings");
         assert_eq!(check_summary(c(0, 1, 0, 0, 0)), "Check: 0 errors, 1 warning");
+        // FT-664: waived and pending qualify the title; the line keeps the severities.
         assert_eq!(
             check_summary(c(2, 3, 1, 4, 1)),
-            "Check: 2 errors, 3 warnings, 1 info, 4 waived, 1 pending"
+            "Check · 4 waived · 1 pending: 2 errors, 3 warnings, 1 info"
+        );
+        assert_eq!(
+            check_summary(c(0, 25, 0, 1, 0)),
+            "Check · 1 waived: 0 errors, 25 warnings"
         );
     }
 }

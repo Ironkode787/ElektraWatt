@@ -57,3 +57,51 @@ pub fn on_frame_clock() -> bool {
 pub fn wall_reads() -> u64 {
     WALL_READS.load(Ordering::Relaxed)
 }
+
+/// The date a waiver records when it is committed from the window (FT-674): today's date as `YYYY-MM-DD`, from the
+/// wall clock, by the proleptic Gregorian calendar in UTC (the workspace carries no time-zone data, so a waiver made
+/// near midnight may carry the neighbouring day). A run on the frame clock reads no wall clock and gives
+/// [`FRAME_CLOCK_DATE`], so a visual run is reproducible. Read on a click, never in the frame path; the shell never
+/// reads a clock: the window passes this into `messages.waive`.
+pub fn today() -> String {
+    if on_frame_clock() {
+        return FRAME_CLOCK_DATE.to_owned();
+    }
+    // Reviewed: the window's click path only (a waiver's date), never on the frame clock, never in model or export.
+    #[allow(clippy::disallowed_methods)]
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs());
+    civil_date(secs / 86_400)
+}
+
+/// The date of a run on the frame clock.
+pub const FRAME_CLOCK_DATE: &str = "2026-01-01";
+
+/// `YYYY-MM-DD` of the day `days` after 1970-01-01 (the `civil_from_days` algorithm of H. Hinnant).
+fn civil_date(days: u64) -> String {
+    let z = i64::try_from(days).unwrap_or(0) + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    format!("{year:04}-{month:02}-{day:02}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn civil_dates_of_known_days() {
+        assert_eq!(civil_date(0), "1970-01-01");
+        assert_eq!(civil_date(59), "1970-03-01");
+        assert_eq!(civil_date(11_016), "2000-02-29");
+        assert_eq!(civil_date(20_756), "2026-10-30");
+        assert_eq!(civil_date(20_819), "2027-01-01");
+    }
+}

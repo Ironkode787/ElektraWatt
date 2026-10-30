@@ -271,6 +271,8 @@ const OPENS_INPUT: &[&str] = &[
     "project.purge_assets",
     "table.pattern_fill",
     "messages.fix",
+    // FT-674: Waive… opens the reason and author prompt.
+    "messages.waive",
     // WP-S2.18 part 1: J opens the Join chooser.
     "place.join",
 ];

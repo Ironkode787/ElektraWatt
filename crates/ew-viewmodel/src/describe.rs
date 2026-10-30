@@ -1088,6 +1088,10 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             if let Some(fix) = &d.fix {
                 lines.push(format!("  detail fix \"{}\"", user(fix)));
             }
+            // FT-674: a waived finding (Unwaive in the window).
+            if d.waived {
+                lines.push("  detail waived".to_owned());
+            }
         }
     }
 }

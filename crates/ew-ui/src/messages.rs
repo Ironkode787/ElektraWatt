@@ -342,7 +342,9 @@ fn fix_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
 /// The detail block of the cursor's finding, below the rows (doc 16a §6.24): a 1-px `color.border.subtle` line, the
 /// rule ID and title in `type.body.strong`, the kind and severity in `type.small` `color.text.secondary`, the message
 /// in `type.body`, "Quick fix: `<label>`" in `type.small` with **Fix…** as a Secondary button (disabled with its reason
-/// as the tooltip on a read-only project), and **Rule page** as a link in `color.accent` at the title line's right end.
+/// as the tooltip on a read-only project), and at the title line's right end **Waive…** (FT-674; on a waived finding
+/// "Waived" in `color.text.secondary` with **Unwaive**) and **Rule page**, links in `type.small` `color.accent`, so the
+/// waiver costs the block no height.
 pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(d) = shell.messages_detail() else {
         return;
@@ -351,13 +353,36 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     rule_line(ui, &t);
     ui.spacing_mut().item_spacing.y = t.space_1;
     ui.add_space(t.space_1);
+    let enabled = shell.is_writable();
+    let disabled_reason = |id: &str| {
+        ew_viewmodel::actions::find(id)
+            .and_then(|a| (a.enabled)(shell).err())
+            .map(strings::text)
+    };
+    let small_link = |ui: &mut Ui, key: &str, id: &str| {
+        let colour = if enabled { t.accent } else { t.text_disabled };
+        let link = ui.add_enabled(
+            enabled,
+            egui::Link::new(
+                RichText::new(strings::text(key))
+                    .font(theme::font(&t.type_small))
+                    .color(colour.color32()),
+            ),
+        );
+        match disabled_reason(id) {
+            Some(r) if !enabled => link.on_disabled_hover_text(r),
+            _ => link,
+        }
+    };
     // X32b: the Rule page link at the right end of the title line, the title cut with an ellipsis before it (whole
-    // in its tooltip), so the block keeps its link in view in a short pane.
+    // in its tooltip), so the block keeps its link in view in a short pane. FT-674: Waive… (or "Waived" with
+    // Unwaive) stands before it on the same line.
     let title = strings::format("messages-detail-rule", &[&d.rule, &d.title]);
     ui.scope(|ui| {
         ui.spacing_mut().interact_size.y = 0.0;
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.spacing_mut().item_spacing.x = t.space_3;
                 let link = ui.add(egui::Link::new(
                     RichText::new(strings::text("messages-rule-page"))
                         .font(theme::font(&t.type_small))
@@ -369,6 +394,22 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                         json!({"area": "navigator", "kind": NavKind::Messages.word()}),
                     ));
                     events.push(Event::Action("help.documentation", Value::Null));
+                }
+                if d.waived {
+                    if small_link(ui, "messages-unwaive-button", "messages.unwaive").clicked() {
+                        events.push(Event::Action("messages.unwaive", Value::Null));
+                    }
+                    ui.label(
+                        RichText::new(strings::text("messages-detail-waived"))
+                            .font(theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    );
+                } else if small_link(ui, "messages-waive-button", "messages.waive").clicked() {
+                    // The window reads the date; the shell never does (FT-674).
+                    events.push(Event::Action(
+                        "messages.waive",
+                        json!({ "date": crate::clock::today() }),
+                    ));
                 }
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                     ui.add(
@@ -396,7 +437,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         )
         .wrap(),
     );
-    if let Some(fix) = &d.fix {
+    if let (Some(fix), false) = (&d.fix, d.waived) {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = t.space_3;
             ui.label(
@@ -404,10 +445,6 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     .font(theme::font(&t.type_small))
                     .color(t.text_secondary.color32()),
             );
-            let reason = ew_viewmodel::actions::find("messages.fix")
-                .and_then(|a| (a.enabled)(shell).err())
-                .map(strings::text);
-            let enabled = shell.is_writable();
             let button = components::button(
                 ui,
                 Kind::Secondary,
@@ -415,7 +452,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 enabled,
                 0.0,
             );
-            let button = match reason {
+            let button = match disabled_reason("messages.fix") {
                 Some(r) if !enabled => button.disabled_tip(r),
                 _ => button,
             };

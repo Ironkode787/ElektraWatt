@@ -286,6 +286,7 @@ lines of the drawing.
 | `canvas.highlight.3` | reddish purple #CC79A7 | 3.06 | 0° hatch halo, name chip filled with the hue |
 | `canvas.highlight.4` | dark orange #A86F00 | 4.25 | 90° hatch halo, name chip filled with the hue |
 | `canvas.measure` | `color.text.primary` (light value) | 16.9 | 1-px line with end ticks; readout chip |
+| `canvas.conflict` | `color.error` (light value) #C42B3C | 5.59 | A 2s-px line over each wire of a potential whose EW-POT-001 finding stands (screen only, under the highlights; FT-675) |
 | `canvas.stale` | `slate-400` at 30 % | — | Diagonal hatch |
 | `canvas.chip` | `color.surface.inverse` at 94 % | — | Rounded `radius.sm`, `type.small` |
 | `canvas.highlight.label` | #000000 | 5.43, 6.14, 6.86, 4.94 on the four hues | `type.caption` SemiBold on a highlight name chip |

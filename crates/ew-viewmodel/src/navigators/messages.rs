@@ -40,6 +40,23 @@ pub struct MessagesState {
     /// The origin annotations of the commits made through a quick fix, by (project session, revision): `quick fix
     /// <rule ID>` for the history panel (§7.4, §8.4).
     pub(crate) annotations: BTreeMap<(u64, u64), String>,
+    /// The finding row and the date the open Waive prompt commits for (FT-674): the row's key and the date the
+    /// window passed, as `YYYY-MM-DD`.
+    pub(crate) waive: Option<(String, Option<String>)>,
+    /// What the shell reads from the online report, once per (project session, revision) and only when asked.
+    pub(crate) online: std::cell::RefCell<Option<OnlineFacts>>,
+}
+
+/// What the shell reads from the project's online check report (FT-674, FT-675), for one (project session,
+/// revision).
+#[derive(Clone, Debug, Default)]
+pub(crate) struct OnlineFacts {
+    /// The (project session, revision) it was read at.
+    pub(crate) at: (u64, u64),
+    /// The waiver record ID of each waived finding, by the finding's fingerprint.
+    pub(crate) waivers: BTreeMap<String, String>,
+    /// The connections of the potentials of the open EW-POT-001 findings, sorted (the canvas's conflict overlay).
+    pub(crate) conflict: Vec<ew_api::output::Uuid>,
 }
 
 /// The counts of the pane's header line (§7.3): the open findings by severity less the pending ones, the waived
@@ -58,7 +75,8 @@ pub struct MessageCounts {
     pub pending: usize,
 }
 
-/// The finding a detail block shows (§7.3): rule, title, kind, severity, message and the quick fix's label.
+/// The finding a detail block shows (§7.3): rule, title, kind, severity, message and the quick fix's label; and what
+/// Waive… and Unwaive need (FT-674): the fingerprint, whether it is waived and the waiver's ID.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FindingDetail {
     /// The rule ID.
@@ -73,6 +91,13 @@ pub struct FindingDetail {
     pub message: String,
     /// The quick fix's label, when the finding has one.
     pub fix: Option<String>,
+    /// The finding's fingerprint (32 hex digits), what `check.waive` names it by.
+    pub fingerprint: String,
+    /// Whether the finding is waived (its state cell).
+    pub waived: bool,
+    /// The waiver's record ID while it is waived, what `check.unwaive` takes; the shell fills it from the online
+    /// report ([`detail`] leaves it `None`).
+    pub waiver: Option<String>,
 }
 
 /// The value of a node's facet `name`.
@@ -158,6 +183,9 @@ pub fn detail(node: &NavNode) -> Option<FindingDetail> {
         severity: cell(SEVERITY),
         message: cell(MESSAGE),
         fix: (!fix.is_empty()).then_some(fix),
+        fingerprint: fingerprint_of(&node.key).unwrap_or_default().to_owned(),
+        waived: cell(STATE) == "waived",
+        waiver: None,
         rule,
     })
 }
@@ -259,6 +287,14 @@ mod tests {
         assert_eq!(d.severity, "error");
         assert_eq!(d.message, "cable without length");
         assert_eq!(d.fix, None);
+        assert_eq!(d.fingerprint, "00");
+        assert!(!d.waived);
+        assert_eq!(d.waiver, None);
+        assert!(
+            detail(&finding("completeness", "101", "waived", "error"))
+                .unwrap()
+                .waived
+        );
         assert!(!d.title.is_empty(), "the shipped rule's title");
         assert_eq!(fingerprint_of("severity:error/rule:X/finding:ab12"), Some("ab12"));
         assert_eq!(fingerprint_of("severity:error/rule:X"), None);

@@ -302,6 +302,7 @@ pub struct Tokens {
     pub canvas_snap: Rgba,
     pub canvas_highlight: [Rgba; 4],
     pub canvas_measure: Rgba,
+    pub canvas_conflict: Rgba,
     pub canvas_stale: Rgba,
     pub canvas_chip: Rgba,
     pub canvas_chip_text: Rgba,
@@ -532,6 +533,7 @@ pub const PAIRS: &[Pair] = &[
     pair("canvas.highlight.3", "canvas.sheet", PairKind::Canvas),
     pair("canvas.highlight.4", "canvas.sheet", PairKind::Canvas),
     pair("canvas.measure", "canvas.sheet", PairKind::Canvas),
+    pair("canvas.conflict", "canvas.sheet", PairKind::Canvas),
     pair(
         "canvas.highlight.label",
         "canvas.highlight.1",
@@ -611,6 +613,7 @@ impl Tokens {
             ("canvas.highlight.3", Colour(self.canvas_highlight[2])),
             ("canvas.highlight.4", Colour(self.canvas_highlight[3])),
             ("canvas.measure", Colour(self.canvas_measure)),
+            ("canvas.conflict", Colour(self.canvas_conflict)),
             ("canvas.stale", Colour(self.canvas_stale)),
             ("canvas.chip", Colour(self.canvas_chip)),
             ("canvas.chip_text", Colour(self.canvas_chip_text)),
@@ -994,6 +997,9 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         canvas_highlight: [VERMILLION, BLUISH_GREEN, REDDISH_PURPLE, DARK_ORANGE],
         // `color.text.primary`'s light value in every theme (the sheet is white).
         canvas_measure: SLATE_900,
+        // FT-675: `color.error`'s light value in every theme (the sheet is white): the wires of a potential whose
+        // EW-POT-001 finding stands.
+        canvas_conflict: ERROR_LIGHT,
         // slate-400 at 30 %.
         canvas_stale: SLATE_400.alpha(77),
         // `color.surface.inverse` at 94 %.

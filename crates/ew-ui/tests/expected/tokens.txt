@@ -46,6 +46,7 @@ canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
 canvas.highlight.4 #A86F00 on canvas.sheet 4.25
 canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #1A1D21F0
 canvas.chip_text #ECEEF1
@@ -180,6 +181,7 @@ canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
 canvas.highlight.4 #A86F00 on canvas.sheet 4.25
 canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #1A1D21F0
 canvas.chip_text #ECEEF1
@@ -314,6 +316,7 @@ canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
 canvas.highlight.4 #A86F00 on canvas.sheet 4.25
 canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #ECEEF1F0
 canvas.chip_text #1A1D21
@@ -448,6 +451,7 @@ canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
 canvas.highlight.4 #A86F00 on canvas.sheet 4.25
 canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #ECEEF1F0
 canvas.chip_text #1A1D21
@@ -582,6 +586,7 @@ canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
 canvas.highlight.4 #A86F00 on canvas.sheet 4.25
 canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #FFFFFFF0
 canvas.chip_text #000000
@@ -716,6 +721,7 @@ canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
 canvas.highlight.4 #A86F00 on canvas.sheet 4.25
 canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #FFFFFFF0
 canvas.chip_text #000000
@@ -850,6 +856,7 @@ canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
 canvas.highlight.4 #A86F00 on canvas.sheet 4.25
 canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #000000F0
 canvas.chip_text #FFFFFF
@@ -984,6 +991,7 @@ canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
 canvas.highlight.4 #A86F00 on canvas.sheet 4.25
 canvas.measure #1A1D21 on canvas.sheet 16.91
+canvas.conflict #C42B3C on canvas.sheet 5.59
 canvas.stale #868E994D
 canvas.chip #000000F0
 canvas.chip_text #FFFFFF

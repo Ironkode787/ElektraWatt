@@ -1750,3 +1750,81 @@ fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failure
         drop(tmp);
     }
 }
+
+/// FT-675: folio 103 of Golden A without its bond B1 (0 V and PE merge over W27 and EW-POT-001 stands): the CPU
+/// snapshot of the page pane (800 x 560 points at ppp 1, the page fitted) with the merged potential's wires drawn over in
+/// `canvas.conflict`; the pixel on the middle of a conflict segment is that colour.
+#[test]
+fn ft675_the_conflict_overlay_in_light() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    let run = |shell: &mut ShellModel, action: &str, params: serde_json::Value| {
+        assert_eq!(
+            shell.dispatch(action, &params),
+            Outcome::Done,
+            "{action} {params}"
+        );
+    };
+    run(
+        &mut shell,
+        "file.open",
+        json!({"dir": dir.to_string_lossy(), "read_only": false}),
+    );
+    run(&mut shell, "page.goto", json!({"folio": "103"}));
+    run(&mut shell, "navigator.show", json!({"kind": "potentials"}));
+    let bond = {
+        let t = shell
+            .nav(ew_ui::ew_viewmodel::navigators::NavKind::Potentials)
+            .and_then(|n| n.table())
+            .expect("the Potentials table");
+        let rows: Vec<_> = t.nodes.iter().filter(|n| n.kinds == ["bond"]).collect();
+        assert_eq!(rows.len(), 1, "Golden A has the one bond B1");
+        rows[0].records[0]
+    };
+    run(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "bond", "id": bond.to_string()}]}}),
+    );
+    run(
+        &mut shell,
+        "navigator.show",
+        json!({"kind": "potentials", "on": false}),
+    );
+    run(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 800.0, "height": 560.0, "ppp": 1.0}),
+    );
+    run(&mut shell, "view.fit_page", json!({}));
+    let lines = shell.conflict_overlay(0);
+    assert!(!lines.is_empty(), "the merged potential's wires on 103");
+    let (image, _) = ew_ui::canvas::snapshot_image(&shell, 0).expect("a snapshot");
+    // The middle of the longest conflict segment is `canvas.conflict` (#C42B3C).
+    let c = shell.canvas().expect("the canvas");
+    let view = ew_render2d::view::View {
+        centre: c.centre(),
+        zoom: c.zoom(),
+        pane: c.native_pane(),
+        ppp: c.native_ppp(),
+    };
+    let t = view.settled_transform();
+    let (a, b) = lines
+        .iter()
+        .flat_map(|l| l.windows(2).map(|s| (s[0], s[1])))
+        .max_by_key(|(a, b)| (a.0 - b.0).abs() + (a.1 - b.1).abs())
+        .expect("a segment");
+    let mid = t.to_screen(((a.0 + b.0) as f64 / 2.0, (a.1 + b.1) as f64 / 2.0));
+    let i = (mid.1 as usize * image.width as usize + mid.0 as usize) * 4;
+    assert_eq!(
+        &image.pixels[i..i + 3],
+        &[0xC4, 0x2B, 0x3C],
+        "the conflict colour at {mid:?}"
+    );
+    let failures: Vec<String> = record("ft675-conflict-overlay-103-light", &image, true)
+        .into_iter()
+        .collect();
+    shell.shutdown();
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

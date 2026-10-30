@@ -100,11 +100,16 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
                     ui.spacing_mut().item_spacing.y = t.space_icon;
                     match n.lines() {
                         (title, Some(line)) => {
-                            // The title carries the whole text as the live region; the counts stay on one line.
-                            let response = ui.label(
-                                RichText::new(title)
-                                    .font(theme::font(&t.type_body_strong))
-                                    .color(t.text_primary.color32()),
+                            // The title carries the whole text as the live region; the counts stay on one line
+                            // (FT-664: the waived and pending counts qualify the title, so the severities fit; a
+                            // longer line is cut with an ellipsis, whole in its tooltip, never wrapped).
+                            let response = ui.add(
+                                egui::Label::new(
+                                    RichText::new(title)
+                                        .font(theme::font(&t.type_body_strong))
+                                        .color(t.text_primary.color32()),
+                                )
+                                .truncate(),
                             );
                             let live = n.text.clone();
                             ui.ctx().accesskit_node_builder(response.id, |node| {
@@ -117,7 +122,7 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
                                         .font(theme::font(&t.type_small))
                                         .color(t.text_secondary.color32()),
                                 )
-                                .wrap(),
+                                .truncate(),
                             );
                         }
                         (_, None) => {
