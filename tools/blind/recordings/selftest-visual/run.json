@@ -16,8 +16,8 @@
   },
   "files": {
     "tools/blind/HELP-VISUAL.md": "5c8f8ca4108289dc37d1061767d9c72c2619fe1b51267da3753e2c2bbedf45c4",
-    "tools/blind/reference/actions.txt": "58639a3f1d7d247ebb4f8b4b4a1ee5aae9b515d466234bdf1f533fe0a1b63054",
-    "tools/blind/reference/vocabulary.txt": "cc2106ba08e47ad85f4a74869b2c90b068436223a71d948fb3150dc2dc1fb64f",
+    "tools/blind/reference/actions.txt": "dfcce02cfc612000c2072dede7fceb4f221a7b66d2d2a45835cf2086ea8cd96a",
+    "tools/blind/reference/vocabulary.txt": "ae28759c7ca2ac3cbb49082d015dfc4cfe2d802729b3fd2d574037b8c3c9ad6c",
     "tools/blind/tasks/selftest-visual/agent.jsonl": "0a914be5b3e94b2a6d817a9f53f3200037e592d8bab5f5822fdf03f6ec0e10be",
     "tools/blind/tasks/selftest-visual/prelude.uiscript": "b5d31b6c62a5cd9cc5eafd52acd517a3528027fcc1e85532bf67cf05fb256f48",
     "tools/blind/tasks/selftest-visual/task.md": "803ac2aa72326c1d0ca1ac34ed25da98cd2a2bc853e3a96739e98343e68b4f72"

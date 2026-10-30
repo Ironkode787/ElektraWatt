@@ -1,4 +1,4 @@
-# ew.blindvocab/1: the 366 structural words of the describe text, then its free-text markers
+# ew.blindvocab/1: the 367 structural words of the describe text, then its free-text markers
 title:
 menu
 submenu
@@ -365,6 +365,7 @@ accessory
 macro_instance
 chooser
 note
+address
 markers:
 title:
 banner:
