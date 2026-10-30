@@ -313,6 +313,11 @@ fn two_quick_clicks_with_the_place_tool_place_once_and_refuse_the_stacked_twin()
         Some("An identical symbol already stands here; move the pointer to place another"),
         "{sent:?}"
     );
+    // The HUD says it over the Place ghost.
+    assert_eq!(
+        ew_ui::ew_viewmodel::command_bar::hud(h.state().shell()).prompt,
+        "An identical symbol already stands here; move the pointer to place another"
+    );
     assert_eq!(h.state().shell().tool().name(), "place");
     // Two grid steps to the right is not a twin.
     let grid = h.state().shell().canvas().unwrap().page().tables.grid;

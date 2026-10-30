@@ -707,6 +707,9 @@ pub fn hud(model: &ShellModel) -> HudModel {
             format!("{} \u{b7} {}", asset.unwrap_or_else(|| "-".to_owned()), hint())
         }
     };
+    // FT-751: a tool's refusal stands in the HUD in place of its prompt, also over a ghost (the stacked twin's
+    // "An identical symbol already stands here"), until the next canvas input ends it.
+    let prompt = model.tool_notice().map_or(prompt, str::to_owned);
     HudModel {
         tool: action,
         tool_label: tools::tool_label(name),

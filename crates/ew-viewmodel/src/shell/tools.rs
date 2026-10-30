@@ -341,8 +341,14 @@ impl ShellModel {
             Some(out) => {
                 let refused = matches!(out, ToolOutput::Refused(_));
                 let out = self.apply_tool_output(out);
-                if refused && let CanvasEvent::Press { at, .. } = ev {
-                    self.tools.notice_at = Some(*at);
+                // The refused press's point; a refused Enter (no pointer point) is kept until the pointer or the
+                // grid cursor moves.
+                if refused {
+                    self.tools.notice_at = match ev {
+                        CanvasEvent::Press { at, .. } => Some(*at),
+                        CanvasEvent::Activate => Some((i64::MIN, i64::MIN)),
+                        _ => None,
+                    };
                 }
                 // The place tool says what it floats after a key or a cursor move (WP-S2.04 §7.2).
                 if self.tools.tool.name() == "place"

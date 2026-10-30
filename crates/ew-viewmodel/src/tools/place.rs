@@ -578,14 +578,18 @@ impl PlaceTool {
             .any(|r| r.symbol == self.shape.copy && r.pos == pos && r.orient == orient)
     }
 
+    /// Whether the placement at the current point would land on an identical twin (FT-751).
+    fn on_twin(&self, cx: &ToolCx<'_>) -> bool {
+        !self.ask
+            && self
+                .at
+                .is_some_and(|(_, at)| self.lands_on_twin(cx, self.stacked_pos(cx, at)))
+    }
+
     fn commit(&mut self, cx: &ToolCx<'_>, alt: bool) -> ToolOutput {
         // FT-751: refused in words (doc 16a, a refusal leaves the model unchanged), never a stacked twin.
-        if !self.ask {
-            if let Some((_, at)) = self.at {
-                if self.lands_on_twin(cx, self.stacked_pos(cx, at)) {
-                    return ToolOutput::Refused("reason-place-stacked");
-                }
-            }
+        if self.on_twin(cx) {
+            return ToolOutput::Refused("reason-place-stacked");
         }
         let Some(cmd) = self.command(cx, alt || self.suppressed) else {
             return ToolOutput::None;
@@ -641,7 +645,9 @@ impl Tool for PlaceTool {
                 self.tag = None;
                 self.transient(cx)
             }
+            // FT-751: no preview of a stacked twin, which a commit refuses.
             CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => match self.command(cx, false) {
+                Some(_) if self.on_twin(cx) => ToolOutput::None,
                 Some(cmd) => ToolOutput::Preview(cmd),
                 None => ToolOutput::None,
             },
