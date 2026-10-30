@@ -1126,11 +1126,17 @@ fn device_node(
         pages.sort();
         pages.dedup();
         facets.extend(pages.into_iter().map(|p| ("page".to_owned(), p)));
+        // Cycle 37 (window check W37): the function's kind in words (`Coil A1-A2`, `NO contact 13-14`), its FnDef key
+        // only for a FnDef without a category (doc 16a P2); the order stays the FnDef key's.
+        let label = q
+            .functions()
+            .get(*f)
+            .map_or_else(|| name.clone(), |x| function_kind_text(q, x));
         let fnode = b.push(
             Some(node),
             NavRole::Function,
             &format!("function:{}", f.as_uuid()),
-            name.clone(),
+            label,
             badges,
             vec![f.as_uuid()],
             ds.clone(),
