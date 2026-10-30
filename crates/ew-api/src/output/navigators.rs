@@ -801,7 +801,7 @@ fn rep_label(d: &Drawable) -> String {
 }
 
 /// The name of a function's FnDef: its key, else the copy's UUID text.
-fn fndef_name(q: &Q, f: &Function) -> String {
+pub(crate) fn fndef_name(q: &Q, f: &Function) -> String {
     q.fndefs()
         .get(f.def)
         .and_then(|c| c.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))

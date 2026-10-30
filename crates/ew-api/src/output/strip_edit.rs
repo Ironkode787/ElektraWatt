@@ -220,6 +220,15 @@ impl Session {
             .collect()
     }
 
+    /// The key of the function definition of the function `record` (WP-S2.06 §6.7: the drop of an unplaced function
+    /// row arms the Place tool with a symbol drawing that definition; the row names the function in words since cycle
+    /// 37), else the definition's ID text; `None` when `record` is no function.
+    pub fn function_fndef_key(&self, record: Uuid) -> Option<String> {
+        let q = self.query();
+        let f = q.functions().get(Id::from_uuid(record))?;
+        Some(super::navigators::fndef_name(&q, &f))
+    }
+
     /// The main function of the device `record` and the key of its function definition (WP-S2.07 §6.8: an unplaced
     /// terminal row places its terminal's main function); `None` when `record` is no device or the device has no
     /// function. The key is empty for a definition without one.
