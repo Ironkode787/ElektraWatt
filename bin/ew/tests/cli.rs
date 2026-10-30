@@ -721,9 +721,10 @@ fn verify_derived_tiny_project_is_clean() {
     let o = ew(&["verify-derived".as_ref(), dir.as_os_str()]);
     assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
     let out = stdout(&o);
+    // Every swept family, without pinning their number (CONTRIBUTING.md: no totals of growing sets).
+    let families = format!("verify-derived: {} families, ", ew_api::verify::SWEPT.len());
     assert!(
-        out.starts_with("verify-derived: 73 families, ")
-            && out.ends_with(" keys, 0 differences, 0 oracle mismatches\n"),
+        out.starts_with(&families) && out.ends_with(" keys, 0 differences, 0 oracle mismatches\n"),
         "{out}"
     );
     assert!(!dir.join(".~ew.lock").exists());

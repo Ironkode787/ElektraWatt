@@ -11,6 +11,13 @@ new value in its JSON shape (doc 03 §5.1), checked with the derivation's parser
 parser's message. A JSON `null` removes the member, so the pinned derivation profile's default applies.
 A value equal to the stored one changes nothing.
 
+`text_styles` (ADR-0032 decision 6) replaces the whole object: `{"tag.main": {"size": 4000000}}` sets the device
+tag style to a 4 mm em height and drops every other override (a dropped key prints with its built-in row again);
+`null` or `{}` removes the member. It is refused at the precise member path: `/text_styles/<key>` for a key that
+is not an identifier or an entry that is not an object, `/text_styles/<key>/size` for a size that is not an
+integer of 500,000 … 50,000,000 nm, `/text_styles/<key>/weight` for a weight other than `regular` and `bold`,
+and `/text_styles` for a value that is not an object.
+
 Only the project record changes: no device, page or connection record is touched, so the topology is
 identical, and the derived values that follow the member (tags, cross-reference texts, wire
 properties) change on every page at once. Bulk: front-ends preview it and show the derived diff
@@ -34,7 +41,7 @@ properties) change on every page at once. Bulk: front-ends preview it and show t
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `member` | string | yes |  | The member to set: a name of the settable table (`numbering`, `colour_profile`, `size_profile`, `xref_format`). |
+| `member` | string | yes |  | The member to set: a name of the settable table (`numbering`, `colour_profile`, `size_profile`, `xref_format`, `text_styles`). |
 | `value` | any JSON value | yes |  | The member's new value in its JSON shape; `null` removes it (the profile's default applies). |
 
 ## Exit codes

@@ -2,7 +2,7 @@
 # by replaying `solution.uiscript` and deciding `acceptance.toml` on its exports.
 kind = "brief"
 grade = 1
-version = 3
+version = 4
 turn_budget = 30
 senses = ["text", "visual"]
 requires = [
