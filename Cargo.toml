@@ -56,6 +56,12 @@ mem_forget = "warn"
 # The anonymisation guard (`cargo xtask check-anonymisation`) hashes every word n-gram of the repository (about
 # 2.5 million SHA-256 digests). The hashing code is generic and is instantiated inside xtask, so xtask itself is
 # optimised in the dev profile; that keeps the guard at a few seconds. Product crates are unaffected.
+# Dependencies build at opt-level 1 in dev and test builds: the test suite runs about 20 % faster (workspace nextest
+# 180 s -> 143 s) for about 50 s more on a clean build (cycle 36, measured on the owner's machine). The workspace's
+# own crates stay at opt-level 0; float semantics do not change with the level.
+[profile.dev.package."*"]
+opt-level = 1
+
 [profile.dev.package.xtask]
 opt-level = 2
 
