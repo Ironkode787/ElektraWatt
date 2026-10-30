@@ -454,8 +454,8 @@ impl Session {
     /// # Errors
     ///
     /// [`MacroError::Copy`] or [`MacroError::Pages`] for a scope that does not copy; [`MacroError::Spec`] for a
-    /// variable, group or value set that does not fit, or at `version` for a held version with no next minor; [`MacroError::Library`] for a library that is not installed,
-    /// read-only, locked, or a write that fails.
+    /// variable, group or value set that does not fit, or at `version` for a held version with no next minor;
+    /// [`MacroError::Library`] for a library that is not installed, read-only, locked, or a write that fails.
     pub fn save_macro(&mut self, target: Uuid, spec_in: &MacroSpec) -> Result<SavedMacro, MacroError> {
         let info = self
             .libraries()
