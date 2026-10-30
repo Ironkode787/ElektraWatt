@@ -9,7 +9,8 @@
 //! **Contract.** The full vertex list from `from.at` to `to.at`: deterministic (the tie rule of §8.1, independent of
 //! the obstacle order and of the order of the other wires), every interior vertex on the grid or on the coordinate
 //! of the end next to it, the ends exact; clear of the obstacles, of the ends' own representations but for a CP's
-//! escape corridor, and of the other wires' tracks and vertices (FT-706); without such a path inside the area, the
+//! escape corridor, of the other wires' tracks and vertices, and of the reserved points (FT-706); without such a
+//! path inside the area, the
 //! provisional L route, marked [`Routed::direct`]. Page nm, y down. See `ew_commands::route` for the algorithm.
 
 use ew_commands::route::{self, Heading};
@@ -50,6 +51,9 @@ pub struct RouteRequest {
     /// The segments of the other connections on the page, page nm: the route never runs on their tracks closer than
     /// a grid step nor touches their vertices; it crosses them at a right angle (FT-706). Empty: no other wire.
     pub wires: Vec<[(i64, i64); 2]>,
+    /// Points no route passes through, page nm: the page's other connection points and their stubs, kept for their
+    /// own wires (FT-706). Empty: none.
+    pub reserved: Vec<(i64, i64)>,
 }
 
 /// A route and whether it is the fallback.
@@ -93,6 +97,7 @@ pub fn route(req: &RouteRequest) -> Routed {
         arrive: req.arrive.map(heading),
         own: req.own.clone(),
         wires: req.wires.clone(),
+        reserved: req.reserved.clone(),
     });
     Routed {
         points: r.points,
@@ -122,6 +127,7 @@ mod tests {
             arrive: None,
             own: [Vec::new(), Vec::new()],
             wires: Vec::new(),
+            reserved: Vec::new(),
         };
         assert_eq!(auto_route(&req), vec![(0, 0), (10 * mm, 0), (10 * mm, 10 * mm)]);
         assert!(!route(&req).direct);

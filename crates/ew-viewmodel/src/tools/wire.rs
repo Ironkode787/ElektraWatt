@@ -580,9 +580,10 @@ const AREA_MARGINS: [i64; 2] = [4, 16];
 
 /// The obstacle rectangles of every representation of the page, page nm (FT-706): its body and a black box's outline
 /// inflated by one grid step `g`, and every text and mark the scene draws for it (the tag, the slot texts, a black
-/// box's pin texts: the page's entity rectangles of the representation that are not a point) inflated by half a step,
-/// so that a run between two grid nodes cannot pass over a text thinner than a step.
-fn rep_rects(cx: &ToolCx<'_>, g: i64) -> std::collections::BTreeMap<Uuid, Vec<[i64; 4]>> {
+/// box's pin texts: the page's entity rectangles of the representation that are not a point) inflated by a quarter
+/// step, a little clearance; the router refuses a move across a rectangle, so a text thinner than a step counts too.
+/// Without `texts`, only the bodies and the black-box outlines.
+fn rep_rects(cx: &ToolCx<'_>, g: i64, texts: bool) -> std::collections::BTreeMap<Uuid, Vec<[i64; 4]>> {
     let grow = |r: [i64; 4], d: i64| [r[0] - d, r[1] - d, r[2] + d, r[3] + d];
     let mut out: std::collections::BTreeMap<Uuid, Vec<[i64; 4]>> = std::collections::BTreeMap::new();
     for r in &cx.page.tables.reps {
@@ -598,7 +599,10 @@ fn rep_rects(cx: &ToolCx<'_>, g: i64) -> std::collections::BTreeMap<Uuid, Vec<[i
             }
         }
     }
-    let half = (g + 1) / 2;
+    if !texts {
+        return out;
+    }
+    let clearance = g / 4;
     for (e, rect) in &cx.page.entities {
         let Some(rects) = out.get_mut(&e.0) else {
             continue;
@@ -611,10 +615,82 @@ fn rep_rects(cx: &ToolCx<'_>, g: i64) -> std::collections::BTreeMap<Uuid, Vec<[i
         let q = cx.snapper.sheet_to_page((b.x.0, b.y.0));
         rects.push(grow(
             [p.0.min(q.0), p.1.min(q.1), p.0.max(q.0), p.1.max(q.1)],
-            half,
+            clearance,
         ));
     }
     out
+}
+
+/// What a routing pass keeps clear (FT-706). The Wire tool tries the passes in turn and takes the first clear route;
+/// only when none is found does it draw the provisional L route and say so.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Pass {
+    /// Every rule: the other representations' bodies, black boxes and texts, the ends' own but for their escape
+    /// corridors, the other wires, the other CPs and their stubs.
+    Clear,
+    /// As [`Pass::Clear`] without the texts: a crowded spot where only a run over a text is left.
+    OverTexts,
+    /// The router of WP-S2.04 §8.1 before FT-706: the other representations' bodies only.
+    Bodies,
+}
+
+impl Pass {
+    const ALL: [Pass; 3] = [Pass::Clear, Pass::OverTexts, Pass::Bodies];
+}
+
+/// The route request of `pass` from `from` (leaving along `from_dir`, or arrived at along `arrive`) to `to`, the area
+/// left for the caller; `own` are the representations of the two ends (FT-706).
+fn request(
+    cx: &ToolCx<'_>,
+    g: i64,
+    pass: Pass,
+    (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
+    own: [Option<EntityRef>; 2],
+    to: &WireTarget,
+) -> RouteRequest {
+    let tables = &cx.page.tables;
+    let t = to.at();
+    let mut rects = rep_rects(cx, g, pass == Pass::Clear);
+    let mut own_rects = own.map(|r| r.and_then(|r| rects.get(&r.0).cloned()).unwrap_or_default());
+    for r in own.into_iter().flatten() {
+        rects.remove(&r.0);
+    }
+    let obstacles: Vec<[i64; 4]> = rects.into_values().flatten().collect();
+    let mut wires: Vec<[(i64, i64); 2]> = Vec::new();
+    // Every other CP and its stub is kept for its own wire.
+    let mut reserved: Vec<(i64, i64)> = Vec::new();
+    if pass == Pass::Bodies {
+        own_rects = [Vec::new(), Vec::new()];
+    } else {
+        for c in &tables.connections {
+            let line = super::autoconnect::dedup(&c.polyline);
+            wires.extend(line.windows(2).map(|w| [w[0], w[1]]));
+        }
+        for cp in &tables.cps {
+            if cp.at == from || cp.at == t {
+                continue;
+            }
+            reserved.push(cp.at);
+            if let Some(d) = cp.dir {
+                let v = d.vector();
+                reserved.push((cp.at.0 + v.0 * g, cp.at.1 + v.1 * g));
+            }
+        }
+    }
+    RouteRequest {
+        from: RouteEnd {
+            at: from,
+            dir: from_dir,
+        },
+        to: RouteEnd { at: t, dir: to.dir() },
+        obstacles,
+        grid: tables.grid,
+        area: drawing_area(cx),
+        arrive,
+        own: own_rects,
+        wires,
+        reserved,
+    }
 }
 
 /// The Wire tool.
@@ -677,7 +753,8 @@ impl WireTool {
     ///
     /// The obstacles are every representation of the page ([`rep_rects`]); those of `own` (the start's while the
     /// tail starts at it, the end's) are the ends' own, left only along a CP's escape corridor; the other wires are
-    /// every connection on the page (FT-706). The search area grows by [`AREA_MARGINS`] until a clear route is found.
+    /// every connection on the page, and the other CPs and their stubs are reserved (FT-706). The passes ([`Pass`])
+    /// are tried in turn, each with the search area grown by [`AREA_MARGINS`], until a route is found.
     fn tail(
         &mut self,
         cx: &ToolCx<'_>,
@@ -692,48 +769,25 @@ impl WireTool {
             self.direct = *direct;
             return r.clone();
         }
-        let tables = &cx.page.tables;
-        let grid = PageGridMap::new(tables.grid);
-        let g = grid.step();
-        let mut rects = rep_rects(cx, g);
-        let own_rects = own.map(|r| r.and_then(|r| rects.get(&r.0).cloned()).unwrap_or_default());
-        for r in own.into_iter().flatten() {
-            rects.remove(&r.0);
-        }
-        let obstacles: Vec<[i64; 4]> = rects.into_values().flatten().collect();
-        let mut wires: Vec<[(i64, i64); 2]> = Vec::new();
-        for c in &tables.connections {
-            let line = super::autoconnect::dedup(&c.polyline);
-            wires.extend(line.windows(2).map(|w| [w[0], w[1]]));
-        }
+        let g = PageGridMap::new(cx.page.tables.grid).step();
         let t = to.at();
         let page = drawing_area(cx);
-        let mut req = RouteRequest {
-            from: RouteEnd {
-                at: from,
-                dir: from_dir,
-            },
-            to: RouteEnd { at: t, dir: to.dir() },
-            obstacles,
-            grid: tables.grid,
-            area: page,
-            arrive,
-            own: own_rects,
-            wires,
-        };
         let mut routed = None;
-        for m in AREA_MARGINS {
-            req.area = [
-                (from.0.min(t.0) - m * g).max(page[0]),
-                (from.1.min(t.1) - m * g).max(page[1]),
-                (from.0.max(t.0) + m * g).min(page[2]),
-                (from.1.max(t.1) + m * g).min(page[3]),
-            ];
-            let r = route(&req);
-            let found = !r.direct;
-            routed = Some(r);
-            if found {
-                break;
+        'passes: for pass in Pass::ALL {
+            let req = request(cx, g, pass, (from, from_dir, arrive), own, to);
+            for m in AREA_MARGINS {
+                let area = [
+                    (from.0.min(t.0) - m * g).max(page[0]),
+                    (from.1.min(t.1) - m * g).max(page[1]),
+                    (from.0.max(t.0) + m * g).min(page[2]),
+                    (from.1.max(t.1) + m * g).min(page[3]),
+                ];
+                let r = route(&RouteRequest { area, ..req.clone() });
+                let found = !r.direct;
+                routed = Some(r);
+                if found {
+                    break 'passes;
+                }
             }
         }
         let (points, direct) = routed.map_or_else(|| (vec![from, t], true), |r| (r.points, r.direct));

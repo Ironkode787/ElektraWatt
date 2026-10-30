@@ -9,7 +9,10 @@
 //! **The search.** Grid nodes inside the area (the area's nearest grid indices, extended to hold both ends and
 //! their stubs), 4-neighbourhood, cost 1 per step and 4 per bend, no move back against the arriving heading (a
 //! U-turn would cost one bend only; FT-437). A node whose page point lies strictly inside an
-//! obstacle rectangle is blocked; the two ends, their nearest grid nodes and their stub nodes never are. A CP end
+//! obstacle rectangle is blocked, and a move that runs through the open inside of one is not taken (FT-706: a text
+//! thinner than a grid step lies between two nodes); the two ends, their nearest grid nodes and their stub nodes
+//! are never blocked, nor the move from a CP end to its stub. The nodes of the [`RouteRequest::reserved`] points
+//! (the other CPs and their stubs, FT-706) are blocked. A CP end
 //! (one with a leaving direction) first leaves one step along its direction (the stub) and is entered along the
 //! opposite of its direction; a junction or split end (`dir: None`) has no such constraint. A first end without a
 //! direction may carry the heading the route arrived there with ([`RouteRequest::arrive`], a fixed bend's incoming
@@ -19,9 +22,9 @@
 //!
 //! **The ends' own representations** ([`RouteRequest::own`], FT-706). The rectangles of the two ends' own
 //! representations (body, black-box outline, texts) block like the other obstacles, except along a CP end's escape
-//! corridor: the nodes from the end along its direction, the stub and every further node while it lies strictly
-//! inside one of those rectangles, so that a wire leaves and enters a CP straight out of its own box and texts and
-//! never across them.
+//! corridor: the nodes from the end along its direction, the stub and every further node while it, or the move on
+//! out of it, lies inside one of those rectangles, so that a wire leaves and enters a CP straight out of its own box
+//! and texts and never across them.
 //!
 //! **Other wires** ([`RouteRequest::wires`], FT-706; FR-CON-031: a crossing is not a junction). The route
 //! never runs on top of another connection's segment: a unit move parallel to a segment closer than one grid step
@@ -144,6 +147,9 @@ pub struct RouteRequest {
     /// The segments of the other connections on the page, page nm: the route never runs on top of one nor touches
     /// one of their vertices (module documentation; FT-706). Empty: no other wire.
     pub wires: Vec<[(i64, i64); 2]>,
+    /// Points no route passes through, page nm: the page's other connection points and their stubs, kept for their
+    /// own wires (FT-706). The node nearest to each is blocked (but for the ends and their stubs).
+    pub reserved: Vec<(i64, i64)>,
 }
 
 /// A route and how it was found.
@@ -186,15 +192,23 @@ struct Space {
     hi: (i64, i64),
     width: usize,
     blocked: Vec<bool>,
-    /// Whether the move right from a node is not taken (another wire's segment on that track; FT-706).
-    no_right: Vec<bool>,
-    /// Whether the move down from a node is not taken.
-    no_down: Vec<bool>,
+    /// Why the move right from a node is not taken: [`ON_WIRE`], [`OVER_OWN`], [`OVER_OBSTACLE`] (FT-706); 0 when it
+    /// is free.
+    no_right: Vec<u8>,
+    /// Why the move down from a node is not taken.
+    no_down: Vec<u8>,
 }
 
+/// A move on another wire's track (FT-706).
+const ON_WIRE: u8 = 1;
+/// A move across one of the ends' own rectangles (FT-706).
+const OVER_OWN: u8 = 2;
+/// A move across an obstacle rectangle (FT-706).
+const OVER_OBSTACLE: u8 = 4;
+
 impl Space {
-    /// Whether the unit move `m` from the index point `p` is free of other wires (the target node's own blocking
-    /// aside).
+    /// Whether the unit move `m` from the index point `p` is free: on no other wire's track and across no rectangle
+    /// (the target node's own blocking aside).
     fn move_free(&self, p: (i64, i64), m: Heading) -> bool {
         let (from, bits) = match m {
             Heading::Right => (p, &self.no_right),
@@ -202,7 +216,30 @@ impl Space {
             Heading::Left => ((p.0 - 1, p.1), &self.no_right),
             Heading::Up => ((p.0, p.1 - 1), &self.no_down),
         };
-        self.node(from).is_some_and(|n| !bits[n])
+        self.node(from).is_some_and(|n| bits[n] == 0)
+    }
+
+    /// The flags of the move from the index point `p` to its neighbour `q` (0 outside the bounds).
+    fn move_bits(&self, p: (i64, i64), q: (i64, i64)) -> u8 {
+        let from = (p.0.min(q.0), p.1.min(q.1));
+        self.node(from).map_or(0, |n| {
+            if p.1 == q.1 {
+                self.no_right[n]
+            } else {
+                self.no_down[n]
+            }
+        })
+    }
+
+    /// The flags of the move from the index point `p` to its neighbour `q`, for change.
+    fn move_flags(&mut self, p: (i64, i64), q: (i64, i64)) -> Option<&mut u8> {
+        let from = (p.0.min(q.0), p.1.min(q.1));
+        let n = self.node(from)?;
+        Some(if p.1 == q.1 {
+            &mut self.no_right[n]
+        } else {
+            &mut self.no_down[n]
+        })
     }
 
     fn node(&self, p: (i64, i64)) -> Option<usize> {
@@ -336,49 +373,60 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
         hi,
         width,
         blocked: vec![false; nodes],
-        no_right: vec![false; nodes],
-        no_down: vec![false; nodes],
+        no_right: vec![0; nodes],
+        no_down: vec![0; nodes],
     };
-    // A node is blocked when its page point lies strictly inside an obstacle.
-    let mark = |space: &Space, o: &[i64; 4], into: &mut Vec<bool>| {
+    // A node is blocked when its page point lies strictly inside an obstacle; a move is not taken when it runs
+    // through the open inside of one (FT-706: a text thinner than a grid step lies between two nodes).
+    let mark = |space: &mut Space, o: &[i64; 4], into: &mut Vec<bool>, flag: u8| {
         let (x0, x1) = (o[0].min(o[2]), o[0].max(o[2]));
         let (y0, y1) = (o[1].min(o[3]), o[1].max(o[3]));
-        let (i0, i1) = (idx(x0).max(lo.0), idx(x1).min(hi.0));
-        let (j0, j1) = (idx(y0).max(lo.1), idx(y1).min(hi.1));
+        let (i0, i1) = ((idx(x0) - 1).max(lo.0), (idx(x1) + 1).min(hi.0));
+        let (j0, j1) = ((idx(y0) - 1).max(lo.1), (idx(y1) + 1).min(hi.1));
+        let inside = |c: Option<i64>, a: i64, b: i64| c.is_some_and(|c| a < c && c < b);
+        let across = |c0: Option<i64>, c1: Option<i64>, a: i64, b: i64| match (c0, c1) {
+            (Some(c0), Some(c1)) => c0.max(a) < c1.min(b),
+            _ => false,
+        };
         for j in j0..=j1 {
-            let Some(cy) = space.coord(j) else { continue };
-            if !(y0 < cy && cy < y1) {
-                continue;
-            }
+            let (cy, cy1) = (space.coord(j), space.coord(j + 1));
             for i in i0..=i1 {
-                let Some(cx) = space.coord(i) else { continue };
-                if x0 < cx && cx < x1 {
-                    if let Some(n) = space.node((i, j)) {
-                        into[n] = true;
-                    }
+                let (cx, cx1) = (space.coord(i), space.coord(i + 1));
+                let Some(n) = space.node((i, j)) else { continue };
+                if inside(cx, x0, x1) && inside(cy, y0, y1) {
+                    into[n] = true;
+                }
+                if i < hi.0 && inside(cy, y0, y1) && across(cx, cx1, x0, x1) {
+                    space.no_right[n] |= flag;
+                }
+                if j < hi.1 && inside(cx, x0, x1) && across(cy, cy1, y0, y1) {
+                    space.no_down[n] |= flag;
                 }
             }
         }
     };
     let mut blocked = vec![false; nodes];
     for o in &req.obstacles {
-        mark(&space, o, &mut blocked);
+        mark(&mut space, o, &mut blocked, OVER_OBSTACLE);
     }
     // The ends' own representations block too, but for their escape corridors (FT-706): from a CP end along its
-    // direction, the stub and every further node while it is inside one of the own rectangles.
+    // direction, the stub and every further node while it, or the move on out of it, is inside one of the own
+    // rectangles.
     let mut own = vec![false; nodes];
     for o in req.own.iter().flatten() {
-        mark(&space, o, &mut own);
+        mark(&mut space, o, &mut own, OVER_OWN);
     }
     let corridor = |p: (i64, i64), d: Option<Heading>| -> Vec<(i64, i64)> {
         let Some(d) = d else { return vec![p] };
+        let ahead = |q: (i64, i64)| (q.0 + d.step().0, q.1 + d.step().1);
+        let over_own = |a: (i64, i64), b: (i64, i64)| space.move_bits(a, b) & OVER_OWN != 0;
         let mut out = vec![p];
         let mut q = p;
         loop {
-            let next = (q.0 + d.step().0, q.1 + d.step().1);
+            let next = ahead(q);
             let Some(n) = space.node(next) else { break };
             out.push(next);
-            if !own[n] {
+            if !own[n] && !over_own(next, ahead(next)) {
                 break;
             }
             q = next;
@@ -423,28 +471,29 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
                 if c1.min(e1) - c0.max(e0) <= 0 {
                     continue;
                 }
-                let at = if horizontal { (i, k) } else { (k, i) };
-                if let Some(n) = space.node(at) {
-                    if horizontal {
-                        space.no_right[n] = true;
-                    } else {
-                        space.no_down[n] = true;
-                    }
+                let (p, q) = if horizontal {
+                    ((i, k), (i + 1, k))
+                } else {
+                    ((k, i), (k, i + 1))
+                };
+                if let Some(f) = space.move_flags(p, q) {
+                    *f |= ON_WIRE;
                 }
             }
         }
     }
-    // The corridors' own moves are exempt: a second wire on a CP leaves along the same stub.
+    // The other connection points and their stubs are reserved for their own wires (FT-706).
+    for p in &req.reserved {
+        if let Some(n) = space.node((idx(p.0), idx(p.1))) {
+            blocked[n] = true;
+        }
+    }
+    // The corridors' moves are exempt from the own rectangles and from other wires (a second wire on a CP leaves
+    // along the same stub); the stub move from everything, as the stub node is.
     for c in &corridors {
-        for pair in c.windows(2) {
-            let (p, q) = (pair[0], pair[1]);
-            let (from, horizontal) = ((p.0.min(q.0), p.1.min(q.1)), p.1 == q.1);
-            if let Some(n) = space.node(from) {
-                if horizontal {
-                    space.no_right[n] = false;
-                } else {
-                    space.no_down[n] = false;
-                }
+        for (k, pair) in c.windows(2).enumerate() {
+            if let Some(f) = space.move_flags(pair[0], pair[1]) {
+                *f &= if k == 0 { 0 } else { !(ON_WIRE | OVER_OWN) };
             }
         }
     }
@@ -686,6 +735,7 @@ mod tests {
             arrive: None,
             own: [Vec::new(), Vec::new()],
             wires: Vec::new(),
+            reserved: Vec::new(),
         }
     }
 
@@ -862,6 +912,7 @@ mod tests {
             arrive: None,
             own: [Vec::new(), Vec::new()],
             wires: Vec::new(),
+            reserved: Vec::new(),
         };
         let r = auto_route(&request);
         assert_eq!(r.first(), Some(&a.at));
@@ -902,6 +953,7 @@ mod tests {
             arrive: None,
             own: [Vec::new(), Vec::new()],
             wires: Vec::new(),
+            reserved: Vec::new(),
         };
         assert_eq!(auto_route(&edge), l_route(edge.from, edge.to));
     }
@@ -1236,6 +1288,52 @@ mod tests {
         assert!(walled.direct);
         assert_eq!(walled.points, vec![p(0, 0), p(10, 0), p(10, 10)]);
         assert!(!route(&req(end(0, 0, Some(Heading::Right)), to, vec![])).direct);
+    }
+
+    #[test]
+    fn a_text_thinner_than_a_step_between_two_nodes_is_not_run_over() {
+        // A text from x = 4.2 to 5.8 mm and y = -0.4 to 0.4 mm holds no grid node, yet the straight run crosses it.
+        let text = [4 * MM + MM / 5, -2 * MM / 5, 5 * MM + 4 * MM / 5, 2 * MM / 5];
+        let rq = req(
+            end(0, 0, Some(Heading::Right)),
+            end(10, 0, Some(Heading::Left)),
+            vec![text],
+        );
+        let r = route(&rq);
+        assert!(!r.direct);
+        assert_ne!(r.points, vec![p(0, 0), p(10, 0)]);
+        // No segment of the route meets the text's open inside.
+        for w in r.points.windows(2) {
+            let (a, b) = (w[0], w[1]);
+            let (x0, x1, y0, y1) = (a.0.min(b.0), a.0.max(b.0), a.1.min(b.1), a.1.max(b.1));
+            let meets = x0 < text[2] && text[0] < x1.max(x0 + 1) && y0 < text[3] && text[1] < y1.max(y0 + 1);
+            assert!(!meets, "{:?} meets the text", r.points);
+        }
+    }
+
+    #[test]
+    fn a_reserved_point_is_not_passed() {
+        // Another CP's stub at (5, 0) on the straight line: the route goes round it.
+        let mut rq = req(
+            end(0, 0, Some(Heading::Right)),
+            end(10, 0, Some(Heading::Left)),
+            vec![],
+        );
+        assert_eq!(auto_route(&rq), vec![p(0, 0), p(10, 0)]);
+        rq.reserved = vec![p(5, 0)];
+        let r = route(&rq);
+        assert!(!r.direct);
+        let passes = |a: (i64, i64), b: (i64, i64), q: (i64, i64)| {
+            (a.0.min(b.0)..=a.0.max(b.0)).contains(&q.0) && (a.1.min(b.1)..=a.1.max(b.1)).contains(&q.1)
+        };
+        assert!(
+            !r.points.windows(2).any(|w| passes(w[0], w[1], p(5, 0))),
+            "{:?}",
+            r.points
+        );
+        // The ends themselves are never reserved away.
+        rq.reserved = vec![p(0, 0), p(10, 0)];
+        assert_eq!(auto_route(&rq), vec![p(0, 0), p(10, 0)]);
     }
 
     proptest::proptest! {
