@@ -487,8 +487,13 @@ impl App {
         self.report(outcome);
     }
 
-    /// A failure or incomplete Cut refusal becomes a banner when the shell has not shown one of its own.
+    /// A failure or incomplete Cut refusal becomes a banner when the shell has not shown one of its own. A refusal the
+    /// navigator's inline field shows under itself (an F2 tag's, FT-633) is not made a banner as well (cycle 37, window
+    /// check W37: one fact in one place, doc 16a P3).
     fn report(&mut self, outcome: Outcome) {
+        if self.shell.nav_rename_error().is_some() {
+            return;
+        }
         let message = match outcome {
             Outcome::Failed { message } => message,
             Outcome::Refused {

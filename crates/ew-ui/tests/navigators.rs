@@ -331,6 +331,30 @@ fn s68_an_unplaced_terminal_row_is_dragged_onto_the_canvas() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// Cycle 37 (window check W37): a device tag refused in the Devices navigator's F2 field shows its refusal under the
+/// field only, not again as a banner.
+#[test]
+fn an_f2_refusal_shows_under_the_field_and_raises_no_banner() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    dispatch(&mut h, "navigator.show", json!({"kind": "devices"}));
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
+    settle(&mut h);
+    dispatch(&mut h, "navigator.rename", json!({"kind": "devices"}));
+    settle(&mut h);
+    assert!(h.state().shell().nav_rename().is_some(), "the inline field");
+    h.key_press_modifiers(Modifiers::COMMAND, egui::Key::A);
+    h.event(egui::Event::Text("-102F1".to_owned()));
+    h.run_ok();
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    let shell = h.state().shell();
+    assert!(shell.nav_rename_error().is_some(), "the refusal under the field");
+    assert_eq!(shell.banner(), None, "no banner beside it");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// WP-S2.07 CT4 in the window (FT-490): F2 on a Potentials row opens the inline editor on its name with the focus;
 /// typing (appended at the end) and Enter rename the definition; Delete on a row opens the delete card.
 #[test]
