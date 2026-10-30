@@ -1020,6 +1020,7 @@ impl Builder<'_> {
                 self.text_box(&spec, false).map(|b| (*entity, b))
             })
             .collect();
+        self.place_tags_off_own_mark(view, &mut texts);
         self.place_tags(view, &mut texts, &pin_boxes);
         self.place_slot_texts(&mut texts, &pin_boxes);
         for t in &texts {
@@ -1131,6 +1132,49 @@ impl Builder<'_> {
     /// does not count: it yields in its turn). A raise or drop goes [`SLOT_TEXT_GAP`] past the texts and horizontal
     /// wires in the way, at most [`SLOT_TEXT_DROPS`] times, and keeps within one tag height of its symbol's top or
     /// bottom; another wire in the way ends it. Without a free place the tag stays.
+    /// A centred device tag whose anchor is inside its own symbol's body but whose text runs out across the body's
+    /// outline (a cable marker's tag, wider than its mark: "-1[06W]1", cycle 39 window check) moves beside the body, as
+    /// the other tags stand: [`SLOT_TEXT_GAP`] right of it, middle left, at the body's vertical centre. A tag inside its
+    /// body, or one already outside it, stays; the tag rule ([`Self::place_tags`]) then judges the new place.
+    fn place_tags_off_own_mark(&self, view: &PageView, texts: &mut [SlotText<'_>]) {
+        for t in texts.iter_mut() {
+            if !t.movable_tag || t.angle != Angle2::ZERO || t.align != Align::Centre {
+                continue;
+            }
+            let Some(rv) = view.reps.iter().find(|r| EntityRef(r.rep.id.as_uuid()) == t.entity) else {
+                continue;
+            };
+            let Some(def) = &rv.symbol else { continue };
+            let b = symbol::lower(def, rv.rep.orient).bounds;
+            let pos = rv.rep.pos;
+            let body = Rect::from_points(
+                Pt2::new(pos.x + b.min().x, pos.y + b.min().y),
+                Pt2::new(pos.x + b.max().x, pos.y + b.max().y),
+            );
+            let inside = |p: Pt2| {
+                p.x > body.min().x && p.x < body.max().x && p.y > body.min().y && p.y < body.max().y
+            };
+            if !inside(t.at) {
+                continue;
+            }
+            let Some(own) = self.text_box(&t.spec(false), false) else {
+                continue;
+            };
+            let within = own.min().x >= body.min().x
+                && own.max().x <= body.max().x
+                && own.min().y >= body.min().y
+                && own.max().y <= body.max().y;
+            if within {
+                continue;
+            }
+            t.at = Pt2::new(
+                body.max().x + SLOT_TEXT_GAP,
+                Nm((body.min().y.0 + body.max().y.0) / 2),
+            );
+            t.align = Align::MiddleLeft;
+        }
+    }
+
     fn place_tags(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
         if !texts.iter().any(|t| t.movable_tag) {
             return;

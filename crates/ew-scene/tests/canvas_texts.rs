@@ -23,6 +23,7 @@ const BLACKBOX: &str = include_str!("../../../content/symbols/qet10/ew.gen.black
 const COIL: &str = include_str!("../../../content/symbols/qet10/ew.iec.coil@qet10.json");
 const VALVE: &str = include_str!("../../../content/symbols/qet10/ew.iec.valve-coil@qet10.json");
 const CONTACT_NO: &str = include_str!("../../../content/symbols/qet10/ew.iec.contact-no@qet10.json");
+const CABLE: &str = include_str!("../../../content/symbols/qet10/ew.gen.cable-marker@qet10.json");
 
 const PAGE: u128 = 0x100;
 
@@ -415,4 +416,31 @@ fn a_tag_does_not_sit_on_a_wire() {
     // Beside its valve: between the wire and the valve's axis, level with the valve.
     assert!(tag.max().x.0 < g(44) && tag.min().x.0 > wire_x, "{tag:?}");
     assert!(tag.min().y.0 < g(34) && tag.max().y.0 > g(30));
+}
+
+/// Cycle 39 (window check): a cable marker's tag, wider than its mark, used to print centred on it with the mark's
+/// sides through the text ("-1[06W]1"); it stands clear of the mark, beside it on the right, reading horizontally.
+#[test]
+fn a_cable_tag_stands_clear_of_its_mark() {
+    let c = symbol(CABLE);
+    let v = view(
+        vec![RepView {
+            rep: rep(0x31, c.id, 40, 40, json!({})),
+            symbol: Some(c.def.clone()),
+            slots: vec![value(slot(&c, &SlotKind::Tag), "-106W1")],
+            terminals: Vec::new(),
+            pins: Vec::new(),
+        }],
+        Vec::new(),
+    );
+    let r = runs(&v);
+    let t = run(&r, 0x31, "-106W1");
+    let b = ew_scene::symbol::lower(&c.def, ew_units::Orient2::R0).bounds;
+    let mark = Rect::from_points(
+        Pt2::new(ew_units::Nm(g(40)) + b.min().x, ew_units::Nm(g(40)) + b.min().y),
+        Pt2::new(ew_units::Nm(g(40)) + b.max().x, ew_units::Nm(g(40)) + b.max().y),
+    );
+    assert!(!overlap(t.rect, mark), "the tag {:?} crosses the mark {mark:?}", t.rect);
+    assert!(t.rect.min().x >= mark.max().x, "beside the mark on the right");
+    assert!(upright(t));
 }
