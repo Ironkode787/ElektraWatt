@@ -64,6 +64,10 @@ rule-ew-pot-013 = { $device } schakelt de nulleider { $from } → { $to }{ $load
     .title = Schakelen in de nulleider
     .hint = Verplaats het contact naar de lijngeleider, of gebruik een apparaat dat L en N tegelijk opent.
 
+rule-ew-pot-021 = { $cp } ligt op { $potential }, dat geen voeding bereikt: de belasting wordt gevoed maar niet teruggevoerd; sluit het aan op de retourgeleider (0 V, N)
+    .title = Belasting niet teruggevoerd
+    .hint = Verbind de retourzijde van de belasting met de retourgeleider van de voeding (0 V, N), of met de retourpin van de module.
+
 rule-ew-rds-003 = { $device }: de lettercode { $letter } past niet bij de functiecategorie { $category }; de identificatieset { $set } stelt { $suggested } voor{ $verified ->
         [yes] {""}
        *[no] {" "}(de set is niet getoetst aan de norm)

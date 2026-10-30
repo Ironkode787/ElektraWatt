@@ -582,7 +582,7 @@ impl Query for PotentialPartition {
 
 /// The potential of an endpoint, read as part [`PartKey::Endpoint`] of the partition: the reader depends on
 /// which potential `at` belongs to, not on that potential's topology.
-pub(crate) fn potential_id_at(q: &Q, at: EndpointKey) -> Option<PotentialId> {
+pub fn potential_id_at(q: &Q, at: EndpointKey) -> Option<PotentialId> {
     q.get_part::<PotentialPartition>((), PartKey::Endpoint(at))
         .potential_at(at)
         .map(|p| p.id)

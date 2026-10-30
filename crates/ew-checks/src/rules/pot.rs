@@ -26,7 +26,7 @@ use ew_derive::{
     FunctionCps, FunctionLinksOf, PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow,
     PotentialId, PotentialNameOf, PotentialPartition, Q, RailLocation, RailTerminalOf, StructurePath,
     WireNumbers, bonds_of_potential, colour_text, cp_label, cp_text, csa_text, device_location,
-    potential_part, ranked_defs, wire_props_below_overrides,
+    potential_id_at, potential_part, ranked_defs, wire_props_below_overrides,
 };
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
@@ -1892,6 +1892,159 @@ impl Rule for TwoPotentialNames {
                 names[0]
             ),
         )]
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-POT-021
+
+/// EW-POT-021 "Load not returned" (doc 15 §4.4, FT-661): completeness, o r, warning, potential.
+pub const LOAD_NOT_RETURNED: RuleMeta = RuleMeta {
+    id: "EW-POT-021",
+    code: "005021",
+    pack: "EW-POT",
+    title: "Load not returned",
+    kind: RuleKind::Completeness,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Potential,
+    supersedes: &[],
+    release: Release::Mvp,
+};
+
+/// Whether a type is a protective or functional earth (PEN is a return conductor): an earth potential is never a
+/// return path, so neither its CPs nor an earth potential count (EW-POT-007 checks PE continuity).
+fn is_earth(t: &PotentialType) -> bool {
+    matches!(t, PotentialType::Pe | PotentialType::Fe)
+}
+
+/// The CPs of a two-terminal load (a coil, a lamp, a heater): its physical electrical CPs without an earth role, when
+/// there are exactly two; `None` for any other function.
+fn two_terminal(q: &Q, f: Id<Function>) -> Option<[u16; 2]> {
+    let cps: Vec<u16> = q
+        .get::<FunctionCps>(f)
+        .iter()
+        .filter(|c| {
+            c.physical
+                && c.discipline == Discipline::Electrical
+                && !c.potential_role.as_ref().is_some_and(is_earth)
+        })
+        .map(|c| c.idx)
+        .collect();
+    match cps.as_slice() {
+        [a, b] => Some([*a, *b]),
+        _ => None,
+    }
+}
+
+/// Whether a function only passes a potential on: a terminal (its device's terminal aspect or a terminal contact).
+fn is_terminal(q: &Q, f: Id<Function>) -> bool {
+    q.functions()
+        .get(f)
+        .and_then(|x| x.device)
+        .and_then(|d| q.devices().get(d))
+        .is_some_and(|d| d.aspects.terminal.is_some())
+        || q.get::<FunctionLinksOf>(f).terminal_contact
+}
+
+/// Whether the potential `p` has no source (EW-POT-021): the flow does not reach it (`potential_flow` distance ∞), its
+/// type is not an earth, no member CP carries a potential role (the outputs of a supply, the return pin of a module,
+/// as their CP data declares them), and every member other than an interruption point or a terminal is a two-terminal
+/// load. A potential that holds a CP of any other function (a PLC module, a power supply, a switch) is not judged:
+/// that function may be its source. At least one load must be on it.
+fn sourceless(q: &Q, p: PotentialId) -> bool {
+    let entry = q.get::<PotentialFlow>(p);
+    let Some(entry) = entry.as_ref().as_ref() else {
+        return false;
+    };
+    if entry.distance.is_some() || entry.ptype.as_ref().is_some_and(|a| is_earth(&a.value)) {
+        return false;
+    }
+    let part = potential_part(q, p);
+    let Some(potential) = part.get(p) else {
+        return false;
+    };
+    let mut loads = 0usize;
+    for m in &potential.cps {
+        if potential.ips.binary_search(&m.function).is_ok() || is_terminal(q, m.function) {
+            continue;
+        }
+        let cps = q.get::<FunctionCps>(m.function);
+        if cps.iter().any(|c| c.idx == m.idx && c.potential_role.is_some()) {
+            return false;
+        }
+        if !entry.loads.iter().any(|l| l.function == m.function) || two_terminal(q, m.function).is_none() {
+            return false;
+        }
+        loads += 1;
+    }
+    loads > 0
+}
+
+/// EW-POT-021: a load fed on one side whose other side reaches no source, an unreturned coil (FT-661; doc 08 §3.6).
+/// `scope` is a potential with no source ([`sourceless`]: unreached by the flow, no CP with a potential role, only
+/// two-terminal loads besides terminals and interruption points), for example the A2 net of two valve coils that was
+/// never linked to 0 V. Each two-terminal load on it whose other CP lies on a potential that has a source is reported
+/// once, target the load function, discriminator the CP index on `scope`, subject the CP's label. A load whose two
+/// sides both have no source is left out (not fed at all); an unconnected CP has no potential (EW-POT-009). A return
+/// inside a module counts as returned: the module's declared link puts the CP in the module's potential, which holds
+/// a module CP and so is not judged. The flow alone cannot decide this: a supply whose CP data declares no source
+/// output (the starter PSU, Golden A's -102G1) leaves its whole DC side unreached.
+#[derive(Clone, Copy, Debug)]
+pub struct LoadNotReturned;
+
+impl Rule for LoadNotReturned {
+    fn meta(&self) -> &'static RuleMeta {
+        &LOAD_NOT_RETURNED
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Potential(p) = *scope else {
+            return Vec::new();
+        };
+        if !sourceless(q, p) {
+            return Vec::new();
+        }
+        let part = potential_part(q, p);
+        let Some(potential) = part.get(p) else {
+            return Vec::new();
+        };
+        let name = potential_name(q, p);
+        let mut out = Vec::new();
+        let functions: BTreeSet<Id<Function>> = potential.cps.iter().map(|c| c.function).collect();
+        for f in functions {
+            let Some(cps) = two_terminal(q, f) else {
+                continue;
+            };
+            for (here, there) in [(cps[0], cps[1]), (cps[1], cps[0])] {
+                if !potential.cps.contains(&CpRef::new(f, here)) {
+                    continue;
+                }
+                let Some(other) = potential_id_at(q, EndpointKey::Cp(f, there)) else {
+                    continue;
+                };
+                if other == p || sourceless(q, other) {
+                    continue;
+                }
+                let label = cp_label(q, CpRef::new(f, here));
+                out.push(
+                    Finding::new(
+                        &LOAD_NOT_RETURNED,
+                        [Target::new(Kind::Function, f)],
+                        here.to_string(),
+                        label.clone(),
+                        format!(
+                            "{label} is on {name}, which reaches no supply: the load is fed but not returned; \
+                             connect it to the return conductor (0 V, N)"
+                        ),
+                    )
+                    .arg("cp", label)
+                    .arg("potential", name.clone()),
+                );
+            }
+        }
+        out
     }
 }
 

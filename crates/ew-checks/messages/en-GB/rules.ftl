@@ -210,6 +210,10 @@ rule-ew-pot-017 =
     .title = Two potential names
     .hint = Keep one definition of the potential, or rename the interruption points to one name.
 
+rule-ew-pot-021 = { $cp } is on { $potential }, which reaches no supply: the load is fed but not returned; connect it to the return conductor (0 V, N)
+    .title = Load not returned
+    .hint = Wire the load's return side to the return conductor of its supply (0 V, N), or link it to the module's return pin.
+
 ## EW-RDS (EW-IEC81346): reference designations
 
 rule-ew-rds-001 =

@@ -593,3 +593,71 @@ fn run_online(m: &Model) -> Vec<ew_checks::Finding> {
     let q = ew_derive::Q::new(m);
     ew_checks::run(&q, &ew_checks::FULL, ew_checks::CheckMode::Online).findings
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-POT-021
+
+/// A DC supply whose CP 0 has role L+ and CP 1 role M (the starter PSU's outputs, no source-output flag).
+const FNDEF_DC: u128 = 0x509;
+const SYM_DC: u128 = 0x519;
+
+/// Two coils (-K4098, -K4099) fed from the supply 0x1001's + (A1 of each on it); their A2s are joined by one wire.
+/// `returned` links the A2 net to the supply's −; `fed` = false leaves out the supply (the A1 net has no source).
+fn coils(returned: bool, fed: bool) -> Model {
+    let mut fx = Fx::base();
+    fx.fndef_with(
+        FNDEF_DC,
+        SYM_DC,
+        &[
+            (0, "+", json!({"potential_role": "l_plus"})),
+            (1, "-", json!({"potential_role": "m"})),
+        ],
+        &json!([]),
+        &none(),
+    );
+    fx.func(0x1002, P1);
+    fx.func(0x1003, P1);
+    fx.conn(0x2002, P1, cp(0x1002), cp(0x1003), &none());
+    fx.conn(0x2003, P1, Ep::Cp(0x1002, 1), Ep::Cp(0x1003, 1), &none());
+    if fed {
+        fx.func_of(0x1001, FNDEF_DC, SYM_DC, P1);
+        fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
+    }
+    if returned {
+        fx.conn(0x2004, P1, Ep::Cp(0x1003, 1), Ep::Cp(0x1001, 1), &none());
+    }
+    fx.build()
+}
+
+#[test]
+fn pot021_cases() {
+    rule_table(
+        "EW-POT-021",
+        vec![
+            Case::reports(
+                "two coils whose A2 net reaches no supply are reported, once per coil",
+                coils(false, true),
+                |c, f| {
+                    assert_eq!(f.len(), 2, "case {c}: {f:#?}");
+                    for (x, n) in f.iter().zip([0x1002, 0x1003]) {
+                        assert_eq!(x.code, "005021", "case {c}");
+                        assert_eq!(x.severity, Severity::Warning, "case {c}");
+                        assert_eq!(x.discriminator, "1", "case {c}: the A2 side");
+                        assert_eq!(x.targets, vec![target(Kind::Function, n)], "case {c}");
+                    }
+                    assert!(
+                        f[0].message.starts_with("-1K4098:2 is on ")
+                            && f[0].message.ends_with(
+                                "which reaches no supply: the load is fed but not returned; connect it to the \
+                                 return conductor (0 V, N)"
+                            ),
+                        "case {c}: {}",
+                        f[0].message
+                    );
+                },
+            ),
+            Case::silent("the A2 net linked to the supply's −", coils(true, true)),
+            Case::silent("no supply at all: unfed, not unreturned", coils(false, false)),
+        ],
+    );
+}

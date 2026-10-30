@@ -55,6 +55,7 @@ static RULES: &[&dyn Rule] = &[
     &shipped::pot::WireNumberConflict,
     &shipped::pot::RedundantOverride,
     &shipped::pot::TwoPotentialNames,
+    &shipped::pot::LoadNotReturned,
     &shipped::rds::DesignationDoesNotParse,
     &shipped::rds::SeparatorInCode,
     &shipped::rds::LetterAgainstFunction,

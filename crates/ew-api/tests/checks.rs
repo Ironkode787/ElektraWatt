@@ -416,6 +416,7 @@ fn golden_a_ew_pot_pack_reports_the_ef_rows() {
         "EW-POT-014",
         "EW-POT-015",
         "EW-POT-017",
+        "EW-POT-021",
     ] {
         assert_eq!(subjects(&report, zero), Vec::<(String, String)>::new(), "{zero}");
     }
