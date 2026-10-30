@@ -3,8 +3,8 @@
   "id": "8961f629-85f0-5c3a-9758-4b6ff98847a9",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "87f4b115-a699-5a4c-9463-ed51b2a92448",
-  "version": "0.1.0",
-  "sha256": "sha256:12d9da3ead673ee01cf4f561671e48fd4057174969cf2d954aa8425a6dade166",
+  "version": "0.2.0",
+  "sha256": "sha256:094e95e33ef5226b8c20f9e11eddad6f9134e5050e5bdb3110a06683815b9496",
   "meta": {
     "key": "ew.iec.coil",
     "licence": "CC-BY-SA-4.0",
@@ -150,6 +150,15 @@
       ],
       "align": "middle_left",
       "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        -4000000,
+        12000000
+      ],
+      "align": "middle_right",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -160,7 +169,8 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ]
     },
     {

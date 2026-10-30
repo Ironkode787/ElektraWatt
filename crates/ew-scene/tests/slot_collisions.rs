@@ -147,6 +147,7 @@ fn contacts(spacing: i64) -> PageView {
         symbol: Some(c.def.clone()),
         slots: vec![value(tag, "-101K1"), value(xref, "(101-B2)")],
         terminals: Vec::new(),
+        pins: Vec::new(),
     };
     page(vec![contact(0x11, 20), contact(0x12, 20 + spacing)])
 }
@@ -190,6 +191,7 @@ fn coil(list: &str) -> PageView {
         symbol: Some(c.def.clone()),
         slots: vec![value(tag, "-101K1"), value(xref, list), value(data, "24 V")],
         terminals: Vec::new(),
+        pins: Vec::new(),
     }])
 }
 

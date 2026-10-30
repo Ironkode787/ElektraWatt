@@ -1997,6 +1997,8 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
                 | "missing"
                 | "representation"
                 | "function"
+                // WP-S1.21 part 2: a CP with a printed PLC address needs a bound channel; `tests/plc_hover.rs` reaches it.
+                | "address"
         ) || part1.contains(*w)
             // WP-S2.05 part 2: the find words need the find pane: `tests/find.rs` reaches them.
             || ew_viewmodel::describe::FIND_WORDS.contains(*w)

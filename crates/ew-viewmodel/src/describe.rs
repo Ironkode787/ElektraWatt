@@ -442,6 +442,8 @@ pub const VOCABULARY: &[&str] = &[
     "chooser",
     // FT-660: a generated page's table in `page.describe` (`table`, `columns`, `rows`, `row` and `group` are older).
     "note",
+    // WP-S1.21 part 2 (D7): the printed PLC address of the hovered connection point, a reviewed vocabulary change.
+    "address",
 ];
 
 /// The word FT-660 adds to [`VOCABULARY`]: the `note` line of a generated page whose table prints a note instead of
@@ -1895,6 +1897,22 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
             mm3(r.max().y.0)
         )),
         None => lines.push("canvas hover none".to_owned()),
+    }
+    // WP-S1.21 D7: the printed PLC address of the connection point under the pointer, when it has one.
+    if let Some(cp) = c.hovered_cp()
+        && let Some(address) = c
+            .page()
+            .tables
+            .cps
+            .iter()
+            .find(|t| t.id == cp.id)
+            .and_then(|t| t.plc_address.as_deref())
+    {
+        lines.push(format!(
+            "canvas hover cp \"{}\" address \"{}\"",
+            user(&cp.label),
+            user(address)
+        ));
     }
     match c.cursor() {
         Some((x, y)) => {

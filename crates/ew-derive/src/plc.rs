@@ -1010,6 +1010,98 @@ impl Query for ChannelTexts {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// plc_address_text(function)
+
+/// The printed PLC addresses of a function (doc 10 §3.6; WP-S1.21 D7, FT-227): what a `PlcAddress` text slot
+/// of a representation drawing it prints, and what each bound pin of a black-box module prints beside it. Never
+/// stored (FR-PLC-007): every text is the derived [`ChannelAddr`] of the bound channel rendered by the
+/// configuration project's profile.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct PlcAddressTexts {
+    /// The slot text: the addresses of the function's own bound CPs, else (a fluid function, contact kind
+    /// `valve`) of the bound internal coil CPs of its device's other functions; in solenoid order (a CP designated
+    /// `14`, then `12`, then the others by CP index), joined by `" / "`. `None` when no address resolves.
+    pub text: Option<String>,
+    /// The function's own bound CPs that resolve, by CP index: `(idx, address text)`.
+    pub pins: Vec<(u16, String)>,
+}
+
+/// `plc_address_text(function)`: the [`PlcAddressTexts`] of a function. A CP bound to several channels prints the
+/// channel with the lowest ID. An address resolves to the profile's drawing form (`Q0.1`), an open item to
+/// `TBD`; an excluded or unresolved address prints nothing, and so does a function without a binding.
+#[derive(Debug)]
+pub struct PlcAddressText;
+
+impl Query for PlcAddressText {
+    type Key = Id<Function>;
+    type Value = PlcAddressTexts;
+    const FAMILY: &'static str = "plc_address_text";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, key: &Self::Key) -> Arc<PlcAddressTexts> {
+        let Some(function) = q.functions().get(*key).cloned() else {
+            return Arc::new(PlcAddressTexts::default());
+        };
+        let bound = q.get::<ChannelsByCp>(());
+        let channels = q.table::<Channel>();
+        let address = |id: Id<Channel>| -> Option<String> {
+            let module = channels.get(id)?.module;
+            let entry = q.get::<ChannelAddresses>(module);
+            match &entry.iter().find(|e| e.channel == id)?.address {
+                ChannelAddr::At { text, .. } => Some(text.clone()),
+                ChannelAddr::Tbd => Some("TBD".to_owned()),
+                ChannelAddr::Excluded | ChannelAddr::Unresolved => None,
+            }
+        };
+        // (solenoid rank, function, CP index, text) of the bound CPs of `f` that `keep` admits
+        let collect =
+            |f: Id<Function>, keep: &dyn Fn(&crate::Cp) -> bool| -> Vec<(u8, Id<Function>, u16, String)> {
+                q.get::<crate::FunctionCps>(f)
+                    .iter()
+                    .filter(|cp| keep(cp))
+                    .filter_map(|cp| {
+                        let channel = bound.at_cp(f, cp.idx).next()?;
+                        let rank = match cp.designation.as_str() {
+                            "14" => 0,
+                            "12" => 1,
+                            _ => 2,
+                        };
+                        Some((rank, f, cp.idx, address(channel)?))
+                    })
+                    .collect()
+            };
+        let mut own = collect(*key, &|_| true);
+        let pins = {
+            let mut p: Vec<(u16, String)> = own.iter().map(|(_, _, idx, t)| (*idx, t.clone())).collect();
+            p.sort();
+            p
+        };
+        if own.is_empty() {
+            let fluid = q
+                .fndefs()
+                .get(function.def)
+                .is_some_and(|d| d.item.contact_kind == ew_schema::ContactKind::Valve);
+            if let (true, Some(device)) = (fluid, function.device) {
+                let mut others: Vec<Id<Function>> =
+                    q.idx().functions_of_device(device).filter(|f| f != key).collect();
+                others.sort();
+                for f in others {
+                    own.extend(collect(f, &|cp| !cp.physical));
+                }
+            }
+        }
+        own.sort();
+        let text = (!own.is_empty()).then(|| {
+            own.iter()
+                .map(|(_, _, _, t)| t.as_str())
+                .collect::<Vec<_>>()
+                .join(" / ")
+        });
+        Arc::new(PlcAddressTexts { text, pins })
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // plc_rows(station)
 
 /// One row of the PLC overview and the I/O list (doc 10 §5): one channel with everything derived.

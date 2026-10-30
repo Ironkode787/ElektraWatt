@@ -1307,6 +1307,9 @@ pub struct TableCp {
     /// A terminal CP's side in the model's words (doc 08 §2.1): `field` when its side is the strip's
     /// `field_side`, `internal` for the other side; `None` for a CP without a side.
     pub side: Option<&'static str>,
+    /// The printed PLC address of the channel bound to it (`ew_derive::PlcAddressText`'s pins, WP-S1.21 D7); `None`
+    /// for an unbound CP or an address that does not resolve.
+    pub plc_address: Option<String>,
 }
 
 /// One end of a [`TableConnection`].
@@ -1658,6 +1661,12 @@ impl Session {
                 connections,
                 potential,
                 side: terminal_side(&q, function, idx),
+                plc_address: q
+                    .get::<ew_derive::PlcAddressText>(function)
+                    .pins
+                    .iter()
+                    .find(|(i, _)| *i == idx)
+                    .map(|(_, t)| t.clone()),
             });
         }
         cps.sort_by(|a, b| {

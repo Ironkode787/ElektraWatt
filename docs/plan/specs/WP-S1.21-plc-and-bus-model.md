@@ -124,7 +124,7 @@ The 33 rows of the package. "Built" names the cycle that delivered the row; the 
 | FR-PLC-014 | `plc.set_start`; `plc.readdress` and `plc.convert_manual_to_auto` (MVP Should; de-scope candidates, §12) | 3 | PA-1, PA-2 |
 | FR-PLC-016 | Symbol and comment settable; EW-PLC-007 | 1, 3 | PW-5, PA-4 |
 | FR-PLC-019 | Built (A3); explicit state settable | 1 | PW-5 |
-| FR-PLC-022 | Built (908); the `PlcAddress` slot on every representation | 2 | PT-1, PT-2 |
+| FR-PLC-022 | The overview (folio 908) built in cycle 13; "every representation of a channel renders the same data": the `PlcAddress` slot and the black-box pin addresses (part 2, cycle 37), Golden A's valve coils by a proposed follow-up | 2 | PT-1, PT-2 |
 | FR-PLC-023 | The `io_list` row source | 5 | PX-1 |
 | FR-PLC-024 | Typed supply groups in `PlcSection` | 5 | PX-2 |
 | FR-PLC-044 | EW-PLC-001, -002, -003, -008 | 3 | PA-4 |
@@ -214,11 +214,15 @@ No decision changes an ADR.
   is counted and listed).
 
 **Acceptance.** **PT-1** after PW-1, the DI card's pins print I0.0 … I0.7 beside 1 … 8 in the page scene; a `fields.set
-address "I4.0"` on channel 0 changes the print, undo restores it. **PT-2** Golden A's coils on folios 203 to 206 print
-Q0.1 … Q6.7 (doc 10 §9.1) in their `PlcAddress` slots; folios whose symbols have no such slot are byte-equal. **PT-3**
-a bistable valve prints "Q0.0 / Q0.1" (a fixture). **PT-4** the PDF bytes of every Golden A folio not named in PT-2
-are equal, and the folios named change only in the address texts (listed by the lane as a golden change, decided as D11's
-is). **PT-5** targeted checks as PW-8 for `ew-derive`, `ew-scene`, `ew-api`.
+address "I4.0"` on channel 0 changes the print, undo restores it. **PT-2** (restated in cycle 37: no symbol of `content/`
+or Golden A carried a `plc_address` slot, so the original premise was false) the starter coil, valve coil, pushbutton
+and selector-switch symbols gain a `plc_address` slot (version 0.2.0); in a new project with the generic CPU and the
+output card, a starter coil attached to the card and bound to its channel 0 prints Q0.0 in that slot; a `fields.set
+address` of the channel changes the print and undo restores it. **PT-3** a bistable valve prints "Q0.0 / Q0.1" (a
+fixture). **PT-4** (restated) Golden A stays byte-for-byte unchanged: its embedded symbols carry no `plc_address` slot
+and none of its black boxes has a bound pin. Folios 203 to 206 print their Q addresses once Golden A's embedded lamp,
+position-switch and valve symbols gain the slot through a library update (a follow-up proposed in cycle 37, a
+golden change). **PT-5** targeted checks as PW-8 for `ew-derive`, `ew-scene`, `ew-api`.
 
 ## 7. Part 3: addressing commands, the EW-PLC rules and AC-29
 

@@ -13,7 +13,7 @@
 //! | [`PageBindingsOf`] (`PageRef`) | Memo | the title-block bindings | frame |
 //! | [`PageGridOf`] (`PageRef`) | Memo | the connection grid | wires |
 //! | [`PageRepsOf`] (page) | Memo | the representations with their symbols and strip-segment terminals, no slot texts | symbols, wires, labels |
-//! | [`PageSlotsOf`] (page) | Memo | the slot texts of every representation | labels |
+//! | [`PageSlotsOf`] (page) | Memo | the slot texts and black-box pin texts of every representation | labels |
 //! | [`PageConnectionsOf`] (page) | Cold | the connections with their wire-marker texts | wires, labels |
 //! | [`PageJunctionsOf`] (page) | Cold | the junctions with their symbols | wires, labels |
 //! | [`PageCpTargetsOf`] (page) | Memo | the CPs a report row links to, the page's part of [`CpTargetsByPage`] (`()`, Memo) | symbols |
@@ -48,8 +48,12 @@
 //!   device's function text, or an interruption point's pairing name; `process_tag` → the device's process tag;
 //!   `xref` → `xref_text(rep)` with one link per listed item; `tech_data` → `tech_data_text(device)`;
 //!   `manufacturer`, `part_number` and `type_designation` → the device's main part (its first part use, FT-162);
-//!   `order_code` → `order_code_text(device)` (the order code of its first assembly config, D-36); every other kind
-//!   has no value. An empty text is not listed.
+//!   `order_code` → `order_code_text(device)` (the order code of its first assembly config, D-36); `plc_address` →
+//!   the first drawn function's `ew_derive::PlcAddressText` text (WP-S1.21 D7); every other kind has no value. An
+//!   empty text is not listed.
+//! - **Pin addresses** (WP-S1.21 D7): a black box (`Representation.box` with CPs, a symbol without CPs) lists, per box CP whose function
+//!   CP is bound to a PLC channel, the channel's printed address (`PlcAddressText::pins` of its function), in
+//!   [`PageSlotsOf`] beside the slot texts; the scene prints them beside the pins.
 //! - **Break marks** (D-41, doc 11 §5.5 step 5): the `assembly_break_marks()` of a drawn page ([`page_break_marks`]),
 //!   drawn by the scene at the side of their representation.
 //! - **Wire markers** (ID-144; WP-S2.04 part 4a, `ew_derive::connection_marker`): with the project's `marker_mode`
@@ -77,7 +81,7 @@ use ew_derive::ew_ids::{self, Id, Uuid};
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
 use ew_derive::{
-    DisplayedTag, FunctionCps, GeneratedPage, PageOrder, PageRef, Policy, Q, Query, TbValue,
+    DisplayedTag, FunctionCps, GeneratedPage, PageOrder, PageRef, PlcAddressText, Policy, Q, Query, TbValue,
     TitleBlockValues, XrefTextOf, box_caption, connection_marker, frame_form_of, free_text, group_marker,
     grouped_connections, main_part, manufacturer_name, order_code_part, order_code_text, tech_data_text,
 };
@@ -87,7 +91,7 @@ use ew_reports::{BlockRows, Cell, LinkTarget, Row, RowKind};
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedView};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
-    BreakMarkView, BreakSide, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, RepView,
+    BreakMarkView, BreakSide, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText, RepView,
     SegmentTerminal, SlotValue, SymbolRef,
 };
 use ew_scene::table::{TableColumn, TableRow, TableRowKind, TableView};
@@ -327,20 +331,21 @@ impl Query for PageRepsOf {
                 symbol,
                 slots: Vec::new(),
                 terminals,
+                pins: Vec::new(),
             });
         }
         Arc::new(out)
     }
 }
 
-/// `page_slots(page)`: the slot texts of every representation of a drawn page that prints one, by
+/// `page_slots(page)`: the slot texts and the pin texts of every representation of a drawn page that prints one, by
 /// representation ID (see the module documentation).
 #[derive(Debug)]
 pub struct PageSlotsOf;
 
 impl Query for PageSlotsOf {
     type Key = Id<Page>;
-    type Value = Vec<(Id<Representation>, Vec<SlotValue>)>;
+    type Value = Vec<(Id<Representation>, Vec<SlotValue>, Vec<PinText>)>;
     const FAMILY: &'static str = "page_slots";
     const POLICY: Policy = Policy::Memo;
 
@@ -354,11 +359,12 @@ impl Query for PageSlotsOf {
                 continue;
             };
             let slots = slot_values(q, *key, &rep, &symbol.item);
-            if !slots.is_empty() {
-                out.push((rep.id, slots));
+            let pins = pin_texts(q, &rep, &symbol.item);
+            if !slots.is_empty() || !pins.is_empty() {
+                out.push((rep.id, slots, pins));
             }
         }
-        out.sort_by_key(|(id, _)| *id);
+        out.sort_by_key(|(id, _, _)| *id);
         Arc::new(out)
     }
 }
@@ -634,6 +640,28 @@ pub(crate) fn page_grid(q: &Q, page: PageRef) -> Grid {
     *q.get::<PageGridOf>(page)
 }
 
+/// The pin texts of a black box (WP-S1.21 D7): per box CP of a representation whose symbol has no CPs, the printed
+/// PLC address of the channel bound to that CP of its first function, in box-CP order.
+fn pin_texts(q: &Q, rep: &Representation, def: &SymbolDef) -> Vec<PinText> {
+    let (Some(b), Some(&function)) = (&rep.box_, rep.functions.first()) else {
+        return Vec::new();
+    };
+    if !def.cps.is_empty() || b.cps.is_empty() {
+        return Vec::new();
+    }
+    let texts = q.get::<PlcAddressText>(function);
+    b.cps
+        .iter()
+        .filter_map(|cp| {
+            let (_, text) = texts.pins.iter().find(|(idx, _)| *idx == cp.idx)?;
+            Some(PinText {
+                idx: cp.idx,
+                text: text.clone(),
+            })
+        })
+        .collect()
+}
+
 fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> Vec<SlotValue> {
     let Some(&function) = rep.functions.first() else {
         return Vec::new();
@@ -710,6 +738,11 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                     .collect();
                 Some(x.text.clone())
             }
+            // WP-S1.21 D7: the first drawn function's derived PLC address text.
+            SlotKind::PlcAddress => rep
+                .functions
+                .iter()
+                .find_map(|f| q.get::<PlcAddressText>(*f).text.clone()),
             _ => None,
         };
         if let Some(text) = text.filter(|t| !t.is_empty()) {

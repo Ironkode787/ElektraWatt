@@ -90,6 +90,7 @@ pub const SWEPT: &[&str] = &[
     "page_table",
     "pageless_links",
     "physical_wires_of",
+    "plc_address_text",
     "plc_rows",
     "potential_attrs",
     "potential_flow_bfs",
@@ -255,6 +256,8 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::ModuleChannelIds>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::SolenoidPositions>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::PlcRows>(memo, cold, keys.devices.iter().copied(), o);
+    // WP-S1.21 part 2 (D7): the printed PLC addresses.
+    check::<ew_derive::PlcAddressText>(memo, cold, keys.functions.iter().copied(), o);
     check::<DevicePartLines>(memo, cold, keys.devices.iter().copied(), o);
     check::<DeviceTag>(memo, cold, keys.devices.iter().copied(), o);
     check::<DevicesByStructure>(memo, cold, [()], o);

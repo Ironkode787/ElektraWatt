@@ -603,6 +603,7 @@ fn hostile_view() -> PageView {
             symbol: Some(symbol.def.clone()),
             slots: Vec::new(),
             terminals: Vec::new(),
+            pins: Vec::new(),
         });
     }
     let mut state = 0x9E37_79B9_7F4A_7C15u64;

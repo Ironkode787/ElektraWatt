@@ -420,6 +420,7 @@ mod tests {
             connections: Vec::new(),
             potential: None,
             side: None,
+            plc_address: None,
         }
     }
 

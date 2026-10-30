@@ -98,8 +98,17 @@ const STARTER_KEYS: &[&str] = &[
 const QET_SUFFIX: &str = "@qet10";
 /// The ElektraWatt builtin library (`library_id` of every starter document).
 const LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
-/// The version of every starter document.
+/// The version of every starter document that has not changed since its first publication.
 const VERSION: &str = "0.1.0";
+/// The starter documents changed after their first publication on `main` (a published version is immutable; doc 07
+/// §3.1 classifies the change): key (both editions) → version. WP-S1.21 part 2 (cycle 37): the `plc_address` slot, a
+/// minor change.
+const BUMPED: &[(&str, &str)] = &[
+    ("ew.iec.coil", "0.2.0"),
+    ("ew.iec.pushbutton-no", "0.2.0"),
+    ("ew.iec.selector-switch-no", "0.2.0"),
+    ("ew.iec.valve-coil", "0.2.0"),
+];
 /// House pen width of the pen-independent tolerance of on-outline checks, in nm (native edition).
 const OUTLINE_TOL: i64 = 1000;
 /// The most text slots a symbol may have.
@@ -567,8 +576,13 @@ fn check_identity<T>(d: &Doc<T>, meta: &ItemMeta, out: &mut Vec<String>) {
             c.library_id
         ));
     }
-    if c.version != VERSION {
-        out.push(format!("{who}: version is {:?}, expected {VERSION:?}", c.version));
+    let key = meta.key.as_ref().map(|k| k.as_str().trim_end_matches(QET_SUFFIX).to_owned());
+    let expected = BUMPED
+        .iter()
+        .find(|(k, _)| key.as_deref() == Some(*k))
+        .map_or(VERSION, |(_, v)| *v);
+    if c.version != expected {
+        out.push(format!("{who}: version is {:?}, expected {expected:?}", c.version));
     }
     let item = c.item_id.as_uuid();
     if item.is_nil() {

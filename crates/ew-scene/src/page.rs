@@ -81,6 +81,13 @@
 //!   it ended) drops straight down until its top is [`SLOT_TEXT_GAP`] below the lowest box it overlapped, when it
 //!   overlaps no slot text there; else it stays. At one-column spacing a contact's back-reference so moves below the
 //!   neighbour contact's tag. Printed text order and every other position are unchanged.
+//! - **Pin texts** (WP-S1.21 D7). A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
+//!   (drawn as in "Black boxes") in style `data.small`, inside the outline, [`PIN_TEXT_GAP`] from the pin along its
+//!   inward normal: a pin leaving up or down reads bottom to top (90°), its end towards the pin (aligned middle right
+//!   below a pin leaving up, middle left above a pin leaving down); a pin leaving left or right reads horizontally,
+//!   its start towards the pin (middle left right of a pin leaving left, middle right left of a pin leaving right).
+//!   They print after the slot texts and take no part in the slot-text collision rules. An entry without its box
+//!   CP, or a pin of an unknown direction, prints nothing.
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome): the caller's marker text, centred in style
 //!   `marker` on the midpoint of the polyline's longest segment (the first of equal ones), turned 90° on a
 //!   vertical segment, over the marker symbol in the same orientation. Provisional, like the routes.
@@ -198,6 +205,19 @@ pub struct RepView {
     /// For a strip-segment representation ([`ew_schema::RepType::StripSegment`]): the terminals it draws, in drawing
     /// order (doc 08 §6.7, FR-TRM-011); empty otherwise. See the module documentation for their CPs.
     pub terminals: Vec<SegmentTerminal>,
+    /// For a black box: the derived texts printed beside its pins (the PLC addresses of WP-S1.21 D7); empty
+    /// otherwise. See the module documentation ("Pin texts").
+    pub pins: Vec<PinText>,
+}
+
+/// A derived text printed beside one pin of a black box (WP-S1.21 D7): the printed PLC address of the channel bound
+/// to function CP `idx` of the box's first function. Never stored (FR-PLC-007).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PinText {
+    /// The function CP index (a box CP's `idx`).
+    pub idx: u16,
+    /// The text.
+    pub text: String,
 }
 
 /// One terminal drawn by a strip segment: its function and the function CPs of each side.
@@ -947,6 +967,7 @@ impl Builder<'_> {
             }
         }
         self.place_slot_texts(&mut texts);
+        let pins = pin_texts(view);
         for t in &texts {
             if let Some(name) = t.unknown {
                 self.out.findings.push(PageFinding::UnknownSlotStyle {
@@ -965,6 +986,18 @@ impl Builder<'_> {
             }
             let spec = t.spec(conflict);
             self.text_placed(&spec, t.xref);
+        }
+        for (entity, text, at, angle, align) in &pins {
+            self.text(&TextSpec {
+                text,
+                at: *at,
+                angle: *angle,
+                align,
+                style_key: "data.small",
+                entity: *entity,
+                link: None,
+                items: &[],
+            });
         }
         self.connection_markers(view);
         // The free texts, wire-marker groups and structure-box captions (WP-S2.04 part 4a).
@@ -1223,6 +1256,49 @@ impl Builder<'_> {
             })
             .collect()
     }
+}
+
+/// The distance of a black box's pin text from its pin, inward along the pin's normal (WP-S1.21 D7): 1 mm.
+pub const PIN_TEXT_GAP: Nm = Nm(1_000_000);
+
+/// The pin texts of the page's black boxes as `(entity, text, point, angle, alignment)`, by representation ID then
+/// box-CP order (module documentation, "Pin texts").
+fn pin_texts(view: &PageView) -> Vec<(EntityRef, String, Pt2, Angle2, Align)> {
+    let mut out = Vec::new();
+    for rv in sorted_reps(view) {
+        let rep = &rv.rep;
+        let (Some(def), Some(b)) = (&rv.symbol, &rep.box_) else {
+            continue;
+        };
+        if rv.pins.is_empty() || !def.cps.is_empty() {
+            continue;
+        }
+        for cp in &b.cps {
+            let Some(pin) = rv.pins.iter().find(|p| p.idx == cp.idx) else {
+                continue;
+            };
+            if pin.text.is_empty() {
+                continue;
+            }
+            let at = rep.pos + rep.orient.apply(cp.pos);
+            let g = PIN_TEXT_GAP;
+            let (offset, angle, align) = match symbol::transform_dir(&cp.dir, rep.orient) {
+                Dir4::Up => (Pt2::new(Nm::ZERO, g), Angle2(90_000), Align::MiddleRight),
+                Dir4::Down => (Pt2::new(Nm::ZERO, Nm(-g.0)), Angle2(90_000), Align::MiddleLeft),
+                Dir4::Left => (Pt2::new(g, Nm::ZERO), Angle2::ZERO, Align::MiddleLeft),
+                Dir4::Right => (Pt2::new(Nm(-g.0), Nm::ZERO), Angle2::ZERO, Align::MiddleRight),
+                Dir4::Unknown(_) => continue,
+            };
+            out.push((
+                EntityRef(rep.id.as_uuid()),
+                pin.text.clone(),
+                at + offset,
+                angle,
+                align,
+            ));
+        }
+    }
+    out
 }
 
 /// The gap a dropped cross-reference text keeps below the text it moved away from (FT-687): 0.5 mm.

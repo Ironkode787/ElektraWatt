@@ -2602,7 +2602,7 @@ pub fn xref_texts(s: &Session, folios: &[&str]) -> Vec<(String, String)> {
     }
     let mut out: Vec<(String, String)> = Vec::new();
     for (id, _) in &pages {
-        for (_, slots) in q.get::<PageSlotsOf>(*id).iter() {
+        for (_, slots, _) in q.get::<PageSlotsOf>(*id).iter() {
             for slot in slots {
                 let mut items: Vec<(String, Destination)> = Vec::new();
                 for link in &slot.item_links {

@@ -146,10 +146,10 @@ pub use part_text::{
 pub use pattern::{PatternError, expand_pattern};
 pub use plc::{
     ChannelAddr, ChannelAddrEntry, ChannelAddresses, ChannelStates, ChannelTarget, ChannelTargets,
-    ChannelText, ChannelTexts, EffectiveState, ModuleOrder, ModuleStart, ModuleStarts, OrderedModule, PlcRow,
-    PlcRows, Slot, SolenoidPositions, SolenoidSlot, Start, channel_pin, coil_cp_idx, default_profile,
-    driven_device, eval_map, module_part, parse_plc_address, pin_pattern_error, profile_of, solenoid_channel,
-    station_of, stations,
+    ChannelText, ChannelTexts, EffectiveState, ModuleOrder, ModuleStart, ModuleStarts, OrderedModule,
+    PlcAddressText, PlcAddressTexts, PlcRow, PlcRows, Slot, SolenoidPositions, SolenoidSlot, Start,
+    channel_pin, coil_cp_idx, default_profile, driven_device, eval_map, module_part, parse_plc_address,
+    pin_pattern_error, profile_of, solenoid_channel, station_of, stations,
 };
 pub use potentials::{
     Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
@@ -269,6 +269,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (PageTitle::FAMILY, PageTitle::POLICY),
     (PagelessLinks::FAMILY, PagelessLinks::POLICY),
     (PhysicalWiresOf::FAMILY, PhysicalWiresOf::POLICY),
+    (PlcAddressText::FAMILY, PlcAddressText::POLICY),
     (PlcRows::FAMILY, PlcRows::POLICY),
     (PotentialAttrsOf::FAMILY, PotentialAttrsOf::POLICY),
     (PotentialFlow::FAMILY, PotentialFlow::POLICY),

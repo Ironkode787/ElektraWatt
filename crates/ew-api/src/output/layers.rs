@@ -94,8 +94,9 @@ fn reps_with_slots(q: &Q, page: Id<ew_schema::Page>) -> Vec<RepView> {
     let slots = q.get::<PageSlotsOf>(page);
     let mut reps = (*q.get::<PageRepsOf>(page)).clone();
     for r in &mut reps {
-        if let Ok(i) = slots.binary_search_by_key(&r.rep.id, |(id, _)| *id) {
+        if let Ok(i) = slots.binary_search_by_key(&r.rep.id, |(id, _, _)| *id) {
             r.slots.clone_from(&slots[i].1);
+            r.pins.clone_from(&slots[i].2);
         }
     }
     reps

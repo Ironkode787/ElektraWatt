@@ -105,6 +105,7 @@ fn view() -> PageView {
                     item_links: Vec::new(),
                 }],
                 terminals: Vec::new(),
+                pins: Vec::new(),
             },
             RepView {
                 rep: rep(0x11, 0xF1, t.id, 10, 20, "r0"),
@@ -124,12 +125,14 @@ fn view() -> PageView {
                     },
                 ],
                 terminals: Vec::new(),
+                pins: Vec::new(),
             },
             RepView {
                 rep: rep(0x13, 0xF3, Id::from_uuid(Uuid::from_u128(0xDEAD)), 60, 60, "r0"),
                 symbol: None,
                 slots: Vec::new(),
                 terminals: Vec::new(),
+                pins: Vec::new(),
             },
         ],
         connections: vec![
@@ -688,12 +691,14 @@ fn a_black_box_draws_its_box_cps() {
                 symbol: Some(bb.def.clone()),
                 slots: Vec::new(),
                 terminals: Vec::new(),
+                pins: Vec::new(),
             },
             RepView {
                 rep: rep(0x42, 0xF1, t.id, 40, 40, "r0"),
                 symbol: Some(t.def.clone()),
                 slots: Vec::new(),
                 terminals: Vec::new(),
+                pins: Vec::new(),
             },
         ]
     };
@@ -736,12 +741,14 @@ fn a_strip_segment_draws_one_point_per_terminal_and_side() {
                 symbol: Some(seg.def.clone()),
                 slots: Vec::new(),
                 terminals: vec![terminal(0xC1), terminal(0xC2), terminal(0xC3)],
+                pins: Vec::new(),
             },
             RepView {
                 rep: rep(0x62, 0xF1, t.id, 60, 60, "r0"),
                 symbol: Some(t.def.clone()),
                 slots: Vec::new(),
                 terminals: Vec::new(),
+                pins: Vec::new(),
             },
         ],
         vec![
@@ -780,6 +787,7 @@ fn cp_targets_are_named_destinations_at_the_cp_else_at_the_representation() {
         symbol: Some(t.def.clone()),
         slots: Vec::new(),
         terminals: Vec::new(),
+        pins: Vec::new(),
     }];
     let mut v = bare(reps, Vec::new());
     let target = |idx: u16| ew_scene::page::CpTarget {
@@ -818,6 +826,7 @@ fn break_marks_close_the_overview_at_the_symbol_bounds() {
         symbol: Some(t.def.clone()),
         slots: Vec::new(),
         terminals: Vec::new(),
+        pins: Vec::new(),
     }];
     let mut v = bare(reps, Vec::new());
     let mark = |side| BreakMarkView {
@@ -885,6 +894,7 @@ fn a_widened_black_box_draws_its_stored_outline_under_its_own_geometry_key() {
             symbol: Some(bb.def.clone()),
             slots: Vec::new(),
             terminals: Vec::new(),
+            pins: Vec::new(),
         }
     };
     let v = bare(
