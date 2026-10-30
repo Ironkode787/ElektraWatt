@@ -458,6 +458,8 @@ pub struct ShellModel {
     /// The canvas pane of a new project's first group in logical points and its pixels per point.
     canvas_pane: (f64, f64),
     canvas_ppp: f64,
+    /// Whether the host has sized the first group's pane: a new area's first group is then sized (FX38d).
+    canvas_sized: bool,
     /// The bottom band every canvas's fit keeps clear, in logical points (the window's tool HUD; 0 headless).
     canvas_fit_inset: f64,
     /// Whether the page grid is drawn.
@@ -974,6 +976,7 @@ impl ShellModel {
             calls: Cell::new(SessionCalls::default()),
             canvas_pane: HEADLESS_PANE,
             canvas_ppp: 1.0,
+            canvas_sized: false,
             canvas_fit_inset: 0.0,
             grid_on: true,
             frame_stats: false,
@@ -2439,6 +2442,14 @@ impl ShellModel {
         // WP-S2.05 part 2
         if let Some(outcome) = self.dismiss_find() {
             return outcome;
+        }
+        // FX38d (doc 16a §5.7): Escape with the focus in the Messages pane closes it (the focus returns to the canvas),
+        // once a tool at work has had its Escape (the Select tool at rest).
+        if self.focus == Some(Focus::Navigator(crate::navigators::NavKind::Messages))
+            && self.tools.tool.name() == "select"
+            && self.tools.tool.state() == "idle"
+        {
+            return self.dispatch("messages.show", &serde_json::json!({ "on": false }));
         }
         self.dismiss_tool()
     }

@@ -26,7 +26,7 @@ fn failed(shell: &mut ShellModel, action: &str, params: Value) -> String {
 
 /// The open findings of rule `rule` after Run checks.
 fn findings(shell: &mut ShellModel, rule: &str) -> usize {
-    done(shell, "messages.show", json!({}));
+    done(shell, "messages.show", json!({"on": true}));
     done(shell, "messages.check", json!({}));
     let t = shell
         .nav(NavKind::Messages)

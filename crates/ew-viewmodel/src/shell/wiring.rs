@@ -401,8 +401,9 @@ impl ShellModel {
     /// `navigator.bind {channel, x_mm, y_mm, group?}` (WP-S2.07 §8, FR-PLC-020): a PLC channel row dropped on the
     /// canvas at the sheet point. The connection point under it, resolved as the Wire tool resolves its targets (the
     /// nearest CP within 8 screen points), takes the channel: one `plc.bind_channel` with `endpoint: {cp: {function,
-    /// idx}}`, whose own rules decide (a CP outside the channel's module is refused there). A drop with no CP under it
-    /// is refused with `reason-drop-on-cp`.
+    /// idx}}`, whose own rules decide. A CP outside the channel's module (a card pin or the coil of a valve on it) is
+    /// refused before the commit with `reason-bind-off-card` and a toast naming both tags (FX38d). A drop with no CP
+    /// under it is refused with `reason-drop-on-cp`.
     pub(super) fn act_navigator_bind(&mut self, p: &Map<String, Value>) -> Outcome {
         let channel = match string_param(p, "channel") {
             Ok(Some(c)) => c.trim().trim_start_matches("id:").to_owned(),
@@ -446,6 +447,23 @@ impl ShellModel {
                 reason_key: "reason-drop-on-cp",
             };
         };
+        // FX38d: a CP off the channel's card is refused here in words, by the rule the command applies
+        // (`is_on_module`), not left to the command's error with record IDs.
+        let off = self.project.as_ref().and_then(|pr| {
+            let ch = channel.parse::<ew_api::output::Uuid>().ok()?;
+            pr.session.channel_off_module(ch, function.0)
+        });
+        if let Some((on, card)) = off {
+            let text = if on.is_empty() {
+                strings::format("toast-bind-off-card-untagged", &[&card])
+            } else {
+                strings::format("toast-bind-off-card", &[&on, &card])
+            };
+            self.notify_toned(text, crate::notifications::NoteTone::Warning);
+            return Outcome::Refused {
+                reason_key: "reason-bind-off-card",
+            };
+        }
         let cmd = ew_api::AnyCommand {
             name: "plc.bind_channel".into(),
             params: json!({

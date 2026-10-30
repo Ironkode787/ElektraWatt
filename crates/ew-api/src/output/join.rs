@@ -13,7 +13,7 @@ use std::cmp::Ordering;
 
 use ew_derive::ew_ids::{Id, Uuid, v5};
 use ew_derive::ew_schema::{
-    ContactKind, Device, FnDef, FnRole, Function, FunctionKind, LibRef, Representation,
+    Channel, ContactKind, Device, FnDef, FnRole, Function, FunctionKind, LibRef, Representation,
 };
 use ew_derive::{DeviceTag, FunctionCps, PageOrder, PageRef, Q, RepAnchorCell};
 
@@ -239,6 +239,24 @@ impl Session {
         let q = self.query();
         let id: Id<Device> = Id::from_uuid(device);
         q.devices().contains(id).then(|| tag_of(&q, id))
+    }
+
+    /// Why the channel `channel` cannot bind a CP of `function`, before `plc.bind_channel` runs (cycle 38, FX38d): the
+    /// function's device tag and the channel's module tag when the function is not on that module or one of its
+    /// children ([`ew_commands::commands::is_on_module`], the rule the command applies); `None` when it is, or when
+    /// either record is missing (the command then answers).
+    pub fn channel_off_module(&self, channel: Uuid, function: Uuid) -> Option<(String, String)> {
+        let q = self.query();
+        let ch = q.table::<Channel>().get(Id::from_uuid(channel))?;
+        let module = ch.module;
+        let f = q.functions().get(Id::from_uuid(function))?;
+        let device = f.device;
+        let devices = q.devices();
+        if ew_commands::commands::is_on_module(device, module, |d| devices.get(d).and_then(|x| x.parent)) {
+            return None;
+        }
+        let on = device.map(|d| tag_of(&q, d)).unwrap_or_default();
+        Some((on, tag_of(&q, module)))
     }
 
     /// What a symbol drawing the FnDef copy `fndef` can join (WP-S2.18 D2): whether the FnDef can be an auxiliary

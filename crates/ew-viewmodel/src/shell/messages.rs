@@ -56,6 +56,21 @@ impl ShellModel {
         Some(messages::counts(t, self.editing_folio().as_deref()))
     }
 
+    /// The counts the status bar's findings field shows: the open Messages pane's, else the last Check project's while
+    /// the project is at the revision it checked (FX38d: after a check with the pane closed the field is there, and
+    /// its click opens the pane).
+    pub fn status_counts(&self) -> Option<MessageCounts> {
+        if let Some(c) = self.messages_counts() {
+            return Some(c);
+        }
+        let project = self.project.as_ref()?;
+        let at = (project.epoch, project.session.world().rev.0);
+        self.messages
+            .checked
+            .filter(|(when, _)| *when == at)
+            .map(|(_, c)| c)
+    }
+
     /// The Messages tab's count chip (doc 16a §5.7, FT-710): [`MessageCounts::open`] of the open pane's counts, the
     /// same rule as the status bar's and the check toast's counts; 0 while the pane is closed.
     pub fn messages_badge(&self) -> usize {
@@ -238,11 +253,18 @@ impl ShellModel {
     /// `messages.show {on?}` (View ▸ Messages): `navigator.show` with the kind `messages` (the pane in the bottom
     /// dock, focused), or `on: false` to close it.
     pub(super) fn act_messages_show(&mut self, p: &Map<String, Value>) -> Outcome {
+        let shown = self
+            .layout()
+            .panes()
+            .contains(&PaneKind::Navigator(NavKind::Messages));
+        // FX38d (doc 16a §5.7): the command that opens the pane closes it again; `on` sets it.
+        let on = match super::jobs::bool_param(p, "on", !shown) {
+            Ok(on) => on,
+            Err(e) => return e,
+        };
         let mut q = Map::new();
         q.insert("kind".into(), Value::from(NavKind::Messages.word()));
-        if let Some(on) = p.get("on") {
-            q.insert("on".into(), on.clone());
-        }
+        q.insert("on".into(), Value::from(on));
         self.act_navigator_show(&q)
     }
 
@@ -312,6 +334,10 @@ impl ShellModel {
             Some(messages::counts(&table, self.editing_folio().as_deref()))
         });
         if let Some(c) = counts {
+            self.messages.checked = self
+                .project
+                .as_ref()
+                .map(|p| ((p.epoch, p.session.world().rev.0), c));
             self.notify_toned(check_summary(c), check_tone(c));
         }
         Outcome::Done

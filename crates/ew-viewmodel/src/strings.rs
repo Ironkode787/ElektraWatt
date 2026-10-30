@@ -904,6 +904,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "toast-placed" => "Placed {0} at {1}",
         "toast-placed-no-cell" => "Placed {0}",
         "terminal-in-sentence" => "{0} terminal {1}",
+        // FX38d: a pin whose designation the device shares, by its position in words ("-1A4 pin - (2nd)").
+        "pin-in-sentence" => "{0} pin {1} ({2})",
         "toast-undo" => "Undo",
         "toast-close" => "Close",
         // WP-S2.09 part 1: the jobs, the notifications and the recovery dialog.
@@ -1478,6 +1480,16 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         // WP-S2.07 §8: a channel dragged from the PLC navigator onto a connection point.
         "action-navigator-bind" => "Bind channel",
         "reason-drop-on-cp" => "Drop the channel on a connection point",
+        // FX38d: a CP off the channel's card, refused in words before the commit.
+        "reason-bind-off-card" => {
+            "The connection point is not on the channel's card: a channel binds a pin of its card or the coil of a valve on it"
+        }
+        "toast-bind-off-card" => {
+            "{0} is not on the card {1}: a channel binds a pin of its card or the coil of a valve on it"
+        }
+        "toast-bind-off-card-untagged" => {
+            "The connection point is not on the card {0}: a channel binds a pin of its card or the coil of a valve on it"
+        }
         "action-navigator-apply" => "Apply the preview",
         "action-pages-reorder" => "Reorder pages",
         "action-pages-move-up" => "Move page up",
@@ -1826,6 +1838,11 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "macro-conflict-process-tag" => "The process tag {0} is in use",
         "macro-conflicts" => "Conflicts",
         "macro-no-conflicts" => "No conflicts",
+        // FX38d: a failed macro card leads with what blocks the apply in words; the rule code follows in secondary text.
+        "macro-failed" => "The macro clashes with this project and cannot be inserted here ({0} conflicts)",
+        "macro-failed-one" => "The macro clashes with this project and cannot be inserted here (1 conflict)",
+        "macro-failed-other" => "The macro cannot be inserted here: {0}",
+        "card-failed-rule" => "Rule {0}",
         "macro-value-set" => "Value set",
         "macro-value-set-defaults" => "Defaults",
         "macro-no-preview" => "No preview",

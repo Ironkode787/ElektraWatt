@@ -187,7 +187,7 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
             ("file.open", json!({ "dir": path(project) })),
             ("page.goto", json!({"folio": "102"})),
             // View ▸ Messages.
-            ("messages.show", json!({})),
+            ("messages.show", json!({"on": true})),
             ("ui.describe", json!({})),
             ("messages.show", json!({"on": false})),
             // F8 with the pane closed docks it and goes to the first finding; F8 again to the second.
@@ -300,7 +300,7 @@ pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_c
             ("file.open", json!({ "dir": path(project) })),
             ("page.goto", json!({"folio": "101"})),
             ("view.zoom_actual", json!({})),
-            ("messages.show", json!({})),
+            ("messages.show", json!({"on": true})),
             ("tool.ip", json!({})),
             ("cursor.set", json!({"x_mm": 300.0, "y_mm": 30.0})),
             ("ip.name", json!({"text": "MSGTEST"})),
@@ -355,7 +355,7 @@ pub(crate) fn ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_ca
                 json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [{"ref": "folio:102"}],
                     "path": "description_override", "value": "Overridden"}}),
             ),
-            ("messages.show", json!({})),
+            ("messages.show", json!({"on": true})),
             (
                 "navigator.filter",
                 json!({"kind": "messages", "text": "EW-CORE-023"}),

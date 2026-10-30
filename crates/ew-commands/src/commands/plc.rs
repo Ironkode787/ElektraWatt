@@ -101,6 +101,29 @@ impl Command for CreatePlcConfigProject {
     }
 }
 
+/// Whether a function on `device` may take a channel of `module` (owner ruling, cycle 16): the device is the module
+/// itself (a pin of the card) or one of its descendants (the coil of a valve on it), following `parent` up at most
+/// 4096 steps. A function on no device is on no module. [`BindChannel`] refuses a binding outside this rule; a host
+/// asks the same question before it commits, so that it can refuse in words (cycle 38, FX38d).
+pub fn is_on_module(
+    device: Option<Id<Device>>,
+    module: Id<Device>,
+    parent: impl Fn(Id<Device>) -> Option<Id<Device>>,
+) -> bool {
+    let mut at = device;
+    let mut steps = 0usize;
+    loop {
+        match at {
+            Some(d) if d == module => return true,
+            Some(d) if steps <= 4096 => {
+                at = parent(d);
+                steps += 1;
+            }
+            _ => return false,
+        }
+    }
+}
+
 /// `plc.bind_channel` (`BindChannel`, doc 10 §3.3, §3.9 `plc.bind_channel{channel, endpoint}`): binds a
 /// channel to its signal CP, rebinds it, or unbinds it (FR-PLC-020).
 ///
@@ -155,18 +178,9 @@ impl Command for BindChannel {
             let f = tx.require::<Function>(function)?;
             // owner ruling (cycle 16): the signal CP lies on the module itself (a pin) or on one of its
             // descendants (the coil of a valve on the module); anything else is refused
-            let mut at = f.device;
-            let mut steps = 0usize;
-            let inside = loop {
-                match at {
-                    Some(d) if d == channel.module => break true,
-                    Some(d) if steps <= 4096 => {
-                        at = tx.get::<Device>(d).and_then(|x| x.parent);
-                        steps += 1;
-                    }
-                    _ => break false,
-                }
-            };
+            let inside = is_on_module(f.device, channel.module, |d| {
+                tx.get::<Device>(d).and_then(|x| x.parent)
+            });
             if !inside {
                 return tx.reject(format!(
                     "function {function} is not on module {} or one of its children; a channel binds a pin of \

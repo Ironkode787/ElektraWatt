@@ -65,7 +65,7 @@ fn last_waive(shell: &ShellModel) -> serde_json::Value {
 fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_again() {
     let tmp = Tmp::new("waive-prompt");
     let mut shell = tmp.shell_in(Mode::Gui, true, "102");
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-033", "-3W1");
     done(
         &mut shell,
@@ -169,7 +169,7 @@ fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_a
 fn a_short_reason_an_open_or_waived_mismatch_and_headless_are_refused_without_a_commit() {
     let tmp = Tmp::new("waive-refusals");
     let mut shell = tmp.shell_in(Mode::Gui, true, "102");
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-033", "-3W1");
     let rev = shell.revision();
     // Nine characters after trimming, given as parameters (no prompt).
@@ -217,7 +217,7 @@ fn a_short_reason_an_open_or_waived_mismatch_and_headless_are_refused_without_a_
     // Headless: `check.waive` is `HumanOnly`.
     let tmp = Tmp::new("waive-headless");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-033", "-3W1");
     assert_eq!(
         refused(
@@ -270,7 +270,7 @@ fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_decl
     let page = shell.page_content("103").expect("the page's display list");
 
     // Waived, the finding no longer stands: no overlay, and the page's display list is unchanged.
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let conflict = {
         let t = shell.nav(NavKind::Messages).and_then(|n| n.table()).unwrap();
         t.nodes

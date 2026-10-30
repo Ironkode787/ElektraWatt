@@ -45,6 +45,9 @@ pub struct MessagesState {
     pub(crate) waive: Option<(String, Option<String>)>,
     /// What the shell reads from the online report, once per (project session, revision) and only when asked.
     pub(crate) online: std::cell::RefCell<Option<OnlineFacts>>,
+    /// The counts of the last Check project, by (project session, revision): the status bar's findings field while
+    /// the Messages pane is closed and the revision is the checked one (FX38d: its click opens the pane).
+    pub(crate) checked: Option<((u64, u64), MessageCounts)>,
 }
 
 /// What the shell reads from the project's online check report (FT-674, FT-675), for one (project session,

@@ -228,7 +228,8 @@ impl ShellModel {
     }
 
     /// `view.canvas_resize`: the pane of a group (the optional `group`, default the focused one); every canvas of
-    /// the group follows. The first group's size is also the pane a new project's first group gets.
+    /// the group follows: on the group's first size a fitted page fits again, after it the zoom and the centre stay
+    /// (FX38d). The first group's size is also the pane a new project's first group gets.
     pub(super) fn act_canvas_resize(&mut self, p: &Map<String, Value>) -> Outcome {
         let (width, height) = match (positive(p, "width"), positive(p, "height")) {
             (Ok(w), Ok(h)) => (w, h),
@@ -252,13 +253,21 @@ impl ShellModel {
         if g == 0 {
             self.canvas_pane = (width, height);
             self.canvas_ppp = ppp;
+            self.canvas_sized = true;
         }
         if let Some(group) = self.area.as_mut().and_then(|a| a.groups.get_mut(g)) {
             group.pane = (width, height);
             group.ppp = ppp;
+            // FX38d: the host's first size of the pane fits a fitted page to it; a later one (a dock opened, closed
+            // or dragged) keeps every tab's zoom and centre.
+            let first = !std::mem::replace(&mut group.sized, true);
             for tab in &mut group.tabs {
                 if let Some(c) = &mut tab.canvas {
-                    c.resize((width, height), ppp);
+                    if first {
+                        c.resize((width, height), ppp);
+                    } else {
+                        c.relayout((width, height), ppp);
+                    }
                 }
             }
         }

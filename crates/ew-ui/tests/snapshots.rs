@@ -428,7 +428,9 @@ fn dk12_messages_and_history_in_light_with_one_dark_compact() {
         {
             let (mut h, recorder, tmp) = main_window(theme, density);
             assert_eq!(
-                h.state_mut().shell_mut().dispatch("messages.show", &json!({})),
+                h.state_mut()
+                    .shell_mut()
+                    .dispatch("messages.show", &json!({"on": true})),
                 Outcome::Done
             );
             h.run_ok();
@@ -1076,7 +1078,7 @@ fn cp9_the_quick_fix_card_and_the_table_card_in_light() {
                 json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page],
                     "path": "description_override", "value": "Overridden"}}),
             ),
-            ("messages.show", json!({})),
+            ("messages.show", json!({"on": true})),
         ] {
             assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
         }

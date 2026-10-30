@@ -104,7 +104,7 @@ fn row_key(h: &Harness<'_, App>, role: NavRole, badge: Option<&str>) -> Option<S
 fn dk10_messages_rows_badges_and_header() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, false);
-    dispatch(&mut h, "messages.show", json!({}));
+    dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
     place_ip(&mut h, "K32PEND");
     settle(&mut h);
@@ -214,7 +214,7 @@ fn dk10_fix_is_disabled_on_a_read_only_project() {
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     wait_for_page(&mut h);
-    dispatch(&mut h, "messages.show", json!({}));
+    dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
     assert!(
         row_key(&h, NavRole::Finding, Some("fix")).is_some(),
@@ -354,7 +354,7 @@ fn cp5_the_empty_states_of_messages_find_history_and_the_navigators() {
         labels(&h, egui::Role::Group)
     );
     // Messages without findings.
-    dispatch(&mut h, "messages.show", json!({}));
+    dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
     settle(&mut h);
     assert_eq!(

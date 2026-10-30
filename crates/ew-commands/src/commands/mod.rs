@@ -158,7 +158,9 @@ pub use page::{CreatePage, DeletePages, PageScope, RenumberPages, ReorderPages};
 // WP-S2.05 part 3
 pub use parts::{ImportParts, import_counts};
 pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS, PasteFragment};
-pub use plc::{BindChannel, CreatePlcConfigProject, SetModulePart, SetProfile, SetStart, StartDir};
+pub use plc::{
+    BindChannel, CreatePlcConfigProject, SetModulePart, SetProfile, SetStart, StartDir, is_on_module,
+};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
 pub use revision::{
     ApproveRevision, ApprovedPack, CreateRevision, LABEL_ORDER_RULE, NewRevisionState, RevisionPageNote,

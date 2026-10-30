@@ -2515,6 +2515,37 @@ pub(crate) fn terminal_in_sentence(tag: &str) -> String {
     }
 }
 
+/// A connection point's label (`-1A4:-#2`) as a sentence names it (cycle 38, FX38d): a designation the device
+/// shares between pins carries its position in words, "-1A4 pin - (2nd)", never the label's `#2`. Any other label
+/// (an unshared pin `-1A4:L+`, a terminal's clamp `-X1:1/a#2`, which FT-716's form names) is returned as it is; tags,
+/// tables and printed labels keep the label.
+pub(crate) fn pin_in_sentence(label: &str) -> String {
+    let Some((head, n)) = label.rsplit_once('#') else {
+        return label.to_owned();
+    };
+    let Ok(n) = n.parse::<u32>() else {
+        return label.to_owned();
+    };
+    match head.rsplit_once(':') {
+        Some((tag, pin)) if !tag.is_empty() && !pin.is_empty() && !pin.contains('/') && n > 0 => {
+            crate::strings::format("pin-in-sentence", &[tag, pin, &ordinal(n)])
+        }
+        _ => label.to_owned(),
+    }
+}
+
+/// An English ordinal: `1st`, `2nd`, `3rd`, `4th`, `11th`, `12th`, `13th`, `21st`.
+fn ordinal(n: u32) -> String {
+    let suffix = match (n % 10, n % 100) {
+        (_, 11..=13) => "th",
+        (1, _) => "st",
+        (2, _) => "nd",
+        (3, _) => "rd",
+        _ => "th",
+    };
+    format!("{n}{suffix}")
+}
+
 /// The variant letter of an orientation `0..=7`.
 fn variant_letter(orient: u8) -> char {
     char::from(b'A' + orient.min(7))
@@ -2948,6 +2979,22 @@ impl ShellModel {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// FX38d (play-test rv-vis-2 t0013): a pin whose designation the device shares is named by its position in words
+    /// in a sentence, never by the label's `#n`; an unshared pin, a terminal's clamp and an interruption point keep
+    /// their label.
+    #[test]
+    fn a_shared_pin_is_named_by_its_position_in_a_sentence() {
+        assert_eq!(pin_in_sentence("-1A4:-#2"), "-1A4 pin - (2nd)");
+        assert_eq!(pin_in_sentence("-1A4:+#1"), "-1A4 pin + (1st)");
+        assert_eq!(pin_in_sentence("-101F1:2#3"), "-101F1 pin 2 (3rd)");
+        assert_eq!(pin_in_sentence("-101K1:13#11"), "-101K1 pin 13 (11th)");
+        assert_eq!(pin_in_sentence("-101K1:13#21"), "-101K1 pin 13 (21st)");
+        assert_eq!(pin_in_sentence("-1A4:L+"), "-1A4:L+");
+        assert_eq!(pin_in_sentence("-X1:1/a#2"), "-X1:1/a#2");
+        assert_eq!(pin_in_sentence("0VDC"), "0VDC");
+        assert!(!pin_in_sentence("-1A4:-#2").contains('#'));
+    }
 
     /// FT-716: a sentence names a terminal by strip and number in words; a tag without a number stays as it is.
     #[test]

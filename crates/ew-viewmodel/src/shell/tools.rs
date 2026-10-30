@@ -521,7 +521,12 @@ impl ShellModel {
         };
         let list: Vec<String> = proposals
             .iter()
-            .filter_map(|(cp, target)| target.as_ref().map(|t| format!("{cp} -> \"{t}\"")))
+            // FX38d: a shared pin designation reads by its position in words in the sentence, not as `-#2`.
+            .filter_map(|(cp, target)| {
+                target
+                    .as_ref()
+                    .map(|t| format!("{cp} -> \"{}\"", crate::describe::pin_in_sentence(t)))
+            })
             .collect();
         let count = strings::format(
             if hints == 1 { "count-wire" } else { "count-wires" },

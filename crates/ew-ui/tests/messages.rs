@@ -324,12 +324,13 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
 }
 
 /// FT-528: `navigator.row` to a finding under a collapsed group expands the path and scrolls the cursor row into view;
-/// a finding out of view is scrolled to as well (Golden A's findings, the window 1280 by 640).
+/// a finding out of view is scrolled to as well (Golden A's findings, the window 1280 by 800; FX38d: the dock leaves the
+/// page view half the window, so a 640-high window shows too few rows).
 #[test]
 fn ft528_navigator_row_into_a_collapsed_group_expands_it_and_scrolls_the_row_into_view() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, Scripted::default());
-    h.set_size(egui::Vec2::new(1280.0, 640.0));
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     support::open_menu(&mut h, &["Check"]);
     settle(&mut h);
@@ -467,13 +468,14 @@ fn the_dock_tab_counts_the_findings_and_the_close_button_closes_the_dock() {
 }
 
 /// Cycle 37 (window check): Golden A's folio 103 without its bond B1 (0 V and PE merge, EW-POT-001 stands). The
-/// finding's message names three member CPs and counts the rest, and in a short window its detail block scrolls to
+/// finding's message names three member CPs and counts the rest, and in a short dock (300 points; FX38d: in a window
+/// 900 high, as the dock leaves the page view half the window) its detail block scrolls to
 /// the message's last line above the footer instead of cutting it at the pane's edge.
 #[test]
 fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, Scripted::default());
-    h.set_size(egui::Vec2::new(1000.0, 600.0));
+    h.set_size(egui::Vec2::new(1000.0, 900.0));
     dispatch(&mut h, "page.goto", json!({"folio": "103"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
     let bond = {
@@ -491,7 +493,7 @@ fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
         "command.run",
         json!({"cmd": "edit.delete", "params": {"targets": [{"kind": "bond", "id": bond.to_string()}]}}),
     );
-    dispatch(&mut h, "messages.show", json!({}));
+    dispatch(&mut h, "messages.show", json!({"on": true}));
     dispatch(&mut h, "messages.check", json!({}));
     settle(&mut h);
     let row = table_nodes(&h)

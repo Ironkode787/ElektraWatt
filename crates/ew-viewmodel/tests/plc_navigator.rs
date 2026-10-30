@@ -75,6 +75,12 @@ fn channel_rows(s: &ShellModel) -> Vec<(String, String)> {
 /// PG2's state: the generic CPU, the digital output card and a starter coil attached to the card (WP-S1.21 PT-2).
 /// Returns the coil's representation.
 fn pg2_state(s: &mut ShellModel) -> Uuid {
+    coil_state(s, true)
+}
+
+/// The generic CPU, the digital output card and a starter coil, attached to the card when `attach`; the PLC navigator
+/// shown. Returns the coil's representation.
+fn coil_state(s: &mut ShellModel, attach: bool) -> Uuid {
     black_box(s, "EW-GEN-CPU-1", (10, 10), (16, 18));
     black_box(s, "EW-GEN-DO-1", (24, 10), (30, 18));
     done(s, "tool.place", json!({}));
@@ -112,14 +118,73 @@ fn pg2_state(s: &mut ShellModel) -> Uuid {
         .unwrap()
         .1
         .to_owned();
+    if attach {
+        done(
+            s,
+            "command.run",
+            json!({"cmd": "assembly.attach", "params": {
+                "parent": module, "children": [{"device": coil.device.unwrap().to_string(), "position": 1}],
+            }}),
+        );
+    }
+    coil.id
+}
+
+/// FX38d (cycle 38, window check W38): a channel dropped on a stand-alone coil (not on the card) is refused before
+/// any commit, in words that name the coil and the card by tag and carry no record ID; the same drop on the coil once
+/// it is on the card (PG2's path) still binds.
+#[test]
+fn fx38d_a_cp_off_the_card_is_refused_in_words() {
+    let tmp = Tmp::new("plcnav-fx38d");
+    let mut s = new_project(&tmp);
+    let coil = coil_state(&mut s, false);
+    let (ch0, _) = channel_rows(&s).first().cloned().expect("the card's channels");
+    let t = tables(&s);
+    let cp = t
+        .cps
+        .iter()
+        .filter(|c| c.rep == coil)
+        .min_by_key(|c| c.idx)
+        .expect("the coil's CP")
+        .clone();
+    let rev = s.revision();
+    let (x, y) = sheet_mm(&s, (cp.at.0 + 500_000, cp.at.1));
+    let bind = json!({"channel": ch0, "x_mm": x, "y_mm": y});
+    assert_eq!(
+        refused(&mut s, "navigator.bind", bind.clone()),
+        "reason-bind-off-card"
+    );
+    assert_eq!(s.revision(), rev, "nothing committed");
+    let toast = s.toast().expect("the refusal's toast").text.clone();
+    let coil_tag = cp.label.split(':').next().unwrap().to_owned();
+    assert!(
+        toast.starts_with(&format!("{coil_tag} is not on the card -")),
+        "{toast}"
+    );
+    assert!(!toast.contains('@'), "no record IDs: {toast}");
+    assert!(!toast.contains("plc.bind_channel"), "no command name: {toast}");
+    // On the card, the same drop binds.
+    let module = s
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .find(|r| r.role == "module")
+        .unwrap()
+        .key
+        .rsplit_once("module:")
+        .unwrap()
+        .1
+        .to_owned();
+    let device = t.reps.iter().find(|r| r.id == coil).unwrap().device.unwrap();
     done(
-        s,
+        &mut s,
         "command.run",
         json!({"cmd": "assembly.attach", "params": {
-            "parent": module, "children": [{"device": coil.device.unwrap().to_string(), "position": 1}],
+            "parent": module, "children": [{"device": device.to_string(), "position": 1}],
         }}),
     );
-    coil.id
+    let rev = s.revision();
+    done(&mut s, "navigator.bind", bind);
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one command");
 }
 
 /// PG2 (FR-PLC-020): channel 0 of the output card dropped on the coil's connection point binds it with one

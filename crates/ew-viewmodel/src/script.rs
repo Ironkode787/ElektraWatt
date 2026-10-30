@@ -858,9 +858,16 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
     let xrefs = card.preview.derived.xrefs.len().to_string();
     // WP-S1.19 part 6: a macro card's line ends with its conflicts, also when a prevent rule refused it (§11).
     if let CardOrigin::Macro(m) = &card.origin {
-        let head = match &card.preview.result {
-            Err(message) => strings::format("card-failed", &[message]),
-            Ok(_) => format!(
+        let head = match card.failed_lead() {
+            Some(lead) => match lead.rule {
+                Some(rule) => format!(
+                    "{} · {}",
+                    lead.text,
+                    strings::format("card-failed-rule", &[&rule])
+                ),
+                None => lead.text,
+            },
+            None => format!(
                 "{} · {}",
                 strings::format("preview-title", &[strings::command_title(&card.preview.name)]),
                 shell.preview_summary().unwrap_or_default()

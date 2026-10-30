@@ -305,3 +305,120 @@ fn ft541_props_filter_keeps_the_matching_rows_while_its_field_is_on_show() {
     done(&mut shell, "props.filter", json!({"text": ""}));
     assert_eq!(open(&shell), n);
 }
+
+/// The canvas's (zoom, centre).
+fn view(shell: &ShellModel) -> (f64, (i64, i64)) {
+    let c = shell.canvas().expect("a canvas");
+    (c.zoom(), c.centre())
+}
+
+fn messages_shown(shell: &ShellModel) -> bool {
+    shell
+        .layout()
+        .panes()
+        .contains(&PaneKind::Navigator(NavKind::Messages))
+}
+
+/// FX38d (cycle 38, play-test rv-vis-2 t0035–t0039): the Messages dock closes by the command that opened it (a
+/// toggle), by its close control (`view.bottom_dock {on: false}`) and by Escape in the pane; opening and closing it,
+/// which shrinks and grows the canvas pane, never changes the zoom or the centre of the fitted page.
+#[test]
+fn fx38d_the_messages_dock_closes_and_keeps_the_zoom() {
+    let tmp = Tmp::new("docks-fx38d");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    // The host's first size of the pane fits the page to it.
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 1088.0, "height": 760.0}),
+    );
+    let fitted = view(&shell);
+    assert!(shell.canvas().unwrap().is_fitted());
+    // The Check tab's Messages: open, the pane 300 points shorter, the view as it was.
+    done(&mut shell, "messages.show", json!({}));
+    assert!(messages_shown(&shell));
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 1088.0, "height": 460.0}),
+    );
+    assert_eq!(
+        view(&shell),
+        fitted,
+        "opening the dock keeps the zoom and the centre"
+    );
+    // The same command again closes it; the pane grows back, the view is unchanged.
+    done(&mut shell, "messages.show", json!({}));
+    assert!(
+        !messages_shown(&shell),
+        "the command that opened the dock closes it"
+    );
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 1088.0, "height": 760.0}),
+    );
+    assert_eq!(
+        view(&shell),
+        fitted,
+        "closing the dock keeps the zoom and the centre"
+    );
+    // The close control.
+    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "view.bottom_dock", json!({"on": false}));
+    assert!(!messages_shown(&shell), "the close control closes the dock");
+    // Escape with the focus in the pane.
+    done(&mut shell, "messages.show", json!({}));
+    assert_eq!(shell.focus(), Some(Focus::Navigator(NavKind::Messages)));
+    done(&mut shell, "ui.dismiss", json!({}));
+    assert!(!messages_shown(&shell), "Escape in the pane closes it");
+    assert!(
+        matches!(shell.focus(), Some(Focus::Canvas(_))),
+        "{:?}",
+        shell.focus()
+    );
+    // `on` still sets it either way.
+    done(&mut shell, "messages.show", json!({"on": true}));
+    done(&mut shell, "messages.show", json!({"on": true}));
+    assert!(messages_shown(&shell));
+    done(
+        &mut shell,
+        "view.canvas_resize",
+        json!({"width": 1088.0, "height": 460.0}),
+    );
+    assert_eq!(view(&shell), fitted);
+    // Only an explicit fit fits the page to the smaller pane.
+    done(&mut shell, "view.fit_page", json!({}));
+    assert!(view(&shell).0 < fitted.0, "the fit to the smaller pane zooms out");
+}
+
+/// FX38d (play-test rv-vis-2 t0035): after Check project with the Messages pane closed, the status bar shows the
+/// findings field (its click is `messages.show {on: true}`, `ew-ui`'s `status_bar`), and only while the project is at
+/// the checked revision.
+#[test]
+fn fx38d_the_findings_field_after_a_check_opens_messages() {
+    let tmp = Tmp::new("docks-fx38d-badge");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let findings = |shell: &ShellModel| {
+        bar(shell, false)
+            .into_iter()
+            .find(|f| f.kind == StatusKind::Findings)
+    };
+    assert!(!messages_shown(&shell));
+    done(&mut shell, "messages.check", json!({}));
+    assert!(!messages_shown(&shell), "Check project leaves the pane closed");
+    let field = findings(&shell).expect("the findings field after a check");
+    done(&mut shell, "messages.show", json!({"on": true}));
+    assert_eq!(findings(&shell).map(|f| f.text), Some(field.text), "one count");
+    done(&mut shell, "messages.show", json!({"on": false}));
+    assert!(findings(&shell).is_some());
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 991, "title": "FX38d"}}),
+    );
+    assert!(
+        findings(&shell).is_none(),
+        "a later revision is not the checked one"
+    );
+}

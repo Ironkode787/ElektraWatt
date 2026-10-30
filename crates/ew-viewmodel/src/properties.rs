@@ -283,6 +283,64 @@ pub struct Card {
     pub origin: CardOrigin,
 }
 
+impl Card {
+    /// The lead line of a failed card (cycle 38, FX38d; doc 16a P3, words not IDs) and the rule code that may follow it
+    /// in secondary text; `None` while the preview stands. A macro card leads with a sentence that says what blocks
+    /// the apply and how many conflicts its list shows (the list is the detail, so the lead never repeats a row); the
+    /// other cards keep `card-failed` with the command's message.
+    pub fn failed_lead(&self) -> Option<FailedLead> {
+        let message = self.preview.result.as_ref().err()?;
+        let CardOrigin::Macro(m) = &self.origin else {
+            return Some(FailedLead {
+                text: strings::format("card-failed", &[message]),
+                rule: None,
+            });
+        };
+        let (rule, rest) = split_rule_code(message);
+        let text = match m.conflicts.len() {
+            0 => strings::format("macro-failed-other", &[rest]),
+            1 => strings::text("macro-failed-one").to_owned(),
+            n => strings::format("macro-failed", &[&n.to_string()]),
+        };
+        Some(FailedLead {
+            text,
+            rule: rule.map(str::to_owned),
+        })
+    }
+}
+
+/// The lead line of a failed card ([`Card::failed_lead`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct FailedLead {
+    /// The sentence.
+    pub text: String,
+    /// The rule code of the refusal (`EW-CORE-052`), shown after the sentence in secondary text; `None` without one.
+    pub rule: Option<String>,
+}
+
+/// A refusal's leading rule code and the rest: `EW-CORE-052: interruption point …` gives `(Some("EW-CORE-052"),
+/// "interruption point …")`; a message without one is `(None, message)`. A rule code is `EW-`, upper-case letters,
+/// `-` and digits.
+fn split_rule_code(message: &str) -> (Option<&str>, &str) {
+    let Some((code, rest)) = message.split_once(": ") else {
+        return (None, message);
+    };
+    let mut parts = code.split('-');
+    let shaped = parts.next() == Some("EW")
+        && parts
+            .next()
+            .is_some_and(|a| !a.is_empty() && a.chars().all(|c| c.is_ascii_uppercase()))
+        && parts
+            .next()
+            .is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))
+        && parts.next().is_none();
+    if shaped {
+        (Some(code), rest)
+    } else {
+        (None, message)
+    }
+}
+
 /// The grid's state in the shell.
 #[derive(Default, Debug)]
 pub struct PropertiesState {
@@ -888,6 +946,24 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    /// FX38d: a refusal's leading rule code is split off for the secondary text; any other message stays whole.
+    #[test]
+    fn a_rule_code_is_split_off_the_message() {
+        assert_eq!(
+            split_rule_code("EW-CORE-052: interruption point 0VDC: 2 source points"),
+            (Some("EW-CORE-052"), "interruption point 0VDC: 2 source points")
+        );
+        assert_eq!(split_rule_code("EW-POT-9: x"), (Some("EW-POT-9"), "x"));
+        for whole in [
+            "interruption point 0VDC: 2 source points",
+            "EW-core-052: x",
+            "EW-CORE-: x",
+            "EW-CORE-5a: x",
+        ] {
+            assert_eq!(split_rule_code(whole), (None, whole));
+        }
+    }
 
     /// Doc 16a §6.8: the chip names the source in one word; an authored value has none.
     #[test]

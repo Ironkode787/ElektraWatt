@@ -871,7 +871,7 @@ fn tb8_describe_lines_words_and_counts() {
 fn the_messages_pane_has_no_table_mode() {
     let tmp = Tmp::new("tb-messages");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let m = failed(
         &mut shell,
         "navigator.table",

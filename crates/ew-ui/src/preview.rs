@@ -258,9 +258,21 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             });
         };
         if let CardStatus::Failed(m) = &status {
-            inset(ui, &mut |ui| {
-                components::live_line(ui, &strings::format("card-failed", &[m]), true)
-            });
+            // FX38d: the lead in words (a macro card: what blocks the apply); the rule code follows, secondary.
+            let lead = card.failed_lead();
+            let text = lead
+                .as_ref()
+                .map_or_else(|| strings::format("card-failed", &[m]), |l| l.text.clone());
+            inset(ui, &mut |ui| components::live_line(ui, &text, true));
+            if let Some(rule) = lead.and_then(|l| l.rule) {
+                inset(ui, &mut |ui| {
+                    ui.label(
+                        RichText::new(strings::format("card-failed-rule", &[&rule]))
+                            .font(theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    );
+                });
+            }
             if let CardOrigin::Macro(m) = &card.origin {
                 inset(ui, &mut |ui| macro_block(ui, m, events));
             }

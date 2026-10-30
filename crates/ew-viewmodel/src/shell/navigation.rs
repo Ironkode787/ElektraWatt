@@ -309,11 +309,9 @@ impl ShellModel {
         }
         self.focus = Some(Focus::Canvas(0));
         if let Some(first) = self.page_rows().first() {
-            self.area = Some(CanvasArea::new(
-                PageId::of(first),
-                self.canvas_pane,
-                self.canvas_ppp,
-            ));
+            let mut area = CanvasArea::new(PageId::of(first), self.canvas_pane, self.canvas_ppp);
+            area.groups[0].sized = self.canvas_sized;
+            self.area = Some(area);
         }
     }
 
@@ -331,11 +329,9 @@ impl ShellModel {
             return;
         }
         if self.area.is_none() {
-            self.area = Some(CanvasArea::new(
-                PageId::of(&rows[0]),
-                self.canvas_pane,
-                self.canvas_ppp,
-            ));
+            let mut area = CanvasArea::new(PageId::of(&rows[0]), self.canvas_pane, self.canvas_ppp);
+            area.groups[0].sized = self.canvas_sized;
+            self.area = Some(area);
             return;
         }
         let Some(area) = &mut self.area else { return };

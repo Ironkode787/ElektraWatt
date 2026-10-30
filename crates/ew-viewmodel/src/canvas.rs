@@ -17,9 +17,9 @@
 //! to `[0.05, 50]`.
 //!
 //! **Fit page** (on every page change and with Home): the zoom at which the sheet fits the pane with 16 points to
-//! spare on each side, centred. Until the next zoom or pan the view stays fitted, so a resize fits again (the first
-//! layout of the pane in the window comes after the page was opened); after a zoom or pan a resize keeps the centre
-//! and the zoom.
+//! spare on each side, centred. Until the host first sizes the pane the view stays fitted, so that first layout fits
+//! again (it comes after the page was opened); after it a resize ([`CanvasModel::relayout`]: a dock opened, closed or
+//! dragged) keeps the centre and the zoom (FX38d), as it does after a zoom or pan.
 //!
 //! **Zoom about an anchor** `a`: `centre' = a − (a − centre) × zoom / zoom'`, each axis rounded toward zero to whole
 //! nanometres, then clamped to the sheet: the anchor keeps its screen position to within 1 nm while the clamp is
@@ -705,6 +705,20 @@ impl CanvasModel {
         } else {
             self.update_hover();
         }
+    }
+
+    /// A new size of a pane already laid out (a dock opened, closed or dragged, the window resized; FX38d): the zoom and
+    /// the centre stay, also for a fitted view, which stops being fitted, so the page shows more or less of itself
+    /// and never shrinks with the pane. A fit happens only on a page change or an explicit fit.
+    pub fn relayout(&mut self, pane: (f64, f64), ppp: f64) {
+        if pane == self.pane && ppp == self.ppp {
+            return;
+        }
+        self.pane = pane;
+        self.ppp = ppp;
+        self.fitted = false;
+        self.clamp_centre();
+        self.update_hover();
     }
 
     /// The pointer is at sheet point `p` (`None`: it left the pane).

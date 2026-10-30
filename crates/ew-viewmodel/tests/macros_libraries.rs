@@ -188,6 +188,19 @@ fn ui2_insert_the_psu_macro_on_folio_105_from_the_navigator() {
         panic!("a macro card: {:?}", card.origin)
     };
     assert!(card.preview.result.is_err(), "EW-CORE-052 refuses the block");
+    // FX38d (window check W38): the card leads with what blocks the apply in words, not with the rule code, which
+    // follows as secondary text; no conflict row repeats the lead.
+    let lead = card.failed_lead().expect("the failed card's lead");
+    assert!(
+        !lead.text.starts_with("EW-") && !lead.text.starts_with("failed:"),
+        "{lead:?}"
+    );
+    assert!(!lead.text.contains("EW-CORE-052"), "{lead:?}");
+    assert!(lead.text.contains(&m.conflicts.len().to_string()), "{lead:?}");
+    assert_eq!(lead.rule.as_deref(), Some("EW-CORE-052"));
+    assert!(m.conflicts.iter().all(|c| *c != lead.text), "{:?}", m.conflicts);
+    let summary = ew_viewmodel::script::card_summary(&shell).expect("the card's line");
+    assert!(summary.starts_with(&lead.text), "{summary}");
     for name in ["L-1", "N-1"] {
         assert!(
             m.conflicts

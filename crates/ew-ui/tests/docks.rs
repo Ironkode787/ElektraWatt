@@ -385,3 +385,40 @@ fn ft519_the_history_panel_from_the_keyboard() {
     support::assert_named(&h);
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FX38d (cycle 38, play-test rv-vis-2 t0035–t0039): after Check project the status bar's findings field is there
+/// with the Messages pane closed and its click opens the pane; the pane's own close button (in its header, the pane
+/// alone in the dock) closes it; the canvas keeps its zoom and centre through the open and the close.
+#[test]
+fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
+    let tmp = Tmp::new();
+    let mut h = window(&tmp);
+    let messages = ew_ui::ew_viewmodel::navigators::NavKind::Messages;
+    let view = |h: &Harness<'_, App>| {
+        let c = h.state().shell().canvas().expect("a canvas");
+        (c.zoom(), c.centre())
+    };
+    let before = view(&h);
+    dispatch(&mut h, "messages.check", json!({}));
+    assert!(!h.state().shell().navigator_open(messages));
+    let field = ew_ui::ew_viewmodel::status::bar(h.state().shell(), false)
+        .into_iter()
+        .find(|f| f.kind == ew_ui::ew_viewmodel::status::StatusKind::Findings)
+        .expect("the findings field after the check");
+    h.get_by_role_and_label(egui::Role::Button, &field.text).click();
+    settle(&mut h);
+    assert!(
+        h.state().shell().navigator_open(messages),
+        "the badge opens Messages"
+    );
+    assert_eq!(view(&h), before, "opening the dock keeps the zoom and the centre");
+    let close = ew_ui::ew_viewmodel::strings::text("dock-close");
+    h.get_by_role_and_label(egui::Role::Button, close).click();
+    settle(&mut h);
+    assert!(
+        !h.state().shell().navigator_open(messages),
+        "the close button closes the dock"
+    );
+    assert_eq!(view(&h), before, "closing the dock keeps the zoom and the centre");
+    h.state_mut().shell_mut().shutdown();
+}

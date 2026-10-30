@@ -190,7 +190,10 @@ impl Dock {
         let tokens = crate::theme::current(ui.ctx());
         let height = ui.available_height();
         self.collapse_left(collapsed);
-        let (clamps, guessed) = self.keep_bottom_min(height, tokens.size_dock_bottom_min);
+        // FX38d: the page view (the canvas and its tab bar) keeps at least half the window's client height (the
+        // default 1536 × 994 included); ID-743's 300-point least height gives way to it in a short window.
+        let floor = ui.ctx().content_rect().height() / 2.0;
+        let (clamps, guessed) = self.keep_bottom_min(height, tokens.size_dock_bottom_min, floor);
         if guessed {
             // R3-4: a split without a last shown height was clamped against the guess; the next frame uses its
             // real height.
@@ -286,6 +289,9 @@ impl Dock {
                 Header {
                     title: header_title(*pane, in_rail),
                     segmented,
+                    // FX38d (doc 16a §5.7): a bottom pane alone, without the tab row, carries the dock's close button
+                    // in its header.
+                    close: PaneKind::BOTTOM.contains(pane),
                 },
             );
         }
@@ -295,12 +301,12 @@ impl Dock {
     // W31-1, R2-2 of cycle 31
     /// Keeps the bottom dock (D14) at least `min` points tall on show: in the vertical split that holds the page
     /// view, the child that holds a bottom pane is shown with at least `min` of the split's height (the split's last
-    /// shown height, `fallback` before the first frame), and never more than two thirds of it, so the page view keeps
-    /// its place. Display only: returns the shares it changed, which [`Dock::restore`] puts back after the frame, so
+    /// shown height, `fallback` before the first frame), and never more than two thirds of it nor so much that the page
+    /// view's child falls under `floor` (half the window, FX38d), so the page view keeps its place. Display only: returns the shares it changed, which [`Dock::restore`] puts back after the frame, so
     /// the user's shares stay the layout (no rewrite of the workspace file, no share that only ever grows). Other
     /// vertical splits (a column where Messages was docked) are left alone.
     /// The flag is true when a split had no last shown height, so `fallback` was used.
-    fn keep_bottom_min(&mut self, fallback: f32, min: f32) -> (Vec<Clamp>, bool) {
+    fn keep_bottom_min(&mut self, fallback: f32, min: f32, floor: f32) -> (Vec<Clamp>, bool) {
         fn holds(tiles: &Tiles<PaneKind>, id: TileId, pred: &dyn Fn(&PaneKind) -> bool) -> bool {
             match tiles.get(id) {
                 Some(Tile::Pane(p)) => pred(p),
@@ -345,7 +351,8 @@ impl Dock {
             if page.is_none() || height <= 0.0 {
                 continue;
             }
-            let want = (min / height).min(2.0 / 3.0);
+            let room = (height - floor).max(0.0);
+            let want = (min.min(room) / height).min(2.0 / 3.0);
             let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get_mut(id) else {
                 continue;
             };
@@ -480,6 +487,8 @@ struct Header {
     title: String,
     /// The Project entry's segmented control with the pane it shows chosen.
     segmented: Option<PaneKind>,
+    /// The bottom dock's close button at the header's right end (a bottom pane alone; FX38d).
+    close: bool,
 }
 
 /// A dock tab's horizontal padding and its underline's inset (doc 16a §5.7: 10 px).
@@ -560,6 +569,20 @@ impl DockBehavior<'_> {
             crate::theme::font(&t.type_label),
             t.text_secondary.color32(),
         );
+        if header.close {
+            // Doc 16a §5.7: one close button (Ctrl+J) at the right end closes the bottom dock.
+            let size = t.size_control_inline;
+            let at = Rect::from_center_size(
+                pos2(rect.right() - t.space_2 - size / 2.0, rect.center().y),
+                vec2(size, size),
+            );
+            let mut child = ui.new_child(egui::UiBuilder::new().max_rect(at));
+            let name = strings::text("dock-close");
+            if crate::components::icon_button(&mut child, crate::icons::IconId::x, name).clicked() {
+                self.events
+                    .push(Event::Action("view.bottom_dock", json!({ "on": false })));
+            }
+        }
         if let Some(shown) = header.segmented {
             self.segmented(ui, shown);
         }
@@ -940,7 +963,8 @@ mod tests {
     }
 
     /// R2-2 of cycle 31: a short window then a tall one does not raise the share: on the tall frame the Messages pane
-    /// has its own share (350 of 1000) again, not the two thirds of the short frame.
+    /// has its own share (350 of 1000) again, not the raised share of the short frame (FX38d: which leaves the page
+    /// view half the window).
     #[test]
     fn a_short_then_tall_window_does_not_ratchet_the_share() {
         let layout = page_over_messages();
@@ -950,7 +974,12 @@ mod tests {
         frame(&ctx, &mut dock, 1280.0, 400.0);
         let short = shown_height(&dock, PaneKind::Navigator(NavKind::Messages));
         let page = shown_height(&dock, PaneKind::PageView);
-        assert!(short > page, "short: Messages {short}, page view {page}");
+        let share = short / (short + page);
+        assert!(share > 0.4, "short: Messages {short}, page view {page}: raised");
+        assert!(
+            page >= 400.0 / 2.0 - 1.0,
+            "short: the page view {page} keeps half the window"
+        );
         assert_eq!(dock.layout().as_ref(), Some(&layout));
         frame(&ctx, &mut dock, 1280.0, 1400.0);
         frame(&ctx, &mut dock, 1280.0, 1400.0);
@@ -1006,7 +1035,7 @@ mod tests {
     fn a_drag_during_a_clamped_frame_keeps_the_dragged_shares() {
         let layout = page_over_messages();
         let mut dock = Dock::new(&layout, 0);
-        let (clamps, guessed) = dock.keep_bottom_min(800.0, 300.0);
+        let (clamps, guessed) = dock.keep_bottom_min(800.0, 300.0, 0.0);
         assert!(guessed, "no frame yet, so the fallback height was used");
         assert_eq!(
             clamps.len(),
@@ -1143,5 +1172,26 @@ mod tests {
             dock.tree.tiles.get(root).and_then(|t| t.container_kind()),
             Some(egui_tiles::ContainerKind::Horizontal)
         );
+    }
+
+    /// FX38d: at a window of 1280 × 828 points the bottom dock's display clamp leaves the page view at least half the
+    /// window's height; the user's shares stay the layout.
+    #[test]
+    fn the_bottom_clamp_leaves_the_page_view_half_the_window() {
+        let layout =
+            ew_viewmodel::layout::Layout::schematic().with_bottom(PaneKind::Navigator(NavKind::Messages));
+        let mut dock = Dock::new(&layout, 0);
+        let ctx = egui::Context::default();
+        for _ in 0..3 {
+            frame(&ctx, &mut dock, 1280.0, 828.0);
+        }
+        let page = shown_height(&dock, PaneKind::PageView);
+        let messages = shown_height(&dock, PaneKind::Navigator(NavKind::Messages));
+        assert!(page >= 828.0 / 2.0 - 1.0, "page view {page}, Messages {messages}");
+        assert!(
+            messages > 0.35 * (page + messages) - 1.0,
+            "Messages {messages} keeps its own share"
+        );
+        assert_eq!(dock.layout().as_ref(), Some(&layout));
     }
 }

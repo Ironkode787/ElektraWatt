@@ -249,7 +249,7 @@ pub struct StatusField {
 /// follow as their own part (`6 warnings · 2 pending on this page`), so leaving the page, which ends them, is
 /// explained.
 fn findings(model: &ShellModel) -> Option<(String, Tone)> {
-    findings_text(model.messages_counts()?)
+    findings_text(model.status_counts()?)
 }
 
 /// The findings field of counts `c` (see [`bar`]'s findings).

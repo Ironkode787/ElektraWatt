@@ -128,7 +128,7 @@ fn ms1_the_pane_lists_the_findings_and_enter_opens_ef08() {
     let tmp = Tmp::new("msg-ms1");
     let mut shell = tmp.shell("102");
     let calls = shell.session_calls().navigator_table;
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     assert!(shell.navigator_open(NavKind::Messages));
     assert_eq!(shell.focus(), Some(Focus::Navigator(NavKind::Messages)));
     // The bottom dock: below the page view, beside the find pane when it is open.
@@ -237,7 +237,7 @@ fn ms2_a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves()
     let tmp = Tmp::new("msg-ms2");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut shell, "view.zoom_actual", json!({}));
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let e0 = errors(&shell);
     // Golden A's page 101 already holds open completeness findings (EW-CORE-034, EW-CORE-041): they turn pending too.
     let p0 = completeness_on(&shell, "101");
@@ -315,7 +315,7 @@ fn ft710_the_toast_the_status_bar_and_the_chip_agree() {
     let tmp = Tmp::new("msg-ft710");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut shell, "view.zoom_actual", json!({}));
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let agree = |shell: &ShellModel, state: &str| {
         let c = shell.messages_counts().expect("the counts");
         let status = status_findings(shell);
@@ -385,7 +385,7 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     let tmp = Tmp::new("msg-ms2b");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut shell, "view.zoom_actual", json!({}));
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     place_ip(&mut shell, "MSGTEST", (60, 3), "target");
     let row = finding(&shell, "EW-CORE-051", "MSGTEST");
     assert!(shell.row_pending(NavKind::Messages, &row.key));
@@ -476,7 +476,7 @@ fn ms3_the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
         json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page], "path": "description_override",
             "value": "Overridden"}}),
     );
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-023", "102");
     assert!(row.badges.contains(&"fix".to_owned()));
     assert_eq!(row.cells[5], "drop override");
@@ -540,7 +540,7 @@ fn ms3_the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
 fn ms3_a_stale_card_previews_again_and_a_read_only_project_refuses() {
     let tmp = Tmp::new("msg-ms3b");
     let mut ro = tmp.shell("102");
-    done(&mut ro, "messages.show", json!({}));
+    done(&mut ro, "messages.show", json!({"on": true}));
     assert_eq!(refused(&mut ro, "messages.fix", json!({})), "reason-read-only");
     ro.shutdown();
     let tmp = Tmp::new("msg-ms3c");
@@ -556,7 +556,7 @@ fn ms3_a_stale_card_previews_again_and_a_read_only_project_refuses() {
             "value": v}})
     };
     done(&mut shell, "command.run", set("A"));
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-023", "102");
     done(&mut shell, "messages.fix", json!({"key": row.key}));
     // A commit meanwhile makes the card stale: Apply previews again and shows a fresh card.
@@ -677,7 +677,7 @@ fn ms4_f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
 fn ms4_f8_with_no_findings_on_show_refuses() {
     let tmp = Tmp::new("msg-ms4b");
     let mut shell = tmp.shell("102");
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     done(
         &mut shell,
         "navigator.filter",
@@ -724,7 +724,7 @@ fn ms6_the_sixteen_words_the_five_actions_and_the_counts() {
         json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [page], "path": "description_override",
             "value": "Overridden"}}),
     );
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-023", "102");
     done(
         &mut shell,
@@ -763,7 +763,7 @@ fn ms6_the_sixteen_words_the_five_actions_and_the_counts() {
 fn ft528_navigator_row_into_a_collapsed_group_expands_its_path() {
     let tmp = Tmp::new("msg-ft528");
     let mut shell = tmp.shell("102");
-    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "messages.show", json!({"on": true}));
     let ef08 = finding(&shell, "EW-CORE-033", "-3W1");
     let rows = shell.shown_rows(NavKind::Messages);
     let row = rows.iter().find(|r| r.key == ef08.key).expect("EF-08 on show");
