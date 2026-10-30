@@ -78,10 +78,10 @@ fn range(from: u16, to: u16) -> Vec<u16> {
 /// The generic starter parts of D5 (the MCB 3P and the valve 3/2 are de-scoped: the starter set has no FnDef or
 /// symbol for them).
 ///
-/// The relay and the contactor template their coil only; their contacts are the contact image (`contacts`), and a
-/// contact joins the device as an auxiliary function with its FnDef's designations. A template with several entries
-/// of one FnDef would give every such function the CPs of the first entry (the CP derivation matches a function to
-/// its template entry by FnDef alone), so no part here has one.
+/// The relay and the contactor template their coil (the main function) and every contact (auxiliary functions,
+/// several entries of one FnDef): a function made from the template records its entry (`Function.template_entry`,
+/// FT-655), and the CP derivation pairs the entry's pattern CPs with the FnDef's CPs by position, so the relay's
+/// second changeover contact prints 21, 22 and 24. The contacts are also the contact image (`contacts`).
 fn defs() -> Vec<Def> {
     let relay_cps = cps(&[
         "A1", "A2", "11", "12", "14", "21", "22", "24", "31", "32", "34", "41", "42", "44",
@@ -101,7 +101,13 @@ fn defs() -> Vec<Def> {
             kind: None,
             description: "Relay with four changeover contacts",
             cps: relay_cps,
-            template: vec![("ew.fn.coil", true, vec![0, 1])],
+            template: vec![
+                ("ew.fn.coil", true, vec![0, 1]),
+                ("ew.fn.contact-co", false, range(2, 5)),
+                ("ew.fn.contact-co", false, range(5, 8)),
+                ("ew.fn.contact-co", false, range(8, 11)),
+                ("ew.fn.contact-co", false, range(11, 14)),
+            ],
             contacts: vec![
                 ("co", vec!["11", "12", "14"]),
                 ("co", vec!["21", "22", "24"]),
@@ -116,7 +122,13 @@ fn defs() -> Vec<Def> {
             kind: None,
             description: "Contactor with three main contacts and one auxiliary normally open contact",
             cps: cps(&["A1", "A2", "1", "2", "3", "4", "5", "6", "13", "14"]),
-            template: vec![("ew.fn.coil", true, vec![0, 1])],
+            template: vec![
+                ("ew.fn.coil", true, vec![0, 1]),
+                ("ew.fn.contact-no", false, range(2, 4)),
+                ("ew.fn.contact-no", false, range(4, 6)),
+                ("ew.fn.contact-no", false, range(6, 8)),
+                ("ew.fn.contact-no", false, range(8, 10)),
+            ],
             contacts: vec![
                 ("no", vec!["1", "2"]),
                 ("no", vec!["3", "4"]),
@@ -545,6 +557,23 @@ fn every_generic_part_is_usable() {
             for i in &t.cps {
                 assert!(p.cp_pattern.iter().any(|cp| cp.idx == *i), "{n}: CP {i}");
             }
+            // FT-655: an entry of an FnDef that the template names more than once lists one pattern CP per FnDef
+            // CP, so that the derivation pairs them by position and each function keeps the FnDef's CP indices.
+            let same = p
+                .function_template
+                .iter()
+                .filter(|u| u.fndef.item == t.fndef.item)
+                .count();
+            if same > 1 {
+                let key = t.fndef.extra.get("key").and_then(|k| k.as_str()).unwrap();
+                let LibDocument::Fndef(def) =
+                    LibDocument::from_json(starter::item(key).unwrap().json).unwrap()
+                else {
+                    panic!("{key} is not a FnDef")
+                };
+                assert_eq!(t.cps.len(), def.item.cps.len(), "{n}: an entry of {key}");
+                assert!(!t.main, "{n}: a repeated entry is an auxiliary function");
+            }
         }
         for contact in &p.contacts {
             for d in &contact.cps {
@@ -579,9 +608,15 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
     };
     let closure = reg.closure(&r).unwrap();
     let kinds: Vec<Option<Kind>> = closure.iter().map(LibDocument::kind).collect();
-    // The part, its coil's FnDef (the contacts are its contact image) and the manufacturer.
+    // The part, its template's FnDefs once each (the coil and the changeover contact of its four contact entries)
+    // and the manufacturer.
     assert_eq!(
         kinds,
-        [Some(Kind::Part), Some(Kind::Fndef), Some(Kind::Manufacturer)]
+        [
+            Some(Kind::Part),
+            Some(Kind::Fndef),
+            Some(Kind::Fndef),
+            Some(Kind::Manufacturer)
+        ]
     );
 }

@@ -429,3 +429,59 @@ fn the_parts_row_takes_a_starter_part_in_one_undo_step() {
     done(&mut s, "edit.redo", json!({}));
     assert_eq!(parts_text(&s), "EW-GEN-LMP-1 × 1");
 }
+
+/// FT-655: the starter relay templates its four changeover contacts. Placing the relay's coil makes the four
+/// contacts as unplaced slots; each contact symbol joined to the relay fills the next slot, and every contact prints
+/// its own designations (11-12-14, 21-22-24, ...) on the CPs its symbol draws, not the first contact's.
+#[test]
+fn the_starter_relays_contacts_are_its_template_slots_with_their_own_designations() {
+    let tmp = Tmp::new("starter-relay-contacts");
+    let mut s = new_project(&tmp);
+    goto(&mut s, MULTI);
+    let before = reps(&s);
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "EW-GEN-RLY-1", "template": 0}),
+    );
+    place_at(&mut s, (8, 10));
+    done(&mut s, "ui.dismiss", json!({}));
+    let [relay] = new_reps(&s, &before).try_into().expect("one relay coil");
+    let tag = tag_of(&s, &relay);
+    let mut printed: Vec<Vec<String>> = Vec::new();
+    for k in 0..4i64 {
+        let before = reps(&s);
+        done(
+            &mut s,
+            "place.pick",
+            json!({"symbol": "ew.iec.contact-co@qet10", "letter": "K"}),
+        );
+        done(&mut s, "place.join", json!({}));
+        done(&mut s, "chooser.type", json!({ "text": tag }));
+        done(&mut s, "chooser.choose", json!({}));
+        place_at(&mut s, (32 + 24 * k, 10));
+        done(&mut s, "ui.dismiss", json!({}));
+        done(&mut s, "ui.dismiss", json!({}));
+        let [contact] = new_reps(&s, &before).try_into().expect("one contact");
+        assert_eq!(contact.device, relay.device, "contact {k} joins the relay");
+        let t = &s.canvas().unwrap().page().tables;
+        let mut cps: Vec<(u16, String)> = t
+            .cps
+            .iter()
+            .filter(|c| c.rep == contact.id)
+            .map(|c| (c.idx, c.label.rsplit_once(':').unwrap().1.to_owned()))
+            .collect();
+        cps.sort();
+        printed.push(cps.into_iter().map(|(_, d)| d).collect());
+    }
+    assert_eq!(
+        printed,
+        [
+            ["11", "12", "14"],
+            ["21", "22", "24"],
+            ["31", "32", "34"],
+            ["41", "42", "44"],
+        ],
+        "each contact fills its own template slot"
+    );
+}
