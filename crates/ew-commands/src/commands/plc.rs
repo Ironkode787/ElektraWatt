@@ -219,9 +219,19 @@ impl Command for BindChannel {
                 .filter(|c| *c != self.channel)
                 .collect();
             for other in others {
+                // FT-757: the notice names the displaced channel in words (its number and whether it is on the same
+                // module), never by its record ID; a host that knows the derived address says more (the PLC
+                // navigator's toast names the address and the pin).
+                let words = match tx.get::<Channel>(other) {
+                    Some(o) if o.module == channel.module => {
+                        format!("channel {} of the same module", o.number)
+                    }
+                    Some(o) => format!("channel {} of another module", o.number),
+                    None => "another channel".to_owned(),
+                };
                 tx.update::<Channel>(other, |c| c.binding = None)?;
                 notices.push(format!(
-                    "channel {other} was bound to the same CP and is unbound (FR-PLC-005)"
+                    "{words} was bound to this connection point and is now unbound (FR-PLC-005)"
                 ));
             }
         }

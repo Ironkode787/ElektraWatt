@@ -58,8 +58,8 @@ pub(crate) struct TableUi {
     pattern: String,
     /// Whether the pattern dialog was on show last frame.
     pattern_open: bool,
-    /// The cursor cell last scrolled to.
-    scrolled_to: Option<(String, usize)>,
+    /// The cursor cell last scrolled to (row key, column on show) and the row's position among the rows on show.
+    scrolled_to: Option<((String, usize), Option<usize>)>,
     /// How many cells the last frame painted (tests: the virtualisation).
     pub(crate) painted: usize,
     /// The row the chooser list was opened at (WP-S2.07 §6.5), while it is open.
@@ -149,8 +149,9 @@ impl TableUi {
             let col = shown.iter().position(|s| table.columns[*s].key == *c)?;
             Some((row, col))
         });
-        // The cursor cell is scrolled into view when it moved.
-        let cursor_cell = cursor_key.clone().zip(cursor_col);
+        // The cursor cell is scrolled into view when it moved, also when its row moved under it: an edit that re-sorts
+        // the rows keeps the edited row in view (FT-757).
+        let cursor_cell = cursor_key.clone().zip(cursor_col).map(|c| (c, cursor_row));
         let scroll = (cursor_cell != self.scrolled_to)
             .then(|| cursor_row.zip(cursor_col))
             .flatten();
@@ -691,9 +692,11 @@ fn cell_rect(ui: &Ui, t: &Tokens, kind: NavKind, key: &str, content: impl FnOnce
 
 /// The width a column starts at before its content widens it: `size.table_column`, except the strip editor's Pos
 /// column (WP-S2.07 D2), a short number like a row gutter, which starts at `size.table_column.min` so that it does not
-/// push the Terminal column out of a narrow pane, and the Pages table's Folio, as short (FT-718).
+/// push the Terminal column out of a narrow pane, and the Pages table's Folio, as short (FT-718), and the PLC grid's
+/// Address, Channel and Slot, short texts too, so that Target and Symbol fit the default rail width (FT-757).
 fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
-    if key == "pos" || (kind == NavKind::Pages && key == "folio") {
+    let plc_short = kind == NavKind::Plc && matches!(key, "address" | "channel" | "slot");
+    if key == "pos" || (kind == NavKind::Pages && key == "folio") || plc_short {
         t.size_table_column_min
     } else {
         t.size_table_column

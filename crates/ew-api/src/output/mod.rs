@@ -58,6 +58,8 @@ mod layers;
 mod navigation;
 // WP-S2.06 part 1
 mod navigators;
+// FT-753: what a PLC channel dropped on a field device can do.
+mod plc_bind;
 // WP-S2.09 part 3: the labelled entity list of a preview (§4.2).
 mod preview;
 mod properties;
@@ -110,6 +112,8 @@ pub use layers::{
 pub use navigation::{
     CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageListRow, PageListTable, PageRow,
 };
+// FT-753
+pub use plc_bind::{CardPin, OffCardBind};
 pub use preview::PreviewEntity;
 // WP-S2.06 parts 1 and 2
 pub use navigators::{

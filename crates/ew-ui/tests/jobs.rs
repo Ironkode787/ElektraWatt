@@ -163,7 +163,7 @@ fn jb6_the_toasts_stack_and_the_log_opens_from_the_status_bar() {
         2,
         "two keys, two toasts"
     );
-    assert!(h.query_by_label("Set Function text on 2 devices").is_some());
+    assert!(h.query_by_label("Set function text on 2 devices").is_some());
     assert!(h.query_by_label_contains("Exported a.pdf").is_some());
     h.get_by_label("Notifications 2").click();
     settle(&mut h);

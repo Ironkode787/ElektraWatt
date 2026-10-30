@@ -1484,12 +1484,28 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-bind-off-card" => {
             "The connection point is not on the channel's card: a channel binds a pin of its card or the coil of a valve on it"
         }
+        // FT-753: the words say what to do.
         "toast-bind-off-card" => {
-            "{0} is not on the card {1}: a channel binds a pin of its card or the coil of a valve on it"
+            "{0} is not on the card {1}: wire {0} to a pin of {1} first; the channel binds the card's pin"
         }
         "toast-bind-off-card-untagged" => {
             "The connection point is not on the card {0}: a channel binds a pin of its card or the coil of a valve on it"
         }
+        // FT-753: a channel dropped on a field device, reached in the model's terms.
+        "reason-bind-wired-pins" => {
+            "The device is wired to more than one pin of the card: drop the channel on the card's pin you mean"
+        }
+        "toast-bind-wired-pins" => {
+            "{0} is wired to {2} pins of {1} ({3}): drop the channel on the card's pin you mean"
+        }
+        "toast-bind-no-position" => {
+            "{0} cannot go on the valve terminal {1}: no valve position is free, or {0} sits on another assembly"
+        }
+        "toast-bind-done" => "Bound {0} to {1}",
+        "toast-bind-wired" => "Bound {0} to {1}, where {2} is wired",
+        "toast-bind-attached" => "Attached {0} to {1} at position {2} and bound {3} to {4} (two undo steps)",
+        // FT-757: a channel the bind unbound (FR-PLC-005), appended to the bind's toast.
+        "toast-bind-displaced" => "; {0} was bound there and is now unbound",
         "action-navigator-apply" => "Apply the preview",
         "action-pages-reorder" => "Reorder pages",
         "action-pages-move-up" => "Move page up",
@@ -2110,6 +2126,19 @@ pub fn format(key: &str, args: &[&str]) -> String {
         out = out.replace(&format!("{{{i}}}"), arg);
     }
     out
+}
+
+/// A column or field label inside a sentence (FT-757, sentence case): its first letter lower-cased ("Address" reads
+/// "address", "Function text" "function text"), unless the label starts with an abbreviation, two capitals in a row
+/// ("DT", "PLC address"), which stays as it is.
+pub fn in_sentence(label: &str) -> String {
+    let mut chars = label.chars();
+    match (chars.next(), chars.next()) {
+        (Some(first), second) if first.is_uppercase() && !second.is_some_and(char::is_uppercase) => {
+            first.to_lowercase().chain(label.chars().skip(1)).collect()
+        }
+        _ => label.to_owned(),
+    }
 }
 
 /// A count-dependent string: `<key>-one` for exactly one, `<key>` with the count as `{0}` otherwise.

@@ -234,20 +234,21 @@ fn np1_cables_plc_potentials_parts() {
     let keys: Vec<&str> = t.columns.iter().map(|c| c.key.as_str()).collect();
     assert_eq!(
         keys,
+        // FT-757: the address is the key column, what the channel drives follows it.
         [
-            "station",
-            "module",
-            "slot",
-            "channel",
-            "designation",
-            "kind",
             "address",
+            "target",
             "symbol",
             "function_text",
+            "designation",
+            "module",
+            "channel",
+            "kind",
             "process_tag",
             "state",
-            "target",
             "placed_on",
+            "station",
+            "slot",
             "comment"
         ]
     );

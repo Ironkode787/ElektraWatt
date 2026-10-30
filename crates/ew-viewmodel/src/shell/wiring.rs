@@ -12,6 +12,7 @@
 
 use std::sync::Arc;
 
+use ew_api::output::OffCardBind;
 use ew_api::output::ew_dl::EntityRef;
 use serde_json::{Map, Value, json};
 
@@ -401,18 +402,25 @@ impl ShellModel {
     /// `navigator.bind {channel, x_mm, y_mm, group?}` (WP-S2.07 §8, FR-PLC-020): a PLC channel row dropped on the
     /// canvas at the sheet point. The connection point under it, resolved as the Wire tool resolves its targets (the
     /// nearest CP within 8 screen points), takes the channel: one `plc.bind_channel` with `endpoint: {cp: {function,
-    /// idx}}`, whose own rules decide. A CP outside the channel's module (a card pin or the coil of a valve on it) is
-    /// refused before the commit with `reason-bind-off-card` and a toast naming both tags (FX38d). A drop with no CP
-    /// under it is refused with `reason-drop-on-cp`.
+    /// idx}}`, whose own rules decide. A drop with no CP under it is refused with `reason-drop-on-cp`.
+    ///
+    /// A CP off the channel's card (FT-753, `Session::off_card_bind`) is reached in the model's terms: a device
+    /// **wired** to one channel pin of the card binds the channel to that pin (wired to two or more, the drop is
+    /// refused with `reason-bind-wired-pins` and a toast naming the pins, so that the channel is dropped on the pin
+    /// meant); a device not wired to the card, when the card is a valve terminal with a free position, is attached
+    /// there (`assembly.attach`) and then bound where it was dropped, two commands and two undo steps that the toast
+    /// names; **neither** is refused before the commit with `reason-bind-off-card` and a toast that says what to do
+    /// (FX38d). A bind that unbinds another channel (FR-PLC-005) names it in the toast by its address and the pin
+    /// (FT-757).
     pub(super) fn act_navigator_bind(&mut self, p: &Map<String, Value>) -> Outcome {
         let channel = match string_param(p, "channel") {
             Ok(Some(c)) => c.trim().trim_start_matches("id:").to_owned(),
             Ok(None) => return failed("error-missing-param", &["channel"]),
             Err(e) => return e,
         };
-        if channel.parse::<ew_api::output::Uuid>().is_err() {
+        let Ok(ch) = channel.parse::<ew_api::output::Uuid>() else {
             return failed("error-bad-param", &["channel"]);
-        }
+        };
         let at = match super::canvas_actions::point_mm(p) {
             Ok(Some(at)) => at,
             Ok(None) => return failed("error-missing-param", &["x_mm"]),
@@ -447,31 +455,110 @@ impl ShellModel {
                 reason_key: "reason-drop-on-cp",
             };
         };
-        // FX38d: a CP off the channel's card is refused here in words, by the rule the command applies
-        // (`is_on_module`), not left to the command's error with record IDs.
-        let off = self.project.as_ref().and_then(|pr| {
-            let ch = channel.parse::<ew_api::output::Uuid>().ok()?;
-            pr.session.channel_off_module(ch, function.0)
-        });
-        if let Some((on, card)) = off {
-            let text = if on.is_empty() {
-                strings::format("toast-bind-off-card-untagged", &[&card])
-            } else {
-                strings::format("toast-bind-off-card", &[&on, &card])
-            };
-            self.notify_toned(text, crate::notifications::NoteTone::Warning);
+        let Some(pr) = self.project.as_ref() else {
             return Outcome::Refused {
-                reason_key: "reason-bind-off-card",
+                reason_key: "reason-no-project",
             };
+        };
+        // (where the channel binds, the device wired to that card pin, the attachment: device, tag, card, card tag,
+        // position)
+        type Attach = (ew_api::output::Uuid, String, ew_api::output::Uuid, String, u32);
+        let (target, wired_to, attach): ((ew_api::output::Uuid, u16), Option<String>, Option<Attach>) =
+            match pr.session.off_card_bind(ch, function.0, idx) {
+                None => ((function.0, idx), None, None),
+                Some(OffCardBind::Wired { device, card, pins }) => match pins.as_slice() {
+                    [pin] => ((pin.function, pin.idx), Some(device), None),
+                    _ => {
+                        let list: Vec<String> = pins
+                            .iter()
+                            .map(|p| crate::describe::pin_in_sentence(&p.label))
+                            .collect();
+                        let text = strings::format(
+                            "toast-bind-wired-pins",
+                            &[&device, &card, &pins.len().to_string(), &list.join(", ")],
+                        );
+                        self.notify_toned(text, crate::notifications::NoteTone::Warning);
+                        return Outcome::Refused {
+                            reason_key: "reason-bind-wired-pins",
+                        };
+                    }
+                },
+                Some(OffCardBind::Attach {
+                    device,
+                    tag,
+                    card,
+                    card_tag,
+                    position,
+                }) => (
+                    (function.0, idx),
+                    None,
+                    Some((device, tag, card, card_tag, position)),
+                ),
+                // FX38d: refused here in words, by the rule the command applies (`is_on_module`), not left to the
+                // command's error with record IDs; FT-753: the words say what to do.
+                Some(OffCardBind::Neither {
+                    device,
+                    card,
+                    valve_terminal,
+                }) => {
+                    let text = match (device.is_empty(), valve_terminal) {
+                        (true, _) => strings::format("toast-bind-off-card-untagged", &[&card]),
+                        (false, false) => strings::format("toast-bind-off-card", &[&device, &card]),
+                        (false, true) => strings::format("toast-bind-no-position", &[&device, &card]),
+                    };
+                    self.notify_toned(text, crate::notifications::NoteTone::Warning);
+                    return Outcome::Refused {
+                        reason_key: "reason-bind-off-card",
+                    };
+                }
+            };
+        // FT-757: the channels the bind unbinds (FR-PLC-005), named in the toast by their addresses.
+        let words = pr.session.channel_words(ch).unwrap_or_default();
+        let pin = crate::describe::pin_in_sentence(&pr.session.cp_text(target.0, target.1));
+        let displaced: Vec<String> = pr
+            .session
+            .channels_bound_at(target.0, target.1, ch)
+            .into_iter()
+            .filter_map(|o| pr.session.channel_words(o))
+            .collect();
+        if let Some((device, _, card, _, position)) = &attach {
+            let cmd = ew_api::AnyCommand {
+                name: "assembly.attach".into(),
+                params: json!({
+                    "parent": card.to_string(),
+                    "children": [{"device": device.to_string(), "position": position}],
+                }),
+            };
+            let out = self.run_commit(&cmd);
+            if out != Outcome::Done {
+                return out;
+            }
         }
         let cmd = ew_api::AnyCommand {
             name: "plc.bind_channel".into(),
             params: json!({
                 "channel": channel,
-                "endpoint": {"cp": {"function": function.0.to_string(), "idx": idx}},
+                "endpoint": {"cp": {"function": target.0.to_string(), "idx": target.1}},
             }),
         };
-        self.run_commit(&cmd)
+        let out = self.run_commit(&cmd);
+        if out != Outcome::Done {
+            return out;
+        }
+        let mut text = match (&attach, &wired_to) {
+            (Some((_, tag, _, card_tag, position)), _) => strings::format(
+                "toast-bind-attached",
+                &[tag, card_tag, &position.to_string(), &words, &pin],
+            ),
+            (None, Some(device)) => strings::format("toast-bind-wired", &[&words, &pin, device]),
+            (None, None) => strings::format("toast-bind-done", &[&words, &pin]),
+        };
+        for d in &displaced {
+            text.push_str(&strings::format("toast-bind-displaced", &[d]));
+        }
+        // An attachment and a bind are two undo steps: that toast offers no Undo of only the second.
+        self.notify(text, attach.is_none());
+        Outcome::Done
     }
 
     /// The tool context of the focused canvas for a host duty that calls the active tool directly.

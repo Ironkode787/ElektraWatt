@@ -1286,7 +1286,8 @@ impl ShellModel {
                         strings::format(
                             "toast-set",
                             &[
-                                &edit.label,
+                                // FT-757: sentence case, as the table's toast.
+                                &strings::in_sentence(&edit.label),
                                 &edit.targets.len().to_string(),
                                 &kind_plural(&edit.kind, edit.targets.len()),
                             ],

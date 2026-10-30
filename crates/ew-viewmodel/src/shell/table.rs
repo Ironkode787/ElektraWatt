@@ -598,7 +598,13 @@ impl ShellModel {
                     strings::format(
                         "toast-set",
                         &[
-                            &gesture.column_labels(),
+                            // FT-757: sentence case, "Set address on 1 channel".
+                            &gesture
+                                .column_labels()
+                                .split(", ")
+                                .map(strings::in_sentence)
+                                .collect::<Vec<_>>()
+                                .join(", "),
                             &rows.to_string(),
                             &rows_word(gesture.nav, rows),
                         ],

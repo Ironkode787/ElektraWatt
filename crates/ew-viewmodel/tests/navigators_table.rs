@@ -173,7 +173,7 @@ fn tb2_fill_down_over_five_terminals_is_one_fields_set_and_one_undo_step() {
     assert!(shell.properties().card().is_none(), "a direct commit");
     assert_eq!(
         lines_with(&shell, "toast "),
-        ["toast \"Set Function text on 5 terminals\" undo"]
+        ["toast \"Set function text on 5 terminals\" undo"]
     );
     // One undo step restores 14 to 17.
     done(&mut shell, "edit.undo", json!({}));

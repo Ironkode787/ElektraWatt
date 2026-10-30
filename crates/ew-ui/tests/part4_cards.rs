@@ -110,7 +110,7 @@ fn cp2_cp7_the_toasts_stand_at_the_canvas_top_right_newest_on_top() {
         .map(|n| n.rect())
         .collect();
     assert_eq!(toasts.len(), 2, "two keys, two toasts (at most three)");
-    let edit = h.get_by_label("Set Function text on 2 devices").rect();
+    let edit = h.get_by_label("Set function text on 2 devices").rect();
     let export = h.get_by_label_contains("Exported a.pdf").rect();
     assert!(export.top() < edit.top(), "the newest on top");
     let pane = h.state().command_surface_rects().2.expect("the canvas pane");

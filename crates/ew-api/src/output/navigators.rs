@@ -566,7 +566,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             c.extend(["potential", "shield", "pair"].map(|k| column(k, &key_label(k), false, None)));
             c
         }
-        // WP-S2.07 §8: the PLC grid's own columns; the first, Station, is the key column.
+        // WP-S2.07 §8: the PLC grid's own columns; the first, Address, is the key column (FT-757).
         NavKind::Plc => PLC_COLUMNS
             .iter()
             .enumerate()
@@ -1886,22 +1886,24 @@ fn cables_table(q: &Q, b: &mut Builder) {
     }
 }
 
-/// The PLC grid's columns (WP-S2.07 §8, FR-PLC-021): the members of PBF §2.8 that WP-S1.21's model has, in this order.
-/// Rack, data type, safety and signal range have no member yet and are left out.
+/// The PLC grid's columns (WP-S2.07 §8, FR-PLC-021): the members of PBF §2.8 that WP-S1.21's model has. Rack, data
+/// type, safety and signal range have no member yet and are left out. FT-757: the address is the key column and the
+/// target, symbol and function text follow it, so that a grid at the default rail width shows what a channel is
+/// and what it drives; station, slot and comment come last.
 const PLC_COLUMNS: [(&str, &str); 14] = [
-    ("station", "Station"),
-    ("module", "Module"),
-    ("slot", "Slot"),
-    ("channel", "Channel"),
-    ("designation", "Designation"),
-    ("kind", "Kind"),
     ("address", "Address"),
+    ("target", "Target"),
     ("symbol", "Symbol"),
     ("function_text", "Function text"),
+    ("designation", "Designation"),
+    ("module", "Module"),
+    ("channel", "Channel"),
+    ("kind", "Kind"),
     ("process_tag", "Process tag"),
     ("state", "State"),
-    ("target", "Target"),
     ("placed_on", "Placed on"),
+    ("station", "Station"),
+    ("slot", "Slot"),
     ("comment", "Comment"),
 ];
 
@@ -2106,26 +2108,28 @@ fn plc_table(q: &Q, b: &mut Builder) {
                     .get(r.channel)
                     .map(|c| super::properties::neutral_or_first(&c.comment))
                     .unwrap_or_default();
+                // In the order of `PLC_COLUMNS`.
                 let cells: Vec<String> = vec![
-                    station_tag.clone(),
-                    module_tag.clone(),
-                    slot_text(&r.slot),
-                    r.number.to_string(),
-                    r.text.designation.clone().unwrap_or_default(),
-                    channel_kind_word(&r.kind).to_owned(),
                     address.clone(),
+                    r.target_device.map(|d| short_tag(q, d)).unwrap_or_default(),
                     r.text.symbol.clone().unwrap_or_default(),
                     r.text
                         .function_text
                         .as_ref()
                         .map(super::properties::neutral_or_first)
                         .unwrap_or_default(),
+                    r.text.designation.clone().unwrap_or_default(),
+                    module_tag.clone(),
+                    r.number.to_string(),
+                    channel_kind_word(&r.kind).to_owned(),
                     r.text.process_tag.clone().unwrap_or_default(),
                     r.state.name().to_owned(),
-                    r.target_device.map(|d| short_tag(q, d)).unwrap_or_default(),
                     page.as_ref().map(placed_on).unwrap_or_default(),
+                    station_tag.clone(),
+                    slot_text(&r.slot),
                     comment,
                 ];
+                debug_assert_eq!(cells.len(), PLC_COLUMNS.len());
                 let mut badges = Vec::new();
                 let mut facets = vec![
                     ("kind".to_owned(), NavRole::Channel.word().to_owned()),

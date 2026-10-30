@@ -38,8 +38,8 @@ fn jb6_a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
     );
     assert_eq!(qty(&s), "2");
     let toast = s.toast().expect("the toast of a commit on 20 devices");
-    assert_eq!(toast.text, "Set Quantity on 20 devices");
-    assert!(s.describe().contains("toast \"Set Quantity on 20 devices\" undo"));
+    assert_eq!(toast.text, "Set quantity on 20 devices");
+    assert!(s.describe().contains("toast \"Set quantity on 20 devices\" undo"));
     assert_eq!(state(&s)["toast"]["undo"], true);
     // The toast goes (the window's 8 seconds, or Close); the log keeps it with its Undo.
     done(&mut s, "toast.dismiss", json!({}));
@@ -47,14 +47,14 @@ fn jb6_a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
     done(&mut s, "notifications.show", json!({}));
     let d = s.describe();
     assert!(
-        d.contains("notifications 1\n  notification 1 \"Set Quantity on 20 devices\" undo"),
+        d.contains("notifications 1\n  notification 1 \"Set quantity on 20 devices\" undo"),
         "{d}"
     );
     done(&mut s, "notifications.run", json!({"entry": 1, "action": "undo"}));
     assert_eq!(qty(&s), before, "the log's Undo undid the step");
     assert!(
         s.describe()
-            .contains("  notification 1 \"Set Quantity on 20 devices\" undo expired"),
+            .contains("  notification 1 \"Set quantity on 20 devices\" undo expired"),
         "spent once it ran"
     );
     // Two more commits: the newer toast replaces the older (one key), and the older one's Undo expires.
@@ -71,7 +71,7 @@ fn jb6_a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
     assert_eq!(s.notifications().visible().len(), 1, "one key, one toast");
     let d = s.describe();
     assert!(
-        d.contains("  notification 3 \"Set Quantity on 20 devices\" undo\n  notification 2 \"Set Quantity on 20 devices\" undo expired"),
+        d.contains("  notification 3 \"Set quantity on 20 devices\" undo\n  notification 2 \"Set quantity on 20 devices\" undo expired"),
         "{d}"
     );
     assert_eq!(
