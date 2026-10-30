@@ -54,6 +54,25 @@ fn digest_on_disk(dir: &Path) -> ew_api::Sha256 {
     ew_api::Sha256(content_digest(&manifest).expect("a digest"))
 }
 
+/// The ID of the comment [`add_comment`] writes.
+const COMMENT_ID: &str = "3b9c1d72-5e48-7a06-8f13-2d6c0e9a4b51";
+
+/// Writes one comment record (the reserved `comment` kind) to `comments.jsonl` of the closed project at `dir` and
+/// lists it in the manifest, as a review tool that adds a comment does.
+fn add_comment(dir: &Path) {
+    use ew_store::ew_format::{FileHash, FilePath, sha256};
+    let line = format!("{{\"$k\":\"comment\",\"id\":\"{COMMENT_ID}\",\"note\":\"checked\"}}\n");
+    std::fs::write(dir.join("comments.jsonl"), &line).expect("comments.jsonl");
+    let path = dir.join("manifest.json");
+    let bytes = std::fs::read(&path).expect("manifest.json");
+    let mut manifest = Manifest::parse(&bytes, &Limits::default()).expect("a manifest");
+    manifest.files.insert(
+        FilePath::new("comments.jsonl").expect("a path"),
+        FileHash::Sha256(sha256(line.as_bytes())),
+    );
+    std::fs::write(&path, manifest.to_text()).expect("the manifest");
+}
+
 fn rel(findings: &[Finding]) -> Vec<(&'static str, String, String)> {
     findings
         .iter()
@@ -349,6 +368,24 @@ fn rg1_to_rg5_approve_the_saved_revision_bound_to_its_content() {
     ))
     .expect("the page notes change");
     s.save().expect("saved");
+    assert_eq!(digest_on_disk(&copy), approved.content_digest);
+    assert!(s.release_gate("V2.0", &integrity).expect("gate").passes());
+    // RG-3 (FX38a): a comment (comments.jsonl, not content: WP-S1.18 D3) keeps the sign-off too. No command writes
+    // the reserved `comment` kind yet, so the comment arrives on disk as a review tool writes it, listed in the
+    // manifest; the session reopens it, keeps it through a save, and the gate still passes.
+    s.close();
+    add_comment(&copy);
+    let (mut s, integrity) = open(&copy, &state);
+    assert_eq!(digest_on_disk(&copy), approved.content_digest);
+    assert!(s.release_gate("V2.0", &integrity).expect("gate").passes());
+    s.execute(&cmd(
+        "fields.set",
+        serde_json::json!({"kind": "revision", "targets": [r.id.to_string()], "path": "page_notes", "value": []}),
+    ))
+    .expect("the page notes change");
+    s.save().expect("saved with the comment");
+    let comments = std::fs::read_to_string(copy.join("comments.jsonl")).expect("the comment is kept");
+    assert!(comments.contains(COMMENT_ID), "{comments}");
     assert_eq!(digest_on_disk(&copy), approved.content_digest);
     assert!(s.release_gate("V2.0", &integrity).expect("gate").passes());
     // RG-3: a content edit voids it.
