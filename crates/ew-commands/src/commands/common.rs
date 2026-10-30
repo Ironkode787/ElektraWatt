@@ -172,10 +172,11 @@ pub(crate) fn one() -> u32 {
 }
 
 /// The CP indices `func` has on `device` by the rule `ew_derive::FunctionCps` derives (doc 03 §7; FT-655): a
-/// template-origin function's from its part's pattern (`ew_schema::template_entry_of`, `TemplateFn::function_cps`, the
-/// entries the pattern holds); else, for a black box, the CP pattern of the device's first part use that has one
-/// (FX38a: the generic black-box FnDef defines no CPs, the card's part does); else its FnDef copy's. The one accessor
-/// the commands use (join, `plc.bind_channel`), so their CP checks agree with the CPs the pages draw.
+/// template-origin function's from its part's pattern (`ew_schema::template_entry_of`, `TemplateFn::function_cps`, which
+/// yields pattern entries only, so no filter follows); else, for a black box, the CP pattern of the device's first part
+/// use that has one (FX38a: the generic black-box FnDef defines no CPs, the card's part does); else its FnDef copy's.
+/// The one accessor the commands use (join, `plc.bind_channel`), so their CP checks agree with the CPs the pages draw;
+/// the join refuses a black box before it reads CPs, so only `plc.bind_channel` reaches the black-box branch.
 pub(crate) fn function_cp_indices(
     tx: &TxBuilder<'_>,
     func: &Function,
@@ -205,7 +206,6 @@ pub(crate) fn function_cp_indices(
         let cps: std::collections::BTreeSet<u16> = part.function_template[n]
             .function_cps(&pattern, &def)
             .into_iter()
-            .filter(|t| pattern.contains(&t.pattern))
             .map(|t| t.idx)
             .collect();
         if !cps.is_empty() {

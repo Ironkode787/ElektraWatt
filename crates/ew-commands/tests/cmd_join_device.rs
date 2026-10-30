@@ -321,6 +321,32 @@ fn an_unwired_contact_joins_a_device_whose_template_draws_other_cps() {
     assert_eq!(get(&e, FN_K2).and_then(|f| f.device), Some(DEV_K5));
 }
 
+/// FX38b (review w-b): the join reads no black box's CPs. The shared CP accessor gives a black box the CP pattern of
+/// its device's first part use that has one (FX38a, as ew-derive `FunctionCps` does), but a black box never reaches
+/// that read in the join: it is refused at `/rep` before any CP is compared, whichever device it names, and the
+/// model and its wires stay as they were. `plc.bind_channel` is the command that reads a black box's CPs.
+#[test]
+fn a_black_box_is_refused_before_the_join_reads_its_cps() {
+    let model = join_model_with(|records| {
+        for r in records.iter_mut() {
+            if let Record::Function(f) = r
+                && f.id == FN_K2
+            {
+                f.kind = ew_schema::FunctionKind::BlackBox;
+            }
+        }
+    });
+    let mut e = engine(model);
+    let rev = e.model().rev();
+    let wires_before = wires(&e, FN_K2, FN_K2);
+    // a coil relay (D2), a device with an unplaced slot (D1) and a part whose template draws CP 5 only
+    for target in [DEV_K1, DEV_K3, DEV_K5] {
+        invalid_at(e.execute(&join(REP_K2, target)), "/rep", "a black box");
+    }
+    assert_eq!(e.model().rev(), rev, "the refused join wrote nothing");
+    assert_eq!(wires(&e, FN_K2, FN_K2), wires_before, "every wire as it was");
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // What the removed source carries (FX37a)
 
