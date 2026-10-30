@@ -148,8 +148,18 @@ impl ShellModel {
                     Some(cell) => strings::format("toast-placed", &[&tag, &cell]),
                     None => strings::format("toast-placed-no-cell", &[&tag]),
                 };
+                // FT-759: a symbol dropped on a wire is split into it (normaliser 7) and drew no wire of its own: the
+                // toast says that it is in the circuit, where a connection of the page now ends on it.
+                let ends_on_rep = |e: &ew_api::output::TableEnd| {
+                    matches!(e, ew_api::output::TableEnd::Cp { function, .. } if rep.functions.contains(function))
+                };
+                let in_wire = now
+                    .connections
+                    .iter()
+                    .any(|c| ends_on_rep(&c.a) || ends_on_rep(&c.b));
                 let text = match wires {
                     Some((count, list)) => strings::format("toast-autoconnect", &[&placed, &count, &list]),
+                    None if in_wire => strings::format("toast-placed-in-wire", &[&placed]),
                     None => placed,
                 };
                 self.notify(text, true);

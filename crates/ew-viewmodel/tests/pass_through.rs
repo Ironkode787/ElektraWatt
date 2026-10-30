@@ -601,3 +601,67 @@ fn a_wire_keeps_out_of_the_title_block() {
         "over the box: {line:?}"
     );
 }
+
+/// FT-759 (rv-vis-2): a terminal dropped on a wire is split into it (normaliser 7, beside FX38c's through route, which
+/// connects a terminal already in line), and the placement toast says that it is in the circuit.
+#[test]
+fn ft759_a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {
+    let tmp = Tmp::new("ft759-drop");
+    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    done(&mut s, "view.zoom_actual", json!({}));
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "S"}),
+        (60, 20),
+    );
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        (60, 40),
+    );
+    let (switch, coil) = (cp(&s, "-103S1:14"), cp(&s, "-103K1:A1"));
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, switch.at, false);
+    click(&mut s, coil.at, false);
+    done(&mut s, "tool.select", json!({}));
+    let wired = tables(&s);
+    assert_eq!(
+        wired
+            .connections
+            .iter()
+            .filter(|c| ends(&wired, c) == ["-103S1:14".to_owned(), "-103K1:A1".to_owned()])
+            .count(),
+        1,
+        "one wire from the switch to the coil"
+    );
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "terminal_designation": "71"}),
+        (60, 30),
+    );
+    let after = tables(&s);
+    let mut split: Vec<[String; 2]> = after
+        .connections
+        .iter()
+        .map(|c| ends(&after, c))
+        .filter(|e| e.iter().any(|l| l.starts_with("-X1031:71/")))
+        .collect();
+    split.sort();
+    assert_eq!(
+        split,
+        [
+            ["-103S1:14".to_owned(), "-X1031:71/b".to_owned()],
+            ["-X1031:71/a".to_owned(), "-103K1:A1".to_owned()],
+        ],
+        "the wire is split at the terminal"
+    );
+    let toast = state(&s)["toast"]["text"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+    assert!(
+        toast.starts_with("Placed -X1031 terminal 71")
+            && toast.ends_with(", connected into the wire it was dropped on"),
+        "{toast}"
+    );
+}

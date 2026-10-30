@@ -907,6 +907,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         }
         "toast-placed" => "Placed {0} at {1}",
         "toast-placed-no-cell" => "Placed {0}",
+        "toast-placed-in-wire" => "{0}, connected into the wire it was dropped on",
         "terminal-in-sentence" => "{0} terminal {1}",
         // FX38d: a pin whose designation the device shares, by its position in words ("-1A4 pin - (2nd)").
         "pin-in-sentence" => "{0} pin {1} ({2})",
