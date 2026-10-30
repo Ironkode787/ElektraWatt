@@ -16,10 +16,14 @@ It takes one of D1's two ways:
   (role aux, no template entry); its record, its CP overrides and everything attached to it stay.
 
 The source device has exactly one function (the representation's), no part use and no other representation (D3);
-it is removed in the same transaction, with the old function in the slot case. A main function never lands on a
+it is removed in the same transaction, with the old function in the slot case. What the removed records carry
+besides that (the device's function text, process tag, structure, frozen tag and its other non-default members;
+in the slot case the old function's CP overrides and its other own members) goes with them: the join goes ahead
+and the outcome's notices name each dropped member (FX37a). A main function never lands on a
 device that has one (EW-INV-002): the moved function is auxiliary or fills a slot. Refused, with the pointer: a
 representation that draws not exactly one normal function of a device, or whose device is a terminal or a strip,
-has another function, a part or another representation (`/rep`); the representation's own device (`/device`); a
+has another function, a part or another representation, or takes part in a device link, which the join would lose
+(`/rep`; remove the link first); the representation's own device (`/device`); a
 device that cannot take the FnDef by D2's rule (`/device`): it has no unplaced function of the FnDef, and the FnDef
 is no contact (NO, NC, change-over) or the device's family takes no auxiliary functions (its main function is no
 coil and none of its parts' templates names the FnDef; terminals and strips never do); a connected CP the function
