@@ -997,8 +997,9 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         // volt-600 at 60 %.
         canvas_ghost: VOLT_600.alpha(153),
         canvas_snap: VOLT_600,
-        // FT-705: the open marker of a connection point without a connection (screen only).
-        canvas_open_cp: VOLT_600,
+        // FT-705: the open marker of a connection point without a connection (screen only). FX38a: slate-400, a
+        // subdued neutral ink (3.3:1 on the white sheet), never an accent shade, so it does not read as a handle.
+        canvas_open_cp: SLATE_400,
         canvas_highlight: [VERMILLION, BLUISH_GREEN, REDDISH_PURPLE, DARK_ORANGE],
         // `color.text.primary`'s light value in every theme (the sheet is white).
         canvas_measure: SLATE_900,

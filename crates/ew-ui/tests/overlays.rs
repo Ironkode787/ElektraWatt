@@ -34,6 +34,8 @@ use support::{Scripted, Tmp, harness, settle, wait_for_page};
 
 const ACCENT: [u8; 3] = [0x0B, 0x63, 0xCE];
 const WHITE: [u8; 3] = [0xFF, 0xFF, 0xFF];
+/// `canvas.open_cp` (FX38a): slate-400, a neutral ink, not the accent.
+const OPEN_CP: [u8; 3] = [0x86, 0x8E, 0x99];
 
 fn done(shell: &mut ShellModel, action: &str, params: Value) {
     assert_eq!(
@@ -620,7 +622,8 @@ fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
 
 // FT-705
 /// The free connection points of Golden A's first multi-line page that has some (spare terminals are unwired by
-/// design) marked open in the canvas snapshot at 100 % (a hollow square in the accent: its corners accent), none at
+/// design) marked open in the canvas snapshot at 100 % (a hollow square in `canvas.open_cp`, a neutral grey, FX38a:
+/// its corners grey, no accent on the plain page), none at
 /// 25 % (a grid step under 4 points), and only in the session overlay: the page's display list, which print and PDF
 /// draw, does not change.
 #[test]
@@ -646,10 +649,10 @@ fn ft705_free_cps_are_marked_open_on_screen_only() {
     // At 25 % the step is under 4 points: no mark.
     done(&mut shell, "view.zoom_to", json!({"percent": 25.0}));
     let far = snapshot(&shell);
-    let far_accent = (0..far.width as usize * far.height as usize)
-        .filter(|i| far.pixels[i * 4..i * 4 + 3] == ACCENT)
+    let far_marks = (0..far.width as usize * far.height as usize)
+        .filter(|i| far.pixels[i * 4..i * 4 + 3] == OPEN_CP)
         .count();
-    assert_eq!(far_accent, 0, "no mark (nor any accent) at 25 %");
+    assert_eq!(far_marks, 0, "no mark at 25 %");
     done(&mut shell, "view.zoom_actual", json!({}));
     let c = shell.canvas().unwrap();
     let view = View {
@@ -660,6 +663,10 @@ fn ft705_free_cps_are_marked_open_on_screen_only() {
     };
     let t = view.settled_transform();
     let image = snapshot(&shell);
+    let accent = (0..image.width as usize * image.height as usize)
+        .filter(|i| image.pixels[i * 4..i * 4 + 3] == ACCENT)
+        .count();
+    assert_eq!(accent, 0, "no accent on the plain page: the open marks are not handles");
     // The CPs on screen, away from the pane's edges.
     let (w, h) = (i64::from(image.width), i64::from(image.height));
     let shown: Vec<(i64, i64)> = open
@@ -675,7 +682,7 @@ fn ft705_free_cps_are_marked_open_on_screen_only() {
         for (dx, dy) in [(-2, -2), (2, -2), (-2, 2), (2, 2)] {
             assert_eq!(
                 rgb(&image, x + dx, y + dy),
-                ACCENT,
+                OPEN_CP,
                 "the mark's corner at {x},{y}"
             );
         }

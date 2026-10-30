@@ -88,7 +88,9 @@ pub const LIGHT: Theme = Theme {
     measure: rgb(0x1A, 0x1D, 0x21),
     rubber_band: ACCENT,
     casing: rgb(0xFF, 0xFF, 0xFF),
-    open_cp: ACCENT,
+    // FX38a: a subdued neutral ink (slate-400 #868E99, 3.3:1 on the white sheet), never the accent: an open CP
+    // must not read as a selection handle.
+    open_cp: rgb(0x86, 0x8E, 0x99),
 };
 
 /// The dark theme's canvas tokens (doc 16a §4.6); the sheet and the marks on it stay as in [`LIGHT`].

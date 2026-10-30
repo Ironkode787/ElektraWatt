@@ -41,7 +41,7 @@ canvas.selection #0B63CE on canvas.sheet 5.69
 canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
-canvas.open_cp #0B63CE on canvas.sheet 5.69
+canvas.open_cp #868E99 on canvas.sheet 3.31
 canvas.highlight.1 #D55E00 on canvas.sheet 3.87
 canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
@@ -177,7 +177,7 @@ canvas.selection #0B63CE on canvas.sheet 5.69
 canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
-canvas.open_cp #0B63CE on canvas.sheet 5.69
+canvas.open_cp #868E99 on canvas.sheet 3.31
 canvas.highlight.1 #D55E00 on canvas.sheet 3.87
 canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
@@ -313,7 +313,7 @@ canvas.selection #0B63CE on canvas.sheet 5.69
 canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
-canvas.open_cp #0B63CE on canvas.sheet 5.69
+canvas.open_cp #868E99 on canvas.sheet 3.31
 canvas.highlight.1 #D55E00 on canvas.sheet 3.87
 canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
@@ -449,7 +449,7 @@ canvas.selection #0B63CE on canvas.sheet 5.69
 canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
-canvas.open_cp #0B63CE on canvas.sheet 5.69
+canvas.open_cp #868E99 on canvas.sheet 3.31
 canvas.highlight.1 #D55E00 on canvas.sheet 3.87
 canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
@@ -585,7 +585,7 @@ canvas.selection #0B63CE on canvas.sheet 5.69
 canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
-canvas.open_cp #0B63CE on canvas.sheet 5.69
+canvas.open_cp #868E99 on canvas.sheet 3.31
 canvas.highlight.1 #D55E00 on canvas.sheet 3.87
 canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
@@ -721,7 +721,7 @@ canvas.selection #0B63CE on canvas.sheet 5.69
 canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
-canvas.open_cp #0B63CE on canvas.sheet 5.69
+canvas.open_cp #868E99 on canvas.sheet 3.31
 canvas.highlight.1 #D55E00 on canvas.sheet 3.87
 canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
@@ -857,7 +857,7 @@ canvas.selection #0B63CE on canvas.sheet 5.69
 canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
-canvas.open_cp #0B63CE on canvas.sheet 5.69
+canvas.open_cp #868E99 on canvas.sheet 3.31
 canvas.highlight.1 #D55E00 on canvas.sheet 3.87
 canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06
@@ -993,7 +993,7 @@ canvas.selection #0B63CE on canvas.sheet 5.69
 canvas.hover #0B63CE on canvas.sheet 5.69
 canvas.ghost #0B63CE99
 canvas.snap #0B63CE on canvas.sheet 5.69
-canvas.open_cp #0B63CE on canvas.sheet 5.69
+canvas.open_cp #868E99 on canvas.sheet 3.31
 canvas.highlight.1 #D55E00 on canvas.sheet 3.87
 canvas.highlight.2 #009E73 on canvas.sheet 3.42
 canvas.highlight.3 #CC79A7 on canvas.sheet 3.06

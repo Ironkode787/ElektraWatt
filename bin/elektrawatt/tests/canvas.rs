@@ -621,8 +621,10 @@ fn t7_the_snapshot_composites_the_tool_overlay() {
     let (_, _, band) = decode_rgba(&band);
     let (_, _, markers) = decode_rgba(&markers);
     assert_eq!(count(&plain, MEASURE), 0);
-    // The open squares of unconnected CPs (FT-705) share the accent, so the overlay is counted over the plain page.
+    // The overlay is counted over the plain page. The open squares of unconnected CPs (FT-705) are a neutral grey
+    // since FX38a, so the plain page has no accent.
     let base = count(&plain, ACCENT);
+    assert_eq!(base, 0, "no accent on the plain page");
     assert!(count(&measure, MEASURE) > 20, "the measure line");
     // The two snap markers alone (the cursor hidden; the measure line stays, with the pixels the cursor covered),
     // then the cursor's own pixels.
