@@ -1983,7 +1983,7 @@ fn sourceless(q: &Q, p: PotentialId) -> bool {
 }
 
 /// EW-POT-021: a load fed on one side whose other side reaches no source, an unreturned coil (FT-661; doc 08 §3.6).
-/// `scope` is a potential with no source ([`sourceless`]: unreached by the flow, no CP with a potential role, only
+/// `scope` is a potential with no source (`sourceless`: unreached by the flow, no CP with a potential role, only
 /// two-terminal loads besides terminals and interruption points), for example the A2 net of two valve coils that was
 /// never linked to 0 V. Each two-terminal load on it whose other CP lies on a potential that has a source is reported
 /// once, target the load function, discriminator the CP index on `scope`, subject the CP's label. A load whose two
