@@ -165,9 +165,7 @@ fn is_rule_id(rule: &str) -> bool {
         return false;
     };
     !pack.is_empty()
-        && pack
-            .bytes()
-            .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
+        && pack.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
         && number.len() == 3
         && number.bytes().all(|b| b.is_ascii_digit())
 }

@@ -144,8 +144,13 @@ pub struct Finding {
     pub subject: String,
     /// The page the finding is shown on, if any.
     pub page: Option<Id<Page>>,
-    /// The message, in English.
+    /// The message: the en-GB text, as the rule prints it (rendered when the rule ran).
     pub message: String,
+    /// The message's typed arguments, by Fluent variable name (WP-S1.16 D6, doc 15 §3.8): the printed values the
+    /// rule's pattern in `messages/<lang>/rules.ftl` renders the text from in another language
+    /// ([`crate::messages::render`]). Empty for a rule whose messages have no pattern yet; the en-GB pattern renders
+    /// [`message`](Self::message) from them byte for byte.
+    pub args: Vec<(&'static str, String)>,
     /// A quick fix, where the rule offers one.
     pub fix: Option<QuickFix>,
     /// Whether the rule read library data of a confidence other than `verified` (FR-PRT-031, FT-323's marker,
@@ -181,6 +186,7 @@ impl Finding {
             subject: subject.into(),
             page: None,
             message: message.into(),
+            args: Vec::new(),
             fix: None,
             unverified_data: false,
         }
@@ -207,6 +213,18 @@ impl Finding {
     pub fn keyed_on(mut self, key: &[Target]) -> Finding {
         let ids: Vec<AnyId> = key.iter().map(|t| t.id).collect();
         self.fingerprint = Fingerprint::of(self.rule, &ids, &self.discriminator);
+        self
+    }
+
+    /// The same finding with the message argument `name` (a Fluent variable of the rule's pattern) set to `value`; a
+    /// second value of one name replaces the first.
+    #[must_use]
+    pub fn arg(mut self, name: &'static str, value: impl Into<String>) -> Finding {
+        let value = value.into();
+        match self.args.iter_mut().find(|(k, _)| *k == name) {
+            Some(slot) => slot.1 = value,
+            None => self.args.push((name, value)),
+        }
         self
     }
 

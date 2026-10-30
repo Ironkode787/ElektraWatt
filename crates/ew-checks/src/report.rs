@@ -32,6 +32,18 @@ fn totals(report: &CheckReport) -> String {
     )
 }
 
+/// The report with every finding's message rendered in `lang` ([`crate::messages::render`]: the rule's pattern of
+/// that language where it exists, the en-GB message otherwise), for `ew check --lang` (WP-S1.16 D6). The order, the
+/// counts and every other member stay as they are; in en-GB the report is unchanged.
+#[must_use]
+pub fn localise(report: &CheckReport, lang: &str) -> CheckReport {
+    let mut out = report.clone();
+    for f in &mut out.findings {
+        f.message = crate::messages::render(f, lang);
+    }
+    out
+}
+
 /// The report as plain text: one line `<severity> <rule> <code> <subject>: <message>` per finding, in report
 /// order (a waived finding gets a `[waived: <id>]` suffix), then the totals line.
 pub fn to_text(report: &CheckReport) -> String {

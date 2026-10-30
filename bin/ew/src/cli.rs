@@ -18,7 +18,7 @@ pub const USAGE: &str = "usage:
   ew import qet <file.qet> [--content <dir>] [--report md|csv|json] [--report-out <file>] [--strict]
   ew import parts <parts.csv> [--project <dir>]
   ew import parts <table.csv|table.xlsx> --map <map.toml> [--as-of <date>] [--project <dir>] [--company <dir>]...
-  ew check [<project-dir>] [--scheme <name>] [--mode release|online] [--format text|md|json] [--out <file>]
+  ew check [<project-dir>] [--scheme <name>] [--mode release|online] [--format text|md|json] [--lang <tag>] [--out <file>]
   ew sql [<project-dir>] \"<select>\" [--format csv|json] [--timeout <seconds>] [--out <file>]
   ew sql [<project-dir>] --file <query.sql> [--format csv|json] [--timeout <seconds>] [--out <file>]
   ew sql dump [<project-dir>] <out.sqlite>
@@ -59,7 +59,9 @@ the project is saved.
 `check` runs a check scheme (mode `release`, format `text`) over a project directory
 (default: the nearest ancestor of the current directory holding `manifest.json`) and exits 0 with no unwaived
 errors, 1 with errors, 2 on usage and open errors. Without `--scheme` the scheme is the one the project names
-(`project checks set`: `--release` for mode `release`, `--active` for mode `online`), else `pre-delivery`.
+(`project checks set`: `--release` for mode `release`, `--active` for mode `online`), else `pre-delivery`. `--lang`
+renders the messages in a shipped language (en-GB, the default, or nl-NL); a message without a text in that language
+prints in en-GB.
 
 `sql` runs one read-only SELECT against the SQL projection of a project (the `api_v1_*` views; `ew sql schema` prints
 them) in the sandbox of doc 17 §6.2, with the query given inline or from `--file`. The result is CSV (default) or
@@ -365,6 +367,8 @@ pub struct CheckArgs {
     pub format: CheckFormat,
     /// The output file (`--out`).
     pub out: Option<PathBuf>,
+    /// The language of the messages (`--lang`, a shipped language; default en-GB).
+    pub lang: String,
 }
 
 /// The arguments of `ew import qet`.
@@ -519,8 +523,22 @@ fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> 
     let mut mode = CheckMode::Release;
     let mut format = CheckFormat::Text;
     let mut out = None;
+    let mut lang = ew_api::checks::messages::DEFAULT_LANGUAGE.to_owned();
     while let Some(a) = it.next() {
         match a.as_str() {
+            "--lang" => {
+                let tag = value(&mut it, "--lang")?;
+                let languages = ew_api::checks::messages::LANGUAGES;
+                match languages.iter().find(|l| l.eq_ignore_ascii_case(&tag)) {
+                    Some(l) => lang = (*l).to_owned(),
+                    None => {
+                        return Err(format!(
+                            "unknown message language `{tag}` ({})",
+                            languages.join(", ")
+                        ));
+                    }
+                }
+            }
             "--scheme" => {
                 let name = value(&mut it, "--scheme")?;
                 if scheme(&name).is_none() {
@@ -558,6 +576,7 @@ fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> 
         mode,
         format,
         out,
+        lang,
     }))
 }
 
@@ -1836,9 +1855,12 @@ fn run_check(a: &CheckArgs) -> i32 {
     };
     // The integrity findings of opening (EW-CORE-001 … 019) join the report: in release mode the "n r"
     // errors count and set the exit code (doc 15 §4.2).
-    let result = session
-        .check(sch, a.mode)
-        .with_integrity(ew_api::integrity_items(&opened));
+    let result = report::localise(
+        &session
+            .check(sch, a.mode)
+            .with_integrity(ew_api::integrity_items(&opened)),
+        &a.lang,
+    );
     let text = match a.format {
         CheckFormat::Text => report::to_text(&result),
         CheckFormat::Markdown => report::to_markdown(&result),

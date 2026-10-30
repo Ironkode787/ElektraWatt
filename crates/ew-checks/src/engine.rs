@@ -46,6 +46,7 @@ impl Query for CheckOf {
                         + f.discriminator.len()
                         + f.subject.len()
                         + f.message.len()
+                        + f.args.iter().map(|(_, v)| v.len()).sum::<usize>()
                 })
                 .sum::<usize>()
     }

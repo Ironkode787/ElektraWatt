@@ -372,6 +372,12 @@ impl Rule for LetterAgainstFunction {
                     row.letter().as_str()
                 ),
             )
+            .arg("device", tag)
+            .arg("letter", letter.to_string())
+            .arg("category", category.as_str())
+            .arg("set", set.key().to_string())
+            .arg("suggested", row.letter().as_str())
+            .arg("verified", if row.verified() { "yes" } else { "no" })
             .with_severity(severity),
         ]
     }

@@ -12,8 +12,8 @@ use ew_ids::Id;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, FnDef, FormDef, Function,
     ImportLineage, Junction, Kind, LibCopy, MacroDef, MacroInstance, Manufacturer, Page, PageItem, Part,
-    PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, Waiver, StructureBox,
-    StructureNode, SymbolDef,
+    PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, StructureBox,
+    StructureNode, SymbolDef, Waiver,
 };
 
 use crate::diff::Presence;

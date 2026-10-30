@@ -53,13 +53,16 @@ impl Rule for CableWithoutLength {
             return Vec::new();
         }
         let tag = full_tag(q, cable, "cable");
-        vec![Finding::new(
-            &CABLE_WITHOUT_LENGTH,
-            [Target::new(Kind::Device, cable)],
-            "",
-            tag.clone(),
-            format!("{tag} has no routed, manual or part length"),
-        )]
+        vec![
+            Finding::new(
+                &CABLE_WITHOUT_LENGTH,
+                [Target::new(Kind::Device, cable)],
+                "",
+                tag.clone(),
+                format!("{tag} has no routed, manual or part length"),
+            )
+            .arg("cable", tag),
+        ]
     }
 }
 

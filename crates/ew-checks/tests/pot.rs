@@ -185,6 +185,51 @@ fn ft588_an_undefined_potential_is_keyed_on_its_discriminator_member() {
     }
 }
 
+/// WP-S1.16 P5-3 with D8: a typed waiver of EW-POT-001 on an undefined potential still waives the finding after a
+/// member joins the potential, because the fingerprint keys on the discriminator member; without the waiver the
+/// finding is open.
+#[test]
+fn a_waiver_of_an_undefined_potential_survives_a_new_member() {
+    let fp = attrs_finding(&role_conflict(false, false).0).fingerprint;
+    for extra in [false, true] {
+        let pe = 0x1001;
+        let mut fx = Fx::base();
+        fx.func_role_tagged(pe, true, 1, P1);
+        fx.func_role_tagged(0x1002, false, 2, P1);
+        fx.conn(0x2001, P1, Ep::Cp(pe, 1), Ep::Cp(0x1002, 1), &none());
+        if extra {
+            fx.func_tagged(0x1009, 9, P1);
+            fx.conn(0x2002, P1, Ep::Cp(0x1002, 1), cp(0x1009), &none());
+        }
+        fx.push(json!({
+            "$k": "waiver", "id": us(0x9001), "rule": "EW-POT-001", "target": {"finding": fp.to_string()},
+            "reason": {"en-GB": "accepted for the test"}, "author": "engineer", "date": "2025-04-14"
+        }));
+        let m = fx.build();
+        let report = ew_checks::run(
+            &ew_derive::Q::new(&m),
+            &ew_checks::FULL,
+            ew_checks::CheckMode::Online,
+        );
+        let f: Vec<_> = report
+            .findings
+            .iter()
+            .filter(|f| f.rule == "EW-POT-001" && f.discriminator.starts_with("attrs"))
+            .collect();
+        assert_eq!(f.len(), 1, "extra {extra}: {f:#?}");
+        assert_eq!(
+            f[0].state,
+            ew_checks::FindingState::Waived { waiver: us(0x9001) },
+            "extra {extra}: the waiver matches"
+        );
+        assert_eq!(f[0].targets.len(), if extra { 3 } else { 2 });
+        assert!(
+            !report.findings.iter().any(|f| f.rule == "EW-CORE-081"),
+            "extra {extra}: the waiver matched a finding"
+        );
+    }
+}
+
 /// A PE-role CP and an M-role CP on one wire, without a definition; `pe_first` gives the PE function the
 /// lower ID. Returns the model and the IDs of the PE and the M function.
 fn pe_meets_m(pe_first: bool) -> (Model, u128, u128) {

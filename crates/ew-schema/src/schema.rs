@@ -16,8 +16,8 @@ use crate::kind::{FORMAT, Kind, KindStatus};
 use crate::library::{FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, SymbolDef};
 use crate::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    Page, PageItem, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, Waiver,
-    StructureBox, StructureNode,
+    Page, PageItem, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section,
+    StructureBox, StructureNode, Waiver,
 };
 
 /// The schema of `T`, titled and tagged as `kind`.

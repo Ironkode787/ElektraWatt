@@ -113,7 +113,8 @@ pub use assets::PurgeAssets;
 pub use assign::{ASSIGN_BULK_FROM, AssignModeParam, AssignPart};
 pub use box_reshape::ReshapeBox;
 pub use checks::{
-    CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes, UnwaiveFinding, WAIVER_REASON_MIN_CHARS, WaiveFinding,
+    CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes, UnwaiveFinding, WAIVER_REASON_MIN_CHARS,
+    WaiveFinding,
 };
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::{COMPANY_MEMBER, SetCompany};

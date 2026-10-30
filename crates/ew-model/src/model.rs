@@ -10,8 +10,8 @@ use std::sync::Arc;
 use ew_schema::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, FunctionKind,
     ImportLineage, Junction, Kind, KindRegistry, LibDocument, MacroInstance, Page, PageItem,
-    PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section, Waiver,
-    StructureBox, StructureNode,
+    PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section,
+    StructureBox, StructureNode, Waiver,
 };
 
 use crate::asset::Asset;

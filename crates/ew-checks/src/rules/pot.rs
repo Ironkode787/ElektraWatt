@@ -576,7 +576,9 @@ impl Rule for FePinOnPe {
                     "{label} has the role FE and is wired to the PE potential {name}; declare an FE–PE bond or \
                      connect it to functional earth"
                 ),
-            ));
+            )
+            .arg("cp", label)
+            .arg("potential", name.clone()));
         }
         out
     }
@@ -742,6 +744,14 @@ impl Rule for BuOnNonN {
                          neutral conductor",
                         type_suffix(ptype.as_ref())
                     ),
+                )
+                .arg("wire", text)
+                .arg("potential", name.clone())
+                .arg(
+                    "type",
+                    ptype
+                        .as_ref()
+                        .map_or_else(|| "none".to_owned(), |t| format!("{t:?}")),
                 )
             })
             .collect()
@@ -976,7 +986,13 @@ impl Rule for PeUndersized {
                     "PE wire {text} has {pe} mm², below the {required} mm² required for the {line} mm² line \
                      conductors at {at}{unverified}"
                 ),
-            ));
+            )
+            .arg("wire", text)
+            .arg("pe", pe.to_string())
+            .arg("required", required.to_string())
+            .arg("line", line.to_string())
+            .arg("at", at)
+            .arg("verified", if table.verified { "yes" } else { "no" }));
         }
         out
     }
@@ -1279,6 +1295,8 @@ impl Rule for UnconnectedCp {
                         format!("{label} is not connected; connect it or mark it unused")
                     },
                 )
+                .arg("cp", label)
+                .arg("unused", if c.unused { "yes" } else { "no" })
                 .on_page(page);
                 out.push(if c.unused {
                     finding.with_severity(Severity::Info)
@@ -1519,13 +1537,30 @@ impl Rule for NSwitching {
                             .join("; ")
                     )
                 };
-                out.push(Finding::new(
+                let finding = Finding::new(
                     &N_SWITCHING,
                     [Target::new(Kind::Function, f)],
                     discriminator,
                     name.clone(),
                     format!("{name} switches the neutral {up} → {down}{tail}."),
-                ));
+                );
+                // The pattern covers no stranded load and one; with more the finding keeps its en-GB text only.
+                let finding = match loads.as_slice() {
+                    [] => finding.arg("loads", "none"),
+                    [(load, line)] => finding
+                        .arg("loads", "one")
+                        .arg("load", load.clone())
+                        .arg("line", line.clone()),
+                    _ => finding,
+                };
+                out.push(if loads.len() > 1 {
+                    finding
+                } else {
+                    finding
+                        .arg("device", name.clone())
+                        .arg("from", up.to_string())
+                        .arg("to", down.to_string())
+                });
             }
         }
         out

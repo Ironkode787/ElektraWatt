@@ -77,7 +77,11 @@ fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
         ("rule", json!("CORE-041"), "/rule"),
         ("rule", json!("EW-core-041"), "/rule"),
         ("fingerprint", json!("9c2e"), "/fingerprint"),
-        ("fingerprint", json!("zz2e5a0b7d14f3e8a6c1b05d2e9f41ab"), "/fingerprint"),
+        (
+            "fingerprint",
+            json!("zz2e5a0b7d14f3e8a6c1b05d2e9f41ab"),
+            "/fingerprint",
+        ),
         ("reason", json!({"en-GB": "too short"}), "/reason"),
         (
             "reason",

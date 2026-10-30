@@ -382,6 +382,21 @@ version = "1.0.0"
 criteria = "safe-to-deploy"
 notes = "WP-S2.02 part 2 (2026-10-22): a dependency of lyon_tessellation; MIT; no build script. Joins FT-326's audit list."
 
+[[exemptions.fluent-bundle]]
+version = "0.16.0"
+criteria = "safe-to-deploy"
+notes = "WP-S1.16 part 5 (2026-10-30, cycle 36 lane A36): the Fluent rule messages of ew-checks (D6, doc 15 §3.8; ADR-0024). The Fluent runtime, default-features = false; scanned (19 files, 2.9k lines): no unsafe, no build.rs, no fs/net/env/process; formats compiled-in .ftl resources only. Licence Apache-2.0 OR MIT. An exemption, as the lane writes no audit (ID-447). Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import in imports.lock covers this version."
+
+[[exemptions.fluent-langneg]]
+version = "0.13.1"
+criteria = "safe-to-deploy"
+notes = "WP-S1.16 part 5 (2026-10-30, cycle 36 lane A36): the Fluent rule messages of ew-checks (D6, doc 15 §3.8; ADR-0024). A dependency of fluent-bundle (language negotiation); read in full (4 files, 362 lines): no unsafe, no build.rs, no fs/net/env/process. Licence Apache-2.0 OR MIT. An exemption, as the lane writes no audit (ID-447). Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import in imports.lock covers this version."
+
+[[exemptions.fluent-syntax]]
+version = "0.12.0"
+criteria = "safe-to-deploy"
+notes = "WP-S1.16 part 5 (2026-10-30, cycle 36 lane A36): the Fluent rule messages of ew-checks (D6, doc 15 §3.8; ADR-0024). A dependency of fluent-bundle (the .ftl parser); scanned (17 files, 4.0k lines): no unsafe and no build.rs; fs and env only in the crate's own development binaries (src/bin), which ElektraWatt does not build. Licence Apache-2.0 OR MIT. An exemption, as the lane writes no audit (ID-447). Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import in imports.lock covers this version."
+
 [[exemptions.font-types]]
 version = "0.11.3"
 criteria = "safe-to-deploy"
@@ -553,6 +568,16 @@ criteria = "safe-to-deploy"
 [[exemptions.insta]]
 version = "1.49.0"
 criteria = "safe-to-run"
+
+[[exemptions.intl-memoizer]]
+version = "0.5.3"
+criteria = "safe-to-deploy"
+notes = "WP-S1.16 part 5 (2026-10-30, cycle 36 lane A36): the Fluent rule messages of ew-checks (D6, doc 15 §3.8; ADR-0024). A dependency of fluent-bundle (a per-language memo of formatters); read in full (2 files, 481 lines): unsafe only in a doc example, no build.rs, no fs/net/env/process. Licence Apache-2.0 OR MIT. An exemption, as the lane writes no audit (ID-447). Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import in imports.lock covers this version."
+
+[[exemptions.intl_pluralrules]]
+version = "7.0.2"
+criteria = "safe-to-deploy"
+notes = "WP-S1.16 part 5 (2026-10-30, cycle 36 lane A36): the Fluent rule messages of ew-checks (D6, doc 15 §3.8; ADR-0024). A dependency of fluent-bundle (CLDR plural rules as generated tables); scanned (3 files, 3.6k lines): one unsafe macro building LanguageIdentifier from generated raw parts (from_raw_parts_unchecked over tinystr constants), no build.rs, no fs/net/env/process. Licence Apache-2.0/MIT. An exemption, as the lane writes no audit (ID-447). Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import in imports.lock covers this version."
 
 [[exemptions.itertools]]
 version = "0.15.0"
@@ -1238,6 +1263,16 @@ criteria = "safe-to-deploy"
 [[exemptions.uds_windows]]
 version = "1.2.1"
 criteria = "safe-to-deploy"
+
+[[exemptions.unic-langid]]
+version = "0.9.6"
+criteria = "safe-to-deploy"
+notes = "WP-S1.16 part 5 (2026-10-30, cycle 36 lane A36): the Fluent rule messages of ew-checks (D6, doc 15 §3.8; ADR-0024). Names a bundle's language; default-features = false (no macros); read in full (1 file, 136 lines, a re-export of unic-langid-impl): no unsafe, no build.rs. Licence MIT OR Apache-2.0. An exemption, as the lane writes no audit (ID-447). Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import in imports.lock covers this version."
+
+[[exemptions.unic-langid-impl]]
+version = "0.9.6"
+criteria = "safe-to-deploy"
+notes = "WP-S1.16 part 5 (2026-10-30, cycle 36 lane A36): the Fluent rule messages of ew-checks (D6, doc 15 §3.8; ADR-0024). A dependency of unic-langid; scanned (15 files, 12.3k lines, mostly generated likely-subtags tables): unsafe only in lang_from_parts over generated tinystr table constants (likelysubtags), no build.rs; fs only in the crate's own generator binaries (src/bin), which ElektraWatt does not build. Licence MIT OR Apache-2.0. An exemption, as the lane writes no audit (ID-447). Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import in imports.lock covers this version."
 
 [[exemptions.unicode-general-category]]
 version = "1.1.0"

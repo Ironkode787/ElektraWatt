@@ -24,6 +24,10 @@ sha2.workspace = true
 serde_json = "1.0.154"
 # Rule data shipped with the packs (`data/*.toml`, WP-S1.16 D5); already in the graph through `ew-derive`.
 toml.workspace = true
+# The rule messages in Fluent (WP-S1.16 D6, doc 15 §3.8; ADR-0024: MIT OR Apache-2.0): one `rules.ftl` per language,
+# compiled into the binary. `unic-langid` names a bundle's language, at the version fluent-bundle itself uses.
+fluent-bundle = { version = "=0.16.0", default-features = false }
+unic-langid = { version = "=0.9.6", default-features = false }
 
 [dev-dependencies]
 # Unit tests build small model snapshots to evaluate rules over a `Q` (no `raw-read`).

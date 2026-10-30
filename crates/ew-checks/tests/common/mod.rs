@@ -62,14 +62,31 @@ pub fn model_with(settings: Value, records: Vec<Record>) -> Model {
     Model::from_records(project(settings), records, []).expect("the model passes the integrity check")
 }
 
-/// The findings of `rule` in an online run of the `full` scheme over `m`.
+/// The findings of `rule` in an online run of the `full` scheme over `m`. Every finding with message arguments is
+/// checked to render its message byte for byte from the rule's en-GB pattern (WP-S1.16 P5-2), so every rule table
+/// exercises the patterns of its rule.
 pub fn findings_of(m: &Model, rule: &str) -> Vec<ew_checks::Finding> {
     let q = ew_derive::Q::new(m);
-    ew_checks::run(&q, &ew_checks::FULL, ew_checks::CheckMode::Online)
+    let found: Vec<ew_checks::Finding> = ew_checks::run(&q, &ew_checks::FULL, ew_checks::CheckMode::Online)
         .findings
         .into_iter()
         .filter(|f| f.rule == rule)
-        .collect()
+        .collect();
+    assert_messages(&found);
+    found
+}
+
+/// Asserts that every finding with message arguments renders its message byte for byte from the en-GB pattern.
+pub fn assert_messages(findings: &[ew_checks::Finding]) {
+    for f in findings.iter().filter(|f| !f.args.is_empty()) {
+        assert_eq!(
+            ew_checks::messages::format(f, ew_checks::messages::DEFAULT_LANGUAGE).as_deref(),
+            Some(f.message.as_str()),
+            "the en-GB pattern of {} does not render its message from {:?}",
+            f.rule,
+            f.args
+        );
+    }
 }
 
 /// The check of a case: it receives the case name and the rule's findings.

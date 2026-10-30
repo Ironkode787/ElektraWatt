@@ -16,8 +16,8 @@ use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, w
 use crate::value::Endpoint;
 use crate::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    Page, PageItem, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Waiver,
-    SchemaError, Section, StructureBox, StructureNode,
+    Page, PageItem, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision,
+    SchemaError, Section, StructureBox, StructureNode, Waiver,
 };
 
 /// `$k` first, then the record's own members in declaration order.

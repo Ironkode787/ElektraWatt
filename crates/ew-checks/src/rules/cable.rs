@@ -442,15 +442,19 @@ impl Rule for ExternalWithoutCable {
                 if wires.len() == 1 { "wire" } else { "wires" },
                 and_list(&wires, if wires.len() == 1 { "is" } else { "are" }),
             );
+            let count = if wires.len() == 1 { "one" } else { "many" };
             out.push(
                 Finding::new(
                     &EXTERNAL_WITHOUT_CABLE,
                     std::iter::once(Target::new(Kind::StructureNode, location))
                         .chain(functions.iter().map(|f| Target::new(Kind::Function, *f))),
                     "external",
-                    subject,
+                    subject.clone(),
                     message,
                 )
+                .arg("connection", subject)
+                .arg("wires", wires.join(", "))
+                .arg("count", count)
                 .keyed_on(&[Target::new(Kind::StructureNode, location)])
                 .on_page(page),
             );

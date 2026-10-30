@@ -152,7 +152,6 @@ pub use project::{
 };
 pub use record::{AnchorRef, AnyRecord, LibDocument, Record};
 pub use revision::{PageNote, Revision, RevisionState};
-pub use waiver::{Waiver, WaiverTarget};
 pub use schema::{kind_schema, schema_file_name, schema_files};
 pub use set::{Keyed, KeyedList, Set};
 pub use track::parse_value;
@@ -160,3 +159,4 @@ pub use value::{
     AnyId, Bounds, ColourCode, ColourSpec, Csa, Date, Endpoint, ExternalRefId, IecColour, LibRef, PartRef,
     PartUse, Quantity, Sha256, Slot, SourceRef, StructureAssignment, TechVal, TechValue, Unit,
 };
+pub use waiver::{Waiver, WaiverTarget};

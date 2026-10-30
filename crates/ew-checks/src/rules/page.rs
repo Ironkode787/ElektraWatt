@@ -525,6 +525,9 @@ impl Rule for TextBelowMinimum {
                         mm2(MIN_CAP_HEIGHT_NM)
                     ),
                 )
+                .arg("style", key)
+                .arg("height", mm2(cap))
+                .arg("minimum", mm2(MIN_CAP_HEIGHT_NM))
             })
             .collect()
     }

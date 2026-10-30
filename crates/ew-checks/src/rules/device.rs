@@ -89,13 +89,16 @@ impl Rule for DeviceWithoutPart {
             return Vec::new();
         }
         let tag = full_tag(q, device, "device");
-        vec![Finding::new(
-            &DEVICE_WITHOUT_PART,
-            [Target::new(Kind::Device, device)],
-            "",
-            tag.clone(),
-            format!("{tag} has no part; assign one, or mark it as supplied by others"),
-        )]
+        vec![
+            Finding::new(
+                &DEVICE_WITHOUT_PART,
+                [Target::new(Kind::Device, device)],
+                "",
+                tag.clone(),
+                format!("{tag} has no part; assign one, or mark it as supplied by others"),
+            )
+            .arg("device", tag),
+        ]
     }
 }
 
@@ -258,6 +261,8 @@ impl Rule for PlaceholderPart {
                         tags.join(", ")
                     ),
                 )
+                .arg("part", what.clone())
+                .arg("users", tags.join(", "))
                 .keyed_on(&[Target::new(Kind::Part, id)]),
             );
         }

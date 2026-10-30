@@ -41,6 +41,7 @@
 
 mod engine;
 mod finding;
+pub mod messages;
 mod registry;
 pub mod report;
 mod rule;
@@ -49,6 +50,7 @@ mod scheme;
 
 pub use engine::{CheckOf, CheckReport, Counts, IntegrityItem, prevent, run, scopes};
 pub use finding::{Finding, FindingState, Fingerprint, QuickFix, Severity, Target, sort_findings};
+pub use messages::render;
 pub use registry::{rule, rules};
 pub use rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 pub use scheme::{CheckMode, DRAFTING, FULL, MIGRATION, PRE_DELIVERY, SCHEMES, Scheme, scheme};

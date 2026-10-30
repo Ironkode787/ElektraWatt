@@ -413,6 +413,54 @@ fn check_unknown_scheme_is_exit_2() {
     assert_eq!(o.status.code(), Some(2));
 }
 
+/// P5-2 (WP-S1.16 D6): `ew check --lang nl-NL` prints the Dutch text of a rule with an nl-NL pattern (EW-POT-013 on
+/// T55) and the en-GB text of one without (EW-CORE-044 has none; Golden A's EW-CORE-043 has one); the default and
+/// `--lang en-GB` print the en-GB message; an unknown language is a usage error. The counts and the exit status do not
+/// depend on the language.
+#[test]
+fn check_lang_renders_the_messages_in_a_shipped_language() {
+    let check = |lang: Option<&str>| {
+        let mut args: Vec<&std::ffi::OsStr> = vec!["check".as_ref(), GOLDEN_A.as_ref()];
+        if let Some(l) = lang {
+            args.push(std::ffi::OsStr::new("--lang"));
+            args.push(std::ffi::OsStr::new(l));
+        }
+        ew(&args)
+    };
+    let en = check(None);
+    assert_eq!(en.status.code(), Some(1));
+    let en_text = stdout(&en);
+    assert!(
+        en_text.contains("T55: T55 switches the neutral N-55 → N-55T; load E55 stays connected to L-55."),
+        "{en_text}"
+    );
+    assert_eq!(stdout(&check(Some("en-GB"))), en_text);
+    let nl = check(Some("nl-NL"));
+    assert_eq!(nl.status.code(), Some(1));
+    let nl_text = stdout(&nl);
+    assert!(
+        nl_text.contains(
+            "T55: T55 schakelt de nulleider N-55 → N-55T; belasting E55 blijft verbonden met L-55."
+        ),
+        "{nl_text}"
+    );
+    assert!(
+        !nl_text.contains("placeholder part \"End bracket\"")
+            && nl_text.contains("plaatsvervangend artikel \"End bracket\" (artikelnummer TBD)"),
+        "{nl_text}"
+    );
+    // The same lines in the same order, the totals line equal.
+    assert_eq!(nl_text.lines().count(), en_text.lines().count());
+    assert_eq!(nl_text.lines().last(), en_text.lines().last());
+    let bad = check(Some("xx-YY"));
+    assert_eq!(bad.status.code(), Some(2));
+    assert!(
+        stderr(&bad).contains("unknown message language"),
+        "{}",
+        stderr(&bad)
+    );
+}
+
 fn stderr(o: &Output) -> String {
     String::from_utf8_lossy(&o.stderr).into_owned()
 }

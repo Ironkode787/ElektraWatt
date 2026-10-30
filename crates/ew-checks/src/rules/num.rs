@@ -73,6 +73,8 @@ impl Rule for TagDeviates {
                 tag,
                 format!("{frozen}: frozen, deviates from scheme (rule-derived value {rule})"),
             )
+            .arg("frozen", frozen.to_string())
+            .arg("derived", rule.to_string())
             .with_severity(Severity::Info),
         ]
     }
