@@ -170,6 +170,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "tool-route_edit" => "Edit route",
         "hint-wire-armed" => "Click or Enter on a connection point, a junction or a wire to start",
         "hint-wire-routing" => "Click a connection point; Backspace removes the last bend; Escape cancels",
+        "hint-wire-direct" => "No clear route; drawn direct",
         "hint-route-edit" => "Tab picks the segment, the arrow keys move it, Enter commits; Escape cancels",
         "hint-place-needs-route" => "Give this wire a route first (Edit route)",
         "announce-wire-routing" => {

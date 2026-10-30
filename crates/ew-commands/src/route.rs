@@ -17,6 +17,19 @@
 //! before the bend; a turn there costs nothing (the bend was fixed to turn at), so the tie rule is otherwise the one
 //! of an end without a direction.
 //!
+//! **The ends' own representations** ([`RouteRequest::own`], FT-706). The rectangles of the two ends' own
+//! representations (body, black-box outline, texts) block like the other obstacles, except along a CP end's escape
+//! corridor: the nodes from the end along its direction, the stub and every further node while it lies strictly
+//! inside one of those rectangles, so that a wire leaves and enters a CP straight out of its own box and texts and
+//! never across them.
+//!
+//! **Other wires** ([`RouteRequest::wires`], FT-706; FR-CON-031: a crossing is not a junction). The route
+//! never runs on top of another connection's segment: a unit move parallel to a segment closer than one grid step
+//! (`⌊num/den⌋ − 1` nm, so that a coordinate 1 nm off a rational grid still parts by a step) whose extent overlaps
+//! it with a positive length is not taken, and the node of every vertex of another connection (its ends and
+//! corners) is blocked, so a route crosses another wire only at a right angle through the inside of a segment. The
+//! moves of the ends' corridors are exempt (a second wire on a CP leaves along the same stub).
+//!
 //! **The tie rule** (NFR-REL-07). Among the paths of least cost the result is the least by (bends, length, move
 //! sequence), the move sequence being the whole list of unit moves from the first end to the second, each ranked
 //! right < down < left < up and compared move by move. It is found exactly: a backward Dijkstra gives every state
@@ -124,6 +137,23 @@ pub struct RouteRequest {
     /// direction, FT-437): the first move never takes its opposite; a turn at `from` costs no bend. Ignored for a CP
     /// end (one with `dir`).
     pub arrive: Option<Heading>,
+    /// The rectangles `[x0, y0, x1, y1]` of the first and the second end's own representation (body, black-box
+    /// outline, texts; page nm, any corner order, inflated as the caller inflates `obstacles`): obstacles, except
+    /// along a CP end's escape corridor (module documentation; FT-706). Empty for an end without one.
+    pub own: [Vec<[i64; 4]>; 2],
+    /// The segments of the other connections on the page, page nm: the route never runs on top of one nor touches
+    /// one of their vertices (module documentation; FT-706). Empty: no other wire.
+    pub wires: Vec<[(i64, i64); 2]>,
+}
+
+/// A route and how it was found.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Routed {
+    /// The full vertex list from the first end to the second.
+    pub points: Vec<(i64, i64)>,
+    /// Whether it is the provisional L route of the fallback: no path inside the area (or an unusable grid or an
+    /// area over [`MAX_NODES`]), so the route may cross obstacles and other wires (FT-706: the tool says so).
+    pub direct: bool,
 }
 
 /// The provisional L route of `ew-scene`'s rule (the fallback): `[a, b]` for aligned ends (`[a]` for equal ones),
@@ -156,9 +186,25 @@ struct Space {
     hi: (i64, i64),
     width: usize,
     blocked: Vec<bool>,
+    /// Whether the move right from a node is not taken (another wire's segment on that track; FT-706).
+    no_right: Vec<bool>,
+    /// Whether the move down from a node is not taken.
+    no_down: Vec<bool>,
 }
 
 impl Space {
+    /// Whether the unit move `m` from the index point `p` is free of other wires (the target node's own blocking
+    /// aside).
+    fn move_free(&self, p: (i64, i64), m: Heading) -> bool {
+        let (from, bits) = match m {
+            Heading::Right => (p, &self.no_right),
+            Heading::Down => (p, &self.no_down),
+            Heading::Left => ((p.0 - 1, p.1), &self.no_right),
+            Heading::Up => ((p.0, p.1 - 1), &self.no_down),
+        };
+        self.node(from).is_some_and(|n| !bits[n])
+    }
+
     fn node(&self, p: (i64, i64)) -> Option<usize> {
         if p.0 < self.lo.0 || p.0 > self.hi.0 || p.1 < self.lo.1 || p.1 > self.hi.1 {
             return None;
@@ -197,7 +243,21 @@ fn state(node: usize, h: Option<Heading>) -> usize {
 /// The route from `req.from.at` to `req.to.at` (see the module documentation): deterministic, interior vertices on
 /// the grid (or on an end's coordinate next to it), the ends exact.
 pub fn auto_route(req: &RouteRequest) -> Vec<(i64, i64)> {
-    search(req).unwrap_or_else(|| fallback(req))
+    route(req).points
+}
+
+/// [`auto_route`] with whether the result is the fallback ([`Routed::direct`]).
+pub fn route(req: &RouteRequest) -> Routed {
+    match search(req) {
+        Some(points) => Routed {
+            points,
+            direct: false,
+        },
+        None => Routed {
+            points: fallback(req),
+            direct: true,
+        },
+    }
 }
 
 /// The L route of the fallback; with an arrival heading at a first end without a direction, the corner whose first
@@ -276,9 +336,11 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
         hi,
         width,
         blocked: vec![false; nodes],
+        no_right: vec![false; nodes],
+        no_down: vec![false; nodes],
     };
     // A node is blocked when its page point lies strictly inside an obstacle.
-    for o in &req.obstacles {
+    let mark = |space: &Space, o: &[i64; 4], into: &mut Vec<bool>| {
         let (x0, x1) = (o[0].min(o[2]), o[0].max(o[2]));
         let (y0, y1) = (o[1].min(o[3]), o[1].max(o[3]));
         let (i0, i1) = (idx(x0).max(lo.0), idx(x1).min(hi.0));
@@ -292,17 +354,109 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
                 let Some(cx) = space.coord(i) else { continue };
                 if x0 < cx && cx < x1 {
                     if let Some(n) = space.node((i, j)) {
-                        space.blocked[n] = true;
+                        into[n] = true;
+                    }
+                }
+            }
+        }
+    };
+    let mut blocked = vec![false; nodes];
+    for o in &req.obstacles {
+        mark(&space, o, &mut blocked);
+    }
+    // The ends' own representations block too, but for their escape corridors (FT-706): from a CP end along its
+    // direction, the stub and every further node while it is inside one of the own rectangles.
+    let mut own = vec![false; nodes];
+    for o in req.own.iter().flatten() {
+        mark(&space, o, &mut own);
+    }
+    let corridor = |p: (i64, i64), d: Option<Heading>| -> Vec<(i64, i64)> {
+        let Some(d) = d else { return vec![p] };
+        let mut out = vec![p];
+        let mut q = p;
+        loop {
+            let next = (q.0 + d.step().0, q.1 + d.step().1);
+            let Some(n) = space.node(next) else { break };
+            out.push(next);
+            if !own[n] {
+                break;
+            }
+            q = next;
+        }
+        out
+    };
+    let corridors = [corridor(s, from.dir), corridor(t, to.dir)];
+    for p in corridors.iter().flatten() {
+        if let Some(n) = space.node(*p) {
+            own[n] = false;
+        }
+    }
+    // Other wires (FT-706): the node of each of their vertices is blocked, and a move parallel to one of their
+    // segments closer than one grid step, overlapping it, is not taken.
+    let near = i64::try_from(num / den).unwrap_or(i64::MAX).saturating_sub(1);
+    for w in &req.wires {
+        let (a, b) = (w[0], w[1]);
+        for v in [a, b] {
+            if let Some(n) = space.node((idx(v.0), idx(v.1))) {
+                blocked[n] = true;
+            }
+        }
+        // `(track coordinate, extent lo, extent hi, horizontal)`.
+        let (c, e0, e1, horizontal) = if a.1 == b.1 && a.0 != b.0 {
+            (a.1, a.0.min(b.0), a.0.max(b.0), true)
+        } else if a.0 == b.0 && a.1 != b.1 {
+            (a.0, a.1.min(b.1), a.1.max(b.1), false)
+        } else {
+            continue;
+        };
+        let (tlo, thi) = if horizontal { (lo.1, hi.1) } else { (lo.0, hi.0) };
+        let (alo, ahi) = if horizontal { (lo.0, hi.0) } else { (lo.1, hi.1) };
+        for k in (idx(c) - 1).max(tlo)..=(idx(c) + 1).min(thi) {
+            let Some(ck) = space.coord(k) else { continue };
+            if (ck - c).abs() >= near {
+                continue;
+            }
+            for i in (idx(e0) - 1).max(alo)..(idx(e1) + 1).min(ahi) {
+                let (Some(c0), Some(c1)) = (space.coord(i), space.coord(i + 1)) else {
+                    continue;
+                };
+                if c1.min(e1) - c0.max(e0) <= 0 {
+                    continue;
+                }
+                let at = if horizontal { (i, k) } else { (k, i) };
+                if let Some(n) = space.node(at) {
+                    if horizontal {
+                        space.no_right[n] = true;
+                    } else {
+                        space.no_down[n] = true;
                     }
                 }
             }
         }
     }
-    for p in [Some(s), Some(t), s1, t1].into_iter().flatten() {
-        if let Some(n) = space.node(p) {
-            space.blocked[n] = false;
+    // The corridors' own moves are exempt: a second wire on a CP leaves along the same stub.
+    for c in &corridors {
+        for pair in c.windows(2) {
+            let (p, q) = (pair[0], pair[1]);
+            let (from, horizontal) = ((p.0.min(q.0), p.1.min(q.1)), p.1 == q.1);
+            if let Some(n) = space.node(from) {
+                if horizontal {
+                    space.no_right[n] = false;
+                } else {
+                    space.no_down[n] = false;
+                }
+            }
         }
     }
+    for (n, b) in blocked.iter_mut().enumerate() {
+        *b |= own[n];
+    }
+    for p in [Some(s), Some(t), s1, t1].into_iter().flatten() {
+        if let Some(n) = space.node(p) {
+            blocked[n] = false;
+        }
+    }
+    space.blocked = blocked;
     let goal = space.node(t)?;
     // The state the forward walk starts from: the first end's stub with its heading, else the first end with its
     // arrival heading (FT-437), else the first end.
@@ -366,7 +520,7 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
         let p2 = position(n2);
         let p1 = (p2.0 - m.step().0, p2.1 - m.step().1);
         let Some(n1) = space.node(p1) else { continue };
-        if space.blocked[n1] {
+        if space.blocked[n1] || !space.move_free(p1, m) {
             continue;
         }
         for h in [
@@ -409,7 +563,7 @@ fn search(req: &RouteRequest) -> Option<Vec<(i64, i64)>> {
             let w = step_cost(here_state, heading, m)?;
             let q = (p.0 + m.step().0, p.1 + m.step().1);
             let n = space.node(q)?;
-            if space.blocked[n] {
+            if space.blocked[n] || !space.move_free(p, m) {
                 return None;
             }
             let there = dist[state(n, Some(m))];
@@ -530,6 +684,8 @@ mod tests {
             grid: (MM, 1),
             area: [x0 - 4 * MM, y0 - 4 * MM, x1 + 4 * MM, y1 + 4 * MM],
             arrive: None,
+            own: [Vec::new(), Vec::new()],
+            wires: Vec::new(),
         }
     }
 
@@ -704,6 +860,8 @@ mod tests {
             grid: (7_937_500, 3),
             area: [at(5), at(5), at(25), at(21)],
             arrive: None,
+            own: [Vec::new(), Vec::new()],
+            wires: Vec::new(),
         };
         let r = auto_route(&request);
         assert_eq!(r.first(), Some(&a.at));
@@ -742,6 +900,8 @@ mod tests {
             grid: (1, 1),
             area: [0, 0, 1, 1],
             arrive: None,
+            own: [Vec::new(), Vec::new()],
+            wires: Vec::new(),
         };
         assert_eq!(auto_route(&edge), l_route(edge.from, edge.to));
     }
@@ -837,6 +997,275 @@ mod tests {
             auto_route(&with_arrive(base, Heading::Right)),
             vec![p(0, 0), p(10, 0), p(10, 10)]
         );
+    }
+
+    /// The unit moves of a route on the 1 mm grid of the tests, as (from, to) index points.
+    fn unit_moves(r: &[(i64, i64)]) -> Vec<((i64, i64), (i64, i64))> {
+        let mut out = Vec::new();
+        for w in r.windows(2) {
+            let (a, b) = ((w[0].0 / MM, w[0].1 / MM), (w[1].0 / MM, w[1].1 / MM));
+            let step = ((b.0 - a.0).signum(), (b.1 - a.1).signum());
+            let mut p = a;
+            while p != b {
+                let q = (p.0 + step.0, p.1 + step.1);
+                out.push((p, q));
+                p = q;
+            }
+        }
+        out
+    }
+
+    /// Whether the unit move `a → b` runs on the track of the segment `p → q` with a positive overlap (index points).
+    fn on_track(a: (i64, i64), b: (i64, i64), p: (i64, i64), q: (i64, i64)) -> bool {
+        if a.1 == b.1 && p.1 == q.1 && a.1 == p.1 {
+            a.0.min(b.0).max(p.0.min(q.0)) < a.0.max(b.0).min(p.0.max(q.0))
+        } else if a.0 == b.0 && p.0 == q.0 && a.0 == p.0 {
+            a.1.min(b.1).max(p.1.min(q.1)) < a.1.max(b.1).min(p.1.max(q.1))
+        } else {
+            false
+        }
+    }
+
+    /// The FT-706 violations of a route among the request's wires: a unit move on another wire's track that overlaps
+    /// it, or an interior node of the route on another wire's vertex. A CP end's stub move and stub node are exempt.
+    fn violations(rq: &RouteRequest, r: &[(i64, i64)]) -> Vec<String> {
+        let moves = unit_moves(r);
+        let n = moves.len();
+        let idx = |v: (i64, i64)| (v.0 / MM, v.1 / MM);
+        let mut out = Vec::new();
+        for (k, (a, b)) in moves.iter().enumerate() {
+            if (k == 0 && rq.from.dir.is_some()) || (k + 1 == n && rq.to.dir.is_some()) {
+                continue;
+            }
+            for w in &rq.wires {
+                if on_track(*a, *b, idx(w[0]), idx(w[1])) {
+                    out.push(format!("move {a:?}->{b:?} runs on {w:?}"));
+                }
+            }
+        }
+        // The interior nodes: every move's target but the last, without the stubs.
+        for (k, (_, b)) in moves.iter().enumerate() {
+            let stub = (k == 0 && rq.from.dir.is_some()) || (k + 2 == n && rq.to.dir.is_some());
+            if k + 1 == n || stub {
+                continue;
+            }
+            for w in &rq.wires {
+                if w.iter().any(|v| idx(*v) == *b) {
+                    out.push(format!("node {b:?} touches a vertex of {w:?}"));
+                }
+            }
+        }
+        out
+    }
+
+    fn with_wires(mut r: RouteRequest, polylines: &[&[(i64, i64)]]) -> RouteRequest {
+        for line in polylines {
+            for w in line.windows(2) {
+                r.wires.push([p(w[0].0, w[0].1), p(w[1].0, w[1].1)]);
+            }
+        }
+        r
+    }
+
+    #[test]
+    fn a_route_never_runs_on_another_wire_s_track() {
+        // FT-706 friction 8: the L wire leaves its CP down and runs right at y = 2; the N wire from the next pole
+        // would run on that track. It keeps one grid step off it (y = 1).
+        let base = req(
+            end(3, 0, Some(Heading::Down)),
+            end(25, 2, Some(Heading::Left)),
+            vec![],
+        );
+        assert_eq!(
+            auto_route(&base),
+            vec![p(3, 0), p(3, 2), p(25, 2)],
+            "without the wire it takes the track"
+        );
+        let rq = with_wires(base, &[&[(0, 0), (0, 2), (20, 2)]]);
+        let r = auto_route(&rq);
+        assert_eq!(r, vec![p(3, 0), p(3, 1), p(24, 1), p(24, 2), p(25, 2)]);
+        assert_eq!(violations(&rq, &r), Vec::<String>::new());
+    }
+
+    #[test]
+    fn a_route_crosses_another_wire_at_a_right_angle() {
+        let rq = with_wires(
+            req(
+                end(0, 0, Some(Heading::Right)),
+                end(10, 0, Some(Heading::Left)),
+                vec![],
+            ),
+            &[&[(5, -5), (5, 5)]],
+        );
+        assert_eq!(auto_route(&rq), vec![p(0, 0), p(10, 0)]);
+        assert!(!route(&rq).direct);
+    }
+
+    #[test]
+    fn a_route_never_touches_another_wire_s_end_or_corner() {
+        // A wire ending at (5, 0) on the straight line: passing there would read as a junction.
+        let rq = with_wires(
+            req(
+                end(0, 0, Some(Heading::Right)),
+                end(10, 0, Some(Heading::Left)),
+                vec![],
+            ),
+            &[&[(5, -5), (5, 0)]],
+        );
+        let r = auto_route(&rq);
+        assert!(orthogonal(&r), "{r:?}");
+        assert_eq!((r.first(), r.last()), (Some(&p(0, 0)), Some(&p(10, 0))));
+        assert_eq!(violations(&rq, &r), Vec::<String>::new());
+        assert!(!unit_moves(&r).iter().any(|(_, b)| *b == (5, 0)), "{r:?}");
+    }
+
+    #[test]
+    fn a_second_wire_on_a_cp_shares_only_the_stub() {
+        // A wire already leaves the CP down and runs on to (0, 3): the second one leaves along the same stub, then
+        // turns off it.
+        let rq = with_wires(
+            req(end(0, 0, Some(Heading::Down)), end(-10, 6, None), vec![]),
+            &[&[(0, 0), (0, 3), (10, 3)]],
+        );
+        let r = auto_route(&rq);
+        assert_eq!(r, vec![p(0, 0), p(0, 1), p(-10, 1), p(-10, 6)]);
+        assert_eq!(violations(&rq, &r), Vec::<String>::new());
+    }
+
+    /// Whether a unit move of `r` ends strictly inside `o`.
+    fn enters(r: &[(i64, i64)], o: [i64; 4]) -> bool {
+        unit_moves(r).iter().any(|(_, b)| {
+            let (x, y) = (b.0 * MM, b.1 * MM);
+            o[0] < x && x < o[2] && o[1] < y && y < o[3]
+        })
+    }
+
+    #[test]
+    fn a_cp_leaves_its_own_box_and_texts_through_its_corridor() {
+        // FT-706 friction 7: the second end's CP sits on the top edge of its own box (inflated by a step) and leaves
+        // up through its own tag; the first end is below the box. The route goes round the box and comes down into
+        // the CP through the tag, never across the box.
+        let own_box = rect(-3, -1, 3, 9);
+        let tag = rect(-2, -4, 2, 0);
+        let mut rq = req(
+            end(-8, 12, Some(Heading::Down)),
+            end(0, 0, Some(Heading::Up)),
+            vec![],
+        );
+        rq.area = [-14 * MM, -10 * MM, 8 * MM, 18 * MM];
+        let skipped = auto_route(&rq);
+        assert!(
+            enters(&skipped, own_box),
+            "without its own box the route crosses it: {skipped:?}"
+        );
+        rq.own[1] = vec![own_box, tag];
+        let routed = route(&rq);
+        let r = routed.points.clone();
+        assert!(!routed.direct, "{r:?}");
+        assert!(orthogonal(&r), "{r:?}");
+        assert_eq!(r.last(), Some(&p(0, 0)));
+        // The last segment comes straight down through the tag from above it: the corridor (0, -1) … (0, -4).
+        let n = r.len();
+        assert_eq!(r[n - 2].0, 0, "{r:?}");
+        assert!(r[n - 2].1 <= -4 * MM, "{r:?}");
+        // Nothing else of the route is inside the box or the tag.
+        assert!(!enters(&r[..n - 1], own_box), "{r:?}");
+        assert!(!enters(&r[..n - 1], tag), "{r:?}");
+    }
+
+    #[test]
+    fn a_foreign_obstacle_across_the_corridor_still_blocks() {
+        // The same tag as another representation's: the corridor is the stub only, and the CP cannot be left.
+        let mut rq = req(
+            end(-8, 12, Some(Heading::Down)),
+            end(0, 0, Some(Heading::Up)),
+            vec![],
+        );
+        rq.area = [-14 * MM, -10 * MM, 8 * MM, 18 * MM];
+        rq.obstacles = vec![rect(-2, -4, 2, 0)];
+        rq.own[1] = vec![rect(-3, -1, 3, 9)];
+        let routed = route(&rq);
+        assert!(routed.direct, "{:?}", routed.points);
+        assert_eq!(routed.points, l_route(rq.from, rq.to));
+    }
+
+    #[test]
+    fn the_route_does_not_depend_on_the_order_of_the_wires() {
+        let base = with_wires(
+            req(
+                end(3, 0, Some(Heading::Down)),
+                end(25, 2, Some(Heading::Left)),
+                vec![rect(8, -3, 12, 0)],
+            ),
+            &[
+                &[(0, 0), (0, 2), (20, 2)],
+                &[(14, -6), (14, 8)],
+                &[(-2, 5), (30, 5)],
+            ],
+        );
+        let r0 = auto_route(&base);
+        assert_eq!(auto_route(&base), r0, "twice the same");
+        let mut wires = base.wires.clone();
+        for _ in 0..wires.len() {
+            wires.rotate_left(1);
+            let mut reversed = wires.clone();
+            reversed.reverse();
+            for w in [wires.clone(), reversed] {
+                assert_eq!(
+                    auto_route(&RouteRequest {
+                        wires: w,
+                        ..base.clone()
+                    }),
+                    r0
+                );
+            }
+        }
+        assert_eq!(violations(&base, &r0), Vec::<String>::new());
+    }
+
+    #[test]
+    fn the_fallback_says_it_is_direct() {
+        let to = end(10, 10, None);
+        let walls = vec![
+            rect(7, 7, 13, 9),
+            rect(7, 11, 13, 13),
+            rect(7, 7, 9, 13),
+            rect(11, 7, 13, 13),
+        ];
+        let walled = route(&req(end(0, 0, Some(Heading::Right)), to, walls));
+        assert!(walled.direct);
+        assert_eq!(walled.points, vec![p(0, 0), p(10, 0), p(10, 10)]);
+        assert!(!route(&req(end(0, 0, Some(Heading::Right)), to, vec![])).direct);
+    }
+
+    proptest::proptest! {
+        /// FT-706: a route that is not the fallback never runs on another wire's track nor touches one of its
+        /// vertices (but for the CP ends' stubs), whatever the wires.
+        #[test]
+        fn a_found_route_keeps_off_other_wires(
+            fx in -6i64..6, fy in -6i64..6, tx in -6i64..6, ty in -6i64..6,
+            fd in proptest::option::of(0usize..4), td in proptest::option::of(0usize..4),
+            ws in proptest::collection::vec((-9i64..9, -9i64..9, -6i64..6, proptest::bool::ANY), 0..5),
+        ) {
+            let rq = RouteRequest {
+                wires: ws
+                    .iter()
+                    .map(|&(x, y, len, horizontal)| {
+                        let b = if horizontal { (x + len, y) } else { (x, y + len) };
+                        [p(x, y), p(b.0, b.1)]
+                    })
+                    .collect(),
+                ..req(end(fx, fy, fd.map(|k| Heading::ALL[k])), end(tx, ty, td.map(|k| Heading::ALL[k])), vec![])
+            };
+            let routed = route(&rq);
+            proptest::prop_assert_eq!(routed.points.first(), Some(&p(fx, fy)));
+            proptest::prop_assert_eq!(routed.points.last(), Some(&p(tx, ty)));
+            proptest::prop_assert!(orthogonal(&routed.points), "{:?}", routed.points);
+            if !routed.direct {
+                let v = violations(&rq, &routed.points);
+                proptest::prop_assert!(v.is_empty(), "{:?}: {:?}", routed.points, v);
+            }
+        }
     }
 
     proptest::proptest! {

@@ -41,7 +41,7 @@ use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::ew_dl::ew_units::Rect;
-use ew_api::routing::{RouteEnd, RouteRequest, auto_route};
+use ew_api::routing::{RouteEnd, RouteRequest, route};
 use serde_json::{Value, json};
 
 use super::{
@@ -560,15 +560,72 @@ enum State {
 }
 
 /// The key of a computed route: the page content's revision, the last fixed vertex with its leaving direction and its
-/// arrival direction (FT-437), and the end with its direction.
-type RouteKey = (u64, (i64, i64), Option<Dir>, Option<Dir>, (i64, i64), Option<Dir>);
+/// arrival direction (FT-437), the end with its direction, and the ends' own representations (FT-706).
+type RouteKey = (
+    u64,
+    (i64, i64),
+    Option<Dir>,
+    Option<Dir>,
+    (i64, i64),
+    Option<Dir>,
+    [Option<EntityRef>; 2],
+);
+
+/// A routed tail in the cache: its key, its points, and whether it is the router's fallback.
+type CachedTail = (RouteKey, Vec<(i64, i64)>, bool);
+
+/// The margins of the router's search area around the two ends, in grid steps, tried in turn until a clear route is
+/// found (FT-706): WP-S2.04 §8.1's 4, then a wider 16 for a route that has to go round a box or other wires.
+const AREA_MARGINS: [i64; 2] = [4, 16];
+
+/// The obstacle rectangles of every representation of the page, page nm (FT-706): its body and a black box's outline
+/// inflated by one grid step `g`, and every text and mark the scene draws for it (the tag, the slot texts, a black
+/// box's pin texts: the page's entity rectangles of the representation that are not a point) inflated by half a step,
+/// so that a run between two grid nodes cannot pass over a text thinner than a step.
+fn rep_rects(cx: &ToolCx<'_>, g: i64) -> std::collections::BTreeMap<Uuid, Vec<[i64; 4]>> {
+    let grow = |r: [i64; 4], d: i64| [r[0] - d, r[1] - d, r[2] + d, r[3] + d];
+    let mut out: std::collections::BTreeMap<Uuid, Vec<[i64; 4]>> = std::collections::BTreeMap::new();
+    for r in &cx.page.tables.reps {
+        let rects = out.entry(r.id).or_default();
+        rects.push(grow(r.body, g));
+        if let Some(b) = &r.black_box {
+            let xs = b.outline.iter().map(|p| p.0);
+            let ys = b.outline.iter().map(|p| p.1);
+            if let (Some(x0), Some(x1), Some(y0), Some(y1)) =
+                (xs.clone().min(), xs.max(), ys.clone().min(), ys.max())
+            {
+                rects.push(grow([x0, y0, x1, y1], g));
+            }
+        }
+    }
+    let half = (g + 1) / 2;
+    for (e, rect) in &cx.page.entities {
+        let Some(rects) = out.get_mut(&e.0) else {
+            continue;
+        };
+        let (a, b) = (rect.min(), rect.max());
+        if a.x == b.x || a.y == b.y {
+            continue;
+        }
+        let p = cx.snapper.sheet_to_page((a.x.0, a.y.0));
+        let q = cx.snapper.sheet_to_page((b.x.0, b.y.0));
+        rects.push(grow(
+            [p.0.min(q.0), p.1.min(q.1), p.0.max(q.0), p.1.max(q.1)],
+            half,
+        ));
+    }
+    out
+}
 
 /// The Wire tool.
 #[derive(Clone, Debug)]
 pub struct WireTool {
     state: State,
-    /// The last routed tail and its key (one `auto_route` per changed snapped point).
-    cache: Option<(RouteKey, Vec<(i64, i64)>)>,
+    /// The last routed tail, whether it is the router's fallback, and its key (one route per changed snapped point).
+    cache: Option<CachedTail>,
+    /// Whether the last route the tool computed is the fallback drawn direct (FT-706): the status hint says so until
+    /// the next wire starts.
+    direct: bool,
     /// How many times the router ran (the exact-count test, §12 item 4).
     routes: u64,
     /// The labels of the start and the end, for the transcript.
@@ -589,6 +646,7 @@ impl WireTool {
         WireTool {
             state: State::Armed { target: None },
             cache: None,
+            direct: false,
             routes: 0,
             labels: (None, None),
             kind: None,
@@ -615,38 +673,42 @@ impl WireTool {
     }
 
     /// The router's tail from `from` (leaving along `from_dir`, or arrived at along `arrive`) to the end target,
-    /// through the cache.
+    /// through the cache; it sets `self.direct` to whether the tail is the router's fallback.
+    ///
+    /// The obstacles are every representation of the page ([`rep_rects`]); those of `own` (the start's while the
+    /// tail starts at it, the end's) are the ends' own, left only along a CP's escape corridor; the other wires are
+    /// every connection on the page (FT-706). The search area grows by [`AREA_MARGINS`] until a clear route is found.
     fn tail(
         &mut self,
         cx: &ToolCx<'_>,
         (from, from_dir, arrive): ((i64, i64), Option<Dir>, Option<Dir>),
-        skip: [Option<EntityRef>; 2],
+        own: [Option<EntityRef>; 2],
         to: &WireTarget,
     ) -> Vec<(i64, i64)> {
-        let key: RouteKey = (cx.page.rev, from, from_dir, arrive, to.at(), to.dir());
-        if let Some((k, r)) = &self.cache
+        let key: RouteKey = (cx.page.rev, from, from_dir, arrive, to.at(), to.dir(), own);
+        if let Some((k, r, direct)) = &self.cache
             && *k == key
         {
+            self.direct = *direct;
             return r.clone();
         }
         let tables = &cx.page.tables;
         let grid = PageGridMap::new(tables.grid);
         let g = grid.step();
-        let obstacles: Vec<[i64; 4]> = tables
-            .reps
-            .iter()
-            .filter(|r| !skip.contains(&Some(EntityRef(r.id))))
-            .map(|r| [r.body[0] - g, r.body[1] - g, r.body[2] + g, r.body[3] + g])
-            .collect();
+        let mut rects = rep_rects(cx, g);
+        let own_rects = own.map(|r| r.and_then(|r| rects.get(&r.0).cloned()).unwrap_or_default());
+        for r in own.into_iter().flatten() {
+            rects.remove(&r.0);
+        }
+        let obstacles: Vec<[i64; 4]> = rects.into_values().flatten().collect();
+        let mut wires: Vec<[(i64, i64); 2]> = Vec::new();
+        for c in &tables.connections {
+            let line = super::autoconnect::dedup(&c.polyline);
+            wires.extend(line.windows(2).map(|w| [w[0], w[1]]));
+        }
         let t = to.at();
         let page = drawing_area(cx);
-        let area = [
-            (from.0.min(t.0) - 4 * g).max(page[0]),
-            (from.1.min(t.1) - 4 * g).max(page[1]),
-            (from.0.max(t.0) + 4 * g).min(page[2]),
-            (from.1.max(t.1) + 4 * g).min(page[3]),
-        ];
-        let route = auto_route(&RouteRequest {
+        let mut req = RouteRequest {
             from: RouteEnd {
                 at: from,
                 dir: from_dir,
@@ -654,12 +716,31 @@ impl WireTool {
             to: RouteEnd { at: t, dir: to.dir() },
             obstacles,
             grid: tables.grid,
-            area,
+            area: page,
             arrive,
-        });
+            own: own_rects,
+            wires,
+        };
+        let mut routed = None;
+        for m in AREA_MARGINS {
+            req.area = [
+                (from.0.min(t.0) - m * g).max(page[0]),
+                (from.1.min(t.1) - m * g).max(page[1]),
+                (from.0.max(t.0) + m * g).min(page[2]),
+                (from.1.max(t.1) + m * g).min(page[3]),
+            ];
+            let r = route(&req);
+            let found = !r.direct;
+            routed = Some(r);
+            if found {
+                break;
+            }
+        }
+        let (points, direct) = routed.map_or_else(|| (vec![from, t], true), |r| (r.points, r.direct));
         self.routes += 1;
-        self.cache = Some((key, route.clone()));
-        route
+        self.direct = direct;
+        self.cache = Some((key, points.clone(), direct));
+        points
     }
 
     /// The full route from the start's fixed vertices to `to`.
@@ -680,8 +761,10 @@ impl WireTool {
             [.., a, b] => heading_between(*a, *b),
             _ => None,
         };
-        let skip = [start.rep(), to.rep()];
-        let tail = self.tail(cx, (last, from_dir, arrive), skip, to);
+        // The start's representation is the tail's own only while the tail starts at it; after a bend it is an
+        // obstacle like any other (FT-706).
+        let own = [start.rep().filter(|_| fixed.len() == 1), to.rep()];
+        let tail = self.tail(cx, (last, from_dir, arrive), own, to);
         let mut pts: Vec<(i64, i64)> = fixed[..fixed.len() - 1].to_vec();
         pts.extend(tail);
         clean(pts)
@@ -812,6 +895,7 @@ impl WireTool {
                     return ToolOutput::None;
                 }
                 self.labels = (target.label(cx), None);
+                self.direct = false;
                 self.state = State::Routing {
                     fixed: vec![target.at()],
                     marks: Vec::new(),
@@ -1052,6 +1136,7 @@ impl Tool for WireTool {
                 State::Routing { .. } => {
                     self.state = State::Armed { target: None };
                     self.cache = None;
+                    self.direct = false;
                     ToolOutput::Cancel
                 }
                 State::Armed { .. } => ToolOutput::None,
@@ -1060,7 +1145,12 @@ impl Tool for WireTool {
         }
     }
 
+    /// FT-706: while the ghost is the router's fallback, and after a wire drawn so until the next one starts, the
+    /// hint says that no clear route was found and the wire is drawn direct (not a refusal).
     fn status_hint(&self) -> &'static str {
+        if self.direct {
+            return "hint-wire-direct";
+        }
         match self.state {
             State::Armed { .. } => "hint-wire-armed",
             State::Routing { .. } => "hint-wire-routing",

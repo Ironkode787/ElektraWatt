@@ -7,9 +7,10 @@
 //! and the router never runs on replay.
 //!
 //! **Contract.** The full vertex list from `from.at` to `to.at`: deterministic (the tie rule of §8.1, independent of
-//! the obstacle order), every interior vertex on the grid or on the coordinate of the end next to it, the ends
-//! exact; without a path inside the area, the provisional L route. Page nm, y down. See `ew_commands::route` for
-//! the algorithm.
+//! the obstacle order and of the order of the other wires), every interior vertex on the grid or on the coordinate
+//! of the end next to it, the ends exact; clear of the obstacles, of the ends' own representations but for a CP's
+//! escape corridor, and of the other wires' tracks and vertices (FT-706); without such a path inside the area, the
+//! provisional L route, marked [`Routed::direct`]. Page nm, y down. See `ew_commands::route` for the algorithm.
 
 use ew_commands::route::{self, Heading};
 
@@ -31,8 +32,8 @@ pub struct RouteRequest {
     pub from: RouteEnd,
     /// The second end.
     pub to: RouteEnd,
-    /// The obstacle rectangles `[x0, y0, x1, y1]`, page nm: the bodies of the page's representations other than
-    /// those of the two ends, inflated by one grid step.
+    /// The obstacle rectangles `[x0, y0, x1, y1]`, page nm: the bodies and texts of the page's representations other
+    /// than those of the two ends, inflated (a body by one grid step).
     pub obstacles: Vec<[i64; 4]>,
     /// The connection grid `(num, den)` nm.
     pub grid: (i64, i64),
@@ -42,6 +43,22 @@ pub struct RouteRequest {
     /// The direction the route arrived at `from` with, for a first end without a direction (a fixed bend's incoming
     /// direction, FT-437): the route never doubles back over it; a turn there costs no bend. Ignored at a CP end.
     pub arrive: Option<Dir>,
+    /// The rectangles of the first and the second end's own representation (body, black-box outline, texts; page nm,
+    /// inflated as `obstacles` are): obstacles, except along a CP end's escape corridor, the nodes from the CP along
+    /// its direction while they lie inside them (FT-706). Empty for an end without a representation.
+    pub own: [Vec<[i64; 4]>; 2],
+    /// The segments of the other connections on the page, page nm: the route never runs on their tracks closer than
+    /// a grid step nor touches their vertices; it crosses them at a right angle (FT-706). Empty: no other wire.
+    pub wires: Vec<[(i64, i64); 2]>,
+}
+
+/// A route and whether it is the fallback.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Routed {
+    /// The full vertex list from `from.at` to `to.at`.
+    pub points: Vec<(i64, i64)>,
+    /// Whether it is the provisional L route: no clear path inside the area, so it may cross obstacles and wires.
+    pub direct: bool,
 }
 
 fn heading(d: Dir) -> Heading {
@@ -62,14 +79,25 @@ fn end(e: RouteEnd) -> route::RouteEnd {
 
 /// The route of `req` (see the module documentation).
 pub fn auto_route(req: &RouteRequest) -> Vec<(i64, i64)> {
-    route::auto_route(&route::RouteRequest {
+    route(req).points
+}
+
+/// The route of `req` with whether it is the fallback (see the module documentation).
+pub fn route(req: &RouteRequest) -> Routed {
+    let r = route::route(&route::RouteRequest {
         from: end(req.from),
         to: end(req.to),
         obstacles: req.obstacles.clone(),
         grid: req.grid,
         area: req.area,
         arrive: req.arrive.map(heading),
-    })
+        own: req.own.clone(),
+        wires: req.wires.clone(),
+    });
+    Routed {
+        points: r.points,
+        direct: r.direct,
+    }
 }
 
 #[cfg(test)]
@@ -79,7 +107,7 @@ mod tests {
     #[test]
     fn the_wrapper_routes_as_the_commands_router() {
         let mm = 1_000_000;
-        let req = RouteRequest {
+        let mut req = RouteRequest {
             from: RouteEnd {
                 at: (0, 0),
                 dir: Some(Dir::Right),
@@ -92,7 +120,19 @@ mod tests {
             grid: (mm, 1),
             area: [-4 * mm, -4 * mm, 14 * mm, 14 * mm],
             arrive: None,
+            own: [Vec::new(), Vec::new()],
+            wires: Vec::new(),
         };
         assert_eq!(auto_route(&req), vec![(0, 0), (10 * mm, 0), (10 * mm, 10 * mm)]);
+        assert!(!route(&req).direct);
+        // Another wire on the first run's track: the route turns off it after the stub, before the wire begins.
+        req.wires = vec![[(2 * mm, 0), (8 * mm, 0)]];
+        let r = route(&req);
+        assert!(!r.direct);
+        assert!(
+            r.points.iter().all(|p| p.1 != 0 || p.0 < 2 * mm),
+            "{:?}",
+            r.points
+        );
     }
 }
