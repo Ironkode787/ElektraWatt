@@ -470,7 +470,12 @@ impl NavigatorPane {
                 for row in &visible[range] {
                     painted += 1;
                     if let Some(r) = renaming.as_ref().filter(|r| r.key == row.key) {
-                        rename_ui(ui, kind, row, &r.text, events);
+                        let error = shell.nav_rename_error();
+                        rename_ui(ui, kind, row, &r.text, error.is_some(), events);
+                        // FT-633: a refused device tag shows the Properties grid's refusal and proposal under it.
+                        if let Some((message, proposal)) = error {
+                            rename_error_ui(ui, row, message, proposal, events);
+                        }
                         continue;
                     }
                     row_ui(ui, kind, pages, row, cursor.as_deref(), &visible, events);
@@ -705,8 +710,16 @@ pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str,
 
 /// The inline editor of a row whose label is being renamed (WP-S2.07 part 2, FT-490): a one-line text field at the
 /// row's indent, opened on the current label with the focus; Enter commits (`navigator.rename {text}`), Escape or a
-/// click elsewhere cancels (`navigator.rename {cancel}`).
-fn rename_ui(ui: &mut Ui, kind: NavKind, row: &ShownRow, initial: &str, events: &mut Vec<Event>) {
+/// click elsewhere cancels (`navigator.rename {cancel}`). FT-633: while a refusal shows under the field (`refused`), a
+/// click elsewhere (the proposal's button) leaves the field open; Escape still cancels.
+fn rename_ui(
+    ui: &mut Ui,
+    kind: NavKind,
+    row: &ShownRow,
+    initial: &str,
+    refused: bool,
+    events: &mut Vec<Event>,
+) {
     let t = crate::theme::current(ui.ctx());
     let id = egui::Id::unique(("navigator-rename", kind.word(), row.key.as_str()));
     let mut text = ui
@@ -735,6 +748,12 @@ fn rename_ui(ui: &mut Ui, kind: NavKind, row: &ShownRow, initial: &str, events: 
     }
     if response.lost_focus() {
         let enter = ui.input(|i| i.key_pressed(egui::Key::Enter));
+        let escape = ui.input(|i| i.key_pressed(egui::Key::Escape));
+        if refused && !enter && !escape {
+            // The field stays open, unfocused, on the text as typed.
+            ui.data_mut(|d| d.insert_temp(id, text));
+            return;
+        }
         let params = if enter {
             json!({"kind": kind.word(), "text": text})
         } else {
@@ -747,6 +766,48 @@ fn rename_ui(ui: &mut Ui, kind: NavKind, row: &ShownRow, initial: &str, events: 
         });
     } else {
         ui.data_mut(|d| d.insert_temp(id, text));
+    }
+}
+
+/// FT-633: under a device row's F2 field, the refusal of the typed tag as the Properties grid words it (the icon and
+/// the message in `color.error`, `type.small`) and its proposal as the same button ("Use -102F3", "Join -K1"), which
+/// runs `props.accept_tag_proposal`.
+fn rename_error_ui(
+    ui: &mut Ui,
+    row: &ShownRow,
+    message: &str,
+    proposal: Option<&ew_viewmodel::properties::TagProposal>,
+    events: &mut Vec<Event>,
+) {
+    let t = crate::theme::current(ui.ctx());
+    let indent = t.space_4 + t.size_tree_indent * (row.level.saturating_sub(1)) as f32;
+    ui.horizontal(|ui| {
+        ui.add_space(indent);
+        let (r, _) = ui.allocate_exact_size(egui::Vec2::splat(t.icon_sm), egui::Sense::hover());
+        crate::icons::paint(
+            ui.painter(),
+            crate::icons::IconId::circle_x,
+            r,
+            t.error.color32(),
+            t.icon_stroke,
+        );
+        ui.add(
+            egui::Label::new(
+                egui::RichText::new(message)
+                    .font(crate::theme::font(&t.type_small))
+                    .color(t.error.color32()),
+            )
+            .wrap(),
+        );
+    });
+    if let Some(p) = proposal {
+        ui.horizontal(|ui| {
+            ui.add_space(indent + t.icon_sm);
+            let kind = crate::components::Kind::Secondary;
+            if crate::components::button(ui, kind, &p.button_text(), true, 0.0).clicked() {
+                events.push(Event::Action("props.accept_tag_proposal", json!({})));
+            }
+        });
     }
 }
 

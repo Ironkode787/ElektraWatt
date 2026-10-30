@@ -9,7 +9,7 @@ mod common;
 use common::{Tmp, done, refused, state};
 use ew_viewmodel::ew_api::output::NavRole;
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
 fn steps(s: &ShellModel) -> usize {
@@ -312,11 +312,164 @@ fn ct4_f2_renames_pages_and_potentials() {
             .iter()
             .any(|n| n.label == "24VDC-9")
     );
-    // Another navigator's rows have no rename route.
+    // A row without a name of its own (a core) has no rename route.
     done(&mut s, "navigator.show", json!({"kind": "cables"}));
+    let wh = core_key(&s, "-106W1", "WH");
+    done(&mut s, "navigator.row", json!({"kind": "cables", "key": wh}));
     assert_eq!(
         refused(&mut s, "navigator.rename", json!({"kind": "cables"})),
         "reason-nav-not-renamable"
     );
+    s.shutdown();
+}
+
+/// The key of the first row of navigator `kind` with `role` whose label is `label`.
+fn nav_key(s: &ShellModel, kind: NavKind, role: NavRole, label: &str) -> String {
+    let t = s.nav(kind).and_then(|n| n.table()).unwrap();
+    t.nodes
+        .iter()
+        .find(|n| n.role == role && n.label == label)
+        .map(|n| n.key.clone())
+        .unwrap_or_else(|| panic!("no {role:?} row {label}"))
+}
+
+/// The labels of navigator `kind`'s rows with `role`.
+fn nav_labels(s: &ShellModel, kind: NavKind, role: NavRole) -> Vec<String> {
+    let t = s.nav(kind).and_then(|n| n.table()).unwrap();
+    t.nodes
+        .iter()
+        .filter(|n| n.role == role)
+        .map(|n| n.label.clone())
+        .collect()
+}
+
+/// The device row of the Devices navigator whose records hold the device `tag` names.
+fn device_key(s: &mut ShellModel, tag: &str) -> String {
+    done(s, "select.set", json!({ "refs": [format!("tag:{tag}")] }));
+    let id = s.properties().sheet().expect("the device's sheet").sections[0].targets[0];
+    done(s, "select.set", json!({"ids": []}));
+    let t = s.nav(NavKind::Devices).and_then(|n| n.table()).unwrap();
+    t.nodes
+        .iter()
+        .find(|n| n.role == NavRole::Device && n.records.first() == Some(&id))
+        .map(|n| n.key.clone())
+        .unwrap_or_else(|| panic!("no device row {tag}"))
+}
+
+/// FT-633(a): F2 on a structure node opens its editor on the code; the typed code commits one `fields.set` of the
+/// node's `code` (the route the Properties grid edits it by) and undo restores it.
+#[test]
+fn ct4_f2_renames_a_structure_node_code() {
+    let tmp = Tmp::new("s207p2-ct4s");
+    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut s, "navigator.show", json!({"kind": "structure"}));
+    let key = nav_key(&s, NavKind::Structure, NavRole::StructureNode, "+J-E-2416");
+    done(&mut s, "navigator.row", json!({"kind": "structure", "key": key}));
+    done(&mut s, "navigator.rename", json!({"kind": "structure"}));
+    let r = s.nav_rename().expect("the editor").clone();
+    assert_eq!((r.key.as_str(), r.tag), (key.as_str(), false));
+    let code = r.text.clone();
+    assert!(!code.is_empty() && "+J-E-2416".ends_with(&code), "{code}");
+    let (n, rev) = (steps(&s), s.revision());
+    done(
+        &mut s,
+        "navigator.rename",
+        json!({"kind": "structure", "text": "J-E-2417"}),
+    );
+    assert!(s.nav_rename().is_none());
+    assert_eq!((steps(&s), s.revision()), (n + 1, rev.map(|r| r + 1)), "one commit");
+    let (name, params) = last(&s);
+    assert_eq!(
+        (name.as_str(), &params["kind"], &params["path"]),
+        ("fields.set", &json!("structure_node"), &json!("code"))
+    );
+    let labels = nav_labels(&s, NavKind::Structure, NavRole::StructureNode);
+    assert!(labels.iter().any(|l| l == "+J-E-2417"), "{labels:?}");
+    assert!(!labels.iter().any(|l| l == "+J-E-2416"), "{labels:?}");
+    done(&mut s, "edit.undo", json!({}));
+    let labels = nav_labels(&s, NavKind::Structure, NavRole::StructureNode);
+    assert!(labels.iter().any(|l| l == "+J-E-2416"), "{labels:?}");
+    s.shutdown();
+}
+
+/// FT-633(b): F2 on a device row opens the inline field on the whole tag; a free tag renames it through the Properties
+/// grid's own rows (here the Counter row) in one commit and the field closes.
+#[test]
+fn ct4_f2_renames_a_device_tag() {
+    let tmp = Tmp::new("s207p2-ct4t");
+    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut s, "navigator.show", json!({"kind": "devices"}));
+    let key = device_key(&mut s, "-102G1");
+    done(&mut s, "navigator.row", json!({"kind": "devices", "key": key}));
+    done(&mut s, "navigator.rename", json!({"kind": "devices"}));
+    let r = s.nav_rename().expect("the editor").clone();
+    assert_eq!((r.text.as_str(), r.tag), ("-102G1", true));
+    let n = steps(&s);
+    done(
+        &mut s,
+        "navigator.rename",
+        json!({"kind": "devices", "text": "-102G7"}),
+    );
+    assert!(s.nav_rename().is_none());
+    assert_eq!(steps(&s), n + 1, "one commit");
+    let (name, params) = last(&s);
+    assert_eq!(name, "fields.set", "{params}");
+    // The device prints the new tag.
+    done(&mut s, "select.set", json!({"refs": ["tag:-102G7"]}));
+    s.shutdown();
+}
+
+/// FT-633(b): a tag that names another device on the page is refused with the Properties grid's own message and no
+/// commit (a counter collision, FR-NUM-029); a letter edit whose counter is taken shows the grid's proposal under the
+/// field, accepted in one step, which closes the field.
+#[test]
+fn ct4_f2_refuses_a_taken_device_tag_like_the_properties_grid() {
+    let tmp = Tmp::new("s207p2-ct4x");
+    let mut s = tmp.shell_in(Mode::Headless, true, "102");
+    // The Properties grid's message for the same edit.
+    done(&mut s, "select.set", json!({"refs": ["tag:-102F1"]}));
+    let grid = match s.dispatch("props.set", &json!({"row": "device/tag.counter", "value": "2"})) {
+        Outcome::Failed { message } => message,
+        other => panic!("{other:?}"),
+    };
+    assert!(grid.contains("already used on page"), "{grid}");
+    done(&mut s, "props.cancel", json!({}));
+    done(&mut s, "select.set", json!({"ids": []}));
+    done(&mut s, "navigator.show", json!({"kind": "devices"}));
+    let key = device_key(&mut s, "-102F1");
+    done(&mut s, "navigator.row", json!({"kind": "devices", "key": key}));
+    done(&mut s, "navigator.rename", json!({"kind": "devices"}));
+    let (n, rev) = (steps(&s), s.revision());
+    let message = match s.dispatch(
+        "navigator.rename",
+        &json!({"kind": "devices", "text": "-102F2"}),
+    ) {
+        Outcome::Failed { message } => message,
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(message, grid, "the Properties message");
+    assert_eq!((steps(&s), s.revision()), (n, rev), "nothing committed");
+    let r = s.nav_rename().expect("the field stays open").clone();
+    assert_eq!(r.text, "-102F2", "on the text as typed");
+    let (shown, proposal) = s.nav_rename_error().expect("the refusal under the field");
+    assert_eq!(shown, grid);
+    assert!(proposal.is_none());
+    done(&mut s, "navigator.rename", json!({"kind": "devices", "cancel": true}));
+    // A letter edit: -102G1 to F collides with -102F1 and proposes the next free counter.
+    let key = device_key(&mut s, "-102G1");
+    done(&mut s, "navigator.row", json!({"kind": "devices", "key": key}));
+    done(&mut s, "navigator.rename", json!({"kind": "devices"}));
+    assert!(matches!(
+        s.dispatch("navigator.rename", &json!({"kind": "devices", "text": "-102F1"})),
+        Outcome::Failed { .. }
+    ));
+    let (shown, proposal) = s.nav_rename_error().expect("the refusal under the field");
+    assert!(shown.ends_with(". Use -102F3 to accept it."), "{shown}");
+    let proposal = proposal.expect("the proposal").clone();
+    assert_eq!(proposal.button_text(), "Use -102F3");
+    let rev = s.revision();
+    done(&mut s, "props.accept_tag_proposal", json!({}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
+    assert!(s.nav_rename().is_none(), "the field closes");
     s.shutdown();
 }

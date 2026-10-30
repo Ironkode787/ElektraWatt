@@ -86,6 +86,30 @@ const PRINTED_LABEL_ROW: &str = "device/derived.printed_label";
 /// WP-S2.18 D3 (FT-628): the key of a device's Tag row.
 const TAG_ROW: &str = "device/derived.tag";
 
+/// FT-633: the grid row and value of a tag typed for a device whose tag on show is `shown` (letter `letter`, counter
+/// `counter`) when the typed text changes exactly one of the two and keeps the rest: `-102F1` → `-102K1` is the Letter
+/// row with `K`, `-X1031` → `-X1032` the Counter row with `2` (the strip format `{letter}{page}{counter}`). `None` for
+/// any other text (the same tag, both changed, another prefix), which the Tag row takes.
+fn tag_edit_of(shown: &str, letter: &str, counter: &str, typed: &str) -> Option<(&'static str, String)> {
+    if letter.is_empty() || counter.is_empty() {
+        return None;
+    }
+    let head = shown.strip_suffix(counter)?;
+    let at = head.rfind(letter)?;
+    let (before, after) = (&head[..at], &head[at + letter.len()..]);
+    let rest = typed.trim().strip_prefix(before)?;
+    let typed_letter: String = rest.chars().take_while(char::is_ascii_alphabetic).collect();
+    let typed_counter = rest[typed_letter.len()..].strip_prefix(after)?;
+    if typed_letter.is_empty() || typed_counter.is_empty() || !typed_counter.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    match (typed_letter != letter, typed_counter != counter) {
+        (true, false) => Some(("device/tag.letter", typed_letter)),
+        (false, true) => Some(("device/tag.counter", typed_counter.to_owned())),
+        _ => None,
+    }
+}
+
 /// The sentence of a strip edit's refusal (the Group row's error line).
 fn message_of(result: &Result<AnyCommand, ew_api::output::StripEditError>) -> String {
     match result {
@@ -1382,8 +1406,81 @@ impl ShellModel {
             if let Some(toast) = toast {
                 self.notify(toast, true);
             }
+            // FT-633: the proposal of a device row's F2 rename closes its inline field.
+            if self.rename.as_ref().is_some_and(|r| r.tag) {
+                self.rename = None;
+            }
         }
         outcome
+    }
+
+    /// FT-633: shows the sheet of `device` in the grid (the pane opened when it is closed, the device the selection), so
+    /// that a navigator's F2 on a device row edits the tag through the Tag field's own path. The tag on show, or `None`
+    /// when the sheet has no editable Tag row.
+    pub(super) fn tag_rename_sheet(&mut self, device: ew_api::output::Uuid) -> Option<String> {
+        if !self.layout.panes().contains(&crate::layout::PaneKind::Properties) {
+            let _ = self.act_props_show(&Map::new());
+        }
+        let items = vec![EntityRef(device)];
+        if self.tools.selection.items != items {
+            let _ = self
+                .tools
+                .selection
+                .apply(&crate::tools::SelectionChange::Replace(items));
+        }
+        self.sync_properties();
+        let (section, row) = self.props_find(TAG_ROW)?;
+        if section.targets != [device] || self.props_refusal(&section, &row, RowAction::Edit).is_some() {
+            return None;
+        }
+        match row.value {
+            RowValue::One { text, .. } => Some(text),
+            _ => Some(String::new()),
+        }
+    }
+
+    /// FT-633: commits `text` typed for the tag of `device` (a navigator's F2 on a device row) through the grid's own
+    /// rows: a tag another device prints and the device can join goes to the Tag row (its "Join -K1" proposal); a text
+    /// that changes only the letter or only the counter of the tag on show goes to the Letter or the Counter row
+    /// (FR-NUM-029: a counter collision on the page is refused, a letter edit with the next free counter proposed);
+    /// any other text goes to the Tag row (the typed tag frozen). The refusal and the proposal stay in the grid's state
+    /// ([`ShellModel::nav_rename_error`] shows them under the inline field).
+    pub(super) fn tag_rename_commit(&mut self, device: ew_api::output::Uuid, text: &str) -> Outcome {
+        let Some(shown) = self.tag_rename_sheet(device) else {
+            return Outcome::Refused {
+                reason_key: "reason-nav-not-renamable",
+            };
+        };
+        let row_text = |s: &Self, key: &str| match s.props_find(key).map(|(_, r)| r.value) {
+            Some(RowValue::One { text, .. }) => text,
+            _ => String::new(),
+        };
+        let letter = row_text(self, "device/tag.letter");
+        let counter = row_text(self, "device/tag.counter");
+        let joins = self
+            .project
+            .as_ref()
+            .is_some_and(|p| p.session.join_proposal(device, text).is_some());
+        let (row, value) = match tag_edit_of(&shown, &letter, &counter, text) {
+            Some((row, value)) if !joins => (row, value),
+            _ => (TAG_ROW, text.to_owned()),
+        };
+        let p = json!({"row": row, "value": value});
+        match p {
+            Value::Object(m) => self.act_props_set(&m),
+            _ => Outcome::Done,
+        }
+    }
+
+    /// FT-633: the refusal under a device row's F2 field (the grid's error line of the tag's rows) and its proposal.
+    pub fn nav_rename_error(&self) -> Option<(&str, Option<&crate::properties::TagProposal>)> {
+        self.rename.as_ref().filter(|r| r.tag)?;
+        let (row, message) = self.props.error()?;
+        if !matches!(row, TAG_ROW | "device/tag.letter" | "device/tag.counter") {
+            return None;
+        }
+        let proposal = self.props.tag_proposal().filter(|p| p.row == row);
+        Some((message, proposal))
     }
 
     /// One command through the grid's commit path: a fresh preview, then [`ShellModel::commit_kept`].
@@ -1953,6 +2050,23 @@ mod tests {
 
     use super::*;
     use crate::properties::EditRoute;
+
+    /// FT-633: a typed tag that changes only the letter or only the counter goes to that row; anything else to the
+    /// Tag row.
+    #[test]
+    fn tag_edit_of_reads_the_letter_or_the_counter() {
+        let letter = |v: &str| Some(("device/tag.letter", v.to_owned()));
+        let counter = |v: &str| Some(("device/tag.counter", v.to_owned()));
+        assert_eq!(tag_edit_of("-102F1", "F", "1", "-102K1"), letter("K"));
+        assert_eq!(tag_edit_of("-102F1", "F", "1", " -102F2 "), counter("2"));
+        assert_eq!(tag_edit_of("-X1031", "X", "1", "-X1032"), counter("2"));
+        assert_eq!(tag_edit_of("-X1031", "X", "1", "-Y1031"), letter("Y"));
+        assert_eq!(tag_edit_of("-102F1", "F", "1", "-102F1"), None, "the same tag");
+        assert_eq!(tag_edit_of("-102F1", "F", "1", "-102K7"), None, "both changed");
+        assert_eq!(tag_edit_of("-102F1", "F", "1", "-101F1"), None, "another page");
+        assert_eq!(tag_edit_of("-102F1", "F", "1", "-102F1a"), None);
+        assert_eq!(tag_edit_of("-102F1", "F", "", "-102F2"), None, "no counter");
+    }
 
     fn copy_dir(from: &Path, to: &Path) {
         std::fs::create_dir_all(to).unwrap();

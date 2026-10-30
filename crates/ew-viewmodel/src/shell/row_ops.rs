@@ -14,6 +14,9 @@
 //! - **Rename** (FT-490): the authored label of a Pages row (the page title) or a Potentials row (a defined
 //!   potential's name), through the row's editable route (`fields.set`, the text parsed by `parse_field_input`). Without
 //!   `text` it opens the row's inline editor on the current label; with `text` it commits; `cancel` closes the editor.
+//!   FT-633 adds a structure node's code (the same `fields.set` route the Properties grid edits it by) and a device's
+//!   tag, whose typed text goes through the Properties Tag field's own path (the Join proposal, the Letter or Counter
+//!   row with FR-NUM-029's refusal and proposal, else the frozen tag), its refusal shown under the inline field.
 //!   Other rows refuse `reason-nav-not-renamable`.
 //!
 //! In tree mode the navigator's Delete and F2 (bound to `table.clear` and `table.edit`, which act in table mode) run
@@ -22,7 +25,7 @@
 use std::sync::Arc;
 
 use ew_api::AnyCommand;
-use ew_api::output::{InputError, NavKind, NavNode, NavRole, NavTable};
+use ew_api::output::{InputError, NavKind, NavNode, NavRole, NavTable, Uuid};
 use serde_json::{Map, Value, json};
 
 use super::{Mode, Outcome, ShellModel, failed, flag, string_param};
@@ -36,15 +39,35 @@ pub struct NavRename {
     pub kind: NavKind,
     /// The row's key.
     pub key: String,
-    /// The label's text when the editor opened.
+    /// The label's text when the editor opened (after a refused tag, the text as typed).
     pub text: String,
+    /// FT-633: the row is a device whose tag goes through the Properties Tag field's path; its refusal and proposal
+    /// are [`ShellModel::nav_rename_error`].
+    pub tag: bool,
 }
 
-/// The rename route of navigator `kind` (FT-490): (record kind, field path).
-fn rename_route(kind: NavKind) -> Option<(&'static str, &'static str)> {
-    match kind {
-        NavKind::Pages => Some(("page", "title")),
-        NavKind::Potentials => Some(("potential_def", "name")),
+/// What F2 renames on a row (FT-490, FT-633).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum RenameRoute {
+    /// A field through `fields.set`: (record kind, field path).
+    Field(&'static str, &'static str),
+    /// A device's tag, through the Properties Tag field's path.
+    Tag(Uuid),
+}
+
+/// The rename route of a row of navigator `kind`: a page's title or a potential definition's name (FT-490), a
+/// structure node's code (FT-633(a), the route the Properties grid edits it by) or a device's tag (FT-633(b)).
+fn rename_route(kind: NavKind, node: Option<&NavNode>) -> Option<RenameRoute> {
+    match (kind, node.map(|n| n.role)) {
+        (NavKind::Pages, _) => Some(RenameRoute::Field("page", "title")),
+        (NavKind::Potentials, _) => Some(RenameRoute::Field("potential_def", "name")),
+        (_, Some(NavRole::StructureNode)) => Some(RenameRoute::Field("structure_node", "code")),
+        (
+            _,
+            Some(NavRole::Device | NavRole::Strip | NavRole::Cable | NavRole::Station | NavRole::Module),
+        ) => node
+            .and_then(|n| n.records.first())
+            .map(|d| RenameRoute::Tag(*d)),
         _ => None,
     }
 }
@@ -232,27 +255,39 @@ impl ShellModel {
                 reason_key: "reason-read-only",
             };
         }
-        let Some((route_kind, path)) = rename_route(kind) else {
-            return Outcome::Refused {
-                reason_key: "reason-nav-not-renamable",
-            };
-        };
-        // The row: the open editor's, else the cursor row; its targets and current label.
+        let legacy_pages = kind == NavKind::Pages && self.generic(NavKind::Pages).is_none();
+        // The row: the open editor's, else the cursor row; its route, targets and current label.
         let key = match self.rename.as_ref().filter(|r| r.kind == kind) {
             Some(r) => Some(r.key.clone()),
-            None if kind == NavKind::Pages && self.generic(NavKind::Pages).is_none() => {
-                self.navigator_row_key()
-            }
+            None if legacy_pages => self.navigator_row_key(),
             None => self
                 .generic(kind)
                 .and_then(crate::navigators::Navigator::cursor_key),
+        };
+        let node = key.as_ref().and_then(|key| {
+            self.generic(kind)
+                .and_then(|n| n.node_of(key).map(|(_, node)| node.clone()))
+        });
+        let Some(route) = rename_route(kind, node.as_ref()) else {
+            return Outcome::Refused {
+                reason_key: if key.is_some() {
+                    "reason-nav-not-renamable"
+                } else {
+                    "reason-no-nav-row"
+                },
+            };
         };
         let Some(key) = key else {
             return Outcome::Refused {
                 reason_key: "reason-no-nav-row",
             };
         };
-        let (targets, label) = if kind == NavKind::Pages && self.generic(NavKind::Pages).is_none() {
+        // FT-633(b): a device's tag goes through the Properties Tag field's own path.
+        let (route_kind, path) = match route {
+            RenameRoute::Field(k, p) => (k, p),
+            RenameRoute::Tag(device) => return self.rename_tag(kind, key, device, text),
+        };
+        let (targets, label) = if legacy_pages {
             let rows = self.page_rows();
             match crate::navigator::PageNavigator::page_of(&key, rows) {
                 Some(i) if !rows[i].generated => (vec![rows[i].id], rows[i].title.clone()),
@@ -263,25 +298,27 @@ impl ShellModel {
                 }
             }
         } else {
-            let node = self
-                .generic(kind)
-                .and_then(|n| n.node_of(&key).map(|(_, node)| node.clone()));
             let Some(node) = node else {
                 return Outcome::Refused {
                     reason_key: "reason-no-nav-row",
                 };
             };
             let targets = row_targets(&node, route_kind);
-            let label = if kind == NavKind::Pages {
+            let label = match (kind, route_kind) {
                 // The Pages table's title column.
-                let t = self.generic(kind).and_then(|n| n.table().map(Arc::clone));
-                t.and_then(|t| {
-                    let c = t.columns.iter().position(|c| c.key == "title")?;
-                    node.cells.get(c).cloned()
-                })
-                .unwrap_or_default()
-            } else {
-                node.label.clone()
+                (NavKind::Pages, _) => {
+                    let t = self.generic(kind).and_then(|n| n.table().map(Arc::clone));
+                    t.and_then(|t| {
+                        let c = t.columns.iter().position(|c| c.key == "title")?;
+                        node.cells.get(c).cloned()
+                    })
+                    .unwrap_or_default()
+                }
+                // FT-633(a): the code as the Properties grid shows it (the row's label is the designation).
+                (_, "structure_node") => self
+                    .field_text(&targets, "structure_node/code")
+                    .unwrap_or_else(|| node.label.clone()),
+                _ => node.label.clone(),
             };
             (targets, label)
         };
@@ -295,6 +332,7 @@ impl ShellModel {
                 kind,
                 key,
                 text: label,
+                tag: false,
             });
             return Outcome::Done;
         };
@@ -321,6 +359,47 @@ impl ShellModel {
         if matches!(outcome, Outcome::Done) {
             self.rename = None;
         }
+        outcome
+    }
+
+    /// The display text of the sheet row `row` of `records` (one `Session::property_sheet` call).
+    fn field_text(&self, records: &[Uuid], row: &str) -> Option<String> {
+        let sheet = self.project.as_ref()?.session.property_sheet(records);
+        match &crate::properties::find_row(&sheet, row)?.1.value {
+            ew_api::output::RowValue::One { text, .. } => Some(text.clone()),
+            _ => None,
+        }
+    }
+
+    /// FT-633(b): F2 on a device row. Without `text` it opens the inline field on the whole tag (`-K12`, the
+    /// Properties grid showing the device); with `text` the typed tag goes through the Properties Tag field's own
+    /// path (`ShellModel::tag_rename_commit`): committed, the field closes; refused, it stays open on the typed text
+    /// with the grid's refusal and proposal under it ([`ShellModel::nav_rename_error`]).
+    fn rename_tag(&mut self, kind: NavKind, key: String, device: Uuid, text: Option<String>) -> Outcome {
+        let Some(text) = text else {
+            let Some(label) = self.tag_rename_sheet(device) else {
+                return Outcome::Refused {
+                    reason_key: "reason-nav-not-renamable",
+                };
+            };
+            self.rename = Some(NavRename {
+                kind,
+                key,
+                text: label,
+                tag: true,
+            });
+            return Outcome::Done;
+        };
+        let outcome = self.tag_rename_commit(device, &text);
+        self.rename = match &outcome {
+            Outcome::Done => None,
+            _ => Some(NavRename {
+                kind,
+                key,
+                text,
+                tag: true,
+            }),
+        };
         outcome
     }
 }
