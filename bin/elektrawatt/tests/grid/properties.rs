@@ -342,7 +342,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
         "{d}"
     );
     let d = describe(12);
-    assert!(d.contains("toast \"Set Quantity on 20 devices\" undo"), "{d}");
+    assert!(d.contains("toast \"Set quantity on 20 devices\" undo"), "{d}");
     let d = describe(22);
     assert!(
         d.contains(

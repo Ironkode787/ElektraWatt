@@ -217,7 +217,7 @@ impl Session {
         })
     }
 
-    /// The words of a channel in a sentence: its printed address (`Q0.2`), else "channel <n> of <card>".
+    /// The words of a channel in a sentence: its printed address (`Q0.2`), else `channel <n> of <card>`.
     pub fn channel_words(&self, channel: Uuid) -> Option<String> {
         let q = self.query();
         let ch = q.table::<Channel>().get(Id::from_uuid(channel))?;

@@ -86,7 +86,7 @@ id = "A11"
 kind = "soft"
 what = "Every channel used shows its derived PLC address (I0.0, Q0.0, ...) on the drawing, at the card's pin or at the device it was assigned to."
 how = "pages"
-infeasible = "the cards' pins print their channels' addresses on the reference solution's page, but no api_v1 view carries a channel's binding or address, so only the checker's reading of the pages decides it; and the window can move a channel only between the card's own pins: the PLC navigator's drop takes a black-box card's pin (FX38a) but refuses a field device not attached to the card, and attaching one has no window flow (WP-S2.07 part 3 follow-up)"
+infeasible = "not decidable by a query: the cards' pins print their channels' addresses on the reference solution's page, and since FT-753 the PLC navigator's drop on a field device wired to a card pin binds that pin (a valve beside a valve terminal is attached and bound), so the item is reachable from the window; but no api_v1 view carries a channel's binding or address, so only the checker's reading of the pages decides it"
 
 [[item]]
 id = "A12"

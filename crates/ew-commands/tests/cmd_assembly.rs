@@ -513,7 +513,10 @@ fn rebinding_a_held_cp_names_the_unbound_channel_in_the_notice() {
     let r = e.execute(&bind(c3, cp_param(FN_102F2, 4))).expect("rebind");
     assert_eq!(r.outcome.notices.len(), 1);
     assert!(
-        r.outcome.notices[0].contains(&c1.to_string()) && r.outcome.notices[0].contains("FR-PLC-005"),
+        // FT-757: the channel in words (its number), no record ID.
+        r.outcome.notices[0].starts_with("channel 1 of the same module ")
+            && !r.outcome.notices[0].contains(&c1.to_string())
+            && r.outcome.notices[0].contains("FR-PLC-005"),
         "{:?}",
         r.outcome.notices
     );
