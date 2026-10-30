@@ -27,8 +27,9 @@ use super::step::{Step, Table, typed};
 pub const MOVE_UNIT: i64 = 7_937_500;
 
 /// Commands that no submit path of the session commits, so that their arms only ever refuse: `revision.approve` is
-/// recorded only by `Session::approve` on a saved generation (WP-S1.18 part 3, D9).
-pub const SESSION_REFUSES: &[&str] = &["revision.approve"];
+/// recorded only by `Session::approve` on a saved generation (WP-S1.18 part 3, D9), `revision.release` only by
+/// `Session::release` after the archive and the tag (WP-S1.18 part 4, D13).
+pub const SESSION_REFUSES: &[&str] = &["revision.approve", "revision.release"];
 
 /// One generator arm.
 pub struct Arm {
@@ -346,6 +347,12 @@ pub const ARMS: &[Arm] = &[
         command: "revision.create",
         weight: 3,
         build: revision_create,
+    },
+    // WP-S1.18 part 4 (D13)
+    Arm {
+        command: "revision.release",
+        weight: 1,
+        build: revision_release,
     },
     Arm {
         command: "revision.set_author",
@@ -5473,6 +5480,25 @@ fn revision_approve(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             "revision.approve",
             json!({"revision": revision, "checker": role(rng), "date": "2025-06-02", "scheme": "pre_delivery",
                 "content_digest": "0".repeat(64)}),
+        )
+        .refuse(),
+    )
+}
+
+/// `revision.release` (WP-S1.18 part 4, D13; `HumanOnly`, not undoable): the session refuses it on every submit path,
+/// from every origin, whatever its parameters; the stamp is written only by `Session::release`, after the gate on the
+/// saved generation, the archive and the tag (a fuzz session is never saved).
+fn revision_release(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let revision = match rng.below(3) {
+        0 => json!(rng.uuid()),
+        _ => rng.pick(&live.revisions)?.id.clone(),
+    };
+    let sha = format!("sha256:{}", "0".repeat(64));
+    Some(
+        Step::cmd(
+            "revision.release",
+            json!({"revision": revision, "released_on": "2025-06-09", "generation": 2, "content_digest": sha,
+                "derivation_profile": "2027.1", "archive": {"name": "V9.9.ewarchive", "sha256": sha}}),
         )
         .refuse(),
     )

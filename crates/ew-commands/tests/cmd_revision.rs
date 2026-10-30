@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Revisions (FT-165, doc 03 §18; WP-S1.18 parts 1 and 3): `revision.create`, `revision.set_author`,
-//! `revision.withdraw`, `revision.approve`, `fields.set` on the revision kind, `edit.delete` of a revision, the automatic open revision (normaliser
+//! Revisions (FT-165, doc 03 §18; WP-S1.18 parts 1, 3 and 4): `revision.create`, `revision.set_author`,
+//! `revision.withdraw`, `revision.approve`, `revision.release`, `fields.set` on the revision kind, `edit.delete` of a revision, the automatic open revision (normaliser
 //! `revision_ensure_open`) and the open revision's notes on deleted pages; released and withdrawn revisions are
 //! immutable (FR-REV-009).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
@@ -14,8 +14,8 @@ use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
     ApproveRevision, ApprovedPack, CreateRevision, DeletePages, DeleteSelection, KindName, LABEL_ORDER_RULE,
-    NewRevisionState, RevisionPageNote, SetFields, SetRevisionAuthor, TargetRef, WaiveFinding,
-    WithdrawRevision,
+    NewRevisionState, ReleaseRevision, ReleasedArchive, RevisionPageNote, SetFields, SetRevisionAuthor,
+    TargetRef, WaiveFinding, WithdrawRevision,
 };
 use ew_commands::{CmdError, Engine, Exposure, Origin, Submit};
 use ew_ids::Id;
@@ -948,5 +948,127 @@ fn approve_writes_the_checker_and_the_sign_off_from_a_person_only() {
     assert_eq!(
         invalid_at(e.execute(&approve(id, PartyRole::Checker)).unwrap_err()),
         ("revision.approve".into(), "/revision".into())
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// WP-S1.18 part 4: the release's stamp
+
+fn release(revision: Id<Revision>) -> ReleaseRevision {
+    ReleaseRevision {
+        revision,
+        released_on: Date::new(2025, 6, 9).unwrap(),
+        generation: 7,
+        content_digest: Sha256([1; 32]),
+        derivation_profile: ident("2027.1"),
+        rule_packs: vec![ApprovedPack {
+            id: ident("EW-CORE"),
+            version: ident("0.0.0"),
+            sha256: Sha256([7; 32]),
+        }],
+        page_digests: [(PAGE_101, ew_schema::Digest128(0x0123))].into_iter().collect(),
+        changed_pages: vec![PAGE_101],
+        archive: ReleasedArchive {
+            name: "V2.0.ewarchive".into(),
+            sha256: Sha256([2; 32]),
+        },
+        git_tag: Some(ident("ew/rev/V2.0")),
+    }
+}
+
+/// RA-1 and RA-6 at the command (D13): `revision.release` stamps the signed-off open revision from a person: state
+/// Released, the date kept, and the release record with the sign-off as `approval`, the archive's name and hash, the
+/// generation, the content digest, the profile, the packs, the page digests, the changed pages and the tag. It is not
+/// undoable (a barrier: the archive and the tag are outside the history). Refused: a script origin (exposure), a
+/// revision without a sign-off, a released revision, an archive name with a directory or another extension, a tag
+/// that is not `ew/rev/<label>`.
+#[test]
+fn release_stamps_the_signed_off_revision_from_a_person_only() {
+    let (mut e, v1, v2) = with_history();
+    assert_eq!(
+        invalid_at(e.execute(&release(v2)).unwrap_err()),
+        ("revision.release".into(), "/revision".into()),
+        "no sign-off yet"
+    );
+    e.execute(&approve(v2, PartyRole::Checker)).expect("approved");
+    let cmd = release(v2);
+    for origin in scripted() {
+        let err = e.execute_with(&cmd, Submit::from(origin.clone())).unwrap_err();
+        assert_eq!(
+            err,
+            CmdError::Exposure {
+                command: "revision.release".into(),
+                exposure: Exposure::HumanOnly,
+                origin,
+            }
+        );
+    }
+    assert_eq!(
+        invalid_at(e.execute(&release(v1)).unwrap_err()),
+        ("revision.release".into(), "/revision".into())
+    );
+    for name in ["../V2.0.ewarchive", "V2.0.zip", ".ewarchive", "V 2.0.ewarchive"] {
+        let bad = ReleaseRevision {
+            archive: ReleasedArchive {
+                name: name.into(),
+                sha256: Sha256([2; 32]),
+            },
+            ..cmd.clone()
+        };
+        assert_eq!(
+            invalid_at(e.execute(&bad).unwrap_err()),
+            ("revision.release".into(), "/archive/name".into()),
+            "{name}"
+        );
+    }
+    let other_tag = ReleaseRevision {
+        git_tag: Some(ident("ew/rev/V1.0")),
+        ..cmd.clone()
+    };
+    assert_eq!(
+        invalid_at(e.execute(&other_tag).unwrap_err()),
+        ("revision.release".into(), "/git_tag".into())
+    );
+
+    let sign_off = revision(&e, v2).sign_off.clone().expect("signed off");
+    e.execute_with(&cmd, Submit::from(Origin::Gui)).expect("released");
+    let r = revision(&e, v2);
+    assert_eq!(r.state, RevisionState::Released);
+    assert_eq!(
+        r.date,
+        Date::new(2025, 4, 14).ok(),
+        "the revision's own date is kept"
+    );
+    let record = r.release.clone().expect("the release record");
+    assert_eq!(record.approval, Some(sign_off));
+    let archive = record.archive.clone().expect("the archive");
+    assert_eq!(archive.name.as_deref(), Some("V2.0.ewarchive"));
+    assert_eq!(archive.sha256, Some(Sha256([2; 32])));
+    assert_eq!(record.generation, Some(7));
+    assert_eq!(record.content_digest, Some(Sha256([1; 32])));
+    assert_eq!(
+        record.derivation_profile.as_ref().map(|p| p.as_str()),
+        Some("2027.1")
+    );
+    assert_eq!(record.git_tag.as_ref().map(|t| t.as_str()), Some("ew/rev/V2.0"));
+    assert_eq!(record.released_on, Date::new(2025, 6, 9).ok());
+    assert_eq!(record.changed_pages, Some(vec![PAGE_101]));
+    assert_eq!(
+        record
+            .page_digests
+            .as_ref()
+            .and_then(|d| d.get(&PAGE_101).copied()),
+        Some(ew_schema::Digest128(0x0123))
+    );
+    let packs = record.rule_packs.clone().expect("packs");
+    assert_eq!(packs.len(), 1);
+    assert_eq!(packs[0].sha256, Some(Sha256([7; 32])));
+    // A barrier: the stamp is not undone.
+    assert!(e.undo(&Origin::Gui).is_err());
+    assert_eq!(revision(&e, v2).state, RevisionState::Released);
+    assert_eq!(
+        invalid_at(e.execute(&cmd).unwrap_err()),
+        ("revision.release".into(), "/revision".into()),
+        "released once"
     );
 }

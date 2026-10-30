@@ -1,0 +1,31 @@
+{
+  "$k": "part",
+  "id": "80fef4ca-490a-5daa-939f-2e09199e5781",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "cc9c4627-d3e3-563d-8b0f-91c49ad3e722",
+  "version": "0.1.0",
+  "sha256": "sha256:d27cbd5c9da05d4f48dbc2f81b1b95ad6a7dce6773e08e44b94407fffdc4beb9",
+  "meta": {"key": "EW-GEN-MCB-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-MCB-1",
+  "description": {"en": "Miniature circuit breaker, 1 pole"},
+  "category": ["ProtectionOvercurrent", "MCB", "1P"],
+  "tech_data": [{"key": "characteristic", "value": "C"}, {"key": "rated_current", "value": {"value": "16", "unit": "A"}}],
+  "cp_pattern": [{"idx": 0, "designation": "1"}, {"idx": 1, "designation": "2"}],
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "a9d08d61-e896-5ecd-8f6b-2b330d8f522b",
+        "version_req": "^0.1",
+        "key": "ew.fn.mcb-1p"
+      },
+      "main": true,
+      "cps": [0, 1]
+    }
+  ]
+}

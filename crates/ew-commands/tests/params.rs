@@ -198,6 +198,20 @@ fn examples() -> Vec<(&'static str, Value)> {
                 "waivers_ack": [], "content_digest":
                     "sha256:1111111111111111111111111111111111111111111111111111111111111111"}),
         ),
+        // WP-S1.18 part 4
+        (
+            "revision.release",
+            json!({"revision": DEV_T1.to_string(), "released_on": "2025-06-09", "generation": 7,
+                "content_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "derivation_profile": "2027.1",
+                "rule_packs": [{"id": "EW-CORE", "version": "0.0.0",
+                    "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"}],
+                "page_digests": {"0190a5e0-0000-7000-8000-000000000102": "0123456789abcdef0123456789abcdef"},
+                "changed_pages": ["0190a5e0-0000-7000-8000-000000000102"],
+                "archive": {"name": "V2.0.ewarchive",
+                    "sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222"},
+                "git_tag": "ew/rev/V2.0"}),
+        ),
         (
             "fields.set",
             json!({"kind": "device", "targets": [DEV_102F2.to_string()], "path": "tag.counter", "value": 5}),

@@ -1,0 +1,21 @@
+{
+  "format": "0.1",
+  "min_reader": "0.1",
+  "generator": "wp-s1-18-part4",
+  "project": "019b76da-a800-7000-aaf6-508fc39926d9",
+  "generation": 1,
+  "files": {
+    "devices/ea.jsonl": "sha256:152225c9cf1920d94f34b54f52c329932e48fcabda024e9fbc3a2c986a87ad05",
+    "devices/f5.jsonl": "sha256:a089a197b18d7bd04e34832dd98b5ffa4f6b5774b5a35b8af00d11c8e9c96446",
+    "lib/fndefs/6ee77f28-823c-5cac-b98b-db3c36789f20.json": "sha256:31388420832be67481d97290596543a4899d3cd487635d44dad5daa65d5812ac",
+    "lib/fndefs/c15149e0-a49b-52a4-8e9b-dede426d0f22.json": "sha256:81618a3ec1d1ea372eb07ff6ea8ae0f3df16c29eed1e24025043c7bfbdeec059",
+    "lib/manufacturers/7ae048b6-63ea-5c01-83b2-e1a83b5b4414.json": "sha256:6cf95653a444961912dc5797427e52fdcc33e0c5c425b7cccdf1d5e4c770e6e0",
+    "lib/parts/138b9dc0-edcd-50fe-baef-d85e5ce8e643.json": "sha256:bffb8197cf101ea931ab463518cd77fba6c273d7012fba1fac4765a4d37c14fb",
+    "lib/parts/80fef4ca-490a-5daa-939f-2e09199e5781.json": "sha256:ba25882a37f65c46af92ff0c9529aeff5552a6286d186337fb0a9bfb887d71dd",
+    "lib/symbols/8d6bb567-d303-54cc-967f-4f66c1a5ce4c.json": "sha256:57b832fd63c3538babd8202566ac389d5c4e394f17ddf53c7c890605a0647de0",
+    "lib/symbols/b0f8e0f4-e86d-579b-ab03-d70fe1df2041.json": "sha256:530e4b69b21a39b3ac613462c4ca07a56264b5b0323b0f5a8e767ba2592881b2",
+    "pages/de229049-d68e-58d6-88c6-1956f7608aef.jsonl": "sha256:5756fc067a566e56d298722fbe037d9e9fd0ecd68e50cdf323988a1fd3b24de5",
+    "project.jsonl": "sha256:8b224ffc435218381f9d5aa3fb493b2c448a153a664be6c646ec0bc47769f6e3",
+    "revisions.jsonl": "sha256:5fd8994e7281969772819c1477f50687040b3406d3bc3bcf987e6a9194dcda49"
+  }
+}

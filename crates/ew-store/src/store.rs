@@ -229,6 +229,69 @@ fn io_err(path: &Path) -> impl FnOnce(io::Error) -> OpenError + '_ {
     }
 }
 
+/// The canonical project directory of one generation, read back and verified ([`Store::read_generation`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Generation {
+    /// The generation.
+    pub generation: u64,
+    /// Its manifest.
+    pub manifest: Manifest,
+    /// The bytes of `manifest.json`.
+    pub manifest_bytes: Vec<u8>,
+    /// The bytes of every file the manifest lists, by path.
+    pub files: BTreeMap<FilePath, Vec<u8>>,
+}
+
+/// Why a generation could not be read back ([`Store::read_generation`]).
+#[derive(Debug)]
+pub enum GenerationError {
+    /// The project has no manifest yet.
+    NoManifest,
+    /// A save is incomplete: the generation on disk is being completed.
+    Incomplete,
+    /// A file is not what the manifest says (or `manifest.json` is not the one loaded): changed on disk.
+    Changed {
+        /// The project-relative path.
+        path: String,
+    },
+    /// The manifest's hash of a file is pending (a merged project).
+    Pending {
+        /// The project-relative path.
+        path: String,
+    },
+    /// A file could not be read.
+    Io {
+        /// The path.
+        path: PathBuf,
+        /// The error.
+        error: io::Error,
+    },
+}
+
+impl fmt::Display for GenerationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GenerationError::NoManifest => f.write_str("the project has no manifest yet; save it first"),
+            GenerationError::Incomplete => f.write_str("a save is incomplete; wait for it to complete"),
+            GenerationError::Changed { path } => {
+                write!(
+                    f,
+                    "{path} changed on disk since it was saved (an external change)"
+                )
+            }
+            GenerationError::Pending { path } => {
+                write!(
+                    f,
+                    "the manifest's hash of {path} is pending (a merged project); save it first"
+                )
+            }
+            GenerationError::Io { path, error } => write!(f, "{}: {error}", path.display()),
+        }
+    }
+}
+
+impl std::error::Error for GenerationError {}
+
 /// Which rows changed since the last save.
 #[derive(Clone, Copy, Debug)]
 pub enum Changes<'a> {
@@ -2111,9 +2174,75 @@ impl Store {
         &self.root
     }
 
+    /// The I/O seam the store works through ([`StoreOptions::vfs`]); the release writes its archive through it too
+    /// (WP-S1.18 D13).
+    pub fn vfs(&self) -> &Arc<dyn Vfs> {
+        &self.opts.vfs
+    }
+
+    /// The canonical project directory of the generation on disk, read back through the seam and verified (doc 05
+    /// §14.1 step 4: the archive's `project/`): the bytes of `manifest.json`, which must be the manifest this store
+    /// loaded or wrote, and of every file it lists, each with the manifest's SHA-256.
+    ///
+    /// # Errors
+    ///
+    /// [`GenerationError`]: no manifest, a save is incomplete, the manifest changed on disk, a pending hash (a merged
+    /// project), a file that is missing, unreadable or not the manifest's.
+    pub fn read_generation(&self) -> Result<Generation, GenerationError> {
+        let manifest = self.manifest.as_ref().ok_or(GenerationError::NoManifest)?;
+        if self.pending.is_some() {
+            return Err(GenerationError::Incomplete);
+        }
+        let vfs = &*self.opts.vfs;
+        let read = |rel: &str| {
+            let path = join(&self.root, rel);
+            vfs.read(&path)
+                .map_err(|error| GenerationError::Io { path, error })
+        };
+        let manifest_bytes = read(MANIFEST)?;
+        if Some(sha256(&manifest_bytes)) != self.manifest_hash {
+            return Err(GenerationError::Changed {
+                path: MANIFEST.to_owned(),
+            });
+        }
+        let mut files = BTreeMap::new();
+        for (path, hash) in &manifest.files {
+            let FileHash::Sha256(h) = hash else {
+                return Err(GenerationError::Pending {
+                    path: path.to_string(),
+                });
+            };
+            let bytes = read(path.as_str())?;
+            if sha256(&bytes) != *h {
+                return Err(GenerationError::Changed {
+                    path: path.to_string(),
+                });
+            }
+            files.insert(path.clone(), bytes);
+        }
+        Ok(Generation {
+            generation: self.generation,
+            manifest: manifest.clone(),
+            manifest_bytes,
+            files,
+        })
+    }
+
     /// Whether a save is incomplete (passed its commit point, roll-forward pending).
     pub fn is_incomplete(&self) -> bool {
         self.pending.is_some()
+    }
+
+    /// The newest intent manifest above the current generation that is on disk (doc 05 §5.3): a save whose temps
+    /// the store could not delete after a failure before its commit point. The next editing open rolls it forward
+    /// unless it is torn, so a caller that undoes side effects of a failed save (the release's archive and tag, WP-S1.18
+    /// D13) keeps them while this is `Some`.
+    ///
+    /// # Errors
+    ///
+    /// An I/O error listing the project directory; the answer is then unknown.
+    pub fn leftover_intent(&self) -> io::Result<Option<u64>> {
+        Ok(newest_intent(&self.walk()?, self.generation))
     }
 
     /// The journal directory, when a journal is open.

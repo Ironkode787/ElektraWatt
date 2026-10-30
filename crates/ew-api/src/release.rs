@@ -13,7 +13,7 @@
 //! **One path for the sign-off.** `revision.approve` carries the gate's digest, scheme and pack versions as parameters,
 //! so the session submits it only through [`Session::approve`]: [`Session::execute`] and [`Session::preview`] refuse
 //! it. Its exposure is `HumanOnly`: a command log, a script, MCP and a plugin cannot reach it (ADR-0008 amendment 3).
-//! The release itself (`revision.release`, the as-built archive) is WP-S1.18 part 4.
+//! The release itself (`revision.release`, the as-built archive) is WP-S1.18 part 4 ([`Session::release`]).
 
 use std::fmt;
 
@@ -377,7 +377,9 @@ impl Session {
 
     /// Refuses `revision.approve` outside [`Session::approve`] (its parameters are the gate's): with the exposure error
     /// for an origin its exposure refuses, else as rejected.
+    /// `revision.release` likewise, outside the release (`Session::release_only`).
     pub(crate) fn approval_only(&self, name: &str, origin: &crate::Origin) -> Result<(), CmdError> {
+        self.release_only(name, origin)?;
         if name != ApproveRevision::NAME {
             return Ok(());
         }

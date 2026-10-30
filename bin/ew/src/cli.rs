@@ -31,7 +31,7 @@ pub const USAGE: &str = "usage:
   ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]
   ew project assets purge [<project-dir>] [--preview]
   ew revision approve [<project-dir>] --as <role>
-  ew revision release <label> [<project-dir>]
+  ew revision release <label> [<project-dir>] [--archive-dir <dir>]
   ew revision withdraw <label> --reason <text> [<project-dir>]
   ew verify-derived [<project-dir>]
   ew lib list [--company <dir>]... [--json]
@@ -114,11 +114,18 @@ exits 2 before the project is opened. `revision approve --as <role>` records the
 revision (`revision.approve`): the checker is a party role (`checker`, `author`, `engineer`, ...), never the author's;
 the project must be saved; it runs the release gate on the saved generation (the release scheme in release mode with
 the EW-REL rules) and is refused while any error other than EW-REL-001 is open, prints the safety-kind waivers in
-force (the typed label acknowledges them), then approves and saves. `revision release <label>` runs the release gate
-for the open revision and prints its blockers when it refuses; the release itself (the as-built archive) is not built
-yet. `revision withdraw <label> --reason <text>` withdraws a released revision (`revision.withdraw`) and saves. Exit 0
-when approved or withdrawn and saved, 1 when refused (the gate's blockers, a wrong label, a refused command) or not
-confirmed, 2 on usage, terminal, open and save errors and for a release whose gate passes (not built yet).
+force (the typed label acknowledges them), then approves and saves. `revision release <label>` releases the open
+revision (doc 05 section 14.1): it runs the release gate on the saved generation and prints its blockers when it
+refuses; else it shows the archive it writes (`<label>.ewarchive` in `--archive-dir`, by default `<name>.ew-archive`
+beside the project directory, never inside it) and, when the project lies in a git worktree, the commit of the project
+directory and the tag `ew/rev/<label>` it makes there (a warning when the archive root lies in the worktree: archives
+are never added to git). After the typed label it writes and verifies the archive, commits and tags, then stamps the
+revision released and saves; a failure leaves the revision open and removes what the run wrote. An archive of the
+label left by a crashed release is offered first: type `complete` to stamp it or `discard` to remove it (with its
+tag). `revision withdraw <label> --reason <text>` withdraws a released revision (`revision.withdraw`) and saves. Exit
+0 when approved, released, settled or withdrawn and saved, 1 when refused (the gate's blockers, a wrong label, a
+refused command or git step) or not confirmed, 2 on usage, terminal and open errors and when writing the release
+fails.
 
 `verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
 the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.
@@ -173,7 +180,7 @@ pub enum Command {
     AssetsPurge(AssetsPurgeArgs),
     /// `ew lib`: list, search, reindex and create libraries.
     Lib(LibArgs),
-    /// `ew revision approve|release|withdraw` (WP-S1.18 part 3).
+    /// `ew revision approve|release|withdraw` (WP-S1.18 parts 3 and 4).
     Revision(RevisionArgs),
 }
 
@@ -185,10 +192,13 @@ pub enum RevisionAction {
         /// The checker's party role (`--as`).
         role: String,
     },
-    /// `revision release <label>`: the release gate (the release itself is WP-S1.18 part 4).
+    /// `revision release <label> [--archive-dir <dir>]`: the atomic release with the as-built archive (WP-S1.18
+    /// part 4), or settling an incomplete one.
     Release {
         /// The open revision's label.
         label: String,
+        /// The archive root (`--archive-dir`); `None`: the default root beside the project directory.
+        archive_dir: Option<PathBuf>,
     },
     /// `revision withdraw <label> --reason <text>`.
     Withdraw {
@@ -765,11 +775,14 @@ fn parse_checks_set(mut it: impl Iterator<Item = String>) -> Result<Command, Str
 fn parse_revision(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let sub = it.next();
     let mut positional: Vec<String> = Vec::new();
-    let (mut role, mut reason) = (None, None);
+    let (mut role, mut reason, mut archive_dir) = (None, None, None);
     while let Some(a) = it.next() {
         match a.as_str() {
             "--as" if sub.as_deref() == Some("approve") => role = Some(value(&mut it, "--as")?),
             "--reason" if sub.as_deref() == Some("withdraw") => reason = Some(value(&mut it, "--reason")?),
+            "--archive-dir" if sub.as_deref() == Some("release") => {
+                archive_dir = Some(PathBuf::from(value(&mut it, "--archive-dir")?));
+            }
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
             _ => positional.push(a),
         }
@@ -783,6 +796,7 @@ fn parse_revision(mut it: impl Iterator<Item = String>) -> Result<Command, Strin
             label: positional
                 .next()
                 .ok_or("`revision release` needs the revision's label")?,
+            archive_dir,
         },
         Some("withdraw") => RevisionAction::Withdraw {
             label: positional
@@ -1655,6 +1669,7 @@ fn run_revision(a: &RevisionArgs) -> i32 {
         &mut output,
         ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
         today(),
+        &ew_api::git::GitExe::default(),
     )
 }
 
@@ -1683,9 +1698,9 @@ fn typed_word(
         && answer.trim() == word
 }
 
-/// [`run_revision`] with the terminal test, the reader, the writer, the store options and the date injected: the
-/// confirmation hook of the tests (doc 18 section 3.15's `test-confirm`, realised as the injected terminal; the
-/// production binary reads the real terminal and exits 2 without one).
+/// [`run_revision`] with the terminal test, the reader, the writer, the store options, the date and the git port
+/// injected: the confirmation hook of the tests (doc 18 section 3.15's `test-confirm`, realised as the injected
+/// terminal; the production binary reads the real terminal and exits 2 without one, and runs the `git` executable).
 fn run_revision_with(
     a: &RevisionArgs,
     terminal: bool,
@@ -1693,6 +1708,7 @@ fn run_revision_with(
     output: &mut dyn std::io::Write,
     store: ew_api::StoreOptions,
     today: ew_api::catalog::Date,
+    git: &dyn ew_api::git::Git,
 ) -> i32 {
     let subcommand = revision_subcommand(&a.action);
     if !terminal {
@@ -1732,7 +1748,15 @@ fn run_revision_with(
         (RevisionAction::Approve { .. }, Some(checker)) => {
             approve_revision(&mut session, &items, &checker, input, output, today)
         }
-        (RevisionAction::Release { label }, _) => release_revision(&session, &items, label, output),
+        (RevisionAction::Release { label, archive_dir }, _) => {
+            let release = Release {
+                label,
+                archive_dir: archive_dir.as_deref(),
+                git,
+                today,
+            };
+            release_revision(&mut session, &items, &release, input, output)
+        }
         (RevisionAction::Withdraw { label, reason }, _) => {
             withdraw_revision(&mut session, label, reason, input, output)
         }
@@ -1837,33 +1861,220 @@ fn approve_revision(
     save_revision(session, output, &format!("approved revision {label} as {role}"))
 }
 
-/// `ew revision release <label>`: the release gate on the saved generation; its blockers when it refuses. The atomic
-/// release with the as-built archive is WP-S1.18 part 4: a passing gate exits 2 and writes nothing.
+/// What `ew revision release` was asked: the label, the archive root, the git port and the release date.
+struct Release<'a> {
+    label: &'a str,
+    archive_dir: Option<&'a Path>,
+    git: &'a dyn ew_api::git::Git,
+    today: ew_api::catalog::Date,
+}
+
+impl Release<'_> {
+    /// The release options; `git_consent` is the typed confirmation, whose prompt names the git steps.
+    fn options(&self, git_consent: bool) -> ew_api::ReleaseOptions<'_> {
+        ew_api::ReleaseOptions {
+            archive_root: self.archive_dir,
+            git: self.git,
+            git_consent,
+            parallelism: Parallelism::threads(
+                std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get),
+            ),
+        }
+    }
+}
+
+/// The exit code of a release error: 1 for a refusal before anything was written, 2 when writing failed.
+fn release_exit(e: &ew_api::ReleaseError) -> i32 {
+    use ew_api::ReleaseError as E;
+    match e {
+        E::Save(_)
+        | E::Generation(_)
+        | E::Output(_)
+        | E::Archive(_)
+        | E::Write(_)
+        | E::Stamp(_)
+        | E::Unsettled(_)
+        | E::Undecided(_)
+        | E::Io { .. } => 2,
+        _ => 1,
+    }
+}
+
+/// `ew revision release <label>` (doc 05 section 14.1; WP-S1.18 part 4): an incomplete release of the label is settled
+/// first ([`settle_release`]); else the plan (the gate on the saved generation, with its blockers when it refuses; the
+/// archive; the git worktree and tag), the typed label, then [`ew_api::Session::release`], which saves.
 fn release_revision(
-    session: &ew_api::Session,
+    session: &mut ew_api::Session,
     items: &[ew_api::checks::IntegrityItem],
-    label: &str,
+    release: &Release<'_>,
+    input: &mut dyn std::io::BufRead,
     output: &mut dyn std::io::Write,
 ) -> i32 {
-    let gate = match session.release_gate(label, items) {
-        Ok(g) => g,
+    let label = release.label;
+    match session.incomplete_release(release.archive_dir) {
+        Ok(Some(found)) if found.label == label => {
+            return settle_release(session, items, release, &found, input, output);
+        }
+        Ok(_) => {}
         Err(e) => {
             eprintln!("error: {e}; nothing was released");
+            return release_exit(&e);
+        }
+    }
+    let plan = match session.release_plan(label, items, &release.options(false)) {
+        Ok(plan) => plan,
+        Err(ew_api::ReleaseError::Blocked(blockers)) => {
+            let listing: String = blockers.iter().map(finding_line).collect();
+            let _ = output.write_all(listing.as_bytes());
+            eprintln!(
+                "error: release of {label} refused: the gate has {} blocker(s); nothing was released",
+                blockers.len()
+            );
             return 1;
         }
+        Err(e) => {
+            eprintln!("error: {e}; nothing was released");
+            return release_exit(&e);
+        }
     };
-    let blockers = gate.blockers();
-    if !blockers.is_empty() {
-        let listing: String = blockers.iter().map(|f| finding_line(f)).collect();
-        let _ = output.write_all(listing.as_bytes());
-        eprintln!(
-            "error: release of {label} refused: the gate has {} blocker(s); nothing was released",
-            blockers.len()
-        );
+    let mut summary = format!(
+        "release revision {label}: generation {}, content digest {}, scheme {}\n  archive: {}\n",
+        plan.gate.generation,
+        plan.gate.content_digest,
+        plan.gate.report.scheme,
+        plan.archive.display()
+    );
+    if let Some((worktree, tag)) = &plan.git {
+        summary.push_str(&format!(
+            "  git: commits the project directory in the worktree {} (\"Release {label}\") and creates the tag {tag}\n",
+            worktree.display()
+        ));
+        if plan.archive_in_worktree {
+            summary.push_str(&format!(
+                "warning: the archive root lies inside the git worktree {}; archives are never added to git, so name a \
+                 root outside it with --archive-dir <dir>\n",
+                worktree.display()
+            ));
+        }
+    }
+    let prompt = format!(
+        "{summary}A released revision is immutable. Type the revision label `{label}` to release it, anything else to \
+         abort: "
+    );
+    if !typed_word(input, output, &prompt, label) {
+        eprintln!("error: not confirmed; nothing was changed");
         return 1;
     }
-    eprintln!("error: the gate passes, but release is not built yet (WP-S1.18 part 4); nothing was written");
-    2
+    let ctx = ew_api::ReleaseContext {
+        label: label.to_owned(),
+        date: release.today,
+    };
+    match session.release(&ctx, items, &release.options(true)) {
+        Ok(done) => {
+            released_lines(output, &done);
+            0
+        }
+        Err(e) => {
+            if let ew_api::ReleaseError::Blocked(list) = &e {
+                let listing: String = list.iter().map(finding_line).collect();
+                let _ = output.write_all(listing.as_bytes());
+            }
+            eprintln!("error: {e}");
+            release_exit(&e)
+        }
+    }
+}
+
+/// What a completed release prints.
+fn released_lines(output: &mut dyn std::io::Write, done: &ew_api::Released) {
+    let _ = writeln!(
+        output,
+        "released revision {}: archive {} ({}); saved (generation {})",
+        done.label,
+        done.archive.display(),
+        done.sha256,
+        done.stamped
+    );
+    if let Some((_, tag)) = &done.git {
+        let _ = writeln!(
+            output,
+            "tagged {tag}; generation {} is left for your next commit",
+            done.stamped
+        );
+    }
+    if done.save_incomplete {
+        let _ = writeln!(
+            output,
+            "note: the save of generation {} completes when the project is next opened",
+            done.stamped
+        );
+    }
+}
+
+/// An archive of the open revision's label that a crashed release left (doc 05 section 14.1 "On failure"): the
+/// person types `complete` (when it can be completed) to stamp it, or `discard` to remove it and its tag.
+fn settle_release(
+    session: &mut ew_api::Session,
+    items: &[ew_api::checks::IntegrityItem],
+    release: &Release<'_>,
+    found: &ew_api::IncompleteRelease,
+    input: &mut dyn std::io::BufRead,
+    output: &mut dyn std::io::Write,
+) -> i32 {
+    let label = &found.label;
+    let mut summary = format!(
+        "incomplete release {label}: the archive {} ({}) is in place, but the revision is still open\n",
+        found.archive.display(),
+        found.sha256
+    );
+    let words = match &found.refusal {
+        Some(why) => {
+            summary.push_str(&format!("  it cannot be completed: {why}\n"));
+            "`discard` to remove it (and the tag of the label, if a crashed release created it)"
+        }
+        None => {
+            "`complete` to stamp the revision released with it (committing and tagging when the project lies in a git \
+             worktree), `discard` to remove it (and the tag of the label, if a crashed release created it)"
+        }
+    };
+    let prompt = format!("{summary}Type {words}, anything else to abort: ");
+    let mut answer = String::new();
+    let read = output
+        .write_all(prompt.as_bytes())
+        .and_then(|()| output.flush())
+        .is_ok()
+        && input.read_line(&mut answer).is_ok();
+    match (read, answer.trim(), &found.refusal) {
+        (true, "complete", None) => match session.complete_release(items, &release.options(true)) {
+            Ok(done) => {
+                released_lines(output, &done);
+                0
+            }
+            Err(e) => {
+                eprintln!("error: {e}");
+                release_exit(&e)
+            }
+        },
+        (true, "discard", _) => match session.discard_incomplete_release(&release.options(true)) {
+            Ok((archive, tag)) => {
+                let tag = tag.map_or_else(String::new, |t| format!(" and the tag {t}"));
+                let _ = writeln!(
+                    output,
+                    "discarded the incomplete release {label}: removed {}{tag}; the revision is still open",
+                    archive.display()
+                );
+                0
+            }
+            Err(e) => {
+                eprintln!("error: {e}");
+                release_exit(&e)
+            }
+        },
+        _ => {
+            eprintln!("error: not confirmed; nothing was changed");
+            1
+        }
+    }
 }
 
 /// `ew revision withdraw <label> --reason <text>`: the typed label, then `revision.withdraw` of the released revision
@@ -3630,8 +3841,21 @@ mod revision_tests {
         assert_eq!(
             parse(&["revision", "release", "V2.0", "p.ew"]),
             Ok(Command::Revision(RevisionArgs {
-                action: RevisionAction::Release { label: "V2.0".into() },
+                action: RevisionAction::Release {
+                    label: "V2.0".into(),
+                    archive_dir: None
+                },
                 project: Some(PathBuf::from("p.ew")),
+            }))
+        );
+        assert_eq!(
+            parse(&["revision", "release", "V2.0", "--archive-dir", "out/archives"]),
+            Ok(Command::Revision(RevisionArgs {
+                action: RevisionAction::Release {
+                    label: "V2.0".into(),
+                    archive_dir: Some(PathBuf::from("out/archives"))
+                },
+                project: None,
             }))
         );
         assert_eq!(
@@ -3653,6 +3877,8 @@ mod revision_tests {
             &["revision", "release"],
             &["revision", "release", "V2.0", "a", "b"],
             &["revision", "release", "V2.0", "--as", "checker"],
+            &["revision", "release", "V2.0", "--archive-dir"],
+            &["revision", "approve", "--as", "checker", "--archive-dir", "a"],
             &["revision", "withdraw", "V1.0"],
             &["revision", "withdraw", "--reason", "r"],
         ] {
@@ -3715,6 +3941,30 @@ mod revision_tests {
         out
     }
 
+    /// The git port of the tests: the copies in the temporary directory lie in no worktree, and no test looks.
+    struct NoGit;
+
+    impl ew_api::git::Git for NoGit {
+        fn worktree(&self, _: &dyn ew_api::Vfs, _: &Path) -> std::io::Result<Option<PathBuf>> {
+            Ok(None)
+        }
+        fn available(&self) -> Result<(), ew_api::git::GitError> {
+            Err(ew_api::git::GitError::Missing)
+        }
+        fn commit_dir(&self, _: &Path, _: &str) -> Result<ew_api::git::Committed, ew_api::git::GitError> {
+            Err(ew_api::git::GitError::Missing)
+        }
+        fn tag_exists(&self, _: &Path, _: &str) -> Result<bool, ew_api::git::GitError> {
+            Err(ew_api::git::GitError::Missing)
+        }
+        fn tag(&self, _: &Path, _: &str, _: &str) -> Result<(), ew_api::git::GitError> {
+            Err(ew_api::git::GitError::Missing)
+        }
+        fn delete_tag(&self, _: &Path, _: &str) -> Result<(), ew_api::git::GitError> {
+            Err(ew_api::git::GitError::Missing)
+        }
+    }
+
     /// Runs `ew revision <action> <dir>` with `terminal` and the typed `answer`; the exit code and what it printed.
     fn run(dir: &Path, action: RevisionAction, terminal: bool, answer: &str) -> (i32, String) {
         let args = RevisionArgs {
@@ -3723,7 +3973,7 @@ mod revision_tests {
         };
         let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
         let mut output = Vec::new();
-        let code = run_revision_with(&args, terminal, &mut input, &mut output, store(), date());
+        let code = run_revision_with(&args, terminal, &mut input, &mut output, store(), date(), &NoGit);
         (code, String::from_utf8(output).unwrap())
     }
 
@@ -3732,7 +3982,17 @@ mod revision_tests {
     }
 
     fn release(label: &str) -> RevisionAction {
-        RevisionAction::Release { label: label.into() }
+        RevisionAction::Release {
+            label: label.into(),
+            archive_dir: None,
+        }
+    }
+
+    fn release_into(label: &str, root: &Path) -> RevisionAction {
+        RevisionAction::Release {
+            label: label.into(),
+            archive_dir: Some(root.to_path_buf()),
+        }
     }
 
     fn withdraw(label: &str) -> RevisionAction {
@@ -3815,12 +4075,15 @@ mod revision_tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// RG-1/RG-3 through the CLI: the typed label approves (the safety waivers listed first), the author's role and
-    /// a wrong label do not; the release of the approved revision is not built yet and writes nothing; a released
-    /// revision is withdrawn on its typed label.
+    /// RG-1/RG-3 and RA-1 through the CLI: the typed label approves (the safety waivers listed first), the author's
+    /// role and a wrong label do not; the release shows its plan and needs the typed label, then writes the archive
+    /// (with Golden A's report blocks as CSV) and stamps the revision; a released revision is withdrawn on its typed
+    /// label.
     #[test]
-    fn approve_on_the_typed_label_then_release_is_not_built_and_withdraw() {
+    fn approve_release_and_withdraw_on_the_typed_label() {
         let dir = golden_copy("approve");
+        let root = dir.with_extension("archives");
+        let _ = std::fs::remove_dir_all(&root);
         waive_the_gate(&dir);
         let before = files(&dir);
         for wrong in ["", "\n", "v2.0\n", "V2\n", "yes\n", "V1.0\n"] {
@@ -3847,26 +4110,130 @@ mod revision_tests {
         assert!(revisions.contains("\"sign_off\""), "{revisions}");
         assert!(revisions.contains("\"checker\":\"checker\""), "{revisions}");
 
-        // The gate passes now; the release is part 4: exit 2, nothing written.
+        // The gate passes now: the plan and the prompt; a wrong label writes nothing.
         let approved = files(&dir);
-        let (code, shown) = run(&dir, release("V2.0"), true, "");
-        assert_eq!((code, shown.as_str()), (2, ""));
+        let (code, shown) = run(&dir, release_into("V2.0", &root), true, "V1.0\n");
+        assert_eq!(code, 1, "{shown}");
+        assert!(shown.starts_with("release revision V2.0: generation "), "{shown}");
+        assert!(shown.contains("  archive: "), "{shown}");
+        assert!(!shown.contains("  git: "), "outside a worktree: {shown}");
+        assert!(
+            shown.contains("Type the revision label `V2.0` to release it"),
+            "{shown}"
+        );
+        assert_eq!(files(&dir), approved);
+        assert!(!root.exists());
+        // An archive root inside the project is refused.
+        let (code, _) = run(&dir, release_into("V2.0", &dir.join("archives")), true, "V2.0\n");
+        assert_eq!(code, 1);
         assert_eq!(files(&dir), approved);
 
-        // Withdraw: a revision that is not released, a wrong label, then the typed label.
-        let (code, _) = run(&dir, withdraw("V2.0"), true, "V2.0\n");
+        let (code, shown) = run(&dir, release_into("V2.0", &root), true, "V2.0\n");
+        assert_eq!(code, 0, "{shown}");
+        assert!(shown.contains("released revision V2.0: archive "), "{shown}");
+        let archive = std::fs::read(root.join("V2.0.ewarchive")).expect("the archive");
+        let limits = ew_api::zip::ZipLimits {
+            max_ratio: u64::MAX,
+            ..ew_api::zip::ZipLimits::default()
+        };
+        let entries = ew_api::archive::read(&archive, &limits).expect("the archive verifies");
+        assert!(
+            entries
+                .keys()
+                .any(|k| k.starts_with("reports/") && k.ends_with(".csv")),
+            "{:?}",
+            entries.keys()
+        );
+        assert!(
+            entries.keys().any(|k| k.starts_with("pdf/")),
+            "{:?}",
+            entries.keys()
+        );
+        let revisions = std::fs::read_to_string(dir.join("revisions.jsonl")).unwrap();
+        assert!(revisions.contains("\"V2.0.ewarchive\""), "{revisions}");
+        // Released once: a second release is refused.
+        let (code, _) = run(&dir, release_into("V2.0", &root), true, "V2.0\n");
         assert_eq!(code, 1);
+        let released = files(&dir);
+
+        // Withdraw: a wrong label, then the typed label.
         let (code, shown) = run(&dir, withdraw("V1.0"), true, "V2.0\n");
         assert_eq!(code, 1);
         assert!(
             shown.contains("Type the revision label `V1.0` to withdraw it"),
             "{shown}"
         );
-        assert_eq!(files(&dir), approved);
+        assert_eq!(files(&dir), released);
         let (code, shown) = run(&dir, withdraw("V1.0"), true, "V1.0\n");
         assert_eq!(code, 0, "{shown}");
         let revisions = std::fs::read_to_string(dir.join("revisions.jsonl")).unwrap();
         assert!(revisions.contains("the terminal plan was wrong"), "{revisions}");
         let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// RA-3 through the CLI: an archive of the open revision's label that no record names (what a crashed release
+    /// leaves: here the archive of an identical copy) is offered before a new release; `complete` stamps the revision
+    /// with it, and a damaged one can only be discarded.
+    #[test]
+    fn an_incomplete_release_is_completed_or_discarded() {
+        let a = golden_copy("incomplete-a");
+        waive_the_gate(&a);
+        let (code, shown) = run(&a, approve("checker"), true, "V2.0\n");
+        assert_eq!(code, 0, "{shown}");
+        let b = a.with_file_name(format!("ew-cli-revision-incomplete-b-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&b);
+        copy_dir(&a, &b);
+        let root_a = a.with_extension("archives");
+        let root_b = b.with_extension("archives");
+        for r in [&root_a, &root_b] {
+            let _ = std::fs::remove_dir_all(r);
+        }
+        let (code, shown) = run(&a, release_into("V2.0", &root_a), true, "V2.0\n");
+        assert_eq!(code, 0, "{shown}");
+        std::fs::create_dir_all(&root_b).unwrap();
+        std::fs::copy(root_a.join("V2.0.ewarchive"), root_b.join("V2.0.ewarchive")).unwrap();
+
+        // Aborted: nothing changes.
+        let before = files(&b);
+        let (code, shown) = run(&b, release_into("V2.0", &root_b), true, "V2.0\n");
+        assert_eq!(code, 1, "{shown}");
+        assert!(
+            shown.starts_with("incomplete release V2.0: the archive "),
+            "{shown}"
+        );
+        assert!(shown.contains("Type `complete` to stamp"), "{shown}");
+        assert_eq!(files(&b), before);
+        // Completed with the archive's own facts.
+        let (code, shown) = run(&b, release_into("V2.0", &root_b), true, "complete\n");
+        assert_eq!(code, 0, "{shown}");
+        assert!(shown.contains("released revision V2.0: archive "), "{shown}");
+        assert_eq!(
+            std::fs::read(b.join("revisions.jsonl")).unwrap(),
+            std::fs::read(a.join("revisions.jsonl")).unwrap(),
+            "the same release record as the uninterrupted release"
+        );
+
+        // A damaged archive of an open revision: only discard.
+        let c = a.with_file_name(format!("ew-cli-revision-incomplete-c-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&c);
+        copy_dir(&golden(), &c);
+        let root_c = c.with_extension("archives");
+        let _ = std::fs::remove_dir_all(&root_c);
+        std::fs::create_dir_all(&root_c).unwrap();
+        std::fs::write(root_c.join("V2.0.ewarchive"), b"not an archive").unwrap();
+        let (code, shown) = run(&c, release_into("V2.0", &root_c), true, "complete\n");
+        assert_eq!(code, 1, "{shown}");
+        assert!(
+            shown.contains("it cannot be completed: the archive is damaged"),
+            "{shown}"
+        );
+        let (code, shown) = run(&c, release_into("V2.0", &root_c), true, "discard\n");
+        assert_eq!(code, 0, "{shown}");
+        assert!(shown.contains("discarded the incomplete release V2.0"), "{shown}");
+        assert!(!root_c.join("V2.0.ewarchive").exists());
+        for d in [&a, &b, &c, &root_a, &root_b, &root_c] {
+            let _ = std::fs::remove_dir_all(d);
+        }
     }
 }

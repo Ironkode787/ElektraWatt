@@ -1651,6 +1651,7 @@ dependencies = [
  "ew-format",
  "ew-model",
  "ew-testdir",
+ "miniz_oxide 0.8.9",
  "proptest",
  "serde_json",
  "sha2",

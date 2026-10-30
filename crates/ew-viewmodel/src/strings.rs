@@ -2075,6 +2075,7 @@ const COMMAND_TITLES: &[(&str, &str)] = &[
     ("report_block.create", "Create report block"),
     ("revision.approve", "Approve revision"),
     ("revision.create", "Create revision"),
+    ("revision.release", "Release revision"),
     ("revision.set_author", "Set revision author"),
     ("revision.withdraw", "Withdraw revision"),
     ("section.create", "Create section"),

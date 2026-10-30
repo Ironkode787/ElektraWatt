@@ -1,0 +1,1197 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! WP-S1.18 part 4 (D11 to D13): the atomic release and the as-built archive through the `Session` facade, RA-1 to
+//! RA-7, on the release fixture `golden/fixtures/release-min` (one page, two devices, an author and a checker party,
+//! the open revision V1.0 with its author; built by [`build_release_min`] and compared with the checked-in copy).
+//!
+//! Every release runs on a **copy** of the fixture (a fresh directory or a [`MemVfs`]); nothing under `golden/`
+//! changes. The tests that need no git pass [`NoGit`], which reports no worktree without looking at the disk, so no
+//! test walks up into the repository it runs in; RA-7's git test creates its own repository under its temporary
+//! directory.
+
+mod golden_common;
+
+use std::cell::RefCell;
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use ew_api::archive;
+use ew_api::git::{Committed, Git, GitError, GitExe};
+use ew_api::output::Parallelism;
+use ew_api::zip::ZipLimits;
+use ew_api::{
+    AnyCommand, Approval, CmdError, CmdLog, CmdLogError, Exposure, IncompleteRelease, NewProjectKind, Origin,
+    ProjectTemplate, Recovery, ReleaseContext, ReleaseError, ReleaseOptions, Released, Session,
+    SessionOptions, Submit, checks,
+};
+use ew_commands::testkit::seeded_ids;
+use ew_derive::ew_ids::Id;
+use ew_schema::{Date, Party, PartyRole, ReleaseRecord, Revision, RevisionState};
+use ew_store::ew_format::{self, FilePath, Limits, Manifest};
+use ew_store::lock::{Identity, new_session_id};
+use ew_store::mem::{DirSync, Fault, MemVfs};
+use ew_store::{ManualClock, StoreOptions, Vfs};
+
+// ---------------------------------------------------------------------------------------------------------------
+// The fixture
+
+/// The release fixture, relative to the repository.
+const FIXTURE: &str = "golden/fixtures/release-min";
+
+/// The open revision of the fixture.
+const LABEL: &str = "V1.0";
+
+fn fixture() -> PathBuf {
+    golden_common::repo().join(FIXTURE)
+}
+
+fn store_options(state: &Path) -> StoreOptions {
+    let mut o = StoreOptions::new("wp-s1-18-part4");
+    o.state_dir = Some(state.to_path_buf());
+    o
+}
+
+fn seeded(seed: u64) -> SessionOptions {
+    SessionOptions {
+        ids: Some(seeded_ids(seed)),
+        ..SessionOptions::default()
+    }
+}
+
+fn cmd(name: &str, params: serde_json::Value) -> AnyCommand {
+    AnyCommand {
+        name: name.into(),
+        params,
+    }
+}
+
+fn run(s: &mut Session, name: &str, params: serde_json::Value) {
+    s.execute_with(&cmd(name, params), Submit::from(Origin::Gui))
+        .unwrap_or_else(|e| panic!("{name}: {e}"));
+}
+
+fn party(role: PartyRole, name: &str) -> Party {
+    serde_json::from_value(serde_json::json!({"role": role, "name": name})).expect("a party")
+}
+
+/// The manifest and the files it lists of the project directory `dir`, by path.
+fn project_files(dir: &Path) -> (Vec<u8>, BTreeMap<FilePath, Vec<u8>>) {
+    let bytes = std::fs::read(dir.join(ew_format::MANIFEST)).expect("manifest.json");
+    let manifest = Manifest::parse(&bytes, &Limits::default()).expect("a manifest");
+    let files = manifest
+        .files
+        .keys()
+        .map(|p| {
+            let data = std::fs::read(dir.join(p.as_str())).unwrap_or_else(|e| panic!("{p}: {e}"));
+            (p.clone(), data)
+        })
+        .collect();
+    (bytes, files)
+}
+
+/// The manifest's text without its `generator` line, which the fixture comparison ignores (doc 05 §17.1).
+fn without_generator(manifest: &[u8]) -> String {
+    String::from_utf8_lossy(manifest)
+        .lines()
+        .filter(|l| !l.trim_start().starts_with("\"generator\""))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Builds the release fixture into the empty directory `dir`: the built-in new project (seeded IDs) with the drawing
+/// ID `RM-001` and an author and a checker party, a miniature circuit breaker and a lamp from the starter library on
+/// its page, and the open revision V1.0 by the author. The parties and the drawing ID are set on the project record,
+/// which no command sets yet; everything else goes through commands.
+fn build_release_min(dir: &Path, state: &Path) {
+    let base = ew_testdir::fresh_dir("ew-release-min-base");
+    let mut s = Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, seeded(39))
+        .expect("the built-in project");
+    s.create(&base, store_options(state)).expect("written");
+    s.close();
+    let (_, files) = project_files(&base);
+    let loaded = ew_format::load(None, &files, &Limits::default());
+    let mut project = loaded.project.expect("the project record");
+    project.master.drawing_id = Some("RM-001".parse().expect("an ident"));
+    project.parties = vec![
+        party(PartyRole::Author, "Design office"),
+        party(PartyRole::Checker, "Test office"),
+    ];
+    let mut s = Session::from_records(project, loaded.records, loaded.lib, seeded(40)).expect("a session");
+    let page = s.query().pages().ids().next().expect("the page");
+    let step = 7_937_500i64;
+    let mut functions = Vec::new();
+    for (i, (part_number, letter)) in [("EW-GEN-MCB-1", "F"), ("EW-GEN-LMP-1", "E")]
+        .into_iter()
+        .enumerate()
+    {
+        let catalogue = s.place_catalogue("1").expect("folio 1");
+        let part = catalogue
+            .parts
+            .iter()
+            .find(|p| p.part_number == part_number)
+            .expect("a starter part");
+        let key = part.functions[0].symbol.clone().expect("the part's symbol");
+        let symbol = s.starter_symbol_copy(&key).expect("a starter symbol");
+        let mut params = serde_json::json!({
+            "page": page.to_string(),
+            "symbol": symbol.to_string(),
+            "pos": [(20 + 20 * i as i64) * step, 20 * step],
+            "target": {"from_part": {"part": part.copy.to_string(), "template": 0, "letter": letter}},
+        });
+        if let Some(embed) = s.starter_embed_part(part.copy, &key).expect("the part's closure") {
+            params["copies"] = embed["copies"].clone();
+        }
+        let before: BTreeSet<_> = s.query().functions().ids().collect();
+        run(&mut s, "device.place", params);
+        let placed = s
+            .query()
+            .functions()
+            .ids()
+            .find(|f| !before.contains(f))
+            .expect("the placed function");
+        functions.push(placed);
+    }
+    // A closed loop: F1:2 to E1:X1 and E1:X2 to F1:1, drawn on the page.
+    for (a, b) in [((0, 1), (1, 0)), ((1, 1), (0, 0))] {
+        run(
+            &mut s,
+            "connection.draw",
+            serde_json::json!({
+                "a": {"cp": {"function": functions[a.0].to_string(), "idx": a.1}},
+                "b": {"cp": {"function": functions[b.0].to_string(), "idx": b.1}},
+                "page": page.to_string(),
+            }),
+        );
+    }
+    run(
+        &mut s,
+        "revision.create",
+        serde_json::json!({"label": LABEL, "author": "author"}),
+    );
+    s.create(dir, store_options(state))
+        .expect("the fixture is written");
+    s.close();
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+// Allowed: the program boundary of a test, read once; the value never reaches a result.
+#[allow(clippy::disallowed_methods)]
+fn bless() -> bool {
+    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
+}
+
+/// The fixture is what [`build_release_min`] builds (the manifest compared without its generator); `EW_BLESS=1`
+/// writes it.
+#[test]
+fn the_release_fixture_is_built_by_its_helper() {
+    let built = ew_testdir::fresh_dir("ew-release-min-built");
+    let state = ew_testdir::fresh_dir("ew-release-min-state");
+    build_release_min(&built, &state);
+    let (manifest, files) = project_files(&built);
+    if bless() {
+        let target = fixture();
+        let _ = std::fs::remove_dir_all(&target);
+        std::fs::create_dir_all(&target).expect("the fixture directory");
+        std::fs::write(target.join(ew_format::MANIFEST), &manifest).expect("manifest.json");
+        for (path, data) in &files {
+            let to = target.join(path.as_str());
+            std::fs::create_dir_all(to.parent().expect("a parent")).expect("a directory");
+            std::fs::write(&to, data).expect("a file");
+        }
+    }
+    let (fixed_manifest, fixed) = project_files(&fixture());
+    assert_eq!(
+        without_generator(&fixed_manifest),
+        without_generator(&manifest),
+        "the fixture's manifest (EW_BLESS=1 rewrites it)"
+    );
+    assert_eq!(fixed.keys().collect::<Vec<_>>(), files.keys().collect::<Vec<_>>());
+    for (path, data) in &files {
+        assert!(fixed[path] == *data, "{path} differs (EW_BLESS=1 rewrites it)");
+    }
+    let _ = std::fs::remove_dir_all(&built);
+    let _ = std::fs::remove_dir_all(&state);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Copies, approval, git ports
+
+fn copy_dir(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).expect("a directory");
+    for e in std::fs::read_dir(from).expect("a readable directory") {
+        let e = e.expect("an entry");
+        let target = to.join(e.file_name());
+        if e.path().is_dir() {
+            copy_dir(&e.path(), &target);
+        } else {
+            std::fs::copy(e.path(), &target).expect("a copied file");
+        }
+    }
+}
+
+fn open(dir: &Path, state: &Path) -> (Session, Vec<checks::IntegrityItem>) {
+    let (session, report) = Session::open(
+        dir,
+        store_options(state),
+        SessionOptions::default(),
+        Recovery::Keep,
+    )
+    .unwrap_or_else(|e| panic!("{}: {e:?}", dir.display()));
+    (session, ew_api::integrity_items(&report))
+}
+
+fn date() -> Date {
+    Date::new(2026, 3, 2).expect("a date")
+}
+
+fn context() -> ReleaseContext {
+    ReleaseContext {
+        label: LABEL.into(),
+        date: Date::new(2026, 3, 9).expect("a date"),
+    }
+}
+
+/// The checker approves the open revision and the sign-off is saved.
+fn approve(s: &mut Session, integrity: &[checks::IntegrityItem]) {
+    let approval = Approval {
+        label: LABEL.into(),
+        checker: PartyRole::Checker,
+        date: date(),
+        waivers_ack: Vec::new(),
+    };
+    s.approve(&approval, integrity)
+        .unwrap_or_else(|e| panic!("approved: {e}"));
+    s.save().expect("the sign-off saves");
+}
+
+/// A git port for a project outside any worktree: it never looks at the disk.
+struct NoGit;
+
+impl Git for NoGit {
+    fn worktree(&self, _: &dyn Vfs, _: &Path) -> std::io::Result<Option<PathBuf>> {
+        Ok(None)
+    }
+    fn available(&self) -> Result<(), GitError> {
+        panic!("no git step outside a worktree")
+    }
+    fn commit_dir(&self, _: &Path, _: &str) -> Result<Committed, GitError> {
+        panic!("no git step outside a worktree")
+    }
+    fn tag_exists(&self, _: &Path, _: &str) -> Result<bool, GitError> {
+        panic!("no git step outside a worktree")
+    }
+    fn tag(&self, _: &Path, _: &str, _: &str) -> Result<(), GitError> {
+        panic!("no git step outside a worktree")
+    }
+    fn delete_tag(&self, _: &Path, _: &str) -> Result<(), GitError> {
+        panic!("no git step outside a worktree")
+    }
+}
+
+/// A git port that reports a worktree and keeps its commits and tags in memory, with injectable failures.
+#[derive(Default)]
+struct FakeGit {
+    /// The commit messages made.
+    commits: RefCell<Vec<String>>,
+    /// The tags, with their messages.
+    tags: RefCell<BTreeMap<String, String>>,
+    /// Whether the commit step fails.
+    fail_commit: bool,
+    /// Whether creating a tag fails.
+    fail_tag: bool,
+}
+
+impl Git for FakeGit {
+    fn worktree(&self, _: &dyn Vfs, _: &Path) -> std::io::Result<Option<PathBuf>> {
+        Ok(Some(PathBuf::from("/")))
+    }
+    fn available(&self) -> Result<(), GitError> {
+        Ok(())
+    }
+    fn commit_dir(&self, _: &Path, message: &str) -> Result<Committed, GitError> {
+        if self.fail_commit {
+            return Err(GitError::Failed {
+                step: "commit",
+                code: Some(1),
+            });
+        }
+        let mut commits = self.commits.borrow_mut();
+        let made = commits.last().is_none_or(|m| m != message);
+        commits.push(message.to_owned());
+        Ok(if made { Committed::Made } else { Committed::Clean })
+    }
+    fn tag_exists(&self, _: &Path, tag: &str) -> Result<bool, GitError> {
+        Ok(self.tags.borrow().contains_key(tag))
+    }
+    fn tag(&self, _: &Path, tag: &str, message: &str) -> Result<(), GitError> {
+        if self.fail_tag {
+            return Err(GitError::Failed {
+                step: "tag",
+                code: Some(128),
+            });
+        }
+        assert!(
+            self.tags
+                .borrow_mut()
+                .insert(tag.to_owned(), message.to_owned())
+                .is_none(),
+            "a release never moves a tag"
+        );
+        Ok(())
+    }
+    fn delete_tag(&self, _: &Path, tag: &str) -> Result<(), GitError> {
+        self.tags.borrow_mut().remove(tag);
+        Ok(())
+    }
+}
+
+fn options<'a>(git: &'a dyn Git, root: Option<&'a Path>) -> ReleaseOptions<'a> {
+    ReleaseOptions {
+        archive_root: root,
+        git,
+        git_consent: true,
+        parallelism: Parallelism::Serial,
+    }
+}
+
+fn revision(s: &Session) -> Arc<Revision> {
+    let q = s.query();
+    q.table::<Revision>()
+        .iter()
+        .find(|(_, r)| r.label.as_str() == LABEL)
+        .map(|(_, r)| Arc::clone(r))
+        .expect("revision V1.0")
+}
+
+/// The fixture copied to a fresh directory, opened and approved.
+fn approved_copy(tag: &str) -> (PathBuf, PathBuf, Session, Vec<checks::IntegrityItem>) {
+    let base = ew_testdir::fresh_dir(&format!("ew-release-{tag}"));
+    let dir = base.join("release-min");
+    let state = base.join("state");
+    copy_dir(&fixture(), &dir);
+    let (mut s, integrity) = open(&dir, &state);
+    approve(&mut s, &integrity);
+    (base, dir, s, integrity)
+}
+
+/// The gate of the approved fixture passes (D15's fixture: no finding besides those the approval settles).
+#[test]
+fn the_approved_fixture_passes_the_gate() {
+    let (base, _, s, integrity) = approved_copy("gate");
+    let gate = s.release_gate(LABEL, &integrity).expect("the gate runs");
+    assert!(gate.passes(), "{:#?}", gate.report.findings);
+    assert!(gate.report.findings.is_empty(), "{:#?}", gate.report.findings);
+    s.close();
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// RA-1, RA-2, RA-6: the release and its archive
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn release_record(s: &Session) -> ReleaseRecord {
+    revision(s).release.clone().expect("a release record")
+}
+
+/// The archive's entries, read strictly (the reader checks the layout and `SHA256SUMS`).
+fn entries(bytes: &[u8]) -> BTreeMap<String, Vec<u8>> {
+    let limits = ZipLimits {
+        max_ratio: u64::MAX,
+        ..ZipLimits::default()
+    };
+    archive::read(bytes, &limits).expect("the archive reads and its sums verify")
+}
+
+/// RA-1, RA-2 and RA-6 on the approved fixture, outside a worktree:
+/// - RA-1: the release runs the six steps; the revision is released at g+1 with a complete record, the session is
+///   clean, and the project reopens released;
+/// - RA-2: the archive holds exactly D11's entries (no report block in the fixture, so no `reports/`); every line of
+///   `SHA256SUMS` matches its entry as `sha256sum -c` checks it and every other entry is listed; `project/` is
+///   generation g byte for byte and its hashes equal manifest g; `ARCHIVE.json` names the project, the revision, g,
+///   the release context, the profile, the packs, the generator and the format; `check/report.json` carries the
+///   scheme, the packs and the disclaimer;
+/// - RA-6: the record carries the sign-off as `approval`, the packs, the derivation profile, the content digest of g,
+///   every page digest and the changed pages (every page: the first release has no earlier one).
+#[test]
+fn ra1_ra2_ra6_the_release_writes_the_archive_and_the_record() {
+    let (base, dir, mut s, integrity) = approved_copy("ra1");
+    let root = base.join("archives");
+    let (digest, g) = s.content_digest().expect("saved");
+    let gate = s.release_gate(LABEL, &integrity).expect("the gate");
+    let sign_off = revision(&s).sign_off.clone().expect("approved");
+    let digests = ew_api::output::page_digests(&s.query(), Parallelism::Serial);
+    let (manifest_g, files_g) = project_files(&dir);
+    let released: Released = s
+        .release(&context(), &integrity, &options(&NoGit, Some(&root)))
+        .expect("released");
+
+    // RA-1.
+    assert_eq!(released.generation, g);
+    assert_eq!(released.stamped, g + 1);
+    assert_eq!(released.archive, root.join("V1.0.ewarchive"));
+    assert_eq!(released.git, None);
+    assert!(!released.save_incomplete);
+    let bytes = std::fs::read(&released.archive).expect("the archive");
+    assert_eq!(released.sha256, ew_api::Sha256(ew_format::sha256(&bytes)));
+    assert_eq!(
+        std::fs::read_dir(&root).expect("the root").count(),
+        1,
+        "no temp is left"
+    );
+    let r = revision(&s);
+    assert_eq!(r.state, RevisionState::Released);
+    assert_eq!(r.date, Some(context().date));
+    assert!(!s.is_dirty());
+    assert_eq!(s.store().expect("a store").generation(), g + 1);
+    assert_eq!(s.incomplete_release(Some(&root)).expect("looked"), None);
+
+    // RA-6.
+    let record = release_record(&s);
+    assert_eq!(record.approval, Some(sign_off.clone()));
+    assert_eq!(
+        record.archive.as_ref().map(|a| (a.name.clone(), a.sha256)),
+        Some((Some("V1.0.ewarchive".to_owned()), Some(released.sha256)))
+    );
+    assert_eq!(record.content_digest, Some(digest));
+    assert_eq!(record.generation, Some(g));
+    assert_eq!(
+        record.derivation_profile,
+        Some(s.query().project().derivation_profile.clone())
+    );
+    assert_eq!(record.git_tag, None);
+    assert_eq!(record.released_on, Some(context().date));
+    assert_eq!(record.page_digests.as_ref(), Some(&digests));
+    let pages: Vec<Id<ew_schema::Page>> = digests.keys().copied().collect();
+    assert_eq!(
+        record.changed_pages,
+        Some(pages),
+        "the first release changes every page"
+    );
+    let packs: Vec<(String, String, ew_api::Sha256)> = record
+        .rule_packs
+        .clone()
+        .expect("packs")
+        .into_iter()
+        .map(|p| {
+            (
+                p.id.expect("id").as_str().to_owned(),
+                p.version.expect("version").as_str().to_owned(),
+                p.sha256.expect("sha256"),
+            )
+        })
+        .collect();
+    let expected: Vec<(String, String, ew_api::Sha256)> = gate
+        .packs
+        .iter()
+        .map(|p| (p.id.to_owned(), p.version.to_owned(), ew_api::Sha256(p.sha256)))
+        .collect();
+    assert_eq!(packs, expected);
+
+    // RA-2.
+    let entries = entries(&bytes);
+    let mut names: BTreeSet<String> = [
+        "mimetype",
+        "ARCHIVE.json",
+        "SHA256SUMS",
+        "check/report.json",
+        "pdf/RM-001_V1.0.pdf",
+        "project/manifest.json",
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect();
+    names.extend(files_g.keys().map(|p| format!("project/{p}")));
+    assert_eq!(entries.keys().cloned().collect::<BTreeSet<_>>(), names);
+    let sums = String::from_utf8(entries["SHA256SUMS"].clone()).expect("UTF-8");
+    let mut listed = BTreeSet::new();
+    for line in sums.lines() {
+        let (sum, path) = line.split_once("  ").expect("`<sum>  <path>`");
+        assert_eq!(sum, hex(&ew_format::sha256(&entries[path])), "{path}");
+        listed.insert(path.to_owned());
+    }
+    names.remove("SHA256SUMS");
+    assert_eq!(listed, names, "every other entry is summed");
+    assert_eq!(entries["mimetype"], b"application/vnd.elektrawatt.archive+zip");
+    assert_eq!(entries["project/manifest.json"], manifest_g);
+    for (path, data) in &files_g {
+        assert!(entries[&format!("project/{path}")] == *data, "{path}");
+    }
+    let manifest = Manifest::parse(&manifest_g, &Limits::default()).expect("manifest g");
+    archive::check_project(&entries, &manifest, &manifest_g).expect("the project hashes equal manifest g");
+    assert!(entries["pdf/RM-001_V1.0.pdf"].starts_with(b"%PDF-"));
+    let description: serde_json::Value = serde_json::from_slice(&entries["ARCHIVE.json"]).expect("JSON");
+    assert_eq!(description["revision"]["id"], r.id.to_string());
+    assert_eq!(description["revision"]["label"], LABEL);
+    assert_eq!(description["generation"], g);
+    assert_eq!(description["context"]["date"], "2026-03-09");
+    assert_eq!(description["project"], s.query().project().id.to_string());
+    assert_eq!(description["format"], manifest.format);
+    assert_eq!(description["derivation_profile"], "2027.1");
+    assert!(
+        description["generator"]
+            .as_str()
+            .is_some_and(|g| g.starts_with("ElektraWatt "))
+    );
+    let mut without_archive = record.clone();
+    without_archive.archive = None;
+    assert_eq!(
+        serde_json::from_value::<ReleaseRecord>(description["release"].clone()).expect("a record"),
+        without_archive,
+        "the archive carries the record's facts"
+    );
+    let check: serde_json::Value = serde_json::from_slice(&entries["check/report.json"]).expect("JSON");
+    assert_eq!(check["scheme"], "pre-delivery");
+    assert_eq!(check["disclaimer"], checks::report::DISCLAIMER);
+    assert_eq!(check["packs"].as_array().map(Vec::len), Some(gate.packs.len()));
+
+    // The release is on disk: the project reopens released at g+1.
+    s.close();
+    let (r, _) = open(&dir, &base.join("state"));
+    assert_eq!(revision(&r).state, RevisionState::Released);
+    assert_eq!(release_record(&r), record);
+    assert_eq!(r.store().expect("a store").generation(), g + 1);
+    r.close();
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+/// RA-5: two releases of the same saved state (two copies in directories of different names, one with one thread
+/// and one with four) write byte-identical archives: no clock, no locale, no hash-map order, no host path.
+#[test]
+fn ra5_two_releases_of_the_same_saved_state_write_the_same_bytes() {
+    let mut archives = Vec::new();
+    for (tag, parallelism) in [("ra5a", Parallelism::Serial), ("ra5b", Parallelism::threads(4))] {
+        let (base, _, mut s, integrity) = approved_copy(tag);
+        let root = base.join("archives-of-another-name");
+        let mut o = options(&NoGit, Some(&root));
+        o.parallelism = parallelism;
+        let released = s.release(&context(), &integrity, &o).expect("released");
+        archives.push(std::fs::read(&released.archive).expect("the archive"));
+        s.close();
+        let _ = std::fs::remove_dir_all(&base);
+    }
+    assert!(archives[0] == archives[1], "the two archives differ");
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// The refusals before anything is written; reachability (spec §10)
+
+/// Every refusal of the release comes before a write: unsaved edits, a label that is not the open revision's, a
+/// blocked gate (before approval), a read-only session, an archive root inside the project, an existing archive of
+/// the label (an incomplete release), and inside a worktree a missing consent and an existing tag. Nothing is written
+/// in the archive root and the revision stays open.
+#[test]
+fn the_refusals_write_nothing() {
+    let base = ew_testdir::fresh_dir("ew-release-refusals");
+    let dir = base.join("release-min");
+    let state = base.join("state");
+    let root = base.join("archives");
+    copy_dir(&fixture(), &dir);
+    let (mut s, integrity) = open(&dir, &state);
+    // Before the approval the gate blocks with EW-REL-001.
+    match s.release(&context(), &integrity, &options(&NoGit, Some(&root))) {
+        Err(ReleaseError::Blocked(list)) => {
+            assert_eq!(list.iter().map(|f| f.rule).collect::<Vec<_>>(), ["EW-REL-001"]);
+        }
+        other => panic!("expected Blocked, got {other:?}"),
+    }
+    approve(&mut s, &integrity);
+    let wrong = ReleaseContext {
+        label: "V9.9".into(),
+        date: context().date,
+    };
+    assert!(matches!(
+        s.release(&wrong, &integrity, &options(&NoGit, Some(&root))),
+        Err(ReleaseError::Gate(ew_api::GateError::NotTheOpenRevision { .. }))
+    ));
+    let inside = dir.join("archives");
+    assert!(matches!(
+        s.release(&context(), &integrity, &options(&NoGit, Some(&inside))),
+        Err(ReleaseError::ArchiveRoot { .. })
+    ));
+    // Inside a worktree: the consent and an existing tag.
+    let git = FakeGit::default();
+    let mut o = options(&git, Some(&root));
+    o.git_consent = false;
+    assert!(matches!(
+        s.release(&context(), &integrity, &o),
+        Err(ReleaseError::GitConsent { .. })
+    ));
+    git.tags
+        .borrow_mut()
+        .insert("ew/rev/V1.0".into(), "made by hand".into());
+    assert!(matches!(
+        s.release(&context(), &integrity, &options(&git, Some(&root))),
+        Err(ReleaseError::TagExists { .. })
+    ));
+    assert!(git.commits.borrow().is_empty(), "no commit before the refusals");
+    // An archive of the label: an incomplete release, settled first.
+    std::fs::create_dir_all(&root).expect("the root");
+    std::fs::write(root.join("V1.0.ewarchive"), b"not an archive").expect("a file");
+    assert!(matches!(
+        s.release(&context(), &integrity, &options(&NoGit, Some(&root))),
+        Err(ReleaseError::Incomplete { .. })
+    ));
+    std::fs::remove_file(root.join("V1.0.ewarchive")).expect("removed");
+    // Unsaved edits.
+    let device = s.query().devices().ids().next().expect("a device");
+    run(
+        &mut s,
+        "fields.set",
+        serde_json::json!({"kind": "device", "targets": [device.to_string()], "path": "function_text",
+            "value": "edited after approval"}),
+    );
+    assert!(s.is_dirty());
+    assert!(matches!(
+        s.release(&context(), &integrity, &options(&NoGit, Some(&root))),
+        Err(ReleaseError::Gate(ew_api::GateError::Unsaved))
+    ));
+    s.save().expect("saved");
+    assert_eq!(std::fs::read_dir(&root).expect("the root").count(), 0);
+    assert_eq!(revision(&s).state, RevisionState::Open);
+    // A second session of the GUI opens read-only while the first holds the lock.
+    let (r, report) = Session::open(
+        &dir,
+        store_options(&state),
+        SessionOptions::default(),
+        Recovery::Keep,
+    )
+    .expect("opened read-only");
+    let plan = r.release_plan(
+        LABEL,
+        &ew_api::integrity_items(&report),
+        &options(&NoGit, Some(&root)),
+    );
+    assert!(matches!(plan, Err(ReleaseError::ReadOnly)), "{plan:?}");
+    r.close();
+    s.close();
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+/// Spec §10: a release is reachable only from a human path. `revision.release` is refused by `execute` and `preview`
+/// (the release writes its stamp itself), with the exposure error for MCP; a command log naming it is refused before
+/// any line runs; a session of a script or MCP origin may not release.
+#[test]
+fn only_a_human_path_reaches_the_release() {
+    let (base, dir, mut s, integrity) = approved_copy("reach");
+    let r = revision(&s);
+    let forged = cmd(
+        "revision.release",
+        serde_json::json!({"revision": r.id.to_string(), "released_on": "2026-03-09", "generation": 3,
+            "content_digest": format!("sha256:{}", "0".repeat(64)), "derivation_profile": "2027.1",
+            "archive": {"name": "V1.0.ewarchive", "sha256": format!("sha256:{}", "0".repeat(64))}}),
+    );
+    assert!(matches!(s.execute(&forged), Err(CmdError::Rejected { .. })));
+    assert!(matches!(s.preview(&forged), Err(CmdError::Rejected { .. })));
+    let mcp = Origin::Mcp {
+        client: "agent".into(),
+    };
+    assert!(matches!(
+        s.execute_with(&forged, Submit::from(mcp.clone())),
+        Err(CmdError::Exposure {
+            exposure: Exposure::HumanOnly,
+            ..
+        })
+    ));
+    let log = CmdLog::parse(&format!(
+        "{{\"$schema\":\"ew.cmdlog/1\"}}\n{{\"cmd\":\"page.create\",\"params\":{{\"number\":990}}}}\n{{\"cmd\":\"revision.release\",\"params\":{}}}\n",
+        forged.params
+    ))
+    .expect("a command log");
+    let before = s.world().rev;
+    match s.run_script(&log, "release.ewcmd") {
+        Err(CmdLogError::Refused {
+            error: CmdError::Exposure { command, .. },
+            ..
+        }) => assert_eq!(command, "revision.release"),
+        other => panic!("expected the exposure error, got {other:?}"),
+    }
+    assert_eq!(s.world().rev, before, "no line ran");
+    assert_eq!(revision(&s).state, RevisionState::Open);
+    s.close();
+    for origin in [
+        mcp,
+        Origin::Script {
+            name: "release.rhai".into(),
+        },
+        Origin::Cli {
+            subcommand: "apply".into(),
+            confirmed: false,
+        },
+    ] {
+        let options_of = SessionOptions {
+            origin: origin.clone(),
+            ..SessionOptions::default()
+        };
+        let (mut s, _) = Session::open(
+            &dir,
+            store_options(&base.join("state")),
+            options_of,
+            Recovery::Keep,
+        )
+        .expect("opened");
+        let root = base.join("archives");
+        assert!(
+            matches!(
+                s.release(&context(), &integrity, &options(&NoGit, Some(&root))),
+                Err(ReleaseError::HumanOnly { .. })
+            ),
+            "{origin:?}"
+        );
+        s.close();
+    }
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// RA-3: kill points through the Vfs seam and injected git failures
+
+/// The approved fixture as files, by `/`-separated path.
+fn approved_image() -> Vec<(String, Vec<u8>)> {
+    fn walk(dir: &Path, prefix: &str, out: &mut Vec<(String, Vec<u8>)>) {
+        for e in std::fs::read_dir(dir).expect("a directory") {
+            let e = e.expect("an entry");
+            let name = format!("{prefix}{}", e.file_name().to_string_lossy());
+            if e.path().is_dir() {
+                walk(&e.path(), &format!("{name}/"), out);
+            } else {
+                out.push((name, std::fs::read(e.path()).expect("a file")));
+            }
+        }
+    }
+    let (base, dir, s, _) = approved_copy("image");
+    s.close();
+    let mut out = Vec::new();
+    walk(&dir, "", &mut out);
+    let _ = std::fs::remove_dir_all(&base);
+    out
+}
+
+const MEM_PROJECT: &str = "/p";
+const MEM_ROOT: &str = "/p.ew-archive";
+
+fn mem_vfs(image: &[(String, Vec<u8>)]) -> Arc<MemVfs> {
+    let vfs = Arc::new(MemVfs::new(DirSync::Explicit));
+    vfs.put_dir(Path::new("/state"));
+    for (path, data) in image {
+        vfs.put(&Path::new(MEM_PROJECT).join(path), data);
+    }
+    vfs
+}
+
+fn mem_options(vfs: &Arc<MemVfs>, pid: u32) -> StoreOptions {
+    let mut o = StoreOptions::new("wp-s1-18-part4");
+    o.state_dir = Some(PathBuf::from("/state"));
+    o.vfs = Arc::clone(vfs) as Arc<dyn Vfs>;
+    o.clock = Arc::new(ManualClock::fixed());
+    o.identity = Identity {
+        session: new_session_id(),
+        user: "<os user>".into(),
+        host: "<host>".into(),
+        pid,
+        pid_started: std::time::SystemTime::UNIX_EPOCH,
+        app_version: "ElektraWatt test".into(),
+    };
+    o
+}
+
+fn mem_open(vfs: &Arc<MemVfs>, pid: u32) -> (Session, Vec<checks::IntegrityItem>) {
+    let (s, report) = Session::open(
+        Path::new(MEM_PROJECT),
+        mem_options(vfs, pid),
+        SessionOptions::default(),
+        Recovery::Keep,
+    )
+    .unwrap_or_else(|e| panic!("the project opens: {e:?}"));
+    (s, ew_api::integrity_items(&report))
+}
+
+/// The archive and the temps in the archive root of the memory file system, by name.
+fn root_files(vfs: &MemVfs) -> BTreeMap<String, Vec<u8>> {
+    vfs.files(Path::new(MEM_ROOT))
+}
+
+/// What a sweep saw after the restarts.
+#[derive(Default, Debug)]
+struct Seen {
+    /// Released (on disk) after the fault.
+    released: u32,
+    /// Open with no archive.
+    clean: u32,
+    /// Open with an incomplete release that was completed.
+    completed: u32,
+    /// Open with an incomplete release that was discarded.
+    discarded: u32,
+}
+
+/// After a crash (the fault fired; the process is gone), the project reopens in one of three states: released, with
+/// the archive the record names (and its tag); open with no archive and no tag of the run (a new release then
+/// succeeds); or open with one complete archive that no record names, which `incomplete_release` reports as
+/// completable and which `discard` removes (with its tag and temps; a new release then succeeds) or `complete` stamps.
+fn after_the_crash(vfs: &Arc<MemVfs>, git: &dyn Git, fake: Option<&FakeGit>, n: u64, seen: &mut Seen) {
+    let (mut r, integrity) = mem_open(vfs, 2);
+    let rev = revision(&r);
+    let files = root_files(vfs);
+    let archives: Vec<&String> = files.keys().filter(|f| f.as_str() == "V1.0.ewarchive").collect();
+    assert!(
+        files
+            .keys()
+            .all(|f| f == "V1.0.ewarchive" || f.starts_with("V1.0.ewarchive.tmp-")),
+        "call {n}: {:?}",
+        files.keys()
+    );
+    let tag_of = |fake: Option<&FakeGit>| fake.and_then(|g| g.tags.borrow().get("ew/rev/V1.0").cloned());
+    match rev.state {
+        RevisionState::Released => {
+            let record = release_record(&r);
+            let named = record.archive.clone().expect("the archive");
+            assert_eq!(named.name.as_deref(), Some("V1.0.ewarchive"), "call {n}");
+            let bytes = files
+                .get("V1.0.ewarchive")
+                .unwrap_or_else(|| panic!("call {n}: the named archive is missing"));
+            assert_eq!(
+                named.sha256,
+                Some(ew_api::Sha256(ew_format::sha256(bytes))),
+                "call {n}"
+            );
+            entries(bytes);
+            if fake.is_some() {
+                let message = tag_of(fake).unwrap_or_else(|| panic!("call {n}: the tag is missing"));
+                assert!(message.contains(&hex(&ew_format::sha256(bytes))), "call {n}");
+            }
+            assert_eq!(r.incomplete_release(None).expect("looked"), None, "call {n}");
+            seen.released += 1;
+        }
+        _ => {
+            assert_eq!(rev.state, RevisionState::Open, "call {n}");
+            assert!(rev.release.is_none(), "call {n}");
+            let found: Option<IncompleteRelease> = r.incomplete_release(None).expect("looked");
+            if archives.is_empty() {
+                assert_eq!(found, None, "call {n}");
+                assert_eq!(tag_of(fake), None, "call {n}: a tag without an archive");
+                seen.clean += 1;
+            } else {
+                let found = found.unwrap_or_else(|| panic!("call {n}: the archive is not reported"));
+                assert_eq!(
+                    found.refusal, None,
+                    "call {n}: the incomplete release can be completed"
+                );
+                assert_eq!(found.archive, Path::new(MEM_ROOT).join("V1.0.ewarchive"));
+                if n.is_multiple_of(2) {
+                    let done = r
+                        .complete_release(&integrity, &options(git, None))
+                        .expect("completed");
+                    assert_eq!(done.sha256, found.sha256);
+                    let record = release_record(&r);
+                    assert_eq!(
+                        record.archive.and_then(|a| a.sha256),
+                        Some(found.sha256),
+                        "call {n}"
+                    );
+                    assert_eq!(revision(&r).state, RevisionState::Released);
+                    if fake.is_some() {
+                        assert!(tag_of(fake).is_some(), "call {n}: completed with its tag");
+                    }
+                    seen.completed += 1;
+                    r.close();
+                    return;
+                }
+                let (removed, _) = r
+                    .discard_incomplete_release(&options(git, None))
+                    .expect("discarded");
+                assert_eq!(removed, found.archive);
+                assert!(
+                    root_files(vfs).is_empty(),
+                    "call {n}: the archive and its temps are gone"
+                );
+                assert_eq!(tag_of(fake), None, "call {n}: the tag of the run is gone");
+                assert_eq!(revision(&r).state, RevisionState::Open);
+                seen.discarded += 1;
+            }
+            // Nothing half done stands in the way of a new release.
+            r.release(&context(), &integrity, &options(git, None))
+                .unwrap_or_else(|e| panic!("call {n}: the release after the crash: {e}"));
+            assert_eq!(revision(&r).state, RevisionState::Released);
+        }
+    }
+    r.close();
+}
+
+/// Runs the release with `fault(n)` armed for n = 1, 2, … until a run completes without reaching it; after each
+/// fault the process "dies" (the file system restarts, the session is dropped) and [`after_the_crash`] checks the
+/// reopened project.
+fn sweep(fault: fn(u64) -> Fault, in_worktree: bool) -> Seen {
+    let image = approved_image();
+    let mut seen = Seen::default();
+    for n in 1..2000 {
+        let vfs = mem_vfs(&image);
+        let fake = FakeGit::default();
+        let git: &dyn Git = if in_worktree { &fake } else { &NoGit };
+        let (mut s, integrity) = mem_open(&vfs, 1);
+        vfs.reset_calls();
+        vfs.set_fault(fault(n));
+        let result = s.release(&context(), &integrity, &options(git, None));
+        let calls = vfs.calls();
+        vfs.restart();
+        drop(s);
+        if result.is_ok() && calls < n {
+            assert!(seen.released + seen.clean + seen.completed + seen.discarded > 0);
+            return seen;
+        }
+        after_the_crash(&vfs, git, in_worktree.then_some(&fake), n, &mut seen);
+    }
+    panic!("the release made more than 2000 file-system calls")
+}
+
+/// RA-3 (process kill): a kill at every file-system call of the release, inside a worktree (the fake port keeps the
+/// tag across the crash). Every outcome of [`after_the_crash`] occurs: open with nothing written, an incomplete
+/// release completed and discarded, and released.
+#[test]
+fn ra3_a_kill_at_every_call_leaves_a_settled_or_incomplete_release() {
+    let seen = sweep(|at| Fault::Kill { at }, true);
+    assert!(seen.clean > 0, "{seen:?}");
+    assert!(seen.completed > 0, "{seen:?}");
+    assert!(seen.discarded > 0, "{seen:?}");
+    assert!(seen.released > 0, "{seen:?}");
+}
+
+/// RA-3 (power loss): the state reverts to what was durable at every call; a released project's archive is durable
+/// (the archive is synced and renamed before the stamp's save), and an open one has at most an incomplete release.
+#[test]
+fn ra3_a_power_loss_at_every_call_never_loses_a_named_archive() {
+    let seen = sweep(|at| Fault::PowerLoss { at, keep: 0 }, false);
+    assert!(seen.clean > 0, "{seen:?}");
+    assert!(seen.released > 0, "{seen:?}");
+}
+
+/// RA-3 (a failure in steps 4 to 6, D13): one failing file-system call at every position, the process alive. A
+/// failed release leaves the revision open, no archive, no temp and no tag in place, the session saved; the next
+/// release in the same session succeeds.
+#[test]
+fn ra3_one_failing_call_cleans_up_what_the_run_created() {
+    let image = approved_image();
+    let mut failed = 0;
+    for n in 1..2000 {
+        let vfs = mem_vfs(&image);
+        let git = FakeGit::default();
+        let (mut s, integrity) = mem_open(&vfs, 1);
+        vfs.reset_calls();
+        vfs.set_fault(Fault::Error {
+            at: n,
+            kind: std::io::ErrorKind::Other,
+        });
+        let result = s.release(&context(), &integrity, &options(&git, None));
+        let calls = vfs.calls();
+        match result {
+            Ok(_) if calls < n => {
+                assert!(failed > 0);
+                s.close();
+                return;
+            }
+            Ok(released) => {
+                assert_eq!(revision(&s).state, RevisionState::Released, "call {n}");
+                assert!(
+                    root_files(&vfs).contains_key("V1.0.ewarchive"),
+                    "call {n}: {released:?}"
+                );
+            }
+            Err(e) => {
+                failed += 1;
+                assert_eq!(revision(&s).state, RevisionState::Open, "call {n}: {e}");
+                assert!(
+                    root_files(&vfs).is_empty(),
+                    "call {n}: {e}: {:?}",
+                    root_files(&vfs).keys()
+                );
+                assert!(git.tags.borrow().is_empty(), "call {n}: {e}");
+                assert!(!s.is_dirty(), "call {n}: {e}");
+                s.release(&context(), &integrity, &options(&git, None))
+                    .unwrap_or_else(|e| panic!("call {n}: the release again: {e}"));
+            }
+        }
+        s.close();
+        let (r, _) = mem_open(&vfs, 2);
+        assert_eq!(revision(&r).state, RevisionState::Released, "call {n}");
+        r.close();
+    }
+    panic!("the release made more than 2000 file-system calls")
+}
+
+/// RA-3 (git, D12): a refused commit refuses the release before the archive (step 3); a refused tag (step 5) removes
+/// the archive of the run; both leave the revision open and the session saved, and the release succeeds once git
+/// does.
+#[test]
+fn ra3_a_git_failure_leaves_the_revision_open() {
+    let image = approved_image();
+    for (fail_commit, fail_tag) in [(true, false), (false, true)] {
+        let vfs = mem_vfs(&image);
+        let (mut s, integrity) = mem_open(&vfs, 1);
+        let git = FakeGit {
+            fail_commit,
+            fail_tag,
+            ..FakeGit::default()
+        };
+        let result = s.release(&context(), &integrity, &options(&git, None));
+        if fail_commit {
+            assert!(
+                matches!(
+                    result,
+                    Err(ReleaseError::Git(GitError::Failed { step: "commit", .. }))
+                ),
+                "{result:?}"
+            );
+        } else {
+            assert!(matches!(result, Err(ReleaseError::Tag(_))), "{result:?}");
+            assert_eq!(git.commits.borrow().len(), 1, "committed before the archive");
+        }
+        assert!(root_files(&vfs).is_empty(), "{:?}", root_files(&vfs).keys());
+        assert!(git.tags.borrow().is_empty());
+        assert_eq!(revision(&s).state, RevisionState::Open);
+        assert!(!s.is_dirty());
+        let git = FakeGit::default();
+        let released = s
+            .release(&context(), &integrity, &options(&git, None))
+            .expect("released");
+        let (committed, tag) = released.git.clone().expect("in a worktree");
+        assert_eq!(committed, Committed::Made);
+        assert_eq!(tag, "ew/rev/V1.0");
+        assert_eq!(git.commits.borrow().as_slice(), ["Release V1.0"]);
+        let message = git.tags.borrow()["ew/rev/V1.0"].clone();
+        assert!(
+            message.contains(&format!("SHA-256: {}", released.sha256)),
+            "{message}"
+        );
+        assert_eq!(
+            release_record(&s).git_tag.map(|t| t.as_str().to_owned()),
+            Some(tag)
+        );
+        s.close();
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// RA-7: a real git repository
+
+/// `git` in `dir` for the test's own set-up and inspection (the product reads only exit statuses).
+fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
+    let out = std::process::Command::new("git")
+        .arg("-C")
+        .arg(dir)
+        .args(args)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .output()
+        .ok()?;
+    out.status
+        .success()
+        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
+/// RA-7 in a temporary git repository under the test's directory: the plan names the worktree and the tag; the
+/// release commits only the project directory ("Release V1.0") and creates the annotated tag `ew/rev/V1.0` on that
+/// commit with the archive's SHA-256 in its message; the stamp's generation g+1 is left for the user's next commit;
+/// the default archive root beside the project lies in the worktree and is flagged. Without `git` on the path, a
+/// release inside the worktree is refused before the archive.
+#[test]
+fn ra7_the_release_commits_and_tags_in_a_git_repository() {
+    if git_in(Path::new("."), &["--version"]).is_none() {
+        eprintln!("RA-7 skipped: no git executable on the path");
+        return;
+    }
+    let base = ew_testdir::fresh_dir("ew-release-git");
+    let repo = base.join("repo");
+    std::fs::create_dir_all(&repo).expect("the repository directory");
+    for args in [
+        &["init", "--quiet"][..],
+        &["config", "user.name", "ElektraWatt test"],
+        &["config", "user.email", "test@example.invalid"],
+        &["config", "commit.gpgsign", "false"],
+        &["config", "tag.gpgsign", "false"],
+        &["config", "core.autocrlf", "false"],
+    ] {
+        git_in(&repo, args).unwrap_or_else(|| panic!("git {args:?}"));
+    }
+    std::fs::write(repo.join("README"), "a repository of the release test\n").expect("a file");
+    git_in(&repo, &["add", "README"]).expect("added");
+    git_in(&repo, &["commit", "--quiet", "-m", "init"]).expect("the first commit");
+    let dir = repo.join("release-min");
+    let state = base.join("state");
+    let root = base.join("archives");
+    copy_dir(&fixture(), &dir);
+    let (mut s, integrity) = open(&dir, &state);
+    approve(&mut s, &integrity);
+
+    // Without git on the path: refused before the archive.
+    let missing = GitExe::with_program("ew-no-such-git-executable");
+    assert!(matches!(
+        s.release(&context(), &integrity, &options(&missing, Some(&root))),
+        Err(ReleaseError::Git(GitError::Missing))
+    ));
+    assert!(!root.exists());
+
+    let git = GitExe::default();
+    let plan = s
+        .release_plan(LABEL, &integrity, &options(&git, None))
+        .expect("the plan");
+    let (worktree, tag) = plan.git.clone().expect("in a worktree");
+    assert_eq!(
+        std::fs::canonicalize(&worktree).expect("the worktree"),
+        std::fs::canonicalize(&repo).expect("the repository")
+    );
+    assert_eq!(tag, "ew/rev/V1.0");
+    assert!(
+        plan.archive_in_worktree,
+        "the default root beside the project lies in the worktree"
+    );
+    let plan = s
+        .release_plan(LABEL, &integrity, &options(&git, Some(&root)))
+        .expect("the plan");
+    assert!(!plan.archive_in_worktree);
+
+    let released = s
+        .release(&context(), &integrity, &options(&git, Some(&root)))
+        .expect("released");
+    assert_eq!(released.git, Some((Committed::Made, tag.clone())));
+    assert_eq!(
+        git_in(&repo, &["log", "-1", "--format=%s"])
+            .expect("the log")
+            .trim(),
+        "Release V1.0"
+    );
+    let shown = git_in(&repo, &["cat-file", "-p", "ew/rev/V1.0"]).expect("the annotated tag");
+    assert!(shown.contains("type commit"), "{shown}");
+    assert!(
+        shown.contains(&format!("SHA-256: {}", released.sha256)),
+        "{shown}"
+    );
+    assert!(shown.contains("Archive: V1.0.ewarchive"), "{shown}");
+    assert_eq!(
+        git_in(&repo, &["rev-parse", "ew/rev/V1.0^{commit}"]),
+        git_in(&repo, &["rev-parse", "HEAD"]),
+        "the tag points at the release commit"
+    );
+    let committed = git_in(&repo, &["show", "--name-only", "--format=", "HEAD"]).expect("the commit's files");
+    assert!(
+        committed.lines().all(|l| l.starts_with("release-min/")),
+        "only the project directory: {committed}"
+    );
+    assert!(
+        committed.lines().any(|l| l == "release-min/manifest.json"),
+        "{committed}"
+    );
+    assert!(!committed.contains(".~ew.lock"), "{committed}");
+    assert_eq!(
+        release_record(&s).git_tag.map(|t| t.as_str().to_owned()),
+        Some(tag)
+    );
+    // Generation g+1 (the stamp) waits for the user's next commit.
+    let status = git_in(&repo, &["status", "--porcelain", "--", "release-min"]).expect("the status");
+    assert!(status.contains("revisions.jsonl"), "{status}");
+    s.close();
+    let _ = std::fs::remove_dir_all(&base);
+}

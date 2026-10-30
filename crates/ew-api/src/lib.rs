@@ -31,6 +31,10 @@
 //! generation with its content digest; [`Session::approve`] records the checker's sign-off (`revision.approve`, which
 //! only it submits).
 //!
+//! **The release and the as-built archive** (WP-S1.18 part 4). [`Session::release`] runs the six steps of doc 05 §14.1
+//! (gate, freeze, git commit, archive, tag, stamp) atomically; [`Session::incomplete_release`] finds the archive a
+//! crashed release left, which [`Session::complete_release`] or [`Session::discard_incomplete_release`] settles.
+//!
 //! Not in v0: the memo snapshot in [`World`] and the job pool for previews (WP-S1.05, FT-497), rule registration
 //! (WP-S1.15), the save on a writer thread, and the undo history of a recovered session (FR-COL-028: a recovered
 //! session opens dirty with an empty history).
@@ -78,6 +82,8 @@ mod new_project;
 pub mod output;
 // WP-S1.18 part 3: the release gate and the sign-off (D8 to D10).
 mod release;
+// WP-S1.18 part 4: the atomic release and the as-built archive (D11 to D13).
+mod release_run;
 // WP-S2.04 part 2: the router the canvas tools call (§4.3, §8.1).
 pub mod routing;
 pub mod verify;
@@ -138,10 +144,16 @@ pub use ew_schema::{
 pub use ew_sqlview as sql;
 pub use ew_store::{
     Access, Clock, OpenError, OpenReport, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason, SaveError,
-    StoreOptions, SystemClock,
+    StoreOptions, SystemClock, Vfs,
 };
+/// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14; WP-S1.18 D11 to D13):
+/// the CLI and the shell name them through `ew-api` (no workspace edge of their own).
+pub use ew_store::{archive, git, zip};
 pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError};
 pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
+pub use release_run::{
+    IncompleteRelease, ReleaseContext, ReleaseError, ReleaseOptions, ReleasePlan, Released,
+};
 
 pub use ew_commands::{
     AnyCommand, Change, ChangeKind, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand,

@@ -1,0 +1,2 @@
+{"$k":"device","id":"019b76da-a803-7000-b2ef-24b2cb418eea","tag":{"letter":"E","counter":1},"parts":[{"part":{"copy":"138b9dc0-edcd-50fe-baef-d85e5ce8e643"},"qty":"1"}]}
+{"$k":"function","id":"019b76da-a804-7000-b881-87a2fa3e9c89","device":"019b76da-a803-7000-b2ef-24b2cb418eea","def":"c15149e0-a49b-52a4-8e9b-dede426d0f22","template_entry":0}

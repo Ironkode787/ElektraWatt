@@ -2,39 +2,39 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Revisions (doc 03 §18, doc 15 §5; FR-REV-001, FR-REV-002, FR-REV-005, FR-REV-009, FR-REV-012, FR-REV-021; FT-165,
-//! WP-S1.18 parts 1 and 3): `revision.create` (`CreateRevision`), `revision.set_author` (`SetRevisionAuthor`),
-//! `revision.withdraw` (`WithdrawRevision`) and `revision.approve` (`ApproveRevision`), with the checks that
-//! `fields.set`, `edit.delete` and `page.delete` share.
+//! WP-S1.18 parts 1, 3 and 4): `revision.create` (`CreateRevision`), `revision.set_author` (`SetRevisionAuthor`),
+//! `revision.withdraw` (`WithdrawRevision`), `revision.approve` (`ApproveRevision`) and `revision.release`
+//! (`ReleaseRevision`, the release's stamp), with the checks that `fields.set`, `edit.delete` and `page.delete` share.
 //!
 //! The editable members of the open revision (`label`, `date`, `description`, `page_notes`) are set with
 //! `fields.set` on the `revision` kind. **The roles have one confirmed path each** (WP-S1.18 D4, FT-402):
 //! `fields.set` refuses `author` and `checker` from every origin; the author of the open revision is set by
 //! `revision.set_author` (`HumanOnly`) and its checker only by `revision.approve` (`HumanOnly`, with the sign-off);
 //! `revision.create` takes both roles for a historic released revision only. A released or withdrawn revision is
-//! immutable (FR-REV-009), so `fields.set` and `edit.delete` refuse it. The state of a revision never changes
-//! through these commands: Open → Released is `revision.release` (the release gate and the as-built archive,
-//! part 4), and a withdrawal is a new record written by `revision.withdraw`.
+//! immutable (FR-REV-009), so `fields.set` and `edit.delete` refuse it. Open → Released is `revision.release`, which
+//! only the session's release submits (the gate, the as-built archive, the git tag, doc 05 §14.1), and a withdrawal is
+//! a new record written by `revision.withdraw`.
 //!
 //! The open revision that appears with the first content edit after a release is the normaliser
 //! `revision_ensure_open`'s ([`crate::normalise::RevisionEnsureOpen`], WP-S1.18 D3). Deleting a page drops the open
 //! revision's note on it in the same transaction (`drop_notes_on_removed_pages`, FT-303); the notes of released
 //! and withdrawn revisions stay.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::{Id, v5};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    Date, Extra, Kind, LabelFormat, PackVersion, Page, PageNote, PartyRole, Revision, RevisionState, Sha256,
-    SignOff, Waiver,
+    ArchiveRef, Date, Digest128, Extra, Kind, LabelFormat, PackVersion, Page, PageNote, PartyRole,
+    ReleaseRecord, Revision, RevisionState, Sha256, SignOff, Waiver,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
-use crate::meta::{CommandMeta, Exposure};
+use crate::meta::{CommandMeta, Confirmation, Exposure};
 use crate::proxy::{IdentS, MlTextS, UuidS};
 use crate::tx::TxBuilder;
 
@@ -566,6 +566,154 @@ impl Command for ApproveRevision {
         tx.update::<Revision>(self.revision, |r| {
             r.checker = Some(checker);
             r.sign_off = Some(sign_off);
+        })?;
+        Ok(Outcome::default())
+    }
+}
+
+/// The as-built archive of a release: its file name and the SHA-256 of its bytes (ADR-0013, doc 05 §14.2).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ReleasedArchive {
+    /// The file name, `<label>.ewarchive` (no directory: the archive roots are searched, doc 05 §14.2).
+    pub name: String,
+    /// The SHA-256 of the archive file.
+    pub sha256: Sha256,
+}
+
+/// `revision.release` (`ReleaseRevision`): the stamp of a release (doc 05 §14.1 step 6, doc 15 §5.5; FR-REV-006,
+/// FR-REV-020, FR-REV-022; WP-S1.18 D13): sets the open revision `Released`, its `date` to `released_on` when it has
+/// none, and writes its `release` record: the sign-off copied as `approval`, the archive's name and SHA-256, the
+/// released generation, the content digest at that generation, the derivation profile, the gate's rule packs, every
+/// page digest and the changed pages, and the git tag when the project is in a worktree.
+///
+/// The session submits it as the last step of the release (`ew_api::Session::release`), after the as-built archive is
+/// written, verified and in place: its parameters are the release's facts, so the session refuses it from
+/// `execute` and `preview`. The command checks what the snapshot decides. Rejected: a revision that does not exist, or
+/// is not open (at `/revision`); an open revision without a sign-off or a checker (at `/revision`: approve it first,
+/// `revision.approve`); an archive name that is not a plain `<name>.ewarchive` file name (at `/archive/name`); a git tag
+/// other than `ew/rev/<label>` (at `/git_tag`).
+///
+/// **Exposure `HumanOnly`** (doc 15 §5.5, ADR-0008 amendment 3): command logs, scripts, MCP and plugins get
+/// `CmdError::Exposure`. **Not undoable** (`undoable: false`, `Confirmation::Destructive`): a released revision is
+/// immutable (FR-REV-009), so the step is a barrier in the history; a release is taken back only by `revision.withdraw`.
+/// Outcome: none.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ReleaseRevision {
+    /// The open revision.
+    #[schemars(with = "UuidS")]
+    pub revision: Id<Revision>,
+    /// The release date (the release context's).
+    pub released_on: Date,
+    /// The released generation g.
+    pub generation: u64,
+    /// The content digest of generation g (doc 15 §5.4), after the freeze.
+    pub content_digest: Sha256,
+    /// The derivation profile of the release.
+    #[schemars(with = "IdentS")]
+    pub derivation_profile: Ident,
+    /// The rule packs of the gate's run.
+    #[serde(default)]
+    pub rule_packs: Vec<ApprovedPack>,
+    /// The digest of every page at the release, by page ID (doc 15 §5.6).
+    #[serde(default)]
+    #[schemars(with = "BTreeMap<String, ew_schema::Digest128>")]
+    pub page_digests: BTreeMap<Id<Page>, Digest128>,
+    /// The pages the release changed, in page order.
+    #[serde(default)]
+    #[schemars(with = "Vec<UuidS>")]
+    pub changed_pages: Vec<Id<Page>>,
+    /// The as-built archive.
+    pub archive: ReleasedArchive,
+    /// The git tag `ew/rev/<label>`, when the project is in a git worktree.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub git_tag: Option<Ident>,
+}
+
+impl Command for ReleaseRevision {
+    const NAME: &'static str = "revision.release";
+
+    fn meta() -> CommandMeta {
+        CommandMeta {
+            undoable: false,
+            exposure: Exposure::HumanOnly,
+            confirmation: Confirmation::Destructive,
+            ..CommandMeta::edit(Self::NAME)
+        }
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let revision = require_revision(tx, Self::NAME, self.revision)?;
+        refuse_closed_revision(tx, Self::NAME, "/revision", self.revision)?;
+        let (Some(sign_off), Some(_)) = (revision.sign_off.clone(), revision.checker.as_ref()) else {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/revision",
+                format!(
+                    "revision {} has no sign-off; the checker approves it first (Revision ▸ Approve, ew revision \
+                     approve)",
+                    revision.label
+                ),
+            ));
+        };
+        let name = &self.archive.name;
+        let plain = name
+            .strip_suffix(".ewarchive")
+            .is_some_and(|stem| !stem.is_empty())
+            && name
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'));
+        if !plain {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/archive/name",
+                format!("`{name}` is not an archive file name (`<label>.ewarchive`, no directory)"),
+            ));
+        }
+        if let Some(tag) = &self.git_tag {
+            let expected = format!("ew/rev/{}", revision.label.as_str());
+            if tag.as_str() != expected {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    "/git_tag",
+                    format!("the tag of revision {} is `{expected}`", revision.label),
+                ));
+            }
+        }
+        let record = ReleaseRecord {
+            approval: Some(sign_off),
+            archive: Some(ArchiveRef {
+                name: Some(name.clone()),
+                sha256: Some(self.archive.sha256),
+                extra: Extra::new(),
+            }),
+            changed_pages: Some(self.changed_pages.clone()),
+            content_digest: Some(self.content_digest),
+            derivation_profile: Some(self.derivation_profile.clone()),
+            generation: Some(self.generation),
+            git_tag: self.git_tag.clone(),
+            page_digests: Some(self.page_digests.clone()),
+            released_on: Some(self.released_on),
+            rule_packs: Some(
+                self.rule_packs
+                    .iter()
+                    .map(|p| PackVersion {
+                        id: Some(p.id.clone()),
+                        sha256: Some(p.sha256),
+                        version: Some(p.version.clone()),
+                        extra: Extra::new(),
+                    })
+                    .collect(),
+            ),
+            extra: Extra::new(),
+        };
+        let released_on = self.released_on;
+        tx.update::<Revision>(self.revision, |r| {
+            r.state = RevisionState::Released;
+            r.date = r.date.or(Some(released_on));
+            r.release = Some(record);
         })?;
         Ok(Outcome::default())
     }

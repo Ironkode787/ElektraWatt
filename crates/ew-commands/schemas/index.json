@@ -664,6 +664,17 @@
     },
     {
       "aliases": [],
+      "confirmation": "destructive",
+      "cost": "interactive",
+      "exposure": "human_only",
+      "name": "revision.release",
+      "params_version": 1,
+      "schema": "revision.release.schema.json",
+      "stability": "preview",
+      "undoable": false
+    },
+    {
+      "aliases": [],
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "human_only",

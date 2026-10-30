@@ -1,0 +1,151 @@
+{
+  "$defs": {
+    "ApprovedPack": {
+      "additionalProperties": false,
+      "description": "One rule pack of the gate run a checker approved: its ID, version and the SHA-256 of its definition (doc 15 §3.9).",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/CmdIdent",
+          "description": "The pack ID (`EW-CORE`)."
+        },
+        "sha256": {
+          "$ref": "#/$defs/Sha256",
+          "description": "The SHA-256 of the pack's definition."
+        },
+        "version": {
+          "$ref": "#/$defs/CmdIdent",
+          "description": "The pack version."
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "Date": {
+      "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "Digest128": {
+      "description": "A 128-bit digest as 32 lower-case hexadecimal digits (a page digest, doc 15 §5.6).",
+      "pattern": "^[0-9a-f]{32}$",
+      "type": "string"
+    },
+    "ReleasedArchive": {
+      "additionalProperties": false,
+      "description": "The as-built archive of a release: its file name and the SHA-256 of its bytes (ADR-0013, doc 05 §14.2).",
+      "properties": {
+        "name": {
+          "description": "The file name, `<label>.ewarchive` (no directory: the archive roots are searched, doc 05 §14.2).",
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Sha256",
+          "description": "The SHA-256 of the archive file."
+        }
+      },
+      "required": [
+        "name",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`revision.release` (`ReleaseRevision`): the stamp of a release (doc 05 §14.1 step 6, doc 15 §5.5; FR-REV-006,\nFR-REV-020, FR-REV-022; WP-S1.18 D13): sets the open revision `Released`, its `date` to `released_on` when it has\nnone, and writes its `release` record: the sign-off copied as `approval`, the archive's name and SHA-256, the\nreleased generation, the content digest at that generation, the derivation profile, the gate's rule packs, every\npage digest and the changed pages, and the git tag when the project is in a worktree.\n\nThe session submits it as the last step of the release (`ew_api::Session::release`), after the as-built archive is\nwritten, verified and in place: its parameters are the release's facts, so the session refuses it from\n`execute` and `preview`. The command checks what the snapshot decides. Rejected: a revision that does not exist, or\nis not open (at `/revision`); an open revision without a sign-off or a checker (at `/revision`: approve it first,\n`revision.approve`); an archive name that is not a plain `<name>.ewarchive` file name (at `/archive/name`); a git tag\nother than `ew/rev/<label>` (at `/git_tag`).\n\n**Exposure `HumanOnly`** (doc 15 §5.5, ADR-0008 amendment 3): command logs, scripts, MCP and plugins get\n`CmdError::Exposure`. **Not undoable** (`undoable: false`, `Confirmation::Destructive`): a released revision is\nimmutable (FR-REV-009), so the step is a barrier in the history; a release is taken back only by `revision.withdraw`.\nOutcome: none.",
+  "properties": {
+    "archive": {
+      "$ref": "#/$defs/ReleasedArchive",
+      "description": "The as-built archive."
+    },
+    "changed_pages": {
+      "default": [],
+      "description": "The pages the release changed, in page order.",
+      "items": {
+        "$ref": "#/$defs/CmdUuid"
+      },
+      "type": "array"
+    },
+    "content_digest": {
+      "$ref": "#/$defs/Sha256",
+      "description": "The content digest of generation g (doc 15 §5.4), after the freeze."
+    },
+    "derivation_profile": {
+      "$ref": "#/$defs/CmdIdent",
+      "description": "The derivation profile of the release."
+    },
+    "generation": {
+      "description": "The released generation g.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "git_tag": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdIdent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The git tag `ew/rev/<label>`, when the project is in a git worktree."
+    },
+    "page_digests": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Digest128"
+      },
+      "default": {},
+      "description": "The digest of every page at the release, by page ID (doc 15 §5.6).",
+      "type": "object"
+    },
+    "released_on": {
+      "$ref": "#/$defs/Date",
+      "description": "The release date (the release context's)."
+    },
+    "revision": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The open revision."
+    },
+    "rule_packs": {
+      "default": [],
+      "description": "The rule packs of the gate's run.",
+      "items": {
+        "$ref": "#/$defs/ApprovedPack"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "revision",
+    "released_on",
+    "generation",
+    "content_digest",
+    "derivation_profile",
+    "archive"
+  ],
+  "title": "revision.release",
+  "type": "object"
+}

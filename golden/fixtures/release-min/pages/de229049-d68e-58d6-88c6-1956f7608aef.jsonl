@@ -1,0 +1,5 @@
+{"$k":"page","id":"de229049-d68e-58d6-88c6-1956f7608aef","folio":{"number":1},"kind":"multi_line","grid":{"num":7937500,"den":3}}
+{"$k":"representation","id":"019b76da-a805-7000-969f-395ff88f8d89","functions":["019b76da-a804-7000-b881-87a2fa3e9c89"],"page":"de229049-d68e-58d6-88c6-1956f7608aef","symbol":"b0f8e0f4-e86d-579b-ab03-d70fe1df2041","pos":[317500000,158750000]}
+{"$k":"representation","id":"019b76da-a802-7000-a26f-527558fb7fef","functions":["019b76da-a801-7000-97e5-4e8471d17405"],"page":"de229049-d68e-58d6-88c6-1956f7608aef","symbol":"8d6bb567-d303-54cc-967f-4f66c1a5ce4c","pos":[158750000,158750000]}
+{"$k":"connection","id":"019b76da-a806-7000-a6a5-aa3df1996655","a":{"cp":["019b76da-a801-7000-97e5-4e8471d17405",1]},"b":{"cp":["019b76da-a804-7000-b881-87a2fa3e9c89",0]},"page":"de229049-d68e-58d6-88c6-1956f7608aef"}
+{"$k":"connection","id":"019b76da-a807-7000-b4d0-478d6f99d153","a":{"cp":["019b76da-a804-7000-b881-87a2fa3e9c89",1]},"b":{"cp":["019b76da-a801-7000-97e5-4e8471d17405",0]},"page":"de229049-d68e-58d6-88c6-1956f7608aef"}

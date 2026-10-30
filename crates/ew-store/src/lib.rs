@@ -23,10 +23,13 @@
 //!   the base generation after a crash (doc 05 §8).
 //! - **I/O seam** ([`Vfs`]): every file operation goes through it; [`mem::MemVfs`] numbers, fails and
 //!   "powers off" calls for the fault-injection harness (doc 05 §5.6).
+//! - **As-built archive** ([`archive`], [`zip`]): the release's archive as an own deterministic ZIP, its check and
+//!   its atomic write through the seam (doc 05 §14; WP-S1.18 D11, D13).
+//! - **Git** ([`git`]): the release's commit and tag through the `git` executable, never a shell (doc 05 §11.6;
+//!   WP-S1.18 D12).
 //!
-//! Not in v0: the watcher and the external-change merge (§9), `.ewz` (§12), the as-built archive (§14),
-//! git integration (§11), journal snapshot slots (§8.1) and migrations (§10.2), which are WP-S1.17 and
-//! later work packages.
+//! Not in v0: the watcher and the external-change merge (§9), `.ewz` (§12), the rest of git integration (§11),
+//! journal snapshot slots (§8.1) and migrations (§10.2), which are later work packages.
 //!
 //! The save is synchronous and takes an immutable snapshot (`&Model`), so it can move to a writer thread
 //! unchanged (NFR-PERF-12; budgets are measured at milestones).
@@ -40,19 +43,22 @@
 /// their own (ARCH §3); it re-exports `ew-schema` in turn.
 pub use ew_format;
 
+pub mod archive;
 pub mod clock;
+pub mod git;
 pub mod journal;
 pub mod lock;
 pub mod mem;
 mod rows;
 mod store;
 mod vfs;
+pub mod zip;
 
 pub use clock::{Clock, ManualClock, SystemClock};
 pub use lock::{HEARTBEAT, Identity, LockInfo, LockRecord, OsProbe, ProcessProbe, ProcessState, STALE_AFTER};
 pub use store::{
-    Access, BASE_MEMBER, Changes, LockState, OpenError, OpenMode, OpenReport, Opened, PurgeError, PurgeFile,
-    PurgePlan, READ_ONLY_POLL, READ_ONLY_WAIT, RENAME_BACKOFF, ReadOnlyReason, RecoverError, Recovered,
-    SaveError, SaveReport, SaveStep, Store, StoreOptions, default_state_dir,
+    Access, BASE_MEMBER, Changes, Generation, GenerationError, LockState, OpenError, OpenMode, OpenReport,
+    Opened, PurgeError, PurgeFile, PurgePlan, READ_ONLY_POLL, READ_ONLY_WAIT, RENAME_BACKOFF, ReadOnlyReason,
+    RecoverError, Recovered, SaveError, SaveReport, SaveStep, Store, StoreOptions, default_state_dir,
 };
 pub use vfs::{EntryKind, OsVfs, Stat, Vfs, is_transient, join};
