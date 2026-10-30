@@ -359,6 +359,7 @@ hidden
 accessory
 macro_instance
 chooser
+note
 markers:
 title:
 banner:

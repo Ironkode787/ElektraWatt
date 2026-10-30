@@ -2007,6 +2007,8 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             || wiring.contains(*w)
             // WP-S6.13 part 1: the page text's words are `page.describe`'s: `tests/page_describe.rs` reaches them.
             || ew_viewmodel::describe::PAGE_WORDS.contains(*w)
+            // FT-660: a generated page's `note` line: `tests/page_describe.rs` reaches the table lines.
+            || ew_viewmodel::describe::LIST_WORDS.contains(*w)
             // WP-S2.04 part 3: the IP and black box words need the tools on a writable project: `tests/part3.rs`.
             || ew_viewmodel::describe::IP_WORDS.contains(*w)
             // WP-S2.04 part 4b: the item and box words need a writable project: `tests/part4b.rs` reaches `graphic`,

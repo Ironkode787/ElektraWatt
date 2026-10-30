@@ -440,7 +440,13 @@ pub const VOCABULARY: &[&str] = &[
     "macro_instance",
     // WP-S2.18 part 1 (D2): the Join chooser's line (doc 16a §6.22), a reviewed vocabulary change.
     "chooser",
+    // FT-660: a generated page's table in `page.describe` (`table`, `columns`, `rows`, `row` and `group` are older).
+    "note",
 ];
+
+/// The word FT-660 adds to [`VOCABULARY`]: the `note` line of a generated page whose table prints a note instead of
+/// rows (see [`page_table_lines`]).
+pub const LIST_WORDS: &[&str] = &["note"];
 
 // WP-S2.07 part 1
 /// The word WP-S2.07 part 1 adds to [`VOCABULARY`] (§6.10): an accessory row of the strip editor prints as `accessory`
@@ -2503,6 +2509,49 @@ pub fn page_wires(page: &CanvasPage) -> Vec<(ew_api::output::ew_dl::EntityRef, S
         .iter()
         .map(|c| (ew_api::output::ew_dl::EntityRef(c.id), end(&c.a), end(&c.b)))
         .collect()
+}
+
+/// The lines `page.describe` adds for a generated page (FT-660): its printed table, so a text-only reader can read a
+/// parts list or any other list page.
+///
+/// ```text
+/// table columns 3 rows 2
+///   columns "Item" "Quantity" "Designation"
+///   row "1" "2" "-101F1"
+///   row group "Group heading"
+/// note "No cables yet"                (instead of the rows, when the page prints a note)
+/// ```
+///
+/// The cells are the folio's printed texts, quoted as user text; a heading row (a group header or footer) prints
+/// `group` and its spanning text.
+pub fn page_table_lines(table: &ew_api::output::PageListTable) -> Vec<String> {
+    let mut lines = vec![format!(
+        "table columns {} rows {}",
+        table.columns.len(),
+        table.rows.len()
+    )];
+    let quoted = |cells: &[String]| {
+        cells
+            .iter()
+            .map(|c| format!("\"{}\"", user(c)))
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    if !table.columns.is_empty() {
+        lines.push(format!("  columns {}", quoted(&table.columns)));
+    }
+    for row in &table.rows {
+        if row.heading {
+            let text = row.cells.first().map_or("", String::as_str);
+            lines.push(format!("  row group \"{}\"", user(text)));
+        } else {
+            lines.push(format!("  row {}", quoted(&row.cells)));
+        }
+    }
+    if let Some(note) = &table.note {
+        lines.push(format!("note \"{}\"", user(note)));
+    }
+    lines
 }
 
 /// The text of one page for `page.describe` (WP-S6.13 §5.5.3): the header with the exact counts, then the

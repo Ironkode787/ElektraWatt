@@ -1835,6 +1835,17 @@ impl ShellModel {
                     text.push('\n');
                     text.push_str(&line);
                 }
+                // FT-660: a generated page (a parts list and the other lists) prints its table's rows; a drawn page
+                // asks nothing more of the session.
+                let generated = self.page_rows().iter().any(|r| r.folio == folio && r.generated);
+                let table = match &self.project {
+                    Some(p) if generated => p.session.page_list_table(&folio),
+                    _ => None,
+                };
+                for line in table.iter().flat_map(crate::describe::page_table_lines) {
+                    text.push('\n');
+                    text.push_str(&line);
+                }
                 self.page_text = Some(text);
                 Outcome::Done
             }

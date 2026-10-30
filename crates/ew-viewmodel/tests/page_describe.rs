@@ -212,3 +212,50 @@ fn page_describe_reads_the_cached_page_tables() {
     assert_eq!(shell.session_calls(), shown);
     shell.shutdown();
 }
+
+/// FT-660: a generated list page prints its table: on Golden A's parts list, the `table` line with the column and row
+/// counts, the column headers and one `row` line per printed row, each data row with one quoted cell per column; a
+/// drawn page prints no table. Every token is a vocabulary word.
+#[test]
+fn a_generated_list_page_prints_its_rows() {
+    let tmp = Tmp::new("pagelist");
+    let mut shell = tmp.shell("101");
+    let parts = shell
+        .page_rows()
+        .iter()
+        .find(|r| r.generated && r.title.to_lowercase().contains("part"))
+        .map(|r| r.folio.clone())
+        .expect("Golden A has a parts list page");
+    let text = page_text(&mut shell, Some(&parts));
+    let lines: Vec<&str> = text.lines().collect();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("table columns "))
+        .unwrap_or_else(|| panic!("no table line:\n{text}"));
+    let mut words = lines[at].split(' ').skip(2);
+    let columns: usize = words.next().unwrap().parse().unwrap();
+    assert_eq!(words.next(), Some("rows"));
+    let rows: usize = words.next().unwrap().parse().unwrap();
+    assert!(columns > 0 && rows > 0, "{}", lines[at]);
+    assert!(lines[at + 1].starts_with("  columns \""), "{}", lines[at + 1]);
+    let row_lines: Vec<&&str> = lines[at + 2..]
+        .iter()
+        .filter(|l| l.starts_with("  row "))
+        .collect();
+    assert_eq!(row_lines.len(), rows, "{text}");
+    let data = row_lines
+        .iter()
+        .find(|l| !l.starts_with("  row group "))
+        .expect("a data row");
+    assert_eq!(data.matches('"').count(), 2 * columns, "{data}");
+    for line in text.lines() {
+        for token in structural_tokens(line) {
+            assert!(
+                VOCABULARY.contains(&token.as_str()) || FREE_TEXT_MARKERS.contains(&token.as_str()),
+                "`{token}` is no vocabulary word; line: {line}"
+            );
+        }
+    }
+    assert!(!page_text(&mut shell, Some("101")).contains("table columns"));
+    shell.shutdown();
+}

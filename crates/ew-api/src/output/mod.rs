@@ -105,7 +105,9 @@ pub use layers::{
     FrameLayer, LabelsLayer, PageLayer, SymbolsLayer, TablesLayer, WiresLayer, page_kind, page_layer,
     page_scene, page_view,
 };
-pub use navigation::{CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageRow};
+pub use navigation::{
+    CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageListRow, PageListTable, PageRow,
+};
 pub use preview::PreviewEntity;
 // WP-S2.06 parts 1 and 2
 pub use navigators::{

@@ -35,7 +35,7 @@ use ew_derive::{
 };
 use ew_dl::{Destination, DisplayList, Item, ItemKind, Link, Transform};
 
-use super::view::{PageFrameOf, PageGridOf, neutral, page_uuid};
+use super::view::{PageFrameOf, PageGridOf, PageTableOf, neutral, page_uuid};
 use super::{CpTargetsByPage, page_scene};
 use crate::Session;
 
@@ -721,6 +721,27 @@ impl Targets<'_> {
     }
 }
 
+/// The printed table of a generated page ([`Session::page_list_table`], FT-660): what a text-only reader needs of a
+/// list page.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct PageListTable {
+    /// The column headers, in order.
+    pub columns: Vec<String>,
+    /// The rows of the page, in order.
+    pub rows: Vec<PageListRow>,
+    /// The text printed instead of rows (a row source not derived yet, an empty block).
+    pub note: Option<String>,
+}
+
+/// One printed row of a [`PageListTable`].
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct PageListRow {
+    /// A heading (a group header or footer): its first cell spans every column.
+    pub heading: bool,
+    /// One text per column (a heading uses the first).
+    pub cells: Vec<String>,
+}
+
 impl Session {
     /// The rows of the page navigator: one per entry of the derived page order, in that order (the entries of
     /// [`Session::page_labels`], same count and folios; WP-S2.03 §4.2).
@@ -749,6 +770,29 @@ impl Session {
                 }
             })
             .collect()
+    }
+
+    /// The printed table of the generated page labelled `folio` (a parts list, a cable list, a table of contents):
+    /// the column headers and the page's rows as the folio prints them (`page_table`, FT-660); `None` when no page has
+    /// that folio or the page is drawn or a divider.
+    pub fn page_list_table(&self, folio: &str) -> Option<PageListTable> {
+        let q = self.query();
+        let order = q.get::<PageOrder>(());
+        let entry = order.entries.iter().find(|e| e.folio == folio)?;
+        let table = q.get::<PageTableOf>(entry.page);
+        let t = table.as_ref().as_ref()?;
+        Some(PageListTable {
+            columns: t.columns.iter().map(|c| c.header.clone()).collect(),
+            rows: t
+                .rows
+                .iter()
+                .map(|r| PageListRow {
+                    heading: r.kind == ew_scene::table::TableRowKind::Heading,
+                    cells: r.cells.clone(),
+                })
+                .collect(),
+            note: t.note.clone(),
+        })
     }
 
     /// The frame cells of the page labelled `folio` ([`PageCells`]); `None` when no page has that folio or the page
