@@ -10,10 +10,6 @@
 //! `boon`), it deserialises into its type (`deny_unknown_fields`) and re-serialises byte for byte, and a second run
 //! prints the same bytes.
 
-// Test target: the bless flag (EW_CLI_BLESS) only chooses whether the committed schemas are rewritten, and nextest's
-// binary path is read once; the compared results never depend on them.
-#![allow(clippy::disallowed_methods)]
-
 use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -119,6 +115,8 @@ impl Drop for Tmp {
 }
 
 /// The path of the `ew` binary under test (nextest's run-time path, else the compile-time one).
+// The program boundary of a test: the path only chooses which binary runs; no compared result depends on it.
+#[allow(clippy::disallowed_methods)]
 fn bin_exe() -> PathBuf {
     std::env::var_os("NEXTEST_BIN_EXE_ew")
         .map(PathBuf::from)
@@ -184,6 +182,13 @@ fn committed() -> BTreeMap<String, String> {
     files
 }
 
+/// Whether `EW_CLI_BLESS` asks for the committed schemas to be rewritten.
+// The flag only chooses whether the committed files are rewritten; the compared results never depend on it.
+#[allow(clippy::disallowed_methods)]
+fn bless() -> bool {
+    std::env::var_os("EW_CLI_BLESS").is_some()
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // The published schemas (D5)
 
@@ -191,7 +196,7 @@ fn committed() -> BTreeMap<String, String> {
 #[test]
 fn committed_result_schemas_match_the_generated_ones() {
     let generated: BTreeMap<String, String> = results::schema_files().into_iter().collect();
-    if std::env::var_os("EW_CLI_BLESS").is_some() {
+    if bless() {
         let dir = schema_dir();
         std::fs::create_dir_all(&dir).unwrap();
         for name in committed().keys() {

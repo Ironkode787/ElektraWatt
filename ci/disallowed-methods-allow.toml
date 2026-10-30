@@ -23,6 +23,11 @@ count = 1
 [[allow]]
 crate = "ew"
 item = "fn bin_exe"
+count = 2
+
+[[allow]]
+crate = "ew"
+item = "fn bless"
 count = 1
 
 [[allow]]
