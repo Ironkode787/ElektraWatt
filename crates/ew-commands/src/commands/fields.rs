@@ -50,7 +50,8 @@ use crate::tx::TxBuilder;
 /// `revision.release`), nor are its roles (WP-S1.18 D4, FT-402): `author` and `checker` are refused at `/path` from
 /// every origin, because the author is set by `revision.set_author` and the checker by approval. A `page_notes`
 /// value names existing pages, one note per page (EW-INV-019), and its notes take no member other than `page` and
-/// `description`.
+/// `description`. A `label` runs EW-REL-004's prevent half as `revision.create` does for an open revision
+/// (`CmdError::Prevented`): it is in the project's label format and follows every other revision's label.
 ///
 /// An interruption point's `name`, `direction`, `sort` and `star_source` are settable on its function as
 /// `kind.ip.<member>` (FT-399: renaming an interruption point from the grid); on any other function they are refused
@@ -346,6 +347,9 @@ impl SetFields {
                 KindName::Revision => {
                     if path == "page_notes" {
                         crate::commands::revision::refuse_open_page_notes(Self::NAME, value)?;
+                    }
+                    if path == "label" {
+                        crate::commands::revision::refuse_label_edit_out_of_order(tx, t.cast(), value)?;
                     }
                     set_one::<Revision>(tx, *t, path, value)?;
                     if path == "page_notes" {

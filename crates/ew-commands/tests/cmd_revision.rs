@@ -525,6 +525,27 @@ fn create_prevents_a_label_out_of_format_or_order() {
         .expect("history before the open revision");
 }
 
+/// RL-2 for `fields.set label` on the open revision (FX37a): a label out of the format or not after every other
+/// revision's is prevented with the rule and nothing changes; an in-order label is accepted.
+#[test]
+fn fields_set_label_prevents_a_label_out_of_format_or_order() {
+    let (mut e, _, v2) = with_history();
+    let before = lines(e.model());
+    let (rule, finding) = prevented(e.execute(&set(&[v2], "label", json!("2"))).unwrap_err());
+    assert_eq!(rule, LABEL_ORDER_RULE);
+    assert!(
+        finding.contains("V{major}.{minor}") && finding.contains("the next label is V2.0"),
+        "{finding}"
+    );
+    let (rule, finding) = prevented(e.execute(&set(&[v2], "label", json!("V0.5"))).unwrap_err());
+    assert_eq!(rule, LABEL_ORDER_RULE);
+    assert!(finding.contains("does not follow V1.0"), "{finding}");
+    assert_eq!(lines(e.model()), before, "a prevented label writes nothing");
+    e.execute(&set(&[v2], "label", json!("V3.0")))
+        .expect("an in-order label is accepted");
+    assert_eq!(revision(&e, v2).label.as_str(), "V3.0");
+}
+
 /// RL-2 in the other formats: `two_digit` proposes 03 after 02, `letter` J after H (I is skipped, so "I" is out of
 /// the format); a format of a newer build is not judged.
 #[test]

@@ -196,6 +196,29 @@ impl Command for CreateRevision {
     }
 }
 
+/// EW-REL-004's prevent half for `fields.set label` on the open revision `target` (FX37a; ADR-0009: a prevent rule
+/// holds for every interactive transaction): the new label is judged as an open revision's among the other revisions.
+/// A value that is not a label is left to the field's own refusal, and a label another revision has to EW-INV-017.
+pub(crate) fn refuse_label_edit_out_of_order(
+    tx: &TxBuilder<'_>,
+    target: Id<Revision>,
+    value: &serde_json::Value,
+) -> Result<(), CmdError> {
+    let Some(label) = value.as_str().and_then(|v| v.parse::<Ident>().ok()) else {
+        return Ok(());
+    };
+    let others: Vec<Arc<Revision>> = tx
+        .iter::<Revision>()
+        .into_iter()
+        .filter(|r| r.id != target)
+        .collect();
+    if others.iter().any(|r| !r.is_withdrawal() && r.label == label) {
+        return Ok(());
+    }
+    let format = tx.project().settings.revision_label_format();
+    refuse_label_out_of_order(&format, &label, &RevisionState::Open, &others)
+}
+
 /// The prevent half of EW-REL-004 (doc 15 §4.8, §5.2; FR-REV-002) for a new revision in `state` among `revisions`:
 /// the label is in `format`; an open revision's label follows every label in the format; a historic released
 /// revision's label precedes the open revision's, so the open revision stays the last in order (withdrawal records
