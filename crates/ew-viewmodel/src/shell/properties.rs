@@ -1390,7 +1390,7 @@ impl ShellModel {
         } else {
             "fields.set_many"
         };
-        let outcome = self.run_logged_or_commit(name, &proposal.params, section.as_ref());
+        let (outcome, notices) = self.run_logged_or_commit_noticed(name, &proposal.params, section.as_ref());
         if outcome == Outcome::Done {
             self.props.edit = None;
             self.props.error = None;
@@ -1399,7 +1399,15 @@ impl ShellModel {
                 // WP-S2.18 D3: "Joined -K1 (NO contact 13-14) at 102-C4".
                 let rep = proposal.params["rep"].as_str().and_then(|r| r.parse().ok());
                 let joined = rep.and_then(|r| self.project.as_ref()?.session.joined_text(r));
-                joined.map(|j| strings::format("toast-joined", &[&j.tag, &j.kind, &j.place]))
+                // FX37a: what the removed source device carried goes with it; the toast names it.
+                joined.map(|j| {
+                    let text = strings::format("toast-joined", &[&j.tag, &j.kind, &j.place]);
+                    if notices.is_empty() {
+                        text
+                    } else {
+                        strings::format("toast-joined-dropped", &[&text, &notices.join("; ")])
+                    }
+                })
             } else {
                 Some(strings::format(
                     "toast-tag-proposal",
@@ -1493,13 +1501,27 @@ impl ShellModel {
         params: &Value,
         section: Option<&SheetSection>,
     ) -> Outcome {
+        self.run_logged_or_commit_noticed(name, params, section).0
+    }
+
+    /// [`ShellModel::run_logged_or_commit`], with the notices of the command's outcome (what it dropped instead of
+    /// refusing), read on its preview.
+    fn run_logged_or_commit_noticed(
+        &mut self,
+        name: &str,
+        params: &Value,
+        section: Option<&SheetSection>,
+    ) -> (Outcome, Vec<String>) {
         let Some(rev) = self.revision() else {
-            return Outcome::Done;
+            return (Outcome::Done, Vec::new());
         };
         if !self.is_writable() {
-            return Outcome::Refused {
-                reason_key: "reason-read-only",
-            };
+            return (
+                Outcome::Refused {
+                    reason_key: "reason-read-only",
+                },
+                Vec::new(),
+            );
         }
         let cmd = AnyCommand {
             name: name.to_owned(),
@@ -1507,7 +1529,7 @@ impl ShellModel {
         };
         let submit = self.props_submit();
         let Some(project) = &mut self.project else {
-            return Outcome::Done;
+            return (Outcome::Done, Vec::new());
         };
         let result = project.session.preview_with(&cmd, submit);
         let derived = match &result {
@@ -1521,12 +1543,18 @@ impl ShellModel {
             result: result.map_err(|e| self.refusal(&e, section)),
             derived,
         };
-        if let Err(message) = &state.result {
-            return Outcome::Failed {
-                message: message.clone(),
-            };
-        }
-        self.commit_kept(state, name, params, section)
+        let notices = match &state.result {
+            Ok(p) => p.outcome().notices.clone(),
+            Err(message) => {
+                return (
+                    Outcome::Failed {
+                        message: message.clone(),
+                    },
+                    Vec::new(),
+                );
+            }
+        };
+        (self.commit_kept(state, name, params, section), notices)
     }
 
     /// `props.choose`: `index` of the choices under a field (an ambiguous reading, the multi-language switch, a choice

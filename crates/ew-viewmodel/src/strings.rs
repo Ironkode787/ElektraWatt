@@ -861,6 +861,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "{0} exists. Join it as an auxiliary contact? props.accept_tag_proposal joins it."
         }
         "toast-joined" => "Joined {0} ({1}) at {2}",
+        "toast-joined-dropped" => "{0}; {1}",
         "count-wire" => "{0} wire",
         "count-wires" => "{0} wires",
         "toast-strip-new" => {

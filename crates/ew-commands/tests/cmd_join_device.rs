@@ -13,13 +13,13 @@ use std::fmt::Debug;
 
 use common::fixture::*;
 use common::*;
-use ew_commands::commands::JoinDevice;
+use ew_commands::commands::{JoinDevice, KindName, LinkDevices, SetFields};
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::{Id, Uuid};
 use ew_model::{Entity, Model};
 use ew_schema::{
-    Connection, ContactKind, CpData, Device, Endpoint, Extra, FnDef, FnRole, Function, LibDocument, Part,
-    PartRef, PartUse, Record, Representation, TemplateFn,
+    Connection, ContactKind, CpData, Device, DeviceLinkKind, Endpoint, Extra, FnDef, FnRole, Function,
+    LibDocument, Part, PartRef, PartUse, Record, Representation, TemplateFn,
 };
 
 // ---------------------------------------------------------------------------------------------------------
@@ -313,4 +313,61 @@ fn an_unwired_contact_joins_a_device_whose_template_draws_other_cps() {
     .expect("connection.delete");
     e.execute(&join(REP_K2, DEV_K5)).expect("rep.join_device");
     assert_eq!(get(&e, FN_K2).and_then(|f| f.device), Some(DEV_K5));
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// What the removed source carries (FX37a)
+
+fn set_device(device: Id<Device>, path: &str, value: serde_json::Value) -> SetFields {
+    SetFields {
+        kind: KindName::Device,
+        targets: vec![device.cast()],
+        path: path.into(),
+        value,
+    }
+}
+
+/// A source device in a device link is refused at `/rep`: the link would go with the device (it cascades).
+#[test]
+fn a_source_device_in_a_device_link_is_refused_and_nothing_is_written() {
+    let mut e = engine(join_model());
+    e.execute(&LinkDevices {
+        from: DEV_H1,
+        to: DEV_K2,
+        kind: DeviceLinkKind::Drives,
+    })
+    .expect("device.link");
+    let rev = e.model().rev();
+    invalid_at(e.execute(&join(REP_K2, DEV_K1)), "/rep", "remove the link first");
+    invalid_at(e.execute(&join(REP_K2, DEV_K3)), "/rep", "device link");
+    assert_eq!(e.model().rev(), rev, "the refused join wrote nothing");
+    assert!(get(&e, DEV_K2).is_some(), "the source device stays");
+}
+
+/// The join goes ahead and its notice names each member of the source device that goes with it.
+#[test]
+fn a_join_that_drops_the_function_text_says_so() {
+    let mut e = engine(join_model());
+    e.execute(&set_device(DEV_K2, "function_text", serde_json::json!("Pump on")))
+        .expect("fields.set function_text");
+    e.execute(&set_device(DEV_K2, "process_tag", serde_json::json!("P101")))
+        .expect("fields.set process_tag");
+    let r = e.execute(&join(REP_K2, DEV_K1)).expect("rep.join_device");
+    assert_eq!(
+        r.outcome.notices,
+        vec!["the joined device's function text and process tag were dropped with it".to_owned()]
+    );
+}
+
+/// A join from a source with nothing but its tag has no notice, in either way.
+#[test]
+fn a_join_that_drops_nothing_has_no_notice() {
+    let mut e = engine(join_model());
+    let r = e
+        .execute(&join(REP_K2, DEV_K1))
+        .expect("rep.join_device (auxiliary)");
+    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
+    let mut e = engine(join_model());
+    let r = e.execute(&join(REP_K2, DEV_K3)).expect("rep.join_device (slot)");
+    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
 }

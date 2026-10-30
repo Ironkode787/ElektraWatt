@@ -9,8 +9,9 @@ use std::collections::BTreeSet;
 use ew_ids::Id;
 use ew_model::EndpointKey;
 use ew_schema::{
-    Bond, Channel, Connection, ContactKind, Device, Endpoint, FnDef, FnRole, Function, FunctionKind, Kind,
-    LibCopy, Part, PotentialDef, Representation, TemplateFn, template_entry_of,
+    Bond, Channel, Connection, ContactKind, Device, DeviceLink, DeviceState, Endpoint, FnDef, FnRole,
+    Function, FunctionKind, Kind, LibCopy, Part, PotentialDef, Representation, TagScheme, TemplateFn,
+    template_entry_of,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -35,10 +36,14 @@ use crate::tx::TxBuilder;
 ///   (role aux, no template entry); its record, its CP overrides and everything attached to it stay.
 ///
 /// The source device has exactly one function (the representation's), no part use and no other representation (D3);
-/// it is removed in the same transaction, with the old function in the slot case. A main function never lands on a
+/// it is removed in the same transaction, with the old function in the slot case. What the removed records carry
+/// besides that (the device's function text, process tag, structure, frozen tag and its other non-default members;
+/// in the slot case the old function's CP overrides and its other own members) goes with them: the join goes ahead
+/// and the outcome's notices name each dropped member (FX37a). A main function never lands on a
 /// device that has one (EW-INV-002): the moved function is auxiliary or fills a slot. Refused, with the pointer: a
 /// representation that draws not exactly one normal function of a device, or whose device is a terminal or a strip,
-/// has another function, a part or another representation (`/rep`); the representation's own device (`/device`); a
+/// has another function, a part or another representation, or takes part in a device link, which the join would lose
+/// (`/rep`; remove the link first); the representation's own device (`/device`); a
 /// device that cannot take the FnDef by D2's rule (`/device`): it has no unplaced function of the FnDef, and the FnDef
 /// is no contact (NO, NC, change-over) or the device's family takes no auxiliary functions (its main function is no
 /// coil and none of its parts' templates names the FnDef; terminals and strips never do); a connected CP the function
@@ -85,6 +90,84 @@ fn cp_indices(tx: &TxBuilder<'_>, func: &Function, device: &Device) -> BTreeSet<
         }
     }
     def.into_iter().collect()
+}
+
+/// The non-default members of the source device that its removal drops, in record order, as the user reads them. Its
+/// structure counts only where it differs from the target's (the representation reads the target's afterwards).
+fn dropped_device_members(device: &Device, target: &Device) -> Vec<&'static str> {
+    let mut out = Vec::new();
+    let tag = &device.tag;
+    if tag.scheme != TagScheme::Default {
+        out.push("numbering scheme");
+    }
+    if tag.frozen.is_some() {
+        out.push("frozen tag");
+    }
+    if device.parent.is_some() {
+        out.push("parent device");
+    }
+    if device.position.is_some() {
+        out.push("position");
+    }
+    if !device.structure.is_empty() && device.structure != target.structure {
+        out.push("structure");
+    }
+    if !device.function_text.is_empty() {
+        out.push("function text");
+    }
+    if device.process_tag.is_some() {
+        out.push("process tag");
+    }
+    if !device.tech_data.is_empty() {
+        out.push("technical data");
+    }
+    if device.state != DeviceState::Used {
+        out.push("state");
+    }
+    if device.source_ref.is_some() {
+        out.push("import reference");
+    }
+    let a = &device.aspects;
+    if a.cable.is_some() {
+        out.push("cable data");
+    }
+    if a.assembly.is_some() {
+        out.push("assembly data");
+    }
+    if a.plc_station.is_some() {
+        out.push("PLC station data");
+    }
+    if a.plc_module.is_some() {
+        out.push("PLC module data");
+    }
+    if !device.extra.is_empty() || !tag.extra.is_empty() {
+        out.push("unknown members");
+    }
+    out
+}
+
+/// The own members of the old function that the slot case drops (its record goes; the slot keeps its own).
+fn dropped_function_members(function: &Function) -> Vec<&'static str> {
+    let mut out = Vec::new();
+    if !function.cp_overrides.is_empty() {
+        out.push("connection point overrides");
+    }
+    if function.source_ref.is_some() {
+        out.push("import reference");
+    }
+    if !function.extra.is_empty() {
+        out.push("unknown members");
+    }
+    out
+}
+
+/// `a`, `a and b`, `a, b and c`.
+fn listed(items: &[&str]) -> String {
+    match items {
+        [] => String::new(),
+        [one] => (*one).to_owned(),
+        [init @ .., last] => format!("{} and {last}", init.join(", ")),
+    }
 }
 
 /// Whether `device` is a terminal or a strip.
@@ -134,6 +217,22 @@ impl Command for JoinDevice {
         }
         if tx.reps_of_function(function) != [self.rep] {
             return not_eligible("the representation's function has another representation");
+        }
+        // The join removes the source device, and its device links with it (they cascade): refused, not lost.
+        if let Some(link) = tx
+            .iter::<DeviceLink>()
+            .into_iter()
+            .filter(|l| l.from == source || l.to == source)
+            .map(|l| l.id)
+            .min()
+        {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/rep",
+                format!(
+                    "the representation's device takes part in device link {link}, which the join would lose;                      remove the link first"
+                ),
+            ));
         }
         if self.device == source {
             return Err(CmdError::invalid_params(
@@ -306,8 +405,32 @@ impl Command for JoinDevice {
             }
             None => tx.put(after),
         }
-        // The emptied source device goes (in the slot case with the old function, which nothing names now).
+        // The emptied source device goes (in the slot case with the old function, which nothing names now); the
+        // notices name what goes with them.
+        let mut outcome = Outcome::primary((Kind::Representation, self.rep.cast()));
+        let device_members = dropped_device_members(&source_device, &target);
+        if !device_members.is_empty() {
+            outcome.notices.push(format!(
+                "the joined device's {} {} dropped with it",
+                listed(&device_members),
+                if device_members.len() == 1 { "was" } else { "were" }
+            ));
+        }
+        if slot.is_some() {
+            let function_members = dropped_function_members(&f);
+            if !function_members.is_empty() {
+                outcome.notices.push(format!(
+                    "the old function's {} {} dropped with it",
+                    listed(&function_members),
+                    if function_members.len() == 1 {
+                        "was"
+                    } else {
+                        "were"
+                    }
+                ));
+            }
+        }
         tx.delete((Kind::Device, source.cast()))?;
-        Ok(Outcome::primary((Kind::Representation, self.rep.cast())))
+        Ok(outcome)
     }
 }

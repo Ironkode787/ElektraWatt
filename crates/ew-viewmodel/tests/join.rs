@@ -388,6 +388,10 @@ fn the_tag_field_proposes_join_for_an_existing_tag_and_commits_it() {
         toast.starts_with(&format!("Joined {relay} (NO contact 13-14) at 101-")),
         "{toast}"
     );
+    assert!(
+        !toast.contains("dropped"),
+        "a join that drops nothing says nothing more: {toast}"
+    );
     // One undo step gives the contact its own device back.
     done(&mut s, "edit.undo", json!({}));
     let undone = rep_at(&s, (66, 30)).unwrap();
@@ -400,4 +404,35 @@ fn the_tag_field_proposes_join_for_an_existing_tag_and_commits_it() {
     assert_eq!(last.cmd, "fields.set", "{}", last.params);
     assert_eq!(last.params["path"], "tag.frozen");
     assert_eq!(tag_of(&s, &rep_at(&s, (66, 30)).unwrap()), "-101K77");
+}
+
+/// FX37a: a join whose source device carries a function text goes ahead, and the join toast names what went with it.
+#[test]
+fn the_join_toast_names_what_the_source_device_dropped() {
+    let tmp = Tmp::new("join-toast-dropped");
+    let mut s = shell(&tmp);
+    let coil = new_device(&mut s, COIL, "K", (60, 30));
+    let relay = tag_of(&s, &coil);
+    let contact = new_device(&mut s, NO, "K", (66, 30));
+    let own = tag_of(&s, &contact);
+    done(&mut s, "select.set", json!({"refs": [format!("tag:{own}")]}));
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "device/function_text", "value": "Pump on"}),
+    );
+    assert_eq!(s.recorded_commands().last().unwrap().cmd, "fields.set");
+    let _ = failed(
+        &mut s,
+        "props.set",
+        json!({"row": "device/derived.tag", "value": relay}),
+    );
+    done(&mut s, "props.accept_tag_proposal", json!({}));
+    assert_eq!(s.recorded_commands().last().unwrap().cmd, "rep.join_device");
+    let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
+    assert!(toast.starts_with(&format!("Joined {relay} ")), "{toast}");
+    assert!(
+        toast.ends_with("; the joined device's function text was dropped with it"),
+        "{toast}"
+    );
 }
