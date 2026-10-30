@@ -2076,3 +2076,108 @@ fn ft656_box_black_embeds_its_copies_in_the_same_undo_step() {
     e.undo(&ew_commands::Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before, "one undo step");
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// FT-655 and library.update: a positional template entry's CPs follow their pattern entries
+
+/// The positional part's library and item; its copy ID is their copy identity (`library.update` checks it).
+const LIBRARY_POS: u128 = 0xf655_0000;
+const ITEM_POS: u128 = 0xf655_0001;
+
+fn part_pos() -> Id<ew_schema::Part> {
+    ew_ids::v5::lib_copy_id(uuid(LIBRARY_POS), uuid(ITEM_POS))
+}
+
+/// A part whose coil (`ITEM_X`, 2 CPs) and contact (`ITEM_CONTACT`, 2 CPs) each name two pattern entries, so both
+/// pair by position (their CPs are 0 and 1). `swapped` re-indexes the pattern: the contact's "13"/"14" move from 2/3
+/// to 0/1 and the coil's "A1"/"A2" from 0/1 to 2/3.
+fn positional_part(swapped: bool) -> ew_schema::LibCopy<ew_schema::Part> {
+    let mut copy = part(part_pos(), "KPOS");
+    copy.library_id = Id::from_uuid(uuid(LIBRARY_POS));
+    copy.item_id = Id::from_uuid(uuid(ITEM_POS));
+    let (names, coil, contact) = if swapped {
+        (["13", "14", "A1", "A2"], vec![2, 3], vec![0, 1])
+    } else {
+        (["A1", "A2", "13", "14"], vec![0, 1], vec![2, 3])
+    };
+    let pattern: Vec<ew_schema::CpData> = names
+        .iter()
+        .enumerate()
+        .map(|(i, d)| serde_json::from_value(json!({"idx": i, "designation": d})).expect("a CP"))
+        .collect();
+    copy.item.cp_pattern = ew_schema::KeyedList::from_vec(pattern).expect("distinct indexes");
+    let mut x = template(ITEM_X, true);
+    x.cps = coil;
+    let mut c = template(ITEM_CONTACT, false);
+    c.cps = contact;
+    copy.item.function_template = vec![x, c];
+    copy
+}
+
+#[test]
+fn a_positional_contacts_endpoints_survive_a_pattern_re_index() {
+    let model = {
+        let (project, records, _) = mini_golden_parts();
+        let mut lib = library();
+        lib.extend(extra_library());
+        lib.push(LibDocument::Part(positional_part(false)));
+        Model::from_records(project, records, lib).expect("valid model")
+    };
+    let mut e = engine(model);
+    let r = e
+        .execute(&place_with(
+            SYM_CONTACT,
+            PAGE_101,
+            gp(3, 3),
+            from_part(part_pos(), 1, "K"),
+        ))
+        .expect("device.place");
+    let fns: Vec<Id<Function>> = created(&r, Kind::Function);
+    let (coil, contact) = (fns[0], fns[1]);
+    let wire = |a: Id<Function>, ai: u16, b: Id<Function>, bi: u16| ew_commands::commands::Connect {
+        a: ew_commands::commands::EndpointParam::Cp { function: a, idx: ai },
+        b: ew_commands::commands::EndpointParam::Cp { function: b, idx: bi },
+        page: None,
+        route: vec![],
+        kind: ew_schema::ConnectionKind::Wire,
+    };
+    e.execute(&wire(contact, 0, coil, 0))
+        .expect("contact 13 to coil A1");
+    e.execute(&wire(contact, 1, coil, 1))
+        .expect("contact 14 to coil A2");
+    let ends = |e: &Engine| -> Vec<(ew_schema::Endpoint, ew_schema::Endpoint)> {
+        let mut v: Vec<_> = e
+            .model()
+            .table::<ew_schema::Connection>()
+            .iter()
+            .filter(|(_, c)| [&c.a, &c.b].iter().any(|p| p.function() == Some(contact)))
+            .map(|(_, c)| (c.a.clone(), c.b.clone()))
+            .collect();
+        v.sort_by_key(|(a, b)| format!("{a:?}{b:?}"));
+        v
+    };
+    let before = ends(&e);
+    assert_eq!(before.len(), 2);
+    // The new version: the pattern re-indexed, each template entry naming its own pins at their new indexes.
+    let mut new = positional_part(true);
+    new.version = "9.0.0".into();
+    let mut v = serde_json::to_value(LibDocument::Part(new)).expect("a library document");
+    v["sha256"] = json!(sha_text(&v));
+    let update = AnyCommand {
+        name: "library.update".into(),
+        params: json!({ "copies": [v] }),
+    };
+    let preview = e.preview(&update).expect("library.update previews");
+    e.commit(preview).expect("library.update");
+    // Both functions keep CPs 0 and 1 (positional pairing): no endpoint moves. Read as pattern indexes, contact CP 0
+    // would have followed pattern CP 0 ("A1") to 2, a CP the contact does not have.
+    assert_eq!(ends(&e), before);
+    assert_eq!(
+        e.model()
+            .table::<ew_schema::LibCopy<ew_schema::Part>>()
+            .get(&part_pos())
+            .expect("the copy")
+            .version,
+        "9.0.0"
+    );
+}

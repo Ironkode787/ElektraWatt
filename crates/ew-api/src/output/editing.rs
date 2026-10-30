@@ -131,8 +131,10 @@ pub struct CatalogueTemplateFn {
     pub symbol: Option<String>,
     /// Whether the entry's FnDef is a black box.
     pub black_box: bool,
-    /// The entry's CPs in template order, each with its `cp_pattern` index and designation (the whole pattern in
-    /// index order when the entry names none).
+    /// The CPs a function placed from the entry gets, in CP index order: each function CP index and the designation
+    /// of the pattern entry it is drawn as (`ew_schema::TemplateFn::function_cps`, the rule `function_cps` derives,
+    /// FT-655: by position with the FnDef's CP indices when the entry names as many pattern entries as the FnDef has
+    /// CPs, else the pattern entries with their own indices; the whole pattern when the entry names none).
     pub cps: Vec<(u16, String)>,
 }
 
@@ -260,28 +262,25 @@ fn catalogue_part(
                 .iter()
                 .find(|(r, f)| *f == def_id && r.allowed)
                 .map(|(r, _)| r.key.clone());
-            let cps = if t.cps.is_empty() {
-                let mut all: Vec<(u16, String)> = part
-                    .cp_pattern
-                    .iter()
-                    .map(|c| (c.idx, c.designation.as_str().to_owned()))
-                    .collect();
-                all.sort();
-                all
-            } else {
-                t.cps
-                    .iter()
-                    .map(|idx| {
-                        let d = part
-                            .cp_pattern
-                            .iter()
-                            .find(|c| c.idx == *idx)
-                            .map(|c| c.designation.as_str().to_owned())
-                            .unwrap_or_default();
-                        (*idx, d)
-                    })
-                    .collect()
-            };
+            // The CPs a function placed from the entry gets (FT-655): the rule `function_cps` derives.
+            let pattern: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();
+            let def_cps: Vec<u16> = def
+                .as_ref()
+                .map(|d| d.item.cps.iter().map(|c| c.idx).collect())
+                .unwrap_or_default();
+            let cps = t
+                .function_cps(&pattern, &def_cps)
+                .into_iter()
+                .map(|c| {
+                    let d = part
+                        .cp_pattern
+                        .iter()
+                        .find(|p| p.idx == c.pattern)
+                        .map(|p| p.designation.as_str().to_owned())
+                        .unwrap_or_default();
+                    (c.idx, d)
+                })
+                .collect();
             CatalogueTemplateFn {
                 index: u16::try_from(i).unwrap_or(u16::MAX),
                 fndef_key: def

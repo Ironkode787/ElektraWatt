@@ -16,6 +16,7 @@ use ew_ids::{Id, v5};
 use ew_mltext::MlText;
 use ew_schema::{
     ClampKey, CpData, CpDef, Discipline, FnDef, Function, FunctionKind, PotentialType, Side, TemplateFn,
+    template_entry_of,
 };
 
 use crate::Q;
@@ -166,7 +167,9 @@ fn fndef_cps(q: &Q, function: &Function) -> Vec<Cp> {
 /// `fn_cp` and the FnDef's internal links still name it (a relay's second changeover contact, pattern `[5, 6, 7]`,
 /// gets CPs 0, 1 and 2 printed "21", "22" and "24"). Otherwise (an empty `cps`, a missing FnDef copy, another
 /// count, an index outside the pattern) the pattern entries keep their own `idx` and merge with the FnDef CP of the
-/// same `idx`, as before FT-655; where the pattern's indices are the FnDef's, both readings agree.
+/// same `idx`, as before FT-655; where the pattern's indices are the FnDef's, both readings agree. The entry choice
+/// and the pairing are `ew_schema::template_entry_of` and `TemplateFn::function_cps`, the one rule the importer,
+/// `library.update` and the place catalogue also read.
 fn template_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
     let device = q.devices().get(function.device?)?;
     let parts = q.parts();
@@ -174,57 +177,31 @@ fn template_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
         let copy: Id<FnDef> = v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
         copy == function.def
     };
-    let by_entry = function.template_entry.and_then(|i| {
-        device.parts.iter().find_map(|u| {
-            let part = parts.get(u.part.copy)?;
-            let template = part
-                .item
-                .function_template
-                .get(usize::from(i))
-                .filter(|t| names_def(t))?;
-            Some((part, template))
-        })
-    });
-    let (part, template) = by_entry.or_else(|| {
-        device.parts.iter().find_map(|u| {
-            let part = parts.get(u.part.copy)?;
-            let template = part.item.function_template.iter().find(|t| names_def(t))?;
-            Some((part, template))
-        })
-    })?;
+    let uses = device
+        .parts
+        .iter()
+        .filter_map(|u| parts.get(u.part.copy).map(|p| ((), &p.item)));
+    let ((), part, n) = template_entry_of(uses, function.template_entry, names_def)?;
+    let template = &part.function_template[n];
     let fndefs = q.fndefs();
     let def = fndefs.get(function.def);
-    let mut def_cps: Vec<&CpDef> = def.map(|d| d.item.cps.iter().collect()).unwrap_or_default();
-    def_cps.sort_by_key(|c| c.idx);
-    let in_pattern = |idx: u16| part.item.cp_pattern.iter().find(|c| c.idx == idx);
-    let positional = !template.cps.is_empty()
-        && template.cps.len() == def_cps.len()
-        && template.cps.iter().all(|i| in_pattern(*i).is_some());
-    // Each pair: the pattern entry drawn, and the FnDef CP it stands for (whose `idx` the function CP takes).
-    let pairs: Vec<(&CpData, Option<&CpDef>)> = if positional {
-        template
-            .cps
-            .iter()
-            .zip(def_cps.iter())
-            .filter_map(|(i, f)| in_pattern(*i).map(|c| (c, Some(*f))))
-            .collect()
-    } else {
-        let mut pattern: Vec<&CpData> = part
-            .item
-            .cp_pattern
-            .iter()
-            .filter(|c| template.cps.is_empty() || template.cps.contains(&c.idx))
-            .collect();
-        pattern.sort_by_key(|c| c.idx);
-        pattern
-            .into_iter()
-            .map(|c| (c, def_cps.iter().copied().find(|f| f.idx == c.idx)))
-            .collect()
-    };
+    let def_cps: Vec<&CpDef> = def.map(|d| d.item.cps.iter().collect()).unwrap_or_default();
+    let def_idx: Vec<u16> = def_cps.iter().map(|c| c.idx).collect();
+    let pattern_idx: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();
+    // Each pair: the pattern entry drawn, the function CP index, and the FnDef CP it stands for.
+    let pairs: Vec<(&CpData, u16, Option<&CpDef>)> = template
+        .function_cps(&pattern_idx, &def_idx)
+        .into_iter()
+        .filter_map(|t| {
+            let c = part.cp_pattern.iter().find(|c| c.idx == t.pattern)?;
+            let f = t.def.and_then(|d| def_cps.iter().copied().find(|f| f.idx == d));
+            Some((c, t.idx, f))
+        })
+        .collect();
     let cps: Vec<Cp> = pairs
         .into_iter()
-        .map(|(c, def_cp)| Cp {
-            idx: def_cp.filter(|_| positional).map_or(c.idx, |f| f.idx),
+        .map(|(c, idx, def_cp)| Cp {
+            idx,
             designation: c.designation.as_str().to_owned(),
             alias: def_cp.and_then(|f| f.alias.as_ref().map(|a| a.as_str().to_owned())),
             description: None,

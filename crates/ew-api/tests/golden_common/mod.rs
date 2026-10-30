@@ -36,7 +36,7 @@ fn files(dir: &Path, ext: &str) -> Vec<PathBuf> {
     paths
 }
 
-fn library() -> BuiltinLibrary {
+pub fn library() -> BuiltinLibrary {
     let mut docs = Vec::new();
     for sub in ["symbols/qet10", "fndefs", "forms"] {
         for p in files(&repo().join("content").join(sub), "json") {

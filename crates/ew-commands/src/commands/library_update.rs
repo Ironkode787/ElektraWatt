@@ -9,8 +9,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_ids::Id;
 use ew_model::{AnyKey, AnyRow, EndpointKey};
 use ew_schema::{
-    AnyId, Bond, Channel, Connection, Device, Endpoint, Function, FunctionKind, LibCopy, LibDocument, Part,
-    PotentialDef, Representation, Sha256,
+    AnyId, Bond, Channel, Connection, Device, Endpoint, FnDef, Function, FunctionKind, LibCopy, LibDocument,
+    Part, PotentialDef, Representation, Sha256, TemplateFn, template_entry_of,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -357,7 +357,10 @@ pub struct CpMapParam {
 /// `Cp{function, idx}` endpoints of connections, potential definitions, bonds and channel bindings and the
 /// `cp_overrides` of the affected functions (a FnDef's: the functions of that definition; a part's: the functions
 /// of its devices that its template or pattern gives CPs; a symbol's: the functions its representations draw, by
-/// the FnDef CP each symbol CP draws). Referencing records change nowhere else.
+/// the FnDef CP each symbol CP draws). A template-origin function's CP stays on the part pattern entry it is drawn as
+/// (FT-655: its endpoint is a FnDef CP index where the template entry pairs by position, so it is not mapped as a
+/// pattern index): a part update moves it with that entry, a FnDef update keeps the entry and takes the endpoint the
+/// new FnDef gives it. Referencing records change nowhere else.
 ///
 /// Rejected: no copy (`/copies`), a copy listed twice, one the project does not hold (`/copies/i`), a version that
 /// is not semantic or is lower than the held one (`/copies/i/version`, a downgrade), a mapping for a copy not in
@@ -459,6 +462,113 @@ fn affected_functions(tx: &TxBuilder<'_>, doc: &LibDocument) -> Vec<Id<Function>
         _ => {}
     }
     out.into_iter().collect()
+}
+
+/// What a template-origin function's CP is anchored to across an update: the part pattern entry it is drawn as (by
+/// part copy and pattern index).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct Anchor(Id<Part>, u16);
+
+/// The CPs of template-origin function `func` with `doc` in place of the held copy of the same item, by the rule
+/// `function_cps` derives (`ew_schema::template_entry_of`, `TemplateFn::function_cps`, FT-655): each CP's
+/// endpoint, anchor and designation. `None` when the function is not template-origin in that world.
+fn template_anchors(
+    tx: &TxBuilder<'_>,
+    func: &Function,
+    doc: &LibDocument,
+) -> Option<Vec<(u16, Anchor, String)>> {
+    let device = tx.get::<Device>(func.device?)?;
+    let parts: Vec<(Id<Part>, Part)> = device
+        .parts
+        .iter()
+        .filter_map(|u| match doc {
+            LibDocument::Part(c) if c.id == u.part.copy => Some((c.id, c.item.clone())),
+            _ => tx
+                .get::<LibCopy<Part>>(u.part.copy)
+                .map(|c| (u.part.copy, c.item.clone())),
+        })
+        .collect();
+    let names_def = |t: &TemplateFn| {
+        let copy: Id<FnDef> = ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
+        copy == func.def
+    };
+    let (pid, part, n) = template_entry_of(
+        parts.iter().map(|(id, p)| (*id, p)),
+        func.template_entry,
+        names_def,
+    )?;
+    let def: Vec<u16> = match doc {
+        LibDocument::Fndef(c) if c.id == func.def => c.item.cps.iter().map(|d| d.idx).collect(),
+        _ => tx
+            .get::<LibCopy<FnDef>>(func.def)
+            .map(|c| c.item.cps.iter().map(|d| d.idx).collect())
+            .unwrap_or_default(),
+    };
+    let pattern: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();
+    Some(
+        part.function_template[n]
+            .function_cps(&pattern, &def)
+            .into_iter()
+            .map(|t| {
+                let designation = part
+                    .cp_pattern
+                    .iter()
+                    .find(|c| c.idx == t.pattern)
+                    .map(|c| c.designation.as_str().to_owned())
+                    .unwrap_or_default();
+                (t.idx, Anchor(pid, t.pattern), designation)
+            })
+            .collect(),
+    )
+}
+
+/// How an update moves function `f`'s CPs: each old endpoint with its designation and its new endpoint (`None` when
+/// the mapping leaves it without a CP).
+///
+/// A template-origin function (in the held world, for a part or FnDef update) keeps each CP on the pattern entry it
+/// is drawn as: an updated part maps the entry through `target` (old pattern index to new), a FnDef update keeps it;
+/// the new endpoint is the CP the new world draws as that entry (the `k`-th one when an entry is drawn twice). Its
+/// endpoints are FnDef CP indices where the template entry pairs by position (FT-655), so an endpoint is never read
+/// as a pattern index. Every other function maps by the updated copy's CP indices (its endpoints are those indices).
+fn function_moves(
+    tx: &TxBuilder<'_>,
+    f: Id<Function>,
+    held: &LibDocument,
+    new: &LibDocument,
+    old_cps: &BTreeMap<u16, CopyCp>,
+    new_cps: &BTreeMap<u16, CopyCp>,
+    target: &BTreeMap<u16, u16>,
+) -> Vec<(u16, String, Option<u16>)> {
+    let template = match (tx.get::<Function>(f), held) {
+        (Some(func), LibDocument::Part(_) | LibDocument::Fndef(_)) => template_anchors(tx, &func, held)
+            .map(|old| (old, template_anchors(tx, &func, new).unwrap_or_default())),
+        _ => None,
+    };
+    let Some((old, now)) = template else {
+        return old_cps
+            .iter()
+            .map(|(idx, cp)| {
+                (
+                    cp.endpoint,
+                    cp.designation.clone(),
+                    target.get(idx).map(|n| new_cps[n].endpoint),
+                )
+            })
+            .collect();
+    };
+    old.iter()
+        .enumerate()
+        .map(|(i, (endpoint, anchor, designation))| {
+            let k = old[..i].iter().filter(|(_, a, _)| a == anchor).count();
+            let Anchor(pid, p) = *anchor;
+            let mapped = match held {
+                LibDocument::Part(c) if c.id == pid => target.get(&p).map(|n| Anchor(pid, *n)),
+                _ => Some(*anchor),
+            };
+            let to = mapped.and_then(|m| now.iter().filter(|(_, a, _)| *a == m).nth(k).map(|(e, _, _)| *e));
+            (*endpoint, designation.clone(), to)
+        })
+        .collect()
 }
 
 /// What is attached at a function CP: connections, potential definitions, bonds and channel bindings, as text.
@@ -582,25 +692,22 @@ impl Command for UpdateLibraryCopies {
             }
             let target = cp_mapping(&old_cps, &new_cps, &explicit);
             for f in affected_functions(tx, held) {
-                for (idx, cp) in &old_cps {
-                    match target.get(idx).copied() {
+                for (endpoint, designation, to) in
+                    function_moves(tx, f, held, new, &old_cps, &new_cps, &target)
+                {
+                    match to {
                         None => {
-                            for what in attached(tx, f, cp.endpoint) {
-                                blocked.push(format!(
-                                    "function {f} CP {} ({}): {what}",
-                                    cp.endpoint, cp.designation
-                                ));
+                            for what in attached(tx, f, endpoint) {
+                                blocked.push(format!("function {f} CP {endpoint} ({designation}): {what}"));
                             }
                         }
-                        Some(n) => {
-                            let to = new_cps[&n].endpoint;
-                            if to != cp.endpoint {
-                                if let Some(prev) = remap.insert((f, cp.endpoint), to) {
+                        Some(to) => {
+                            if to != endpoint {
+                                if let Some(prev) = remap.insert((f, endpoint), to) {
                                     if prev != to {
                                         return tx.reject(format!(
-                                            "two updated copies map CP {} of function {f} differently ({prev} and \
-                                             {to})",
-                                            cp.endpoint
+                                            "two updated copies map CP {endpoint} of function {f} differently \
+                                             ({prev} and {to})"
                                         ));
                                     }
                                 }

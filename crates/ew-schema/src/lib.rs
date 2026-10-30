@@ -91,6 +91,7 @@ mod record;
 mod revision;
 mod schema;
 mod set;
+mod template;
 mod track;
 mod value;
 mod waiver;
@@ -154,6 +155,7 @@ pub use record::{AnchorRef, AnyRecord, LibDocument, Record};
 pub use revision::{PageNote, Revision, RevisionState};
 pub use schema::{kind_schema, schema_file_name, schema_files};
 pub use set::{Keyed, KeyedList, Set};
+pub use template::{TemplateCp, pair_template_cps, template_entry_of};
 pub use track::parse_value;
 pub use value::{
     AnyId, Bounds, ColourCode, ColourSpec, Csa, Date, Endpoint, ExternalRefId, IecColour, LibRef, PartRef,
