@@ -835,7 +835,7 @@ fn tb8_describe_lines_words_and_counts() {
     done(&mut shell, "navigator.table", json!({"kind": "pages"}));
     let d = shell.describe();
     assert!(
-        d.contains("navigator \"Pages\" kind pages view tree table sort \"Label\" ascending filter \"\" rows 36 showing 1 to 36\n  columns \"Folio\" \"Title\" \"Type\" \"Frame\" \"Generated\"\n"),
+        d.contains("navigator \"Pages\" kind pages view tree table sort \"Label\" ascending filter \"\" rows 36 showing 1 to 36\n  columns \"Folio\" \"Title\" \"Type\" \"Frame\" \"Generated\" \"Changed in\"\n"),
         "{d}"
     );
     assert!(!d.contains("navigator \"Pages\" mode "), "{d}");

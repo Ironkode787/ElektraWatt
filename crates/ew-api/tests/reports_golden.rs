@@ -354,28 +354,39 @@ fn plc_overview_908_lists_the_56_channels_of_the_valve_terminal() {
 }
 
 #[test]
-fn not_derived_kinds_paginate_to_one_placeholder_page() {
+fn every_golden_kind_derives_inside_the_pagination() {
     let s = common::golden_session();
     let q = s.query();
     let order = q.get::<PageOrder>(());
     // The connectivity kinds derive inside the pagination (their queries read the drawn page order), the PLC
-    // overview from the channel records; only the kind without a row source keeps the placeholder page.
-    for key in ["903", "904", "905", "906", "907", "908", "909"] {
+    // overview from the channel records, the revision overview from the revision records (FT-207).
+    for key in ["903", "904", "905", "906", "907", "908", "909", "911"] {
         assert!(q.get::<BlockRows>(block(key)).is_derived(), "{key} is derived");
     }
     let (key, title) = ("911", "Revision Overview");
     let b = block(key);
-    assert!(
-        matches!(q.get::<BlockRows>(b).status, RowSetStatus::NotDerived(_)),
-        "{key} is not derived"
-    );
     let pages = pages_of(&order, b);
     assert_eq!(pages.len(), 1, "{key}: one generated page");
     assert_eq!(text(&pages[0].title), title, "{key}");
-    let note = text(pages[0].note.as_ref().unwrap_or_else(|| panic!("{key}: a note")));
-    assert!(
-        note.contains("awaits") || note.contains("no `"),
-        "{key}: note `{note}` gives the reason"
+    assert!(pages[0].note.is_none(), "{key}: rows, no placeholder note");
+}
+
+/// PD-3 (WP-S1.18 part 2): the revision overview's rows over Golden A, V1.0 (historic, released, no digests) and
+/// V2.0 (open, its page notes on 101 and 106), in label order; the row source inside the pagination prints the page
+/// notes' folios.
+#[test]
+fn the_revision_overview_lists_v1_and_v2_with_their_pages() {
+    let s = common::golden_session();
+    let q = s.query();
+    let set = q.get::<BlockRows>(block("911"));
+    assert!(!matches!(set.status, RowSetStatus::NotDerived(_)));
+    let printed: Vec<Vec<String>> = (0..set.rows.len()).map(|i| printed(&q, &set, i)).collect();
+    assert_eq!(
+        printed,
+        [
+            ["V1.0", "03-03-2025", "", "", "released", ""],
+            ["V2.0", "14-04-2025", "<engineer>", "", "open", "101, 106"],
+        ]
     );
 }
 

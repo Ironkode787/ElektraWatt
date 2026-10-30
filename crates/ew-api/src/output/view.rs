@@ -83,7 +83,7 @@ use ew_derive::{
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, render};
-use ew_reports::{BlockRows, LinkTarget, Row, RowKind};
+use ew_reports::{BlockRows, Cell, LinkTarget, Row, RowKind};
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedView};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
@@ -274,6 +274,15 @@ impl Query for PageBindingsOf {
             };
             // `title_block(page)` names valid placeholder paths; a path the form layer refuses stays unbound.
             let _ = b.set(path, v);
+        }
+        // WP-S1.18 part 2: in the digest branch of doc 15 §5.6 the page's change status comes from its digest, which
+        // `ew-derive` cannot see (the title block keeps the no-digest value).
+        if q.get::<TitleBlockValues>(*key)
+            .get("page.last_changed_in")
+            .is_some()
+            && let Some(label) = super::revisions::digest_last_changed_in(q, *key)
+        {
+            let _ = b.set("page.last_changed_in", BoundValue::Text(label));
         }
         Arc::new(b)
     }
@@ -798,6 +807,11 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
     }
     let end = (g.rows.end as usize).min(set.rows.len());
     let start = (g.rows.start as usize).min(end);
+    let overview = q
+        .report_blocks()
+        .get(g.block)
+        .is_some_and(|b| matches!(b.source, ReportSource::Kind(ReportKind::RevisionOverview)));
+    let pages_column = set.column("pages").filter(|_| overview);
     let rows = set.rows[start..end]
         .iter()
         .map(|r| TableRow {
@@ -805,7 +819,20 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
                 RowKind::Data => TableRowKind::Data,
                 RowKind::Heading | RowKind::GroupHeader | RowKind::GroupFooter => TableRowKind::Heading,
             },
-            cells: r.cells.iter().map(|c| render(q, c, &opts)).collect(),
+            cells: r
+                .cells
+                .iter()
+                .enumerate()
+                .map(|(i, c)| {
+                    match pages_column
+                        .filter(|p| *p == i)
+                        .and_then(|_| revision_pages(q, r))
+                    {
+                        Some(pages) => render(q, &pages, &opts),
+                        None => render(q, c, &opts),
+                    }
+                })
+                .collect(),
             links: row_links(r),
         })
         .collect();
@@ -814,6 +841,15 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
         rows,
         note: None,
     }
+}
+
+/// The `pages` cell of a revision overview row at draw time (WP-S1.18 part 2): the revision's `changed_pages`, which
+/// sees the page digests and the generated pages the row source inside the pagination cannot
+/// (`ew_reports::kinds::revision_rows`); `None` for a row that names no revision.
+fn revision_pages(q: &Q, row: &Row) -> Option<Cell> {
+    let id = row.id.entities().next()?;
+    let rev = q.table::<ew_schema::Revision>().get(Id::from_uuid(id))?;
+    Some(Cell::Folios(super::revisions::changed_pages(q, rev)))
 }
 
 /// The terminals a strip-segment representation draws (see the module documentation); empty for any other

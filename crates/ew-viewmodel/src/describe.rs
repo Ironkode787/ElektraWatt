@@ -964,6 +964,10 @@ fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 if r.qet_grid {
                     line.push_str(&format!(" badge \"{}\"", strings::text("badge-qet-grid")));
                 }
+                // WP-S1.18 part 2 (D7): the "Changed in" column, the revision that last changed the page.
+                if let Some(label) = &r.changed_in {
+                    line.push_str(&format!(" changed \"{label}\""));
+                }
                 if current == Some(PageId::of(r)) {
                     line.push_str(" current");
                 }

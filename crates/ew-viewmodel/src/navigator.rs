@@ -468,6 +468,7 @@ mod tests {
             function: f.map(str::to_owned),
             location: None,
             qet_grid: true,
+            changed_in: None,
         }
     }
 

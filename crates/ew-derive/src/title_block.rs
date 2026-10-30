@@ -376,23 +376,72 @@ fn revision_scope(out: &mut Out, q: &Q, project: &Project) {
     }
 }
 
-/// `page.last_changed_in` of a drawn page (the no-digest branch).
+/// `page.last_changed_in` of a drawn page: the no-digest branch of [`last_changed_in`] (page digests are computed in
+/// `ew-api`, which hands its digest-based value to the page's bindings; WP-S1.18 part 2).
 fn last_changed_scope(out: &mut Out, q: &Q, page: PageRef) {
     let PageRef::Drawn(id) = page else {
         return;
     };
+    if let Some(label) = last_changed_in(q, id, None) {
+        out.text("page.last_changed_in", &label);
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// The page change status of doc 15 §5.6 over the revision records (WP-S1.18 part 2, D7). The page digests are not
+// here: they are computed in `ew-api` over the page scene and handed to these functions as `changed_now`.
+
+/// The pages a revision records as changed: `release.changed_pages` if its release record has that member, else the
+/// pages its `page_notes` name, in their order (doc 15 §5.6: a release without previous digests changes the pages of
+/// its notes). A page ID may name a page that no longer exists, or a generated page by its v5 ID.
+pub fn recorded_changed_pages(rev: &Revision) -> Vec<Id<Page>> {
+    RevisionView::read(rev)
+        .changed_pages
+        .unwrap_or_else(|| rev.page_notes.iter().map(|n| n.page).collect())
+}
+
+/// `r_last` of doc 15 §5.6: the latest released revision that no withdrawal record withdraws, in the title block's
+/// rank (date, then the natural order of the label, then the ID).
+pub fn last_released_revision(q: &Q) -> Option<Arc<Revision>> {
+    live_revisions(q)
+        .into_iter()
+        .filter(|r| r.rev.state == RevisionState::Released)
+        .max_by_key(RevisionView::order_key)
+        .map(|r| Arc::new(r.rev.clone()))
+}
+
+/// The open revision `o` of doc 15 §5.6, if the current revision is open (EW-INV-016: at most one is).
+pub fn open_revision(q: &Q) -> Option<Arc<Revision>> {
+    live_revisions(q)
+        .into_iter()
+        .max_by_key(RevisionView::order_key)
+        .filter(RevisionView::is_open)
+        .map(|r| Arc::new(r.rev.clone()))
+}
+
+/// `last_changed_in(p)` of doc 15 §5.6: the open revision's label if `p` is changed now; else the latest released
+/// revision whose changed pages ([`recorded_changed_pages`]) contain `p`; else the first (lowest ranked) revision.
+/// `None` without revisions.
+///
+/// `changed_now` is the caller's page status in the digest branch (`Some`: the page's digest differs from `r_last`'s,
+/// computed by `ew-api`); `None` is the no-digest branch, where `p` is changed now when the open revision's
+/// `page_notes` name it. Withdrawal records, and the revisions they withdraw, take no part.
+pub fn last_changed_in(q: &Q, page: Id<Page>, changed_now: Option<bool>) -> Option<String> {
     let revisions = live_revisions(q);
     let current = revisions.iter().max_by_key(|r| r.order_key());
+    let open = current.filter(|c| c.is_open());
+    let changed = |r: &RevisionView<'_>| match changed_now {
+        Some(now) => now,
+        None => r.noted_pages.contains(&page),
+    };
     let released = revisions
         .iter()
         .filter(|r| !r.is_open())
-        .filter(|r| r.changed_pages.as_ref().unwrap_or(&r.noted_pages).contains(&id))
+        .filter(|r| r.changed_pages.as_ref().unwrap_or(&r.noted_pages).contains(&page))
         .max_by_key(|r| r.order_key());
-    let label = match current {
-        Some(c) if c.is_open() && c.noted_pages.contains(&id) => Some(c),
+    let label = match open {
+        Some(o) if changed(o) => Some(o),
         _ => released.or_else(|| revisions.iter().min_by_key(|r| r.order_key())),
     };
-    if let Some(r) = label {
-        out.text("page.last_changed_in", r.rev.label.as_str());
-    }
+    label.map(|r| r.rev.label.as_str().to_owned())
 }

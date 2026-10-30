@@ -1767,7 +1767,7 @@ fn defects(r: &mut Runner) {
         "D-05",
         "V2.0 on every page",
         ("AC-04", "every page prints the bound title-block values"),
-        "Folio 911 (the revision overview, V1.0 and V2.0) is still a placeholder: the report kind does not read the revision records yet.",
+        "Folio 911 (the revision overview) lists V1.0 released and V2.0 open with its changed pages 101 and 106 (WP-S1.18 part 2, FT-207).",
     );
     r.entry(
         "D-05",

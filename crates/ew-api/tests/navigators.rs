@@ -46,7 +46,7 @@ fn pages_lists_the_page_order_under_its_sections() {
     assert_eq!(folios, order, "the derived page order");
     assert_eq!(
         t.columns.iter().map(|c| c.key.as_str()).collect::<Vec<_>>(),
-        ["folio", "title", "type", "frame", "generated"]
+        ["folio", "title", "type", "frame", "generated", "changed_in"]
     );
     for (n, r) in pages.iter().zip(&rows) {
         assert!(n.key.ends_with(&format!("p:{}", r.id)), "{}", n.key);

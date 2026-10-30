@@ -437,7 +437,8 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 22] = [
 /// The derived columns (WP-S2.06 part 3, §8.1, §8.2): cells the derivation computes from other records rather than a
 /// field of the row's record (a connection's or terminal's potential, the folios a row is drawn on, counts). Drawn
 /// italic in table mode and read-only with the reason "derived".
-const DERIVED_COLUMNS: [(NavKind, &str); 9] = [
+const DERIVED_COLUMNS: [(NavKind, &str); 10] = [
+    (NavKind::Pages, "changed_in"),
     (NavKind::Connections, "potential"),
     (NavKind::Cables, "potential"),
     (NavKind::Connections, "pages"),
@@ -495,6 +496,8 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             column("type", "Type", false, None),
             column("frame", "Frame", false, None),
             column("generated", "Generated", false, None),
+            // WP-S1.18 part 2 (D7): the page change status of doc 15 §5.6.
+            column("changed_in", "Changed in", false, None),
         ],
         NavKind::Devices => kind_columns("structure_overview"),
         NavKind::Connections => kind_columns("wire_list"),
@@ -706,6 +709,7 @@ impl Session {
                 row.kind.clone(),
                 frame,
                 if row.generated { "yes" } else { "no" }.to_owned(),
+                row.changed_in.clone().unwrap_or_default(),
             ];
             let records = match entry.page {
                 PageRef::Drawn(p) => vec![p.as_uuid()],

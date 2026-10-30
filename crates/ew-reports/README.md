@@ -47,7 +47,7 @@ ADR-0018. Work package WP-S3.03.
 | `plc_overview` | derived | the `plc_rows` query (channel records, module aspects, the part's PLC section) |
 | `profile_tables` | derived | the colour and size profiles of the project settings (the cover's tables) |
 | `numbering_report` | derived | frozen tags (`TagSpec.frozen`) and frozen wire numbers with their rule-derived values (`rule_product`, `wire_numbers`; FR-REP-022) |
-| `revision_overview` | not derived yet | the revision records are typed (FT-165); its row query `revision_rows` is FT-207 |
+| `revision_overview` | derived | `revision_rows` (FT-207): the revision records in label order, a withdrawal record after the revision it withdraws, the changed pages they record; `ew-api` completes the pages from the page digests at draw time (WP-S1.18 part 2) |
 | `device_list`, `terminal_overview`, `io_list`, `open_items`, `enclosure_legend`, `check_report` | placeholder (`NotDerived::Unsupported`) until their WP | not registered yet |
 
 A kind that is not derived yet has its columns and an empty `RowSet` whose `status` is `NotDerived(reason)`. A

@@ -61,6 +61,8 @@ mod navigators;
 // WP-S2.09 part 3: the labelled entity list of a preview (§4.2).
 mod preview;
 mod properties;
+// WP-S1.18 part 2: page digests and the page change status (D6, D7).
+mod revisions;
 // WP-S2.07 part 1: the strip editor's gestures (§4.2).
 mod strip_edit;
 mod view;
@@ -114,9 +116,11 @@ pub use navigators::{
     Drawable, HighlightTarget, NaturalKey, NavColumn, NavKind, NavNode, NavOpen, NavRole, NavTable, Uuid,
     nav_natural_key, tokens as nav_tokens,
 };
+// WP-S1.18 part 2
 pub use properties::{
     FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetHeader, SheetSection,
 };
+pub use revisions::{changed_now, changed_pages, last_changed_in, page_digest, page_digests};
 // WP-S2.07 part 1
 pub use strip_edit::{
     ACCESSORY_KINDS, BridgeRow, StripCell, StripEdit, StripEditError, accessory_kind_word,

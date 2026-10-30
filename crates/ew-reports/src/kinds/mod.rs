@@ -10,10 +10,9 @@
 //! queries read the drawn page order, which has no report pages, so these kinds derive their rows inside the
 //! pagination like the others.
 //! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview`. From the tags and wire numbers:
-//! `numbering_report` (frozen values with their rule values, FR-REP-022).
-//! Registered with its columns but **not derived yet** (an empty row set marked [`NotDerived`]):
-//! `revision_overview` (the revision records are typed since FT-165; its row query is FT-207). Other schema kinds are not registered; their blocks report
-//! [`NotDerived::Unsupported`].
+//! `numbering_report` (frozen values with their rule values, FR-REP-022). From the revision records:
+//! `revision_overview` (`revision_rows`, FT-207; WP-S1.18 part 2). Other schema kinds are not registered; their blocks
+//! report [`NotDerived::Unsupported`]. [`Pending`] registers a kind with its columns before its row source exists.
 
 use ew_derive::Q;
 use ew_derive::ew_schema::ReportBlock;
@@ -29,6 +28,7 @@ mod parts;
 mod plc_overview;
 mod potential_overview;
 mod profile_tables;
+mod revision_overview;
 mod structure_overview;
 mod terminal_diagram;
 mod toc;
@@ -42,6 +42,7 @@ pub use parts::{PartsList, PartsSummary};
 pub use plc_overview::PlcOverview;
 pub use potential_overview::PotentialOverview;
 pub use profile_tables::{GROUPS as PROFILE_TABLE_GROUPS, ProfileTables};
+pub use revision_overview::{RevisionOverview, revision_rows};
 pub use structure_overview::StructureOverview;
 pub use terminal_diagram::TerminalDiagram;
 pub use toc::Toc;
@@ -62,7 +63,7 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &PlcOverview,
         &NumberingReport,
         &ProfileTables,
-        &REVISION_OVERVIEW,
+        &RevisionOverview,
     ]
 }
 
@@ -97,19 +98,3 @@ impl ReportKindDef for Pending {
         RowSet::not_derived(self.columns(), self.reason.clone())
     }
 }
-
-/// Revision overview (FR-REP-018; golden 911).
-pub static REVISION_OVERVIEW: Pending = Pending {
-    name: "revision_overview",
-    columns: &[
-        ("label", CellType::Ident, "Revision"),
-        ("date", CellType::Date, "Date"),
-        ("author", CellType::Text, "Author"),
-        ("checker", CellType::Text, "Checker"),
-        ("state", CellType::Text, "State"),
-        ("pages", CellType::Folios, "Changed pages"),
-    ],
-    // The revision records are typed since FT-165; the overview's rows (revisions and their changed pages,
-    // doc 09 §2.1) are FT-207.
-    reason: NotDerived::AwaitsQuery("revision_rows"),
-};

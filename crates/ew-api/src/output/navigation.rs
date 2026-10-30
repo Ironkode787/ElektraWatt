@@ -69,6 +69,9 @@ pub struct PageRow {
     pub location: Option<String>,
     /// Whether the page's connection grid is the QET grid `7_937_500/3` nm.
     pub qet_grid: bool,
+    /// The label of the revision that last changed the page (doc 15 §5.6, `last_changed_in`; WP-S1.18 part 2, the
+    /// navigator's "Changed in" column); `None` without revisions.
+    pub changed_in: Option<String>,
 }
 
 /// A cell of a page's frame grid: its printed labels and its 0-based position in the grid. Ordering uses the
@@ -767,6 +770,7 @@ impl Session {
                     function: aspect(&q, e.page, Aspect::Function),
                     location: aspect(&q, e.page, Aspect::Location),
                     qet_grid: (grid.num(), grid.den()) == QET_GRID,
+                    changed_in: super::revisions::last_changed_in(&q, e.page),
                 }
             })
             .collect()

@@ -177,7 +177,10 @@ pub use structure::{
     ResolvedStructure, SlotSource, StructureOf, StructurePath,
 };
 pub use tag::{DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, rule_product};
-pub use title_block::{TbValue, TitleBlock, TitleBlockValues};
+pub use title_block::{
+    TbValue, TitleBlock, TitleBlockValues, last_changed_in, last_released_revision, open_revision,
+    recorded_changed_pages,
+};
 pub use toc::{TocRow, TocRows};
 pub use tracker::{ColdTracker, DepKey, IxKey, Recorded, RecordingTracker, Tracker};
 pub use wire_profile::{
