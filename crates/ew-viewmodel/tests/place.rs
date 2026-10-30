@@ -862,6 +862,40 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     assert!(line.contains(&format!("strip \"{numbered}:2\"")), "{line}");
 }
 
+/// Cycle 36 (play-test rv-txt-2): a terminal placed from a part whose template names no clamps (EW-GEN-TRM-1) is named
+/// by its own tag, the strip's and its designation (`-X1032:7`), in the page text and the placement's toast, not by the
+/// strip's tag alone; a clamped terminal of Golden A keeps `-X1031:<n>`.
+#[test]
+fn a_terminal_placed_from_a_part_is_named_by_its_own_tag() {
+    let tmp = Tmp::new("terminal-part");
+    let mut s = shell(&tmp, "103");
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "EW-GEN-TRM-1", "strip": "-X1032", "designation": "7"}),
+    );
+    let here = sheet(&s, grid_point(&s, (82, 40)));
+    click(&mut s, here, json!({}));
+    let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
+    assert!(toast.starts_with("Placed -X1032:7 at "), "{toast}");
+    done(&mut s, "page.describe", json!({"folio": "103"}));
+    let text = s.take_page_text().expect("page.describe leaves its text");
+    let reps: Vec<&str> = text.lines().filter(|l| l.starts_with("  rep ")).collect();
+    assert!(
+        reps.iter().any(|l| l.starts_with("  rep \"-X1032:7\" ")),
+        "{reps:#?}"
+    );
+    assert!(
+        !reps.iter().any(|l| l.starts_with("  rep \"-X1032\" ")),
+        "{reps:#?}"
+    );
+    // Golden A's clamped terminals are named as before (its devices: `page_describe`'s expected texts).
+    assert!(
+        reps.iter().any(|l| l.starts_with("  rep \"-X1031:11\" ")),
+        "{reps:#?}"
+    );
+}
+
 #[test]
 fn a_page_type_without_symbol_tools_refuses_the_editing_actions() {
     let tmp = Tmp::new("pagetype");

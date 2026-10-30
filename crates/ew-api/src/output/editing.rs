@@ -1209,6 +1209,9 @@ pub struct TableRep {
     pub ip: Option<TableIp>,
     /// The black box's geometry, absolute.
     pub black_box: Option<TableBox>,
+    /// Whether the device of its first function is a terminal of a strip: its connection points print the terminal's
+    /// tag (`-X1011:2`, with `/clamp` where the function names clamps), not `tag:designation`.
+    pub terminal: bool,
 }
 
 /// The interruption point of a [`TableRep`].
@@ -1553,7 +1556,7 @@ impl Session {
             reps.push(TableRep {
                 id: rid.as_uuid(),
                 functions: rep.functions.iter().map(|f| f.as_uuid()).collect(),
-                device: first.and_then(|f| f.device).map(|d| d.as_uuid()),
+                device: first.as_ref().and_then(|f| f.device).map(|d| d.as_uuid()),
                 symbol: rep.symbol.as_uuid(),
                 symbol_key: shape.as_ref().map(|s| s.key.clone()).unwrap_or_default(),
                 orient: o,
@@ -1565,6 +1568,10 @@ impl Session {
                 tag_at,
                 ip,
                 black_box,
+                terminal: first
+                    .and_then(|f| f.device)
+                    .and_then(|d| q.devices().get(d))
+                    .is_some_and(|d| d.aspects.terminal.is_some()),
             });
         }
         let partition = q.get::<PotentialPartition>(());

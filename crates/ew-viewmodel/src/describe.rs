@@ -15,7 +15,7 @@
 //! like a number (decision log ID-630, FT-422; [`crate::alias`]): the hovered entity and the selection unquoted, an
 //! ID inside a quoted text inside the quotes; no UUID reaches the text.
 
-use ew_api::output::{PageTables, TableCp, TableEnd};
+use ew_api::output::{PageTables, TableCp, TableEnd, TableRep};
 
 use crate::actions::{self, ActionItem, MenuEntry, PaletteRun};
 use crate::canvas::PageId;
@@ -2419,13 +2419,19 @@ fn variant_letter(orient: u8) -> char {
     char::from(b'A' + orient.min(7))
 }
 
-/// The tag a representation prints: its device's short tag, read off the labels of its connection points (a CP's
-/// label is `tag:designation`, a terminal's `tag/clamp`, an interruption point's its name); `None` without one.
-pub(crate) fn rep_tag(cps: &[&TableCp]) -> Option<String> {
+/// The tag a representation names: its device's short tag, read off the labels of its connection points (a CP's
+/// label is `tag:designation`, a terminal's `tag/clamp` or, without clamps, its tag alone, an interruption point's
+/// its name); `None` without one. A terminal's tag is the strip's and its own designation (`-X1011:2`), so that two
+/// terminals of one strip never read alike (cycle 36, play-test rv-txt-2).
+pub(crate) fn rep_tag(rep: &TableRep, cps: &[&TableCp]) -> Option<String> {
     let label = &cps.first()?.label;
-    // A terminal's label is `-X1031:11/a` (its tag is `-X1031:11`); a device's is `-101F1:2` or `-101F1:2#2`.
+    // A terminal's label is `-X1031:11/a` (its tag is `-X1031:11`), or `-X1011:2` when its function names no clamps
+    // (a part's template); a device's is `-101F1:2` or `-101F1:2#2`.
     if let Some((tag, _clamp)) = label.rsplit_once('/') {
         return Some(tag.to_owned());
+    }
+    if rep.terminal {
+        return Some(label.clone());
     }
     Some(label.split(':').next().unwrap_or(label).to_owned())
 }
@@ -2605,7 +2611,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
         .map(|r| {
             let mut cps: Vec<&TableCp> = t.cps.iter().filter(|c| c.rep == r.id).collect();
             cps.sort_by(|a, b| (a.idx, &a.label).cmp(&(b.idx, &b.label)));
-            let tag = rep_tag(&cps);
+            let tag = rep_tag(r, &cps);
             let key = (
                 reading(page, r.pos),
                 r.symbol_key.clone(),

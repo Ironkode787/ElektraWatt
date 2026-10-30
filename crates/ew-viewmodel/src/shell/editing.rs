@@ -101,7 +101,7 @@ impl ShellModel {
                     return;
                 };
                 let cps: Vec<&ew_api::output::TableCp> = now.cps.iter().filter(|c| c.rep == rep.id).collect();
-                let tag = crate::describe::rep_tag(&cps).unwrap_or_else(|| rep.symbol_key.clone());
+                let tag = crate::describe::rep_tag(rep, &cps).unwrap_or_else(|| rep.symbol_key.clone());
                 let cell = self.canvas().and_then(|c| {
                     let page = c.page();
                     page.cell_text(page.snapper.page_to_sheet(pos))

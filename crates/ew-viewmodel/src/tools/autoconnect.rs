@@ -472,6 +472,7 @@ mod tests {
             tag_at: None,
             ip: None,
             black_box: None,
+            terminal: false,
         });
         let g = [ghost(0, (0, 0), Dir::Down)];
         assert!(proposals(&g, &t, &[], AREA, 0).list.is_empty());
