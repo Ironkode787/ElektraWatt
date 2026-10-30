@@ -625,15 +625,19 @@ fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         .get_all_by_role(egui::Role::MenuItem)
         .filter_map(|n| n.accesskit_node().label().map(|l| (l, n.rect())))
         .collect();
-    let words: Vec<&str> = prow
-        .actions
-        .iter()
-        .map(|a| ew_ui::ew_viewmodel::properties::action_label(*a))
+    // The row's actions, then Make variable (FT-754 (h)).
+    let words: Vec<&str> = h
+        .state()
+        .shell()
+        .row_menu(&prow.key)
+        .into_iter()
+        .map(ew_ui::ew_viewmodel::properties::menu_label)
         .collect();
+    assert_eq!(words.last().copied(), Some("Make variable"), "{words:?}");
     assert_eq!(
         items.iter().map(|(l, _)| l.as_str()).collect::<Vec<_>>(),
         words,
-        "one menu item per action"
+        "one menu item per action, then Make variable"
     );
     let top = items.iter().map(|(_, r)| r.top()).fold(f32::INFINITY, f32::min);
     let bottom = items

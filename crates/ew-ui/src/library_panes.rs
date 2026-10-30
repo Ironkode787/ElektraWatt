@@ -176,17 +176,17 @@ fn thumbnail_ui(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::MacroDetail, th: 
     let scale = (rect.width() / size.x).min(rect.height() / size.y).min(1.0);
     let shown = egui::Rect::from_center_size(rect.center(), size * scale);
     let painter = ui.painter();
-    painter.rect_filled(rect, theme::radius(t.radius_sm), egui::Color32::WHITE);
+    painter.rect_filled(rect, theme::radius(t.radius_sm), t.canvas_sheet.color32());
     painter.image(
         texture.id(),
         shown,
         egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-        egui::Color32::WHITE,
+        theme::NO_TINT,
     );
     painter.rect_stroke(
         rect,
         theme::radius(t.radius_sm),
-        egui::Stroke::new(1.0, t.border_default.color32()),
+        theme::stroke(t.border_width, t.border_default),
         egui::StrokeKind::Inside,
     );
     true
