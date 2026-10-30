@@ -280,7 +280,7 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
     let at: Vec<&&str> = rows.iter().filter(|r| r.ends_with(" cursor")).collect();
     assert!(at.len() == 1 && at[0].contains("-3W1"), "{d}");
     for cp in ["-201U1:3", "-202U1:3"] {
-        let start = format!("  row level 3 finding \"{cp}: ");
+        let start = format!("  row level 3 finding \"{cp} "); // the message leads with its subject, shown once (FT-759)
         assert!(rows.iter().any(|r| r.starts_with(&start)), "{d}");
     }
     assert_eq!(
