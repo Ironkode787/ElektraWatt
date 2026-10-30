@@ -16,6 +16,7 @@ use ew_units::Rect;
 use serde_json::json;
 
 const COIL: &str = include_str!("../../../content/symbols/qet10/ew.iec.coil@qet10.json");
+const VALVE: &str = include_str!("../../../content/symbols/qet10/ew.iec.valve-coil@qet10.json");
 const CONTACT: &str = include_str!("../../../content/symbols/qet10/ew.iec.contact-co@qet10.json");
 
 const PAGE: u128 = 0x100;
@@ -140,12 +141,17 @@ fn overlap(a: Rect, b: Rect) -> bool {
 
 /// Two change-over contacts of `-101K1` one column apart, each with its tag and its back-reference.
 fn contacts(spacing: i64) -> PageView {
+    contacts_with(spacing, "(101-B2)")
+}
+
+/// [`contacts`] with the back-reference `back`.
+fn contacts_with(spacing: i64, back: &str) -> PageView {
     let c = symbol(CONTACT);
     let (tag, xref) = (slot(&c, &SlotKind::Tag), slot(&c, &SlotKind::Xref));
     let contact = |n: u128, x: i64| RepView {
         rep: rep(n, c.id, x, 20),
         symbol: Some(c.def.clone()),
-        slots: vec![value(tag, "-101K1"), value(xref, "(101-B2)")],
+        slots: vec![value(tag, "-101K1"), value(xref, back)],
         terminals: Vec::new(),
         pins: Vec::new(),
     };
@@ -211,4 +217,94 @@ fn a_coils_cross_reference_list_grows_down_from_its_first_line_clear_of_its_data
         second.min().y > first.min().y,
         "the second line is below the first"
     );
+}
+
+/// Two starter valve coils `-101M1` and `-101M2` side by side, `spacing` grid steps apart, each with its tag, its
+/// technical data "24 V" and its CP designations A1 and A2.
+fn valves(spacing: i64) -> PageView {
+    let c = symbol(VALVE);
+    let (tag, data) = (slot(&c, &SlotKind::Tag), slot(&c, &SlotKind::TechData));
+    let a = |i: u16| {
+        c.def
+            .text_slots
+            .iter()
+            .position(|t| t.kind == SlotKind::CpDesignation(i))
+            .map(|i| u16::try_from(i).unwrap())
+            .expect("the CP designation slot")
+    };
+    let valve = |n: u128, x: i64, name: &str| RepView {
+        rep: rep(n, c.id, x, 20),
+        symbol: Some(c.def.clone()),
+        slots: vec![
+            value(tag, name),
+            value(data, "24 V"),
+            value(a(0), "A1"),
+            value(a(1), "A2"),
+        ],
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    page(vec![
+        valve(0x31, 20, "-101M1"),
+        valve(0x32, 20 + spacing, "-101M2"),
+    ])
+}
+
+/// Two rectangles' horizontal clearance when their heights overlap (`None` when one is above the other).
+fn side_gap(a: Rect, b: Rect) -> Option<i64> {
+    (a.min().y < b.max().y && b.min().y < a.max().y)
+        .then(|| (b.min().x.0 - a.max().x.0).max(a.min().x.0 - b.max().x.0))
+}
+
+/// Cycle 37 (window check, contacts 25 mm apart): a back-reference never runs into the neighbour contact's tag; a
+/// back-reference beside it keeps at least the gap, else it drops below.
+#[test]
+fn a_back_reference_keeps_the_gap_from_the_neighbour_contacts_tag() {
+    let gap = ew_scene::page::SLOT_TEXT_GAP.0;
+    for (back, spacing) in [
+        ("(101-B2)", 9),
+        ("(101-D6)", 9),
+        ("(101-D6)", 10),
+        ("(101-D6)", COLUMN),
+    ] {
+        let v = contacts_with(spacing, back);
+        let b = text_box(&v, 0x11, &[back]);
+        let tag = text_box(&v, 0x12, &["-101K1"]);
+        assert!(!overlap(b, tag), "{back}: {b:?} overlaps {tag:?}");
+        assert!(
+            side_gap(b, tag).is_none_or(|g| g >= gap - 1_000),
+            "{back}: {b:?} runs into {tag:?}"
+        );
+    }
+}
+
+/// Cycle 37 (visual play-test): two starter valve coils side by side at one-column spacing and closer: M1's "24 V"
+/// keeps at least the gap from M2's tag (it drops below it), its own A1/A2 and tag stay where the symbol puts them,
+/// and at a spacing where nothing collides it stays beside its coil.
+#[test]
+fn a_valves_technical_data_keeps_the_gap_from_the_next_valves_tag() {
+    let gap = ew_scene::page::SLOT_TEXT_GAP.0;
+    let alone = text_box(&valves(20), 0x31, &["24 V"]);
+    for spacing in [COLUMN, COLUMN + 1, COLUMN + 2] {
+        let v = valves(spacing);
+        let data = text_box(&v, 0x31, &["24 V"]);
+        let tag = text_box(&v, 0x32, &["-101M2"]);
+        assert!(!overlap(data, tag), "{spacing}: {data:?} overlaps {tag:?}");
+        assert!(
+            side_gap(data, tag).is_none_or(|g| g >= gap - 1_000),
+            "{spacing}: {data:?} beside {tag:?}"
+        );
+        assert_eq!(data.min().x, alone.min().x, "{spacing}: the same column");
+        assert!(
+            (data.min().y.0 - tag.max().y.0 - gap).abs() <= 1_000,
+            "{spacing}: one gap below the tag: {data:?} {tag:?}"
+        );
+        for own in ["A1", "A2", "-101M1"] {
+            let b = text_box(&v, 0x31, &[own]);
+            assert_eq!(b, text_box(&valves(20), 0x31, &[own]), "{spacing}: {own} unmoved");
+            assert!(!overlap(data, b), "{spacing}: {data:?} overlaps {own} {b:?}");
+        }
+    }
+    // Far apart, the data stays where the symbol puts it.
+    assert_eq!(text_box(&valves(20), 0x31, &["24 V"]), alone);
 }

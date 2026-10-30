@@ -73,13 +73,16 @@
 //!   A text that lists several items carries one link per item ([`SlotValue::item_links`], FT-86): an invisible
 //!   path item over the item's glyph span (the pen travel of the text up to the item's ends), after the text's
 //!   own items, with the text's entity and a [`Link::Source`].
-//! - **Slot text collisions** (FT-687). A cross-reference slot (`xref`) without a position override follows two
-//!   rules; every other text stays where its symbol puts it. (1) A list of several lines aligned to the middle keeps
+//! - **Slot text collisions** (FT-687). A cross-reference slot (`xref`) without a position override follows rules 1
+//!   and 2, a technical-data slot without one rule 3; every other text stays where its symbol puts it. (1) A list of several lines aligned to the middle keeps
 //!   its first line where a one-line text would sit and grows downward in its own frame (a coil's contact mirror
 //!   never climbs into the technical data above it). (2) A horizontal one whose layout box overlaps another slot
 //!   text's box on the page (its own symbol's or another representation's; the texts in print order, each seen where
-//!   it ended) drops straight down until its top is [`SLOT_TEXT_GAP`] below the lowest box it overlapped, when it
-//!   overlaps no slot text there; else it stays. At one-column spacing a contact's back-reference so moves below the
+//!   it ended), or stands beside another representation's text less than [`SLOT_TEXT_GAP`] away (cycle 37:
+//!   "(101-D6)" ran into "-101K1"), drops straight down until its top is [`SLOT_TEXT_GAP`] below the lowest box it so
+//!   collided with, when it collides with no slot text there; else it stays. (3) A horizontal technical-data text
+//!   (no position override) follows rule 2 against other representations' texts only (cycle 37: a valve's "24 V"
+//!   ran into the next valve's tag); within one symbol its author's layout stands. At one-column spacing a contact's back-reference so moves below the
 //!   neighbour contact's tag. Printed text order and every other position are unchanged.
 //! - **Pin texts** (WP-S1.21 D7). A black box prints each [`RepView::pins`] entry whose index is one of its box CPs
 //!   (drawn as in "Black boxes") in style `data.small`, inside the outline, [`PIN_TEXT_GAP`] from the pin along its
@@ -963,6 +966,7 @@ impl Builder<'_> {
                     unknown,
                     entity,
                     xref: matches!(slot.kind, SlotKind::Xref) && !moved,
+                    data: matches!(slot.kind, SlotKind::TechData) && !moved,
                 });
             }
         }
@@ -1015,17 +1019,27 @@ impl Builder<'_> {
             .collect();
         for i in 0..texts.len() {
             let Some(own) = boxes[i] else { continue };
-            if !texts[i].xref || texts[i].angle != Angle2::ZERO {
+            if !(texts[i].xref || texts[i].data) || texts[i].angle != Angle2::ZERO {
                 continue;
             }
+            // Each other box with whether it is the same representation's: within one symbol only an overlap
+            // collides (its author placed the texts), between representations also a gap below [`SLOT_TEXT_GAP`].
+            // A technical-data text yields only to other representations' texts.
             let others = || {
                 boxes
                     .iter()
                     .enumerate()
                     .filter(|(k, _)| *k != i)
-                    .filter_map(|(_, b)| *b)
+                    .filter_map(|(k, b)| b.map(|b| (texts[k].entity == texts[i].entity, b)))
             };
-            let Some(bottom) = others().filter(|b| overlaps(own, *b)).map(|b| b.max().y).max() else {
+            let hits = |at: Rect, (same, b): (bool, Rect)| {
+                if same {
+                    !texts[i].data && overlaps(at, b)
+                } else {
+                    collides(at, b)
+                }
+            };
+            let Some(bottom) = others().filter(|o| hits(own, *o)).map(|(_, b)| b.max().y).max() else {
                 continue;
             };
             let drop = Nm(bottom.0 + SLOT_TEXT_GAP.0 - own.min().y.0);
@@ -1033,7 +1047,13 @@ impl Builder<'_> {
                 Pt2::new(own.min().x, own.min().y + drop),
                 Pt2::new(own.max().x, own.max().y + drop),
             );
-            if others().all(|b| !overlaps(moved, b)) {
+            if others().all(|(same, b)| {
+                if same {
+                    !overlaps(moved, b)
+                } else {
+                    !collides(moved, b)
+                }
+            }) {
                 texts[i].at = texts[i].at + Pt2::new(Nm::ZERO, drop);
                 boxes[i] = Some(moved);
             }
@@ -1320,6 +1340,9 @@ struct SlotText<'v> {
     entity: EntityRef,
     /// A cross-reference slot at the symbol's own position (no position override).
     xref: bool,
+    /// A technical-data slot at the symbol's own position (no position override): it drops like a cross-reference
+    /// when it collides with another representation's text (cycle 37: a valve's "24 V" ran into the next tag).
+    data: bool,
 }
 
 impl SlotText<'_> {
@@ -1341,6 +1364,17 @@ impl SlotText<'_> {
 /// Whether two rectangles share interior points (touching edges do not count).
 fn overlaps(a: Rect, b: Rect) -> bool {
     a.min().x < b.max().x && b.min().x < a.max().x && a.min().y < b.max().y && b.min().y < a.max().y
+}
+
+/// Whether two slot-text boxes of two representations collide (FT-687, cycle 37): they share interior points, or they sit side by side
+/// (their heights overlap) less than [`SLOT_TEXT_GAP`] apart, so the two texts would read as one ("(101-D6)-101K1").
+/// Texts stacked one above the other at any distance do not collide unless they overlap.
+fn collides(a: Rect, b: Rect) -> bool {
+    let gap = SLOT_TEXT_GAP.0;
+    a.min().x.0 < b.max().x.0 + gap
+        && b.min().x.0 < a.max().x.0 + gap
+        && a.min().y < b.max().y
+        && b.min().y < a.max().y
 }
 
 pub(crate) struct TextSpec<'a> {
