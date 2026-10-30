@@ -422,7 +422,7 @@ fn from_part_makes_the_device_with_one_function_per_template_entry() {
 }
 
 #[test]
-fn from_part_places_an_auxiliary_entry_and_leaves_the_device_unnumbered() {
+fn from_part_places_an_auxiliary_entry_and_numbers_the_device_through_it() {
     let mut e = arrange_engine();
     // Entry 1 (the contact) is drawn with a symbol of its own FnDef.
     let cmd = place_with(SYM_CONTACT, PAGE_101, gp(3, 3), from_part(PART_TWO, 1, "K"));
@@ -437,11 +437,24 @@ fn from_part_places_an_auxiliary_entry_and_leaves_the_device_unnumbered() {
     );
     assert_eq!(row(&e, fns[0]).role, FnRole::Main);
     assert_eq!(row(&e, fns[1]).role, FnRole::Aux);
+    // The main function is not placed yet: the device is placed through the contact (the auxiliary fallback of
+    // `numbering::main_rep`), so online numbering gives it a counter on the contact's page.
+    assert_eq!(row(&e, devs[0]).tag.counter, Some(1));
     assert_eq!(
-        row(&e, devs[0]).tag.counter,
-        None,
-        "the main function is not placed yet: the device stays unnumbered"
+        ew_commands::numbering::main_page_in(e.model(), devs[0]),
+        Some(PAGE_101)
     );
+    // A second contact from the part on the same page gets the next counter, not a duplicate.
+    let r2 = e
+        .execute(&place_with(
+            SYM_CONTACT,
+            PAGE_101,
+            gp(6, 3),
+            from_part(PART_TWO, 1, "K"),
+        ))
+        .expect("second device.place");
+    let devs2: Vec<Id<Device>> = created(&r2, Kind::Device);
+    assert_eq!(row(&e, devs2[0]).tag.counter, Some(2));
 }
 
 #[test]

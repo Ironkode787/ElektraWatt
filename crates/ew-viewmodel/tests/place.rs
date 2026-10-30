@@ -1117,3 +1117,71 @@ fn ft502_moving_an_existing_device_changes_its_tag_in_the_preview() {
     done(&mut s, "ui.dismiss", json!({}));
     s.shutdown();
 }
+
+/// Cycle 37 (window check FX37b item 1): a contact placed from a starter part's auxiliary template entry (EW-GEN-CON-1,
+/// entry 4, letter K) before its coil gets a numbered tag like any placed device, never "-?K?": the device is placed
+/// through the contact (`numbering::main_rep`'s auxiliary fallback). Both paths that arm it: `place.pick` with the part,
+/// and the picker's part row chosen with `picker.choose`.
+#[test]
+fn a_contact_placed_from_a_part_before_its_coil_gets_a_numbered_tag() {
+    use ew_viewmodel::tools::PickerRow;
+    let placed = |s: &ShellModel| -> String {
+        let toast = state(s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
+        assert!(toast.starts_with("Placed -101K"), "{toast}");
+        assert!(!toast.contains('?'), "{toast}");
+        toast
+    };
+    // `place.pick` with the part.
+    let tmp = Tmp::new("part-aux-pick");
+    let mut s = shell(&tmp, "101");
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "EW-GEN-CON-1", "template": 4, "letter": "K"}),
+    );
+    let here = sheet(&s, free_point(&s));
+    click(&mut s, here, json!({}));
+    let first = placed(&s);
+    done(&mut s, "page.describe", json!({"folio": "101"}));
+    let text = s.take_page_text().expect("page.describe leaves its text");
+    assert!(
+        !text.lines().any(|l| l.starts_with("  rep ") && l.contains('?')),
+        "{text}"
+    );
+    // A second one on the same page gets another counter.
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "EW-GEN-CON-1", "template": 4, "letter": "K"}),
+    );
+    let next = sheet(&s, grid_point(&s, (66, 30)));
+    click(&mut s, next, json!({}));
+    assert_ne!(placed(&s), first);
+    s.shutdown();
+
+    // The picker's part row.
+    let tmp = Tmp::new("part-aux-row");
+    let mut s = shell(&tmp, "101");
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "picker.filter", json!({"text": "EW-GEN-CON-1"}));
+    let row = {
+        let p = s.picker().expect("the picker");
+        p.rows
+            .iter()
+            .position(|r| match r {
+                PickerRow::PartFn(i, k) => {
+                    let part = &p.catalogue.parts[*i];
+                    part.part_number == "EW-GEN-CON-1" && part.functions[*k].index == 4
+                }
+                _ => false,
+            })
+            .expect("the part's entry 4 row")
+    };
+    done(&mut s, "picker.row", json!({ "to": row }));
+    done(&mut s, "picker.choose", json!({"letter": "K"}));
+    assert_eq!(s.tool().name(), "place");
+    let here = sheet(&s, free_point(&s));
+    click(&mut s, here, json!({}));
+    placed(&s);
+    s.shutdown();
+}

@@ -27,7 +27,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_model::AnyRow;
-use ew_schema::{Device, FnRole, Function, Kind, Representation};
+use ew_schema::{Device, Function, Kind, Representation};
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
@@ -39,13 +39,11 @@ use crate::tx::TxBuilder;
 pub struct OnlineNumbering;
 
 /// The devices touched by the transaction: changed device rows, devices of changed functions (old or new
-/// `device`) and devices whose main function a changed representation draws (old or new row).
+/// `device`) and devices whose functions a changed representation draws (old or new row; any function, since a
+/// device whose main function is not drawn is placed through its others, `numbering::main_rep`).
 fn touched(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
     let mut out = BTreeSet::new();
-    let device_of = |f: Id<Function>| -> Option<Id<Device>> {
-        let f = tx.get::<Function>(f)?;
-        (f.role == FnRole::Main).then_some(f.device).flatten()
-    };
+    let device_of = |f: Id<Function>| -> Option<Id<Device>> { tx.get::<Function>(f)?.device };
     for key in tx.changed_keys() {
         match key.0 {
             Kind::Device => {

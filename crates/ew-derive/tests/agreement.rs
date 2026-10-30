@@ -174,6 +174,39 @@ fn contact_images_are_not_main_representations() {
     assert_agree(&fx, &[0x1000, 0x2000]);
 }
 
+/// A device whose main function is not drawn is placed through its other functions, in both layers: the
+/// smallest-ID representation that is not a contact image (a contact placed from a part before its coil). Its tag
+/// gets that page instead of "?".
+#[test]
+fn a_device_without_a_drawn_main_function_is_placed_through_its_auxiliaries() {
+    let mut fx = base();
+    fx.device(0x1000, "K", Some(1))
+        .function(0x1001, Some(0x1000), 0x500, true)
+        .function(0x1002, Some(0x1000), 0x500, false)
+        .function(0x1003, Some(0x1000), 0x500, false)
+        .rep(0x1013, PAGES[2], 0x510, &[0x1003], 0, 0)
+        .rep(0x1012, PAGES[1], 0x510, &[0x1002], 0, 0)
+        .rep(0x1010, PAGES[0], 0x510, &[0x1002], 0, 0)
+        .with("rep_type", json!("contact_image"));
+    // Only a contact image of an auxiliary: unplaced in both layers.
+    fx.device(0x2000, "K", Some(2))
+        .function(0x2001, Some(0x2000), 0x500, true)
+        .function(0x2002, Some(0x2000), 0x500, false)
+        .rep(0x2010, PAGES[0], 0x510, &[0x2002], 0, 0)
+        .with("rep_type", json!("contact_image"));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(*q.get::<MainRep>(id(0x1000)), Some(id(0x1012)));
+    assert_eq!(
+        ew_commands::numbering::main_page_in(&m, id(0x1000)),
+        Some(id(PAGES[1]))
+    );
+    assert_eq!(product_of(&fx, 0x1000), "102K1");
+    assert_eq!(*q.get::<MainRep>(id(0x2000)), None);
+    assert_eq!(ew_commands::numbering::main_page_in(&m, id(0x2000)), None);
+    assert_agree(&fx, &[0x1000, 0x2000]);
+}
+
 fn notes_of(fx: &Fx, devices: &[u128]) -> Vec<DeriveNote> {
     let m = fx.build();
     let mut q = Q::new(&m);

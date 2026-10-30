@@ -9,7 +9,8 @@
 //! representation, letter). The main representation is the representation with the smallest ID that
 //! draws the device's main function and is not a contact image (doc 03 §5.1: a contact image never counts
 //! as the main representation; the main function: role `Main`, smallest ID if the data holds more).
-//! A strip without a segment takes the main representation of its first placed terminal ([`main_rep`]).
+//! A strip without a segment takes the main representation of its first placed terminal, and a device whose main
+//! function is not drawn takes the smallest-ID representation of its other functions ([`main_rep`]).
 //! `ew_derive::MainRep` applies the same rules; its `tests/agreement.rs` holds the two together.
 //!
 //! **Which devices take part.** A device takes part in page-based numbering when it has no terminal
@@ -61,6 +62,19 @@ fn own_main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Representa
         .find(|r| r.rep_type != RepType::ContactImage)
 }
 
+/// The auxiliary fallback of [`main_rep`]: when the main function is not drawn (a contact placed from a part's
+/// function template before its coil), the smallest-ID representation of any function of the device that is not a
+/// contact image, so the device is placed through it and gets a page for `{page}` and for numbering. A strip
+/// without a segment tries its terminals first. `ew_derive::MainRep` applies the same rule.
+fn aux_main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Representation>> {
+    tx.functions_of_device(device)
+        .into_iter()
+        .flat_map(|f| tx.reps_of_function(f))
+        .filter_map(|rid| tx.get::<Representation>(rid))
+        .filter(|r| r.rep_type != RepType::ContactImage)
+        .min_by_key(|r| r.id)
+}
+
 /// The order key of a placed terminal for the strip fallback of [`main_rep`]: page (folio number, folio
 /// label in natural order, page ID), then designation (natural order), then ID.
 type TerminalKey = (u32, Option<NaturalKey>, Id<Page>, NaturalKey, Id<Device>);
@@ -78,12 +92,21 @@ fn terminal_key(page: &Page, designation: &Ident, terminal: Id<Device>) -> Termi
 /// The main representation of a device: the smallest-ID representation of its main function that is not
 /// a contact image. A strip without a segment (a strip aspect and no such representation) takes the main
 /// representation of its first placed terminal: lowest page, then lowest designation, then smallest ID
-/// (Golden A's 1X1, owner ruling for Golden B step B1). `ew_derive::MainRep` applies the same rule.
+/// (Golden A's 1X1, owner ruling for Golden B step B1). A device whose main function is not drawn otherwise takes
+/// the smallest-ID representation of its other functions that is not a contact image (the auxiliary fallback, a
+/// contact placed from a part before its coil). `ew_derive::MainRep` applies the same rule.
 pub fn main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Representation>> {
     if let Some(rep) = own_main_rep(tx, device) {
         return Some(rep);
     }
-    tx.get::<Device>(device)?.aspects.strip.as_ref()?;
+    if tx.get::<Device>(device)?.aspects.strip.is_none() {
+        return aux_main_rep(tx, device);
+    }
+    strip_main_rep(tx, device).or_else(|| aux_main_rep(tx, device))
+}
+
+/// The strip fallback of [`main_rep`]: the own main representation of the strip's first placed terminal.
+fn strip_main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Representation>> {
     tx.terminals_of_strip(device)
         .into_iter()
         .filter_map(|t| {
@@ -213,19 +236,40 @@ pub fn main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
         return Some(page);
     }
     let devices = model.table::<Device>();
-    devices.get(&device)?.aspects.strip.as_ref()?;
-    let pages = model.table::<Page>();
+    devices
+        .get(&device)?
+        .aspects
+        .strip
+        .as_ref()
+        .and_then(|_| {
+            let pages = model.table::<Page>();
+            model
+                .indexes()
+                .terminals_by_strip()
+                .get(&device)
+                .filter_map(|t| {
+                    let designation = &devices.get(t)?.aspects.terminal.as_ref()?.designation;
+                    let page = pages.get(&own_main_page_in(model, *t)?)?;
+                    Some(terminal_key(page, designation, *t))
+                })
+                .min()
+                .map(|key| key.2)
+        })
+        .or_else(|| aux_main_page_in(model, device))
+}
+
+/// The auxiliary fallback of [`main_page_in`] (see [`main_rep`]).
+fn aux_main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
+    let reps = model.table::<Representation>();
     model
         .indexes()
-        .terminals_by_strip()
+        .functions_by_device()
         .get(&device)
-        .filter_map(|t| {
-            let designation = &devices.get(t)?.aspects.terminal.as_ref()?.designation;
-            let page = pages.get(&own_main_page_in(model, *t)?)?;
-            Some(terminal_key(page, designation, *t))
-        })
-        .min()
-        .map(|key| key.2)
+        .flat_map(|f| model.indexes().reps_by_function().get(f))
+        .filter_map(|rid| reps.get(rid))
+        .filter(|r| r.rep_type != RepType::ContactImage)
+        .min_by_key(|r| r.id)
+        .map(|r| r.page)
 }
 
 fn own_main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
@@ -280,9 +324,8 @@ pub fn devices_in_scope(
             let Some(f) = tx.get::<Function>(*fid) else {
                 continue;
             };
-            if f.role != FnRole::Main {
-                continue;
-            }
+            // Any function, not only the main one: a device whose main function is not drawn is placed through
+            // its other functions ([`main_rep`]); the `main_page` filter below keeps the scope exact.
             if let Some(d) = f.device {
                 devices.insert(d);
                 // A strip without a segment is placed through its terminals ([`main_rep`]).

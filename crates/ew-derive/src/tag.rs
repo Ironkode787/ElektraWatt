@@ -62,7 +62,11 @@ impl Query for MainFunction {
 /// terminal whose own main representation is on the lowest page (folio number, then folio label in natural
 /// order, then page ID), then with the lowest designation (natural order), then the smallest ID. So the
 /// strip has a page for `{page}` and for numbering (owner ruling, Golden B step B1).
-/// `ew_commands::numbering::main_rep` applies the same rule (`tests/agreement.rs`).
+///
+/// **A device whose main function is not drawn** (a contact placed from a part's function template before its
+/// coil), and a strip without a placed terminal, take the smallest-ID representation of the device's functions that
+/// is not a contact image: the device is placed through it and gets a page for `{page}` and for numbering.
+/// `ew_commands::numbering::main_rep` applies the same rules (`tests/agreement.rs`).
 #[derive(Debug)]
 pub struct MainRep;
 
@@ -89,7 +93,7 @@ impl Query for MainRep {
             return Arc::new(None);
         };
         if dev.aspects.strip.is_none() {
-            return Arc::new(None);
+            return Arc::new(aux_main_rep(q, *key));
         }
         let devices = q.devices();
         let (reps, pages) = (q.reps(), q.pages());
@@ -112,8 +116,18 @@ impl Query for MainRep {
             })
             .min_by(|a, b| a.0.cmp(&b.0))
             .map(|(_, rep)| rep);
-        Arc::new(first)
+        Arc::new(first.or_else(|| aux_main_rep(q, *key)))
     }
+}
+
+/// The auxiliary fallback of [`MainRep`]: the smallest-ID representation of any function of the device that is not
+/// a contact image.
+fn aux_main_rep(q: &Q, device: Id<Device>) -> Option<Id<Representation>> {
+    let (reps, idx) = (q.reps(), q.idx());
+    idx.functions_of_device(device)
+        .flat_map(|f| idx.reps_of_function(f))
+        .filter(|r| reps.get(*r).is_some_and(|r| r.rep_type != RepType::ContactImage))
+        .min()
 }
 
 /// How the product designation of a tag was obtained.
