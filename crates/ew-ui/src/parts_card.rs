@@ -19,6 +19,11 @@ use crate::components::{InlineCard, inline_card};
 
 /// Paints the import card when it is open.
 pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
+    // FT-719: while the Preview tab shows the card (it opens with every new card), the tab is the card; no strip
+    // stands in for it over the tab title, and the toast has already said the read's outcome.
+    if shell.preview_shown() {
+        return;
+    }
     let Some(card) = shell.properties().card() else {
         return;
     };

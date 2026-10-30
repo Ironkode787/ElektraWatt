@@ -248,17 +248,8 @@ fn pl8_exact_counts_of_place_move_and_the_picker_in_the_window() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A double click with the Place tool places once: its second press is `tool.finish`, never a second press (fix
-/// round, item 8). The four button events arrive in one frame, so no clock and no sleep decide the double click.
-#[test]
-fn a_double_click_with_the_place_tool_places_once() {
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, "101");
-    dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
-    settle(&mut h);
-    let before = reps(&h);
-    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    let pos = screen(&h, (w * 3 / 4, hh * 3 / 4));
+/// Four button events at one point, all in one frame: a double click by the window's clock (no sleep decides it).
+fn double_click(h: &mut Harness<'_, App>, pos: Pos2) {
     h.event(egui::Event::PointerMoved(pos));
     for pressed in [true, false, true, false] {
         h.event(egui::Event::PointerButton {
@@ -268,9 +259,53 @@ fn a_double_click_with_the_place_tool_places_once() {
             modifiers: Modifiers::NONE,
         });
     }
+    settle(h);
+}
+
+/// The cycle-38 double-click rule: the Place tool defines no finish on a double click, so two quick clicks are two
+/// plain presses and place twice (the window used to turn the second into `tool.finish` and place once).
+#[test]
+fn two_quick_clicks_with_the_place_tool_place_twice() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     settle(&mut h);
-    assert_eq!(reps(&h), before + 1, "one placement per double click");
+    let before = reps(&h);
+    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
+    let pos = screen(&h, (w * 3 / 4, hh * 3 / 4));
+    double_click(&mut h, pos);
+    let sent = h.state().dispatched();
+    assert!(!sent.contains(&"tool.finish"), "{sent:?}");
+    assert_eq!(
+        sent.iter().filter(|a| **a == "canvas.press").count(),
+        2,
+        "two plain presses: {sent:?}"
+    );
+    assert_eq!(reps(&h), before + 2, "one placement per click");
     assert_eq!(h.state().shell().tool().name(), "place");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// The Wire tool finishes on a double click (FT-708, doc 16's keymap): the second press is `tool.finish`, its release
+/// is dropped, and the tool sees one press.
+#[test]
+fn a_double_click_with_the_wire_tool_is_its_finish() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    dispatch(&mut h, "tool.wire", json!({}));
+    settle(&mut h);
+    assert!(h.state().shell().tool().finishes_on_double_click());
+    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
+    let pos = screen(&h, (w * 3 / 4, hh * 3 / 4));
+    double_click(&mut h, pos);
+    let sent = h.state().dispatched();
+    assert!(sent.contains(&"tool.finish"), "{sent:?}");
+    assert_eq!(
+        sent.iter().filter(|a| **a == "canvas.press").count(),
+        1,
+        "the second press is the finish: {sent:?}"
+    );
+    assert_eq!(h.state().shell().tool().name(), "wire");
     h.state_mut().shell_mut().shutdown();
 }
 

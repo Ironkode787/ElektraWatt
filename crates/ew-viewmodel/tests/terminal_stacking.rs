@@ -57,13 +57,16 @@ fn terminals_of_one_strip_on_one_point_stack_two_grid_steps_apart() {
     // Two grid steps along per terminal already there, by grid index (QET's 10 px is a fractional step in nm).
     for (i, d) in ["50", "51", "52"].into_iter().enumerate() {
         let toast = place(&mut s, "-X1031", d, k);
-        assert!(toast.starts_with(&format!("Placed -X1031:{d}")), "{toast}");
+        assert!(
+            toast.starts_with(&format!("Placed -X1031 terminal {d}")),
+            "{toast}"
+        );
         let at = pos_of(&s, &format!("-X1031:{d}"));
         assert_eq!(at, page_point(&s, (k.0 + 2 * i as i64, k.1)), "-X1031:{d}");
     }
     // A terminal of another strip of folio 103 on the same point is not moved.
     let toast = place(&mut s, "-X1032", "60", k);
-    assert!(toast.starts_with("Placed -X1032:60"), "{toast}");
+    assert!(toast.starts_with("Placed -X1032 terminal 60"), "{toast}");
     assert_eq!(pos_of(&s, "-X1032:60"), p, "-X1032 is not moved");
     // A device placed on the stacked point is not moved either: only a terminal stacks.
     done(

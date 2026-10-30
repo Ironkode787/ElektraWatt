@@ -741,3 +741,49 @@ fn t11_tool_events_on_a_cached_page_make_no_session_call() {
     assert_eq!(shell.memo_totals().unwrap().1, memo.1, "no memo re-execution");
     shell.shutdown();
 }
+
+/// FT-715: the canvas context menu over an object lists the command bar's selection commands (the Arrange group, a
+/// split button followed by its other variant) and Delete, in the bar's order and the registry's words; over nothing
+/// it offers Paste only when Paste is enabled. On a read-only project every entry is disabled and says why.
+#[test]
+fn the_canvas_context_menu_offers_the_bar_selection_commands_and_delete() {
+    use ew_viewmodel::command_bar::canvas_menu;
+    use ew_viewmodel::shell::Mode;
+    let tmp = Tmp::new("ctx-menu");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "103");
+    let labels = |s: &ShellModel, over: bool| -> Vec<(String, bool)> {
+        canvas_menu(s, over)
+            .into_iter()
+            .map(|i| (i.label, i.enabled))
+            .collect()
+    };
+    let words: Vec<String> = labels(&shell, true).into_iter().map(|(l, _)| l).collect();
+    assert_eq!(
+        words,
+        [
+            "Rotate clockwise",
+            "Mirror left to right",
+            "Mirror top to bottom",
+            "Renumber devices…",
+            "Delete"
+        ]
+    );
+    assert!(labels(&shell, true).iter().all(|(_, enabled)| *enabled));
+    // Nothing under the pointer: Paste, as it is enabled on a writable page.
+    let paste: Vec<String> = labels(&shell, false).into_iter().map(|(l, _)| l).collect();
+    assert_eq!(paste, ["Paste"]);
+    shell.shutdown();
+    let tmp = Tmp::new("ctx-menu-ro");
+    let mut shell = tmp.shell_in(Mode::Headless, false, "103");
+    for item in canvas_menu(&shell, true) {
+        assert!(!item.enabled, "{}", item.label);
+        assert!(
+            item.reason.as_deref().is_some_and(|r| !r.is_empty()),
+            "{}",
+            item.label
+        );
+    }
+    // Paste is disabled there, so nothing is offered over nothing: no menu opens.
+    assert!(canvas_menu(&shell, false).is_empty());
+    shell.shutdown();
+}

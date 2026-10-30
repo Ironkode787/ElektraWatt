@@ -771,7 +771,7 @@ impl ShellModel {
                 self.pages_table = None;
             } else if self.pages_table.is_none() {
                 let mut n = Navigator::new(NavKind::Pages);
-                n.table_mode = Some(TableMode::default());
+                n.table_mode = Some(TableMode::pages());
                 self.pages_table = Some(n);
             }
             return Outcome::Done;

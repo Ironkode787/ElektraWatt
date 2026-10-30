@@ -675,11 +675,14 @@ fn paint_text(ui: &Ui, rect: Rect, text: &str, font: FontId, colour: Rgba) -> f3
 /// A cell's rect: the whole cell, or in egui_table's sizing pass (the first frame) `size.table_column` wide or as
 /// wide as `content` (the unwrapped content's width) plus `space.4` on either side when that is wider, so that a
 /// column starts at `size.table_column` and fits its widest cell on show (doc 16a §6.21; as built every column
-/// shrank to its 40-px minimum).
-fn cell_rect(ui: &Ui, t: &Tokens, key: &str, content: impl FnOnce() -> f32) -> Rect {
+/// shrank to its 40-px minimum). A column with a cap ([`cap_width`]) does not grow past it: its cells elide.
+fn cell_rect(ui: &Ui, t: &Tokens, kind: NavKind, key: &str, content: impl FnOnce() -> f32) -> Rect {
     let rect = ui.max_rect();
     if ui.is_sizing_pass() {
-        let width = (content() + 2.0 * t.space_4).max(start_width(t, key));
+        let mut width = (content() + 2.0 * t.space_4).max(start_width(t, kind, key));
+        if let Some(cap) = cap_width(t, kind, key) {
+            width = width.min(cap);
+        }
         Rect::from_min_size(rect.min, vec2(width, rect.height()))
     } else {
         rect
@@ -688,13 +691,19 @@ fn cell_rect(ui: &Ui, t: &Tokens, key: &str, content: impl FnOnce() -> f32) -> R
 
 /// The width a column starts at before its content widens it: `size.table_column`, except the strip editor's Pos
 /// column (WP-S2.07 D2), a short number like a row gutter, which starts at `size.table_column.min` so that it does not
-/// push the Terminal column out of a narrow pane.
-fn start_width(t: &Tokens, key: &str) -> f32 {
-    if key == "pos" {
+/// push the Terminal column out of a narrow pane, and the Pages table's Folio, as short (FT-718).
+fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
+    if key == "pos" || (kind == NavKind::Pages && key == "folio") {
         t.size_table_column_min
     } else {
         t.size_table_column
     }
+}
+
+/// The width a column's content may not widen it past: the Pages table's Title stays at `size.table_column` and
+/// elides, its whole text in the cell's tooltip, so that "Changed in" fits the default navigator width (FT-718).
+fn cap_width(t: &Tokens, kind: NavKind, key: &str) -> Option<f32> {
+    (kind == NavKind::Pages && key == "title").then_some(t.size_table_column)
 }
 
 /// The unwrapped width of `text` in `font`.
@@ -832,7 +841,7 @@ impl TableDelegate for Delegate<'_> {
         let derived = column.derived.then_some((IconId::math_function, t.text_tertiary));
         let icons: Vec<(IconId, Rgba)> = icon.into_iter().chain(derived).collect();
         let icon_room = icons.len() as f32 * (t.icon_sm + t.space_2);
-        let rect = cell_rect(ui, &t, &column.key, || {
+        let rect = cell_rect(ui, &t, self.kind, &column.key, || {
             text_width(ui, &column.label, small_strong(&t)) + icon_room
         });
         let response = ui.allocate_rect(rect, Sense::click());
@@ -948,7 +957,7 @@ impl TableDelegate for Delegate<'_> {
         }
         let is_cursor = self.cursor == Some((at, cell.col_nr));
         let on_cursor_row = self.cursor.is_some_and(|(r, _)| r == at);
-        let rect = cell_rect(ui, &t, &column.key, || {
+        let rect = cell_rect(ui, &t, self.kind, &column.key, || {
             text_width(ui, &text, theme::font(&t.type_small))
         });
         // WP-S2.07 §6.8: an unplaced terminal row is a drag source onto a canvas (its terminal device; the drop arms
@@ -983,6 +992,8 @@ impl TableDelegate for Delegate<'_> {
         };
         let content = rect.shrink2(vec2(t.space_4, 0.0));
         paint_text(ui, content, &text, theme::font(&t.type_small), colour);
+        // FT-718: a cell cut with an ellipsis shows its whole text in its tooltip (a read-only cell's reason first).
+        let elided = text_width(ui, &text, theme::font(&t.type_small)) > content.width() + 0.5;
         let painter = ui.painter();
         // The cursor row: a 2-px accent bar at the key cell's left, inset `space.2` top and bottom. It sits just inside
         // the grid's focus ring (inset `RING_INSET`, `focus_width` wide), in the same place whether or not the grid has
@@ -1009,6 +1020,7 @@ impl TableDelegate for Delegate<'_> {
         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Cell, true, is_cursor, &name));
         let response = match &reason {
             Some(r) => response.tip(r.as_str()),
+            None if elided => response.tip(text.as_str()),
             None => response,
         };
         let word = self.kind.word();

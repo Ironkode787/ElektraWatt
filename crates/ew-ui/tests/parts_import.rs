@@ -3,9 +3,9 @@
 
 //! File, Import, Parts table… in the window without rendering (FT-410): the entry is disabled without a project;
 //! with a new project it raises the file prompt (`Prompt::OpenPartsTable`), the answer opens the column mapping step
-//! (FT-649) and its Import the import card
-//! ("parts.csv: 29 created, 0 skipped, 0 errors"), Ctrl+Enter applies it from anywhere, and the project has the 29
-//! part copies; the accessible-name walker after every step.
+//! (FT-649) and its Import the import card in the Preview tab, the read's outcome in one toast and no strip over the
+//! tab title (FT-719), Ctrl+Enter applies it from anywhere, and the project has the 29 part copies; the accessible-name
+//! walker after every step.
 
 mod support;
 
@@ -22,6 +22,16 @@ use ew_ui::ew_viewmodel::ew_api::Session;
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness, harness_with, settle, wait_for_page};
+
+/// The newest notification's text: the toast it showed (the harness's clock may already have timed the toast out).
+fn toast(h: &Harness<'_, App>) -> Option<String> {
+    h.state()
+        .shell()
+        .notifications()
+        .entries()
+        .next()
+        .map(|n| n.text.clone())
+}
 
 fn golden_parts() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv")
@@ -76,19 +86,33 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     settle(&mut h);
     settle(&mut h);
     assert!(h.state().shell().parts_map().is_none());
-    // The card: a window with the counts and the two buttons.
-    assert!(
-        h.query_by_label_contains("parts.csv: 29 created").is_some(),
-        "the card's line"
+    // FT-719: the read's outcome once, in the toast; the Preview tab shows the card with its title and buttons, and
+    // neither a strip over the tab title nor the tab repeats the counts.
+    assert_eq!(
+        toast(&h).as_deref(),
+        Some("Read parts.csv: 29 new, 0 already in the project, 0 rejected.")
     );
+    assert_eq!(
+        h.state()
+            .shell()
+            .notifications()
+            .entries()
+            .filter(|n| n.text.contains("parts.csv"))
+            .count(),
+        1,
+        "one toast"
+    );
+    assert!(h.query_by_label_contains("parts.csv: 29 created").is_none());
+    assert!(h.query_by_label_contains("Preview open").is_none());
+    assert!(h.query_by_label_contains("part copies").is_none());
+    assert!(h.state().shell().banner().is_none());
     assert!(
         h.query_all_by_label_contains("Preview: Import parts")
             .next()
             .is_some(),
-        "the card's title (in the strip while the Preview tab shows it)"
+        "the card's title in the Preview tab"
     );
-    // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
-    assert!(h.get_all_by_label("Apply").next().is_some());
+    assert_eq!(h.get_all_by_label("Apply").count(), 1, "the tab's button");
     assert!(h.get_all_by_label("Cancel").next().is_some());
     assert!(h.state().shell().import_card_open());
     assert!(!h.state().shell().can_undo(), "the card waits for Apply");
@@ -100,10 +124,10 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
         h.state().shell().properties().card().is_none(),
         "the card is gone"
     );
-    assert!(h.query_by_label_contains("parts.csv: 29 created").is_none());
     assert!(h.state().shell().can_undo());
+    assert!(h.state().shell().banner().is_none(), "a toast, not a banner");
     assert_eq!(
-        h.state().shell().banner(),
+        toast(&h).as_deref(),
         Some("Imported 29 parts from parts.csv (0 skipped).")
     );
     // Saved, closed and read back: the 29 part copies.
@@ -224,8 +248,8 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     h.step();
     h.step();
     assert!(
-        h.query_by_label_contains("parts.csv: 2 created").is_some(),
-        "the card's text is painted: {:?} {:?} {:?}",
+        toast(&h).is_some_and(|t| t.starts_with("Read parts.csv: 2 new")),
+        "the toast: {:?} {:?} {:?}",
         h.state().shell().parts_map(),
         h.state().shell().banner(),
         h.state().shell().properties().card().map(|c| c.reason)
@@ -233,18 +257,14 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     // WP-S2.09 part 3: the Preview tab shows the card too; its chip and the tab each have the button.
     h.get_all_by_label("Apply").next().unwrap().click();
     h.step();
+    assert_eq!(h.state().shell().banner(), None);
+    h.step();
     assert_eq!(
-        h.state().shell().banner(),
+        toast(&h).as_deref(),
         Some("Imported 2 parts from parts.csv (0 skipped).")
     );
-    h.step();
     assert!(
-        h.query_by_label_contains("Imported 2 parts from parts.csv (0 skipped).")
-            .is_some(),
-        "the banner is painted"
-    );
-    assert!(
-        h.query_by_label_contains("parts.csv: 2 created").is_none(),
+        h.state().shell().properties().card().is_none(),
         "the card is gone"
     );
     h.state_mut().shell_mut().shutdown();
@@ -333,8 +353,12 @@ fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
     h.step();
     h.step();
     assert!(
-        h.query_by_label_contains("parts.csv: 2 created").is_some(),
-        "the card's text is painted"
+        h.state().shell().properties().card().is_some(),
+        "the card is open"
+    );
+    assert!(
+        toast(&h).is_some_and(|t| t.starts_with("Read parts.csv: 2 new")),
+        "the read's toast"
     );
     h.state_mut().shell_mut().shutdown();
 }

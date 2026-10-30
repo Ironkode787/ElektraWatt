@@ -107,9 +107,11 @@ fn the_golden_parts_table_imports_through_the_card_once() {
     // The card is the import's own: Apply and Cancel need neither the grid nor the find pane.
     done(&mut shell, "preview.apply", json!({}));
     assert!(shell.can_undo(), "one undo step");
+    // FT-719: the applied import is a toast, not a banner over the tab title.
+    assert_eq!(shell.banner(), None);
     assert_eq!(
-        shell.banner(),
-        Some("Imported 29 parts from parts.csv (0 skipped).")
+        common::state(&shell)["toast"]["text"],
+        "Imported 29 parts from parts.csv (0 skipped)."
     );
     assert!(shell.properties().card().is_none());
     // Saved, closed and read back: 29 project-local part copies.
@@ -447,6 +449,19 @@ fn a_supplier_list_imports_after_mapping_and_its_map_is_saved() {
             "  column \"Artikelnummer\" sample \"A9F74210\" member \"part_number\"",
         ],
         "{lines:?}"
+    );
+    // FT-719: the same table again holds no new parts: one toast says so, with no banner and no card.
+    done(&mut shell, "parts.map_import", json!({}));
+    assert_eq!(shell.banner(), None);
+    assert!(shell.properties().card().is_none());
+    assert_eq!(
+        common::state(&shell)["toast"]["text"],
+        "No new parts in Supplier List.csv: 2 already in the project, 0 rejected."
+    );
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
     );
     // Another source key without a saved map keeps the members; Escape closes the step.
     done(&mut shell, "parts.map", json!({"source": "other-list"}));

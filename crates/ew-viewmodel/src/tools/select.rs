@@ -848,6 +848,11 @@ impl Tool for SelectTool {
         true
     }
 
+    /// A double click on a free text opens it for editing (the host turns `tool.finish` into text edit, §10.5).
+    fn finishes_on_double_click(&self) -> bool {
+        true
+    }
+
     fn ghost(&self) -> Option<Ghost> {
         match &self.state {
             State::Dragging {

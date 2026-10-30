@@ -1215,6 +1215,11 @@ impl Tool for WireTool {
         false
     }
 
+    /// A double click ends the wire on its target and arms the next one there (FT-708; doc 16's keymap).
+    fn finishes_on_double_click(&self) -> bool {
+        true
+    }
+
     fn route_info(&self) -> Option<RouteInfo> {
         match &self.state {
             State::Routing { route, .. } => Some(RouteInfo {

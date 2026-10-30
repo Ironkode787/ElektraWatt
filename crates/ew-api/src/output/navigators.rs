@@ -872,6 +872,16 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
     let [.., before, last] = cat.as_slice() else {
         return None;
     };
+    // FT-723: a kind outside the contacts and coils reads in plain words from the display mapping, the CP designations
+    // following as the rule below adds them where the mapping keeps them.
+    if let Some((words, with_cps)) = kind_words(before, last) {
+        let mut out = words.to_owned();
+        if with_cps && !cps.is_empty() {
+            out.push(' ');
+            out.push_str(&cps.join("-"));
+        }
+        return Some(out);
+    }
     // Cycle 37 (window check W37): a last entry that only repeats the CP designations run together (a coil's
     // `A1A2`) is dropped, and the entry before it leads, capitalised: `Coil A1-A2`, not `A1A2 coil A1-A2`.
     let joined: String = cps.concat();
@@ -895,6 +905,38 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
         out.push_str(&cps.join("-"));
     }
     Some(out)
+}
+
+/// The display words of a FnDef category by its last two entries (FT-723), where the generic rule of [`kind_text`]
+/// reads poorly ("Generic decoration", "Point ip 1"), with whether the CP designations follow; `None` for every other
+/// category, which keeps the generic rule. Display text only: the FnDef keeps its category.
+fn kind_words(before: &str, last: &str) -> Option<(&'static str, bool)> {
+    Some(match (before, last) {
+        ("Decoration", "Generic") => ("Decoration", false),
+        ("Overview", "Generic") => ("Overview", false),
+        ("BlackBox", "Generic") => ("Black box", false),
+        ("Ip", "Point") => ("Interruption point", true),
+        ("Arrow", "Point") => ("External reference", true),
+        ("ProtectiveEarth", "Point") => ("Protective earth bar", true),
+        ("FunctionalEarth", "Point") => ("Functional earth bar", true),
+        ("BusConnector", "Profibus") => ("PROFIBUS connector", true),
+        ("BusPort", "Profibus") => ("PROFIBUS port", true),
+        ("PlugPin", "Single") => ("Plug pin", true),
+        ("Strip", "Segment") => ("Terminal strip segment", false),
+        ("FeedThrough", "1Level") => ("Feed-through terminal", true),
+        ("PE", "1Level") => ("PE terminal", true),
+        ("MCB", "1P") => ("1P MCB", true),
+        ("MCB", "1P+N") => ("1P+N MCB", true),
+        ("ManualSwitch", "1P") => ("1P manual switch", true),
+        ("ManualSwitch", "2P") => ("2P manual switch", true),
+        ("PositionSwitch", "NO") => ("NO position switch", true),
+        ("SelectorSwitch", "NO") => ("NO selector switch", true),
+        ("EnclosureHeater", "1P") => ("Enclosure heater", true),
+        ("DoubleActing", "Cylinder") => ("Double-acting cylinder", true),
+        ("ProcessValve", "TwoWay") => ("Two-way process valve", true),
+        ("Valve52", "SolenoidSpring") => ("5/2 valve", true),
+        _ => return None,
+    })
 }
 
 /// The Properties grid's "Part function" text of a function (FT-670): [`function_kind_text`] when the function
@@ -2914,6 +2956,38 @@ mod tests {
         let p = primary_drawables([k2, earlier].into_iter());
         assert_eq!(p[0].record, Uuid::from_u128(10));
         assert!(primary_drawables(std::iter::empty::<((), String, Vec<Drawable>)>()).is_empty());
+    }
+
+    /// FT-723: kinds outside the contacts and coils read in plain words through the display mapping; the contacts and
+    /// coils keep the generic rule.
+    #[test]
+    fn function_kinds_read_in_plain_words() {
+        let def = |key: &str| {
+            let item = ew_library::starter::item(key).expect(key);
+            match ew_derive::ew_schema::LibDocument::from_json(item.json).expect(key) {
+                ew_derive::ew_schema::LibDocument::Fndef(c) => c.item,
+                _ => panic!("{key} is no FnDef"),
+            }
+        };
+        let text = |key: &str, cps: &[&str]| {
+            let cps: Vec<String> = cps.iter().map(|s| (*s).to_owned()).collect();
+            kind_text(&def(key), &cps).expect(key)
+        };
+        assert_eq!(text("ew.fn.graphic", &[]), "Decoration");
+        assert_eq!(text("ew.fn.ip", &["1"]), "Interruption point 1");
+        assert_eq!(text("ew.fn.blackbox", &["13", "14", "24VDC"]), "Black box");
+        assert_eq!(
+            text("ew.fn.dp-connector", &["A1", "B1", "A2", "B2"]),
+            "PROFIBUS connector A1-B1-A2-B2"
+        );
+        assert_eq!(text("ew.fn.mcb-1p", &["1", "2"]), "1P MCB 1-2");
+        // The contacts and coils are unchanged.
+        assert_eq!(text("ew.fn.contact-no", &["13", "14"]), "NO contact 13-14");
+        assert_eq!(text("ew.fn.coil", &["A1", "A2"]), "Coil A1-A2");
+        assert_eq!(
+            text("ew.fn.contact-co", &["11", "12", "14"]),
+            "changeover contact 11-12-14"
+        );
     }
 
     #[test]

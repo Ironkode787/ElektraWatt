@@ -595,9 +595,13 @@ struct GroupView {
     /// Whether the primary button went down on this canvas and has not come up yet (its release is the tool's).
     pressed: bool,
     /// The input time (egui's, seconds) and position of the last primary press: a second one within
-    /// [`DOUBLE_CLICK_S`] and 4 points is a double click, `tool.finish` (WP-S2.04 §6.1; measured by the window's input
-    /// clock, never by the model; a test harness steps that clock, so a double click is decided without a sleep).
+    /// [`DOUBLE_CLICK_S`] and 4 points is a double click, `tool.finish` for a tool that finishes on one (WP-S2.04 §6.1;
+    /// measured by the window's input clock, never by the model; a test harness steps that clock, so a double click is
+    /// decided without a sleep).
     last_press: Option<(f64, Pos2)>,
+    /// Whether the open context menu was opened over an object (its selection commands) or over nothing (Paste);
+    /// FT-715.
+    menu_over: bool,
     /// The page (session, folio) of the previous frame: a page change suppresses the pointer replay, a view or model
     /// change on the same page sends it again from the pointer's screen position.
     page: Option<(u64, String)>,
@@ -622,6 +626,7 @@ impl GroupView {
             drawn: false,
             pressed: false,
             last_press: None,
+            menu_over: false,
             page: None,
             model: None,
             view: None,
@@ -946,7 +951,9 @@ impl CanvasHost {
             self.no_canvas(ui, rect, shell);
             return;
         };
-        self.map_input(ui, &response, rect, canvas, group, events);
+        let finishes = shell.tool().finishes_on_double_click();
+        self.map_input(ui, &response, rect, canvas, group, finishes, events);
+        self.context_menu(&response, shell, canvas, group, events);
         // FT-512's tooltip half (doc 16a §7.2, §6.18): the connection point under the pointer names its printed label,
         // its kind and its potential in a tooltip in the inverse style.
         if let Some(tip) = canvas.hovered_cp_tip() {
@@ -1314,6 +1321,43 @@ impl CanvasHost {
         );
     }
 
+    /// The canvas context menu (FT-715): a right-click with the Select tool opens, at the pointer, the selection's
+    /// commands over an object (selecting it first when it is not selected) or Paste over nothing
+    /// ([`ew_viewmodel::command_bar::canvas_menu`]); nothing opens when the menu would be empty. A disabled entry shows
+    /// its reason in its tooltip; a click on an entry dispatches its action and closes the menu.
+    fn context_menu(
+        &mut self,
+        response: &egui::Response,
+        shell: &ShellModel,
+        canvas: &CanvasModel,
+        group: usize,
+        events: &mut Vec<Event>,
+    ) {
+        let id = response.id.with("context-menu");
+        let mut open = None;
+        if response.secondary_clicked() && shell.tool().name() == "select" {
+            let over = canvas.hover().map(|(e, _)| e);
+            if !ew_viewmodel::command_bar::canvas_menu(shell, over.is_some()).is_empty() {
+                if let Some(e) = over.filter(|e| !shell.selection().items.contains(e)) {
+                    events.push(Event::Action("select.set", json!({"ids": [e.0.to_string()]})));
+                }
+                self.views[group].menu_over = over.is_some();
+                open = Some(egui::SetOpenCommand::Bool(true));
+            }
+        } else if response.clicked() || response.secondary_clicked() {
+            open = Some(egui::SetOpenCommand::Bool(false));
+        }
+        let over = self.views[group].menu_over;
+        egui::Popup::context_menu(response)
+            .id(id)
+            .open_memory(open)
+            .show(|ui| {
+                for item in ew_viewmodel::command_bar::canvas_menu(shell, over) {
+                    crate::menu::item(ui, &item, events);
+                }
+            });
+    }
+
     /// The sheet point (nm) under the screen position `pos` (points), with the model's exact view.
     fn sheet_point(rect: Rect, canvas: &CanvasModel, pos: Pos2) -> (i64, i64) {
         let view = view_of(canvas);
@@ -1330,6 +1374,7 @@ impl CanvasHost {
     /// Wheel, pinch, the middle drag, pointer movement with its modifiers, the primary button's press and release (the
     /// active tool's input; a click on a link is the Select tool's follow, WP-S2.03 §7.6) and the back and forward
     /// buttons as registry actions.
+    #[allow(clippy::too_many_arguments)]
     fn map_input(
         &mut self,
         ui: &Ui,
@@ -1337,6 +1382,7 @@ impl CanvasHost {
         rect: Rect,
         canvas: &CanvasModel,
         group: usize,
+        finishes: bool,
         events: &mut Vec<Event>,
     ) {
         let mm = |p: (i64, i64)| (p.0 as f64 / 1e6, p.1 as f64 / 1e6);
@@ -1447,12 +1493,15 @@ impl CanvasHost {
                     "ui.focus",
                     json!({"area": "canvas", "group": group}),
                 ));
-                // The second press of a double click is `tool.finish`, not a second press: a double click places
-                // once with the Place tool (fix round of WP-S2.04 part 1, item 8). Its release is dropped too.
+                // The second press of a double click is `tool.finish`, not a second press, for a tool that finishes
+                // on a double click (`Tool::finishes_on_double_click`: Wire, Select's text edit, the polyline and
+                // polygon graphics, Structure box); its release is dropped too. Every other tool sees two plain
+                // presses: two quick clicks of the Place tool place twice (cycle 38).
                 let now = ui.input(|i| i.time);
-                let double = self.views[group]
-                    .last_press
-                    .is_some_and(|(t, p)| now - t <= DOUBLE_CLICK_S && p.distance(pos) <= 4.0);
+                let double = finishes
+                    && self.views[group]
+                        .last_press
+                        .is_some_and(|(t, p)| now - t <= DOUBLE_CLICK_S && p.distance(pos) <= 4.0);
                 if double {
                     events.push(Event::Action("tool.finish", json!({})));
                     self.views[group].last_press = None;

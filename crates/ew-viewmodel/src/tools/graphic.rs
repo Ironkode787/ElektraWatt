@@ -505,6 +505,11 @@ impl Tool for GraphicTool {
         false
     }
 
+    /// A double click finishes a polyline or a polygon (the drawing hint says so).
+    fn finishes_on_double_click(&self) -> bool {
+        matches!(self.shape, GraphicShape::Polyline | GraphicShape::Polygon)
+    }
+
     fn ghost(&self) -> Option<Ghost> {
         Some(Ghost::Graphic {
             shape: self.shape.word(),

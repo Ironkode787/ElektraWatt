@@ -6,11 +6,11 @@
 //! | State | Event | Next | Output |
 //! |---|---|---|---|
 //! | armed | `PointerMove`, `CursorMove` | armed | `Transient`: a grid marker at the snapped point |
-//! | armed | `Press` or `Activate` | outline | the first corner is fixed; `Transient` |
-//! | outline | `PointerMove`, `CursorMove` | outline | `Transient`: the rectangle to the snapped point (grown to the right until the default CPs fit), a marker per CP |
+//! | armed | `Press` or `Activate` | outline | the first corner is fixed; `Transient`: a grid marker at it |
+//! | outline | `PointerMove`, `CursorMove` | outline | `Transient`: the rectangle to the snapped point (grown to the right until the default CPs fit), a marker per CP; a grid marker at the first corner while the rectangle has no area (FT-714) |
 //! | outline | `Dwell { ms ≥ 80 }` | outline | `Preview(box.black …)` |
 //! | outline | `Press` or `Activate` | armed | `Commit(box.black …)` (a rectangle without width or height commits nothing) |
-//! | outline | `Escape` | armed | `Cancel` |
+//! | outline | `Escape` | armed (the hint says a second Escape leaves the tool, FT-714) | `Cancel` |
 //! | armed | `Escape` | — | `None` (the host returns to Select) |
 //!
 //! **The command** is `box.black {page, symbol: the black-box symbol, pos: the top-left corner, box: {outline: the
@@ -138,6 +138,9 @@ pub struct BlackBoxTool {
     symbol: String,
     target: BoxTarget,
     state: State,
+    /// Whether an Escape just dropped the first corner: the hint then says that a second Escape leaves the tool
+    /// (FT-714); the next click clears it.
+    dropped: bool,
     /// The library documents the black box embeds (`box.black`'s `copies`, FT-656); the host sends only those the
     /// project still lacks.
     copies: Vec<Value>,
@@ -150,6 +153,7 @@ impl BlackBoxTool {
             symbol,
             target,
             state: State::Armed { at: None },
+            dropped: false,
             copies: Vec::new(),
         }
     }
@@ -229,9 +233,18 @@ impl BlackBoxTool {
                 at: cx.snapper.page_to_sheet(at),
                 kind: MarkerKind::Grid,
             }]),
-            State::Outline { at, .. } => {
+            State::Outline { first, at } => {
                 let mut items = Vec::new();
-                if let Some((pos, outline, cps)) = self.current(cx) {
+                let current = self.current(cx);
+                // While the rectangle has no area the first corner is marked, so the click visibly registered
+                // (FT-714: the tester saw nothing after the first click).
+                if current.is_none() {
+                    items.push(OverlayItem::Marker {
+                        at: cx.snapper.page_to_sheet(first),
+                        kind: MarkerKind::Grid,
+                    });
+                }
+                if let Some((pos, outline, cps)) = current {
                     let mut pts: Vec<(i64, i64)> = outline
                         .iter()
                         .map(|p| cx.snapper.page_to_sheet((pos.0 + p.0, pos.1 + p.1)))
@@ -270,6 +283,7 @@ impl BlackBoxTool {
     }
 
     fn click(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
+        self.dropped = false;
         match self.state {
             State::Armed { at: None } => ToolOutput::None,
             State::Armed { at: Some(at) } => {
@@ -318,6 +332,7 @@ impl Tool for BlackBoxTool {
             CanvasEvent::Escape => match self.state {
                 State::Outline { at, .. } => {
                     self.state = State::Armed { at: Some(at) };
+                    self.dropped = true;
                     ToolOutput::Cancel
                 }
                 State::Armed { .. } => ToolOutput::None,
@@ -328,6 +343,7 @@ impl Tool for BlackBoxTool {
 
     fn status_hint(&self) -> &'static str {
         match self.state {
+            State::Armed { .. } if self.dropped => "hint-box-dropped",
             State::Armed { .. } => "hint-box-armed",
             State::Outline { .. } => "hint-box-outline",
         }

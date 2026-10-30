@@ -467,6 +467,47 @@ pub fn command_bar(model: &ShellModel) -> CommandBarModel {
     command_bar_of(model, model.command_tab())
 }
 
+/// The Draw tab's groups whose commands act on the selection: the canvas context menu offers them (FT-715).
+pub const SELECTION_GROUPS: [Group; 1] = [Group::Arrange];
+
+/// The canvas context menu (FT-715): over an object, the commands the command bar offers for the selection (the
+/// buttons of [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then its
+/// other variants), then Delete; over nothing, Paste when it is enabled. Empty when there is nothing to offer: the
+/// window then opens no menu. A disabled entry carries its reason, as the bar's button does. No action of its own.
+pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
+    if !over_object {
+        return actions::find("edit.paste_clip")
+            .map(|meta| actions::item_of(meta, model))
+            .filter(|item| item.enabled)
+            .into_iter()
+            .collect();
+    }
+    let bar = command_bar_of(model, Tab::Draw);
+    let mut items = Vec::new();
+    for g in bar.groups.iter().filter(|g| SELECTION_GROUPS.contains(&g.group)) {
+        for b in &g.buttons {
+            let variants = match &b.kind {
+                ButtonKind::Menu(_) => continue,
+                ButtonKind::Plain => &[][..],
+                ButtonKind::Split(variants) => variants.as_slice(),
+            };
+            items.push(ActionItem {
+                id: b.id,
+                params: serde_json::Value::Null,
+                label: b.label.clone(),
+                shortcut: b.shortcut.clone(),
+                enabled: b.enabled,
+                reason: b.reason.clone(),
+                checked: b.checked,
+                topic: b.topic,
+            });
+            items.extend(variants.iter().filter(|v| v.id != b.id).cloned());
+        }
+    }
+    items.extend(actions::find("edit.delete_selection").map(|meta| actions::item_of(meta, model)));
+    items
+}
+
 /// The quick-access buttons of the tab row (doc 16a §5.2).
 pub const QUICK_ACCESS: [&str; 3] = ["file.save", "edit.undo", "edit.redo"];
 

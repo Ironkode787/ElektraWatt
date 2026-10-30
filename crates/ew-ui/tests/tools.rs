@@ -1212,3 +1212,76 @@ fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// A secondary press and release at `pos` (a right-click).
+fn right_click(h: &mut Harness<'_, App>, pos: Pos2) {
+    h.event(egui::Event::PointerMoved(pos));
+    h.run_ok();
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos,
+            button: PointerButton::Secondary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    h.run_ok();
+    settle(h);
+}
+
+/// FT-715: a right-click on an object selects it and opens the menu of the bar's selection commands and Delete at the
+/// pointer; an entry runs its action and closes the menu; a right-click on nothing offers Paste.
+#[test]
+fn a_right_click_opens_the_canvas_context_menu() {
+    use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    // The centre of an object's rectangle whose pick is that object.
+    let (entity, at) = {
+        let c = h.state().shell().canvas().unwrap();
+        let page = std::sync::Arc::clone(c.page());
+        page.entities
+            .iter()
+            .map(|(e, r)| (*e, rect_centre(*r)))
+            .find(|(e, p)| {
+                c.link_at(*p).is_none() && pick(&page.entities, Some(*p), 0.0).map(|(x, _)| x) == Some(*e)
+            })
+            .expect("an object")
+    };
+    let pos = screen(&h, at);
+    right_click(&mut h, pos);
+    assert_eq!(
+        h.state().shell().selection().items,
+        [entity],
+        "the object is selected"
+    );
+    for label in [
+        "Rotate clockwise",
+        "Mirror left to right",
+        "Mirror top to bottom",
+        "Renumber devices\u{2026}",
+        "Delete",
+    ] {
+        assert!(h.query_by_label_contains(label).is_some(), "{label} in the menu");
+    }
+    let rev = h.state().shell().revision();
+    h.get_by_label_contains("Rotate clockwise").click();
+    settle(&mut h);
+    assert_eq!(
+        h.state().shell().revision(),
+        rev.map(|r| r + 1),
+        "the selection turned"
+    );
+    assert!(
+        h.query_by_label_contains("Mirror top to bottom").is_none(),
+        "the menu closed"
+    );
+    // Over nothing: Paste only.
+    let bounds = canvas_bounds(&h)[0];
+    let pos = Pos2::new(bounds.0 as f32 + 12.0, bounds.1 as f32 + 12.0);
+    right_click(&mut h, pos);
+    assert!(h.state().shell().canvas().unwrap().hover().is_none());
+    assert!(h.query_by_label_contains("Paste").is_some(), "Paste over nothing");
+    assert!(h.query_by_label("Delete").is_none());
+    h.state_mut().shell_mut().shutdown();
+}

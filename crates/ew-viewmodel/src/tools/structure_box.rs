@@ -358,6 +358,11 @@ impl Tool for StructureBoxTool {
         false
     }
 
+    /// A double click closes the box (the drawing hint says so).
+    fn finishes_on_double_click(&self) -> bool {
+        true
+    }
+
     fn ghost(&self) -> Option<Ghost> {
         Some(Ghost::StructureBox {
             outline: self.fixed().len(),

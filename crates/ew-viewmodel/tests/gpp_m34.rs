@@ -303,7 +303,7 @@ fn ft546_every_place_commit_names_the_tag_and_the_cell() {
     done(&mut s, "cursor.set", common::at(p, json!({})));
     assert_eq!(s.canvas().unwrap().page().cell_text(p), None);
     done(&mut s, "canvas.activate_alt", json!({}));
-    assert_eq!(toast(&s), "Placed -X1031:40");
+    assert_eq!(toast(&s), "Placed -X1031 terminal 40");
 }
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -574,7 +574,7 @@ fn a_terminal_joins_strip_x1031_with_its_tag_predicted_and_the_designation_advan
     let g = ghost(&s);
     assert_eq!(g["target"], "terminal");
     assert!(
-        s.tool_overlay().labels().any(|l| l == "A terminal -X1031:30"),
+        s.tool_overlay().labels().any(|l| l == "A -X1031 terminal 30"),
         "{:?}",
         s.tool_overlay()
     );
@@ -877,7 +877,7 @@ fn a_terminal_placed_from_a_part_is_named_by_its_own_tag() {
     let here = sheet(&s, grid_point(&s, (82, 40)));
     click(&mut s, here, json!({}));
     let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
-    assert!(toast.starts_with("Placed -X1032:7 at "), "{toast}");
+    assert!(toast.starts_with("Placed -X1032 terminal 7 at "), "{toast}");
     done(&mut s, "page.describe", json!({"folio": "103"}));
     let text = s.take_page_text().expect("page.describe leaves its text");
     let reps: Vec<&str> = text.lines().filter(|l| l.starts_with("  rep ")).collect();

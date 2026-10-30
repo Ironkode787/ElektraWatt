@@ -2483,6 +2483,18 @@ fn wire_point(page: &CanvasPage, wire: &ew_api::output::TableConnection) -> Opti
     None
 }
 
+/// A terminal's tag (`-X1011:3`) as a sentence names it (FT-716): "-X1011 terminal 3", so that the strip and the
+/// number read apart. The designation `-X1011:3` stays in tables, Properties and printed labels; a tag without a colon
+/// is returned as it is.
+pub(crate) fn terminal_in_sentence(tag: &str) -> String {
+    match tag.rsplit_once(':') {
+        Some((strip, number)) if !strip.is_empty() && !number.is_empty() => {
+            crate::strings::format("terminal-in-sentence", &[strip, number])
+        }
+        _ => tag.to_owned(),
+    }
+}
+
 /// The variant letter of an orientation `0..=7`.
 fn variant_letter(orient: u8) -> char {
     char::from(b'A' + orient.min(7))
@@ -2916,6 +2928,15 @@ impl ShellModel {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// FT-716: a sentence names a terminal by strip and number in words; a tag without a number stays as it is.
+    #[test]
+    fn a_terminal_in_a_sentence_reads_strip_terminal_number() {
+        assert_eq!(terminal_in_sentence("-X1011:3"), "-X1011 terminal 3");
+        assert_eq!(terminal_in_sentence("=A1-X2:PE"), "=A1-X2 terminal PE");
+        assert_eq!(terminal_in_sentence("-X1011"), "-X1011");
+        assert_eq!(terminal_in_sentence("-X1011:"), "-X1011:");
+    }
 
     // WP-S2.09 part 3 (§8.7): a list prints at most 20 lines, then `more <word> <n>`.
     #[test]

@@ -553,6 +553,47 @@ fn ib5_the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_devic
     done(&mut s, "ui.dismiss", json!({}));
 }
 
+/// FT-714: the first corner's click shows at once (a marker at the corner while the box has no area, the hint names
+/// the opposite corner), the box follows the pointer from that corner, the first Escape drops the corner and says that
+/// a second one leaves the tool, and the second Escape leaves it for Select.
+#[test]
+fn ft714_the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
+    let tmp = Tmp::new("box-escape");
+    let mut s = shell(&tmp, "102");
+    done(
+        &mut s,
+        "tool.black_box",
+        json!({"part": "MICO 4.10", "template": 0}),
+    );
+    assert_eq!(s.tool().name(), "black_box");
+    assert_eq!(s.tool_hint(), "Click or Enter at the first corner; Escape ends");
+    cursor_k(&mut s, (30, 30));
+    assert_eq!(canvas(&s)["overlay"], 1, "the grid marker");
+    enter_k(&mut s, (30, 30));
+    assert_eq!(s.tool().state(), "outline");
+    // No area yet: the corner marker and the target's label, so the click visibly registered.
+    assert_eq!(canvas(&s)["overlay"], 2, "the first corner and the label");
+    assert_eq!(
+        s.tool_hint(),
+        "Click or Enter at the opposite corner; Escape starts again"
+    );
+    // The pointer is the opposite corner: the rectangle (one outline, ten CPs, the label) and no corner marker.
+    cursor_k(&mut s, (32, 36));
+    assert_eq!(canvas(&s)["overlay"], 12);
+    assert_eq!(canvas(&s)["ghost"]["outline"], 4);
+    // The first Escape drops the corner and keeps the tool.
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.tool().name(), "black_box");
+    assert_eq!(s.tool().state(), "armed");
+    assert_eq!(
+        s.tool_hint(),
+        "Click or Enter at the first corner; Escape again leaves the tool"
+    );
+    // The second leaves the tool.
+    done(&mut s, "ui.dismiss", json!({}));
+    assert_eq!(s.tool().name(), "select");
+}
+
 /// -102G1's table row.
 fn g1(t: &PageTables) -> TableRep {
     let f = t

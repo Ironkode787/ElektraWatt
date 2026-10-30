@@ -83,7 +83,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "place-target-join" => "join {0}",
         "place-target-function" => "function",
         "place-target-part" => "part {0}",
-        "place-target-terminal" => "terminal {0}:{1}",
+        "place-target-terminal" => "{0} terminal {1}",
         "place-target-box" => "box",
         "announce-place" => "Place {0}: {1}, variant {2}, at {3}",
         "announce-place-no-cell" => "Place {0}: {1}, variant {2}",
@@ -217,6 +217,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         }
         "hint-box-armed" => "Click or Enter at the first corner; Escape ends",
         "hint-box-outline" => "Click or Enter at the opposite corner; Escape starts again",
+        "hint-box-dropped" => "Click or Enter at the first corner; Escape again leaves the tool",
         "reason-no-ip-symbol" => "This page's library has no interruption-point symbol",
         "reason-ip-tool-only" => "Only while placing an interruption point",
         "reason-external-never-pairs" => "An external connection point never pairs, so it has no star source",
@@ -902,6 +903,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         }
         "toast-placed" => "Placed {0} at {1}",
         "toast-placed-no-cell" => "Placed {0}",
+        "terminal-in-sentence" => "{0} terminal {1}",
         "toast-undo" => "Undo",
         "toast-close" => "Close",
         // WP-S2.09 part 1: the jobs, the notifications and the recovery dialog.

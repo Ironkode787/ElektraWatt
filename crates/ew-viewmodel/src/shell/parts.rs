@@ -377,7 +377,17 @@ impl ShellModel {
             self.parts_map = None;
             let params = read.params();
             let PartsImport { source, copies, .. } = read;
-            return self.preview_import(params, source, copies.len());
+            let outcome = self.preview_import(params, source.clone(), copies.len());
+            // FT-719: the read's outcome is one toast, as on the mapped path; the card shows the list only.
+            let origin = self.props.card().map(|c| c.origin.clone());
+            if let Some(CardOrigin::Import { created, skipped, .. }) = origin {
+                let text = strings::format(
+                    "toast-parts-read",
+                    &[&source, &created.to_string(), &skipped.to_string(), "0"],
+                );
+                self.notify(text, false);
+            }
+            return outcome;
         }
         let limits = catalog::table_limits();
         let input = match catalog::read_input(&map.path, &limits) {
@@ -393,9 +403,10 @@ impl ShellModel {
         let c = import.counts();
         let held = (c.updated + c.unchanged + c.duplicate).to_string();
         let rejected = c.rejected.to_string();
+        // FT-719: every outcome of the read is one toast line, never a banner over the tab title.
         let Some(cmd) = cmd else {
             let message = strings::format("banner-parts-none", &[&map.file, &held, &rejected]);
-            self.banner = Some(message);
+            self.notify(message, false);
             return Outcome::Done;
         };
         self.notify(
@@ -511,10 +522,9 @@ impl ShellModel {
                 } else {
                     "banner-parts-imported"
                 };
-                self.banner = Some(strings::format(
-                    key,
-                    &[&created.to_string(), &skipped.to_string(), &source],
-                ));
+                // FT-719: the applied import is a toast with Undo, not a banner over the tab title.
+                let text = strings::format(key, &[&created.to_string(), &skipped.to_string(), &source]);
+                self.notify(text, true);
             }
             return outcome;
         }

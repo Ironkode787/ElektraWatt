@@ -21,7 +21,6 @@
 
 use egui::text::LayoutJob;
 use egui::{Align, Layout, RichText, Ui};
-use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::Value;
@@ -211,22 +210,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         }
         // FT-580: one summary line, shared with the text interface.
         let summary = shell.preview_summary().unwrap_or_default();
-        inset(ui, &mut |ui| {
-            components::live_line(ui, &summary, false);
-            if let CardOrigin::Import { created, skipped, .. } = &card.origin {
-                components::live_line(
-                    ui,
-                    &strings::format(
-                        "preview-summary-import",
-                        &[
-                            &strings::format_count("preview-part-copies", *created),
-                            &skipped.to_string(),
-                        ],
-                    ),
-                    false,
-                );
-            }
-        });
+        // FT-719: an import's counts are the toast's sentence; the tab shows the summary and the lists only.
+        inset(ui, &mut |ui| components::live_line(ui, &summary, false));
         ui.add_space(t.space_2);
         let [entities, tags, xrefs, pages] = rows(&t, shell);
         egui::ScrollArea::vertical()

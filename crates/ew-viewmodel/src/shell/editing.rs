@@ -134,6 +134,12 @@ impl ShellModel {
                 };
                 let cps: Vec<&ew_api::output::TableCp> = now.cps.iter().filter(|c| c.rep == rep.id).collect();
                 let tag = crate::describe::rep_tag(rep, &cps).unwrap_or_else(|| rep.symbol_key.clone());
+                // A sentence names a terminal "-X1011 terminal 3", never "-X1011:3" (FT-716).
+                let tag = if rep.terminal {
+                    crate::describe::terminal_in_sentence(&tag)
+                } else {
+                    tag
+                };
                 let cell = self.canvas().and_then(|c| {
                     let page = c.page();
                     page.cell_text(page.snapper.page_to_sheet(pos))

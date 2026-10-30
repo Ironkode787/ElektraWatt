@@ -646,3 +646,46 @@ fn pg2_a_channel_row_dragged_onto_a_connection_point_binds_it() {
     assert_eq!(bound.as_deref(), Some("Q0.0"));
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-718: the Pages navigator in table mode shows "Changed in" within the default navigator width: Folio, Title and
+/// Changed in on show (the other columns in the chooser), Folio as narrow as its content and Title cut at the starting
+/// column width.
+#[test]
+fn the_pages_table_shows_changed_in_at_the_default_width() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "navigator.table", json!({"kind": "pages"}));
+    for _ in 0..3 {
+        settle(&mut h);
+    }
+    let canvas = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let header = |label: &str| {
+        h.query_by_label(&format!("Sort by {label}"))
+            .unwrap_or_else(|| panic!("the {label} header"))
+            .rect()
+    };
+    let (folio, title, changed) = (header("Folio"), header("Title"), header("Changed in"));
+    assert!(
+        folio.right() <= title.left() + 1.0 && title.right() <= changed.left() + 1.0,
+        "the column order: {folio:?} {title:?} {changed:?}"
+    );
+    // The three columns fit the left panel's default width (`size.panel.left`), whatever the test window's size.
+    let panel = ew_ui::theme::current(&h.ctx).size_panel_left;
+    assert!(
+        changed.right() - folio.left() <= panel,
+        "the columns span {} of {panel}: {folio:?} {title:?} {changed:?} (canvas at {})",
+        changed.right() - folio.left(),
+        canvas.x0
+    );
+    assert!(
+        h.query_by_label("Sort by Generated").is_none(),
+        "Generated waits in the chooser"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

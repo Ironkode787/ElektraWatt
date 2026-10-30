@@ -413,6 +413,13 @@ pub trait Tool {
     /// Whether the hover, the link hover and the link preview are shown while the tool is active.
     fn wants_hover(&self) -> bool;
 
+    /// Whether the window sends a double click's second press as `tool.finish` (WP-S2.04 §6.1). Only a tool whose
+    /// keymap (doc 16) or status hint names the double click answers `true`; every other tool sees two plain presses,
+    /// so two quick clicks of the Place tool place twice.
+    fn finishes_on_double_click(&self) -> bool {
+        false
+    }
+
     /// What the tool floats or drags; `None` while it holds nothing (WP-S2.04 §7.7).
     fn ghost(&self) -> Option<Ghost> {
         None

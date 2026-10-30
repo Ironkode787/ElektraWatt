@@ -160,7 +160,19 @@ pub struct Chooser {
     pub items: Vec<(String, String)>,
 }
 
+/// The columns the Pages table shows when it opens, after the key column Folio (FT-718): the title and "Changed in",
+/// so that the change status fits the default navigator width. Type, Frame and Generated stay in the column chooser.
+pub const PAGES_COLUMNS: [&str; 2] = ["title", "changed_in"];
+
 impl TableMode {
+    /// The Pages table as it opens: [`PAGES_COLUMNS`] on show (FT-718).
+    pub(crate) fn pages() -> TableMode {
+        TableMode {
+            columns: Some(PAGES_COLUMNS.iter().map(|k| (*k).to_owned()).collect()),
+            ..TableMode::default()
+        }
+    }
+
     /// The cell being edited.
     pub fn edit(&self) -> Option<&CellEdit> {
         self.edit.as_ref()
