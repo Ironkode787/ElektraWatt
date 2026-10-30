@@ -1,0 +1,137 @@
+{
+  "$defs": {
+    "ApplyChanges": {
+      "additionalProperties": false,
+      "description": "The changes `ew apply --preview` reports.",
+      "properties": {
+        "records": {
+          "description": "The changed records.",
+          "items": {
+            "$ref": "#/$defs/RecordChange"
+          },
+          "type": "array"
+        },
+        "tags": {
+          "description": "The changed tags.",
+          "items": {
+            "$ref": "#/$defs/DerivedRowChange"
+          },
+          "type": "array"
+        },
+        "xrefs": {
+          "description": "The changed cross-references.",
+          "items": {
+            "$ref": "#/$defs/DerivedRowChange"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "records",
+        "tags",
+        "xrefs"
+      ],
+      "type": "object"
+    },
+    "DerivedRowChange": {
+      "additionalProperties": false,
+      "description": "One changed derived value (a tag or a cross-reference).",
+      "properties": {
+        "after": {
+          "description": "The value after.",
+          "type": "string"
+        },
+        "before": {
+          "description": "The value before.",
+          "type": "string"
+        },
+        "key": {
+          "description": "What changed.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "before",
+        "after"
+      ],
+      "type": "object"
+    },
+    "RecordChange": {
+      "additionalProperties": false,
+      "description": "One changed record.",
+      "properties": {
+        "change": {
+          "description": "`Created`, `Updated` or `Deleted`.",
+          "type": "string"
+        },
+        "fields": {
+          "description": "The changed fields of an update.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "description": "The record ID.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "The record kind.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "change",
+        "kind",
+        "id",
+        "fields"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew apply --json` ([`APPLY`]): the replay's counts, and with `--preview` the changes.",
+  "properties": {
+    "$schema": {
+      "const": "ew.apply-result/1",
+      "description": "The name of this schema."
+    },
+    "committed": {
+      "description": "The lines that committed.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "lines": {
+      "description": "The lines (transactions) of the log.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "preview": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApplyChanges"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The changes of `--preview`; `null` without it."
+    },
+    "saved": {
+      "description": "Whether the project was saved.",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "$schema",
+    "lines",
+    "committed",
+    "saved"
+  ],
+  "title": "ew.apply-result/1",
+  "type": "object"
+}

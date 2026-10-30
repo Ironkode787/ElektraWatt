@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew lib index --rebuild --json` ([`LIB_INDEX`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.lib-index-result/1",
+      "description": "The name of this schema."
+    },
+    "items": {
+      "description": "The other items indexed.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "parts": {
+      "description": "The parts indexed.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "$schema",
+    "parts",
+    "items"
+  ],
+  "title": "ew.lib-index-result/1",
+  "type": "object"
+}

@@ -1,0 +1,137 @@
+{
+  "$defs": {
+    "QetCounts": {
+      "additionalProperties": false,
+      "description": "The record counts of an [`ImportQetResult`].",
+      "properties": {
+        "connections": {
+          "description": "Connections.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "devices": {
+          "description": "Devices (strips and terminals included).",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "functions": {
+          "description": "Functions.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "junctions": {
+          "description": "Junctions.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pages": {
+          "description": "Pages.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "representations": {
+          "description": "Representations.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "strips": {
+          "description": "Terminal strips.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "terminals": {
+          "description": "Terminals.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pages",
+        "devices",
+        "strips",
+        "terminals",
+        "functions",
+        "representations",
+        "connections",
+        "junctions"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew import qet --json` ([`IMPORT_QET`]): what the import found; the migration report itself goes to\n`--report-out`.",
+  "properties": {
+    "$schema": {
+      "const": "ew.import-qet-result/1",
+      "description": "The name of this schema."
+    },
+    "counts": {
+      "$ref": "#/$defs/QetCounts",
+      "description": "The records imported."
+    },
+    "derived_pages": {
+      "description": "The pages in page order of the derived model; `null` when the model check failed.",
+      "format": "uint",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "findings": {
+      "description": "The findings of the migration report.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "lenient_findings": {
+      "description": "The findings of the lenient checks run on the import.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "lost_connections": {
+      "description": "The connections the import could not keep.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "model_check_error": {
+      "description": "Why the model check failed; `null` when it passed (exit 1 otherwise).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "report_out": {
+      "description": "The file the migration report was written to (`--report-out`); `null` without one.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source": {
+      "description": "The imported file's name (never its path).",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$schema",
+    "source",
+    "counts",
+    "findings",
+    "lost_connections",
+    "lenient_findings"
+  ],
+  "title": "ew.import-qet-result/1",
+  "type": "object"
+}

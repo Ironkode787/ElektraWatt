@@ -1,0 +1,153 @@
+{
+  "$defs": {
+    "ReportRow": {
+      "additionalProperties": false,
+      "description": "One finding of a mapped parts import.",
+      "properties": {
+        "code": {
+          "description": "The finding code (`EW-IMP-002`).",
+          "type": "string"
+        },
+        "line": {
+          "description": "The table line, where the finding has one.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "message": {
+          "description": "The message.",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/ReportSeverity",
+          "description": "The severity."
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "type": "object"
+    },
+    "ReportSeverity": {
+      "description": "The severity of a [`ReportRow`].",
+      "oneOf": [
+        {
+          "const": "info",
+          "description": "Info.",
+          "type": "string"
+        },
+        {
+          "const": "warning",
+          "description": "Warning.",
+          "type": "string"
+        },
+        {
+          "const": "error",
+          "description": "Error.",
+          "type": "string"
+        }
+      ]
+    },
+    "RowCounts": {
+      "additionalProperties": false,
+      "description": "The row counts of a mapped parts import.",
+      "properties": {
+        "duplicate": {
+          "description": "Duplicate rows.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "new": {
+          "description": "New parts.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rejected": {
+          "description": "Rejected rows.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unchanged": {
+          "description": "Unchanged parts.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "updated": {
+          "description": "Updated parts.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "new",
+        "updated",
+        "unchanged",
+        "duplicate",
+        "rejected"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew import parts --json` ([`IMPORT_PARTS`]): the part copies created and skipped; with `--map`, the row counts and\nthe report of the mapped import.",
+  "properties": {
+    "$schema": {
+      "const": "ew.import-parts-result/1",
+      "description": "The name of this schema."
+    },
+    "created": {
+      "description": "The project-local part copies created.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "report": {
+      "description": "The report of a mapped import, one entry per finding; empty for the golden dialect.",
+      "items": {
+        "$ref": "#/$defs/ReportRow"
+      },
+      "type": "array"
+    },
+    "rows": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RowCounts"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The row counts of a mapped import (`--map`); `null` for the golden dialect."
+    },
+    "skipped": {
+      "description": "The parts skipped (the project already has their key).",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "source": {
+      "description": "The table's name.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$schema",
+    "source",
+    "created",
+    "skipped",
+    "report"
+  ],
+  "title": "ew.import-parts-result/1",
+  "type": "object"
+}

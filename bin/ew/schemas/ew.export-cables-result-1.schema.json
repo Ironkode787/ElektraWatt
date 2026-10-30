@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew export cables|bom --json` ([`EXPORT_CABLES`], [`EXPORT_BOM`]): the CSV in the result, or the file it went to.",
+  "properties": {
+    "$schema": {
+      "const": "ew.export-cables-result/1",
+      "description": "The name of this schema."
+    },
+    "csv": {
+      "description": "The CSV text when there is no `--out`; `null` with one.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "out": {
+      "description": "The file the CSV was written to (`--out`); `null` without one.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rows": {
+      "description": "The rows (data and heading rows, the header line excluded).",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "$schema",
+    "rows"
+  ],
+  "title": "ew.export-cables-result/1",
+  "type": "object"
+}

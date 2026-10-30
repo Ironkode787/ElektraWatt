@@ -1,0 +1,186 @@
+{
+  "$defs": {
+    "LibWrite": {
+      "additionalProperties": false,
+      "description": "The library write of [`LibImportPartsResult`].",
+      "properties": {
+        "added": {
+          "description": "Items new to the library.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "generation": {
+          "description": "The library's generation after the write.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unchanged": {
+          "description": "Items unchanged.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "updated": {
+          "description": "Items written at a new version.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "added",
+        "updated",
+        "unchanged",
+        "generation"
+      ],
+      "type": "object"
+    },
+    "ReportRow": {
+      "additionalProperties": false,
+      "description": "One finding of a mapped parts import.",
+      "properties": {
+        "code": {
+          "description": "The finding code (`EW-IMP-002`).",
+          "type": "string"
+        },
+        "line": {
+          "description": "The table line, where the finding has one.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "message": {
+          "description": "The message.",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/ReportSeverity",
+          "description": "The severity."
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "type": "object"
+    },
+    "ReportSeverity": {
+      "description": "The severity of a [`ReportRow`].",
+      "oneOf": [
+        {
+          "const": "info",
+          "description": "Info.",
+          "type": "string"
+        },
+        {
+          "const": "warning",
+          "description": "Warning.",
+          "type": "string"
+        },
+        {
+          "const": "error",
+          "description": "Error.",
+          "type": "string"
+        }
+      ]
+    },
+    "RowCounts": {
+      "additionalProperties": false,
+      "description": "The row counts of a mapped parts import.",
+      "properties": {
+        "duplicate": {
+          "description": "Duplicate rows.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "new": {
+          "description": "New parts.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rejected": {
+          "description": "Rejected rows.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unchanged": {
+          "description": "Unchanged parts.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "updated": {
+          "description": "Updated parts.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "new",
+        "updated",
+        "unchanged",
+        "duplicate",
+        "rejected"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew lib import parts --json` ([`LIB_IMPORT_PARTS`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.lib-import-parts-result/1",
+      "description": "The name of this schema."
+    },
+    "library": {
+      "description": "The target library's key.",
+      "type": "string"
+    },
+    "report": {
+      "description": "The report, one entry per finding.",
+      "items": {
+        "$ref": "#/$defs/ReportRow"
+      },
+      "type": "array"
+    },
+    "rows": {
+      "$ref": "#/$defs/RowCounts",
+      "description": "The row counts."
+    },
+    "source": {
+      "description": "The table's name.",
+      "type": "string"
+    },
+    "written": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LibWrite"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "What the library write did; `null` when there was nothing to write."
+    }
+  },
+  "required": [
+    "$schema",
+    "library",
+    "source",
+    "rows",
+    "report"
+  ],
+  "title": "ew.lib-import-parts-result/1",
+  "type": "object"
+}

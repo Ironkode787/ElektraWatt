@@ -22,6 +22,9 @@ ew-rhai = { path = "../ew-rhai" }
 sha2.workspace = true
 # Quick-fix parameters (command JSON) and the reserved waiver records.
 serde_json = "1.0.154"
+# The typed JSON result `ew.check-result/1` and its published schema (WP-S1.22 D5); both already in the graph.
+serde.workspace = true
+schemars = "1.2.3"
 # Rule data shipped with the packs (`data/*.toml`, WP-S1.16 D5); already in the graph through `ew-derive`.
 toml.workspace = true
 # The rule messages in Fluent (WP-S1.16 D6, doc 15 §3.8; ADR-0024: MIT OR Apache-2.0): one `rules.ftl` per language,

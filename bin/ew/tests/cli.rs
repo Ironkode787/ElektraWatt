@@ -1856,7 +1856,9 @@ fn lib_create_list_search_and_rebuild() {
     let o = run(&["lib", "list", "--json"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let list: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
-    let rows: Vec<(String, String, bool)> = list
+    // CL-4 (WP-S1.22 D3 (d)): an object naming its schema, the libraries under `libraries`.
+    assert_eq!(list["$schema"], "ew.lib-list-result/1");
+    let rows: Vec<(String, String, bool)> = list["libraries"]
         .as_array()
         .unwrap()
         .iter()
@@ -2066,4 +2068,194 @@ fn lib_import_parts_and_import_parts_with_a_map() {
         "{}",
         stdout(&o)
     );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// AC-21 through the CLI (WP-S1.22 part 1, CL-6)
+
+/// The built packs of AC-21's subset, as the `ew-api` test `ac21_four_pack_subset_equals_findings_mvp_csv` names them.
+const AC21_PACKS: [&str; 6] = ["EW-CORE", "EW-IEC81346", "EW-TERM", "EW-POT", "EW-PLC", "EW-BUS"];
+
+/// The open findings of the built packs that doc 20 §18.1 does not list (FT-638: the process valves are supplied by
+/// others and exempt once `supply_scope` exists, FT-209), as the `ew-api` test holds them.
+const AC21_KNOWN_EXCESS: [(&str, &str); 8] = [
+    ("EW-CORE-041", "=P01+FIELD-203Q1"),
+    ("EW-CORE-041", "=P01+FIELD-203Q2"),
+    ("EW-CORE-041", "=P01+FIELD-203Q3"),
+    ("EW-CORE-041", "=P01+FIELD-203Q4"),
+    ("EW-CORE-041", "=P01+FIELD-203Q5"),
+    ("EW-CORE-041", "=P01+FIELD-203Q6"),
+    ("EW-CORE-041", "=P01+FIELD-203Q7"),
+    ("EW-CORE-041", "=P01+FIELD-203Q8"),
+];
+
+/// Splits one line of `findings_mvp.csv` into fields: commas outside double quotes separate; `""` is a quote.
+fn csv_fields(line: &str) -> Vec<String> {
+    let mut out = vec![String::new()];
+    let (mut quoted, mut chars) = (false, line.chars().peekable());
+    while let Some(c) = chars.next() {
+        match (c, quoted) {
+            ('"', true) if chars.peek() == Some(&'"') => {
+                chars.next();
+                out.last_mut().unwrap().push('"');
+            }
+            ('"', _) => quoted = !quoted,
+            (',', false) => out.push(String::new()),
+            (c, _) => out.last_mut().unwrap().push(c),
+        }
+    }
+    out
+}
+
+/// A copy of Golden A with W-1 (doc 20 §18.1 EF-19: the EW-CORE-041 finding on -XPE waived) recorded from the GUI
+/// origin and saved, as the `ew-api` fixture `golden_a_with_w1` makes it.
+fn golden_a_with_w1(t: &Tmp) -> PathBuf {
+    use ew_api::checks::{CheckMode, PRE_DELIVERY};
+    let copy = golden_copy(t);
+    let mut store = ew_api::StoreOptions::new("cl-6");
+    store.state_dir = Some(t.0.join("w1-state"));
+    let (mut s, _) = ew_api::Session::open(
+        &copy,
+        store,
+        ew_api::SessionOptions::default(),
+        ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    let fingerprint = s
+        .check(&PRE_DELIVERY, CheckMode::Release)
+        .findings
+        .iter()
+        .find(|f| f.rule == "EW-CORE-041" && f.subject == "=P01+J-E-2416-XPE")
+        .expect("EW-CORE-041 on -XPE")
+        .fingerprint
+        .to_string();
+    let waive = ew_api::AnyCommand {
+        name: "check.waive".into(),
+        params: serde_json::json!({
+            "rule": "EW-CORE-041", "fingerprint": fingerprint,
+            "reason": {"en-GB": "PE stud is part of NSYPMM107"}, "author": "engineer", "date": "2025-04-14"
+        }),
+    };
+    s.execute_with(&waive, ew_api::Submit::from(ew_api::Origin::Gui))
+        .expect("W-1 commits from the GUI");
+    s.save().expect("the copy saves");
+    s.close();
+    copy
+}
+
+/// CL-6 (AC-21 through the CLI): on Golden A's copy with W-1, `ew check --scheme pre-delivery --json` exits 1, and its
+/// findings of the built packs equal the rows of `findings_mvp.csv` that are not pending, with FT-638's known
+/// excess, as the `ew-api` test asserts on the library. The pending rows are listed by package; each names a rule no
+/// pack of this build reports. When the last pending package lands, every row is compared (doc 20 §18.1's 42 errors,
+/// 32 warnings, 31 infos and 1 waived) and the pending list is empty.
+#[test]
+fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
+    type Groups = std::collections::BTreeMap<(String, String), Vec<String>>;
+    let t = Tmp::new();
+    let copy = golden_a_with_w1(&t);
+    let o = ew_isolated(
+        &t.0.join("home"),
+        &[
+            "check".as_ref(),
+            "--scheme".as_ref(),
+            "pre-delivery".as_ref(),
+            "--json".as_ref(),
+            "--project".as_ref(),
+            copy.as_os_str(),
+        ],
+    );
+    assert_eq!(
+        o.status.code(),
+        Some(1),
+        "doc 20 §18.1: `ew check` exits 1: {}",
+        stderr(&o)
+    );
+    let result: ew_api::cli_results::CheckResult = serde_json::from_str(&stdout(&o)).unwrap();
+    assert_eq!(ew_api::cli_results::to_text(&result), stdout(&o));
+    let pack_of: std::collections::BTreeMap<&str, &str> = result
+        .rules
+        .iter()
+        .map(|r| (r.id.as_str(), r.pack.as_str()))
+        .collect();
+    let mut got = Groups::new();
+    for f in &result.findings {
+        if !pack_of
+            .get(f.rule.as_str())
+            .is_some_and(|p| AC21_PACKS.contains(p))
+        {
+            continue;
+        }
+        let open = f.state == ew_api::checks::report::ResultState::Open;
+        if open
+            && AC21_KNOWN_EXCESS
+                .iter()
+                .any(|(r, s)| *r == f.rule && *s == f.subject)
+        {
+            continue;
+        }
+        let state = if open {
+            serde_json::to_value(f.severity)
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .to_owned()
+        } else {
+            "waived".to_owned()
+        };
+        got.entry((f.rule.clone(), state))
+            .or_default()
+            .push(f.subject.clone());
+    }
+    for v in got.values_mut() {
+        v.sort();
+    }
+    let csv = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../crates/ew-api/tests/expected/findings_mvp.csv"),
+    )
+    .unwrap();
+    let mut lines = csv.lines();
+    assert_eq!(
+        lines.next(),
+        Some("ef,rule,severity,count,subjects,targets,defect,pending")
+    );
+    let mut want = Groups::new();
+    let mut pending: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
+    for line in lines {
+        let f = csv_fields(line);
+        assert_eq!(f.len(), 8, "{line}");
+        if f[7].is_empty() {
+            let mut subjects: Vec<String> = f[4]
+                .split("; ")
+                .filter(|s| !s.is_empty())
+                .map(str::to_owned)
+                .collect();
+            subjects.sort();
+            want.insert((f[1].clone(), f[2].clone()), subjects);
+        } else {
+            assert!(
+                !pack_of.contains_key(f[1].as_str()),
+                "{} {} is run by this build: compare its row (clear its pending column)",
+                f[0],
+                f[1]
+            );
+            pending
+                .entry(f[7].clone())
+                .or_default()
+                .push(format!("{} {}", f[0], f[1]));
+        }
+    }
+    for (package, rows) in &pending {
+        println!("AC-21 rows pending {package}: {}", rows.join(", "));
+    }
+    assert_eq!(got, want, "AC-21's built-pack subset through `ew check --json`");
+    for (rule, subject) in AC21_KNOWN_EXCESS {
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|f| f.rule == rule && f.subject == subject),
+            "{rule} on {subject} is gone: update AC21_KNOWN_EXCESS with FT-638"
+        );
+    }
 }

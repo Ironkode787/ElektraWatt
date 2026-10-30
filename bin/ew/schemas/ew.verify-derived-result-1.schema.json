@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "OracleMismatch": {
+      "additionalProperties": false,
+      "description": "One mismatch of the memo oracle.",
+      "properties": {
+        "cold": {
+          "description": "The cold value, as `Debug` text.",
+          "type": "string"
+        },
+        "family": {
+          "description": "The query family.",
+          "type": "string"
+        },
+        "key": {
+          "description": "The key, as `Debug` text.",
+          "type": "string"
+        },
+        "memoised": {
+          "description": "The memoised value, as `Debug` text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "key",
+        "memoised",
+        "cold"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew verify-derived --json` ([`VERIFY_DERIVED`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.verify-derived-result/1",
+      "description": "The name of this schema."
+    },
+    "differences": {
+      "description": "The keys whose memoised value differs from the cold one.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "families": {
+      "additionalProperties": {
+        "format": "uint",
+        "minimum": 0,
+        "type": "integer"
+      },
+      "description": "The keys read per query family (one pass).",
+      "type": "object"
+    },
+    "keys": {
+      "description": "The keys read in one pass.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "oracle": {
+      "description": "What the memo oracle found.",
+      "items": {
+        "$ref": "#/$defs/OracleMismatch"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "$schema",
+    "families",
+    "keys",
+    "differences",
+    "oracle"
+  ],
+  "title": "ew.verify-derived-result/1",
+  "type": "object"
+}

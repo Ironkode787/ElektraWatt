@@ -260,6 +260,8 @@ dependencies = [
  "ew-text",
  "ew-units",
  "regex",
+ "schemars",
+ "serde",
  "serde_json",
  "sha2",
 ]
@@ -275,6 +277,8 @@ dependencies = [
  "ew-derive",
  "ew-rhai",
  "fluent-bundle",
+ "schemars",
+ "serde",
  "serde_json",
  "sha2",
  "toml",
@@ -616,6 +620,7 @@ dependencies = [
  "ew-checks",
  "ew-derive",
  "rusqlite",
+ "schemars",
  "serde",
  "serde_json",
 ]

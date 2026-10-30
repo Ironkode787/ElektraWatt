@@ -7,6 +7,9 @@
 
 use std::fmt::Write as _;
 
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
 use crate::engine::CheckReport;
 use crate::finding::{Finding, FindingState, Severity};
 use crate::scheme::CheckMode;
@@ -130,68 +133,213 @@ pub fn to_markdown(report: &CheckReport) -> String {
     out
 }
 
-fn finding_json(f: &Finding) -> serde_json::Value {
-    let mut o = serde_json::Map::new();
-    o.insert("rule".into(), f.rule.into());
-    o.insert("code".into(), f.code.into());
-    o.insert("severity".into(), f.severity.name().into());
-    match &f.state {
-        FindingState::Open => {
-            o.insert("state".into(), "open".into());
-        }
-        FindingState::Waived { waiver } => {
-            o.insert("state".into(), "waived".into());
-            o.insert("waiver".into(), waiver.clone().into());
-        }
-    }
-    o.insert("subject".into(), f.subject.clone().into());
-    o.insert("message".into(), f.message.clone().into());
-    if let Some(page) = f.page {
-        o.insert("page".into(), page.to_string().into());
-    }
-    let targets: Vec<serde_json::Value> = f
-        .targets
-        .iter()
-        .map(|t| serde_json::json!({ "kind": t.kind.name(), "id": t.id.to_string() }))
-        .collect();
-    o.insert("targets".into(), targets.into());
-    o.insert("discriminator".into(), f.discriminator.clone().into());
-    o.insert("fingerprint".into(), f.fingerprint.to_string().into());
-    if let Some(fix) = &f.fix {
-        o.insert(
-            "fix".into(),
-            serde_json::json!({
-                "label": fix.label,
-                "command": fix.command,
-                "params": fix.params,
-            }),
-        );
-    }
-    serde_json::Value::Object(o)
+/// The JSON result of `ew check` (`ew.check-result/1`, doc 17 §3.1, WP-S1.22 D5). The type is the published schema
+/// (`bin/ew/schemas/ew.check-result-1.schema.json`), so the printed object and its schema cannot drift. Members print
+/// in byte-wise key order (`$schema` first); an optional member is absent, never `null`.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CheckResult {
+    /// [`JSON_SCHEMA`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The scheme's name.
+    pub scheme: String,
+    /// The check mode.
+    pub mode: ResultMode,
+    /// The counts of open findings per severity and of waived findings.
+    pub counts: ResultCounts,
+    /// The exit code of `ew check`: 1 with an unwaived error, else 0.
+    pub exit_code: i32,
+    /// The rules the scheme ran, in report order.
+    pub rules: Vec<ResultRule>,
+    /// The findings in report order.
+    pub findings: Vec<ResultFinding>,
 }
 
-/// The report as one JSON object.
-pub fn to_json(report: &CheckReport) -> serde_json::Value {
-    let rules: Vec<serde_json::Value> = report
-        .rules
-        .iter()
-        .map(|r| serde_json::json!({ "id": r.id, "code": r.code, "pack": r.pack, "title": r.title }))
-        .collect();
-    let findings: Vec<serde_json::Value> = report.findings.iter().map(finding_json).collect();
-    serde_json::json!({
-        "$schema": JSON_SCHEMA,
-        "scheme": report.scheme,
-        "mode": mode_name(report.mode),
-        "counts": {
-            "errors": report.counts.errors,
-            "warnings": report.counts.warnings,
-            "infos": report.counts.infos,
-            "waived": report.counts.waived,
+/// The check mode of a [`CheckResult`].
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ResultMode {
+    /// Online (the drafting checks while editing).
+    Online,
+    /// Release (`ew check` and the release gate).
+    Release,
+}
+
+/// The counts of a [`CheckResult`].
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ResultCounts {
+    /// Open findings at error severity.
+    pub errors: u32,
+    /// Open findings at warning severity.
+    pub warnings: u32,
+    /// Open findings at info severity.
+    pub infos: u32,
+    /// Waived findings (any severity).
+    pub waived: u32,
+}
+
+/// One rule of a [`CheckResult`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ResultRule {
+    /// The rule ID (`EW-TERM-002`).
+    pub id: String,
+    /// The six-digit code.
+    pub code: String,
+    /// The pack (`EW-TERM`).
+    pub pack: String,
+    /// The title, in English.
+    pub title: String,
+}
+
+/// The severity of a [`ResultFinding`].
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ResultSeverity {
+    /// Info.
+    Info,
+    /// Warning.
+    Warning,
+    /// Error.
+    Error,
+}
+
+/// The state of a [`ResultFinding`].
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ResultState {
+    /// Open.
+    Open,
+    /// Waived (the finding names its waiver).
+    Waived,
+}
+
+/// One finding of a [`CheckResult`].
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ResultFinding {
+    /// The rule ID.
+    pub rule: String,
+    /// The six-digit code.
+    pub code: String,
+    /// The effective severity.
+    pub severity: ResultSeverity,
+    /// Open or waived.
+    pub state: ResultState,
+    /// The waiver's ID, for a waived finding.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub waiver: Option<String>,
+    /// What the message is about, as printed.
+    pub subject: String,
+    /// The message, in the report's language.
+    pub message: String,
+    /// The ID of the page the finding is shown on, if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page: Option<String>,
+    /// The records concerned; the first is the subject.
+    pub targets: Vec<ResultTarget>,
+    /// The data that tells findings of one rule over the same targets apart.
+    pub discriminator: String,
+    /// The fingerprint.
+    pub fingerprint: String,
+    /// The quick fix, where the rule offers one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fix: Option<ResultFix>,
+}
+
+/// One target record of a [`ResultFinding`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ResultTarget {
+    /// The record kind (`device`).
+    pub kind: String,
+    /// The record ID.
+    pub id: String,
+}
+
+/// The quick fix of a [`ResultFinding`].
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ResultFix {
+    /// The label, in English.
+    pub label: String,
+    /// The command name (`terminal.designate`).
+    pub command: String,
+    /// The command's parameters.
+    pub params: serde_json::Value,
+}
+
+fn finding_result(f: &Finding) -> ResultFinding {
+    let (state, waiver) = match &f.state {
+        FindingState::Open => (ResultState::Open, None),
+        FindingState::Waived { waiver } => (ResultState::Waived, Some(waiver.clone())),
+    };
+    ResultFinding {
+        rule: f.rule.to_owned(),
+        code: f.code.to_owned(),
+        severity: match f.severity {
+            Severity::Info => ResultSeverity::Info,
+            Severity::Warning => ResultSeverity::Warning,
+            Severity::Error => ResultSeverity::Error,
         },
-        "exit_code": report.exit_code(),
-        "rules": rules,
-        "findings": findings,
-    })
+        state,
+        waiver,
+        subject: f.subject.clone(),
+        message: f.message.clone(),
+        page: f.page.map(|p| p.to_string()),
+        targets: f
+            .targets
+            .iter()
+            .map(|t| ResultTarget {
+                kind: t.kind.name().to_owned(),
+                id: t.id.to_string(),
+            })
+            .collect(),
+        discriminator: f.discriminator.clone(),
+        fingerprint: f.fingerprint.to_string(),
+        fix: f.fix.as_ref().map(|fix| ResultFix {
+            label: fix.label.clone(),
+            command: fix.command.clone(),
+            params: fix.params.clone(),
+        }),
+    }
+}
+
+/// The report as its typed JSON result ([`CheckResult`]).
+pub fn to_result(report: &CheckReport) -> CheckResult {
+    CheckResult {
+        schema: JSON_SCHEMA.to_owned(),
+        scheme: report.scheme.to_owned(),
+        mode: match report.mode {
+            CheckMode::Online => ResultMode::Online,
+            CheckMode::Release => ResultMode::Release,
+        },
+        counts: ResultCounts {
+            errors: report.counts.errors,
+            warnings: report.counts.warnings,
+            infos: report.counts.infos,
+            waived: report.counts.waived,
+        },
+        exit_code: report.exit_code(),
+        rules: report
+            .rules
+            .iter()
+            .map(|r| ResultRule {
+                id: r.id.to_owned(),
+                code: r.code.to_owned(),
+                pack: r.pack.to_owned(),
+                title: r.title.to_owned(),
+            })
+            .collect(),
+        findings: report.findings.iter().map(finding_result).collect(),
+    }
+}
+
+/// The report as one JSON object: [`to_result`] as a JSON value, members in byte-wise key order.
+pub fn to_json(report: &CheckReport) -> serde_json::Value {
+    serde_json::to_value(to_result(report)).unwrap_or(serde_json::Value::Null)
 }
 
 #[cfg(test)]

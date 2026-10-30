@@ -1,0 +1,171 @@
+{
+  "$defs": {
+    "ItemHitRow": {
+      "additionalProperties": false,
+      "description": "A hit of another library item.",
+      "properties": {
+        "item": {
+          "description": "The item ID.",
+          "type": "string"
+        },
+        "key": {
+          "description": "The human key, empty when none.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "`symbol`, `fndef`, `form`, `macro` or `manufacturer`.",
+          "type": "string"
+        },
+        "library": {
+          "description": "The library ID.",
+          "type": "string"
+        },
+        "library_key": {
+          "description": "The library's key.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The name in every language, joined by \" / \".",
+          "type": "string"
+        },
+        "rank_tier": {
+          "description": "0 (no text), 1 exact key, 2 key prefix, 4 full text.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "status": {
+          "description": "The item status."
+        },
+        "tier": {
+          "description": "The library's tier.",
+          "type": "string"
+        },
+        "version": {
+          "description": "The item's version.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "library",
+        "library_key",
+        "item",
+        "version",
+        "tier",
+        "key",
+        "name",
+        "status",
+        "rank_tier"
+      ],
+      "type": "object"
+    },
+    "LibHit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PartHitRow",
+          "description": "A part (`kind` is `part`)."
+        },
+        {
+          "$ref": "#/$defs/ItemHitRow",
+          "description": "A symbol, FnDef, form, macro or manufacturer."
+        }
+      ],
+      "description": "One hit of [`LibSearchResult`]: a part or another library item."
+    },
+    "PartHitRow": {
+      "additionalProperties": false,
+      "description": "A part hit.",
+      "properties": {
+        "description": {
+          "description": "The description in every language, joined by \" / \".",
+          "type": "string"
+        },
+        "item": {
+          "description": "The item ID.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "`part`.",
+          "type": "string"
+        },
+        "library": {
+          "description": "The library ID.",
+          "type": "string"
+        },
+        "library_key": {
+          "description": "The library's key.",
+          "type": "string"
+        },
+        "manufacturer": {
+          "description": "The manufacturer's name.",
+          "type": "string"
+        },
+        "part_kind": {
+          "description": "The part kind.",
+          "type": "string"
+        },
+        "part_number": {
+          "description": "The part number, verbatim.",
+          "type": "string"
+        },
+        "rank_tier": {
+          "description": "0 (no text), 1 exact part number, 2 prefix, 3 trigram, 4 full text.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "status": {
+          "description": "The item status (`released`, or `{\"deprecated\": {\"successor\": …}}`)."
+        },
+        "tier": {
+          "description": "The library's tier.",
+          "type": "string"
+        },
+        "version": {
+          "description": "The item's version.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "library",
+        "library_key",
+        "item",
+        "version",
+        "tier",
+        "part_number",
+        "manufacturer",
+        "description",
+        "part_kind",
+        "status",
+        "rank_tier"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew lib search --json` ([`LIB_SEARCH`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.lib-search-result/1",
+      "description": "The name of this schema."
+    },
+    "hits": {
+      "description": "The hits, parts first.",
+      "items": {
+        "$ref": "#/$defs/LibHit"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "$schema",
+    "hits"
+  ],
+  "title": "ew.lib-search-result/1",
+  "type": "object"
+}

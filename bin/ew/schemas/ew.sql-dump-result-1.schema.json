@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew sql dump --json` ([`SQL_DUMP`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.sql-dump-result/1",
+      "description": "The name of this schema."
+    },
+    "out": {
+      "description": "The SQLite file written.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$schema",
+    "out"
+  ],
+  "title": "ew.sql-dump-result/1",
+  "type": "object"
+}

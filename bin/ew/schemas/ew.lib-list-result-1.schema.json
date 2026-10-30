@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "LibraryRow": {
+      "additionalProperties": false,
+      "description": "One library of [`LibListResult`].",
+      "properties": {
+        "findings": {
+          "description": "Files and lines skipped, and other notes.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "generation": {
+          "description": "The manifest generation.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "id": {
+          "description": "The library ID.",
+          "type": "string"
+        },
+        "index": {
+          "description": "The index state (`fresh`, `rebuilt`, `failed: …`).",
+          "type": "string"
+        },
+        "key": {
+          "description": "The human key.",
+          "type": "string"
+        },
+        "licence": {
+          "description": "The default licence of its items.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The display name.",
+          "type": "string"
+        },
+        "path": {
+          "description": "The directory; `null` for a compiled-in library.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tier": {
+          "description": "The tier (`system`, `community`, `company`, `user`).",
+          "type": "string"
+        },
+        "version": {
+          "description": "The library's version.",
+          "type": "string"
+        },
+        "writable": {
+          "description": "Whether it accepts writes.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "name",
+        "tier",
+        "version",
+        "licence",
+        "writable",
+        "generation",
+        "index",
+        "findings"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew lib list --json` ([`LIB_LIST`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.lib-list-result/1",
+      "description": "The name of this schema."
+    },
+    "libraries": {
+      "description": "The libraries of the four tiers.",
+      "items": {
+        "$ref": "#/$defs/LibraryRow"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "$schema",
+    "libraries"
+  ],
+  "title": "ew.lib-list-result/1",
+  "type": "object"
+}

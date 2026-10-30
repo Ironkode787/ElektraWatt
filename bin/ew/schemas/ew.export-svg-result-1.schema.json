@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew export svg --json` ([`EXPORT_SVG`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.export-svg-result/1",
+      "description": "The name of this schema."
+    },
+    "files": {
+      "description": "The files written, one `<folio>.svg` per page, in page order.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "findings": {
+      "description": "The page findings.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "out": {
+      "description": "The directory written.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$schema",
+    "out",
+    "files",
+    "findings"
+  ],
+  "title": "ew.export-svg-result/1",
+  "type": "object"
+}

@@ -6,6 +6,7 @@
 use std::path::{Path, PathBuf};
 
 use ew_api::checks::{CheckMode, report, scheme};
+use ew_api::cli_results as results;
 use ew_api::import::Severity;
 use ew_api::import::migration::ReportFormat;
 use ew_api::import::{StarterLibrary, import_qet};
@@ -15,32 +16,45 @@ use ew_api::{BomMode, CmdLog, Export};
 /// The usage text.
 pub const USAGE: &str = "usage:
   ew --version | -V
-  ew import qet <file.qet> [--content <dir>] [--report md|csv|json] [--report-out <file>] [--strict]
-  ew import parts <parts.csv> [--project <dir>]
+  ew import qet <file.qet> [--content <dir>] [--report md|csv|json] [--report-out <file>] [--strict] [--json]
+  ew import parts <parts.csv> [--project <dir>] [--json]
   ew import parts <table.csv|table.xlsx> --map <map.toml> [--as-of <date>] [--project <dir>] [--company <dir>]...
-  ew check [<project-dir>] [--scheme <name>] [--mode release|online] [--format text|md|json] [--lang <tag>] [--out <file>]
-  ew sql [<project-dir>] \"<select>\" [--format csv|json] [--timeout <seconds>] [--out <file>]
-  ew sql [<project-dir>] --file <query.sql> [--format csv|json] [--timeout <seconds>] [--out <file>]
-  ew sql dump [<project-dir>] <out.sqlite>
+      [--json]
+  ew check [<project-dir>] [--project <dir>] [--scheme <name>] [--mode release|online] [--format text|md|json]
+      [--json] [--lang <tag>] [--out <file>]
+  ew sql [<project-dir>] \"<select>\" [--project <dir>] [--format csv|json] [--json] [--timeout <seconds>]
+      [--out <file>]
+  ew sql [<project-dir>] --file <query.sql> [--project <dir>] [--format csv|json] [--json] [--timeout <seconds>]
+      [--out <file>]
+  ew sql dump [<project-dir>] <out.sqlite> [--project <dir>] [--json]
   ew sql schema
-  ew export cables [<project-dir>] [--format csv] [--out <file>]
-  ew export bom [<project-dir>] [--mode parts|assembly] [--format csv] [--out <file>]
-  ew export pdf [<project-dir>] --out <file.pdf> [--pages <folios>] [--threads <n>]
-  ew export svg [<project-dir>] --out <dir> [--pages <folios>] [--threads <n>]
-  ew apply [<project-dir>] <file.ewcmd> [--preview] [--one-step]
-  ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]
-  ew project assets purge [<project-dir>] [--preview]
-  ew revision approve [<project-dir>] --as <role>
-  ew revision release <label> [<project-dir>] [--archive-dir <dir>]
-  ew revision withdraw <label> --reason <text> [<project-dir>]
-  ew verify-derived [<project-dir>]
+  ew export cables [<project-dir>] [--project <dir>] [--format csv] [--out <file>] [--json]
+  ew export bom [<project-dir>] [--project <dir>] [--mode parts|assembly] [--format csv] [--out <file>] [--json]
+  ew export pdf [<project-dir>] [--project <dir>] --out <file.pdf> [--pages <folios>] [--threads <n>] [--json]
+  ew export svg [<project-dir>] [--project <dir>] --out <dir> [--pages <folios>] [--threads <n>] [--json]
+  ew apply [<project-dir>] <file.ewcmd> [--project <dir>] [--preview] [--one-step] [--json]
+  ew project checks set [<project-dir>] [--project <dir>] [--active <scheme>] [--release <scheme>]
+  ew project assets purge [<project-dir>] [--project <dir>] [--preview]
+  ew revision approve [<project-dir>] [--project <dir>] --as <role>
+  ew revision release <label> [<project-dir>] [--project <dir>] [--archive-dir <dir>]
+  ew revision withdraw <label> --reason <text> [<project-dir>] [--project <dir>]
+  ew verify-derived [<project-dir>] [--project <dir>] [--json]
   ew lib list [--company <dir>]... [--json]
   ew lib search <text> [--kind <kind>]... [--all] [--limit <n>] [--company <dir>]... [--json]
-  ew lib index --rebuild [--company <dir>]...
-  ew lib create <dir> --key <key> --name <name> --licence <spdx> [--company <dir>]...
+  ew lib index --rebuild [--company <dir>]... [--json]
+  ew lib create <dir> --key <key> --name <name> --licence <spdx> [--company <dir>]... [--json]
   ew lib import parts <library> <table.csv|table.xlsx> --map <map.toml> --as-of <date> [--bump] [--take-over]
-      [--company <dir>]...
+      [--company <dir>]... [--json]
+  ew commands [--json]
+  ew schema <name>
   ew help | --help | -h
+
+Every subcommand that works on one project takes it as the positional directory or as `--project <dir>`, never
+both, else the nearest ancestor of the current directory holding `manifest.json`. Every subcommand that prints a
+result takes `--json`: stdout is then one JSON object whose first member `$schema` names its published schema
+(`ew.<command>-result/1`; `ew schema <name>` prints it), diagnostics stay on stderr and the exit codes are unchanged.
+For `check` and `sql`, `--json` is `--format json`. The human-only subcommands (`project`, `revision`) print a
+dialogue, not a result, and take no `--json`.
 
 `import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
 error findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.
@@ -145,7 +159,11 @@ library's lock, with the parts' import date `--as-of` (YYYY-MM-DD); new manufact
 second import of a changed list updates the parts in place (same item IDs); a part whose content changed under its
 published version refuses the whole file unless `--bump` writes it as the next patch version. A library locked by a
 live session is refused; a stale lock is taken over only with `--take-over`. `--json` prints JSON. Exit 0 on
-success, 2 on everything else (usage, unreadable tiers, a refused write or import, an index error).";
+success, 2 on everything else (usage, unreadable tiers, a refused write or import, an index error).
+
+`commands` lists the command registry (name, parameters version, exposure, cost, confirmation, undoable, stability,
+aliases). `schema <name>` prints the JSON Schema of a command's parameters (a name or alias of `commands`) or of a
+result (`ew.<command>-result/<n>`). Both exit 0, `schema` 2 for an unknown name.";
 
 /// A parsed command line.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -182,6 +200,13 @@ pub enum Command {
     Lib(LibArgs),
     /// `ew revision approve|release|withdraw` (WP-S1.18 parts 3 and 4).
     Revision(RevisionArgs),
+    /// `ew commands [--json]`: the command registry (WP-S1.22 D6).
+    Commands {
+        /// Print the result as JSON (`--json`).
+        json: bool,
+    },
+    /// `ew schema <name>`: a command's parameter schema or a result schema (WP-S1.22 D6).
+    Schema(String),
 }
 
 /// What `ew revision` does.
@@ -317,6 +342,8 @@ pub struct ExportPagesArgs {
     pub pages: PageSelection,
     /// The threads of the page phase (`--threads`); `None`: the machine's parallelism.
     pub threads: Option<usize>,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
 }
 
 /// The arguments of `ew apply`.
@@ -330,6 +357,8 @@ pub struct ApplyArgs {
     pub preview: bool,
     /// Save only when every line commits (`--one-step`).
     pub one_step: bool,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
 }
 
 /// What `ew export` writes.
@@ -350,6 +379,8 @@ pub struct ExportArgs {
     pub project: Option<PathBuf>,
     /// The output file (`--out`); `None`: stdout.
     pub out: Option<PathBuf>,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
 }
 
 /// The arguments of `ew verify-derived`.
@@ -357,6 +388,8 @@ pub struct ExportArgs {
 pub struct VerifyArgs {
     /// The project directory; `None`: found from the current directory.
     pub project: Option<PathBuf>,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
 }
 
 /// The result format of `ew sql`.
@@ -399,6 +432,8 @@ pub struct SqlDumpArgs {
     pub project: Option<PathBuf>,
     /// The SQLite file to write.
     pub out: PathBuf,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
 }
 
 /// The output format of `ew check`.
@@ -442,6 +477,8 @@ pub struct ImportQetArgs {
     pub report_out: Option<PathBuf>,
     /// Fail on lost connections or error findings (`--strict`).
     pub strict: bool,
+    /// Print the result as JSON (`--json`, `ew.import-qet-result/1`).
+    pub json: bool,
 }
 
 /// The arguments of `ew import parts`.
@@ -457,6 +494,8 @@ pub struct ImportPartsArgs {
     pub as_of: Option<ew_api::catalog::Date>,
     /// The company library paths (`--company`, with `--map`): their manufacturers resolve the names.
     pub company: Vec<PathBuf>,
+    /// Print the result as JSON (`--json`, `ew.import-parts-result/1`).
+    pub json: bool,
 }
 
 /// Parses the arguments after the program name.
@@ -490,6 +529,17 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
         "verify-derived" => parse_verify(it),
         "lib" => parse_lib(it),
         "revision" => parse_revision(it),
+        "commands" => match it.next().as_deref() {
+            None => Ok(Command::Commands { json: false }),
+            Some("--json") => no_more(it, Command::Commands { json: true }),
+            Some(opt) if opt.starts_with('-') => Err(format!("unknown option `{opt}`")),
+            Some(extra) => Err(format!("unexpected argument `{extra}`")),
+        },
+        "schema" => match it.next() {
+            Some(opt) if opt.starts_with('-') => Err(format!("unknown option `{opt}`")),
+            Some(name) => no_more(it, Command::Schema(name)),
+            None => Err("`schema` needs a command or result schema name (see `ew commands`)".to_owned()),
+        },
         other => Err(format!("unknown command `{other}`")),
     }
 }
@@ -507,8 +557,10 @@ fn parse_import_qet(mut it: impl Iterator<Item = String>) -> Result<Command, Str
     let mut report = None;
     let mut report_out = None;
     let mut strict = false;
+    let mut json = false;
     while let Some(a) = it.next() {
         match a.as_str() {
+            "--json" => json = true,
             "--content" => content = Some(PathBuf::from(value(&mut it, "--content")?)),
             "--report" => {
                 report = Some(
@@ -528,12 +580,19 @@ fn parse_import_qet(mut it: impl Iterator<Item = String>) -> Result<Command, Str
         }
     }
     let file = file.ok_or_else(|| "`import qet` needs a project file".to_owned())?;
+    if json && report.is_some() && report_out.is_none() {
+        return Err(
+            "`--json` prints the result on stdout: give the report a file with `--report-out <file>`"
+                .to_owned(),
+        );
+    }
     Ok(Command::ImportQet(ImportQetArgs {
         file,
         content,
         report,
         report_out,
         strict,
+        json,
     }))
 }
 
@@ -543,9 +602,11 @@ fn parse_import_parts(mut it: impl Iterator<Item = String>) -> Result<Command, S
     let mut map = None;
     let mut as_of = None;
     let mut company = Vec::new();
+    let mut json = false;
     while let Some(a) = it.next() {
         match a.as_str() {
-            "--project" => project = Some(PathBuf::from(value(&mut it, "--project")?)),
+            "--project" => project_flag(&mut project, &mut it)?,
+            "--json" => json = true,
             "--map" => map = Some(PathBuf::from(value(&mut it, "--map")?)),
             "--as-of" => as_of = Some(date(&value(&mut it, "--as-of")?)?),
             "--company" => company.push(PathBuf::from(value(&mut it, "--company")?)),
@@ -567,6 +628,7 @@ fn parse_import_parts(mut it: impl Iterator<Item = String>) -> Result<Command, S
         map,
         as_of,
         company,
+        json,
     }))
 }
 
@@ -578,13 +640,18 @@ fn date(v: &str) -> Result<ew_api::catalog::Date, String> {
 
 fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut project = None;
+    let mut project_opt = None;
     let mut scheme_name = None;
     let mut mode = CheckMode::Release;
     let mut format = CheckFormat::Text;
+    let mut format_name = None;
+    let mut json = false;
     let mut out = None;
     let mut lang = ew_api::checks::messages::DEFAULT_LANGUAGE.to_owned();
     while let Some(a) = it.next() {
         match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
+            "--json" => json = true,
             "--lang" => {
                 let tag = value(&mut it, "--lang")?;
                 let languages = ew_api::checks::messages::LANGUAGES;
@@ -613,12 +680,14 @@ fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> 
                 };
             }
             "--format" => {
-                format = match value(&mut it, "--format")?.as_str() {
+                let name = value(&mut it, "--format")?;
+                format = match name.as_str() {
                     "text" => CheckFormat::Text,
                     "md" => CheckFormat::Markdown,
                     "json" => CheckFormat::Json,
                     other => return Err(format!("unknown format `{other}` (text, md, json)")),
                 };
+                format_name = Some(name);
             }
             "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
@@ -629,6 +698,11 @@ fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> 
             }
         }
     }
+    json_alias(json, format_name.as_deref())?;
+    if json {
+        format = CheckFormat::Json;
+    }
+    let project = one_project(project_opt, project)?;
     Ok(Command::Check(CheckArgs {
         project,
         scheme: scheme_name,
@@ -648,10 +722,14 @@ fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String>
         None => return Err("`export` needs a subject (cables, bom, pdf, svg)".to_owned()),
     };
     let mut project = None;
+    let mut project_opt = None;
     let mut out = None;
     let mut mode = BomMode::Component;
+    let mut json = false;
     while let Some(a) = it.next() {
         match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
+            "--json" => json = true,
             "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
             "--format" => match value(&mut it, "--format")?.as_str() {
                 "csv" => {}
@@ -678,7 +756,13 @@ fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String>
     } else {
         ExportKind::Bom(mode)
     };
-    Ok(Command::Export(ExportArgs { kind, project, out }))
+    let project = one_project(project_opt, project)?;
+    Ok(Command::Export(ExportArgs {
+        kind,
+        project,
+        out,
+        json,
+    }))
 }
 
 fn parse_export_pages(format: PageFormat, mut it: impl Iterator<Item = String>) -> Result<Command, String> {
@@ -686,8 +770,12 @@ fn parse_export_pages(format: PageFormat, mut it: impl Iterator<Item = String>) 
     let mut out = None;
     let mut pages = PageSelection::All;
     let mut threads = None;
+    let mut project_opt = None;
+    let mut json = false;
     while let Some(a) = it.next() {
         match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
+            "--json" => json = true,
             "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
             "--pages" => {
                 pages = PageSelection::parse(&value(&mut it, "--pages")?).map_err(|e| e.to_string())?;
@@ -715,21 +803,27 @@ fn parse_export_pages(format: PageFormat, mut it: impl Iterator<Item = String>) 
         PageFormat::Svg => "export svg` needs `--out <dir>",
     };
     let out = out.ok_or_else(|| format!("`{what}`"))?;
+    let project = one_project(project_opt, project)?;
     Ok(Command::ExportPages(ExportPagesArgs {
         format,
         project,
         out,
         pages,
         threads,
+        json,
     }))
 }
 
-fn parse_apply(it: impl Iterator<Item = String>) -> Result<Command, String> {
+fn parse_apply(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut positionals = Vec::new();
     let mut preview = false;
     let mut one_step = false;
-    for a in it {
+    let mut project_opt = None;
+    let mut json = false;
+    while let Some(a) = it.next() {
         match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
+            "--json" => json = true,
             "--preview" => preview = true,
             "--one-step" => one_step = true,
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
@@ -743,11 +837,13 @@ fn parse_apply(it: impl Iterator<Item = String>) -> Result<Command, String> {
         (None, ..) => return Err("`apply` needs a command log (<file.ewcmd>)".to_owned()),
         (Some(_), Some(_), Some(extra)) => return Err(format!("unexpected argument `{}`", extra.display())),
     };
+    let project = one_project(project_opt, project)?;
     Ok(Command::Apply(ApplyArgs {
         project,
         log,
         preview,
         one_step,
+        json,
     }))
 }
 
@@ -757,8 +853,10 @@ fn parse_checks_set(mut it: impl Iterator<Item = String>) -> Result<Command, Str
         active: None,
         release: None,
     };
+    let mut project_opt = None;
     while let Some(a) = it.next() {
         match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
             "--active" => args.active = Some(value(&mut it, "--active")?),
             "--release" => args.release = Some(value(&mut it, "--release")?),
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
@@ -769,6 +867,7 @@ fn parse_checks_set(mut it: impl Iterator<Item = String>) -> Result<Command, Str
     if args.active.is_none() && args.release.is_none() {
         return Err("`project checks set` needs `--active <scheme>` or `--release <scheme>`".to_owned());
     }
+    args.project = one_project(project_opt, args.project)?;
     Ok(Command::ChecksSet(args))
 }
 
@@ -776,8 +875,10 @@ fn parse_revision(mut it: impl Iterator<Item = String>) -> Result<Command, Strin
     let sub = it.next();
     let mut positional: Vec<String> = Vec::new();
     let (mut role, mut reason, mut archive_dir) = (None, None, None);
+    let mut project_opt = None;
     while let Some(a) = it.next() {
         match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
             "--as" if sub.as_deref() == Some("approve") => role = Some(value(&mut it, "--as")?),
             "--reason" if sub.as_deref() == Some("withdraw") => reason = Some(value(&mut it, "--reason")?),
             "--archive-dir" if sub.as_deref() == Some("release") => {
@@ -811,29 +912,37 @@ fn parse_revision(mut it: impl Iterator<Item = String>) -> Result<Command, Strin
     if let Some(extra) = positional.next() {
         return Err(format!("unexpected argument `{extra}`"));
     }
+    let project = one_project(project_opt, project)?;
     Ok(Command::Revision(RevisionArgs { action, project }))
 }
 
-fn parse_assets_purge(it: impl Iterator<Item = String>) -> Result<Command, String> {
+fn parse_assets_purge(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut args = AssetsPurgeArgs {
         project: None,
         preview: false,
     };
-    for a in it {
+    let mut project_opt = None;
+    while let Some(a) = it.next() {
         match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
             "--preview" => args.preview = true,
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
             _ if args.project.is_none() => args.project = Some(PathBuf::from(a)),
             _ => return Err(format!("unexpected argument `{a}`")),
         }
     }
+    args.project = one_project(project_opt, args.project)?;
     Ok(Command::AssetsPurge(args))
 }
 
 fn parse_verify(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut project = None;
-    for a in it.by_ref() {
+    let mut project_opt = None;
+    let mut json = false;
+    while let Some(a) = it.next() {
         match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
+            "--json" => json = true,
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
             _ => {
                 if project.replace(PathBuf::from(&a)).is_some() {
@@ -842,7 +951,8 @@ fn parse_verify(mut it: impl Iterator<Item = String>) -> Result<Command, String>
             }
         }
     }
-    Ok(Command::VerifyDerived(VerifyArgs { project }))
+    let project = one_project(project_opt, project)?;
+    Ok(Command::VerifyDerived(VerifyArgs { project, json }))
 }
 
 fn parse_sql(it: impl Iterator<Item = String>) -> Result<Command, String> {
@@ -865,26 +975,24 @@ fn parse_sql(it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut project_opt = None;
     let mut file = None;
     let mut format = SqlFormat::Csv;
+    let mut format_name = None;
+    let mut json = false;
     let mut timeout = None;
     let mut out = None;
     while let Some(a) = it.next() {
         match a.as_str() {
-            "--project" => {
-                if project_opt
-                    .replace(PathBuf::from(value(&mut it, "--project")?))
-                    .is_some()
-                {
-                    return Err("`--project` given twice".to_owned());
-                }
-            }
+            "--project" => project_flag(&mut project_opt, &mut it)?,
+            "--json" => json = true,
             "--file" => file = Some(PathBuf::from(value(&mut it, "--file")?)),
             "--format" => {
-                format = match value(&mut it, "--format")?.as_str() {
+                let name = value(&mut it, "--format")?;
+                format = match name.as_str() {
                     "csv" => SqlFormat::Csv,
                     "json" => SqlFormat::Json,
                     "xlsx" => return Err("`--format xlsx` is not built yet (csv, json)".to_owned()),
                     other => return Err(format!("unknown format `{other}` (csv, json)")),
                 };
+                format_name = Some(name);
             }
             "--timeout" => {
                 let v = value(&mut it, "--timeout")?;
@@ -925,13 +1033,11 @@ fn parse_sql(it: impl Iterator<Item = String>) -> Result<Command, String> {
             (Some(_), Some(_), Some(extra)) => return Err(format!("unexpected argument `{extra}`")),
         },
     };
-    let project = match (project_opt, positional_project) {
-        (Some(_), Some(_)) => {
-            return Err("`--project` cannot be combined with a positional project directory".to_owned());
-        }
-        (Some(d), None) | (None, Some(d)) => Some(d),
-        (None, None) => None,
-    };
+    let project = one_project(project_opt, positional_project)?;
+    json_alias(json, format_name.as_deref())?;
+    if json {
+        format = SqlFormat::Json;
+    }
     Ok(Command::Sql(SqlArgs {
         project,
         query,
@@ -944,16 +1050,11 @@ fn parse_sql(it: impl Iterator<Item = String>) -> Result<Command, String> {
 fn parse_sql_dump(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut positionals: Vec<String> = Vec::new();
     let mut project_opt = None;
+    let mut json = false;
     while let Some(a) = it.next() {
         match a.as_str() {
-            "--project" => {
-                if project_opt
-                    .replace(PathBuf::from(value(&mut it, "--project")?))
-                    .is_some()
-                {
-                    return Err("`--project` given twice".to_owned());
-                }
-            }
+            "--project" => project_flag(&mut project_opt, &mut it)?,
+            "--json" => json = true,
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
             _ => positionals.push(a),
         }
@@ -965,14 +1066,8 @@ fn parse_sql_dump(mut it: impl Iterator<Item = String>) -> Result<Command, Strin
         (None, ..) => return Err("`sql dump` needs an output file".to_owned()),
         (Some(_), Some(_), Some(extra)) => return Err(format!("unexpected argument `{extra}`")),
     };
-    let project = match (project_opt, positional_project) {
-        (Some(_), Some(_)) => {
-            return Err("`--project` cannot be combined with a positional project directory".to_owned());
-        }
-        (Some(d), None) | (None, Some(d)) => Some(d),
-        (None, None) => None,
-    };
-    Ok(Command::SqlDump(SqlDumpArgs { project, out }))
+    let project = one_project(project_opt, positional_project)?;
+    Ok(Command::SqlDump(SqlDumpArgs { project, out, json }))
 }
 
 fn parse_lib(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
@@ -995,7 +1090,7 @@ fn parse_lib(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
             ("import", "--bump") => bump = true,
             ("import", "--take-over") => take_over = true,
             (_, "--company") => company.push(PathBuf::from(value(&mut it, "--company")?)),
-            ("list" | "search", "--json") => json = true,
+            (_, "--json") => json = true,
             ("search", "--kind") => {
                 let k = value(&mut it, "--kind")?;
                 if ew_api::library::item_kind(&k).is_none() {
@@ -1098,6 +1193,36 @@ fn value(it: &mut impl Iterator<Item = String>, opt: &str) -> Result<String, Str
     it.next().ok_or_else(|| format!("`{opt}` needs a value"))
 }
 
+/// Takes the value of `--project` into `slot` (doc 17 §3.1, WP-S1.22 D3 (a)); a second `--project` is a usage error.
+fn project_flag(slot: &mut Option<PathBuf>, it: &mut impl Iterator<Item = String>) -> Result<(), String> {
+    if slot.replace(PathBuf::from(value(it, "--project")?)).is_some() {
+        return Err("`--project` given twice".to_owned());
+    }
+    Ok(())
+}
+
+/// The project of a command line: `--project <dir>` or the positional directory, never both (D3 (a)).
+fn one_project(flag: Option<PathBuf>, positional: Option<PathBuf>) -> Result<Option<PathBuf>, String> {
+    match (flag, positional) {
+        (Some(_), Some(_)) => {
+            Err("`--project` cannot be combined with a positional project directory".to_owned())
+        }
+        (Some(d), None) | (None, Some(d)) => Ok(Some(d)),
+        (None, None) => Ok(None),
+    }
+}
+
+/// `--json` beside an explicit `--format`: `--json` is the alias of `--format json`, so another format is a usage
+/// error (D3 (c)).
+fn json_alias(json: bool, format: Option<&str>) -> Result<(), String> {
+    match format {
+        Some(f) if json && f != "json" => Err(format!(
+            "`--json` cannot be combined with `--format {f}` (`--json` is `--format json`)"
+        )),
+        _ => Ok(()),
+    }
+}
+
 /// Runs `cmd` and returns the exit code (0 success, 1 model check failed or `--strict` violated, 2 usage, I/O and
 /// import errors).
 pub fn run(cmd: Command) -> i32 {
@@ -1123,6 +1248,8 @@ pub fn run(cmd: Command) -> i32 {
         Command::AssetsPurge(a) => run_assets_purge(&a),
         Command::Lib(a) => run_lib(&a),
         Command::Revision(a) => run_revision(&a),
+        Command::Commands { json } => run_commands(json),
+        Command::Schema(name) => run_schema(&name),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());
             0
@@ -1265,16 +1392,33 @@ fn run_export(a: &ExportArgs) -> i32 {
     };
     match &a.out {
         Some(path) => match write_report(path, &exported.csv) {
+            Ok(()) if a.json => {}
             Ok(()) => println!("export written to {}", path.display()),
             Err(e) => {
                 eprintln!("error: {}: {e}", path.display());
                 return 2;
             }
         },
+        None if a.json => {}
         None => {
             print!("{}", exported.csv);
             eprintln!("{} rows", exported.rows);
         }
+    }
+    if a.json {
+        let schema = match a.kind {
+            ExportKind::Cables => results::EXPORT_CABLES,
+            ExportKind::Bom(_) => results::EXPORT_BOM,
+        };
+        print!(
+            "{}",
+            results::to_text(&results::ExportRowsResult {
+                schema: schema.to_owned(),
+                rows: exported.rows,
+                out: a.out.as_ref().map(|p| p.display().to_string()),
+                csv: a.out.is_none().then(|| exported.csv.clone()),
+            })
+        );
     }
     0
 }
@@ -1418,6 +1562,18 @@ fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 eprintln!("error: {}: {e}", a.out.display());
                 return 2;
             }
+            if a.json {
+                print!(
+                    "{}",
+                    results::to_text(&results::ExportPdfResult {
+                        schema: results::EXPORT_PDF.to_owned(),
+                        out: a.out.display().to_string(),
+                        pages: pdf.pages,
+                        links: pdf.report.links,
+                        findings: pdf.findings.len(),
+                    })
+                );
+            }
             (
                 format!(
                     "PDF written to {}: {} pages, {} links",
@@ -1440,13 +1596,26 @@ fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 eprintln!("error: {e}");
                 return 2;
             }
+            if a.json {
+                print!(
+                    "{}",
+                    results::to_text(&results::ExportSvgResult {
+                        schema: results::EXPORT_SVG.to_owned(),
+                        out: a.out.display().to_string(),
+                        files: svg.files.iter().map(|f| f.name.clone()).collect(),
+                        findings: svg.findings.len(),
+                    })
+                );
+            }
             (
                 format!("SVG written to {}: {} files", a.out.display(), svg.files.len()),
                 svg.findings.len(),
             )
         }
     };
-    println!("{written}");
+    if !a.json {
+        println!("{written}");
+    }
     if findings > 0 {
         eprintln!("{findings} page findings (unresolved wire ends, unknown styles, overflowing table texts)");
     }
@@ -1477,8 +1646,22 @@ fn run_apply(a: &ApplyArgs) -> i32 {
         return 2;
     };
     if a.preview {
-        return run_apply_preview(&dir, &log, &file);
+        return run_apply_preview(&dir, &log, &file, a.json);
     }
+    let print_result = |committed: usize, saved: bool| {
+        if a.json {
+            print!(
+                "{}",
+                results::to_text(&results::ApplyResult {
+                    schema: results::APPLY.to_owned(),
+                    lines: log.len(),
+                    committed,
+                    saved,
+                    preview: None,
+                })
+            );
+        }
+    };
     let origin = ew_api::Origin::Cli {
         subcommand: "apply".to_owned(),
         confirmed: false,
@@ -1500,11 +1683,16 @@ fn run_apply(a: &ApplyArgs) -> i32 {
             eprintln!("--one-step: nothing saved ({committed} lines were replayed and discarded)");
         }
         session.close();
+        print_result(committed, false);
         return code;
     }
     match session.save() {
         Ok(_) => {
-            println!("applied {committed} of {} lines; saved", log.len());
+            if a.json {
+                print_result(committed, true);
+            } else {
+                println!("applied {committed} of {} lines; saved", log.len());
+            }
             session.close();
             code
         }
@@ -2287,7 +2475,7 @@ fn confirm_typed(
 }
 
 /// `ew apply --preview`: the replay on a read-only session (no lock, no journal, never saved), then the changes.
-fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str) -> i32 {
+fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str, json: bool) -> i32 {
     let (mut session, _) = match ew_api::Session::open_reader(dir, env!("CARGO_PKG_VERSION"), "apply") {
         Ok(r) => r,
         Err(e) => {
@@ -2311,6 +2499,41 @@ fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str) -> i32 {
             return 2;
         }
     };
+    if json {
+        fn row<K: std::fmt::Display>(r: &ew_api::DerivedChange<K>) -> results::DerivedRowChange {
+            results::DerivedRowChange {
+                key: r.key.to_string(),
+                before: r.before.clone(),
+                after: r.after.clone(),
+            }
+        }
+        let records = diff
+            .model
+            .changes
+            .iter()
+            .map(|c| results::RecordChange {
+                change: format!("{:?}", c.change),
+                kind: c.key.0.to_string(),
+                id: c.key.1.to_string(),
+                fields: c.fields.iter().map(ToString::to_string).collect(),
+            })
+            .collect();
+        print!(
+            "{}",
+            results::to_text(&results::ApplyResult {
+                schema: results::APPLY.to_owned(),
+                lines: log.len(),
+                committed,
+                saved: false,
+                preview: Some(results::ApplyChanges {
+                    records,
+                    tags: diff.derived.tags.iter().map(row).collect(),
+                    xrefs: diff.derived.xrefs.iter().map(row).collect(),
+                }),
+            })
+        );
+        return code;
+    }
     println!(
         "preview: {committed} of {} lines commit; {} records, {} tags and {} cross-references change; nothing is saved",
         log.len(),
@@ -2359,6 +2582,28 @@ fn run_verify_derived(a: &VerifyArgs) -> i32 {
             return 2;
         }
     };
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::VerifyDerivedResult {
+                schema: results::VERIFY_DERIVED.to_owned(),
+                families: report.keys.iter().map(|(f, n)| ((*f).to_owned(), *n)).collect(),
+                keys: report.total_keys(),
+                differences: report.differences.clone(),
+                oracle: report
+                    .oracle
+                    .iter()
+                    .map(|m| results::OracleMismatch {
+                        family: m.family.to_owned(),
+                        key: m.key.clone(),
+                        memoised: m.memoised.clone(),
+                        cold: m.cold.clone(),
+                    })
+                    .collect(),
+            })
+        );
+        return i32::from(!report.is_clean());
+    }
     println!(
         "verify-derived: {} families, {} keys, {} differences, {} oracle mismatches",
         report.keys.len(),
@@ -2381,6 +2626,16 @@ fn run_sql_dump(a: &SqlDumpArgs) -> i32 {
         Err(code) => return code,
     };
     match std::fs::write(&a.out, projection.image()) {
+        Ok(()) if a.json => {
+            print!(
+                "{}",
+                results::to_text(&results::SqlDumpResult {
+                    schema: results::SQL_DUMP.to_owned(),
+                    out: a.out.display().to_string(),
+                })
+            );
+            0
+        }
         Ok(()) => {
             println!("projection written to {}", a.out.display());
             0
@@ -2529,18 +2784,29 @@ fn run_lib(a: &LibArgs) -> i32 {
     match &a.action {
         LibAction::List => {
             if a.json {
-                let rows: Vec<serde_json::Value> = libs
+                let libraries = libs
                     .iter()
-                    .map(|l| {
-                        serde_json::json!({
-                            "id": l.id.to_string(), "key": l.key, "name": l.name, "tier": l.tier.name(),
-                            "version": l.version, "licence": l.licence, "writable": l.writable,
-                            "generation": l.generation, "index": index_state(&l.index),
-                            "path": l.path.as_ref().map(|p| p.display().to_string()), "findings": l.findings,
-                        })
+                    .map(|l| results::LibraryRow {
+                        id: l.id.to_string(),
+                        key: l.key.clone(),
+                        name: l.name.clone(),
+                        tier: l.tier.name().to_owned(),
+                        version: l.version.clone(),
+                        licence: l.licence.clone(),
+                        writable: l.writable,
+                        generation: l.generation,
+                        index: index_state(&l.index),
+                        path: l.path.as_ref().map(|p| p.display().to_string()),
+                        findings: l.findings.clone(),
                     })
                     .collect();
-                println!("{}", serde_json::Value::Array(rows));
+                print!(
+                    "{}",
+                    results::to_text(&results::LibListResult {
+                        schema: results::LIB_LIST.to_owned(),
+                        libraries,
+                    })
+                );
             } else {
                 for l in &libs {
                     let path = l
@@ -2596,12 +2862,19 @@ fn run_lib(a: &LibArgs) -> i32 {
                 };
                 for h in hits {
                     rows.push((
-                        serde_json::json!({
-                            "kind": "part", "library": h.library.to_string(), "library_key": key_of(&h.library),
-                            "item": h.item.to_string(), "version": h.version, "tier": h.tier.name(),
-                            "part_number": h.part_number, "manufacturer": h.manufacturer,
-                            "description": h.description, "part_kind": json_text(serde_json::to_value(&h.kind)),
-                            "status": serde_json::to_value(&h.status).unwrap_or_default(), "rank_tier": h.rank_tier,
+                        results::LibHit::Part(results::PartHitRow {
+                            kind: "part".to_owned(),
+                            library: h.library.to_string(),
+                            library_key: key_of(&h.library),
+                            item: h.item.to_string(),
+                            version: h.version.clone(),
+                            tier: h.tier.name().to_owned(),
+                            part_number: h.part_number.clone(),
+                            manufacturer: h.manufacturer.clone(),
+                            description: h.description.clone(),
+                            part_kind: json_text(serde_json::to_value(&h.kind)),
+                            status: serde_json::to_value(&h.status).unwrap_or_default(),
+                            rank_tier: h.rank_tier,
                         }),
                         format!(
                             "part\t{}\t{}\t{}\t{}\t{}/{}@{}",
@@ -2626,11 +2899,17 @@ fn run_lib(a: &LibArgs) -> i32 {
                 };
                 for h in reg.search_items(&q) {
                     rows.push((
-                        serde_json::json!({
-                            "kind": h.kind.name(), "library": h.library.to_string(),
-                            "library_key": key_of(&h.library), "item": h.item.to_string(), "version": h.version,
-                            "tier": h.tier.name(), "key": h.key, "name": h.name,
-                            "status": serde_json::to_value(&h.status).unwrap_or_default(), "rank_tier": h.rank_tier,
+                        results::LibHit::Item(results::ItemHitRow {
+                            kind: h.kind.name().to_owned(),
+                            library: h.library.to_string(),
+                            library_key: key_of(&h.library),
+                            item: h.item.to_string(),
+                            version: h.version.clone(),
+                            tier: h.tier.name().to_owned(),
+                            key: h.key.clone(),
+                            name: h.name.clone(),
+                            status: serde_json::to_value(&h.status).unwrap_or_default(),
+                            rank_tier: h.rank_tier,
                         }),
                         format!(
                             "{}\t{}\t{}\t{}\t{}/{}@{}",
@@ -2646,9 +2925,12 @@ fn run_lib(a: &LibArgs) -> i32 {
                 }
             }
             if a.json {
-                println!(
+                print!(
                     "{}",
-                    serde_json::Value::Array(rows.into_iter().map(|(j, _)| j).collect())
+                    results::to_text(&results::LibSearchResult {
+                        schema: results::LIB_SEARCH.to_owned(),
+                        hits: rows.into_iter().map(|(j, _)| j).collect(),
+                    })
                 );
             } else {
                 if rows.is_empty() {
@@ -2667,7 +2949,18 @@ fn run_lib(a: &LibArgs) -> i32 {
             }
             match reg.index_counts() {
                 Ok((parts, items)) => {
-                    println!("index rebuilt: {parts} parts, {items} other items");
+                    if a.json {
+                        print!(
+                            "{}",
+                            results::to_text(&results::LibIndexResult {
+                                schema: results::LIB_INDEX.to_owned(),
+                                parts,
+                                items,
+                            })
+                        );
+                    } else {
+                        println!("index rebuilt: {parts} parts, {items} other items");
+                    }
                     0
                 }
                 Err(e) => {
@@ -2683,8 +2976,22 @@ fn run_lib(a: &LibArgs) -> i32 {
             licence,
         } => match reg.create(dir, key, name, licence) {
             Ok(id) => {
-                println!("created {key} ({id}) in {}", dir.display());
-                if !reg.libraries().iter().any(|l| l.id == id) {
+                let listed = reg.libraries().iter().any(|l| l.id == id);
+                if a.json {
+                    print!(
+                        "{}",
+                        results::to_text(&results::LibCreateResult {
+                            schema: results::LIB_CREATE.to_owned(),
+                            key: key.clone(),
+                            id: id.to_string(),
+                            dir: dir.display().to_string(),
+                            listed,
+                        })
+                    );
+                } else {
+                    println!("created {key} ({id}) in {}", dir.display());
+                }
+                if !listed {
                     eprintln!(
                         "note: {} lies in no library tier; pass it as `--company` to use it",
                         dir.display()
@@ -2727,6 +3034,28 @@ fn run_lib(a: &LibArgs) -> i32 {
                 *take_over,
             ) {
                 Ok(done) => {
+                    if a.json {
+                        print!(
+                            "{}",
+                            results::to_text(&results::LibImportPartsResult {
+                                schema: results::LIB_IMPORT_PARTS.to_owned(),
+                                library: target.1.clone(),
+                                source: input.name().to_string(),
+                                rows: row_counts(&done.import),
+                                report: report_rows(&done.import),
+                                written: done.write.as_ref().map(|w| results::LibWrite {
+                                    added: w.added.len(),
+                                    updated: w.updated.len(),
+                                    unchanged: w.unchanged.len(),
+                                    generation: w.generation,
+                                }),
+                            })
+                        );
+                        if let Some(w) = done.write.as_ref().and_then(index_warning) {
+                            eprintln!("{w}");
+                        }
+                        return 0;
+                    }
                     print_catalog_rows(&done.import);
                     let written = done.write.as_ref().map_or_else(
                         || "nothing to write".to_owned(),
@@ -2799,6 +3128,36 @@ fn counts_text(i: &ew_api::catalog::PartsImport) -> String {
     )
 }
 
+/// The row counts of a mapped parts import, as its JSON result names them.
+fn row_counts(i: &ew_api::catalog::PartsImport) -> results::RowCounts {
+    let c = i.counts();
+    results::RowCounts {
+        new: c.new,
+        updated: c.updated,
+        unchanged: c.unchanged,
+        duplicate: c.duplicate,
+        rejected: c.rejected,
+    }
+}
+
+/// The report of a mapped parts import, one JSON row per finding.
+fn report_rows(i: &ew_api::catalog::PartsImport) -> Vec<results::ReportRow> {
+    i.report
+        .entries
+        .iter()
+        .map(|e| results::ReportRow {
+            code: e.code.to_string(),
+            severity: match e.severity {
+                ew_api::catalog::Severity::Info => results::ReportSeverity::Info,
+                ew_api::catalog::Severity::Warning => results::ReportSeverity::Warning,
+                ew_api::catalog::Severity::Error => results::ReportSeverity::Error,
+            },
+            line: e.location.as_ref().and_then(|l| l.line).map(u64::from),
+            message: e.message.clone(),
+        })
+        .collect()
+}
+
 /// Prints the report of a mapped parts import: one line per finding (unmapped columns, rejected rows, split part
 /// numbers, aliases, new manufacturers).
 fn print_catalog_rows(i: &ew_api::catalog::PartsImport) {
@@ -2842,7 +3201,9 @@ fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Path) -> i32 {
             return 2;
         }
     };
-    print_catalog_rows(&import);
+    if !a.json {
+        print_catalog_rows(&import);
+    }
     let (mut created, mut skipped) = (0, 0);
     if let Some(cmd) = cmd {
         let receipt = match session
@@ -2865,11 +3226,25 @@ fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Path) -> i32 {
             return 2;
         }
     }
-    println!(
-        "imported {}: {}; {created} created, {skipped} skipped; saved",
-        input.name(),
-        counts_text(&import)
-    );
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::ImportPartsResult {
+                schema: results::IMPORT_PARTS.to_owned(),
+                source: input.name().to_string(),
+                created,
+                skipped,
+                rows: Some(row_counts(&import)),
+                report: report_rows(&import),
+            })
+        );
+    } else {
+        println!(
+            "imported {}: {}; {created} created, {skipped} skipped; saved",
+            input.name(),
+            counts_text(&import)
+        );
+    }
     session.close();
     0
 }
@@ -2920,10 +3295,24 @@ fn run_import_parts(a: &ImportPartsArgs) -> i32 {
         session.close();
         return 2;
     }
-    println!(
-        "imported {}: {created} created, {skipped} skipped, 0 errors; saved",
-        parts.source
-    );
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::ImportPartsResult {
+                schema: results::IMPORT_PARTS.to_owned(),
+                source: parts.source.to_string(),
+                created,
+                skipped,
+                rows: None,
+                report: Vec::new(),
+            })
+        );
+    } else {
+        println!(
+            "imported {}: {created} created, {skipped} skipped, 0 errors; saved",
+            parts.source
+        );
+    }
     session.close();
     0
 }
@@ -2966,7 +3355,7 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
     let c = imported.counts();
     let report = imported.migration_report();
     // With the report on stdout, stdout is exactly the report: the summary goes to stderr.
-    let to_stderr = a.report.is_some() && a.report_out.is_none();
+    let to_stderr = a.json || (a.report.is_some() && a.report_out.is_none());
     let say = |line: String| {
         if to_stderr {
             eprintln!("{line}");
@@ -2987,13 +3376,18 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
         say(format!("checks: {n} lenient findings"));
     }
     let mut code = 0;
-    match &imported.session {
-        Ok(s) => say(format!("derived: {} pages in page order", s.page_labels().len())),
+    let lenient: u32 = report.live.iter().map(|g| g.count).sum();
+    let (derived_pages, model_check_error) = match &imported.session {
+        Ok(s) => {
+            say(format!("derived: {} pages in page order", s.page_labels().len()));
+            (Some(s.page_labels().len()), None)
+        }
         Err(msg) => {
             say(format!("model check failed: {msg}"));
             code = 1;
+            (None, Some(msg.to_string()))
         }
-    }
+    };
     if a.strict {
         let errors = imported
             .batch
@@ -3015,7 +3409,7 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
         let text = report.render(fmt);
         match &a.report_out {
             Some(path) => match write_report(path, &text) {
-                Ok(()) => println!("report written to {}", path.display()),
+                Ok(()) => say(format!("report written to {}", path.display())),
                 Err(e) => {
                     eprintln!("error: {}: {e}", path.display());
                     return 2;
@@ -3024,7 +3418,83 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
             None => print!("{text}"),
         }
     }
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::ImportQetResult {
+                schema: results::IMPORT_QET.to_owned(),
+                source: name.clone(),
+                counts: results::QetCounts {
+                    pages: c.pages,
+                    devices: c.devices,
+                    strips: c.strips,
+                    terminals: c.terminals,
+                    functions: c.functions,
+                    representations: c.representations,
+                    connections: c.connections,
+                    junctions: c.junctions,
+                },
+                findings: report.total,
+                lost_connections: report.lost_connections,
+                lenient_findings: lenient,
+                derived_pages,
+                model_check_error,
+                report_out: a
+                    .report
+                    .and(a.report_out.as_ref())
+                    .map(|p| p.display().to_string()),
+            })
+        );
+    }
     code
+}
+
+/// `ew commands [--json]` (WP-S1.22 D6): the command registry, one line per command (name, parameters version,
+/// exposure, cost, confirmation, undoable, stability, aliases), or its JSON result.
+fn run_commands(json: bool) -> i32 {
+    let list = results::commands();
+    if json {
+        print!("{}", results::to_text(&list));
+        return 0;
+    }
+    for c in &list.commands {
+        println!(
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            c.name,
+            c.params_version,
+            c.exposure,
+            c.cost,
+            c.confirmation,
+            if c.undoable { "undoable" } else { "not undoable" },
+            c.stability,
+            c.aliases.join(",")
+        );
+    }
+    0
+}
+
+/// `ew schema <name>` (WP-S1.22 D6): the parameter schema of a command (or an alias), byte for byte the file of
+/// `crates/ew-commands/schemas/`, or a result schema (`ew.<command>-result/<n>`), the file of `bin/ew/schemas/`. An
+/// unknown name exits 2 naming it.
+fn run_schema(name: &str) -> i32 {
+    let text = if name.starts_with("ew.") && name.contains("-result/") {
+        results::schema_text(name)
+    } else {
+        results::command_schema_text(name)
+    };
+    match text {
+        Some(t) => {
+            print!("{t}");
+            0
+        }
+        None => {
+            eprintln!(
+                "error: unknown schema `{}` (a command name of `ew commands`, or a result schema `ew.<command>-result/<n>`)",
+                name.escape_debug()
+            );
+            2
+        }
+    }
 }
 
 fn write_report(path: &Path, text: &str) -> std::io::Result<()> {
@@ -3142,7 +3612,6 @@ mod tests {
                 "`--limit` needs a number, not `x`",
             ),
             (&["lib", "index"], "`lib index` needs `--rebuild`"),
-            (&["lib", "index", "--json"], "unknown option `--json`"),
             (
                 &["lib", "create", "d", "--key", "k", "--name", "N"],
                 "`lib create` needs `--licence`",
@@ -3283,21 +3752,24 @@ mod tests {
             p(&["sql", "dump", "o.sqlite"]),
             Ok(Command::SqlDump(SqlDumpArgs {
                 project: None,
-                out: PathBuf::from("o.sqlite")
+                out: PathBuf::from("o.sqlite"),
+                json: false,
             }))
         );
         assert_eq!(
             p(&["sql", "dump", "proj", "o.sqlite"]),
             Ok(Command::SqlDump(SqlDumpArgs {
                 project: Some(PathBuf::from("proj")),
-                out: PathBuf::from("o.sqlite")
+                out: PathBuf::from("o.sqlite"),
+                json: false,
             }))
         );
         assert_eq!(
             p(&["sql", "dump", "--project", "proj", "o.sqlite"]),
             Ok(Command::SqlDump(SqlDumpArgs {
                 project: Some(PathBuf::from("proj")),
-                out: PathBuf::from("o.sqlite")
+                out: PathBuf::from("o.sqlite"),
+                json: false,
             }))
         );
         assert_eq!(p(&["sql", "schema"]), Ok(Command::SqlSchema));
@@ -3574,6 +4046,7 @@ SELECT 1"
                 log: PathBuf::from("x.ewcmd"),
                 preview: true,
                 one_step: false,
+                json: false,
             }))
         );
         assert_eq!(
@@ -3583,6 +4056,7 @@ SELECT 1"
                 log: PathBuf::from("x.ewcmd"),
                 preview: false,
                 one_step: true,
+                json: false,
             }))
         );
         assert!(p(&["apply"]).is_err());
@@ -3594,12 +4068,16 @@ SELECT 1"
     fn verify_derived_forms() {
         assert_eq!(
             p(&["verify-derived"]),
-            Ok(Command::VerifyDerived(VerifyArgs { project: None }))
+            Ok(Command::VerifyDerived(VerifyArgs {
+                project: None,
+                json: false
+            }))
         );
         assert_eq!(
             p(&["verify-derived", "proj"]),
             Ok(Command::VerifyDerived(VerifyArgs {
-                project: Some(PathBuf::from("proj"))
+                project: Some(PathBuf::from("proj")),
+                json: false,
             }))
         );
         assert!(p(&["verify-derived", "a", "b"]).is_err());

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew lib create --json` ([`LIB_CREATE`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.lib-create-result/1",
+      "description": "The name of this schema."
+    },
+    "dir": {
+      "description": "Its directory.",
+      "type": "string"
+    },
+    "id": {
+      "description": "The new library's ID.",
+      "type": "string"
+    },
+    "key": {
+      "description": "The new library's key.",
+      "type": "string"
+    },
+    "listed": {
+      "description": "Whether it lies in a library tier (else pass it as `--company`).",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "$schema",
+    "key",
+    "id",
+    "dir",
+    "listed"
+  ],
+  "title": "ew.lib-create-result/1",
+  "type": "object"
+}

@@ -1,0 +1,295 @@
+{
+  "$defs": {
+    "ResultCounts": {
+      "additionalProperties": false,
+      "description": "The counts of a [`CheckResult`].",
+      "properties": {
+        "errors": {
+          "description": "Open findings at error severity.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "infos": {
+          "description": "Open findings at info severity.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "waived": {
+          "description": "Waived findings (any severity).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "warnings": {
+          "description": "Open findings at warning severity.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "errors",
+        "warnings",
+        "infos",
+        "waived"
+      ],
+      "type": "object"
+    },
+    "ResultFinding": {
+      "additionalProperties": false,
+      "description": "One finding of a [`CheckResult`].",
+      "properties": {
+        "code": {
+          "description": "The six-digit code.",
+          "type": "string"
+        },
+        "discriminator": {
+          "description": "The data that tells findings of one rule over the same targets apart.",
+          "type": "string"
+        },
+        "fingerprint": {
+          "description": "The fingerprint.",
+          "type": "string"
+        },
+        "fix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResultFix"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The quick fix, where the rule offers one."
+        },
+        "message": {
+          "description": "The message, in the report's language.",
+          "type": "string"
+        },
+        "page": {
+          "description": "The ID of the page the finding is shown on, if any.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rule": {
+          "description": "The rule ID.",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/ResultSeverity",
+          "description": "The effective severity."
+        },
+        "state": {
+          "$ref": "#/$defs/ResultState",
+          "description": "Open or waived."
+        },
+        "subject": {
+          "description": "What the message is about, as printed.",
+          "type": "string"
+        },
+        "targets": {
+          "description": "The records concerned; the first is the subject.",
+          "items": {
+            "$ref": "#/$defs/ResultTarget"
+          },
+          "type": "array"
+        },
+        "waiver": {
+          "description": "The waiver's ID, for a waived finding.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "rule",
+        "code",
+        "severity",
+        "state",
+        "subject",
+        "message",
+        "targets",
+        "discriminator",
+        "fingerprint"
+      ],
+      "type": "object"
+    },
+    "ResultFix": {
+      "additionalProperties": false,
+      "description": "The quick fix of a [`ResultFinding`].",
+      "properties": {
+        "command": {
+          "description": "The command name (`terminal.designate`).",
+          "type": "string"
+        },
+        "label": {
+          "description": "The label, in English.",
+          "type": "string"
+        },
+        "params": {
+          "description": "The command's parameters."
+        }
+      },
+      "required": [
+        "label",
+        "command",
+        "params"
+      ],
+      "type": "object"
+    },
+    "ResultMode": {
+      "description": "The check mode of a [`CheckResult`].",
+      "oneOf": [
+        {
+          "const": "online",
+          "description": "Online (the drafting checks while editing).",
+          "type": "string"
+        },
+        {
+          "const": "release",
+          "description": "Release (`ew check` and the release gate).",
+          "type": "string"
+        }
+      ]
+    },
+    "ResultRule": {
+      "additionalProperties": false,
+      "description": "One rule of a [`CheckResult`].",
+      "properties": {
+        "code": {
+          "description": "The six-digit code.",
+          "type": "string"
+        },
+        "id": {
+          "description": "The rule ID (`EW-TERM-002`).",
+          "type": "string"
+        },
+        "pack": {
+          "description": "The pack (`EW-TERM`).",
+          "type": "string"
+        },
+        "title": {
+          "description": "The title, in English.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "code",
+        "pack",
+        "title"
+      ],
+      "type": "object"
+    },
+    "ResultSeverity": {
+      "description": "The severity of a [`ResultFinding`].",
+      "oneOf": [
+        {
+          "const": "info",
+          "description": "Info.",
+          "type": "string"
+        },
+        {
+          "const": "warning",
+          "description": "Warning.",
+          "type": "string"
+        },
+        {
+          "const": "error",
+          "description": "Error.",
+          "type": "string"
+        }
+      ]
+    },
+    "ResultState": {
+      "description": "The state of a [`ResultFinding`].",
+      "oneOf": [
+        {
+          "const": "open",
+          "description": "Open.",
+          "type": "string"
+        },
+        {
+          "const": "waived",
+          "description": "Waived (the finding names its waiver).",
+          "type": "string"
+        }
+      ]
+    },
+    "ResultTarget": {
+      "additionalProperties": false,
+      "description": "One target record of a [`ResultFinding`].",
+      "properties": {
+        "id": {
+          "description": "The record ID.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "The record kind (`device`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The JSON result of `ew check` (`ew.check-result/1`, doc 17 §3.1, WP-S1.22 D5). The type is the published schema\n(`bin/ew/schemas/ew.check-result-1.schema.json`), so the printed object and its schema cannot drift. Members print\nin byte-wise key order (`$schema` first); an optional member is absent, never `null`.",
+  "properties": {
+    "$schema": {
+      "const": "ew.check-result/1",
+      "description": "The name of this schema."
+    },
+    "counts": {
+      "$ref": "#/$defs/ResultCounts",
+      "description": "The counts of open findings per severity and of waived findings."
+    },
+    "exit_code": {
+      "description": "The exit code of `ew check`: 1 with an unwaived error, else 0.",
+      "format": "int32",
+      "type": "integer"
+    },
+    "findings": {
+      "description": "The findings in report order.",
+      "items": {
+        "$ref": "#/$defs/ResultFinding"
+      },
+      "type": "array"
+    },
+    "mode": {
+      "$ref": "#/$defs/ResultMode",
+      "description": "The check mode."
+    },
+    "rules": {
+      "description": "The rules the scheme ran, in report order.",
+      "items": {
+        "$ref": "#/$defs/ResultRule"
+      },
+      "type": "array"
+    },
+    "scheme": {
+      "description": "The scheme's name.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$schema",
+    "scheme",
+    "mode",
+    "counts",
+    "exit_code",
+    "rules",
+    "findings"
+  ],
+  "title": "ew.check-result/1",
+  "type": "object"
+}

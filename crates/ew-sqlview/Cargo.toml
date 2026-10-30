@@ -24,6 +24,8 @@ ew-checks = { path = "../ew-checks" }
 rusqlite = { version = "0.40.2", default-features = false, features = ["bundled", "functions", "collation", "hooks", "limits", "serialize"] }
 # JSON array columns, the `_ml` columns and `ew_ml`, and the JSON result (`ew.sql-result/1`).
 serde = { workspace = true }
+# The typed JSON result `ew.sql-result/1` and its published schema (WP-S1.22 D5); already in the graph.
+schemars = "1.2.3"
 serde_json = "1.0.154"
 
 [dev-dependencies]

@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "SqlCell": {
+      "anyOf": [
+        {
+          "description": "`NULL`.",
+          "type": "null"
+        },
+        {
+          "description": "An integer.",
+          "format": "int64",
+          "type": "integer"
+        },
+        {
+          "description": "A floating-point number.",
+          "format": "double",
+          "type": "number"
+        },
+        {
+          "description": "Text (or a blob as `x'…'`).",
+          "type": "string"
+        }
+      ],
+      "description": "One value of a [`SqlResult`] row: numbers stay numbers, `NULL` is `null`, a blob is its `x'…'` text, a real\nthat is not finite is `null`."
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The JSON result of `ew sql` (`ew.sql-result/1`, doc 17 §3.1, WP-S1.22 D5): the type is the published schema\n(`bin/ew/schemas/ew.sql-result-1.schema.json`). Members print in byte-wise key order (`$schema` first).",
+  "properties": {
+    "$schema": {
+      "const": "ew.sql-result/1",
+      "description": "The name of this schema."
+    },
+    "columns": {
+      "description": "The column names, as the statement names them (duplicates allowed).",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "rows": {
+      "description": "The rows, each with one value per column.",
+      "items": {
+        "items": {
+          "$ref": "#/$defs/SqlCell"
+        },
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "$schema",
+    "columns",
+    "rows"
+  ],
+  "title": "ew.sql-result/1",
+  "type": "object"
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew export pdf --json` ([`EXPORT_PDF`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.export-pdf-result/1",
+      "description": "The name of this schema."
+    },
+    "findings": {
+      "description": "The page findings (unresolved wire ends, unknown styles, overflowing table texts).",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "links": {
+      "description": "The links (cross-references and outline targets).",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "out": {
+      "description": "The PDF file written.",
+      "type": "string"
+    },
+    "pages": {
+      "description": "The pages.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "$schema",
+    "out",
+    "pages",
+    "links",
+    "findings"
+  ],
+  "title": "ew.export-pdf-result/1",
+  "type": "object"
+}

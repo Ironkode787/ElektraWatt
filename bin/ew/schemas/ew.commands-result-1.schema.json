@@ -1,0 +1,85 @@
+{
+  "$defs": {
+    "CommandEntry": {
+      "additionalProperties": false,
+      "description": "One command of [`CommandsResult`].",
+      "properties": {
+        "aliases": {
+          "description": "The other names it answers to.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "confirmation": {
+          "description": "The confirmation it asks for (`none`, …).",
+          "type": "string"
+        },
+        "cost": {
+          "description": "`interactive` or `batch`.",
+          "type": "string"
+        },
+        "exposure": {
+          "description": "The exposure class (`edit`, `human_only`, …).",
+          "type": "string"
+        },
+        "name": {
+          "description": "The canonical name (`fields.set`).",
+          "type": "string"
+        },
+        "params_version": {
+          "description": "The version of its parameters.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "schema": {
+          "description": "The parameter schema's file (`ew schema <name>` prints it).",
+          "type": "string"
+        },
+        "stability": {
+          "description": "`preview` before 1.0.",
+          "type": "string"
+        },
+        "undoable": {
+          "description": "Whether it is undoable.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "aliases",
+        "params_version",
+        "cost",
+        "exposure",
+        "confirmation",
+        "undoable",
+        "stability",
+        "schema"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew commands --json` ([`COMMANDS`]): the command registry, the entries of `crates/ew-commands/schemas/index.json`.",
+  "properties": {
+    "$schema": {
+      "const": "ew.commands-result/1",
+      "description": "The name of this schema."
+    },
+    "commands": {
+      "description": "The commands in name order.",
+      "items": {
+        "$ref": "#/$defs/CommandEntry"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "$schema",
+    "commands"
+  ],
+  "title": "ew.commands-result/1",
+  "type": "object"
+}

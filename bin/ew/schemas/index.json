@@ -1,0 +1,89 @@
+{
+  "results": [
+    {
+      "command": "apply",
+      "name": "ew.apply-result/1",
+      "schema": "ew.apply-result-1.schema.json"
+    },
+    {
+      "command": "check",
+      "name": "ew.check-result/1",
+      "schema": "ew.check-result-1.schema.json"
+    },
+    {
+      "command": "commands",
+      "name": "ew.commands-result/1",
+      "schema": "ew.commands-result-1.schema.json"
+    },
+    {
+      "command": "export bom",
+      "name": "ew.export-bom-result/1",
+      "schema": "ew.export-bom-result-1.schema.json"
+    },
+    {
+      "command": "export cables",
+      "name": "ew.export-cables-result/1",
+      "schema": "ew.export-cables-result-1.schema.json"
+    },
+    {
+      "command": "export pdf",
+      "name": "ew.export-pdf-result/1",
+      "schema": "ew.export-pdf-result-1.schema.json"
+    },
+    {
+      "command": "export svg",
+      "name": "ew.export-svg-result/1",
+      "schema": "ew.export-svg-result-1.schema.json"
+    },
+    {
+      "command": "import parts",
+      "name": "ew.import-parts-result/1",
+      "schema": "ew.import-parts-result-1.schema.json"
+    },
+    {
+      "command": "import qet",
+      "name": "ew.import-qet-result/1",
+      "schema": "ew.import-qet-result-1.schema.json"
+    },
+    {
+      "command": "lib create",
+      "name": "ew.lib-create-result/1",
+      "schema": "ew.lib-create-result-1.schema.json"
+    },
+    {
+      "command": "lib import parts",
+      "name": "ew.lib-import-parts-result/1",
+      "schema": "ew.lib-import-parts-result-1.schema.json"
+    },
+    {
+      "command": "lib index",
+      "name": "ew.lib-index-result/1",
+      "schema": "ew.lib-index-result-1.schema.json"
+    },
+    {
+      "command": "lib list",
+      "name": "ew.lib-list-result/1",
+      "schema": "ew.lib-list-result-1.schema.json"
+    },
+    {
+      "command": "lib search",
+      "name": "ew.lib-search-result/1",
+      "schema": "ew.lib-search-result-1.schema.json"
+    },
+    {
+      "command": "sql dump",
+      "name": "ew.sql-dump-result/1",
+      "schema": "ew.sql-dump-result-1.schema.json"
+    },
+    {
+      "command": "sql",
+      "name": "ew.sql-result/1",
+      "schema": "ew.sql-result-1.schema.json"
+    },
+    {
+      "command": "verify-derived",
+      "name": "ew.verify-derived-result/1",
+      "schema": "ew.verify-derived-result-1.schema.json"
+    }
+  ]
+}

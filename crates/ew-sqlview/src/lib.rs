@@ -42,7 +42,7 @@ use ew_derive::Q;
 pub use error::{BuildError, SqlError};
 pub use functions::NATURAL;
 pub use materialise::BuildInput;
-pub use result::{ResultSet, Value, csv_field};
+pub use result::{ResultSet, SQL_RESULT_SCHEMA, SqlCell, SqlResult, Value, csv_field};
 pub use sandbox::{LIMITS, Profile, Reader};
 
 /// A built projection: the serialised image of the SQLite database holding the `t_*` tables and the

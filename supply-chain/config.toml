@@ -71,6 +71,11 @@ criteria = "safe-to-deploy"
 version = "1.0.104"
 criteria = "safe-to-deploy"
 
+[[exemptions.appendlist]]
+version = "1.4.0"
+criteria = "safe-to-run"
+notes = "WP-S1.22 part 1 (cycle 39): a dev-dependency of bin/ew only (pulled in by boon, the JSON Schema validator of tests/conventions.rs), so safe-to-run; NOT audited line by line. No allowed import covers this version."
+
 [[exemptions.arboard]]
 version = "3.7.0"
 criteria = "safe-to-deploy"
@@ -150,6 +155,16 @@ criteria = "safe-to-deploy"
 [[exemptions.blocking]]
 version = "1.7.0"
 criteria = "safe-to-deploy"
+
+[[exemptions.boon]]
+version = "0.6.1"
+criteria = "safe-to-run"
+notes = "WP-S1.22 part 1 (cycle 39): a dev-dependency of bin/ew only (the independent JSON Schema validator of tests/conventions.rs, MIT OR Apache-2.0), so safe-to-run; NOT audited line by line. No allowed import covers this version."
+
+[[exemptions.borrow-or-share]]
+version = "0.2.4"
+criteria = "safe-to-run"
+notes = "WP-S1.22 part 1 (cycle 39): a dev-dependency of bin/ew only (pulled in by boon through fluent-uri), so safe-to-run; NOT audited line by line. No allowed import covers this version."
 
 [[exemptions.bytemuck]]
 version = "1.25.2"
@@ -397,6 +412,11 @@ version = "0.12.0"
 criteria = "safe-to-deploy"
 notes = "WP-S1.16 part 5 (2026-10-30, cycle 36 lane A36): the Fluent rule messages of ew-checks (D6, doc 15 §3.8; ADR-0024). A dependency of fluent-bundle (the .ftl parser); scanned (17 files, 4.0k lines): no unsafe and no build.rs; fs and env only in the crate's own development binaries (src/bin), which ElektraWatt does not build. Licence Apache-2.0 OR MIT. An exemption, as the lane writes no audit (ID-447). Covered by the owner's confirmation of 2026-10-28 (ID-723) for 0.0.x; audited, covered or replaced before the first signed release (doc 18 §5.4). No allowed import in imports.lock covers this version."
 
+[[exemptions.fluent-uri]]
+version = "0.3.2"
+criteria = "safe-to-run"
+notes = "WP-S1.22 part 1 (cycle 39): a dev-dependency of bin/ew only (pulled in by boon), so safe-to-run; NOT audited line by line. No allowed import covers this version."
+
 [[exemptions.font-types]]
 version = "0.11.3"
 criteria = "safe-to-deploy"
@@ -412,6 +432,11 @@ criteria = "safe-to-deploy"
 [[exemptions.foreign-types-macros]]
 version = "0.2.4"
 criteria = "safe-to-deploy"
+
+[[exemptions.form_urlencoded]]
+version = "1.2.2"
+criteria = "safe-to-run"
+notes = "WP-S1.22 part 1 (cycle 39): a dev-dependency of bin/ew only (pulled in by boon through url), so safe-to-run; NOT audited line by line. No allowed import covers this version."
 
 [[exemptions.futures-io]]
 version = "0.3.34"
@@ -548,6 +573,16 @@ criteria = "safe-to-deploy"
 [[exemptions.icu_segmenter_data]]
 version = "2.3.0"
 criteria = "safe-to-deploy"
+
+[[exemptions.idna]]
+version = "1.1.0"
+criteria = "safe-to-run"
+notes = "WP-S1.22 part 1 (cycle 39): a dev-dependency of bin/ew only (pulled in by boon), so safe-to-run; NOT audited line by line. No allowed import covers this version."
+
+[[exemptions.idna_adapter]]
+version = "1.2.1"
+criteria = "safe-to-run"
+notes = "WP-S1.22 part 1 (cycle 39): a dev-dependency of bin/ew only (pulled in by boon through idna), so safe-to-run; NOT audited line by line. No allowed import covers this version."
 
 [[exemptions.image]]
 version = "0.25.10"
@@ -1293,6 +1328,11 @@ criteria = "safe-to-deploy"
 [[exemptions.unicode-security]]
 version = "0.1.2"
 criteria = "safe-to-deploy"
+
+[[exemptions.url]]
+version = "2.5.8"
+criteria = "safe-to-run"
+notes = "WP-S1.22 part 1 (cycle 39): a dev-dependency of bin/ew only (pulled in by boon), so safe-to-run; NOT audited line by line. No allowed import covers this version."
 
 [[exemptions.uuid]]
 version = "1.28.0"

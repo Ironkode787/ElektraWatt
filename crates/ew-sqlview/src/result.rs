@@ -6,6 +6,9 @@
 
 use std::fmt::Write as _;
 
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
 /// One SQLite value.
 #[derive(Clone, PartialEq, Debug)]
 pub enum Value {
@@ -50,17 +53,6 @@ impl Value {
             Value::Integer(_) | Value::Real(_) => 8,
             Value::Text(s) => s.len(),
             Value::Blob(b) => b.len(),
-        }
-    }
-
-    fn json(&self) -> serde_json::Value {
-        match self {
-            Value::Null => serde_json::Value::Null,
-            Value::Integer(i) => serde_json::Value::from(*i),
-            Value::Real(r) => {
-                serde_json::Number::from_f64(*r).map_or(serde_json::Value::Null, serde_json::Value::Number)
-            }
-            Value::Text(_) | Value::Blob(_) => serde_json::Value::String(self.text()),
         }
     }
 }
@@ -111,15 +103,64 @@ impl ResultSet {
     /// The result as JSON (`ew.sql-result/1`, doc 17 §3.1): `{"$schema", "columns", "rows"}` with the rows as
     /// arrays of typed values (numbers stay numbers, `NULL` is `null`, a blob is its `x'…'` text).
     pub fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "$schema": "ew.sql-result/1",
-            "columns": self.columns,
-            "rows": self
+        serde_json::to_value(self.to_result()).unwrap_or(serde_json::Value::Null)
+    }
+
+    /// The result as its typed JSON result ([`SqlResult`]).
+    pub fn to_result(&self) -> SqlResult {
+        SqlResult {
+            schema: SQL_RESULT_SCHEMA.to_owned(),
+            columns: self.columns.clone(),
+            rows: self
                 .rows
                 .iter()
-                .map(|r| serde_json::Value::Array(r.iter().map(Value::json).collect()))
-                .collect::<Vec<_>>(),
-        })
+                .map(|r| r.iter().map(SqlCell::of).collect())
+                .collect(),
+        }
+    }
+}
+
+/// The schema name of [`SqlResult`].
+pub const SQL_RESULT_SCHEMA: &str = "ew.sql-result/1";
+
+/// The JSON result of `ew sql` (`ew.sql-result/1`, doc 17 §3.1, WP-S1.22 D5): the type is the published schema
+/// (`bin/ew/schemas/ew.sql-result-1.schema.json`). Members print in byte-wise key order (`$schema` first).
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SqlResult {
+    /// [`SQL_RESULT_SCHEMA`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The column names, as the statement names them (duplicates allowed).
+    pub columns: Vec<String>,
+    /// The rows, each with one value per column.
+    pub rows: Vec<Vec<SqlCell>>,
+}
+
+/// One value of a [`SqlResult`] row: numbers stay numbers, `NULL` is `null`, a blob is its `x'…'` text, a real
+/// that is not finite is `null`.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum SqlCell {
+    /// `NULL`.
+    Null,
+    /// An integer.
+    Integer(i64),
+    /// A floating-point number.
+    Real(f64),
+    /// Text (or a blob as `x'…'`).
+    Text(String),
+}
+
+impl SqlCell {
+    fn of(v: &Value) -> SqlCell {
+        match v {
+            Value::Null => SqlCell::Null,
+            Value::Integer(i) => SqlCell::Integer(*i),
+            Value::Real(r) if r.is_finite() => SqlCell::Real(*r),
+            Value::Real(_) => SqlCell::Null,
+            Value::Text(_) | Value::Blob(_) => SqlCell::Text(v.text()),
+        }
     }
 }
 

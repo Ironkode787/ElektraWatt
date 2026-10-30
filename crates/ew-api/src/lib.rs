@@ -73,6 +73,8 @@
 
 // WP-S1.19 part 4: the CSV and XLSX parts import with its column maps (D11).
 pub mod catalog;
+// WP-S1.22 part 1: the JSON results of the `ew` subcommands and their published schemas (D3, D5).
+pub mod cli_results;
 mod cmdlog;
 pub mod geometry;
 pub mod import;
