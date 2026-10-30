@@ -107,6 +107,17 @@ impl ShellModel {
     /// prints it for a bulk or table card, which has no inline card of its own (FT-580).
     pub fn preview_summary(&self) -> Option<String> {
         let card = self.props.card()?;
+        // FT-759: a parts import says what it imports in words ("29 new parts · 3 already in the project"), from
+        // the importer's counts, not the records of its diff (the parts and their manufacturers).
+        if let crate::properties::CardOrigin::Import { created, skipped, .. } = &card.origin {
+            return Some(strings::format(
+                "preview-import-summary",
+                &[
+                    &strings::format_count("preview-parts-new", *created),
+                    &strings::format_count("preview-parts-skipped", *skipped),
+                ],
+            ));
+        }
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
         // Cycle 37 (window check W37): a count of one takes the singular ("1 record · 1 page").
         Some(strings::format(

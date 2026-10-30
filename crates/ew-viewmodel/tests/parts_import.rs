@@ -104,6 +104,9 @@ fn the_golden_parts_table_imports_through_the_card_once() {
     assert_eq!(card["command"], "parts.import");
     assert_eq!(card["origin"], "import");
     assert_eq!(card["state"], "ready");
+    // FT-759: the preview says what it imports in words, not "29 records".
+    let summary = shell.preview_summary().expect("a summary");
+    assert_eq!(summary, "29 new parts \u{b7} 0 already in the project");
     // The card is the import's own: Apply and Cancel need neither the grid nor the find pane.
     done(&mut shell, "preview.apply", json!({}));
     assert!(shell.can_undo(), "one undo step");
