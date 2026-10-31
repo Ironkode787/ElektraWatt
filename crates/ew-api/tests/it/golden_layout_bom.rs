@@ -11,7 +11,7 @@
 //! - `lb4_a_free_graphic_on_902_is_counted_nowhere`: neither the BOM nor the legend nor `unplaced` (FR-LAY-008).
 //! - `the_carrier_lines_memoise_as_they_run_cold`: memo against cold (and the engine's oracle) over a carrier edit.
 
-mod golden_common;
+use crate::golden_common;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
 use ew_commands::testkit::seeded_ids;

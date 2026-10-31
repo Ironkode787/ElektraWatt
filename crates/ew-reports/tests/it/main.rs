@@ -4,6 +4,7 @@
 //! The integration tests of `ew-reports`, one test binary: each module is a former test file.
 
 mod arrange;
+mod enclosure_legend;
 mod layout;
 mod paginate;
 mod row_id;

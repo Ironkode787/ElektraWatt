@@ -22,6 +22,7 @@ mod cycles;
 mod golden;
 mod items;
 mod layout;
+mod layout_bom;
 mod memo;
 mod part_text;
 mod plc;

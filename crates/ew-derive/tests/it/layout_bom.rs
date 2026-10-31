@@ -6,7 +6,7 @@
 //! renumbering (LB-2's row content), and a free graphic counted nowhere (LB-4). Golden A's values are `ew-api`'s
 //! `tests/golden_layout.rs`.
 
-mod common;
+use crate::common;
 
 use common::{Fx, LIBRARY, id, uid};
 use ew_derive::layout::{LegendItem, LegendRow, layout_legend, metres_of_nm, page_surface, surface_pages};

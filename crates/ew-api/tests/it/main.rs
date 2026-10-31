@@ -31,6 +31,7 @@ mod golden_connectivity;
 mod golden_csv;
 mod golden_fixture;
 mod golden_layout;
+mod golden_layout_bom;
 mod golden_xref;
 mod image_items;
 mod images;
