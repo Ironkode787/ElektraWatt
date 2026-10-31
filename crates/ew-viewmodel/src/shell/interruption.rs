@@ -247,6 +247,8 @@ impl ShellModel {
         let memory = self.tools.ip_memory.clone();
         let area = self.focused_area();
         let project = self.project_ips();
+        // A name typed in Tool options is the user's: the end takes it unchanged (the series rule never changes it).
+        let typed = memory.typed.clone();
         let result = self
             .with_tool(|t, cx| {
                 let w = t.as_any_mut()?.downcast_mut::<WireTool>()?;
@@ -255,6 +257,11 @@ impl ShellModel {
                     let direction = area
                         .and_then(|a| quarter_direction(pos, a))
                         .unwrap_or(memory.last_direction);
+                    if let Some(typed) = &typed {
+                        let (name, direction) =
+                            propose(typed, true, direction, false, false, &project, tables);
+                        return (name, direction.word());
+                    }
                     let base = potential_of_end(tables, start)
                         .or_else(|| memory.last_name.clone())
                         .unwrap_or_else(|| "IP".to_owned());
@@ -285,6 +292,7 @@ impl ShellModel {
                     self.tools.ip_memory = IpMemory {
                         last_name: Some(name),
                         last_direction: IpDir::of_word(direction),
+                        typed: None,
                     };
                 }
                 outcome
@@ -361,7 +369,11 @@ impl ShellModel {
             };
         }
         match string_param(p, "text") {
-            Ok(Some(t)) if !t.trim().is_empty() => self.send_tool(&CanvasEvent::Text(t.to_owned())),
+            Ok(Some(t)) if !t.trim().is_empty() => {
+                // The host keeps the typed name across tools (the Wire tool's P takes it too).
+                self.tools.ip_memory.typed = Some(t.trim().to_owned());
+                self.send_tool(&CanvasEvent::Text(t.to_owned()))
+            }
             Ok(_) => failed("error-missing-param", &["text"]),
             Err(e) => e,
         }

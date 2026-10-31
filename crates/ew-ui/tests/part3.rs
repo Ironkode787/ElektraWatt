@@ -90,3 +90,79 @@ fn p_d_and_b_stay_with_the_ip_name_field_while_it_has_the_focus() {
         other => panic!("{other:?}"),
     }
 }
+
+/// The IP points of the page on show: (representation, name).
+fn ips(h: &Harness<'_, App>) -> Vec<(String, String)> {
+    h.state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .filter_map(|r| r.ip.as_ref().map(|ip| (r.id.to_string(), ip.name.clone())))
+        .collect()
+}
+
+/// The text of the IP name field.
+fn name_field_text(h: &Harness<'_, App>) -> Option<String> {
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
+        .expect("the IP name field")
+        .accesskit_node()
+        .value()
+        .map(|v| v.to_string())
+}
+
+/// The play-test of cycle 40 (finding 5): a name typed in Tool options and left by a click on the canvas, without
+/// Enter, names the point that click places; the field empties and the next point is proposed again.
+#[test]
+fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    press(&mut h, Key::P);
+    assert_eq!(h.state().shell().tool().name(), "ip");
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
+        .expect("the IP name field")
+        .click();
+    settle(&mut h);
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
+        .expect("the IP name field")
+        .type_text("0V");
+    settle(&mut h);
+    // A click on the canvas, in its middle: no Enter.
+    let bounds = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let at = egui::pos2(
+        ((bounds.x0 + bounds.x1) / 2.0) as f32,
+        ((bounds.y0 + bounds.y1) / 2.0) as f32,
+    );
+    let before = ips(&h);
+    h.event(egui::Event::PointerMoved(at));
+    settle(&mut h);
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    let placed: Vec<String> = ips(&h)
+        .into_iter()
+        .filter(|ip| !before.contains(ip))
+        .map(|(_, name)| name)
+        .collect();
+    assert_eq!(placed, vec!["0V".to_owned()]);
+    // The field emptied when it lost the focus.
+    assert_eq!(name_field_text(&h).unwrap_or_default(), "");
+}

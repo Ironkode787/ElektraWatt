@@ -201,7 +201,7 @@ pub(crate) fn structure_box_fields(
     }
 }
 
-/// The IP tool's fields in the tool strip (WP-S2.04 §9.1): the name (Enter sends `ip.name`) and the external
+/// The IP tool's fields in the tool strip (WP-S2.04 §9.1): the name (every change sends `ip.name`) and the external
 /// reference, offered by printed text (a choice sends `ip.external` with its ID, "none" with `null`).
 pub(crate) fn ip_fields(
     ui: &mut Ui,
@@ -215,11 +215,17 @@ pub(crate) fn ip_fields(
     // (`app.rs`, the `text_edit_focused` gate of the key routing).
     let label = strings::text("action-ip-name").to_owned();
     edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
-    if edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) && !name.trim().is_empty() {
+    // Every change reaches the tool at once, so the name is the next point's however the field is left: by Enter, or
+    // by a click on the canvas, whose press the window dispatches before this card's events and before the field
+    // reports the lost focus (the play-test of cycle 40). The field empties when it loses the focus: the tool holds
+    // the name (its ghost shows it) until a point takes it.
+    if edit.changed() && !name.trim().is_empty() {
         events.push(crate::app::Event::Action(
             "ip.name",
             serde_json::json!({ "text": name.trim() }),
         ));
+    }
+    if edit.lost_focus() {
         name.clear();
     }
     if !externals.is_empty() {

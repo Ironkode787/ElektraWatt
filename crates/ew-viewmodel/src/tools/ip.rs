@@ -86,13 +86,18 @@ impl IpDir {
     }
 }
 
-/// What the host remembers of the last committed interruption point (the IP tool and the Wire tool's P).
+/// What the host remembers of the last committed interruption point (the IP tool and the Wire tool's P), and the
+/// name typed for the next one.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct IpMemory {
     /// The last committed name.
     pub last_name: Option<String>,
     /// The last committed direction.
     pub last_direction: IpDir,
+    /// The name typed in Tool options (`ip.name`) that no interruption point has taken yet: the next one the IP tool
+    /// or the Wire tool's P places takes it unchanged, then it is cleared (the play-test of cycle 40). It outlives a
+    /// switch of tools, so a name typed with the IP tool armed names the end of the next wire ended with P.
+    pub typed: Option<String>,
 }
 
 /// The next name of `name`'s numbered series: the decimal digits after the last `-` incremented, keeping their width
@@ -346,7 +351,7 @@ impl IpTool {
             outline,
             orient: 0,
             at: None,
-            typed: None,
+            typed: memory.typed.clone(),
             chosen: None,
             star: false,
             external: None,
@@ -590,6 +595,7 @@ impl Tool for IpTool {
             }
             CanvasEvent::Text(text) if !text.trim().is_empty() => {
                 self.typed = Some(text.trim().to_owned());
+                self.memory.typed = self.typed.clone();
                 ToolOutput::Transient(self.refresh(cx))
             }
             CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => match self.command(cx) {
@@ -615,13 +621,12 @@ impl Tool for IpTool {
             // An external connection point is not remembered: the next interruption point's proposal goes on from
             // the last one (FT-619).
             if self.external.is_none() {
-                self.memory = IpMemory {
-                    last_name: Some(name),
-                    last_direction: direction,
-                };
+                self.memory.last_name = Some(name);
+                self.memory.last_direction = direction;
             }
-            // The chosen direction stays (FT-547).
+            // The chosen direction stays (FT-547); the typed name is taken.
             self.typed = None;
+            self.memory.typed = None;
             self.star = false;
         }
     }
