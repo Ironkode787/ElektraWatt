@@ -20,6 +20,7 @@
 # (xtask/src/raw_read.rs).
 disallowed-methods = [
     { path = "ew_model::BaseIndexes::bonds_by_endpoint", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+    { path = "ew_model::BaseIndexes::carriers_by_surface", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::BaseIndexes::conductors_by_cable", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::BaseIndexes::connections_by_endpoint", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::BaseIndexes::connections_by_page", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
@@ -28,6 +29,8 @@ disallowed-methods = [
     { path = "ew_model::BaseIndexes::junctions_by_page", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::BaseIndexes::page_items_by_page", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::BaseIndexes::pages_by_section", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+    { path = "ew_model::BaseIndexes::placements_by_carrier", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+    { path = "ew_model::BaseIndexes::placements_by_device", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::BaseIndexes::potential_defs_by_endpoint", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::BaseIndexes::rebuild", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::BaseIndexes::referrers", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
