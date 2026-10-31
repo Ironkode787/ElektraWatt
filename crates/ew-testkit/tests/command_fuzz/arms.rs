@@ -6191,14 +6191,46 @@ fn layout_carrier_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 /// `layout.place`: a plain device on a rail at `s ∈ [0, L]` turned 0° or 180°, or on a plate turned `k · 90°` (either:
 /// the device may be placed already with its part and function, its part may not fit the profile); refused: a device
 /// or carrier that does not exist, `s` beyond the rail's end, a pose off the rail's axis, a duct. After a commit every
-/// placement has its device.
+/// placement has its device. WP-S4.02 part 1 (appended): with `mode` free or push on a rail (either: no gap may fit, a
+/// push may pass the rail end or move a locked placement); refused: swap (a device on no rail swaps with nothing), push
+/// or swap on a surface.
 fn layout_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let l = &live.layout;
     let device = rng.pick(&live.plain_devices)?.clone();
     let cmd = |p: Value| Step::cmd("layout.place", p);
     let at = |s: i64| lay_pose([s, 0, 0], QUARTERS[0]);
     let rails: Vec<&super::live::RailInfo> = l.rails.iter().filter(|r| r.length > 0).collect();
-    match rng.below(8) {
+    match rng.below(11) {
+        8 => {
+            let r = *rng.pick(&rails)?;
+            let q = if rng.chance(2) { QUARTERS[0] } else { QUARTERS[2] };
+            let pose = lay_pose([rng.range(0, r.length), 0, 0], q);
+            let mode = *rng.pick(&["free", "push"])?;
+            Some(
+                cmd(json!({"device": device, "carrier": {"carrier": r.id}, "pose": pose, "mode": mode}))
+                    .check(|_, after| placements_have_devices(after)),
+            )
+        }
+        9 => {
+            let surface = rng.pick(&l.surfaces)?;
+            let pose = lay_pose(
+                [LAY_MM * rng.range(0, 650), LAY_MM * rng.range(0, 900), 0],
+                QUARTERS[0],
+            );
+            let mode = *rng.pick(&["push", "swap"])?;
+            Some(
+                cmd(json!({"device": device, "carrier": {"surface": surface}, "pose": pose, "mode": mode}))
+                    .refuse(),
+            )
+        }
+        10 => {
+            let r = *rng.pick(&rails)?;
+            let pose = at(rng.range(0, r.length));
+            Some(
+                cmd(json!({"device": device, "carrier": {"carrier": r.id}, "pose": pose, "mode": "swap"}))
+                    .refuse(),
+            )
+        }
         0 => {
             let r = *rng.pick(&rails)?;
             Some(cmd(json!({"device": rng.uuid(), "carrier": {"carrier": r.id}, "pose": at(0)})).refuse())
@@ -6243,7 +6275,8 @@ fn layout_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 
 /// `layout.move`: along its rail within `[0, L]`, or on its plate (accepted); onto a plate (either: the device may be
 /// on that plate already with its part and function); refused: a placement that does not exist, `s` beyond its rail's
-/// end.
+/// end. WP-S4.02 part 1 (appended): along its rail with `mode` free, push or swap (either: a refusal of D5, a locked
+/// placement); push or swap on its plate (refused). After a commit every placement has its device.
 fn layout_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let l = &live.layout;
     let cmd = |p: Value| Step::cmd("layout.move", p);
@@ -6253,7 +6286,20 @@ fn layout_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         );
     }
     let p = rng.pick(&l.placements)?;
-    match (&p.rail, &p.surface, rng.below(4)) {
+    match (&p.rail, &p.surface, rng.below(6)) {
+        (Some((_, len)), _, 4 | 5) => {
+            let pose = lay_pose([rng.range(0, *len), 0, 0], QUARTERS[0]);
+            let mode = *rng.pick(&["free", "push", "swap"])?;
+            Some(
+                cmd(json!({"placement": p.id, "pose": pose, "mode": mode}))
+                    .check(|_, after| placements_have_devices(after)),
+            )
+        }
+        (None, Some(_), 4 | 5) => {
+            let pose = lay_pose([10 * LAY_MM, 10 * LAY_MM, 0], QUARTERS[0]);
+            let mode = *rng.pick(&["push", "swap"])?;
+            Some(cmd(json!({"placement": p.id, "pose": pose, "mode": mode})).refuse())
+        }
         (Some((_, len)), _, 0) => {
             Some(cmd(json!({"placement": p.id, "pose": lay_pose([len + 1, 0, 0], QUARTERS[0])})).refuse())
         }

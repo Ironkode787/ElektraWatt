@@ -106,6 +106,85 @@ pub fn carriers_in_order(q: &Q, surface: Id<MountingSurface>) -> Vec<Id<Carrier>
     out.into_iter().map(|(_, c)| c).collect()
 }
 
+/// The kind word of a carrier label (WP-S4.02 D8).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum CarrierLabelKind {
+    /// "Rail".
+    Rail,
+    /// "Duct".
+    Duct,
+}
+
+/// A carrier's derived label (WP-S4.02 D8): its kind and its number among the surface's carriers of that kind, from 1
+/// in legend order ([`carrier_order`]). Never stored: a new carrier may renumber the others, like legend positions.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct CarrierLabel {
+    /// Rail or duct.
+    pub kind: CarrierLabelKind,
+    /// 1 … n per kind.
+    pub n: u32,
+}
+
+impl CarrierLabel {
+    /// The label as it stands alone (a legend cell, a Properties row, a ghost's chip): "Rail 1", "Duct 3".
+    pub fn label(self) -> String {
+        match self.kind {
+            CarrierLabelKind::Rail => format!("Rail {}", self.n),
+            CarrierLabelKind::Duct => format!("Duct {}", self.n),
+        }
+    }
+
+    /// The label inside a sentence (doc 16a §8, sentence case; ruling 4 of lane B42): "rail 1", "duct 3".
+    pub fn in_sentence(self) -> String {
+        match self.kind {
+            CarrierLabelKind::Rail => format!("rail {}", self.n),
+            CarrierLabelKind::Duct => format!("duct {}", self.n),
+        }
+    }
+}
+
+impl std::fmt::Display for CarrierLabel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.label())
+    }
+}
+
+/// `carrier_labels(surface)` (WP-S4.02 D8): the surface's rails and ducts in legend order ([`carriers_in_order`]: rails,
+/// then ducts, each top to bottom then left to right by `path[0]`), each kind numbered from 1. A carrier of a kind this
+/// build does not know gets no label (it carries no placements). On Golden A: R1 … R3 are Rail 1 … 3 and D1 … D5 are
+/// Duct 1 … 5 (doc 20 §13).
+pub fn carrier_labels(q: &Q, surface: Id<MountingSurface>) -> Vec<(Id<Carrier>, CarrierLabel)> {
+    let carriers = q.table::<Carrier>();
+    let (mut rails, mut ducts) = (0u32, 0u32);
+    carriers_in_order(q, surface)
+        .into_iter()
+        .filter_map(|c| {
+            let (kind, n) = match carriers.get(c)?.kind {
+                CarrierKind::Rail => {
+                    rails = rails.saturating_add(1);
+                    (CarrierLabelKind::Rail, rails)
+                }
+                CarrierKind::Duct => {
+                    ducts = ducts.saturating_add(1);
+                    (CarrierLabelKind::Duct, ducts)
+                }
+                CarrierKind::Unknown(_) => return None,
+            };
+            Some((c, CarrierLabel { kind, n }))
+        })
+        .collect()
+}
+
+/// The label of one carrier ([`carrier_labels`] of its surface); `None` for a missing carrier or one of an unknown
+/// kind.
+pub fn carrier_label(q: &Q, carrier: Id<Carrier>) -> Option<CarrierLabel> {
+    let surface = q.table::<Carrier>().get(carrier)?.surface;
+    carrier_labels(q, surface)
+        .into_iter()
+        .find(|(c, _)| *c == carrier)
+        .map(|(_, l)| l)
+}
+
 /// A carrier's path length in nanometres (`carrier_geometry`); `None` for a path that breaks D5 or a kind of a newer
 /// format (EW-LAY-010 reports it).
 pub fn carrier_length(q: &Q, carrier: Id<Carrier>) -> Option<i128> {

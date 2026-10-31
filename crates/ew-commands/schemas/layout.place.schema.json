@@ -69,6 +69,26 @@
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     },
+    "PlaceMode": {
+      "description": "How `layout.place` and `layout.move` resolve their position on a rail (WP-S4.02 D4, D5). Without a mode the pose\nis taken exactly as given.",
+      "oneOf": [
+        {
+          "const": "free",
+          "description": "The placement stays where it fits with its minimum gaps, else goes to the nearest position where it fits;\nnothing else moves. On a surface: the explicit pose.",
+          "type": "string"
+        },
+        {
+          "const": "push",
+          "description": "The placement is inserted; the placements to its right move right as far as their minimum gaps require.",
+          "type": "string"
+        },
+        {
+          "const": "swap",
+          "description": "The placement exchanges places with the placement under its centre on the same rail.",
+          "type": "string"
+        }
+      ]
+    },
     "PlaceOnParam": {
       "description": "What a placement sits on (D3): `{\"carrier\": id}` (a rail) or `{\"surface\": id}` (the plate itself).",
       "oneOf": [
@@ -103,7 +123,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`layout.place` (`PlaceDevice`, D6, doc 12 §3.3): places a device on a rail or on a mounting surface at an explicit\npose (no snapping; WP-S4.02 adds the `mode`).\n\nThe placement always records the part use it realises: the given `part` (a copy the device uses; its use's\nreference is copied, variant included), else the device's primary mountable part at this moment (the first part\nuse whose part mounts, else the first without a mount kind; D8); a strip with terminals and a device without a part\nrecord none. `function` places one function of the device separately.\n\nRejected: a device, carrier or surface that does not exist (`/device`, `/carrier`); a function that does not exist\nor is not the device's (`/function`); a part the device does not use (`/part`); a second placement of one (device,\npart, function); a part whose mount kind does not fit the rail's profile (the table of `ew_derive::layout`); a pose\noutside the carrier kind's degrees of freedom (a rail: `t = (s, 0, 0)` turned 0° or 180°; a surface: `t = (u, v,\n0)` turned `k · 90°`; a duct carries none) or off the rail (`s ∉ [0, L]`). Interactive. Outcome: the placement.",
+  "description": "`layout.place` (`PlaceDevice`, D6, doc 12 §3.3): places a device on a rail or on a mounting surface at an explicit\npose, or, with `mode` on a rail, where the mode resolves it (WP-S4.02 D4, D5).\n\nWithout `mode` the pose is taken exactly as given. With `mode` on a rail the pose's `t.x` is the intended clip\npoint: free keeps it where the device fits with its minimum gaps (clearance pads, end brackets) else takes the\nnearest position where it fits; push inserts it and moves the placements to its right, each as far as its minimum\ngap requires, in the same transaction; swap is refused (the device is on no rail yet). With `mode` on a surface only\n`free` is accepted and means the explicit pose. The mode's refusals name the rail by its label and the devices by\ntheir tags (\"No gap on rail 1 is wide enough for F55 (18 mm).\", \"Pushing would move -102F2, which is locked.\",\n\"Pushing would move S51 past the rail end by 20 mm.\").\n\nThe placement always records the part use it realises: the given `part` (a copy the device uses; its use's\nreference is copied, variant included), else the device's primary mountable part at this moment (the first part\nuse whose part mounts, else the first without a mount kind; D8); a strip with terminals and a device without a part\nrecord none. `function` places one function of the device separately.\n\nRejected: a device, carrier or surface that does not exist (`/device`, `/carrier`); a function that does not exist\nor is not the device's (`/function`); a part the device does not use (`/part`); a second placement of one (device,\npart, function); a part whose mount kind does not fit the rail's profile (the table of `ew_derive::layout`); a pose\noutside the carrier kind's degrees of freedom (a rail: `t = (s, 0, 0)` turned 0° or 180°; a surface: `t = (u, v,\n0)` turned `k · 90°`; a duct carries none) or off the rail (`s ∉ [0, L]`). Interactive. Outcome: the placement.",
   "properties": {
     "carrier": {
       "$ref": "#/$defs/PlaceOnParam",
@@ -124,6 +144,17 @@
       ],
       "description": "One function of the device placed separately."
     },
+    "mode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlaceMode"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "How the position is resolved on a rail: `free`, `push` or `swap` (WP-S4.02 D5); absent: the pose as given."
+    },
     "part": {
       "anyOf": [
         {
@@ -137,7 +168,7 @@
     },
     "pose": {
       "$ref": "#/$defs/CmdPose3",
-      "description": "The pose relative to the carrier."
+      "description": "The pose relative to the carrier; with `mode` on a rail, `t.x` is the intended clip point."
     }
   },
   "required": [

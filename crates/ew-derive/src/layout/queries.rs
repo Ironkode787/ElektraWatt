@@ -506,6 +506,67 @@ fn placement_geom(q: &Q, key: Id<Placement>) -> Option<PlacementGeom> {
     })
 }
 
+/// The clearance pads along a rail of a placement realising `part` (WP-S4.02 D3): `[clearance.left,
+/// clearance.right]`, swapped when `flipped`; `[0, 0]` without a part (a strip, a partless device) or a clearance; a
+/// negative side counts as 0.
+fn pads(q: &Q, part: Option<&PartRef>, flipped: bool) -> [i128; 2] {
+    let Some(c) = part
+        .and_then(|p| mech_of(q, p.copy))
+        .and_then(|m| m.clearance.as_ref())
+    else {
+        return [0, 0];
+    };
+    let (left, right) = (i128::from(c.left.0).max(0), i128::from(c.right.0).max(0));
+    if flipped { [right, left] } else { [left, right] }
+}
+
+/// What a placement of a device takes along a rail (WP-S4.02 D4): the width of its footprint along the axis, where its
+/// clip point lies from the footprint's left (smaller-`s`) edge, its clearance pads and whether it is a strip.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct RailExtent {
+    /// The footprint's extent along the axis, in nanometres (the unknown square's side when unknown).
+    pub width: i128,
+    /// The clip point's distance from the footprint's left edge along the axis: `s0 = s_clip − clip`.
+    pub clip: i128,
+    /// The clearance pads `[before, after]` along the axis ([`Occupied::pad`]).
+    pub pad: [i128; 2],
+    /// Whether the placement places a strip with terminals as a whole (no part, D8 case 3).
+    pub strip: bool,
+}
+
+/// `rail_extent`: what a placement of `device` realising `part` (`None`: the primary part, or the strip as a whole),
+/// turned 0° (`flipped` false) or 180° on a rail, takes along the axis: the shape [`PlacementGeometry`] places, so a
+/// placement at clip point `s` occupies `[s − clip, s − clip + width]` in [`RailOccupancy`].
+pub fn rail_extent(q: &Q, device: &Device, part: Option<&PartRef>, flipped: bool) -> RailExtent {
+    let strip = places_strip(q, device, part);
+    let shape = shape(q, device, part);
+    let pad = if strip {
+        [0, 0]
+    } else {
+        pads(q, shape.part.as_ref(), flipped)
+    };
+    match shape.size {
+        Some((w, _)) => RailExtent {
+            width: w,
+            clip: if flipped { w - shape.clip.0 } else { shape.clip.0 },
+            pad,
+            strip,
+        },
+        None => RailExtent {
+            width: i128::from(UNKNOWN_SIDE),
+            clip: i128::from(UNKNOWN_SIDE / 2),
+            pad,
+            strip,
+        },
+    }
+}
+
+/// Whether a placement of `device` with the stored part use `part` places a strip with terminals as a whole (D8 case
+/// 3): no part, and the device is a strip with terminals.
+pub fn places_strip(q: &Q, device: &Device, part: Option<&PartRef>) -> bool {
+    part.is_none() && is_strip_with_terminals(q, device)
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // rail_occupancy(carrier)
 
@@ -524,12 +585,19 @@ pub struct Occupied {
     pub locked: bool,
     /// Whether its footprint is unknown (D5).
     pub unknown: bool,
+    /// The clearance pads along the rail axis, `[before, after]` in nanometres (WP-S4.02 D3): the realised part's
+    /// `clearance.left` and `clearance.right`, swapped when the placement is flipped (turned 180° on the rail); `[0, 0]`
+    /// for a strip, a device without a part and a part without a clearance; a negative clearance counts as 0. The pads
+    /// space the snapping only: EW-LAY-006 compares the bare intervals `[s0, s1]`. Last, so that the derived order
+    /// stays `(s0, s1, placement, …)`.
+    pub pad: [i128; 2],
 }
 
 /// `rail_occupancy(carrier)`: the intervals the placements on a rail occupy along its axis, sorted by `(s0, s1,
 /// placement)` (doc 12 §2.6). Strips are one interval (their terminals side by side, D5). Intervals may overlap: the
 /// overlap is reported (EW-LAY-006), never resolved. Empty for a missing carrier, a duct, a rail without a valid
-/// axis; a placement without geometry is left out. Clearances are not padded at the MVP (no part of Golden A has one).
+/// axis; a placement without geometry is left out. The intervals are the bare footprints; each carries its clearance
+/// pads ([`Occupied::pad`], WP-S4.02 D3), which the snapping reads and the overlap check does not.
 #[derive(Debug)]
 pub struct RailOccupancy;
 
@@ -561,6 +629,7 @@ impl Query for RailOccupancy {
                 let geom = geom.as_ref().as_ref()?;
                 let pl = placements.get(p)?;
                 let (a, b) = (along(geom.footprint.min()), along(geom.footprint.max()));
+                let flipped = Quarter::of(pl.pose.q) == Some(Quarter::HALF);
                 Some(Occupied {
                     s0: a.min(b),
                     s1: a.max(b),
@@ -568,6 +637,7 @@ impl Query for RailOccupancy {
                     device: pl.device,
                     locked: pl.locked,
                     unknown: geom.unknown,
+                    pad: pads(q, geom.part.as_ref(), flipped),
                 })
             })
             .collect();

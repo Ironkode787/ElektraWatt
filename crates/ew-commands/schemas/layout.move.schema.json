@@ -69,6 +69,26 @@
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     },
+    "PlaceMode": {
+      "description": "How `layout.place` and `layout.move` resolve their position on a rail (WP-S4.02 D4, D5). Without a mode the pose\nis taken exactly as given.",
+      "oneOf": [
+        {
+          "const": "free",
+          "description": "The placement stays where it fits with its minimum gaps, else goes to the nearest position where it fits;\nnothing else moves. On a surface: the explicit pose.",
+          "type": "string"
+        },
+        {
+          "const": "push",
+          "description": "The placement is inserted; the placements to its right move right as far as their minimum gaps require.",
+          "type": "string"
+        },
+        {
+          "const": "swap",
+          "description": "The placement exchanges places with the placement under its centre on the same rail.",
+          "type": "string"
+        }
+      ]
+    },
     "PlaceOnParam": {
       "description": "What a placement sits on (D3): `{\"carrier\": id}` (a rail) or `{\"surface\": id}` (the plate itself).",
       "oneOf": [
@@ -103,7 +123,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`layout.move` (`MovePlacement`, D6): gives a placement another pose, optionally on another rail or surface.\n\nThe pose is checked as `layout.place` checks it; the fit of the part to a rail's profile only when the carrier\nchanges. A locked placement moves too (the lock excludes it from push, swap and auto-fill, doc 12 §2.3). Rejected: a\nplacement, carrier or surface that does not exist (`/placement`, `/carrier`); an unfit part; a pose outside the\ncarrier kind's degrees of freedom or off the rail. Interactive. Outcome: the placement.",
+  "description": "`layout.move` (`MovePlacement`, D6): gives a placement another pose, optionally on another rail or surface.\n\nThe pose is checked as `layout.place` checks it; the fit of the part to a rail's profile only when the carrier\nchanges. Without `mode`, or with `mode: free`, a locked placement moves too (the lock excludes it from being moved\nby another placement's push, swap and auto-fill, doc 12 §2.3). With `mode` on a rail the placement is first taken\noff the rail and resolved as `layout.place` resolves a device (WP-S4.02 D5); `swap` exchanges it with the placement\nunder its centre on the same rail, the segment between them re-laid with every gap kept where it still meets the\nnew minimum gap. Push and swap of a locked placement are refused (\"Unlock F55 to push or swap it.\"), and never move\nanother locked placement. Rejected: a placement, carrier or surface that does not exist (`/placement`, `/carrier`);\nan unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; D5's refusals of the mode.\nInteractive. Outcome: the placement.",
   "properties": {
     "carrier": {
       "anyOf": [
@@ -116,13 +136,24 @@
       ],
       "description": "Another rail or surface; default the current one."
     },
+    "mode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlaceMode"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "How the position is resolved on a rail: `free`, `push` or `swap` (WP-S4.02 D5); absent: the pose as given."
+    },
     "placement": {
       "$ref": "#/$defs/CmdUuid",
       "description": "The placement."
     },
     "pose": {
       "$ref": "#/$defs/CmdPose3",
-      "description": "The new pose relative to the carrier."
+      "description": "The new pose relative to the carrier; with `mode` on a rail, `t.x` is the intended clip point."
     }
   },
   "required": [

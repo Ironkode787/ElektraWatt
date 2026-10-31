@@ -173,7 +173,7 @@ pub use languages::SetProjectLanguages;
 pub use layout::{
     AddCarrier, CarrierKindParam, CarrierParamsParam, CarrierThen, CreateEnclosure, CreateLayoutSpace,
     DeleteCarrier, DeleteEnclosure, DeleteLayoutSpace, EditCarrier, LAYOUT_BULK_ABOVE, LockPlacement,
-    MovePlacement, PlaceDevice, PlaceOnParam, RemovePlacement,
+    MovePlacement, PlaceDevice, PlaceMode, PlaceOnParam, RemovePlacement,
 };
 pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use library_update::{

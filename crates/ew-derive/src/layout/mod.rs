@@ -24,12 +24,19 @@
 //! | [`layout_legend`], [`LegendRow`] | `layout_legend(surface)`: the legend rows of a surface (D11, doc 12 §5.4) |
 //! | [`page_surface`], [`surface_pages`] | The surface a panel-layout page shows, and the pages that show a surface (D9) |
 //! | [`carrier_order`], [`metres_of_nm`] | The legend order of carriers and a length in metres exact to the millimetre (D11) |
+//! | [`carrier_labels`], [`CarrierLabel`] | "Rail n" and "Duct n" of a surface's carriers (WP-S4.02 D8) |
+//! | [`RailItem`], [`min_gap`], [`runs`], [`brackets`], [`free_length`] | The rail model: items, minimum gaps, runs of strips and their end brackets (WP-S4.02 D3) |
+//! | [`resolve`], [`SnapMode`] | Where a dropped item lands in free, push or swap mode and which neighbours move (WP-S4.02 D4, D5) |
+//! | [`rail_items`], [`rail_extent`] | A rail's items from `rail_occupancy`; what a device takes along a rail |
+//! | [`GroupAccessories`] | `group_accessories(carrier)`: the derived end brackets of a rail (WP-S4.02 D3, FR-LAY-060) |
 //!
 //! Frames (doc 12 §2.1): a surface's `u` grows to the right and `v` upwards; a rail's pose `t = (s, 0, 0)` is the part's
 //! clip point at distance `s` from `path[0]` along the axis; a surface pose `t = (u, v, 0)` is the part origin, the
 //! bottom-left corner of its footprint (x along the rail, y up the plate); a part's `rail_offset` is the clip point
 //! in the part frame (absent: the footprint's centre).
 
+// WP-S4.02 part 1: the rail items and the derived end brackets (D3)
+mod accessories;
 mod carrier;
 mod fit;
 // WP-S4.01 part 4: the layout legend and the surface of a panel page (D11)
@@ -37,17 +44,26 @@ mod legend;
 mod pose;
 // WP-S4.01 part 2: the layout queries (doc 12 §2.6)
 mod queries;
+// WP-S4.02 part 1: the rail model and the mode resolution (D3 to D5)
+mod snap;
 
+pub use accessories::{Bracket, GroupAccessories, bracket_part, rail_items};
 pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
 pub use legend::{
-    CarrierOrder, LegendItem, LegendRow, carrier_length, carrier_order, carriers_in_order, layout_legend,
-    metres_of_nm, page_surface, surface_pages,
+    CarrierLabel, CarrierLabelKind, CarrierOrder, LegendItem, LegendRow, carrier_label, carrier_labels,
+    carrier_length, carrier_order, carriers_in_order, layout_legend, metres_of_nm, page_surface,
+    surface_pages,
 };
 pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, mm, plate_frame, rehome_pose};
 pub use queries::{
     CarrierGeom, CarrierGeometry, Exempt, LabelMode, LayoutLabel, MountAs, Mountability, Mountable, Occupied,
-    PlacementGeom, PlacementGeometry, RailOccupancy, UNKNOWN_SIDE, Unplaced, primary_part, space_of_location,
+    PlacementGeom, PlacementGeometry, RailExtent, RailOccupancy, UNKNOWN_SIDE, Unplaced, places_strip,
+    primary_part, rail_extent, space_of_location,
+};
+pub use snap::{
+    BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, end_gap, free_length, min_gap, resolve,
+    runs, start_gap,
 };
 
 #[cfg(test)]

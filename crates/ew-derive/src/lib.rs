@@ -267,6 +267,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (FrameSettings::FAMILY, FrameSettings::POLICY),
     (FunctionCps::FAMILY, FunctionCps::POLICY),
     (FunctionLinksOf::FAMILY, FunctionLinksOf::POLICY),
+    (layout::GroupAccessories::FAMILY, layout::GroupAccessories::POLICY),
     (IpFunctions::FAMILY, IpFunctions::POLICY),
     (IpInfoOf::FAMILY, IpInfoOf::POLICY),
     (IpNotes::FAMILY, IpNotes::POLICY),

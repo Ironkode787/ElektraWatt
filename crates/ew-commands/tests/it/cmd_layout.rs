@@ -266,6 +266,7 @@ fn place(device: Id<Device>, on: PlaceOnParam, pose: Pose3) -> PlaceDevice {
         function: None,
         carrier: on,
         pose,
+        mode: None,
     }
 }
 
@@ -542,6 +543,7 @@ fn lm5_placements_are_one_step_each() {
         placement: k1,
         carrier: None,
         pose: at(200),
+        mode: None,
     })
     .unwrap();
     assert_eq!(get(&e, k1).unwrap().pose, at(200));
@@ -613,6 +615,7 @@ fn lm5_placement_refusals() {
         placement: k1,
         carrier: Some(PlaceOnParam::Carrier(rail32)),
         pose: at(10),
+        mode: None,
     }));
     assert_eq!(onto, "-?K1 (TS 35×7.5) does not fit a TS 32 rail");
     // the explicit part of another use of K2 is recorded with that use's reference

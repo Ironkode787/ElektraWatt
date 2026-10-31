@@ -12,7 +12,7 @@
 //! mismatches that the session's own oracle found while the sweep ran ([`MemoMode::Oracle`](crate::MemoMode)).
 //! The acceptance runner calls it after each scripted edit of AC-16, the CLI after opening a project.
 //!
-//! The family list [`SWEPT`] is pinned against the three `FAMILIES` lists by `tests/verify.rs` (a promotion or
+//! The family list [`SWEPT`] is pinned against the three `FAMILIES` lists by `tests/it/verify.rs` (a promotion or
 //! demotion of a family breaks that test).
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -67,6 +67,7 @@ pub const SWEPT: &[&str] = &[
     "end_class",
     "flow_notes",
     "function_links",
+    "group_accessories",
     "ip_functions",
     "ip_info",
     "ip_notes",
@@ -328,6 +329,8 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     // WP-S4.01 part 2: the layout queries; a label in both modes on every page (the abbreviated one reads the page).
     check::<ew_derive::layout::Unplaced>(memo, cold, keys.spaces.iter().copied(), o);
     check::<ew_derive::layout::RailOccupancy>(memo, cold, keys.carriers.iter().copied(), o);
+    // WP-S4.02 part 1: the derived end brackets of every carrier.
+    check::<ew_derive::layout::GroupAccessories>(memo, cold, keys.carriers.iter().copied(), o);
     check::<ew_derive::layout::PlacementGeometry>(memo, cold, keys.placements.iter().copied(), o);
     check::<ew_derive::layout::LayoutLabel>(
         memo,

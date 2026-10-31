@@ -5,9 +5,14 @@
 `layout.move` (`MovePlacement`, D6): gives a placement another pose, optionally on another rail or surface.
 
 The pose is checked as `layout.place` checks it; the fit of the part to a rail's profile only when the carrier
-changes. A locked placement moves too (the lock excludes it from push, swap and auto-fill, doc 12 §2.3). Rejected: a
-placement, carrier or surface that does not exist (`/placement`, `/carrier`); an unfit part; a pose outside the
-carrier kind's degrees of freedom or off the rail. Interactive. Outcome: the placement.
+changes. Without `mode`, or with `mode: free`, a locked placement moves too (the lock excludes it from being moved
+by another placement's push, swap and auto-fill, doc 12 §2.3). With `mode` on a rail the placement is first taken
+off the rail and resolved as `layout.place` resolves a device (WP-S4.02 D5); `swap` exchanges it with the placement
+under its centre on the same rail, the segment between them re-laid with every gap kept where it still meets the
+new minimum gap. Push and swap of a locked placement are refused ("Unlock F55 to push or swap it."), and never move
+another locked placement. Rejected: a placement, carrier or surface that does not exist (`/placement`, `/carrier`);
+an unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; D5's refusals of the mode.
+Interactive. Outcome: the placement.
 
 ## Registry entry
 
@@ -28,8 +33,9 @@ carrier kind's degrees of freedom or off the rail. Interactive. Outcome: the pla
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `carrier` | [`PlaceOnParam`](#placeonparam) or `null` | no |  | Another rail or surface; default the current one. |
+| `mode` | [`PlaceMode`](#placemode) or `null` | no |  | How the position is resolved on a rail: `free`, `push` or `swap` (WP-S4.02 D5); absent: the pose as given. |
 | `placement` | [`CmdUuid`](#cmduuid) | yes |  | The placement. |
-| `pose` | [`CmdPose3`](#cmdpose3) | yes |  | The new pose relative to the carrier. |
+| `pose` | [`CmdPose3`](#cmdpose3) | yes |  | The new pose relative to the carrier; with `mode` on a rail, `t.x` is the intended clip point. |
 
 ## Types
 
@@ -49,6 +55,17 @@ A lower-case hyphenated UUID naming a record (doc 05 §3.2).
 Type: string (at least 36 character(s), at most 36 character(s))
 
 Pattern: `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`
+
+### PlaceMode
+
+How `layout.place` and `layout.move` resolve their position on a rail (WP-S4.02 D4, D5). Without a mode the pose
+is taken exactly as given.
+
+| Value | Meaning |
+|---|---|
+| `"free"` | The placement stays where it fits with its minimum gaps, else goes to the nearest position where it fits; nothing else moves. On a surface: the explicit pose. |
+| `"push"` | The placement is inserted; the placements to its right move right as far as their minimum gaps require. |
+| `"swap"` | The placement exchanges places with the placement under its centre on the same rail. |
 
 ### PlaceOnParam
 

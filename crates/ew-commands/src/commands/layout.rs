@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The `layout.*` commands (WP-S4.01 D6, doc 12 §3): layout spaces, enclosures with their plate, carriers and
-//! placements, each one undo step. No snapping and no push: a placement's pose is given explicitly and checked
-//! against its carrier kind's degrees of freedom (`ew_derive::layout`, D5); WP-S4.02 adds the gestures.
+//! placements, each one undo step. A placement's pose is given explicitly and checked against its carrier kind's
+//! degrees of freedom (`ew_derive::layout`, D5); with WP-S4.02's `mode` (D4, D5) `layout.place` and `layout.move`
+//! resolve the position on a rail in free, push or swap mode and write every moved neighbour in the same step.
 //!
 //! The deletes are `Bulk` (previewed on a fork first) when they remove or rehome more than [`LAYOUT_BULK_ABOVE`]
 //! placements. An occupied carrier goes only through `layout.carrier.delete` with `then` (doc 12 §3.6): every other
@@ -11,9 +12,11 @@
 
 use std::collections::BTreeSet;
 
+use ew_derive::Q;
 use ew_derive::layout::{
-    Fit, PathError, PoseError, PoseOn, Profile, RailAxis, check_path, check_pose, clip_offset, fits_rail,
-    plate_frame, rehome_pose,
+    Fit, PathError, PoseError, PoseOn, Profile, Quarter, RailAxis, RailItem, SnapError, SnapMode,
+    bracket_part, carrier_label, check_path, check_pose, clip_offset, fits_rail, mm, plate_frame,
+    rail_extent, rail_items, rehome_pose, resolve,
 };
 use ew_ids::Id;
 use ew_mltext::Ident;
@@ -110,6 +113,30 @@ pub enum CarrierThen {
     RemovePlacements,
     /// Each placement moves to the carrier's surface at the equivalent surface pose.
     RehomeToSurface,
+}
+
+/// How `layout.place` and `layout.move` resolve their position on a rail (WP-S4.02 D4, D5). Without a mode the pose
+/// is taken exactly as given.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PlaceMode {
+    /// The placement stays where it fits with its minimum gaps, else goes to the nearest position where it fits;
+    /// nothing else moves. On a surface: the explicit pose.
+    Free,
+    /// The placement is inserted; the placements to its right move right as far as their minimum gaps require.
+    Push,
+    /// The placement exchanges places with the placement under its centre on the same rail.
+    Swap,
+}
+
+impl PlaceMode {
+    fn snap(self) -> SnapMode {
+        match self {
+            PlaceMode::Free => SnapMode::Free,
+            PlaceMode::Push => SnapMode::Push,
+            PlaceMode::Swap => SnapMode::Swap,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -944,10 +971,192 @@ impl Command for DeleteCarrier {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// Modes on a rail (WP-S4.02 D4, D5)
+
+/// One placement dropped on a rail with a mode.
+struct Dropped<'d> {
+    /// The rail and its axis.
+    carrier: Id<Carrier>,
+    axis: RailAxis,
+    /// The device and the part use the placement realises (`None`: a strip as a whole, or the primary part).
+    device: &'d Device,
+    part: Option<&'d PartRef>,
+    /// The placement being moved (`None` for `layout.place`) and its lock.
+    placement: Option<Id<Placement>>,
+    locked: bool,
+    /// The given pose: `t.x` is the intended clip point.
+    pose: Pose3,
+    mode: PlaceMode,
+}
+
+/// What a mode resolved: the placement's pose and each moved neighbour's new pose.
+struct Resolved {
+    pose: Pose3,
+    neighbours: Vec<(Id<Placement>, Pose3)>,
+}
+
+/// Records, through the transaction, the reads the rail's items come from (orchestrator ruling 1 of lane B42): the
+/// carrier, every placement on it, their devices with their part copies, and the terminals of the strips with theirs.
+/// The items themselves are computed on the base snapshot ([`TxBuilder::base_model`], whose reads are not recorded),
+/// so these reads make a concurrent edit of a neighbour on the rail conflict at merge (ADR-0008).
+fn note_rail_reads(tx: &TxBuilder<'_>, carrier: Id<Carrier>, device: &Device) {
+    let note_parts = |d: &Device| {
+        for u in &d.parts {
+            let _ = tx.get::<LibCopy<Part>>(u.part.copy);
+        }
+        for t in tx.terminals_of_strip(d.id) {
+            if let Some(t) = tx.get::<Device>(t) {
+                for u in &t.parts {
+                    let _ = tx.get::<LibCopy<Part>>(u.part.copy);
+                }
+            }
+        }
+    };
+    let _ = tx.get::<Carrier>(carrier);
+    note_parts(device);
+    for p in tx.placements_on_carrier(carrier) {
+        let Some(pl) = tx.get::<Placement>(p) else {
+            continue;
+        };
+        if let Some(part) = &pl.part {
+            let _ = tx.get::<LibCopy<Part>>(part.copy);
+        }
+        if let Some(d) = tx.get::<Device>(pl.device) {
+            note_parts(&d);
+        }
+    }
+}
+
+/// A rail pose at clip point `s` with the turn of `like`, or the refusal of a pose off the rail when `s` leaves the
+/// `Nm` range.
+fn rail_pose(tx: &TxBuilder<'_>, axis: &RailAxis, s: i128, like: &Pose3) -> Result<Pose3, CmdError> {
+    let Ok(x) = i64::try_from(s) else {
+        return tx.reject(PoseError::OffRail(s, axis.length).to_string());
+    };
+    Ok(Pose3 {
+        t: [Nm(x), Nm::ZERO, Nm::ZERO],
+        q: like.q,
+    })
+}
+
+/// D5's refusal of a mode, in words: the rail by its label in a sentence ("rail 1", ruling 4), devices by their tags.
+fn snap_refusal(tx: &TxBuilder<'_>, q: &Q, d: &Dropped<'_>, e: SnapError) -> String {
+    let item = tag(tx, d.device.id);
+    let verb = if d.mode == PlaceMode::Swap {
+        "Swapping"
+    } else {
+        "Pushing"
+    };
+    let placed = |p: Option<Id<Placement>>| {
+        p.and_then(|p| tx.get::<Placement>(p))
+            .map_or_else(|| "a placement".to_owned(), |pl| tag(tx, pl.device))
+    };
+    match e {
+        SnapError::NoGap { width } => {
+            let rail = carrier_label(q, d.carrier).map_or_else(|| "the rail".to_owned(), |l| l.in_sentence());
+            format!("No gap on {rail} is wide enough for {item} ({} mm).", mm(width))
+        }
+        SnapError::MovedLocked => format!("Unlock {item} to push or swap it."),
+        SnapError::Locked(p) => format!("{verb} would move {}, which is locked.", placed(p)),
+        SnapError::PastEnd {
+            neighbour: Some(p),
+            by,
+        } => format!(
+            "{verb} would move {} past the rail end by {} mm.",
+            placed(Some(p)),
+            mm(by)
+        ),
+        SnapError::PastEnd { neighbour: None, by } => {
+            format!("{item} would pass the rail end by {} mm.", mm(by))
+        }
+        SnapError::SwapAcrossRails => {
+            "Swap works within one rail; use push or free to place it there.".to_owned()
+        }
+        SnapError::SwapNoTarget => "Drop onto a placement to swap with it.".to_owned(),
+    }
+}
+
+/// Resolves a placement dropped on a rail with a mode (D4, D5): the rail's items from `rail_occupancy` on the base
+/// snapshot (the same [`rail_items`] the tool's ghost reads), the placement's own extent from [`rail_extent`], then
+/// [`resolve`]; the pose's `t.x` is the intended clip point, turned into the footprint's left edge and back.
+fn resolve_on_rail(tx: &TxBuilder<'_>, d: &Dropped<'_>) -> Result<Resolved, CmdError> {
+    note_rail_reads(tx, d.carrier, d.device);
+    let q = Q::new(tx.base_model());
+    let items = rail_items(&q, d.carrier);
+    let flipped = Quarter::of(d.pose.q) == Some(Quarter::HALF);
+    let ext = rail_extent(&q, d.device, d.part, flipped);
+    let moved = RailItem {
+        s0: 0,
+        s1: ext.width,
+        strip: ext.strip,
+        w: if ext.strip {
+            bracket_part(&q, d.device).map(|(_, w)| w)
+        } else {
+            None
+        },
+        pad: ext.pad,
+        locked: d.locked,
+        placement: d.placement,
+    };
+    let s_left = i128::from(d.pose.t[0].0) - ext.clip;
+    let r = match resolve(&items, d.axis.length, moved, s_left, d.mode.snap()) {
+        Ok(r) => r,
+        Err(e) => return tx.reject(snap_refusal(tx, &q, d, e)),
+    };
+    let pose = rail_pose(tx, &d.axis, r.s_left + ext.clip, &d.pose)?;
+    let mut neighbours = Vec::new();
+    for (p, s0) in r.moved {
+        let (Some(row), Some(old)) = (
+            tx.get::<Placement>(p),
+            items.iter().find(|i| i.placement == Some(p)),
+        ) else {
+            continue;
+        };
+        let s = i128::from(row.pose.t[0].0) + (s0 - old.s0);
+        neighbours.push((p, rail_pose(tx, &d.axis, s, &row.pose)?));
+    }
+    Ok(Resolved { pose, neighbours })
+}
+
+/// Where a mode applies (D4): `Some((rail, axis, mode))` for a mode on a rail; `None` without a mode, and for free on a
+/// surface (the explicit pose); push or swap on a surface is refused. A duct never gets here: its pose check refuses.
+fn mode_on_rail(
+    tx: &TxBuilder<'_>,
+    target: &Target,
+    carrier: &CarrierRef,
+    mode: Option<PlaceMode>,
+) -> Result<Option<(Id<Carrier>, RailAxis, PlaceMode)>, CmdError> {
+    let Some(mode) = mode else {
+        return Ok(None);
+    };
+    match (target.on, carrier) {
+        (PoseOn::Rail(axis), CarrierRef::Carrier(c)) => Ok(Some((*c, axis, mode))),
+        (PoseOn::Surface, _) if mode != PlaceMode::Free => tx.reject("Push and swap work on a rail."),
+        _ => Ok(None),
+    }
+}
+
+/// Writes the new poses of the neighbours a mode moved (in the command's one transaction: one undo step).
+fn move_neighbours(tx: &mut TxBuilder<'_>, neighbours: Vec<(Id<Placement>, Pose3)>) -> Result<(), CmdError> {
+    for (p, pose) in neighbours {
+        tx.update::<Placement>(p, |row| row.pose = pose)?;
+    }
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // Placements
 
 /// `layout.place` (`PlaceDevice`, D6, doc 12 §3.3): places a device on a rail or on a mounting surface at an explicit
-/// pose (no snapping; WP-S4.02 adds the `mode`).
+/// pose, or, with `mode` on a rail, where the mode resolves it (WP-S4.02 D4, D5).
+///
+/// Without `mode` the pose is taken exactly as given. With `mode` on a rail the pose's `t.x` is the intended clip
+/// point: free keeps it where the device fits with its minimum gaps (clearance pads, end brackets) else takes the
+/// nearest position where it fits; push inserts it and moves the placements to its right, each as far as its minimum
+/// gap requires, in the same transaction; swap is refused (the device is on no rail yet). With `mode` on a surface only
+/// `free` is accepted and means the explicit pose. The mode's refusals name the rail by its label and the devices by
+/// their tags ("No gap on rail 1 is wide enough for F55 (18 mm).", "Pushing would move -102F2, which is locked.",
+/// "Pushing would move S51 past the rail end by 20 mm.").
 ///
 /// The placement always records the part use it realises: the given `part` (a copy the device uses; its use's
 /// reference is copied, variant included), else the device's primary mountable part at this moment (the first part
@@ -975,9 +1184,12 @@ pub struct PlaceDevice {
     pub function: Option<Id<Function>>,
     /// The rail or surface.
     pub carrier: PlaceOnParam,
-    /// The pose relative to the carrier.
+    /// The pose relative to the carrier; with `mode` on a rail, `t.x` is the intended clip point.
     #[schemars(with = "Pose3S")]
     pub pose: Pose3,
+    /// How the position is resolved on a rail: `free`, `push` or `swap` (WP-S4.02 D5); absent: the pose as given.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<PlaceMode>,
 }
 
 /// The identity of a placement for the duplicate check: (device, part copy and variant, function).
@@ -1049,6 +1261,27 @@ impl Command for PlaceDevice {
         }
         check_fit(tx, self.device, part.as_ref(), &target)?;
         check_pose_on(tx, &target, &self.pose)?;
+        let (pose, neighbours) = match mode_on_rail(tx, &target, &carrier, self.mode)? {
+            None => (self.pose, Vec::new()),
+            Some((rail, axis, mode)) => {
+                let r = resolve_on_rail(
+                    tx,
+                    &Dropped {
+                        carrier: rail,
+                        axis,
+                        device: &device,
+                        part: part.as_ref(),
+                        placement: None,
+                        locked: false,
+                        pose: self.pose,
+                        mode,
+                    },
+                )?;
+                check_pose_on(tx, &target, &r.pose)?;
+                (r.pose, r.neighbours)
+            }
+        };
+        move_neighbours(tx, neighbours)?;
         let id: Id<Placement> = tx.mint();
         tx.insert(Placement {
             id,
@@ -1057,7 +1290,7 @@ impl Command for PlaceDevice {
             function: self.function,
             part,
             carrier,
-            pose: self.pose,
+            pose,
             locked: false,
             extra: Extra::new(),
         })?;
@@ -1068,9 +1301,14 @@ impl Command for PlaceDevice {
 /// `layout.move` (`MovePlacement`, D6): gives a placement another pose, optionally on another rail or surface.
 ///
 /// The pose is checked as `layout.place` checks it; the fit of the part to a rail's profile only when the carrier
-/// changes. A locked placement moves too (the lock excludes it from push, swap and auto-fill, doc 12 §2.3). Rejected: a
-/// placement, carrier or surface that does not exist (`/placement`, `/carrier`); an unfit part; a pose outside the
-/// carrier kind's degrees of freedom or off the rail. Interactive. Outcome: the placement.
+/// changes. Without `mode`, or with `mode: free`, a locked placement moves too (the lock excludes it from being moved
+/// by another placement's push, swap and auto-fill, doc 12 §2.3). With `mode` on a rail the placement is first taken
+/// off the rail and resolved as `layout.place` resolves a device (WP-S4.02 D5); `swap` exchanges it with the placement
+/// under its centre on the same rail, the segment between them re-laid with every gap kept where it still meets the
+/// new minimum gap. Push and swap of a locked placement are refused ("Unlock F55 to push or swap it."), and never move
+/// another locked placement. Rejected: a placement, carrier or surface that does not exist (`/placement`, `/carrier`);
+/// an unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; D5's refusals of the mode.
+/// Interactive. Outcome: the placement.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MovePlacement {
@@ -1080,9 +1318,12 @@ pub struct MovePlacement {
     /// Another rail or surface; default the current one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub carrier: Option<PlaceOnParam>,
-    /// The new pose relative to the carrier.
+    /// The new pose relative to the carrier; with `mode` on a rail, `t.x` is the intended clip point.
     #[schemars(with = "Pose3S")]
     pub pose: Pose3,
+    /// How the position is resolved on a rail: `free`, `push` or `swap` (WP-S4.02 D5); absent: the pose as given.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<PlaceMode>,
 }
 
 impl Command for MovePlacement {
@@ -1111,7 +1352,28 @@ impl Command for MovePlacement {
             check_fit(tx, current.device, part.as_ref(), &target)?;
         }
         check_pose_on(tx, &target, &self.pose)?;
-        let pose = self.pose;
+        let (pose, neighbours) = match mode_on_rail(tx, &target, &carrier, self.mode)? {
+            None => (self.pose, Vec::new()),
+            Some((rail, axis, mode)) => {
+                let device = tx.require::<Device>(current.device)?;
+                let r = resolve_on_rail(
+                    tx,
+                    &Dropped {
+                        carrier: rail,
+                        axis,
+                        device: &device,
+                        part: current.part.as_ref(),
+                        placement: Some(self.placement),
+                        locked: current.locked,
+                        pose: self.pose,
+                        mode,
+                    },
+                )?;
+                check_pose_on(tx, &target, &r.pose)?;
+                (r.pose, r.neighbours)
+            }
+        };
+        move_neighbours(tx, neighbours)?;
         tx.update::<Placement>(self.placement, |p| {
             p.carrier = carrier;
             p.pose = pose;
