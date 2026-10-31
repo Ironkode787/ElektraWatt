@@ -213,9 +213,12 @@ fn run(texts: &[(String, bool)], tally: &mut Tally) {
 /// then, so the new part, manufacturer, macro and macro-instance objects stay extensible. The waiver line (WP-S1.16
 /// part 5) adds one multi-language `reason`; its record and target objects keep unknown members. The bus lines
 /// (WP-S1.21 part 4) add three enum wrappers (a logical net's `master` endpoint, a port's `address` value and its
-/// `profibus` form); their ports and nets keep unknown members.
+/// `profibus` form); their ports and nets keep unknown members. The layout lines (WP-S4.01 part 1) add four
+/// `Pose3` values (an enclosure's `pose`, a surface's `frame`, two placements' `pose`), which are atomic leaves
+/// of `ew-units` like a `Pt2` (doc 05 §3.2, the `atomic` row of §11), and four enum wrappers (two carriers'
+/// `params`, two placements' `carrier`); their records, rail and duct parameters keep unknown members.
 const MIN_SURVIVORS: usize = 300;
-const MAX_REJECTED: usize = 98;
+const MAX_REJECTED: usize = 106;
 
 fn examples() -> Vec<(String, bool)> {
     let mut all: Vec<(String, bool)> = DOC05_LINES.iter().map(|l| (fill(l), false)).collect();

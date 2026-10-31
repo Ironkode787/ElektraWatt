@@ -5,7 +5,7 @@
 
 use std::collections::BTreeMap;
 
-use ew_schema::{AnchorRef, AnyId, FileRule, Function, Kind, LibDocument, Record};
+use ew_schema::{AnchorRef, AnyId, CarrierRef, FileRule, Function, Kind, LibDocument, Record};
 use serde_json::Value;
 
 use crate::error::FormatError;
@@ -22,6 +22,12 @@ pub trait Anchors {
     /// The page of the representation of function `f` (an interruption point has exactly one, EW-INV-013);
     /// with several, the page of the representation with the smallest ID; `None` without one.
     fn function_rep_page(&self, f: AnyId) -> Option<AnyId>;
+    /// The mounting surface of carrier `c`, `None` when no carrier `c` exists.
+    fn carrier_surface(&self, c: AnyId) -> Option<AnyId>;
+    /// The enclosure of mounting surface `s`, `None` when no surface `s` exists.
+    fn surface_enclosure(&self, s: AnyId) -> Option<AnyId>;
+    /// The layout space of enclosure `e`, `None` when no enclosure `e` exists.
+    fn enclosure_space(&self, e: AnyId) -> Option<AnyId>;
 }
 
 /// The file of an interruption-point function: the page of its representation; without one (a broken
@@ -52,6 +58,25 @@ fn junction_anchor_file(j: AnyId, anchors: &dyn Anchors) -> FilePath {
         .map_or_else(|| FilePath::shard(j), FilePath::page)
 }
 
+/// The layout space of enclosure `e`; for an unknown enclosure (a dangling reference), the referenced ID.
+fn space_of_enclosure(e: AnyId, anchors: &dyn Anchors) -> AnyId {
+    anchors.enclosure_space(e).unwrap_or(e)
+}
+
+/// The layout space of mounting surface `s`, through its enclosure; for an unknown surface, the referenced ID.
+fn space_of_surface(s: AnyId, anchors: &dyn Anchors) -> AnyId {
+    anchors
+        .surface_enclosure(s)
+        .map_or(s, |e| space_of_enclosure(e, anchors))
+}
+
+/// The layout space of carrier `c`, through its surface and enclosure; for an unknown carrier, the referenced ID.
+fn space_of_carrier(c: AnyId, anchors: &dyn Anchors) -> AnyId {
+    anchors
+        .carrier_surface(c)
+        .map_or(c, |s| space_of_surface(s, anchors))
+}
+
 /// The file a record of a known kind lives in (doc 05 §2.2):
 ///
 /// | Kind | File |
@@ -68,12 +93,16 @@ fn junction_anchor_file(j: AnyId, anchors: &dyn Anchors) -> FilePath {
 /// | page-oriented `report_block` | `report-blocks.jsonl` |
 /// | `revision` | `revisions.jsonl` |
 /// | `waiver` | `waivers.jsonl` |
+/// | `layout_space` | `layout/<own id>.jsonl` |
+/// | `enclosure`, `mounting_surface`, `carrier`, `placement` | `layout/<space>.jsonl`, the space reached through carrier → surface → enclosure |
 ///
 /// The anchor of a connection-point endpoint is the shard of the function's device, or for a function
 /// without a device the function's own file; a junction endpoint's anchor is the junction's page. A
 /// reference that `anchors` cannot resolve (a dangling ID) falls back to the shard of the referenced ID, and
 /// an endpoint of a newer format to the shard of the record's own ID, so every record of a known kind has
-/// exactly one deterministic file.
+/// exactly one deterministic file. A layout record whose chain to its space breaks (a dangling carrier, surface or
+/// enclosure) lives in `layout/<the unresolved ID>.jsonl`, and a placement on a carrier form of a newer format in
+/// `layout/<own id>.jsonl`.
 ///
 /// A record of a reserved or unknown kind ([`Record::Unknown`]) has a file only where its rule needs no
 /// resolution ([`unknown_record_file`]); the writer otherwise keeps it in the file it was read from.
@@ -124,6 +153,15 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
         Record::PotentialDef(_) | Record::Bond(_) => endpoint_file(record.anchor_ref())
             .or_else(|| own().map(FilePath::shard))
             .ok_or_else(|| no_file(record))?,
+        Record::LayoutSpace(r) => FilePath::layout(r.id.cast()),
+        Record::Enclosure(r) => FilePath::layout(r.space.cast()),
+        Record::MountingSurface(r) => FilePath::layout(space_of_enclosure(r.enclosure.cast(), anchors)),
+        Record::Carrier(r) => FilePath::layout(space_of_surface(r.surface.cast(), anchors)),
+        Record::Placement(r) => FilePath::layout(match &r.carrier {
+            CarrierRef::Carrier(c) => space_of_carrier(c.cast(), anchors),
+            CarrierRef::Surface(s) => space_of_surface(s.cast(), anchors),
+            CarrierRef::Unknown(_) => r.id.cast(),
+        }),
         Record::Unknown(value) => unknown_record_file(value).ok_or_else(|| no_file(record))?,
     };
     Ok(file)
@@ -189,6 +227,9 @@ pub struct RecordAnchors {
     function_device: BTreeMap<AnyId, Option<AnyId>>,
     junction_page: BTreeMap<AnyId, AnyId>,
     rep_page: BTreeMap<AnyId, (AnyId, AnyId)>,
+    carrier_surface: BTreeMap<AnyId, AnyId>,
+    surface_enclosure: BTreeMap<AnyId, AnyId>,
+    enclosure_space: BTreeMap<AnyId, AnyId>,
 }
 
 impl RecordAnchors {
@@ -202,6 +243,15 @@ impl RecordAnchors {
                 }
                 Record::Junction(j) => {
                     a.junction_page.insert(j.id.cast(), j.page.cast());
+                }
+                Record::Carrier(c) => {
+                    a.carrier_surface.insert(c.id.cast(), c.surface.cast());
+                }
+                Record::MountingSurface(s) => {
+                    a.surface_enclosure.insert(s.id.cast(), s.enclosure.cast());
+                }
+                Record::Enclosure(e) => {
+                    a.enclosure_space.insert(e.id.cast(), e.space.cast());
                 }
                 Record::Representation(r) => {
                     let rep: AnyId = r.id.cast();
@@ -230,5 +280,17 @@ impl Anchors for RecordAnchors {
 
     fn function_rep_page(&self, f: AnyId) -> Option<AnyId> {
         self.rep_page.get(&f).map(|(_, page)| *page)
+    }
+
+    fn carrier_surface(&self, c: AnyId) -> Option<AnyId> {
+        self.carrier_surface.get(&c).copied()
+    }
+
+    fn surface_enclosure(&self, s: AnyId) -> Option<AnyId> {
+        self.surface_enclosure.get(&s).copied()
+    }
+
+    fn enclosure_space(&self, e: AnyId) -> Option<AnyId> {
+        self.enclosure_space.get(&e).copied()
     }
 }

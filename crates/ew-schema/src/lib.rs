@@ -53,6 +53,7 @@
 //! | Connectivity | `connection` (34), `junction` (35), `conductor` (36), `potential_def` (38), `bond` (41) |
 //! | PLC | `plc_config_project` (11), `channel` (37), the `plc_station` and `plc_module` aspects, the part's `plc` section, `device_link` (42) |
 //! | Bus | `logical_net` (12), `physical_net` (13), the function's `bus_port` aspect |
+//! | Panel layout | `layout_space` (50), `enclosure` (51), `mounting_surface` (52), `carrier` (53), `placement` (54) |
 //! | Revisions and checks | `revision` (60), `waiver` (61) |
 //! | Library documents | `part`, `symbol`, `fndef`, `form`, each a [`LibCopy`] |
 //!
@@ -83,6 +84,7 @@ mod device;
 mod error;
 mod json;
 mod kind;
+mod layout;
 mod library;
 mod page;
 mod page_item;
@@ -123,6 +125,10 @@ pub use device::{
 pub use error::{MalformedVariant, SchemaError};
 pub use json::{Extra, MAX_SAFE_INTEGER, Open, check_value, normalize_nfc};
 pub use kind::{FORMAT, FileRule, Kind, KindRegistry, KindStatus, PERSONAL_DATA_FIELDS, SCHEMA_VERSIONS};
+pub use layout::{
+    Carrier, CarrierKind, CarrierParams, CarrierRef, DuctParams, Enclosure, LayoutSpace, MountingSurface,
+    Placement, RailParams, SurfaceKind,
+};
 pub use library::{
     Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim, Arrangement, CableCore, CategoryKey,
     CirclePrim, ClampKey, ClampType, Clearance, Colour, Confidence, Configured, ConfiguredComponent,

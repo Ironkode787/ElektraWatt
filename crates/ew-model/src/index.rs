@@ -15,8 +15,8 @@ use std::ops::{RangeBounds, RangeInclusive};
 
 use ew_ids::Id;
 use ew_schema::{
-    AnyId, Bond, Conductor, Connection, Device, Endpoint, Function, Junction, Kind, Page, PageItem,
-    PotentialDef, Representation, Section, StructureBox, StructureNode,
+    AnyId, Bond, Carrier, Conductor, Connection, Device, Endpoint, Function, Junction, Kind, MountingSurface,
+    Page, PageItem, Placement, PotentialDef, Representation, Section, StructureBox, StructureNode,
 };
 use imbl::{OrdMap, OrdSet};
 
@@ -244,6 +244,9 @@ pub struct BaseIndexes {
     pub(crate) bonds_by_endpoint: RevIndex<EndpointKey, Id<Bond>>,
     pub(crate) page_items_by_page: RevIndex<Id<Page>, Id<PageItem>>,
     pub(crate) structure_boxes_by_page: RevIndex<Id<Page>, Id<StructureBox>>,
+    pub(crate) placements_by_device: RevIndex<Id<Device>, Id<Placement>>,
+    pub(crate) placements_by_carrier: RevIndex<Id<Carrier>, Id<Placement>>,
+    pub(crate) carriers_by_surface: RevIndex<Id<MountingSurface>, Id<Carrier>>,
     pub(crate) referrers: RevIndex<AnyKey, (LinkId, AnyId)>,
 }
 
@@ -416,6 +419,28 @@ impl BaseIndexes {
     }
 
     raw_read! {
+        /// `Placement.device` → placements.
+        fn placements_by_device(&self) -> &RevIndex<Id<Device>, Id<Placement>> {
+            &self.placements_by_device
+        }
+    }
+
+    raw_read! {
+        /// `Placement.carrier` (a carrier) → placements; placements on a surface itself are in the generic
+        /// referrer index.
+        fn placements_by_carrier(&self) -> &RevIndex<Id<Carrier>, Id<Placement>> {
+            &self.placements_by_carrier
+        }
+    }
+
+    raw_read! {
+        /// `Carrier.surface` → carriers.
+        fn carriers_by_surface(&self) -> &RevIndex<Id<MountingSurface>, Id<Carrier>> {
+            &self.carriers_by_surface
+        }
+    }
+
+    raw_read! {
         /// The generic referrer index of every link without a named index: target key →
         /// `(link position in LINKS, referrer ID)`.
         fn referrers(&self) -> &RevIndex<AnyKey, (LinkId, AnyId)> {
@@ -478,6 +503,9 @@ impl BaseIndexes {
             bonds_by_endpoint,
             page_items_by_page,
             structure_boxes_by_page,
+            placements_by_device,
+            placements_by_carrier,
+            carriers_by_surface,
             referrers,
         );
         None
@@ -629,6 +657,33 @@ impl BaseIndexes {
                         rev,
                     );
                 }
+                IndexName::PlacementsByDevice => {
+                    put(
+                        &mut self.placements_by_device,
+                        key.id().cast(),
+                        src.cast(),
+                        insert,
+                        rev,
+                    );
+                }
+                IndexName::PlacementsByCarrier => {
+                    put(
+                        &mut self.placements_by_carrier,
+                        key.id().cast(),
+                        src.cast(),
+                        insert,
+                        rev,
+                    );
+                }
+                IndexName::CarriersBySurface => {
+                    put(
+                        &mut self.carriers_by_surface,
+                        key.id().cast(),
+                        src.cast(),
+                        insert,
+                        rev,
+                    );
+                }
             },
             IxEntry::Referrer(target, link, src) => {
                 put(&mut self.referrers, target, (link, src), insert, rev)
@@ -682,6 +737,9 @@ impl BaseIndexes {
             Some(IndexName::BondsByEndpoint) => eps(&self.bonds_by_endpoint, target),
             Some(IndexName::PageItemsByPage) => ids(&self.page_items_by_page, &t.cast()),
             Some(IndexName::StructureBoxesByPage) => ids(&self.structure_boxes_by_page, &t.cast()),
+            Some(IndexName::PlacementsByDevice) => ids(&self.placements_by_device, &t.cast()),
+            Some(IndexName::PlacementsByCarrier) => ids(&self.placements_by_carrier, &t.cast()),
+            Some(IndexName::CarriersBySurface) => ids(&self.carriers_by_surface, &t.cast()),
         }
     }
 }

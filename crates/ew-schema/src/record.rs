@@ -15,9 +15,10 @@ use crate::library::{FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufactu
 use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, with_context};
 use crate::value::Endpoint;
 use crate::{
-    Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    LogicalNet, Page, PageItem, PhysicalNet, PlcConfigProject, PotentialDef, Project, ReportBlock,
-    Representation, Revision, SchemaError, Section, StructureBox, StructureNode, Waiver,
+    Bond, Carrier, CarrierRef, Channel, Conductor, Connection, Device, DeviceLink, Enclosure, ExternalRef,
+    Function, ImportLineage, Junction, LayoutSpace, LogicalNet, MountingSurface, Page, PageItem, PhysicalNet,
+    Placement, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, SchemaError,
+    Section, StructureBox, StructureNode, Waiver,
 };
 
 /// `$k` first, then the record's own members in declaration order.
@@ -88,7 +89,15 @@ pub enum AnchorRef {
     PageOfJunction(Id<Junction>),
     /// The page of the interruption point's representation (an IP function without a device).
     PageOfRepresentationOf(Id<Function>),
-    /// The anchor of an unknown kind is unknown; the line stays in the file it was read from.
+    /// The layout space of this enclosure (a mounting surface).
+    SpaceOfEnclosure(Id<Enclosure>),
+    /// The layout space of this surface's enclosure (a carrier, a placement on the surface itself).
+    SpaceOfSurface(Id<MountingSurface>),
+    /// The layout space of this carrier's surface (a placement on a carrier).
+    SpaceOfCarrier(Id<Carrier>),
+    /// The anchor of an unknown kind is unknown; the line stays in the file it was read from. Also the anchor
+    /// of a record whose anchoring reference is a form of a newer format (an endpoint, a placement's carrier),
+    /// which `ew-format` files under the record's own ID.
     Unknown,
 }
 
@@ -165,6 +174,16 @@ pub enum Record {
     ReportBlock(ReportBlock),
     /// `macro_instance` (46).
     MacroInstance(MacroInstance),
+    /// `layout_space` (50).
+    LayoutSpace(LayoutSpace),
+    /// `enclosure` (51).
+    Enclosure(Enclosure),
+    /// `mounting_surface` (52).
+    MountingSurface(MountingSurface),
+    /// `carrier` (53).
+    Carrier(Carrier),
+    /// `placement` (54).
+    Placement(Placement),
     /// `revision` (60).
     Revision(Revision),
     /// `waiver` (61).
@@ -203,6 +222,11 @@ impl Record {
             Record::StructureBox(_) => Kind::StructureBox,
             Record::ReportBlock(_) => Kind::ReportBlock,
             Record::MacroInstance(_) => Kind::MacroInstance,
+            Record::LayoutSpace(_) => Kind::LayoutSpace,
+            Record::Enclosure(_) => Kind::Enclosure,
+            Record::MountingSurface(_) => Kind::MountingSurface,
+            Record::Carrier(_) => Kind::Carrier,
+            Record::Placement(_) => Kind::Placement,
             Record::Revision(_) => Kind::Revision,
             Record::Waiver(_) => Kind::Waiver,
             Record::Unknown(_) => return None,
@@ -243,6 +267,11 @@ impl Record {
             Record::StructureBox(r) => r.id.as_uuid(),
             Record::ReportBlock(r) => r.id.as_uuid(),
             Record::MacroInstance(r) => r.id.as_uuid(),
+            Record::LayoutSpace(r) => r.id.as_uuid(),
+            Record::Enclosure(r) => r.id.as_uuid(),
+            Record::MountingSurface(r) => r.id.as_uuid(),
+            Record::Carrier(r) => r.id.as_uuid(),
+            Record::Placement(r) => r.id.as_uuid(),
             Record::Revision(r) => r.id.as_uuid(),
             Record::Waiver(r) => r.id.as_uuid(),
             Record::Unknown(v) => {
@@ -291,6 +320,15 @@ impl Record {
             Record::ReportBlock(r) => match &r.embedded {
                 Some(e) => AnchorRef::Direct(e.page.as_uuid()),
                 None => AnchorRef::Root,
+            },
+            Record::LayoutSpace(r) => AnchorRef::Direct(r.id.as_uuid()),
+            Record::Enclosure(r) => AnchorRef::Direct(r.space.as_uuid()),
+            Record::MountingSurface(r) => AnchorRef::SpaceOfEnclosure(r.enclosure),
+            Record::Carrier(r) => AnchorRef::SpaceOfSurface(r.surface),
+            Record::Placement(r) => match &r.carrier {
+                CarrierRef::Carrier(c) => AnchorRef::SpaceOfCarrier(*c),
+                CarrierRef::Surface(s) => AnchorRef::SpaceOfSurface(*s),
+                CarrierRef::Unknown(_) => AnchorRef::Unknown,
             },
             Record::Unknown(_) => AnchorRef::Unknown,
         }
@@ -353,6 +391,11 @@ impl Serialize for Record {
             Record::StructureBox(r) => tagged(Kind::StructureBox, r, serializer),
             Record::ReportBlock(r) => tagged(Kind::ReportBlock, r, serializer),
             Record::MacroInstance(r) => tagged(Kind::MacroInstance, r, serializer),
+            Record::LayoutSpace(r) => tagged(Kind::LayoutSpace, r, serializer),
+            Record::Enclosure(r) => tagged(Kind::Enclosure, r, serializer),
+            Record::MountingSurface(r) => tagged(Kind::MountingSurface, r, serializer),
+            Record::Carrier(r) => tagged(Kind::Carrier, r, serializer),
+            Record::Placement(r) => tagged(Kind::Placement, r, serializer),
             Record::Revision(r) => tagged(Kind::Revision, r, serializer),
             Record::Waiver(r) => tagged(Kind::Waiver, r, serializer),
             Record::Unknown(v) => v.serialize(serializer),
@@ -441,6 +484,11 @@ impl Record {
             Kind::StructureBox => Record::StructureBox(typed(kind, map, |r: &StructureBox| r.v)?),
             Kind::ReportBlock => Record::ReportBlock(typed(kind, map, |r: &ReportBlock| r.v)?),
             Kind::MacroInstance => Record::MacroInstance(typed(kind, map, |r: &MacroInstance| r.v)?),
+            Kind::LayoutSpace => Record::LayoutSpace(typed(kind, map, |r: &LayoutSpace| r.v)?),
+            Kind::Enclosure => Record::Enclosure(typed(kind, map, |r: &Enclosure| r.v)?),
+            Kind::MountingSurface => Record::MountingSurface(typed(kind, map, |r: &MountingSurface| r.v)?),
+            Kind::Carrier => Record::Carrier(typed(kind, map, |r: &Carrier| r.v)?),
+            Kind::Placement => Record::Placement(typed(kind, map, |r: &Placement| r.v)?),
             Kind::Revision => Record::Revision(typed(kind, map, |r: &Revision| r.v)?),
             Kind::Waiver => Record::Waiver(typed(kind, map, |r: &Waiver| r.v)?),
             k => return Err(SchemaError::UnknownKind(k.name().into())),

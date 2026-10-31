@@ -102,6 +102,14 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"macro_instance","id":"@MI_PSU","macro":"@MAC_PSU","variant":"A","value_set":"1","values":{"counter":1,"function_text":{"en-GB":"Power supply 1"}},"members":[["@LOCAL_G1","@DEV_G1"],["@LOCAL_F1","@FN_F1"]],"page":"@P102"}"#,
     // import lineage (doc 14 §2.3); its namespace is checked in its own test
     r#"{"$k":"import_lineage","id":"@LIN","importer":"csv","source_name":"tables","anchor":{"fixed":"golden"},"namespace":"@PRJ","last_source_sha256":"@HASH"}"#,
+    // panel layout (doc 03 §16, WP-S4.01 D3): every typed member, and members of later packages kept in `extra`
+    r#"{"$k":"layout_space","id":"@SPACE_JE2416","location":"@LOC_JE2416","name":"+J-E-2416","install":{"wall_behind":true}}"#,
+    r#"{"$k":"enclosure","id":"@ENCL_UC1","space":"@SPACE_JE2416","device":"@DEV_UC1","pose":{"t":[0,0,0],"q":[1000000000,0,0,0]},"install_type":"wall"}"#,
+    r#"{"$k":"mounting_surface","id":"@SURF_PLATE","enclosure":"@ENCL_UC1","kind":"plate","device":"@DEV_PLATE","frame":{"t":[50000000,50000000,0],"q":[1000000000,0,0,0]},"usable":[[0,0],[650000000,0],[650000000,900000000],[0,900000000]],"pe_bond":true,"max_depth":250000000}"#,
+    r#"{"$k":"carrier","id":"@CAR_R1","surface":"@SURF_PLATE","kind":"rail","part":{"copy":"@PART_RAIL"},"path":[[40000000,740000000],[610000000,740000000]],"params":{"rail":{"profile":"ts35x7_5","perforated":true}},"pe_bond":true}"#,
+    r#"{"$k":"carrier","id":"@CAR_D1","surface":"@SURF_PLATE","kind":"duct","path":[[40000000,860000000],[610000000,860000000],[610000000,340000000]],"params":{"duct":{"width":40000000,"height":60000000,"slot_pitch":12500000,"cover":true,"finger_w":6000000}}}"#,
+    r#"{"$k":"placement","id":"@PL_G1","device":"@DEV_G1","function":"@FN_G1","part":{"copy":"@PART_PSU"},"carrier":{"carrier":"@CAR_R1"},"pose":{"t":[96000000,0,0],"q":[0,0,0,1000000000]},"locked":true,"variant":"lying"}"#,
+    r#"{"$k":"placement","id":"@PL_S51","device":"@DEV_S51","carrier":{"surface":"@SURF_PLATE"},"pose":{"t":[300000000,100000000,0],"q":[707106781,0,0,707106781]},"segment":{"from_seq":1,"to_seq":4}}"#,
 ];
 
 /// Golden library documents, one per implemented library kind.

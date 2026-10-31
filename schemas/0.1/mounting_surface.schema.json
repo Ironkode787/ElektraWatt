@@ -1,0 +1,165 @@
+{
+  "$defs": {
+    "Pose3": {
+      "additionalProperties": false,
+      "description": "A pose (doc 05 §3.2): translation t = [x, y, z] in nanometres and rotation q = [w, x, y, z], a unit quaternion in 10^-9. JSON Schema cannot express that q is unit (within 2.001 x 10^9 of 10^18 squared) and sign-normalised (w > 0, or the first non-zero component positive); the reader rejects both.",
+      "properties": {
+        "q": {
+          "items": false,
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        },
+        "t": {
+          "items": false,
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        }
+      },
+      "required": [
+        "t",
+        "q"
+      ],
+      "type": "object"
+    },
+    "SurfaceKind": {
+      "description": "The kind of a mounting surface (doc 03 §16). Format 0.1 types the mounting plate; door, side, roof, floor and\ngland surfaces are kept verbatim as [`SurfaceKind::Unknown`] until their packages type them.",
+      "oneOf": [
+        {
+          "const": "plate",
+          "description": "The mounting plate.",
+          "type": "string"
+        }
+      ]
+    },
+    "SurfacePt2": {
+      "description": "A point [u, v] in nanometres in the frame of a mounting surface, u to the right, v up (doc 03 §16): not a sheet point.",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "A mounting surface of an enclosure (doc 03 §16, rank 52, the layout file of its enclosure's space): the plane\ncarriers and placements sit on. A 2D layout page is a view of one surface (FR-LAY-010). At the MVP an enclosure\nholds at most one `plate` surface (WP-S4.01 D3).",
+  "properties": {
+    "$k": {
+      "const": "mounting_surface",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "device": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The device of a separate surface part (the mounting plate NSYPMM107, a child of the enclosure's device);\ndeleting that device clears the member (delete policy unlink)."
+    },
+    "enclosure": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The enclosure (delete policy cascade)."
+    },
+    "frame": {
+      "$ref": "#/$defs/Pose3",
+      "description": "The surface frame in the enclosure: `u`, `v` in the plane, `w` outward."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "kind": {
+      "$ref": "#/$defs/SurfaceKind",
+      "description": "The kind of surface."
+    },
+    "pe_bond": {
+      "description": "Whether the surface is bonded to PE (FR-LAY-058).",
+      "type": "boolean"
+    },
+    "usable": {
+      "description": "The usable polygon in the surface frame; empty: none recorded.",
+      "items": {
+        "$ref": "#/$defs/SurfacePt2"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "enclosure",
+    "kind",
+    "frame"
+  ],
+  "title": "mounting_surface",
+  "type": "object"
+}

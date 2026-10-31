@@ -221,41 +221,41 @@
       "file": "layout/<space>.jsonl",
       "kind": "layout_space",
       "rank": 50,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "layout_space.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "layout/<space>.jsonl",
       "kind": "enclosure",
       "rank": 51,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "enclosure.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "layout/<space>.jsonl",
       "kind": "mounting_surface",
       "rank": 52,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "mounting_surface.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "layout/<space>.jsonl",
       "kind": "carrier",
       "rank": 53,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "carrier.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "layout/<space>.jsonl",
       "kind": "placement",
       "rank": 54,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "placement.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "layout/<space>.jsonl",

@@ -8,10 +8,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_schema::{
-    Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, FunctionKind,
-    ImportLineage, Junction, Kind, KindRegistry, LibDocument, LogicalNet, MacroInstance, Page, PageItem,
-    PhysicalNet, PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation, Revision,
-    Section, StructureBox, StructureNode, Waiver,
+    Bond, Carrier, Channel, Conductor, Connection, Device, DeviceLink, Enclosure, ExternalRef, Function,
+    FunctionKind, ImportLineage, Junction, Kind, KindRegistry, LayoutSpace, LibDocument, LogicalNet,
+    MacroInstance, MountingSurface, Page, PageItem, PhysicalNet, Placement, PlcConfigProject, PotentialDef,
+    Project, Record, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode, Waiver,
 };
 
 use crate::asset::Asset;
@@ -56,6 +56,11 @@ pub struct Model {
     pub(crate) structure_boxes: Table<StructureBox>,
     pub(crate) report_blocks: Table<ReportBlock>,
     pub(crate) macro_instances: Table<MacroInstance>,
+    pub(crate) layout_spaces: Table<LayoutSpace>,
+    pub(crate) enclosures: Table<Enclosure>,
+    pub(crate) mounting_surfaces: Table<MountingSurface>,
+    pub(crate) carriers: Table<Carrier>,
+    pub(crate) placements: Table<Placement>,
     pub(crate) revisions: Table<Revision>,
     pub(crate) waivers: Table<Waiver>,
     pub(crate) lib: LibraryCopies,
@@ -97,6 +102,11 @@ impl Model {
             structure_boxes: Table::default(),
             report_blocks: Table::default(),
             macro_instances: Table::default(),
+            layout_spaces: Table::default(),
+            enclosures: Table::default(),
+            mounting_surfaces: Table::default(),
+            carriers: Table::default(),
+            placements: Table::default(),
             revisions: Table::default(),
             waivers: Table::default(),
             lib: LibraryCopies::default(),
@@ -154,6 +164,11 @@ impl Model {
                 Record::StructureBox(r) => Some(AnyRow::of(r)),
                 Record::ReportBlock(r) => Some(AnyRow::of(r)),
                 Record::MacroInstance(r) => Some(AnyRow::of(r)),
+                Record::LayoutSpace(r) => Some(AnyRow::of(r)),
+                Record::Enclosure(r) => Some(AnyRow::of(r)),
+                Record::MountingSurface(r) => Some(AnyRow::of(r)),
+                Record::Carrier(r) => Some(AnyRow::of(r)),
+                Record::Placement(r) => Some(AnyRow::of(r)),
                 Record::Revision(r) => Some(AnyRow::of(r)),
                 Record::Waiver(r) => Some(AnyRow::of(r)),
                 other => {

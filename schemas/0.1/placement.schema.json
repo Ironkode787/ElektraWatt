@@ -1,0 +1,202 @@
+{
+  "$defs": {
+    "CarrierRef": {
+      "description": "What a placement sits on (doc 12 §2.3 `CarrierRef`): `{\"carrier\": id}` or `{\"surface\": id}`. Piggy-back\nmounting on another placement (1.0) is kept verbatim as [`CarrierRef::Unknown`].",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A rail or duct.",
+          "properties": {
+            "carrier": {
+              "$ref": "#/$defs/Uuid"
+            }
+          },
+          "required": [
+            "carrier"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The mounting surface itself.",
+          "properties": {
+            "surface": {
+              "$ref": "#/$defs/Uuid"
+            }
+          },
+          "required": [
+            "surface"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "PartRef": {
+      "additionalProperties": true,
+      "description": "A part on a device (doc 03 §7): the embedded copy and an optional part variant (FR-PRT-003).",
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The copy ID of the embedded part, `v5(NS_LIBCOPY, library ‖ item)`."
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A variant key of the part."
+        }
+      },
+      "required": [
+        "copy"
+      ],
+      "type": "object"
+    },
+    "Pose3": {
+      "additionalProperties": false,
+      "description": "A pose (doc 05 §3.2): translation t = [x, y, z] in nanometres and rotation q = [w, x, y, z], a unit quaternion in 10^-9. JSON Schema cannot express that q is unit (within 2.001 x 10^9 of 10^18 squared) and sign-normalised (w > 0, or the first non-zero component positive); the reader rejects both.",
+      "properties": {
+        "q": {
+          "items": false,
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        },
+        "t": {
+          "items": false,
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        }
+      },
+      "required": [
+        "t",
+        "q"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "A placement (doc 03 §16 `Placement3D`, doc 12 §2.3, rank 54, the layout file of its carrier's space): a device,\nor one of its functions, on a carrier at a pose relative to the carrier.\n\nIt stores no tag text (labels are `layout_label(placement)`, D-02) and no geometry: the footprint comes from the\npart. A placement cannot outlive its device (delete policy cascade, EW-LAY-002) and keeps its carrier (forbid).",
+  "properties": {
+    "$k": {
+      "const": "placement",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "carrier": {
+      "$ref": "#/$defs/CarrierRef",
+      "description": "The carrier or surface it sits on (delete policy forbid)."
+    },
+    "device": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The placed device (delete policy cascade)."
+    },
+    "function": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "One function placed on its own (a door handle); absent: the whole device (delete policy cascade)."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "locked": {
+      "description": "Excluded from push, swap and auto-fill (FR-LAY-006).",
+      "type": "boolean"
+    },
+    "part": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PartRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The part use of the device this placement realises; absent: the primary mountable part. `layout.place`\nalways writes it (WP-S4.01 D6); no delete policy: a placement whose part use left the device is reported\nby EW-LAY-003, never changed silently."
+    },
+    "pose": {
+      "$ref": "#/$defs/Pose3",
+      "description": "The pose relative to the carrier: on a rail `t = (s, 0, 0)` with `q` identity or 180° about `w`; on a\nsurface `t = (u, v, 0)` rotated by k·90° about `w` (WP-S4.01 D5)."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "device",
+    "carrier",
+    "pose"
+  ],
+  "title": "placement",
+  "type": "object"
+}

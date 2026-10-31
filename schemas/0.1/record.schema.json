@@ -72,6 +72,21 @@
       "$ref": "macro_instance.schema.json"
     },
     {
+      "$ref": "layout_space.schema.json"
+    },
+    {
+      "$ref": "enclosure.schema.json"
+    },
+    {
+      "$ref": "mounting_surface.schema.json"
+    },
+    {
+      "$ref": "carrier.schema.json"
+    },
+    {
+      "$ref": "placement.schema.json"
+    },
+    {
       "$ref": "revision.schema.json"
     },
     {

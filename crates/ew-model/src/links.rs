@@ -54,7 +54,9 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_schema::{AnyId, ConnectionKind, Endpoint, FunctionKind, Kind, LibRef, PageItemKind, Slot, SourceRef};
+use ew_schema::{
+    AnyId, CarrierRef, ConnectionKind, Endpoint, FunctionKind, Kind, LibRef, PageItemKind, Slot, SourceRef,
+};
 
 use crate::entity::{AnyKey, AnyRow};
 
@@ -106,6 +108,13 @@ pub enum IndexName {
     PageItemsByPage,
     /// `StructureBox.page` → structure boxes.
     StructureBoxesByPage,
+    /// `Placement.device` → placements (WP-S4.01).
+    PlacementsByDevice,
+    /// `Placement.carrier` (a carrier) → placements; a placement on the surface itself is found through the
+    /// generic referrer index (WP-S4.01).
+    PlacementsByCarrier,
+    /// `Carrier.surface` → carriers (WP-S4.01).
+    CarriersBySurface,
 }
 
 /// One link occurrence in a record: the target ID, and for a CP endpoint the CP index.
@@ -753,6 +762,37 @@ pub static LINKS: &[LinkDecl] = &[
     link!(MacroInstance."macro" -> Macro, Forbid, None, |v, out| id(v.macro_copy, out)),
     MACRO_MEMBERS_LINK,
     link!(MacroInstance."page" -> Page, Cascade, None, |v, out| id(v.page, out)),
+    // layout (WP-S4.01 D4; doc 03 §16): the containment chain space ← enclosure ← surface ← carrier cascades; a
+    // placement cannot outlive its device or function (EW-LAY-002) and keeps its carrier, so an occupied carrier
+    // leaves only through `layout.carrier.delete` (doc 12 §3.6); an enclosure keeps its device; a separate surface
+    // part's device may go (the surface stays without one); `placement.part` is not a link (NOT_LINKS)
+    link!(LayoutSpace."location" -> StructureNode, Forbid, None, |v, out| id(v.location, out)),
+    link!(Enclosure."space" -> LayoutSpace, Cascade, None, |v, out| id(v.space, out)),
+    link!(Enclosure."device" -> Device, Forbid, None, |v, out| id(v.device, out)),
+    link!(MountingSurface."enclosure" -> Enclosure, Cascade, None, |v, out| id(v.enclosure, out)),
+    link!(MountingSurface."device" -> Device, Unlink, None, |v, out| opt(v.device, out),
+    Some(|row, del| {
+        let AnyRow::MountingSurface(s) = row else { return Some(row.clone()) };
+        let mut s = (**s).clone();
+        if s.device.is_some_and(|d| gone(del, Kind::Device, d)) {
+            s.device = None;
+        }
+        Some(AnyRow::MountingSurface(Arc::new(s)))
+    })),
+    link!(Carrier."surface" -> MountingSurface, Cascade, Some(I::CarriersBySurface), |v, out| id(v.surface, out)),
+    link!(Carrier."part.copy" -> Part, Forbid, None, |v, out| opt(v.part.as_ref().map(|p| p.copy), out)),
+    link!(Placement."device" -> Device, Cascade, Some(I::PlacementsByDevice), |v, out| id(v.device, out)),
+    link!(Placement."function" -> Function, Cascade, None, |v, out| opt(v.function, out)),
+    link!(Placement."carrier.carrier" -> Carrier, Forbid, Some(I::PlacementsByCarrier), |v, out| {
+        if let CarrierRef::Carrier(c) = v.carrier {
+            id(c, out);
+        }
+    }),
+    link!(Placement."carrier.surface" -> MountingSurface, Forbid, None, |v, out| {
+        if let CarrierRef::Surface(s) = v.carrier {
+            id(s, out);
+        }
+    }),
     // revision (`page_notes[].page` is not a link: NOT_LINKS)
     link!(Revision."withdraws" -> Revision, Forbid, None, |v, out| opt(v.withdraws, out)),
     lineage_link!(Revision),
@@ -1017,6 +1057,11 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
         "macro_instance",
         "members[][0]",
         "the fragment-local ID of a member in the macro's fragment; the created record is `members[][1]` (WP-S1.19 D13)",
+    ),
+    (
+        "placement",
+        "part.copy",
+        "the part use a placement realises (WP-S4.01 D4: no delete policy): a placement whose part use left its          device keeps naming the copy, which EW-LAY-003 reports and `part.assign` replace follows (D7); the copy          itself is kept alive by the device's part uses, never by the placement",
     ),
     (
         "project",

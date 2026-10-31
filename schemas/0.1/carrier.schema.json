@@ -1,0 +1,277 @@
+{
+  "$defs": {
+    "CarrierKind": {
+      "description": "The kind of a carrier (doc 03 §16). Format 0.1 types rails and ducts; busbar systems and the surface itself are\nkept verbatim as [`CarrierKind::Unknown`].",
+      "oneOf": [
+        {
+          "const": "rail",
+          "description": "A mounting (DIN) rail.",
+          "type": "string"
+        },
+        {
+          "const": "duct",
+          "description": "A wiring duct.",
+          "type": "string"
+        }
+      ]
+    },
+    "CarrierParams": {
+      "description": "The parameters of a carrier (doc 12 §2.4), tagged by the kind: `{\"rail\": {…}}` or `{\"duct\": {…}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A rail's parameters.",
+          "properties": {
+            "rail": {
+              "$ref": "#/$defs/RailParams"
+            }
+          },
+          "required": [
+            "rail"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A duct's parameters.",
+          "properties": {
+            "duct": {
+              "$ref": "#/$defs/DuctParams"
+            }
+          },
+          "required": [
+            "duct"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "DuctParams": {
+      "additionalProperties": true,
+      "description": "A duct's parameters (doc 12 §2.4): the nominal size, from which the label \"W×H\" (\"40×60\") is generated.",
+      "properties": {
+        "cover": {
+          "description": "Whether the duct has its cover; absent: not recorded.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "height": {
+          "$ref": "#/$defs/Nm",
+          "description": "The height out of the plate."
+        },
+        "slot_pitch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The slot pitch; absent: from the part."
+        },
+        "width": {
+          "$ref": "#/$defs/Nm",
+          "description": "The width across the duct."
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "type": "object"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "MountKind": {
+      "description": "How a part mounts (doc 12 §2.5); also the profile of a rail section.",
+      "oneOf": [
+        {
+          "const": "ts35x7_5",
+          "description": "Top-hat rail 35 × 7.5 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts35x15",
+          "description": "Top-hat rail 35 × 15 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts32",
+          "description": "G rail 32 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts15",
+          "description": "Miniature top-hat rail 15 mm.",
+          "type": "string"
+        },
+        {
+          "const": "screw",
+          "description": "Screwed to the mounting surface.",
+          "type": "string"
+        },
+        {
+          "const": "busbar_adapter",
+          "description": "On a busbar adapter.",
+          "type": "string"
+        },
+        {
+          "const": "door_cutout",
+          "description": "In a door cut-out.",
+          "type": "string"
+        },
+        {
+          "const": "on_parent",
+          "description": "On its parent device.",
+          "type": "string"
+        },
+        {
+          "const": "none",
+          "description": "Not mounted.",
+          "type": "string"
+        }
+      ]
+    },
+    "Nm": {
+      "description": "A length in nanometres (doc 05 §3.2). Written without fraction or exponent; JSON Schema cannot tell 5 from 5.0, the reader rejects the latter.",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
+    "PartRef": {
+      "additionalProperties": true,
+      "description": "A part on a device (doc 03 §7): the embedded copy and an optional part variant (FR-PRT-003).",
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The copy ID of the embedded part, `v5(NS_LIBCOPY, library ‖ item)`."
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A variant key of the part."
+        }
+      },
+      "required": [
+        "copy"
+      ],
+      "type": "object"
+    },
+    "RailParams": {
+      "additionalProperties": true,
+      "description": "A rail's parameters (doc 12 §2.4).",
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/MountKind",
+          "description": "The rail profile (TS 35×7.5); the mount kinds that fit it are a table in `ew-derive` (doc 12 §3.3)."
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "type": "object"
+    },
+    "SurfacePt2": {
+      "description": "A point [u, v] in nanometres in the frame of a mounting surface, u to the right, v up (doc 03 §16): not a sheet point.",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "A carrier on a mounting surface (doc 03 §16, rank 53, the layout file of its surface's space): a DIN rail or a\nwiring duct. Its placements' poses are relative to it, so moving a rail moves its devices.\n\nAt the MVP carriers are axis-parallel (WP-S4.01 D5): a rail's `path` is two points on one horizontal or vertical\nline, a duct's an orthogonal polyline; the commands refuse other angles.",
+  "properties": {
+    "$k": {
+      "const": "carrier",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "kind": {
+      "$ref": "#/$defs/CarrierKind",
+      "description": "The kind of carrier."
+    },
+    "params": {
+      "$ref": "#/$defs/CarrierParams",
+      "description": "The kind's parameters (doc 12 §2.4)."
+    },
+    "part": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PartRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The layout-only part, counted in the BOM by length (FR-LAY-008); its copy cannot be deleted while used."
+    },
+    "path": {
+      "description": "The path in the surface frame: a rail's start and end, a duct's centreline vertices.",
+      "items": {
+        "$ref": "#/$defs/SurfacePt2"
+      },
+      "type": "array"
+    },
+    "pe_bond": {
+      "description": "Whether the carrier is bonded to PE (FR-LAY-058).",
+      "type": "boolean"
+    },
+    "surface": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The mounting surface (delete policy cascade; changing it moves the carrier and its placements to that\nsurface's layout file)."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "surface",
+    "kind",
+    "params"
+  ],
+  "title": "carrier",
+  "type": "object"
+}

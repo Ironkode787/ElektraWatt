@@ -119,6 +119,15 @@ pub const IDS: &[(&str, &str)] = &[
     ("ITEM_PLATE", "843750bf-2237-5015-81b9-0015bc5d5cb5"),
     ("ITEM_CONF", "f8c75342-e741-51e8-9e62-7bc013f6335a"),
     ("BASIC_PRJ", "781ff53b-1ef9-5e60-8039-599db740d3b0"),
+    ("SPACE_JE2416", "4f1c8a27-6d93-5b05-8e2a-c7d0b9f3a164"),
+    ("ENCL_UC1", "a92e5d10-3b7c-5f48-9d61-0e4f8c2a7b35"),
+    ("SURF_PLATE", "17d4b3e8-c05a-5926-8b7f-e2a9d0c6f143"),
+    ("CAR_R1", "c3a0f6e2-58d1-5b74-a9e0-4d7b1c8f2e96"),
+    ("CAR_D1", "6e8b2d95-0f43-5a17-bc26-91f3e0a7d458"),
+    ("PL_G1", "d0f7a3c9-2e64-5185-8a3b-5c9e1f0d7a26"),
+    ("PL_S51", "28c5e1b7-9a0d-5f63-b4e8-0d2a7f3c9e51"),
+    ("DEV_UC1", "93e0b4a6-1c7f-5d28-a5e9-8b3d6f0c1a72"),
+    ("DEV_PLATE", "5b7d0e3a-8f26-5c91-9d4b-a1e6c2f08b37"),
 ];
 
 /// A fixed SHA-256 for library-copy fixtures.

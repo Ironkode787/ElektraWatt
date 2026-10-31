@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "One cabinet or bayed suite (doc 03 §16, rank 50, `layout/<own id>.jsonl`; FR-LAY-001): the anchor of every\nother layout record. At the MVP a location holds at most one layout space (WP-S4.01 D3, refused by\n`layout.space.create`, reported by EW-LAY-010 on loaded data).",
+  "properties": {
+    "$k": {
+      "const": "layout_space",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID; it names the layout file."
+    },
+    "location": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The location structure node the space lays out (+J-E-2416); deleting the node is refused while the space\nexists (delete policy forbid)."
+    },
+    "name": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The display name; absent: none was given (the views show the location)."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "location"
+  ],
+  "title": "layout_space",
+  "type": "object"
+}

@@ -121,6 +121,60 @@ proxy!(
 );
 
 proxy!(
+    /// A `Pt2` in the frame of a mounting surface (doc 03 §16): `[u, v]` in nanometres, `v` up.
+    SurfacePt2S,
+    "SurfacePt2",
+    {
+        "type": "array",
+        "prefixItems": [
+            {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER},
+            {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER}
+        ],
+        "items": false,
+        "minItems": 2,
+        "maxItems": 2,
+        "description": "A point [u, v] in nanometres in the frame of a mounting surface, u to the right, v up (doc 03 §16): not a sheet point."
+    }
+);
+
+proxy!(
+    /// `Pose3`: `{"t": [x, y, z], "q": [w, x, y, z]}`, translation in nanometres, rotation in 10⁻⁹.
+    Pose3S,
+    "Pose3",
+    {
+        "type": "object",
+        "properties": {
+            "t": {
+                "type": "array",
+                "prefixItems": [
+                    {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER},
+                    {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER},
+                    {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER}
+                ],
+                "items": false,
+                "minItems": 3,
+                "maxItems": 3
+            },
+            "q": {
+                "type": "array",
+                "prefixItems": [
+                    {"type": "integer", "minimum": -2000000000, "maximum": 2000000000},
+                    {"type": "integer", "minimum": -2000000000, "maximum": 2000000000},
+                    {"type": "integer", "minimum": -2000000000, "maximum": 2000000000},
+                    {"type": "integer", "minimum": -2000000000, "maximum": 2000000000}
+                ],
+                "items": false,
+                "minItems": 4,
+                "maxItems": 4
+            }
+        },
+        "required": ["t", "q"],
+        "additionalProperties": false,
+        "description": "A pose (doc 05 §3.2): translation t = [x, y, z] in nanometres and rotation q = [w, x, y, z], a unit quaternion in 10^-9. JSON Schema cannot express that q is unit (within 2.001 x 10^9 of 10^18 squared) and sign-normalised (w > 0, or the first non-zero component positive); the reader rejects both."
+    }
+);
+
+proxy!(
     /// `Grid`: a reduced rational step in nanometres.
     GridS,
     "Grid",

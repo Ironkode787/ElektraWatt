@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "Pose3": {
+      "additionalProperties": false,
+      "description": "A pose (doc 05 §3.2): translation t = [x, y, z] in nanometres and rotation q = [w, x, y, z], a unit quaternion in 10^-9. JSON Schema cannot express that q is unit (within 2.001 x 10^9 of 10^18 squared) and sign-normalised (w > 0, or the first non-zero component positive); the reader rejects both.",
+      "properties": {
+        "q": {
+          "items": false,
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        },
+        "t": {
+          "items": false,
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        }
+      },
+      "required": [
+        "t",
+        "q"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "An enclosure (doc 03 §16, rank 51, the layout file of its space): the cabinet body, tagged by its device, which\ncarries the enclosure part (-UC1, NSYPLA1074G), so the part reaches the BOM by the one path (ADR-0006). At the\nMVP a space holds at most one enclosure (WP-S4.01 D3).",
+  "properties": {
+    "$k": {
+      "const": "enclosure",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "device": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The device that carries the enclosure part (delete policy forbid: the device cannot vanish under its\nenclosure)."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "pose": {
+      "$ref": "#/$defs/Pose3",
+      "description": "The pose in the space: origin at the bottom-left-rear outside corner, x right, y up, z towards the door."
+    },
+    "space": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The layout space (delete policy cascade)."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "space",
+    "device",
+    "pose"
+  ],
+  "title": "enclosure",
+  "type": "object"
+}

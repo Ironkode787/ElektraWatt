@@ -10,10 +10,11 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    AnyId, Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, FnDef, FormDef, Function,
-    ImportLineage, Junction, Kind, LibCopy, LogicalNet, MacroDef, MacroInstance, Manufacturer, Page,
-    PageItem, Part, PhysicalNet, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation,
-    Revision, Section, StructureBox, StructureNode, SymbolDef, Waiver,
+    AnyId, Bond, Carrier, Channel, Conductor, Connection, Device, DeviceLink, Enclosure, ExternalRef, FnDef,
+    FormDef, Function, ImportLineage, Junction, Kind, LayoutSpace, LibCopy, LogicalNet, MacroDef,
+    MacroInstance, Manufacturer, MountingSurface, Page, PageItem, Part, PhysicalNet, Placement,
+    PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section, StructureBox,
+    StructureNode, SymbolDef, Waiver,
 };
 
 use crate::diff::Presence;
@@ -275,6 +276,11 @@ entities! {
     StructureBox: StructureBox, StructureBox, structure_boxes;
     ReportBlock: ReportBlock, ReportBlock, report_blocks;
     MacroInstance: MacroInstance, MacroInstance, macro_instances;
+    LayoutSpace: LayoutSpace, LayoutSpace, layout_spaces;
+    Enclosure: Enclosure, Enclosure, enclosures;
+    MountingSurface: MountingSurface, MountingSurface, mounting_surfaces;
+    Carrier: Carrier, Carrier, carriers;
+    Placement: Placement, Placement, placements;
     Revision: Revision, Revision, revisions;
     Waiver: Waiver, Waiver, waivers;
     Part: LibCopy<Part>, Part, lib.parts;

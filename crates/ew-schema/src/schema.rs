@@ -15,9 +15,10 @@ use serde_json::{Map, Value, json};
 use crate::kind::{FORMAT, Kind, KindStatus};
 use crate::library::{FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, SymbolDef};
 use crate::{
-    Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
-    LogicalNet, Page, PageItem, PhysicalNet, PlcConfigProject, PotentialDef, Project, ReportBlock,
-    Representation, Revision, Section, StructureBox, StructureNode, Waiver,
+    Bond, Carrier, Channel, Conductor, Connection, Device, DeviceLink, Enclosure, ExternalRef, Function,
+    ImportLineage, Junction, LayoutSpace, LogicalNet, MountingSurface, Page, PageItem, PhysicalNet,
+    Placement, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision, Section,
+    StructureBox, StructureNode, Waiver,
 };
 
 /// The schema of `T`, titled and tagged as `kind`.
@@ -78,6 +79,11 @@ pub fn kind_schema(kind: Kind) -> Option<Value> {
         Kind::StructureBox => generate::<StructureBox>(kind),
         Kind::ReportBlock => generate::<ReportBlock>(kind),
         Kind::MacroInstance => generate::<MacroInstance>(kind),
+        Kind::LayoutSpace => generate::<LayoutSpace>(kind),
+        Kind::Enclosure => generate::<Enclosure>(kind),
+        Kind::MountingSurface => generate::<MountingSurface>(kind),
+        Kind::Carrier => generate::<Carrier>(kind),
+        Kind::Placement => generate::<Placement>(kind),
         Kind::Revision => generate::<Revision>(kind),
         Kind::Waiver => generate::<Waiver>(kind),
         Kind::Part => generate::<LibCopy<Part>>(kind),

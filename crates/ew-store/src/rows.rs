@@ -8,7 +8,9 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use ew_format::ew_schema::{AnyId, Function, Junction, Kind, LibDocument, Record, Representation};
+use ew_format::ew_schema::{
+    AnyId, Carrier, Enclosure, Function, Junction, Kind, LibDocument, MountingSurface, Record, Representation,
+};
 use ew_format::{
     Anchors, FilePath, FormatError, LineKey, lib_dir, record_file, tagged_document, tagged_line,
 };
@@ -111,6 +113,26 @@ macro_rules! with_row {
                 let $kind = Kind::MacroInstance;
                 $body
             }
+            AnyRow::LayoutSpace($r) => {
+                let $kind = Kind::LayoutSpace;
+                $body
+            }
+            AnyRow::Enclosure($r) => {
+                let $kind = Kind::Enclosure;
+                $body
+            }
+            AnyRow::MountingSurface($r) => {
+                let $kind = Kind::MountingSurface;
+                $body
+            }
+            AnyRow::Carrier($r) => {
+                let $kind = Kind::Carrier;
+                $body
+            }
+            AnyRow::Placement($r) => {
+                let $kind = Kind::Placement;
+                $body
+            }
             AnyRow::Revision($r) => {
                 let $kind = Kind::Revision;
                 $body
@@ -173,6 +195,11 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
         AnyRow::StructureBox(r) => Record::StructureBox((**r).clone()),
         AnyRow::ReportBlock(r) => Record::ReportBlock((**r).clone()),
         AnyRow::MacroInstance(r) => Record::MacroInstance((**r).clone()),
+        AnyRow::LayoutSpace(r) => Record::LayoutSpace((**r).clone()),
+        AnyRow::Enclosure(r) => Record::Enclosure((**r).clone()),
+        AnyRow::MountingSurface(r) => Record::MountingSurface((**r).clone()),
+        AnyRow::Carrier(r) => Record::Carrier((**r).clone()),
+        AnyRow::Placement(r) => Record::Placement((**r).clone()),
         AnyRow::Revision(r) => Record::Revision((**r).clone()),
         AnyRow::Waiver(r) => Record::Waiver((**r).clone()),
         AnyRow::Part(_)
@@ -210,6 +237,11 @@ pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
         Record::StructureBox(r) => AnyRow::of(r),
         Record::ReportBlock(r) => AnyRow::of(r),
         Record::MacroInstance(r) => AnyRow::of(r),
+        Record::LayoutSpace(r) => AnyRow::of(r),
+        Record::Enclosure(r) => AnyRow::of(r),
+        Record::MountingSurface(r) => AnyRow::of(r),
+        Record::Carrier(r) => AnyRow::of(r),
+        Record::Placement(r) => AnyRow::of(r),
         Record::Revision(r) => AnyRow::of(r),
         Record::Waiver(r) => AnyRow::of(r),
         Record::Unknown(_) => return None,
@@ -296,6 +328,21 @@ impl Anchors for ModelAnchors<'_> {
             .and_then(|rep| reps.get(&rep.cast()))
             .map(|r| r.page.cast())
     }
+
+    fn carrier_surface(&self, c: AnyId) -> Option<AnyId> {
+        self.0.table::<Carrier>().get(&c.cast()).map(|r| r.surface.cast())
+    }
+
+    fn surface_enclosure(&self, s: AnyId) -> Option<AnyId> {
+        self.0
+            .table::<MountingSurface>()
+            .get(&s.cast())
+            .map(|r| r.enclosure.cast())
+    }
+
+    fn enclosure_space(&self, e: AnyId) -> Option<AnyId> {
+        self.0.table::<Enclosure>().get(&e.cast()).map(|r| r.space.cast())
+    }
 }
 
 /// The file a row of `model` lives in (doc 05 §2.2), `None` when the key has no row.
@@ -330,7 +377,9 @@ pub(crate) fn all_keys(model: &Model) -> BTreeSet<AnyKey> {
 /// - a function's device decides the file of page-less connections, definitions and bonds at its CPs
 ///   (and an interruption-point function's file decides theirs);
 /// - a representation's page decides the file of the interruption-point functions it represents;
-/// - a junction's page decides the file of page-less connections, definitions and bonds at it.
+/// - a junction's page decides the file of page-less connections, definitions and bonds at it;
+/// - an enclosure's space decides the layout file of its surfaces, a surface's enclosure that of its carriers
+///   and of the placements on the surface itself, and a carrier's surface that of its placements (WP-S4.01).
 pub(crate) fn follow_closure(keys: &BTreeSet<AnyKey>, base: &Model, next: &Model) -> BTreeSet<AnyKey> {
     let mut closure = BTreeSet::new();
     let mut work: Vec<AnyKey> = keys.iter().copied().collect();
@@ -343,6 +392,19 @@ pub(crate) fn follow_closure(keys: &BTreeSet<AnyKey>, base: &Model, next: &Model
                 for model in [base, next] {
                     for (_, src) in model.referrers(&key) {
                         if matches!(src.0, Kind::Connection | Kind::PotentialDef | Kind::Bond)
+                            && !closure.contains(&src)
+                        {
+                            work.push(src);
+                        }
+                    }
+                }
+            }
+            // The layout file follows the space (doc 05 §2.2): a changed enclosure, surface or carrier moves the
+            // records anchored below it, in either snapshot, to the space it reaches now.
+            Kind::Enclosure | Kind::MountingSurface | Kind::Carrier => {
+                for model in [base, next] {
+                    for (_, src) in model.referrers(&key) {
+                        if matches!(src.0, Kind::MountingSurface | Kind::Carrier | Kind::Placement)
                             && !closure.contains(&src)
                         {
                             work.push(src);

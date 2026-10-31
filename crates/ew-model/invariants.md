@@ -139,6 +139,14 @@ those kinds has the ID; the generic referrer index keys it under the nominal `to
 any of the kinds consults it. Its policy is unlink: a deleted member leaves the list and the instance stays, also
 when the list is left empty (it is still the record of the placement). Tests: `macro_links::*`.
 
+**The layout links** (WP-S4.01 D4). The containment chain `layout_space` ← `enclosure` ← `mounting_surface` ←
+`carrier` cascades. A placement cascades with its device and with a function placed on its own, so no state holds a
+placement without its device (EW-LAY-002 is EW-INV-001 over `placement.device`; doc 12 §3.5 "orphan placement"
+never). Its carrier is forbid: deleting an occupied carrier, or a surface, enclosure or space above one, is
+`Referenced`, and only `layout.carrier.delete` with an explicit `then` (remove the placements or rehome them to the
+surface) empties a carrier first (doc 12 §3.6). An enclosure keeps its device; a separate surface part's device may
+be deleted and the surface stays without one. `placement.part` is not a link (D4: none). Tests: `layout_links::*`.
+
 **Reading the model.** The untracked read API (`Model::table`, `row`, `lib`, `indexes`, `referrers`, `delete_plan`
 and the table and index getters) is behind the cargo feature `raw-read` of `ew-model` (ARCH §3 rule 1, ADR-0002
 decision 1). `delete_plan` is part of it because its ops carry the current rows (`before`); `apply_with` and `apply_history`
@@ -222,6 +230,17 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | macro_instance.macro | macro | forbid | referrers |
 | macro_instance.members[][1] | any of `MACRO_MEMBER_KINDS` (kind-erased) | unlink (member removed; the instance stays) | referrers |
 | macro_instance.page | page | cascade | referrers |
+| layout_space.location | structure_node | forbid | referrers |
+| enclosure.space | layout_space | cascade | referrers |
+| enclosure.device | device | forbid | referrers |
+| mounting_surface.enclosure | enclosure | cascade | referrers |
+| mounting_surface.device | device | unlink (cleared) | referrers |
+| carrier.surface | mounting_surface | cascade | carriers_by_surface |
+| carrier.part.copy | part | forbid | referrers |
+| placement.device | device | cascade (EW-LAY-002) | placements_by_device |
+| placement.function | function | cascade | referrers |
+| placement.carrier (a carrier) | carrier | forbid (only `layout.carrier.delete` removes an occupied carrier, doc 12 §3.6) | placements_by_carrier |
+| placement.carrier (the surface) | mounting_surface | forbid | referrers |
 | revision.withdraws | revision | forbid | referrers |
 | revision.source_ref.lineage | import_lineage | forbid | referrers |
 | form.title_block | form | forbid | referrers |
@@ -240,10 +259,13 @@ state after it is right. Every forbid link stores its target's ID, except the tw
 |-------|--------|--------|-----|
 | `source_ref.lineage` of the 18 kinds that carry it | import_lineage | structural | A stored ID; the lineage anchors the identity (the v5 namespace) of its records |
 | structure_node.parent, external_ref.location, page.structure.*, device.structure.* and structure_box.assigns.* (seven slots each) | structure_node | structural | Stored IDs; structure and designations derive along them (doc 03 §4.2: merged, never deleted under its users) |
+| layout_space.location | structure_node | structural | A stored ID; the space lays out that location, and `unplaced` and EW-LAY-004 read it (WP-S4.01 D3) |
+| enclosure.device | device | structural | A stored ID; the enclosure part reaches the BOM through the device (ADR-0006), so the device cannot vanish under its enclosure (WP-S4.01 D4) |
+| placement.carrier (carrier or surface) | carrier, mounting_surface | structural | Stored IDs; a placement's pose is relative to its carrier, so an occupied carrier leaves only through `layout.carrier.delete` with an explicit `then` (doc 12 §3.6) |
 | page.folio.section, report_block.section | section | structural | Stored IDs; folios and report placement derive from them |
 | device.parent, device.terminal.strip | device | structural | Stored IDs; the device and inheritance graphs (EW-INV-007, EW-INV-009, EW-INV-015) |
 | device.plc_station.config_project | plc_config_project | structural | A stored ID; the station's addressing derives from it |
-| device.parts[].part.copy, device.strip.accessories[].part.copy, device.assembly.configs[].part.copy, connection.overrides.wire_part.copy, potential_def.props.wire_part.copy | part | structural | `PartRef.copy` stores the copy ID; the command that uses a part embeds it in the same transaction (FR-PRT-013), so a part use never names an item that is not embedded |
+| device.parts[].part.copy, device.strip.accessories[].part.copy, device.assembly.configs[].part.copy, connection.overrides.wire_part.copy, potential_def.props.wire_part.copy, carrier.part.copy | part | structural | `PartRef.copy` stores the copy ID; the command that uses a part embeds it in the same transaction (FR-PRT-013), so a part use never names an item that is not embedded |
 | function.def | fndef | structural | A stored copy ID; the function's CPs instantiate from it |
 | representation.symbol | symbol | structural | A stored copy ID; the representation draws it |
 | macro_instance.macro | macro | structural | A stored copy ID; the instance records which macro version was placed (WP-S1.19 part 1) |
@@ -268,6 +290,7 @@ The following ID-valued fields are not links.
 | meta.status.deprecated.successor.* of part, symbol, fndef and form | `LibRef` to a library item offered by "update from library"; never resolved to an embedded copy |
 | part.manufacturer.* | `LibRef` to a manufacturer record, which has no library-copy table in v0 |
 | symbol.fndef.library, part.function_template[].fndef.library | The library half of the `LibRef` links above (the `.item` field carries the link) |
+| placement.part.copy | The part use a placement realises (WP-S4.01 D4: no delete policy). A placement whose part use left its device keeps naming the copy: EW-LAY-003 reports it, and `part.assign` replace follows the new copy (D7). The device's part uses keep the copy alive, never the placement |
 
 Each kind's own `id` is identity, not a link.
 
@@ -277,7 +300,6 @@ These structural invariants are known but not evaluated yet.
 
 | Invariant | Source | Why not yet |
 |-----------|--------|-------------|
-| A placement references a device | ADR-0009 decision 2 | The layout kinds are reserved until WP-S4.01 |
 | A channel's module carries the `plc_module` aspect | ADR-0009 decision 2; doc 10 §2.4 | The `channel.module` link (cascade) makes every channel belong to exactly one existing device (EW-INV-001); that the device is a module is the orphan-channel check FT-229, not a structural invariant |
 | A channel's number is below its module part's channel count | doc 10 §2.4, §3.3; FR-PLC-053 | Not an invariant by design (cycle 18, FT-277): a part change through `fields.set` keeps the surplus channels, with a notice of normaliser N1, because FR-PLC-053 removes them only after a confirmation that lists them, which is the preview of the Bulk command `plc.set_module_part`. The derivation reads only the channels below the count, so a surplus channel prints nowhere |
 | A channel's kind is its module part's channel kind | doc 10 §2.4, §2.6 | Restored by normaliser N1 when the module's part or part use changes (FT-276); a kind of a newer format is kept |
