@@ -6,7 +6,9 @@
 use std::collections::BTreeSet;
 
 use ew_ids::{Id, v5};
-use ew_model::{LINKS, LinkDecl};
+use ew_model::LINKS;
+#[cfg(test)]
+use ew_model::LinkDecl;
 use ew_schema::{
     Connection, Device, Kind, LibCopy, LibDocument, LibItem, Manufacturer, Part, PotentialDef, TechValue,
 };

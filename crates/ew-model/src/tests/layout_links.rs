@@ -240,7 +240,7 @@ fn a_space_keeps_its_location_and_cascades_once_empty() {
     let (link, _) = referenced(m.delete_plan(&key::<LayoutSpace>(SPACE)));
     assert!(link.starts_with("placement.carrier."), "{link}");
 
-    let placements = [PL_F1, PL_G1, PL_AUX].map(|p| key::<Placement>(p));
+    let placements = [PL_F1, PL_G1, PL_AUX].map(key::<Placement>);
     let cleared = m.delete_plan_many(&placements).unwrap();
     let empty = m
         .apply_with(&cleared, Rev(1), &ApplyOptions::default())

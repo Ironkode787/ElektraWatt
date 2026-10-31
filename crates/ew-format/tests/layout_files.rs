@@ -84,7 +84,7 @@ fn records() -> Vec<Record> {
 }
 
 fn layout_file(space: &str) -> FilePath {
-    FilePath::new(&format!("layout/{space}.jsonl")).unwrap()
+    FilePath::new(format!("layout/{space}.jsonl")).unwrap()
 }
 
 fn files_of(records: &[Record]) -> Files {
