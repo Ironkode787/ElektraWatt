@@ -227,7 +227,8 @@ pub fn check_commands(path: &str, text: &str, packages: &[Package]) -> Vec<Strin
     while let Some(found) = text[from..].find("--test") {
         let at = from + found;
         from = at + "--test".len();
-        let before_ok = at == 0 || !matches!(bytes[at - 1], b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'-' | b'_');
+        let before_ok =
+            at == 0 || !matches!(bytes[at - 1], b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'-' | b'_');
         let Some(&next) = bytes.get(from) else {
             break;
         };
@@ -263,7 +264,9 @@ fn binary_name(rest: &str) -> Option<&str> {
     let mut rest = rest.strip_prefix('=').unwrap_or(rest);
     let trimmed = rest.trim_start_matches([' ', '\t']);
     if trimmed.starts_with(['\r', '\n']) {
-        rest = trimmed.trim_start_matches(['\r', '\n']).trim_start_matches([' ', '\t']);
+        rest = trimmed
+            .trim_start_matches(['\r', '\n'])
+            .trim_start_matches([' ', '\t']);
         for leader in ["//!", "///", "//", "#", ">"] {
             if let Some(r) = rest.strip_prefix(leader) {
                 rest = r.trim_start_matches([' ', '\t']);
@@ -320,7 +323,9 @@ fn stale_message(path: &str, line: usize, name: &str, package: Option<&Package>)
             pkg = k.name,
             list = k.binaries.join(", ")
         ),
-        None => format!("{path}:{line}: `--test {name}` names no test binary of any package; name an existing one"),
+        None => format!(
+            "{path}:{line}: `--test {name}` names no test binary of any package; name an existing one"
+        ),
     }
 }
 
@@ -478,6 +483,9 @@ mod tests {
                     cargo test -p ew-api --test <name>\n\
                     cargo test -p ew-api --tests -- --test-threads 1\n\
                     .args([\"--test\", \"golden_c\"])\n";
-        assert_eq!(check_commands("c.md", text, &fixture_packages()), Vec::<String>::new());
+        assert_eq!(
+            check_commands("c.md", text, &fixture_packages()),
+            Vec::<String>::new()
+        );
     }
 }
