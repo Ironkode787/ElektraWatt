@@ -108,12 +108,16 @@ fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen:
 fn main_window_at(theme: &str, density: &str, ppp: f32) -> (Harness<'static, App>, offscreen::Recorder, Tmp) {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
-    let (h, recorder) = window_on(tmp.config(), dir, theme, density, ppp, true);
+    let (h, recorder) = window_on(tmp.config(), dir, theme, density, ppp, true, WINDOW);
     (h, recorder, tmp)
 }
 
+/// The window size of the gated whole-window images, in points (doc 16a's floor at 100 %).
+const WINDOW: Vec2 = Vec2::new(1280.0, 800.0);
+
 /// The main window with `config` on the project `dir` (a copy the test may have prepared) in `theme` and `density` at
-/// `ppp`, with its page on show; on folio 101 when `goto_101` (the recovery dialog refuses the action).
+/// `ppp` and `size` points, with its page on show; on folio 101 when `goto_101` (the recovery dialog refuses the
+/// action).
 fn window_on(
     config: ShellConfig,
     dir: PathBuf,
@@ -121,6 +125,7 @@ fn window_on(
     density: &str,
     ppp: f32,
     goto_101: bool,
+    size: Vec2,
 ) -> (Harness<'static, App>, offscreen::Recorder) {
     let mut shell = ShellModel::new(Mode::Gui, config);
     assert_eq!(
@@ -132,7 +137,7 @@ fn window_on(
     let recorder = offscreen::Recorder::default();
     let app = App::new(shell, Box::new(Scripted::default()), Some(dir));
     let mut h = Harness::builder()
-        .with_size(Vec2::new(1280.0, 800.0))
+        .with_size(size)
         .with_pixels_per_point(ppp)
         .with_context_setup(setup)
         .renderer(recorder.clone())
@@ -183,6 +188,29 @@ fn the_main_window_at_300_percent_for_review() {
     let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
     assert_eq!((image.width, image.height), (3840, 2400));
     assert_eq!(record("main-light-comfortable-300", &image, true), None);
+    drop(h);
+    drop(tmp);
+}
+
+/// Cycle 39: the main window at the typical size (doc 16a: 1920 × 1080), light and Comfortable at ppp 1, on the Golden
+/// A copy like the 1280 × 800 images: what the layout does with the room a common display gives it.
+#[test]
+fn the_main_window_at_the_typical_size() {
+    let dev = device();
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let (h, recorder) = window_on(
+        tmp.config(),
+        dir,
+        "light",
+        "comfortable",
+        1.0,
+        true,
+        Vec2::new(1920.0, 1080.0),
+    );
+    let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+    assert_eq!((image.width, image.height), (1920, 1080));
+    assert_eq!(record("main-light-comfortable-1920", &image, true), None);
     drop(h);
     drop(tmp);
 }
@@ -899,7 +927,7 @@ fn cp6_the_fixture_dialogs_in_light() {
             crashed.shutdown();
         }
         pin_journal_times(&tmp.0, FIXTURE_LAST_CHANGE_MS);
-        let (mut h, recorder) = window_on(tmp.config(), dir, theme, "comfortable", 1.0, false);
+        let (mut h, recorder) = window_on(tmp.config(), dir, theme, "comfortable", 1.0, false, WINDOW);
         h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
         ew_ui::set_now_for_tests(&h.ctx, FIXTURE_NOW_MS);
         assert!(
@@ -942,7 +970,15 @@ fn cp6_the_fixture_dialogs_in_light() {
         let tmp = Tmp::new();
         let dir = tmp.golden("g.ew");
         // The wizard previews its draft on the sample project of the resources.
-        let (mut h, recorder) = window_on(tmp.config_with_resources(), dir, theme, "comfortable", 1.0, true);
+        let (mut h, recorder) = window_on(
+            tmp.config_with_resources(),
+            dir,
+            theme,
+            "comfortable",
+            1.0,
+            true,
+            WINDOW,
+        );
         h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
         let basic = tmp.0.join("company.ew");
         assert_eq!(
@@ -1010,7 +1046,7 @@ fn cp6_the_fixture_dialogs_in_light() {
             }
             shell.shutdown();
         }
-        let (mut h, recorder) = window_on(tmp.config(), dir, theme, "comfortable", 1.0, true);
+        let (mut h, recorder) = window_on(tmp.config(), dir, theme, "comfortable", 1.0, true, WINDOW);
         h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
         assert_eq!(
             h.state_mut()

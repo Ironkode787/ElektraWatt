@@ -100,7 +100,7 @@ Each is a lead ruling the owner may reverse; the decision-log rows are ID-785 to
 |---|---|---|
 | V-D1 | **Home: two new parts of WP-S6.13** (part 4 and part 5) in this companion specification, built in M2, with the runs from the 20 % reserve as part 3's; no new WBS row (ID-786) | The harness, the run folder, the keeper, the filter, the scoring and the replay are shared code; a new package would split one tool across two specifications and regenerate the WBS tables and the schedule for 1.8 pw. Trade-off: WP-S6.13's PERT row (1.6 pw, M-PP) understates the package's total, which its status paragraph states |
 | V-D2 | **The senses are a second axis of a run**, `--senses text` (the default, the base specification unchanged) or `--senses visual`, combinable with the kinds `brief`, `gate` and `free`; a check run is always text (ID-787) | One harness, one protocol, comparable runs: the same brief or the same gate task can be run both ways, which separates "the window is unclear" from "the product cannot do it" (§7.4) |
-| V-D3 | **What a visual agent sees:** a PNG of the whole window, 1280 × 800 points plus a 28-point title strip, rendered at 1.2 physical pixels per point (1536 × 994 pixels), written after every `do` batch, on request (`look`) and as a 2× zoom of a region (`look --zoom`); nothing textual (§3) (ID-787) | 1536 pixels is the widest whole-window frame that stays under the about 1568-pixel long edge at which model vision inputs are downscaled, so no pixel is thrown away and small text gets 20 % more pixels than at 1.0; the zoom covers what is still too small. Trade-off: about 2,000 image tokens per frame |
+| V-D3 | **What a visual agent sees:** a PNG of the whole window, 1280 × 800 points plus a 28-point title strip, rendered at 1.2 physical pixels per point (1536 × 994 pixels), written after every `do` batch, on request (`look`) and as a 2× zoom of a region (`look --zoom`); nothing textual (§3) (ID-787). *As built (cycle 39): this is the default; a run may choose another window and scale (§3.1).* | 1536 pixels is the widest whole-window frame that stays under the about 1568-pixel long edge at which model vision inputs are downscaled, so no pixel is thrown away and small text gets 20 % more pixels than at 1.0; the zoom covers what is still too small. Trade-off: about 2,000 image tokens per frame |
 | V-D4 | **The visual driver is product code in `ew-ui`**: `elektrawatt --headless --visual` runs the real `App` frame in an egui context fed with synthetic input events and a frame clock, in the window's mode (`Mode::Gui`), and paints frames with the offscreen renderer of the chrome snapshots, moved from the tests into `ew-ui` (§3.1, §4.3) (ID-787) | The same `App::ui` and `ShellModel::dispatch` the window runs, so what the agent sees is what a user sees; no new package and no new edge (egui-wgpu and the headless device are already `ew-ui`'s). ADR-0015 holds: the canvas inside the window is the CPU canvas, the chrome is painted the way the WP-S2.17 snapshots paint it |
 | V-D5 | **Input by coordinates and keys**: click, double-click, right-click, drag, scroll, type, key chords, hover and wait, in frame pixels, 1 to 12 inputs per turn (§4) (ID-788) | What a user's hands do, and nothing a user cannot do; frame pixels so the agent never converts scales |
 | V-D6 | **Determinism by construction**: a frame clock instead of the wall clock (FT-570's dwell and job-field rule move onto it in part 4), fixed theme, density, language, fonts and scale, the caret's blink off, settling on jobs and repaints; replay decides on the actions the inputs dispatched, frames are compared as a report (§5) (ID-788) | Pixels may drift between graphics-driver versions; what the inputs did may not. Replay without frames also runs on every OS in CI |
@@ -126,7 +126,7 @@ Each is a lead ruling the owner may reverse; the decision-log rows are ID-785 to
   driver draws a **28-point title strip** in the theme's chrome colours with the window title as the operating system
   would show it (project name and unsaved mark), because the title is feedback a user sees; clicks in the strip do
   nothing. The frame is **1280 × 828 points at 1.2 pixels per point = 1536 × 994 pixels**, RGBA PNG with the DPI chunk
-  of `ew-render-cpu`'s encoder.
+  of `ew-render-cpu`'s encoder. *As built (cycle 39): the default; `--window` and `--ppp` choose another (below).*
 - **Fixed rendering inputs.** Theme `light`, density `comfortable`, language en-GB, the bundled fonts only (the Noto
   family of `ew-ui`'s `fonts.rs`; no system font is read), `ui_scale` 1, the canvas backend `cpu` (the switch rule's
   headless path), the text caret's blinking off (the caret is always drawn, a deliberate difference from the window,
@@ -151,6 +151,16 @@ above:
 - **The title strip is 34 pixels** (`STRIP_PX`, 28⅓ points), not 28 points (33.6 pixels): the window is
   1280 × 800 points = 1536 × 960 pixels at 1.2 pixels per point and the frame `1536 × (960 + 34)` = **1536 × 994**
   pixels, as specified. The PNG's resolution chunk says 115 dpi.
+- **Other window sizes (as built, cycle 39).** 1280 × 800 points at 1.2 is the **default**; a run may choose another
+  window and scale: `elektrawatt --headless --visual --window <W>x<H> --ppp <n>` (W 1024 to 3840, H 640 to 2160 points,
+  ppp 1 to 3 in hundredths, a frame of at most 3840 × 2400 pixels) and `xtask blind start --senses visual --window …
+  --ppp …`, recorded in `run.json` (`window`, `ppp`; a `run.json` without them reads as the default) and passed to the
+  keeper's and the replay's product. The strip is then `round(28 × ppp)` pixels, the PNG `round(96 × ppp)` dpi, the
+  frame `round(W × ppp) × (round(H × ppp) + strip)` pixels (1920 × 1080 at 1: 1920 × 1108; at 2: 3840 × 2216); input
+  coordinates, zooms and `--region` are checked against that frame. At a non-default geometry the transcript's header
+  carries `"window":[W,H],"ppp":n` after `"version"`. The composed prompt of a visual run ends with a line stating its
+  picture's size; agent runs keep the default 1536-pixel frame (V-D3), and a larger frame, read reduced by the model,
+  is judged in detail through zooms of at most 768 × 497 pixels.
 - **A zoom is a doubled region of the normal frame** (each pixel drawn twice as wide and high), not a re-render at
   2.4 pixels per point; the region is at most 768 × 497 frame pixels inside the frame, as specified, and stays a
   picture only.
@@ -191,6 +201,8 @@ refusal cap. `look --zoom` in a text run is refused (`harness: --zoom belongs to
 One input per line in a `do` batch, as JSON (`{"input":"click","x":412,"y":96}`) or as the `key=value` form of the base
 specification's §5.2.1 for a single input. Coordinates are **integer frame pixels** of the normal frame (origin top
 left, `0 ≤ x < 1536`, `0 ≤ y < 994`, title strip included); the driver converts them to points by dividing by 1.2.
+*As built (cycle 39): at the default geometry; a run at another window and scale checks against its own frame and
+divides by its own ppp (§3.1).*
 
 | Input | Parameters | egui events, in one frame unless said |
 |---|---|---|
@@ -653,7 +665,7 @@ through `ew-api`; no new package).
 |---|---|---|---|
 | BV1 | `--visual` only with `--headless` (else exit 2); without it every existing headless test and transcript is byte-identical | `elektrawatt`, `ew-ui` tests | §5.2 |
 | BV2 | Each input form parses with its bounds; an out-of-frame coordinate, an unknown key name, a text over 200 characters or with a control character, a `wait` out of range are refused with their texts | `ew-ui` and `xtask` unit tests | §4.1 |
-| BV3 | A frame is 1536 × 994 with the title strip; a `click` at the frame pixels of a known button of a Golden A copy's window dispatches that button's action; a `right_click` opens the context menu; a `drag` on the canvas moves a selection; `type` into a field sets it | `ew-ui` test (Windows for the frame, every OS for the dispatch) | §3.1, §4 |
+| BV3 | A frame is 1536 × 994 with the title strip (at the default geometry; cycle 39: 1920 × 1108 at `--window 1920x1080 --ppp 1`); a `click` at the frame pixels of a known button of a Golden A copy's window dispatches that button's action; a `right_click` opens the context menu; a `drag` on the canvas moves a selection; `type` into a field sets it | `ew-ui` test (Windows for the frame, every OS for the dispatch) | §3.1, §4 |
 | BV4 | The same input script twice in fresh folders: equal dispatch logs and states on every OS, equal frame hashes on Windows; no wall-clock read in the visual frame path; the dwell and the job-field rule follow the frame clock | `ew-ui` tests | §5.1 |
 | BV5 | Settling: an export started by clicks is finished in the batch's frame; the caret is drawn in every frame | `ew-ui` test | §5.1 |
 | BV6 | The platform's fixed answers for new, save, open and PDF; a QET import cancelled; `open_url` false | `ew-ui` test | §4.3 |
