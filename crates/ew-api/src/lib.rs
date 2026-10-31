@@ -392,6 +392,8 @@ pub struct Session {
     library_tiers: Option<library::LibraryTiers>,
     /// The opened libraries, with the error that made [`Session::libraries`] fall back to the starter.
     libraries: std::sync::OnceLock<(library::Registry, Option<library::LibraryError>)>,
+    /// The release's housekeeping trouble not yet taken by the front-end ([`Session::take_release_troubles`]).
+    release_troubles: std::cell::RefCell<Vec<String>>,
 }
 
 impl std::fmt::Debug for Session {
@@ -427,6 +429,7 @@ impl Session {
         Session {
             library_tiers: options.libraries,
             libraries: std::sync::OnceLock::new(),
+            release_troubles: std::cell::RefCell::new(Vec::new()),
             submit_origin: options.origin.clone(),
             load_findings,
             reports,
@@ -797,6 +800,8 @@ impl Session {
             unsaved,
             recovered,
         });
+        // FT-814: this directory's stale release-run records (archive gone or released) go now.
+        session.remove_stale_run_records();
         Ok((session, report))
     }
 

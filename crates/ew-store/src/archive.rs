@@ -23,18 +23,24 @@
 //! immutable, FR-REV-009; a complete unreferenced one is the next open's "incomplete release"). The archive is written
 //! as `<name>.tmp-<owner>-<g>`, synced with its directory, read back through the seam, compared byte for byte with what
 //! was written and checked by the caller's verification (the sums and the project's hashes against manifest g), then
-//! renamed into place without replacement and the directory synced. Any failure removes the temp. The archive's name
-//! is therefore durable before the caller stamps the release.
+//! (after the run record, below) put into place without replacement and the directory synced: a hard link, which keeps
+//! the temp's modification time, else, on a file system without hard links, the target created anew (`create_new`,
+//! never over an existing file: another copy's archive is never replaced) with the temp's modification time set. Any
+//! failure removes the temp, the record and an archive this call created, and never a file it did not create. The
+//! archive's name is therefore durable before the caller stamps the release.
 //!
 //! The owner is the caller's marker of the project directory (the release uses the directory's key, [`path_key`]):
 //! only one run of a project directory writes at a time (its write lock), so a temp that carries the owner is a crashed
 //! run's, never a live one's. A copy of the directory elsewhere (an operating-system copy, a restore, a Save as)
 //! carries the same project ID but has another key, so neither removes the other's temp (FT-814).
 //!
-//! **The run record** ([`RunRecord`], FT-814). Once its archive is in place, a release run records in the per-user
-//! state directory, outside the project, that this project directory's run wrote it: the archive's path, its SHA-256
-//! and its modification time, under `<state>/releases/<key of the directory>-<key of the archive>.json`
-//! ([`run_record_path`]). The run removes the record when it is settled. A discard of an incomplete release requires a
+//! **The run record** ([`RunRecord`], FT-814). Before its archive has its name (the temp written and verified), a
+//! release run records durably in the per-user state directory, outside the project, that this project directory's run
+//! writes it: the archive's path, its SHA-256 and its modification time (the temp's, which the archive keeps), under
+//! `<state>/releases/<key of the directory>-<key of the archive>.json` ([`run_record_path`]), so a crash right after
+//! the rename leaves an archive the directory can prove its own. The run removes the record when it is settled; a
+//! record whose archive is gone or released is stale, and the release removes it at the next open
+//! ([`run_records_of`]). A discard of an incomplete release requires a
 //! matching record: a copy of the directory names the same project and, at the same generation, even writes the same
 //! archive bytes, but it does not carry the record, so it never discards the other copy's archive.
 
@@ -156,9 +162,9 @@ pub fn resolved(path: &Path) -> PathBuf {
     out
 }
 
-/// `path` in the form [`lies_inside`] compares: [`resolved`], its longest existing ancestor canonicalised through
-/// `vfs` (links, `..` through a link, the case the file system stores), and folded to lower case on Windows.
-fn comparable(vfs: &dyn Vfs, path: &Path) -> PathBuf {
+/// `path` [`resolved`], with its longest existing ancestor canonicalised through `vfs` (links, `..` through a link,
+/// the case the file system stores); with `fold`, folded to lower case on Windows (the form [`lies_inside`] compares).
+fn comparable(vfs: &dyn Vfs, path: &Path, fold: bool) -> PathBuf {
     let path = resolved(path);
     let mut base = path.as_path();
     let mut rest = Vec::new();
@@ -178,7 +184,7 @@ fn comparable(vfs: &dyn Vfs, path: &Path) -> PathBuf {
     for name in rest.iter().rev() {
         out.push(name);
     }
-    if cfg!(windows) {
+    if fold && cfg!(windows) {
         PathBuf::from(out.to_string_lossy().to_lowercase())
     } else {
         out
@@ -189,14 +195,15 @@ fn comparable(vfs: &dyn Vfs, path: &Path) -> PathBuf {
 /// they exist, and case-insensitively on Windows (ADR-0013: an archive root is never inside the project; a relative
 /// path, a `..` path or a different case reaches the same directory).
 pub fn lies_inside(vfs: &dyn Vfs, path: &Path, dir: &Path) -> bool {
-    comparable(vfs, path).starts_with(comparable(vfs, dir))
+    comparable(vfs, path, true).starts_with(comparable(vfs, dir, true))
 }
 
-/// `path` as the release compares and records it: made absolute, cleaned, canonicalised where it exists and folded to
-/// lower case on Windows (as [`lies_inside`] compares), with `/` separators. A relative path, a `..` path or another
-/// case reaches the same text.
+/// `path` as the release compares and records it: made absolute, cleaned and canonicalised where it exists (links
+/// resolved, in the case the file system stores: Windows returns the stored case), with `/` separators. A relative
+/// path, a `..` path or, where the file system ignores case, another case reaches the same text. Nothing is folded:
+/// two directories whose names differ only in case (in a case-sensitive folder) have two texts.
 pub fn path_text(vfs: &dyn Vfs, path: &Path) -> String {
-    comparable(vfs, path).to_string_lossy().replace('\\', "/")
+    comparable(vfs, path, false).to_string_lossy().replace('\\', "/")
 }
 
 /// The key of `path`: the first 16 hex digits of the SHA-256 of [`path_text`]. The release names its archive temps
@@ -481,6 +488,19 @@ pub struct Written {
     pub path: PathBuf,
     /// The SHA-256 of its bytes (`ReleaseRecord.archive.sha256`).
     pub sha256: [u8; 32],
+    /// The run's record, when one was asked for and written ([`write_atomically`]'s `record`).
+    pub run_record: Option<PathBuf>,
+}
+
+/// The run record [`write_atomically`] writes before the archive has its name (FT-814): the state directory and the
+/// record, whose `archive`, `sha256` and `modified` the write fills in (the archive's [`path_text`], the SHA-256 of
+/// its bytes and the temp's modification time, which the archive keeps).
+#[derive(Clone, Debug)]
+pub struct RecordAt<'a> {
+    /// The per-user state directory.
+    pub state: &'a Path,
+    /// The record.
+    pub record: RunRecord,
 }
 
 /// Whether `name` is a temp of the archive file `file` written by `owner` (sanitised): `<file>.tmp-<owner>-<digits>`.
@@ -514,10 +534,14 @@ pub fn leftover_temps(vfs: &dyn Vfs, root: &Path, label: &str, owner: &str) -> i
 
 /// Writes the archive `bytes` of the release `label` by `owner` at generation `generation` into `root` atomically (see
 /// the module documentation); `verify` checks the bytes read back (the sums and the project against manifest g).
+/// With `record`, the run's record is written once the temp is verified and before the archive has its name
+/// ([`Written::run_record`]; best effort: a record that cannot be written is left out).
 ///
 /// # Errors
 ///
-/// [`WriteError`]; on every error the temp this call created is removed (best effort) and nothing else is left.
+/// [`WriteError`]; on every error the temp, the archive and the record this call created are removed (best effort)
+/// and nothing else is left. An existing archive (another copy's) is never replaced or removed.
+#[allow(clippy::too_many_arguments)] // The seam, the name's parts, the bytes, their check and the record: one each.
 pub fn write_atomically(
     vfs: &dyn Vfs,
     root: &Path,
@@ -526,6 +550,7 @@ pub fn write_atomically(
     generation: u64,
     bytes: &[u8],
     verify: &dyn Fn(&[u8]) -> Result<(), ArchiveError>,
+    record: Option<RecordAt<'_>>,
 ) -> Result<Written, WriteError> {
     let io_err = |step: WriteStep, path: &Path| {
         let path = path.to_path_buf();
@@ -576,31 +601,72 @@ pub fn write_atomically(
         ))));
     }
     verify(&back).map_err(WriteError::Verify).map_err(cleanup)?;
+    // The temp's modification time: the archive keeps it (a hard link is the same file; the fallback sets it).
+    let modified = vfs
+        .stat(&temp)
+        .map_err(io_err(WriteStep::Sync, &temp))
+        .map_err(cleanup)?
+        .modified;
+    // The run's record (FT-814), durable before the archive has its name, so that a crash after the rename leaves an
+    // archive this directory can prove its own. Best effort: without it a discard after a crash keeps the archive.
+    let run_record = record.and_then(|at| {
+        let record = RunRecord {
+            archive: path_text(vfs, &target),
+            sha256: hash_text(&sha256(bytes)),
+            modified: modified.and_then(record_time),
+            ..at.record
+        };
+        write_run_record(vfs, at.state, &record).ok()
+    });
+    let fail = |e: WriteError| {
+        if let Some(path) = &run_record {
+            let _ = remove_run_record(vfs, path);
+        }
+        cleanup(e)
+    };
+    // Into place without replacing anything: a hard link (the same file), else, on a file system without hard links,
+    // the target created anew (`create_new`: an existing file, another copy's archive, is never replaced; a torn one
+    // reads as damaged and is kept). Only a target this call created is ever removed.
+    let mut placed = false;
     let renamed = match vfs.rename_noreplace(&temp, &target) {
-        Err(e) if e.kind() == io::ErrorKind::Unsupported => match vfs.stat(&target) {
-            Ok(_) => Err(io::Error::from(io::ErrorKind::AlreadyExists)),
-            Err(s) if s.kind() == io::ErrorKind::NotFound => vfs.rename(&temp, &target),
-            Err(s) => Err(s),
+        Ok(()) => {
+            placed = true;
+            Ok(())
+        }
+        Err(e) if e.kind() == io::ErrorKind::Unsupported => match vfs.create_new(&target, bytes) {
+            Ok(()) => {
+                placed = true;
+                modified
+                    .map_or(Ok(()), |t| vfs.set_modified(&target, t))
+                    .and_then(|()| vfs.sync(&target))
+                    .and_then(|()| vfs.remove_file(&temp))
+            }
+            Err(e) => Err(e),
         },
-        other => other,
+        Err(e) => Err(e),
     };
     match renamed {
         Ok(()) => {}
-        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-            return Err(cleanup(WriteError::Exists { path: target }));
+        Err(e) if e.kind() == io::ErrorKind::AlreadyExists && !placed => {
+            return Err(fail(WriteError::Exists { path: target }));
         }
-        Err(e) => return Err(cleanup(io_err(WriteStep::Rename, &target)(e))),
+        Err(e) => {
+            if placed {
+                let _ = vfs.remove_file(&target);
+            }
+            return Err(fail(io_err(WriteStep::Rename, &target)(e)));
+        }
     }
     if let Err(e) = vfs.sync_dir(root) {
-        // The archive is in place but its name may not be durable: take it back, so that the caller's failure leaves
-        // nothing behind.
+        // The archive is in place but its name may not be durable: take it back (this call created it), so that the
+        // caller's failure leaves nothing behind.
         let _ = vfs.remove_file(&target);
-        let _ = vfs.sync_dir(root);
-        return Err(io_err(WriteStep::Rename, root)(e));
+        return Err(fail(io_err(WriteStep::Rename, root)(e)));
     }
     Ok(Written {
         path: target,
         sha256: sha256(bytes),
+        run_record,
     })
 }
 
@@ -719,7 +785,7 @@ impl RunRecord {
 }
 
 /// Writes `record` under the state directory `state`, durably (the file and its directory synced; the folder created
-/// and its parent synced when it was absent), replacing an earlier record of the same directory and archive (one a
+/// and its parent synced when it was absent, and the state directory's parent too when that was absent), replacing an earlier record of the same directory and archive (one a
 /// settled run could not remove). Returns the record's file.
 ///
 /// # Errors
@@ -728,12 +794,20 @@ impl RunRecord {
 pub fn write_run_record(vfs: &dyn Vfs, state: &Path, record: &RunRecord) -> io::Result<PathBuf> {
     let path = record.path(state);
     let dir = state.join(RUNS_DIR);
-    let created = match vfs.stat(&dir) {
-        Ok(_) => false,
-        Err(e) if e.kind() == io::ErrorKind::NotFound => true,
-        Err(e) => return Err(e),
+    let absent = |p: &Path| match vfs.stat(p) {
+        Ok(_) => Ok(false),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(true),
+        Err(e) => Err(e),
     };
+    let created = absent(&dir)?;
+    // The state directory itself may be new too: then its name reaches the disk through its parent's sync.
+    let state_created = created && absent(state)?;
     vfs.create_dir_all(&dir)?;
+    if state_created {
+        if let Some(parent) = state.parent() {
+            vfs.sync_dir(parent)?;
+        }
+    }
     if created {
         vfs.sync_dir(state)?;
     }
@@ -753,6 +827,39 @@ pub fn write_run_record(vfs: &dyn Vfs, state: &Path, record: &RunRecord) -> io::
             Err(e)
         }
     }
+}
+
+/// The run records of the project directory `project_dir` ([`path_text`]) under the state directory `state`, by file,
+/// in the order of their names: every `<key of the directory>-*.json` in `<state>/releases` that reads as a record of
+/// that directory (a file that does not read, or names another directory, is left out). None when the folder is absent.
+///
+/// # Errors
+///
+/// An I/O error listing the folder other than its absence.
+pub fn run_records_of(
+    vfs: &dyn Vfs,
+    state: &Path,
+    project_dir: &str,
+) -> io::Result<Vec<(PathBuf, RunRecord)>> {
+    let dir = state.join(RUNS_DIR);
+    let prefix = format!("{}-", key_of(project_dir));
+    let entries = match vfs.list(&dir) {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(e),
+    };
+    Ok(entries
+        .into_iter()
+        .filter(|(name, kind)| {
+            *kind == EntryKind::File && name.starts_with(&prefix) && name.ends_with(".json")
+        })
+        .filter_map(|(name, _)| {
+            let path = dir.join(name);
+            read_run_record(vfs, &path)
+                .filter(|r| r.project_dir == project_dir)
+                .map(|r| (path, r))
+        })
+        .collect())
 }
 
 /// The record at `path`, when it exists and reads: a missing, unreadable or malformed record is `None` (no evidence).
@@ -952,7 +1059,7 @@ mod tests {
         );
         let bytes = build(&entries()).unwrap();
         let root = Path::new("/w/p.ew-archive");
-        let w = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok).unwrap();
+        let w = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, None).unwrap();
         assert_eq!(w.path, root.join("V1.0.ewarchive"));
         assert_eq!(w.sha256, sha256(&bytes));
         let files = vfs.files(root);
@@ -973,7 +1080,7 @@ mod tests {
         assert_eq!(vfs.files(root)["V1.0.ewarchive"], bytes);
         // Never replaced.
         assert!(matches!(
-            write_atomically(&vfs, root, "V1.0", "a1", 4, &bytes, &ok),
+            write_atomically(&vfs, root, "V1.0", "a1", 4, &bytes, &ok, None),
             Err(WriteError::Exists { .. })
         ));
         assert!(leftover_temps(&vfs, root, "V1.0", "a1").unwrap().is_empty());
@@ -997,24 +1104,50 @@ mod tests {
         }
     }
 
-    /// FT-814: the key of a path follows the directory, not its spelling (a `..` path, and on Windows another case,
-    /// reach the same key); another directory of the same name has another key.
+    /// FT-814: the key of a path follows the directory, not its spelling (a `..` path reaches the same key); another
+    /// directory of the same name has another key, and so has one whose name differs only in case on a case-sensitive
+    /// file system (the memory one): nothing is folded (FIX40a, finding 5).
     #[test]
     fn the_key_follows_the_directory() {
         let vfs = MemVfs::new(DirSync::Explicit);
         vfs.put_dir(Path::new("/w/a/p.ew"));
+        vfs.put_dir(Path::new("/W/A/P.EW"));
         let key = path_key(&vfs, Path::new("/w/a/p.ew"));
         assert_eq!(key.len(), 16);
         assert!(key.bytes().all(|b| b.is_ascii_hexdigit()));
         assert_eq!(key, path_key(&vfs, Path::new("/w/b/../a/./p.ew")));
         assert_ne!(key, path_key(&vfs, Path::new("/w/b/p.ew")));
-        if cfg!(windows) {
-            assert_eq!(key, path_key(&vfs, Path::new("/W/A/P.EW")));
-        }
+        assert_ne!(key, path_key(&vfs, Path::new("/W/A/P.EW")));
         assert_eq!(
             path_text(&vfs, Path::new("/w/b/../a/p.ew")),
             path_text(&vfs, Path::new("/w/a/p.ew"))
         );
+        assert_eq!(path_text(&vfs, Path::new("/W/A/P.EW")), "/W/A/P.EW");
+    }
+
+    /// FIX40a (finding 5): on the real file system the key is the directory's canonical path in the case the file
+    /// system stores. Where names ignore case (Windows), another spelling of one directory reaches its key; where they
+    /// do not, two directories whose names differ only in case have two keys.
+    #[test]
+    fn the_key_keeps_the_stored_case() {
+        let base = ew_testdir::fresh_dir("ew-archive-key-case");
+        let vfs = crate::vfs::OsVfs;
+        let dir = base.join("Plant.ew");
+        std::fs::create_dir_all(&dir).unwrap();
+        let key = path_key(&vfs, &dir);
+        let text = path_text(&vfs, &dir);
+        assert!(text.ends_with("/Plant.ew"), "the stored case: {text}");
+        assert_ne!(key, path_key(&vfs, &base.join("Other.ew")));
+        let lower = base.join("plant.ew");
+        if lower.exists() {
+            // Names ignore case: the other spelling is the same directory.
+            assert_eq!(key, path_key(&vfs, &lower));
+            assert_eq!(text, path_text(&vfs, &lower));
+        } else {
+            std::fs::create_dir_all(&lower).unwrap();
+            assert_ne!(key, path_key(&vfs, &lower), "two directories");
+        }
+        let _ = std::fs::remove_dir_all(&base);
     }
 
     /// FT-814: a run record is written durably under `<state>/releases/<key>-<key>.json`, read back equal, replaced by
@@ -1095,45 +1228,341 @@ mod tests {
         }
     }
 
-    /// Every failing call of the write leaves no temp and no archive behind (the error is reported).
+    /// What [`write_atomically`] records for the run of `/w/a/p.ew` in `/state`.
+    fn record_at() -> RecordAt<'static> {
+        RecordAt {
+            state: Path::new("/state"),
+            record: record("run-1"),
+        }
+    }
+
+    /// Every failing call of the write leaves no temp, no archive and no run record behind (the error is reported), on
+    /// a file system with hard links and on one without (the fallback). A failing call the write may pass over (the
+    /// record's, which is best effort) leaves the archive complete.
     #[test]
     fn a_failing_call_leaves_nothing() {
         let bytes = build(&entries()).unwrap();
         let root = Path::new("/w/p.ew-archive");
-        let mut n = 1;
-        loop {
-            let vfs = MemVfs::new(DirSync::Explicit);
-            vfs.put_dir(Path::new("/w"));
-            vfs.reset_calls();
-            vfs.set_fault(Fault::Error {
-                at: n,
-                kind: io::ErrorKind::Other,
-            });
-            let result = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok);
-            let calls = vfs.calls();
-            vfs.set_fault(Fault::None);
-            match result {
-                Ok(_) => {
-                    assert!(n > calls, "call {n} failed silently");
-                    break;
+        let runs = Path::new("/state").join(RUNS_DIR);
+        for without_links in [false, true] {
+            let mut n = 1;
+            loop {
+                let vfs = MemVfs::new(DirSync::Explicit);
+                vfs.put_dir(Path::new("/w"));
+                vfs.put_dir(Path::new("/state"));
+                vfs.set_noreplace_unsupported(without_links);
+                vfs.reset_calls();
+                vfs.set_fault(Fault::Error {
+                    at: n,
+                    kind: io::ErrorKind::Other,
+                });
+                let result = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at()));
+                let calls = vfs.calls();
+                vfs.set_fault(Fault::None);
+                match result {
+                    Ok(w) if n > calls => {
+                        assert_eq!(
+                            read_run_record(&vfs, w.run_record.as_deref().unwrap())
+                                .unwrap()
+                                .run,
+                            "run-1"
+                        );
+                        break;
+                    }
+                    Ok(w) => {
+                        assert_eq!(
+                            vfs.files(root).keys().collect::<Vec<_>>(),
+                            ["V1.0.ewarchive"],
+                            "call {n}"
+                        );
+                        assert_eq!(vfs.read(&w.path).unwrap(), bytes, "call {n}");
+                    }
+                    Err(_) => {
+                        assert!(
+                            vfs.files(root).is_empty(),
+                            "call {n} ({without_links}): {:?}",
+                            vfs.files(root).keys()
+                        );
+                        assert!(
+                            vfs.files(&runs).is_empty(),
+                            "call {n} ({without_links}): the record"
+                        );
+                    }
                 }
-                Err(_) => {
-                    assert!(
-                        vfs.files(root).is_empty(),
-                        "call {n}: {:?}",
-                        vfs.files(root).keys()
-                    );
-                }
+                n += 1;
             }
-            n += 1;
         }
         // A verification failure removes the temp too.
         let vfs = MemVfs::new(DirSync::Explicit);
         let refuse = |_: &[u8]| -> Result<(), ArchiveError> { Err(ArchiveError::Project("no".to_owned())) };
         assert!(matches!(
-            write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &refuse),
+            write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &refuse, None),
             Err(WriteError::Verify(_))
         ));
         assert!(vfs.files(root).is_empty());
+    }
+
+    /// FIX40a (finding 3): the run record is durable before the archive has its name. A kill or a power loss at every
+    /// call of the write, with hard links and without: whenever the archive is there after the restart, its record is
+    /// there too and matches it (the archive, its SHA-256 and its modification time), so the directory's own leftover
+    /// is discardable.
+    #[test]
+    fn an_archive_in_place_always_has_its_record() {
+        let bytes = build(&entries()).unwrap();
+        let root = Path::new("/w/p.ew-archive");
+        let target = root.join("V1.0.ewarchive");
+        for without_links in [false, true] {
+            for power in [false, true] {
+                let mut placed = 0;
+                for n in 1.. {
+                    let vfs = MemVfs::new(DirSync::Explicit);
+                    vfs.put_dir(Path::new("/w"));
+                    vfs.put_dir(Path::new("/state"));
+                    vfs.set_noreplace_unsupported(without_links);
+                    vfs.reset_calls();
+                    vfs.set_fault(if power {
+                        Fault::PowerLoss { at: n, keep: 0 }
+                    } else {
+                        Fault::Kill { at: n }
+                    });
+                    let result =
+                        write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at()));
+                    let calls = vfs.calls();
+                    vfs.restart();
+                    if result.is_ok() && n > calls {
+                        break;
+                    }
+                    let Ok(stat) = vfs.stat(&target) else { continue };
+                    placed += 1;
+                    let path = run_record_path(Path::new("/state"), "/w/a/p.ew", &path_text(&vfs, &target));
+                    let kept = read_run_record(&vfs, &path)
+                        .unwrap_or_else(|| panic!("call {n} ({without_links}, {power}): no record"));
+                    assert_eq!(kept.archive, path_text(&vfs, &target));
+                    assert_eq!(
+                        kept.sha256,
+                        hash_text(&sha256(&vfs.read(&target).unwrap())),
+                        "call {n}"
+                    );
+                    assert!(same_time(kept.modified, stat.modified), "call {n}");
+                }
+                assert!(
+                    placed > 0 || power,
+                    "({without_links}, {power}): a kill after the rename was tried"
+                );
+            }
+        }
+    }
+
+    /// A memory file system on which another copy's release creates the archive right before this write places its own
+    /// (`race`: when the write looks at the target, or creates or renames over it, once the temp is there), and whose
+    /// clock moves on to `later` once the temp is written.
+    #[derive(Debug)]
+    struct Racing {
+        inner: MemVfs,
+        target: PathBuf,
+        race: Option<Vec<u8>>,
+        later: SystemTime,
+    }
+
+    impl Racing {
+        fn temp_written(&self) -> bool {
+            self.inner
+                .files(self.target.parent().unwrap())
+                .keys()
+                .any(|name| name.contains(".tmp-"))
+        }
+
+        fn race(&self, path: &Path) {
+            if path == self.target && self.temp_written() && self.inner.stat(path).is_err() {
+                if let Some(other) = &self.race {
+                    self.inner.put(path, other);
+                }
+            }
+        }
+    }
+
+    impl Vfs for Racing {
+        fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
+            self.inner.read(path)
+        }
+        fn stat(&self, path: &Path) -> io::Result<crate::vfs::Stat> {
+            let stat = self.inner.stat(path);
+            self.race(path);
+            stat
+        }
+        fn list(&self, dir: &Path) -> io::Result<Vec<(String, EntryKind)>> {
+            self.inner.list(dir)
+        }
+        fn create_dir_all(&self, dir: &Path) -> io::Result<()> {
+            self.inner.create_dir_all(dir)
+        }
+        fn create_new(&self, path: &Path, data: &[u8]) -> io::Result<()> {
+            self.race(path);
+            let created = self.inner.create_new(path, data);
+            if path.to_string_lossy().contains(".tmp-") {
+                self.inner.set_now(self.later);
+            }
+            created
+        }
+        fn append(&self, path: &Path, data: &[u8]) -> io::Result<()> {
+            self.inner.append(path, data)
+        }
+        fn sync(&self, path: &Path) -> io::Result<()> {
+            self.inner.sync(path)
+        }
+        fn sync_dir(&self, dir: &Path) -> io::Result<()> {
+            self.inner.sync_dir(dir)
+        }
+        fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
+            self.race(to);
+            self.inner.rename(from, to)
+        }
+        fn rename_noreplace(&self, from: &Path, to: &Path) -> io::Result<()> {
+            self.inner.rename_noreplace(from, to)
+        }
+        fn remove_file(&self, path: &Path) -> io::Result<()> {
+            self.inner.remove_file(path)
+        }
+        fn remove_dir(&self, dir: &Path) -> io::Result<()> {
+            self.inner.remove_dir(dir)
+        }
+        fn set_modified(&self, path: &Path, time: SystemTime) -> io::Result<()> {
+            self.inner.set_modified(path, time)
+        }
+        fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+            self.inner.canonicalize(path)
+        }
+    }
+
+    fn racing(race: Option<&[u8]>) -> Racing {
+        let inner = MemVfs::new(DirSync::Explicit);
+        inner.put_dir(Path::new("/w"));
+        inner.put_dir(Path::new("/state"));
+        inner.set_noreplace_unsupported(true);
+        Racing {
+            inner,
+            target: PathBuf::from("/w/p.ew-archive/V1.0.ewarchive"),
+            race: race.map(<[u8]>::to_vec),
+            later: SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_900_000_000),
+        }
+    }
+
+    /// FIX40a (finding 4): on a file system without hard links the archive is created anew (never renamed over an
+    /// existing file) with the temp's modification time, which the record names; another copy's archive that appears
+    /// between the write's checks and its placement is never replaced nor removed (the write reports it as existing and
+    /// takes back its temp and its record).
+    #[test]
+    fn the_fallback_never_replaces_another_archive() {
+        let bytes = build(&entries()).unwrap();
+        let root = Path::new("/w/p.ew-archive");
+        let vfs = racing(None);
+        let w = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at())).unwrap();
+        assert_eq!(
+            vfs.inner.files(root).keys().collect::<Vec<_>>(),
+            ["V1.0.ewarchive"]
+        );
+        assert_eq!(vfs.read(&w.path).unwrap(), bytes);
+        let kept = read_run_record(&vfs, w.run_record.as_deref().unwrap()).unwrap();
+        let modified = vfs.stat(&w.path).unwrap().modified;
+        assert!(same_time(kept.modified, modified), "the temp's time: {kept:?}");
+        assert_ne!(
+            modified,
+            Some(vfs.later),
+            "created after the clock moved on, with the temp's time set"
+        );
+
+        let other = b"another copy's archive";
+        let vfs = racing(Some(other));
+        assert!(matches!(
+            write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at())),
+            Err(WriteError::Exists { .. })
+        ));
+        assert_eq!(
+            vfs.inner.files(root).keys().collect::<Vec<_>>(),
+            ["V1.0.ewarchive"]
+        );
+        assert_eq!(
+            vfs.read(&root.join("V1.0.ewarchive")).unwrap(),
+            other,
+            "kept byte for byte"
+        );
+        assert!(
+            vfs.inner.files(&Path::new("/state").join(RUNS_DIR)).is_empty(),
+            "the record is taken back"
+        );
+    }
+
+    /// FIX40a (finding 3): on the real file system the archive keeps the temp's modification time through the
+    /// hard-link rename (or the fallback), so the record written before the rename names the archive's time.
+    #[test]
+    fn the_record_names_the_archives_time_on_disk() {
+        let base = ew_testdir::fresh_dir("ew-archive-record-time");
+        let vfs = crate::vfs::OsVfs;
+        let root = base.join("p.ew-archive");
+        let state = base.join("state");
+        let project = base.join("p.ew");
+        std::fs::create_dir_all(&project).unwrap();
+        let bytes = build(&entries()).unwrap();
+        let at = RecordAt {
+            state: &state,
+            record: RunRecord {
+                project_dir: path_text(&vfs, &project),
+                ..record("run-1")
+            },
+        };
+        let w = write_atomically(&vfs, &root, "V1.0", "k", 3, &bytes, &ok, Some(at)).unwrap();
+        let kept = read_run_record(&vfs, w.run_record.as_deref().unwrap()).unwrap();
+        assert_eq!(kept.archive, path_text(&vfs, &w.path));
+        assert_eq!(kept.sha256, hash_text(&sha256(&bytes)));
+        let modified = std::fs::metadata(&w.path).unwrap().modified().ok();
+        assert!(
+            same_time(kept.modified, modified),
+            "{:?} against {modified:?}",
+            kept.modified
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// FIX40a (finding 9): a record written into a state directory that did not exist survives a power loss right after
+    /// the write (the state directory's name is made durable through its parent).
+    #[test]
+    fn a_record_in_a_new_state_directory_is_durable() {
+        let vfs = MemVfs::new(DirSync::Explicit);
+        vfs.put_dir(Path::new("/home"));
+        let state = Path::new("/home/state");
+        let path = write_run_record(&vfs, state, &record("run-1")).unwrap();
+        vfs.set_fault(Fault::PowerLoss { at: 1, keep: 0 });
+        assert!(vfs.stat(&path).is_err());
+        vfs.restart();
+        assert_eq!(read_run_record(&vfs, &path), Some(record("run-1")));
+    }
+
+    /// FIX40a (finding 2): the run records of a directory are those named by its key that read as its records.
+    #[test]
+    fn the_run_records_of_a_directory() {
+        let vfs = MemVfs::new(DirSync::Explicit);
+        vfs.put_dir(Path::new("/state"));
+        let state = Path::new("/state");
+        assert!(run_records_of(&vfs, state, "/w/a/p.ew").unwrap().is_empty());
+        let mine = write_run_record(&vfs, state, &record("run-1")).unwrap();
+        let other = RunRecord {
+            archive: "/w/p.ew-archive/V2.0.ewarchive".to_owned(),
+            ..record("run-2")
+        };
+        let mine2 = write_run_record(&vfs, state, &other).unwrap();
+        let theirs = RunRecord {
+            project_dir: "/w/b/p.ew".to_owned(),
+            ..record("run-3")
+        };
+        write_run_record(&vfs, state, &theirs).unwrap();
+        vfs.put(
+            &state
+                .join(RUNS_DIR)
+                .join(format!("{}-junk.json", key_of("/w/a/p.ew"))),
+            b"junk",
+        );
+        let mut expected = vec![(mine, record("run-1")), (mine2, other)];
+        expected.sort_by(|a, b| a.0.cmp(&b.0));
+        assert_eq!(run_records_of(&vfs, state, "/w/a/p.ew").unwrap(), expected);
     }
 }

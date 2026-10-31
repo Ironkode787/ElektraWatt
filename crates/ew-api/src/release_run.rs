@@ -28,10 +28,13 @@
 //!
 //! **Evidence** (FT-814). Two copies of one project directory (an operating-system copy, a restore, a Save as) carry
 //! the same project ID, and at the same generation write the same archive bytes, so nothing in an archive or in the
-//! project files tells whose run wrote it. Once its archive is in place, the run records it in the per-user state
-//! directory ([`ew_store::archive::RunRecord`]: the project directory, the archive, its SHA-256 and modification time,
-//! and the run's mark, which the tag's message carries as `Run: <mark>`), and removes the record when the run is
-//! settled. [`Session::discard_incomplete_release`] removes an archive only with a matching record of this project
+//! project files tells whose run wrote it. Before its archive has its name, the run records it durably in the per-user
+//! state directory ([`ew_store::archive::RunRecord`]: the project directory, the archive, its SHA-256 and modification
+//! time, and the run's mark, which the tag's message carries as `Run: <mark>`), and removes the record when the run is
+//! settled. A record left stale (its archive gone, or its revision released with the archive's SHA-256 by a later
+//! roll-forward or completion) is removed when the project opens for editing and when
+//! [`Session::incomplete_release`] looks; a removal that fails is reported ([`Session::take_release_troubles`]).
+//! [`Session::discard_incomplete_release`] removes an archive only with a matching record of this project
 //! directory, and the tag only when its message also carries the record's mark; without the record (a copy, a wiped
 //! state directory, a session without one) everything is kept ([`ReleaseError::Unproven`]). The archive temps are named
 //! by the key of the project directory, so a copy's live temp is never removed either.
@@ -469,44 +472,106 @@ impl Session {
         ))
     }
 
-    /// Records that this project directory's run wrote the archive `written` (FT-814), with the run's mark; returns the
-    /// record's file. Best effort: without a state directory, or when the write fails, there is no record, and a
-    /// discard after a crash keeps the archive (the release itself goes on).
-    fn write_run_record(
+    /// What this project directory's run records for the archive it writes (FT-814), with the run's mark: the record
+    /// [`archive::write_atomically`] writes before the archive has its name (it fills in the archive, its SHA-256 and
+    /// its modification time). `None` without a state directory: then there is no record, and a discard after a crash
+    /// keeps the archive (the release itself goes on).
+    fn run_record_at(
         &self,
-        written: &archive::Written,
         revision: Id<Revision>,
         label: &str,
         generation: u64,
         run: &str,
-    ) -> Option<PathBuf> {
+    ) -> Option<archive::RecordAt<'_>> {
         let store = self.store()?;
         let state = store.state_dir()?;
         let vfs = &**store.vfs();
-        let modified = vfs
-            .stat(&written.path)
-            .ok()
-            .and_then(|s| s.modified)
-            .and_then(archive::record_time);
-        let record = archive::RunRecord {
-            project_dir: archive::path_text(vfs, store.root()),
-            archive: archive::path_text(vfs, &written.path),
-            project: project_id(self),
-            revision: revision.to_string(),
-            label: label.to_owned(),
-            generation,
-            sha256: Sha256(written.sha256).to_string(),
-            modified,
-            run: run.to_owned(),
-        };
-        archive::write_run_record(vfs, state, &record).ok()
+        Some(archive::RecordAt {
+            state,
+            record: archive::RunRecord {
+                project_dir: archive::path_text(vfs, store.root()),
+                archive: String::new(),
+                project: project_id(self),
+                revision: revision.to_string(),
+                label: label.to_owned(),
+                generation,
+                sha256: String::new(),
+                modified: None,
+                run: run.to_owned(),
+            },
+        })
     }
 
-    /// Removes the run record at `path`, if any (best effort: a record left behind names an archive whose bytes and
-    /// modification time a later file must both match).
+    /// Removes the run record at `path`, if any. A failure is kept for the front-end
+    /// ([`Session::take_release_troubles`]): a record left behind names an archive whose bytes and modification time a
+    /// later file must both match, and the next open removes it once its archive is gone or released.
     fn remove_run_record(&self, path: Option<&Path>) {
-        if let (Some(path), Some(store)) = (path, self.store()) {
-            let _ = archive::remove_run_record(&**store.vfs(), path);
+        if let (Some(path), Some(store)) = (path, self.store())
+            && let Err(e) = archive::remove_run_record(&**store.vfs(), path)
+        {
+            self.release_trouble(path, &e);
+        }
+    }
+
+    /// Keeps a failed removal of the release record `path` for the front-end.
+    fn release_trouble(&self, path: &Path, error: &std::io::Error) {
+        self.release_troubles.borrow_mut().push(format!(
+            "the release record {} could not be removed: {error}",
+            path.display()
+        ));
+    }
+
+    /// The release's housekeeping trouble since the last call, in words, oldest first: a run record of this project
+    /// directory that could not be removed (when a release is settled, or when a stale one is removed as the project
+    /// opens or [`Session::incomplete_release`] looks). Nothing is lost by it (a record only allows a discard of what
+    /// matches it exactly); the front-end shows each as a warning.
+    pub fn take_release_troubles(&self) -> Vec<String> {
+        std::mem::take(&mut *self.release_troubles.borrow_mut())
+    }
+
+    /// Removes this project directory's stale run records (FT-814): those whose archive is gone (a crash before the
+    /// archive had its name, a discard by hand) or whose revision is released with the archive's SHA-256 (the run
+    /// was settled by the next open's roll-forward or a completion, but its record stayed). A record left behind
+    /// would let a restored pre-release copy of this directory at the same path discard the released archive. Only in
+    /// an editing session (the write lock is ours, so no run of this directory is writing); a failed removal is kept
+    /// ([`Session::take_release_troubles`]).
+    pub(crate) fn remove_stale_run_records(&self) {
+        let Some(store) = self.store() else { return };
+        let Some(state) = store.state_dir() else { return };
+        if !matches!(store.access(), crate::Access::Edit) {
+            return;
+        }
+        let vfs = &**store.vfs();
+        let project_dir = archive::path_text(vfs, store.root());
+        let records = match archive::run_records_of(vfs, state, &project_dir) {
+            Ok(records) => records,
+            Err(e) => {
+                self.release_troubles.borrow_mut().push(format!(
+                    "the release records in {} could not be read: {e}",
+                    state.join(archive::RUNS_DIR).display()
+                ));
+                return;
+            }
+        };
+        let q = self.query();
+        for (path, record) in records {
+            let gone = matches!(
+                vfs.stat(Path::new(&record.archive)),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound
+            );
+            let released = q.table::<Revision>().iter().any(|(_, r)| {
+                r.id.to_string() == record.revision
+                    && r.release
+                        .as_ref()
+                        .and_then(|rel| rel.archive.as_ref())
+                        .and_then(|a| a.sha256)
+                        .is_some_and(|sha| sha.to_string() == record.sha256)
+            });
+            if (gone || released)
+                && let Err(e) = archive::remove_run_record(vfs, &path)
+            {
+                self.release_trouble(&path, &e);
+            }
         }
     }
 
@@ -726,14 +791,16 @@ impl Session {
             archive::check_project(&entries, &manifest.0, &manifest.1)
         };
         let owner = self.temp_owner()?;
-        let written =
-            archive::write_atomically(&*vfs, &root, &ctx.label, &owner, generation, &bytes, &verify)
-                .map_err(ReleaseError::Write)?;
-        let sha256 = Sha256(written.sha256);
-        // The run's record (FT-814): the evidence a discard after a crash needs that this directory's run wrote the
-        // archive. Its mark goes into the tag's message.
+        // The run's record (FT-814), written before the archive has its name: the evidence a discard after a crash
+        // needs that this directory's run wrote the archive. Its mark goes into the tag's message.
         let run = ew_store::lock::new_session_id();
-        let run_record = self.write_run_record(&written, plan.gate.revision, &ctx.label, generation, &run);
+        let record_at = self.run_record_at(plan.gate.revision, &ctx.label, generation, &run);
+        let written = archive::write_atomically(
+            &*vfs, &root, &ctx.label, &owner, generation, &bytes, &verify, record_at,
+        )
+        .map_err(ReleaseError::Write)?;
+        let sha256 = Sha256(written.sha256);
+        let run_record = written.run_record.clone();
         // Step 5: the tag.
         if let Some((_, tag)) = &plan.git {
             let name = archive::file_name(&ctx.label);
@@ -759,7 +826,8 @@ impl Session {
                 self.remove_run_record(run_record.as_deref());
                 return Err(e);
             }
-            // The next open completes the release or reports the incomplete one: the record stays with the archive.
+            // The next open completes the release or reports the incomplete one: the record stays with the archive (and
+            // goes at that open when the roll-forward released the revision).
             Err(e @ ReleaseError::Undecided(_)) => return Err(e),
             Err(e) => {
                 if let Some(t) = &tag {
@@ -1024,7 +1092,8 @@ impl Session {
     /// cannot be completed ([`IncompleteRelease::refusal`]); a damaged one or one of another project or revision is not
     /// this project's at all and is kept ([`IncompleteRelease::foreign`]). One of this project and revision that no run
     /// record of this project directory matches is not provably this directory's leftover, and a discard keeps it
-    /// ([`IncompleteRelease::unproven`], FT-814).
+    /// ([`IncompleteRelease::unproven`], FT-814). This directory's stale run records go first (their archive gone or
+    /// released), as when the project opens.
     ///
     /// # Errors
     ///
@@ -1033,6 +1102,7 @@ impl Session {
         &self,
         archive_root: Option<&Path>,
     ) -> Result<Option<IncompleteRelease>, ReleaseError> {
+        self.remove_stale_run_records();
         let Some((revision, label)) = self
             .query()
             .table::<Revision>()

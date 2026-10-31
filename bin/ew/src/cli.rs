@@ -136,9 +136,9 @@ directory and the tag `ew/rev/<label>` it makes there (a warning when the archiv
 are never added to git). After the typed label it writes and verifies the archive, commits and tags, then stamps the
 revision released and saves; a failure leaves the revision open and removes what the run wrote. An archive of the
 label left by a crashed release is offered first: type `complete` to stamp it or `discard` to remove it (with its
-tag). `discard` is offered only when this computer's record shows that a release from this project directory wrote
-the archive: a copy of the directory names the same project, so without that record the archive is kept (remove it
-by hand if you know it is a leftover). `revision withdraw <label> --reason <text>` withdraws a released revision
+tag). `discard` is offered only when your record on this computer shows that a release from this project directory
+wrote the archive: a copy of the directory names the same project, so without that record the archive is kept (remove
+it by hand if you know it is a leftover). `revision withdraw <label> --reason <text>` withdraws a released revision
 (`revision.withdraw`) and saves. Exit 0 when approved, released, settled or withdrawn and saved, 1 when refused (the
 gate's blockers, a wrong label, a refused command or git step) or not confirmed, 2 on usage, terminal and open errors
 and when writing the release fails.
@@ -1952,6 +1952,11 @@ fn run_revision_with(
         }
         (RevisionAction::Approve { .. }, None) => 2,
     };
+    // The release's housekeeping (FT-814): a run record that could not be removed, as the project opened or a run
+    // was settled.
+    for trouble in session.take_release_troubles() {
+        eprintln!("warning: {trouble}");
+    }
     session.close();
     code
 }
@@ -3547,6 +3552,17 @@ mod tests {
         let text = super::index_warning(&w).expect("a warning");
         assert!(text.starts_with("warning: "), "{text}");
         assert!(text.contains("disk full"), "{text}");
+    }
+
+    /// FIX40a (finding 8): the release run's record is kept per user, so the help names it as the person's own.
+    #[test]
+    fn the_help_names_the_release_record_as_the_users() {
+        let text = super::USAGE.split_whitespace().collect::<Vec<_>>().join(" ");
+        assert!(
+            text.contains("`discard` is offered only when your record on this computer shows"),
+            "the help text"
+        );
+        assert!(!text.contains("this computer's record"), "the help text");
     }
 
     use super::*;

@@ -866,17 +866,18 @@ struct Seen {
     completed: u32,
     /// Open with an incomplete release that was discarded.
     discarded: u32,
-    /// Open with an incomplete release that no run record proves this directory's (the crash came between the
-    /// archive's rename and its record): a discard kept it, and it was completed.
+    /// Open with an incomplete release that no run record proves this directory's: a discard kept it, and it was
+    /// completed. Since the record is durable before the archive has its name (FIX40a, finding 3), a crash never leaves
+    /// this: the sweeps assert it is zero.
     kept: u32,
 }
 
 /// After a crash (the fault fired; the process is gone), the project reopens in one of three states: released, with
-/// the archive the record names (and its tag); open with no archive and no tag of the run (a new release then
-/// succeeds); or open with one complete archive that no record names, which `incomplete_release` reports as
-/// completable and which `discard` removes (with its tag, temps and run record; a new release then succeeds) or
-/// `complete` stamps. When the crash came before the run recorded the archive (FT-814), `discard` keeps everything in
-/// words and `complete` stamps it.
+/// the archive the record names (and its tag) and no run record left (the open removes a stale one); open with no
+/// archive, no tag of the run and no run record (a new release then succeeds); or open with one complete archive that
+/// no release record names, which `incomplete_release` reports as completable and which `discard` removes (with its
+/// tag, temps and run record; a new release then succeeds) or `complete` stamps. Should no run record prove the
+/// archive this directory's (FT-814), `discard` keeps everything in words and `complete` stamps it (counted as kept).
 fn after_the_crash(vfs: &Arc<MemVfs>, git: &dyn Git, fake: Option<&FakeGit>, n: u64, seen: &mut Seen) {
     let (mut r, integrity) = mem_open(vfs, 2);
     let rev = revision(&r);
@@ -909,6 +910,10 @@ fn after_the_crash(vfs: &Arc<MemVfs>, git: &dyn Git, fake: Option<&FakeGit>, n: 
                 assert!(message.contains(&hex(&ew_format::sha256(bytes))), "call {n}");
             }
             assert_eq!(r.incomplete_release(None).expect("looked"), None, "call {n}");
+            assert!(
+                run_records(vfs).is_empty(),
+                "call {n}: a released run's record is gone after the open"
+            );
             seen.released += 1;
         }
         _ => {
@@ -918,6 +923,10 @@ fn after_the_crash(vfs: &Arc<MemVfs>, git: &dyn Git, fake: Option<&FakeGit>, n: 
             if archives.is_empty() {
                 assert_eq!(found, None, "call {n}");
                 assert_eq!(tag_of(fake), None, "call {n}: a tag without an archive");
+                assert!(
+                    run_records(vfs).is_empty(),
+                    "call {n}: a record without an archive is gone after the open"
+                );
                 seen.clean += 1;
             } else {
                 let found = found.unwrap_or_else(|| panic!("call {n}: the archive is not reported"));
@@ -1023,25 +1032,28 @@ fn sweep(fault: fn(u64) -> Fault, in_worktree: bool) -> Seen {
 }
 
 /// RA-3 (process kill): a kill at every file-system call of the release, inside a worktree (the fake port keeps the
-/// tag across the crash). Every outcome of [`after_the_crash`] occurs: open with nothing written, an incomplete
-/// release completed and discarded, one kept by a discard because the crash came before its run record, and released.
+/// tag across the crash). The outcomes of [`after_the_crash`] occur: open with nothing written, an incomplete release
+/// completed and discarded, and released; never one a discard keeps, since the run's record is durable before the
+/// archive has its name (FIX40a, finding 3: a crash right after the rename is discardable by this directory).
 #[test]
 fn ra3_a_kill_at_every_call_leaves_a_settled_or_incomplete_release() {
     let seen = sweep(|at| Fault::Kill { at }, true);
     assert!(seen.clean > 0, "{seen:?}");
     assert!(seen.completed > 0, "{seen:?}");
     assert!(seen.discarded > 0, "{seen:?}");
-    assert!(seen.kept > 0, "{seen:?}");
+    assert_eq!(seen.kept, 0, "{seen:?}");
     assert!(seen.released > 0, "{seen:?}");
 }
 
 /// RA-3 (power loss): the state reverts to what was durable at every call; a released project's archive is durable
-/// (the archive is synced and renamed before the stamp's save), and an open one has at most an incomplete release.
+/// (the archive is synced and renamed before the stamp's save), and an open one has at most an incomplete release,
+/// which a run record of this directory proves its own.
 #[test]
 fn ra3_a_power_loss_at_every_call_never_loses_a_named_archive() {
     let seen = sweep(|at| Fault::PowerLoss { at, keep: 0 }, false);
     assert!(seen.clean > 0, "{seen:?}");
     assert!(seen.released > 0, "{seen:?}");
+    assert_eq!(seen.kept, 0, "{seen:?}");
 }
 
 /// RA-3 (a failure in steps 4 to 6, D13): one failing file-system call at every position, the process alive. A
@@ -1527,6 +1539,165 @@ fn a_crashed_run_without_its_record_is_kept() {
     assert_eq!(e.to_string(), kept_text(OTHER_FILE));
     assert_eq!(root_files(&vfs)["V1.0.ewarchive"], bytes);
     assert_eq!(run_records(&vfs).len(), 1, "the record stays with what it names");
+    r.close();
+}
+
+/// FIX40a (finding 6): a run record whose SHA-256 is not the archive's, with the archive's modification time, is no
+/// evidence: the discard keeps the archive and the record in words.
+#[test]
+fn a_record_of_other_bytes_with_the_same_time_is_kept() {
+    let image = approved_image();
+    let fake = FakeGit::default();
+    let vfs = crashed_at_the_tag(&image, &fake, false);
+    let (name, text) = run_records(&vfs).into_iter().next().expect("the run's record");
+    let path = Path::new(MEM_RUNS).join(name);
+    let mut value: serde_json::Value = serde_json::from_slice(&text).expect("a record");
+    let other = format!("{}", ew_api::Sha256(ew_format::sha256(b"other bytes")));
+    assert_ne!(value["sha256"], serde_json::Value::from(other.clone()));
+    value["sha256"] = serde_json::Value::from(other);
+    vfs.remove_file(&path).expect("removed");
+    vfs.put(&path, format!("{value}\n").as_bytes());
+    let before = root_files(&vfs);
+    let (mut r, _) = mem_open(&vfs, 2);
+    let found = r
+        .incomplete_release(None)
+        .expect("looked")
+        .expect("the incomplete release");
+    assert_eq!(found.unproven.as_deref(), Some(OTHER_FILE));
+    let refused = r.discard_incomplete_release(&options(&fake, None));
+    let Err(e @ ReleaseError::Unproven { .. }) = refused else {
+        panic!("expected Unproven, got {refused:?}")
+    };
+    assert_eq!(e.to_string(), kept_text(OTHER_FILE));
+    assert_eq!(root_files(&vfs), before, "the archive is kept");
+    assert_eq!(run_records(&vfs).len(), 1, "the record stays with what it names");
+    r.close();
+}
+
+/// FIX40a (finding 2): a run whose stamp's save was undecided (the process died after the intent; the record stays
+/// with the archive) is released by the next open's roll-forward, and that open removes the settled run's record. A
+/// restored pre-release copy of the directory at the same path (the same user's state directory) then finds the
+/// released archive as an incomplete release that no record proves its own, and its discard keeps it byte for byte.
+#[test]
+fn a_rolled_forward_release_leaves_no_record_for_a_restored_copy() {
+    let image = approved_image();
+    for n in 1..2000 {
+        let vfs = mem_vfs(&image);
+        let (mut s, integrity) = mem_open(&vfs, 1);
+        vfs.reset_calls();
+        vfs.set_fault(Fault::Kill { at: n });
+        let result = s.release(&context(), &integrity, &options(&NoGit, None));
+        let calls = vfs.calls();
+        vfs.restart();
+        drop(s);
+        assert!(
+            !(result.is_ok() && calls < n),
+            "no kill left an undecided stamp that the next open rolled forward"
+        );
+        if !matches!(result, Err(ReleaseError::Undecided(_))) || run_records(&vfs).is_empty() {
+            continue;
+        }
+        let (r, _) = mem_open(&vfs, 2);
+        if revision(&r).state != RevisionState::Released {
+            r.close();
+            continue;
+        }
+        assert!(
+            run_records(&vfs).is_empty(),
+            "call {n}: the open removed the settled run's record"
+        );
+        assert!(r.take_release_troubles().is_empty());
+        let archive = root_files(&vfs)["V1.0.ewarchive"].clone();
+        r.close();
+
+        let restored = mem_vfs(&image);
+        for (name, data) in root_files(&vfs) {
+            restored.put(&Path::new(MEM_ROOT).join(name), &data);
+        }
+        for (name, data) in run_records(&vfs) {
+            restored.put(&Path::new(MEM_RUNS).join(name), &data);
+        }
+        let (mut c, _) = mem_open(&restored, 3);
+        assert_eq!(revision(&c).state, RevisionState::Open);
+        let found = c
+            .incomplete_release(None)
+            .expect("looked")
+            .expect("the released archive, found by the restored copy");
+        assert_eq!(found.unproven.as_deref(), Some(NO_RECORD), "call {n}");
+        let refused = c.discard_incomplete_release(&options(&NoGit, None));
+        assert!(
+            matches!(refused, Err(ReleaseError::Unproven { .. })),
+            "call {n}: {refused:?}"
+        );
+        assert_eq!(
+            root_files(&restored)["V1.0.ewarchive"],
+            archive,
+            "the released archive is kept"
+        );
+        c.close();
+        return;
+    }
+    panic!("the release made more than 2000 file-system calls");
+}
+
+/// FIX40a (finding 2): a stale record of this directory whose archive is gone is removed when the project opens for
+/// editing; a record of another directory and a record whose archive is still there are kept.
+#[test]
+fn the_open_removes_a_record_whose_archive_is_gone() {
+    let image = approved_image();
+    let fake = FakeGit::default();
+    let vfs = crashed_at_the_tag(&image, &fake, false);
+    let records = run_records(&vfs);
+    let (name, text) = records.iter().next().expect("the run's record");
+    // A record of another directory, under its own key.
+    let mut value: serde_json::Value = serde_json::from_slice(text).expect("a record");
+    value["project_dir"] = serde_json::Value::from("/elsewhere/p");
+    let theirs = format!("0123456789abcdef-{}", name.split_once('-').expect("a key").1);
+    vfs.put(
+        &Path::new(MEM_RUNS).join(&theirs),
+        format!("{value}\n").as_bytes(),
+    );
+    // The archive is there: the record stays.
+    let (r, _) = mem_open(&vfs, 2);
+    r.close();
+    assert!(run_records(&vfs).contains_key(name.as_str()));
+    // The archive removed by hand: the open removes its record, and keeps the other directory's.
+    vfs.remove_file(&Path::new(MEM_ROOT).join("V1.0.ewarchive"))
+        .expect("removed");
+    let (r, _) = mem_open(&vfs, 3);
+    assert_eq!(
+        run_records(&vfs).keys().collect::<Vec<_>>(),
+        [&theirs],
+        "only the other directory's record is left"
+    );
+
+    // A removal that fails when `incomplete_release` looks is reported, in words, and the record stays.
+    let (mine, text) = records.into_iter().next().expect("the run's record");
+    let mine = Path::new(MEM_RUNS).join(mine);
+    let mut reported = None;
+    for n in 1..100 {
+        vfs.put(&mine, &text);
+        vfs.reset_calls();
+        vfs.set_fault(Fault::Error {
+            at: n,
+            kind: std::io::ErrorKind::PermissionDenied,
+        });
+        let _ = r.incomplete_release(None);
+        vfs.set_fault(Fault::None);
+        // A failure listing the records is reported too ("could not be read"); look for the removal's.
+        let troubles = r.take_release_troubles();
+        if troubles.iter().any(|t| t.contains(" could not be removed: ")) {
+            reported = Some(troubles);
+            break;
+        }
+    }
+    let troubles = reported.expect("a failed removal is reported");
+    assert_eq!(troubles.len(), 1, "{troubles:?}");
+    assert!(
+        troubles[0].starts_with("the release record ") && troubles[0].contains(" could not be removed: "),
+        "{troubles:?}"
+    );
+    assert!(r.take_release_troubles().is_empty(), "taken once");
     r.close();
 }
 
