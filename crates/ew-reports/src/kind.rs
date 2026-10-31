@@ -36,6 +36,42 @@ pub trait ReportKindDef: Send + Sync {
 
     /// The rows of `block`, in the kind's default order.
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet;
+
+    /// What an **embedded** block of this kind prints (WP-S4.01 D16): the printed columns with their weights, the box
+    /// title, whether each flow column draws a header row, and the number of flow columns. The default prints every
+    /// column at weight 1 under a header row, no title, one flow column ([`EmbeddedLayout::every_column`]). The
+    /// layout is presentation only: the rows, the CSV and the other exports keep every column of
+    /// [`columns`](ReportKindDef::columns).
+    fn embedded_layout(&self) -> EmbeddedLayout {
+        EmbeddedLayout::every_column(&self.columns())
+    }
+}
+
+/// How an embedded report block prints on its page ([`ReportKindDef::embedded_layout`], WP-S4.01 D16).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct EmbeddedLayout {
+    /// The printed columns in order: `(column key, relative width)`. A key the row set does not have prints nothing.
+    pub columns: Vec<(String, u32)>,
+    /// The box title (neutral text); empty: no title band. A block's own non-empty `title` replaces it.
+    pub title: String,
+    /// Whether each flow column starts with a header row of the column labels.
+    pub headers: bool,
+    /// The number of flow columns the rows fill in turn (at least 1).
+    pub flow_columns: u32,
+}
+
+impl EmbeddedLayout {
+    /// The default layout: every column of `columns` at weight 1 under a header row, no title, one flow column. A
+    /// table of a kind without a declared layout is unreadable without its column names (the orchestrator's ruling 2
+    /// of cycle 42).
+    pub fn every_column(columns: &[ColumnDef]) -> EmbeddedLayout {
+        EmbeddedLayout {
+            columns: columns.iter().map(|c| (c.key.clone(), 1)).collect(),
+            title: String::new(),
+            headers: true,
+            flow_columns: 1,
+        }
+    }
 }
 
 /// The registry of built-in kinds, by name.

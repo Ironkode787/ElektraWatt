@@ -9,16 +9,18 @@ use ew_derive::ew_schema::{AnyId, OrderUnit, ReportBlock};
 use ew_derive::layout::{LegendItem, layout_legend, page_surface};
 
 use super::parts::{manufacturer_text, part_number_cell, qty_cell, unit_symbol};
-use crate::kind::ReportKindDef;
+use crate::kind::{EmbeddedLayout, ReportKindDef};
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowSet};
 
 /// The enclosure legend: the rows of `ew_derive::layout::layout_legend` for the surface of the block's embedded page
 /// (the surface its `surface_view` shows): the enclosure, the plate, one row per carrier (rails, then ducts, the
 /// designation empty, the length in metres as the quantity), then the placements by designation; positions 1 … n.
 ///
-/// A block that is not embedded, or embedded on a page without a surface view, has no rows. Drawing the embedded
-/// legend on folio 902 (its rect and columns) is WP-S4.01 part 4b; this kind is registered so that its rows exist and
-/// are tested.
+/// A block that is not embedded, or embedded on a page without a surface view, has no rows.
+///
+/// Printed (WP-S4.01 D17, golden 902's `legend-902` block): the title "LEGEND", two flow columns, each with a header
+/// row, the position, DT, quantity and part number at weights 10 : 22 : 16 : 35. The quantity prints without its unit,
+/// and the manufacturer, description and unit stay in the rows and the CSV (the orchestrator's ruling 6 of cycle 42).
 #[derive(Clone, Copy, Debug)]
 pub struct EnclosureLegend;
 
@@ -37,6 +39,16 @@ impl ReportKindDef for EnclosureLegend {
             ColumnDef::new("qty", CellType::Qty, "Qty").weighted(6),
             ColumnDef::new("unit", CellType::Ident, "Unit").weighted(4),
         ]
+    }
+
+    fn embedded_layout(&self) -> EmbeddedLayout {
+        let printed = [("pos", 10), ("tag", 22), ("qty", 16), ("part_number", 35)];
+        EmbeddedLayout {
+            columns: printed.map(|(k, w)| (k.to_owned(), w)).to_vec(),
+            title: "LEGEND".to_owned(),
+            headers: true,
+            flow_columns: 2,
+        }
     }
 
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet {

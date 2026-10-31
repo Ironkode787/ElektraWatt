@@ -11,6 +11,7 @@ key,kind,form,section,first_folio,title,continuation,include,embedded_page,embed
 910,structure_overview,ew.frame.qet-a4-landscape-nogrid,9,910,Device Tag Overview {n},,,,
 911,revision_overview,ew.frame.qet-a4-landscape-nogrid,9,911,Revision Overview,,,,
 cover-tables,profile_tables,ew.frame.qet-a4-landscape-nogrid,,,,,,1,120381321;38366287;268553867;165368429
+legend-902,enclosure_legend,ew.frame.qet-a4-landscape-nogrid,,,,,,902,99575925;9845049;271940320;159903463
 part-data-201,part_data,ew.frame.qet-a4-landscape-nogrid,,,,,,201,6610682;6610682;80696954;43658887
 part-data-202,part_data,ew.frame.qet-a4-landscape-nogrid,,,,,,202,6610682;6610682;80696954;43658887
 part-data-902,part_data,ew.frame.qet-a4-landscape-nogrid,,,,,,902,6610682;6610682;62172851;43658887

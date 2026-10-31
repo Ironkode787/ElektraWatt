@@ -34,7 +34,7 @@ fn block(key: &str) -> Id<ReportBlock> {
 }
 
 /// Every golden report block.
-const KEYS: [&str; 15] = [
+const KEYS: [&str; 16] = [
     "2",
     "901",
     "903",
@@ -47,6 +47,7 @@ const KEYS: [&str; 15] = [
     "910",
     "911",
     "cover-tables",
+    "legend-902",
     "part-data-201",
     "part-data-202",
     "part-data-902",
@@ -530,7 +531,13 @@ fn embedded_blocks_have_no_page_and_derive_part_data() {
     let s = common::golden_session();
     let q = s.query();
     let order = q.get::<PageOrder>(());
-    for key in ["cover-tables", "part-data-201", "part-data-202", "part-data-902"] {
+    for key in [
+        "cover-tables",
+        "legend-902",
+        "part-data-201",
+        "part-data-202",
+        "part-data-902",
+    ] {
         assert!(pages_of(&order, block(key)).is_empty(), "{key} has no page");
     }
 
@@ -555,10 +562,16 @@ fn embedded_blocks_have_no_page_and_derive_part_data() {
         ["Order Code 1", "Order Code 2"].map(|l| Cell::Text(ew_derive::ew_mltext::MlText::neutral(l)))
     );
 
-    // No representation on page 902 yet (placements arrive with ew-panel): no rows.
+    // Page 902 draws no representation; its surface view shows -UC1's plate, so the box sources -UC1 (WP-S4.01 D16,
+    // LB-3): the enclosure and the plate, without the carrier lines of the rails and ducts.
     let r902 = q.get::<BlockRows>(block("part-data-902"));
     assert!(r902.is_derived());
-    assert!(r902.rows.is_empty());
+    assert_eq!(part_numbers(&r902), ["NSYPLA1074G", "NSYPMM107"]);
+
+    // The legend on 902 (D17) derives its 30 rows.
+    let legend = q.get::<BlockRows>(block("legend-902"));
+    assert!(legend.is_derived());
+    assert_eq!(legend.rows.len(), 30);
 }
 
 #[test]

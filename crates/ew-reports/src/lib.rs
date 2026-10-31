@@ -40,7 +40,7 @@ pub mod render;
 mod rowset;
 
 pub use arrange::{Arrangement, Filter, FilterOp, arrange};
-pub use kind::{Registry, ReportKindDef, kind_name};
+pub use kind::{EmbeddedLayout, Registry, ReportKindDef, kind_name};
 pub use kinds::bridge_groups;
 pub use layout::{Layouts, PageLayout};
 pub use paginate::{BlockSpec, Break, Continuation, FixedLines, RowLines, Slice, paginate};

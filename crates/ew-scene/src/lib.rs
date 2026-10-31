@@ -13,8 +13,8 @@
 //! ([`forms::SheetMap`], FR-PAG-029), placeholder bindings and the lowering of frame and title-block forms
 //! to the `frame` layer ([`forms::lower_form`]), with text shaped by `ew-text`.
 //!
-//! [`embedded`] draws the embedded report blocks of a drawn page into the `tables` layer (the cover's colour
-//! and standard-size tables, FR-REP-028).
+//! [`embedded`] draws the embedded report blocks of a drawn page into the `tables` layer (FR-REP-028): the cover's
+//! colour and standard-size tables, and a boxed report table for every other kind (PART DATA, the layout legend).
 
 #![forbid(unsafe_code)]
 

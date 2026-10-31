@@ -23,6 +23,7 @@ mod connectivity_reports;
 mod decimal_separator;
 mod derivation;
 mod editing;
+mod embedded_blocks;
 mod export_bom;
 mod export_job;
 mod find;

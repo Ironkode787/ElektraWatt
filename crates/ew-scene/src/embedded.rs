@@ -2,10 +2,34 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Embedded report blocks on a drawn page (FR-REP-028, doc 09 §2.2): the cover's colour and standard-size
-//! tables (doc 20 §17.3).
+//! tables (doc 20 §17.3) and, for every other kind, a boxed report table (WP-S4.01 D16: PART DATA, the layout
+//! legend).
 //!
-//! The caller fills an [`EmbeddedView`] with the **printed** texts of the block's groups; [`lower_embedded`]
-//! is a pure function of the view, the page-to-sheet map of the frame form and the font set. The block's
+//! The caller fills an [`EmbeddedView`] with the **printed** texts of the block; [`lower_embedded`] is a pure function
+//! of the view, the page-to-sheet map of the frame form and the font set.
+//!
+//! # The boxed table ([`EmbeddedContent::Table`])
+//!
+//! House values in **printed** millimetres (like the generated pages' table, `crate::table`; the block's rectangle is
+//! mapped to the sheet with the frame form's map and every item back to the page with its inverse):
+//!
+//! - a drop shadow of [`SHADOW`] (2.61 mm, doc 20 §17.3's PART DATA box) to the right and below, filled black and
+//!   painted first; then the rectangle as a box at [`GRID_WIDTH`] (0.418 mm, the house width of the cover's boxes);
+//! - with a title, a title band of 1.5 rows of [`ROW_HEIGHT`] (9.78 mm) in style [`BOX_TITLE_STYLE`] (15.5 pt);
+//! - the width split in [`EmbeddedTable::flow_columns`] flow columns with a [`GUTTER`] of 4 mm between them, the last
+//!   ending at the box's right edge; the rows fill the first column to its capacity, then the next;
+//! - in each flow column that draws rows, with headers: a header row filled [`HEADER_FILL`], then data rows of
+//!   [`ROW_HEIGHT`] (6.52 mm) in `text.normal`, the grid ([`LINE_WIDTH`], 0.183 mm: the outline, the row separators and
+//!   the column separators, a heading row spanning) under the texts; without headers no inner grid (PART DATA);
+//! - the columns split by weight with [`column_edges_in`], each text by the house cell rule (left aligned, shrunk to
+//!   the 1.8 mm cap height, then reported, never clipped);
+//! - a block whose rows do not derive prints its [`note`](EmbeddedTable::note) in one spanning row of the first flow
+//!   column; rows beyond the capacity ([`boxed_capacity`]: whole rows of the space under the title band, less a header
+//!   row, per flow column) are not drawn and are reported ([`TableFinding::TooManyRows`], FR-REP-039).
+//!
+//! # The cover ([`EmbeddedContent::Cover`])
+//!
+//! The block's
 //! rectangle (`ReportBlock.embedded.rect`, page coordinates) is divided in rows of `u = height / 24`; the
 //! proportions are those of the reference cover (printed 128.52 to 274.66 mm by 47.63 to 172.89 mm, doc 20
 //! §17.3):
@@ -19,25 +43,39 @@
 //! The note of the cover is drawn in style `data.small` (6.66 pt printed) in the row under the rectangle.
 //!
 //! A title is drawn in style `cover.table` (11.84 pt printed), every other text in `text.normal`, left aligned
-//! and centred on the row's midline, inset by [`CELL_PADDING`]. The grid (the outline and the row and column
+//! and centred on the row's midline, inset by [`CELL_PADDING`](crate::forms::CELL_PADDING). The grid (the outline and the row and column
 //! separators of the header and data rows, each line once) is [`GRID_WIDTH`] wide (0.418 mm printed, doc 20
 //! §17.4: "cover boxes and tables"); titles and captions have no grid. A text that does not fit its cell
-//! shrinks to the printed cap height [`MIN_CAP_HEIGHT`] and is then reported, never clipped (FR-REP-039).
+//! shrinks to the printed cap height [`MIN_CAP_HEIGHT`](crate::table::MIN_CAP_HEIGHT) and is then reported, never clipped (FR-REP-039).
 //! Only the rows given are drawn, so the table ends below its last row.
 
-use ew_dl::{Item, Path, Stroke};
-use ew_schema::{Overflow, ShrinkSpec};
+use ew_dl::{Brush, Item, Path, Stroke};
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
 use ew_units::{Nm, Pt2, Rect};
 
-use crate::forms::{BoxSpec, CELL_PADDING, SheetMap, lay_out};
-use crate::table::{LoweredTable, MIN_CAP_HEIGHT, TableFinding};
+use crate::forms::SheetMap;
+use crate::table::{
+    HEADER_FILL, LINE_WIDTH, LoweredTable, ROW_HEIGHT, TableColumn, TableFinding, TableRow, TableRowKind,
+    column_edges_in, push_cell,
+};
 
 /// The grid line width, printed.
 pub const GRID_WIDTH: Nm = Nm(418_000);
 
 /// The style of a table title.
 pub const TITLE_STYLE: &str = "cover.table";
+
+/// The style of a boxed table's title (doc 20 §17.3: the PART DATA title, 15.53 pt printed).
+pub const BOX_TITLE_STYLE: &str = "box.title";
+
+/// The drop shadow of a boxed table, printed (doc 20 §17.3: "shadow 2.61").
+pub const SHADOW: Nm = Nm(2_610_000);
+
+/// The gutter between two flow columns of a boxed table, printed (WP-S4.01 D16).
+pub const GUTTER: Nm = Nm(4_000_000);
+
+/// The most flow columns a boxed table draws; a larger count is drawn as this many.
+pub const MAX_FLOW_COLUMNS: u32 = 16;
 
 /// One table of an embedded block.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -65,11 +103,30 @@ pub struct CoverTables {
     pub note: Option<String>,
 }
 
+/// A boxed report table: an embedded block of any kind but the cover (WP-S4.01 D16).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct EmbeddedTable {
+    /// The title printed in the box's title band; empty: no title band.
+    pub title: String,
+    /// The printed columns: header text and relative width.
+    pub columns: Vec<TableColumn>,
+    /// Whether each flow column that draws rows starts with a header row (and draws its grid).
+    pub headers: bool,
+    /// The number of flow columns (0 is drawn as 1, more than [`MAX_FLOW_COLUMNS`] as that many).
+    pub flow_columns: u32,
+    /// The rows in order, one text per printed column (a heading row uses the first).
+    pub rows: Vec<TableRow>,
+    /// Printed in one spanning row instead of `rows`: why the block's rows do not derive.
+    pub note: Option<String>,
+}
+
 /// What an embedded block draws.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum EmbeddedContent {
     /// The colour and standard-size tables of the cover (`profile_tables`).
-    Cover(CoverTables),
+    Cover(Box<CoverTables>),
+    /// A boxed report table (every other kind).
+    Table(EmbeddedTable),
 }
 
 /// One embedded block on a page.
@@ -91,7 +148,214 @@ pub fn lower_embedded(
 ) -> LoweredTable {
     match &view.content {
         EmbeddedContent::Cover(cover) => lower_cover(view.rect, cover, sheet, fonts, styles),
+        EmbeddedContent::Table(table) => lower_boxed(view.rect, table, sheet, fonts, styles),
     }
+}
+
+/// The capacity of a boxed table in `rect` (page coordinates) under the map `sheet`, as [`lower_embedded`] draws it:
+/// `(flow columns, data rows per flow column)`.
+pub fn boxed_capacity(rect: Rect, table: &EmbeddedTable, sheet: SheetMap) -> (usize, usize) {
+    let r = sheet.apply_rect(rect);
+    let top = r.min().y.0 + title_band(table).0;
+    let slots = usize::try_from((r.max().y.0 - top).max(0) / ROW_HEIGHT.0).unwrap_or(0);
+    let flows = table.flow_columns.clamp(1, MAX_FLOW_COLUMNS) as usize;
+    (flows, slots.saturating_sub(usize::from(draws_header(table))))
+}
+
+/// Whether the flow columns draw a header row: the table asks for one and has columns (a block whose rows do not
+/// derive may have none, and then prints only its note).
+fn draws_header(table: &EmbeddedTable) -> bool {
+    table.headers && !table.columns.is_empty()
+}
+
+/// The height of the title band, printed: 1.5 rows with a title, else none.
+fn title_band(table: &EmbeddedTable) -> Nm {
+    if table.title.is_empty() {
+        Nm(0)
+    } else {
+        Nm(ROW_HEIGHT.0 * 3 / 2)
+    }
+}
+
+/// Lowers a boxed table (see the module documentation).
+fn lower_boxed(
+    rect: Rect,
+    t: &EmbeddedTable,
+    sheet: SheetMap,
+    fonts: &FontSet,
+    styles: &TextStyleTable,
+) -> LoweredTable {
+    let mut out = LoweredTable::default();
+    // Printed coordinates of the box.
+    let r = sheet.apply_rect(rect);
+    let (x0, y0, x1, y1) = (r.min().x, r.min().y, r.max().x, r.max().y);
+    let to_page = |x: Nm, y: Nm| sheet.unapply(Pt2::new(x, y));
+    let page_rect = |ax: Nm, ay: Nm, bx: Nm, by: Nm| Rect::from_points(to_page(ax, ay), to_page(bx, by));
+    let style = |key: &str| styles.resolve(key).unwrap_or(TextStyle::regular(Nm(3_175_000)));
+
+    // The rows given and drawn.
+    let (flows, per_flow) = boxed_capacity(rect, t, sheet);
+    let given = if t.note.is_some() { 1 } else { t.rows.len() };
+    let drawn = given.min(flows.saturating_mul(per_flow));
+    if given > drawn {
+        out.findings.push(TableFinding::TooManyRows { given, drawn });
+    }
+
+    // The drop shadow: the visible L of the box offset by the shadow, under the box (the project data box's shape).
+    let s = SHADOW.0;
+    let shadow = if s < r.width().0 && s < r.height().0 {
+        Path::polygon(&[
+            to_page(x1, Nm(y0.0 + s)),
+            to_page(Nm(x1.0 + s), Nm(y0.0 + s)),
+            to_page(Nm(x1.0 + s), Nm(y1.0 + s)),
+            to_page(Nm(x0.0 + s), Nm(y1.0 + s)),
+            to_page(Nm(x0.0 + s), y1),
+            to_page(x1, y1),
+        ])
+    } else {
+        Path::rect(page_rect(Nm(x0.0 + s), Nm(y0.0 + s), Nm(x1.0 + s), Nm(y1.0 + s)))
+    };
+    out.items.push(Item::path(shadow, None, Some(Brush::BLACK)));
+    out.items.push(Item::path(
+        Path::rect(page_rect(x0, y0, x1, y1)),
+        Some(Stroke::solid(sheet.unscale_len(GRID_WIDTH))),
+        None,
+    ));
+
+    // The title band.
+    let top = Nm(y0.0 + title_band(t).0);
+    let title_style = style(BOX_TITLE_STYLE);
+    let cell = page_rect(x0, y0, x1, top);
+    push_cell(
+        &mut out,
+        fonts,
+        &title_style,
+        sheet,
+        cell,
+        &t.title,
+        (None, 0),
+        None,
+    );
+
+    // The flow columns.
+    let flows_i = i64::try_from(flows).unwrap_or(1);
+    let width = (x1.0 - x0.0 - GUTTER.0 * (flows_i - 1)).max(0) / flows_i;
+    let text_style = style(DEFAULT_STYLE_KEY);
+    let header = usize::from(draws_header(t));
+    let row_y = |i: usize| Nm(top.0 + ROW_HEIGHT.0 * i64::try_from(i).unwrap_or(0));
+    let stroke = Stroke::solid(sheet.unscale_len(LINE_WIDTH));
+    let line = |ax: Nm, ay: Nm, bx: Nm, by: Nm| {
+        Item::path(
+            Path::line(to_page(ax, ay), to_page(bx, by)),
+            Some(stroke.clone()),
+            None,
+        )
+    };
+    for k in 0..flows {
+        let start = (k * per_flow).min(drawn);
+        let end = ((k + 1) * per_flow).min(drawn);
+        let count = end - start;
+        // A flow column without rows draws nothing, except the first, which keeps its header.
+        if count == 0 && (k > 0 || !draws_header(t)) {
+            continue;
+        }
+        let k_i = i64::try_from(k).unwrap_or(0);
+        let left = Nm(x0.0 + k_i * (width + GUTTER.0));
+        let right = if k + 1 == flows { x1 } else { Nm(left.0 + width) };
+        let edges = column_edges_in(&t.columns, left, right);
+        if draws_header(t) {
+            // Whether row `i` of this flow column (0 the header) spans every column.
+            let spans = |i: usize| -> bool {
+                i > 0
+                    && (t.note.is_some()
+                        || t.rows
+                            .get(start + i - 1)
+                            .is_some_and(|r| r.kind == TableRowKind::Heading))
+            };
+            let rows = 1 + count;
+            out.items.push(Item::path(
+                Path::rect(page_rect(left, top, right, row_y(1))),
+                None,
+                Some(Brush::Solid(HEADER_FILL)),
+            ));
+            out.items.push(Item::path(
+                Path::rect(page_rect(left, top, right, row_y(rows))),
+                Some(stroke.clone()),
+                None,
+            ));
+            for i in 1..rows {
+                out.items.push(line(left, row_y(i), right, row_y(i)));
+            }
+            for (c, &x) in edges
+                .iter()
+                .enumerate()
+                .skip(1)
+                .take(edges.len().saturating_sub(2))
+            {
+                if t.columns[c - 1].weight == 0 {
+                    continue;
+                }
+                // The separator is drawn in runs of rows that do not span.
+                let mut i = 0;
+                while i < rows {
+                    if spans(i) {
+                        i += 1;
+                        continue;
+                    }
+                    let run = i;
+                    while i < rows && !spans(i) {
+                        i += 1;
+                    }
+                    out.items.push(line(x, row_y(run), x, row_y(i)));
+                }
+            }
+            for (c, col) in t.columns.iter().enumerate() {
+                if col.weight > 0 {
+                    let cell = page_rect(edges[c], row_y(0), edges[c + 1], row_y(1));
+                    push_cell(
+                        &mut out,
+                        fonts,
+                        &text_style,
+                        sheet,
+                        cell,
+                        &col.header,
+                        (None, c),
+                        None,
+                    );
+                }
+            }
+        }
+        if let Some(note) = &t.note {
+            if count > 0 {
+                let cell = page_rect(left, row_y(header), right, row_y(header + 1));
+                push_cell(&mut out, fonts, &text_style, sheet, cell, note, (None, 0), None);
+            }
+            continue;
+        }
+        for (j, row) in t.rows[start..end].iter().enumerate() {
+            let (ya, yb) = (row_y(header + j), row_y(header + j + 1));
+            let at = start + j;
+            match row.kind {
+                TableRowKind::Heading => {
+                    let s = row.cells.first().map_or("", String::as_str);
+                    let cell = page_rect(left, ya, right, yb);
+                    push_cell(&mut out, fonts, &text_style, sheet, cell, s, (Some(at), 0), None);
+                }
+                TableRowKind::Data => {
+                    for (c, col) in t.columns.iter().enumerate() {
+                        if col.weight == 0 {
+                            continue;
+                        }
+                        let s = row.cells.get(c).map_or("", String::as_str);
+                        let link = row.links.iter().find(|(n, _)| *n == c).map(|(_, d)| *d);
+                        let cell = page_rect(edges[c], ya, edges[c + 1], yb);
+                        push_cell(&mut out, fonts, &text_style, sheet, cell, s, (Some(at), c), link);
+                    }
+                }
+            }
+        }
+    }
+    out
 }
 
 /// The coordinate at `num / den` of `len` from `lo`.
@@ -239,35 +503,8 @@ impl Painter<'_> {
             .styles
             .resolve(style_key)
             .unwrap_or(TextStyle::regular(Nm(3_175_000)));
-        let shrink = Overflow::ShrinkToFit(ShrinkSpec {
-            min_cap_height: MIN_CAP_HEIGHT,
-            extra: Default::default(),
-        });
-        let spec = BoxSpec {
-            rect: Rect::from_points(Pt2::new(x0, y0), Pt2::new(x1, y1)),
-            halign: -1,
-            valign: 0,
-            padding: CELL_PADDING,
-            overflow: Some(&shrink),
-            max_lines: 1,
-            sheet: self.sheet,
-        };
-        let laid = lay_out(self.fonts, s, &style, &spec);
-        if !laid.shaped.missing.is_empty() {
-            self.out.findings.push(TableFinding::MissingGlyphs {
-                text: s.to_owned(),
-                chars: laid.shaped.missing.clone(),
-            });
-        }
-        if let Some(kind) = laid.overflow {
-            self.out.findings.push(TableFinding::Overflow {
-                row: at.0,
-                column: at.1,
-                text: s.to_owned(),
-                kind,
-            });
-        }
-        self.out.items.extend(laid.items);
+        let rect = Rect::from_points(Pt2::new(x0, y0), Pt2::new(x1, y1));
+        push_cell(&mut self.out, self.fonts, &style, self.sheet, rect, s, at, None);
     }
 }
 
@@ -305,7 +542,7 @@ mod tests {
                 Pt2::new(Nm(120_000_000), Nm(38_000_000)),
                 Pt2::new(Nm(268_000_000), Nm(165_000_000)),
             ),
-            content: EmbeddedContent::Cover(cover()),
+            content: EmbeddedContent::Cover(Box::new(cover())),
         }
     }
 
@@ -322,7 +559,7 @@ mod tests {
     #[test]
     fn a_missing_table_draws_nothing() {
         let v = EmbeddedView {
-            content: EmbeddedContent::Cover(CoverTables::default()),
+            content: EmbeddedContent::Cover(Box::default()),
             ..view()
         };
         let out = lower_embedded(&v, SheetMap::IDENTITY, ew_text::bundled(), ew_text::builtin());

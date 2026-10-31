@@ -143,22 +143,83 @@ pub struct LoweredTable {
 
 /// The column edges, printed: `columns.len() + 1` values from [`LEFT`] to [`RIGHT`], split by weight.
 pub fn column_edges(columns: &[TableColumn]) -> Vec<Nm> {
+    column_edges_in(columns, LEFT, RIGHT)
+}
+
+/// The column edges of a table spanning `left` to `right`: `columns.len() + 1` values split by weight, each edge the
+/// integer rounding of its cumulative share, the last exactly `right` (the house rule of [`column_edges`], shared with
+/// the embedded tables of [`crate::embedded`]).
+pub fn column_edges_in(columns: &[TableColumn], left: Nm, right: Nm) -> Vec<Nm> {
     let total: i128 = columns.iter().map(|c| i128::from(c.weight)).sum();
-    let width = i128::from(RIGHT.0 - LEFT.0);
+    let width = i128::from(right.0 - left.0);
     let mut edges = Vec::with_capacity(columns.len() + 1);
-    edges.push(LEFT);
+    edges.push(left);
     let mut acc: i128 = 0;
     for c in columns {
         acc += i128::from(c.weight);
         let x = if total == 0 { 0 } else { width * acc / total };
-        edges.push(Nm(LEFT.0 + i64::try_from(x).unwrap_or(0)));
+        edges.push(Nm(left.0 + i64::try_from(x).unwrap_or(0)));
     }
     if let Some(last) = edges.last_mut()
         && total > 0
     {
-        *last = RIGHT;
+        *last = right;
     }
     edges
+}
+
+/// The house cell rule (shared with [`crate::embedded`]): `s` left aligned in `rect` (page coordinates), centred on its
+/// midline and inset by [`CELL_PADDING`], shrunk to the printed cap height [`MIN_CAP_HEIGHT`] when it does not fit and
+/// then reported ([`TableFinding::Overflow`] at `at`, `(row, column)`), never clipped; characters without a glyph are
+/// reported too. An empty text draws nothing. `link` is set on every item of the text.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn push_cell(
+    out: &mut LoweredTable,
+    fonts: &FontSet,
+    style: &TextStyle,
+    sheet: SheetMap,
+    rect: Rect,
+    s: &str,
+    at: (Option<usize>, usize),
+    link: Option<Destination>,
+) {
+    if s.is_empty() {
+        return;
+    }
+    let shrink = Overflow::ShrinkToFit(ShrinkSpec {
+        min_cap_height: MIN_CAP_HEIGHT,
+        extra: Default::default(),
+    });
+    let spec = BoxSpec {
+        rect,
+        halign: -1,
+        valign: 0,
+        padding: CELL_PADDING,
+        overflow: Some(&shrink),
+        max_lines: 1,
+        sheet,
+    };
+    let laid = lay_out(fonts, s, style, &spec);
+    if !laid.shaped.missing.is_empty() {
+        out.findings.push(TableFinding::MissingGlyphs {
+            text: s.to_owned(),
+            chars: laid.shaped.missing.clone(),
+        });
+    }
+    if let Some(kind) = laid.overflow {
+        out.findings.push(TableFinding::Overflow {
+            row: at.0,
+            column: at.1,
+            text: s.to_owned(),
+            kind,
+        });
+    }
+    match link {
+        Some(d) => out
+            .items
+            .extend(laid.items.into_iter().map(|i| i.with_link(Link::Source(d)))),
+        None => out.items.extend(laid.items),
+    }
 }
 
 /// Lowers `view` (see the module documentation). `sheet` is the frame form's page-to-sheet map; the rows print in
@@ -176,10 +237,6 @@ pub fn lower_table(
     let style = styles
         .resolve(DEFAULT_STYLE_KEY)
         .unwrap_or(TextStyle::regular(Nm(3_175_000)));
-    let shrink = Overflow::ShrinkToFit(ShrinkSpec {
-        min_cap_height: MIN_CAP_HEIGHT,
-        extra: Default::default(),
-    });
 
     let edges: Vec<Nm> = column_edges(&view.columns);
     // The table never runs below the form's data area: rows beyond the page's capacity are not drawn and
@@ -263,39 +320,8 @@ pub fn lower_table(
                 y0: Nm,
                 at: (Option<usize>, usize),
                 link: Option<Destination>| {
-        if s.is_empty() {
-            return;
-        }
-        let spec = BoxSpec {
-            rect: rect(x0, y0, x1, Nm(y0.0 + ROW_HEIGHT.0)),
-            halign: -1,
-            valign: 0,
-            padding: CELL_PADDING,
-            overflow: Some(&shrink),
-            max_lines: 1,
-            sheet,
-        };
-        let laid = lay_out(fonts, s, &style, &spec);
-        if !laid.shaped.missing.is_empty() {
-            out.findings.push(TableFinding::MissingGlyphs {
-                text: s.to_owned(),
-                chars: laid.shaped.missing.clone(),
-            });
-        }
-        if let Some(kind) = laid.overflow {
-            out.findings.push(TableFinding::Overflow {
-                row: at.0,
-                column: at.1,
-                text: s.to_owned(),
-                kind,
-            });
-        }
-        match link {
-            Some(d) => out
-                .items
-                .extend(laid.items.into_iter().map(|i| i.with_link(Link::Source(d)))),
-            None => out.items.extend(laid.items),
-        }
+        let cell = rect(x0, y0, x1, Nm(y0.0 + ROW_HEIGHT.0));
+        push_cell(out, fonts, &style, sheet, cell, s, at, link);
     };
     for (c, col) in view.columns.iter().enumerate() {
         if col.weight > 0 {
@@ -366,6 +392,18 @@ mod tests {
         let e = column_edges(&cols(&[63_420, 135_170, 62_370]));
         assert_eq!(e[1], Nm(79_730_000));
         assert_eq!(e[2], Nm(214_900_000));
+    }
+
+    #[test]
+    fn column_edges_in_a_span_follow_the_same_rule() {
+        let c = cols(&[63_420, 135_170, 62_370]);
+        assert_eq!(column_edges_in(&c, LEFT, RIGHT), column_edges(&c));
+        // D17's first flow column, 108.00 to 191.00 mm at 10 : 22 : 16 : 35: 10, 22, 16 and 35 mm.
+        let e = column_edges_in(&cols(&[10, 22, 16, 35]), Nm(108_000_000), Nm(191_000_000));
+        assert_eq!(
+            e,
+            [108_000_000, 118_000_000, 140_000_000, 156_000_000, 191_000_000].map(Nm)
+        );
     }
 
     #[test]

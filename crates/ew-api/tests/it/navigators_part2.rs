@@ -434,11 +434,11 @@ fn np1_ips_structure_blocks() {
         (NavRole::Location, "location")
     );
 
-    // Report blocks: 15 rows, 11 page blocks and 4 embedded.
+    // Report blocks: 16 rows, 11 page blocks and 5 embedded (902 embeds PART DATA and the legend, WP-S4.01 D17).
     let t = s.navigator_table(NavKind::Blocks);
     assert_tree_contract(&t);
     let rows = table_rows(&t);
-    assert_eq!(rows.len(), 15);
+    assert_eq!(rows.len(), 16);
     let paged: Vec<&str> = rows
         .iter()
         .filter(|n| n.cells[4] != "0")
@@ -455,7 +455,7 @@ fn np1_ips_structure_blocks() {
         .filter(|n| n.cells[4] == "0")
         .map(|n| n.cells[2].as_str())
         .collect();
-    assert_eq!(embedded, ["1", "201", "202", "902"]);
+    assert_eq!(embedded, ["1", "201", "202", "902", "902"]);
     let wl = rows.iter().find(|n| n.cells[2] == "907").unwrap();
     assert_eq!(wl.cells[1], "wire_list");
     let first907 = s.page_rows().into_iter().find(|r| r.folio == "907").unwrap().id;

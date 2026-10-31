@@ -347,8 +347,10 @@ fn nightly_the_png_candidates_match_within_the_doc_20_tolerance_on_every_page() 
     with_golden_pages(|pages| png_candidates_match(&pages.iter().collect::<Vec<_>>()));
 }
 
-/// Every page of `pages` renders to a 150 dpi PNG within doc 20's tolerance of the committed one.
+/// Every page of `pages` renders to a 150 dpi PNG within doc 20's tolerance of the committed one. Every page is
+/// compared before the test fails, and the failure lists every page outside the tolerance.
 fn png_candidates_match(pages: &[&GoldenPage]) {
+    let mut failures = Vec::new();
     for g in pages {
         let scene = page_scene(&g.view, ew_text::bundled(), ew_text::builtin());
         let bytes = page_png(&scene);
@@ -361,14 +363,22 @@ fn png_candidates_match(pages: &[&GoldenPage]) {
             std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e} (run with EW_BLESS=1)", path.display()));
         let (w0, h0, a) = decode_rgba(&committed);
         let (w1, h1, b) = decode_rgba(&bytes);
-        assert_eq!((w0, h0), (w1, h1), "folio {} size", g.entry.folio);
+        if (w0, h0) != (w1, h1) {
+            failures.push(format!(
+                "folio {}: size {w1} × {h1}, committed {w0} × {h0}",
+                g.entry.folio
+            ));
+            continue;
+        }
         let pct = differing_percent(&a, &b, 16);
-        assert!(
-            pct <= 0.5,
-            "folio {}: {pct:.3} % of the pixels differ",
-            g.entry.folio
-        );
+        if pct > 0.5 {
+            failures.push(format!(
+                "folio {}: {pct:.3} % of the pixels differ",
+                g.entry.folio
+            ));
+        }
     }
+    assert!(failures.is_empty(), "{failures:#?}");
 }
 
 #[test]

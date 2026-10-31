@@ -589,7 +589,9 @@ def build_report_blocks():
         rf"^{num}–{num} × {num}–{num} \(201, 202\), {num}–{num} × same \(902\)",
         geo["PART DATA box"],
     )
+    lm = re.match(rf"^{num}–{num} × {num}–{num} ▲ \(902;", geo["Legend box"])
     check(cm and sm and pm, "section 17.3: cannot read the colour table, size tables or PART DATA box geometry")
+    check(lm, "section 17.3: cannot read the legend box geometry")
     # doc 20 section 17.3: the cover-tables block spans the colour table plus the size tables
     cover_mm = (cm.group(1), cm.group(3), sm.group(4), sm.group(6))
     check(cover_mm == ("128.52", "47.63", "274.66", "172.89"), f"section 17.3: cover tables {cover_mm}")
@@ -599,12 +601,17 @@ def build_report_blocks():
     cover = rect(*cover_mm)
     pd_201 = rect(pm.group(1), pm.group(3), pm.group(2), pm.group(4))
     pd_902 = rect(pm.group(5), pm.group(3), pm.group(6), pm.group(4))
+    # WP-S4.01 D17: the legend box on folio 902 (a test value)
+    legend_mm = (lm.group(1), lm.group(3), lm.group(2), lm.group(4))
+    check(legend_mm == ("108.00", "19.50", "278.00", "167.50"), f"section 17.3: legend box {legend_mm}")
+    legend = rect(*legend_mm)
     # doc 20 section 17.3: embedded blocks (geometry through the section 17.1 transform, native nm)
     embedded = [
         ("cover-tables", "profile_tables", "1", cover),
         ("part-data-201", "part_data", "201", pd_201),
         ("part-data-202", "part_data", "202", pd_201),
         ("part-data-902", "part_data", "902", pd_902),
+        ("legend-902", "enclosure_legend", "902", legend),
     ]
     for key, kind, page, rc in embedded:
         out.append({"key": key, "kind": kind, "form": FRAME_NOGRID, "embedded_page": page, "embedded_rect": rc})
@@ -612,7 +619,7 @@ def build_report_blocks():
         "key", "kind", "form", "section", "first_folio", "title", "continuation", "include", "embedded_page",
         "embedded_rect",
     ]  # fmt: skip
-    register("report_blocks", cols, out, 15)
+    register("report_blocks", cols, out, 16)
     fixture(
         "report_blocks", ["title", "include"], "all", "(text of the §16 cell)", "§16",
         "the whole 'Page description' column is a ▲: titles and the include filters are read from it unchanged",

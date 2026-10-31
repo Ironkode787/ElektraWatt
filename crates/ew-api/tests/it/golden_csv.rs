@@ -130,8 +130,9 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
     assert_eq!(n("plc_config_project"), 1);
     assert_eq!(n("channel"), 56);
     assert_eq!(n("device_link"), 8);
-    // doc 20 §16 and §17.3 (doc 03 §20): 11 page-oriented report blocks and 4 embedded ones.
-    assert_eq!(n("report_block"), 11 + 4);
+    // doc 20 §16 and §17.3 (doc 03 §20): 11 page-oriented report blocks and 5 embedded ones (the legend on 902: WP-S4.01
+    // D17).
+    assert_eq!(n("report_block"), 11 + 5);
     // doc 20 §14.1: 27 BOM rows, 23 with a part number and the 4 TBD test parts of rows 24–27; §14.2: the two
     // configured products of the assembly mode.
     let parts = batch

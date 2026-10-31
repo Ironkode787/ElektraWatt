@@ -342,7 +342,7 @@ fn path_b_equals_path_a_record_by_record_up_to_ids() {
          ip.place: 48, junction.edit: 6, layout.carrier.add: 8, layout.enclosure.create: 1, layout.place: 20, \
          layout.space.create: 1, library.embed: 1, page.create: 13, page.surface_view.set: 1, plc.bind_channel: 28, \
          plc.config_project.create: 1, potential.define: 19, project.settings.set: 3, \
-         project.supply.set: 1, report_block.create: 15, revision.create: 2, section.create: 3, \
+         project.supply.set: 1, report_block.create: 16, revision.create: 2, section.create: 3, \
          structure.create_node: 4, terminal.add: 4, valve.add: 28"
     );
     assert_eq!(built.unwritten_summary(), "");

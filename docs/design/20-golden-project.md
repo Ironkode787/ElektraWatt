@@ -1147,6 +1147,7 @@ forms that declare one.
 | Size tables | 128.52–198.98 and 204.20–274.66 × 149.40–172.89; note 6.66 pt below |
 | Section divider | rule 1.305 at y 18.92; "=P01+J-E-2416" bold 27.37 pt; subtitle 21.45 pt; rule 0.522 at y 50.24 (x 13.70–277.27); logo 259.33/20.18 |
 | PART DATA box | 16.31–89.38 × 16.31–52.85 (201, 202), 16.31–71.11 × same (902); shadow 2.61; title 15.53 pt; codes 8.88 pt |
+| Legend box | 108.00–278.00 × 19.50–167.50 ▲ (902; WP-S4.01 D17); shadow 2.61; title "LEGEND" 15.53 pt; two flow columns with a 4 mm gutter, each a header and up to 20 rows of 6.52 |
 | External connection boxes | dotted 1:2, 0.261; folio 3: 243.34–279.88 × 131.13–167.67; folio 101: cells F0–H5 |
 | TOC columns | Folio number 16.31–79.73, Title 79.73–214.90, Location (+) 214.90–277.27 |
 | BOM columns ▲ | Pos 12, Qty 14, Unit 10, Manufacturer 36, Part number 42, Description 62, Tags 50.96, Folios 34 (sum 260.96) |

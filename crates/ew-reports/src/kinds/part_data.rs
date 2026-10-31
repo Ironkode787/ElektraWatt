@@ -7,22 +7,30 @@ use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey};
-use ew_derive::ew_schema::{Device, ReportBlock};
-use ew_derive::{DevicePartLines, MainRep, PartLine, Q};
+use ew_derive::ew_schema::{Device, Enclosure, MountingSurface, ReportBlock};
+use ew_derive::layout::page_surface;
+use ew_derive::{DevicePartLines, LineSource, MainRep, PartLine, Q};
 
 use super::parts::{line_id, part_cells, tag_key};
-use crate::kind::ReportKindDef;
+use crate::kind::{EmbeddedLayout, ReportKindDef};
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
 /// The PART DATA box.
 ///
 /// Source devices: the block's `manual.include` devices, else the root ancestors of the devices drawn on the
-/// embedded page. A source with an assembly aspect that has configs lists one row per order code (doc 11
+/// embedded page **and** the enclosure device of the surface the page's surface view shows (WP-S4.01 D16: a test of
+/// the page's items, through `ew_derive::layout::page_surface`, which also requires a panel-layout page; the
+/// orchestrator's ruling 3 of cycle 42). A source with an assembly aspect that has configs lists one row per order code (doc 11
 /// §5.5 step 6, D-36): the config's label ("Order Code 1"; "Order Code n" when it has none), and the
 /// manufacturer, part number and description of its configured part, or the order code alone without one.
 /// Otherwise it lists the part lines of the device and of those descendants that have no representation of
 /// their own (a cabinet's mounting plate; a valve that the drawings show as its own symbol is not repeated in
-/// the box).
+/// the box). Carrier lines (`LineSource::Carrier`, the rails and ducts) are left out: the legend on the same page
+/// lists every carrier (D16).
+///
+/// Printed (D16 as built): the title "PART DATA", no header, the label and the part number at weights 3 : 10 (at 1 : 3
+/// the 35-character order code on folios 201 and 202 overflows at the 1.8 mm floor; the orchestrator's ruling on
+/// the LB-9 stop of cycle 42).
 #[derive(Clone, Copy, Debug)]
 pub struct PartData;
 
@@ -38,6 +46,15 @@ impl ReportKindDef for PartData {
             ColumnDef::new("part_number", CellType::Ident, "Part number"),
             ColumnDef::new("description", CellType::Text, "Description"),
         ]
+    }
+
+    fn embedded_layout(&self) -> EmbeddedLayout {
+        EmbeddedLayout {
+            columns: vec![("label".to_owned(), 3), ("part_number".to_owned(), 10)],
+            title: "PART DATA".to_owned(),
+            headers: false,
+            flow_columns: 1,
+        }
     }
 
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet {
@@ -104,6 +121,9 @@ fn push_configs(q: &Q, set: &mut RowSet, source: Id<Device>) -> bool {
 
 fn push_row(q: &Q, set: &mut RowSet, source: Id<Device>, lines: &[PartLine], index: usize, label: Cell) {
     let line = &lines[index];
+    if line.source == LineSource::Carrier {
+        return;
+    }
     let Some(copy) = q.parts().get(line.part) else {
         return;
     };
@@ -140,11 +160,21 @@ fn source_devices(q: &Q, block: &ReportBlock) -> Vec<Id<Device>> {
                 }
             }
         }
+        if let Some(device) = page_surface(q, embed.page).and_then(|s| enclosure_device(q, s)) {
+            roots.insert(device);
+        }
         roots
     } else {
         BTreeSet::new()
     };
     sorted(q, set)
+}
+
+/// The device of the enclosure that holds `surface`; `None` for a dangling surface or enclosure.
+fn enclosure_device(q: &Q, surface: Id<MountingSurface>) -> Option<Id<Device>> {
+    let enclosure = q.table::<MountingSurface>().get(surface)?.enclosure;
+    let device = q.table::<Enclosure>().get(enclosure)?.device;
+    q.devices().contains(device).then_some(device)
 }
 
 fn sorted(q: &Q, set: BTreeSet<Id<Device>>) -> Vec<Id<Device>> {

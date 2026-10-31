@@ -18,7 +18,7 @@
 //! | [`PageJunctionsOf`] (page) | Cold | the junctions with their symbols | wires, labels |
 //! | [`PageCpTargetsOf`] (page) | Memo | the CPs a report row links to, the page's part of [`CpTargetsByPage`] (`()`, Memo) | symbols |
 //! | [`PageTableOf`] (`PageRef`) | Memo | the printed table of a generated page | tables |
-//! | [`PageEmbeddedOf`] (page) | Memo | the embedded `profile_tables` blocks of a drawn page | tables |
+//! | [`PageEmbeddedOf`] (page) | Memo | the embedded report blocks of a drawn page | tables |
 //!
 //! # The rules (formerly the test glue of `tests/page_output/view.rs`)
 //!
@@ -38,10 +38,16 @@
 //!   displayed tags); a page with a `note` prints the note instead; the column widths are the columns' weights. A
 //!   row link to a connection point is drawn (FR-REP-042; the TOC's page links and the parts list's
 //!   representation links are not drawn yet).
-//! - **Embedded blocks** (FR-REP-028): a drawn page's `profile_tables` block is drawn into its rectangle: the rows
-//!   split by their `table` column into the colour table, the control sizes and the mains sizes; a group-header
-//!   row is the title of its table, a group-footer row of the colours its caption and the group-footer row of the
-//!   group `note` the note under the tables. PART DATA blocks are not drawn yet.
+//! - **Embedded blocks** (FR-REP-028; WP-S4.01 D16): every embedded block of a drawn page is drawn into its rectangle.
+//!   A `profile_tables` block draws the cover: the rows split by their `table` column into the colour table, the
+//!   control sizes and the mains sizes; a group-header row is the title of its table, a group-footer row of the
+//!   colours its caption and the group-footer row of the group `note` the note under the tables. Every other block
+//!   draws a boxed table ([`EmbeddedContent::Table`]) from its `BlockRows`, each cell printed by
+//!   `ew_reports::render::render` for that page (neutral language, displayed tags), as a generated page's table: the
+//!   printed columns, title, header rows and flow columns are the kind's `ReportKindDef::embedded_layout` (a source
+//!   without a registered kind prints every column under a header row), the block's own non-empty `title` replaces the
+//!   kind's title, and a block whose rows do not derive prints the reason as its note (capitalised, as a generated
+//!   page's placeholder).
 //! - **Slot texts** (ID-162, ID-166, ID-228, ID-315; FT-206): `tag` → `displayed_tag(device, page)`, except that a
 //!   terminal's own representation prints only the terminal's designation and an interruption point has no `tag`;
 //!   `cp_designation(i)` → the designation of the function CP that symbol CP `i` draws; `function_text` → the
@@ -89,8 +95,8 @@ use ew_derive::{
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, render};
-use ew_reports::{BlockRows, Cell, LinkTarget, Row, RowKind};
-use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedView};
+use ew_reports::{BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, RowKind, RowSetStatus};
+use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
     BreakMarkView, BreakSide, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText, RepView,
@@ -590,8 +596,8 @@ impl Query for PageTableOf {
     }
 }
 
-/// `page_embedded(page)`: the embedded blocks of a drawn page that the scene draws, the `profile_tables` blocks.
-/// Its own memo: it reads every report block.
+/// `page_embedded(page)`: the embedded blocks of a drawn page, each drawn by the scene into its rectangle (see the
+/// module documentation). Its own memo: it reads every report block and the rows of the page's blocks.
 #[derive(Debug)]
 pub struct PageEmbeddedOf;
 
@@ -608,9 +614,14 @@ impl Query for PageEmbeddedOf {
             .iter()
             .filter_map(|(_, b)| {
                 let embed = b.embedded.as_ref().filter(|e| e.page == page)?;
-                matches!(b.source, ReportSource::Kind(ReportKind::ProfileTables)).then(|| EmbeddedView {
+                let content = if matches!(b.source, ReportSource::Kind(ReportKind::ProfileTables)) {
+                    EmbeddedContent::Cover(Box::new(cover_tables(q, b)))
+                } else {
+                    EmbeddedContent::Table(boxed_table(q, b, page))
+                };
+                Some(EmbeddedView {
                     rect: embed.rect.0,
-                    content: EmbeddedContent::Cover(cover_tables(q, b)),
+                    content,
                 })
             })
             .collect();
@@ -851,6 +862,89 @@ fn cover_tables(q: &Q, block: &ReportBlock) -> CoverTables {
         }
     }
     cover
+}
+
+/// The boxed table of an embedded block other than the cover, as printed texts on `page` (WP-S4.01 D16; see the module
+/// documentation).
+fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> EmbeddedTable {
+    let set = q.get::<BlockRows>(block.id);
+    let layout = match &block.source {
+        ReportSource::Kind(kind) => Registry::builtin().get(kind).map(|k| k.embedded_layout()),
+        _ => None,
+    }
+    .unwrap_or_else(|| EmbeddedLayout::every_column(&set.columns));
+    let opts = RenderOptions {
+        page: Some(PageRef::Drawn(page)),
+        ..RenderOptions::default()
+    };
+    // The printed columns: the layout's keys that the row set has, in the layout's order.
+    let printed: Vec<(usize, u32)> = layout
+        .columns
+        .iter()
+        .filter_map(|(key, weight)| set.column(key).map(|i| (i, *weight)))
+        .collect();
+    let columns = printed
+        .iter()
+        .map(|&(i, weight)| TableColumn {
+            header: neutral(&set.columns[i].label),
+            weight,
+        })
+        .collect();
+    let title = if block.title.is_empty() {
+        layout.title.clone()
+    } else {
+        neutral(&block.title)
+    };
+    let note = match &set.status {
+        RowSetStatus::NotDerived(reason) => Some(capitalised(&reason.to_string())),
+        RowSetStatus::Derived => None,
+    };
+    let rows = if note.is_some() {
+        Vec::new()
+    } else {
+        set.rows
+            .iter()
+            .map(|r| {
+                let kind = match r.kind {
+                    RowKind::Data => TableRowKind::Data,
+                    RowKind::Heading | RowKind::GroupHeader | RowKind::GroupFooter => TableRowKind::Heading,
+                };
+                let cells = match kind {
+                    // A heading prints its first cell across the row.
+                    TableRowKind::Heading => {
+                        r.cells.first().map(|c| render(q, c, &opts)).into_iter().collect()
+                    }
+                    TableRowKind::Data => printed
+                        .iter()
+                        .map(|&(i, _)| r.cells.get(i).map(|c| render(q, c, &opts)).unwrap_or_default())
+                        .collect(),
+                };
+                // The links of the printed columns, renumbered to their printed position.
+                let links = row_links(r)
+                    .into_iter()
+                    .filter_map(|(c, d)| printed.iter().position(|&(i, _)| i == c).map(|p| (p, d)))
+                    .collect();
+                TableRow { kind, cells, links }
+            })
+            .collect()
+    };
+    EmbeddedTable {
+        title,
+        columns,
+        headers: layout.headers,
+        flow_columns: layout.flow_columns,
+        rows,
+        note,
+    }
+}
+
+/// `s` with its first character upper-cased (the not-derived reason as a generated page's placeholder prints it).
+fn capitalised(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => String::new(),
+    }
 }
 
 /// The drawn row links of a report row (FR-REP-042): the links to a connection point, which the PLC overview
