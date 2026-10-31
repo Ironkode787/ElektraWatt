@@ -82,7 +82,8 @@ log. Real-world owner actions stay the owner's: legal, GitHub settings, funding,
     used only when that lane is gone or a fix spans lanes.
 14. **No separate re-review rounds.** The reviewer checks earlier fixes first in its next part: each finding closed,
     with the test that shows it. The last part ends with a re-review scoped to the fixes. Only a major re-opens a
-    full re-review.
+    full re-review. A fix that lands after the cycle's review is accepted (a play-test blocker) opens the next
+    cycle's first review part, named in its range (cycle-40 retro).
 15. **Shift left.** Every lane self-checks its diff against the review checklist and reports the result: whole-text
     assertions; words, not IDs, in user texts; every call site of a changed behaviour; keys from the keymap; bounded
     memory and time on hostile input; all-or-nothing file writes.
@@ -99,6 +100,8 @@ log. Real-world owner actions stay the owner's: legal, GitHub settings, funding,
       consumers of a changed behaviour, an item's version already on `main`.
     - Opus `low` reads flagged briefs only: a format or schema, a check rule's meaning, a core crate, a bug that did
       not reproduce.
+    - For a brief that touches a core crate, the file format or golden data, the orchestrator writes its rulings
+      after the Haiku read, and the Opus `low` read checks those rulings (cycle-40 retro).
 18. **Upkeep** (re-bless, regeneration, seed corpus, count bumps) runs through `cargo xtask settle` at each merge
     point once it exists, and lanes run `settle --check`; a Haiku lane takes what settle cannot do (2026-10-31).
     Tests never pin totals of growing sets (CONTRIBUTING.md).
@@ -135,7 +138,8 @@ log. Real-world owner actions stay the owner's: legal, GitHub settings, funding,
 ## Testing policy (owner, 2026-10-18; amended 2026-10-22, 2026-10-31)
 
 - **Agents run targeted tests only.** Never the workspace suite, never `cargo xtask ci`. They run:
-  - `cargo nextest run -p <crate>` for the crates they changed and their dependents;
+  - `cargo nextest run -p <crate> --all-features` for the crates they changed and their dependents, once: the
+    default-features run is the merged-tip verify's (owner, 2026-10-31);
   - the matching `cargo clippy -p <crate> --all-targets --all-features -- -D warnings`;
   - `cargo fmt --all --check` (per file where a worktree path is too long);
   - the policy checks their change touches (`check-deps`, `check-features`, `check-licence-map`, `reuse lint`).
@@ -148,10 +152,11 @@ log. Real-world owner actions stay the owner's: legal, GitHub settings, funding,
   delivery. Performance is handled at release. Perf claims are marked "not measured (owner's rule)", and the nightly
   `perf.yml` stays report-only.
 
-## Disk and build concurrency (owner, 2026-10-21; amended 2026-10-28, 2026-10-29)
+## Disk and build concurrency (owner, 2026-10-21; amended 2026-10-28, 2026-10-29, 2026-10-31)
 
 - **Environment.** `.claude/settings.json` sets `CARGO_PROFILE_DEV_DEBUG=line-tables-only`, `CARGO_INCREMENTAL=0` and
-  `CARGO_BUILD_JOBS=8`. Do not override them in a worktree.
+  `CARGO_BUILD_JOBS=8`. Do not override them in a worktree. Dependencies build without debug info (`Cargo.toml`,
+  owner, 2026-10-31).
 - **At most three builders at once:** a subagent's cargo run, a verify chain and a gate each count as one.
 - **Jobs.** Memory is the limit (24 cores, 32 GB).
   - 8 jobs per builder while up to three run; 16 for a lone verify; 12 for a fallback local gate on either host.

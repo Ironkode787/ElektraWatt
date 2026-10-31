@@ -59,8 +59,13 @@ mem_forget = "warn"
 # Dependencies build at opt-level 1 in dev and test builds: the test suite runs about 20 % faster (workspace nextest
 # 180 s -> 143 s) for about 50 s more on a clean build (cycle 36, measured on the owner's machine). The workspace's
 # own crates stay at opt-level 0.
+# Dependencies also build without debug info; the workspace's own crates keep the profile's line tables (owner,
+# 2026-10-31). Every test binary's PDB had carried the line tables of the whole dependency tree (wgpu, naga, egui,
+# windows), about 285 MB each and 83 of a lane's 111 GB of `target`. Panic messages keep their file and line without
+# debug info (`#[track_caller]` locations).
 [profile.dev.package."*"]
 opt-level = 1
+debug = false
 
 # kurbo stays at opt-level 0, kept for portability (macOS is no longer a CI or supported platform, ID-880): on
 # macOS, LLVM's optimiser merges a `sin` and a `cos` of one angle into Apple's `__sincos_stret`, whose last bit can
