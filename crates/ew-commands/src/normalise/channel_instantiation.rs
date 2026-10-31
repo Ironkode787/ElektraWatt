@@ -109,6 +109,53 @@ pub(crate) fn binding_text(binding: Option<&Endpoint>) -> String {
     }
 }
 
+/// A binding as a notice names it, in words (WP-S1.21 part 5, the orchestrator's ruling 8 of cycle 42): "bound to
+/// -201U3-Q1:14" (the CP by its device's tag and its designation), "bound to the junction at x 120, y 45 mm on page 3",
+/// "bound to an endpoint of a newer format", "unbound".
+pub(crate) fn binding_words(tx: &TxBuilder<'_>, binding: Option<&Endpoint>) -> String {
+    match binding {
+        Some(Endpoint::Cp(f, idx)) => format!("bound to {}", cp_words(tx, *f, *idx)),
+        Some(Endpoint::Junction(j)) => format!("bound to {}", crate::words::junction(tx, *j)),
+        Some(_) => "bound to an endpoint of a newer format".to_owned(),
+        None => "unbound".to_owned(),
+    }
+}
+
+/// A CP in words: its function's device tag and its designation (`-201U3-Q1:14`); the designation is the FnDef CP's,
+/// else the CP pattern entry's of the device's first part that has it (a black box takes the pattern's first), else
+/// "CP <index>" (`-102F2 CP 9`).
+pub(crate) fn cp_words(tx: &TxBuilder<'_>, function: Id<ew_schema::Function>, idx: u16) -> String {
+    let tag = crate::words::function(tx, function);
+    let f = tx.get::<ew_schema::Function>(function);
+    let from_def = f
+        .as_ref()
+        .and_then(|f| tx.get::<LibCopy<ew_schema::FnDef>>(f.def))
+        .and_then(|d| d.item.cps.iter().find(|c| c.idx == idx).map(|c| c.designation.as_str().to_owned()));
+    let from_pattern = || {
+        let dev = tx.get::<Device>(f.as_ref()?.device?)?;
+        dev.parts.iter().find_map(|u| {
+            let part = tx.get::<LibCopy<Part>>(u.part.copy)?;
+            part.item
+                .cp_pattern
+                .iter()
+                .find(|c| c.idx == idx)
+                .map(|c| c.designation.as_str().to_owned())
+        })
+    };
+    let black_box = f
+        .as_ref()
+        .is_some_and(|f| matches!(f.kind, ew_schema::FunctionKind::BlackBox));
+    let designation = if black_box {
+        from_pattern().or(from_def)
+    } else {
+        from_def.or_else(from_pattern)
+    };
+    match designation {
+        Some(d) => format!("{tag}:{d}"),
+        None => format!("{tag} CP {idx}"),
+    }
+}
+
 /// Whether the device's module data changed in this transaction: new, aspect added, parts or part use
 /// changed.
 fn triggered(tx: &TxBuilder<'_>, dev: &Device) -> bool {

@@ -24,6 +24,16 @@
 //!   channel bound to something else keeps its binding while the coil stays unbound, with a notice (EW-FL-002
 //!   reports the unbound solenoid). A map entry that does not resolve at the position is noticed for a
 //!   triggered valve. Ties break by ID; the modules run in ID order.
+//! - **Leaving the module** (FT-320; WP-S1.21 part 5, the orchestrator's ruling 9 of cycle 42). Before the pairs,
+//!   every device of the transaction whose parent changed (by `assembly.attach`, `fields.set parent`, a paste or any
+//!   other path) is checked: each channel bound to a CP of one of its functions whose module it is no longer on
+//!   (`commands::plc::is_on_module`: the module itself or one of its descendants) is unbound in the same transaction,
+//!   with the notice "channel <number> of <module> is unbound: <device> left the module". A move within the module
+//!   keeps the binding. The check scans the device's bound channels, not its old module, because the pairs are keyed
+//!   by the new parent.
+//! - **Children** (FT-352): a module's valve children come from the parent index (`TxBuilder::children_of`), not a
+//!   scan of the device table, so a prepared transaction re-runs when a child is added meanwhile.
+//! - **Notices** name records in words (`crate::words`), never by ID.
 //!
 //! Idempotent: a second run finds each coil bound and changes nothing.
 
@@ -32,10 +42,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_ids::Id;
 use ew_schema::{Channel, Device, Endpoint, FnDef, Function, Kind, LibCopy};
 
+use crate::commands::is_on_module;
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::normalise::channel_instantiation::{binding_text, channels_by_number, module_section};
+use crate::normalise::channel_instantiation::{binding_words, channels_by_number, module_section};
 use crate::tx::TxBuilder;
+use crate::words;
 
 /// Normaliser #13.
 #[derive(Clone, Copy, Debug, Default)]
@@ -50,6 +62,50 @@ fn valve_changed(tx: &TxBuilder<'_>, dev: &Device) -> bool {
         None => true,
         Some(b) => b.parent != dev.parent || b.position != dev.position || b.parts != dev.parts,
     }
+}
+
+/// Whether a device of the transaction is new or has another parent than in the base snapshot.
+fn parent_changed(tx: &TxBuilder<'_>, dev: &Device) -> bool {
+    tx.base_row(&(Kind::Device, dev.id.cast()))
+        .and_then(|r| r.get::<Device>().cloned())
+        .is_none_or(|b| b.parent != dev.parent)
+}
+
+/// FT-320: unbinds every channel bound to a CP of a function of `device` whose module `device` is no longer on, with a
+/// notice each. Returns whether it unbound one.
+fn unbind_departed(tx: &mut TxBuilder<'_>, device: &Device) -> Result<bool, CmdError> {
+    let mut functions = tx.functions_of_device(device.id);
+    functions.sort();
+    let mut bound: BTreeSet<Id<Channel>> = BTreeSet::new();
+    for f in functions {
+        let Some(func) = tx.get::<Function>(f) else {
+            continue;
+        };
+        for idx in crate::commands::common::function_cp_indices(tx, &func, device) {
+            bound.extend(tx.channels_at_cp(f, idx));
+        }
+    }
+    let mut changed = false;
+    for id in bound {
+        let Some(c) = tx.get::<Channel>(id) else {
+            continue;
+        };
+        let on = is_on_module(Some(device.id), c.module, |d| {
+            tx.get::<Device>(d).and_then(|x| x.parent)
+        });
+        if on {
+            continue;
+        }
+        tx.update::<Channel>(id, |c| c.binding = None)?;
+        tx.notice(format!(
+            "channel {} of {} is unbound: {} left the module",
+            c.number,
+            words::device(tx, c.module),
+            words::device(tx, device.id)
+        ));
+        changed = true;
+    }
+    Ok(changed)
 }
 
 /// The coil CP of `solenoid` on `valve`: the first of its functions (in ID order) whose FnDef copy has a
@@ -73,6 +129,16 @@ impl Normaliser for SolenoidBinding {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
+        let mut changed = false;
+        // FT-320: a device that left its module releases the channels bound to it, before the pairs bind again
+        for key in tx.changed_of(Kind::Device) {
+            let Some(dev) = tx.get::<Device>(key.1.cast()) else {
+                continue;
+            };
+            if parent_changed(tx, &dev) {
+                changed |= unbind_departed(tx, &dev)?;
+            }
+        }
         // the triggered valves by module, and the new channel numbers by module
         let mut valves: BTreeMap<Id<Device>, BTreeSet<Id<Device>>> = BTreeMap::new();
         for key in tx.changed_of(Kind::Device) {
@@ -108,10 +174,6 @@ impl Normaliser for SolenoidBinding {
             }
         }
         let modules: BTreeSet<Id<Device>> = valves.keys().chain(fresh.keys()).copied().collect();
-        if modules.is_empty() {
-            return Ok(false);
-        }
-        let mut changed = false;
         for module in modules {
             let Some(dev) = tx.get::<Device>(module) else {
                 continue;
@@ -127,12 +189,12 @@ impl Normaliser for SolenoidBinding {
             let new_numbers = fresh.remove(&module).unwrap_or_default();
             // the child at each position, the lower ID first
             let mut at: BTreeMap<u32, Id<Device>> = BTreeMap::new();
-            let mut children: Vec<_> = tx
-                .iter::<Device>()
+            // FT-352: the parent index, in ID order
+            let children: Vec<_> = tx
+                .children_of(module)
                 .into_iter()
-                .filter(|d| d.parent == Some(module))
+                .filter_map(|c| tx.get::<Device>(c))
                 .collect();
-            children.sort_by_key(|d| d.id);
             for c in children {
                 if let Some(p) = c.position {
                     at.entry(p).or_insert(c.id);
@@ -153,9 +215,11 @@ impl Normaliser for SolenoidBinding {
                     else {
                         if valve_triggered {
                             tx.notice(format!(
-                                "solenoid {} of valve {valve} stays unbound: the position map of module \
-                                 {module} gives no channel below {count} at position {position}",
-                                entry.solenoid
+                                "solenoid {} of valve {} stays unbound: the position map of module {} gives no \
+                                 channel below {count} at position {position}",
+                                entry.solenoid,
+                                words::device(tx, valve),
+                                words::device(tx, module)
                             ));
                         }
                         continue;
@@ -177,10 +241,12 @@ impl Normaliser for SolenoidBinding {
                             .is_some_and(|c| c.binding == Some(Endpoint::Cp(coil.0, coil.1)));
                         if valve_triggered && !on_map {
                             tx.notice(format!(
-                                "solenoid {} of valve {valve} stays on its channel: the position map of module \
-                                 {module} assigns channel {number} at position {position} (EW-PLC-012); \
-                                 `plc.bind_channel` rebinds it",
-                                entry.solenoid
+                                "solenoid {} of valve {} stays on its channel: the position map of module {} \
+                                 assigns channel {number} at position {position} (EW-PLC-012); binding the channel \
+                                 again moves it",
+                                entry.solenoid,
+                                words::device(tx, valve),
+                                words::device(tx, module)
                             ));
                         }
                         continue;
@@ -188,10 +254,12 @@ impl Normaliser for SolenoidBinding {
                     let current = tx.get::<Channel>(channel.id).and_then(|c| c.binding.clone());
                     if current.is_some() {
                         tx.notice(format!(
-                            "solenoid {} of valve {valve} stays unbound: channel {number} of module {module}, \
-                             which the position map assigns, is {} (EW-FL-002)",
+                            "solenoid {} of valve {} stays unbound: channel {number} of module {}, which the \
+                             position map assigns, is {} (EW-FL-002)",
                             entry.solenoid,
-                            binding_text(current.as_ref())
+                            words::device(tx, valve),
+                            words::device(tx, module),
+                            binding_words(tx, current.as_ref())
                         ));
                         continue;
                     }

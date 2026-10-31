@@ -69,6 +69,8 @@ pub enum IndexRead {
     PlacementsOnSurface(Id<ew_schema::MountingSurface>),
     /// `Carrier.surface` → carriers.
     CarriersOfSurface(Id<ew_schema::MountingSurface>),
+    /// `Device.parent` → child devices (FT-352).
+    DeviceChildren(Id<Device>),
 }
 
 /// The referrers of `target` through the link `from.field`, in ID order (the generic referrer index serves
@@ -152,6 +154,7 @@ impl IndexRead {
                 (Kind::MountingSurface, s.cast()),
             ),
             IndexRead::CarriersOfSurface(s) => idx.carriers_by_surface().get(&s).map(|v| v.cast()).collect(),
+            IndexRead::DeviceChildren(d) => idx.device_children().get(&d).map(|v| v.cast()).collect(),
         };
         ids
     }
@@ -596,6 +599,12 @@ impl<'a> TxBuilder<'a> {
         self.indexed::<Bond>(IndexRead::BondsAt(at), |b| {
             EndpointKey::of(&b.a) == Some(at) || EndpointKey::of(&b.b) == Some(at)
         })
+    }
+
+    /// The child devices of a device (`Device.parent`), in ID order (FT-352: an index lookup, not a scan of the device
+    /// table).
+    pub fn children_of(&self, device: Id<Device>) -> Vec<Id<Device>> {
+        self.indexed::<Device>(IndexRead::DeviceChildren(device), |d| d.parent == Some(device))
     }
 
     /// The channels of a module, in ID order (FT-319: an index lookup, not a scan of the channel table).
