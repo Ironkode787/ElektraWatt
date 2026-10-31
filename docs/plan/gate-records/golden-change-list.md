@@ -23,7 +23,7 @@ Per change: the commit's short hash and date, its subject, the decision IDs it c
 
 fix(ui): the cycle-42 polish lane: refusals name their key, page-type reasons, strip and HUD texts, link cursor, sideways wheel, Messages to front and its detail whole at the floor (P42)
 
-Decision IDs: ID-975, FT-884, FT-899, FT-901, FT-902, FT-910, FT-915, FT-916
+Decision IDs: ID-975, ID-1025, FT-884, FT-899, FT-901, FT-902, FT-910, FT-915, FT-916
 
 - doc 20, 14.1 Component mode (folio 901): changed 1 (`23` (Tags))
 
