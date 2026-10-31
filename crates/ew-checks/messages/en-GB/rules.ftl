@@ -145,6 +145,8 @@ rule-ew-lay-004 = { $device } { $location ->
 
 rule-ew-lay-006 = { $form ->
         [placements] { $device } overlaps { $other }; move one of them
+        [same] two placements of { $device } overlap; move one of them
+        [limit] more footprints overlap on the mounting plate of { $enclosure }; the first { $listed } overlaps are listed
         [duct] { $device } overlaps the duct at { $duct }; move the device or the duct
        *[rail] the rail at { $rail } overlaps the duct at { $duct }; move the rail or the duct
     }

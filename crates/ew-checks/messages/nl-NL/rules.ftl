@@ -45,6 +45,8 @@ rule-ew-lay-004 = { $device } { $location ->
 
 rule-ew-lay-006 = { $form ->
         [placements] { $device } overlapt { $other }; verplaats een van beide
+        [same] twee plaatsingen van { $device } overlappen; verplaats een van beide
+        [limit] meer voetafdrukken overlappen op de montageplaat van { $enclosure }; de eerste { $listed } overlappingen staan vermeld
         [duct] { $device } overlapt de goot bij { $duct }; verplaats het apparaat of de goot
        *[rail] de rail bij { $rail } overlapt de goot bij { $duct }; verplaats de rail of de goot
     }

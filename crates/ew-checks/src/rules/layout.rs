@@ -26,7 +26,8 @@
 //! the MVP (D5), so footprints and carrier outlines are axis-parallel rectangles. An overlap is a positive-area
 //! intersection: rectangles that only touch do not overlap.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 
 use ew_derive::Q;
 use ew_derive::StructureOf;
@@ -171,9 +172,10 @@ fn mount_of(q: &Q, part: Option<&PartRef>) -> (Option<MountKind>, Option<std::sy
     (mount, copy)
 }
 
-/// Whether two closed rectangles intersect with a positive area (touching edges do not).
+/// Whether two closed rectangles intersect with a positive area: touching edges do not, nor does a rectangle without
+/// area (a zero width or height) lying inside another.
 fn overlaps(a: Rect, b: Rect) -> bool {
-    a.min().x < b.max().x && b.min().x < a.max().x && a.min().y < b.max().y && b.min().y < a.max().y
+    a.min().x.max(b.min().x) < a.max().x.min(b.max().x) && a.min().y.max(b.min().y) < a.max().y.min(b.max().y)
 }
 
 /// `(u, v)` of a point as i128.
@@ -505,11 +507,211 @@ fn judged(a: Item, b: Item) -> bool {
     }
 }
 
+/// The most overlap findings EW-LAY-006 lists per surface; past it one summary finding names the surface (cycle 41's
+/// ruling 1: "At most 64 overlap findings per surface ... When a 65th pair is found, the rule stops collecting pairs
+/// for that surface and adds one summary finding on the surface").
+pub const OVERLAPS_PER_SURFACE: usize = 64;
+
+/// The active set an item of the sweep joins.
+#[derive(Clone, Copy)]
+enum Class {
+    Placement = 0,
+    Rail = 1,
+    Duct = 2,
+}
+
+impl Item {
+    fn class(self) -> Class {
+        match self {
+            Item::Placement(_) => Class::Placement,
+            Item::Rail(_) => Class::Rail,
+            Item::Duct(_) => Class::Duct,
+        }
+    }
+}
+
+/// The classes an item of `class` is compared with: only judged pairs are visited (two placements, a placement and a
+/// duct, a rail and a duct), so the sweep's work follows the judged overlaps it finds, not the rail under every
+/// placement.
+fn partners(class: Class) -> &'static [Class] {
+    match class {
+        Class::Placement => &[Class::Placement, Class::Duct],
+        Class::Rail => &[Class::Duct],
+        Class::Duct => &[Class::Placement, Class::Rail],
+    }
+}
+
+/// The active rectangles of one class during the sweep, ordered by y so that a query visits only the rectangles whose
+/// y interval really overlaps (cycle 41's ruling 1, its first option: "keep the active set ordered by y so only real
+/// y-overlaps are visited (O(n log n + k))"). An interval `[a0, a1)` overlaps `[b0, b1)` exactly when `a0` lies in
+/// `[b0, b1)` (the range query on `by_min`) or `b0` lies in `(a0, a1)` (the stabbing query on `tree`, a segment tree
+/// over the surface's y slots whose nodes hold the intervals they cover).
+struct Active {
+    /// `(min y, index)` of each active rectangle.
+    by_min: BTreeSet<(i128, usize)>,
+    /// The segment tree's nodes (root 1), each with the indices of the intervals it covers.
+    tree: Vec<BTreeSet<usize>>,
+}
+
+impl Active {
+    fn new(slots: usize) -> Active {
+        Active {
+            by_min: BTreeSet::new(),
+            tree: vec![BTreeSet::new(); 4 * slots.max(1)],
+        }
+    }
+
+    /// Adds (`add`) or removes `id` over the slots `lo..hi` in the subtree of `node`, which spans the slots `l..r`.
+    fn cover(&mut self, node: usize, (l, r): (usize, usize), (lo, hi): (usize, usize), id: usize, add: bool) {
+        if hi <= l || r <= lo {
+            return;
+        }
+        if lo <= l && r <= hi {
+            if add {
+                self.tree[node].insert(id);
+            } else {
+                self.tree[node].remove(&id);
+            }
+            return;
+        }
+        let mid = l + (r - l) / 2;
+        self.cover(2 * node, (l, mid), (lo, hi), id, add);
+        self.cover(2 * node + 1, (mid, r), (lo, hi), id, add);
+    }
+
+    /// The intervals that cover `slot` (the nodes on the path from the root to its leaf; `n` slots in all).
+    fn stab(&self, slot: usize, n: usize, out: &mut Vec<usize>) {
+        let (mut node, mut l, mut r) = (1, 0, n);
+        loop {
+            out.extend(self.tree[node].iter().copied());
+            if r - l <= 1 {
+                return;
+            }
+            let mid = l + (r - l) / 2;
+            if slot < mid {
+                (node, r) = (2 * node, mid);
+            } else {
+                (node, l) = (2 * node + 1, mid);
+            }
+        }
+    }
+}
+
+/// The overlapping judged pairs of one surface's rectangles, each once, in the order the sweep meets them, at most
+/// [`OVERLAPS_PER_SURFACE`] of them; `true` when a further pair exists (the sweep stops at it). A sweep in x over the
+/// rectangles sorted by their lower left corner: a rectangle leaves the active sets when the sweep reaches its right
+/// edge (touching is not overlapping), and each new rectangle is compared only with the active rectangles of its
+/// partner classes whose y interval overlaps its own, so the work is O(n log n) plus the overlaps visited.
+fn surface_overlaps(items: Vec<(Rect, Item)>) -> (Vec<(Item, Item)>, bool) {
+    let lo = |r: &Rect| xy(r.min());
+    let hi = |r: &Rect| xy(r.max());
+    // a rectangle without area overlaps nothing
+    let mut items: Vec<(Rect, Item)> = items
+        .into_iter()
+        .filter(|(r, _)| lo(r).0 < hi(r).0 && lo(r).1 < hi(r).1)
+        .collect();
+    items.sort_by_key(|(r, item)| (lo(r).0, lo(r).1, hi(r).0, hi(r).1, *item));
+    let mut ys: Vec<i128> = items.iter().flat_map(|(r, _)| [lo(r).1, hi(r).1]).collect();
+    ys.sort_unstable();
+    ys.dedup();
+    // slot j is [ys[j], ys[j + 1])
+    let slot = |y: i128| ys.partition_point(|v| *v < y);
+    let n = ys.len().saturating_sub(1);
+    let span = |r: &Rect| (slot(lo(r).1), slot(hi(r).1));
+    let mut active = [Active::new(n), Active::new(n), Active::new(n)];
+    let mut ends: BinaryHeap<Reverse<(i128, usize)>> = BinaryHeap::new();
+    let mut found: Vec<(Item, Item)> = Vec::new();
+    let mut seen: BTreeSet<(Item, Item)> = BTreeSet::new();
+    let mut hits: Vec<usize> = Vec::new();
+    for (b, (rb, ib)) in items.iter().enumerate() {
+        let x = lo(rb).0;
+        while let Some(&Reverse((end, a))) = ends.peek() {
+            if end > x {
+                break;
+            }
+            ends.pop();
+            let (ra, ia) = &items[a];
+            let set = &mut active[ia.class() as usize];
+            set.by_min.remove(&(lo(ra).1, a));
+            set.cover(1, (0, n), span(ra), a, false);
+        }
+        let (y0, y1) = (lo(rb).1, hi(rb).1);
+        for class in partners(ib.class()) {
+            let set = &active[*class as usize];
+            hits.clear();
+            hits.extend(set.by_min.range((y0, 0)..(y1, 0)).map(|(_, a)| *a));
+            let from = hits.len();
+            set.stab(slot(y0), n, &mut hits);
+            // the intervals that start at y0 came from the range query
+            let mut k = from;
+            for i in from..hits.len() {
+                if lo(&items[hits[i]].0).1 < y0 {
+                    hits[k] = hits[i];
+                    k += 1;
+                }
+            }
+            hits.truncate(k);
+            hits.sort_unstable();
+            for a in &hits {
+                let (ra, ia) = items[*a];
+                debug_assert!(overlaps(ra, *rb), "the sweep visits real overlaps only");
+                if !judged(ia, *ib) {
+                    continue;
+                }
+                let key = if ia <= *ib { (ia, *ib) } else { (*ib, ia) };
+                if seen.contains(&key) {
+                    continue;
+                }
+                if found.len() == OVERLAPS_PER_SURFACE {
+                    return (found, true);
+                }
+                seen.insert(key);
+                found.push(key);
+            }
+        }
+        let set = &mut active[ib.class() as usize];
+        set.by_min.insert((y0, b));
+        set.cover(1, (0, n), span(rb), b, true);
+        ends.push(Reverse((hi(rb).0, b)));
+    }
+    (found, false)
+}
+
+/// The summary finding of a surface with more than [`OVERLAPS_PER_SURFACE`] overlaps (cycle 41's ruling 1): no count,
+/// so the sweep stops at the first pair past the cap.
+fn crowded_finding(q: &Q, surface: Id<MountingSurface>) -> Finding {
+    let enclosure = q
+        .table::<MountingSurface>()
+        .get(surface)
+        .and_then(|s| {
+            q.table::<Enclosure>()
+                .get(s.enclosure)
+                .map(|e| device_name(q, e.device))
+        })
+        .unwrap_or_else(|| "a missing enclosure".to_owned());
+    let f = Finding::new(
+        &COLLISION,
+        [Target::new(Kind::MountingSurface, surface)],
+        "overlap_limit",
+        enclosure.clone(),
+        format!(
+            "more footprints overlap on the mounting plate of {enclosure}; the first {OVERLAPS_PER_SURFACE} overlaps \
+             are listed"
+        ),
+    )
+    .arg("form", "limit")
+    .arg("enclosure", enclosure)
+    .arg("listed", OVERLAPS_PER_SURFACE.to_string());
+    shown(f, q, Some(surface))
+}
+
 /// EW-LAY-006 (2D): a positive-area intersection, on one surface, of two placement footprints, of a footprint and a
-/// duct's outline, or of a rail's outline and a duct's (D12), found by a sort-and-sweep over each surface's
-/// rectangles (no spatial index: a few hundred footprints per surface). One finding per pair, whatever the number of
-/// segment rectangles that overlap. Targets: the two placements' devices and placements, or the placement's device
-/// and placement and the duct, or the two carriers; discriminator `overlap`.
+/// duct's outline, or of a rail's outline and a duct's (D12), found by a sweep over each surface's rectangles whose
+/// active sets are ordered by y (see `surface_overlaps`). One finding per pair, whatever the number of segment
+/// rectangles that overlap; at most [`OVERLAPS_PER_SURFACE`] per surface, then one summary finding on the surface
+/// (`limit`). Two placements of one device read as such (`same`). Targets: the two placements' devices and
+/// placements, or the placement's device and placement and the duct, or the two carriers, or the surface;
+/// discriminator `overlap` (`overlap_limit` for the summary).
 #[derive(Clone, Copy, Debug)]
 pub struct Collision;
 
@@ -547,22 +749,21 @@ impl Rule for Collision {
         }
         let mut pairs: BTreeSet<(Item, Item)> = BTreeSet::new();
         let mut surface_of: BTreeMap<(Item, Item), Id<MountingSurface>> = BTreeMap::new();
-        for (surface, mut items) in by_surface {
-            items.sort_by_key(|(r, item)| (r.min().x, r.min().y, r.max().x, r.max().y, *item));
-            for (i, (a, ia)) in items.iter().enumerate() {
-                for (b, ib) in &items[i + 1..] {
-                    if b.min().x >= a.max().x {
-                        break;
-                    }
-                    if judged(*ia, *ib) && overlaps(*a, *b) {
-                        let key = if ia <= ib { (*ia, *ib) } else { (*ib, *ia) };
-                        pairs.insert(key);
-                        surface_of.insert(key, surface);
-                    }
-                }
+        let mut crowded: Vec<Id<MountingSurface>> = Vec::new();
+        for (surface, items) in by_surface {
+            let (found, more) = surface_overlaps(items);
+            for key in found {
+                pairs.insert(key);
+                surface_of.insert(key, surface);
+            }
+            if more {
+                crowded.push(surface);
             }
         }
         let mut out = Vec::new();
+        for surface in crowded {
+            out.push(crowded_finding(q, surface));
+        }
         for pair in pairs {
             let surface = surface_of.get(&pair).copied();
             let f = match pair {
@@ -570,6 +771,23 @@ impl Rule for Collision {
                     let (Some(px), Some(py)) = (placements.get(x), placements.get(y)) else {
                         continue;
                     };
+                    if px.device == py.device {
+                        // two placements of one device (one per part): cycle 41's ruling 2
+                        let name = device_name(q, px.device);
+                        let f = Finding::new(
+                            &COLLISION,
+                            placement_targets(px)
+                                .into_iter()
+                                .chain([Target::new(Kind::Placement, py.id)]),
+                            "overlap",
+                            name.clone(),
+                            format!("two placements of {name} overlap; move one of them"),
+                        )
+                        .arg("form", "same")
+                        .arg("device", name);
+                        out.push(shown(f, q, surface));
+                        continue;
+                    }
                     let (mut nx, mut ny) = (device_name(q, px.device), device_name(q, py.device));
                     if natural_cmp(&nx, &ny).then_with(|| nx.cmp(&ny)).is_gt() {
                         std::mem::swap(&mut nx, &mut ny);
@@ -870,12 +1088,12 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
             .arg("length", mm1(axis.length)),
         );
     }
-    let usable = q
+    // borrowed, not cloned per placement (cycle 41's ruling 1)
+    let usable: &[Pt2] = q
         .table::<MountingSurface>()
         .get(geom.surface)
-        .map(|s| s.usable.clone())
-        .unwrap_or_default();
-    if inside_usable(&usable, geom.footprint) == Some(false) {
+        .map_or(&[], |s| s.usable.as_slice());
+    if inside_usable(usable, geom.footprint) == Some(false) {
         out.push(lay010(
             q,
             pl,
@@ -887,7 +1105,8 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
 
 /// The carrier cases of EW-LAY-010: a path that breaks D5, an outline outside the usable polygon.
 fn carrier_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
-    let Some(geom) = q.get::<CarrierGeometry>(id).as_ref().clone() else {
+    let geometry = q.get::<CarrierGeometry>(id);
+    let Some(geom) = geometry.as_ref() else {
         return;
     };
     let word = carrier_word(&c.kind);
@@ -917,15 +1136,15 @@ fn carrier_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
         out.push(shown(f, q, Some(c.surface)));
         return;
     }
-    let usable = q
+    // borrowed, not cloned per carrier (cycle 41's ruling 1)
+    let usable: &[Pt2] = q
         .table::<MountingSurface>()
         .get(c.surface)
-        .map(|s| s.usable.clone())
-        .unwrap_or_default();
+        .map_or(&[], |s| s.usable.as_slice());
     if geom
         .outline
         .iter()
-        .any(|r| inside_usable(&usable, *r) == Some(false))
+        .any(|r| inside_usable(usable, *r) == Some(false))
     {
         let f = Finding::new(
             &CARRIER_INCOMPATIBLE,
@@ -1158,6 +1377,69 @@ mod tests {
         Rect::from_points(p(a.0, a.1), p(b.0, b.1))
     }
 
+    /// The sweep against the brute-force oracle (every pair compared) on seeded random layouts on a coarse grid, so
+    /// that shared and touching edges, nested rectangles and empty rectangles are common: the same set of pairs
+    /// below the cap, and the cap reported exactly when the oracle has more pairs.
+    #[test]
+    fn the_sweep_finds_the_pairs_the_oracle_finds() {
+        let id = |n: u128| Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(n));
+        let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
+        let mut next = |m: u64| {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            (seed >> 33) % m
+        };
+        for round in 0..400 {
+            let count = 1 + next(if round % 10 == 0 { 60 } else { 14 });
+            let items: Vec<(Rect, Item)> = (0..count)
+                .map(|i| {
+                    let (u, v) = (next(12) as i64, next(12) as i64);
+                    let (w, h) = (next(6) as i64, next(6) as i64);
+                    // odd rounds repeat IDs: one carrier with several segment rectangles
+                    let n = if round % 2 == 0 {
+                        u128::from(i)
+                    } else {
+                        u128::from(next(8))
+                    } + 1;
+                    let item = match next(3) {
+                        0 => Item::Placement(id(n)),
+                        1 => Item::Rail(id(n).cast()),
+                        _ => Item::Duct(id(n).cast()),
+                    };
+                    (r((u, v), (u + w, v + h)), item)
+                })
+                .collect();
+            let mut oracle: BTreeSet<(Item, Item)> = BTreeSet::new();
+            for (i, (a, ia)) in items.iter().enumerate() {
+                for (b, ib) in &items[i + 1..] {
+                    if judged(*ia, *ib) && overlaps(*a, *b) {
+                        oracle.insert(if ia <= ib { (*ia, *ib) } else { (*ib, *ia) });
+                    }
+                }
+            }
+            let (found, more) = surface_overlaps(items.clone());
+            let found_set: BTreeSet<(Item, Item)> = found.iter().copied().collect();
+            assert_eq!(found_set.len(), found.len(), "round {round}: each pair once");
+            assert_eq!(
+                more,
+                oracle.len() > OVERLAPS_PER_SURFACE,
+                "round {round}: the cap"
+            );
+            if more {
+                assert_eq!(found.len(), OVERLAPS_PER_SURFACE, "round {round}");
+                assert!(found_set.is_subset(&oracle), "round {round}");
+            } else {
+                assert!(
+                    found_set == oracle,
+                    "round {round}: missed {:?}, extra {:?}",
+                    oracle.difference(&found_set).collect::<Vec<_>>(),
+                    found_set.difference(&oracle).collect::<Vec<_>>()
+                );
+            }
+        }
+    }
+
     #[test]
     fn millimetres_print_with_one_decimal_rounded_half_away_from_zero() {
         assert_eq!(mm1(0), "0.0");
@@ -1173,6 +1455,14 @@ mod tests {
         assert!(overlaps(r((0, 0), (10, 10)), r((5, 5), (15, 15))));
         assert!(!overlaps(r((0, 0), (10, 10)), r((10, 0), (20, 10))));
         assert!(!overlaps(r((0, 0), (10, 10)), r((0, 10), (10, 20))));
+        assert!(
+            !overlaps(r((0, 0), (10, 10)), r((5, 2), (5, 8))),
+            "no area inside"
+        );
+        assert!(
+            !overlaps(r((0, 0), (10, 10)), r((2, 5), (8, 5))),
+            "no area inside"
+        );
     }
 
     #[test]

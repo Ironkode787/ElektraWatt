@@ -416,6 +416,92 @@ fn lc4_a_placement_over_a_duct_and_a_rail_across_a_duct() {
     others_silent(&m, &["EW-LAY-001", "EW-LAY-006"]);
 }
 
+#[test]
+fn lc4_two_placements_of_one_device_overlap() {
+    // cycle 41's ruling 2: one device, one placement per part, 18 mm and 6.2 mm at s = 400 and s = 405 on R1
+    let mut fx = plate();
+    device(&mut fx, 0xdc, "K", 1, LOC, &[P_MCB, P_TERM]);
+    place(&mut fx, 0xfc, 0xdc, Some(P_MCB), on(R1), rail_pose(400.0));
+    place(&mut fx, 0xfd, 0xdc, Some(P_TERM), on(R1), rail_pose(405.0));
+    let m = fx.build();
+    assert_eq!(
+        messages(&m, "EW-LAY-006"),
+        ["two placements of +J-E-2416-K1 overlap; move one of them"]
+    );
+    assert_eq!(
+        dutch(&m, "EW-LAY-006"),
+        ["twee plaatsingen van +J-E-2416-K1 overlappen; verplaats een van beide"]
+    );
+}
+
+/// The plate with `count` screw-mounted devices on the plate itself, the i-th at (620, `v(i)`) mm: right of every rail
+/// and duct, so only their own footprints (50 × 120 mm) can overlap. The records are pushed whole (the fixture's
+/// helpers search the records linearly).
+fn screws(count: u128, v: impl Fn(u128) -> f64) -> ew_model::Model {
+    let mut fx = plate();
+    for i in 0..count {
+        let (dev, pl) = (0x100_0000 + i, 0x200_0000 + i);
+        fx.push(json!({
+            "$k": "device", "id": us(dev),
+            "tag": {"letter": "E", "counter": 1000 + i, "frozen": {"text": format!("E{}", 1000 + i), "sign": "hidden"}},
+            "structure": {"location": us(LOC)},
+            "parts": [{"part": {"copy": us(P_SCREW)}, "qty": "1"}],
+        }));
+        place(
+            &mut fx,
+            pl,
+            dev,
+            Some(P_SCREW),
+            json!({"surface": us(PLATE)}),
+            pose([mm(620.0), mm(v(i)), 0], 0),
+        );
+    }
+    fx.build()
+}
+
+/// EW-LAY-006's findings, run alone (the other rules have nothing to say about the sweep).
+fn collisions(m: &ew_model::Model) -> Vec<ew_checks::Finding> {
+    use ew_checks::Rule;
+    let found = ew_checks::rules::layout::Collision.run(&ew_derive::Q::new(m), &ew_checks::Scope::Project);
+    assert_messages(&found);
+    found
+}
+
+#[test]
+fn lc4_five_thousand_footprints_at_one_spot_give_64_overlaps_and_one_summary() {
+    // cycle 41's ruling 1: an output test, not a timing
+    let m = screws(5000, |_| 0.0);
+    let found = collisions(&m);
+    assert_eq!(found.len(), 65, "64 pairs plus the summary");
+    let summary: Vec<&ew_checks::Finding> = found
+        .iter()
+        .filter(|f| f.discriminator == "overlap_limit")
+        .collect();
+    assert_eq!(summary.len(), 1);
+    assert_eq!(
+        summary[0].message,
+        "more footprints overlap on the mounting plate of +J-E-2416-UC1; the first 64 overlaps are listed"
+    );
+    assert_eq!(
+        ew_checks::messages::render(summary[0], "nl-NL"),
+        "meer voetafdrukken overlappen op de montageplaat van +J-E-2416-UC1; de eerste 64 overlappingen staan vermeld"
+    );
+    // the other 64 are pairs of two placements (their whole texts render from their arguments: `assert_messages`)
+    let pairs = found
+        .iter()
+        .filter(|f| f.args.contains(&("form", "placements".to_owned())))
+        .count();
+    assert_eq!(pairs, 64);
+}
+
+#[test]
+fn lc4_five_thousand_touching_footprints_in_one_column_give_none() {
+    // each 120 mm tall, one above the other: they touch and do not overlap
+    let m = screws(5000, |i| 120.0 * i as f64);
+    let found = collisions(&m);
+    assert!(found.is_empty(), "{found:#?}");
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // LC-5 and FT-845: EW-LAY-010
 
