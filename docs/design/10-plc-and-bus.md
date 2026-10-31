@@ -315,11 +315,13 @@ role = "FE"                         # ▲U-18; D-16
 # part 195740 CPX-FB13: PROFIBUS DP bus node
 [[bus.ports]]                       # `ports`, a list, since cycle 40 (WP-S1.21 D15; was `port`)
 interface = "DP"
-bus       = "profibus-dp"
+bus       = "profibus_dp"               # `BusSystem` (WP-S1.21 D11, D15)
 role      = "slave"
 connector = "sub-d-9"
 signals   = { B = "3", A = "8", DGND = "5", VP = "6", SHIELD = "housing" }   # (unverified)
 ```
+
+The port's `connector` and `signals` are not typed: a reader keeps them in the port's `extra` until FT-829 types them.
 
 The valve part 571334 declares `solenoids = ["14"]` in its fluid section ([11](11-fluid-power.md)).
 
