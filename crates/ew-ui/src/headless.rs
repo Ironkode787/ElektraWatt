@@ -51,6 +51,9 @@ pub struct HeadlessArgs {
     pub frames: Option<PathBuf>,
     /// `--no-frames`: a visual run lays out every frame and paints none (replay on every system).
     pub no_frames: bool,
+    /// `--window <W>x<H>` and `--ppp <n>`: a visual run's window size and scale ([`crate::visual::Geometry`]; the
+    /// default 1280 × 800 points at 1.2 when not given).
+    pub geometry: crate::visual::Geometry,
 }
 
 /// `view.snapshot`: the current page as a PNG at the given dpi through the page view's render path; and

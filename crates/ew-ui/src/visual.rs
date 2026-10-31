@@ -18,9 +18,13 @@
 //!   current frame painted to `<frames>/<file>`; one transcript line `{"frame","sha256"}` without a step number (a
 //!   look is not a step). Without `--frames` or with `--no-frames` nothing is painted and `sha256` is null.
 //!
-//! **Geometry.** The window is 1280 × 800 points at 1.2 pixels per point (1536 × 960 pixels); above it a title strip
-//! of 34 pixels shows the window title in the theme's chrome colours, so a frame is 1536 × 994 pixels. Input
-//! coordinates are frame pixels; a point in the strip reaches nothing.
+//! **Geometry.** By default the window is 1280 × 800 points at 1.2 pixels per point (1536 × 960 pixels); above it a
+//! title strip of 28 points (34 pixels) shows the window title in the theme's chrome colours, so a frame is
+//! 1536 × 994 pixels. A run may choose another window and scale (`--window <W>x<H>` in points, `--ppp <n>`; see
+//! [`Geometry`]): the strip is then `round(28 × ppp)` pixels high and the PNG's resolution `round(96 × ppp)` dpi, so
+//! 1920 × 1080 points at 1 make a frame of 1920 × 1108 pixels. Input coordinates are frame pixels; a point in the
+//! strip reaches nothing. At the default geometry every frame and transcript is as before; at another the
+//! transcript's header names it (`"window":[W,H],"ppp":n` after `"version"`).
 //!
 //! **Determinism.** The frame clock (`input.time` = frames / 60, [`crate::clock::use_frame_clock`]), theme light,
 //! density comfortable, language `en`, the bundled fonts, `ui_scale` 1, the CPU canvas, the caret's blink off; the
@@ -41,20 +45,22 @@ use sha2::{Digest, Sha256};
 
 use crate::app::{App, Pick, Platform};
 use crate::headless::{HeadlessArgs, ScriptSource};
-use crate::offscreen::{Offscreen, size_in_pixels};
+use crate::offscreen::Offscreen;
 
-/// The window's size in points.
+/// The window's size in points at the default geometry ([`Geometry::DEFAULT`]).
 pub const WINDOW_POINTS: Vec2 = Vec2::new(1280.0, 800.0);
-/// The frame's pixels per point.
+/// The frame's pixels per point at the default geometry.
 pub const PPP: f32 = 1.2;
-/// The title strip's height in frame pixels.
+/// The title strip's height in frame pixels at the default geometry.
 pub const STRIP_PX: u32 = 34;
-/// The frame's width in pixels.
+/// The frame's width in pixels at the default geometry.
 pub const FRAME_WIDTH: u32 = 1536;
-/// The frame's height in pixels (window and title strip).
+/// The frame's height in pixels (window and title strip) at the default geometry.
 pub const FRAME_HEIGHT: u32 = 960 + STRIP_PX;
-/// The PNG's resolution (96 dpi at 1.2 pixels per point).
-const FRAME_DPI: u32 = 115;
+/// The title strip's height in points.
+const STRIP_POINTS: u32 = 28;
+/// The largest frame side in pixels (the 300 % snapshot's 3840 × 2400 renders on the hosts the project uses).
+const MAX_FRAME_SIDE: (u32, u32) = (3840, 2400);
 /// One frame of the frame clock, in seconds.
 const FRAME_S: f64 = 1.0 / 60.0;
 /// At most this many frames settle one input (2 s of frame time).
@@ -63,6 +69,152 @@ const MAX_SETTLE_FRAMES: u32 = 120;
 const DRAG_STEPS: u32 = 8;
 /// The largest zoom region in frame pixels.
 pub const ZOOM_MAX: (u32, u32) = (768, 497);
+
+/// The window size and scale of a visual run: the window in points and the pixels per point in hundredths (an `Eq`
+/// form: 120 is 1.2). [`Geometry::DEFAULT`] is 1280 × 800 points at 1.2, the frame of 1536 × 994 pixels every
+/// earlier run painted.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct Geometry {
+    /// The window's width in points.
+    pub width: u32,
+    /// The window's height in points.
+    pub height: u32,
+    /// The pixels per point in hundredths.
+    pub ppp_hundredths: u32,
+}
+
+impl Default for Geometry {
+    fn default() -> Geometry {
+        Geometry::DEFAULT
+    }
+}
+
+/// `round(n × hundredths / 100)`, halves up.
+fn scaled(n: u32, hundredths: u32) -> u32 {
+    (n * hundredths + 50) / 100
+}
+
+impl Geometry {
+    /// 1280 × 800 points at 1.2 pixels per point.
+    pub const DEFAULT: Geometry = Geometry {
+        width: 1280,
+        height: 800,
+        ppp_hundredths: 120,
+    };
+
+    /// The geometry of `--window <W>x<H>` and `--ppp <n>` (each `None` when not given: the default's value).
+    /// Accepted: W 1024 to 3840 and H 640 to 2160 points, ppp 1 to 3 with at most two decimals, and a frame of at
+    /// most 3840 × 2400 pixels.
+    ///
+    /// # Errors
+    ///
+    /// The text naming the first problem.
+    pub fn parse(window: Option<&str>, ppp: Option<&str>) -> Result<Geometry, String> {
+        let mut g = Geometry::DEFAULT;
+        if let Some(text) = window {
+            let (w, h) = text
+                .split_once(['x', 'X'])
+                .and_then(|(w, h)| Some((digits(w)?, digits(h)?)))
+                .ok_or_else(|| "--window needs <width>x<height> in points, e.g. 1920x1080".to_owned())?;
+            if !(1024..=3840).contains(&w) || !(640..=2160).contains(&h) {
+                return Err("--window must be from 1024x640 to 3840x2160 points".to_owned());
+            }
+            (g.width, g.height) = (w, h);
+        }
+        if let Some(text) = ppp {
+            g.ppp_hundredths = hundredths(text)
+                .filter(|n| (100..=300).contains(n))
+                .ok_or_else(|| "--ppp needs a number from 1 to 3".to_owned())?;
+        }
+        if g.frame_width() > MAX_FRAME_SIDE.0 || g.frame_height() > MAX_FRAME_SIDE.1 {
+            return Err("--window and --ppp make a frame larger than 3840 × 2400 pixels".to_owned());
+        }
+        Ok(g)
+    }
+
+    /// Whether this is [`Geometry::DEFAULT`].
+    pub fn is_default(&self) -> bool {
+        *self == Geometry::DEFAULT
+    }
+
+    /// The pixels per point.
+    pub fn ppp(&self) -> f32 {
+        self.ppp_hundredths as f32 / 100.0
+    }
+
+    /// The pixels per point as the transcript writes it (`1.2`, `1`, `1.25`).
+    pub fn ppp_text(&self) -> String {
+        let (int, frac) = (self.ppp_hundredths / 100, self.ppp_hundredths % 100);
+        match frac {
+            0 => format!("{int}"),
+            f if f % 10 == 0 => format!("{int}.{}", f / 10),
+            f => format!("{int}.{f:02}"),
+        }
+    }
+
+    /// The window's size in points.
+    pub fn window_points(&self) -> Vec2 {
+        Vec2::new(self.width as f32, self.height as f32)
+    }
+
+    /// The window's size in pixels.
+    pub fn window_pixels(&self) -> [u32; 2] {
+        [
+            scaled(self.width, self.ppp_hundredths),
+            scaled(self.height, self.ppp_hundredths),
+        ]
+    }
+
+    /// The title strip's height in pixels: `round(28 × ppp)`.
+    pub fn strip_px(&self) -> u32 {
+        scaled(STRIP_POINTS, self.ppp_hundredths)
+    }
+
+    /// The frame's width in pixels.
+    pub fn frame_width(&self) -> u32 {
+        self.window_pixels()[0]
+    }
+
+    /// The frame's height in pixels (window and title strip).
+    pub fn frame_height(&self) -> u32 {
+        self.window_pixels()[1] + self.strip_px()
+    }
+
+    /// The PNG's resolution: `round(96 × ppp)` dpi.
+    pub fn dpi(&self) -> u32 {
+        scaled(96, self.ppp_hundredths)
+    }
+
+    /// The window's point of frame pixel `(x, y)`, `None` in the title strip.
+    pub fn to_points(&self, at: (i64, i64)) -> Option<Pos2> {
+        let ppp = self.ppp();
+        let y = at.1 - i64::from(self.strip_px());
+        (y >= 0).then(|| Pos2::new((at.0 as f32 + 0.5) / ppp, (y as f32 + 0.5) / ppp))
+    }
+}
+
+/// A whole number of 1 to 4 ASCII digits.
+fn digits(text: &str) -> Option<u32> {
+    if text.is_empty() || text.len() > 4 || !text.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    text.parse().ok()
+}
+
+/// A decimal number with at most two decimals in hundredths (`1.25` is 125).
+fn hundredths(text: &str) -> Option<u32> {
+    let (int, frac) = text.split_once('.').unwrap_or((text, ""));
+    if text.ends_with('.') || frac.len() > 2 || !frac.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let int = digits(int)?;
+    let frac = match frac.len() {
+        0 => 0,
+        1 => frac.parse::<u32>().ok()? * 10,
+        _ => frac.parse::<u32>().ok()?,
+    };
+    Some(int * 100 + frac)
+}
 
 /// The file dialogs answered without a dialog (spec §4.3): bare names in the working directory (the run's `work/`;
 /// a test names its own folder): a project `project`, a PDF `project.pdf`; an import or an image is cancelled, and
@@ -234,8 +386,11 @@ fn coordinate(o: &Map<String, Value>, name: &str, limit: u32) -> Result<i64, Str
     }
 }
 
-fn point(o: &Map<String, Value>, x: &str, y: &str) -> Result<(i64, i64), String> {
-    Ok((coordinate(o, x, FRAME_WIDTH)?, coordinate(o, y, FRAME_HEIGHT)?))
+fn point(o: &Map<String, Value>, x: &str, y: &str, g: Geometry) -> Result<(i64, i64), String> {
+    Ok((
+        coordinate(o, x, g.frame_width())?,
+        coordinate(o, y, g.frame_height())?,
+    ))
 }
 
 fn mods_member(o: &Map<String, Value>) -> Result<Modifiers, String> {
@@ -271,6 +426,15 @@ fn lines_member(o: &Map<String, Value>, name: &str) -> Result<i64, String> {
 ///
 /// A text naming the first problem: an unknown input or member, a value out of range.
 pub fn parse_input(o: &Map<String, Value>) -> Result<Input, String> {
+    parse_input_in(o, Geometry::DEFAULT)
+}
+
+/// [`parse_input`] with coordinates checked against the frame of `g`.
+///
+/// # Errors
+///
+/// As [`parse_input`].
+pub fn parse_input_in(o: &Map<String, Value>, g: Geometry) -> Result<Input, String> {
     let kind = o
         .get("input")
         .and_then(Value::as_str)
@@ -291,22 +455,22 @@ pub fn parse_input(o: &Map<String, Value>) -> Result<Input, String> {
     }
     Ok(match kind {
         "click" => Input::Click {
-            at: point(o, "x", "y")?,
+            at: point(o, "x", "y", g)?,
             button: button_member(o)?,
             mods: mods_member(o)?,
         },
         "right_click" => Input::Click {
-            at: point(o, "x", "y")?,
+            at: point(o, "x", "y", g)?,
             button: PointerButton::Secondary,
             mods: mods_member(o)?,
         },
         "double_click" => Input::DoubleClick {
-            at: point(o, "x", "y")?,
+            at: point(o, "x", "y", g)?,
             mods: mods_member(o)?,
         },
         "drag" => Input::Drag {
-            from: point(o, "x", "y")?,
-            to: point(o, "to_x", "to_y")?,
+            from: point(o, "x", "y", g)?,
+            to: point(o, "to_x", "to_y", g)?,
             button: button_member(o)?,
             mods: mods_member(o)?,
         },
@@ -316,7 +480,7 @@ pub fn parse_input(o: &Map<String, Value>) -> Result<Input, String> {
                 return Err(bad("a scroll needs `dx` or `dy`"));
             }
             Input::Scroll {
-                at: point(o, "x", "y")?,
+                at: point(o, "x", "y", g)?,
                 dx,
                 dy,
                 mods: mods_member(o)?,
@@ -351,7 +515,7 @@ pub fn parse_input(o: &Map<String, Value>) -> Result<Input, String> {
             Input::Key { key, mods, repeat }
         }
         "hover" => Input::Hover {
-            at: point(o, "x", "y")?,
+            at: point(o, "x", "y", g)?,
         },
         _ => match o.get("ms").and_then(Value::as_u64) {
             Some(ms @ 100..=5000) => Input::Wait { ms: ms as u32 },
@@ -380,6 +544,15 @@ pub struct FrameRequest {
 ///
 /// A text naming the first problem.
 pub fn parse_frame(o: &Map<String, Value>) -> Result<FrameRequest, String> {
+    parse_frame_in(o, Geometry::DEFAULT)
+}
+
+/// [`parse_frame`] with a zoom checked against the frame of `g`.
+///
+/// # Errors
+///
+/// As [`parse_frame`].
+pub fn parse_frame_in(o: &Map<String, Value>, g: Geometry) -> Result<FrameRequest, String> {
     if let Some(extra) = o
         .keys()
         .find(|k| !["frame", "settle", "zoom", "paint"].contains(&k.as_str()))
@@ -420,8 +593,8 @@ pub fn parse_frame(o: &Map<String, Value>) -> Result<FrameRequest, String> {
                 || h == 0
                 || w > ZOOM_MAX.0
                 || h > ZOOM_MAX.1
-                || x.checked_add(w).is_none_or(|end| end > FRAME_WIDTH)
-                || y.checked_add(h).is_none_or(|end| end > FRAME_HEIGHT)
+                || x.checked_add(w).is_none_or(|end| end > g.frame_width())
+                || y.checked_add(h).is_none_or(|end| end > g.frame_height())
             {
                 return Err(bad(format!(
                     "`zoom` is at most {} × {} pixels inside the frame",
@@ -440,10 +613,9 @@ pub fn parse_frame(o: &Map<String, Value>) -> Result<FrameRequest, String> {
     })
 }
 
-/// The window's point of frame pixel `(x, y)`, `None` in the title strip.
+/// The window's point of frame pixel `(x, y)` at the default geometry, `None` in the title strip.
 pub fn to_points(at: (i64, i64)) -> Option<Pos2> {
-    let y = at.1 - i64::from(STRIP_PX);
-    (y >= 0).then(|| Pos2::new((at.0 as f32 + 0.5) / PPP, (y as f32 + 0.5) / PPP))
+    Geometry::DEFAULT.to_points(at)
 }
 
 /// The offscreen painters of a run that paints frames.
@@ -477,6 +649,8 @@ pub struct Driver {
     closed: bool,
     /// The accessibility tree of the frame, when a test asked for it ([`Driver::enable_accesskit`]).
     access: Option<Access>,
+    /// The window size and scale.
+    geometry: Geometry,
 }
 
 /// The accessibility tree as the frames reported it: its root and every node by ID.
@@ -506,6 +680,20 @@ impl Driver {
         config: ShellConfig,
         frames_dir: Option<PathBuf>,
         base: PathBuf,
+    ) -> Result<Driver, String> {
+        Driver::with_geometry(config, frames_dir, base, Geometry::DEFAULT)
+    }
+
+    /// [`Driver::in_folder`] with the window size and scale of `geometry`.
+    ///
+    /// # Errors
+    ///
+    /// As [`Driver::new`].
+    pub fn with_geometry(
+        config: ShellConfig,
+        frames_dir: Option<PathBuf>,
+        base: PathBuf,
+        geometry: Geometry,
     ) -> Result<Driver, String> {
         crate::clock::use_frame_clock();
         let painter = match &frames_dir {
@@ -555,6 +743,7 @@ impl Driver {
             closing_log: None,
             closed: false,
             access: None,
+            geometry,
         })
     }
 
@@ -573,6 +762,11 @@ impl Driver {
     /// Whether the application has closed.
     pub fn closed(&self) -> bool {
         self.closed
+    }
+
+    /// The window size and scale.
+    pub fn geometry(&self) -> Geometry {
+        self.geometry
     }
 
     /// The frames run so far.
@@ -603,8 +797,9 @@ impl Driver {
             if node.label() == Some(label)
                 && let Some(b) = node.bounds()
             {
-                let x = (b.x0 + b.x1) / 2.0 * f64::from(PPP);
-                let y = (b.y0 + b.y1) / 2.0 * f64::from(PPP) + f64::from(STRIP_PX);
+                let ppp = f64::from(self.geometry.ppp());
+                let x = (b.x0 + b.x1) / 2.0 * ppp;
+                let y = (b.y0 + b.y1) / 2.0 * ppp + f64::from(self.geometry.strip_px());
                 return Some((x.floor() as i64, y.floor() as i64));
             }
             stack.extend(node.children().iter().rev().copied());
@@ -624,8 +819,9 @@ impl Driver {
                 continue;
             };
             if let (Some(label), Some(b)) = (node.label(), node.bounds()) {
-                let x = (b.x0 + b.x1) / 2.0 * f64::from(PPP);
-                let y = (b.y0 + b.y1) / 2.0 * f64::from(PPP) + f64::from(STRIP_PX);
+                let ppp = f64::from(self.geometry.ppp());
+                let x = (b.x0 + b.x1) / 2.0 * ppp;
+                let y = (b.y0 + b.y1) / 2.0 * ppp + f64::from(self.geometry.strip_px());
                 out.push((label.to_owned(), (x.floor() as i64, y.floor() as i64)));
             }
             stack.extend(node.children().iter().rev().copied());
@@ -639,7 +835,7 @@ impl Driver {
         if std::mem::take(&mut self.paste_next) && !self.clipboard.is_empty() {
             events.insert(0, Event::Paste(self.clipboard.clone()));
         }
-        let rect = Rect::from_min_size(Pos2::ZERO, WINDOW_POINTS);
+        let rect = Rect::from_min_size(Pos2::ZERO, self.geometry.window_points());
         let mut raw = egui::RawInput {
             screen_rect: Some(rect),
             time: Some(self.frames as f64 * FRAME_S),
@@ -650,7 +846,7 @@ impl Driver {
             ..Default::default()
         };
         if let Some(viewport) = raw.viewports.get_mut(&ViewportId::ROOT) {
-            viewport.native_pixels_per_point = Some(PPP);
+            viewport.native_pixels_per_point = Some(self.geometry.ppp());
             viewport.focused = Some(true);
             viewport.inner_rect = Some(rect);
         }
@@ -731,7 +927,7 @@ impl Driver {
 
     /// The pointer at `at`: moved there, or gone when `at` is in the title strip.
     fn pointer_event(&mut self, at: (i64, i64)) -> Event {
-        self.pointer = to_points(at);
+        self.pointer = self.geometry.to_points(at);
         match self.pointer {
             Some(pos) => Event::PointerMoved(pos),
             None => Event::PointerGone,
@@ -806,7 +1002,7 @@ impl Driver {
                                 (fy + (ty - fy) * t).round() as i64,
                             );
                             // The pointer stays in the window while the button is down (the strip clamps to its edge).
-                            let at = (at.0, at.1.max(i64::from(STRIP_PX)));
+                            let at = (at.0, at.1.max(i64::from(self.geometry.strip_px())));
                             let ev = self.pointer_event(at);
                             self.frame(vec![ev]);
                         }
@@ -909,7 +1105,8 @@ impl Driver {
         ]);
     }
 
-    /// Paints the current frame: the title strip over the window, 1536 × 994 pixels. `None` without painters.
+    /// Paints the current frame: the title strip over the window (1536 × 994 pixels at the default geometry). `None`
+    /// without painters.
     pub fn paint(&mut self) -> Option<RgbaImage> {
         let title = match &self.app {
             Some(app) => app.shell().title(),
@@ -921,10 +1118,10 @@ impl Driver {
             &p.dev,
             &self.ctx,
             self.shapes.clone(),
-            size_in_pixels(&self.ctx),
-            PPP,
+            self.geometry.window_pixels(),
+            self.geometry.ppp(),
         );
-        let strip = paint_strip(p, &tokens, &title, self.frames);
+        let strip = paint_strip(p, &tokens, &title, self.frames, self.geometry);
         let mut pixels = strip.pixels;
         pixels.extend_from_slice(&window.pixels);
         Some(RgbaImage {
@@ -958,7 +1155,7 @@ impl Driver {
         if let Some([x, y, w, h]) = request.zoom {
             image = enlarge(&image, x, y, w, h);
         }
-        let bytes = encode_png(&image, Some(FRAME_DPI));
+        let bytes = encode_png(&image, Some(self.geometry.dpi()));
         let path = dir.join(&request.file);
         std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
         std::fs::write(&path, &bytes).map_err(|e| format!("{}: {e}", path.display()))?;
@@ -985,9 +1182,16 @@ fn key_text(key: Key, shift: bool) -> Option<String> {
 }
 
 /// The title strip: the theme's chrome surface, the title at the left, a subtle line below.
-fn paint_strip(p: &mut Painter, tokens: &crate::theme::Tokens, title: &str, frames: u64) -> RgbaImage {
-    let height = STRIP_PX as f32 / PPP;
-    let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(WINDOW_POINTS.x, height));
+fn paint_strip(
+    p: &mut Painter,
+    tokens: &crate::theme::Tokens,
+    title: &str,
+    frames: u64,
+    g: Geometry,
+) -> RgbaImage {
+    let ppp = g.ppp();
+    let height = g.strip_px() as f32 / ppp;
+    let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(g.window_points().x, height));
     let mut raw = egui::RawInput {
         screen_rect: Some(rect),
         time: Some(frames as f64 * FRAME_S),
@@ -995,17 +1199,17 @@ fn paint_strip(p: &mut Painter, tokens: &crate::theme::Tokens, title: &str, fram
         ..Default::default()
     };
     if let Some(viewport) = raw.viewports.get_mut(&ViewportId::ROOT) {
-        viewport.native_pixels_per_point = Some(PPP);
+        viewport.native_pixels_per_point = Some(ppp);
     }
     let fill = tokens.surface_chrome.color32();
-    let line = crate::theme::stroke(1.0 / PPP, tokens.border_subtle);
+    let line = crate::theme::stroke(1.0 / ppp, tokens.border_subtle);
     let inset = tokens.space_2 * 2.0;
     let text = tokens.text_primary.color32();
     let size = tokens.type_label.size;
     let mut output = p.strip_ctx.run_ui(raw, |ui| {
         let painter = ui.painter();
         painter.rect_filled(rect, crate::theme::SQUARE, fill);
-        painter.hline(rect.x_range(), rect.bottom() - 0.5 / PPP, line);
+        painter.hline(rect.x_range(), rect.bottom() - 0.5 / ppp, line);
         painter.text(
             Pos2::new(inset, rect.center().y),
             egui::Align2::LEFT_CENTER,
@@ -1019,8 +1223,8 @@ fn paint_strip(p: &mut Painter, tokens: &crate::theme::Tokens, title: &str, fram
         &p.dev,
         &p.strip_ctx,
         std::mem::take(&mut output.shapes),
-        [FRAME_WIDTH, STRIP_PX],
-        PPP,
+        [g.frame_width(), g.strip_px()],
+        ppp,
     );
     p.strip.free_textures(&output.textures_delta);
     output.textures_delta.clear();
@@ -1069,7 +1273,7 @@ enum Line {
 
 /// Reads one line: input and frame lines here, the header and action lines by the script parser (whose line count
 /// covers every line).
-fn read_line(parser: &mut ScriptParser, raw: &str, number: usize) -> Result<Line, ScriptError> {
+fn read_line(parser: &mut ScriptParser, raw: &str, number: usize, g: Geometry) -> Result<Line, ScriptError> {
     let malformed = |message: String| ScriptError::Malformed {
         line: number,
         message,
@@ -1079,12 +1283,12 @@ fn read_line(parser: &mut ScriptParser, raw: &str, number: usize) -> Result<Line
         if let Value::Object(o) = &value {
             if o.contains_key("input") {
                 parser.feed("")?;
-                let input = parse_input(o).map_err(malformed)?;
+                let input = parse_input_in(o, g).map_err(malformed)?;
                 return Ok(Line::Input(value, input));
             }
             if o.contains_key("frame") {
                 parser.feed("")?;
-                return parse_frame(o).map(Line::Frame).map_err(malformed);
+                return parse_frame_in(o, g).map(Line::Frame).map_err(malformed);
             }
         }
     }
@@ -1120,7 +1324,7 @@ pub fn run_in_folder(
         config = ShellConfig::in_dir(dir, &config.app_version).with_libraries(config.libraries);
     }
     let frames_dir = if args.no_frames { None } else { args.frames.clone() };
-    let mut driver = match Driver::in_folder(config.clone(), frames_dir, base) {
+    let mut driver = match Driver::with_geometry(config.clone(), frames_dir, base, args.geometry) {
         Ok(d) => d,
         Err(message) => {
             let _ = writeln!(err, "error: {message}");
@@ -1195,6 +1399,22 @@ pub fn run_in_folder(
     code
 }
 
+/// The transcript's header: the shell's, and at a geometry other than the default its window and scale after the
+/// version (`{"$schema":…,"version":…,"window":[1920,1080],"ppp":1}`).
+pub fn transcript_header(version: &str, g: Geometry) -> String {
+    let header = script::transcript_header(version);
+    if g.is_default() {
+        return header;
+    }
+    let open = header.strip_suffix('}').unwrap_or(&header);
+    format!(
+        "{open},\"window\":[{},{}],\"ppp\":{}}}",
+        g.width,
+        g.height,
+        g.ppp_text()
+    )
+}
+
 /// The script loop: the transcript's lines to `sink`; the exit code, or the usage error that ended the run.
 fn drive(
     driver: &mut Driver,
@@ -1204,14 +1424,14 @@ fn drive(
 ) -> io::Result<Result<i32, ScriptError>> {
     let version = driver.config.app_version.clone();
     driver.shell_mut().reset_aliases();
-    sink(&script::transcript_header(&version))?;
+    sink(&transcript_header(&version, driver.geometry))?;
     let mut parser = ScriptParser::new();
     let mut ext = crate::headless::Snapshot;
     let mut number = 0usize;
     let mut not_done = 0usize;
     for (i, raw) in lines.enumerate() {
         let raw = raw?;
-        let line = match read_line(&mut parser, &raw, i + 1) {
+        let line = match read_line(&mut parser, &raw, i + 1, driver.geometry) {
             Ok(l) => l,
             Err(e) => return Ok(Err(e)),
         };

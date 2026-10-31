@@ -36,6 +36,7 @@ use ew_ui::ew_viewmodel::strings;
 use ew_ui::ew_viewmodel::window::{MonitorArea, WindowGeometry};
 use ew_ui::gpu::{Flags, adapter_count, wgpu_configuration};
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
+use ew_ui::visual::Geometry;
 use ew_ui::window_memory::{CoordSpace, Display, FirstFrameStep};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -57,7 +58,7 @@ enum Cli {
 
 const USAGE: &str = "usage: elektrawatt [--no-gpu] [<project-dir>]\n\
        elektrawatt --headless --script <file|-> [--record <file.ewcmd>] [--config-dir <dir>] [--keep-going]\n\
-                   [--visual [--frames <dir> | --no-frames]]\n\
+                   [--visual [--frames <dir> | --no-frames] [--window <W>x<H>] [--ppp <n>]]\n\
        elektrawatt --smoke <project-dir>\n\
        elektrawatt --version | --help";
 
@@ -71,6 +72,8 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
     let mut visual = false;
     let mut frames: Option<PathBuf> = None;
     let mut no_frames = false;
+    let mut window: Option<String> = None;
+    let mut ppp: Option<String> = None;
     let mut smoke: Option<PathBuf> = None;
     let mut project: Option<PathBuf> = None;
     let mut no_gpu = false;
@@ -95,6 +98,8 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
             "--visual" => visual = true,
             "--frames" => frames = Some(PathBuf::from(value("--frames")?)),
             "--no-frames" => no_frames = true,
+            "--window" => window = Some(value("--window")?.to_string_lossy().into_owned()),
+            "--ppp" => ppp = Some(value("--ppp")?.to_string_lossy().into_owned()),
             "--smoke" => smoke = Some(PathBuf::from(value("--smoke")?)),
             "--no-gpu" => no_gpu = true,
             flag if flag.starts_with("--") => return Err(format!("unknown option {flag}")),
@@ -118,6 +123,11 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
     if frames.is_some() && no_frames {
         return Err("--frames and --no-frames exclude each other".to_owned());
     }
+    // Cycle 39: a visual run's window size and scale (default 1280 × 800 points at 1.2).
+    let geometry = Geometry::parse(window.as_deref(), ppp.as_deref())?;
+    if (window.is_some() || ppp.is_some()) && !visual {
+        return Err("--window and --ppp need --visual".to_owned());
+    }
     match (headless, script, smoke) {
         (true, Some(script), None) if project.is_none() => Ok(Cli::Headless(HeadlessArgs {
             script,
@@ -127,6 +137,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
             visual,
             frames,
             no_frames,
+            geometry,
         })),
         (true, None, _) => Err("--headless needs --script <file|->".to_owned()),
         (true, _, _) => Err("--headless takes a script and no project or --smoke".to_owned()),
@@ -681,7 +692,8 @@ mod tests {
                 keep_going: false,
                 visual: false,
                 frames: None,
-                no_frames: false
+                no_frames: false,
+                geometry: Geometry::DEFAULT
             }))
         );
         assert_eq!(
@@ -693,7 +705,8 @@ mod tests {
                 keep_going: false,
                 visual: false,
                 frames: None,
-                no_frames: false
+                no_frames: false,
+                geometry: Geometry::DEFAULT
             }))
         );
         assert_eq!(
@@ -705,7 +718,8 @@ mod tests {
                 keep_going: true,
                 visual: false,
                 frames: None,
-                no_frames: false
+                no_frames: false,
+                geometry: Geometry::DEFAULT
             }))
         );
         assert_eq!(
@@ -717,7 +731,8 @@ mod tests {
                 keep_going: false,
                 visual: false,
                 frames: None,
-                no_frames: false
+                no_frames: false,
+                geometry: Geometry::DEFAULT
             }))
         );
         assert!(parse(&["--config-dir", "c"]).is_err());
@@ -753,7 +768,8 @@ mod tests {
                 keep_going: true,
                 visual: true,
                 frames: Some(PathBuf::from("f")),
-                no_frames: false
+                no_frames: false,
+                geometry: Geometry::DEFAULT
             }))
         );
         assert!(matches!(
@@ -785,6 +801,72 @@ mod tests {
             .is_err()
         );
         assert!(USAGE.contains("--visual"));
+    }
+
+    /// Cycle 39: `--window <W>x<H>` and `--ppp <n>` choose a visual run's window size and scale; each error names
+    /// what is wrong.
+    #[test]
+    fn the_window_and_ppp_flags_choose_the_geometry() {
+        let v = ["--headless", "--visual", "--script", "s"];
+        let with = |more: &[&str]| parse(&[&v[..], more].concat());
+        assert!(matches!(
+            with(&["--window", "1920x1080", "--ppp", "1"]),
+            Ok(Cli::Headless(HeadlessArgs {
+                geometry: Geometry {
+                    width: 1920,
+                    height: 1080,
+                    ppp_hundredths: 100
+                },
+                ..
+            }))
+        ));
+        assert!(matches!(
+            with(&["--ppp", "1.25"]),
+            Ok(Cli::Headless(HeadlessArgs {
+                geometry: Geometry {
+                    width: 1280,
+                    height: 800,
+                    ppp_hundredths: 125
+                },
+                ..
+            }))
+        ));
+        assert!(matches!(
+            with(&[]),
+            Ok(Cli::Headless(HeadlessArgs {
+                geometry: Geometry::DEFAULT,
+                ..
+            }))
+        ));
+        assert_eq!(
+            with(&["--window", "1920"]),
+            Err("--window needs <width>x<height> in points, e.g. 1920x1080".to_owned())
+        );
+        assert_eq!(
+            with(&["--window", "800x600"]),
+            Err("--window must be from 1024x640 to 3840x2160 points".to_owned())
+        );
+        assert_eq!(
+            with(&["--ppp", "0.5"]),
+            Err("--ppp needs a number from 1 to 3".to_owned())
+        );
+        assert_eq!(
+            with(&["--ppp", "1.234"]),
+            Err("--ppp needs a number from 1 to 3".to_owned())
+        );
+        assert_eq!(
+            with(&["--window", "3840x2160", "--ppp", "2"]),
+            Err("--window and --ppp make a frame larger than 3840 × 2400 pixels".to_owned())
+        );
+        assert_eq!(
+            parse(&["--headless", "--script", "s", "--window", "1920x1080"]),
+            Err("--window and --ppp need --visual".to_owned())
+        );
+        assert_eq!(
+            parse(&["--headless", "--script", "s", "--ppp", "2"]),
+            Err("--window and --ppp need --visual".to_owned())
+        );
+        assert!(USAGE.contains("--window <W>x<H>") && USAGE.contains("--ppp <n>"));
     }
 
     #[test]

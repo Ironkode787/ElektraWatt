@@ -13,7 +13,10 @@ use egui::{Key, Modifiers, PointerButton};
 use ew_ui::ew_viewmodel::script::state_json;
 use ew_ui::ew_viewmodel::shell::ShellConfig;
 use ew_ui::headless::{HeadlessArgs, ScriptSource};
-use ew_ui::visual::{self, Driver, FRAME_HEIGHT, FRAME_WIDTH, Input, parse_chord, parse_frame, parse_input};
+use ew_ui::visual::{
+    self, Driver, FRAME_HEIGHT, FRAME_WIDTH, Geometry, Input, parse_chord, parse_frame, parse_input,
+    parse_input_in,
+};
 use serde_json::{Map, Value, json};
 use support::Tmp;
 
@@ -30,12 +33,24 @@ fn args(script: PathBuf, frames: Option<PathBuf>) -> HeadlessArgs {
         visual: true,
         frames,
         no_frames: false,
+        geometry: Geometry::DEFAULT,
     }
 }
 
 /// Runs `lines` (after the header) in the fresh folder `<tmp>/<name>`: the transcript's lines (header first), the
 /// exit code and the error output.
 fn run(tmp: &Tmp, name: &str, lines: &[Value], frames: bool) -> (Vec<Value>, i32, String) {
+    run_at(tmp, name, lines, frames, Geometry::DEFAULT)
+}
+
+/// [`run`] at the window size and scale of `geometry`.
+fn run_at(
+    tmp: &Tmp,
+    name: &str,
+    lines: &[Value],
+    frames: bool,
+    geometry: Geometry,
+) -> (Vec<Value>, i32, String) {
     let dir = tmp.0.join(name);
     std::fs::create_dir_all(&dir).unwrap();
     let mut text = String::from("{\"$schema\":\"ew.uiscript/1\"}\n");
@@ -47,7 +62,8 @@ fn run(tmp: &Tmp, name: &str, lines: &[Value], frames: bool) -> (Vec<Value>, i32
     std::fs::write(&script, text).unwrap();
     let mut out = Vec::new();
     let mut err = Vec::new();
-    let a = args(script, frames.then(|| dir.join("frames")));
+    let mut a = args(script, frames.then(|| dir.join("frames")));
+    a.geometry = geometry;
     let config = ShellConfig::in_dir(&dir.join("config"), "0.0.0-test");
     // The dialogs answer inside the run's folder, never in the crate's (the test's working directory).
     let code = visual::run_in_folder(config, &a, dir.clone(), &mut std::io::empty(), &mut out, &mut err);
@@ -440,6 +456,112 @@ fn the_application_closes_and_later_lines_say_so() {
     assert_eq!(t[4]["dispatched"], json!([]));
     assert_eq!(t[5]["closed"], true);
     assert_eq!(t[6]["outcome"], "done", "the epilogue's shell: {:?}", t[6]);
+}
+
+/// 1920 × 1080 points at 1 pixel per point (cycle 39).
+fn typical() -> Geometry {
+    Geometry::parse(Some("1920x1080"), Some("1")).unwrap()
+}
+
+/// Cycle 39: a run may choose its window size and scale. At 1920 × 1080 points and ppp 1 the frame is 1920 × 1108
+/// pixels (a 28-pixel strip), at ppp 2 3840 × 2216; the default stays 1536 × 994.
+#[test]
+fn the_geometry_sizes_the_frame() {
+    let g = typical();
+    assert_eq!(
+        (g.frame_width(), g.frame_height(), g.strip_px(), g.dpi()),
+        (1920, 1108, 28, 96)
+    );
+    let g2 = Geometry::parse(Some("1920x1080"), Some("2")).unwrap();
+    assert_eq!(
+        (g2.frame_width(), g2.frame_height(), g2.strip_px(), g2.dpi()),
+        (3840, 2216, 56, 192)
+    );
+    let d = Geometry::DEFAULT;
+    assert_eq!(
+        (d.frame_width(), d.frame_height(), d.strip_px(), d.dpi(), d.ppp()),
+        (FRAME_WIDTH, FRAME_HEIGHT, visual::STRIP_PX, 115, visual::PPP)
+    );
+    assert_eq!(Geometry::parse(None, None), Ok(Geometry::DEFAULT));
+    assert_eq!(
+        Geometry::parse(Some("1280x800"), Some("1.2")),
+        Ok(Geometry::DEFAULT)
+    );
+}
+
+/// Cycle 39: an input at x = 1900 is inside a 1920-pixel frame and outside the default one, with the existing
+/// out-of-frame text.
+#[test]
+fn coordinates_are_checked_against_the_runs_frame() {
+    let o = obj(json!({"input": "click", "x": 1900, "y": 1100}));
+    assert!(matches!(
+        parse_input_in(&o, typical()),
+        Ok(Input::Click { at: (1900, 1100), .. })
+    ));
+    let refused = parse_input(&o).unwrap_err();
+    assert_eq!(refused, "`x` is outside the frame (0 to 1535)");
+    assert!(parse_input_in(&obj(json!({"input": "click", "x": 1920, "y": 0})), typical()).is_err());
+    let zoom = obj(json!({"frame": "z.png", "zoom": [1100, 600, 768, 497]}));
+    assert!(visual::parse_frame_in(&zoom, typical()).is_ok());
+    assert!(parse_frame(&zoom).is_err());
+}
+
+/// Cycle 39: at 1920 × 1080 points and ppp 1 a click at a widget's centre in that frame's pixels reaches the widget.
+#[test]
+fn a_click_at_the_typical_size_reaches_the_widget() {
+    let tmp = Tmp::new();
+    let golden = tmp.golden("g.ew");
+    let mut d = Driver::with_geometry(tmp.config(), None, tmp.0.clone(), typical()).unwrap();
+    d.enable_accesskit();
+    let opened = d
+        .shell_mut()
+        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+    assert_eq!(opened, ew_ui::ew_viewmodel::shell::Outcome::Done);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "101"}));
+    d.settle();
+    let _ = actions(&mut d);
+    let at = d.find("Check project").expect("the Check project button");
+    assert!(at.0 < 1920 && at.1 < 1108, "{at:?}");
+    d.input(&click(at));
+    assert_eq!(actions(&mut d), ["messages.check"], "the click at {at:?}");
+    d.shell_mut().shutdown();
+}
+
+/// Cycle 39: a run at 1920 × 1080 points and ppp 1 names its geometry in the transcript's header, accepts an input at
+/// x = 1900 and (where frames are painted) paints 1920 × 1108 pixels; at the default the header is unchanged.
+#[test]
+fn a_run_at_the_typical_size_paints_its_frame_and_names_it() {
+    let tmp = Tmp::new();
+    let lines = |dir: &Path| {
+        vec![
+            json!({"action": "file.new", "params": {"dir": dir.join("p").to_string_lossy()}}),
+            json!({"input": "hover", "x": 1900, "y": 600}),
+            json!({"frame": "t0001.png"}),
+        ]
+    };
+    let frames = cfg!(windows);
+    let (t, code, err) = run_at(&tmp, "w", &lines(&tmp.0.join("w")), frames, typical());
+    assert_eq!(code, 0, "{err}");
+    assert_eq!(t[0]["window"], json!([1920, 1080]), "{:?}", t[0]);
+    assert_eq!(t[0]["ppp"], json!(1));
+    assert!(t[2].get("input").is_some(), "the hover ran: {:?}", t[2]);
+    if frames {
+        let png = std::fs::read(tmp.0.join("w/frames/t0001.png")).unwrap();
+        assert_eq!(u32::from_be_bytes(png[16..20].try_into().unwrap()), 1920);
+        assert_eq!(u32::from_be_bytes(png[20..24].try_into().unwrap()), 1108);
+    }
+    assert_eq!(
+        visual::transcript_header("1.0", Geometry::parse(Some("1366x768"), Some("1.25")).unwrap()),
+        r#"{"$schema":"ew.uitranscript/1","version":"1.0","window":[1366,768],"ppp":1.25}"#
+    );
+    // The default run's header has no geometry, and its input at x = 1900 is refused.
+    let (t, code, _) = run(&tmp, "d", &lines(&tmp.0.join("d")), false);
+    assert_eq!(code, 2);
+    assert!(
+        t[0].get("window").is_none() && t[0].get("ppp").is_none(),
+        "{:?}",
+        t[0]
+    );
 }
 
 /// The harness (xtask, which has no edge to this crate) checks a chord against its own copy of the key names; every
