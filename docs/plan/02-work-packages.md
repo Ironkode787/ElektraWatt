@@ -2148,6 +2148,8 @@ are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of do
 | Acceptance | AC-07 |
 | Owner role | Output and migration developer |
 
+*Status (2026-10-31, cycle 42).* **Specified** ([closed specification](specs/WP-S3.08-table-exports-and-excel-round-trip.md); decision log ID-?): the CSV half of FR-EXP-002 and FR-EXP-006 is built (the golden-dialect row exports of WP-S3.03 and WP-S1.22 part 2) and traced; FR-EXP-001's `Exporter` trait is WP-S3.09's. Three parts remain, 2.5 pw plus 0.3 pw reserve: part 1 the table writers in `ew-reports` (an own XLSX writer over `miniz_oxide`, no ZIP crate, after ID-827; the CSV presets `excel-nl`, `excel-en`, `rfc4180` with NFR-SEC-17's apostrophe guard, the golden dialect staying the default) behind `--format xlsx` on every row export and `ew sql` (1.0, Opus `high`), part 2 the round trip (the hidden `id` column, `_ew` and `_ew_base`, navigator tables through `ew export table`, `ew import table` applying one `fields.set_many`, table mode's compile rule moved into `ew-api`, the parts import's XLSX reader made public, the I/O-list round trip of FR-PLC-038) (1.0, `high`), part 3 the window's export and import from a navigator's table, the import in the Preview tab (0.5, `medium`). Golden examples are new XLSX digests with text dumps and new preset CSV files; no existing golden byte changes. Proposed PERT for the remaining scope 2.8 pw (O 2.0 · L 2.7 · P 4.2).
+
 #### WP-S3.09 Importer contracts, lineage and migration report
 
 | Field | Value |
