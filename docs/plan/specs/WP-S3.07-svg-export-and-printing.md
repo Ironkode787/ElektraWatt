@@ -5,8 +5,7 @@
 D9), part 3 printing from the window with the print preview and the Linux portal (0.8 pw, D10, D11), part 4 the
 native Windows adapter (0.7 pw, D12); 0.3 pw reserve; part 1 at any time, part 2 before parts 3 and 4, parts 3 and 4
 in any order · **Date:** 2026-10-31 · **Work package:**
-[WP-S3.07](../02-work-packages.md#wp-s307-svg-export-and-printing) · **Decision log:** ID-? (numbered by the design
-pass) · **Part of:** ElektraWatt plan, specifications
+[WP-S3.07](../02-work-packages.md#wp-s307-svg-export-and-printing) · **Decision log:** ID-1017; O3 answered by ID-1030 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** The SVG writer was built ahead of this package (cycle 14, `ew_export::svg`; `ew export svg` since cycle 15):
 text as text, stable order, links, one file per page, byte-identical serial and parallel output (AC-14). Its fonts are
@@ -297,8 +296,8 @@ whole** (Windows then prints through the viewer adapter at the MVP, and the part
 **Order and routing** (Opus or Haiku only, ID-700). Part 1 **Opus at `high`** (a font file format and a golden SVG
 change; feasibility read flagged for Opus `low`), at any time; part 2 **Opus at `medium`** (a new output on existing
 writers, process spawning), before parts 3 and 4; part 3 **Opus at `medium`** (UI on existing patterns, one new
-dependency); part 4 **Opus at `xhigh`** (the product's first `unsafe` FFI; a mistake is memory safety), after the
-owner's answer to §13 O3. No Haiku lane.
+dependency); part 4 **Opus at `xhigh`** (the product's first `unsafe` FFI; a mistake is memory safety); the owner
+approved it (§13 O3, ID-1030), and the cycle's reviewer reviews each `unsafe` block. No Haiku lane.
 
 ## 13. Open questions, follow-ups and the documents to update
 
@@ -316,6 +315,15 @@ owner's answer to §13 O3. No Haiku lane.
   assumes; it needs the owner's word, not a delegated ruling.
 - **O4** A G-M2 owner checklist with two manual items: folio 103's SVG in a browser without the fonts (D4) and a print
   per OS (FR-EXT-009). Recommendation: add it with WP-S3.08's O4.
+
+**Rulings** (decision log ID-1017, ID-1030). **O1:** option (1), the PERT 3.3 pw entered (project owner (delegated)).
+**O2:** option (1): section 1 prints with its divider 100; FR-OUT-017's acceptance gets the as-built note "section 1
+prints 100 to 106: the divider belongs to its section, and no page outside the section prints" after part 2.
+**O3:** answered by the owner (2026-10-31, ID-1030): approve. Part 4, the Windows GDI print adapter, is in scope; the
+`unsafe` review NFR-SEC-04 asks for is done by the cycle's independent reviewer, whose brief names each `unsafe` block
+of `crates/ew-print/src/windows.rs`; the CODEOWNERS entry is not needed for it. The delegated ruling that first
+de-scoped part 4 is superseded, and §12's de-scope rule for part 4 applies only to size. **O4:** option (1), one G-M2
+owner checklist with folio 103's SVG in a browser without the fonts and a print per OS, beside WP-S3.08's O4.
 
 **FT annotations, proposed** (the design pass edits the rows): **FT-233** moves to WP-S3.07 part 1 and closes with it.
 WP-S3.07 has no other FT row. Proposed (not opened):

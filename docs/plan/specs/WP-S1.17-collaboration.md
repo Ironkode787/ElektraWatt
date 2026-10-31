@@ -6,9 +6,9 @@ format migrations and the upgrade backup (0.8 pw, D10 to D12), part 4 the three-
 (1.2 pw, D13 to D16), part 5 conflict records, conflict markers and their resolution (0.9 pw, D17 to D19), part 6
 external change in the store and the session (1.1 pw, D20 to D23), part 7 the window, cloud folders and the driver
 status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge integrity and AC-41 (0.9 pw, D26 to D29).
-The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Date:** 2026-10-31 · **Work package:**
+The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08; the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
-**Decision log:** ID-? · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-1015; amended by ID-1029 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
 this package everything that happens when a project changes outside the running session or between builds: a pull
@@ -37,7 +37,8 @@ rule 2).
 13. [Part 8: `ew diff`, `ew git setup`, post-merge integrity and AC-41](#13-part-8-ew-diff-ew-git-setup-post-merge-integrity-and-ac-41)
 14. [Files owned, boundaries, risks, size and routing](#14-files-owned-boundaries-risks-size-and-routing)
 15. [Follow-ups, documents to update, open questions](#15-follow-ups-documents-to-update-open-questions)
-16. [Sources](#sources)
+16. [Amendment after the owner's format decision](#16-amendment-after-the-owners-format-decision-cycle-42-decision-log-id-1029)
+17. [Sources](#sources)
 
 ---
 
@@ -478,6 +479,54 @@ to 6 (format, store, a core crate). **Unblocks:** WP-S6.08 after part 8; WP-S2.1
   is a Must and the first format change should not also build the machinery.
 - **O4 (EW-CORE-013).** *Options:* (1) report on merge evidence only (D29); (2) report on every duplicate group,
   doubling the six rules' findings. *Recommendation:* (1), with FP-1 putting the fix on the rules' own findings later.
+
+---
+
+## 16. Amendment after the owner's format decision (cycle 42, decision log ID-1029)
+
+The owner, 2026-10-31: "The app is not in use yet. Change the format however much you like." Before the first signed
+release (WP-S6.08 adds the first entry to `RELEASED_FORMATS`) a format change needs no migration, no reader for old
+files and no byte rule kept only for compatibility with other builds; Golden A and the fixtures are re-blessed instead.
+This section overrides §4 to §15 where they differ; the rulings on O1 to O4 are in decision log ID-1015.
+
+**Deferred to the wave before the first release, beside WP-S6.08** (one part, still called part 3, re-read and sized
+at its dispatch):
+- **Part 3 whole:** D10 to D12 (the migration chain, the upgrade consent and its verified backup, `ew upgrade`,
+  `cargo xtask check-format`, the corpus) and FT-403. O3's ruling (build part 3 now with an empty chain) is superseded.
+- **D4 and FT-96** (an unedited record's unknown members kept by their original line): it serves only files written by
+  another build, which cannot exist before the release. Part 1 drops it, and SG-2 moves to part 3; until then such a
+  record is re-emitted canonically with its unknown members kept, as built.
+- **D3's `unstable` marker** (writing `unstable: true` and the read-only open of an unstable file in another reader):
+  `RELEASED_FORMATS` is empty until then, so the marker could not be written anyway. Part 1 keeps D3's `since` metadata,
+  the computed `min_reader` and the empty `RELEASED_FORMATS`; SG-1's `unstable` clauses move to part 3.
+- The data-loss rows of §5 for D4 (SG-2) and for D10 and D11 (MG-2 to MG-4) move with them.
+
+**Kept where they are:** the data-loss protection inside a session: D5 (a save refuses to overwrite a file changed
+outside the session, part 1), D6 and D7, the journals (D23), and the merges (D2, D13 to D19, D22). FT-95's `min_reader`
+half, FT-97 and FT-98 still close with part 1, FT-191's `--integrity` with part 8.
+
+**Size.** The parts left for M2 are part 1 **0.55** (stamps without the marker 0.15, the target pre-check 0.15, FT-97
+and FT-98 0.15, tests 0.1), part 2 **0.8**, part 4 **1.2**, part 5 **0.9**, part 6 **1.1**, part 7 **0.8** (the upgrade
+consent dialog of D24 leaves with part 3) and part 8 **0.9**: 6.25 pw. The PERT is **6.9 pw** (O 4.8 · L 6.7 · P 9.7):
+the 7.7 pw of O1 less 0.8 pw (decision log ID-1029). The 0.65 pw between the parts and the PERT is the reserve, wider
+than §14.5's 0.3 pw because part 1's D4 work (0.35 pw) leaves the M2 sizing too; the deferred part 3 (about 1.15 pw
+with D4 and the marker) is sized against WP-S6.08 when that package is specified.
+
+**Order and routing** (replacing §14.5's routing; Opus or Haiku only, ID-700). Format work routes at Opus `high`; a
+part whose subject is a save, a journal, recovery or a merge stays at `xhigh`:
+
+| Part | Subject | Routing | Wave |
+|---|---|---|---|
+| 1 | Stamps and the save's target pre-check | Opus `xhigh` (a save) | A |
+| 2 | `.ewz` pack, extract, read-only open | Opus `high` (format; its extract is all-or-nothing, tested by EZ-3) | A |
+| 4 | The three-way merge core and `ew merge-driver` | Opus `xhigh` (a merge) | A |
+| 5 | Conflict records, markers, `merge.resolve` | Opus `xhigh` (a merge) | B, after parts 1 and 4 |
+| 6 | External change, the apply and the journal rebase | Opus `xhigh` (a journal, a merge) | B, after parts 1 and 4 |
+| 8 | `ew diff`, `ew git setup`, integrity, AC-41 | Opus `high` | C, after parts 4 and 5 |
+| 7 | The window, cloud folders, the driver status | Opus `medium` | C, after parts 2 and 6 |
+| 3 | Migrations, the upgrade backup, D4, the `unstable` marker, FT-403 | Opus `xhigh` (a save with a backup) | Before the first release, beside WP-S6.08 |
+
+The feasibility read flags parts 1, 2 and 4 to 6. **Unblocks:** WP-S6.08 after parts 8 and 3.
 
 ---
 

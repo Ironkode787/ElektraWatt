@@ -195,7 +195,7 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M1** | 24 (Oct 2028) | **16 (Feb 2028)** | 16 (Feb 2028) | 13 (Nov 2027) | 11 (Sep 2027) |
 | **G-PP** | 39 (Jan 2030) | **26 (Dec 2028)** | 24 (Oct 2028) | 21 (Jul 2028) | 18 (Apr 2028) |
 | **G-M2** | 61 (Nov 2031) | **42 (Apr 2030)** | 37 (Nov 2029) | 34 (Aug 2029) | 29 (Mar 2029) |
-| **G-M3** | 71 (Sep 2032) | **48 (Oct 2030)** | 41 (Mar 2030) | 39 (Jan 2030) | 33 (Jul 2029) |
+| **G-M3** | 71 (Sep 2032) | **49 (Nov 2030)** | 41 (Mar 2030) | 39 (Jan 2030) | 33 (Jul 2029) |
 | **G-M4** | 85 (Nov 2033) | **59 (Sep 2031)** | 53 (Mar 2031) | 47 (Sep 2030) | 40 (Feb 2030) |
 | **G-M5** | 90 (Apr 2034) | **60 (Oct 2031)** | 53 (Mar 2031) | 48 (Oct 2030) | 41 (Mar 2030) |
 | **G-M6** | 98 (Dec 2034) | **65 (Mar 2032)** | 58 (Aug 2031) | 53 (Mar 2031) | 46 (Aug 2030) |
@@ -212,7 +212,7 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M1** | 20 (Jun 2028) | 16 (Feb 2028) | 13 (Nov 2027) | 16 (Feb 2028) |
 | **G-PP** | 33 (Jul 2029) | 26 (Dec 2028) | 22 (Aug 2028) | 26 (Dec 2028) |
 | **G-M2** | 52 (Feb 2031) | 42 (Apr 2030) | 35 (Sep 2029) | 45 (Jul 2030) |
-| **G-M3** | 60 (Oct 2031) | 48 (Oct 2030) | 40 (Feb 2030) | 49 (Nov 2030) |
+| **G-M3** | 61 (Nov 2031) | 49 (Nov 2030) | 41 (Mar 2030) | 49 (Nov 2030) |
 | **G-M4** | 73 (Nov 2032) | 59 (Sep 2031) | 49 (Nov 2030) | 61 (Nov 2031) |
 | **G-M5** | 75 (Jan 2033) | 60 (Oct 2031) | 50 (Dec 2030) | 67 (May 2032) |
 | **G-M6** | 82 (Aug 2033) | 65 (Mar 2032) | 55 (May 2031) | 72 (Oct 2032) |
@@ -247,7 +247,7 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 | **G-M3** | 73 (Nov 2032) | 43 (May 2030) |
 | **G-M4** | 88 (Feb 2034) | 52 (Feb 2031) |
 | **G-M5** | 101 (Mar 2035) | 57 (Jul 2031) |
-| **G-M6** | 108 (Oct 2035) | 62 (Dec 2031) |
+| **G-M6** | 109 (Nov 2035) | 62 (Dec 2031) |
 <!-- /generated:gate-full-2d4d -->
 
 **Reading it.**

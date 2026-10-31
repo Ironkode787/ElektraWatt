@@ -5,8 +5,7 @@ the CSV presets, the formula guard) behind every row export (1.0 pw, D2 to D7), 
 tables, `ew import table`, the I/O list, 1.0 pw, D8 to D13), part 3 the window (export and import from a navigator's
 table, the export as a job, 0.5 pw, D14); 0.3 pw reserve; part 1 first, part 2 after it, part 3 after part 2 ·
 **Date:** 2026-10-31 · **Work package:**
-[WP-S3.08](../02-work-packages.md#wp-s308-table-exports-and-excel-round-trip) · **Decision log:** ID-? (numbered by
-the design pass) · **Part of:** ElektraWatt plan, specifications
+[WP-S3.08](../02-work-packages.md#wp-s308-table-exports-and-excel-round-trip) · **Decision log:** ID-1016 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S3.08's CSV half was built ahead of it: every row export writes the rows of a report block, as its
 folios print them, in the golden CSV dialect (WP-S3.03, cycle 14; WP-S1.22 part 2, cycle 40), and an own bounded XLSX
@@ -351,6 +350,10 @@ wants it; FT-385's gallery export.
 - **O4** A manual check that Excel and LibreOffice open `bom_parts.xlsx` and a round-trip file unrepaired, as a pilot
   item before G-M2. Options: (1) add it to the G-M2 owner checklist; (2) rely on the pilot's normal use.
   Recommendation: (1).
+
+**Rulings** (project owner (delegated), 2026-10-31, decision log ID-1016): O1 option (1), the PERT 2.8 pw entered;
+O2 option (1), WP-S3.09 owns the `Exporter` trait; O3 option (1), the own writer with ADR-0018 item 5 amended after
+part 1; O4 option (1), the G-M2 owner checklist item, beside WP-S3.07's O4. The FT annotations of §13 are applied.
 
 ## 13. Follow-ups and the documents to update
 
