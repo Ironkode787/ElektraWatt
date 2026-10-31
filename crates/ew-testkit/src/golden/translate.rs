@@ -28,7 +28,9 @@
 //! 7. channel bindings (`plc.bind_channel`, coil 14 of position p → channel 2p + 1 as drawn) and device
 //!    links (`device.link`);
 //! 8. revisions (`revision.create`, FT-165): the historic released V1.0 and the open V2.0 with its page
-//!    notes.
+//!    notes;
+//! 9. the panel layout (WP-S4.01 D13): `layout.space.create`, `layout.enclosure.create` (which creates the plate
+//!    surface, its frame and outline derived from the enclosure part), `layout.carrier.add`, `layout.place`.
 //!
 //! Not written: the import lineage (path (a) only); a record of a reserved kind without a schema type
 //! (Golden A has none since FT-165) is counted.
@@ -807,6 +809,29 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         }
     }
 
+    // 9. The panel layout (WP-S4.01 D13): spaces, enclosures with their plate surfaces, carriers, placements.
+    for x in of!(LayoutSpace) {
+        let id = b.layout_space(&map.apply(x))?;
+        map.insert(x.id, id);
+    }
+    for x in of!(Enclosure) {
+        let Some(surface) = of!(MountingSurface).find(|s| s.enclosure == x.id) else {
+            b.not_written("enclosure (without its plate surface)", 1);
+            continue;
+        };
+        let (id, made) = b.enclosure(&map.apply(x), &map.apply(surface))?;
+        map.insert(x.id, id);
+        map.insert(surface.id, made);
+    }
+    for x in of!(Carrier) {
+        let id = b.carrier(&map.apply(x))?;
+        map.insert(x.id, id);
+    }
+    for x in of!(Placement) {
+        let id = b.layout_place(&map.apply(x))?;
+        map.insert(x.id, id);
+    }
+
     // Kinds no command writes yet.
     for r in recs {
         let what = match r.kind() {
@@ -830,7 +855,12 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
                 | Kind::PotentialDef
                 | Kind::Bond
                 | Kind::ReportBlock
-                | Kind::Revision,
+                | Kind::Revision
+                | Kind::LayoutSpace
+                | Kind::Enclosure
+                | Kind::MountingSurface
+                | Kind::Carrier
+                | Kind::Placement,
             ) => continue,
             Some(_) => "other kind",
             None => "reserved kind without a schema type",

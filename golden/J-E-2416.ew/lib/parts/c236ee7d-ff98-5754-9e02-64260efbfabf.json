@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "f55cd650-f081-5fad-a791-375bfb4d9a11",
   "version": "1.0.0",
-  "sha256": "sha256:8cc3511f2964fbc3c944071b2eab4579d7ea0e1beb52647d1709d5a03c4e2047",
+  "sha256": "sha256:22a44665236896e576ef89a91fc78482c9d776dc8e7916492461cb70d49e7732",
   "meta": {
     "key": "TBD end bracket",
     "sources": ["golden.table:parts|TBD end bracket"],
@@ -17,5 +17,6 @@
     "version_req": "*"
   },
   "part_number": "TBD",
-  "description": "End bracket"
+  "description": "End bracket",
+  "mech": {"width": 10000000}
 }

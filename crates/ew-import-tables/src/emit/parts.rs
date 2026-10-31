@@ -9,8 +9,9 @@ use std::collections::BTreeMap;
 use ew_ids::Id;
 use ew_ids::v5;
 use ew_schema::{
-    CableCore, ClampKey, Confidence, CpData, ItemMeta, KeyedList, LibCopy, LibDocument, LibItem, LibRef,
-    Library, Manufacturer, OrderUnit, Part, PartKind, PartSections, PotentialType, Sha256, Side, TemplateFn,
+    CableCore, ClampKey, Confidence, CpData, EnclosureSection, ItemMeta, KeyedList, LibCopy, LibDocument,
+    LibItem, LibRef, Library, Manufacturer, MechData, MountKind, OrderUnit, Part, PartKind, PartSections,
+    PlateSection, PotentialType, RailSection, Sha256, Side, TemplateFn,
 };
 use serde::Serialize;
 use sha2::Digest;
@@ -53,6 +54,56 @@ pub(crate) const ROLES: &[(&str, PotentialType)] = &[
     ("signal", PotentialType::Signal),
     ("undefined", PotentialType::Undefined),
 ];
+
+/// Mount kinds of `mount_kind` and `rail_profile` cells (the `snake_case` names of [`MountKind`]).
+pub(crate) const MOUNT_KINDS: &[(&str, MountKind)] = &[
+    ("ts35x7_5", MountKind::Ts35x7_5),
+    ("ts35x15", MountKind::Ts35x15),
+    ("ts32", MountKind::Ts32),
+    ("ts15", MountKind::Ts15),
+    ("screw", MountKind::Screw),
+    ("busbar_adapter", MountKind::BusbarAdapter),
+    ("door_cutout", MountKind::DoorCutout),
+    ("on_parent", MountKind::OnParent),
+    ("none", MountKind::None),
+];
+
+/// The mechanical columns of a `parts.csv` row (WP-S4.01 part 2): `mech` and the carrier sections.
+struct MechCells {
+    mech: Option<MechData>,
+    enclosure: Option<(Vec<ew_units::Nm>, Option<String>)>,
+    plate: Option<Vec<ew_units::Nm>>,
+    rail: Option<MountKind>,
+}
+
+/// Reads the mechanical columns: `width`, `height`, `depth` (mm) and `mount_kind` give `mech` (absent when all are
+/// empty); `enclosure` (`W;H;D` mm) and `enclosure_plate` (a `parts` key) the enclosure section; `plate` (`W;H` mm)
+/// the mounting-plate section; `rail_profile` the rail section.
+fn mech_cells(r: &mut Rd<'_>) -> MechCells {
+    let width = r.mm("width");
+    let height = r.mm("height");
+    let depth = r.mm("depth");
+    let mount_kind = r.choice("mount_kind", MOUNT_KINDS);
+    let any = width.is_some() || height.is_some() || depth.is_some() || mount_kind.is_some();
+    let mech = any.then(|| MechData {
+        width,
+        height,
+        depth,
+        mount_kind,
+        ..MechData::default()
+    });
+    let size = r.mm_list("enclosure", 3);
+    let plate_key = r.text("enclosure_plate").map(str::to_owned);
+    if size.is_none() && plate_key.is_some() {
+        r.fail("column `enclosure_plate` needs the column `enclosure`");
+    }
+    MechCells {
+        mech,
+        enclosure: size.map(|s| (s, plate_key)),
+        plate: r.mm_list("plate", 2),
+        rail: r.choice("rail_profile", MOUNT_KINDS),
+    }
+}
 
 /// Terminal sides of CP cells.
 pub(crate) const SIDES: &[(&str, Side)] = &[("side1", Side::Side1), ("side2", Side::Side2)];
@@ -158,6 +209,7 @@ pub(crate) fn emit(
             .unwrap_or_default();
         let test_data = r.flag("test_data");
         let tech_data = r.tech_data("tech_data");
+        let mech = mech_cells(&mut r);
         if let Err(e) = r.finish() {
             cx.malformed(row, &e);
             continue;
@@ -176,6 +228,7 @@ pub(crate) fn emit(
             unit,
             test_data,
             tech_data,
+            mech,
         ));
     }
 
@@ -187,10 +240,43 @@ pub(crate) fn emit(
     // each: one project-local manufacturer copy each, after the parts.
     let mut manufacturers: BTreeMap<String, (ew_mltext::Ident, String)> = BTreeMap::new();
 
-    for (row, manufacturer, part_number, kind, type_designation, description, unit, test_data, tech_data) in
-        heads
+    for (
+        row,
+        manufacturer,
+        part_number,
+        kind,
+        type_designation,
+        description,
+        unit,
+        test_data,
+        tech_data,
+        mech,
+    ) in heads
     {
         let key = row.key().to_owned();
+        // The enclosure section's plate part names another row of the table.
+        let enclosure = match mech.enclosure {
+            None => None,
+            Some((size, plate)) => {
+                if let Some(p) = plate.as_deref().filter(|p| !keys.contains_key(*p)) {
+                    cx.unresolved(row, &format!("unknown part `{p}` in column `enclosure_plate`"));
+                    continue;
+                }
+                Some(EnclosureSection {
+                    width: size.first().copied(),
+                    height: size.get(1).copied(),
+                    depth: size.get(2).copied(),
+                    wall: None,
+                    plate: plate.map(|p| LibRef {
+                        library,
+                        item: record_id::<LibItem>("parts", &p),
+                        version_req: "*".into(),
+                        extra: Default::default(),
+                    }),
+                    extra: Default::default(),
+                })
+            }
+        };
         // CP pattern.
         let mut pattern = BTreeMap::new();
         let mut cp_data = Vec::new();
@@ -357,10 +443,22 @@ pub(crate) fn emit(
                 })
                 .collect(),
             contacts: Vec::new(),
-            mech: None,
+            mech: mech.mech,
             sections: PartSections {
                 cable_cores: core_rows.into_iter().map(|c| c.1).collect(),
                 plc: plc.remove(&key).map(|(_, section)| section),
+                enclosure,
+                rail: mech.rail.map(|profile| RailSection {
+                    profile,
+                    stock_length: None,
+                    extra: Default::default(),
+                }),
+                mounting_plate: mech.plate.map(|s| PlateSection {
+                    width: s.first().copied(),
+                    height: s.get(1).copied(),
+                    thickness: None,
+                    extra: Default::default(),
+                }),
                 ..PartSections::default()
             },
             alternatives: Vec::new(),

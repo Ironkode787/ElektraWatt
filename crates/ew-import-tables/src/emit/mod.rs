@@ -22,6 +22,7 @@ pub(crate) mod assembly;
 pub(crate) mod bus;
 pub(crate) mod connect;
 pub(crate) mod devices;
+pub(crate) mod layout;
 pub(crate) mod parts;
 pub(crate) mod plc;
 pub(crate) mod profiles;

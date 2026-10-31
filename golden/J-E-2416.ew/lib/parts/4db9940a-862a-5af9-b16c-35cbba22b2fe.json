@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "45668d76-60d9-540a-a5a4-6120922fd1ea",
   "version": "1.0.0",
-  "sha256": "sha256:e96d90a7cf33221518ab63064700478bc916f9ace598593aa8835c8c79395807",
+  "sha256": "sha256:ea6c8fef0cd431142ac13352de8be2f34a0bf7b3c7d4eb28cdee5fa07cd1f87f",
   "meta": {"key": "PT 2.5-TWIN-PE", "sources": ["golden.table:parts|PT 2.5-TWIN-PE"]},
   "kind": "terminal",
   "manufacturer": {
@@ -32,5 +32,6 @@
       "main": true,
       "cps": [0, 1, 2, 3, 4]
     }
-  ]
+  ],
+  "mech": {"width": 5200000, "height": 72000000, "depth": 37000000, "mount_kind": "ts35x7_5"}
 }

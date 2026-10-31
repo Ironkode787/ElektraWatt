@@ -13,7 +13,7 @@ use ew_mltext::{Ident, MlText, is_nfc, to_nfc};
 use ew_schema::{
     ColourCode, ColourSpec, Csa, Date, IecColour, KeyedList, Quantity, TechVal, TechValue, Unit,
 };
-use ew_units::Dec3;
+use ew_units::{Dec3, Nm, Pt2};
 
 use crate::MAX_REPORT_ENTRIES;
 use crate::csv::{Cell, CsvTable, cell_text};
@@ -465,6 +465,49 @@ impl<'t> Rd<'t> {
         std::mem::take(&mut self.foreign)
     }
 
+    /// A length in millimetres (a `Dec3` cell), in nanometres (WP-S4.01 part 2).
+    pub(crate) fn mm(&mut self, col: &str) -> Option<Nm> {
+        let v = self.text(col);
+        self.parse(col, v, parse_mm)
+    }
+
+    /// A `;`-separated list of exactly `n` lengths in millimetres (`750;1000;420`), in nanometres; `None` when
+    /// absent.
+    pub(crate) fn mm_list(&mut self, col: &str, n: usize) -> Option<Vec<Nm>> {
+        let items = self.list(col);
+        if items.is_empty() {
+            return None;
+        }
+        if items.len() != n {
+            self.fail(format!("column `{col}`: {n} lengths in mm, not {}", items.len()));
+            return None;
+        }
+        let v: Result<Vec<Nm>, String> = items.into_iter().map(parse_mm).collect();
+        match v {
+            Ok(v) => Some(v),
+            Err(e) => {
+                self.fail(format!("column `{col}`: {e}"));
+                None
+            }
+        }
+    }
+
+    /// A `;`-separated list of points `u v` in millimetres (`40 740;610 740`), in nanometres (empty when absent).
+    pub(crate) fn points(&mut self, col: &str) -> Vec<Pt2> {
+        let mut out = Vec::new();
+        for item in self.list(col) {
+            let p = item
+                .split_once(' ')
+                .ok_or_else(|| format!("`{item}` is not a point `u v`"))
+                .and_then(|(u, v)| Ok(Pt2::new(parse_mm(u)?, parse_mm(v)?)));
+            match p {
+                Ok(p) => out.push(p),
+                Err(e) => self.fail(format!("column `{col}`: {e}")),
+            }
+        }
+        out
+    }
+
     /// A cross-section in mm².
     pub(crate) fn csa(&mut self, col: &str) -> Option<Csa> {
         self.dec3(col).map(Csa::Mm2)
@@ -530,6 +573,15 @@ fn parse_tech_value(item: &str) -> Result<TechValue, String> {
 pub(crate) fn parse_dec3(s: &str) -> Result<Dec3, String> {
     s.parse::<Dec3>()
         .map_err(|e| format!("`{s}` is not a decimal: {e}"))
+}
+
+/// A length in millimetres given as a canonical `Dec3` (`58.6`), in nanometres (exact: a thousandth of a millimetre
+/// is 1000 nm).
+pub(crate) fn parse_mm(s: &str) -> Result<Nm, String> {
+    let d = parse_dec3(s)?;
+    d.0.checked_mul(1_000)
+        .map(Nm)
+        .ok_or_else(|| format!("`{s}` mm is out of range"))
 }
 
 /// The foreign colour notations of doc 14 §4.12 and the IEC 60757 codes they stand for (`BR` for `BN`, D-17).

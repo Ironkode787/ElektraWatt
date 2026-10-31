@@ -170,6 +170,13 @@ fn the_per_kind_counts_are_those_of_doc_20() {
     assert_eq!(n("import_lineage"), 1);
     // doc 20 §4.1: the revisions V1.0 and V2.0.
     assert_eq!(n("revision"), table_rows("revisions.csv"));
+    // doc 20 §13's test geometry (U-50, WP-S4.01 D13): one space, one enclosure with its plate surface, the
+    // rails and ducts, the placements.
+    assert_eq!(n("layout_space"), table_rows("layout_spaces.csv"));
+    assert_eq!(n("enclosure"), table_rows("enclosures.csv"));
+    assert_eq!(n("mounting_surface"), table_rows("enclosures.csv"));
+    assert_eq!(n("carrier"), table_rows("carriers.csv"));
+    assert_eq!(n("placement"), table_rows("placements.csv"));
 }
 
 /// The four TBD parts of doc 20 §14.1 rows 24-27 are test parts used by the enclosure (rail, duct) and the

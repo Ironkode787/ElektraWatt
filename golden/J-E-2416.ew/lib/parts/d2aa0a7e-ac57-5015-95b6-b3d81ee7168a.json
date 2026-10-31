@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "1b435ef3-2553-5098-aeaf-3142c60240e4",
   "version": "1.0.0",
-  "sha256": "sha256:3cdb6b07f0163ff3f6dfaa4f28bd9ca115a9d8fb71ad65a1a78ec83b94061a0f",
+  "sha256": "sha256:bcde1d7628aff41d3f8f79f7a5f6e998a46523202eeec654f1b3d09300ff767d",
   "meta": {"key": "533354", "sources": ["golden.table:parts|533354"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
@@ -12,5 +12,6 @@
     "version_req": "*"
   },
   "part_number": "533354",
-  "description": "VMPA1-FB-SP supply plate"
+  "description": "VMPA1-FB-SP supply plate",
+  "mech": {"width": 20000000, "height": 107000000, "depth": 70000000, "mount_kind": "ts35x7_5"}
 }

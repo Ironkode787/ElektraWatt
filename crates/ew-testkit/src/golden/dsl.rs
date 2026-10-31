@@ -23,10 +23,11 @@ use std::collections::BTreeMap;
 use ew_ids::Id;
 use ew_model::AnyKey;
 use ew_schema::{
-    AnyId, Bond, Channel, Conductor, Connection, ConnectionKind, Device, DeviceLink, Endpoint, ExternalRef,
-    FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, LibDocument, LogicalNet, Page, PageItem,
-    Part, PartUse, PhysicalNet, PlcConfigProject, PotentialDef, Record, ReportBlock, Representation,
-    Revision, RevisionState, Section, StructureBox, StructureNode, SymbolDef,
+    AnyId, Bond, Carrier, Channel, Conductor, Connection, ConnectionKind, Device, DeviceLink, Enclosure,
+    Endpoint, ExternalRef, FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, LayoutSpace,
+    LibDocument, LogicalNet, MountingSurface, Page, PageItem, Part, PartUse, PhysicalNet, PlcConfigProject,
+    PotentialDef, Record, ReportBlock, Representation, Revision, RevisionState, Section, StructureBox,
+    StructureNode, SymbolDef,
 };
 use ew_units::Pt2;
 use serde_json::{Map, Value, json};
@@ -1845,6 +1846,97 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("rep.move", json!({"reps": reps, "items": items, "delta": delta}))
             .map(|_| ())
     }
+
+    /// `layout.space.create` (WP-S4.01 D6).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn layout_space(&mut self, space: &LayoutSpace) -> Result<Id<LayoutSpace>> {
+        let mut m = members(Record::LayoutSpace(space.clone()));
+        let p = params_of(&mut m, &["location", "name"]);
+        let (id, _) = self.primary::<LayoutSpace>("layout.space.create", p)?;
+        self.set_rest("layout_space", id.cast(), m, &[])?;
+        Ok(id)
+    }
+
+    /// `layout.enclosure.create` (WP-S4.01 D6) of `enclosure` with its plate `surface`: the command derives the
+    /// plate's frame, outline and device from the enclosure part (centred plate, D5), so of the surface only
+    /// `pe_bond` is a parameter. Returns the enclosure and the surface the command created.
+    ///
+    /// # Errors
+    ///
+    /// The command's error, or a command that created no surface.
+    pub fn enclosure(
+        &mut self,
+        enclosure: &Enclosure,
+        surface: &MountingSurface,
+    ) -> Result<(Id<Enclosure>, Id<MountingSurface>)> {
+        let mut m = members(Record::Enclosure(enclosure.clone()));
+        let mut p = params_of(&mut m, &["space", "device", "pose"]);
+        if surface.pe_bond {
+            p["pe_bond"] = Value::Bool(true);
+        }
+        let (id, done) = self.primary::<Enclosure>("layout.enclosure.create", p.clone())?;
+        self.set_rest("enclosure", id.cast(), m, &[])?;
+        let Some(made) = Self::created::<MountingSurface>(&done, Kind::MountingSurface)
+            .first()
+            .copied()
+        else {
+            return Err(BuildError {
+                command: "layout.enclosure.create".into(),
+                params: p,
+                message: "the command created no mounting surface".into(),
+            });
+        };
+        Ok((id, made))
+    }
+
+    /// `layout.carrier.add` (WP-S4.01 D6): the part reference becomes its copy ID.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn carrier(&mut self, carrier: &Carrier) -> Result<Id<Carrier>> {
+        let mut m = members(Record::Carrier(carrier.clone()));
+        m.remove("part");
+        let mut p = params_of(&mut m, &["surface", "kind", "path", "params", "pe_bond"]);
+        if let Some(part) = &carrier.part {
+            p["part"] = json!(part.copy);
+        }
+        let (id, _) = self.primary::<Carrier>("layout.carrier.add", p)?;
+        self.set_rest("carrier", id.cast(), m, &[])?;
+        Ok(id)
+    }
+
+    /// `layout.place` (WP-S4.01 D6): the part reference becomes its copy ID (absent: the command takes the primary
+    /// mountable part, a strip none); `locked` has no command in this builder and is counted.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn layout_place(&mut self, placement: &ew_schema::Placement) -> Result<Id<ew_schema::Placement>> {
+        let mut m = members(Record::Placement(placement.clone()));
+        m.remove("part");
+        let mut p = params_of(&mut m, &["device", "function", "carrier", "pose"]);
+        if let Some(part) = &placement.part {
+            p["part"] = json!(part.copy);
+        }
+        let (id, _) = self.primary::<ew_schema::Placement>("layout.place", p)?;
+        self.set_rest("placement", id.cast(), m, &[])?;
+        Ok(id)
+    }
+}
+
+/// The members `keys` of `m`, taken out of it, as a parameter object.
+fn params_of(m: &mut Map<String, Value>, keys: &[&str]) -> Value {
+    let mut p = Map::new();
+    for k in keys {
+        if let Some(v) = take(m, k) {
+            p.insert((*k).into(), v);
+        }
+    }
+    Value::Object(p)
 }
 
 #[cfg(test)]

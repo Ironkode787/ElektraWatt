@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "4dfaa951-930e-5658-b2e7-88895201219c",
   "version": "1.0.0",
-  "sha256": "sha256:2dc47fe2bf4d8385fe13452312acc28da32acee9abc809df2f1483494eaee6b0",
+  "sha256": "sha256:928eb861bd0b62d988b7487414291a9bab2f398a3fdaf86c0dc715bd2e9a7307",
   "meta": {"key": "NSYPMM107", "sources": ["golden.table:parts|NSYPMM107"]},
   "kind": "mounting_plate",
   "manufacturer": {
@@ -13,5 +13,6 @@
     "version_req": "*"
   },
   "part_number": "NSYPMM107",
-  "description": "Mounting plate"
+  "description": "Mounting plate",
+  "sections": {"mounting_plate": {"width": 650000000, "height": 900000000}}
 }

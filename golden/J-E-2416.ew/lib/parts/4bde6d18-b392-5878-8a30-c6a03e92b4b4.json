@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "00c5a165-366b-5c6a-b6a0-322525d98b87",
   "version": "1.0.0",
-  "sha256": "sha256:875d469200eb0e62474256047d4c0e819a25fdd6cf8b17c31429cbcc6a454ded",
+  "sha256": "sha256:6d4c29fde06b2806289a9bc95056eeb265eef174f31ac60fdfe6395b46fbe0a0",
   "meta": {"key": "NSYPLA1074G", "sources": ["golden.table:parts|NSYPLA1074G"]},
   "kind": "enclosure",
   "manufacturer": {
@@ -13,5 +13,17 @@
     "version_req": "*"
   },
   "part_number": "NSYPLA1074G",
-  "description": "Enclosure, polyester"
+  "description": "Enclosure, polyester",
+  "sections": {
+    "enclosure": {
+      "width": 750000000,
+      "height": 1000000000,
+      "depth": 420000000,
+      "plate": {
+        "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+        "item": "4dfaa951-930e-5658-b2e7-88895201219c",
+        "version_req": "*"
+      }
+    }
+  }
 }

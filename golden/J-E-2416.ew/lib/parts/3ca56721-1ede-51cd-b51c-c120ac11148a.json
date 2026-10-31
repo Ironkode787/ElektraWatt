@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "cdfc15d3-6c80-529b-85a7-dbe96e16f6dc",
   "version": "1.0.0",
-  "sha256": "sha256:ba8dc8e8d73e3fc8035bfdf116785884023d6a27b6b7a34fc258aff94181a45f",
+  "sha256": "sha256:0a38c5865f93acf4831db98d9fbd01b5ebe83e39d107042b127edcd39cffe25d",
   "meta": {
     "key": "TBD DIN rail",
     "sources": ["golden.table:parts|TBD DIN rail"],
@@ -18,5 +18,6 @@
   },
   "part_number": "TBD",
   "description": "DIN rail TS 35",
-  "unit": "m"
+  "unit": "m",
+  "sections": {"rail": {"profile": "ts35x7_5"}}
 }

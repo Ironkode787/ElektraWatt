@@ -215,6 +215,13 @@ impl TablesImporter {
         let pnets = emit::bus::emit_physical_nets(&mut cx, t("physical_nets"));
         emit::bus::emit_bus_ports(&mut cx, t("bus_ports"), &lnets, &pnets);
         emit::assembly::emit_assembly_configs(&mut cx, t("assembly_configs"));
+        emit::layout::emit(
+            &mut cx,
+            t("layout_spaces"),
+            t("enclosures"),
+            t("carriers"),
+            t("placements"),
+        );
         emit::project::emit_report_blocks(&mut cx, t("report_blocks"));
         emit::project::emit_revisions(&mut cx, t("revisions"), t("parties"));
         let profiles = emit::profiles::emit(&mut cx, t("profiles"), t("colour_profile"), t("size_profile"));

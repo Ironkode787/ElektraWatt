@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "95217c92-41d2-5178-b4aa-925da4e94272",
   "version": "1.0.0",
-  "sha256": "sha256:55e7813a190826ad4ed4d85fa872d121ef0d0e01a83352f95bd8998b7c10a9af",
+  "sha256": "sha256:eeff79e41e20da24aea18012716df9e3be8e7996da14d3bc1d305557e0eb1ee4",
   "meta": {"key": "A9P52610", "sources": ["golden.table:parts|A9P52610"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
@@ -13,5 +13,6 @@
   },
   "part_number": "A9P52610",
   "description": "Miniature circuit breaker 1P+N",
-  "tech_data": [{"key": "characteristic", "value": "C"}, {"key": "rated_current", "value": {"value": "10", "unit": "A"}}]
+  "tech_data": [{"key": "characteristic", "value": "C"}, {"key": "rated_current", "value": {"value": "10", "unit": "A"}}],
+  "mech": {"width": 18000000, "height": 85000000, "depth": 75000000, "mount_kind": "ts35x7_5"}
 }

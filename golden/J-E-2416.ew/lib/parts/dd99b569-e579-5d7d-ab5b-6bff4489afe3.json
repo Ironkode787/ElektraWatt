@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "0707be59-489b-56d2-a166-6d5cc64ac509",
   "version": "1.0.0",
-  "sha256": "sha256:80879df028e6d4ac656303c258d5329363bbb9fb0a7dc3ff3ee1d7afa72d1938",
+  "sha256": "sha256:0e676894f24d73863f922b9469c41f24b38ca455ca36b8cb3059a15af4102e8d",
   "meta": {"key": "533356", "sources": ["golden.table:parts|533356"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
@@ -13,5 +13,6 @@
   },
   "part_number": "533356",
   "description": "Main switch, 2-pole",
-  "tech_data": [{"key": "rated_current", "value": {"value": "40", "unit": "A"}}]
+  "tech_data": [{"key": "rated_current", "value": {"value": "40", "unit": "A"}}],
+  "mech": {"width": 45000000, "height": 90000000, "depth": 70000000, "mount_kind": "ts35x7_5"}
 }

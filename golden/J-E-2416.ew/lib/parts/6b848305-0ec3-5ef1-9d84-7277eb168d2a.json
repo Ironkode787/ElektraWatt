@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "70fcc693-b22b-51b9-a7d3-2c97adc24577",
   "version": "1.0.0",
-  "sha256": "sha256:01b6ed18303184f9555fe625a75045403a51e0f9101bc0e6688fd276428ad07b",
+  "sha256": "sha256:03be98b9b84d8eb500e0634517550e9d90dfb2a9d9004d9ca713f2d90d4bfd67",
   "meta": {"key": "MICO 4.10", "sources": ["golden.table:parts|MICO 4.10"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
@@ -37,5 +37,6 @@
       "main": true,
       "cps": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     }
-  ]
+  ],
+  "mech": {"width": 45000000, "height": 90000000, "depth": 75000000, "mount_kind": "ts35x7_5"}
 }

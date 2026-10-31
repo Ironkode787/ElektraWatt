@@ -794,8 +794,14 @@ def build_parts():
         )
     cols = [
         "key", "manufacturer", "part_number", "kind", "type_designation", "description", "unit", "test_data", "tech_data",
+        *MECH_COLS,
     ]  # fmt: skip
     check(set(part_tech) <= {p["key"] for p in out}, f"technical data of parts that are not in section 14.1: {set(part_tech)}")
+    mech = mech_values()
+    _MECH.update(mech)
+    check(set(mech) <= {p["key"] for p in out}, f"section 13: mechanical data of parts that are not in section 14.1: {set(mech) - {p['key'] for p in out}}")
+    for p in out:
+        p.update(mech.get(p["key"], {}))
     check(sorted(pos for _, pos in tbd) == sorted(TBD_PARTS), f"section 14.1: the TBD rows are {tbd}")
     # The configured products of section 14.2 (D-36, D-41): one part copy per order code.
     configured = assembly_rows()
@@ -831,6 +837,225 @@ def build_parts():
         )  # fmt: skip
     # The 27 components of section 14.1: the configured products are no component of a device's part cell.
     return {p["key"] for p in out} - {r["Part number"] for r in configured}
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# panel layout: the test geometry of section 13 (WP-S4.01 D13, ▲U-50)
+# ---------------------------------------------------------------------------------------------------------------
+
+# The mechanical columns of parts.csv: mech W, H, D (mm), mech.mount_kind, the enclosure section (W;H;D mm and the
+# plate part), the mounting-plate section (W;H mm) and the rail section's profile.
+MECH_COLS = ["width", "height", "depth", "mount_kind", "enclosure", "enclosure_plate", "plate", "rail_profile"]
+# doc 20 section 13: the printed mount kinds -> the snake_case names of ew_schema::MountKind
+MOUNT_KIND = {"TS 35×7.5": "ts35x7_5", "screw": "screw", "on parent": "on_parent"}
+LAYOUT_MARKS = ["U-50"]
+ENCLOSURE_PART = "NSYPLA1074G"
+PLATE_PART = "NSYPMM107"
+ENCLOSURE_DEVICE = "-UC1"
+PLATE_DEVICE = "-UC1-plate"
+RAIL_PART = "TBD DIN rail"
+BRACKET_PART = "TBD end bracket"
+
+
+def prose():
+    """Doc 20 as one line of single-spaced text, for the sentences of section 13 that wrap."""
+    return re.sub(r"\s+", " ", DOC_TEXT)
+
+
+def mm_dims(cell, n):
+    """'70 × 130 × 125' -> ['70', '130', '125'] (n numbers, canonical Dec3 text)."""
+    parts = [p.strip() for p in cell.split("×")]
+    check(len(parts) == n and all(re.fullmatch(r"\d+(?:\.\d+)?", p) for p in parts), f"section 13: {cell!r} is not {n} lengths in mm")
+    return [dec(p) for p in parts]
+
+
+def enclosure_size():
+    """(W, H, D) of the enclosure, from section 13's 'test dimensions W × H × D = ... mm'."""
+    m = re.search(r"enclosure -UC1 \(NSYPLA1074G, test dimensions W × H × D = ([\d.]+) × ([\d.]+) × ([\d.]+) mm ▲U-26\)", prose())
+    check(m, "section 13: the enclosure's test dimensions 'W × H × D = ... mm' are missing")
+    return [dec(m.group(i)) for i in (1, 2, 3)]
+
+
+def plate_size():
+    m = re.search(r"NSYPMM107 has the mounting-plate section ([\d.]+) × ([\d.]+) mm", prose())
+    check(m, "section 13: the mounting-plate section of NSYPMM107 is missing")
+    return [dec(m.group(1)), dec(m.group(2))]
+
+
+def mech_values():
+    """{part key: {mechanical column: value}} from section 13's test geometry: the part mechanical data table (W × H ×
+    D, mount kind TS 35×7.5 unless stated), the enclosure and mounting-plate sections, the rail section of the TBD DIN
+    rail and the width of the TBD end bracket."""
+    text = prose()
+    m = re.search(r"\*\*Part mechanical data\*\* \(W × H × D mm; mount kind (TS 35×7.5) unless stated; `rail_offset` absent", text)
+    check(m, "section 13: the part mechanical data heading changed")
+    default_kind = MOUNT_KIND[m.group(1)]
+    header, rows = table_after("**Part mechanical data**")
+    check(header == ["Part", "W × H × D", "Part", "W × H × D"], f"section 13: part mechanical data header {header}")
+    out = {}
+    for row in rows:
+        for part_cell, value in (row[0:2], row[2:4]):
+            if not part_cell:
+                continue
+            if value == "on parent, no dimensions":
+                cols = {"mount_kind": MOUNT_KIND["on parent"]}
+            else:
+                dims, _, kind = value.partition(", ")
+                w, h, d = mm_dims(dims, 3)
+                check(kind in ("", "screw"), f"section 13: part data {value!r}")
+                cols = {"width": w, "height": h, "depth": d, "mount_kind": MOUNT_KIND[kind] if kind else default_kind}
+            for part in [p.strip() for p in part_cell.split(",")]:
+                check(part not in out, f"section 13: part {part} has two rows of mechanical data")
+                out[part] = cols
+    check(len(out) == 19, f"section 13: mechanical data of {len(out)} parts, 19 expected")
+    ew, eh, ed = enclosure_size()
+    check(
+        f"-UC1's part NSYPLA1074G has the enclosure section of the test dimensions above and the plate part {PLATE_PART}" in text,
+        "section 13: the enclosure section of NSYPLA1074G is missing",
+    )
+    out[ENCLOSURE_PART] = {"enclosure": f"{ew};{eh};{ed}", "enclosure_plate": PLATE_PART}
+    pw, ph = plate_size()
+    out[PLATE_PART] = {"plate": f"{pw};{ph}"}
+    m = re.search(r"The TBD DIN rail part gains a rail section \(profile (TS 35×7\.5)\); the TBD end bracket part a width of (\d+) mm", text)
+    check(m, "section 13: the rail section of the TBD DIN rail and the end bracket's width are missing")
+    out[RAIL_PART] = {"rail_profile": MOUNT_KIND[m.group(1)]}
+    out[BRACKET_PART] = {"width": dec(m.group(2))}
+    fixture(
+        "parts", MECH_COLS, sorted(out, key=natural_key), "(section 13's test geometry)", "§13 (test geometry)",
+        "the test geometry of the panel layout: the part dimensions and mount kinds, the enclosure and mounting-plate"
+        " sections, the rail section of the TBD DIN rail and the end bracket's width (WP-S4.01 D13, FT-205)",
+        marks=LAYOUT_MARKS,
+    )  # fmt: skip
+    return out
+
+
+def parse_point(text):
+    m = re.fullmatch(r"\((\d+(?:\.\d+)?), (\d+(?:\.\d+)?)\)", text.strip())
+    check(m, f"section 13: {text!r} is not a point (u, v)")
+    return Decimal(m.group(1)), Decimal(m.group(2))
+
+
+def build_layout(devices, terms):
+    """The layout tables (WP-S4.01 part 2): one layout space for +J-E-2416, the enclosure -UC1 with its plate surface,
+    the eight carriers and the twenty placements of section 13's test geometry, each checked against its doc cell and
+    against the placement order of section 13's table 'Placements, in order on each carrier'."""
+    text = prose()
+    check("One layout space for +J-E-2416: enclosure -UC1" in text, "section 13: the layout space of +J-E-2416 changed")
+    register("layout_spaces", ["key", "location", "name"], [{"key": LOCATION_KEY, "location": LOCATION_KEY}], 1)
+
+    # the enclosure and its plate: frame = the plate centred in the enclosure (D5), checked against the doc's frame
+    ew, eh, _ = (Decimal(v) for v in enclosure_size())
+    pw, ph = (Decimal(v) for v in plate_size())
+    m = re.search(r"Plate frame `t = \(([\d.]+), ([\d.]+), 0\)` mm", text)
+    check(m, "section 13: the plate frame is missing")
+    fu, fv = Decimal(m.group(1)), Decimal(m.group(2))
+    check((fu, fv) == ((ew - pw) / 2, (eh - ph) / 2), f"section 13: the plate frame ({fu}, {fv}) does not centre the plate")
+    check(f"the plate surface's device is {PLATE_DEVICE}" in text, "section 13: the plate surface's device changed")
+    check(devices[PLATE_DEVICE]["parent"] == ENCLOSURE_DEVICE, "the plate device is not a child of -UC1")
+    check("The plate and the rails carry `pe_bond = true`" in text, "section 13: the PE bonds of the plate and rails changed")
+    usable = ";".join(f"{dec(str(u))} {dec(str(v))}" for u, v in [(0, 0), (pw, 0), (pw, ph), (0, ph)])
+    register(
+        "enclosures",
+        ["key", "space", "device", "plate_device", "plate_frame", "plate_usable", "plate_pe_bond"],
+        [
+            {
+                "key": ENCLOSURE_DEVICE, "space": LOCATION_KEY, "device": ENCLOSURE_DEVICE, "plate_device": PLATE_DEVICE,
+                "plate_frame": f"{dec(str(fu))} {dec(str(fv))}", "plate_usable": usable, "plate_pe_bond": "true",
+            }
+        ],
+        1,
+    )  # fmt: skip
+
+    # the carriers
+    carriers, lengths = [], {"rail": Decimal(0), "duct": Decimal(0)}
+    for r in table_dicts("**Test geometry**"):
+        key = r["Carrier"]
+        kind_cell, _, part = strip_tri(r["Kind, part"]).rpartition(", ")
+        a, _, b = r["Path (u, v)"].partition(" → ")
+        (u0, v0), (u1, v1) = parse_point(a), parse_point(b)
+        check(u0 == u1 or v0 == v1, f"section 13: carrier {key} is not axis-parallel")
+        length = abs(u1 - u0) + abs(v1 - v0)
+        check(length == Decimal(r["Length"]), f"section 13: carrier {key} is {length} long, the table says {r['Length']}")
+        row = {"key": key, "part": part, "path": f"{dec(str(u0))} {dec(str(v0))};{dec(str(u1))} {dec(str(v1))}", "surface": ENCLOSURE_DEVICE}
+        dm = re.fullmatch(r"duct (\d+)×(\d+)(?: \(type\))?", kind_cell)
+        rm = re.fullmatch(r"rail (TS 35×7\.5)", kind_cell)
+        if dm:
+            check(re.fullmatch(r"D\d", key), f"section 13: the duct {key} is not D<n>")
+            row.update(kind="duct", width=dec(dm.group(1)), height=dec(dm.group(2)))
+            lengths["duct"] += length
+        else:
+            check(rm and re.fullmatch(r"R\d", key), f"section 13: carrier {key} is {kind_cell!r}")
+            row.update(kind="rail", profile=MOUNT_KIND[rm.group(1)], pe_bond="true")
+            lengths["rail"] += length
+        check(part in (RAIL_PART if row["kind"] == "rail" else "TBD wiring duct",), f"section 13: carrier {key} has part {part!r}")
+        carriers.append(row)
+    m = re.search(r"Rails ([\d.]+) m, ducts ([\d.]+) m\.", text)
+    check(m, "section 13: the rail and duct lengths are missing")
+    check(
+        (lengths["rail"] / 1000, lengths["duct"] / 1000) == (Decimal(m.group(1)), Decimal(m.group(2))),
+        f"section 13: the carriers sum to {lengths}, the text says rails {m.group(1)} m, ducts {m.group(2)} m",
+    )
+    register("carriers", ["key", "surface", "kind", "part", "path", "profile", "width", "height", "pe_bond"], carriers, 8)
+    rails = {c["key"]: c for c in carriers if c["kind"] == "rail"}
+
+    # the placements, against the order table of section 13
+    order = {}
+    for r in table_dicts("**Placements, in order on each carrier**"):
+        if r["Row"] in rails:
+            tags = []
+            for t in [t.strip() for t in re.sub(r"\s*\([^)]*\)", "", r["Golden A (as drawn, fixed)"]).split(",")]:
+                if t != "end bracket":
+                    tags.extend(expand_range(t))
+            order[r["Row"]] = tags
+    parts_of = {k: [p.split("*")[0] for p in d["parts"].split(";") if p] for k, d in devices.items()}
+    mech = mech_values_cache()
+    strips = {t["strip"] for t in terms}
+    placements = []
+    for r in table_dicts("**Test placements**"):
+        rail = r["Rail"]
+        check(rail in rails, f"section 13: placements on {rail!r}, which is not a rail")
+        length = Decimal(rails[rail]["path"].split(";")[1].split()[0]) - Decimal(rails[rail]["path"].split(";")[0].split()[0])
+        seen = []
+        for item in [x.strip() for x in r["Device (s)"].split(", ")]:
+            pm = re.fullmatch(r"(\S+)(?: realising (\S+))? \((\d+(?:\.\d+)?)\)", item)
+            check(pm, f"section 13: placement {item!r}")
+            tag, realised, s = pm.group(1), pm.group(2), Decimal(pm.group(3))
+            check(tag in devices, f"section 13: {tag} is not a device")
+            check(Decimal(0) <= s <= length, f"section 13: {tag} at s = {s} is off rail {rail}")
+            # D6: the primary mountable part (the first part use whose part mounts); a strip realises none
+            mounting = [p for p in parts_of[tag] if mech.get(p, {}).get("mount_kind") not in (None, "on_parent")]
+            if tag in strips:
+                part = ""
+                check(realised is None, f"section 13: the strip {tag} realises a part")
+            else:
+                check(mounting, f"section 13: {tag} has no mountable part")
+                part = mounting[0]
+                check(realised in (None, part), f"section 13: {tag} realises {realised}, its primary part is {part}")
+            seen.append(tag)
+            placements.append({"key": tag, "device": tag, "part": part, "carrier": rail, "s": dec(str(s))})
+        check(seen == order[rail], f"section 13: the test placements on {rail} are {seen}, the order table says {order[rail]}")
+    check(set(order) == set(rails), f"section 13: the order table names rails {sorted(order)}")
+    register("placements", ["key", "device", "part", "carrier", "s"], placements, 20)
+    for table, cols, keys in (
+        ("layout_spaces", ["key", "location"], LOCATION_KEY),
+        ("enclosures", ["plate_frame", "plate_usable", "plate_pe_bond"], ENCLOSURE_DEVICE),
+        ("carriers", ["path", "profile", "width", "height", "pe_bond"], "all"),
+        ("placements", ["part", "carrier", "s"], "all"),
+    ):
+        fixture(
+            table, cols, keys, "(section 13's test geometry)", "§13 (test geometry)",
+            "the panel layout's test geometry in plate millimetres (WP-S4.01 D13, FT-205); the keys are the location,"
+            " the enclosure device, the carrier names and the placed devices",
+            marks=LAYOUT_MARKS,
+        )  # fmt: skip
+
+
+_MECH = {}
+
+
+def mech_values_cache():
+    """The mechanical columns build_parts wrote (mech_values registers its fixture choice once)."""
+    return _MECH
 
 
 def carrier_lengths():
@@ -2730,7 +2955,8 @@ def build_all():
     build_plc(set(devices), part_keys, plc_station_facts())
     build_assembly_configs()
     build_bus()
-    check(len(TABLES) == 32, f"{len(TABLES)} tables built, 32 expected: {sorted(TABLES)}")
+    build_layout(devices, terms)
+    check(len(TABLES) == 36, f"{len(TABLES)} tables built, 36 expected: {sorted(TABLES)}")
 
 
 def readme_with_block(text, block):

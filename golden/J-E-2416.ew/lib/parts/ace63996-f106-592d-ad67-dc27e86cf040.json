@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "c4220274-08f7-5b62-90b8-a5731323cb8a",
   "version": "1.0.0",
-  "sha256": "sha256:6770a8223c3a7516ae87e2ab2eb7638c7c756dc32c17e919ca9e907069380350",
+  "sha256": "sha256:152bf8f727e0a50214deff64a6b9ca10431a714c9c57b22c2d547dbc0bcec90f",
   "meta": {"key": "UK 5 N", "sources": ["golden.table:parts|UK 5 N"]},
   "kind": "terminal",
   "manufacturer": {
@@ -13,5 +13,6 @@
     "version_req": "*"
   },
   "part_number": "UK 5 N",
-  "description": "Feed-through terminal"
+  "description": "Feed-through terminal",
+  "mech": {"width": 6200000, "height": 47000000, "depth": 42000000, "mount_kind": "ts35x7_5"}
 }

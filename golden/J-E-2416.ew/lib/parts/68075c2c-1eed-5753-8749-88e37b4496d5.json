@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "801e4bf5-b638-575e-81cb-175e0345d825",
   "version": "1.0.0",
-  "sha256": "sha256:f229e9beebe96f92e19ec7b73b0ccf548db354aaae54dea2e34ef5d0e19ca9b1",
+  "sha256": "sha256:db0cf419303cf77df480f4f1fdaeed3c3ac5d1830f00f367355b1c731646dd26",
   "meta": {"key": "2904602", "sources": ["golden.table:parts|2904602"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
@@ -37,5 +37,6 @@
       "main": true,
       "cps": [0, 1, 2, 3, 4, 5, 6]
     }
-  ]
+  ],
+  "mech": {"width": 70000000, "height": 130000000, "depth": 125000000, "mount_kind": "ts35x7_5"}
 }

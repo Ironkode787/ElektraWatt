@@ -110,6 +110,15 @@ pub(crate) const PARTS: TableSpec = spec(
         "unit",
         "test_data",
         "tech_data",
+        // WP-S4.01 part 2: the mechanical data (mm) and the carrier sections.
+        "width",
+        "height",
+        "depth",
+        "mount_kind",
+        "enclosure",
+        "enclosure_plate",
+        "plate",
+        "rail_profile",
     ],
 );
 
@@ -355,7 +364,27 @@ pub(crate) const ASSEMBLY_CONFIGS: TableSpec = spec(
 );
 
 /// Every known table.
-pub(crate) const ALL: [TableSpec; 32] = [
+/// `layout_spaces.csv` (WP-S4.01 part 2).
+pub(crate) const LAYOUT_SPACES: TableSpec = spec("layout_spaces", &["key", "location"], &["name"]);
+
+/// `enclosures.csv`: an enclosure and its plate surface (WP-S4.01 part 2).
+pub(crate) const ENCLOSURES: TableSpec = spec(
+    "enclosures",
+    &["key", "space", "device"],
+    &["plate_device", "plate_frame", "plate_usable", "plate_pe_bond"],
+);
+
+/// `carriers.csv` (WP-S4.01 part 2).
+pub(crate) const CARRIERS: TableSpec = spec(
+    "carriers",
+    &["key", "surface", "kind", "path"],
+    &["part", "profile", "width", "height", "pe_bond"],
+);
+
+/// `placements.csv` (WP-S4.01 part 2).
+pub(crate) const PLACEMENTS: TableSpec = spec("placements", &["key", "device", "carrier", "s"], &["part"]);
+
+pub(crate) const ALL: [TableSpec; 36] = [
     PROJECT,
     PARTIES,
     STRUCTURE,
@@ -388,4 +417,8 @@ pub(crate) const ALL: [TableSpec; 32] = [
     LOGICAL_NETS,
     PHYSICAL_NETS,
     BUS_PORTS,
+    LAYOUT_SPACES,
+    ENCLOSURES,
+    CARRIERS,
+    PLACEMENTS,
 ];

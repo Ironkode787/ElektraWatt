@@ -847,7 +847,7 @@ valve. Silencers close ports 3 and 5 of -201U9 and -202U3, and plugs close ports
 
 ## 13. Panel layout
 
-One layout space for +J-E-2416: enclosure -UC1 (NSYPLA1074G, test dimensions 1000 × 750 × 420 mm ▲U-26) with
+One layout space for +J-E-2416: enclosure -UC1 (NSYPLA1074G, test dimensions W × H × D = 750 × 1000 × 420 mm ▲U-26) with
 mounting plate NSYPMM107 (`pe_bond = true`). Folio 902 is a view of the plate at 1:10 ▲ with the scale printed
 after the page description ("Cabinet Layout · Scale 1:10" ▲), the PART DATA box as an embedded block bound to -UC1
 and its plate, and a placement legend block (FR-LAY-012) right of the plate.
@@ -877,6 +877,54 @@ As built (cycle 12; decision log ID-316), the rail length of 2.192 m and the duc
 
 Labels are `layout_label(placement)`: "-X1031", "-X1032" by identifier suppression (FR-LAY-009), frozen tags as
 printed. In Golden A five devices are unplaced (EF-05).
+
+**Test geometry** (▲U-50, WP-S4.01 D13). The model holds the layout in these values, in plate millimetres, not in the
+paper positions above. -UC1's part NSYPLA1074G has the enclosure section of the test dimensions above and the plate
+part NSYPMM107; NSYPMM107 has the mounting-plate section 650 × 900 mm; the plate surface's device is -UC1-plate. Plate
+frame `t = (50, 50, 0)` mm (the plate centred in the enclosure). Coordinates below are plate millimetres (u right, v
+up, datum the plate's bottom-left corner).
+
+| Carrier | Kind, part | Path (u, v) | Length |
+|---|---|---|---|
+| D1 | duct 40×60, TBD wiring duct | (0, 880) → (650, 880) | 650 |
+| D2 | duct 40×60, TBD wiring duct | (20, 860) → (20, 0) | 860 |
+| D3 | duct 40×60, TBD wiring duct | (630, 860) → (630, 340) | 520 |
+| D4 | duct 40×60, TBD wiring duct | (40, 600) → (610, 600) | 570 |
+| D5 | duct 40×60 (type ▲U-26), TBD wiring duct | (40, 360) → (610, 360) | 570 |
+| R1 | rail TS 35×7.5, TBD DIN rail | (40, 740) → (610, 740) | 570 |
+| R2 | rail TS 35×7.5, TBD DIN rail | (40, 480) → (610, 480) | 570 |
+| R3 | rail TS 35×7.5, TBD DIN rail | (40, 200) → (610, 200) | 570 |
+
+Rails 1.71 m, ducts 3.17 m. The TBD DIN rail part gains a rail section (profile TS 35×7.5); the TBD end bracket part
+a width of 10 mm (used by WP-S4.02).
+
+**Part mechanical data** (W × H × D mm; mount kind TS 35×7.5 unless stated; `rail_offset` absent, so the clip point
+is the centre):
+
+| Part | W × H × D | Part | W × H × D |
+|---|---|---|---|
+| 2904602 | 70 × 130 × 125 | UK 5 N | 6.2 × 47 × 42 |
+| A9P52610 | 18 × 85 × 75 | USLKG 5 | 6.2 × 47 × 42 |
+| A9F78116 | 18 × 85 × 75 | PT 2.5-TWIN | 5.2 × 72 × 37 |
+| MICO 4.10 | 45 × 90 × 75 | PT 2.5-TWIN-PE | 5.2 × 72 × 37 |
+| SK 3110.000 | 33 × 67 × 38 | 195740 | 50 × 107 × 70 |
+| 533356 | 45 × 90 × 70 | 550208 | 50 × 107 × 70 |
+| 5SY4204-7 | 18 × 90 × 70 | 552286 | 18 × 107 × 70 |
+| SK 3102.000 | 50 × 120 × 45, screw | 533361 | 40 × 107 × 70 |
+| 571334, 532216 | on parent, no dimensions | 533354 | 20 × 107 × 70 |
+
+**Test placements** (`s` in mm on the rail; a strip's `s` is its left end):
+
+| Rail | Device (s) |
+|---|---|
+| R1 | -102G1 (96), -101F1 (140), -102F1 (158), -102F2 (189.5), T55 (228.5), S51 (267.5) |
+| R2 | 1X1 (30), -X1031 (58.6), -X1032 (172.6) |
+| R3 | -201U1 realising 195740 (45), -201U2 (79), -201U3 (108), -201U4 (148), -201U5 (188), -201U6 (228), -201U7 (268), -201U8 (308), -202U1 (353), -202U2 (398), -202U3 (428) |
+
+R1 and R3 abut from 61 mm and 20 mm (-102G1's clip at 96 mm and -102F1's at 158 mm are doc 12 §2.3's and §12.4's
+examples). On R2 the strips sit 10 mm apart and 10 mm in from 20 mm, one end-bracket width at each strip boundary and
+run end, so the four brackets WP-S4.02 derives (FR-LAY-060) take the gaps without moving a pose. -201U9 and F55 stay
+unplaced (EF-05); A-R inserts them. The plate and the rails carry `pe_bond = true`.
 
 **Mounting and drilling (A-R, 1.0).** The golden valve terminal stays rail-mounted on R3; its rail-mounting kit is
 a test part, and the real mounting is a pilot question (PQ-24). For FR-LAY-056, the plate's feature list of Golden
@@ -1521,7 +1569,7 @@ that waits for the owner's acknowledgement with the generated change list (ID-63
 | U-23 | Coil-14 bit of VMPA1-FB-EMG-8 | H1 (even) | EF-02 | PQ-15 |
 | U-24 | Festo configuration | -202U1 = 550208; 533354 supply plate; 4 valves; order-code split per §6.2 | §6, §14 | PQ-14 |
 | U-25 | Tubes, supply, spare ports | unspecified; no supply; open (A-R: PU 6×4 BU, 1,200 mm, supply line F17 to -201U9:1, silencers and plugs, §2.4) | §12 | PQ-18 |
-| U-26 | Enclosure size, scale, missing placements, lower duct | 1000 × 750 × 420 mm; 1:10; unplaced; unknown | §13 | PQ-24 |
+| U-26 | Enclosure size, scale, missing placements, lower duct | 1000 × 750 × 420 mm; 1:10; unplaced; unknown (test geometry: U-50) | §13 | PQ-24 |
 | U-27 | Accessory and carrier parts; valve-terminal mounting | placeholders TBD (A-R: test parts incl. the -X1031 end cover, a rail-mounting kit on R3 and one screw-mounted part); Golden A: four TBD test parts for rows 24–27 (ID-316) | §9, §13, §14, EF-17 | PQ-24 |
 | U-28 | Report folios 903–911 | in section 9 | §16 | PQ-12 |
 | U-29 | Drawing font | Noto Sans | §17.5 | PQ-07 |
@@ -1545,6 +1593,7 @@ that waits for the owner's acknowledgement with the generated change list (ID-63
 | U-47 | Panel-builder party and author | panel-builder party without a name; no Author party, the author is the revision author | §4.2 | — (fixture choice) |
 | U-48 | End-user address storage | street `<address>`, country `<country>` | §1.2, §4.2 | — (fixture choice) |
 | U-49 | Interruption points sharing one cell | PE-1.1 … PE-1.4 at 103-G6 and PE-AIR1, PE-AIR2 at 103-G1 get distinct offsets inside their cell, set by the fix round (FT-40) | §15 | — (fixture choice) |
+| U-50 | Layout test geometry | the plate 650 × 900 mm at frame (50, 50) mm, the carrier paths, the part dimensions and mount kinds, the placement poses of §13's test geometry (WP-S4.01 D13, FT-205) | §13 | PQ-24 |
 
 ### 23.2 Questions for the pilot user
 
