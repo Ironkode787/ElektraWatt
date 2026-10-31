@@ -250,7 +250,10 @@ fn a_hint_onto_a_wire_off_the_grid_is_rejected() {
         },
     }];
     let reason = rejection_reason(e.execute(&cmd));
-    assert!(reason.contains("/connect/0/to/on_connection/at"), "{reason}");
+    assert_eq!(
+        reason,
+        "the branch point at x 15.9, y 0 mm on page 102 is not on the drawing grid"
+    );
 }
 
 #[test]

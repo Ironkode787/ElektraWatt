@@ -460,17 +460,30 @@ fn place_ip(pos: Pt2) -> PlaceIp {
 fn d3_off_grid_positions_are_rejected() {
     // device.place
     let mut e = engine(golden_model());
-    rejected_naming(e.execute(&place_k("K", PAGE_102, pt(1, 0))), "/pos");
-    rejected_naming(e.execute(&place_k("K", PAGE_102, pt(0, MM10))), "/pos");
+    let off = |what: &str, at: &str| format!("{what} at {at} on page 102 is not on the drawing grid");
+    assert_eq!(
+        rejection(e.execute(&place_k("K", PAGE_102, pt(1, 0)))),
+        off("the position", "x 0, y 0 mm")
+    );
+    assert_eq!(
+        rejection(e.execute(&place_k("K", PAGE_102, pt(0, MM10)))),
+        off("the position", "x 0, y 10 mm")
+    );
     e.execute(&place_k("K", PAGE_102, pt(G, G)))
         .expect("on-grid placement");
 
     // ip.place
-    rejected_naming(e.execute(&place_ip(pt(0, 1))), "/pos");
+    assert_eq!(
+        rejection(e.execute(&place_ip(pt(0, 1)))),
+        off("the position", "x 0, y 0 mm")
+    );
     e.execute(&place_ip(pt(2 * G, 2 * G))).expect("on-grid IP");
 
     // rep.move
-    rejected_naming(e.execute(&move_reps(vec![REP_102F2_AUX], pt(MM10, 0))), "/delta");
+    assert_eq!(
+        rejection(e.execute(&move_reps(vec![REP_102F2_AUX], pt(MM10, 0)))),
+        off("the position", "x 10, y 0 mm")
+    );
     e.execute(&move_reps(vec![REP_102F2_AUX], pt(G, 0)))
         .expect("on-grid move");
 
@@ -485,9 +498,9 @@ fn d3_off_grid_positions_are_rejected() {
         route,
         kind: ConnectionKind::Wire,
     };
-    rejected_naming(
-        e.execute(&draw(vec![pt(G, G), pt(2 * G + 1, G), pt(4 * G, G)])),
-        "/route/1",
+    assert_eq!(
+        rejection(e.execute(&draw(vec![pt(G, G), pt(2 * G + 1, G), pt(4 * G, G)]))),
+        off("the wire's corner", "x 15.9, y 7.9 mm")
     );
     let r = e
         .execute(&draw(vec![pt(G, G), pt(2 * G, G), pt(4 * G, G)]))
@@ -502,7 +515,10 @@ fn d3_off_grid_positions_are_rejected() {
         route: vec![],
         kind: ConnectionKind::Wire,
     };
-    rejected_naming(e.execute(&split(pt(3 * G + 1, G))), "/a/on_connection/at");
+    assert_eq!(
+        rejection(e.execute(&split(pt(3 * G + 1, G)))),
+        off("the branch point", "x 23.8, y 7.9 mm")
+    );
     e.execute(&split(pt(3 * G, G))).expect("on-grid split point");
 
     // connection.route on the first part (from the CP of A to the junction at 3G)
@@ -513,9 +529,9 @@ fn d3_off_grid_positions_are_rejected() {
         route: vs,
     };
     let last = *c.route.last().expect("a route");
-    rejected_naming(
-        e.execute(&route(vec![pt(G, G), pt(2 * G, G + 1), last])),
-        "/route/1",
+    assert_eq!(
+        rejection(e.execute(&route(vec![pt(G, G), pt(2 * G, G + 1), last]))),
+        off("the wire's corner", "x 15.9, y 7.9 mm")
     );
     rejected_naming(e.execute(&route(vec![pt(2 * G, G), last])), "/route/0");
     e.execute(&route(vec![pt(G, G), pt(G, 2 * G), pt(last.x.0, 2 * G), last]))

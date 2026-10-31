@@ -191,7 +191,9 @@ pub fn move_proposals(
 /// (equal displacements translate); the far end never moves; a segment that keeps its axis stays, an interior
 /// neighbour whose other segment is perpendicular follows on the moved axis, else a dog-leg at the grid coordinate
 /// nearest the middle keeps both segments' axes. `snap` maps a page coordinate to the nearest grid coordinate. The
-/// committed `rep.move` stores exactly this polyline (a test pins it).
+/// committed `rep.move` stores exactly this polyline (a test pins it). Consecutive equal vertices of `route` are
+/// merged first: a drawn polyline repeats an end vertex that meets its CP (the CP and the stored route's end), and
+/// the rule reads the end's segment from the stored route.
 pub fn follow_polyline(
     route: &[(i64, i64)],
     snap: &dyn Fn(i64) -> i64,
@@ -199,6 +201,7 @@ pub fn follow_polyline(
     db: Option<(i64, i64)>,
 ) -> Vec<(i64, i64)> {
     let mut r = route.to_vec();
+    r.dedup();
     match (da, db) {
         (Some(a), Some(b)) if a == b => r.iter().map(|p| (p.0 + a.0, p.1 + a.1)).collect(),
         _ => {

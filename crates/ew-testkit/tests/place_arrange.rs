@@ -307,7 +307,10 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
         json!({"reps": reps, "delta": [one_step.0, 0]}),
     ) {
         Err(CmdError::Rejected { reason, .. }) => {
-            assert!(reason.contains("not on the connection grid"), "{reason}");
+            assert_eq!(
+                reason,
+                "the position at x 203.7, y 31.8 mm on page 101 is not on the drawing grid"
+            );
         }
         other => panic!("the nm delta must be refused, got {other:?}"),
     }

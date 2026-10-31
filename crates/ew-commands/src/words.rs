@@ -76,14 +76,19 @@ pub(crate) fn symbol(tx: &TxBuilder<'_>, id: ew_ids::Id<Representation>) -> Stri
     tag.map_or_else(|| "a symbol".to_owned(), |t| format!("the symbol of {t}"))
 }
 
-/// A length in whole millimetres where exact, else to one decimal.
+/// A length in millimetres to one decimal, a whole number without it ("45.5", "120"; 1 nm is "0").
 fn mm(n: ew_units::Nm) -> String {
-    let v = n.to_mm_f64();
-    if v.fract() == 0.0 {
-        format!("{v:.0}")
-    } else {
-        format!("{v:.1}")
+    let s = format!("{:.1}", n.to_mm_f64());
+    match s.strip_suffix(".0") {
+        Some("-0") => "0".to_owned(),
+        Some(whole) => whole.to_owned(),
+        None => s,
     }
+}
+
+/// A point of a page by its position and page ("x 120, y 45.5 mm on page 3").
+pub(crate) fn point(tx: &TxBuilder<'_>, page_id: ew_ids::Id<Page>, p: ew_units::Pt2) -> String {
+    format!("x {}, y {} mm on {}", mm(p.x), mm(p.y), page(tx, page_id))
 }
 
 /// A junction by its page and position ("the junction at x 120, y 45 mm on page 3"), or "a junction that is
@@ -91,14 +96,7 @@ fn mm(n: ew_units::Nm) -> String {
 pub(crate) fn junction(tx: &TxBuilder<'_>, id: ew_ids::Id<Junction>) -> String {
     tx.get::<Junction>(id).map_or_else(
         || "a junction that is not in the project".to_owned(),
-        |j| {
-            format!(
-                "the junction at x {}, y {} mm on {}",
-                mm(j.at.x),
-                mm(j.at.y),
-                page(tx, j.page)
-            )
-        },
+        |j| format!("the junction at {}", point(tx, j.page, j.at)),
     )
 }
 

@@ -205,6 +205,25 @@ impl Grid {
         self.at(self.snap(x))
     }
 
+    /// The grid index nearest to the point `half / 2` nm, a point given in half nanometres (such as the middle of
+    /// two coordinates, `a + b`): `round(half × den / (2 × num))`, exact ties **toward zero** as in
+    /// [`snap`](Grid::snap), so `snap_half(2 × x) == snap(x)`. Computed exactly in `i128`; `|k| ≤ |half|`, so the
+    /// result always fits.
+    ///
+    /// ```
+    /// use ew_units::{Grid, Nm};
+    ///
+    /// let g = Grid::MM4;
+    /// assert_eq!(g.snap_half(4_000_000), 0); // 2 mm: exactly between 0 and 4 mm, toward zero
+    /// assert_eq!(g.snap_half(4_000_001), 1); // 2.0000005 mm
+    /// assert_eq!(g.snap_half(2 * 6_000_000), g.snap(Nm(6_000_000)));
+    /// ```
+    pub fn snap_half(self, half: i64) -> i64 {
+        let k = arith::div_round(i128::from(half) * i128::from(self.den), 2 * i128::from(self.num));
+        // |k| <= |half| / 2 since num >= den.
+        i64::try_from(k).unwrap_or(if k < 0 { i64::MIN } else { i64::MAX })
+    }
+
     /// The index of the grid cell containing `x`, for cells of width `num / den` starting at `origin`:
     /// `floor((x − origin) × den / num)` by exact Euclidean division in `i128` (FR-PAG-020).
     ///
@@ -364,6 +383,24 @@ mod tests {
     }
 
     proptest! {
+        /// `snap_half` of a whole point is `snap` of it; of a half point, the nearer index (ties toward zero).
+        #[test]
+        fn snap_half_agrees_with_snap(g in grids(), half in -2_000_000_000_000i64..2_000_000_000_000) {
+            if half % 2 == 0 {
+                prop_assert_eq!(g.snap_half(half), g.snap(Nm(half / 2)));
+            }
+            let k = i128::from(g.snap_half(half));
+            let (num, den, h) = (i128::from(g.num()), i128::from(g.den()), i128::from(half));
+            // The distance of index k from the point, times 2·den.
+            let dist = |k: i128| (2 * k * num - h * den).abs();
+            prop_assert!(dist(k) <= dist(k - 1) && dist(k) <= dist(k + 1));
+            if dist(k) == dist(k - 1) || dist(k) == dist(k + 1) {
+                // A tie: the index nearer zero.
+                prop_assert!(dist(k) != dist(k - 1) || k.abs() <= (k - 1).abs());
+                prop_assert!(dist(k) != dist(k + 1) || k.abs() <= (k + 1).abs());
+            }
+        }
+
         #[test]
         fn snap_inverts_at(g in grids(), k in -1_000_000_000i64..1_000_000_000) {
             let x = g.at(k).unwrap();

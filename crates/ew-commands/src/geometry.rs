@@ -80,9 +80,13 @@ pub fn sub(a: Pt2, b: Pt2) -> Result<Pt2, OutOfRange> {
 
 /// The drawn CPs of a representation, in symbol-CP order: the symbol copy's CPs (base variant) placed at
 /// `rep.pos + rep.orient(cp.pos)`, each mapped to a function CP by the stored `pin_map` entry or, by
-/// default, to `(functions[0], cp.fn_cp)` (doc 07 §5: the pin map is derived unless it deviates). A symbol
-/// copy that is not embedded yields no CPs; a CP whose position would leave ±[`MAX_COORD`] is not drawn
-/// (the commands that place or move a representation refuse that with [`rep_cps_checked`]).
+/// default, to `(functions[0], cp.fn_cp)` (doc 07 §5: the pin map is derived unless it deviates). A black box
+/// (a symbol without CPs and a `box`) draws its box CPs instead, in stored order, each at
+/// `rep.pos + rep.orient(cp.pos)` and mapped to `(functions[0], cp.idx)`, with `symbol_cp` = `cp.idx`: the rule of
+/// `ew_derive`'s `cp_point`, the scene and the Wire tool's targets, so the CP-exact rule of [`require_route`] covers
+/// a black box's pins as it covers a symbol's (both can sit up to 1 nm off a rational grid after a move or a
+/// transform). A symbol copy that is not embedded yields no CPs; a CP whose position would leave ±[`MAX_COORD`] is
+/// not drawn (the commands that place or move a representation refuse that with [`rep_cps_checked`]).
 pub fn rep_cps(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<RepCp> {
     cps_of(tx, rep).into_iter().filter_map(Result::ok).collect()
 }
@@ -96,6 +100,30 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
     let Some(symbol): Option<Arc<LibCopy<SymbolDef>>> = tx.get::<LibCopy<SymbolDef>>(rep.symbol) else {
         return Vec::new();
     };
+    let placed = |local: Pt2| {
+        if point_in_range(local) {
+            add(rep.pos, rep.orient.apply(local))
+        } else {
+            Err(OutOfRange)
+        }
+    };
+    if symbol.item.cps.is_empty() {
+        let (Some(b), Some(&function)) = (&rep.box_, rep.functions.first()) else {
+            return Vec::new();
+        };
+        return b
+            .cps
+            .iter()
+            .map(|cp| {
+                placed(cp.pos).map(|pos| RepCp {
+                    symbol_cp: cp.idx,
+                    function,
+                    idx: cp.idx,
+                    pos,
+                })
+            })
+            .collect();
+    }
     symbol
         .item
         .cps
@@ -106,13 +134,7 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
                 Some(p) => (p.function, p.idx),
                 None => (*rep.functions.first()?, cp.fn_cp),
             };
-            let local = cp.pos;
-            let pos = if point_in_range(local) {
-                add(rep.pos, rep.orient.apply(local))
-            } else {
-                Err(OutOfRange)
-            };
-            Some(pos.map(|pos| RepCp {
+            Some(placed(cp.pos).map(|pos| RepCp {
                 symbol_cp: cp.idx,
                 function,
                 idx,
@@ -298,26 +320,35 @@ fn fmt_pt(p: Pt2) -> String {
     format!("[{}, {}]", p.x.0, p.y.0)
 }
 
-fn grid_name(grid: Grid) -> String {
-    if grid.den() == 1 {
-        format!("{} nm", grid.num())
-    } else {
-        format!("{}/{} nm", grid.num(), grid.den())
-    }
+/// The refusal of a point off the grid of `page`, in words (a refusal reaches the window's banner, FT-756): what
+/// the point is, its position in mm and its page, no nm and no JSON Pointer ("the wire's corner at x 77, y 161 mm
+/// on page 101 is not on the drawing grid").
+pub(crate) fn off_grid(tx: &TxBuilder<'_>, what: &str, page: Id<Page>, p: Pt2) -> String {
+    format!(
+        "{what} at {} is not on the drawing grid",
+        crate::words::point(tx, page, p)
+    )
 }
 
-/// The nearest grid point, for the remedy of a refusal.
-fn nearest(grid: Grid, p: Pt2) -> String {
-    match (grid.snap_point(p.x), grid.snap_point(p.y)) {
-        (Some(x), Some(y)) => fmt_pt(Pt2::new(x, y)),
-        _ => "none in range".into(),
+/// What the JSON Pointer of a position checked by [`require_on_grid`] names, in words: a split point
+/// (`…/on_connection/at`), an outline vertex (`/outline/<i>`), a box CP (`…/cps/<i>/pos`), else a position.
+fn what_of(field: &str) -> &'static str {
+    if field.ends_with("/at") {
+        "the branch point"
+    } else if field.starts_with("/outline/") {
+        "the outline's corner"
+    } else if field.contains("cps/") {
+        "the box's connection point"
+    } else {
+        "the position"
     }
 }
 
 /// D3 (doc 06 §5.7: CPs never leave the connection grid, in any tool and any origin): a position at which
 /// a command places or to which it moves a representation must lie on the connection grid of its page
 /// (`Page.grid`, ADR-0027) and within ±[`MAX_COORD`]. Front-ends snap before they submit. `field` is the
-/// JSON Pointer of the parameter (`/pos`), named in the refusal together with the nearest grid point.
+/// JSON Pointer of the parameter (`/pos`), named in the range refusal; the grid refusal names the point in words
+/// (as in "the position at x 8.4, y 15.9 mm on page 102 is not on the drawing grid").
 pub fn require_on_grid(tx: &TxBuilder<'_>, page: Id<Page>, pos: Pt2, field: &str) -> Result<(), CmdError> {
     let grid = tx.require::<Page>(page)?.grid;
     if !point_in_range(pos) {
@@ -329,13 +360,7 @@ pub fn require_on_grid(tx: &TxBuilder<'_>, page: Id<Page>, pos: Pt2, field: &str
     if point_on_grid(grid, pos) {
         return Ok(());
     }
-    tx.reject(format!(
-        "`{field}` {} is not on the connection grid of {} ({}); snap it, for example to {}",
-        fmt_pt(pos),
-        crate::words::page(tx, page),
-        grid_name(grid),
-        nearest(grid, pos)
-    ))
+    tx.reject(off_grid(tx, what_of(field), page, pos))
 }
 
 /// D3 for a split point: the point at which a junction is placed on connection `w` (drawn on `page`) by
@@ -374,7 +399,7 @@ pub fn require_split_point(
             return Ok(());
         }
     }
-    // Not accepted: it is out of range or off the grid, which `require_on_grid` refuses with the remedy.
+    // Not accepted: it is out of range or off the grid, which `require_on_grid` refuses.
     require_on_grid(tx, page, at, field)
 }
 
@@ -392,7 +417,9 @@ pub fn require_split_point(
 ///   A collinear vertex where the route runs straight on is no defect.
 ///
 /// `field` is the JSON Pointer of the route parameter (`/route`); a refusal names the vertex
-/// (`/route/2`), for an overlap the later segment's first vertex.
+/// (`/route/2`), for an overlap the later segment's first vertex, except the grid refusal, which names the vertex in
+/// words (as in "the wire's corner at x 15.9, y 7.9 mm on page 102 is not on the drawing grid"; the first
+/// vertex is the wire's start, the last its end).
 pub fn require_route(
     tx: &TxBuilder<'_>,
     page: Id<Page>,
@@ -436,13 +463,14 @@ pub fn require_route(
         let ok_x = on_grid(grid, v.x) || exact.iter().any(|c| c.x == v.x);
         let ok_y = on_grid(grid, v.y) || exact.iter().any(|c| c.y == v.y);
         if !(ok_x && ok_y) {
-            return tx.reject(format!(
-                "`{field}/{i}` {} is not on the connection grid of {} ({}); snap it, for example to {}",
-                fmt_pt(*v),
-                crate::words::page(tx, page),
-                grid_name(grid),
-                nearest(grid, *v)
-            ));
+            let what = if i == 0 {
+                "the wire's start"
+            } else if i + 1 == route.len() {
+                "the wire's end"
+            } else {
+                "the wire's corner"
+            };
+            return tx.reject(off_grid(tx, what, page, *v));
         }
     }
     match route_defect(route) {

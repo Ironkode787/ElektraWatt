@@ -750,11 +750,8 @@ impl MoveReps {
             let grid = tx.require::<Page>(rep.page)?.grid;
             if !crate::geometry::point_on_grid(grid, rep.pos) {
                 return tx.reject(format!(
-                    "{sym} at [{}, {}] is not on the connection grid of its page, so it cannot be \
-                     moved by grid steps; move it onto the grid with `delta` first",
-                    rep.pos.x.0,
-                    rep.pos.y.0,
-                    sym = crate::words::symbol(tx, *id)
+                    "{}, so it cannot be moved by grid steps; move it onto the grid first",
+                    crate::geometry::off_grid(tx, &crate::words::symbol(tx, *id), rep.page, rep.pos)
                 ));
             }
             let (Some(x), Some(y)) = (
@@ -1033,13 +1030,22 @@ impl Command for MoveReps {
 }
 
 /// `rep.transform`: rotates, mirrors or changes the variant of representations about their insertion point
-/// (doc 06 §3.4).
+/// (doc 06 §3.4); a black box within its own bounding box.
 ///
 /// The new orientation is `orient.then(r(rotate))`, then `.then(m0)` when `mirror` (rotation clockwise in
 /// quarter turns, `rotate` in 0..=3, then a mirror about the vertical axis). `variant`, when given,
-/// replaces the stored variant. Routes follow: each attached connection's route end at a CP drawn by a
-/// transformed representation follows that CP's displacement (`geometry::follow_end`); CPs whose geometry
-/// is unknown (symbol without CPs) leave routes unchanged. Outcome: none.
+/// replaces the stored variant.
+///
+/// **The pivot.** A symbol turns about its insertion point (`pos` stays). A black box (a representation with a
+/// `box`) turns about the centre of its bounding box (the outline's, else its CPs'), whose insertion point is a
+/// corner with no meaning to the user: `pos` becomes the grid point nearest to the one that keeps that centre
+/// (`Grid::snap_half`), so a mirror and a half turn keep the bounding box (to the 1 nm of a rational grid's
+/// rounding) and a quarter turn turns it about its centre, snapped to the grid. The stored outline and CPs are not
+/// rewritten. A black box whose orientation does not change keeps its `pos`.
+///
+/// Routes follow: each attached connection's route end at a CP drawn by a transformed representation (a symbol's
+/// CP or a black box's) follows that CP's displacement (`geometry::follow_end`); CPs whose geometry is unknown
+/// (a symbol without CPs and without a box) leave routes unchanged. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct TransformReps {
@@ -1093,6 +1099,17 @@ impl Command for TransformReps {
                     sym = crate::words::symbol(tx, *id)
                 ))
             };
+            if let Some(b) = old.box_.as_ref().filter(|_| orient != old.orient) {
+                let grid = tx.require::<Page>(old.page)?.grid;
+                match box_pivot(grid, old.pos, old.orient, orient, b) {
+                    Ok(Some(pos)) => new.pos = pos,
+                    Ok(None) => {}
+                    Err(OutOfRange) => {
+                        out_of_range(tx)?;
+                        continue;
+                    }
+                }
+            }
             let (Ok(before), Ok(after_cps)) = (rep_cps_checked(tx, &old), rep_cps_checked(tx, &new)) else {
                 out_of_range(tx)?;
                 continue;
@@ -1142,6 +1159,50 @@ impl Command for TransformReps {
             tx.put(rep);
         }
         Ok(Outcome::default())
+    }
+}
+
+/// The insertion point at which a black box of box `b` at `pos` keeps the centre of its bounding box when its
+/// orientation changes from `from` to `to` (see [`TransformReps`]): the grid point nearest to
+/// `pos + (centre of from(b)) − (centre of to(b))`, computed in half nanometres. The bounding box is the outline's,
+/// else the CPs'; `Ok(None)` when the box has neither (the insertion point stays). [`OutOfRange`] when a point of
+/// the box or the result leaves ±[`MAX_COORD`](crate::geometry::MAX_COORD).
+fn box_pivot(
+    grid: Grid,
+    pos: Pt2,
+    from: Orient2,
+    to: Orient2,
+    b: &BoxSpec,
+) -> Result<Option<Pt2>, OutOfRange> {
+    let local: Vec<Pt2> = if b.outline.is_empty() {
+        b.cps.iter().map(|c| c.pos).collect()
+    } else {
+        b.outline.clone()
+    };
+    if local.is_empty() {
+        return Ok(None);
+    }
+    if !local.iter().all(|p| crate::geometry::point_in_range(*p)) || !crate::geometry::point_in_range(pos) {
+        return Err(OutOfRange);
+    }
+    // min + max of each axis of the points under `o`: twice the bounding box's centre, in nm.
+    let twice_centre = |o: Orient2| -> (i64, i64) {
+        let pts: Vec<Pt2> = local.iter().map(|p| o.apply(*p)).collect();
+        let span = |axis: fn(&Pt2) -> i64| {
+            let lo = pts.iter().map(axis).min().unwrap_or(0);
+            let hi = pts.iter().map(axis).max().unwrap_or(0);
+            lo + hi
+        };
+        (span(|p| p.x.0), span(|p| p.y.0))
+    };
+    let (cf, ct) = (twice_centre(from), twice_centre(to));
+    // Every term lies within ±2^54, so the sums stay far inside i64.
+    let half = |p: Nm, f: i64, t: i64| 2 * p.0 + f - t;
+    let x = grid.at(grid.snap_half(half(pos.x, cf.0, ct.0)));
+    let y = grid.at(grid.snap_half(half(pos.y, cf.1, ct.1)));
+    match (x, y) {
+        (Some(x), Some(y)) if crate::geometry::point_in_range(Pt2::new(x, y)) => Ok(Some(Pt2::new(x, y))),
+        _ => Err(OutOfRange),
     }
 }
 

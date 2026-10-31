@@ -1024,7 +1024,13 @@ fn the_same_move_as_one_nm_delta_is_refused() {
         page: None,
         steps: None,
     };
-    rejected_with(e.execute(&delta), "connection grid");
+    match e.execute(&delta) {
+        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
+            reason,
+            "the position at x 13.2, y 15.9 mm on page 102 is not on the drawing grid"
+        ),
+        other => panic!("expected a rejection, got {other:?}"),
+    }
     assert_eq!(e.model().rev(), rev);
     // The refusal is about one of them: x index 4 plus 2_645_833 nm is off the grid; 8 and 3 stay on it.
     let lands_on_grid = |r: Id<Representation>| {
@@ -1081,10 +1087,12 @@ fn move_by_steps_rejections() {
     }));
     match off.execute(&steps_cmd(vec![REP_102F2], [1, 0])) {
         Err(CmdError::Rejected { reason, .. }) => {
-            // FT-756: the symbol by its device's tag, never its ID
-            assert!(!reason.contains(&REP_102F2.to_string()), "{reason}");
-            assert!(reason.starts_with("the symbol of -102F2 at "), "{reason}");
-            assert!(reason.contains("not on the connection grid"), "{reason}");
+            // FT-756: the symbol by its device's tag, never its ID; the point in mm on its page
+            assert_eq!(
+                reason,
+                "the symbol of -102F2 at x 0, y 0 mm on page 102 is not on the drawing grid, so it cannot be \
+                 moved by grid steps; move it onto the grid first"
+            );
         }
         other => panic!("expected a rejection, got {other:?}"),
     }

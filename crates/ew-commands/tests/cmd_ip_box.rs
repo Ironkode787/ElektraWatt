@@ -44,6 +44,14 @@ fn created<T>(r: &Receipt, kind: Kind) -> Vec<Id<T>> {
 
 /// A rejection whose reason contains `needle`.
 #[track_caller]
+/// The reason of a rejection, or a panic naming what came back instead.
+fn rejection<T: Debug>(r: Result<T, CmdError>) -> String {
+    match r {
+        Err(CmdError::Rejected { reason, .. }) => reason,
+        other => panic!("expected a rejection, got {other:?}"),
+    }
+}
+
 fn rejected_with<T: Debug>(r: Result<T, CmdError>, needle: &str) {
     match r {
         Err(CmdError::Rejected { reason, .. }) => {
@@ -325,7 +333,10 @@ fn draw_to_ip_rejections_write_nothing() {
     // `ip.pos` off the grid.
     let mut cmd = good();
     cmd.ip.pos = pt(5 * G + 1, 0);
-    rejected_with(e.execute(&cmd), "/ip/pos");
+    assert_eq!(
+        rejection(e.execute(&cmd)),
+        "the position at x 39.7, y 0 mm on page 102 is not on the drawing grid"
+    );
     // A FnDef with two CPs.
     let mut cmd = good();
     cmd.ip.symbol = SYM_TWO;
@@ -799,7 +810,10 @@ fn reshape_rejections_write_nothing() {
     // An off-grid vertex.
     let mut outline = good();
     outline[2] = pt(outline[2].x.0, outline[2].y.0 + 1);
-    rejected_with(e.execute(&reshape(outline, None)), "/outline/2");
+    assert_eq!(
+        rejection(e.execute(&reshape(outline, None))),
+        "the outline's corner at x 60.9, y 39.7 mm on page 102 is not on the drawing grid"
+    );
     // Two CPs with one index.
     invalid_at(
         e.execute(&reshape(
@@ -823,15 +837,15 @@ fn reshape_rejections_write_nothing() {
         "/cps/1/pos",
     );
     // A CP off the grid (on the outline).
-    rejected_with(
-        e.execute(&reshape(
+    assert_eq!(
+        rejection(e.execute(&reshape(
             good(),
             Some(vec![
                 box_cp(6, pt(4 * G, 4 * G), Dir4::Down),
                 box_cp(2, pt(2 * G + 1, 0), Dir4::Up),
             ]),
-        )),
-        "/cps/1/pos",
+        ))),
+        "the box's connection point at x 23.8, y 7.9 mm on page 102 is not on the drawing grid"
     );
     // `cps` that leave out CP 6, at which a connection on the page ends.
     rejected_with(
