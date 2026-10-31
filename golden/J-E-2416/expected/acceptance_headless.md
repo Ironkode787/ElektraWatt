@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-103 entries: 97 pass, 0 fail, 0 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+105 entries: 99 pass, 0 fail, 0 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -107,3 +107,5 @@
 | D-38 | the 1.5 mm² PE wire W6 is reported; at 2.5 mm² it clears (EW-POT-006, EF-06) | pass | EW-POT-006 reports W6 (101.8) as an error (EF-06); e.g. "PE wire 101.8 has 1.5 mm², below the 2.5 mm² required for the 2.5 mm² line conductors at 1X1 (the sizing table is not verified against the standard)"; W6 at 2.5 mm² clears it |
 | D-41 | one assembly -201U1 with children on both pages, break marks | pass | -201U1 is one assembly (order codes 1 and 2 covering the head, its 11 children on 201 and 202 and the 28 valves once each); break marks generated right after -201U9 on 201 and left before -202U1 on 202 |
 | D-42 | one strip -X1031 with segments at 103-A3 and 103-A10 | pass | one device -X1031 (of 3 strips) with segments at 103-A3 and 103-A10 (the single BOM row is part of D-04) |
+| AC-23 | the release of V2.0 on Golden A is refused with the release run's errors plus EW-REL-001 "checker not set" | pass | the gate refuses V2.0 with the 37 errors of the pre-delivery release run plus EW-REL-001 "revision V2.0: checker not set; the checker approves the revision (ew revision approve)" |
+| AC-23 | the release fixture is approved and released through the confirmed revision approve and revision release paths | pass | the checker approved V1.0 with the gate passing but for EW-REL-001; the release wrote V1.0.ewarchive (generation 2, with pdf/RM-001_V1.0.pdf) and stamped generation 3; the archive opens read-only with its release context |

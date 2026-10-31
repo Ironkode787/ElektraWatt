@@ -163,7 +163,8 @@ pub use ew_store::{archive, git, zip};
 pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError};
 pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
 pub use release_run::{
-    Discarded, IncompleteRelease, ReleaseContext, ReleaseError, ReleaseOptions, ReleasePlan, Released,
+    ArchiveOpenError, Discarded, IncompleteRelease, OpenedArchive, ReleaseContext, ReleaseError,
+    ReleaseOptions, ReleasePlan, ReleaseTrouble, Released, TroubleKind,
 };
 
 pub use ew_commands::{
@@ -393,7 +394,7 @@ pub struct Session {
     /// The opened libraries, with the error that made [`Session::libraries`] fall back to the starter.
     libraries: std::sync::OnceLock<(library::Registry, Option<library::LibraryError>)>,
     /// The release's housekeeping trouble not yet taken by the front-end ([`Session::take_release_troubles`]).
-    release_troubles: std::cell::RefCell<Vec<String>>,
+    release_troubles: std::cell::RefCell<Vec<release_run::ReleaseTrouble>>,
 }
 
 impl std::fmt::Debug for Session {

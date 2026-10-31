@@ -51,6 +51,10 @@ pub struct MessagesState {
     /// The serial of the last Check project's toast and the (project session, revision) it counted: the toast goes
     /// once the revision leaves that one, so its counts never disagree with the dock's pending ones (FT-759).
     pub(crate) check_toast: Option<((u64, u64), u64)>,
+    /// FT-842: the release's housekeeping warnings in words (the file name only) that the Messages table shows under
+    /// Warnings ▸ Release, with the project session they belong to; drained once from the session, kept until the
+    /// project closes.
+    pub(crate) release_notes: Option<(u64, Vec<String>)>,
 }
 
 /// What the shell reads from the project's online check report (FT-674, FT-675), for one (project session,
@@ -200,8 +204,144 @@ pub fn fingerprint_of(key: &str) -> Option<&str> {
     key.rsplit('/').next()?.strip_prefix("finding:")
 }
 
-/// The detail block of a finding row (§7.3); `None` for any other row.
+/// The key of the rule group of the release's housekeeping warnings (FT-842) under Warnings.
+pub const RELEASE_KEY: &str = "severity:warning/rule:release";
+
+/// Whether a row is one of the release's housekeeping warnings (FT-842) or their group.
+pub fn is_release_note(node: &NavNode) -> bool {
+    node.key == RELEASE_KEY || node.key.starts_with(&format!("{RELEASE_KEY}/"))
+}
+
+/// FT-842 (cycle 41, ruling 2: "each once as a Messages entry in words, with the file name only. The entry has
+/// severity Warning, and its rule column names the source in a word ("Release"), not an ID"): `table` with the
+/// release's housekeeping warnings `notes` under Warnings ▸ Release, after the rules of the check (the Warnings group
+/// is added when the check has none). The rows are finding rows (severity `warning`, state `open`) without a target,
+/// a page, a quick fix or a fingerprint: Enter opens nothing and the detail has no Waive. The top-level groups are
+/// ranked Errors, Warnings, Infos again. No notes: the table as it is.
+pub fn with_release_notes(mut table: NavTable, notes: &[String]) -> NavTable {
+    use ew_api::output::{nav_natural_key, nav_tokens};
+    if notes.is_empty() {
+        return table;
+    }
+    let natural = |label: &str, cells: &[String]| -> Vec<ew_api::output::NaturalKey> {
+        std::iter::once(label)
+            .chain(cells.iter().map(String::as_str))
+            .map(nav_natural_key)
+            .collect()
+    };
+    let tokens = |label: &str, cells: &[String]| -> Vec<String> {
+        let mut t: Vec<String> = std::iter::once(label)
+            .chain(cells.iter().map(String::as_str))
+            .flat_map(nav_tokens)
+            .collect();
+        t.sort();
+        t.dedup();
+        t
+    };
+    let node = |key: String,
+                parent: Option<u32>,
+                role: NavRole,
+                label: String,
+                badges: Vec<String>,
+                cells: Vec<String>,
+                facets: Vec<(String, String)>| NavNode {
+        key,
+        parent,
+        role,
+        tokens: tokens(&label, &cells),
+        natural: natural(&label, &cells),
+        label,
+        badges,
+        records: Vec::new(),
+        kinds: Vec::new(),
+        define_at: None,
+        drawables: Vec::new(),
+        open: None,
+        table_row: !cells.is_empty(),
+        cells,
+        facets,
+    };
+    let index = |nodes: &[NavNode]| u32::try_from(nodes.len()).unwrap_or(u32::MAX);
+    let ranked = |mut n: NavNode, at: u32| {
+        if let Some(first) = n.natural.first_mut() {
+            *first = nav_natural_key(&at.to_string());
+        }
+        n
+    };
+    let warnings = match table
+        .nodes
+        .iter()
+        .position(|n| n.parent.is_none() && n.key == "severity:warning")
+    {
+        Some(at) => u32::try_from(at).unwrap_or(u32::MAX),
+        None => {
+            let at = index(&table.nodes);
+            table.nodes.push(node(
+                "severity:warning".to_owned(),
+                None,
+                NavRole::Severity,
+                "Warnings".to_owned(),
+                Vec::new(),
+                Vec::new(),
+                vec![("kind".to_owned(), NavRole::Severity.word().to_owned())],
+            ));
+            at
+        }
+    };
+    let source = crate::strings::text("release-source").to_owned();
+    let rule = index(&table.nodes);
+    let group = node(
+        RELEASE_KEY.to_owned(),
+        Some(warnings),
+        NavRole::Rule,
+        source.clone(),
+        vec![notes.len().to_string()],
+        Vec::new(),
+        vec![("kind".to_owned(), NavRole::Rule.word().to_owned())],
+    );
+    table.nodes.push(ranked(group, rule));
+    for (i, text) in notes.iter().enumerate() {
+        let at = index(&table.nodes);
+        let cells = vec![
+            "warning".to_owned(),
+            source.clone(),
+            text.clone(),
+            String::new(),
+            String::new(),
+            String::new(),
+            "open".to_owned(),
+        ];
+        let row = node(
+            format!("{RELEASE_KEY}/trouble:{i}"),
+            Some(rule),
+            NavRole::Finding,
+            text.clone(),
+            vec!["warning".to_owned()],
+            cells,
+            vec![("state".to_owned(), "open".to_owned())],
+        );
+        table.nodes.push(ranked(row, at));
+    }
+    // The top-level groups in the order Errors, Warnings, Infos (siblings sort by their rank).
+    for n in table.nodes.iter_mut().filter(|n| n.parent.is_none()) {
+        let order = match n.key.as_str() {
+            "severity:error" => 0u32,
+            "severity:warning" => 1,
+            _ => 2,
+        };
+        if let Some(first) = n.natural.first_mut() {
+            *first = nav_natural_key(&order.to_string());
+        }
+    }
+    table
+}
+
+/// The detail block of a finding row (§7.3); `None` for any other row and for the release's housekeeping warnings
+/// (FT-842: nothing to waive).
 pub fn detail(node: &NavNode) -> Option<FindingDetail> {
+    if is_release_note(node) {
+        return None;
+    }
     let rule = rule_of(node).filter(|_| node.role == NavRole::Finding)?;
     let title = ew_api::checks::rule(&rule)
         .map(|r| r.meta().title.to_owned())
@@ -342,5 +482,94 @@ mod tests {
         assert!(!d.title.is_empty(), "the shipped rule's title");
         assert_eq!(fingerprint_of("severity:error/rule:X/finding:ab12"), Some("ab12"));
         assert_eq!(fingerprint_of("severity:error/rule:X"), None);
+    }
+
+    /// A severity group as the provider builds it, ranked `rank`.
+    fn group(key: &str, label: &str, rank: &str) -> NavNode {
+        NavNode {
+            key: key.to_owned(),
+            parent: None,
+            role: NavRole::Severity,
+            label: label.to_owned(),
+            badges: Vec::new(),
+            records: Vec::new(),
+            kinds: Vec::new(),
+            define_at: None,
+            drawables: Vec::new(),
+            open: None,
+            cells: Vec::new(),
+            table_row: false,
+            tokens: Vec::new(),
+            facets: Vec::new(),
+            natural: vec![ew_api::output::nav_natural_key(rank)],
+        }
+    }
+
+    /// FT-842 (cycle 41, ruling 2): the release's warnings go under a Warnings group between Errors and Infos, as one
+    /// Release rule with a finding row each (severity warning, rule column "Release", the text, state open), shown
+    /// in that order by the default sort; their detail is `None` (nothing to waive); no notes leave the table as is.
+    #[test]
+    fn release_notes_sit_under_warnings_release_between_errors_and_infos() {
+        let mut errors = finding("conflict", "101", "open", "error");
+        errors.parent = Some(0);
+        errors.natural = vec![ew_api::output::nav_natural_key("1")];
+        let base = NavTable {
+            kind: super::super::NavKind::Messages,
+            rev: 1,
+            columns: Vec::new(),
+            nodes: vec![
+                group("severity:error", "Errors", "0"),
+                errors,
+                group("severity:info", "Infos", "2"),
+            ],
+            index: BTreeMap::new(),
+        };
+        assert_eq!(with_release_notes(base.clone(), &[]), base);
+        let notes = vec!["The release record a.json could not be removed: denied".to_owned()];
+        let t = with_release_notes(base, &notes);
+        let keys: Vec<&str> = t.nodes.iter().map(|n| n.key.as_str()).collect();
+        assert_eq!(
+            keys,
+            vec![
+                "severity:error",
+                "severity:error/rule:EW-CORE-033/finding:00",
+                "severity:info",
+                "severity:warning",
+                RELEASE_KEY,
+                "severity:warning/rule:release/trouble:0",
+            ]
+        );
+        let row = &t.nodes[5];
+        assert_eq!(row.parent, Some(4));
+        assert_eq!(t.nodes[4].parent, Some(3));
+        assert_eq!(
+            row.cells,
+            vec!["warning", "Release", notes[0].as_str(), "", "", "", "open"]
+        );
+        assert!(detail(row).is_none(), "nothing to waive");
+        assert_eq!(counts(&t, None).warnings, 1);
+        let rows = super::super::visible_rows(
+            &t,
+            super::super::NavView::Tree,
+            &super::super::SortBy::Label,
+            false,
+            &super::super::Query::parse(""),
+            &std::collections::BTreeSet::new(),
+        );
+        let shown: Vec<&str> = rows
+            .iter()
+            .map(|r| t.nodes[r.node as usize].key.as_str())
+            .collect();
+        assert_eq!(
+            shown,
+            vec![
+                "severity:error",
+                "severity:error/rule:EW-CORE-033/finding:00",
+                "severity:warning",
+                RELEASE_KEY,
+                "severity:warning/rule:release/trouble:0",
+                "severity:info",
+            ]
+        );
     }
 }

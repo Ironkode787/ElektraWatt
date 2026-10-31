@@ -199,6 +199,20 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             submit |= enter;
         }
         Dialog::Form(form) => {
+            // WP-S1.18 part 5: a revision dialog's list (the gate's findings, the release's steps) under its body.
+            if form.action.starts_with("revision.") {
+                let t = crate::theme::current(ui.ctx());
+                for line in shell.revision_list() {
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new(line)
+                                .font(crate::theme::font(&t.type_small))
+                                .color(t.text_secondary.color32()),
+                        )
+                        .wrap(),
+                    );
+                }
+            }
             submit |= form_fields(ui, form, just_opened, events);
         }
         Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
@@ -206,9 +220,25 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         Dialog::ConfirmDiscard { .. } | Dialog::ConfirmCheckScheme { .. } | Dialog::ConfirmJournalDiscard => {
         }
     });
-    let clicked = clicked.or(link_clicked);
+    let mut clicked = clicked.or(link_clicked);
+    // WP-S1.18 part 5: Enter in a revision dialog presses its Primary (Approve, Set author, Withdraw; Cancel in
+    // Release, whose step is the destructive button), never a plain form submit.
+    if submit
+        && let Dialog::Form(form) = d
+        && form.action.starts_with("revision.")
+    {
+        submit = false;
+        clicked = clicked.or_else(|| Some(spec.primary.answer.clone()));
+    }
     if clicked == Some(DialogAnswer::Submit) {
         submit = true;
+    }
+    // The window reads the date; the shell never does (a revision's approval and release are dated).
+    if let Some(DialogAnswer::Action(action, Value::Object(params))) = &mut clicked
+        && action.starts_with("revision.")
+        && !params.contains_key("date")
+    {
+        params.insert("date".to_owned(), Value::from(crate::clock::today()));
     }
     match clicked {
         Some(DialogAnswer::Action(action, params)) => events.push(Event::Action(action, params)),

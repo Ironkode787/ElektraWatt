@@ -357,7 +357,11 @@ impl ShellModel {
             name: name.to_owned(),
             params: params.clone(),
         };
-        let submit = Submit::from(super::mode_origin(self.mode, &self.origin_file));
+        let submit = Submit::from(super::ShellModel::origin_of(
+            self.mode,
+            self.person,
+            &self.origin_file,
+        ));
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Done;

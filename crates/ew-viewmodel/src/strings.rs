@@ -2101,6 +2101,97 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "macro-failed-value" => "The macro cannot be inserted with the value typed for {0}.",
         "error-value-set" => "Value set \u{201c}{0}\u{201d}: {1}",
         "error-value-set-cell" => "Value set \u{201c}{0}\u{201d}, variable \u{201c}{1}\u{201d}: {2}",
+        // WP-S1.18 part 5 (cycle 41): the revision dialogs of the Check menu (Approve, Release, Withdraw, Set author),
+        // the incomplete-release offer at open, and the release's housekeeping warnings in Messages (FT-842).
+        "action-revision-approve" => "Approve revision…",
+        "action-revision-release" => "Release revision…",
+        "action-revision-withdraw" => "Withdraw revision…",
+        "action-revision-set-author" => "Set revision author…",
+        "action-revision-incomplete" => "Settle the incomplete release…",
+        "submenu-revision" => "Revision",
+        "reason-no-open-revision" => "The project has no open revision",
+        "reason-no-released-revision" => "The project has no released revision to withdraw",
+        "reason-no-incomplete-release" => "There is no incomplete release to settle",
+        "revision-approve-title" => "Approve revision {0}",
+        "revision-release-title" => "Release revision {0}?",
+        "revision-withdraw-title" => "Withdraw a revision",
+        "revision-author-title" => "Set the author of {0}",
+        "revision-incomplete-title" => "Settle the incomplete release of {0}?",
+        "form-revision-checker" => "Checker's role",
+        "form-revision-author" => "Author's role",
+        "form-revision-typed" => "Type the label to confirm",
+        "form-revision-revision" => "Revision",
+        "form-revision-reason" => "Reason",
+        "form-revision-git" => "Commit and tag in git",
+        "dialog-approve" => "Approve",
+        "dialog-release" => "Release",
+        "dialog-withdraw" => "Withdraw",
+        "dialog-set-author" => "Set author",
+        "dialog-complete-release" => "Complete release",
+        "dialog-discard-archive" => "Discard archive",
+        "dialog-not-now" => "Not now",
+        "revision-approve-text" => {
+            "The checker signs off the saved content of {0}, written by the {1}. The release gate runs on the saved project first; the sign-off is saved."
+        }
+        "revision-no-author" => "{0} has no author yet: set it first (Set revision author…), then save.",
+        "revision-gate-error" => "The release gate cannot run: {0}.",
+        "revision-approve-blocked" => {
+            "The release gate has {0} errors besides EW-REL-001; correct or waive them first:"
+        }
+        "revision-release-blocked" => "The release is blocked by {0} findings of the release gate:",
+        "revision-finding" => "{0}: {1}",
+        "revision-more" => "and {0} more",
+        "revision-waivers" => "Approving also acknowledges {0} safety waivers in force.",
+        "revision-release-text" => "The release runs six steps and cannot be undone:",
+        "revision-step-gate" => "1. Run the release gate on the saved project",
+        "revision-step-freeze" => "2. Freeze the revision's numbering and save the project",
+        "revision-step-commit" => "3. Commit the project folder in git",
+        "revision-step-no-commit" => "3. No git commit: the project folder is not in a git repository",
+        "revision-step-archive" => "4. Write and verify the archive {0} in the folder {1}",
+        "revision-step-tag" => "5. Create the git tag {0}",
+        "revision-step-no-tag" => "5. No git tag",
+        "revision-step-stamp" => "6. Stamp {0} released and save",
+        "revision-withdraw-text" => {
+            "The withdrawal is a record after the revision it withdraws; the released revision and its archive stay."
+        }
+        "revision-author-text" => {
+            "The party with this role is the author of {0}; the checker who approves it must have another role."
+        }
+        "revision-incomplete-text" => "A release of {0} stopped before its stamp and left the archive {1}.",
+        "revision-incomplete-complete" => {
+            "Complete release stamps the revision released with it, committing and tagging it when the project folder is in a git repository."
+        }
+        "revision-incomplete-refused" => "It cannot be completed: {0}.",
+        "revision-incomplete-unproven" => {
+            "It is not provably this folder's own leftover, so it is not offered for discarding; remove the file by hand if you know it is one."
+        }
+        "error-revision-typed" => "Type the revision label {0} to confirm.",
+        "error-revision-role" => "Choose a role.",
+        "error-revision-reason" => "Give the reason for the withdrawal.",
+        "error-revision-unknown" => "{0} is not a released revision of this project.",
+        "error-revision-git" => {
+            "Tick \u{201c}Commit and tag in git\u{201d}: the project folder is in a git repository, and the release commits it and creates the tag {0}."
+        }
+        "error-revision-person" => {
+            "This needs a person at the window: a revision is approved, released, withdrawn or given its author only by a confirmation made there, never by a script, a replay or a plugin."
+        }
+        "error-revision-approve" => "The approval was refused: {0}.",
+        "error-revision-release" => "The release was refused: {0}.",
+        "error-revision-withdraw" => "The withdrawal was refused: {0}.",
+        "error-revision-author" => "The author was not set: {0}.",
+        "error-revision-settle" => "The incomplete release was not settled: {0}.",
+        "toast-revision-approved" => "Approved revision {0}; saved",
+        "toast-revision-released" => "Released revision {0} as {1}",
+        "toast-revision-withdrawn" => "Withdrew revision {0}",
+        "toast-revision-author" => "The {1} is now the author of {0}",
+        "toast-revision-discarded" => "Discarded the incomplete release of {0}",
+        "toast-release-troubles" => "The release left housekeeping warnings ({0}): see Messages",
+        "release-source" => "Release",
+        "release-trouble-not-removed" => "The release record {0} could not be removed: {1}",
+        "release-trouble-not-read" => "The release records in the folder {0} could not be read: {1}",
+        "release-trouble-not-updated" => {
+            "The release record of {0} could not be updated with the archive's time, so a discard after a crash keeps the archive: {1}"
+        }
         _ => return None,
     })
 }

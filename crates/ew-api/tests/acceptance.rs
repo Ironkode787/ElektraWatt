@@ -51,7 +51,7 @@ use report::Status;
 use runner::{Options, evaluated_rows, run, run_shard};
 
 /// The (pass, fail, not_built, not_applicable) counts of the headless report; updated with the committed report.
-const EXPECTED: (usize, usize, usize, usize) = (97, 0, 0, 6);
+const EXPECTED: (usize, usize, usize, usize) = (99, 0, 0, 6);
 
 /// The committed report of the headless run without the raster comparison (`expected/acceptance_headless.md`):
 /// the ordinary tests run the runner and compare its rows with this file, which pins the statuses and reasons

@@ -23,11 +23,11 @@ use std::path::PathBuf;
 
 use ew_api::catalog;
 use ew_api::import::{PartsImport, parts_import_counts, read_parts_tables};
-use ew_api::{AnyCommand, Origin, Submit};
+use ew_api::{AnyCommand, Submit};
 use serde_json::{Map, Value};
 
 use super::navigation::bump;
-use super::{Mode, Outcome, Prompt, ShellModel, failed, string_param};
+use super::{Outcome, Prompt, ShellModel, failed, string_param};
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
 use crate::strings;
 use crate::tools::PreviewState;
@@ -447,12 +447,7 @@ impl ShellModel {
             name: COMMAND.to_owned(),
             params: params.clone(),
         };
-        let submit = match self.mode {
-            Mode::Gui => Submit::from(Origin::Gui),
-            Mode::Headless => Submit::from(Origin::CmdLog {
-                file: self.origin_file.clone(),
-            }),
-        };
+        let submit = Submit::from(self.origin());
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Done;

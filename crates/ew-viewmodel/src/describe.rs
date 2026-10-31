@@ -2639,6 +2639,16 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         // FT-408 and FT-409: a creation dialog, one `field` line per field in order; the refusal of the last attempt
         // follows the fields as an `error:` line.
         Dialog::Form(form) => {
+            // WP-S1.18 part 5: a revision dialog's paragraphs and its list (the gate's findings, the release's steps)
+            // before its fields.
+            if form.action.starts_with("revision.") {
+                for line in &spec.body {
+                    lines.push(format!("  label \"{}\"", user(line)));
+                }
+                for item in model.revision_list() {
+                    lines.push(format!("  item \"{}\"", user(item)));
+                }
+            }
             for f in &form.fields {
                 lines.push(format!(
                     "  field \"{}\": \"{}\"",

@@ -23,11 +23,11 @@ use std::sync::Arc;
 
 use ew_api::output::ew_dl::{Destination, EntityRef};
 use ew_api::output::{Drawable, NavKind, NavNode, NavRole, PageRow, Uuid};
-use ew_api::{AnyCommand, Origin, Submit};
+use ew_api::{AnyCommand, Submit};
 use serde_json::{Map, Value, json};
 
 use super::navigation::{Focus, bump};
-use super::{Mode, Outcome, ShellModel, failed, flag, string_param};
+use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::canvas::PageId;
 use crate::highlight::{HighlightTarget, Highlights};
 use crate::layout::PaneKind;
@@ -501,7 +501,12 @@ impl ShellModel {
                 continue;
             }
             let Some(project) = &self.project else { return };
-            let table = project.session.navigator_table(k);
+            // FT-842: the Messages table carries the release's housekeeping warnings.
+            let table = if k == NavKind::Messages {
+                Self::messages_table_of(project, &self.messages)
+            } else {
+                project.session.navigator_table(k)
+            };
             bump(&self.calls, |c| c.navigator_table += 1);
             // WP-S2.09 part 2: the Messages pane's header names the scheme its table was built with.
             if k == NavKind::Messages {
@@ -1445,12 +1450,7 @@ impl ShellModel {
             name: REORDER.to_owned(),
             params: params.clone(),
         };
-        let submit = match self.mode {
-            Mode::Gui => Submit::from(Origin::Gui),
-            Mode::Headless => Submit::from(Origin::CmdLog {
-                file: self.origin_file.clone(),
-            }),
-        };
+        let submit = Submit::from(self.origin());
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Done;

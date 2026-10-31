@@ -22,7 +22,7 @@ use std::sync::Arc;
 
 use ew_api::output::ew_dl::Destination;
 use ew_api::output::ew_dl::ew_units::Rect;
-use ew_api::{AnyCommand, CmdError, DynCommand, Origin, Submit};
+use ew_api::{AnyCommand, CmdError, DynCommand, Submit};
 use serde_json::{Map, Value};
 
 use super::canvas_actions::point_mm;
@@ -577,7 +577,11 @@ impl ShellModel {
 
     /// The submission of the shell's tool commands: the GUI in the window, the script's command log headless.
     pub(super) fn tool_submit(&self) -> Submit {
-        Submit::from(super::mode_origin(self.mode, &self.origin_file))
+        Submit::from(super::ShellModel::origin_of(
+            self.mode,
+            self.person,
+            &self.origin_file,
+        ))
     }
 
     /// `Preview(cmd)` (§7.3): `Session::preview_with` once, the semantic ghost from `Session::derived_diff`; a
@@ -665,6 +669,8 @@ impl ShellModel {
             Some(p.base_rev) == rev && p.name == name && p.command == json && p.result.is_ok()
         });
         let kept = if fresh { self.tools.preview.take() } else { None };
+        // Cycle 41, ruling 1: the submission's own origin (a scripted window submits as its command log).
+        let origin = self.origin();
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Refused {
@@ -678,7 +684,7 @@ impl ShellModel {
             }
             _ => {
                 bump(calls, |c| c.execute_with += 1);
-                match project.session.execute_with(cmd, Submit::from(Origin::Gui)) {
+                match project.session.execute_with(cmd, Submit::from(origin.clone())) {
                     Err(CmdError::NeedsPreview { .. }) => {
                         bump(calls, |c| {
                             c.preview_with += 1;
@@ -686,7 +692,7 @@ impl ShellModel {
                         });
                         project
                             .session
-                            .preview_with(cmd, Submit::from(Origin::Gui))
+                            .preview_with(cmd, Submit::from(origin))
                             .and_then(|p| project.session.commit(p))
                     }
                     other => other,

@@ -24,7 +24,7 @@ use ew_mltext::Ident;
 use ew_schema::{Date, PartyRole, Revision, Waiver};
 use ew_store::ew_format::{ContentDigestError, content_digest};
 
-use crate::{CmdError, Receipt, Session, Sha256, checks};
+use crate::{CmdError, Origin, Receipt, Session, Sha256, Submit, checks};
 
 /// The rule ID of the four-eyes rule, the one gate error an approval may leave open (doc 15 §5.4).
 pub const FOUR_EYES_RULE: &str = "EW-REL-001";
@@ -213,6 +213,36 @@ impl Session {
             .map(|(_, r)| r.label.as_str().to_owned())
     }
 
+    /// The open revision with its author's and its checker's party roles, when set (WP-S1.18 part 5: the revision
+    /// dialogs name them, and Set author submits `revision.set_author` for this revision; edits need not be saved).
+    pub fn open_revision_roles(&self) -> Option<(Id<Revision>, Option<PartyRole>, Option<PartyRole>)> {
+        self.query()
+            .table::<Revision>()
+            .iter()
+            .find(|(_, r)| r.is_open())
+            .map(|(_, r)| (r.id, r.author.clone(), r.checker.clone()))
+    }
+
+    /// The labels of the released revisions that are not withdrawn, in label order (WP-S1.18 part 5: the Withdraw
+    /// dialog offers the last one).
+    pub fn released_labels(&self) -> Vec<String> {
+        let q = self.query();
+        let table = q.table::<Revision>();
+        let withdrawn: std::collections::BTreeSet<Id<Revision>> =
+            table.iter().filter_map(|(_, r)| r.withdraws).collect();
+        let mut labels: Vec<String> = table
+            .iter()
+            .filter(|(_, r)| {
+                r.state == ew_schema::RevisionState::Released
+                    && !r.is_withdrawal()
+                    && !withdrawn.contains(&r.id)
+            })
+            .map(|(_, r)| r.label.as_str().to_owned())
+            .collect();
+        labels.sort();
+        labels
+    }
+
     /// The released revision labelled `label` (not a withdrawal record), which `revision.withdraw` names
     /// (`ew revision withdraw <label>`).
     pub fn released_revision(&self, label: &str) -> Option<Id<Revision>> {
@@ -313,6 +343,23 @@ impl Session {
         approval: &Approval,
         integrity: &[checks::IntegrityItem],
     ) -> Result<(Gate, Receipt), ApproveError> {
+        let origin = self.submit_origin.clone();
+        self.approve_as(&origin, approval, integrity)
+    }
+
+    /// [`Session::approve`] for a submission from `origin` (cycle 41, ruling 1: the `HumanOnly` gate is judged per
+    /// submission, by the origin of the one that asks, never by the session's). `revision.approve` is submitted from
+    /// `origin`, so a scripted origin gets the exposure error and nothing changes.
+    ///
+    /// # Errors
+    ///
+    /// [`ApproveError`], the command's exposure judged by `origin`.
+    pub fn approve_as(
+        &mut self,
+        origin: &Origin,
+        approval: &Approval,
+        integrity: &[checks::IntegrityItem],
+    ) -> Result<(Gate, Receipt), ApproveError> {
         let gate = self
             .release_gate(&approval.label, integrity)
             .map_err(ApproveError::Gate)?;
@@ -369,7 +416,7 @@ impl Session {
             content_digest: gate.content_digest,
         };
         let before = self.engine.model().clone();
-        let result = self.engine.execute(&cmd);
+        let result = self.engine.execute_with(&cmd, Submit::from(origin.clone()));
         self.committed(&before, ApproveRevision::NAME);
         let receipt = result.map_err(ApproveError::Command)?;
         Ok((gate, receipt))

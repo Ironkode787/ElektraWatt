@@ -322,6 +322,8 @@ pub fn all(r: &mut Runner) {
 
     // §19 rows gated M1.
     defects(r);
+    // WP-S1.18 part 5 (RU-4): AC-23 in two halves (D15).
+    ac23(r);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -4647,4 +4649,193 @@ fn d30_cover(c: &Ctx) -> Outcome {
     } else {
         fail(list(wrong, 3))
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// AC-23 (WP-S1.18 D15, RU-4): the release in two halves
+
+/// A git port for a project outside any worktree: it never looks at the disk (the release fixture's copy lies in a
+/// fresh scratch directory, never in a repository).
+struct NoGit;
+
+impl ew_api::git::Git for NoGit {
+    fn worktree(
+        &self,
+        _: &dyn ew_api::Vfs,
+        _: &std::path::Path,
+    ) -> std::io::Result<Option<std::path::PathBuf>> {
+        Ok(None)
+    }
+    fn available(&self) -> Result<(), ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+    fn commit_dir(
+        &self,
+        _: &std::path::Path,
+        _: &str,
+    ) -> Result<ew_api::git::Committed, ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+    fn tag_exists(&self, _: &std::path::Path, _: &str) -> Result<bool, ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+    fn tag_message(&self, _: &std::path::Path, _: &str) -> Result<Option<String>, ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+    fn tag(&self, _: &std::path::Path, _: &str, _: &str) -> Result<(), ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+    fn delete_tag(&self, _: &std::path::Path, _: &str) -> Result<(), ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+}
+
+fn ac23(r: &mut Runner) {
+    r.entry(
+        "AC-23",
+        "the release of V2.0 on Golden A is refused with the release run's errors plus EW-REL-001 \"checker not set\"",
+        |_| ac23_refusal(),
+    );
+    r.entry(
+        "AC-23",
+        "the release fixture is approved and released through the confirmed revision approve and revision release paths",
+        |_| ac23_success(),
+    );
+}
+
+/// D15's refusal half: the release gate on Golden A (opened read-only, as RG-4) refuses V2.0 with exactly the open
+/// errors of `ew check --scheme pre-delivery --mode release` (with the integrity findings of opening) plus EW-REL-001
+/// "checker not set" (doc 20 §18.3's 42 errors when AC-21 passes).
+fn ac23_refusal() -> Outcome {
+    let dir = repo().join("golden/J-E-2416.ew");
+    let (s, report) = match Session::open_read_only(&dir, env!("CARGO_PKG_VERSION")) {
+        Ok(o) => o,
+        Err(e) => return fail(format!("golden/J-E-2416.ew does not open read-only: {e}")),
+    };
+    let integrity = ew_api::integrity_items(&report);
+    let gate = match s.release_gate("V2.0", &integrity) {
+        Ok(g) => g,
+        Err(e) => {
+            s.close();
+            return fail(format!("the gate does not run: {e}"));
+        }
+    };
+    let check = s
+        .check(&PRE_DELIVERY, CheckMode::Release)
+        .with_integrity(integrity);
+    s.close();
+    let errors: Vec<String> = ew_api::checks::blockers(&check)
+        .iter()
+        .map(|f| format!("{} {}", f.rule, f.subject))
+        .collect();
+    let blockers = gate.blockers();
+    let (rel, others): (Vec<&&ew_api::checks::Finding>, Vec<&&ew_api::checks::Finding>) =
+        blockers.iter().partition(|f| f.rule.starts_with("EW-REL"));
+    let refused: Vec<String> = others
+        .iter()
+        .map(|f| format!("{} {}", f.rule, f.subject))
+        .collect();
+    if refused != errors {
+        return fail(format!(
+            "the gate's errors are not the release run's: {} against {}",
+            refused.len(),
+            errors.len()
+        ));
+    }
+    match rel.as_slice() {
+        [f] if f.rule == ew_api::FOUR_EYES_RULE && f.message.contains("checker not set") => pass(format!(
+            "the gate refuses V2.0 with the {} errors of the pre-delivery release run plus EW-REL-001 \"{}\"",
+            errors.len(),
+            f.message
+        )),
+        _ => fail(format!(
+            "the gate's EW-REL findings are not EW-REL-001 \"checker not set\" alone: {:?}",
+            rel.iter().map(|f| f.message.clone()).collect::<Vec<_>>()
+        )),
+    }
+}
+
+/// D15's success half (Golden A-R's release is FT-666): a copy of `golden/fixtures/release-min` is approved by the
+/// checker (the confirmed `revision approve`) and released (the confirmed `revision release`) with the release
+/// gate passing; the written archive reads back with its project verified.
+fn ac23_success() -> Outcome {
+    let base = scratch_dir("ac23");
+    let dir = base.join("release-min");
+    copy_dir(&repo().join("golden/fixtures/release-min"), &dir);
+    let outcome = ac23_release(&base, &dir);
+    let _ = std::fs::remove_dir_all(&base);
+    outcome
+}
+
+fn ac23_release(base: &std::path::Path, dir: &std::path::Path) -> Outcome {
+    let mut options = StoreOptions::new("acceptance");
+    options.state_dir = Some(base.join("state"));
+    let (mut s, report) = match Session::open(dir, options, SessionOptions::default(), Recovery::Keep) {
+        Ok(o) => o,
+        Err(e) => return fail(format!("the release fixture does not open: {e:?}")),
+    };
+    let integrity = ew_api::integrity_items(&report);
+    let confirmed = |subcommand: &str| ew_api::Origin::Cli {
+        subcommand: subcommand.to_owned(),
+        confirmed: true,
+    };
+    let approval = ew_api::Approval {
+        label: "V1.0".into(),
+        checker: ew_api::PartyRole::Checker,
+        date: ew_api::catalog::Date::new(2026, 3, 2).expect("a date"),
+        waivers_ack: Vec::new(),
+    };
+    if let Err(e) = s.approve_as(&confirmed("revision approve"), &approval, &integrity) {
+        s.close();
+        return fail(format!("the approval is refused: {e}"));
+    }
+    if let Err(e) = s.save() {
+        s.close();
+        return fail(format!("the sign-off does not save: {e:?}"));
+    }
+    let gate = match s.release_gate("V1.0", &integrity) {
+        Ok(g) => g,
+        Err(e) => {
+            s.close();
+            return fail(format!("the gate does not run after the approval: {e}"));
+        }
+    };
+    if !gate.passes() {
+        s.close();
+        return fail(format!("the gate still has {} blockers", gate.blockers().len()));
+    }
+    let root = base.join("archives");
+    let release = ew_api::ReleaseOptions {
+        archive_root: Some(&root),
+        git: &NoGit,
+        git_consent: false,
+        parallelism: Parallelism::Serial,
+    };
+    let context = ew_api::ReleaseContext {
+        label: "V1.0".into(),
+        date: ew_api::catalog::Date::new(2026, 3, 9).expect("a date"),
+    };
+    let released = s.release_as(&confirmed("revision release"), &context, &integrity, &release);
+    s.close();
+    let released = match released {
+        Ok(r) => r,
+        Err(e) => return fail(format!("the release is refused: {e}")),
+    };
+    let opened = match Session::open_archive(&released.archive, env!("CARGO_PKG_VERSION")) {
+        Ok(o) => o,
+        Err(e) => return fail(format!("the archive does not open: {e}")),
+    };
+    let Some(pdf) = opened.archived_pdf().map(|(name, _)| name.to_owned()) else {
+        return fail("the archive holds no PDF".to_owned());
+    };
+    pass(format!(
+        "the checker approved V1.0 with the gate passing but for EW-REL-001; the release wrote {} (generation {}, with {pdf}) and stamped generation {}; the archive opens read-only with its release context",
+        released
+            .archive
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+        released.generation,
+        released.stamped
+    ))
 }

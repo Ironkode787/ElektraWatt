@@ -1224,7 +1224,11 @@ impl ShellModel {
 
     /// The submission of the grid's commands: the GUI in the window, the script's command log headless.
     fn props_submit(&self) -> Submit {
-        Submit::from(super::mode_origin(self.mode, &self.origin_file))
+        Submit::from(super::ShellModel::origin_of(
+            self.mode,
+            self.person,
+            &self.origin_file,
+        ))
     }
 
     /// Commits a kept, fresh preview of the command `name` with `params`: the window `Session::commit`; headless a
@@ -2291,7 +2295,9 @@ mod tests {
             strings::text("reason-human-only-history").contains("ADR-0008 amendment 3"),
             "the reason names the rule"
         );
+        // The window's shell: a person drives it (cycle 41, ruling 1: the origin is `Origin::Gui` only there).
         shell.mode = Mode::Gui;
+        shell.person = true;
         assert_eq!(shell.dispatch("edit.undo", &Value::Null), Outcome::Done);
         assert_eq!(cursor(&shell), applied - 1);
         shell.mode = Mode::Headless;

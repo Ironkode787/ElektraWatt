@@ -23,9 +23,9 @@ use ew_api::git::{Committed, Git, GitError, GitExe};
 use ew_api::output::Parallelism;
 use ew_api::zip::ZipLimits;
 use ew_api::{
-    AnyCommand, Approval, CmdError, CmdLog, CmdLogError, Exposure, IncompleteRelease, NewProjectKind, Origin,
-    ProjectTemplate, Recovery, ReleaseContext, ReleaseError, ReleaseOptions, Released, Session,
-    SessionOptions, Submit, checks,
+    AnyCommand, Approval, ApproveError, CmdError, CmdLog, CmdLogError, Exposure, IncompleteRelease,
+    NewProjectKind, Origin, ProjectTemplate, Recovery, ReleaseContext, ReleaseError, ReleaseOptions,
+    Released, Session, SessionOptions, Submit, TroubleKind, checks,
 };
 use ew_commands::testkit::seeded_ids;
 use ew_derive::ew_ids::Id;
@@ -1686,16 +1686,25 @@ fn the_open_removes_a_record_whose_archive_is_gone() {
         vfs.set_fault(Fault::None);
         // A failure listing the records is reported too ("could not be read"); look for the removal's.
         let troubles = r.take_release_troubles();
-        if troubles.iter().any(|t| t.contains(" could not be removed: ")) {
+        if troubles.iter().any(|t| t.what == TroubleKind::RecordNotRemoved) {
             reported = Some(troubles);
             break;
         }
     }
     let troubles = reported.expect("a failed removal is reported");
     assert_eq!(troubles.len(), 1, "{troubles:?}");
-    assert!(
-        troubles[0].starts_with("the release record ") && troubles[0].contains(" could not be removed: "),
-        "{troubles:?}"
+    // FT-842: the trouble is structured (what happened, the path, the error); its text is the CLI's, unchanged.
+    let trouble = &troubles[0];
+    assert_eq!(trouble.what, TroubleKind::RecordNotRemoved);
+    assert_eq!(trouble.path.file_name(), mine.file_name(), "the record's path");
+    assert_eq!(trouble.file_name(), mine.file_name().unwrap().to_string_lossy());
+    assert_eq!(
+        trouble.to_string(),
+        format!(
+            "the release record {} could not be removed: {}",
+            trouble.path.display(),
+            trouble.error
+        )
     );
     assert!(r.take_release_troubles().is_empty(), "taken once");
     r.close();
@@ -1994,20 +2003,18 @@ fn a_release_whose_archive_time_cannot_be_set_goes_on() {
                 "call {n}: the archive is kept"
             );
         }
-        if let Some(t) = troubles
-            .iter()
-            .find(|t| t.contains("could not be updated with the archive's time"))
-        {
+        if let Some(t) = troubles.iter().find(|t| t.what == TroubleKind::RecordNotUpdated) {
             assert!(result.is_ok(), "call {n}: {t}");
             // The whole text (cycle-40 review, part 4, finding 1: one space at the line continuation).
             assert_eq!(
-                *t,
+                t.to_string(),
                 format!(
                     "the release record of {} could not be updated with the archive's time, so a discard after a \
                      crash keeps the archive: injected error",
                     Path::new(MEM_ROOT).join("V1.0.ewarchive").display()
                 )
             );
+            assert_eq!(t.file_name(), "V1.0.ewarchive");
             reported = true;
         }
         s.close();
@@ -2017,4 +2024,174 @@ fn a_release_whose_archive_time_cannot_be_set_goes_on() {
         }
     }
     panic!("the release made more than 2000 file-system calls")
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Part 5: the per-submission gate (cycle 41, ruling 1) and the archive's use (D14, RU-1, RU-2)
+
+/// Cycle 41, ruling 1 ("the `HumanOnly` gate is per submission"): the release, the approval and the settling of an
+/// incomplete release judge the origin of the submission that asks, never the session's. A GUI session refuses every
+/// scripted submission (a command log, a script, MCP, a plugin) with the refusal a scripted session gets, and writes
+/// nothing; the confirmed submission of the same session completes.
+#[test]
+fn the_release_gate_judges_the_origin_of_the_submission() {
+    let (base, _, mut s, integrity) = approved_copy("per-submission");
+    let root = base.join("archives");
+    let scripted = [
+        Origin::CmdLog {
+            file: "ui-script".into(),
+        },
+        Origin::Script {
+            name: "release.rhai".into(),
+        },
+        Origin::Mcp {
+            client: "agent".into(),
+        },
+        Origin::Plugin { id: "p".into() },
+    ];
+    let approval = Approval {
+        label: LABEL.into(),
+        checker: PartyRole::Checker,
+        date: date(),
+        waivers_ack: Vec::new(),
+    };
+    let rev = s.world().rev;
+    for origin in &scripted {
+        match s.release_as(origin, &context(), &integrity, &options(&NoGit, Some(&root))) {
+            Err(ReleaseError::HumanOnly { origin: o }) => assert_eq!(&o, origin),
+            other => panic!("{origin:?}: expected HumanOnly, got {other:?}"),
+        }
+        assert!(matches!(
+            s.release_plan_as(origin, LABEL, &integrity, &options(&NoGit, Some(&root))),
+            Err(ReleaseError::HumanOnly { .. })
+        ));
+        assert!(matches!(
+            s.complete_release_as(origin, &integrity, &options(&NoGit, Some(&root))),
+            Err(ReleaseError::HumanOnly { .. })
+        ));
+        assert!(matches!(
+            s.discard_incomplete_release_as(origin, &options(&NoGit, Some(&root))),
+            Err(ReleaseError::HumanOnly { .. })
+        ));
+        match s.approve_as(origin, &approval, &integrity) {
+            Err(ApproveError::Command(CmdError::Exposure {
+                exposure: Exposure::HumanOnly,
+                origin: o,
+                ..
+            })) => assert_eq!(&o, origin),
+            other => panic!("{origin:?}: expected the exposure error, got {other:?}"),
+        }
+    }
+    assert_eq!(s.world().rev, rev, "nothing was submitted");
+    assert!(!root.exists(), "nothing was written");
+    // What a dialog shows before anyone confirms: judged without the origin, and it writes nothing.
+    let plan = s
+        .judge_release(LABEL, &integrity, &options(&NoGit, Some(&root)))
+        .expect("the release would pass");
+    assert_eq!(plan.archive, root.join("V1.0.ewarchive"));
+    assert!(!root.exists());
+    let released = s
+        .release_as(
+            &Origin::Gui,
+            &context(),
+            &integrity,
+            &options(&NoGit, Some(&root)),
+        )
+        .expect("the confirmed submission releases");
+    assert_eq!(revision(&s).state, RevisionState::Released);
+    assert!(released.archive.exists());
+    s.close();
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+/// The two shipped forms a report block needs (the frame without the grid and the title block it names).
+fn shipped_report_forms() -> (serde_json::Value, serde_json::Value) {
+    let frame: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"
+    ))
+    .expect("the frame form");
+    let title: serde_json::Value =
+        serde_json::from_str(include_str!("../../../content/forms/ew.titleblock.qet-a4.json"))
+            .expect("the title block");
+    (frame, title)
+}
+
+/// RU-1 and RU-2 (D14, FR-REV-010, FR-REV-011): the archive of a release opens read-only from memory with its
+/// release context; the PDF exported from its `project/` is byte-equal to the archived `pdf/` entry, and the report rows
+/// re-derived from `project/` equal the frozen `reports/` entries. A copy of the release fixture gets a parts list on
+/// 901 first (the fixture itself is unchanged), so that the archive holds report rows.
+#[test]
+fn ru1_ru2_the_archive_reproduces_its_pdf_and_its_report_rows() {
+    let base = ew_testdir::fresh_dir("ew-release-ru1");
+    let dir = base.join("release-min");
+    let state = base.join("state");
+    copy_dir(&fixture(), &dir);
+    let (mut s, integrity) = open(&dir, &state);
+    let (frame, title) = shipped_report_forms();
+    run(
+        &mut s,
+        "report_block.create",
+        serde_json::json!({"source": {"kind": "parts_summary"}, "form": frame["id"].clone(),
+            "form_copies": [frame, title], "first_folio": 901, "title": "Partlist {n}"}),
+    );
+    s.save().expect("the report block saves");
+    approve(&mut s, &integrity);
+    let root = base.join("archives");
+    let released = s
+        .release(&context(), &integrity, &options(&NoGit, Some(&root)))
+        .expect("released");
+    s.close();
+
+    let opened = Session::open_archive(&released.archive, "wp-s1-18-part5").expect("the archive opens");
+    assert_eq!(opened.context, context(), "the release context of ARCHIVE.json");
+    assert_eq!(opened.generation, released.generation);
+    assert_eq!(opened.revision, released.revision);
+    assert!(
+        opened
+            .session
+            .store()
+            .is_some_and(|st| !matches!(st.access(), ew_api::Access::Edit)),
+        "read-only"
+    );
+    // RU-1: the PDF.
+    let (name, archived) = opened.archived_pdf().expect("the archived PDF");
+    assert_eq!(name, "pdf/RM-001_V1.0.pdf");
+    let (again_name, again) = opened
+        .export_pdf(Parallelism::Serial)
+        .expect("the PDF re-exports");
+    assert_eq!(again_name, name);
+    assert!(
+        again == archived,
+        "the re-exported PDF is byte-equal to the archived one"
+    );
+    // RU-2: the report rows.
+    let frozen = opened.archived_reports();
+    assert!(!frozen.is_empty(), "the archive holds the parts list's rows");
+    let derived = opened.derived_reports();
+    assert_eq!(
+        derived.keys().map(String::as_str).collect::<Vec<_>>(),
+        frozen.keys().copied().collect::<Vec<_>>()
+    );
+    for (path, rows) in &derived {
+        assert!(
+            frozen[path.as_str()] == rows.as_slice(),
+            "{path} equals the frozen rows"
+        );
+        assert!(
+            String::from_utf8_lossy(rows).contains("EW-GEN-MCB-1"),
+            "{path} lists the fixture's breaker"
+        );
+    }
+    drop(opened);
+    // A damaged archive is refused, never opened.
+    let mut bytes = std::fs::read(&released.archive).expect("the archive");
+    let at = bytes.len() / 2;
+    bytes[at] ^= 0xff;
+    let damaged = base.join("damaged.ewarchive");
+    std::fs::write(&damaged, &bytes).expect("written");
+    assert!(matches!(
+        Session::open_archive(&damaged, "wp-s1-18-part5"),
+        Err(ew_api::ArchiveOpenError::Archive(_))
+    ));
+    let _ = std::fs::remove_dir_all(&base);
 }

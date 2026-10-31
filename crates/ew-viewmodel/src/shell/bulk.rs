@@ -22,7 +22,7 @@
 use std::collections::BTreeSet;
 
 use ew_api::output::Uuid;
-use ew_api::{AnyCommand, Origin, PurgeError, Submit};
+use ew_api::{AnyCommand, PurgeError, Submit};
 use serde_json::{Map, Value, json};
 
 use super::creation::{FormDialog, FormField};
@@ -284,7 +284,11 @@ impl ShellModel {
             name: name.to_owned(),
             params: params.clone(),
         };
-        let submit = Submit::from(super::mode_origin(self.mode, &self.origin_file));
+        let submit = Submit::from(super::ShellModel::origin_of(
+            self.mode,
+            self.person,
+            &self.origin_file,
+        ));
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Done;
@@ -690,6 +694,14 @@ impl ShellModel {
             let assets = plan.remove.iter().map(|f| f.sha256.to_string()).collect();
             return self.open_dialog(Dialog::ConfirmPurge { files, assets });
         }
+        // Cycle 41, ruling 4 ("the purge's origin"): judged per submission like the revision steps' (ruling 1). A
+        // window no person drives (the visual driver) opens and frames the confirmation, but its confirm is refused,
+        // and the purge commits from `self.origin()`, never a hard-coded GUI origin.
+        if !self.person {
+            return Outcome::Refused {
+                reason_key: "reason-human-only",
+            };
+        }
         // `confirm` purges exactly the files the open confirmation lists; without it nothing is purged (an empty
         // `project.assets.purge` would remove every purgeable file unconfirmed; R1-5 of cycle 31).
         let Some(Dialog::ConfirmPurge { assets, .. }) = &self.dialog else {
@@ -701,6 +713,7 @@ impl ShellModel {
             name: "project.assets.purge".to_owned(),
             params: json!({ "assets": assets }),
         };
+        let origin = self.origin();
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Done;
@@ -708,7 +721,7 @@ impl ShellModel {
         bump(calls, |c| c.preview_with += 1);
         let result = project
             .session
-            .preview_with(&cmd, Submit::from(Origin::Gui))
+            .preview_with(&cmd, Submit::from(origin))
             .and_then(|preview| {
                 bump(calls, |c| c.commit += 1);
                 project.session.commit(preview)

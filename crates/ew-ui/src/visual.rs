@@ -715,7 +715,10 @@ impl Driver {
                 })
             }
         };
-        let mut shell = ShellModel::new(Mode::Gui, config.clone());
+        // Cycle 41, ruling 1: the visual driver lays out and frames the window, but a script drives it, never a person:
+        // its shell submits from the script's origin, so every `HumanOnly` confirm (a release, an approval, a purge)
+        // is refused while the dialogs still open, fill and frame.
+        let mut shell = ShellModel::new_scripted(config.clone());
         // The fixed rendering inputs (spec §3.1), before the log is on: they are the driver's, not an input's.
         for (key, value) in [
             ("language", "en"),

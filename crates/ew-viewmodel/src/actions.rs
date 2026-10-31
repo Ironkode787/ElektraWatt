@@ -124,6 +124,8 @@ pub enum Submenu {
     CommandTab,
     /// Draw, Connect, Bond: one item per bond kind of `bond.create` (G-PP triage row 7).
     Bond,
+    /// Check, Revision: Approve, Release, Withdraw, Set author and the incomplete release (WP-S1.18 part 5).
+    Revision,
 }
 
 impl Submenu {
@@ -142,6 +144,7 @@ impl Submenu {
             Submenu::WireMarkers => "submenu-wire-markers",
             Submenu::Bond => "submenu-bond",
             Submenu::CommandTab => "submenu-command-tab",
+            Submenu::Revision => "submenu-revision",
         }
     }
 }
@@ -237,6 +240,36 @@ fn writable(m: &ShellModel) -> Result<(), &'static str> {
         Ok(())
     } else {
         Err("reason-read-only")
+    }
+}
+
+/// WP-S1.18 part 5: the project can be written and has an open revision (Approve, Release, Set author).
+fn open_revision(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    if m.open_revision_label().is_some() {
+        Ok(())
+    } else {
+        Err("reason-no-open-revision")
+    }
+}
+
+/// WP-S1.18 part 5: the project can be written and has a released revision that is not withdrawn (Withdraw).
+fn released_revision(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    if m.released_labels().is_empty() {
+        Err("reason-no-released-revision")
+    } else {
+        Ok(())
+    }
+}
+
+/// WP-S1.18 part 5: an incomplete release was found when the project opened and is not settled yet.
+fn incomplete_release(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    if m.has_incomplete_release() {
+        Ok(())
+    } else {
+        Err("reason-no-incomplete-release")
     }
 }
 
@@ -2872,6 +2905,68 @@ pub static ACTIONS: &[ActionMeta] = &[
             slot_sep(Menu::Project),
         ),
     ),
+    // WP-S1.18 part 5 (§9): Check ▸ Revision, the revision dialogs; each answered by its own action with parameters
+    // (`confirm` submits the `HumanOnly` command, only from the window a person drives: cycle 41, ruling 1).
+    with_params(
+        "role?:text, typed?:text, date?:text, confirm?:bool, cancel?:bool",
+        act(
+            "revision.approve",
+            Command,
+            "action-revision-approve",
+            Menu::Check,
+            &[],
+            open_revision,
+            sub(Menu::Check, Submenu::Revision, true),
+        ),
+    ),
+    with_params(
+        "typed?:text, git?:bool, date?:text, confirm?:bool, cancel?:bool",
+        act(
+            "revision.release",
+            Command,
+            "action-revision-release",
+            Menu::Check,
+            &[],
+            open_revision,
+            sub(Menu::Check, Submenu::Revision, true),
+        ),
+    ),
+    with_params(
+        "revision?:text, reason?:text, confirm?:bool, cancel?:bool",
+        act(
+            "revision.withdraw",
+            Command,
+            "action-revision-withdraw",
+            Menu::Check,
+            &[],
+            released_revision,
+            sub(Menu::Check, Submenu::Revision, true),
+        ),
+    ),
+    with_params(
+        "role?:text, confirm?:bool, cancel?:bool",
+        act(
+            "revision.set_author",
+            Command,
+            "action-revision-set-author",
+            Menu::Check,
+            &[],
+            open_revision,
+            sub(Menu::Check, Submenu::Revision, true),
+        ),
+    ),
+    with_params(
+        "how?:enum(complete|discard), confirm?:bool, cancel?:bool",
+        act(
+            "revision.incomplete",
+            Command,
+            "action-revision-incomplete",
+            Menu::Check,
+            &[],
+            incomplete_release,
+            sub(Menu::Check, Submenu::Revision, true),
+        ),
+    ),
     act(
         "tab.new",
         View,
@@ -4945,7 +5040,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             }
             items
         }
-        Submenu::Pan => metas.iter().map(|m| item_of(m, model)).collect(),
+        Submenu::Pan | Submenu::Revision => metas.iter().map(|m| item_of(m, model)).collect(),
         Submenu::Workspace => {
             let active = model.workspace();
             let mut items = Vec::new();
@@ -5288,6 +5383,7 @@ mod tests {
             Submenu::Graphic,
             Submenu::WireMarkers,
             Submenu::Bond,
+            Submenu::Revision,
         ] {
             assert!(strings::lookup(s.label_key()).is_some());
         }

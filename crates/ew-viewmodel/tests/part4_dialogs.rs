@@ -286,6 +286,12 @@ const OPENS_INPUT: &[&str] = &[
     // WP-S2.07 part 4a (D19, D20): Choose part… and Edit part… open the part dialog and the part editor.
     "part.choose",
     "part.edit",
+    // WP-S1.18 part 5: the revision dialogs of Check > Revision and the incomplete-release offer.
+    "revision.approve",
+    "revision.release",
+    "revision.withdraw",
+    "revision.set_author",
+    "revision.incomplete",
 ];
 
 #[test]

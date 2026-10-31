@@ -62,7 +62,7 @@ use crate::output::{
     ExportOptions, OutputError, Parallelism, PdfDate, changed_pages, page_digests, page_uuid,
 };
 use crate::release::{FOUR_EYES_RULE, Gate, GateError};
-use crate::{AnyCommand, CmdError, Origin, Session, Sha256, Submit, checks};
+use crate::{AnyCommand, CmdError, OpenError, OpenReport, Origin, Session, Sha256, Submit, checks};
 
 /// The release context (doc 05 §14.1 step 4): the label of the open revision and the release date. The archive is
 /// built from generation g plus this context only, so the same saved state and context give the same bytes (RA-5).
@@ -173,6 +173,163 @@ pub struct Discarded {
     /// The tag `ew/rev/<label>` kept: it exists, but its message does not carry both the archive's SHA-256 and the
     /// crashed run's mark (another release's, another copy's in the same repository, or someone else's).
     pub tag_kept: Option<String>,
+}
+
+/// An as-built archive opened for reproduction (D14, FR-REV-010; [`Session::open_archive`]): `project/` as a read-only
+/// session in memory, with the release context and the archive's other entries.
+pub struct OpenedArchive {
+    /// The archived generation as a read-only session (no lock, no journal, no state directory).
+    pub session: Session,
+    /// What opening `project/` found.
+    pub report: OpenReport,
+    /// The release context of `ARCHIVE.json`: the label and the release date.
+    pub context: ReleaseContext,
+    /// The archived generation g.
+    pub generation: u64,
+    /// The released revision `ARCHIVE.json` names.
+    pub revision: Id<Revision>,
+    /// Every entry of the archive by path.
+    entries: BTreeMap<String, Vec<u8>>,
+}
+
+impl fmt::Debug for OpenedArchive {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("OpenedArchive")
+            .field("context", &self.context)
+            .field("generation", &self.generation)
+            .field("revision", &self.revision)
+            .finish_non_exhaustive()
+    }
+}
+
+impl OpenedArchive {
+    /// The archive's entry at `path` (`pdf/RM-001_V1.0.pdf`), if it has one.
+    pub fn entry(&self, path: &str) -> Option<&[u8]> {
+        self.entries.get(path).map(Vec::as_slice)
+    }
+
+    /// The archived PDF (the one `pdf/` entry) with its path.
+    pub fn archived_pdf(&self) -> Option<(&str, &[u8])> {
+        self.entries
+            .iter()
+            .find(|(p, _)| p.starts_with("pdf/"))
+            .map(|(p, d)| (p.as_str(), d.as_slice()))
+    }
+
+    /// The archived report rows (`reports/*.csv`) by path.
+    pub fn archived_reports(&self) -> BTreeMap<&str, &[u8]> {
+        self.entries
+            .iter()
+            .filter(|(p, _)| p.starts_with("reports/"))
+            .map(|(p, d)| (p.as_str(), d.as_slice()))
+            .collect()
+    }
+
+    /// The PDF re-exported from `project/` with the release context (RU-1: equal to [`OpenedArchive::archived_pdf`]),
+    /// with its path in the archive's layout.
+    ///
+    /// # Errors
+    ///
+    /// [`OutputError`] when the PDF cannot be written.
+    pub fn export_pdf(&self, parallelism: Parallelism) -> Result<(String, Vec<u8>), OutputError> {
+        self.session.archived_pdf(&self.context, parallelism)
+    }
+
+    /// The report rows re-derived from `project/` (RU-2: equal to [`OpenedArchive::archived_reports`]), by path.
+    pub fn derived_reports(&self) -> BTreeMap<String, Vec<u8>> {
+        self.session.archived_reports()
+    }
+}
+
+/// Why an archive could not be opened for reproduction.
+#[derive(Debug)]
+pub enum ArchiveOpenError {
+    /// The file could not be read.
+    Io(std::io::Error),
+    /// The file is larger than an archive reader accepts (doc 05 §12: 2 GiB).
+    TooLarge {
+        /// Its size in bytes.
+        len: u64,
+    },
+    /// The container, the layout or the sums are wrong, or `project/` differs from its manifest.
+    Archive(ArchiveError),
+    /// `ARCHIVE.json` is missing or does not read.
+    Description,
+    /// `project/` does not open.
+    Open(OpenError),
+}
+
+impl fmt::Display for ArchiveOpenError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ArchiveOpenError::Io(e) => write!(f, "the archive could not be read: {e}"),
+            ArchiveOpenError::TooLarge { len } => write!(
+                f,
+                "the archive holds {len} bytes, more than an archive may (2 GiB); it was not read"
+            ),
+            ArchiveOpenError::Archive(e) => e.fmt(f),
+            ArchiveOpenError::Description => {
+                f.write_str("the archive has no readable ARCHIVE.json, so it names no release")
+            }
+            ArchiveOpenError::Open(e) => write!(f, "the archived project does not open: {e:?}"),
+        }
+    }
+}
+
+impl std::error::Error for ArchiveOpenError {}
+
+/// What went wrong in a release's housekeeping ([`ReleaseTrouble`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TroubleKind {
+    /// A run record of this project directory could not be removed (its path is the record's).
+    RecordNotRemoved,
+    /// The folder of the run records could not be read (its path is the folder's).
+    RecordsNotRead,
+    /// The run record could not be updated with the written archive's modification time, so a discard after a crash
+    /// keeps the archive (its path is the archive's).
+    RecordNotUpdated,
+}
+
+/// One piece of a release's housekeeping trouble ([`Session::take_release_troubles`], FT-842): what happened, the
+/// file it concerns and the error. Its `Display` is the text the CLI prints (with the full path); a window shows
+/// [`ReleaseTrouble::file_name`] only.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ReleaseTrouble {
+    /// What happened.
+    pub what: TroubleKind,
+    /// The file or folder it concerns, in full.
+    pub path: PathBuf,
+    /// The error, in words.
+    pub error: String,
+}
+
+impl ReleaseTrouble {
+    /// The last component of [`ReleaseTrouble::path`]: the file or folder name, never its path.
+    pub fn file_name(&self) -> String {
+        self.path.file_name().map_or_else(
+            || self.path.display().to_string(),
+            |n| n.to_string_lossy().into_owned(),
+        )
+    }
+}
+
+impl fmt::Display for ReleaseTrouble {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let (path, error) = (self.path.display(), &self.error);
+        match self.what {
+            TroubleKind::RecordNotRemoved => {
+                write!(f, "the release record {path} could not be removed: {error}")
+            }
+            TroubleKind::RecordsNotRead => {
+                write!(f, "the release records in {path} could not be read: {error}")
+            }
+            TroubleKind::RecordNotUpdated => write!(
+                f,
+                "the release record of {path} could not be updated with the archive's time, so a discard after a crash \
+                 keeps the archive: {error}"
+            ),
+        }
+    }
 }
 
 /// Why a release (or settling an incomplete one) was refused or failed.
@@ -416,6 +573,17 @@ fn tag_of_run(message: &str, run: &str) -> bool {
     message.lines().any(|l| l.trim() == line)
 }
 
+/// Refuses an origin that may not release (`revision.release` is `HumanOnly`: the GUI, a confirmed CLI subcommand).
+fn human_only(origin: &Origin) -> Result<(), ReleaseError> {
+    if ReleaseRevision::meta().exposure.allows(origin) {
+        Ok(())
+    } else {
+        Err(ReleaseError::HumanOnly {
+            origin: origin.clone(),
+        })
+    }
+}
+
 /// The project's ID: what an archive's `ARCHIVE.json` must name to be this project's.
 fn project_id(session: &Session) -> String {
     session.query().project().id.to_string()
@@ -515,17 +683,19 @@ impl Session {
 
     /// Keeps a failed removal of the release record `path` for the front-end.
     fn release_trouble(&self, path: &Path, error: &std::io::Error) {
-        self.release_troubles.borrow_mut().push(format!(
-            "the release record {} could not be removed: {error}",
-            path.display()
-        ));
+        self.release_troubles.borrow_mut().push(ReleaseTrouble {
+            what: TroubleKind::RecordNotRemoved,
+            path: path.to_path_buf(),
+            error: error.to_string(),
+        });
     }
 
     /// The release's housekeeping trouble since the last call, in words, oldest first: a run record of this project
     /// directory that could not be removed (when a release is settled, or when a stale one is removed as the project
     /// opens or [`Session::incomplete_release`] looks). Nothing is lost by it (a record only allows a discard of what
-    /// matches it exactly); the front-end shows each as a warning.
-    pub fn take_release_troubles(&self) -> Vec<String> {
+    /// matches it exactly); the front-end shows each as a warning (the CLI its `Display` text, the window its words
+    /// with the file name only, FT-842).
+    pub fn take_release_troubles(&self) -> Vec<ReleaseTrouble> {
         std::mem::take(&mut *self.release_troubles.borrow_mut())
     }
 
@@ -546,10 +716,11 @@ impl Session {
         let records = match archive::run_records_of(vfs, state, &project_dir) {
             Ok(records) => records,
             Err(e) => {
-                self.release_troubles.borrow_mut().push(format!(
-                    "the release records in {} could not be read: {e}",
-                    state.join(archive::RUNS_DIR).display()
-                ));
+                self.release_troubles.borrow_mut().push(ReleaseTrouble {
+                    what: TroubleKind::RecordsNotRead,
+                    path: state.join(archive::RUNS_DIR),
+                    error: e.to_string(),
+                });
                 return;
             }
         };
@@ -646,12 +817,40 @@ impl Session {
         integrity: &[checks::IntegrityItem],
         options: &ReleaseOptions<'_>,
     ) -> Result<ReleasePlan, ReleaseError> {
-        let exposure = ReleaseRevision::meta().exposure;
-        if !exposure.allows(&self.submit_origin) {
-            return Err(ReleaseError::HumanOnly {
-                origin: self.submit_origin.clone(),
-            });
-        }
+        self.release_plan_as(&self.submit_origin.clone(), label, integrity, options)
+    }
+
+    /// [`Session::release_plan`] for a submission from `origin` (cycle 41, ruling 1: the `HumanOnly` gate is judged per
+    /// submission, by the origin of the one that asks, never by the session's): the window passes `Origin::Gui` only
+    /// for a dialog a person confirmed at the window, and a scripted origin is refused here.
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::release_plan`], [`ReleaseError::HumanOnly`] judged by `origin`.
+    pub fn release_plan_as(
+        &self,
+        origin: &Origin,
+        label: &str,
+        integrity: &[checks::IntegrityItem],
+        options: &ReleaseOptions<'_>,
+    ) -> Result<ReleasePlan, ReleaseError> {
+        human_only(origin)?;
+        self.judge_release(label, integrity, options)
+    }
+
+    /// What a release of the open revision `label` would do, judged without writing anything and without the origin's
+    /// check (a dialog shows it before anyone confirms): the gate, which must pass, the archive, the worktree and its
+    /// tag. The release itself judges again, from the origin that asks ([`Session::release_plan_as`]).
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::release_plan`] but for the origin.
+    pub fn judge_release(
+        &self,
+        label: &str,
+        integrity: &[checks::IntegrityItem],
+        options: &ReleaseOptions<'_>,
+    ) -> Result<ReleasePlan, ReleaseError> {
         let gate = self.release_gate(label, integrity).map_err(ReleaseError::Gate)?;
         if !matches!(
             self.store().map(ew_store::Store::access),
@@ -717,20 +916,39 @@ impl Session {
         integrity: &[checks::IntegrityItem],
         options: &ReleaseOptions<'_>,
     ) -> Result<Released, ReleaseError> {
-        self.release_with(ctx, integrity, options, &[])
+        let origin = self.submit_origin.clone();
+        self.release_with(&origin, ctx, integrity, options, &[])
     }
 
-    /// [`Session::release`] with the freeze transactions of step 2 (the seam of the digest assertion's test; at MVP
+    /// [`Session::release`] for a submission from `origin` (cycle 41, ruling 1: judged per submission; see
+    /// [`Session::release_plan_as`]). Every transaction of the release (the freeze, the stamp) is submitted from
+    /// `origin`.
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::release`], [`ReleaseError::HumanOnly`] judged by `origin`.
+    pub fn release_as(
+        &mut self,
+        origin: &Origin,
+        ctx: &ReleaseContext,
+        integrity: &[checks::IntegrityItem],
+        options: &ReleaseOptions<'_>,
+    ) -> Result<Released, ReleaseError> {
+        self.release_with(origin, ctx, integrity, options, &[])
+    }
+
+    /// [`Session::release_as`] with the freeze transactions of step 2 (the seam of the digest assertion's test; at MVP
     /// the release freezes nothing).
     pub(crate) fn release_with(
         &mut self,
+        origin: &Origin,
         ctx: &ReleaseContext,
         integrity: &[checks::IntegrityItem],
         options: &ReleaseOptions<'_>,
         freeze: &[AnyCommand],
     ) -> Result<Released, ReleaseError> {
         // Step 1: the gate and every refusal that needs no write.
-        let plan = self.release_plan(&ctx.label, integrity, options)?;
+        let plan = self.release_plan_as(origin, &ctx.label, integrity, options)?;
         if let (Some((worktree, tag)), false) = (&plan.git, options.git_consent) {
             return Err(ReleaseError::GitConsent {
                 worktree: worktree.clone(),
@@ -742,9 +960,9 @@ impl Session {
         let before = page_digests(&self.query(), parallelism);
         let mut frozen = 0;
         for cmd in freeze {
-            let submit = Submit::from(self.submit_origin.clone());
+            let submit = Submit::from(origin.clone());
             if let Err(e) = self.execute_with(cmd, submit) {
-                self.undo_freeze(frozen);
+                self.undo_freeze(origin, frozen);
                 return Err(ReleaseError::Freeze(e));
             }
             frozen += 1;
@@ -760,7 +978,7 @@ impl Session {
                     .collect::<BTreeSet<_>>()
                     .into_iter()
                     .collect();
-                self.undo_freeze(frozen);
+                self.undo_freeze(origin, frozen);
                 return Err(ReleaseError::FreezeChangesPages { pages });
             }
             self.save().map_err(ReleaseError::Save)?;
@@ -803,11 +1021,11 @@ impl Session {
         let run_record = written.run_record.clone();
         if let Some(e) = &written.record_trouble {
             // FIX40b (finding 2): the archive is kept; only the discard evidence after a crash is lost.
-            self.release_troubles.borrow_mut().push(format!(
-                "the release record of {} could not be updated with the archive's time, so a discard after a crash \
-                 keeps the archive: {e}",
-                written.path.display()
-            ));
+            self.release_troubles.borrow_mut().push(ReleaseTrouble {
+                what: TroubleKind::RecordNotUpdated,
+                path: written.path.clone(),
+                error: e.to_string(),
+            });
         }
         // Step 5: the tag.
         if let Some((_, tag)) = &plan.git {
@@ -823,7 +1041,7 @@ impl Session {
         }
         // Step 6: the stamp.
         let tag = plan.git.as_ref().map(|(_, t)| t.clone());
-        let stamped = self.stamp(&plan.gate, &record, &written.path, sha256, tag.as_deref());
+        let stamped = self.stamp(origin, &plan.gate, &record, &written.path, sha256, tag.as_deref());
         let (stamped, save_incomplete) = match stamped {
             Ok(s) => {
                 self.remove_run_record(run_record.as_deref());
@@ -858,10 +1076,9 @@ impl Session {
     }
 
     /// Undoes the last `n` freeze transactions (an aborted release).
-    fn undo_freeze(&mut self, n: usize) {
-        let origin = self.submit_origin.clone();
+    fn undo_freeze(&mut self, origin: &Origin, n: usize) {
         for _ in 0..n {
-            let _ = self.undo(&origin);
+            let _ = self.undo(origin);
         }
         // The freeze ran on the saved generation (the gate needs one): undone, the model is that generation again, so
         // its keys leave the dirty set and the content digest is the saved one again.
@@ -927,6 +1144,53 @@ impl Session {
         }
     }
 
+    /// The archive's PDF entry (doc 05 §14.2): its path `pdf/<drawing id>_<label>.pdf` and the PDF/A-2b of the current
+    /// snapshot dated with the release context. [`Session::open_archive`]'s reproduction calls the same function on the
+    /// archived `project/` (D14, RU-1).
+    fn archived_pdf(
+        &self,
+        ctx: &ReleaseContext,
+        parallelism: Parallelism,
+    ) -> Result<(String, Vec<u8>), OutputError> {
+        let q = self.query();
+        let drawing = q
+            .project()
+            .master
+            .drawing_id
+            .as_ref()
+            .or(q.project().master.object_id.as_ref())
+            .map_or_else(|| "project".to_owned(), |d| d.as_str().to_owned());
+        let pdf = self.export_pdf(&ExportOptions {
+            parallelism,
+            date: Some(PdfDate::ymd(ctx.date.year(), ctx.date.month(), ctx.date.day())),
+            ..ExportOptions::default()
+        })?;
+        Ok((
+            format!(
+                "pdf/{}_{}.pdf",
+                archive::sanitise(&drawing),
+                archive::sanitise(&ctx.label)
+            ),
+            pdf.bytes,
+        ))
+    }
+
+    /// The archive's frozen report rows (FR-REV-011): `reports/<report-block id>.csv` of every report block of the
+    /// current snapshot. [`OpenedArchive::derived_reports`] calls it on the archived `project/` (D14, RU-2).
+    fn archived_reports(&self) -> BTreeMap<String, Vec<u8>> {
+        let q = self.query();
+        q.report_blocks()
+            .ids()
+            .map(|block| {
+                let rows = ew_reports::rows_of(&q, block);
+                (
+                    format!("reports/{block}.csv"),
+                    ew_reports::csv::rows_csv(&q, &rows).into_bytes(),
+                )
+            })
+            .collect()
+    }
+
     /// The archive's bytes (doc 05 §14.2, D11) from generation g read back from disk and the release context, with the
     /// manifest and its bytes the verification checks `project/` against.
     #[allow(clippy::type_complexity)]
@@ -948,37 +1212,11 @@ impl Session {
         for (path, bytes) in g.files {
             entries.insert(format!("{}{path}", archive::PROJECT_PREFIX), bytes);
         }
-        let q = self.query();
-        let drawing = q
-            .project()
-            .master
-            .drawing_id
-            .as_ref()
-            .or(q.project().master.object_id.as_ref())
-            .map_or_else(|| "project".to_owned(), |d| d.as_str().to_owned());
-        let pdf = self
-            .export_pdf(&ExportOptions {
-                parallelism,
-                date: Some(PdfDate::ymd(ctx.date.year(), ctx.date.month(), ctx.date.day())),
-                ..ExportOptions::default()
-            })
+        let (pdf_name, pdf) = self
+            .archived_pdf(ctx, parallelism)
             .map_err(ReleaseError::Output)?;
-        entries.insert(
-            format!(
-                "pdf/{}_{}.pdf",
-                archive::sanitise(&drawing),
-                archive::sanitise(&ctx.label)
-            ),
-            pdf.bytes,
-        );
-        let blocks: Vec<_> = q.report_blocks().ids().collect();
-        for block in blocks {
-            let rows = ew_reports::rows_of(&q, block);
-            entries.insert(
-                format!("reports/{block}.csv"),
-                ew_reports::csv::rows_csv(&q, &rows).into_bytes(),
-            );
-        }
+        entries.insert(pdf_name, pdf);
+        entries.extend(self.archived_reports());
         let mut check = checks::report::to_json(&gate.report);
         if let Some(o) = check.as_object_mut() {
             o.insert(
@@ -1011,6 +1249,7 @@ impl Session {
     /// (the save holds it) and marked saved. Returns the generation and whether the save is incomplete.
     fn stamp(
         &mut self,
+        origin: &Origin,
         gate: &Gate,
         record: &ReleaseRecord,
         archive: &Path,
@@ -1049,7 +1288,7 @@ impl Session {
             archive: ReleasedArchive { name, sha256 },
             git_tag: tag.and_then(|t| t.parse().ok()),
         };
-        let submit = Submit::from(self.submit_origin.clone());
+        let submit = Submit::from(origin.clone());
         let preview = self
             .engine
             .preview_with(&cmd, submit)
@@ -1225,7 +1464,22 @@ impl Session {
         &mut self,
         options: &ReleaseOptions<'_>,
     ) -> Result<Discarded, ReleaseError> {
-        self.settle_guard()?;
+        let origin = self.submit_origin.clone();
+        self.discard_incomplete_release_as(&origin, options)
+    }
+
+    /// [`Session::discard_incomplete_release`] for a submission from `origin` (cycle 41, ruling 1: judged per
+    /// submission).
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::discard_incomplete_release`], [`ReleaseError::HumanOnly`] judged by `origin`.
+    pub fn discard_incomplete_release_as(
+        &mut self,
+        origin: &Origin,
+        options: &ReleaseOptions<'_>,
+    ) -> Result<Discarded, ReleaseError> {
+        self.settle_guard(origin)?;
         let found = self
             .incomplete_release(options.archive_root)?
             .ok_or(ReleaseError::NoIncomplete)?;
@@ -1306,7 +1560,23 @@ impl Session {
         integrity: &[checks::IntegrityItem],
         options: &ReleaseOptions<'_>,
     ) -> Result<Released, ReleaseError> {
-        self.settle_guard()?;
+        let origin = self.submit_origin.clone();
+        self.complete_release_as(&origin, integrity, options)
+    }
+
+    /// [`Session::complete_release`] for a submission from `origin` (cycle 41, ruling 1: judged per submission); the
+    /// stamp is submitted from `origin`.
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::complete_release`], [`ReleaseError::HumanOnly`] judged by `origin`.
+    pub fn complete_release_as(
+        &mut self,
+        origin: &Origin,
+        integrity: &[checks::IntegrityItem],
+        options: &ReleaseOptions<'_>,
+    ) -> Result<Released, ReleaseError> {
+        self.settle_guard(origin)?;
         let found = self
             .incomplete_release(options.archive_root)?
             .ok_or(ReleaseError::NoIncomplete)?;
@@ -1382,6 +1652,7 @@ impl Session {
         let mut record = record;
         record.git_tag = git_done.as_ref().and_then(|(_, t)| t.parse().ok());
         let stamped = self.stamp(
+            origin,
             &gate,
             &record,
             &found.archive,
@@ -1417,13 +1688,83 @@ impl Session {
         })
     }
 
-    /// The guard of settling an incomplete release: a human origin and the write lock.
-    fn settle_guard(&self) -> Result<(), ReleaseError> {
-        if !ReleaseRevision::meta().exposure.allows(&self.submit_origin) {
-            return Err(ReleaseError::HumanOnly {
-                origin: self.submit_origin.clone(),
-            });
+    /// Opens an as-built archive for reproduction (doc 05 §14.3; WP-S1.18 D14, FR-REV-010): the file is read whole
+    /// (refused above 2 GiB) and checked as the release checks it (the layout, `SHA256SUMS`, and `project/` against its
+    /// own manifest), then `project/` opens read-only from memory (no lock, no journal, no state directory) with the
+    /// release context of `ARCHIVE.json`. Exporting its PDF with that context gives the archived PDF's bytes
+    /// ([`OpenedArchive::export_pdf`]), and its report rows equal the frozen `reports/` ([`OpenedArchive::derived_reports`]).
+    /// `app_version` names the program in the store's diagnostics.
+    ///
+    /// # Errors
+    ///
+    /// [`ArchiveOpenError`]: the file, its size, the archive, `ARCHIVE.json`, the project.
+    pub fn open_archive(path: &Path, app_version: &str) -> Result<OpenedArchive, ArchiveOpenError> {
+        use ew_store::mem::{DirSync, MemVfs};
+        let limits = ZipLimits {
+            // Bounded by the expanded sizes (2 GiB, 512 MiB per entry); the archive's own text compresses better than
+            // 200 : 1, as the release's verification allows.
+            max_ratio: u64::MAX,
+            ..ZipLimits::default()
+        };
+        let disk = ew_store::OsVfs;
+        let len = disk.stat(path).map_err(ArchiveOpenError::Io)?.len;
+        if len > limits.max_total_bytes {
+            return Err(ArchiveOpenError::TooLarge { len });
         }
+        let bytes = disk.read(path).map_err(ArchiveOpenError::Io)?;
+        let entries = archive::read(&bytes, &limits).map_err(ArchiveOpenError::Archive)?;
+        let (_, revision, date, generation, _) = entries
+            .get(archive::DESCRIPTION_ENTRY)
+            .and_then(|b| archive_facts(b))
+            .ok_or(ArchiveOpenError::Description)?;
+        let label = serde_json::from_slice::<serde_json::Value>(&entries[archive::DESCRIPTION_ENTRY])
+            .ok()
+            .and_then(|v| Some(v.get("context")?.get("label")?.as_str()?.to_owned()))
+            .ok_or(ArchiveOpenError::Description)?;
+        let manifest_entry = format!("{}{}", archive::PROJECT_PREFIX, ew_store::ew_format::MANIFEST);
+        let manifest_bytes = entries.get(&manifest_entry).ok_or_else(|| {
+            ArchiveOpenError::Archive(ArchiveError::Layout(format!("no `{manifest_entry}`")))
+        })?;
+        let manifest =
+            ew_store::ew_format::Manifest::parse(manifest_bytes, &ew_store::ew_format::Limits::default())
+                .map_err(|e| {
+                    ArchiveOpenError::Archive(ArchiveError::Layout(format!("`{manifest_entry}`: {e:?}")))
+                })?;
+        archive::check_project(&entries, &manifest, manifest_bytes).map_err(ArchiveOpenError::Archive)?;
+        let root = Path::new("/archive");
+        let vfs = std::sync::Arc::new(MemVfs::new(DirSync::Explicit));
+        vfs.put_dir(root);
+        for (name, data) in &entries {
+            if let Some(rel) = name.strip_prefix(archive::PROJECT_PREFIX) {
+                vfs.put(&root.join(rel), data);
+            }
+        }
+        let mut store = crate::StoreOptions::new(app_version);
+        store.mode = ew_store::OpenMode::ReadOnly;
+        store.state_dir = None;
+        store.vfs = vfs;
+        let options = crate::SessionOptions {
+            origin: Origin::Cli {
+                subcommand: "archive".to_owned(),
+                confirmed: false,
+            },
+            ..crate::SessionOptions::default()
+        };
+        let (session, report) =
+            Session::open(root, store, options, crate::Recovery::Keep).map_err(ArchiveOpenError::Open)?;
+        Ok(OpenedArchive {
+            session,
+            report,
+            context: ReleaseContext { label, date },
+            generation,
+            revision,
+            entries,
+        })
+    }
+
+    /// The guard of settling an incomplete release: a human origin and the write lock.
+    fn settle_guard(&self, origin: &Origin) -> Result<(), ReleaseError> {
+        human_only(origin)?;
         if !matches!(
             self.store().map(ew_store::Store::access),
             Some(crate::Access::Edit)
@@ -1597,7 +1938,7 @@ mod tests {
             "rep.move",
             serde_json::json!({"reps": [rep.to_string()], "delta": [2 * step, 0]}),
         )];
-        match s.release_with(&ctx, &integrity, &options, &moved) {
+        match s.release_with(&Origin::Gui, &ctx, &integrity, &options, &moved) {
             Err(ReleaseError::FreezeChangesPages { pages }) => assert_eq!(pages, [page]),
             other => panic!("expected FreezeChangesPages, got {other:?}"),
         }
@@ -1616,7 +1957,7 @@ mod tests {
             ..options
         };
         assert!(matches!(
-            s.release_with(&ctx, &integrity, &with_tag, &hops),
+            s.release_with(&Origin::Gui, &ctx, &integrity, &with_tag, &hops),
             Err(ReleaseError::Tag(_))
         ));
         assert_eq!(state(&s), RevisionState::Open);
@@ -1630,7 +1971,7 @@ mod tests {
         assert_eq!(s.content_digest().expect("saved").0, signed);
 
         let released = s
-            .release_with(&ctx, &integrity, &options, &hops)
+            .release_with(&Origin::Gui, &ctx, &integrity, &options, &hops)
             .expect("released");
         assert_eq!(released.generation, g + 3, "the freeze's save is generation g");
         let record = s

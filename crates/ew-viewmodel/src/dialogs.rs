@@ -301,6 +301,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 DialogButton::new("dialog-save-workspace", DialogAnswer::Submit),
             )
         },
+        Dialog::Form(form) if form.action.starts_with("revision.") => revision_spec(form, model),
         Dialog::Form(form) => DialogSpec {
             secondary: vec![cancel()],
             form: true,
@@ -310,5 +311,66 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 DialogButton::new(form.ok_key, DialogAnswer::Submit),
             )
         },
+    }
+}
+
+/// WP-S1.18 part 5: the revision dialogs (forms, 0.45 of the window). Approve, Withdraw and Set author: the step is the
+/// Primary, then Cancel. Release (destructive: it cannot be undone): Cancel is the Primary and Release the danger
+/// button. The incomplete-release offer asks a question: Not now is the Primary, Complete release the other button
+/// and Discard archive the danger one, each only where the release allows it. A dialog whose gate blocks shows Close
+/// only. Each confirming button is its action with `confirm` (the window adds the date it reads).
+fn revision_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec {
+    let (body, label, can_confirm) = model
+        .revision_dialog()
+        .map_or((Vec::new(), String::new(), false), |(b, l, c)| {
+            (b.to_vec(), l.to_owned(), c)
+        });
+    let title = strings::format(form.title_key, &[&label]);
+    let confirm =
+        |key: &str| DialogButton::new(key, DialogAnswer::Action(form.action, json!({ "confirm": true })));
+    let base = DialogSpec {
+        asks: title.ends_with('?'),
+        title,
+        body,
+        primary: close(),
+        secondary: Vec::new(),
+        danger: None,
+        form: true,
+    };
+    if form.action == "revision.incomplete" {
+        let (complete, discard) = model.incomplete_choices();
+        let mut secondary = Vec::new();
+        if complete {
+            secondary.push(DialogButton::new(
+                "dialog-complete-release",
+                DialogAnswer::Action(form.action, json!({ "how": "complete", "confirm": true })),
+            ));
+        }
+        return DialogSpec {
+            primary: DialogButton::new("dialog-not-now", DialogAnswer::Dismiss),
+            secondary,
+            danger: discard.then(|| {
+                DialogButton::new(
+                    "dialog-discard-archive",
+                    DialogAnswer::Action(form.action, json!({ "how": "discard", "confirm": true })),
+                )
+            }),
+            ..base
+        };
+    }
+    if !can_confirm {
+        return base;
+    }
+    if form.action == "revision.release" {
+        return DialogSpec {
+            primary: cancel(),
+            danger: Some(confirm(form.ok_key)),
+            ..base
+        };
+    }
+    DialogSpec {
+        primary: confirm(form.ok_key),
+        secondary: vec![cancel()],
+        ..base
     }
 }

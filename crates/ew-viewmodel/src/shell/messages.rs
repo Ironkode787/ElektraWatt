@@ -12,7 +12,7 @@
 
 use ew_api::checks::{CheckMode, FindingState};
 use ew_api::output::NavKind;
-use ew_api::{AnyCommand, Origin, Submit};
+use ew_api::{AnyCommand, Submit};
 use serde_json::{Map, Value};
 
 use super::navigation::{Focus, bump};
@@ -233,19 +233,34 @@ impl ShellModel {
         self.fetch_messages_table();
     }
 
+    /// The Messages table of `project` now: `Session::navigator_table(Messages)` with the release's housekeeping
+    /// warnings of this project session under Warnings ▸ Release (FT-842).
+    pub(super) fn messages_table_of(
+        project: &super::Project,
+        state: &messages::MessagesState,
+    ) -> ew_api::output::NavTable {
+        let notes = state
+            .release_notes
+            .as_ref()
+            .filter(|(epoch, _)| *epoch == project.epoch)
+            .map_or(&[][..], |(_, notes)| notes.as_slice());
+        messages::with_release_notes(project.session.navigator_table(NavKind::Messages), notes)
+    }
+
     /// Fetches the Messages table when it is not of the current revision (one counted `navigator_table` call).
     pub(super) fn fetch_messages_table(&mut self) {
         let rev = self.revision();
         let Some(project) = &self.project else { return };
-        let Some(n) = self.navs.get_mut(&NavKind::Messages) else {
+        let Some(n) = self.navs.get(&NavKind::Messages) else {
             return;
         };
         if n.table().is_some_and(|t| Some(t.rev) == rev) {
             return;
         }
-        n.table = Some(std::sync::Arc::new(
-            project.session.navigator_table(NavKind::Messages),
-        ));
+        let table = Self::messages_table_of(project, &self.messages);
+        if let Some(n) = self.navs.get_mut(&NavKind::Messages) {
+            n.table = Some(std::sync::Arc::new(table));
+        }
         self.messages.scheme = Some(project.session.online_scheme().name);
         bump(&self.calls, |c| c.navigator_table += 1);
     }
@@ -330,7 +345,7 @@ impl ShellModel {
         // from a table fetched for the count alone.
         let counts = self.messages_counts().or_else(|| {
             let project = self.project.as_ref()?;
-            let table = project.session.navigator_table(NavKind::Messages);
+            let table = Self::messages_table_of(project, &self.messages);
             Some(messages::counts(&table, self.editing_folio().as_deref()))
         });
         if let Some(c) = counts {
@@ -610,12 +625,7 @@ impl ShellModel {
             name: name.clone(),
             params: params.clone(),
         };
-        let submit = match self.mode {
-            Mode::Gui => Submit::from(Origin::Gui),
-            Mode::Headless => Submit::from(Origin::CmdLog {
-                file: self.origin_file.clone(),
-            }),
-        };
+        let submit = Submit::from(self.origin());
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Done;

@@ -82,6 +82,8 @@ mod macros;
 pub mod part_dialog;
 // WP-S2.08 part 2: the user's keymap and the keymap editor.
 mod keymaps;
+// WP-S1.18 part 5
+mod revision;
 pub use macros::MacroVariable;
 
 pub use creation::{FormDialog, FormField, FormRow, FormTable, PAGE_TYPES, STRUCTURE_KINDS};
@@ -552,6 +554,14 @@ pub struct ShellModel {
     /// Every `dispatch` since the log was last taken, in call order, while the log is on (a visual run's evidence;
     /// off by default, so the window and the headless runner keep nothing).
     dispatch_log: Option<Vec<DispatchEntry>>,
+    // WP-S1.18 part 5 (cycle 41, ruling 1)
+    /// Whether a person drives this shell: the window's own shell ([`ShellModel::new`] in [`Mode::Gui`]). A headless
+    /// shell and a window shell a script drives ([`ShellModel::new_scripted`], the visual driver) are not, and every
+    /// `HumanOnly` submission from them is refused. Set at construction only; no action or parameter changes it.
+    person: bool,
+    /// The revision dialogs' view state (the gate's lines of the open dialog) and the integrity items of the opened
+    /// project they run the gate with.
+    revision: revision::RevisionState,
 }
 
 /// One `dispatch` in the dispatch log (WP-S6.13 part 4 §4.3): the action as given, the outcome's word (`done`,
@@ -574,17 +584,6 @@ pub type IdSourceFactory = fn() -> Box<dyn IdSource + Send>;
 fn dir_name(dir: &Path) -> String {
     dir.file_name()
         .map_or_else(|| "project".to_owned(), |n| n.to_string_lossy().into_owned())
-}
-
-/// The origin of the shell's model commands, undo and redo: the GUI in the window, the script's command log headless
-/// (`Origin::CmdLog`); `Session::undo` and `Session::redo` refuse a `HumanOnly` step from the latter (FT-404).
-pub(super) fn mode_origin(mode: Mode, origin_file: &str) -> Origin {
-    match mode {
-        Mode::Gui => Origin::Gui,
-        Mode::Headless => Origin::CmdLog {
-            file: origin_file.to_owned(),
-        },
-    }
 }
 
 fn failed(key: &str, args: &[&str]) -> Outcome {
@@ -1050,9 +1049,45 @@ impl ShellModel {
             rail_collapsed: false,
             macros: macros::MacroState::default(),
             dispatch_log: None,
+            person: mode == Mode::Gui,
+            revision: revision::RevisionState::default(),
         };
         model.load_active_workspace();
         model
+    }
+
+    /// A window shell that a script drives (the visual driver, WP-S6.13): it lays out, opens dialogs and frames them
+    /// as the window does ([`Mode::Gui`]), but no person is at it, so every `HumanOnly` submission from it is refused
+    /// as a headless one is (cycle 41, ruling 1: a visual script opens, fills and frames the revision dialogs, and
+    /// their confirm is refused). Whoever builds the shell decides this; nothing a script sends can change it.
+    pub fn new_scripted(config: ShellConfig) -> ShellModel {
+        let mut model = ShellModel::new(Mode::Gui, config);
+        model.person = false;
+        model
+    }
+
+    /// Whether a person drives this shell (see [`ShellModel::new_scripted`]).
+    pub fn is_person(&self) -> bool {
+        self.person
+    }
+
+    /// The origin of the shell's model commands, undo and redo: the GUI only in the window a person drives, else the
+    /// script's command log (`Origin::CmdLog`: the headless shell and a scripted window, cycle 41 ruling 1);
+    /// `Session::undo` and `Session::redo` refuse a `HumanOnly` step from the latter (FT-404), and every `HumanOnly`
+    /// command submitted from it gets the exposure error.
+    pub(super) fn origin(&self) -> Origin {
+        Self::origin_of(self.mode, self.person, &self.origin_file)
+    }
+
+    /// [`ShellModel::origin`] from the fields it reads (for a caller that holds the project mutably).
+    pub(super) fn origin_of(mode: Mode, person: bool, origin_file: &str) -> Origin {
+        if mode == Mode::Gui && person {
+            Origin::Gui
+        } else {
+            Origin::CmdLog {
+                file: origin_file.to_owned(),
+            }
+        }
     }
 
     /// A headless shell with settings in a fresh temporary directory (unit tests of this crate).
@@ -1509,6 +1544,12 @@ impl ShellModel {
             "pages.renumber" => self.act_pages_renumber(p),
             "devices.renumber" => self.act_devices_renumber(p),
             "project.purge_assets" => self.act_purge_assets(p),
+            // WP-S1.18 part 5: the revision dialogs of Check ▸ Revision.
+            "revision.approve" => self.act_revision_approve(p),
+            "revision.release" => self.act_revision_release(p),
+            "revision.withdraw" => self.act_revision_withdraw(p),
+            "revision.set_author" => self.act_revision_set_author(p),
+            "revision.incomplete" => self.act_revision_incomplete(p),
             "page.next" => self.walk(self.page_index() + 1),
             "page.previous" => self.walk(self.page_index().saturating_sub(1)),
             "page.first" => self.walk(0),
@@ -1995,7 +2036,8 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
         };
-        let findings = ew_api::integrity_items(&report)
+        let integrity = ew_api::integrity_items(&report);
+        let findings = integrity
             .iter()
             .filter(|i| i.severity != ew_api::checks::Severity::Info)
             .count();
@@ -2038,6 +2080,9 @@ impl ShellModel {
         self.install_view();
         self.settings.push_recent(&path_text);
         self.save_settings();
+        // WP-S1.18 part 5: the gate's integrity findings, the release's warnings of opening (FT-842) and the offer of
+        // an incomplete release.
+        self.revision_opened(integrity);
         Outcome::Done
     }
 
@@ -2159,6 +2204,9 @@ impl ShellModel {
         // WP-S2.09 part 3: the Preview tab's lists and the history panel's state are the project's.
         self.preview.clear();
         self.history.clear();
+        // WP-S1.18 part 5 and FT-842: the revision dialogs' state and the release's warnings are the project's.
+        self.revision = revision::RevisionState::default();
+        self.messages.release_notes = None;
     }
 
     /// Ends the shell at the end of a run or of the window (also on a log-off): a clean project is closed, a dirty
@@ -2284,7 +2332,7 @@ impl ShellModel {
                 reason_key: "reason-no-project",
             };
         };
-        let origin = mode_origin(self.mode, &self.origin_file);
+        let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
         let before = p.session.history().cursor();
         match p.session.undo(&origin) {
             Ok(_) => {
@@ -2319,7 +2367,7 @@ impl ShellModel {
                 reason_key: "reason-no-project",
             };
         };
-        let origin = mode_origin(self.mode, &self.origin_file);
+        let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
         let before = p.session.history().cursor();
         match p.session.redo(&origin) {
             Ok(_) => {
