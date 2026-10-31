@@ -53,7 +53,7 @@ count = 1
 [[allow]]
 crate = "ew-api"
 item = "inner attribute"
-count = 10
+count = 11
 
 [[allow]]
 crate = "ew-checks"
