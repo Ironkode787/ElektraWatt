@@ -101,6 +101,8 @@ pub struct Inputs {
     pub frames: Vec<(String, String)>,
     /// `replay --frames <dir>`: where a visual replay paints its frames (none without).
     pub paint_into: Option<PathBuf>,
+    /// A visual run's window size and scale, as its `run.json` records it.
+    pub geometry: super::visual::Geometry,
 }
 
 /// `frames.sha256` from the lines of a transcript: `<sha256>  <file>` per painted frame line, in order.
@@ -154,6 +156,7 @@ pub fn load_inputs(dir: &Path) -> Result<Inputs> {
         serde_json::from_str(&std::fs::read_to_string(dir.join("run.json")).context("reading run.json")?)
             .context("parsing run.json")?;
     let visual = rj.visual();
+    let geometry = super::visual::Geometry::of(&rj);
     // A recording's frames are its `frames.sha256`; a stopped run's the hashes its transcript recorded.
     let mut frames = std::fs::read_to_string(dir.join("frames.sha256"))
         .map(|t| parse_frames_sha256(&t))
@@ -198,6 +201,7 @@ pub fn load_inputs(dir: &Path) -> Result<Inputs> {
         visual,
         frames,
         paint_into: None,
+        geometry,
     })
 }
 
@@ -264,6 +268,26 @@ pub fn replay_once(root: &Path, exe: &Path, inputs: &Inputs) -> Result<Replayed>
     result
 }
 
+/// The product's command line of a replay in `dir`. A visual recording replays through the visual driver at the run's
+/// window size and scale (a 1920 recording at 1920): without frames (laid out, never painted) unless asked.
+pub fn replay_command(exe: &Path, inputs: &Inputs, dir: &Path) -> Command {
+    let mut command = Command::new(exe);
+    command
+        .args(["--headless", "--script"])
+        .arg(dir.join("replay.uiscript"))
+        .args(["--keep-going", "--config-dir"])
+        .arg(dir.join("config"));
+    if inputs.visual {
+        command.arg("--visual");
+        match &inputs.paint_into {
+            Some(frames) => command.arg("--frames").arg(frames),
+            None => command.arg("--no-frames"),
+        };
+        command.args(inputs.geometry.app_args());
+    }
+    command
+}
+
 /// Runs the combined script of `inputs` through `elektrawatt` in `dir` (its `work` folder the product's) and compares;
 /// the folder is kept.
 ///
@@ -282,21 +306,7 @@ pub fn replay_in(root: &Path, exe: &Path, inputs: &Inputs, dir: &Path) -> Result
         script.push('\n');
     }
     std::fs::write(dir.join("replay.uiscript"), script)?;
-    let mut command = Command::new(exe);
-    command
-        .args(["--headless", "--script"])
-        .arg(dir.join("replay.uiscript"))
-        .args(["--keep-going", "--config-dir"])
-        .arg(dir.join("config"));
-    // A visual recording replays through the visual driver: without frames (laid out, never painted) unless asked.
-    if inputs.visual {
-        command.arg("--visual");
-        match &inputs.paint_into {
-            Some(frames) => command.arg("--frames").arg(frames),
-            None => command.arg("--no-frames"),
-        };
-    }
-    let out = command
+    let out = replay_command(exe, inputs, &dir)
         .current_dir(dir.join("work"))
         .env("EW_SAMPLE_DIR", dir.join("empty-sample"))
         .env("EW_DOCS_DIR", dir.join("book"))
@@ -951,5 +961,37 @@ mod tests {
         let sums = frames_sha256(&lines);
         assert_eq!(sums, format!("{a}  t0000.png\n"));
         assert_eq!(parse_frames_sha256(&sums), vec![("t0000.png".to_owned(), a)]);
+    }
+    /// Cycle 39: a visual recording replays at its run's window size and scale (a 1920 recording at 1920); at the
+    /// default no flag is added.
+    #[test]
+    fn a_visual_replay_runs_at_the_recorded_geometry() {
+        let g = crate::blind::visual::Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
+        let mut inputs = Inputs {
+            prelude: Vec::new(),
+            steps: Vec::new(),
+            outcomes: Vec::new(),
+            epilogue: String::new(),
+            epilogue_range: None,
+            transcript: None,
+            stale: None,
+            visual: true,
+            frames: Vec::new(),
+            paint_into: None,
+            geometry: g,
+        };
+        let argv = |i: &Inputs| -> Vec<String> {
+            replay_command(Path::new("elektrawatt"), i, Path::new("d"))
+                .get_args()
+                .map(|s| s.to_string_lossy().into_owned())
+                .collect()
+        };
+        let a = argv(&inputs);
+        assert!(
+            a.ends_with(&["--no-frames", "--window", "1920x1080", "--ppp", "1"].map(String::from)),
+            "{a:?}"
+        );
+        inputs.geometry = crate::blind::visual::Geometry::DEFAULT;
+        assert!(argv(&inputs).ends_with(&["--visual".to_owned(), "--no-frames".to_owned()]));
     }
 }

@@ -65,6 +65,7 @@ In a visual run (--senses visual) `do` takes mouse and key inputs (help prints H
 For the orchestrator:
   start --kind free|gate|check|brief --task <t> [--senses text|visual] [--persona <p>] [--of <run>]
         [--folios <a,b>] --run <id> [--out <dir>] [--bin <dir>] [--stateless]
+        [--window <W>x<H>] [--ppp <n>]        (visual) the window in points and its scale
   stop <run> [--reason <r>]                   the epilogue, the exports, the report
   report <run> check|bom|score                what the stop wrote
   report <run> connections|pages|pdf          the wires and potentials, the page texts, the PDF (a check run's)
@@ -262,6 +263,17 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
                 out: f.take_value("--out")?.map(PathBuf::from),
                 bin: f.take_value("--bin")?.map(PathBuf::from),
                 stateless: f.take_flag("--stateless"),
+                geometry: {
+                    let (window, ppp) = (f.take_value("--window")?, f.take_value("--ppp")?);
+                    if window.is_some() || ppp.is_some() {
+                        Some(
+                            visual::Geometry::parse(window.as_deref(), ppp.as_deref())
+                                .map_err(anyhow::Error::msg)?,
+                        )
+                    } else {
+                        None
+                    }
+                },
             };
             if let Some(extra) = f.rest().first() {
                 bail!("start: unexpected `{extra}`");
@@ -281,15 +293,17 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let run = locate(&run_arg, out.as_deref())?;
             check_stateless_flag(&run, stateless_flag)?;
             let first = rest.next().context("do needs an action or `-` for a batch")?;
-            if run.load()?.visual() {
-                // A visual run: mouse and key inputs, one frame per batch (visual spec §4).
+            let rj = run.load()?;
+            if rj.visual() {
+                // A visual run: mouse and key inputs, one frame per batch (visual spec §4), at the run's frame size.
+                let g = visual::Geometry::of(&rj);
                 let inputs = if first == "-" {
                     let mut text = String::new();
                     std::io::stdin().read_to_string(&mut text)?;
-                    visual::parse_inputs(&text)
+                    visual::parse_inputs_in(&text, g)
                 } else {
                     let args: Vec<String> = rest.collect();
-                    visual::parse_input_args(&first, &args).map(|o| vec![o])
+                    visual::parse_input_args_in(&first, &args, g).map(|o| vec![o])
                 };
                 let text = match inputs {
                     Ok(inputs) => with_backend(&run, |b| visual::do_inputs(&run, b, &inputs))?,
@@ -337,12 +351,14 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
                         .context("look needs the run")?;
                 let run = locate(&run_arg, out.as_deref())?;
                 check_stateless_flag(&run, stateless_flag)?;
-                if !run.load()?.visual() {
+                let rj = run.load()?;
+                if !rj.visual() {
                     println!("harness: --zoom belongs to a visual run");
                     return Ok(true);
                 }
                 let numbers: Vec<String> = f.0.iter().skip(i + 1).cloned().collect();
-                let text = match (f.0.len() == i + 5 && i == 1, visual::parse_zoom(&numbers)) {
+                let zoom = visual::parse_zoom_in(&numbers, visual::Geometry::of(&rj));
+                let text = match (f.0.len() == i + 5 && i == 1, zoom) {
                     (true, Ok(z)) => with_backend(&run, |b| visual::look(&run, b, Some(z)))?,
                     (_, Err(refusal)) => visual::refuse(&run, &refusal)?,
                     (false, Ok(_)) => visual::refuse(&run, visual::NO_TEXT_VIEW)?,
@@ -513,6 +529,7 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
                 senses,
                 frames: "<run>/frames",
                 folios: &folios,
+                geometry: visual::Geometry::DEFAULT,
             })?;
             print!("{}", c.text);
             Ok(true)

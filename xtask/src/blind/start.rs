@@ -16,8 +16,9 @@ use anyhow::{Context, Result, bail};
 use super::compose::{ComposeIn, REFERENCE_FILES, compose, run_files};
 use super::run::{
     Counts, GOLDEN_PROJECT_DIR, GOLDEN_SCOPE_PROJECT, HARNESS_VERSION, Kind, RUN_SCHEMA, Run, RunJson,
-    Senses, VISUAL_PPP, VISUAL_WINDOW, copy_dir, golden_digest, script_header, turns_header, valid_run_id,
+    Senses, copy_dir, golden_digest, script_header, turns_header, valid_run_id,
 };
+use super::visual::Geometry;
 
 /// The arguments of `start`.
 #[derive(Clone, Debug)]
@@ -42,6 +43,8 @@ pub struct StartArgs {
     pub bin: Option<PathBuf>,
     /// Whether the run has no keeper.
     pub stateless: bool,
+    /// `--window` and `--ppp` (a visual run's window size and scale); `None`: the default 1280 × 800 at 1.2.
+    pub geometry: Option<Geometry>,
 }
 
 /// The folder a run `id` gets under `out`.
@@ -161,6 +164,9 @@ pub fn prepare(root: &Path, a: &StartArgs, version: &dyn Fn(&Path) -> Result<Str
     }
     if a.kind != Kind::Brief && a.task.starts_with("brief-") && a.kind != Kind::Check {
         bail!("the task `{}` is a brief: start it with `--kind brief`", a.task);
+    }
+    if a.geometry.is_some() && a.senses != Senses::Visual {
+        bail!("--window and --ppp need --senses visual");
     }
     // A check run audits a stopped drafter run.
     let drafter = if a.kind == Kind::Check {
@@ -319,6 +325,7 @@ fn populate(
     std::fs::write(run.path("turns.jsonl"), format!("{}\n", turns_header()))?;
     std::fs::write(run.path("drafter.md"), "")?;
     let app_version = version(&run.product_exe("elektrawatt"))?;
+    let geometry = a.geometry.unwrap_or(Geometry::DEFAULT);
     let json = RunJson {
         schema: RUN_SCHEMA.to_owned(),
         run: a.run_id.clone(),
@@ -335,8 +342,8 @@ fn populate(
         harness_version: HARNESS_VERSION.to_owned(),
         stateless: a.stateless,
         senses: visual.then(|| a.senses.word().to_owned()),
-        ppp: visual.then_some(VISUAL_PPP),
-        window: visual.then_some(VISUAL_WINDOW),
+        ppp: visual.then(|| geometry.ppp()),
+        window: visual.then_some(geometry.window),
         counts: Counts::default(),
         end: None,
         handed_back: false,
@@ -369,6 +376,7 @@ fn compose_input<'a>(
         senses: a.senses,
         frames,
         folios,
+        geometry: a.geometry.unwrap_or(Geometry::DEFAULT),
     }
 }
 
@@ -449,6 +457,11 @@ fn has_offscreen_adapter(run: &Run) -> bool {
         .arg(&probe)
         .arg("--config-dir")
         .arg(&probe)
+        .args(
+            run.load()
+                .map(|j| Geometry::of(&j).app_args())
+                .unwrap_or_default(),
+        )
         .current_dir(run.path(".harness"))
         .env("EW_CONTENT_DIR", run.path(".harness/content"))
         .stdin(std::process::Stdio::null())
@@ -533,6 +546,7 @@ mod tests {
             out: Some(tmp.0.join("runs")),
             bin: None,
             stateless: true,
+            geometry: None,
         }
     }
 
@@ -866,5 +880,63 @@ mod tests {
         a.persona = Some("x".to_owned());
         assert!(prepare(&root, &a, &|_| Ok("0".to_owned())).is_err());
         assert!(tmp.0.join("runs/r4").is_dir());
+    }
+    /// Cycle 39: a visual run started with `--window 1920x1080 --ppp 1` records both in `run.json` and passes them to
+    /// the spawned app; a default visual run records 1280 × 800 at 1.2 and adds no flag; a text run with `--window` is
+    /// refused before anything is created.
+    #[test]
+    fn a_visual_run_records_and_passes_its_window_and_scale() {
+        let tmp = Tmp::new("start-geometry");
+        let root = fake_repo(&tmp);
+        std::fs::write(
+            root.join("tools/blind/HELP-VISUAL.md"),
+            "Help visual {blind}
+",
+        )
+        .unwrap();
+        let g = Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
+        let mut a = args(&tmp, "v1");
+        a.senses = Senses::Visual;
+        a.geometry = Some(g);
+        let run = prepare(&root, &a, &|_| Ok("0".to_owned())).unwrap();
+        let rj = run.load().unwrap();
+        assert_eq!((rj.window, rj.ppp), (Some([1920, 1080]), Some(1.0)));
+        assert_eq!(Geometry::of(&rj), g);
+        let command = super::super::session::ProcessProduct::command(&run, "record.ewcmd");
+        let argv: Vec<String> = command
+            .get_args()
+            .map(|s| s.to_string_lossy().into_owned())
+            .collect();
+        let at = argv
+            .iter()
+            .position(|x| x == "--window")
+            .expect("--window passed");
+        assert_eq!(argv[at..at + 4], ["--window", "1920x1080", "--ppp", "1"]);
+        assert!(argv.contains(&"--visual".to_owned()));
+        let prompt = std::fs::read_to_string(run.path("prompt.md")).unwrap();
+        assert!(
+            prompt
+                .contains("This run's picture is 1920 × 1108 pixels: `x` from 0 to 1919, `y` from 0 to 1107"),
+            "{prompt}"
+        );
+        // The default: recorded as before, no flag.
+        let mut a = args(&tmp, "v2");
+        a.senses = Senses::Visual;
+        let run = prepare(&root, &a, &|_| Ok("0".to_owned())).unwrap();
+        let rj = run.load().unwrap();
+        assert_eq!((rj.window, rj.ppp), (Some([1280, 800]), Some(1.2)));
+        let command = super::super::session::ProcessProduct::command(&run, "record.ewcmd");
+        assert!(!command.get_args().any(|x| x == "--window" || x == "--ppp"));
+        let prompt = std::fs::read_to_string(run.path("prompt.md")).unwrap();
+        assert!(
+            prompt.contains("This run's picture is 1536 × 994 pixels"),
+            "{prompt}"
+        );
+        // A text run: refused, no folder.
+        let mut a = args(&tmp, "t1");
+        a.geometry = Some(g);
+        let err = prepare(&root, &a, &|_| Ok("0".to_owned())).unwrap_err();
+        assert_eq!(err.to_string(), "--window and --ppp need --senses visual");
+        assert!(!tmp.0.join("runs/t1").exists());
     }
 }

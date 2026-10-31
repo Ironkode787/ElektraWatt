@@ -41,6 +41,8 @@ pub struct ComposeIn<'a> {
     pub frames: &'a str,
     /// The folios of the run (`--folios`): the blocks of the task sheet for other folios are left out. Empty: all.
     pub folios: &'a [String],
+    /// A visual run's window size and scale: the prompt ends with a line on its picture's size.
+    pub geometry: super::visual::Geometry,
 }
 
 /// The prompt and the digests of the files it was made from.
@@ -159,6 +161,10 @@ pub fn compose(inp: &ComposeIn) -> Result<Composed> {
             .replace("{frames}", inp.frames);
         text.push_str(&format!("<!-- file: {rel} sha256 {sha} -->\n"));
         text.push_str(body.trim_end_matches('\n'));
+        if rel.ends_with("/HELP-VISUAL.md") {
+            text.push_str("\n\n");
+            text.push_str(&inp.geometry.prompt_line());
+        }
         text.push_str("\n\n");
         files.insert(rel, sha);
     }
@@ -246,6 +252,7 @@ mod tests {
             senses: Senses::Text,
             frames: "/r/frames",
             folios: &[],
+            geometry: crate::blind::visual::Geometry::DEFAULT,
         }
     }
 

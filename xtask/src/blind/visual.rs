@@ -13,12 +13,14 @@ use anyhow::Result;
 use serde_json::{Map, Value, json};
 
 use super::protocol::{apply_caps, derive_state, ended, lost_message, mark_lost};
-use super::run::{FRAME_LINE, INPUT_LINE, Run, Turn, append, step_line};
+use super::run::{FRAME_LINE, INPUT_LINE, Run, RunJson, Turn, VISUAL_WINDOW, append, step_line};
 use super::session::{Backend, Lost};
 
-/// The frame's width in pixels (1280 points at 1.2).
+/// The frame's width in pixels at the default geometry (1280 points at 1.2).
+#[cfg(test)]
 pub const FRAME_WIDTH: i64 = 1536;
-/// The frame's height in pixels (800 points at 1.2 and the 34-pixel title strip).
+/// The frame's height in pixels at the default geometry (800 points at 1.2 and the 34-pixel title strip).
+#[cfg(test)]
 pub const FRAME_HEIGHT: i64 = 994;
 /// The largest zoom region in frame pixels.
 pub const ZOOM_MAX: (i64, i64) = (768, 497);
@@ -26,6 +28,147 @@ pub const ZOOM_MAX: (i64, i64) = (768, 497);
 pub const MAX_INPUTS: usize = 12;
 /// The most milliseconds the `wait` inputs of one `do` may add up to.
 pub const MAX_WAIT_MS: u64 = 10_000;
+
+/// The window size and scale of a visual run (cycle 39): the window in points and the pixels per point in hundredths.
+/// It mirrors the driver's `Geometry` (the harness has no edge to the product crates), with its texts; the product's
+/// tests hold the same frame sizes. A `run.json` without `window` or `ppp` reads as [`Geometry::DEFAULT`].
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Geometry {
+    /// The window in points.
+    pub window: [u32; 2],
+    /// The pixels per point in hundredths (120 is 1.2).
+    pub ppp_hundredths: u32,
+}
+
+/// `round(n × hundredths / 100)`, halves up.
+fn scaled(n: u32, hundredths: u32) -> u32 {
+    (n * hundredths + 50) / 100
+}
+
+/// A whole number of 1 to 4 ASCII digits.
+fn digits(text: &str) -> Option<u32> {
+    if text.is_empty() || text.len() > 4 || !text.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    text.parse().ok()
+}
+
+/// A decimal number with at most two decimals in hundredths (`1.25` is 125).
+fn hundredths(text: &str) -> Option<u32> {
+    let (int, frac) = text.split_once('.').unwrap_or((text, ""));
+    if text.ends_with('.') || frac.len() > 2 || !frac.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let int = digits(int)?;
+    let frac = match frac.len() {
+        0 => 0,
+        1 => frac.parse::<u32>().ok()? * 10,
+        _ => frac.parse::<u32>().ok()?,
+    };
+    Some(int * 100 + frac)
+}
+
+impl Geometry {
+    /// 1280 × 800 points at 1.2 pixels per point: frames of 1536 × 994 pixels.
+    pub const DEFAULT: Geometry = Geometry {
+        window: VISUAL_WINDOW,
+        ppp_hundredths: 120,
+    };
+
+    /// The geometry of `--window <W>x<H>` and `--ppp <n>` (each `None` when not given), checked as the driver checks
+    /// it: W 1024 to 3840, H 640 to 2160 points, ppp 1 to 3, a frame of at most 3840 × 2400 pixels.
+    ///
+    /// # Errors
+    ///
+    /// The driver's text for the first problem.
+    pub fn parse(window: Option<&str>, ppp: Option<&str>) -> Result<Geometry, String> {
+        let mut g = Geometry::DEFAULT;
+        if let Some(text) = window {
+            let (w, h) = text
+                .split_once(['x', 'X'])
+                .and_then(|(w, h)| Some((digits(w)?, digits(h)?)))
+                .ok_or_else(|| "--window needs <width>x<height> in points, e.g. 1920x1080".to_owned())?;
+            if !(1024..=3840).contains(&w) || !(640..=2160).contains(&h) {
+                return Err("--window must be from 1024x640 to 3840x2160 points".to_owned());
+            }
+            g.window = [w, h];
+        }
+        if let Some(text) = ppp {
+            g.ppp_hundredths = hundredths(text)
+                .filter(|n| (100..=300).contains(n))
+                .ok_or_else(|| "--ppp needs a number from 1 to 3".to_owned())?;
+        }
+        if g.frame_width() > 3840 || g.frame_height() > 2400 {
+            return Err("--window and --ppp make a frame larger than 3840 × 2400 pixels".to_owned());
+        }
+        Ok(g)
+    }
+
+    /// The geometry a run recorded; the default where `run.json` has none.
+    pub fn of(rj: &RunJson) -> Geometry {
+        Geometry {
+            window: rj.window.unwrap_or(VISUAL_WINDOW),
+            ppp_hundredths: rj
+                .ppp
+                .map_or(Geometry::DEFAULT.ppp_hundredths, |p| (p * 100.0).round() as u32),
+        }
+    }
+
+    /// The pixels per point as `run.json` records it.
+    pub fn ppp(&self) -> f64 {
+        f64::from(self.ppp_hundredths) / 100.0
+    }
+
+    /// The pixels per point as a flag value (`1.2`, `1`, `1.25`).
+    pub fn ppp_text(&self) -> String {
+        let (int, frac) = (self.ppp_hundredths / 100, self.ppp_hundredths % 100);
+        match frac {
+            0 => format!("{int}"),
+            f if f % 10 == 0 => format!("{int}.{}", f / 10),
+            f => format!("{int}.{f:02}"),
+        }
+    }
+
+    /// The title strip's height in pixels: `round(28 × ppp)`.
+    pub fn strip_px(&self) -> i64 {
+        i64::from(scaled(28, self.ppp_hundredths))
+    }
+
+    /// The frame's width in pixels.
+    pub fn frame_width(&self) -> i64 {
+        i64::from(scaled(self.window[0], self.ppp_hundredths))
+    }
+
+    /// The frame's height in pixels (window and title strip).
+    pub fn frame_height(&self) -> i64 {
+        i64::from(scaled(self.window[1], self.ppp_hundredths)) + self.strip_px()
+    }
+
+    /// The flags that give the product this geometry: none at the default (every earlier run's command line).
+    pub fn app_args(&self) -> Vec<String> {
+        if *self == Geometry::DEFAULT {
+            return Vec::new();
+        }
+        vec![
+            "--window".to_owned(),
+            format!("{}x{}", self.window[0], self.window[1]),
+            "--ppp".to_owned(),
+            self.ppp_text(),
+        ]
+    }
+
+    /// The composed prompt's line on the picture's size (after the help).
+    pub fn prompt_line(&self) -> String {
+        let (w, h) = (self.frame_width(), self.frame_height());
+        format!(
+            "This run's picture is {w} × {h} pixels: `x` from 0 to {}, `y` from 0 to {}; the title bar is the top {} \
+             pixels.",
+            w - 1,
+            h - 1,
+            self.strip_px()
+        )
+    }
+}
 
 /// A text look, a page look, a diff or the menus in a visual run.
 pub const NO_TEXT_VIEW: &str = "harness: a visual run has no text view";
@@ -187,9 +330,9 @@ fn coordinate(o: &Map<String, Value>, name: &str, limit: i64) -> Result<(), Stri
     }
 }
 
-fn point(o: &Map<String, Value>, x: &str, y: &str) -> Result<(), String> {
-    coordinate(o, x, FRAME_WIDTH)?;
-    coordinate(o, y, FRAME_HEIGHT)
+fn point(o: &Map<String, Value>, x: &str, y: &str, g: Geometry) -> Result<(), String> {
+    coordinate(o, x, g.frame_width())?;
+    coordinate(o, y, g.frame_height())
 }
 
 fn mods_member(o: &Map<String, Value>) -> Result<(), String> {
@@ -222,7 +365,17 @@ fn lines_member(o: &Map<String, Value>, name: &str) -> Result<i64, String> {
 /// # Errors
 ///
 /// The driver's text for the first problem.
+#[cfg(test)]
 pub fn check_input(o: &Map<String, Value>) -> Result<u64, String> {
+    check_input_in(o, Geometry::DEFAULT)
+}
+
+/// `check_input` with coordinates checked against the frame of `g`.
+///
+/// # Errors
+///
+/// As `check_input`.
+pub fn check_input_in(o: &Map<String, Value>, g: Geometry) -> Result<u64, String> {
     let kind = o
         .get("input")
         .and_then(Value::as_str)
@@ -243,17 +396,17 @@ pub fn check_input(o: &Map<String, Value>) -> Result<u64, String> {
     }
     match kind {
         "click" => {
-            point(o, "x", "y")?;
+            point(o, "x", "y", g)?;
             button_member(o)?;
             mods_member(o)?;
         }
         "right_click" | "double_click" => {
-            point(o, "x", "y")?;
+            point(o, "x", "y", g)?;
             mods_member(o)?;
         }
         "drag" => {
-            point(o, "x", "y")?;
-            point(o, "to_x", "to_y")?;
+            point(o, "x", "y", g)?;
+            point(o, "to_x", "to_y", g)?;
             button_member(o)?;
             mods_member(o)?;
         }
@@ -262,7 +415,7 @@ pub fn check_input(o: &Map<String, Value>) -> Result<u64, String> {
             if dx == 0 && dy == 0 {
                 return Err("a scroll needs `dx` or `dy`".to_owned());
             }
-            point(o, "x", "y")?;
+            point(o, "x", "y", g)?;
             mods_member(o)?;
         }
         "type" => {
@@ -287,7 +440,7 @@ pub fn check_input(o: &Map<String, Value>) -> Result<u64, String> {
                 return Err("`repeat` is 1 to 20".to_owned());
             }
         }
-        "hover" => point(o, "x", "y")?,
+        "hover" => point(o, "x", "y", g)?,
         _ => match o.get("ms").and_then(Value::as_u64) {
             Some(ms @ 100..=5000) => return Ok(ms),
             _ => return Err("`ms` is 100 to 5000".to_owned()),
@@ -301,7 +454,17 @@ pub fn check_input(o: &Map<String, Value>) -> Result<u64, String> {
 /// # Errors
 ///
 /// The refusal text (`harness: …`).
+#[cfg(test)]
 pub fn parse_inputs(text: &str) -> Result<Vec<Map<String, Value>>, String> {
+    parse_inputs_in(text, Geometry::DEFAULT)
+}
+
+/// `parse_inputs` at the frame of `g`.
+///
+/// # Errors
+///
+/// As `parse_inputs`.
+pub fn parse_inputs_in(text: &str, g: Geometry) -> Result<Vec<Map<String, Value>>, String> {
     let mut inputs = Vec::new();
     let mut waited = 0u64;
     for (i, line) in text.lines().enumerate() {
@@ -316,7 +479,7 @@ pub fn parse_inputs(text: &str) -> Result<Vec<Map<String, Value>>, String> {
         if o.contains_key("action") || !o.contains_key("input") {
             return Err(NO_ACTIONS.to_owned());
         }
-        waited += check_input(&o).map_err(|e| format!("harness: line {at}: {e}"))?;
+        waited += check_input_in(&o, g).map_err(|e| format!("harness: line {at}: {e}"))?;
         inputs.push(o);
     }
     if inputs.is_empty() || inputs.len() > MAX_INPUTS {
@@ -333,7 +496,17 @@ pub fn parse_inputs(text: &str) -> Result<Vec<Map<String, Value>>, String> {
 /// # Errors
 ///
 /// The refusal text (`harness: …`).
+#[cfg(test)]
 pub fn parse_input_args(name: &str, args: &[String]) -> Result<Map<String, Value>, String> {
+    parse_input_args_in(name, args, Geometry::DEFAULT)
+}
+
+/// `parse_input_args` at the frame of `g`.
+///
+/// # Errors
+///
+/// As `parse_input_args`.
+pub fn parse_input_args_in(name: &str, args: &[String], g: Geometry) -> Result<Map<String, Value>, String> {
     if !INPUTS.contains(&name) {
         return Err(NO_ACTIONS.to_owned());
     }
@@ -349,7 +522,7 @@ pub fn parse_input_args(name: &str, args: &[String]) -> Result<Map<String, Value
         };
         o.insert(key.to_owned(), value);
     }
-    let waited = check_input(&o).map_err(|e| format!("harness: {e}"))?;
+    let waited = check_input_in(&o, g).map_err(|e| format!("harness: {e}"))?;
     if waited > MAX_WAIT_MS {
         return Err(format!("harness: a batch waits at most {MAX_WAIT_MS} ms"));
     }
@@ -361,7 +534,17 @@ pub fn parse_input_args(name: &str, args: &[String]) -> Result<Map<String, Value
 /// # Errors
 ///
 /// The refusal text (`harness: …`).
+#[cfg(test)]
 pub fn parse_zoom(args: &[String]) -> Result<[i64; 4], String> {
+    parse_zoom_in(args, Geometry::DEFAULT)
+}
+
+/// `parse_zoom` inside the frame of `g`.
+///
+/// # Errors
+///
+/// As `parse_zoom`.
+pub fn parse_zoom_in(args: &[String], g: Geometry) -> Result<[i64; 4], String> {
     let bad = || {
         format!(
             "harness: look --zoom <x> <y> <w> <h>: a region of at most {} × {} frame pixels inside the frame",
@@ -377,8 +560,8 @@ pub fn parse_zoom(args: &[String]) -> Result<[i64; 4], String> {
         || h < 1
         || w > ZOOM_MAX.0
         || h > ZOOM_MAX.1
-        || x + w > FRAME_WIDTH
-        || y + h > FRAME_HEIGHT
+        || x + w > g.frame_width()
+        || y + h > g.frame_height()
     {
         return Err(bad());
     }
@@ -731,6 +914,75 @@ mod tests {
         assert!(zoom(&["0", "0", "769", "10"]).is_err());
         assert!(zoom(&["1000", "0", "768", "10"]).is_err());
         assert!(zoom(&["1", "2", "3"]).is_err());
+    }
+
+    /// Cycle 39: the geometry's texts and frame sizes are the driver's; a run.json without them reads as the default.
+    #[test]
+    fn the_geometry_is_the_drivers() {
+        let g = Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
+        assert_eq!(
+            (g.frame_width(), g.frame_height(), g.strip_px()),
+            (1920, 1108, 28)
+        );
+        let g2 = Geometry::parse(Some("1920x1080"), Some("2")).unwrap();
+        assert_eq!((g2.frame_width(), g2.frame_height()), (3840, 2216));
+        let d = Geometry::DEFAULT;
+        assert_eq!(
+            (d.frame_width(), d.frame_height(), d.strip_px()),
+            (FRAME_WIDTH, FRAME_HEIGHT, 34)
+        );
+        assert_eq!(
+            (d.ppp(), d.window),
+            (super::super::run::VISUAL_PPP, VISUAL_WINDOW)
+        );
+        assert_eq!(Geometry::parse(None, None), Ok(d));
+        assert!(d.app_args().is_empty(), "the default adds no flag");
+        assert_eq!(g.app_args(), ["--window", "1920x1080", "--ppp", "1"]);
+        assert_eq!(
+            Geometry::parse(Some("1920"), None).unwrap_err(),
+            "--window needs <width>x<height> in points, e.g. 1920x1080"
+        );
+        assert_eq!(
+            Geometry::parse(Some("800x600"), None).unwrap_err(),
+            "--window must be from 1024x640 to 3840x2160 points"
+        );
+        assert_eq!(
+            Geometry::parse(None, Some("0.5")).unwrap_err(),
+            "--ppp needs a number from 1 to 3"
+        );
+        assert_eq!(
+            Geometry::parse(Some("3840x2160"), Some("2")).unwrap_err(),
+            "--window and --ppp make a frame larger than 3840 × 2400 pixels"
+        );
+        let f = visual_fixture();
+        let mut rj: RunJson = f.run.load().unwrap();
+        (rj.window, rj.ppp) = (None, None);
+        assert_eq!(Geometry::of(&rj), d, "no window or ppp: the default");
+        rj.window = Some([1920, 1080]);
+        rj.ppp = Some(g.ppp());
+        assert_eq!(Geometry::of(&rj), g);
+    }
+
+    /// Cycle 39: a click and a zoom at x = 1900 pass at 1920 × 1080 points and ppp 1, and are refused at the default
+    /// with the driver's texts.
+    #[test]
+    fn coordinates_are_checked_against_the_runs_frame() {
+        let g = Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
+        let line = "{\"input\":\"click\",\"x\":1900,\"y\":1100}";
+        assert_eq!(parse_inputs_in(line, g).unwrap().len(), 1);
+        assert_eq!(
+            parse_inputs(line).unwrap_err(),
+            "harness: line 1: `x` is outside the frame (0 to 1535)"
+        );
+        let click = ["x=1900".to_owned(), "y=10".to_owned()];
+        assert!(parse_input_args_in("click", &click, g).is_ok());
+        assert!(parse_input_args("click", &click).is_err());
+        let zoom: Vec<String> = ["1100", "600", "768", "497"]
+            .iter()
+            .map(|s| (*s).to_owned())
+            .collect();
+        assert_eq!(parse_zoom_in(&zoom, g), Ok([1100, 600, 768, 497]));
+        assert!(parse_zoom(&zoom).is_err());
     }
 
     /// BV7: every input of a batch is sent (a refused one too, no broken rule), the frame follows, `do` prints only

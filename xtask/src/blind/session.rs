@@ -169,21 +169,35 @@ impl ProcessProduct {
     ///
     /// The spawn's, or an empty header.
     pub fn spawn(run: &Run, record: &str) -> Result<(ProcessProduct, String)> {
-        let work = run.path("work");
-        std::fs::create_dir_all(&work)?;
-        std::fs::create_dir_all(run.path("config"))?;
-        let stderr = std::fs::File::create(run.path(".harness/product.stderr"))
-            .context("creating the product's stderr file")?;
+        Self::spawn_command(run, record)
+    }
+
+    /// The product's command line of [`ProcessProduct::spawn`]: a visual run's adds `--visual --frames` and, at a
+    /// window size or scale other than the default, `--window` and `--ppp` (cycle 39).
+    pub fn command(run: &Run, record: &str) -> Command {
         let mut command = Command::new(run.product_exe("elektrawatt"));
         command
             .args(["--headless", "--script", "-", "--keep-going", "--record"])
             .arg(run.path(record))
             .arg("--config-dir")
             .arg(run.path("config"));
-        if run.load().is_ok_and(|j| j.visual()) {
+        if let Ok(j) = run.load()
+            && j.visual()
+        {
             command.args(["--visual", "--frames"]).arg(run.path("frames"));
+            command.args(super::visual::Geometry::of(&j).app_args());
         }
-        let mut child = command
+        command
+    }
+
+    /// [`ProcessProduct::spawn`]'s body.
+    fn spawn_command(run: &Run, record: &str) -> Result<(ProcessProduct, String)> {
+        let work = run.path("work");
+        std::fs::create_dir_all(&work)?;
+        std::fs::create_dir_all(run.path("config"))?;
+        let stderr = std::fs::File::create(run.path(".harness/product.stderr"))
+            .context("creating the product's stderr file")?;
+        let mut child = Self::command(run, record)
             .current_dir(&work)
             .env("EW_SAMPLE_DIR", run.path(".harness/empty-sample"))
             .env("EW_DOCS_DIR", run.path("book"))

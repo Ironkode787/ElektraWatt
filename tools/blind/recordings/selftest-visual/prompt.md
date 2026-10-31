@@ -21,10 +21,10 @@ more and reports how many differ from the recording's hashes (R4, a report). A c
 recording (a moved button, a new dialog) is repaired by running the visual self-test again in the same change; the
 coordinates of `agent.jsonl` are read off its frames.
 
-<!-- file: tools/blind/HELP-VISUAL.md sha256 5c8f8ca4108289dc37d1061767d9c72c2619fe1b51267da3753e2c2bbedf45c4 -->
+<!-- file: tools/blind/HELP-VISUAL.md sha256 9246eaba3ac4da897d431a9b4366364657d59a9bd8ab5ded81c9ddc17224e875 -->
 ---
 prompt: blind-help-visual
-version: 1
+version: 2
 ---
 # The harness: how to work with it (a visual run)
 
@@ -51,10 +51,12 @@ at it before you decide what to do next. `frames/t0000.png` is the window before
 
 ## The picture and the coordinates
 
-A picture is 1536 × 994 pixels. The top 34 pixels are the window's title bar (the project's name, and a `*` while there
-are unsaved changes); clicks there do nothing. Everything below it is the window. Coordinates are whole pixels of the
-normal picture, `x` from 0 (left) to 1535 and `y` from 0 (top) to 993, the title bar included: to click a button, read
-its centre off the picture and send those two numbers.
+The picture's size is stated at the end of this text, at the start of the run; usually it is 1536 × 994 pixels. The top
+strip (34 pixels in the usual picture) is the window's title bar (the project's name, and a `*` while there are unsaved
+changes); clicks there do nothing. Everything below it is the window. Coordinates are whole pixels of the normal
+picture, `x` from 0 (left) to the width less one and `y` from 0 (top) to the height less one, the title bar included:
+to click a button, read its centre off the picture and send those two numbers. A larger picture may reach you reduced:
+read its detail with `look --zoom`, whose regions are at most 768 × 497 pixels.
 
 ## The inputs
 
@@ -99,7 +101,7 @@ A refused call sends nothing to the program and counts against the refusal cap. 
 - `harness: in a visual run you act with the mouse and the keys`: a line that is not an input.
 - `harness: a visual run has no text view`: `look` with anything but `--zoom`.
 - `harness: line <n>: <what is wrong>`: an input with a missing or wrong member, a coordinate outside the picture
-  (`` `x` is outside the frame (0 to 1535) ``), an unknown key or input.
+  (`` `x` is outside the frame (0 to 1535) `` in the usual picture), an unknown key or input.
 - `harness: a batch has 1 to 12 inputs`, `harness: a batch waits at most 10000 ms`, `harness: look cap per turn`,
   `harness: note required for turn <n>`.
 
@@ -139,4 +141,6 @@ Eight headings in this order, each a line that starts with its number and title:
 8. What I could not read
 
 The harness checks the eight headings; the content is yours. Filing it ends the run.
+
+This run's picture is 1536 × 994 pixels: `x` from 0 to 1535, `y` from 0 to 993; the title bar is the top 34 pixels.
 

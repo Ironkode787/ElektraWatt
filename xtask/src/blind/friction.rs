@@ -100,13 +100,11 @@ pub fn entries(run: &Run) -> Result<Vec<Entry>> {
     Ok(out)
 }
 
-fn region(text: &str) -> Option<[u32; 4]> {
+/// A `--region` inside the frame of `g` (the run's, cycle 39).
+fn region_in(text: &str, g: super::visual::Geometry) -> Option<[u32; 4]> {
     let v: Vec<u32> = text.split(',').filter_map(|p| p.trim().parse().ok()).collect();
     let [x, y, w, h] = v[..] else { return None };
-    let (fw, fh) = (
-        super::visual::FRAME_WIDTH as u32,
-        super::visual::FRAME_HEIGHT as u32,
-    );
+    let (fw, fh) = (g.frame_width() as u32, g.frame_height() as u32);
     let inside = |a: u32, b: u32, max: u32| a.checked_add(b).is_some_and(|end| end <= max);
     (text.split(',').count() == 4 && w > 0 && h > 0 && inside(x, w, fw) && inside(y, h, fh))
         .then_some([x, y, w, h])
@@ -183,7 +181,7 @@ pub fn friction(run: &Run, a: &FrictionArgs) -> Result<String> {
     };
     let region = match &a.region {
         None => None,
-        Some(r) => match region(r) {
+        Some(r) => match region_in(r, super::visual::Geometry::of(&rj)) {
             Some(r) => Some(r),
             None => {
                 return refuse("harness: --region is x,y,w,h in frame pixels inside the frame");
@@ -363,6 +361,21 @@ mod tests {
         assert_eq!(
             friction(&f.run, &args("cosmetic", "wording")).unwrap(),
             "harness: friction cap\n"
+        );
+    }
+
+    /// Cycle 39: a `--region` is checked against the run's frame: x = 1900 is inside 1920 × 1108, outside the default.
+    #[test]
+    fn a_region_is_checked_against_the_runs_frame() {
+        let g = crate::blind::visual::Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
+        assert_eq!(region_in("1900,1000,20,100", g), Some([1900, 1000, 20, 100]));
+        assert_eq!(
+            region_in("1900,1000,20,100", crate::blind::visual::Geometry::DEFAULT),
+            None
+        );
+        assert_eq!(
+            region_in("1500,900,36,94", crate::blind::visual::Geometry::DEFAULT),
+            Some([1500, 900, 36, 94])
         );
     }
 }

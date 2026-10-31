@@ -263,6 +263,7 @@ fn one_run(
             out: Some(out.to_path_buf()),
             bin: Some(bin.to_path_buf()),
             stateless,
+            geometry: None,
         },
     )?;
     let failures = play(&run, id, out, stateless, agent)?;

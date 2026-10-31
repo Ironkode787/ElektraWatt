@@ -197,10 +197,11 @@ impl Senses {
     }
 }
 
-/// The window of a visual run in points, and its pixels per point (visual spec §3.1): frames are 1536 × 994 pixels with
-/// the title strip.
+/// The default window of a visual run in points, and its pixels per point (visual spec §3.1): frames are 1536 × 994
+/// pixels with the title strip. A run may choose another (`start --window --ppp`, [`super::visual::Geometry`]).
 pub const VISUAL_WINDOW: [u32; 2] = [1280, 800];
-/// The pixels per point of a visual run's frame.
+/// The default pixels per point of a visual run's frame.
+#[cfg(test)]
 pub const VISUAL_PPP: f64 = 1.2;
 
 /// The kinds of run (D3, the check run of §5.4 and the open brief of the visual spec §6.1).
