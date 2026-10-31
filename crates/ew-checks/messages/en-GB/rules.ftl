@@ -414,7 +414,7 @@ rule-ew-rds-010 =
 
 rule-ew-rel-001 =
     .title = Four eyes
-    .hint = Set the author, then let another party approve the saved revision (ew revision approve); approve again after a content edit.
+    .hint = Set the author, then let another party approve the saved revision; approve again after a content edit.
 
 rule-ew-rel-002 =
     .title = Stale committed computation

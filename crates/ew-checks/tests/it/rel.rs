@@ -67,8 +67,7 @@ fn ew_rel_runs_in_the_gate_only() {
         [(
             "EW-REL-001",
             "checker".to_owned(),
-            "revision V1.0: checker not set; the checker approves the revision (ew revision approve)"
-                .to_owned()
+            "revision V1.0: checker not set; the checker approves the revision".to_owned()
         )]
     );
 }

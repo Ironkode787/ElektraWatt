@@ -2907,6 +2907,19 @@ pub static ACTIONS: &[ActionMeta] = &[
     ),
     // WP-S1.18 part 5 (§9): Check ▸ Revision, the revision dialogs; each answered by its own action with parameters
     // (`confirm` submits the `HumanOnly` command, only from the window a person drives: cycle 41, ruling 1).
+    // In the order of the workflow (FIX41b ruling 7): the author, the sign-off, the release, a withdrawal.
+    with_params(
+        "role?:text, confirm?:bool, cancel?:bool",
+        act(
+            "revision.set_author",
+            Command,
+            "action-revision-set-author",
+            Menu::Check,
+            &[],
+            open_revision,
+            sub(Menu::Check, Submenu::Revision, true),
+        ),
+    ),
     with_params(
         "role?:text, typed?:text, date?:text, confirm?:bool, cancel?:bool",
         act(
@@ -2944,19 +2957,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "role?:text, confirm?:bool, cancel?:bool",
-        act(
-            "revision.set_author",
-            Command,
-            "action-revision-set-author",
-            Menu::Check,
-            &[],
-            open_revision,
-            sub(Menu::Check, Submenu::Revision, true),
-        ),
-    ),
-    with_params(
-        "how?:enum(complete|discard), confirm?:bool, cancel?:bool",
+        "how?:enum(complete|discard), git?:bool, confirm?:bool, cancel?:bool",
         act(
             "revision.incomplete",
             Command,

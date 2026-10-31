@@ -109,9 +109,7 @@ pub fn four_eyes(q: &Q, input: &GateInput) -> Vec<Finding> {
     match (&r.author, &r.checker) {
         (_, None) => out.push(finding(
             "checker",
-            format!(
-                "revision {label}: checker not set; the checker approves the revision (ew revision approve)"
-            ),
+            format!("revision {label}: checker not set; the checker approves the revision"),
         )),
         (Some(a), Some(c)) if a == c => out.push(finding(
             "four-eyes",
@@ -129,7 +127,7 @@ pub fn four_eyes(q: &Q, input: &GateInput) -> Vec<Finding> {
     match (digest, input.content_digest) {
         (None, _) => out.push(finding(
             "sign-off",
-            format!("revision {label}: sign-off missing; the checker approves the saved revision (ew revision approve)"),
+            format!("revision {label}: sign-off missing; the checker approves the saved revision"),
         )),
         (Some(signed), Some(saved)) if signed != saved => out.push(finding(
             "stale",

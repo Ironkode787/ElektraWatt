@@ -135,8 +135,7 @@ fn rg4_the_gate_on_golden_a_is_the_release_run_plus_checker_not_set() {
         [(
             "EW-REL-001",
             "checker".to_owned(),
-            "revision V2.0: checker not set; the checker approves the revision (ew revision approve)"
-                .to_owned()
+            "revision V2.0: checker not set; the checker approves the revision".to_owned()
         )]
     );
     assert_eq!(gate.report.counts.errors, check.counts.errors + 1);

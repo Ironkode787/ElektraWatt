@@ -19,15 +19,16 @@
 
 use std::path::{Path, PathBuf};
 
-use ew_api::checks::{Finding, IntegrityItem};
+use ew_api::checks::{CheckReport, Finding, FindingState, IntegrityItem};
 use ew_api::output::Parallelism;
 use ew_api::{
-    AnyCommand, Approval, IncompleteRelease, PartyRole, ReleaseContext, ReleaseError, ReleaseOptions,
-    ReleasePlan, ReleaseTrouble, Submit, TroubleKind,
+    AnyCommand, Approval, ApproveError, CmdError, GateError, IncompleteRelease, PartyRole, ReleaseContext,
+    ReleaseError, ReleaseOptions, ReleasePlan, ReleaseTrouble, Submit, TroubleKind,
 };
 use serde_json::{Map, Value};
 
 use super::creation::{FormDialog, FormField};
+use super::tools::command_failed;
 use super::{Dialog, Outcome, ShellModel, failed, string_param};
 use crate::strings;
 
@@ -41,6 +42,10 @@ pub(crate) const WITHDRAW: &str = "revision.withdraw";
 pub(crate) const SET_AUTHOR: &str = "revision.set_author";
 /// The action of the incomplete-release offer.
 pub(crate) const INCOMPLETE: &str = "revision.incomplete";
+/// The `how` of completing an incomplete release.
+const COMPLETE: &str = "complete";
+/// The `how` of discarding an incomplete release's archive.
+const DISCARD: &str = "discard";
 
 /// The party roles a role field offers (FR-PRJ-003), the checker's first.
 const ROLES: &[&str] = &[
@@ -153,20 +158,166 @@ fn field(
     }
 }
 
-/// The release's housekeeping warning in words with the file name only (FT-842).
+/// The cause of an I/O failure as a release text ends on it (cycle 41, FIX41b ruling 6: "release troubles in words"):
+/// not found, no permission, not a folder, each in words from the error's kind; any other kind adds nothing, so the
+/// sentence ends on "could not be read" (never the OS text or its code).
+fn io_cause(kind: std::io::ErrorKind) -> &'static str {
+    match kind {
+        std::io::ErrorKind::NotFound => strings::text("release-cause-not-found"),
+        std::io::ErrorKind::PermissionDenied => strings::text("release-cause-denied"),
+        std::io::ErrorKind::NotADirectory => strings::text("release-cause-not-folder"),
+        _ => "",
+    }
+}
+
+/// The release's housekeeping warning in words with the file name only (FT-842), its cause from the error's kind
+/// (FIX41b ruling 6).
 pub(crate) fn trouble_text(t: &ReleaseTrouble) -> String {
     let key = match t.what {
         TroubleKind::RecordNotRemoved => "release-trouble-not-removed",
         TroubleKind::RecordsNotRead => "release-trouble-not-read",
         TroubleKind::RecordNotUpdated => "release-trouble-not-updated",
     };
-    strings::format(
-        key,
-        &[
-            &t.file_name(),
-            &path_free(&t.error, std::slice::from_ref(&t.path)),
-        ],
-    )
+    strings::format(key, &[&t.file_name(), io_cause(t.kind)])
+}
+
+/// The key of a count's text: `one` for exactly one, `many` otherwise (FIX41b ruling 4: "counts take their noun's
+/// number").
+fn counted(n: usize, one: &'static str, many: &'static str) -> &'static str {
+    if n == 1 { one } else { many }
+}
+
+/// Why the release gate cannot run, in words (FIX41b ruling 1: never the `Display` text).
+fn gate_words(e: &GateError) -> String {
+    match e {
+        GateError::NoProject => strings::text("gate-no-project").to_owned(),
+        GateError::Unsaved => strings::text("gate-unsaved").to_owned(),
+        GateError::IncompleteSave => strings::text("gate-incomplete-save").to_owned(),
+        GateError::NoManifest => strings::text("gate-no-manifest").to_owned(),
+        GateError::Digest(_) => strings::text("gate-digest").to_owned(),
+        GateError::NoOpenRevision { .. } => strings::text("gate-no-open-revision").to_owned(),
+        GateError::NotTheOpenRevision { label, open } => {
+            strings::format("gate-not-open-revision", &[label, open])
+        }
+    }
+}
+
+/// A gate's safety waiver in words: the rule's title and the object its finding is on, as the Messages table names a
+/// waived finding (FIX41b ruling 1: never the waiver's ID).
+fn waiver_words(report: &CheckReport, waiver: &str) -> String {
+    let finding = report
+        .findings
+        .iter()
+        .find(|f| matches!(&f.state, FindingState::Waived { waiver: w } if w == waiver));
+    let Some(f) = finding else {
+        return strings::text("revision-waiver-gone").to_owned();
+    };
+    let title = ew_api::checks::rule(f.rule).map_or_else(|| f.rule.to_owned(), |r| r.meta().title.to_owned());
+    if f.subject.is_empty() {
+        title
+    } else {
+        strings::format("revision-waiver", &[&title, &f.subject])
+    }
+}
+
+/// The approval's refusal in words (FIX41b ruling 1): each [`ApproveError`] the window can meet has a text of its
+/// own, a waiver is named by its rule and object, a refused command goes through [`command_failed`] (ID-939's rule);
+/// the CLI keeps the `Display` texts. `report` is the gate's report the waivers are looked up in.
+fn approve_words(e: &ApproveError, report: Option<&CheckReport>, params: &Value) -> String {
+    let reason = match e {
+        // Whole sentences of their own.
+        ApproveError::Command(c) => return refusal_text(command_failed(c, params)),
+        ApproveError::Gate(g) => return strings::format("revision-gate-error", &[&gate_words(g)]),
+        ApproveError::NoAuthor { label } => return strings::format("revision-no-author", &[label]),
+        // Reasons the sentence "The approval was refused: …." takes.
+        ApproveError::ReadOnly => strings::text("approve-read-only").to_owned(),
+        ApproveError::FourEyes { role } => strings::format("approve-four-eyes", &[&role_words(role)]),
+        ApproveError::Blocked(list) => strings::format(
+            counted(list.len(), "approve-blocked-one", "approve-blocked"),
+            &[&list.len().to_string()],
+        ),
+        ApproveError::Unacknowledged(ids) => {
+            let named: Vec<String> = ids
+                .iter()
+                .map(|id| {
+                    report.map_or_else(
+                        || strings::text("revision-waiver-gone").to_owned(),
+                        |r| waiver_words(r, &id.to_string()),
+                    )
+                })
+                .collect();
+            strings::format("approve-unacknowledged", &[&named.join("; ")])
+        }
+    };
+    strings::format("error-revision-approve", &[&reason])
+}
+
+/// The message of a refusal [`Outcome`] (a command's refusal in words).
+fn refusal_text(out: Outcome) -> String {
+    match out {
+        Outcome::Failed { message } => message,
+        Outcome::Refused { reason_key } => strings::text(reason_key).to_owned(),
+        _ => String::new(),
+    }
+}
+
+/// A release error in words (FIX41b ruling 1): a text of its own for every [`ReleaseError`], with file names instead
+/// of paths (`paths` lists the ones a reason given in words may name); never the `Display` text, which stays the
+/// CLI's. A match without a wildcard, so a new variant needs its words.
+fn release_words(e: &ReleaseError, paths: &[PathBuf]) -> String {
+    let text = |key: &str| strings::text(key).to_owned();
+    match e {
+        ReleaseError::HumanOnly { .. } => text("release-error-person"),
+        ReleaseError::Gate(g) => strings::format("release-error-gate", &[&gate_words(g)]),
+        ReleaseError::ReadOnly => text("release-error-read-only"),
+        ReleaseError::Blocked(list) => strings::format(
+            counted(list.len(), "release-error-blocked-one", "release-error-blocked"),
+            &[&list.len().to_string()],
+        ),
+        ReleaseError::ArchiveRoot { root, why } => {
+            strings::format("release-error-archive-root", &[&file_name(root), why])
+        }
+        ReleaseError::Incomplete { archive } => {
+            strings::format("release-error-incomplete", &[&file_name(archive)])
+        }
+        ReleaseError::GitConsent { tag, .. } => strings::format("release-error-git-consent", &[tag]),
+        ReleaseError::TagExists { tag } => strings::format("release-error-tag-exists", &[tag]),
+        ReleaseError::Git(_) => text("release-error-git"),
+        ReleaseError::Freeze(_) => text("release-error-freeze"),
+        ReleaseError::FreezeChangesPages { pages } => strings::format(
+            counted(
+                pages.len(),
+                "release-error-freeze-pages-one",
+                "release-error-freeze-pages",
+            ),
+            &[&pages.len().to_string()],
+        ),
+        ReleaseError::Save(_) => text("release-error-save"),
+        ReleaseError::Generation(_) => text("release-error-generation"),
+        ReleaseError::Output(_) => text("release-error-output"),
+        ReleaseError::Archive(_) => text("release-error-archive"),
+        ReleaseError::Write(_) => text("release-error-write"),
+        ReleaseError::Tag(_) => text("release-error-tag"),
+        ReleaseError::Stamp(_) => text("release-error-stamp"),
+        ReleaseError::Unsettled(_) => text("release-error-unsettled"),
+        ReleaseError::Undecided(_) => text("release-error-undecided"),
+        ReleaseError::Io { path, error } => {
+            strings::format("release-error-io", &[&file_name(path), io_cause(error.kind())])
+        }
+        ReleaseError::NoIncomplete => text("release-error-no-incomplete"),
+        ReleaseError::NotCompletable(why) => {
+            strings::format("release-error-not-completable", &[&path_free(why, paths)])
+        }
+        ReleaseError::Foreign(why) => strings::format("release-error-foreign", &[&path_free(why, paths)]),
+        ReleaseError::Unproven { why, completable } => strings::format(
+            if *completable {
+                "release-error-unproven"
+            } else {
+                "release-error-unproven-kept"
+            },
+            &[&path_free(why, paths)],
+        ),
+    }
 }
 
 impl ShellModel {
@@ -440,20 +591,13 @@ impl ShellModel {
         paths
     }
 
-    /// A release error in words, with file names instead of paths.
+    /// A release error in words ([`release_words`], FIX41b ruling 1), with file names instead of paths.
     fn release_error_text(&self, e: &ReleaseError) -> String {
         let mut paths: Vec<&Path> = Vec::new();
-        match e {
-            ReleaseError::ArchiveRoot { root, .. } => paths.push(root),
-            ReleaseError::Incomplete { archive } => paths.push(archive),
-            ReleaseError::GitConsent { worktree, .. } => paths.push(worktree),
-            ReleaseError::Io { path, .. } => paths.push(path),
-            _ => {}
-        }
         if let Some(found) = &self.revision.incomplete {
             paths.push(&found.archive);
         }
-        path_free(&e.to_string(), &self.release_paths(&paths))
+        release_words(e, &self.release_paths(&paths))
     }
 
     /// Marks the project saved after a step that saved it (the history panel's marker line, the script record).
@@ -519,7 +663,7 @@ impl ShellModel {
         {
             Some(Ok(g)) => g,
             Some(Err(e)) => {
-                return self.revision_failed(strings::format("revision-gate-error", &[&e.to_string()]));
+                return self.revision_failed(strings::format("revision-gate-error", &[&gate_words(&e)]));
             }
             None => return Outcome::Done,
         };
@@ -540,7 +684,9 @@ impl ShellModel {
         };
         self.revision.integrity = integrity;
         if let Err(e) = result {
-            return self.revision_failed(strings::format("error-revision-approve", &[&e.to_string()]));
+            // FIX41b ruling 1: words, not IDs, in every revision refusal.
+            // A refused parameter of the approval's command is named by its member (the shell built the command).
+            return self.revision_failed(approve_words(&e, Some(&gate.report), &Value::Null));
         }
         self.revision_done();
         let saved = self.act_save();
@@ -567,7 +713,7 @@ impl ShellModel {
         let mut blocked = true;
         match (&author, gate) {
             (None, _) => body.push(strings::format("revision-no-author", &[label])),
-            (_, Err(e)) => body.push(strings::format("revision-gate-error", &[&e.to_string()])),
+            (_, Err(e)) => body.push(strings::format("revision-gate-error", &[&gate_words(&e)])),
             (Some(author), Ok(gate)) => {
                 let blockers = gate.approval_blockers();
                 if blockers.is_empty() {
@@ -584,7 +730,11 @@ impl ShellModel {
                     }
                 } else {
                     body.push(strings::format(
-                        "revision-approve-blocked",
+                        counted(
+                            blockers.len(),
+                            "revision-approve-blocked-one",
+                            "revision-approve-blocked",
+                        ),
                         &[&blockers.len().to_string()],
                     ));
                     list = finding_list(blockers.into_iter());
@@ -745,7 +895,11 @@ impl ShellModel {
                 list = finding_list(findings.iter());
                 (
                     vec![strings::format(
-                        "revision-release-blocked",
+                        counted(
+                            findings.len(),
+                            "revision-release-blocked-one",
+                            "revision-release-blocked",
+                        ),
                         &[&findings.len().to_string()],
                     )],
                     true,
@@ -753,7 +907,7 @@ impl ShellModel {
             }
             Err(e) => (
                 vec![strings::format(
-                    "revision-gate-error",
+                    "revision-release-cannot",
                     &[&self.release_error_text(&e)],
                 )],
                 true,
@@ -798,11 +952,16 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The incomplete release
 
-    /// `revision.incomplete {how?, confirm?, cancel?}` (Check ▸ Revision ▸ Settle the incomplete release…, and offered
-    /// when the project opens): an archive of the open revision that a crashed release left (doc 05 §14.1 "On
+    /// `revision.incomplete {how?, git?, confirm?, cancel?}` (Check ▸ Revision ▸ Settle the incomplete release…, and
+    /// offered when the project opens): an archive of the open revision that a crashed release left (doc 05 §14.1 "On
     /// failure"). `how` `complete` stamps the revision released with it (`Session::complete_release_as`), `discard`
     /// removes it and its tag (`Session::discard_incomplete_release_as`), each offered only when the release allows it.
     /// Not now (the Primary) closes the offer.
+    ///
+    /// Cycle 41, FIX41b ruling 2 ("completing an incomplete release asks, like a release"): `how` without `confirm`
+    /// opens its confirmation: completing shows the git consent toggle when the project folder is in a git repository
+    /// (off, as the Release form's), discarding says what it deletes; each confirms with its danger button, Cancel is
+    /// the Primary. The consent passed is the toggle's value, never a constant.
     pub(super) fn act_revision_incomplete(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(out) = self.revision_start(INCOMPLETE, p) {
             return out;
@@ -819,37 +978,78 @@ impl ShellModel {
             };
         };
         self.revision.incomplete = Some(found);
-        if !self.in_form_of(INCOMPLETE) {
-            self.open_incomplete();
-        }
+        let how = match string_param(p, "how") {
+            Err(e) => return e,
+            Ok(Some("complete")) => Some(COMPLETE),
+            Ok(Some("discard")) => Some(DISCARD),
+            Ok(Some(_)) => return failed("error-bad-param", &["how"]),
+            Ok(None) => None,
+        };
         let confirm = match super::jobs::bool_param(p, "confirm", false) {
             Ok(c) => c,
             Err(e) => return e,
         };
+        let Some(how) = how else {
+            if confirm {
+                return failed("error-missing-param", &["how"]);
+            }
+            if !self.in_form_of(INCOMPLETE) || self.settle_stage().is_some() {
+                self.open_incomplete();
+            }
+            return Outcome::Done;
+        };
+        if self.settle_stage() != Some(how) {
+            let refusal = self.revision.incomplete.as_ref().and_then(|f| {
+                if how == COMPLETE {
+                    f.refusal.as_ref().map(|why| {
+                        let paths = self.release_paths(&[&f.archive]);
+                        strings::format("revision-incomplete-refused", &[&path_free(why, &paths)])
+                    })
+                } else {
+                    f.unproven
+                        .as_ref()
+                        .map(|_| strings::text("revision-incomplete-unproven").to_owned())
+                }
+            });
+            if let Some(message) = refusal {
+                return self.revision_failed(message);
+            }
+            self.open_settle(how);
+        }
+        if let Err(e) = self.fill_form(p, &["git"]) {
+            return e;
+        }
         if !confirm {
             return Outcome::Done;
         }
-        let how = match string_param(p, "how") {
-            Err(e) => return e,
-            Ok(Some(h @ ("complete" | "discard"))) => h.to_owned(),
-            Ok(Some(_)) => return failed("error-bad-param", &["how"]),
-            Ok(None) => return failed("error-missing-param", &["how"]),
-        };
-        if let Err(e) = self.person_gate() {
-            return e;
-        }
-        let git = ew_api::git::GitExe::default();
-        let options = Self::release_options(&git, true);
-        let origin = self.origin();
         let label = self
             .revision
             .incomplete
             .as_ref()
             .map(|f| f.label.clone())
             .unwrap_or_default();
+        let git = ew_api::git::GitExe::default();
+        let consent = self.form_value("git") == "true";
+        if how == COMPLETE {
+            match self.project.as_ref().map(|p| p.session.settle_git(&label, &git)) {
+                Some(Ok(Some((_, tag)))) if !consent => {
+                    return self.revision_failed(strings::format("error-revision-git", &[&tag]));
+                }
+                Some(Err(e)) => {
+                    let text = self.release_error_text(&e);
+                    return self.revision_failed(strings::format("error-revision-settle", &[&text]));
+                }
+                _ => {}
+            }
+        }
+        if let Err(e) = self.person_gate() {
+            return e;
+        }
+        let options = Self::release_options(&git, consent);
+        let origin = self.origin();
         let integrity = std::mem::take(&mut self.revision.integrity);
         let result = match &mut self.project {
-            Some(p) if how == "complete" => {
+            Some(p) if how == COMPLETE => {
                 p.session
                     .complete_release_as(&origin, &integrity, &options)
                     .map(|done| {
@@ -868,7 +1068,7 @@ impl ShellModel {
         self.revision.integrity = integrity;
         let out = match result {
             Ok(toast) => {
-                if how == "complete" {
+                if how == COMPLETE {
                     self.revision_saved();
                 }
                 self.revision.incomplete = None;
@@ -915,6 +1115,50 @@ impl ShellModel {
             "dialog-not-now",
             Vec::new(),
         )
+    }
+
+    /// The confirmation of the incomplete release that is open (`complete` or `discard`), by its confirming button;
+    /// `None` for the offer, or without the form.
+    pub(crate) fn settle_stage(&self) -> Option<&'static str> {
+        match &self.dialog {
+            Some(Dialog::Form(f)) if f.action == INCOMPLETE => match f.ok_key {
+                "dialog-complete-release" => Some(COMPLETE),
+                "dialog-discard-archive" => Some(DISCARD),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// Opens the confirmation of completing (`how` [`COMPLETE`]) or discarding the incomplete release in hand (FIX41b
+    /// ruling 2): what it does, the git consent toggle (off) when completing commits and tags in a git repository.
+    fn open_settle(&mut self, how: &'static str) {
+        let Some(found) = &self.revision.incomplete else {
+            return;
+        };
+        let label = found.label.clone();
+        let archive = file_name(&found.archive);
+        let mut body = Vec::new();
+        let mut fields = Vec::new();
+        let (title_key, ok_key) = if how == COMPLETE {
+            body.push(strings::format("revision-complete-text", &[&label, &archive]));
+            let git = ew_api::git::GitExe::default();
+            if let Some(Ok(Some((_, tag)))) =
+                self.project.as_ref().map(|p| p.session.settle_git(&label, &git))
+            {
+                body.push(strings::format("revision-complete-git", &[&tag]));
+                fields.push(field("git", "form-revision-git", TOGGLE, "false".to_owned()));
+            }
+            ("revision-complete-title", "dialog-complete-release")
+        } else {
+            body.push(strings::format("revision-discard-text", &[&archive, &label]));
+            ("revision-discard-title", "dialog-discard-archive")
+        };
+        self.revision.label = label;
+        self.revision.body = body;
+        self.revision.list = Vec::new();
+        self.revision.blocked = false;
+        self.open_revision_form(INCOMPLETE, title_key, ok_key, fields);
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -988,7 +1232,7 @@ impl ShellModel {
                 );
                 Outcome::Done
             }
-            Err(e) => self.revision_failed(strings::format("error-revision-withdraw", &[&e])),
+            Err(e) => self.revision_command_failed(&e, &cmd),
         }
     }
 
@@ -1057,21 +1301,380 @@ impl ShellModel {
                 );
                 Outcome::Done
             }
-            Err(e) => self.revision_failed(strings::format("error-revision-author", &[&e])),
+            Err(e) => self.revision_command_failed(&e, &cmd),
         }
     }
 
     /// Submits a revision command from the shell's own origin (`Origin::Gui` only in the window a person drives; the
     /// session refuses a `HumanOnly` command from any other).
-    fn submit_revision_command(&mut self, cmd: &AnyCommand) -> Result<(), String> {
+    fn submit_revision_command(&mut self, cmd: &AnyCommand) -> Result<(), CmdError> {
         let origin = self.origin();
         let Some(project) = &mut self.project else {
-            return Err(strings::text("reason-no-project").to_owned());
+            // Not reached: `revision_start` refuses every revision action without a project.
+            return Ok(());
         };
         project
             .session
             .execute_with(cmd, Submit::from(origin))
             .map(|_| ())
-            .map_err(|e| e.to_string())
+    }
+
+    /// A refused revision command, shown through [`command_failed`] (ID-939's rule: a refused parameter is named by its
+    /// field's words; FIX41b ruling 1); the refusal stays in the dialog.
+    fn revision_command_failed(&mut self, e: &CmdError, cmd: &AnyCommand) -> Outcome {
+        let message = refusal_text(command_failed(e, &cmd.params));
+        self.revision_failed(message)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Cycle 41, FIX41b: the revision dialogs' refusals and the release's warnings as whole texts in words.
+
+    use std::path::PathBuf;
+
+    use ew_api::checks::{CheckMode, CheckReport, Counts, Finding, FindingState, Target};
+    use ew_api::{ApproveError, CmdError, GateError, Origin, ReleaseError, ReleaseTrouble, TroubleKind};
+    use serde_json::Value;
+
+    use super::{approve_words, command_failed, counted, refusal_text, release_words, trouble_text};
+    use crate::strings;
+
+    const WAIVER: &str = "01900000-0000-7000-8000-000000000001";
+
+    /// A finding of EW-REL-001 ("Four eyes") on `subject`.
+    fn finding(subject: &str) -> Finding {
+        let meta = ew_api::checks::rule("EW-REL-001").expect("a shipped rule").meta();
+        Finding::new(meta, std::iter::empty::<Target>(), "d", subject, "a message")
+    }
+
+    /// A report whose one finding, on `subject`, is waived by `waiver`.
+    fn waived(subject: &str, waiver: &str) -> CheckReport {
+        let mut f = finding(subject);
+        f.state = FindingState::Waived {
+            waiver: waiver.to_owned(),
+        };
+        CheckReport {
+            scheme: "pre-delivery",
+            mode: CheckMode::Release,
+            rules: vec![ew_api::checks::rule("EW-REL-001").expect("a shipped rule").meta()],
+            findings: vec![f],
+            counts: Counts::default(),
+        }
+    }
+
+    /// FIX41b ruling 1: each `ApproveError` the window can meet reads as a whole text in words: no rule ID, no waiver
+    /// ID, no `Display` or `Debug` text; a refused command goes through `command_failed`.
+    #[test]
+    fn every_approval_refusal_reads_in_words() {
+        let unacknowledged = ApproveError::Unacknowledged(vec![WAIVER.parse().expect("an ID")]);
+        let cases: Vec<(ApproveError, Option<CheckReport>, &str)> = vec![
+            (
+                ApproveError::ReadOnly,
+                None,
+                "The approval was refused: the project is open read-only.",
+            ),
+            (
+                ApproveError::NoAuthor {
+                    label: "V1.0".to_owned(),
+                },
+                None,
+                "V1.0 has no author yet: set it first (Set revision author…), then save.",
+            ),
+            (
+                ApproveError::FourEyes {
+                    role: ew_api::PartyRole::PanelBuilder,
+                },
+                None,
+                "The approval was refused: the panel builder is the author's party; the four-eyes rule needs a checker \
+                 of another party.",
+            ),
+            (
+                ApproveError::Blocked(vec![finding("device -K1")]),
+                None,
+                "The approval was refused: the release gate has 1 error besides the four-eyes rule.",
+            ),
+            (
+                ApproveError::Blocked(vec![finding("device -K1"), finding("device -K2")]),
+                None,
+                "The approval was refused: the release gate has 2 errors besides the four-eyes rule.",
+            ),
+            (
+                unacknowledged.clone(),
+                Some(waived("device -K1", WAIVER)),
+                "The approval was refused: the sign-off does not acknowledge the safety waivers in force: Four eyes \
+                 on device -K1.",
+            ),
+            (
+                unacknowledged,
+                None,
+                "The approval was refused: the sign-off does not acknowledge the safety waivers in force: a waiver \
+                 whose finding the check no longer reports.",
+            ),
+            (
+                ApproveError::Gate(GateError::Unsaved),
+                None,
+                "The release gate cannot run: the project has unsaved changes; save it first.",
+            ),
+            (
+                ApproveError::Command(CmdError::invalid_params(
+                    "revision.approve",
+                    "/checker",
+                    "the checker is the author's party",
+                )),
+                None,
+                "Approve revision: Checker: the checker is the author's party",
+            ),
+        ];
+        for (e, report, text) in cases {
+            let words = approve_words(&e, report.as_ref(), &Value::Null);
+            assert_eq!(words, text, "{e:?}");
+            assert!(!words.contains(WAIVER), "no waiver ID: {words}");
+        }
+    }
+
+    /// FIX41b ruling 1: every `GateError` in words.
+    #[test]
+    fn every_gate_refusal_reads_in_words() {
+        let cases = [
+            (
+                GateError::NoProject,
+                "the project is not saved in a project folder",
+            ),
+            (
+                GateError::Unsaved,
+                "the project has unsaved changes; save it first",
+            ),
+            (
+                GateError::IncompleteSave,
+                "a save is incomplete; wait for it to finish",
+            ),
+            (
+                GateError::NoManifest,
+                "the project has not been saved yet; save it first",
+            ),
+            (
+                GateError::NoOpenRevision {
+                    label: "V1.0".to_owned(),
+                },
+                "the project has no open revision",
+            ),
+            (
+                GateError::NotTheOpenRevision {
+                    label: "V1.0".to_owned(),
+                    open: "V2.0".to_owned(),
+                },
+                "V1.0 is not the open revision; the open revision is V2.0",
+            ),
+        ];
+        for (e, text) in cases {
+            assert_eq!(
+                approve_words(&ApproveError::Gate(e), None, &Value::Null),
+                format!("The release gate cannot run: {text}.")
+            );
+        }
+    }
+
+    /// FIX41b ruling 1: the `ReleaseError`s the window can meet, in words with file names only (never `Display`, which
+    /// stays the CLI's; never the origin's `Debug`).
+    #[test]
+    fn every_release_refusal_reads_in_words() {
+        let dir = PathBuf::from("projects").join("release-min");
+        let archive = PathBuf::from("projects")
+            .join("release-min.ew-archive")
+            .join("V1.0.ewarchive");
+        let paths = vec![archive.clone(), dir.clone()];
+        let why = format!("the archive {} names another project", archive.display());
+        let cases: Vec<(ReleaseError, String)> = vec![
+            (
+                ReleaseError::HumanOnly {
+                    origin: Origin::CmdLog {
+                        file: "x.ewcmd".to_owned(),
+                    },
+                },
+                "a release needs a person at the window, never a script, a replay or a plugin".to_owned(),
+            ),
+            (
+                ReleaseError::Gate(GateError::Unsaved),
+                "the release gate cannot run: the project has unsaved changes; save it first".to_owned(),
+            ),
+            (ReleaseError::ReadOnly, "the project is open read-only".to_owned()),
+            (
+                ReleaseError::Blocked(vec![finding("device -K1")]),
+                "the release gate has 1 finding that blocks it".to_owned(),
+            ),
+            (
+                ReleaseError::Blocked(vec![finding("device -K1"), finding("device -K2")]),
+                "the release gate has 2 findings that block it".to_owned(),
+            ),
+            (
+                ReleaseError::ArchiveRoot {
+                    root: PathBuf::from("projects").join("archives"),
+                    why: "it is a file",
+                },
+                "the archive folder archives cannot be used: it is a file".to_owned(),
+            ),
+            (
+                ReleaseError::Incomplete {
+                    archive: archive.clone(),
+                },
+                "the archive V1.0.ewarchive exists already: an earlier release stopped before its stamp; settle it \
+                 first (Settle the incomplete release…)"
+                    .to_owned(),
+            ),
+            (
+                ReleaseError::GitConsent {
+                    worktree: dir.clone(),
+                    tag: "ew/rev/V1.0".to_owned(),
+                },
+                "the project folder is in a git repository; tick \u{201c}Commit and tag in git\u{201d} to agree to the \
+                 commit and the tag ew/rev/V1.0"
+                    .to_owned(),
+            ),
+            (
+                ReleaseError::TagExists {
+                    tag: "ew/rev/V1.0".to_owned(),
+                },
+                "the git tag ew/rev/V1.0 exists already, and a release never moves a tag".to_owned(),
+            ),
+            (
+                ReleaseError::FreezeChangesPages {
+                    pages: vec![WAIVER.parse().expect("an ID")],
+                },
+                "freezing the numbering would change 1 printed page; it was undone and nothing was released".to_owned(),
+            ),
+            (
+                ReleaseError::Io {
+                    path: archive.clone(),
+                    error: std::io::Error::new(std::io::ErrorKind::PermissionDenied, "C:\\secret (os error 5)"),
+                },
+                "V1.0.ewarchive could not be used: permission was denied".to_owned(),
+            ),
+            (
+                ReleaseError::Io {
+                    path: archive.clone(),
+                    error: std::io::Error::other("(os error 1117)"),
+                },
+                "V1.0.ewarchive could not be used".to_owned(),
+            ),
+            (ReleaseError::NoIncomplete, "there is no incomplete release".to_owned()),
+            (
+                ReleaseError::NotCompletable(why.clone()),
+                "it cannot be completed: the archive V1.0.ewarchive names another project".to_owned(),
+            ),
+            (
+                ReleaseError::Foreign(why.clone()),
+                "the archive V1.0.ewarchive names another project; it is kept".to_owned(),
+            ),
+            (
+                ReleaseError::Unproven {
+                    why: why.clone(),
+                    completable: true,
+                },
+                "the archive V1.0.ewarchive names another project; it is kept: complete the release with it, or remove \
+                 the file by hand if you know it is a leftover"
+                    .to_owned(),
+            ),
+            (
+                ReleaseError::Unproven {
+                    why,
+                    completable: false,
+                },
+                "the archive V1.0.ewarchive names another project; it is kept: remove the file by hand if you know it \
+                 is a leftover"
+                    .to_owned(),
+            ),
+        ];
+        for (e, text) in cases {
+            assert_eq!(release_words(&e, &paths), text, "{e:?}");
+        }
+    }
+
+    /// FIX41b ruling 1: a refused withdrawal goes through `command_failed`, as the action shows it: the command by its
+    /// title, the parameter by its field's words.
+    #[test]
+    fn a_refused_withdrawal_reads_in_words() {
+        let e = CmdError::invalid_params(
+            "revision.withdraw",
+            "/reason",
+            "a withdrawal needs a reason (doc 15 §5.10)",
+        );
+        let params = serde_json::json!({ "revision": WAIVER, "reason": " " });
+        assert_eq!(
+            refusal_text(command_failed(&e, &params)),
+            "Withdraw revision: Reason: a withdrawal needs a reason (doc 15 §5.10)"
+        );
+    }
+
+    /// FIX41b ruling 4: the counts of the blocked dialogs take their noun's number, for one and for two.
+    #[test]
+    fn the_blocked_counts_take_their_nouns_number() {
+        let text = |n: usize, one, many| strings::format(counted(n, one, many), &[&n.to_string()]);
+        let (approve_one, approve) = ("revision-approve-blocked-one", "revision-approve-blocked");
+        let (release_one, release) = ("revision-release-blocked-one", "revision-release-blocked");
+        assert_eq!(
+            text(1, approve_one, approve),
+            "The release gate has 1 error besides the four-eyes rule; correct or waive it first:"
+        );
+        assert_eq!(
+            text(2, approve_one, approve),
+            "The release gate has 2 errors besides the four-eyes rule; correct or waive them first:"
+        );
+        assert_eq!(
+            text(1, release_one, release),
+            "The release is blocked by 1 finding of the release gate:"
+        );
+        assert_eq!(
+            text(2, release_one, release),
+            "The release is blocked by 2 findings of the release gate:"
+        );
+    }
+
+    /// FIX41b ruling 6: a release's housekeeping warning names the file and its cause in words from the error's kind,
+    /// never the OS text or its code; each mapped kind, and another kind, which ends on "could not be read".
+    #[test]
+    fn the_release_warnings_name_their_cause_in_words() {
+        let trouble = |what, kind| ReleaseTrouble {
+            what,
+            path: PathBuf::from("state").join("releases"),
+            error: "The directory name is invalid. (os error 267)".to_owned(),
+            kind,
+        };
+        let cases = [
+            (
+                TroubleKind::RecordsNotRead,
+                std::io::ErrorKind::NotFound,
+                "The release records in the folder releases could not be read: it was not found.",
+            ),
+            (
+                TroubleKind::RecordsNotRead,
+                std::io::ErrorKind::PermissionDenied,
+                "The release records in the folder releases could not be read: permission was denied.",
+            ),
+            (
+                TroubleKind::RecordsNotRead,
+                std::io::ErrorKind::NotADirectory,
+                "The release records in the folder releases could not be read: it is not a folder.",
+            ),
+            (
+                TroubleKind::RecordsNotRead,
+                std::io::ErrorKind::Other,
+                "The release records in the folder releases could not be read.",
+            ),
+            (
+                TroubleKind::RecordNotRemoved,
+                std::io::ErrorKind::PermissionDenied,
+                "The release record releases could not be removed: permission was denied.",
+            ),
+            (
+                TroubleKind::RecordNotUpdated,
+                std::io::ErrorKind::NotFound,
+                "The release record of releases could not be updated with the archive's time: it was not found, so a \
+                 discard after a crash keeps the archive.",
+            ),
+        ];
+        for (what, kind, text) in cases {
+            assert_eq!(trouble_text(&trouble(what, kind)), text);
+        }
     }
 }

@@ -2135,10 +2135,15 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         }
         "revision-no-author" => "{0} has no author yet: set it first (Set revision author…), then save.",
         "revision-gate-error" => "The release gate cannot run: {0}.",
+        // FIX41b rulings 1 and 4: the rule by its title, the noun in the count's number.
         "revision-approve-blocked" => {
-            "The release gate has {0} errors besides EW-REL-001; correct or waive them first:"
+            "The release gate has {0} errors besides the four-eyes rule; correct or waive them first:"
+        }
+        "revision-approve-blocked-one" => {
+            "The release gate has 1 error besides the four-eyes rule; correct or waive it first:"
         }
         "revision-release-blocked" => "The release is blocked by {0} findings of the release gate:",
+        "revision-release-blocked-one" => "The release is blocked by 1 finding of the release gate:",
         "revision-finding" => "{0}: {1}",
         "revision-more" => "and {0} more",
         "revision-waivers" => "Approving also acknowledges {0} safety waivers in force.",
@@ -2177,8 +2182,6 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         }
         "error-revision-approve" => "The approval was refused: {0}.",
         "error-revision-release" => "The release was refused: {0}.",
-        "error-revision-withdraw" => "The withdrawal was refused: {0}.",
-        "error-revision-author" => "The author was not set: {0}.",
         "error-revision-settle" => "The incomplete release was not settled: {0}.",
         "toast-revision-approved" => "Approved revision {0}; saved",
         "toast-revision-released" => "Released revision {0} as {1}",
@@ -2187,10 +2190,96 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "toast-revision-discarded" => "Discarded the incomplete release of {0}",
         "toast-release-troubles" => "The release left housekeeping warnings ({0}): see Messages",
         "release-source" => "Release",
-        "release-trouble-not-removed" => "The release record {0} could not be removed: {1}",
-        "release-trouble-not-read" => "The release records in the folder {0} could not be read: {1}",
+        // FIX41b ruling 6: the cause in words from the error's kind ({1}: a cause below, or nothing).
+        "release-trouble-not-removed" => "The release record {0} could not be removed{1}.",
+        "release-trouble-not-read" => "The release records in the folder {0} could not be read{1}.",
         "release-trouble-not-updated" => {
-            "The release record of {0} could not be updated with the archive's time, so a discard after a crash keeps the archive: {1}"
+            "The release record of {0} could not be updated with the archive's time{1}, so a discard after a crash keeps the archive."
+        }
+        "release-cause-not-found" => ": it was not found",
+        "release-cause-denied" => ": permission was denied",
+        "release-cause-not-folder" => ": it is not a folder",
+        // FIX41b ruling 2: completing or discarding an incomplete release asks first.
+        "revision-complete-title" => "Complete the release of {0}?",
+        "revision-complete-text" => {
+            "Completing stamps {0} released with the archive {1} and saves the project. It cannot be undone."
+        }
+        "revision-complete-git" => {
+            "The project folder is in a git repository: completing commits it and creates the tag {0}."
+        }
+        "revision-discard-title" => "Discard the archive of {0}?",
+        "revision-discard-text" => {
+            "Discarding deletes the archive {0}, and the git tag this release created, if any; {1} stays open. It cannot be undone."
+        }
+        // FIX41b ruling 1: every refusal of the revision dialogs in words (the CLI keeps its own texts).
+        "gate-no-project" => "the project is not saved in a project folder",
+        "gate-unsaved" => "the project has unsaved changes; save it first",
+        "gate-incomplete-save" => "a save is incomplete; wait for it to finish",
+        "gate-no-manifest" => "the project has not been saved yet; save it first",
+        "gate-digest" => {
+            "the saved files of a merged project carry no content fingerprint yet; save the project first"
+        }
+        "gate-no-open-revision" => "the project has no open revision",
+        "gate-not-open-revision" => "{0} is not the open revision; the open revision is {1}",
+        "revision-waiver" => "{0} on {1}",
+        "revision-waiver-gone" => "a waiver whose finding the check no longer reports",
+        "approve-read-only" => "the project is open read-only",
+        "approve-four-eyes" => {
+            "the {0} is the author's party; the four-eyes rule needs a checker of another party"
+        }
+        "approve-blocked" => "the release gate has {0} errors besides the four-eyes rule",
+        "approve-blocked-one" => "the release gate has 1 error besides the four-eyes rule",
+        "approve-unacknowledged" => "the sign-off does not acknowledge the safety waivers in force: {0}",
+        "release-error-person" => {
+            "a release needs a person at the window, never a script, a replay or a plugin"
+        }
+        "release-error-read-only" => "the project is open read-only",
+        "release-error-gate" => "the release gate cannot run: {0}",
+        "release-error-git-consent" => {
+            "the project folder is in a git repository; tick \u{201c}Commit and tag in git\u{201d} to agree to the commit and the tag {0}"
+        }
+        "revision-release-cannot" => "The release cannot start: {0}.",
+        "release-error-blocked" => "the release gate has {0} findings that block it",
+        "release-error-blocked-one" => "the release gate has 1 finding that blocks it",
+        "release-error-archive-root" => "the archive folder {0} cannot be used: {1}",
+        "release-error-incomplete" => {
+            "the archive {0} exists already: an earlier release stopped before its stamp; settle it first (Settle the incomplete release…)"
+        }
+        "release-error-tag-exists" => "the git tag {0} exists already, and a release never moves a tag",
+        "release-error-git" => "a git step failed before the archive was written; nothing was released",
+        "release-error-freeze" => "the revision's numbering could not be frozen; nothing was released",
+        "release-error-freeze-pages" => {
+            "freezing the numbering would change {0} printed pages; it was undone and nothing was released"
+        }
+        "release-error-freeze-pages-one" => {
+            "freezing the numbering would change 1 printed page; it was undone and nothing was released"
+        }
+        "release-error-save" => "the project could not be saved, so the release stopped",
+        "release-error-generation" => {
+            "the saved project could not be read back for the archive, so the release stopped"
+        }
+        "release-error-output" => "the PDF could not be written, so the release stopped",
+        "release-error-archive" => "the archive could not be built, or it does not read",
+        "release-error-write" => "the archive could not be written, so the release stopped",
+        "release-error-tag" => "the git tag could not be created; the archive of this run was removed",
+        "release-error-stamp" => {
+            "the revision could not be stamped released; the archive and the git tag of this run were removed"
+        }
+        "release-error-unsettled" => {
+            "the release is saved, but the window could not take its stamp; reopen the project"
+        }
+        "release-error-undecided" => {
+            "the stamp could not be saved completely; reopen the project: it completes the release, or offers to settle it"
+        }
+        "release-error-io" => "{0} could not be used{1}",
+        "release-error-no-incomplete" => "there is no incomplete release",
+        "release-error-not-completable" => "it cannot be completed: {0}",
+        "release-error-foreign" => "{0}; it is kept",
+        "release-error-unproven" => {
+            "{0}; it is kept: complete the release with it, or remove the file by hand if you know it is a leftover"
+        }
+        "release-error-unproven-kept" => {
+            "{0}; it is kept: remove the file by hand if you know it is a leftover"
         }
         _ => return None,
     })

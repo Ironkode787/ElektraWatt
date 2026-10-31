@@ -317,8 +317,9 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
 /// WP-S1.18 part 5: the revision dialogs (forms, 0.45 of the window). Approve, Withdraw and Set author: the step is the
 /// Primary, then Cancel. Release (destructive: it cannot be undone): Cancel is the Primary and Release the danger
 /// button. The incomplete-release offer asks a question: Not now is the Primary, Complete release the other button
-/// and Discard archive the danger one, each only where the release allows it. A dialog whose gate blocks shows Close
-/// only. Each confirming button is its action with `confirm` (the window adds the date it reads).
+/// and Discard archive the danger one, each only where the release allows it, and each opens its confirmation (Cancel
+/// the Primary, the act the danger button). A dialog whose gate blocks shows Close only. Each confirming button is its
+/// action with `confirm` (the window adds the date it reads).
 fn revision_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec {
     let (body, label, can_confirm) = model
         .revision_dialog()
@@ -338,12 +339,24 @@ fn revision_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogS
         form: true,
     };
     if form.action == "revision.incomplete" {
+        // Cycle 41, FIX41b ruling 2: "completing an incomplete release asks, like a release": the confirmation of
+        // Complete release or Discard archive has Cancel as the Primary and its act as the danger button.
+        if let Some(how) = model.settle_stage() {
+            return DialogSpec {
+                primary: cancel(),
+                danger: Some(DialogButton::new(
+                    form.ok_key,
+                    DialogAnswer::Action(form.action, json!({ "how": how, "confirm": true })),
+                )),
+                ..base
+            };
+        }
         let (complete, discard) = model.incomplete_choices();
         let mut secondary = Vec::new();
         if complete {
             secondary.push(DialogButton::new(
                 "dialog-complete-release",
-                DialogAnswer::Action(form.action, json!({ "how": "complete", "confirm": true })),
+                DialogAnswer::Action(form.action, json!({ "how": "complete" })),
             ));
         }
         return DialogSpec {
@@ -352,7 +365,7 @@ fn revision_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogS
             danger: discard.then(|| {
                 DialogButton::new(
                     "dialog-discard-archive",
-                    DialogAnswer::Action(form.action, json!({ "how": "discard", "confirm": true })),
+                    DialogAnswer::Action(form.action, json!({ "how": "discard" })),
                 )
             }),
             ..base

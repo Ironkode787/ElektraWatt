@@ -299,8 +299,10 @@ pub struct ReleaseTrouble {
     pub what: TroubleKind,
     /// The file or folder it concerns, in full.
     pub path: PathBuf,
-    /// The error, in words.
+    /// The error, in words (the CLI prints it).
     pub error: String,
+    /// The error's kind: the window words the cause from it, never from the OS text (cycle 41, FIX41b ruling 6).
+    pub kind: std::io::ErrorKind,
 }
 
 impl ReleaseTrouble {
@@ -687,6 +689,7 @@ impl Session {
             what: TroubleKind::RecordNotRemoved,
             path: path.to_path_buf(),
             error: error.to_string(),
+            kind: error.kind(),
         });
     }
 
@@ -720,6 +723,7 @@ impl Session {
                     what: TroubleKind::RecordsNotRead,
                     path: state.join(archive::RUNS_DIR),
                     error: e.to_string(),
+                    kind: e.kind(),
                 });
                 return;
             }
@@ -1025,6 +1029,7 @@ impl Session {
                 what: TroubleKind::RecordNotUpdated,
                 path: written.path.clone(),
                 error: e.to_string(),
+                kind: e.kind(),
             });
         }
         // Step 5: the tag.
@@ -1686,6 +1691,28 @@ impl Session {
             git: git_done,
             save_incomplete,
         })
+    }
+
+    /// The git worktree and the tag that completing the incomplete release of `label` would commit and tag in, as
+    /// [`Session::complete_release_as`] judges them; `None` outside a git worktree. The window asks for the person's
+    /// consent with it before it completes (cycle 41, FIX41b ruling 2: "completing an incomplete release asks, like a
+    /// release").
+    ///
+    /// # Errors
+    ///
+    /// [`ReleaseError::Gate`] without a project directory, [`ReleaseError::Io`] when the worktree cannot be looked up,
+    /// [`ReleaseError::Git`] for a label that is no tag name.
+    pub fn settle_git(&self, label: &str, git: &dyn Git) -> Result<Option<(PathBuf, String)>, ReleaseError> {
+        let vfs = self.release_vfs()?;
+        let project = self.store().map(|s| s.root().to_path_buf()).unwrap_or_default();
+        let worktree = git.worktree(&*vfs, &project).map_err(|error| ReleaseError::Io {
+            path: project.clone(),
+            error,
+        })?;
+        match worktree {
+            None => Ok(None),
+            Some(w) => Ok(Some((w, git::tag_name(label).map_err(ReleaseError::Git)?))),
+        }
     }
 
     /// Opens an as-built archive for reproduction (doc 05 §14.3; WP-S1.18 D14, FR-REV-010): the file is read whole
