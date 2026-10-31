@@ -6,7 +6,7 @@ change status and the revision overview (0.8 pw, D6, D7), part 3 the content dig
 (0.8 pw, D8 to D10), part 4 the atomic release with the as-built archive (1.1 pw, D11 to D13), part 5 the archive's
 use, the dialogs and AC-23 (0.5 pw, D14, D15); part 1 first; part 2 after part 1; part 3 after parts 1 and 2 and
 WP-S1.16 part 5 (waivers; they exist since cycle 36, `crates/ew-schema/src/waiver.rs`); part 4 after part 3; part 5
-last · **Parts 1 and 2 built in cycle 37** (lane C37, decision log ID-856; lane H37, ID-861; folio 911 a golden change) · **Part 3 built in cycle 38** (lane B38, decision log ID-871; the release itself is part 4) · **Date:** 2026-10-30 · **Work package:**
+last · **Parts 1 and 2 built in cycle 37** (lane C37, decision log ID-856; lane H37, ID-861; folio 911 a golden change) · **Part 3 built in cycle 38** (lane B38, decision log ID-871; the release itself is part 4) · **Part 4 built in cycle 39** (lane B39, decision log ID-897; D11 to D13 as written, the freeze step empty because no numbering scheme has a freeze-at-release setting yet; RA-1 to RA-7; FT-731 and FT-733 move to part 5) · **Date:** 2026-10-30 · **Work package:**
 [WP-S1.18](../02-work-packages.md#wp-s118-revisions-release-gate-and-as-built-archive) · **Decision log:** ID-836 ·
 **Part of:** ElektraWatt plan, specifications
 

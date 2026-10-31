@@ -8,7 +8,8 @@ WP-S6.13 and the runs that follow them: part 4
 the brief library, the `keyboard-expert` and `reviewer` personas, the play-test checker and the cross-run friction
 ledger; 0.6 pw), and the runs (the calibration round after part 4, then the visual rounds at the gates of the
 polish cycles of §9; from the 20 % reserve, as part 3) · **Amended:** cycle-34 design pass: as built, owner rulings of
-2026-10-29 (§1, §9) · **Date:** 2026-10-29 · **Work package:**
+2026-10-29 (§1, §9); cycle-39 design pass: other window sizes and scales built (lane L39, decision log ID-908; the
+as-built notes of §3.1, V-D3 and BV3) · **Date:** 2026-10-29 · **Work package:**
 [WP-S6.13](../02-work-packages.md#wp-s613-blind-drafter-gate-agent-harness-personas-and-prompt) · **Decision log:**
 ID-785 to ID-794; ID-341 amended for the visual kind only (ID-787); follow-ups FT-592, FT-593 · **Part of:**
 ElektraWatt plan, specifications

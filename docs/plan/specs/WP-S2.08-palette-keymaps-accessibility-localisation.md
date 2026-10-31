@@ -5,7 +5,7 @@ viewer (WP-S2.03), the editors (WP-S2.04, WP-S2.05) and the design language (WP-
 part 1 the palette (0.5 pw, D2 to D5), part 2 keymaps (0.5 pw, D6 to D8), part 3 Fluent for the shell and the
 pseudo-locale (0.4 pw, D9 to D11), part 4 the Dutch UI (0.2 pw, D12), part 5 accessibility and scaling (0.4 pw, D13 to
 D15), part 6 the glossary panel, tips and the wire-colour view (0.4 pw, D16 to D18); part 1 first; parts 2, 3 and 5
-after it in any order or side by side; part 4 after part 3; part 6 last · **Date:** 2026-10-30 · **Work package:**
+after it in any order or side by side; part 4 after part 3; part 6 last · **Part 1 built in cycle 39** (lane K39, decision log ID-907; PL-1 to PL-7; enabled entries before disabled ones ahead of D2's rank; the glossary file with 17 terms; O1 open, so D2's code-point order stays) · **Date:** 2026-10-30 · **Work package:**
 [WP-S2.08](../02-work-packages.md#wp-s208-command-palette-keymaps-accessibility-and-ui-localisation) · **Decision
 log:** ID-895 · **Part of:** ElektraWatt plan, specifications
 
