@@ -39,7 +39,9 @@ pub fn member_order(q: &Q, root: Id<Device>) -> Vec<Id<Device>> {
         .collect();
     children.sort_by(member_cmp);
     children.dedup_by_key(|c| c.2);
-    std::iter::once(root).chain(children.into_iter().map(|(_, _, c)| c)).collect()
+    std::iter::once(root)
+        .chain(children.into_iter().map(|(_, _, c)| c))
+        .collect()
 }
 
 /// The order of two children: position, then natural designation, then ID.

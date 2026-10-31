@@ -122,7 +122,8 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
             // Another forbid link fired first (-UC1's plate child names it through `device.parent`): a targeted
             // enclosure device is still refused in these words; the delete itself reports any other refusal.
             Err(_) => {
-                let targeted: BTreeSet<AnyKey> = others.iter().copied().filter(|k| k.0 == Kind::Device).collect();
+                let targeted: BTreeSet<AnyKey> =
+                    others.iter().copied().filter(|k| k.0 == Kind::Device).collect();
                 if !targeted.is_empty() {
                     if let Some(e) = tx
                         .iter::<Enclosure>()
@@ -147,7 +148,10 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
     }
     let all_enclosures = tx.iter::<Enclosure>();
     // a removed device that carries an enclosure, whatever the rest of the selection
-    if let Some(e) = all_enclosures.iter().find(|e| removed.contains(&(Kind::Device, e.device.cast()))) {
+    if let Some(e) = all_enclosures
+        .iter()
+        .find(|e| removed.contains(&(Kind::Device, e.device.cast())))
+    {
         return carries_enclosure(tx, e.device);
     }
     let gone_enclosures: BTreeSet<Id<Enclosure>> = all_enclosures
@@ -160,7 +164,8 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
         .collect();
     let all_surfaces = tx.iter::<MountingSurface>();
     for s in &all_surfaces {
-        if surfaces.contains(&(Kind::MountingSurface, s.id.cast())) && !gone_enclosures.contains(&s.enclosure) {
+        if surfaces.contains(&(Kind::MountingSurface, s.id.cast())) && !gone_enclosures.contains(&s.enclosure)
+        {
             let device = tx.get::<Enclosure>(s.enclosure).map(|e| e.device);
             return tx.reject(format!(
                 "The plate goes with its enclosure; delete the enclosure of {}.",

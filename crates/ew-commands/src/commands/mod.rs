@@ -178,9 +178,9 @@ pub use join::JoinDevice;
 pub use languages::SetProjectLanguages;
 pub use layout::{
     AddCarrier, AutoFill, CarrierKindParam, CarrierParamsParam, CarrierThen, CreateEnclosure,
-    CreateEnclosureFromPart, CreateLayoutSpace, DeleteCarrier, DeleteEnclosure, DeleteLayoutSpace, EditCarrier,
-    EditEnclosure, EditLayoutSpace, EditSurface, FillOrder, LAYOUT_BULK_ABOVE, LockPlacement, MovePlacement,
-    PlaceAssembly, PlaceDevice, PlaceMode, PlaceOnParam, RemovePlacement,
+    CreateEnclosureFromPart, CreateLayoutSpace, DeleteCarrier, DeleteEnclosure, DeleteLayoutSpace,
+    EditCarrier, EditEnclosure, EditLayoutSpace, EditSurface, FillOrder, LAYOUT_BULK_ABOVE, LockPlacement,
+    MovePlacement, PlaceAssembly, PlaceDevice, PlaceMode, PlaceOnParam, RemovePlacement,
 };
 pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use library_update::{

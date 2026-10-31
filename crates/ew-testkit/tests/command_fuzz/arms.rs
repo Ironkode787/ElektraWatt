@@ -6449,7 +6449,11 @@ fn assembly_root_text(live: &Live, device: &str) -> Option<String> {
     if live.tree.iter().any(|t| t.parent.as_deref() == Some(device)) {
         return Some(device.to_owned());
     }
-    live.tree.iter().find(|t| id_text(&t.id) == device)?.parent.clone()
+    live.tree
+        .iter()
+        .find(|t| id_text(&t.id) == device)?
+        .parent
+        .clone()
 }
 
 /// The rail (with its length) of a placed member of the assembly `root`, if one is on a rail.
@@ -6522,7 +6526,9 @@ fn layout_place_assembly(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         2 => {
             let (device, _) = assembly_member(live, rng)?;
             let r = *rng.pick(&rails)?;
-            Some(cmd(json!({"device": device, "carrier": {"carrier": r.id}, "s": 0, "mode": "swap"})).refuse())
+            Some(
+                cmd(json!({"device": device, "carrier": {"carrier": r.id}, "s": 0, "mode": "swap"})).refuse(),
+            )
         }
         3 => {
             let alone: Vec<&Value> = live
@@ -6700,11 +6706,14 @@ fn layout_surface_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 /// enclosure. After a commit every placement has its device and its carrier or surface.
 fn edit_delete_layout(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let l = &live.layout;
-    let del = |kind: &str, id: &Value| Step::cmd("edit.delete", json!({"targets": [{"kind": kind, "id": id}]}));
+    let del =
+        |kind: &str, id: &Value| Step::cmd("edit.delete", json!({"targets": [{"kind": kind, "id": id}]}));
     let step = match rng.below(5) {
         0 => {
             let p = rng.pick(&l.placements)?;
-            del("placement", &p.id).accept().counts(&[(Table::Placements, -1)])
+            del("placement", &p.id)
+                .accept()
+                .counts(&[(Table::Placements, -1)])
         }
         1 => {
             let (c, n) = rng.pick(&l.carriers)?;
@@ -6730,7 +6739,9 @@ fn edit_delete_layout(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             if l.occupied.contains(&id_text(s)) {
                 del("layout_space", s).refuse()
             } else {
-                del("layout_space", s).accept().counts(&[(Table::LayoutSpaces, -1)])
+                del("layout_space", s)
+                    .accept()
+                    .counts(&[(Table::LayoutSpaces, -1)])
             }
         }
     };

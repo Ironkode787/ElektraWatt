@@ -442,15 +442,16 @@ fn as2_a_block_lands_in_member_order() {
     let mut f = fx();
     let before = lines(f.e.model());
     let cursor = f.e.history().cursor();
-    let r = f
-        .e
-        .execute(&assembly(DEV_M2, f.rail1, Some(20), None))
-        .unwrap();
+    let r = f.e.execute(&assembly(DEV_M2, f.rail1, Some(20), None)).unwrap();
     let order = member_order(&Q::new(f.e.model()), DEV_A1);
     assert_eq!(order, vec![DEV_A1, DEV_M3, DEV_M1, DEV_M2]);
     assert_eq!(clips(&f.e, &order), vec![29, 47, 65, 83]);
     let first: Id<Placement> = created(r);
-    assert_eq!(get(&f.e, first).unwrap().device, DEV_A1, "the primary is the first new placement");
+    assert_eq!(
+        get(&f.e, first).unwrap().device,
+        DEV_A1,
+        "the primary is the first new placement"
+    );
     for pl in rows::<Placement>(&f.e) {
         assert_eq!(pl.part, Some(PartRef::new(copy_id(ITEM_MCB))));
         assert_eq!(pl.carrier, ew_schema::CarrierRef::Carrier(f.rail1));
@@ -460,8 +461,7 @@ fn as2_a_block_lands_in_member_order() {
     f.e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(f.e.model()), before);
     // Placed: nothing left to place.
-    f.e.execute(&assembly(DEV_A1, f.rail1, Some(20), None))
-        .unwrap();
+    f.e.execute(&assembly(DEV_A1, f.rail1, Some(20), None)).unwrap();
     assert_eq!(
         rejected(f.e.execute(&assembly(DEV_M1, f.rail1, Some(20), None))),
         "Every member of -?A1 that mounts is already placed."
@@ -477,7 +477,11 @@ fn as2_the_block_resolves_as_one_item() {
     let order = [DEV_A1, DEV_M3, DEV_M1, DEV_M2];
     f.e.execute(&assembly(DEV_A1, f.rail1, Some(20), Some(PlaceMode::Free)))
         .unwrap();
-    assert_eq!(clips(&f.e, &order), vec![78, 96, 114, 132], "after K1: the gap before it is 51 mm");
+    assert_eq!(
+        clips(&f.e, &order),
+        vec![78, 96, 114, 132],
+        "after K1: the gap before it is 51 mm"
+    );
     assert_eq!(clip10(&f.e, k(1)), 600);
     f.e.undo(&Origin::Gui).unwrap();
     f.e.execute(&assembly(DEV_A1, f.rail1, Some(20), Some(PlaceMode::Push)))
@@ -533,7 +537,10 @@ fn as2_place_assembly_refusals() {
         carrier: PlaceOnParam::Surface(f.surface),
         ..assembly(DEV_A1, f.rail1, Some(20), None)
     };
-    assert_eq!(rejected(f.e.execute(&on_surface)), "An assembly is placed on a rail.");
+    assert_eq!(
+        rejected(f.e.execute(&on_surface)),
+        "An assembly is placed on a rail."
+    );
     assert_eq!(
         invalid(f.e.execute(&assembly(DEV_A1, f.rail1, None, None))),
         (
@@ -565,20 +572,16 @@ fn as2_place_assembly_refusals() {
 #[test]
 fn override2_a_concurrent_placement_of_a_member_conflicts() {
     let mut f = fx();
-    let preview = f
-        .e
-        .preview(&assembly(DEV_A1, f.rail1, Some(20), None))
-        .unwrap();
+    let preview = f.e.preview(&assembly(DEV_A1, f.rail1, Some(20), None)).unwrap();
     let base = preview.base_rev();
     f.e.execute(&place(DEV_M2, f.rail2, 100)).unwrap();
     assert!(
         !preview.read_set().unchanged_since(f.e.model(), base),
         "the assembly read M2's placements"
     );
-    let preview = f
-        .e
-        .preview(&fill(f.rail1, Some(vec![k(1), k(2)]), FillOrder::Dt))
-        .unwrap();
+    let preview =
+        f.e.preview(&fill(f.rail1, Some(vec![k(1), k(2)]), FillOrder::Dt))
+            .unwrap();
     let base = preview.base_rev();
     f.e.execute(&place(k(2), f.rail2, 300)).unwrap();
     assert!(
@@ -594,9 +597,8 @@ fn as3_auto_fill_next_fits_and_reports() {
     let mut f = fx();
     f.e.execute(&place(k(2), f.rail2, 100)).unwrap();
     let cursor = f.e.history().cursor();
-    let r = f
-        .e
-        .execute(&fill(
+    let r =
+        f.e.execute(&fill(
             f.rail1,
             Some(vec![k(3), DEV_X5, DEV_E55, k(1), DEV_K9, DEV_W1, k(2)]),
             FillOrder::Dt,
@@ -646,10 +648,9 @@ fn as3_the_pads_space_the_fill() {
 #[test]
 fn as3_auto_fill_refusals() {
     let mut f = fx();
-    let r = f
-        .e
-        .execute(&fill(f.rail3, Some(vec![k(1), k(2)]), FillOrder::Dt))
-        .unwrap();
+    let r =
+        f.e.execute(&fill(f.rail3, Some(vec![k(1), k(2)]), FillOrder::Dt))
+            .unwrap();
     assert_eq!(clip10(&f.e, k(1)), 90);
     assert_eq!(r.outcome.notices, vec!["-?K2: no room left on rail 3".to_owned()]);
     assert_eq!(
@@ -670,7 +671,10 @@ fn as3_auto_fill_refusals() {
     );
     assert_eq!(
         invalid(f.e.execute(&fill(f.rail1, Some(vec![id(0xeeee)]), FillOrder::Dt))),
-        ("/devices/0".to_owned(), "the device is not in the project".to_owned())
+        (
+            "/devices/0".to_owned(),
+            "the device is not in the project".to_owned()
+        )
     );
 }
 
@@ -687,7 +691,10 @@ fn auto_fill_lists_the_unplaced_that_fit() {
         assert!(placed(&f.e, d), "{d} is placed");
     }
     assert!(
-        r.outcome.notices.iter().all(|n| n.ends_with(": no room left on rail 1")),
+        r.outcome
+            .notices
+            .iter()
+            .all(|n| n.ends_with(": no room left on rail 1")),
         "only rail capacity: {:?}",
         r.outcome.notices
     );
@@ -698,7 +705,8 @@ fn auto_fill_lists_the_unplaced_that_fit() {
 #[test]
 fn as4_schematic_order() {
     let mut f = fx();
-    let cell = |rep: u128| ew_commands::numbering::anchor_cell_in(f.e.model(), id(0xe00 + rep)).expect("a cell");
+    let cell =
+        |rep: u128| ew_commands::numbering::anchor_cell_in(f.e.model(), id(0xe00 + rep)).expect("a cell");
     let (k4, k6) = (cell(1), cell(3));
     assert_ne!((k4.row, k4.column), (k6.row, k6.column), "two cells");
     let (first, second) = if (k4.row, k4.column) < (k6.row, k6.column) {
@@ -753,7 +761,11 @@ fn as4_a_large_fill_is_bulk() {
     let r = f.e.commit(preview).unwrap();
     let count = rows::<Placement>(&f.e).len();
     assert!(count > 0);
-    assert_eq!(count + r.outcome.notices.len(), 201, "every device placed or named");
+    assert_eq!(
+        count + r.outcome.notices.len(),
+        201,
+        "every device placed or named"
+    );
 }
 
 /// The JSON form of a part copy in `lib/` form with its true hash (FT-656's pattern).
@@ -835,7 +847,10 @@ fn as5_an_enclosure_from_its_part() {
     assert_eq!(child.parent, Some(device.id));
     assert_eq!(child.parts, uses(&[ITEM_PLATE]));
     assert_eq!(child.structure, device.structure);
-    assert_eq!((s.enclosure, s.kind.clone(), s.pe_bond), (enclosure, SurfaceKind::Plate, false));
+    assert_eq!(
+        (s.enclosure, s.kind.clone(), s.pe_bond),
+        (enclosure, SurfaceKind::Plate, false)
+    );
     assert_eq!(
         s.frame,
         Pose3 {
@@ -844,7 +859,12 @@ fn as5_an_enclosure_from_its_part() {
         }
     );
     assert_eq!(s.usable, vec![p(0, 0), p(650, 0), p(650, 900), p(0, 900)]);
-    assert!(e.model().table::<LibCopy<Part>>().get(&copy_id(ITEM_ENCL)).is_some());
+    assert!(
+        e.model()
+            .table::<LibCopy<Part>>()
+            .get(&copy_id(ITEM_ENCL))
+            .is_some()
+    );
     assert_eq!(
         rejected(e.execute(&from_part(vec![]))),
         "location J-E-2416 already has enclosure -UC1; a location has one enclosure"
@@ -881,7 +901,10 @@ fn as5_create_from_part_refusals_and_reuse() {
     };
     assert_eq!(
         invalid(e.execute(&wrong_function)),
-        ("/function".to_owned(), "node J-E-2416 is not a function".to_owned())
+        (
+            "/function".to_owned(),
+            "node J-E-2416 is not a function".to_owned()
+        )
     );
     let not_location = CreateEnclosureFromPart {
         location: FUNC_P01,
@@ -899,8 +922,11 @@ fn as5_create_from_part_refusals_and_reuse() {
         .unwrap(),
     );
     let enclosure: Id<Enclosure> = created(
-        e.execute(&from_part(vec![copy_json(enclosure_copy()), copy_json(plate_copy())]))
-            .unwrap(),
+        e.execute(&from_part(vec![
+            copy_json(enclosure_copy()),
+            copy_json(plate_copy()),
+        ]))
+        .unwrap(),
     );
     assert_eq!(rows::<LayoutSpace>(&e).len(), 1);
     assert_eq!(get(&e, enclosure).unwrap().space, space);
@@ -932,14 +958,20 @@ fn as6_the_edits_change_one_member() {
             space: f.space,
             name: None
         })),
-        ("/name".to_owned(), "give the name, or null to clear it".to_owned())
+        (
+            "/name".to_owned(),
+            "give the name, or null to clear it".to_owned()
+        )
     );
     assert_eq!(
         invalid(f.e.execute(&EditLayoutSpace {
             space: id(0xeeee),
             name: Some(None)
         })),
-        ("/space".to_owned(), "the layout space is not in the project".to_owned())
+        (
+            "/space".to_owned(),
+            "the layout space is not in the project".to_owned()
+        )
     );
 
     let enclosure = get(&f.e, f.enclosure).unwrap();
@@ -972,7 +1004,10 @@ fn as6_the_edits_change_one_member() {
             enclosure: id(0xeeee),
             pose: moved
         })),
-        ("/enclosure".to_owned(), "the enclosure is not in the project".to_owned())
+        (
+            "/enclosure".to_owned(),
+            "the enclosure is not in the project".to_owned()
+        )
     );
 
     let surface = get(&f.e, f.surface).unwrap();
@@ -990,7 +1025,10 @@ fn as6_the_edits_change_one_member() {
             surface: id(0xeeee),
             pe_bond: true
         })),
-        ("/surface".to_owned(), "the surface is not in the project".to_owned())
+        (
+            "/surface".to_owned(),
+            "the surface is not in the project".to_owned()
+        )
     );
 }
 
@@ -1082,8 +1120,7 @@ fn as7_edit_delete_on_layout_kinds() {
         "The plate goes with its enclosure; delete the enclosure of -?UC1."
     );
     // A placement; an empty carrier; a carrier with all its placements.
-    f.e.execute(&delete(&[(KindName::Placement, p3.cast())]))
-        .unwrap();
+    f.e.execute(&delete(&[(KindName::Placement, p3.cast())])).unwrap();
     assert!(get(&f.e, p3).is_none());
     f.e.execute(&delete(&[(KindName::Carrier, f.rail2.cast())]))
         .unwrap();
@@ -1128,7 +1165,10 @@ fn as8_move_realises_another_part() {
     // 40 mm wide from 10 mm: K1 is pushed to start at 50 mm.
     f.e.execute(&mv(pl, 30, Some(ITEM_WIDE), Some(PlaceMode::Push)))
         .unwrap();
-    assert_eq!(get(&f.e, pl).unwrap().part, Some(PartRef::new(copy_id(ITEM_WIDE))));
+    assert_eq!(
+        get(&f.e, pl).unwrap().part,
+        Some(PartRef::new(copy_id(ITEM_WIDE)))
+    );
     assert_eq!((clip10(&f.e, DEV_KM), clip10(&f.e, k(1))), (300, 590));
     assert_eq!(
         invalid(f.e.execute(&mv(pl, 30, Some(ITEM_PAD), None))),

@@ -96,8 +96,8 @@ fn empty(s: &mut Session, rail: &str) -> usize {
 
 /// The assembly -201U1 in its member order: the station, then its modules by position.
 const MEMBERS: [&str; 12] = [
-    "-201U1", "-201U2", "-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-201U9", "-202U1", "-202U2",
-    "-202U3",
+    "-201U1", "-201U2", "-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-201U9", "-202U1",
+    "-202U2", "-202U3",
 ];
 
 /// AS-1 (spec values): -201U9 pushed in at clip 338 mm by `layout.place`, and `layout.place_assembly` of -201U1 (its
@@ -163,7 +163,9 @@ fn as2_the_assembly_as_one_block_on_an_empty_rail() {
     let want: Vec<(&str, i128)> = MEMBERS
         .iter()
         .copied()
-        .zip([450, 790, 1080, 1480, 1880, 2280, 2680, 3080, 3380, 3730, 4180, 4480])
+        .zip([
+            450, 790, 1080, 1480, 1880, 2280, 2680, 3080, 3380, 3730, 4180, 4480,
+        ])
         .collect();
     assert_eq!(clips(&s, "R3"), owned(&want));
     let q = s.query();

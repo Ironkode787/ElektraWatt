@@ -14,9 +14,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::Q;
 use ew_derive::layout::{
-    Fit, PathError, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent, RailItem, Resolution, SnapError,
-    SnapMode, Mountable, Unplaced, bracket_part, carrier_label, check_path, check_pose, clip_offset, fits_rail, member_order,
-    min_gap, mm, next_fit, plate_frame, rail_extent, rail_items, rehome_pose, resolve,
+    Fit, Mountable, PathError, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent, RailItem,
+    Resolution, SnapError, SnapMode, Unplaced, bracket_part, carrier_label, check_path, check_pose,
+    clip_offset, fits_rail, member_order, min_gap, mm, next_fit, plate_frame, rail_extent, rail_items,
+    rehome_pose, resolve,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf};
 use ew_ids::Id;
@@ -24,10 +25,10 @@ use ew_mltext::{Ident, natural_key};
 use ew_model::{AnyKey, Model};
 use ew_rds::Aspect;
 use ew_schema::{
-    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, DeviceAspects, DuctParams, Enclosure, EnclosureSection,
-    Extra, FrozenTag, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind, MountingSurface, Open, Part,
-    PartRef, PartUse, Placement, RailParams, Slot, StructureAssignment, StructureNode, SurfaceKind, TagScheme,
-    TagSign, TagSpec,
+    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, DeviceAspects, DuctParams, Enclosure,
+    EnclosureSection, Extra, FrozenTag, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind,
+    MountingSurface, Open, Part, PartRef, PartUse, Placement, RailParams, Slot, StructureAssignment,
+    StructureNode, SurfaceKind, TagScheme, TagSign, TagSpec,
 };
 use ew_units::{Dec3, Nm, Pose3, Pt2};
 use schemars::JsonSchema;
@@ -1149,7 +1150,11 @@ fn snap_text(tx: &TxBuilder<'_>, q: &Q, w: &Wording<'_>, e: SnapError) -> String
             mm(by)
         ),
         SnapError::PastEnd { neighbour: None, by } => {
-            format!("{} would pass the rail end by {} mm.", sentence_start(item), mm(by))
+            format!(
+                "{} would pass the rail end by {} mm.",
+                sentence_start(item),
+                mm(by)
+            )
         }
         SnapError::SwapAcrossRails => {
             "Swap works within one rail; use push or free to place it there.".to_owned()
@@ -1207,7 +1212,8 @@ fn resolve_items(
     s_left: i128,
     wording: &Wording<'_>,
 ) -> Result<Resolution, CmdError> {
-    resolve(items, length, moved, s_left, wording.mode.snap()).or_else(|e| tx.reject(snap_text(tx, q, wording, e)))
+    resolve(items, length, moved, s_left, wording.mode.snap())
+        .or_else(|e| tx.reject(snap_text(tx, q, wording, e)))
 }
 
 /// Resolves a placement dropped on a rail with a mode (D4, D5): the rail's items from `rail_occupancy` on the base
@@ -1721,14 +1727,7 @@ fn block_of(members: &[Member]) -> (Vec<i128>, RailItem) {
         members.first().map_or(0, |m| min_gap(&BARE, &m.item)),
         members.last().map_or(0, |m| min_gap(&m.item, &BARE)),
     ];
-    (
-        offsets,
-        RailItem {
-            s1: end,
-            pad,
-            ..BARE
-        },
-    )
+    (offsets, RailItem { s1: end, pad, ..BARE })
 }
 
 /// `item` with its footprint starting at `s0`, its width kept.
@@ -1896,7 +1895,8 @@ impl Command for PlaceAssembly {
             ));
         };
         let order = member_order(&q, root);
-        let devices: Vec<std::sync::Arc<Device>> = order.iter().filter_map(|d| tx.get::<Device>(*d)).collect();
+        let devices: Vec<std::sync::Arc<Device>> =
+            order.iter().filter_map(|d| tx.get::<Device>(*d)).collect();
         // Override 2: one read set for every device the command reads, their placements included.
         note_rail_reads(tx, rail, &devices.iter().map(|d| d.as_ref()).collect::<Vec<_>>());
         let mut on_rail: BTreeMap<Id<Device>, Vec<Id<Placement>>> = BTreeMap::new();
@@ -1911,7 +1911,10 @@ impl Command for PlaceAssembly {
             }
             let here: Vec<Id<Placement>> = placements
                 .into_iter()
-                .filter(|p| tx.get::<Placement>(*p).is_some_and(|p| p.carrier == CarrierRef::Carrier(rail)))
+                .filter(|p| {
+                    tx.get::<Placement>(*p)
+                        .is_some_and(|p| p.carrier == CarrierRef::Carrier(rail))
+                })
                 .collect();
             if !here.is_empty() {
                 on_rail.insert(d.id, here);
@@ -2028,12 +2031,12 @@ fn insert_members(
             .rev()
             .find_map(|d| items_of(mem, d).into_iter().max_by_key(|i| (i.s1, i.s0)));
         let s_left = match pred {
-            Some(p) => p
-                .s0
-                .saturating_add(p.s1)
-                .saturating_sub(width)
-                .div_euclid(2)
-                .saturating_add(1),
+            Some(p) => {
+                p.s0.saturating_add(p.s1)
+                    .saturating_sub(width)
+                    .div_euclid(2)
+                    .saturating_add(1)
+            }
             None => order
                 .get(at + 1..)
                 .unwrap_or_default()
@@ -2198,7 +2201,11 @@ impl Command for AutoFill {
         };
         let devices: Vec<std::sync::Arc<Device>> = list.iter().filter_map(|d| tx.get::<Device>(*d)).collect();
         // Override 2: every listed device's placements are in the read set.
-        note_rail_reads(tx, carrier, &devices.iter().map(|d| d.as_ref()).collect::<Vec<_>>());
+        note_rail_reads(
+            tx,
+            carrier,
+            &devices.iter().map(|d| d.as_ref()).collect::<Vec<_>>(),
+        );
         let rail = rail_in_sentence(&q, carrier);
         let mut notices: Vec<Option<String>> = vec![None; devices.len()];
         let mut candidates: Vec<Candidate> = Vec::new();
@@ -2213,8 +2220,10 @@ impl Command for AutoFill {
         let mut last: Option<RailItem> = None;
         let mut placed: Vec<(Member, Pose3)> = Vec::new();
         for unit in fill_units(&q, candidates) {
-            let members: Vec<Member> =
-                unit.iter().map(|(_, d)| member(tx, &q, std::sync::Arc::clone(d))).collect();
+            let members: Vec<Member> = unit
+                .iter()
+                .map(|(_, d)| member(tx, &q, std::sync::Arc::clone(d)))
+                .collect();
             let (offsets, item) = block_of(&members);
             let floor = last.map_or(i128::MIN, |l| l.s1.saturating_add(min_gap(&l, &item)));
             let Some(s) = next_fit(&mem, axis.length, &item, floor) else {
@@ -2285,7 +2294,9 @@ fn fill_refusal(
         return Some("not mountable".to_owned());
     }
     let part = primary_part(tx, device);
-    let mount = part.and_then(|p| mech_of(tx, p.copy)).and_then(|m| m.mount_kind)?;
+    let mount = part
+        .and_then(|p| mech_of(tx, p.copy))
+        .and_then(|m| m.mount_kind)?;
     let profile = profile?;
     if fits_rail(Some(&mount), profile) != Fit::DoesNotFit {
         return None;
@@ -2473,7 +2484,9 @@ impl Command for CreateEnclosureFromPart {
         let plate = plate_copy_id(&section);
         if plate.is_some_and(|p| !tx.exists::<LibCopy<Part>>(p)) {
             // The copy is not held, so its part number is not known here (lane E42: the brief's text named it).
-            return tx.reject("the enclosure part names a plate part that the project does not hold; add it to copies");
+            return tx.reject(
+                "the enclosure part names a plate part that the project does not hold; add it to copies",
+            );
         }
         let space = match existing {
             Some(s) => s,
@@ -2485,7 +2498,9 @@ impl Command for CreateEnclosureFromPart {
             .into_iter()
             .filter_map(|d| d.tag.frozen.as_ref().map(|f| f.text.as_str().to_owned()))
             .collect();
-        let n = (1u32..).find(|n| !frozen.contains(&format!("UC{n}"))).unwrap_or(1);
+        let n = (1u32..)
+            .find(|n| !frozen.contains(&format!("UC{n}")))
+            .unwrap_or(1);
         let letter = ident(name, "U")?;
         let structure = StructureAssignment {
             location: Some(Slot::Node(self.location)),
@@ -2500,7 +2515,13 @@ impl Command for CreateEnclosureFromPart {
             frozen: Some(frozen_tag(name, &format!("UC{n}"))?),
             extra: Extra::new(),
         };
-        tx.insert(enclosure_device(device, enclosure_tag, None, &structure, self.part))?;
+        tx.insert(enclosure_device(
+            device,
+            enclosure_tag,
+            None,
+            &structure,
+            self.part,
+        ))?;
         if let Some(p) = plate {
             let child: Id<Device> = tx.mint();
             let plate_tag = TagSpec {
