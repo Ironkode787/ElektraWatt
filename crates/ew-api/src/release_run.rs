@@ -1231,6 +1231,25 @@ mod tests {
             .expect("revision V1.0")
     }
 
+    /// FIX39a (finding 6): every pack a gate can evaluate (the pack of every registered rule) has an ID and a version
+    /// that parse as an `Ident`, so [`Session::release_record`]'s `parse().ok()` never drops a pack from the record
+    /// (and the approval's `ident()` never refuses one).
+    #[test]
+    fn every_gate_pack_id_and_version_is_an_ident() {
+        let mut packs: Vec<&str> = checks::rules().iter().map(|r| r.meta().pack).collect();
+        packs.sort_unstable();
+        packs.dedup();
+        assert!(!packs.is_empty());
+        for pack in packs {
+            assert!(pack.parse::<Ident>().is_ok(), "pack ID {pack:?}");
+        }
+        assert!(
+            checks::SHIPPED_PACK_VERSION.parse::<Ident>().is_ok(),
+            "pack version {:?}",
+            checks::SHIPPED_PACK_VERSION
+        );
+    }
+
     /// RA-4: a freeze that changes a page digest (a moved symbol) is undone and aborts the release before anything is
     /// written; a freeze that changes no page (the drawing settings of a project without crossings) is saved as g and
     /// stays an ordinary undoable transaction when a later step fails (a refused tag); then the release completes at the

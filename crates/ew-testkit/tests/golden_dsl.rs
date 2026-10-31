@@ -126,7 +126,13 @@ fn the_command_log_replays_and_every_step_undoes() {
     // definitions (`part.function_template[].fndef`): the `LibRef` keep-alive is the delete-time rule
     // EW-INV-021, which undo skips, so the state before the embedding (a `LibRef` to an item the project
     // does not embed names nothing) is restored.
-    assert_eq!((steps, built.script.len()), (605, 614), "undo steps, commands");
+    // A relation, not totals (CONTRIBUTING.md: the golden script grows).
+    assert_eq!(
+        built.script.len() - steps,
+        9,
+        "the commands that leave no undo step ({steps} steps, {} commands)",
+        built.script.len()
+    );
     assert_eq!(
         last.as_deref(),
         Some("library.embed"),

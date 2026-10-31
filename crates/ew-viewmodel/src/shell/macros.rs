@@ -120,8 +120,10 @@ pub(super) fn badge_word(code: &str) -> &str {
 }
 
 /// A macro key from a name: lower case, letters and digits of any script kept, every run of other characters one `-`
-/// (`PSU 24 V` → `psu-24-v`, `Übersicht` → `übersicht`).
+/// (`PSU 24 V` → `psu-24-v`, `Übersicht` → `übersicht`). The name is NFC-normalised first, so a name typed with
+/// combining marks (NFD) gives the same key as its composed form (an `Ident` is NFC).
 fn key_of(name: &str) -> String {
+    let name = ew_api::to_nfc(name);
     let mut out = String::new();
     for c in name.chars() {
         if c.is_alphanumeric() {
@@ -923,6 +925,9 @@ mod tests {
         assert_eq!(key_of("Schütz K1"), "schütz-k1");
         assert_eq!(key_of("  "), "");
         assert_eq!(key_of("--"), "");
+        // FIX39a (finding 8): a decomposed name (U + combining diaeresis) gives the composed name's key.
+        assert_eq!(key_of("U\u{308}bersicht"), "übersicht");
+        assert_eq!(key_of("Schu\u{308}tz K1"), key_of("Schütz K1"));
     }
 
     #[test]

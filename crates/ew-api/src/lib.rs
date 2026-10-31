@@ -137,6 +137,9 @@ pub use ew_jobs;
 /// The libraries (WP-S1.19 part 2): tiers, the `.ewlib` reader and writer, the index and search. The shell and the
 /// CLI name them through `ew-api` (no workspace edge of their own).
 pub use ew_library as library;
+/// NFC normalisation (the form every `Ident` and text key takes): the shell names it through `ew-api` (no workspace
+/// edge of its own).
+pub use ew_mltext::to_nfc;
 /// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
 pub use ew_reports::export::{Export, ExportError, Exported};
 /// The project's revision label format (doc 15 §5.2, FR-REV-002): the new-project wizard checks the first label
