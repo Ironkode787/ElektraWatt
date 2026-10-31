@@ -163,15 +163,17 @@ fn ft822_a_refused_arrow_keeps_its_ghost_and_says_why() {
         "the ghost stays where it was"
     );
     assert_eq!(s.tool().name(), "ip", "the tool stays armed");
+    // H40 item 6: what is in the way and the way out, in words: not the rule's ID tie-break.
+    let words = "Not placed: 0V already has a source on page 101. Press D for a target, or mark one source as the star.";
     let notice = s.tool_notice().expect("the reason in the HUD").to_owned();
-    assert!(notice.contains("EW-CORE-052"), "{notice}");
+    assert_eq!(notice, words);
     assert!(
-        ew_viewmodel::command_bar::hud(&s).prompt.contains("EW-CORE-052"),
+        ew_viewmodel::command_bar::hud(&s).prompt.contains(words),
         "the HUD shows the refusal"
     );
     let toasts = s.notifications().visible();
     assert!(
-        toasts.iter().any(|n| n.text.contains("EW-CORE-052")),
+        toasts.iter().any(|n| n.text == words),
         "a warning toast says it too"
     );
     assert_eq!(state(&s)["banner"], Value::Null, "no banner for a refused click");

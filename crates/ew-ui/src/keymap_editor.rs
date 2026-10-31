@@ -79,7 +79,8 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     }
     // The preset, and whether the user's keymap changes it.
     let preset = shell.keymap_preset().name();
-    let preset_line = if shell.user_keymap().is_some() {
+    // W40a 5b: "with your changes" only while an action's bindings differ from the preset's.
+    let preset_line = if ew_viewmodel::keymap::has_changes(shell.keymap_preset(), shell.user_keymap()) {
         strings::format("keymap-preset-custom", &[preset])
     } else {
         strings::format("keymap-preset", &[preset])
@@ -211,6 +212,14 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                 );
             }
         });
+    // W40a 5a: the Menu key's note only while a shortcut is being recorded, under the list that shows the recording.
+    if state.recording.is_some() {
+        ui.label(
+            RichText::new(strings::text("keymap-menu-key"))
+                .font(theme::font(&t.type_small))
+                .color(t.text_tertiary.color32()),
+        );
+    }
     // What the user's own bindings shadow (D8's info), in full: the row's cell has room for a tag only.
     for note in rows.iter().filter(|r| r.custom).flat_map(|r| &r.notes) {
         ui.label(
@@ -230,11 +239,6 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
             );
         }
     }
-    ui.label(
-        RichText::new(strings::text("keymap-menu-key"))
-            .font(theme::font(&t.type_small))
-            .color(t.text_tertiary.color32()),
-    );
 }
 
 /// One cell of a row: `width` wide, `height` high, its content left-aligned and cut at the right.

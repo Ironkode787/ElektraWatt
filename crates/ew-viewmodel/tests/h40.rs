@@ -18,7 +18,8 @@ fn parts_list_opens_the_first_page_of_the_bom_block() {
     let tmp = Tmp::new("h40-parts");
     let mut shell = tmp.shell("102");
     let meta = actions::find("lists.parts").expect("registered");
-    assert_eq!(strings::text(meta.label_key), "Parts list");
+    assert_eq!(strings::text(meta.label_key), "Open parts list");
+    assert_eq!(strings::text("bar-lists-parts"), "Parts list");
     assert_eq!((meta.enabled)(&shell), Ok(()));
     let folio = shell.parts_list_folio().expect("Golden A has a parts list");
     assert_eq!(folio, "901");

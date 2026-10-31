@@ -277,11 +277,14 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
     }
 }
 
-/// FT-785: a macro card's ad-hoc values, one row per variable: the label "<name> (<type>)" in `type.small`
-/// `color.text.secondary` in a column `size.dialog.label` wide, the field filling the rest with the value set's (or
-/// the default's) value as its placeholder, and the command's refusal of a typed value under it in `color.error`. The
-/// field keeps what is typed while it has the focus and sends `macros.value` when it loses it with another text (the
-/// card is previewed again; a blank field sends none, so the placeholder's value applies).
+/// FT-785: a macro card's ad-hoc values, one row per variable: the label "<name> (<type in words>)" in `type.small`
+/// `color.text.secondary` in a column as wide as the widest label (at least `size.dialog.label`, at most half the
+/// row), the field beside it as wide as a form dialog's field (W40a item 4: the row is a form dialog's body,
+/// [`crate::dialog::form_width`], which grows with the window; never the whole preview panel), with the value set's
+/// (or the default's) value as its placeholder, and the command's refusal of a typed value under the field at the
+/// field's width in `color.error`. The field keeps what is typed while it has the focus and sends `macros.value` when
+/// it loses it with another text (the card is previewed again; a blank field sends none, so the placeholder's value
+/// applies).
 fn macro_values(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &mut Vec<Event>) {
     if m.fields.is_empty() {
         return;
@@ -292,19 +295,39 @@ fn macro_values(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: 
             .font(theme::font(&t.type_small))
             .color(t.text_secondary.color32()),
     );
-    for f in &m.fields {
+    let font = theme::font(&t.type_small);
+    let labels: Vec<String> = m
+        .fields
+        .iter()
+        .map(|f| strings::format("macro-value-label", &[&f.name, &strings::var_type_word(&f.ty)]))
+        .collect();
+    let widest = labels
+        .iter()
+        .map(|l| {
+            ui.fonts_mut(|fonts| {
+                fonts
+                    .layout_no_wrap(l.clone(), font.clone(), theme::NONE)
+                    .size()
+                    .x
+            })
+        })
+        .fold(0.0_f32, f32::max)
+        .ceil();
+    let window = ui.ctx().content_rect().width();
+    let (label_width, field_width) = value_columns(&t, widest, window, ui.available_width());
+    for (f, label_text) in m.fields.iter().zip(&labels) {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = t.space_3;
             let label = ui
                 .allocate_ui_with_layout(
-                    egui::vec2(t.size_dialog_label, t.size_control),
+                    egui::vec2(label_width, t.size_control),
                     Layout::left_to_right(Align::Center),
                     |ui| {
-                        ui.set_min_size(egui::vec2(t.size_dialog_label, t.size_control));
+                        ui.set_min_size(egui::vec2(label_width, t.size_control));
                         ui.add(
                             egui::Label::new(
-                                RichText::new(strings::format("macro-value-label", &[&f.name, &f.ty]))
-                                    .font(theme::font(&t.type_small))
+                                RichText::new(label_text)
+                                    .font(font.clone())
                                     .color(t.text_secondary.color32()),
                             )
                             .wrap(),
@@ -325,7 +348,7 @@ fn macro_values(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: 
                     egui::TextEdit::singleline(&mut text)
                         .id(id)
                         .hint_text(RichText::new(&f.placeholder).color(t.text_tertiary.color32()))
-                        .desired_width(ui.available_width())
+                        .desired_width(field_width)
                         .min_size(egui::vec2(0.0, t.size_control)),
                 )
                 .labelled_by(label.id);
@@ -344,17 +367,56 @@ fn macro_values(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: 
         });
         if let Some(error) = &f.error {
             ui.horizontal(|ui| {
-                ui.add_space(t.size_dialog_label + t.space_3);
-                ui.add(
-                    egui::Label::new(
-                        RichText::new(error)
-                            .font(theme::font(&t.type_small))
-                            .color(t.error.color32()),
-                    )
-                    .wrap(),
+                ui.add_space(label_width + t.space_3);
+                ui.allocate_ui_with_layout(
+                    egui::vec2(field_width, 0.0),
+                    Layout::top_down(Align::Min),
+                    |ui| {
+                        ui.set_max_width(field_width);
+                        ui.add(
+                            egui::Label::new(
+                                RichText::new(error)
+                                    .font(theme::font(&t.type_small))
+                                    .color(t.error.color32()),
+                            )
+                            .wrap(),
+                        );
+                    },
                 );
             });
         }
+    }
+}
+
+/// The macro card's value columns (W40a item 4): the label column as wide as the widest label, at least
+/// `size.dialog.label` and at most half the row; the field as wide as a form dialog's field, the rest of a form dialog's
+/// body ([`crate::dialog::form_width`] less its margins, which grows with the window), never wider than the panel.
+fn value_columns(t: &Tokens, widest: f32, window: f32, available: f32) -> (f32, f32) {
+    let body = (crate::dialog::form_width(t, window) - 2.0 * t.space_5).min(available);
+    let label = widest.max(t.size_dialog_label).min(body / 2.0);
+    (label, (body - label - t.space_3).max(0.0))
+}
+
+#[cfg(test)]
+mod value_column_tests {
+    use super::*;
+
+    /// W40a item 4: the field is a form dialog's field: it grows with the window, never fills a wide panel, and the
+    /// label column follows its widest label.
+    #[test]
+    fn the_value_field_is_as_wide_as_a_form_field() {
+        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
+        let (l_floor, f_floor) = value_columns(&t, 40.0, 1280.0, 1160.0);
+        let (l_wide, f_wide) = value_columns(&t, 40.0, 1920.0, 1160.0);
+        assert_eq!(l_floor, t.size_dialog_label);
+        assert_eq!(l_wide, t.size_dialog_label);
+        assert!(f_wide > f_floor, "the field grows with the window: {f_floor} → {f_wide}");
+        assert!(f_wide + l_wide < 1160.0 * 0.8, "not the whole panel: {f_wide}");
+        // A long label widens its column; a narrow panel bounds the row.
+        let (l_long, _) = value_columns(&t, t.size_dialog_label + 60.0, 1920.0, 1160.0);
+        assert_eq!(l_long, t.size_dialog_label + 60.0);
+        let (l_narrow, f_narrow) = value_columns(&t, 40.0, 1920.0, 300.0);
+        assert!(l_narrow + t.space_3 + f_narrow <= 300.0 + 0.01);
     }
 }
 

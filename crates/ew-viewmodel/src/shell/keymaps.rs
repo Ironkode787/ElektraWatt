@@ -214,7 +214,7 @@ impl ShellModel {
             self.keymap_editor.refusal = Some(Refusal {
                 action,
                 chord: chord.to_owned(),
-                errors: errors.iter().map(keymap::Finding::text).collect(),
+                errors: errors.iter().map(|f| keymap::refusal_text(f, action)).collect(),
             });
             return Outcome::Refused {
                 reason_key: "reason-keymap-conflict",

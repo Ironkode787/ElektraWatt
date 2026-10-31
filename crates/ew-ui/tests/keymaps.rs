@@ -174,7 +174,7 @@ fn km3_the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {
     assert!(matches!(outcome, Outcome::Refused { .. }), "{outcome:?}");
     settle(&mut h);
     assert!(
-        h.query_by_label_contains("M is bound twice in the canvas context")
+        h.query_by_label_contains("M is already Move in the canvas.")
             .is_some()
     );
 }

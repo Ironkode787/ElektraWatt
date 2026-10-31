@@ -226,6 +226,10 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         // FT-822: a refused interruption point (a prevent rule) keeps its ghost; the HUD and a toast say why.
         "reason-ip-not-placed" => "The interruption point was not placed",
         "notice-ip-not-placed" => "Not placed: {0}",
+        // H40 item 6: EW-CORE-052 in words: what is in the way (the existing source's page) and the way out.
+        "notice-ip-second-source" => {
+            "Not placed: {0} already has a source on page {1}. Press D for a target, or mark one source as the star."
+        }
         "reason-external-never-pairs" => "An external connection point never pairs, so it has no star source",
         "error-no-external" => {
             "No external reference is \"{0}\"; name one as device:connection, optionally after its location and \" / \" (+J-E-206 / JE-N1000-03:L). The project's: {1}"
@@ -955,7 +959,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "marker-recovered" => "Recovered {0} changes from the journal",
         "marker-recovered-one" => "Recovered 1 change from the journal",
         "action-jobs-show" => "Jobs",
-        "action-lists-parts" => "Parts list",
+        "action-lists-parts" => "Open parts list",
+        "bar-lists-parts" => "Parts list",
         "action-jobs-cancel" => "Cancel job",
         "action-jobs-wait" => "Wait for job",
         "action-jobs-open-result" => "Open result",
@@ -2061,6 +2066,13 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "keymap-refused" => "{0} was not set:",
         "keymap-unused" => "Unused, the action is unknown: {0} ({1})",
         "keymap-menu-key" => "The Menu key cannot be bound: the window system does not report it.",
+        // W40a 5c: a refused recording says what is in the way, with the context as the editor's column names it.
+        "keymap-taken" => "{0} is already {1} {2}.",
+        "keymap-in-global" => "everywhere",
+        "keymap-in-canvas" => "in the canvas",
+        "keymap-in-navigator" => "in the navigator",
+        "keymap-in-properties" => "in Properties",
+        "keymap-in-find" => "in Find",
         "keymap-none" => "No action matches the search.",
         "keymap-context-global" => "Everywhere",
         "keymap-context-canvas" => "Canvas",
@@ -2198,6 +2210,27 @@ pub fn field_label(kind: &str, path: &str) -> String {
     }
     out.push_str(&item);
     out
+}
+
+/// The word of a macro variable's type (W40a 5e): the words `macro.insert`'s coercion refusals use for it (a
+/// `tag_counter` takes "a tag counter (an integer from 1)", so it is "tag counter"); a type this version does not
+/// know is its key with spaces. The window never prints a raw type key.
+pub fn var_type_word(ty: &str) -> String {
+    let word = match ty {
+        "text" => "text",
+        "ident" => "identifier",
+        "number" => "number",
+        "bool" => "true or false",
+        "state" => "state",
+        "part" => "part reference",
+        "process_tag" => "process tag",
+        "channel_binding" => "channel number",
+        "address" => "address",
+        "tag_counter" => "tag counter",
+        "device_ref" => "device",
+        other => return other.replace('_', " "),
+    };
+    word.to_owned()
 }
 
 /// A choice value of a form dialog in words (doc 16a §8, FT-558): the parameter's snake_case word in sentence case,

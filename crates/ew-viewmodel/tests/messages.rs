@@ -437,8 +437,13 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
         Outcome::Refused { reason_key } => assert_eq!(reason_key, "reason-ip-not-placed"),
         other => panic!("{other:?}"),
     }
+    // H40 item 6: EW-CORE-052 in words, naming the page of the existing source.
     let notice = shell.tool_notice().unwrap_or_default().to_owned();
-    assert!(notice.contains("EW-CORE-052"), "{notice}");
+    assert!(
+        notice.starts_with(&format!("Not placed: {source} already has a source on page "))
+            && notice.ends_with(". Press D for a target, or mark one source as the star."),
+        "{notice}"
+    );
     assert_eq!(shell.revision(), rev, "nothing committed");
     done(&mut shell, "ui.dismiss", json!({}));
     // Page 101 renumbered to 250, outside section 1's range: EW-CORE-021 (conflict), never pending, while the commit

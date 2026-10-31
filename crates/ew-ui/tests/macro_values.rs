@@ -163,16 +163,18 @@ fn ft785_ft786_the_card_and_the_table_render_their_fields() {
     );
     done(shell, "macros.value_set", json!({"name": "Medium"}));
     settle(&mut h);
-    assert!(has_text_part(&h, "pt (process_tag)"), "the pt field's label");
-    assert!(has_text_part(&h, "n (tag_counter)"), "the n field's label");
-    assert!(field(&h, "pt (process_tag)", ""), "an untyped field");
+    assert!(has_text_part(&h, "pt (process tag)"), "the pt field's label");
+    assert!(has_text_part(&h, "n (tag counter)"), "the n field's label");
+    // W40a 5e: no raw type key anywhere on the card.
+    assert!(!has_text_part(&h, "process_tag") && !has_text_part(&h, "tag_counter"));
+    assert!(field(&h, "pt (process tag)", ""), "an untyped field");
     done(
         h.state_mut().shell_mut(),
         "macros.value",
         json!({"name": "n", "value": "abc"}),
     );
     settle(&mut h);
-    assert!(field(&h, "n (tag_counter)", "abc"), "the typed value");
+    assert!(field(&h, "n (tag counter)", "abc"), "the typed value");
     assert!(
         has_text_part(&h, "is not a tag counter"),
         "the refusal under the field"

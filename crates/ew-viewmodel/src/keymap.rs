@@ -522,6 +522,55 @@ pub fn chords_of(preset: Preset, user: Option<&Keymap>, meta: &ActionMeta) -> Ve
         .collect()
 }
 
+/// Whether the effective bindings of `meta` under `user` differ from the preset's (W40a 5b): an action whose user
+/// binds equal the preset's is not changed.
+pub fn is_changed(preset: Preset, user: Option<&Keymap>, meta: &ActionMeta) -> bool {
+    user.is_some() && chords_of(preset, user, meta) != chords_of(preset, None, meta)
+}
+
+/// Whether any bindable action's bindings differ from the preset's under `user` (the editor's "with your changes").
+pub fn has_changes(preset: Preset, user: Option<&Keymap>) -> bool {
+    user.is_some()
+        && ACTIONS
+            .iter()
+            .filter(|m| !m.hidden && !m.headless_only)
+            .any(|m| is_changed(preset, user, m))
+}
+
+/// The words of a context in a sentence, as the editor's column names it ("in the canvas", "everywhere").
+fn context_phrase(context: Context) -> &'static str {
+    strings::text(match context {
+        Context::Global => "keymap-in-global",
+        Context::Canvas => "keymap-in-canvas",
+        Context::Navigator => "keymap-in-navigator",
+        Context::Properties => "keymap-in-properties",
+        Context::Find => "keymap-in-find",
+    })
+}
+
+/// The text of `finding` for a refused recording of `recorded` (W40a 5c): a conflict says what is in the way ("M is
+/// already Move in the canvas."), not the double binding the refusal prevented; any other finding as
+/// [`Finding::text`].
+pub fn refusal_text(finding: &Finding, recorded: &str) -> String {
+    match finding {
+        Finding::Conflict {
+            chord,
+            context,
+            actions,
+        } if actions.contains(&recorded) => {
+            let label = |id: &str| {
+                crate::actions::find(id).map_or_else(|| id.to_owned(), |m| strings::text(m.label_key).to_owned())
+            };
+            let others: Vec<String> = actions.iter().filter(|a| **a != recorded).map(|a| label(a)).collect();
+            strings::format(
+                "keymap-taken",
+                &[&chord.text(), &others.join(", "), context_phrase(*context)],
+            )
+        }
+        other => other.text(),
+    }
+}
+
 /// Every effective binding, in registry order (D6).
 pub fn effective(preset: Preset, user: Option<&Keymap>) -> Vec<Bound> {
     ACTIONS
@@ -1125,7 +1174,7 @@ pub struct EditorRow {
     pub context: Context,
     /// The bindings, as text.
     pub chords: Vec<String>,
-    /// Whether the user's keymap sets them.
+    /// Whether they differ from the preset's (W40a 5b: a user bind equal to the preset's is no change).
     pub custom: bool,
     /// The shadowing texts that involve the action (infos).
     pub notes: Vec<String>,
@@ -1156,7 +1205,7 @@ pub fn editor_rows(preset: Preset, user: Option<&Keymap>, query: &str) -> Vec<Ed
                 label: strings::text(meta.label_key).to_owned(),
                 context: chords.first().map_or(meta.context, |(_, c)| *c),
                 chords: chords.iter().map(|(c, _)| c.text()).collect(),
-                custom: user.is_some_and(|u| u.binds.iter().any(|b| b.action == meta.id)),
+                custom: is_changed(preset, user, meta),
                 notes: findings
                     .iter()
                     .filter(|f| matches!(f, Finding::Shadow { action, .. } if *action == meta.id))
@@ -1367,5 +1416,46 @@ mod tests {
         assert!(row.custom);
         assert_eq!(row.chords, ["Ctrl+Shift+W"]);
         assert_eq!(row.notes.len(), 1, "{:?}", row.notes);
+        assert!(has_changes(Preset::Ew, Some(&user)));
+    }
+
+    /// W40a 5b: a user keymap whose bindings equal the preset's changes nothing: no row is Changed and the preset line
+    /// has no changes; one different binding makes exactly that action Changed.
+    #[test]
+    fn a_user_keymap_equal_to_the_preset_changes_nothing() {
+        let same = export("EW (changed)", Preset::Ew, None);
+        assert!(!has_changes(Preset::Ew, Some(&same)));
+        assert!(editor_rows(Preset::Ew, Some(&same), "").iter().all(|r| !r.custom));
+        let mut one = same.clone();
+        let wire = one.binds.iter_mut().find(|b| b.action == "tool.wire").unwrap();
+        wire.keys = chord("Ctrl+Shift+W");
+        wire.alt = None;
+        assert!(has_changes(Preset::Ew, Some(&one)));
+        let changed: Vec<&str> = editor_rows(Preset::Ew, Some(&one), "")
+            .iter()
+            .filter(|r| r.custom)
+            .map(|r| r.action)
+            .collect();
+        assert_eq!(changed, ["tool.wire"]);
+    }
+
+    /// W40a 5c: a refused recording says what is in the way; a loaded file's double binding keeps the conflict text.
+    #[test]
+    fn a_refused_recording_names_the_action_in_the_way() {
+        let conflict = Finding::Conflict {
+            chord: chord("M"),
+            context: Context::Canvas,
+            actions: vec!["tool.move", "tool.wire"],
+        };
+        let wire = strings::text(crate::actions::find("tool.wire").unwrap().label_key);
+        let r#move = strings::text(crate::actions::find("tool.move").unwrap().label_key);
+        assert_eq!(
+            refusal_text(&conflict, "tool.wire"),
+            format!("M is already {move} in the canvas.")
+        );
+        assert_eq!(
+            conflict.text(),
+            format!("M is bound twice in the canvas context: {move}, {wire}")
+        );
     }
 }

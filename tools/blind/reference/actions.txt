@@ -56,7 +56,7 @@ props.show View "Properties" menu "View" shortcut none context global params "on
 props.show_advanced View "Show advanced properties" menu "View" shortcut none context global params "on?:bool"
 rail.show View "Show navigator" menu none shortcut none context global hidden params "side?:enum(left|right), pane:text"
 jobs.show View "Jobs" menu "Output" shortcut none context global params "on?:bool"
-lists.parts View "Parts list" menu "Output" shortcut none context global params ""
+lists.parts View "Open parts list" menu "Output" shortcut none context global params ""
 notifications.show View "Notifications" menu "View" shortcut none context global params "on?:bool"
 messages.show View "Messages" menu "Check" shortcut none context global params "on?:bool"
 messages.next View "Next finding" menu "Check" shortcut "F8" context global params ""

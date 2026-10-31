@@ -134,22 +134,45 @@ fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail)
 /// The thumbnail box's height in points; its width is the detail block's.
 const THUMBNAIL_HEIGHT: f32 = 64.0;
 
+/// The thumbnail's height in a detail region `cap` high whose lists take `lists` (W40a 5f): [`THUMBNAIL_HEIGHT`]
+/// when both fit, else what the lists leave, never under `floor` (the lists then scroll).
+fn thumbnail_height(cap: f32, lists: f32, floor: f32) -> f32 {
+    (cap - lists).clamp(floor.min(THUMBNAIL_HEIGHT), THUMBNAIL_HEIGHT)
+}
+
+#[cfg(test)]
+mod thumbnail_tests {
+    /// W40a 5f: the thumbnail keeps its height where the lists fit, gives up height at the floor down to the floor.
+    #[test]
+    fn the_thumbnail_yields_to_the_lists() {
+        use super::{THUMBNAIL_HEIGHT, thumbnail_height};
+        assert_eq!(thumbnail_height(400.0, 100.0, 28.0), THUMBNAIL_HEIGHT);
+        assert_eq!(thumbnail_height(150.0, 110.0, 28.0), 40.0);
+        assert_eq!(thumbnail_height(150.0, 300.0, 28.0), 28.0);
+    }
+}
+
 /// Paints a macro's thumbnail (FT-754 (a)) in a box of the block's width and [`THUMBNAIL_HEIGHT`]: the region of the
 /// sheet the macro covers, rendered at the dpi that fits the box in physical pixels (12 to 300), centred on white
 /// with a 1-px `color.border.default` frame. The texture of the macro on show is kept in the context's memory (by copy,
 /// version, dpi and region).
 /// `false` when the render fails (the caller then says "No preview").
-fn thumbnail_ui(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::MacroDetail, th: &MacroThumbnail) -> bool {
+fn thumbnail_ui(
+    ui: &mut Ui,
+    d: &ew_viewmodel::ew_api::output::MacroDetail,
+    th: &MacroThumbnail,
+    height: f32,
+) -> bool {
     let t = components::tokens(ui);
     let width = ui.available_width().max(1.0);
-    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, THUMBNAIL_HEIGHT), egui::Sense::hover());
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, height), egui::Sense::hover());
     let name = strings::format("macro-preview-name", &[&d.name]);
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Image, true, &name));
     let [x0, y0, x1, y1] = th.region;
     let (rw, rh) = ((x1 - x0).max(1) as f64, (y1 - y0).max(1) as f64);
     let ppp = f64::from(ui.ctx().pixels_per_point());
     let inner = (f64::from(width) - 8.0).max(1.0) * ppp;
-    let inner_h = (f64::from(THUMBNAIL_HEIGHT) - 8.0).max(1.0) * ppp;
+    let inner_h = (f64::from(height) - 8.0).max(1.0) * ppp;
     // pixels per nm at 1 dpi: 1 / 25.4e6
     let dpi = (inner / rw).min(inner_h / rh) * 25_400_000.0;
     let dpi = (dpi.floor() as u32).clamp(12, 300);
@@ -277,13 +300,24 @@ fn macro_detail(
             line(ui, &d.description, &t.type_small, t.text_primary);
         }
         // Cycle 39 (FIX39b-1): the thumbnail and the lists scroll within half the navigator's room, so a long macro
-        // never pushes the Insert button out of the pane (at any window size; the room is the pane's).
+        // never pushes the Insert button out of the pane (at any window size; the room is the pane's). W40a 5f: the
+        // thumbnail gives up height first (down to a token's worth), so the lists' lines show whole at the floor;
+        // a list longer than the region scrolls with its bar on show.
+        let cap = (room / 2.0).max(4.0 * t.size_control);
+        let line_h = ui.fonts_mut(|f| f.row_height(&theme::font(&t.type_small))) + t.space_1;
+        let lines: usize = [&d.devices, &d.variables]
+            .iter()
+            .filter(|items| !items.is_empty())
+            .map(|items| items.len() + 1)
+            .sum();
+        let thumb = thumbnail_height(cap, lines as f32 * line_h + t.space_1, t.size_control);
         egui::ScrollArea::vertical()
             .id_salt("macro-detail-lists")
-            .max_height((room / 2.0).max(4.0 * t.size_control))
+            .max_height(cap)
+            .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded)
             .show(ui, |ui| {
                 // §11: the thumbnail, or "No preview".
-                if !thumbnail.is_some_and(|th| thumbnail_ui(ui, d, th)) {
+                if !thumbnail.is_some_and(|th| thumbnail_ui(ui, d, th, thumb)) {
                     line(
                         ui,
                         strings::text("macro-no-preview"),

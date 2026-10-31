@@ -511,7 +511,10 @@ impl ShellModel {
         if self.tools.tool.name() != "ip" {
             return (out, false);
         }
-        let text = strings::format("notice-ip-not-placed", &[message]);
+        // C40 (H40 item 6): a second source says what is in the way and the way out, not the rule's ID tie-break.
+        let text = self
+            .second_source_words(message)
+            .unwrap_or_else(|| strings::format("notice-ip-not-placed", &[message]));
         self.tools.notice = Some(text.clone());
         self.tools.notice_sticky = true;
         self.notify_toned(text, crate::notifications::NoteTone::Warning);
@@ -521,6 +524,33 @@ impl ShellModel {
             },
             true,
         )
+    }
+
+    /// The words of an EW-CORE-052 refusal of the IP tool's point (H40 item 6): "Not placed: 0V already has a source
+    /// on page 101. Press D for a target, or mark one source as the star.", with the first page in page order that
+    /// holds a source of the ghost's name, by its folio as the Pages navigator shows it; `None` for another refusal.
+    fn second_source_words(&self, message: &str) -> Option<String> {
+        if !message.contains("EW-CORE-052:") {
+            return None;
+        }
+        let Some(crate::tools::Ghost::Ip { name, .. }) = self.tools.tool.ghost() else {
+            return None;
+        };
+        let pages = self.project_ips().source_pages(&name);
+        let folio = self
+            .page_rows()
+            .iter()
+            .find(|r| pages.contains(&r.id))
+            .map(|r| r.folio.clone())?;
+        Some(strings::format("notice-ip-second-source", &[&name, &folio]))
+    }
+
+    /// Whether the kept preview failed with the refusal the HUD already carries (H40 item 6): the canvas shows no
+    /// "Preview of … failed" chip for it, the HUD line and the toast say it once.
+    pub fn preview_refusal_in_hud(&self) -> bool {
+        self.tools.notice_sticky
+            && self.tools.notice.is_some()
+            && self.tools.preview.as_ref().is_some_and(|p| p.result.is_err())
     }
 
     // -----------------------------------------------------------------------------------------------------------

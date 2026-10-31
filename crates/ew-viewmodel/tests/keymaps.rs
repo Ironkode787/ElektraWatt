@@ -245,10 +245,8 @@ fn the_editor_records_refuses_shadows_resets_and_round_trips() {
     let refusal = shell.keymap_editor().refusal.clone().unwrap();
     assert_eq!(refusal.action, "tool.wire");
     assert_eq!(refusal.chord, "M");
-    assert_eq!(
-        refusal.errors,
-        ["M is bound twice in the canvas context: Move, Connection"]
-    );
+    // W40a 5c: the refusal says what is in the way, not the double binding it prevented.
+    assert_eq!(refusal.errors, ["M is already Move in the canvas."]);
     let wire = actions::find("tool.wire").unwrap();
     assert_eq!(shell.shortcuts_of(wire), ["Ctrl+Shift+W"]);
     // Ctrl+Alt and the reserved chords are errors too.

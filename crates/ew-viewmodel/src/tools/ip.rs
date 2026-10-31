@@ -142,6 +142,15 @@ impl ProjectIps {
         self.sources.insert((name.to_owned(), page));
     }
 
+    /// The pages on which a source point named `name` stands.
+    pub fn source_pages(&self, name: &str) -> Vec<Uuid> {
+        self.sources
+            .iter()
+            .filter(|(n, _)| n == name)
+            .map(|(_, p)| *p)
+            .collect()
+    }
+
     /// Whether a source point named `name` stands anywhere in the project.
     pub fn has_source(&self, name: &str) -> bool {
         self.sources.iter().any(|(n, _)| n == name)

@@ -118,7 +118,12 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                 table
                     .columns
                     .iter()
-                    .map(|(name, ty)| (strings::format("macro-value-label", &[name, ty]), width)),
+                    .map(|(name, ty)| {
+                        (
+                            strings::format("macro-value-label", &[name, &strings::var_type_word(ty)]),
+                            width,
+                        )
+                    }),
             );
             for (label, w) in labels {
                 painter.text(
@@ -154,7 +159,7 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                         for (c, ((col, ty), value)) in table.columns.iter().zip(&row.cells).enumerate() {
                             let mut text = value.clone();
                             let name = strings::format("form-value-cell", &[col, &index]);
-                            if cell(ui, &t, width, &mut text, &name, ty) {
+                            if cell(ui, &t, width, &mut text, &name, &strings::var_type_word(ty)) {
                                 events.push(Event::FormTableCell(i, Some(c), text));
                             }
                         }
