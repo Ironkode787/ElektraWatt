@@ -292,3 +292,4 @@ part.favourite View "Favourite" menu none shortcut none context global hidden pa
 part.edit View "Edit part…" menu "Edit" shortcut none context global params "part?:text"
 part.field View "Edit field" menu none shortcut none context global hidden params "field:text, value:text"
 part.save Command "Save" menu none shortcut none context global hidden params ""
+paste.resolve Command "Resolve paste" menu none shortcut none context global hidden params "choice:enum(adapt|update)"

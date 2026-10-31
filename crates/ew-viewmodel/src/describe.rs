@@ -474,7 +474,19 @@ pub const VOCABULARY: &[&str] = &[
     "tech",
     "version",
     "fork",
+    // WP-S2.07 part 4b (§9.6)
+    "adapt",
+    "update",
+    "patch",
+    "minor",
+    "major",
 ];
+
+// WP-S2.07 part 4b
+/// The 5 words WP-S2.07 part 4b adds to [`VOCABULARY`] (§9.6): the paste choice card's `conflict` lines' classes
+/// (`patch`, `minor`, `major`) and its `choice` lines' words (`adapt`, `update`; `update` is also the origin word of
+/// the `library.update` card the second choice opens, in the transcript).
+pub const PASTE_CHOICE_WORDS: &[&str] = &["adapt", "update", "patch", "minor", "major"];
 
 // WP-S2.07 part 4a
 /// The 12 words WP-S2.07 part 4a adds to [`VOCABULARY`] (§9.6): the part dialog's `query` line (`fits`, `all`,
@@ -1555,11 +1567,36 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let props = model.properties();
     if let (Some(card), Some(rev)) = (props.card(), model.revision()) {
         match &card.preview.result {
-            Err(message) => lines.push(format!(
-                "card failed \"{}\" \"{}\"",
-                user(&card.preview.name),
-                user(message)
-            )),
+            Err(message) => {
+                lines.push(format!(
+                    "card failed \"{}\" \"{}\"",
+                    user(&card.preview.name),
+                    user(message)
+                ));
+                // WP-S2.07 part 4b (§9.6): the paste choice card names its origin, its copies and its two choices.
+                if let crate::properties::CardOrigin::PasteVersions(choice) = &card.origin {
+                    if let Some(last) = lines.last_mut() {
+                        last.push_str(" paste");
+                    }
+                    for c in &choice.conflicts {
+                        lines.push(format!(
+                            "  conflict \"{}\" project \"{}\" fragment \"{}\" {}",
+                            user(&c.title),
+                            user(&c.held),
+                            user(&c.pasted),
+                            c.class
+                        ));
+                    }
+                    lines.push(format!(
+                        "  {}",
+                        crate::properties::PasteChoice::choice_line("adapt", choice.adapt)
+                    ));
+                    lines.push(format!(
+                        "  {}",
+                        crate::properties::PasteChoice::choice_line("update", choice.update)
+                    ));
+                }
+            }
             Ok(_) => match &card.origin {
                 // FT-410: the parts table import's card counts the part copies, not records, tags or texts.
                 crate::properties::CardOrigin::Import { created, skipped, .. } => lines.push(format!(

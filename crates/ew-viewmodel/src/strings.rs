@@ -1978,6 +1978,20 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-part-edit" => "Edit part\u{2026}",
         "action-part-field" => "Edit field",
         "action-part-save" => "Save",
+        // WP-S2.07 part 4b (§9.5): FT-396's paste choice.
+        "reason-paste-versions" => {
+            "The pasted records use another version of {0}; choose Use the project's copy or Update the project's copy"
+        }
+        "reason-paste-adapt-major" => "The versions differ in their connection points; update instead",
+        "reason-paste-update-older" => "The pasted version is not newer than the project's",
+        "card-paste-versions-title" => "The pasted records use other part versions",
+        "paste-adapt" => "Use the project's copy",
+        "paste-update" => "Update the project's copy",
+        // The lane's own additions beside §9.5 (proposed): a conflict row of the card, the action's label and the
+        // refusal without a choice card.
+        "paste-conflict" => "{0}: this project {1}, pasted {2}, {3}",
+        "action-paste-resolve" => "Resolve paste",
+        "reason-no-paste-choice" => "No paste waits for a choice",
         _ => return None,
     })
 }

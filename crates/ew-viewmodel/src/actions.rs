@@ -4459,7 +4459,34 @@ pub static ACTIONS: &[ActionMeta] = &[
         part_editor_open,
         None,
     )),
+    // WP-S2.07 part 4b (§9.4)
+    with_params(
+        "choice:enum(adapt|update)",
+        hidden(act(
+            "paste.resolve",
+            Command,
+            "action-paste-resolve",
+            Menu::Edit,
+            &[],
+            paste_choice_open,
+            None,
+        )),
+    ),
 ];
+
+// WP-S2.07 part 4b
+/// The paste choice card's choices need the card and a writable project.
+fn paste_choice_open(m: &ShellModel) -> Result<(), &'static str> {
+    writable(m)?;
+    if matches!(
+        m.properties().card().map(|c| &c.origin),
+        Some(crate::properties::CardOrigin::PasteVersions(_))
+    ) {
+        Ok(())
+    } else {
+        Err("reason-no-paste-choice")
+    }
+}
 
 // WP-S2.07 part 4a
 /// The part selection dialog's own actions need the dialog.

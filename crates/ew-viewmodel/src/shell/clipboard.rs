@@ -18,8 +18,14 @@ use serde_json::{Map, Value};
 use super::navigation::bump;
 use super::{Mode, Outcome, ShellModel, failed, string_param};
 use crate::clipboard::{ClipKind, ClipboardState, copy_refusal, fragment_banner};
+use crate::properties::{
+    Card, CardOrigin, EditRoute, FieldReadOnly, PasteChoice, PasteConflict, PendingEdit,
+};
 use crate::strings;
+use crate::tools::PreviewState;
 use crate::tools::{PasteTool, SelectionChange, ToolOutput, tool_named};
+use ew_api::DerivedDiff;
+use ew_api::output::Uuid;
 
 impl ShellModel {
     /// The shell's clipboard (§8.7).
@@ -233,23 +239,205 @@ impl ShellModel {
             },
             Err(e) => return e,
         };
+        let dropped = self.clip.dropped();
+        self.arm_paste(text, dropped, &[])
+    }
+
+    /// Parses `text` (one `parse_fragment`) and arms the paste tool, with `adapt` (WP-S2.07 D22). A fragment that
+    /// carries another version of a held library copy that `adapt` does not name opens the paste choice card instead
+    /// (one `Session::paste_versions`) and is refused with `reason-paste-versions` and the copies in the status bar; the
+    /// window shows the card, a script answers it with `paste.resolve`. Plain text is refused (`reason-not-a-fragment`),
+    /// any other error shows in the banner.
+    pub(super) fn arm_paste(&mut self, text: String, dropped: usize, adapt: &[Uuid]) -> Outcome {
         let parsed = parse_fragment(&text);
         bump(&self.calls, |c| c.parse_fragment += 1);
-        match parsed {
-            Ok(f) => {
-                let dropped = self.clip.dropped();
-                self.activate_tool(Box::new(PasteTool::new(Arc::new(f), dropped)));
-                Outcome::Done
+        let f = match parsed {
+            Ok(f) => f,
+            Err(FragmentError::NotAFragment) => {
+                return Outcome::Refused {
+                    reason_key: "reason-not-a-fragment",
+                };
             }
-            Err(FragmentError::NotAFragment) => Outcome::Refused {
-                reason_key: "reason-not-a-fragment",
-            },
             Err(e) => {
                 let message = fragment_banner(&e);
                 self.banner = Some(message.clone());
-                Outcome::Failed { message }
+                return Outcome::Failed { message };
             }
+        };
+        let conflicts: Vec<ew_api::VersionConflict> = match &self.project {
+            Some(project) => project
+                .session
+                .paste_versions(&f.params)
+                .into_iter()
+                .filter(|c| !adapt.contains(&c.copy))
+                .collect(),
+            None => Vec::new(),
+        };
+        if !conflicts.is_empty() {
+            return self.open_paste_choice(text, dropped, &conflicts);
         }
+        self.activate_tool(Box::new(
+            PasteTool::new(Arc::new(f), dropped).adapting(adapt.to_vec()),
+        ));
+        Outcome::Done
+    }
+
+    /// Opens the paste choice card (WP-S2.07 D22) for the copies `conflicts` and refuses the paste with
+    /// `reason-paste-versions`, its list in the status bar.
+    fn open_paste_choice(
+        &mut self,
+        text: String,
+        dropped: usize,
+        conflicts: &[ew_api::VersionConflict],
+    ) -> Outcome {
+        let Some(rev) = self.revision() else {
+            return Outcome::Refused {
+                reason_key: "reason-no-project",
+            };
+        };
+        let class_word = |c: ew_api::ChangeClass| match c {
+            ew_api::ChangeClass::Patch => "patch",
+            ew_api::ChangeClass::Minor => "minor",
+            ew_api::ChangeClass::Major => "major",
+        };
+        let choice = PasteChoice {
+            text,
+            dropped,
+            conflicts: conflicts
+                .iter()
+                .map(|c| PasteConflict {
+                    copy: c.copy,
+                    title: c.title.clone(),
+                    held: c.held.clone(),
+                    pasted: c.pasted.clone(),
+                    class: class_word(c.class),
+                })
+                .collect(),
+            adapt: conflicts
+                .iter()
+                .any(|c| c.class == ew_api::ChangeClass::Major)
+                .then_some("reason-paste-adapt-major"),
+            update: conflicts
+                .iter()
+                .any(|c| !c.newer)
+                .then_some("reason-paste-update-older"),
+        };
+        let list = conflicts
+            .iter()
+            .map(|c| c.title.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let message = strings::format("reason-paste-versions", &[&list]);
+        let edit = PendingEdit {
+            row: String::new(),
+            kind: String::new(),
+            route: EditRoute::ReadOnly(FieldReadOnly::NoCommand),
+            path: String::new(),
+            targets: Vec::new(),
+            leaf: None,
+            base: None,
+            name: "edit.paste".to_owned(),
+            params: Value::Null,
+            typed: String::new(),
+            label: String::new(),
+        };
+        self.props.card = Some(Card {
+            preview: PreviewState {
+                base_rev: rev,
+                command: Value::Null,
+                name: "edit.paste".to_owned(),
+                result: Err(message.clone()),
+                derived: DerivedDiff::default(),
+            },
+            edit,
+            targets: 0,
+            changes: 0,
+            reason: "reason-paste-versions",
+            origin: CardOrigin::PasteVersions(Box::new(choice)),
+        });
+        self.tools.notice = Some(message);
+        self.tools.notice_sticky = false;
+        Outcome::Refused {
+            reason_key: "reason-paste-versions",
+        }
+    }
+
+    /// `paste.resolve {choice}` (WP-S2.07 D22, the paste choice card's two buttons): `adapt` (Use the project's copy)
+    /// closes the card and arms the paste tool with `adapt` naming the listed copies, so the paste is one `edit.paste`;
+    /// `update` (Update the project's copy) opens the `library.update` card built from the fragment's documents
+    /// (`Session::paste_update`), after whose Apply the shell arms the paste again (two commands, two undo steps). A
+    /// disabled choice is refused with its reason.
+    pub(super) fn act_paste_resolve(&mut self, p: &Map<String, Value>) -> Outcome {
+        let choice = match string_param(p, "choice") {
+            Ok(Some(c)) => c.to_owned(),
+            Ok(None) => return failed("error-missing-param", &["choice"]),
+            Err(e) => return e,
+        };
+        let Some(CardOrigin::PasteVersions(pending)) = self.props.card().map(|c| c.origin.clone()) else {
+            return Outcome::Refused {
+                reason_key: "reason-no-paste-choice",
+            };
+        };
+        match choice.as_str() {
+            "adapt" => {
+                if let Some(reason_key) = pending.adapt {
+                    return Outcome::Refused { reason_key };
+                }
+                self.props.card = None;
+                let adapt: Vec<Uuid> = pending.conflicts.iter().map(|c| c.copy).collect();
+                self.arm_paste(pending.text, pending.dropped, &adapt)
+            }
+            "update" => {
+                if let Some(reason_key) = pending.update {
+                    return Outcome::Refused { reason_key };
+                }
+                let plan = match parse_fragment(&pending.text) {
+                    Ok(f) => {
+                        bump(&self.calls, |c| c.parse_fragment += 1);
+                        match &self.project {
+                            Some(project) => project.session.paste_update(&f.params),
+                            None => {
+                                return Outcome::Refused {
+                                    reason_key: "reason-no-project",
+                                };
+                            }
+                        }
+                    }
+                    Err(e) => return failed("error-command", &[&e.to_string()]),
+                };
+                match plan {
+                    Ok(plan) => {
+                        self.props.card = None;
+                        self.preview_host_card_as(
+                            &plan.command.name,
+                            plan.command.params,
+                            "reason-library-update",
+                            CardOrigin::PasteUpdate { text: pending.text },
+                        )
+                    }
+                    Err(e) => Outcome::Failed {
+                        message: e.to_string(),
+                    },
+                }
+            }
+            other => failed("error-bad-param", &[&format!("choice {other}")]),
+        }
+    }
+
+    /// Apply on the `library.update` card of "Update the project's copy" (WP-S2.07 D22): the update commits as its own
+    /// step (a stale card is previewed again, as every bulk card), then the pending paste is armed again.
+    pub(super) fn apply_paste_update_card(&mut self, card: Card) -> Outcome {
+        let CardOrigin::PasteUpdate { text } = &card.origin else {
+            return self.apply_bulk_card(card);
+        };
+        let text = text.clone();
+        let before = self.revision();
+        let out = self.apply_bulk_card(card);
+        if out == Outcome::Done && self.revision() != before {
+            let dropped = self.clip.dropped();
+            return self.arm_paste(text, dropped, &[]);
+        }
+        out
     }
 
     /// `edit.duplicate` (Ctrl+D): the selection's fragment without touching the clipboard, floating in the paste tool

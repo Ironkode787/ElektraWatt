@@ -2046,7 +2046,10 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             || **w == "chooser"
             // WP-S2.07 part 4a: the part dialog's and the part editor's words need a writable project:
             // `tests/part_selection.rs` reaches them.
-            || ew_viewmodel::describe::PART_WORDS.contains(*w)),
+            || ew_viewmodel::describe::PART_WORDS.contains(*w)
+            // WP-S2.07 part 4b: the paste choice card's words need two versions of a library copy:
+            // `tests/paste_choice.rs` reaches them.
+            || ew_viewmodel::describe::PASTE_CHOICE_WORDS.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

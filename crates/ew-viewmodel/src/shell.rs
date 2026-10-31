@@ -1751,6 +1751,7 @@ impl ShellModel {
             "edit.copy" => self.act_copy(),
             "edit.cut" => self.act_cut(),
             "edit.paste_clip" => self.act_paste_clip(p),
+            "paste.resolve" => self.act_paste_resolve(p),
             "edit.duplicate" => self.act_duplicate(),
             "edit.copy_tags" => self.act_copy_tags(),
             "clipboard.text" => self.act_clipboard_text(p),

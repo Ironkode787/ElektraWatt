@@ -7,7 +7,9 @@
 //! twice and compares the transcripts byte for byte. The `--record` log of each editing script, replayed onto a fresh
 //! copy by `Session::run_script` without any library (what `ew apply` runs), gives the saved project's records: the
 //! chosen part travels inside the command. The model half of each flow runs in `ew-viewmodel`'s
-//! `tests/part_selection.rs`. A module of `tests/headless.rs`, whose `bin_exe` it uses.
+//! `tests/part_selection.rs`. WP-S2.07 part 4b adds PS8's paste choice (two copies of Golden A over a user library
+//! the test writes; the model half in `ew-viewmodel`'s `tests/paste_choice.rs`). A module of `tests/headless.rs`, whose
+//! `bin_exe` it uses.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
@@ -291,4 +293,216 @@ pub(crate) fn ps7_the_fork_script_is_deterministic_and_replays_case(twice: bool)
         "the second edit is in place: {d}"
     );
     assert!(has_line(d, "field \"Description\" \"MCB 1P+N C4\""), "{d}");
+}
+
+// WP-S2.07 part 4b
+
+/// The user tiers of a run whose data directory is `data` (what `EW_DATA_DIR` gives the binary).
+fn data_tiers(data: &Path) -> ew_ui::ew_viewmodel::ew_api::library::LibraryTiers {
+    ew_ui::ew_viewmodel::ew_api::library::LibraryTiers {
+        system: Vec::new(),
+        community: data.join("packs"),
+        company: Vec::new(),
+        user: data.join("libraries"),
+        cache: data.join("cache"),
+    }
+}
+
+/// Writes FX-MCB-1PN by the manufacturer Fixture with `description` into the user library "Fixture parts" under `data`
+/// (created on the first call) through the parts import into a library; `bump` writes a changed description as the
+/// next patch version (1.0.0, then 1.0.1).
+fn publish_fixture(data: &Path, description: &str, bump: bool) {
+    use ew_ui::ew_viewmodel::ew_api::catalog::{self, ColumnMap, Limits};
+    use ew_ui::ew_viewmodel::ew_api::library::Registry;
+    let t = data_tiers(data);
+    let mut reg = Registry::open(&t).unwrap();
+    let lib = match reg.libraries().into_iter().find(|l| l.key == "fixture") {
+        Some(l) => l.id,
+        None => reg
+            .create(
+                &t.user.join("fixture.ewlib"),
+                "fixture",
+                "Fixture parts",
+                "CC0-1.0",
+            )
+            .unwrap(),
+    };
+    let table = data.join("fixture-parts.csv");
+    std::fs::write(
+        &table,
+        format!("Maker,Order code,Text,Category\nFixture,FX-MCB-1PN,{description},device\n"),
+    )
+    .unwrap();
+    let map = ColumnMap::new(
+        None,
+        [
+            ("manufacturer", "Maker"),
+            ("part_number", "Order code"),
+            ("description", "Text"),
+            ("kind", "Category"),
+        ],
+    )
+    .unwrap();
+    let input = catalog::read_input(&table, &Limits::default()).unwrap();
+    catalog::import_into_library(
+        &mut reg,
+        lib,
+        &input,
+        &map,
+        "2026-10-31".parse().ok(),
+        bump,
+        false,
+    )
+    .unwrap();
+}
+
+/// Runs `steps` in `dir` with the data directory `data` and the configuration `<dir>/config`, `--record` into
+/// `<dir>/record.ewcmd`; every step must be done.
+fn run_with_data(dir: &Path, data: &Path, name: &str, steps: &[(&str, Value)]) -> Vec<Value> {
+    std::fs::create_dir_all(dir).unwrap();
+    let file = dir.join(format!("{name}.uiscript"));
+    std::fs::write(&file, script(name, steps)).unwrap();
+    let out = Command::new(super::bin_exe())
+        .args(["--headless", "--script"])
+        .arg(&file)
+        .arg("--record")
+        .arg(dir.join("record.ewcmd"))
+        .env("EW_CONFIG_DIR", dir.join("config"))
+        .env("EW_DATA_DIR", data)
+        .env_remove("SOURCE_DATE_EPOCH")
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let lines = steps_of(&out);
+    for s in &lines {
+        assert_eq!(s["outcome"], "done", "{s}");
+    }
+    lines
+}
+
+/// The steps that give F55 of the project at `project` the fixture's FX-MCB-1PN as the library holds it now.
+fn choose_fixture(project: &Path) -> Vec<(&'static str, Value)> {
+    vec![
+        ("file.open", json!({ "dir": path(project) })),
+        ("page.goto", json!({"folio": "101"})),
+        ("select.set", json!({"refs": ["tag:F55"]})),
+        ("part.choose", json!({"use": 0})),
+        ("part.pick", json!({"part": "FX-MCB-1PN (Fixture)"})),
+        ("file.save", json!({})),
+    ]
+}
+
+/// The id-free content of a project: its devices' tags, and the version of every part copy by part number.
+fn tags_and_versions(s: &Session) -> (Vec<String>, Vec<(String, String)>) {
+    let q = s.query();
+    let mut tags: Vec<String> = q
+        .devices()
+        .iter()
+        .map(|(id, _)| s.tag_list(&[id.as_uuid()]).trim_end().to_owned())
+        .collect();
+    tags.sort();
+    let mut versions: Vec<(String, String)> = q
+        .parts()
+        .iter()
+        .map(|(_, c)| (c.item.part_number.as_str().to_owned(), c.version.clone()))
+        .collect();
+    versions.sort();
+    (tags, versions)
+}
+
+/// PS8 headless (D22, FT-396): P1 (a copy of Golden A) holds FX-MCB-1PN 1.0.0 on F55, P2 holds 1.0.1 (a description
+/// change, a patch), both chosen through the part dialog by setup scripts over one user library written by the test.
+/// The flow: F55 copied in P1, pasted in P2: `edit.paste_clip` is refused with `reason-paste-versions` and the choice
+/// card lists the copy; Update the project's copy is refused (`reason-paste-update-older`); `paste.resolve` with
+/// `adapt` arms the paste, which commits one `edit.paste` with `adapt`. The `--record` log replayed onto P2 as the
+/// setup left it gives the same tags and part versions (the pasted IDs are minted).
+#[test]
+fn ps8_the_paste_choice_script_is_deterministic_and_replays() {
+    ps8_the_paste_choice_script_is_deterministic_and_replays_case(false);
+}
+
+pub(crate) fn ps8_the_paste_choice_script_is_deterministic_and_replays_case(twice: bool) {
+    let tmp = Tmp::new();
+    let mut transcripts = Vec::new();
+    for side in super::support::runs(twice) {
+        let root = tmp.0.join(side);
+        let data = root.join("data");
+        let (p1, p2) = (root.join("p1.ew"), root.join("p2.ew"));
+        copy_dir(Path::new(GOLDEN_A), &p1);
+        copy_dir(Path::new(GOLDEN_A), &p2);
+        publish_fixture(&data, "MCB 1P+N C10", false);
+        run_with_data(&root.join("setup-1"), &data, "ps8-setup", &choose_fixture(&p1));
+        publish_fixture(&data, "MCB 1P+N C10 new text", true);
+        run_with_data(&root.join("setup-2"), &data, "ps8-setup", &choose_fixture(&p2));
+        let start = root.join("p2-start.ew");
+        copy_dir(&p2, &start);
+        let flow = root.join("flow");
+        let lines = run_with_data(
+            &flow,
+            &data,
+            "ps8",
+            &[
+                ("file.open", json!({ "dir": path(&p1), "read_only": true })),
+                ("page.goto", json!({"folio": "101"})),
+                ("select.set", json!({"refs": ["tag:F55"]})),
+                ("edit.copy", json!({})),
+                ("file.open", json!({ "dir": path(&p2) })),
+                ("page.goto", json!({"folio": "101"})),
+                ("script.expect_refused", json!({"action": "edit.paste_clip"})),
+                ("ui.describe", json!({})),
+                (
+                    "script.expect_refused",
+                    json!({"action": "paste.resolve", "params": {"choice": "update"}}),
+                ),
+                ("paste.resolve", json!({"choice": "adapt"})),
+                ("canvas.pointer", json!({"x_mm": 120.0, "y_mm": 90.0})),
+                ("canvas.press", json!({"x_mm": 120.0, "y_mm": 90.0})),
+                ("file.save", json!({})),
+            ],
+        );
+        let d = describe(&lines[7]);
+        assert!(
+            has_line(
+                d,
+                "conflict \"FX-MCB-1PN (Fixture)\" project \"1.0.1\" fragment \"1.0.0\" patch"
+            ),
+            "{d}"
+        );
+        assert!(has_line(d, "choice adapt enabled"), "{d}");
+        assert!(
+            has_line(
+                d,
+                "choice update disabled: \"The pasted version is not newer than the project's\""
+            ),
+            "{d}"
+        );
+        let log = CmdLog::parse(&std::fs::read_to_string(flow.join("record.ewcmd")).unwrap()).unwrap();
+        let commands: Vec<_> = log.commands().collect();
+        assert_eq!(commands.len(), 1, "one edit.paste");
+        let all = String::from_utf8(std::fs::read(flow.join("record.ewcmd")).unwrap()).unwrap();
+        assert!(all.contains("\"adapt\""), "the paste carries adapt");
+        let (mut replayed, _) = Session::open_read_only(&start, "test").unwrap();
+        replayed.run_script(&log, "record.ewcmd").unwrap();
+        let (saved, _) = Session::open_read_only(&p2, "test").unwrap();
+        let (tags, versions) = tags_and_versions(&saved);
+        assert_eq!(tags_and_versions(&replayed), (tags.clone(), versions.clone()));
+        assert!(
+            versions.contains(&("FX-MCB-1PN".to_owned(), "1.0.1".to_owned())),
+            "{versions:?}"
+        );
+        let transcript: String = lines.iter().map(|l| format!("{l}\n")).collect();
+        assert!(!transcript.contains(&*path(&tmp.0)), "a path in the transcript");
+        super::support::assert_no_uuid(&transcript);
+        transcripts.push(transcript);
+    }
+    if twice {
+        assert_eq!(transcripts[0], transcripts[1], "two runs give the same bytes");
+    }
 }

@@ -2022,6 +2022,17 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::QuickFix { .. }) {
             return self.apply_fix_card(card);
         }
+        // WP-S2.07 D22: the paste choice card previews nothing; its choices are `paste.resolve`.
+        if matches!(card.origin, CardOrigin::PasteVersions(_)) {
+            self.props.card = Some(card);
+            return Outcome::Refused {
+                reason_key: "reason-paste-versions",
+            };
+        }
+        // WP-S2.07 D22: Update the project's copy commits, then the pending paste is armed again.
+        if matches!(card.origin, CardOrigin::PasteUpdate { .. }) {
+            return self.apply_paste_update_card(card);
+        }
         // WP-S2.09 part 3: a bulk card is a renumber dialog's (§8.2).
         if matches!(card.origin, CardOrigin::Bulk | CardOrigin::Part(_)) {
             return self.apply_bulk_card(card);

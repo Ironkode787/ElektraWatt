@@ -165,6 +165,59 @@ fn part_block(ui: &mut Ui, p: &ew_viewmodel::properties::PartCard) {
     }
 }
 
+/// WP-S2.07 part 4b (D22, FT-396): the paste choice card's copies ("FX-MCB-1PN (Fixture): this project 1.1.0, pasted
+/// 1.0.0, patch"), one wrapped `type.small` label each, then its two choices as Secondary buttons, Use the project's
+/// copy first (`paste.resolve`); a disabled choice keeps its place and says why in its tooltip and under the buttons.
+fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &mut Vec<Event>) {
+    use components::Tip;
+    let t = components::tokens(ui);
+    for row in &c.conflicts {
+        let text = ew_viewmodel::properties::PasteChoice::conflict_text(row);
+        let response = ui.add(
+            egui::Label::new(
+                RichText::new(&text)
+                    .font(theme::font(&t.type_small))
+                    .color(t.text_primary.color32()),
+            )
+            .wrap(),
+        );
+        response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &text));
+    }
+    ui.add_space(t.space_2);
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = t.space_2;
+        for (word, key, reason) in [
+            ("adapt", "paste-adapt", c.adapt),
+            ("update", "paste-update", c.update),
+        ] {
+            let response = components::button(
+                ui,
+                components::Kind::Secondary,
+                strings::text(key),
+                reason.is_none(),
+                0.0,
+            );
+            let response = match reason {
+                Some(r) => response.disabled_tip(strings::text(r)),
+                None => response,
+            };
+            if response.clicked() {
+                events.push(Event::Action(
+                    "paste.resolve",
+                    serde_json::json!({ "choice": word }),
+                ));
+            }
+        }
+    });
+    for reason in [c.adapt, c.update].into_iter().flatten() {
+        ui.label(
+            RichText::new(strings::text(reason))
+                .font(theme::font(&t.type_small))
+                .color(t.text_secondary.color32()),
+        );
+    }
+}
+
 /// WP-S1.19 part 6 (§11): a macro card's value set (a chooser of "Defaults" and the macro's value sets, which previews
 /// the card again with `macros.value_set`) and its conflicts, shown open and also on a refused preview (the rule's
 /// text first), so the user decides on them before Apply.
@@ -314,6 +367,9 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             }
             if let CardOrigin::Macro(m) = &card.origin {
                 inset(ui, &mut |ui| macro_block(ui, m, events));
+            }
+            if let CardOrigin::PasteVersions(c) = &card.origin {
+                inset(ui, &mut |ui| paste_block(ui, c, events));
             }
             return;
         }

@@ -880,6 +880,19 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         };
         return Some(format!("{head} · {conflicts}"));
     }
+    // WP-S2.07 D22: the paste choice card's line is its lead and its copies.
+    if let CardOrigin::PasteVersions(choice) = &card.origin {
+        let rows: Vec<String> = choice
+            .conflicts
+            .iter()
+            .map(crate::properties::PasteChoice::conflict_text)
+            .collect();
+        return Some(format!(
+            "{} · {}",
+            strings::text("card-paste-versions-title"),
+            rows.join("; ")
+        ));
+    }
     if let Err(message) = &card.preview.result {
         return Some(strings::format("card-failed", &[message]));
     }
@@ -918,7 +931,12 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
             strings::format("card-fix", &[&card.changes.to_string(), &tags, &xrefs])
         }
         // FT-580: the Preview tab's title (a table card's gesture title) and its summary line, as the window shows them.
-        CardOrigin::Bulk | CardOrigin::Table { .. } | CardOrigin::Macro(_) | CardOrigin::Part(_) => format!(
+        CardOrigin::Bulk
+        | CardOrigin::Table { .. }
+        | CardOrigin::Macro(_)
+        | CardOrigin::Part(_)
+        | CardOrigin::PasteVersions(_)
+        | CardOrigin::PasteUpdate { .. } => format!(
             "{} · {}",
             shell.table_gesture().map_or_else(
                 || strings::format("preview-title", &[strings::command_title(&card.preview.name)]),

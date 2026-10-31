@@ -231,6 +231,64 @@ pub enum CardOrigin {
     /// The part editor's Save (`part.edit_copy`, D20): the card in the Preview tab with the field diff, the devices
     /// that use the copy, the BOM rows that change and, for a fork, the fork note.
     Part(Box<PartCard>),
+    // WP-S2.07 part 4b
+    /// FT-396's paste choice (D22): a paste whose fragment carries another version of a held library copy; the card in
+    /// the Preview tab lists the copies and offers Use the project's copy and Update the project's copy (`paste.resolve`).
+    /// It previews nothing: its result is the refusal, so Apply stays blocked.
+    PasteVersions(Box<PasteChoice>),
+    /// The `library.update` card that "Update the project's copy" opens from the pasted fragment's documents (D22):
+    /// after its Apply commits, the shell arms the pending paste of `text` again (two commands, two undo steps).
+    PasteUpdate {
+        /// The clipboard text of the pending paste.
+        text: String,
+    },
+}
+
+/// What the paste choice card shows and keeps (WP-S2.07 D22).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PasteChoice {
+    /// The clipboard text of the pending paste.
+    pub text: String,
+    /// The connections the copy dropped (the paste tool's label).
+    pub dropped: usize,
+    /// Each copy in another version: its title, the project's version, the pasted version and the class word
+    /// (`patch`, `minor`, `major`) of the change from the pasted version to the project's.
+    pub conflicts: Vec<PasteConflict>,
+    /// Why Use the project's copy is disabled (`reason-paste-adapt-major`); `None`: enabled.
+    pub adapt: Option<&'static str>,
+    /// Why Update the project's copy is disabled (`reason-paste-update-older`); `None`: enabled.
+    pub update: Option<&'static str>,
+}
+
+/// One copy of the paste choice card (WP-S2.07 D22).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PasteConflict {
+    /// The copy ID.
+    pub copy: ew_api::output::Uuid,
+    /// The copy's printed name (`FX-MCB-1PN (Fixture)`).
+    pub title: String,
+    /// The project's version.
+    pub held: String,
+    /// The pasted version.
+    pub pasted: String,
+    /// The class word: `patch`, `minor` or `major`.
+    pub class: &'static str,
+}
+
+impl PasteChoice {
+    /// The card's line of one choice (`adapt` or `update`): `choice <word> enabled`, or `choice <word> disabled:
+    /// "<reason>"`.
+    pub fn choice_line(word: &str, reason: Option<&'static str>) -> String {
+        match reason {
+            None => format!("choice {word} enabled"),
+            Some(key) => format!("choice {word} disabled: \"{}\"", strings::text(key)),
+        }
+    }
+
+    /// The card's text of one conflict (`FX-MCB-1PN (Fixture): this project 1.1.0, pasted 1.0.0, patch`).
+    pub fn conflict_text(c: &PasteConflict) -> String {
+        strings::format("paste-conflict", &[&c.title, &c.held, &c.pasted, c.class])
+    }
 }
 
 /// What a part card shows (WP-S2.07 D20).
@@ -284,6 +342,8 @@ impl CardOrigin {
             CardOrigin::Table { .. } => "table",
             CardOrigin::Macro(_) => "macro",
             CardOrigin::Part(_) => "part",
+            CardOrigin::PasteVersions(_) => "paste",
+            CardOrigin::PasteUpdate { .. } => "update",
         }
     }
 }
@@ -312,6 +372,13 @@ impl Card {
     /// other cards keep `card-failed` with the command's message.
     pub fn failed_lead(&self) -> Option<FailedLead> {
         let message = self.preview.result.as_ref().err()?;
+        // WP-S2.07 D22: the paste choice card leads with what it asks; its rows and choices are the detail.
+        if matches!(self.origin, CardOrigin::PasteVersions(_)) {
+            return Some(FailedLead {
+                text: strings::text("card-paste-versions-title").to_owned(),
+                rule: None,
+            });
+        }
         let CardOrigin::Macro(m) = &self.origin else {
             return Some(FailedLead {
                 text: strings::format("card-failed", &[message]),

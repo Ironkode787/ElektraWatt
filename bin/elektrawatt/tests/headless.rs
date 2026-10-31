@@ -772,6 +772,10 @@ fn nightly_every_script_transcript_is_byte_identical_twice() {
             "headless::parts_scripts::ps7_the_fork_script_is_deterministic_and_replays",
             parts_scripts::ps7_the_fork_script_is_deterministic_and_replays_case,
         ),
+        (
+            "headless::parts_scripts::ps8_the_paste_choice_script_is_deterministic_and_replays",
+            parts_scripts::ps8_the_paste_choice_script_is_deterministic_and_replays_case,
+        ),
     ];
     let mut failed = Vec::new();
     for (name, case) in cases {

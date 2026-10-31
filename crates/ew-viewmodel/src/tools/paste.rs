@@ -36,6 +36,9 @@ pub struct PasteTool {
     tags: Vec<String>,
     /// The overlay of the last move, whose label a preview completes.
     last: Overlay,
+    /// The held copies of another version the paste uses as the project holds them (`edit.paste`'s `adapt`,
+    /// WP-S2.07 D22); empty for a plain paste.
+    adapt: Vec<ew_api::output::Uuid>,
 }
 
 impl PasteTool {
@@ -47,7 +50,15 @@ impl PasteTool {
             at: None,
             tags: Vec::new(),
             last: Overlay::default(),
+            adapt: Vec::new(),
         }
+    }
+
+    /// The tool pasting with `adapt` (FT-396's Use the project's copy, WP-S2.07 D22).
+    #[must_use]
+    pub fn adapting(mut self, adapt: Vec<ew_api::output::Uuid>) -> PasteTool {
+        self.adapt = adapt;
+        self
     }
 
     /// The fragment's record count.
@@ -119,16 +130,21 @@ impl PasteTool {
         text
     }
 
-    /// `edit.paste {page, at, fragment}` at the anchor; `None` before the first move or without a page.
+    /// `edit.paste {page, at, fragment, adapt?}` at the anchor; `None` before the first move or without a page.
     fn command(&self, cx: &ToolCx<'_>) -> Option<Box<dyn DynCommand>> {
         let (_, at) = self.at?;
         let page = cx.page.tables.page;
         if page.is_nil() {
             return None;
         }
+        let mut params =
+            json!({"page": page.to_string(), "at": [at.0, at.1], "fragment": self.fragment.params});
+        if !self.adapt.is_empty() {
+            params["adapt"] = json!(self.adapt.iter().map(ToString::to_string).collect::<Vec<_>>());
+        }
         Some(Box::new(AnyCommand {
             name: "edit.paste".into(),
-            params: json!({"page": page.to_string(), "at": [at.0, at.1], "fragment": self.fragment.params}),
+            params,
         }))
     }
 }
