@@ -88,7 +88,8 @@ fn stations_of(q: &Q, block: &ReportBlock) -> Vec<Id<Device>> {
     keyed.into_iter().map(|(_, s)| s).collect()
 }
 
-fn kind_name(k: &ChannelKind) -> &'static str {
+/// A channel kind as the PLC overview and the I/O list print it.
+pub(super) fn kind_name(k: &ChannelKind) -> &'static str {
     match k {
         ChannelKind::Di => "DI",
         ChannelKind::Do => "DO",
@@ -119,12 +120,7 @@ fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {
             Cell::Ident(part.item.part_number.as_str().to_owned()),
         );
     }
-    let address = match &r.address {
-        ChannelAddr::At { text, .. } => Cell::Address(text.clone()),
-        ChannelAddr::Tbd => Cell::Tbd,
-        ChannelAddr::Excluded | ChannelAddr::Unresolved => Cell::Empty,
-    };
-    put(columns, &mut cells, "address", address);
+    put(columns, &mut cells, "address", address_cell(&r.address));
     put(columns, &mut cells, "channel", Cell::Number(i64::from(r.number)));
     put(
         columns,
@@ -157,18 +153,35 @@ fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {
         "state",
         Cell::Text(MlText::neutral(r.state.name())),
     );
+    let links = page_cell(q, columns, &mut cells, r);
+    let mut row = Row::data(
+        RowId::entity(r.channel).with(RowKey::Name("channel".to_owned())),
+        cells,
+    );
+    row.links = links;
+    row
+}
+
+/// A channel's address cell as the PLC overview and the I/O list print it: the address rendered by the
+/// configuration project's profile, "TBD" for an open item, empty when excluded or unresolved.
+pub(super) fn address_cell(address: &ChannelAddr) -> Cell {
+    match address {
+        ChannelAddr::At { text, .. } => Cell::Address(text.clone()),
+        ChannelAddr::Tbd => Cell::Tbd,
+        ChannelAddr::Excluded | ChannelAddr::Unresolved => Cell::Empty,
+    }
+}
+
+/// Sets the `page` cell of a channel row, the frame cell of the bound coil's representation (or of the target), and
+/// returns the row's link to the bound CP, the coil's position (doc 10 §5): shared by the PLC overview and the I/O
+/// list.
+pub(super) fn page_cell(q: &Q, columns: &[ColumnDef], cells: &mut [Cell], r: &PlcRow) -> Vec<LinkRef> {
     let page_col = columns.iter().position(|c| c.key == "page");
     let mut links = Vec::new();
     if let Some(rep) = r.rep {
         let cell = q.get::<RepAnchorCell>(rep).as_ref().clone();
         if let (Some(cell), Some(page)) = (cell, q.reps().get(rep).map(|x| x.page)) {
-            put(
-                columns,
-                &mut cells,
-                "page",
-                Cell::CellRef(PageRef::Drawn(page), cell),
-            );
-            // The row links to the coil's position (doc 10 §5): the bound CP.
+            put(columns, cells, "page", Cell::CellRef(PageRef::Drawn(page), cell));
             if let (Some(col), Some(cp)) = (page_col, r.cp) {
                 links.push(LinkRef {
                     column: u16::try_from(col).unwrap_or(u16::MAX),
@@ -180,10 +193,5 @@ fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {
             }
         }
     }
-    let mut row = Row::data(
-        RowId::entity(r.channel).with(RowKey::Name("channel".to_owned())),
-        cells,
-    );
-    row.links = links;
-    row
+    links
 }

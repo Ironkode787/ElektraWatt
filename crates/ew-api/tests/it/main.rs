@@ -40,6 +40,7 @@ mod image_items;
 mod images;
 mod import_csv;
 mod import_template_cps;
+mod io_list;
 mod libraries;
 mod library_hash;
 mod library_navigators;
