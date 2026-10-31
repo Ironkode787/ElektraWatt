@@ -251,3 +251,110 @@ pub(crate) fn ip_fields(
             });
     }
 }
+
+// WP-S4.02 part 3
+/// The layout place options on the tool options card (doc 16a §5.2, §6.20): the sticky mode Free | Push | Swap and the
+/// grid step 5 mm | 1 mm, each a segmented control that sends `layout.options` with its member.
+pub(crate) fn layout_fields(ui: &mut Ui, options: tools::LayoutOptions, events: &mut Vec<crate::app::Event>) {
+    use ew_viewmodel::ew_api::output::SnapMode;
+    let modes = [
+        (SnapMode::Free, "layout-mode-free", "free"),
+        (SnapMode::Push, "layout-mode-push", "push"),
+        (SnapMode::Swap, "layout-mode-swap", "swap"),
+    ];
+    let labels: Vec<(&str, bool)> = modes
+        .iter()
+        .map(|(m, key, _)| (strings::text(key), *m == options.mode))
+        .collect();
+    if let Some(i) = segmented(ui, strings::text("layout-options-mode"), &labels) {
+        events.push(crate::app::Event::Action(
+            "layout.options",
+            serde_json::json!({ "mode": modes[i].2 }),
+        ));
+    }
+    let grids = [(5_u8, "layout-grid-5"), (1, "layout-grid-1")];
+    let labels: Vec<(&str, bool)> = grids
+        .iter()
+        .map(|(g, key)| (strings::text(key), *g == options.grid_mm))
+        .collect();
+    if let Some(i) = segmented(ui, strings::text("layout-options-grid"), &labels) {
+        events.push(crate::app::Event::Action(
+            "layout.options",
+            serde_json::json!({ "grid": grids[i].0 }),
+        ));
+    }
+}
+
+/// A segmented control (doc 16a §6.20, the Project entry's look): a sunken track with one segment per choice, the
+/// chosen one raised in the panel fill with semibold text; a tab list named `name` whose tabs are the choices. Returns
+/// the choice clicked when it was not the chosen one.
+fn segmented(ui: &mut Ui, name: &str, choices: &[(&str, bool)]) -> Option<usize> {
+    let t = crate::theme::current(ui.ctx());
+    let font = crate::theme::font(&t.type_small);
+    let bold = crate::theme::font(&crate::theme::TypeToken {
+        semibold: true,
+        ..t.type_small
+    });
+    let widths: Vec<f32> = choices
+        .iter()
+        .map(|(label, _)| {
+            let w = ui.fonts_mut(|f| {
+                f.layout_no_wrap((*label).to_owned(), bold.clone(), crate::theme::NO_TINT)
+                    .size()
+                    .x
+            });
+            w + 2.0 * t.space_3
+        })
+        .collect();
+    let height = t.size_control_inline + 2.0 * t.space_1;
+    let width = widths.iter().sum::<f32>() + 2.0 * t.space_1;
+    let (track, list) = ui.allocate_exact_size(egui::vec2(width, height), egui::Sense::hover());
+    let name = name.to_owned();
+    list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TabList, true, &name));
+    ui.painter().rect_filled(
+        track,
+        crate::theme::radius(t.radius_md),
+        t.surface_sunken.color32(),
+    );
+    let inner = track.shrink(t.space_1);
+    let mut left = inner.left();
+    let mut clicked = None;
+    for (i, ((label, chosen), w)) in choices.iter().zip(&widths).enumerate() {
+        let rect = egui::Rect::from_min_size(egui::pos2(left, inner.top()), egui::vec2(*w, inner.height()));
+        left += w;
+        let response = ui.interact(rect, list.id.with(i), egui::Sense::click());
+        let text = (*label).to_owned();
+        response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, *chosen, &text));
+        if *chosen {
+            ui.painter()
+                .rect_filled(rect, crate::theme::radius(t.radius_sm), t.surface_panel.color32());
+        } else if response.hovered() {
+            ui.painter()
+                .rect_filled(rect, crate::theme::radius(t.radius_sm), t.state_hover.color32());
+        }
+        let (f, colour) = if *chosen {
+            (bold.clone(), t.text_primary)
+        } else {
+            (font.clone(), t.text_secondary)
+        };
+        ui.painter().text(
+            rect.center(),
+            egui::Align2::CENTER_CENTER,
+            *label,
+            f,
+            colour.color32(),
+        );
+        if response.has_focus() {
+            ui.painter().rect_stroke(
+                rect,
+                crate::theme::radius(t.radius_sm),
+                crate::theme::stroke(t.focus_width, t.focus),
+                egui::StrokeKind::Inside,
+            );
+        }
+        if response.clicked() && !chosen {
+            clicked = Some(i);
+        }
+    }
+    clicked
+}

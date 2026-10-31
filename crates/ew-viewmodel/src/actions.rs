@@ -426,6 +426,27 @@ fn can_go_forward(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+// WP-S4.02 part 3
+/// A panel-layout page of a project that can be changed is on show (D10's reason: "Open a panel layout page").
+pub(crate) fn panel_page(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    writable(m)?;
+    match m.page_rows().get(m.page_index()).map(|r| r.kind.as_str()) {
+        Some("panel_layout") => Ok(()),
+        _ => Err("reason-no-panel-page"),
+    }
+}
+
+/// A placement is selected on a panel page that can be changed.
+fn panel_selection(m: &ShellModel) -> Result<(), &'static str> {
+    panel_page(m)?;
+    if m.selected_placements() == 0 {
+        Err("reason-no-placement")
+    } else {
+        Ok(())
+    }
+}
+
 /// A drawn page of a project that can be changed is on show (the editing tools of WP-S2.04 §7.6).
 pub(crate) fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
     has_pages(m)?;
@@ -934,6 +955,14 @@ fn selection_shown(m: &ShellModel) -> Result<(), &'static str> {
 /// Edit ▸ Delete (M39): an editable page with something selected; it deletes the canvas selection only (a navigator's
 /// rows have their own Delete, `table.clear`), so with nothing selected it is disabled for that reason, as Cut is.
 fn editable_selection(m: &ShellModel) -> Result<(), &'static str> {
+    // WP-S4.02 part 3 (D10): Delete on a panel page deletes the selected placements and carriers.
+    if panel_page(m).is_ok() {
+        return if m.selection().is_empty() {
+            Err("reason-nothing-selected")
+        } else {
+            Ok(())
+        };
+    }
     editable_page(m)?;
     if m.selection().is_empty() {
         Err("reason-nothing-selected")
@@ -2356,6 +2385,100 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         None,
     ))),
+    // WP-S4.02 part 3 (D4, D10; doc 12 §12.4): placing on a panel page. Tab, R, X and the arrows keep their bindings:
+    // on a panel page the shell maps them to these hidden actions (`ShellModel::shortcut_action`, ID-628); Shift+Tab is
+    // `layout.previous`'s own canvas binding (ruling 5).
+    with_params(
+        "device:ref",
+        hidden(act(
+            "tool.place_layout",
+            Command,
+            "action-tool-place-layout",
+            Menu::Draw,
+            &[],
+            panel_page,
+            None,
+        )),
+    ),
+    hidden(in_canvas(act(
+        "layout.next",
+        View,
+        "action-layout-next",
+        Menu::Edit,
+        &[],
+        panel_page,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "layout.previous",
+        View,
+        "action-layout-previous",
+        Menu::Edit,
+        &["Shift+Tab"],
+        panel_page,
+        None,
+    ))),
+    with_params(
+        "dx?:int, dy?:int",
+        hidden(in_canvas(act(
+            "layout.nudge",
+            Command,
+            "action-layout-nudge",
+            Menu::Edit,
+            &[],
+            // A selected placement, or a floating layout ghost (the shell refuses without either).
+            panel_page,
+            None,
+        ))),
+    ),
+    hidden(in_canvas(act(
+        "layout.rotate",
+        Command,
+        "action-layout-rotate",
+        Menu::Edit,
+        &[],
+        panel_page,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "layout.flip",
+        Command,
+        "action-layout-flip",
+        Menu::Edit,
+        &[],
+        panel_page,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "layout.lock_selection",
+        Command,
+        "action-layout-lock",
+        Menu::Edit,
+        &[],
+        panel_selection,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "layout.unlock_selection",
+        Command,
+        "action-layout-unlock",
+        Menu::Edit,
+        &[],
+        panel_selection,
+        None,
+    ))),
+    with_params(
+        "mode?:enum(free|push|swap), grid?:uint",
+        hidden(in_canvas(act(
+            "layout.options",
+            View,
+            "action-layout-options",
+            Menu::Edit,
+            &[],
+            panel_page,
+            None,
+        ))),
+    ),
     hidden(in_canvas(act(
         "tool.connect_on_move",
         Command,
@@ -3432,7 +3555,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     ),
     // WP-S2.06 part 1: the navigator framework (§6.9).
     with_params(
-        "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|macros|libraries|messages), on?:bool",
+        "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|unplaced|macros|libraries|messages), on?:bool",
         needs_parameters(placed(
             place(Group::Panels, 1, CommandSize::Small, Some("bar-navigators")),
             "layout-sidebar",
@@ -5509,6 +5632,13 @@ mod tests {
         "journal.keep",
         // WP-S2.07 part 4a: the part editor's Save.
         "part.save",
+        // WP-S4.02 part 3: the panel page's keys and the context menu read the selection and the floating ghost.
+        "layout.next",
+        "layout.previous",
+        "layout.rotate",
+        "layout.flip",
+        "layout.lock_selection",
+        "layout.unlock_selection",
     ];
 
     #[test]

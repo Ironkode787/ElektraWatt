@@ -739,6 +739,31 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("kind", &Value::from("image")),
             member("asset", &asset.map_or(Value::Null, Value::from)),
         ]),
+        // WP-S4.02 part 3 (D4): `{"kind": "layout", "device", "carrier", "mode", "at_nm", "moved", "refused"}`; `at_nm`
+        // is a rail's left edge `[s]` or the plate pose's `[u, v]`, surface nm.
+        Some(Ghost::Layout {
+            device,
+            carrier,
+            mode,
+            at,
+            moved,
+            refused,
+        }) => {
+            let n = |v: i128| Value::from(i64::try_from(v).unwrap_or(0));
+            let at_nm = match at.1 {
+                Some(v) => Value::from(vec![n(at.0), n(v)]),
+                None => Value::from(vec![n(at.0)]),
+            };
+            object(vec![
+                member("kind", &Value::from("layout")),
+                member("device", &Value::from(device)),
+                member("carrier", &Value::from(carrier)),
+                member("mode", &Value::from(mode)),
+                member("at_nm", &at_nm),
+                member("moved", &Value::from(moved)),
+                member("refused", &refused.map_or(Value::Null, Value::from)),
+            ])
+        }
     }
 }
 

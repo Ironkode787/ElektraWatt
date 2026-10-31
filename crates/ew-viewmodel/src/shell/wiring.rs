@@ -447,6 +447,7 @@ impl ShellModel {
             pane,
             snapper: &page.snapper,
             selection: &self.tools.selection,
+            layout: self.tools.layout_options,
         };
         let crate::tools::wire::WireTarget::Cp { function, idx, .. } =
             crate::tools::wire::resolve_target(&cx, at, false)
@@ -575,6 +576,7 @@ impl ShellModel {
             pane,
             snapper: &page.snapper,
             selection: &host.selection,
+            layout: host.layout_options,
         };
         Some(f(host.tool.as_mut(), &cx))
     }

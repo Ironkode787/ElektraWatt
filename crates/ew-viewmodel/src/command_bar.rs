@@ -481,6 +481,19 @@ pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
             .into_iter()
             .collect();
     }
+    // WP-S4.02 part 3 (D10): over a placement on a panel page, Turn, Flip, Lock or Unlock, and Delete.
+    if model.selected_placements() > 0 {
+        let lock = if model.selected_placement_locked() {
+            "layout.unlock_selection"
+        } else {
+            "layout.lock_selection"
+        };
+        return ["layout.rotate", "layout.flip", lock, "edit.delete_selection"]
+            .iter()
+            .filter_map(|id| actions::find(id))
+            .map(|meta| actions::item_of(meta, model))
+            .collect();
+    }
     let bar = command_bar_of(model, Tab::Draw);
     let mut items = Vec::new();
     for g in bar.groups.iter().filter(|g| SELECTION_GROUPS.contains(&g.group)) {
@@ -528,6 +541,7 @@ pub fn tool_action(name: &str) -> &'static str {
         "exchange" => "rep.exchange",
         "text_edit" => "text.edit",
         "paste" => "edit.paste_clip",
+        "layout_place" => "tool.place_layout",
         other => ACTIONS
             .iter()
             .find(|a| a.id.strip_prefix("tool.") == Some(other))
@@ -598,6 +612,17 @@ pub fn hud(model: &ShellModel) -> HudModel {
             let selected = model.selection().items.len();
             if stack > 1 {
                 strings::format("hud-stack", &[&stack.to_string()])
+            } else if selected > 0 && model.selected_placements() > 0 {
+                // WP-S4.02 part 3 (doc 16a §5.5): a placement selected on a panel page, its keys from the keymap.
+                strings::format(
+                    "hud-layout-selected",
+                    &[
+                        &selected.to_string(),
+                        &key_of(model, "tool.rotate_cw"),
+                        &key_of(model, "tool.mirror_x"),
+                        &key_of(model, "edit.delete_selection"),
+                    ],
+                )
             } else if selected > 0 {
                 strings::format(
                     "hud-selected",
@@ -749,6 +774,8 @@ pub fn hud(model: &ShellModel) -> HudModel {
         Some(Ghost::Image { asset }) => {
             format!("{} \u{b7} {}", asset.unwrap_or_else(|| "-".to_owned()), hint())
         }
+        // WP-S4.02 part 3 (doc 16a §5.5): the placing prompt; a refused drop's text stands in its chip.
+        Some(Ghost::Layout { device, .. }) => strings::format("hud-layout-place", &[&device]),
     };
     // FT-751: a tool's refusal stands in the HUD in place of its prompt, also over a ghost (the stacked twin's
     // "An identical symbol already stands here"), until the next canvas input ends it.

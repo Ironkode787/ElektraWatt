@@ -541,6 +541,21 @@ pub fn visible_rows(
             }
         }
     }
+    // WP-S4.02 part 3 (FT-486): a location of the Unplaced devices navigator whose devices are all placed is not on show
+    // (the table keeps it, so that the empty state can name it).
+    if table.kind == NavKind::Unplaced {
+        let mut has_child = vec![false; n];
+        for (i, node) in table.nodes.iter().enumerate() {
+            if let Some(p) = node.parent.filter(|_| shown[i]) {
+                has_child[p as usize] = true;
+            }
+        }
+        for (i, node) in table.nodes.iter().enumerate() {
+            if node.role == NavRole::Location && !has_child[i] {
+                shown[i] = false;
+            }
+        }
+    }
     let mut children: Vec<Vec<usize>> = vec![Vec::new(); n];
     let mut roots: Vec<usize> = Vec::new();
     for (i, _) in shown.iter().enumerate().filter(|(_, s)| **s) {

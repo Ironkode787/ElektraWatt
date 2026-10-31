@@ -10,6 +10,7 @@ use ew_ids::Id;
 use ew_mltext::natural_cmp;
 use ew_schema::Device;
 
+use super::snap::{RailItem, min_gap};
 use crate::Q;
 use crate::tag::DeviceTag;
 
@@ -49,4 +50,25 @@ fn member_cmp(a: &(u32, String, Id<Device>), b: &(u32, String, Id<Device>)) -> O
     a.0.cmp(&b.0)
         .then_with(|| natural_cmp(&a.1, &b.1))
         .then_with(|| a.2.cmp(&b.2))
+}
+
+/// The left edge an assembly member is pushed in at (WP-S4.02 D6 and part 3's PW-5, ruling 4): one function shared by
+/// `layout.place_assembly`'s insertion and the layout tool's default slot, never a second copy.
+///
+/// With a predecessor `pred` (the nearest earlier member on the rail, its rightmost item) the member's doubled centre is
+/// the smallest value above the predecessor's, so that push mode starts it at the predecessor's end plus the minimum
+/// gap: `⌊(pred.s0 + pred.s1 − width) / 2⌋ + 1`. Without one, before its first placed successor `succ`: `succ.s0 −
+/// min_gap(item, succ) − width`. Neither: 0. The result is a left edge to resolve in push mode, not a final place.
+pub fn member_slot(pred: Option<&RailItem>, succ: Option<&RailItem>, item: &RailItem) -> i128 {
+    let width = item.width();
+    match (pred, succ) {
+        (Some(p), _) => {
+            p.s0.saturating_add(p.s1)
+                .saturating_sub(width)
+                .div_euclid(2)
+                .saturating_add(1)
+        }
+        (None, Some(s)) => s.s0.saturating_sub(min_gap(item, s)).saturating_sub(width),
+        (None, None) => 0,
+    }
 }

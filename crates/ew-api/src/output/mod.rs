@@ -119,6 +119,15 @@ pub use navigation::{
     CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageListRow, PageListTable, PageRow,
 };
 pub use panel::{PageSurfaceView, ShapedText, SurfaceViewOf};
+// WP-S4.02 part 3 (D9): the panel tables and the pure items of `ew_derive::layout` the layout tool runs, so that
+// `ew-viewmodel` keeps its one dependency.
+pub use ew_derive::layout::{
+    Fit, Profile, RailExtent, RailItem, Resolution, SnapError, SnapMode, brackets, end_gap, fits_rail,
+    min_gap, resolve, start_gap,
+};
+pub use panel::{
+    PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, page_of_surface, surface_of_page,
+};
 // FT-753
 pub use plc_bind::{CardPin, OffCardBind};
 pub use preview::PreviewEntity;

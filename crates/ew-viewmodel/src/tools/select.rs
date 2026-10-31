@@ -146,6 +146,25 @@ pub struct SelectTool {
     proposals: Vec<(String, Option<String>)>,
     /// The last plain click and what it selected, for the repeated click that walks the pick stack (FT-500).
     last: Option<LastClick>,
+    // WP-S4.02 part 3
+    /// A press on a placement or a carrier of a panel page, and the placement's drag once it moves.
+    panel: Option<PanelPress>,
+}
+
+/// A press on a panel page (WP-S4.02 part 3): a click selects the placement or carrier (a label press selects its
+/// placement, W3-2); a drag of a placement moves it as the layout place tool places (D4); a drag of a carrier moves
+/// nothing (part 4) and selects it on release.
+#[derive(Clone, PartialEq, Debug)]
+struct PanelPress {
+    entity: EntityRef,
+    at: (i64, i64),
+    mods: Mods,
+    /// Whether the entity is a placement (else a carrier).
+    placement: bool,
+    /// The drag, once the pointer left the click slop.
+    gesture: Option<super::layout::LayoutGesture>,
+    /// The last pointer point and modifiers.
+    last: ((i64, i64), Mods),
 }
 
 /// A plain click (no Shift, no Ctrl) of the Select tool: where it pressed, on which page and revision, and the entity
@@ -217,6 +236,98 @@ impl SelectTool {
             origin: (0, 0),
             proposals: Vec::new(),
             last: None,
+            panel: None,
+        }
+    }
+
+    // WP-S4.02 part 3
+    /// Select on a panel page: the events of a press on a placement or a carrier; `None` hands the event to the
+    /// drawing page's rules (a band, a link).
+    fn panel_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> Option<ToolOutput> {
+        use super::layout::{LayoutGesture, Source, track_output};
+        let panel = cx.page.panel.as_deref()?;
+        match ev {
+            CanvasEvent::Press {
+                at,
+                button: Button::Primary,
+                mods,
+            } => {
+                self.panel = None;
+                if matches!(self.state, State::Moving { .. }) {
+                    return None;
+                }
+                let entity = cx.pick(*at)?;
+                let kind = super::page_entity_kind(cx.page, entity)?;
+                if !matches!(kind, EntityKind::Placement | EntityKind::Carrier) {
+                    return None;
+                }
+                self.state = State::Idle;
+                self.panel = Some(PanelPress {
+                    entity,
+                    at: *at,
+                    mods: *mods,
+                    placement: kind == EntityKind::Placement,
+                    gesture: None,
+                    last: (*at, *mods),
+                });
+                Some(ToolOutput::None)
+            }
+            CanvasEvent::PointerMove { at, mods } => {
+                let press = self.panel.as_mut()?;
+                press.last = (*at, *mods);
+                if !press.placement {
+                    return Some(ToolOutput::None);
+                }
+                if press.gesture.is_none() && cx.within(press.at, *at, CLICK_SLOP_PT) {
+                    return Some(ToolOutput::None);
+                }
+                let g = press.gesture.get_or_insert_with(|| {
+                    let mut g = LayoutGesture::new(Source::Placement(press.entity.0), panel);
+                    g.grab_at(press.at, cx);
+                    g
+                });
+                g.update(*at, *mods, cx);
+                Some(track_output(g))
+            }
+            CanvasEvent::Release {
+                at,
+                button: Button::Primary,
+                mods,
+            } => {
+                let mut press = self.panel.take()?;
+                match press.gesture.as_mut() {
+                    Some(g) => {
+                        g.update(*at, *mods, cx);
+                        Some(match g.commit() {
+                            Some(cmd) => ToolOutput::Commit(Box::new(cmd)),
+                            None => ToolOutput::Refused("reason-layout-refused"),
+                        })
+                    }
+                    None => {
+                        let last = self.last;
+                        Some(self.click(last, press.entity, press.at, press.mods, cx))
+                    }
+                }
+            }
+            CanvasEvent::Key(key @ (ToolKey::RotateCw | ToolKey::MirrorX)) => {
+                let press = self.panel.as_mut()?;
+                let ((at, mods), g) = (press.last, press.gesture.as_mut()?);
+                if !g.turn_key(*key) {
+                    return Some(ToolOutput::Refused("reason-layout-turn"));
+                }
+                g.update(at, mods, cx);
+                Some(track_output(g))
+            }
+            CanvasEvent::Escape => {
+                let press = self.panel.take()?;
+                Some(if press.gesture.is_some() {
+                    ToolOutput::Cancel
+                } else {
+                    ToolOutput::None
+                })
+            }
+            _ if self.panel.is_some() => Some(ToolOutput::None),
+            _ => None,
         }
     }
 
@@ -730,6 +841,11 @@ impl Tool for SelectTool {
     }
 
     fn state(&self) -> &'static str {
+        match &self.panel {
+            Some(PanelPress { gesture: Some(_), .. }) => return "dragging",
+            Some(_) => return "pressed",
+            None => {}
+        }
         match self.state {
             State::Idle | State::Link { .. } => "idle",
             State::Pressed { .. } => "pressed",
@@ -742,6 +858,12 @@ impl Tool for SelectTool {
     }
 
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput {
+        // WP-S4.02 part 3: a press on a placement or a carrier of a panel page.
+        if cx.page.panel.is_some()
+            && let Some(out) = self.panel_event(ev, cx)
+        {
+            return out;
+        }
         match ev {
             CanvasEvent::Press {
                 at,
@@ -854,6 +976,9 @@ impl Tool for SelectTool {
     }
 
     fn ghost(&self) -> Option<Ghost> {
+        if let Some(g) = self.panel.as_ref().and_then(|p| p.gesture.as_ref()) {
+            return g.ghost();
+        }
         match &self.state {
             State::Dragging {
                 moved,
@@ -878,6 +1003,24 @@ impl Tool for SelectTool {
 
     fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
         Some(self)
+    }
+
+    fn on_preview(&mut self, info: &super::PreviewInfo) -> Option<Overlay> {
+        let g = self.panel.as_mut()?.gesture.as_mut()?;
+        g.on_preview(info);
+        Some(g.overlay())
+    }
+
+    fn conflict_lines(&self) -> Vec<Vec<(i64, i64)>> {
+        self.panel
+            .as_ref()
+            .and_then(|p| p.gesture.as_ref())
+            .map(super::layout::LayoutGesture::conflict_lines)
+            .unwrap_or_default()
+    }
+
+    fn layout_gesture(&self) -> Option<&super::layout::LayoutGesture> {
+        self.panel.as_ref().and_then(|p| p.gesture.as_ref())
     }
 }
 

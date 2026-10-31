@@ -67,6 +67,12 @@ pub struct ChannelDrag(pub String);
 #[derive(Clone, Debug)]
 pub struct MacroDrag(pub String);
 
+// WP-S4.02 part 3
+/// The device a drag of an Unplaced devices row carries (its ID text, FT-486); a panel page's canvas floats it while
+/// the drag is over it (`tool.place_layout`) and drops it on release.
+#[derive(Clone, Debug)]
+pub struct DeviceDrag(pub String);
+
 /// What the rows on show were built for.
 #[derive(Clone, PartialEq, Debug)]
 enum Stamp {
@@ -424,7 +430,7 @@ impl NavigatorPane {
             // FT-532: table mode without rows says why, as the tree does (doc 16a §6.17, CP5).
             if !has_rows {
                 self.view = 0..0;
-                self.empty_state(ui, false, events);
+                self.empty_state(ui, shell, false, events);
             }
             return;
         }
@@ -438,7 +444,7 @@ impl NavigatorPane {
             if built {
                 self.painted = 0;
                 self.view = 0..0;
-                self.empty_state(ui, pages, events);
+                self.empty_state(ui, shell, pages, events);
             }
             return;
         }
@@ -538,7 +544,7 @@ impl NavigatorPane {
 
     /// The empty state of a list without rows (doc 16a §6.17): with a filter, "Nothing matches "abc"" and Clear filter;
     /// without, the navigator's own line ("No devices yet", Messages "No findings") and what fills it.
-    fn empty_state(&mut self, ui: &mut Ui, pages: bool, events: &mut Vec<Event>) {
+    fn empty_state(&mut self, ui: &mut Ui, shell: &ShellModel, pages: bool, events: &mut Vec<Event>) {
         use crate::icons::IconId;
         if !self.filter.is_empty() {
             let line = strings::format("empty-nav-filter", &[&self.filter]);
@@ -560,6 +566,13 @@ impl NavigatorPane {
                     ));
                 }
             }
+            return;
+        }
+        // WP-S4.02 part 3: the Unplaced devices navigator says whether the project has no layout space yet or every
+        // device of its locations is placed ("Every device of +J-E-2416 is placed.").
+        if self.kind == NavKind::Unplaced {
+            let (line, sentence) = shell.unplaced_empty();
+            crate::components::empty_state(ui, IconId::layout_dashboard, &line, &sentence, None);
             return;
         }
         let (icon, line, sentence) = empty_texts(self.kind);
@@ -756,6 +769,14 @@ pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str,
             );
         }
         NavKind::Libraries => (IconId::books, "empty-nav-libraries"),
+        // WP-S4.02 part 3: the pane draws the shell's texts (`ShellModel::unplaced_empty`); these are the first state's.
+        NavKind::Unplaced => {
+            return (
+                IconId::layout_dashboard,
+                strings::text("empty-nav-unplaced"),
+                strings::text("empty-nav-unplaced-text"),
+            );
+        }
     };
     (icon, strings::text(line), strings::text("empty-nav-text"))
 }
@@ -1020,6 +1041,7 @@ fn row_ui(
         Some(DragSource::Function(id)) => response.dnd_set_drag_payload(FunctionDrag(id.clone())),
         Some(DragSource::Channel(id)) => response.dnd_set_drag_payload(ChannelDrag(id.clone())),
         Some(DragSource::Macro(key)) => response.dnd_set_drag_payload(MacroDrag(key.clone())),
+        Some(DragSource::Device(id)) => response.dnd_set_drag_payload(DeviceDrag(id.clone())),
         None => {}
     }
     // A drop of pages on a row of the Pages navigator.

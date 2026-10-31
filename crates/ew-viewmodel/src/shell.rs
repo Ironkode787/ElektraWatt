@@ -53,6 +53,8 @@ mod join;
 pub(crate) use interruption::natural_cmp;
 // WP-S2.09 part 1: the export job, the notifications, the recovery dialog.
 mod jobs;
+// WP-S4.02 part 3: placing on a panel page.
+mod layout;
 // WP-S2.09 part 2: the message panel.
 mod messages;
 mod navigation;
@@ -1712,6 +1714,16 @@ impl ShellModel {
             },
             "edit.delete_selection" => self.act_delete_selection(),
             "rep.exchange" => self.act_rep_exchange(p),
+            // WP-S4.02 part 3 (D4, D10): placing on a panel page.
+            "tool.place_layout" => self.act_place_layout(p),
+            "layout.next" => self.act_layout_step(1),
+            "layout.previous" => self.act_layout_step(-1),
+            "layout.nudge" => self.act_layout_nudge(p),
+            "layout.rotate" => self.act_layout_turn(crate::tools::ToolKey::RotateCw),
+            "layout.flip" => self.act_layout_turn(crate::tools::ToolKey::MirrorX),
+            "layout.lock_selection" => self.act_layout_lock(true),
+            "layout.unlock_selection" => self.act_layout_lock(false),
+            "layout.options" => self.act_layout_options(p),
             // WP-S2.04 part 2 (wiring, §8.7). Begin.
             "tool.wire" => self.act_tool_wire(),
             "canvas.activate_alt" => {

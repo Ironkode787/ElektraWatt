@@ -153,6 +153,12 @@ pub(crate) struct ToolHost {
     pub drop_release: bool,
     /// What the toast says once the page tables of the commit that set it are read, at the end of its dispatch.
     pub result_note: Option<ResultNote>,
+    // WP-S4.02 part 3
+    /// The placing options of the tool options card (the sticky mode and the grid step), kept across tools.
+    pub layout_options: super::LayoutOptions,
+    /// Whether a `layout.*` commit of this dispatch announces the selected placement's live text once the page is
+    /// read again (at the end of the dispatch).
+    pub layout_announce: bool,
 }
 
 /// A commit's result line, said in the toast once the page tables show the result (FT-546, FT-547).
@@ -221,6 +227,8 @@ impl ToolHost {
             press_held: false,
             drop_release: false,
             result_note: None,
+            layout_options: super::LayoutOptions::default(),
+            layout_announce: false,
         }
     }
 }

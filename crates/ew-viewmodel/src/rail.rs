@@ -78,10 +78,11 @@ pub struct RailModel {
     pub right: Vec<RailButton>,
 }
 
-/// The left rail's entries (doc 16a §5.4, with Macros and Libraries after Report blocks, FT-754 (g)): the word, the
+/// The left rail's entries (doc 16a §5.4, with Unplaced devices, Macros and Libraries after Report blocks, FT-486,
+/// FT-754 (g)): the word, the
 /// title key, the icon and the entry's pane. Project shows the Pages pane and, through its segmented control, the
 /// Devices navigator.
-pub const LEFT: [(&str, &str, &str, PaneKind); 12] = [
+pub const LEFT: [(&str, &str, &str, PaneKind); 13] = [
     ("project", "rail-project", "files", PaneKind::Pages),
     (
         "strips",
@@ -131,6 +132,14 @@ pub const LEFT: [(&str, &str, &str, PaneKind); 12] = [
         "nav-title-blocks",
         "report",
         PaneKind::Navigator(NavKind::Blocks),
+    ),
+    // WP-S4.02 part 3 (FT-486, doc 16 §5.2's row): the devices a layout space has not placed yet, the panel tools'
+    // source, after Report blocks and without a Ctrl+<n> key.
+    (
+        "unplaced",
+        "nav-title-unplaced",
+        "layout-dashboard",
+        PaneKind::Navigator(NavKind::Unplaced),
     ),
     // WP-S1.19 part 6 (FT-754 (g)): after Report blocks, without a Ctrl+<n> key (the ninth is the last).
     (

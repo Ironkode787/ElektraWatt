@@ -91,3 +91,22 @@ pub fn fits_surface(mount: Option<&MountKind>) -> Fit {
         Some(_) => Fit::DoesNotFit,
     }
 }
+
+/// A mount kind in words, as every text names it (WP-S4.02 part 3, ruling 2: one vocabulary for the refusals of the
+/// `layout.*` commands, the Unplaced devices navigator's Mount column and the layout tool's texts): "TS 35×7.5",
+/// "TS 35×15", "TS 32", "TS 15", "screw-mounted", "busbar adapter", "door cut-out", "mounted on its parent",
+/// "not mounted"; a kind of a newer format by its stored name.
+pub fn mount_label(kind: &MountKind) -> String {
+    match kind {
+        MountKind::Ts35x7_5 => "TS 35×7.5".into(),
+        MountKind::Ts35x15 => "TS 35×15".into(),
+        MountKind::Ts32 => "TS 32".into(),
+        MountKind::Ts15 => "TS 15".into(),
+        MountKind::Screw => "screw-mounted".into(),
+        MountKind::BusbarAdapter => "busbar adapter".into(),
+        MountKind::DoorCutout => "door cut-out".into(),
+        MountKind::OnParent => "mounted on its parent".into(),
+        MountKind::None => "not mounted".into(),
+        MountKind::Unknown(v) => v.to_string(),
+    }
+}

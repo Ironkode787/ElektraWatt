@@ -40,6 +40,10 @@
 //! marker tool ([`MarkerTool`], [`crossed_connections`]) and the Structure box tool ([`StructureBoxTool`]).
 //!
 //! **WP-S2.04 part 5** adds the Image tool ([`ImageTool`], [`ImageAsset`], [`fit_rect`]).
+//!
+//! **WP-S4.02 part 3** adds placing on a panel page: the layout place tool ([`LayoutPlaceTool`]) and Select's drag
+//! of a placement, both over [`layout`]'s gesture, which resolves a drop with the commands' own resolver (D4), and the
+//! panel kinds of the selection ([`EntityKind::Placement`], [`EntityKind::Carrier`], [`page_entity_kind`]).
 
 pub mod autoconnect;
 pub mod black_box;
@@ -51,6 +55,8 @@ mod host;
 pub mod image;
 pub mod ip;
 mod junction_editor;
+// WP-S4.02 part 3
+pub mod layout;
 pub mod marker;
 mod measure;
 pub mod move_keys;
@@ -76,6 +82,7 @@ pub use graphic::{GraphicShape, GraphicTool};
 pub use image::{ImageAsset, ImageTool, fit_rect};
 pub use ip::{IpDir, IpExternal, IpMemory, IpTool, ProjectIps};
 pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
+pub use layout::{LayoutOptions, LayoutPlaceTool};
 pub use macro_place::MacroTool;
 pub use marker::{MarkerTool, crossed_connections};
 // WP-S2.05 part 3
@@ -345,6 +352,22 @@ pub enum Ghost {
         /// The asset's hash (`sha256:<64 hex>`); `None` before `image.pick`.
         asset: Option<String>,
     },
+    // WP-S4.02 part 3
+    /// The layout place tool's or Select's dragged placement on a panel page (D4, doc 16a §7.3).
+    Layout {
+        /// The device's tag (`F55`).
+        device: String,
+        /// The target: the rail's label (`Rail 1`), or `plate`.
+        carrier: String,
+        /// The mode word: `free`, `push` or `swap`.
+        mode: &'static str,
+        /// On a rail the footprint's left edge `s`; on the plate the pose's `(u, v)`; surface nm.
+        at: (i128, Option<i128>),
+        /// The neighbours the mode moves.
+        moved: usize,
+        /// The refusal's text, when the drop is refused.
+        refused: Option<String>,
+    },
 }
 
 impl Ghost {
@@ -468,6 +491,18 @@ pub trait Tool {
     fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
         None
     }
+
+    // WP-S4.02 part 3
+    /// The outline of a refused drop and its diagonal cross, in sheet nm (doc 16a §7.3: shape and text, never colour
+    /// alone): the host draws them in `canvas.conflict` with the conflict overlay. Empty for a tool without one.
+    fn conflict_lines(&self) -> Vec<Vec<(i64, i64)>> {
+        Vec::new()
+    }
+
+    /// The layout gesture in progress (the layout place tool, a placement dragged by Select); `None` otherwise.
+    fn layout_gesture(&self) -> Option<&layout::LayoutGesture> {
+        None
+    }
 }
 
 /// What a tool sees of the canvas (spec §7.1): the prepared page, never a `World`.
@@ -483,6 +518,8 @@ pub struct ToolCx<'a> {
     pub snapper: &'a Snapper,
     /// The window's selection.
     pub selection: &'a Selection,
+    /// The placing options of the tool options card (WP-S4.02 part 3): the sticky mode and the grid step.
+    pub layout: LayoutOptions,
 }
 
 impl ToolCx<'_> {
@@ -774,6 +811,8 @@ pub fn tool_named(name: &str) -> Option<Box<dyn Tool>> {
         "select" => Some(Box::new(SelectTool::new())),
         "measure" => Some(Box::new(MeasureTool::new())),
         "wire" => Some(Box::new(WireTool::new())),
+        // WP-S4.02 part 3: armed without a device it floats nothing; `tool.place_layout {device}` arms it with one.
+        "layout_place" => Some(Box::new(LayoutPlaceTool::new(None))),
         _ => None,
     }
 }
@@ -825,6 +864,11 @@ pub enum EntityKind {
     Item,
     /// A structure box (movable).
     StructureBox,
+    // WP-S4.02 part 3
+    /// A placement on a panel page (from the page's panel tables).
+    Placement,
+    /// A carrier on a panel page (from the page's panel tables).
+    Carrier,
 }
 
 impl EntityKind {
@@ -836,6 +880,8 @@ impl EntityKind {
             EntityKind::Junction => "junction",
             EntityKind::Item => "page_item",
             EntityKind::StructureBox => "structure_box",
+            EntityKind::Placement => "placement",
+            EntityKind::Carrier => "carrier",
         }
     }
 }
@@ -856,6 +902,31 @@ pub fn entity_kind(tables: &PageTables, e: EntityRef) -> Option<EntityKind> {
     } else {
         None
     }
+}
+
+// WP-S4.02 part 3
+/// The kind of `e` on `page`: [`entity_kind`] over its page tables, else a placement or a carrier of its panel tables
+/// (a panel page, D9); `None` for an entity neither holds.
+pub fn page_entity_kind(page: &CanvasPage, e: EntityRef) -> Option<EntityKind> {
+    entity_kind(&page.tables, e).or_else(|| {
+        let panel = page.panel.as_ref()?;
+        if panel.placement(e.0).is_some() {
+            Some(EntityKind::Placement)
+        } else if panel.carrier(e.0).is_some() {
+            Some(EntityKind::Carrier)
+        } else {
+            None
+        }
+    })
+}
+
+/// The selection resolved on `page` by [`page_entity_kind`], in selection order.
+pub fn page_selection_kinds(selection: &Selection, page: &CanvasPage) -> Vec<(EntityRef, EntityKind)> {
+    selection
+        .items
+        .iter()
+        .filter_map(|e| page_entity_kind(page, *e).map(|k| (*e, k)))
+        .collect()
 }
 
 /// The selection resolved by the page tables (§6.6): each entity the tables hold with its kind, in selection order.

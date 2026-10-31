@@ -261,6 +261,7 @@ const OPENS_INPUT: &[&str] = &[
     "tools.company_standard",
     "help.first_run",
     "tool.place",
+    "tool.place_layout",
     "tool.place_part",
     "strip.new",
     "rep.exchange",

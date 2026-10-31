@@ -488,7 +488,16 @@ pub const VOCABULARY: &[&str] = &[
     "patch",
     "minor",
     "major",
+    // WP-S4.02 part 3: the 3 words of `LAYOUT_WORDS`, a reviewed vocabulary change.
+    "unplaced",
+    "layout",
+    "refused",
 ];
+
+// WP-S4.02 part 3
+/// The 3 words WP-S4.02 part 3 adds to [`VOCABULARY`]: the navigator kind `unplaced` (FT-486) and the layout ghost's
+/// `canvas ghost layout … refused` (D4).
+pub const LAYOUT_WORDS: &[&str] = &["unplaced", "layout", "refused"];
 
 // WP-S2.07 part 4b
 /// The 5 words WP-S2.07 part 4b adds to [`VOCABULARY`] (§9.6): the paste choice card's `conflict` lines' classes
@@ -2397,6 +2406,30 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             let mut line = "canvas ghost item image".to_owned();
             if let Some(asset) = asset {
                 line.push_str(&format!(" \"{asset}\""));
+            }
+            lines.push(line);
+        }
+        // WP-S4.02 part 3 (D4): the dragged device on a panel page: `canvas ghost layout "F55" on "Rail 1" mode push at
+        // 158 mm moved 4`, on the plate `on "plate" mode free at 120 300 mm`; a refused drop ends with `refused` and its
+        // text.
+        Some(crate::tools::Ghost::Layout {
+            device,
+            carrier,
+            mode,
+            at,
+            moved,
+            refused,
+        }) => {
+            let mm = |v: i128| crate::canvas::mm3(i64::try_from(v).unwrap_or(0));
+            let at = match at.1 {
+                Some(v) => format!("{} {}", mm(at.0), mm(v)),
+                None => mm(at.0),
+            };
+            let mut line = format!(
+                "canvas ghost layout \"{device}\" on \"{carrier}\" mode {mode} at {at} mm moved {moved}"
+            );
+            if let Some(text) = refused {
+                line.push_str(&format!(" refused \"{text}\""));
             }
             lines.push(line);
         }

@@ -191,6 +191,7 @@ fn dk1_the_rail_model_and_rail_show() {
             "ips",
             "parts",
             "blocks",
+            "unplaced",
             "macros",
             "libraries"
         ]

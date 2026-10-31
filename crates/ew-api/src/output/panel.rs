@@ -19,17 +19,22 @@
 
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
+use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::{Nm, Pt2, Rect};
-use ew_derive::layout::{CarrierGeometry, LabelMode, LayoutLabel, PlacementGeometry};
-use ew_derive::{PageRef, Policy, Q, Query};
+use ew_derive::layout::{
+    CarrierGeometry, GroupAccessories, LabelMode, LayoutLabel, PlacementGeometry, Profile, Quarter, RailAxis,
+    RailExtent, RailItem, Unplaced, bracket_part, brackets, carrier_labels, free_length, member_order,
+    member_slot, mount_label, primary_part, rail_extent, rail_items,
+};
+use ew_derive::{DeviceTag, PageRef, Policy, Q, Query, StructurePath, Tag};
 use ew_scene::forms::SheetMap;
 use ew_scene::panel::{
     CarrierDraw, LAYOUT_LABEL_STYLE, PanelLabel, PanelView, PlacementDraw, Projection, SurfaceOutline,
 };
 use ew_schema::{
-    CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, LibCopy, MountingSurface, Page, PageItem,
-    PageItemKind, PageType, Part, Placement, SurfaceLabelMode,
+    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, LayoutSpace, LibCopy, MountKind,
+    MountingSurface, Page, PageItem, PageItemKind, PageType, Part, Placement, StructureNode,
+    SurfaceLabelMode,
 };
 use ew_text::{Shaped, TextStyle};
 
@@ -216,7 +221,7 @@ fn carriers(q: &Q, surface: Id<MountingSurface>) -> Vec<CarrierDraw> {
 }
 
 /// The placements on a surface (on its carriers and on the surface itself), by ID.
-fn placements_on(q: &Q, surface: Id<MountingSurface>) -> Vec<Id<Placement>> {
+pub(crate) fn placements_on(q: &Q, surface: Id<MountingSurface>) -> Vec<Id<Placement>> {
     let mut ids: Vec<Id<Placement>> = q
         .idx()
         .carriers_of_surface(surface)
@@ -329,4 +334,544 @@ pub(crate) fn panel_view(q: &Q, page: Id<Page>, parts: Parts) -> Option<PanelVie
             Vec::new()
         },
     })
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// The panel tables (WP-S4.02 part 3, D9): the panel data a layout tool reads, `page_tables`' pattern for a
+// panel-layout page, so that a tool never calls the `Session`. A plain function over `Q` that reads the existing
+// layout queries (`page_surface_view`, `carrier_geometry`, `rail_occupancy` through `rail_items`,
+// `group_accessories`, `placement_geometry`, `layout_label`, `unplaced`): no memo family of its own. Everything is
+// in surface nm; sheet <-> surface goes through the page (the frame's page-to-sheet map, then the inverse
+// projection [`surface_of_page`]).
+
+/// A rail's axis in the surface frame (D9): the clip point at `s` along it lies at `start + dir · s`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct PanelAxis {
+    /// `path[0]`, surface nm.
+    pub start: (i128, i128),
+    /// The unit direction from `path[0]` to `path[1]`: one of `(1, 0)`, `(0, 1)`, `(−1, 0)`, `(0, −1)`.
+    pub dir: (i128, i128),
+}
+
+impl PanelAxis {
+    /// The surface point at `s` along the axis.
+    pub fn point_at(&self, s: i128) -> (i128, i128) {
+        (
+            self.start.0.saturating_add(self.dir.0.saturating_mul(s)),
+            self.start.1.saturating_add(self.dir.1.saturating_mul(s)),
+        )
+    }
+
+    /// The distance along the axis of the foot of the surface point `p`, and its distance from the axis line.
+    pub fn project(&self, p: (i128, i128)) -> (i128, i128) {
+        let (du, dv) = (p.0.saturating_sub(self.start.0), p.1.saturating_sub(self.start.1));
+        let s = du
+            .saturating_mul(self.dir.0)
+            .saturating_add(dv.saturating_mul(self.dir.1));
+        let off = du
+            .saturating_mul(self.dir.1)
+            .saturating_sub(dv.saturating_mul(self.dir.0))
+            .saturating_abs();
+        (s, off)
+    }
+}
+
+/// One carrier of a panel page's surface (D9), in `carrier_labels` order (rails, then ducts).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PanelCarrier {
+    /// The carrier's ID.
+    pub id: Uuid,
+    /// The carrier record.
+    pub carrier: Id<Carrier>,
+    /// `rail` or `duct`.
+    pub kind: &'static str,
+    /// Its label (D8): "Rail 1", "Duct 2".
+    pub label: String,
+    /// Its label in a sentence: "rail 1".
+    pub sentence: String,
+    /// The path, surface nm.
+    pub path: Vec<(i64, i64)>,
+    /// A rail's axis; `None` for a duct and for a rail whose path is not valid.
+    pub axis: Option<PanelAxis>,
+    /// The path length, nm; `None` for an invalid path.
+    pub length: Option<i128>,
+    /// A rail's profile.
+    pub profile: Option<MountKind>,
+    /// The part copy the carrier realises.
+    pub part: Option<Uuid>,
+    /// The width across the path: a rail's profile width, a duct's width.
+    pub width: Option<i128>,
+    /// A duct's height.
+    pub height: Option<i128>,
+    /// The outline rectangles (`carrier_geometry`), surface nm.
+    pub outline: Vec<Rect>,
+    /// A rail's items (`rail_items`: the list the commands resolve over, D4).
+    pub items: Vec<RailItem>,
+    /// A rail's derived end brackets (`group_accessories`): `[s0, s1]` along the axis.
+    pub brackets: Vec<(i128, i128)>,
+    /// A rail's free length (`free_length`, D12): `L − Σ items − Σ brackets`.
+    pub free_length: Option<i128>,
+}
+
+/// One placement on a panel page's surface (D9), by ID.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PanelPlacement {
+    /// The placement's ID (the entity a click on its footprint or label selects).
+    pub id: Uuid,
+    /// The placement record.
+    pub placement: Id<Placement>,
+    /// The device's ID.
+    pub device: Uuid,
+    /// The layout label on this page (`layout_label`).
+    pub label: String,
+    /// The device's tag as a sentence names it (`-102F1`, `T55`).
+    pub tag: String,
+    /// The rail it sits on; `None` on the surface.
+    pub carrier: Option<Uuid>,
+    /// The pose: `t.x`, `t.y` (a rail's clip point `s` and 0, or a surface's `u`, `v`) and its quarter turns.
+    pub pose: (i64, i64, u8),
+    /// The footprint, surface nm.
+    pub footprint: Rect,
+    /// Whether it is locked.
+    pub locked: bool,
+    /// Whether its footprint is unknown.
+    pub unknown: bool,
+    /// Whether it places a strip as a whole.
+    pub strip: bool,
+    /// A strip's declared end-bracket width.
+    pub bracket_width: Option<i128>,
+    /// The clearance pads along a rail, `[before, after]`, for its current turn.
+    pub pads: [i128; 2],
+    /// The realised part's mount kind.
+    pub mount_kind: Option<MountKind>,
+    /// The mount kind in words (`TS 35×7.5`, `screw-mounted`); empty without one.
+    pub mount_label: String,
+    /// The clip point's distance from the footprint's left edge along a rail, for its current turn.
+    pub clip: i128,
+    /// What it takes along a rail turned 0°.
+    pub extent: RailExtent,
+    /// What it takes along a rail turned 180°.
+    pub extent_flipped: RailExtent,
+}
+
+/// One unplaced device of the surface's layout space (D9, FT-486), in `unplaced` order (natural full tag).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct UnplacedDevice {
+    /// The device's ID.
+    pub device: Uuid,
+    /// Its tag as a sentence names it (`F55`, `-201U9`).
+    pub label: String,
+    /// The primary part's number; `None` without a part.
+    pub part_number: Option<String>,
+    /// The primary part's `W × H`, nm; `None` when unknown.
+    pub size: Option<(i128, i128)>,
+    /// The primary part's mount kind.
+    pub mount_kind: Option<MountKind>,
+    /// The mount kind in words (`TS 35×7.5`, `screw-mounted`); empty without one.
+    pub mount_label: String,
+    /// Whether it is a strip placed as a whole.
+    pub strip: bool,
+    /// A strip's declared end-bracket width.
+    pub bracket_width: Option<i128>,
+    /// Whether it belongs to an assembly (it has children, or a parent).
+    pub assembly: bool,
+    /// What it takes along a rail turned 0°.
+    pub extent: RailExtent,
+    /// What it takes along a rail turned 180°.
+    pub extent_flipped: RailExtent,
+    /// Per rail of the surface that holds a member of its assembly: the left edge it is pushed in at
+    /// (`member_slot`, PW-5), in carrier order.
+    pub slots: Vec<(Uuid, i128)>,
+}
+
+/// The panel data of a panel-layout page for the layout tools (D9), all in surface nm.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PanelTables {
+    /// The printed folio.
+    pub folio: String,
+    /// The page's ID.
+    pub page: Uuid,
+    /// The surface shown.
+    pub surface: Uuid,
+    /// The surface record.
+    pub surface_id: Id<MountingSurface>,
+    /// The projection the placements layer draws with (`page_surface_view`, the frame's factor included).
+    pub projection: Projection,
+    /// The surface's usable polygon.
+    pub usable: Vec<(i64, i64)>,
+    /// The location of the surface's layout space as a designation prints it (`+J-E-2416`).
+    pub location: String,
+    /// The carriers, in `carrier_labels` order.
+    pub carriers: Vec<PanelCarrier>,
+    /// The placements on the surface and on its carriers, by ID.
+    pub placements: Vec<PanelPlacement>,
+    /// The unplaced devices of the surface's layout space, in `unplaced` order.
+    pub unplaced: Vec<UnplacedDevice>,
+    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`, FT-366): the tools' texts
+    /// print millimetres as the project's other millimetre texts do.
+    pub decimal_comma: bool,
+}
+
+impl PanelTables {
+    /// The placement row with the ID `id`.
+    pub fn placement(&self, id: Uuid) -> Option<&PanelPlacement> {
+        self.placements.iter().find(|p| p.id == id)
+    }
+
+    /// The carrier row with the ID `id`.
+    pub fn carrier(&self, id: Uuid) -> Option<&PanelCarrier> {
+        self.carriers.iter().find(|c| c.id == id)
+    }
+
+    /// The unplaced row of the device `id`.
+    pub fn unplaced_device(&self, id: Uuid) -> Option<&UnplacedDevice> {
+        self.unplaced.iter().find(|u| u.device == id)
+    }
+
+    /// The surface point of the page point `p` ([`surface_of_page`]).
+    pub fn to_surface(&self, p: (i64, i64)) -> (i128, i128) {
+        surface_of_page(&self.projection, p)
+    }
+
+    /// The page point of the surface point `p` ([`page_of_surface`]).
+    pub fn to_page(&self, p: (i128, i128)) -> (i64, i64) {
+        page_of_surface(&self.projection, p)
+    }
+}
+
+/// `a / b` rounded to the nearest integer, halves away from zero (`b > 0`).
+fn div_round(a: i128, b: i128) -> i128 {
+    let q = a / b;
+    let r = a % b;
+    if r.saturating_mul(2).saturating_abs() >= b {
+        q + a.signum()
+    } else {
+        q
+    }
+}
+
+/// The surface point of the page point `p` by the inverse projection (D9): `u = (x − datum.x)·den/num`,
+/// `v = (datum.y − y)·den/num`, in i128 with one rounding to the nearest nm, halves away from zero.
+pub fn surface_of_page(projection: &Projection, p: (i64, i64)) -> (i128, i128) {
+    let num = projection.num.max(1);
+    let den = projection.den;
+    let (dx, dy) = (i128::from(projection.datum.x.0), i128::from(projection.datum.y.0));
+    (
+        div_round((i128::from(p.0) - dx).saturating_mul(den), num),
+        div_round((dy - i128::from(p.1)).saturating_mul(den), num),
+    )
+}
+
+/// The page point of the surface point `(u, v)` by the projection (`Projection::point` in i128, saturating at the
+/// `i64` range).
+pub fn page_of_surface(projection: &Projection, (u, v): (i128, i128)) -> (i64, i64) {
+    let len = |l: i128| div_round(l.saturating_mul(projection.num), projection.den.max(1));
+    let x = i128::from(projection.datum.x.0).saturating_add(len(u));
+    let y = i128::from(projection.datum.y.0).saturating_sub(len(v));
+    let sat = |n: i128| i64::try_from(n).unwrap_or(if n < 0 { i64::MIN } else { i64::MAX });
+    (sat(x), sat(y))
+}
+
+/// A location as a designation prints it: `+` and its path's codes (`+J-E-2416`); empty for a missing node.
+fn location_text(q: &Q, node: Id<StructureNode>) -> String {
+    let path = q.get::<StructurePath>(node);
+    if path.codes.is_empty() {
+        return String::new();
+    }
+    format!("+{}", path.codes.join("+"))
+}
+
+/// A device's tag as a sentence names it (the derived short tag, `-102F1`), empty without one.
+fn device_tag(q: &Q, d: Id<Device>) -> String {
+    q.try_get::<DeviceTag>(d)
+        .ok()
+        .and_then(|t| t.as_ref().as_ref().map(Tag::short))
+        .unwrap_or_default()
+}
+
+/// The root of a device's assembly (WP-S4.02 D6, as `layout.place_assembly` finds it): the device when it has
+/// children, else its parent.
+fn assembly_root(q: &Q, device: &Device) -> Option<Id<Device>> {
+    if q.idx().device_children(device.id).any(|c| c != device.id) {
+        Some(device.id)
+    } else {
+        device.parent
+    }
+}
+
+/// The `i64` pair of a point.
+fn xy(p: Pt2) -> (i64, i64) {
+    (p.x.0, p.y.0)
+}
+
+/// The width of a rail of a profile, nm.
+fn profile_width(p: Profile) -> i128 {
+    match p {
+        Profile::Ts35x7_5 | Profile::Ts35x15 => 35_000_000,
+        Profile::Ts32 => 32_000_000,
+        Profile::Ts15 => 15_000_000,
+    }
+}
+
+/// The carriers of a surface (D9).
+fn carriers_of(q: &Q, surface: Id<MountingSurface>) -> Vec<PanelCarrier> {
+    let table = q.table::<Carrier>();
+    let mut out = Vec::new();
+    for (id, label) in carrier_labels(q, surface) {
+        let Some(c) = table.get(id) else {
+            continue;
+        };
+        let geom = q.get::<CarrierGeometry>(id);
+        let geom = geom.as_ref().as_ref();
+        let rail = c.kind == CarrierKind::Rail;
+        let (profile, width, height) = match &c.params {
+            CarrierParams::Rail(r) => (
+                Some(r.profile.clone()),
+                Profile::of(&r.profile).map(profile_width),
+                None,
+            ),
+            CarrierParams::Duct(d) => (None, Some(i128::from(d.width.0)), Some(i128::from(d.height.0))),
+            _ => (None, None, None),
+        };
+        let axis = rail.then(|| RailAxis::of(&c.path)).flatten().map(|a| PanelAxis {
+            start: (i128::from(a.start.x.0), i128::from(a.start.y.0)),
+            dir: a.dir.rotate((1, 0)),
+        });
+        let length = geom.and_then(|g| g.length);
+        let (items, spans, free) = if axis.is_some() {
+            let items = rail_items(q, id);
+            let spans = q
+                .get::<GroupAccessories>(id)
+                .iter()
+                .map(|b| (b.s0, b.s1))
+                .collect();
+            let free = length.map(|l| free_length(l, &items, &brackets(&items)));
+            (items, spans, free)
+        } else {
+            (Vec::new(), Vec::new(), None)
+        };
+        out.push(PanelCarrier {
+            id: id.as_uuid(),
+            carrier: id,
+            kind: if rail { "rail" } else { "duct" },
+            label: label.label(),
+            sentence: label.in_sentence(),
+            path: c.path.iter().copied().map(xy).collect(),
+            axis,
+            length,
+            profile,
+            part: c.part.as_ref().map(|p| p.copy.as_uuid()),
+            width,
+            height,
+            outline: geom.map(|g| g.outline.clone()).unwrap_or_default(),
+            items,
+            brackets: spans,
+            free_length: free,
+        });
+    }
+    out
+}
+
+/// The mount kind of a part use's part.
+fn mount_of(q: &Q, part: Option<&ew_schema::PartRef>) -> Option<MountKind> {
+    let p = part?;
+    q.table::<LibCopy<Part>>()
+        .get(p.copy)
+        .and_then(|c| c.item.mech.as_ref().and_then(|m| m.mount_kind.clone()))
+}
+
+/// The placements of a surface with their rail data (D9).
+fn placements_of(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Vec<PanelPlacement> {
+    let Some(view) = q.get::<PageSurfaceView>(page).as_ref().clone() else {
+        return Vec::new();
+    };
+    let table = q.table::<Placement>();
+    let devices = q.devices();
+    let mut out = Vec::new();
+    for pid in placements_on(q, surface) {
+        let (Some(pl), Some(geom)) = (table.get(pid), q.get::<PlacementGeometry>(pid).as_ref().clone())
+        else {
+            continue;
+        };
+        let Some(dev) = devices.get(pl.device) else {
+            continue;
+        };
+        let turn = Quarter::of(pl.pose.q);
+        let extent = rail_extent(q, dev, pl.part.as_ref(), false);
+        let extent_flipped = rail_extent(q, dev, pl.part.as_ref(), true);
+        let current = if turn == Some(Quarter::HALF) {
+            extent_flipped
+        } else {
+            extent
+        };
+        let realised = pl.part.clone().or_else(|| primary_part(q, dev));
+        out.push(PanelPlacement {
+            id: pid.as_uuid(),
+            placement: pid,
+            device: pl.device.as_uuid(),
+            label: q.get::<LayoutLabel>((pid, page, view.mode)).as_ref().clone(),
+            tag: device_tag(q, pl.device),
+            carrier: match pl.carrier {
+                CarrierRef::Carrier(c) => Some(c.as_uuid()),
+                _ => None,
+            },
+            pose: (pl.pose.t[0].0, pl.pose.t[1].0, turn.map_or(0, Quarter::k)),
+            footprint: geom.footprint,
+            locked: pl.locked,
+            unknown: geom.unknown,
+            strip: current.strip,
+            bracket_width: if current.strip {
+                bracket_part(q, dev).map(|(_, w)| w)
+            } else {
+                None
+            },
+            pads: current.pad,
+            mount_kind: mount_of(q, realised.as_ref()),
+            mount_label: mount_of(q, realised.as_ref())
+                .as_ref()
+                .map(mount_label)
+                .unwrap_or_default(),
+            clip: current.clip,
+            extent,
+            extent_flipped,
+        });
+    }
+    out
+}
+
+/// The unplaced devices of a layout space with their slots on the surface's rails (D9, PW-5).
+fn unplaced_of(q: &Q, space: Id<LayoutSpace>, carriers: &[PanelCarrier]) -> Vec<UnplacedDevice> {
+    let devices = q.devices();
+    let parts = q.table::<LibCopy<Part>>();
+    let placements = q.table::<Placement>();
+    let mut out = Vec::new();
+    for d in q.get::<Unplaced>(space).iter().copied() {
+        let Some(dev) = devices.get(d) else {
+            continue;
+        };
+        let part = primary_part(q, dev);
+        let mech = part
+            .as_ref()
+            .and_then(|p| parts.get(p.copy))
+            .and_then(|c| c.item.mech.clone());
+        let extent = rail_extent(q, dev, part.as_ref(), false);
+        let extent_flipped = rail_extent(q, dev, part.as_ref(), true);
+        let size = mech
+            .as_ref()
+            .and_then(|m| Some((i128::from(m.width?.0), i128::from(m.height?.0))));
+        let mount_kind = mech.as_ref().and_then(|m| m.mount_kind.clone());
+        let bracket_width = if extent.strip {
+            bracket_part(q, dev).map(|(_, w)| w)
+        } else {
+            None
+        };
+        let root = assembly_root(q, dev);
+        let mut slots = Vec::new();
+        if let Some(root) = root {
+            let order = member_order(q, root);
+            let at = order.iter().position(|x| *x == d).unwrap_or(0);
+            let item = RailItem {
+                s0: 0,
+                s1: extent.width,
+                strip: extent.strip,
+                w: bracket_width,
+                pad: extent.pad,
+                locked: false,
+                placement: None,
+            };
+            for c in carriers.iter().filter(|c| c.axis.is_some()) {
+                let items_of = |member: Id<Device>| -> Vec<RailItem> {
+                    c.items
+                        .iter()
+                        .filter(|i| {
+                            i.placement
+                                .and_then(|p| placements.get(p))
+                                .is_some_and(|p| p.device == member)
+                        })
+                        .copied()
+                        .collect()
+                };
+                // As `layout.place_assembly` inserts a member (ruling 4): after its nearest earlier member on the
+                // rail, else before its first later one.
+                let pred = order[..at]
+                    .iter()
+                    .rev()
+                    .find_map(|m| items_of(*m).into_iter().max_by_key(|i| (i.s1, i.s0)));
+                let succ = match pred {
+                    Some(_) => None,
+                    None => order
+                        .get(at + 1..)
+                        .unwrap_or_default()
+                        .iter()
+                        .find_map(|m| items_of(*m).into_iter().min_by_key(|i| (i.s0, i.s1))),
+                };
+                if pred.is_some() || succ.is_some() {
+                    slots.push((c.id, member_slot(pred.as_ref(), succ.as_ref(), &item)));
+                }
+            }
+        }
+        out.push(UnplacedDevice {
+            device: d.as_uuid(),
+            label: device_tag(q, d),
+            part_number: part
+                .as_ref()
+                .and_then(|p| parts.get(p.copy))
+                .map(|c| c.item.part_number.to_string()),
+            size,
+            mount_label: mount_kind.as_ref().map(mount_label).unwrap_or_default(),
+            mount_kind,
+            strip: extent.strip,
+            bracket_width,
+            assembly: root.is_some(),
+            extent,
+            extent_flipped,
+            slots,
+        });
+    }
+    out
+}
+
+/// The panel tables of the panel-layout page `page` (D9); `None` without a surface view or a surface.
+pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<PanelTables> {
+    let view = q.get::<PageSurfaceView>(page).as_ref().clone()?;
+    let surface = q.table::<MountingSurface>().get(view.surface).cloned()?;
+    let carriers = carriers_of(q, surface.id);
+    let placements = placements_of(q, page, surface.id);
+    let space = q.table::<Enclosure>().get(surface.enclosure).map(|e| e.space);
+    let location = space
+        .and_then(|s| q.table::<LayoutSpace>().get(s).map(|s| s.location))
+        .map(|l| location_text(q, l))
+        .unwrap_or_default();
+    let unplaced = space.map(|s| unplaced_of(q, s, &carriers)).unwrap_or_default();
+    Some(PanelTables {
+        folio: folio.to_owned(),
+        page: page.as_uuid(),
+        surface: surface.id.as_uuid(),
+        surface_id: surface.id,
+        projection: view.projection,
+        usable: surface.usable.iter().copied().map(xy).collect(),
+        location,
+        carriers,
+        placements,
+        unplaced,
+        decimal_comma: matches!(
+            q.project().settings.formatting.decimal_separator,
+            Some(ew_schema::DecimalSeparator::Comma)
+        ),
+    })
+}
+
+impl crate::Session {
+    /// `panel_tables(folio)` (WP-S4.02 D9): the panel data of the panel-layout page labelled `folio` for the layout
+    /// tools, keyed by folio like [`Session::page_tables`](crate::Session::page_tables); `None` for an unknown folio,
+    /// a page that is not a panel-layout page or one without a surface view. A plain function over `Q`.
+    pub fn panel_tables(&self, folio: &str) -> Option<PanelTables> {
+        let q = self.query();
+        let order = q.get::<ew_derive::PageOrder>(());
+        let entry = order.entries.iter().find(|e| e.folio == folio)?;
+        let ew_derive::PageRef::Drawn(page) = entry.page else {
+            return None;
+        };
+        panel_tables_of(&q, folio, page)
+    }
 }

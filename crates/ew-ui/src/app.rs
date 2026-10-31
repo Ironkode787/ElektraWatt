@@ -1323,8 +1323,8 @@ impl App {
 
     /// The tool options card at the page view's top left (WP-S2.17 part 2): the fields of the IP tool (WP-S2.04 §9.1),
     /// the Text tool's binding, the Wire marker's fields and the Structure box's style and fields (WP-S2.04 §10.5),
-    /// which the removed tool strip held. Shown only while one of those tools runs; returns the card's frame (the
-    /// canvas chips keep off it, W40b).
+    /// which the removed tool strip held, and the layout place options (WP-S4.02 part 3). Shown only while one of those
+    /// tools runs (or Select drags a placement); returns the card's frame (the canvas chips keep off it, W40b).
     fn tool_options(
         &mut self,
         ctx: &egui::Context,
@@ -1338,7 +1338,12 @@ impl App {
             tool == "marker",
             tool == "structure_box",
         );
-        if !(ip || text || marker || structure_box) {
+        // WP-S4.02 part 3: the layout place tool, or a placement dragged by Select.
+        let layout = self
+            .shell
+            .layout_options_shown()
+            .then(|| self.shell.layout_card_options());
+        if !(ip || text || marker || structure_box || layout.is_some()) {
             return None;
         }
         let t = crate::theme::current(ctx);
@@ -1395,6 +1400,9 @@ impl App {
                                     structure_location,
                                     events,
                                 );
+                            }
+                            if let Some(options) = layout {
+                                crate::tool_view::layout_fields(ui, options, events);
                             }
                         });
                     });

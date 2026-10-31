@@ -70,6 +70,8 @@ pub enum NavKind {
     Parts,
     /// Report blocks (part 2).
     Blocks,
+    /// The unplaced devices of each layout space (WP-S4.02 part 3, FT-486, doc 16 §5.2's row).
+    Unplaced,
     /// The macros of every library tier and of the project (WP-S1.19 §11, FR-MAC-006).
     Macros,
     /// The installed libraries and the project's library copies with their state (WP-S1.19 §11, FT-487).
@@ -80,7 +82,7 @@ pub enum NavKind {
 
 impl NavKind {
     /// The kinds in menu order.
-    pub const ALL: [NavKind; 14] = [
+    pub const ALL: [NavKind; 15] = [
         NavKind::Pages,
         NavKind::Devices,
         NavKind::Connections,
@@ -92,6 +94,7 @@ impl NavKind {
         NavKind::Structure,
         NavKind::Parts,
         NavKind::Blocks,
+        NavKind::Unplaced,
         NavKind::Macros,
         NavKind::Libraries,
         NavKind::Messages,
@@ -111,6 +114,7 @@ impl NavKind {
             NavKind::Structure => "structure",
             NavKind::Parts => "parts",
             NavKind::Blocks => "blocks",
+            NavKind::Unplaced => "unplaced",
             NavKind::Macros => "macros",
             NavKind::Libraries => "libraries",
             NavKind::Messages => "messages",
@@ -477,7 +481,7 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
 /// The derived columns (WP-S2.06 part 3, §8.1, §8.2): cells the derivation computes from other records rather than a
 /// field of the row's record (a connection's or terminal's potential, the folios a row is drawn on, counts). Drawn
 /// italic in table mode and read-only with the reason "derived".
-const DERIVED_COLUMNS: [(NavKind, &str); 13] = [
+const DERIVED_COLUMNS: [(NavKind, &str); 17] = [
     (NavKind::Pages, "changed_in"),
     (NavKind::Connections, "potential"),
     (NavKind::Cables, "potential"),
@@ -492,6 +496,11 @@ const DERIVED_COLUMNS: [(NavKind, &str); 13] = [
     (NavKind::Plc, "function_text"),
     (NavKind::Plc, "process_tag"),
     (NavKind::Plc, "placed_on"),
+    // WP-S4.02 part 3: the Unplaced devices navigator's cells are the device's tag and its primary part's data.
+    (NavKind::Unplaced, "device"),
+    (NavKind::Unplaced, "part"),
+    (NavKind::Unplaced, "size"),
+    (NavKind::Unplaced, "mount"),
 ];
 
 /// The strip-editor columns of the Terminal strips navigator (WP-S2.07 §6.2, §6.3): (column key, its compile).
@@ -581,6 +590,14 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
         }
         NavKind::Parts => kind_columns("parts_summary"),
         NavKind::Blocks => own(&["title", "kind", "first_folio", "section", "pages"]),
+        // WP-S4.02 part 3 (FT-486): the device (the key column, as the tree row names it in table mode), Part,
+        // W × H (mm), Mount.
+        NavKind::Unplaced => vec![
+            column("device", "Device", true, None),
+            column("part", "Part", false, None),
+            column("size", "W × H (mm)", false, None),
+            column("mount", "Mount", false, None),
+        ],
         // WP-S1.19 §11: the Macros and Libraries navigators' own columns.
         NavKind::Macros => libraries::columns(&libraries::MACRO_COLUMNS),
         NavKind::Libraries => libraries::columns(&libraries::LIBRARY_COLUMNS),
@@ -709,6 +726,7 @@ impl Session {
             NavKind::Structure => structure_table(&q, &mut b),
             NavKind::Parts => parts_table(&q, &mut b),
             NavKind::Blocks => blocks_table(&q, &mut b),
+            NavKind::Unplaced => unplaced_table(&q, &mut b),
             NavKind::Macros => self.macros_table(&q, &mut b),
             NavKind::Libraries => self.libraries_table(&q, &mut b),
             NavKind::Messages => self.messages_table(&q, &mut b),
@@ -2537,6 +2555,101 @@ fn parts_table(q: &Q, b: &mut Builder) {
 
 /// Report blocks (§7.1): section (by number, front matter first) → one row per report block with its title, kind,
 /// first folio (an embedded block's page), section and number of generated pages.
+/// A length in millimetres as the project's other millimetre texts print it: the shortest decimal (`18`, `207.5`) with
+/// the project's decimal separator (FT-366).
+pub(crate) fn mm_text(q: &Q, nm: i128) -> String {
+    let text = ew_derive::layout::mm(nm);
+    if matches!(
+        q.project().settings.formatting.decimal_separator,
+        Some(ew_derive::ew_schema::DecimalSeparator::Comma)
+    ) {
+        text.replace('.', ",")
+    } else {
+        text
+    }
+}
+
+/// The Unplaced devices tree (WP-S4.02 part 3, FT-486, doc 16 §5.2's row): one location node per layout space (its
+/// full designation, `+J-E-2416`), in space order, and under it the space's unplaced devices in `unplaced` order
+/// (natural full tag, ruling 9), each labelled by its tag as a sentence names it, with the badges `strip`, `assembly`
+/// and `unknown size` and the cells Device (the tag again, the key column of table mode), Part (the primary part's
+/// number), W × H (mm) (`18 × 90`, empty when unknown) and
+/// Mount (the mount kind in words, `mount_label`, ruling 2). A space whose devices are all placed keeps its location
+/// node, so that the empty state can name it.
+fn unplaced_table(q: &Q, b: &mut Builder) {
+    use ew_derive::layout::{Unplaced, mount_label, primary_part, rail_extent};
+    let devices = q.devices();
+    let parts = q.table::<ew_derive::ew_schema::LibCopy<ew_derive::ew_schema::Part>>();
+    for (sid, space) in q.table::<ew_derive::ew_schema::LayoutSpace>().iter() {
+        let path = q.get::<ew_derive::StructurePath>(space.location);
+        let location = if path.codes.is_empty() {
+            String::new()
+        } else {
+            format!("+{}", path.codes.join("+"))
+        };
+        let lnode = b.push(
+            None,
+            NavRole::Location,
+            &format!("space:{}", sid.as_uuid()),
+            location,
+            Vec::new(),
+            vec![space.location.as_uuid()],
+            Vec::new(),
+            None,
+            vec![("kind".to_owned(), "location".to_owned())],
+        );
+        for d in q.get::<Unplaced>(sid).iter().copied() {
+            let Some(dev) = devices.get(d) else {
+                continue;
+            };
+            let part = primary_part(q, dev);
+            let copy = part.as_ref().and_then(|p| parts.get(p.copy));
+            let mech = copy.and_then(|c| c.item.mech.clone());
+            let size = mech
+                .as_ref()
+                .and_then(|m| Some((i128::from(m.width?.0), i128::from(m.height?.0))));
+            let strip = rail_extent(q, dev, part.as_ref(), false).strip;
+            let assembly = q.idx().device_children(d).any(|c| c != d) || dev.parent.is_some();
+            let mut badges = Vec::new();
+            if strip {
+                badges.push("strip".to_owned());
+            }
+            if assembly {
+                badges.push("assembly".to_owned());
+            }
+            if size.is_none() && !strip {
+                badges.push("unknown size".to_owned());
+            }
+            let label = q
+                .try_get::<ew_derive::DeviceTag>(d)
+                .ok()
+                .and_then(|t| t.as_ref().as_ref().map(ew_derive::Tag::short))
+                .unwrap_or_default();
+            let cells = vec![
+                label.clone(),
+                copy.map(|c| c.item.part_number.to_string()).unwrap_or_default(),
+                size.map(|(w, h)| format!("{} × {}", mm_text(q, w), mm_text(q, h)))
+                    .unwrap_or_default(),
+                mech.as_ref()
+                    .and_then(|m| m.mount_kind.as_ref())
+                    .map(mount_label)
+                    .unwrap_or_default(),
+            ];
+            b.push(
+                Some(lnode),
+                NavRole::Device,
+                &format!("device:{}", d.as_uuid()),
+                label,
+                badges,
+                vec![d.as_uuid()],
+                Vec::new(),
+                Some(cells),
+                vec![("kind".to_owned(), "device".to_owned())],
+            );
+        }
+    }
+}
+
 fn blocks_table(q: &Q, b: &mut Builder) {
     use ew_derive::ew_schema::{ReportBlock, ReportSource, Section};
     let order = q.get::<PageOrder>(());
@@ -3095,6 +3208,7 @@ mod tests {
                 "structure",
                 "parts",
                 "blocks",
+                "unplaced",
                 "macros",
                 "libraries",
                 "messages"

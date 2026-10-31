@@ -16,8 +16,8 @@ use ew_derive::Q;
 use ew_derive::layout::{
     Fit, Mountable, PathError, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent, RailItem,
     Resolution, SnapError, SnapMode, Unplaced, bracket_part, carrier_label, check_path, check_pose,
-    clip_offset, fits_rail, member_order, min_gap, mm, next_fit, plate_frame, rail_extent, rail_items,
-    rehome_pose, resolve,
+    clip_offset, fits_rail, member_order, member_slot, min_gap, mm, mount_label, next_fit, plate_frame,
+    rail_extent, rail_items, rehome_pose, resolve,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf};
 use ew_ids::Id;
@@ -161,22 +161,6 @@ fn part_copy(tx: &TxBuilder<'_>, part: Id<Part>) -> Option<std::sync::Arc<LibCop
 /// The mechanical data of a part copy.
 fn mech_of(tx: &TxBuilder<'_>, part: Id<Part>) -> Option<MechData> {
     part_copy(tx, part).and_then(|c| c.item.mech.clone())
-}
-
-/// A mount kind as text for refusals ("TS 35×7.5", "screw").
-fn mount_label(kind: &MountKind) -> String {
-    match kind {
-        MountKind::Ts35x7_5 => "TS 35×7.5".into(),
-        MountKind::Ts35x15 => "TS 35×15".into(),
-        MountKind::Ts32 => "TS 32".into(),
-        MountKind::Ts15 => "TS 15".into(),
-        MountKind::Screw => "screw-mounted".into(),
-        MountKind::BusbarAdapter => "busbar adapter".into(),
-        MountKind::DoorCutout => "door cut-out".into(),
-        MountKind::OnParent => "mounted on its parent".into(),
-        MountKind::None => "not mounted".into(),
-        MountKind::Unknown(v) => v.to_string(),
-    }
 }
 
 /// Whether a device is a strip with terminals (D8 (3)): it is placed as one placement without a part.
@@ -2073,29 +2057,20 @@ fn insert_members(
                     .collect()
             })
         };
-        let width = m.item.width();
         let pred = order[..at]
             .iter()
             .rev()
             .find_map(|d| items_of(mem, d).into_iter().max_by_key(|i| (i.s1, i.s0)));
-        let s_left = match pred {
-            Some(p) => {
-                p.s0.saturating_add(p.s1)
-                    .saturating_sub(width)
-                    .div_euclid(2)
-                    .saturating_add(1)
-            }
+        // Ruling 4 of WP-S4.02 part 3: the slot is `ew_derive::layout::member_slot`, which the layout tool's ghost reads.
+        let succ = match pred {
+            Some(_) => None,
             None => order
                 .get(at + 1..)
                 .unwrap_or_default()
                 .iter()
-                .find_map(|d| items_of(mem, d).into_iter().min_by_key(|i| (i.s0, i.s1)))
-                .map_or(0, |succ| {
-                    succ.s0
-                        .saturating_sub(min_gap(&m.item, &succ))
-                        .saturating_sub(width)
-                }),
+                .find_map(|d| items_of(mem, d).into_iter().min_by_key(|i| (i.s0, i.s1))),
         };
+        let s_left = member_slot(pred.as_ref(), succ.as_ref(), &m.item);
         let wording = Wording {
             carrier: rail,
             mode: PlaceMode::Push,

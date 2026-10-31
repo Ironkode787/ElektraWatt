@@ -305,6 +305,7 @@ impl ShellModel {
             pane,
             snapper: &page.snapper,
             selection: &host.selection,
+            layout: host.layout_options,
         };
         Some(f(host.tool.as_mut(), &cx))
     }
@@ -1143,6 +1144,29 @@ impl ShellModel {
                 reason_key: "reason-nothing-selected",
             };
         };
+        // WP-S4.02 part 3 (D10, E2-2): on a panel page the selected placements and carriers, without the undrawn-device
+        // step (a placement's device is never deleted by it).
+        if page.panel.is_some() {
+            let list: Vec<Value> = crate::tools::page_selection_kinds(&self.tools.selection, &page)
+                .into_iter()
+                .filter(|(_, k)| matches!(k, EntityKind::Placement | EntityKind::Carrier))
+                .map(|(e, k)| json!({"kind": k.kind_name(), "id": e.0.to_string()}))
+                .collect();
+            if list.is_empty() {
+                return Outcome::Refused {
+                    reason_key: "reason-nothing-selected",
+                };
+            }
+            let cmd = AnyCommand {
+                name: "edit.delete".into(),
+                params: json!({ "targets": list }),
+            };
+            let out = self.commit_from_host(&cmd);
+            if out == Outcome::Done {
+                self.tools.selection.clear();
+            }
+            return out;
+        }
         let mut drawn = crate::tools::Selection::default();
         drawn.apply(&crate::tools::SelectionChange::Replace(
             targets
@@ -1443,6 +1467,8 @@ impl ShellModel {
     /// The after-commit duties (§6.4 item 3), at the end of a dispatch: a committed record the page tables no longer
     /// hold leaves the selection; the place tool's shape is read again for a new revision.
     pub(super) fn after_commit(&mut self) {
+        // WP-S4.02 part 3
+        self.after_layout_commit();
         // WP-S2.05 part 3
         self.after_paste();
         self.refresh_place_shape();

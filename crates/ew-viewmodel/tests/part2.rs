@@ -2057,7 +2057,10 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
             || ew_viewmodel::describe::PART_WORDS.contains(*w)
             // WP-S2.07 part 4b: the paste choice card's words need two versions of a library copy:
             // `tests/paste_choice.rs` reaches them.
-            || ew_viewmodel::describe::PASTE_CHOICE_WORDS.contains(*w)),
+            || ew_viewmodel::describe::PASTE_CHOICE_WORDS.contains(*w)
+            // WP-S4.02 part 3: the layout ghost's and the Unplaced devices navigator's words need a panel page on a
+            // writable project: `tests/it/layout_place.rs` reaches them.
+            || ew_viewmodel::describe::LAYOUT_WORDS.contains(*w)),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

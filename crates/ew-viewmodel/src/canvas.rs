@@ -386,6 +386,9 @@ pub struct CanvasPage {
     /// The records drawn on the page as tables, in page nm (`Session::page_tables`, WP-S2.04 §6.2): empty for a
     /// page that is not drawn.
     pub tables: Arc<PageTables>,
+    /// The panel data of a panel-layout page with a surface view (`Session::panel_tables`, WP-S4.02 D9), fetched once
+    /// per (session, revision, folio) with the page content; `None` for every other page.
+    pub panel: Option<Arc<ew_api::output::PanelTables>>,
 }
 
 /// The tables of a page that holds no record.
@@ -429,6 +432,7 @@ impl CanvasPage {
             cps: Vec::new(),
             snapper,
             tables: Arc::new(empty_tables(folio)),
+            panel: None,
         }
     }
 
@@ -1108,6 +1112,7 @@ mod tests {
             cps: Vec::new(),
             snapper: Snapper::default(),
             tables: Arc::new(empty_tables("103")),
+            panel: None,
         })
     }
 

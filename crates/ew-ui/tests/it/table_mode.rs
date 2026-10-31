@@ -138,6 +138,7 @@ fn ft509_every_tab_of_the_left_dock_is_reachable() {
         ("Interruption points", PaneKind::Navigator(NavKind::Ips)),
         ("Parts in use", PaneKind::Navigator(NavKind::Parts)),
         ("Report blocks", PaneKind::Navigator(NavKind::Blocks)),
+        ("Unplaced devices", PaneKind::Navigator(NavKind::Unplaced)),
         ("Project", PaneKind::Pages),
     ] {
         h.get_by_role_and_label(egui::Role::Button, title).click();

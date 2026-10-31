@@ -1431,6 +1431,29 @@ impl CanvasHost {
             p["key"] = json!(key.0);
             events.push(Event::Action("macros.place", p));
         }
+        // WP-S4.02 part 3 (FT-486): an Unplaced devices row dragged over this canvas floats its device (the layout place
+        // tool, armed once per drag), follows the pointer with the modifiers held, and drops it on release.
+        let armed_id = egui::Id::unique(("layout-drag-armed", group));
+        match egui::DragAndDrop::payload::<crate::navigator::DeviceDrag>(ui.ctx()) {
+            Some(device) => {
+                let over = ui.input(|i| i.pointer.latest_pos()).filter(|p| rect.contains(*p));
+                if let Some(pos) = over {
+                    let at = Self::sheet_point(rect, canvas, pos);
+                    let armed = ui.data(|d| d.get_temp::<String>(armed_id));
+                    if armed.as_deref() != Some(device.0.as_str()) {
+                        ui.data_mut(|d| d.insert_temp(armed_id, device.0.clone()));
+                        events.push(Event::Action("tool.place_layout", json!({"device": device.0})));
+                    }
+                    events.push(Event::Action("canvas.pointer", point(at)));
+                    if dropped.is_some() {
+                        let _ = egui::DragAndDrop::take_payload::<crate::navigator::DeviceDrag>(ui.ctx());
+                        ui.data_mut(|d| d.remove::<String>(armed_id));
+                        events.push(Event::Action("canvas.release", point(at)));
+                    }
+                }
+            }
+            None => ui.data_mut(|d| d.remove::<String>(armed_id)),
+        }
         let space = ui.input(|i| i.key_down(Key::Space));
         if response.hovered() {
             let (back, forward) = ui.input(|i| {

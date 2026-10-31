@@ -82,6 +82,10 @@ pub enum DragSource {
     /// A macro row of the Macros navigator (its row key, §11): dropped on a canvas, `macros.place` opens its card at
     /// the drop point.
     Macro(String),
+    // WP-S4.02 part 3
+    /// A device row of the Unplaced devices navigator (the device's ID text, FT-486): dropped on a panel page, the
+    /// layout place tool takes it (`tool.place_layout {device}`).
+    Device(String),
 }
 
 /// One row on show of any navigator, as the widget paints it and the describe text prints it.
@@ -166,6 +170,36 @@ impl ShellModel {
         }
     }
 
+    // WP-S4.02 part 3
+    /// The line and sentence of the Unplaced devices navigator's empty state (FT-486, doc 16a §6.17): without a layout
+    /// space "No panel layout yet" (ruling 3: no action in this part); with every device placed "All devices placed"
+    /// and "Every device of +J-E-2416 is placed." (the table's locations, in order).
+    pub fn unplaced_empty(&self) -> (String, String) {
+        let locations: Vec<&str> = self
+            .navs
+            .get(&NavKind::Unplaced)
+            .and_then(Navigator::table)
+            .map(|t| {
+                t.nodes
+                    .iter()
+                    .filter(|n| n.role == ew_api::output::NavRole::Location && !n.label.is_empty())
+                    .map(|n| n.label.as_str())
+                    .collect()
+            })
+            .unwrap_or_default();
+        if locations.is_empty() {
+            (
+                crate::strings::text("empty-nav-unplaced").to_owned(),
+                crate::strings::text("empty-nav-unplaced-text").to_owned(),
+            )
+        } else {
+            (
+                crate::strings::text("empty-nav-unplaced-done").to_owned(),
+                crate::strings::format("empty-nav-unplaced-done-text", &[&locations.join(", ")]),
+            )
+        }
+    }
+
     /// [`ShellModel::generic`], mutable.
     pub(super) fn generic_mut(&mut self, kind: NavKind) -> Option<&mut Navigator> {
         match kind {
@@ -204,6 +238,22 @@ impl ShellModel {
     /// every other binding runs its own action without parameters.
     pub fn shortcut_action(&self, action: &'static str) -> (&'static str, Value) {
         let strips = self.focused_navigator() == Some(NavKind::Strips);
+        // WP-S4.02 part 3 (doc 12 §12.4, ID-628): on a panel page the canvas's Tab, R and X place, and the arrows nudge
+        // a selected placement; each chord stays unique per context.
+        if self.focused_navigator().is_none() && self.panel_tables().is_some() {
+            // The arrows nudge a selected placement, or step a floating layout ghost (doc 12 §12.4).
+            let nudge = self.selected_placements() > 0 || self.tools.tool.layout_gesture().is_some();
+            match action {
+                "tool.next_proposal" => return ("layout.next", Value::Null),
+                "tool.rotate_cw" => return ("layout.rotate", Value::Null),
+                "tool.mirror_x" => return ("layout.flip", Value::Null),
+                "cursor.left" if nudge => return ("layout.nudge", json!({ "dx": -1 })),
+                "cursor.right" if nudge => return ("layout.nudge", json!({ "dx": 1 })),
+                "cursor.up" if nudge => return ("layout.nudge", json!({ "dy": -1 })),
+                "cursor.down" if nudge => return ("layout.nudge", json!({ "dy": 1 })),
+                _ => {}
+            }
+        }
         match action {
             "pages.move_up" if strips => ("strip.move", json!({ "step": -1 })),
             "pages.move_down" if strips => ("strip.move", json!({ "step": 1 })),
@@ -391,6 +441,12 @@ impl ShellModel {
                         .or_else(|| {
                             (node.role == ew_api::output::NavRole::Macro && node.key.contains("macro:"))
                                 .then(|| DragSource::Macro(node.key.clone()))
+                        })
+                        // WP-S4.02 part 3: every device row of the Unplaced devices navigator drops onto a panel page.
+                        .or_else(|| {
+                            (k == NavKind::Unplaced && node.role == ew_api::output::NavRole::Device)
+                                .then(|| node.records.first().map(|r| DragSource::Device(r.to_string())))
+                                .flatten()
                         });
                         ShownRow {
                             key: node.key.clone(),
@@ -406,7 +462,8 @@ impl ShellModel {
                             set_size: v.set_size,
                             marked: n.marked().contains(&node.key),
                             current: false,
-                            openable: node.open.is_some(),
+                            openable: node.open.is_some()
+                                || (k == NavKind::Unplaced && node.role == ew_api::output::NavRole::Device),
                             drag,
                             finding,
                         }
@@ -1159,6 +1216,14 @@ impl ShellModel {
         // WP-S1.19 part 6: Enter on a macro row arms the macro tool (§11).
         if kind == NavKind::Macros && node.role == ew_api::output::NavRole::Macro {
             return self.arm_macro(&key);
+        }
+        // WP-S4.02 part 3 (FT-486): Enter on an Unplaced devices row arms the layout place tool on the focused panel page.
+        if kind == NavKind::Unplaced
+            && node.role == ew_api::output::NavRole::Device
+            && let Some(device) = node.records.first().copied()
+        {
+            self.set_cursor(kind, &key);
+            return self.place_layout_device(device);
         }
         // WP-S2.07 §6.8: Enter on an unplaced terminal row arms the Place tool with its terminal's main function on the
         // page of the focused tab (the drop of the row onto a canvas does the same).

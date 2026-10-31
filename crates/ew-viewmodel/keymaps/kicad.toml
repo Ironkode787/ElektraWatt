@@ -306,6 +306,11 @@ action = "tool.next_proposal"
 context = "canvas"
 
 [[bind]]
+keys = "Shift+Tab"
+action = "layout.previous"
+context = "canvas"
+
+[[bind]]
 keys = "C"
 action = "tool.connect_on_move"
 context = "canvas"

@@ -28,6 +28,7 @@ mod ip_on_pin;
 mod ip_role_plc_card;
 mod ip_typed_name;
 mod join;
+mod layout_place;
 mod link_order;
 mod m39;
 mod macro_values;

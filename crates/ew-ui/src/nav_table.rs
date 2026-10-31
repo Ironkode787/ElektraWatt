@@ -716,16 +716,19 @@ fn cell_rect(
 /// Address, Channel and Slot, short texts too, so that Target and Symbol fit the default rail width (FT-757).
 fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
     let plc_short = kind == NavKind::Plc && matches!(key, "address" | "channel" | "slot");
-    if key == "pos" || (kind == NavKind::Pages && key == "folio") || plc_short {
+    // WP-S4.02 part 3: the Unplaced devices table's short texts fit their content, so that Part gives way first.
+    let unplaced_short = kind == NavKind::Unplaced && matches!(key, "device" | "size" | "mount");
+    if key == "pos" || (kind == NavKind::Pages && key == "folio") || plc_short || unplaced_short {
         t.size_table_column_min
     } else {
         t.size_table_column
     }
 }
 
-/// Whether a column fills the room the others leave: the Pages table's Title ([`fill_cap`]).
+/// Whether a column fills the room the others leave: the Pages table's Title ([`fill_cap`]) and the Unplaced devices
+/// table's Part (WP-S4.02 part 3: it gives way first).
 fn fills(kind: NavKind, key: &str) -> bool {
-    kind == NavKind::Pages && key == "title"
+    (kind == NavKind::Pages && key == "title") || (kind == NavKind::Unplaced && key == "part")
 }
 
 /// Whether a column has a cap that depends on the grid's width (the Pages Title, [`fill_cap`]; the Libraries Name,
@@ -823,6 +826,10 @@ impl Delegate<'_> {
                 w
             }
         };
+        // WP-S4.02 part 3: the Unplaced devices table's Part gives way first, down to the column minimum.
+        if self.kind == NavKind::Unplaced {
+            return Some((self.area.width() - others).max(self.tokens.size_table_column_min));
+        }
         Some(fill_cap(&self.tokens, self.area.width(), others))
     }
 

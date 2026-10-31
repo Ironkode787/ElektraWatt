@@ -251,6 +251,7 @@ impl ShellModel {
                 | "marker"
                 | "structure_box"
                 | "image"
+                | "layout_place"
         ) && let Some(select) = tool_named("select")
         {
             self.tools.tool = select;
@@ -282,6 +283,7 @@ impl ShellModel {
                 pane,
                 snapper: &page.snapper,
                 selection: &host.selection,
+                layout: host.layout_options,
             };
             host.tool.on_event(ev, &cx)
         };
@@ -454,6 +456,28 @@ impl ShellModel {
                 if out == Outcome::Done {
                     self.after_ip_commit();
                 }
+                // WP-S4.02 part 3: a dragged placement is selected after its move; the layout place tool, its device
+                // placed, gives way to Select.
+                self.tools.layout_announce |= out == Outcome::Done && cmd.name().starts_with("layout.");
+                if out == Outcome::Done
+                    && cmd.name() == "layout.move"
+                    && let Ok(params) = cmd.to_json()
+                    && let Some(id) = params["placement"].as_str().and_then(|s| s.parse().ok())
+                    && self
+                        .tools
+                        .selection
+                        .apply(&SelectionChange::Replace(vec![EntityRef(id)]))
+                {
+                    self.announce_selection();
+                }
+                if out == Outcome::Done
+                    && self.tools.tool.name() == "layout_place"
+                    && let Some(select) = tool_named("select")
+                {
+                    self.tools.tool = select;
+                    self.tool_epoch = self.tool_epoch.wrapping_add(1);
+                    self.announce_tool();
+                }
                 // After Select commits a move or a transform, the selection is the moved representations (one
                 // selection change, no command; WP-S2.04 §6.4 item 3).
                 if out == Outcome::Done
@@ -578,6 +602,11 @@ impl ShellModel {
 
     /// Announces the selection's size through the live region.
     pub(super) fn announce_selection(&mut self) {
+        // WP-S4.02 part 3 (doc 12 §12.4): a placement selected on a panel page is announced with where it is.
+        if let Some(text) = self.layout_live_text() {
+            self.tools.announcement = Some(text);
+            return;
+        }
         self.tools.announcement = Some(strings::format(
             "announce-selected",
             &[&self.tools.selection.items.len().to_string()],
@@ -965,9 +994,13 @@ impl ShellModel {
         if let Some(out) = self.enter_opens_junction() {
             return out;
         }
+        // WP-S4.02 part 3 (doc 12 §12.4): on a panel page, Enter with a placement selected focuses Properties.
+        if self.tools.tool.name() == "select" && self.selected_placements() > 0 {
+            return self.act_props_focus();
+        }
         // The keyboard route editor commits without a grid cursor (its segment stays where it is), and so does the paste
         // tool (its ghost stays where duplicate or the pointer put it; WP-S2.05 part 3).
-        if matches!(self.tools.tool.name(), "route_edit" | "paste")
+        if matches!(self.tools.tool.name(), "route_edit" | "paste" | "layout_place")
             && self.canvas().and_then(CanvasModel::cursor).is_none()
         {
             return self.send_tool(&CanvasEvent::Activate);

@@ -180,6 +180,7 @@ fn dk1_named_splitters_and_the_walker_without_a_skip() {
         "structure",
         "parts",
         "blocks",
+        "unplaced",
     ] {
         dispatch(&mut h, "navigator.show", json!({ "kind": k }));
     }

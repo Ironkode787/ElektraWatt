@@ -16,6 +16,7 @@ mod grows_with_window;
 mod icons;
 mod jobs;
 mod keymaps;
+mod layout_window;
 mod macro_values;
 mod macros;
 mod messages;

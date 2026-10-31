@@ -2336,6 +2336,53 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "release-error-unproven-kept" => {
             "{0}; it is kept: remove the file by hand if you know it is a leftover"
         }
+        // WP-S4.02 part 3: the Unplaced devices navigator (FT-486), the layout place tool and Select on a panel page
+        // (D4, D10; doc 16a §5.5 HUD, §6.17 empty states, §6.20 segmented control, §7.4 chips, §8 wording).
+        "nav-title-unplaced" => "Unplaced devices",
+        "empty-nav-unplaced" => "No panel layout yet",
+        "empty-nav-unplaced-text" => "Devices are listed here once the location has an enclosure.",
+        "empty-nav-unplaced-done" => "All devices placed",
+        "empty-nav-unplaced-done-text" => "Every device of {0} is placed.",
+        "reason-no-panel-page" => "Open a panel layout page",
+        "reason-no-unplaced-device" => "Choose a device in Unplaced devices",
+        "reason-no-placement" => "Select a placement on a rail or the plate",
+        "reason-layout-turn" => "R turns a placement on the plate; X flips one on a rail.",
+        "reason-layout-blocked" => "The placement cannot move further that way",
+        "reason-layout-refused" => "The drop is refused; nothing changed",
+        "tool-layout_place" => "Place device",
+        "hint-layout-place" => "Click or release to place; Escape cancels",
+        "hint-layout-idle" => "Drag a device from Unplaced devices onto the page",
+        "layout-off-rail" => "{0} mounts on a {1} rail; drop it on a rail.",
+        "layout-wrong-turn" => "{0} turns a placement on the plate; {1} flips one on a rail.",
+        "layout-blocked" => "Blocked by {0}",
+        "layout-rail-end" => "At the rail end",
+        "layout-live-rail" => "{0}, {1} at {2} mm, {3}",
+        "layout-live-plate" => "{0}, plate at {1}, {2} mm",
+        "layout-findings" => "{0} findings",
+        "layout-findings-one" => "1 finding",
+        "layout-findings-none" => "no findings",
+        "hud-layout-place" => {
+            "Place {0} \u{b7} Ctrl pushes \u{b7} Alt swaps \u{b7} Shift no snap \u{b7} Esc done"
+        }
+        "hud-layout-selected" => {
+            "{0} selected \u{b7} arrows nudge \u{b7} {1} rotates \u{b7} {2} flips \u{b7} {3} deletes"
+        }
+        "layout-mode-free" => "Free",
+        "layout-mode-push" => "Push",
+        "layout-mode-swap" => "Swap",
+        "layout-grid-5" => "5 mm",
+        "layout-grid-1" => "1 mm",
+        "layout-options-mode" => "Placing mode",
+        "layout-options-grid" => "Grid step",
+        "action-tool-place-layout" => "Place on carrier\u{2026}",
+        "action-layout-next" => "Next placement on the rail",
+        "action-layout-previous" => "Previous placement on the rail",
+        "action-layout-nudge" => "Nudge placement",
+        "action-layout-rotate" => "Turn placement",
+        "action-layout-flip" => "Flip placement",
+        "action-layout-lock" => "Lock",
+        "action-layout-unlock" => "Unlock",
+        "action-layout-options" => "Placing options",
         _ => return None,
     })
 }

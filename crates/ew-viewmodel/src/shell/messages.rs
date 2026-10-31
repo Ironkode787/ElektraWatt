@@ -109,6 +109,13 @@ impl ShellModel {
         let Some(c) = self.canvas_of(group) else {
             return Vec::new();
         };
+        // WP-S4.02 part 3 (doc 16a §7.3): a refused layout drop's outline and cross, on the focused group.
+        if self.area().is_some_and(|a| a.focused == group) {
+            let lines = self.tools.tool.conflict_lines();
+            if !lines.is_empty() {
+                return lines;
+            }
+        }
         let page = c.page();
         let Some(members) = self.with_online(|o| o.conflict.clone()) else {
             return Vec::new();

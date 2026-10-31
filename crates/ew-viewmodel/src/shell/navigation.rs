@@ -69,6 +69,8 @@ pub struct SessionCalls {
     pub page_cps: u64,
     /// `Session::page_tables` (WP-S2.04 §6.2), fetched with the page content.
     pub page_tables: u64,
+    /// `Session::panel_tables` (WP-S4.02 D9): fetched with the page content of a panel-layout page only.
+    pub panel_tables: u64,
     /// `Session::symbol_shape` (WP-S2.04 §6.2): once per symbol copy per revision while a tool holds a shape.
     pub symbol_shape: u64,
     /// `Session::place_catalogue` (the picker, WP-S2.04 §7.1): once per (revision, folio) while it is open.
@@ -420,6 +422,15 @@ impl ShellModel {
             page.tables = Arc::new(tables);
         }
         self.count(|c| c.page_tables += 1);
+        // WP-S4.02 D9: a panel-layout page's panel data, once per (session, revision, folio); none for another page.
+        if self
+            .page_rows()
+            .iter()
+            .any(|r| r.folio == folio && r.kind == "panel_layout" && !r.generated)
+        {
+            page.panel = project.session.panel_tables(folio).map(Arc::new);
+            self.count(|c| c.panel_tables += 1);
+        }
         let sources = page.list.link_sources();
         if !sources.is_empty() {
             let dests: Vec<Destination> = sources
