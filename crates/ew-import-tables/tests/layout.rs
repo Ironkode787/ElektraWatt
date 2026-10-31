@@ -283,3 +283,70 @@ fn a_location_has_one_layout_space() {
         .count();
     assert_eq!(spaces, 1);
 }
+
+/// WP-S4.01 part 3: folio 902's view columns give its surface view (the plate of -UC1, its origin at (25, 167) mm,
+/// abbreviated labels); a view on a schematic page, an unknown enclosure and a view without its datum are refused.
+#[test]
+fn the_view_columns_give_902_its_surface_view_and_refuse_the_defective_ones() {
+    let views = |b: &ImportBatch| -> Vec<(ew_schema::PageItem, ew_schema::SurfaceView)> {
+        b.records
+            .iter()
+            .filter_map(|r| match r {
+                Record::PageItem(i) => match &i.kind {
+                    ew_schema::PageItemKind::SurfaceView(v) => Some((i.clone(), v.clone())),
+                    _ => None,
+                },
+                _ => None,
+            })
+            .collect()
+    };
+    let b = golden();
+    let found = views(&b);
+    assert_eq!(found.len(), 1);
+    let (item, view) = &found[0];
+    assert_eq!(item.page, record_id("pages", "902"));
+    assert_eq!(
+        (view.surface, view.datum_at, view.label_mode.clone()),
+        (
+            record_id::<MountingSurface>("mounting_surfaces", "-UC1"),
+            pt(25, 167),
+            ew_schema::SurfaceLabelMode::Abbreviated
+        )
+    );
+
+    let golden_pages = std::fs::read_to_string(common::tables_dir().join("pages.csv")).unwrap();
+    let text: String = golden_pages
+        .lines()
+        .map(|l| {
+            if l.starts_with("101,") {
+                l.replace(",qet10,,,", ",qet10,-UC1,0 0,full")
+            } else if l.starts_with("902,") {
+                l.replace("-UC1,25 167,", "-UC9,25 167,")
+            } else if l.starts_with("102,") {
+                l.replace(",qet10,,,", ",qet10,-UC1,,")
+            } else {
+                l.to_owned()
+            }
+        })
+        .map(|l| l + "\n")
+        .collect();
+    let b = golden_with("pages.csv", &text);
+    let malformed = messages(&b, Code::MALFORMED_ITEM);
+    for expected in [
+        "a surface view goes on a panel_layout page",
+        "view_surface and view_datum go together",
+    ] {
+        assert!(
+            malformed.iter().any(|m| m.contains(expected)),
+            "{expected}: {malformed:?}"
+        );
+    }
+    let unresolved = messages(&b, Code::UNRESOLVED_REFERENCE);
+    assert!(
+        unresolved
+            .iter()
+            .any(|m| m.contains("unknown enclosure `-UC9` in view_surface")),
+        "{unresolved:?}"
+    );
+    assert!(views(&b).is_empty(), "no view is imported");
+}

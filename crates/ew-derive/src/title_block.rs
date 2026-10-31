@@ -15,6 +15,8 @@
 //!   `end_user`, `panel_builder`, `author`, `checker` and `engineer`.
 //! - `page.*` and `doc.*`: [`PageOrder`] (folio, neighbours, position), [`PageTitle`],
 //!   [`PageRefStructure`] and the page row. A page that is not in the page order has none of them.
+//!   `page.title` of a page drawn to scale 1:n reads `"<title> · Scale 1:n"` (WP-S4.01 D9, FR-LAY-010); every other
+//!   page prints its plain title.
 //!   `page.last_changed_in` (drawn pages only) is the label of the revision that last changed the page
 //!   (doc 09 §2.6, doc 15 §5.6; the no-digest branch, page digests do not exist yet): the current open
 //!   revision if it names the page in its `page_notes`; else the latest released revision whose changed
@@ -196,6 +198,25 @@ fn project_scope(out: &mut Out, q: &Q, project: &Project) {
     }
 }
 
+/// The title-block title of a page drawn to scale 1:n (WP-S4.01 D9): `"<title> · Scale 1:n"` in every language of the
+/// title, `"Scale 1:n"` for an empty title.
+fn scaled_title(title: &MlText, n: u32) -> MlText {
+    let suffix = format!("Scale 1:{n}");
+    let with = |t: &str| {
+        if t.is_empty() {
+            suffix.clone()
+        } else {
+            format!("{t} · {suffix}")
+        }
+    };
+    match title.view() {
+        ew_mltext::MlTextView::Neutral(t) => MlText::neutral(&with(t)),
+        ew_mltext::MlTextView::Langs(m) => {
+            MlText::from_langs(m.iter().map(|(tag, t)| (tag.clone(), with(t))))
+        }
+    }
+}
+
 /// The supply line: `"1 x 230 VAC + N + PE, 50 Hz"`; frequency 0 is DC (`"VDC"`, no frequency).
 fn supply_text(s: &SupplySpec) -> String {
     let ac = s.frequency.0 != 0;
@@ -262,13 +283,19 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
     }
     out.text("doc.page_index", &(position + 1).to_string());
     out.text("doc.page_count", &order.len().to_string());
-    out.ml("page.title", &q.get::<PageTitle>(page));
-
-    // The description: the page's override, else the project description (doc 09 §2.7).
     let drawn: Option<&Arc<Page>> = match page {
         PageRef::Drawn(id) => q.pages().get(id),
         PageRef::Divider(_) | PageRef::Generated { .. } => None,
     };
+    // WP-S4.01 D9 (FR-LAY-010): a page drawn to a scale 1:n prints "<title> · Scale 1:n" in its title block; the
+    // TOC keeps the plain title (it reads `PageTitle`), and a not-to-scale page is unchanged.
+    let title = q.get::<PageTitle>(page);
+    match drawn.map(|p| &p.scale) {
+        Some(Scale::OneTo(n)) => out.ml("page.title", &scaled_title(&title, *n)),
+        _ => out.ml("page.title", &title),
+    }
+
+    // The description: the page's override, else the project description (doc 09 §2.7).
     match drawn.and_then(|p| p.description_override.as_ref()) {
         Some(o) if !o.is_empty() => out.ml("page.description", o),
         _ => out.ml("page.description", &project.master.description),
@@ -469,4 +496,29 @@ pub fn last_changed_in(q: &Q, page: Id<Page>, changed_now: Option<bool>) -> Opti
         _ => released.or_else(|| revisions.iter().min_by_key(|r| r.order_key())),
     };
     label.map(|r| r.rev.label.as_str().to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ew_mltext::LangTag;
+
+    // WP-S4.01 part 3 (D9): the title-block value of a page drawn to scale 1:n.
+    #[test]
+    fn a_scaled_page_title_reads_title_dot_scale_in_every_language() {
+        assert_eq!(
+            scaled_title(&MlText::neutral("Cabinet Layout"), 10),
+            MlText::neutral("Cabinet Layout · Scale 1:10")
+        );
+        assert_eq!(
+            scaled_title(&MlText::neutral(""), 5),
+            MlText::neutral("Scale 1:5")
+        );
+        let en: LangTag = "en-GB".parse().expect("a tag");
+        let nl: LangTag = "nl-NL".parse().expect("a tag");
+        let title = MlText::from_langs([(en.clone(), "Cabinet Layout"), (nl.clone(), "Kastindeling")]);
+        let scaled = scaled_title(&title, 10);
+        assert_eq!(scaled.get(&en), Some("Cabinet Layout · Scale 1:10"));
+        assert_eq!(scaled.get(&nl), Some("Kastindeling · Scale 1:10"));
+    }
 }

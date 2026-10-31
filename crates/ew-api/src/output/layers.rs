@@ -10,10 +10,13 @@
 //! | [`FrameLayer`] | [`Layer::Frame`] | `page_frame`, `page_bindings` (`title_block(page)`, the date format) |
 //! | [`SymbolsLayer`] | [`Layer::Symbols`] | `page_reps`, `page_cp_targets`, `assembly_break_marks`, `page_grid` (the pen of the break marks and graphics), the page items and structure boxes without texts |
 //! | [`WiresLayer`] | [`Layer::Wires`] | `page_reps`, `page_connections`, `page_junctions`, `page_grid`, `page_frame` (the page rectangle) |
-//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption, FT-734), `page_frame`, the page items with texts and the structure boxes with captions |
+//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption, FT-734), `page_frame`, the page items with texts and the structure boxes with captions; on a panel-layout page also the placement labels (`panel.rs`) |
 //! | [`TablesLayer`] | [`Layer::Tables`] | `page_frame` (the sheet map), `page_table` or `page_embedded` |
+//! | [`SurfaceLayer`] | [`Layer::Surface`] | the surface outlines of the page's surface view (`panel.rs`) |
+//! | [`CarriersLayer`] | [`Layer::Carriers`] | the carriers of the page's surface view (`panel.rs`) |
+//! | [`PlacementsLayer`] | [`Layer::Placements`] | the placements of the page's surface view (`panel.rs`) |
 //!
-//! The other layers (revision marks, highlights, the panel layers) are drawn by no rule of `ew-scene` yet and are
+//! The other layers (revision marks, highlights, features, dimensions) are drawn by no rule of `ew-scene` yet and are
 //! empty. Each family is `ew_scene::page::page_display_list` over a partial view; a test holds every layer equal
 //! to the same function over the full view ([`page_view`]) on every golden page. The display language is the
 //! neutral one (no `lang` key yet: the views print neutral texts until multi-language output, FR-I18N-005).
@@ -32,6 +35,7 @@ use ew_scene::hops::Crossings;
 use ew_scene::page::{DEFAULT_SHEET, PageFinding, PageKind, PageScene, PageView, RepView, page_display_list};
 use ew_schema::PageType;
 
+use super::panel::{Parts, panel_view};
 use super::view::{
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageJunctionsOf,
     PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_boxes, page_break_marks, page_grid,
@@ -69,6 +73,7 @@ fn base_view(page: PageRef) -> PageView {
         crossings: Crossings::Plain,
         items: Vec::new(),
         structure_boxes: Vec::new(),
+        panel: None,
     }
 }
 
@@ -148,6 +153,14 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
             v.wire_marker = generic_symbols().wire_marker.clone();
             v.items = page_items(q, p, true);
             v.structure_boxes = page_boxes(q, p, true);
+            v.panel = panel_view(
+                q,
+                p,
+                Parts {
+                    labels: true,
+                    ..Parts::NONE
+                },
+            );
         }
         Layer::Tables => {
             v.frame = bare_frame(q, page);
@@ -155,6 +168,15 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
                 Some(p) => v.embedded = (*q.get::<PageEmbeddedOf>(p)).clone(),
                 None => v.table = (*q.get::<PageTableOf>(page)).clone(),
             }
+        }
+        Layer::Surface | Layer::Carriers | Layer::Placements => {
+            let parts = Parts {
+                surface: layer == Layer::Surface,
+                carriers: layer == Layer::Carriers,
+                placements: layer == Layer::Placements,
+                labels: false,
+            };
+            v.panel = Some(panel_view(q, drawn?, parts)?);
         }
         _ => return None,
     }
@@ -271,6 +293,24 @@ layer_family!(
     "page_display_list_tables",
     Layer::Tables
 );
+layer_family!(
+    /// `page_display_list(page, surface)`: the enclosure, plate and usable outlines of a panel page's surface view.
+    SurfaceLayer,
+    "page_display_list_surface",
+    Layer::Surface
+);
+layer_family!(
+    /// `page_display_list(page, carriers)`: the rails and ducts of a panel page's surface view.
+    CarriersLayer,
+    "page_display_list_carriers",
+    Layer::Carriers
+);
+layer_family!(
+    /// `page_display_list(page, placements)`: the footprints of a panel page's surface view.
+    PlacementsLayer,
+    "page_display_list_placements",
+    Layer::Placements
+);
 
 /// `page_display_list(page, layer)` through the layer's memoised family; an empty layer for the layers no rule
 /// draws yet.
@@ -281,6 +321,9 @@ pub fn page_layer(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
         Layer::Wires => q.get::<WiresLayer>(page),
         Layer::Labels => q.get::<LabelsLayer>(page),
         Layer::Tables => q.get::<TablesLayer>(page),
+        Layer::Surface => q.get::<SurfaceLayer>(page),
+        Layer::Carriers => q.get::<CarriersLayer>(page),
+        Layer::Placements => q.get::<PlacementsLayer>(page),
         _ => Arc::new(PageLayer::default()),
     }
 }
@@ -319,6 +362,7 @@ pub fn page_view(q: &Q, entry: &PageEntry) -> PageView {
             v.crossings = crossings(q);
             v.items = page_items(q, p, true);
             v.structure_boxes = page_boxes(q, p, true);
+            v.panel = panel_view(q, p, Parts::ALL);
         }
         _ => v.table = (*q.get::<PageTableOf>(page)).clone(),
     }

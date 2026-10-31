@@ -450,6 +450,10 @@ page_item kind.wire_marker.fields[] enum(csa|colour) identity read-only:narrowed
 page_item kind.image group? identity read-only:narrowed
 page_item kind.image.asset text identity read-only:narrowed
 page_item kind.image.rect json identity read-only:narrowed
+page_item kind.surface_view group? identity read-only:narrowed
+page_item kind.surface_view.datum_at json identity read-only:narrowed
+page_item kind.surface_view.label_mode enum(abbreviated|full) identity read-only:narrowed
+page_item kind.surface_view.surface uuid identity read-only:narrowed
 page_item layer ident? placement fields.set:layer
 page_item page uuid placement read-only:narrowed
 structure_box $v int[0..65535] identity read-only:identity

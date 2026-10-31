@@ -2362,6 +2362,8 @@ const COMMAND_TITLES: &[(&str, &str)] = &[
     ("layout.move", "Move placement"),
     ("layout.remove", "Remove placement"),
     ("layout.lock", "Lock placement"),
+    // WP-S4.01 part 3 (D9)
+    ("page.surface_view.set", "Set panel view"),
 ];
 
 /// The human title of the command `name` ("Place device" for `device.place`); the ID itself for a command without

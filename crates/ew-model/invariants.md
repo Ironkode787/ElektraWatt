@@ -220,6 +220,7 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | device_link.source_ref.lineage | import_lineage | forbid | referrers |
 | page_item.page | page | cascade | page_items_by_page |
 | page_item.kind.wire_marker.connections[] | connection | unlink (entry removed; a marker left empty is dropped), load-tolerant (EW-INV-023) | referrers |
+| page_item.kind.surface_view.surface | mounting_surface | cascade (a view without its surface shows nothing; WP-S4.01 part 3) | referrers |
 | structure_box.page | page | cascade | structure_boxes_by_page |
 | structure_box.assigns.* (seven slots) | structure_node | forbid | referrers |
 | structure_box.external | external_ref | unlink (cleared) | referrers |

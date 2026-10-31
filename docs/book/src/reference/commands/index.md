@@ -4,7 +4,7 @@
 
 A command is the one way to change a project (`Command` → `Transaction` → `Op`). The same command runs from the user interface, from a command log replayed by `ew apply`, from scripts and from the Session API. Each page below gives the command's registry entry, its parameters with types and constraints, and the exit codes of `ew apply`.
 
-84 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
+85 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
 
 | Command | Summary | Cost | Exposure | Stability |
 |---|---|---|---|---|
@@ -57,6 +57,7 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`page.delete`](page.delete.md) | removes pages with everything they own (FR-PAG-025, doc 06 §3.4). | bulk | edit | preview |
 | [`page.renumber`](page.renumber.md) | renumbers folio numbers (FR-PAG-007). References are by ID, so every xref, tag and TOC row follows without further ops. | bulk | edit | preview |
 | [`page.reorder`](page.reorder.md) | moves page records before another page of the same section, or to the section's end (FR-PAG-024, WP-S2.06 §5.1). | bulk | edit | preview |
+| [`page.surface_view.set`](page.surface_view.set.md) | `page.surface_view.set` (`SetSurfaceView`, WP-S4.01 D9; FR-LAY-010): sets the view of one mounting surface on a panel-layout page: the surface, where its origin lands on the page (`datum_at`, page nm) and the label mode (default abbreviated). A page holds at most one view: a page that has one keeps it, with its ID, and takes the new values (members this build keeps verbatim stay); a page without one gets a new page item. What the view draws is derived from the layout records at the page's scale, never stored. | interactive | edit | preview |
 | [`part.assign`](part.assign.md) | `part.assign` (`AssignPart`, WP-S1.19 D8, FT-168): assigns a part to devices in one undo step, embedding the library copies it needs (D7: the command carries the documents, never reads a library). | interactive | edit | preview |
 | [`part.edit_copy`](part.edit_copy.md) | `part.edit_copy` (`EditPartCopy`, WP-S2.07 D20, D21; FT-394): edits the identity, description, category, unit and technical data of a part copy the project holds, in one undo step. Always previewed (`Bulk`). | bulk | edit | preview |
 | [`parts.import`](parts.import.md) | `parts.import` (`ImportParts`, FT-410): creates project-local part copies, the one command that does (a copy of another library is embedded with `library.embed`, which refuses project-local items), with the project-local manufacturer copies the parts name (WP-S1.19 D10). | bulk | edit | preview |

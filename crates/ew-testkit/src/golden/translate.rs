@@ -30,7 +30,8 @@
 //! 8. revisions (`revision.create`, FT-165): the historic released V1.0 and the open V2.0 with its page
 //!    notes;
 //! 9. the panel layout (WP-S4.01 D13): `layout.space.create`, `layout.enclosure.create` (which creates the plate
-//!    surface, its frame and outline derived from the enclosure part), `layout.carrier.add`, `layout.place`.
+//!    surface, its frame and outline derived from the enclosure part), `layout.carrier.add`, `layout.place`;
+//!    then the surface views of the panel-layout pages (`page.surface_view.set`, WP-S4.01 part 3).
 //!
 //! Not written: the import lineage (path (a) only); a record of a reserved kind without a schema type
 //! (Golden A has none since FT-165) is counted.
@@ -831,9 +832,21 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         let id = b.layout_place(&map.apply(x))?;
         map.insert(x.id, id);
     }
+    // 9b. The surface views of the panel-layout pages (WP-S4.01 part 3, D9), after the surfaces they show.
+    for x in of!(PageItem) {
+        if matches!(x.kind, ew_schema::PageItemKind::SurfaceView(_)) {
+            let id = b.surface_view(&map.apply(x))?;
+            map.insert(x.id, id);
+        }
+    }
 
     // Kinds no command writes yet.
     for r in recs {
+        if let Record::PageItem(item) = r
+            && matches!(item.kind, ew_schema::PageItemKind::SurfaceView(_))
+        {
+            continue; // step 9b
+        }
         let what = match r.kind() {
             Some(Kind::ImportLineage) | Some(Kind::Project) => continue,
             Some(

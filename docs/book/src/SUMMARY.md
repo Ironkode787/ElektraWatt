@@ -66,6 +66,7 @@
     - [`page.delete`](reference/commands/page.delete.md)
     - [`page.renumber`](reference/commands/page.renumber.md)
     - [`page.reorder`](reference/commands/page.reorder.md)
+    - [`page.surface_view.set`](reference/commands/page.surface_view.set.md)
     - [`part.assign`](reference/commands/part.assign.md)
     - [`part.edit_copy`](reference/commands/part.edit_copy.md)
     - [`parts.import`](reference/commands/parts.import.md)

@@ -804,6 +804,13 @@ impl Insertion<'_> {
                     notices.push("an image was left out: a fragment does not carry its asset".to_owned());
                     continue;
                 }
+                if matches!(item.kind, PageItemKind::SurfaceView(_)) {
+                    notices.push(
+                        "a surface view was left out: a panel page has one view, set with Set panel view"
+                            .to_owned(),
+                    );
+                    continue;
+                }
             }
             out.push((i, kind, id));
         }
@@ -1204,8 +1211,8 @@ impl Insertion<'_> {
                         // a marker lies along its wire: 0 or 90°
                         m.angle = Angle2(motion.angle(m.angle).0 % 180_000);
                     }
-                    PageItemKind::Image(_) | PageItemKind::Unknown(_) => {
-                        unreachable!("images and unknown page item kinds are left out")
+                    PageItemKind::Image(_) | PageItemKind::SurfaceView(_) | PageItemKind::Unknown(_) => {
+                        unreachable!("images, surface views and unknown page item kinds are left out")
                     }
                 },
                 Record::StructureBox(b) => {
@@ -1448,6 +1455,9 @@ mod tests {
                 "assigns": {"functional_assignment": C, "function": C, "installation_site": C,
                     "location": C, "document_kind": C, "user_defined": C, "type": C},
                 "external": F}),
+            // WP-S4.01 part 3: a surface view (left out of a paste whole, but its surface link has its row).
+            json!({"$k": "page_item", "id": A, "page": C,
+                "kind": {"surface_view": {"surface": B, "datum_at": [0, 0]}}}),
             // last, as the tests above index the samples
             json!({"$k": "function", "id": A, "device": B, "def": D,
                 "bus_port": {"interface": "DP", "bus": "profibus_dp", "role": "slave", "address": "tbd",
@@ -1511,6 +1521,8 @@ mod tests {
         ("potential_def.props.wire_part.copy", Some(false)),
         ("potential_def.source_ref.lineage", None),
         ("page_item.kind.wire_marker.connections[]", Some(false)),
+        // WP-S4.01 part 3: a view without its surface shows nothing (the link cascades); a paste leaves views out.
+        ("page_item.kind.surface_view.surface", Some(true)),
         ("page_item.page", Some(true)),
         ("structure_box.assigns.document_kind", Some(false)),
         ("structure_box.assigns.functional_assignment", Some(false)),

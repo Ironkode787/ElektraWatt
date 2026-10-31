@@ -58,6 +58,8 @@ mod layers;
 mod navigation;
 // WP-S2.06 part 1
 mod navigators;
+// WP-S4.01 part 3: the surface view of a panel-layout page (D9, D10).
+pub(crate) mod panel;
 // FT-753: what a PLC channel dropped on a field device can do.
 mod plc_bind;
 // WP-S2.09 part 3: the labelled entity list of a preview (§4.2).
@@ -109,12 +111,14 @@ pub use history::{HistoryRow, HistoryView};
 pub use job::ExportJob;
 pub use join::{JoinCandidate, JoinCandidates, JoinProposal, JoinedText};
 pub use layers::{
-    FrameLayer, LabelsLayer, PageLayer, SymbolsLayer, TablesLayer, WiresLayer, page_kind, page_layer,
-    page_scene, page_view, text_style_table,
+    CarriersLayer, FrameLayer, LabelsLayer, PageLayer, PlacementsLayer, SurfaceLayer, SymbolsLayer,
+    TablesLayer, WiresLayer, page_kind, page_layer, page_scene, page_view, text_style_table,
 };
+// WP-S4.01 part 3
 pub use navigation::{
     CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageListRow, PageListTable, PageRow,
 };
+pub use panel::{PageSurfaceView, ShapedText, SurfaceViewOf};
 // FT-753
 pub use plc_bind::{CardPin, OffCardBind};
 pub use preview::PreviewEntity;
@@ -156,8 +160,11 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (PageConnectionsOf::FAMILY, PageConnectionsOf::POLICY),
     (PageCpTargetsOf::FAMILY, PageCpTargetsOf::POLICY),
     (PageDigest::FAMILY, PageDigest::POLICY),
+    (CarriersLayer::FAMILY, CarriersLayer::POLICY),
     (FrameLayer::FAMILY, FrameLayer::POLICY),
     (LabelsLayer::FAMILY, LabelsLayer::POLICY),
+    (PlacementsLayer::FAMILY, PlacementsLayer::POLICY),
+    (SurfaceLayer::FAMILY, SurfaceLayer::POLICY),
     (SymbolsLayer::FAMILY, SymbolsLayer::POLICY),
     (TablesLayer::FAMILY, TablesLayer::POLICY),
     (WiresLayer::FAMILY, WiresLayer::POLICY),
@@ -167,7 +174,9 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (PageJunctionsOf::FAMILY, PageJunctionsOf::POLICY),
     (PageRepsOf::FAMILY, PageRepsOf::POLICY),
     (PageSlotsOf::FAMILY, PageSlotsOf::POLICY),
+    (PageSurfaceView::FAMILY, PageSurfaceView::POLICY),
     (PageTableOf::FAMILY, PageTableOf::POLICY),
+    (ShapedText::FAMILY, ShapedText::POLICY),
 ];
 
 /// Why an export did not complete.

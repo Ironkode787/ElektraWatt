@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page commands (doc 06 §3.1): `page.create`, `page.delete`, `page.renumber`, `page.reorder`.
+//! Page commands (doc 06 §3.1): `page.create`, `page.delete`, `page.renumber`, `page.reorder`; and
+//! `page.surface_view.set` (WP-S4.01 D9), the view of a panel-layout page.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -10,17 +11,18 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_model::ModelError;
 use ew_schema::{
-    ContinuationPolicy, Device, Extra, Folio, FormDef, Function, Kind, Page, PageType, ReportBlock,
-    Representation, Scale, Section, StructureAssignment,
+    ContinuationPolicy, Device, Extra, Folio, FormDef, Function, Kind, MountingSurface, Page, PageItem,
+    PageItemKind, PageType, ReportBlock, Representation, Scale, Section, StructureAssignment,
+    SurfaceLabelMode, SurfaceView,
 };
-use ew_units::Grid;
+use ew_units::{Grid, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
-use crate::proxy::{GridS, IdentS, MlTextS, UuidS};
+use crate::proxy::{GridS, IdentS, MlTextS, Pt2S, UuidS};
 use crate::tx::TxBuilder;
 
 fn multi_line() -> PageType {
@@ -709,5 +711,112 @@ impl Command for ReorderPages {
             tx.notice(text);
         }
         Ok(Outcome::default())
+    }
+}
+
+// -------------------------------------------------------------------------------------------------------------
+// page.surface_view.set
+
+/// How a surface view labels its placements (`label_mode` of `page.surface_view.set`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum LabelModeParam {
+    /// The displayed tag on the page ("-X1031"); the default.
+    #[default]
+    Abbreviated,
+    /// The full designation ("=P01+J-E-2416-X1031").
+    Full,
+}
+
+/// `page.surface_view.set` (`SetSurfaceView`, WP-S4.01 D9; FR-LAY-010): sets the view of one mounting surface on a
+/// panel-layout page: the surface, where its origin lands on the page (`datum_at`, page nm) and the label mode
+/// (default abbreviated). A page holds at most one view: a page that has one keeps it, with its ID, and takes the new
+/// values (members this build keeps verbatim stay); a page without one gets a new page item. What the view draws is
+/// derived from the layout records at the page's scale, never stored.
+///
+/// Rejected: a missing page (not found); a page that is not a panel-layout page; a surface that is not in the project
+/// (`/surface`). Interactive. Outcome: the surface view's page item.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetSurfaceView {
+    /// The panel-layout page.
+    #[schemars(with = "UuidS")]
+    pub page: Id<Page>,
+    /// The mounting surface shown.
+    #[schemars(with = "UuidS")]
+    pub surface: Id<MountingSurface>,
+    /// Where the surface's origin lands on the page.
+    #[schemars(with = "Pt2S")]
+    pub datum_at: Pt2,
+    /// How placements are labelled; default abbreviated.
+    #[serde(default)]
+    pub label_mode: LabelModeParam,
+}
+
+impl Command for SetSurfaceView {
+    const NAME: &'static str = "page.surface_view.set";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let page = tx.require::<Page>(self.page)?;
+        if page.kind != PageType::PanelLayout {
+            return tx.reject(format!(
+                "folio {} is not a panel-layout page; a surface view goes on a panel-layout page",
+                printed_folio(page.folio.number, page.folio.label.as_ref())
+            ));
+        }
+        if !tx.exists::<MountingSurface>(self.surface) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/surface",
+                "the mounting surface is not in the project",
+            ));
+        }
+        let label_mode = match self.label_mode {
+            LabelModeParam::Abbreviated => SurfaceLabelMode::Abbreviated,
+            LabelModeParam::Full => SurfaceLabelMode::Full,
+        };
+        // The page's view: the first by ID (a file may hold more; the page draws the first, D9).
+        let existing = tx
+            .page_items_on_page(self.page)
+            .into_iter()
+            .filter(|id| {
+                tx.get::<PageItem>(*id)
+                    .is_some_and(|i| matches!(i.kind, PageItemKind::SurfaceView(_)))
+            })
+            .min();
+        let id = match existing {
+            Some(id) => {
+                tx.update::<PageItem>(id, |item| {
+                    if let PageItemKind::SurfaceView(v) = &mut item.kind {
+                        v.surface = self.surface;
+                        v.datum_at = self.datum_at;
+                        v.label_mode = label_mode;
+                    }
+                })?;
+                id
+            }
+            None => {
+                let id: Id<PageItem> = tx.mint();
+                tx.insert(PageItem {
+                    id,
+                    v: 1,
+                    page: self.page,
+                    layer: None,
+                    kind: PageItemKind::SurfaceView(SurfaceView {
+                        surface: self.surface,
+                        datum_at: self.datum_at,
+                        label_mode,
+                        extra: Extra::new(),
+                    }),
+                    extra: Extra::new(),
+                })?;
+                id
+            }
+        };
+        Ok(Outcome::primary((Kind::PageItem, id.cast())))
     }
 }

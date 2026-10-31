@@ -652,6 +652,7 @@ fn hostile_view() -> PageView {
         crossings: Default::default(),
         items: Vec::new(),
         structure_boxes: Vec::new(),
+        panel: None,
     }
 }
 

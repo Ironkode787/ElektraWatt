@@ -327,7 +327,8 @@ pub(crate) fn item_problem(item: &PageItem) -> Option<String> {
         PageItemKind::FreeText(t) => free_text_problem(t),
         PageItemKind::WireMarker(m) => marker_problem(m),
         PageItemKind::Image(i) => image_problem(i),
-        PageItemKind::Unknown(_) => None,
+        // Set and judged by `page.surface_view.set` only.
+        PageItemKind::SurfaceView(_) | PageItemKind::Unknown(_) => None,
     }
 }
 
@@ -738,7 +739,8 @@ pub(crate) fn translate_item(item: &PageItem, d: Pt2) -> Option<PageItem> {
             let (min, max) = (moved(i.rect.0.min(), d)?, moved(i.rect.0.max(), d)?);
             i.rect = ew_schema::Bounds(ew_units::Rect::from_points(min, max));
         }
-        PageItemKind::Unknown(_) => return None,
+        // A surface view is set by `page.surface_view.set`, never moved with a selection.
+        PageItemKind::SurfaceView(_) | PageItemKind::Unknown(_) => return None,
     }
     Some(next)
 }

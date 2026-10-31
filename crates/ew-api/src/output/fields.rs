@@ -609,6 +609,9 @@ const KIND: &str =
 /// Why a wire marker's wires are narrowed (WP-S2.04 §5.2).
 const GROUP: &str = "a marker's wires are changed by deleting the marker and placing another (WP-S2.04 §5.2)";
 
+/// Why a surface view is narrowed (WP-S4.01 part 3): a panel page has one view, set by its own command.
+const VIEW: &str = "a panel page's view is changed with Set panel view";
+
 /// Why a page item or a structure box does not move across pages.
 const PAGE: &str = "stays on its page; delete it and place it on the other page";
 
@@ -634,6 +637,8 @@ const NARROWED: &[(&str, &str, bool, &str)] = &[
     ("page_item", "kind.wire_marker", false, KIND),
     // An image's asset and rectangle are fixed in place (WP-S2.04 part 5): it moves with `rep.move`.
     ("page_item", "kind.image", true, KIND),
+    // WP-S4.01 part 3: the view's surface, datum and label mode go through `page.surface_view.set`.
+    ("page_item", "kind.surface_view", true, VIEW),
     ("page_item", "kind.wire_marker.connections", true, GROUP),
     ("page_item", "kind.wire_marker.fields", true, GROUP),
     ("page_item", "page", false, PAGE),

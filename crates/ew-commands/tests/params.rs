@@ -417,6 +417,12 @@ fn examples() -> Vec<(&'static str, Value)> {
             "layout.lock",
             json!({"placement": DEV_T1.to_string(), "locked": true}),
         ),
+        // WP-S4.01 part 3
+        (
+            "page.surface_view.set",
+            json!({"page": PAGE_101.to_string(), "surface": DEV_T2.to_string(),
+                "datum_at": [25_000_000, 167_000_000], "label_mode": "full"}),
+        ),
     ]
 }
 

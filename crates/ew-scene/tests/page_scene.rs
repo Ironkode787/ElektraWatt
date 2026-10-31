@@ -165,6 +165,7 @@ fn view() -> PageView {
         crossings: Default::default(),
         items: Vec::new(),
         structure_boxes: Vec::new(),
+        panel: None,
     }
 }
 
@@ -639,6 +640,7 @@ fn bare(reps: Vec<RepView>, connections: Vec<ConnectionView>) -> PageView {
         crossings: Default::default(),
         items: Vec::new(),
         structure_boxes: Vec::new(),
+        panel: None,
     }
 }
 

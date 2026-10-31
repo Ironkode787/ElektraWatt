@@ -482,6 +482,12 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: layout_lock,
     },
+    // WP-S4.01 part 3 (D9): appended last, as the layout arms.
+    Arm {
+        command: "page.surface_view.set",
+        weight: 2,
+        build: page_surface_view_set,
+    },
 ];
 
 /// The representation types a page type allows (`allowed_rep_types` of `ew-commands`, in JSON form).
@@ -6300,4 +6306,42 @@ fn layout_lock(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
     let p = rng.pick(&live.layout.placements)?;
     Some(cmd(json!({"placement": p.id, "locked": rng.chance(2)})).accept())
+}
+
+/// `page.surface_view.set` (WP-S4.01 part 3, D9): a panel-layout page shows a surface at a datum, in either label mode
+/// (accepted: the page's view is replaced in place, or a first one is added); refused: a page that does not exist, a
+/// page of another kind, a surface that is not in the project.
+fn page_surface_view_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("page.surface_view.set", p);
+    let surface = rng.pick(&live.layout.surfaces)?.clone();
+    let datum = [(rng.below(250) as i64) * LAY_MM, (rng.below(180) as i64) * LAY_MM];
+    let mode = *rng.pick(&["abbreviated", "full"])?;
+    let panels: Vec<&PageInfo> = live
+        .page_info
+        .iter()
+        .filter(|p| p.kind == "panel_layout")
+        .collect();
+    let others: Vec<&PageInfo> = live
+        .page_info
+        .iter()
+        .filter(|p| p.kind != "panel_layout")
+        .collect();
+    match rng.below(8) {
+        0 => Some(cmd(json!({"page": rng.uuid(), "surface": surface, "datum_at": datum})).refuse()),
+        1 => {
+            let page = rng.pick(&others)?;
+            Some(cmd(json!({"page": page.id, "surface": surface, "datum_at": datum})).refuse())
+        }
+        2 => {
+            let page = rng.pick(&panels)?;
+            Some(cmd(json!({"page": page.id, "surface": rng.uuid(), "datum_at": datum})).refuse())
+        }
+        _ => {
+            let page = rng.pick(&panels)?;
+            Some(
+                cmd(json!({"page": page.id, "surface": surface, "datum_at": datum, "label_mode": mode}))
+                    .accept(),
+            )
+        }
+    }
 }

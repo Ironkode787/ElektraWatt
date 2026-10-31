@@ -91,6 +91,7 @@ fn page(reps: Vec<RepView>) -> PageView {
         crossings: Default::default(),
         items: Vec::new(),
         structure_boxes: Vec::new(),
+        panel: None,
     }
 }
 

@@ -10,9 +10,10 @@ use ew_mltext::{Ident, MlText};
 use ew_rds::Aspect;
 use ew_schema::{
     AnyId, Bounds, ContinuationPolicy, DateFormat, DecimalSeparator, EarthingSystem, EmbedSpec, ExternalRef,
-    Folio, Formatting, MasterData, Open, Page, PageNote, PageType, Party, PartyRole, Project, ProjectKind,
-    ProjectSettings, Quantity, Record, ReportBlock, ReportKind, ReportSource, Revision, RevisionState, Scale,
-    Section, Set, Slot, StructureAssignment, StructureNode, SupplyOrigin, SupplySpec, Unit,
+    Folio, Formatting, MasterData, MountingSurface, Open, Page, PageItem, PageItemKind, PageNote, PageType,
+    Party, PartyRole, Project, ProjectKind, ProjectSettings, Quantity, Record, ReportBlock, ReportKind,
+    ReportSource, Revision, RevisionState, Scale, Section, Set, Slot, StructureAssignment, StructureNode,
+    SupplyOrigin, SupplySpec, SurfaceLabelMode, SurfaceView, Unit,
 };
 use ew_units::{Nm, Pt2};
 
@@ -322,6 +323,75 @@ pub(crate) fn emit_pages(cx: &mut Cx<'_>, table: Option<&Table>) {
             },
             grid,
             source_ref: Some(source_ref("pages", row.key())),
+            extra: Default::default(),
+        }));
+    }
+}
+
+/// The view columns of `pages.csv` → the page's `surface_view` item (WP-S4.01 part 3, D9): `view_surface` (an
+/// `enclosures` key: its plate), `view_datum` (one point `x y`, mm on the page: where the surface origin is drawn) and
+/// `view_label_mode` (`abbreviated` or `full`). Runs after the layout, whose plate surfaces the views name.
+pub(crate) fn emit_surface_views(cx: &mut Cx<'_>, table: Option<&Table>) {
+    let Some(table) = table else { return };
+    // One view per page: a repeated key was reported by `emit_pages`, and only its first row gives the view.
+    let mut seen = std::collections::BTreeSet::new();
+    for row in table.rows() {
+        // A page row that did not import was reported by `emit_pages`.
+        let Some(page) = cx.pages.get(row.key()).map(|p| p.id) else {
+            continue;
+        };
+        if !seen.insert(page) {
+            continue;
+        }
+        let mut r = row.reader();
+        let kind = r.text("kind");
+        let surface = r.text("view_surface").map(str::to_owned);
+        let datum = r.points("view_datum");
+        let label_mode = r
+            .choice(
+                "view_label_mode",
+                &[
+                    ("abbreviated", SurfaceLabelMode::Abbreviated),
+                    ("full", SurfaceLabelMode::Full),
+                ],
+            )
+            .unwrap_or_default();
+        if surface.is_some() == datum.is_empty() {
+            r.fail("view_surface and view_datum go together");
+        }
+        if datum.len() > 1 {
+            r.fail("column `view_datum`: one point `x y` in mm");
+        }
+        if surface.is_some() && kind != Some("panel_layout") {
+            r.fail("a surface view goes on a panel_layout page");
+        }
+        if let Err(e) = r.finish() {
+            cx.malformed(row, &e);
+            continue;
+        }
+        let (Some(surface), Some(datum_at)) = (surface, datum.first().copied()) else {
+            continue;
+        };
+        let id = record_id::<MountingSurface>("mounting_surfaces", &surface);
+        if !cx
+            .records
+            .iter()
+            .any(|x| matches!(x, Record::MountingSurface(s) if s.id == id))
+        {
+            cx.unresolved(row, &format!("unknown enclosure `{surface}` in view_surface"));
+            continue;
+        }
+        cx.records.push(Record::PageItem(PageItem {
+            id: record_id::<PageItem>("page_items", row.key()),
+            v: 1,
+            page,
+            layer: None,
+            kind: PageItemKind::SurfaceView(SurfaceView {
+                surface: id,
+                datum_at,
+                label_mode,
+                extra: Default::default(),
+            }),
             extra: Default::default(),
         }));
     }

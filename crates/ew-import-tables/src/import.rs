@@ -222,6 +222,8 @@ impl TablesImporter {
             t("carriers"),
             t("placements"),
         );
+        // WP-S4.01 part 3: the surface views of the panel-layout pages, after the surfaces they show.
+        emit::project::emit_surface_views(&mut cx, t("pages"));
         emit::project::emit_report_blocks(&mut cx, t("report_blocks"));
         emit::project::emit_revisions(&mut cx, t("revisions"), t("parties"));
         let profiles = emit::profiles::emit(&mut cx, t("profiles"), t("colour_profile"), t("size_profile"));

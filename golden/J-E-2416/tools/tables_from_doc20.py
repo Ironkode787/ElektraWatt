@@ -496,13 +496,25 @@ def build_pages():
                     "grid": "qet10",  # doc 20 section 2.1 rule 4
                 }
             )
+            if f == "902":
+                # WP-S4.01 part 3 (D9): folio 902 shows the plate of -UC1 with the plate's origin (its lower-left
+                # corner) at (25, 167) mm on the page and abbreviated labels (test input).
+                out[-1].update(
+                    {"view_surface": ENCLOSURE_DEVICE, "view_datum": "25 167", "view_label_mode": "abbreviated"}
+                )
     cols = ["key", "number", "label", "section", "kind", "title", "form", "function", "location", "scale", "grid"]
+    cols += ["view_surface", "view_datum", "view_label_mode"]
     register("pages", cols, out, 13)
     stored = sorted(p["key"] for p in out)
     check(stored == sorted(STORED_FOLIOS), f"section 5: stored folios {stored}, STORED_FOLIOS is {STORED_FOLIOS}")
     fixture(
         "pages", "scale", "902", "10", "§13", "folio 902 is a view of the plate at 1:10, the scale is a ▲",
         cell=next(ln for ln in DOC_LINES if ln.startswith("mounting plate NSYPMM107")),
+    )  # fmt: skip
+    fixture(
+        "pages", ["view_surface", "view_datum", "view_label_mode"], "902", f"{ENCLOSURE_DEVICE}; 25 167; abbreviated",
+        "§13", "folio 902's surface view: the plate of the enclosure, its origin drawn at (25, 167) mm on the page, "
+        "abbreviated labels (WP-S4.01 part 3, D9)", marks=[],
     )  # fmt: skip
 
 

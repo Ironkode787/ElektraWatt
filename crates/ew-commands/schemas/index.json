@@ -546,6 +546,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "page.surface_view.set",
+      "params_version": 1,
+      "schema": "page.surface_view.set.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "part.assign",
       "params_version": 1,
       "schema": "part.assign.schema.json",

@@ -283,7 +283,7 @@
       "type": "integer"
     },
     "PageItemKind": {
-      "description": "The variant of a page item: `{\"graphic\": {…}}`, `{\"free_text\": {…}}`, `{\"wire_marker\": {…}}` or\n`{\"image\": {…}}`.",
+      "description": "The variant of a page item: `{\"graphic\": {…}}`, `{\"free_text\": {…}}`, `{\"wire_marker\": {…}}`,\n`{\"image\": {…}}` or `{\"surface_view\": {…}}`.",
       "oneOf": [
         {
           "additionalProperties": false,
@@ -334,6 +334,19 @@
           },
           "required": [
             "image"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The view of one mounting surface on a panel-layout page (FR-LAY-010, WP-S4.01 D9).",
+          "properties": {
+            "surface_view": {
+              "$ref": "#/$defs/SurfaceView"
+            }
+          },
+          "required": [
+            "surface_view"
           ],
           "type": "object"
         }
@@ -476,6 +489,44 @@
       "required": [
         "min",
         "max"
+      ],
+      "type": "object"
+    },
+    "SurfaceLabelMode": {
+      "description": "How a surface view labels its placements (FR-LAY-009, doc 12 §5.3).",
+      "oneOf": [
+        {
+          "const": "abbreviated",
+          "description": "The displayed tag on the view's page, identifier suppression against the page's structure (\"-X1031\"); the\ndefault.",
+          "type": "string"
+        },
+        {
+          "const": "full",
+          "description": "The full designation (\"=P01+J-E-2416-X1031\").",
+          "type": "string"
+        }
+      ]
+    },
+    "SurfaceView": {
+      "additionalProperties": true,
+      "description": "The view of one mounting surface on a panel-layout page (doc 12 §5.1, FR-LAY-010; WP-S4.01 D9): a surface point\n`(u, v)` is drawn at `x = datum_at.x + u / n`, `y = datum_at.y − v / n` on a page of scale 1:n (paper `y` points\ndown), so `datum_at` is where the surface's origin lands on the page. Everything it draws (outlines, carriers,\nfootprints, labels) is derived, never stored (doc 12 §2.3). A panel-layout page holds at most one, set by\n`page.surface_view.set`. Typed within format 0.1 under ADR-0011 amendment 4 (ID-334): `side`, `clip` and `layers`\nstay verbatim in [`SurfaceView::extra`].",
+      "properties": {
+        "datum_at": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Where the surface's origin lands on the page, in page nanometres."
+        },
+        "label_mode": {
+          "$ref": "#/$defs/SurfaceLabelMode",
+          "description": "How placements are labelled; default abbreviated."
+        },
+        "surface": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The mounting surface shown; a deleted surface deletes the view with it (cascade)."
+        }
+      },
+      "required": [
+        "surface",
+        "datum_at"
       ],
       "type": "object"
     },

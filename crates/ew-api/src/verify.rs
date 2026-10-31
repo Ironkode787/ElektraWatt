@@ -34,8 +34,9 @@ use ew_schema::{
 };
 
 use crate::output::{
-    CpTargetsByPage, FrameLayer, LabelsLayer, PageBindingsOf, PageCpTargetsOf, PageDigest, PageEmbeddedOf,
-    PageFrameOf, PageGridOf, PageRepsOf, PageSlotsOf, PageTableOf, SymbolsLayer, TablesLayer, WiresLayer,
+    CarriersLayer, CpTargetsByPage, FrameLayer, LabelsLayer, PageBindingsOf, PageCpTargetsOf, PageDigest,
+    PageEmbeddedOf, PageFrameOf, PageGridOf, PageRepsOf, PageSlotsOf, PageSurfaceView, PageTableOf,
+    PlacementsLayer, ShapedText, SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer,
 };
 use crate::{Mismatch, Session};
 
@@ -80,8 +81,11 @@ pub const SWEPT: &[&str] = &[
     "page_bindings",
     "page_cp_targets",
     "page_digest",
+    "page_display_list_carriers",
     "page_display_list_frame",
     "page_display_list_labels",
+    "page_display_list_placements",
+    "page_display_list_surface",
     "page_display_list_symbols",
     "page_display_list_tables",
     "page_display_list_wires",
@@ -93,6 +97,7 @@ pub const SWEPT: &[&str] = &[
     "page_order",
     "page_reps",
     "page_slots",
+    "page_surface_view",
     "page_table",
     "pageless_links",
     "physical_wires_of",
@@ -112,6 +117,7 @@ pub const SWEPT: &[&str] = &[
     "report_block_pages",
     "report_rows",
     "settings_member",
+    "shaped_text",
     "solenoid_positions",
     "stitch_graph",
     "strip_bridges",
@@ -352,6 +358,17 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<WiresLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<LabelsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<TablesLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    // WP-S4.01 part 3: the surface view of a panel-layout page, its three layers and its shaped labels.
+    check::<PageSurfaceView>(memo, cold, keys.pages.iter().copied(), o);
+    check::<SurfaceLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<CarriersLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<PlacementsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    let shaped: BTreeSet<(String, ew_text::TextStyle)> = keys
+        .pages
+        .iter()
+        .flat_map(|p| crate::output::panel::label_keys(cold.unwrap_or(memo), *p))
+        .collect();
+    check::<ShapedText>(memo, cold, shaped, o);
     check::<PageDigest>(memo, cold, keys.page_refs.iter().copied(), o);
     out
 }

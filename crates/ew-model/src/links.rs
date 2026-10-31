@@ -734,6 +734,12 @@ pub static LINKS: &[LinkDecl] = &[
     // page_item (WP-S2.04 part 4a; EW-INV-022, EW-INV-023)
     link!(PageItem."page" -> Page, Cascade, Some(I::PageItemsByPage), |v, out| id(v.page, out)),
     MARKER_LIST_LINK,
+    // WP-S4.01 part 3 (D9): a surface view shows nothing without its surface, so it goes with it.
+    link!(PageItem."kind.surface_view.surface" -> MountingSurface, Cascade, None, |v, out| {
+        if let PageItemKind::SurfaceView(sv) = &v.kind {
+            id(sv.surface, out);
+        }
+    }),
     // structure_box (WP-S2.04 part 4a; EW-INV-022)
     link!(StructureBox."page" -> Page, Cascade, Some(I::StructureBoxesByPage), |v, out| id(v.page, out)),
     BOX_SLOTS[0],

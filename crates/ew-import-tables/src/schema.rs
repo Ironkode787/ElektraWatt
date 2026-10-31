@@ -81,7 +81,18 @@ pub(crate) const SECTIONS: TableSpec = spec(
 pub(crate) const PAGES: TableSpec = spec(
     "pages",
     &["key", "number", "kind", "form", "grid"],
-    &["label", "section", "title", "function", "location", "scale"],
+    &[
+        "label",
+        "section",
+        "title",
+        "function",
+        "location",
+        "scale",
+        // WP-S4.01 part 3: the page's surface view.
+        "view_surface",
+        "view_datum",
+        "view_label_mode",
+    ],
 );
 
 /// `report_blocks.csv`.

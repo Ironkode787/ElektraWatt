@@ -444,6 +444,13 @@ impl HeapSize for ew_schema::PageItemKind {
                     + m.extra.heap_size()
             }
             ew_schema::PageItemKind::Image(i) => i.extra.heap_size(),
+            ew_schema::PageItemKind::SurfaceView(v) => {
+                let mode = match &v.label_mode {
+                    ew_schema::SurfaceLabelMode::Unknown(m) => m.heap_size(),
+                    _ => 0,
+                };
+                mode + v.extra.heap_size()
+            }
             ew_schema::PageItemKind::Unknown(v) => v.heap_size(),
         }
     }

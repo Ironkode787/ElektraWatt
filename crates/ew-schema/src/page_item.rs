@@ -5,10 +5,10 @@
 //! page-owned kinds `page_item` (rank 43) and `structure_box` (rank 44), typed within format 0.1 under
 //! ADR-0011 amendment 4 (ID-334): additive, no format or `$v` bump, an older build keeps the records verbatim.
 //!
-//! A page item's `kind` is an externally tagged object. This format types four variants, `graphic`,
-//! `free_text`, `wire_marker` and `image` (WP-S2.04 part 5); every other variant (`macro_box`, `surface_view`,
-//! `model_view`, `dimension`, `underlay` and the variants of a newer format) is kept verbatim as
-//! [`PageItemKind::Unknown`] and written back unchanged (doc 05 §10.3).
+//! A page item's `kind` is an externally tagged object. This format types five variants, `graphic`,
+//! `free_text`, `wire_marker`, `image` (WP-S2.04 part 5) and `surface_view` (WP-S4.01 part 3, D9); every other
+//! variant (`macro_box`, `model_view`, `dimension`, `underlay` and the variants of a newer format) is kept verbatim
+//! as [`PageItemKind::Unknown`] and written back unchanged (doc 05 §10.3).
 //!
 //! Positions are page nanometres ([`Pt2`]), lengths [`Nm`], angles [`Angle2`] (10⁻³ degree). What the format does
 //! not restrict and the commands do (WP-S2.04 §5.1): degenerate shapes, the free text's four angles and six
@@ -25,7 +25,7 @@ use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
 use crate::proxy::{Angle2S, IdentS, MlTextS, NmS, Pt2S, UuidS};
 use crate::track::open_enum;
 use crate::value::{Bounds, Sha256, StructureAssignment};
-use crate::{Connection, ExternalRef, Page};
+use crate::{Connection, ExternalRef, MountingSurface, Page};
 
 // ---------------------------------------------------------------------------------------------------------
 // Page item
@@ -54,8 +54,8 @@ pub struct PageItem {
     pub extra: Extra,
 }
 
-/// The variant of a page item: `{"graphic": {…}}`, `{"free_text": {…}}`, `{"wire_marker": {…}}` or
-/// `{"image": {…}}`.
+/// The variant of a page item: `{"graphic": {…}}`, `{"free_text": {…}}`, `{"wire_marker": {…}}`,
+/// `{"image": {…}}` or `{"surface_view": {…}}`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[serde(remote = "Self")]
@@ -69,21 +69,24 @@ pub enum PageItemKind {
     WireMarker(WireMarker),
     /// An image asset placed in a rectangle (FR-SYM-025, WP-S2.04 part 5).
     Image(ImageItem),
-    /// A variant this format does not type (`macro_box`, `surface_view`, `model_view`, `dimension`,
-    /// `underlay`, or a newer format's), kept verbatim.
+    /// The view of one mounting surface on a panel-layout page (FR-LAY-010, WP-S4.01 D9).
+    SurfaceView(SurfaceView),
+    /// A variant this format does not type (`macro_box`, `model_view`, `dimension`, `underlay`, or a newer
+    /// format's), kept verbatim.
     #[serde(skip)]
     Unknown(Value),
 }
 
 impl PageItemKind {
-    /// The variant's name (`graphic`, `free_text`, `wire_marker`, `image`), or the tag of an unknown variant (`None` when
-    /// it has none).
+    /// The variant's name (`graphic`, `free_text`, `wire_marker`, `image`, `surface_view`), or the tag of an unknown
+    /// variant (`None` when it has none).
     pub fn name(&self) -> Option<&str> {
         match self {
             PageItemKind::Graphic(_) => Some("graphic"),
             PageItemKind::FreeText(_) => Some("free_text"),
             PageItemKind::WireMarker(_) => Some("wire_marker"),
             PageItemKind::Image(_) => Some("image"),
+            PageItemKind::SurfaceView(_) => Some("surface_view"),
             PageItemKind::Unknown(Value::Object(m)) if m.len() == 1 => m.keys().next().map(String::as_str),
             PageItemKind::Unknown(Value::String(s)) => Some(s.as_str()),
             PageItemKind::Unknown(_) => None,
@@ -94,6 +97,14 @@ impl PageItemKind {
     pub fn wire_marker(&self) -> Option<&WireMarker> {
         match self {
             PageItemKind::WireMarker(m) => Some(m),
+            _ => None,
+        }
+    }
+
+    /// The surface view, if the item is one.
+    pub fn surface_view(&self) -> Option<&SurfaceView> {
+        match self {
+            PageItemKind::SurfaceView(v) => Some(v),
             _ => None,
         }
     }
@@ -364,6 +375,48 @@ pub struct ImageItem {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// Surface view
+
+/// The view of one mounting surface on a panel-layout page (doc 12 §5.1, FR-LAY-010; WP-S4.01 D9): a surface point
+/// `(u, v)` is drawn at `x = datum_at.x + u / n`, `y = datum_at.y − v / n` on a page of scale 1:n (paper `y` points
+/// down), so `datum_at` is where the surface's origin lands on the page. Everything it draws (outlines, carriers,
+/// footprints, labels) is derived, never stored (doc 12 §2.3). A panel-layout page holds at most one, set by
+/// `page.surface_view.set`. Typed within format 0.1 under ADR-0011 amendment 4 (ID-334): `side`, `clip` and `layers`
+/// stay verbatim in [`SurfaceView::extra`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct SurfaceView {
+    /// The mounting surface shown; a deleted surface deletes the view with it (cascade).
+    #[schemars(with = "UuidS")]
+    pub surface: Id<MountingSurface>,
+    /// Where the surface's origin lands on the page, in page nanometres.
+    #[schemars(with = "Pt2S")]
+    pub datum_at: Pt2,
+    /// How placements are labelled; default abbreviated.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub label_mode: SurfaceLabelMode,
+    /// Unknown members (`side`, `clip`, `layers` among them, until they are typed).
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// How a surface view labels its placements (FR-LAY-009, doc 12 §5.3).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "SurfaceLabelMode")]
+pub enum SurfaceLabelMode {
+    /// The displayed tag on the view's page, identifier suppression against the page's structure ("-X1031"); the
+    /// default.
+    #[default]
+    Abbreviated,
+    /// The full designation ("=P01+J-E-2416-X1031").
+    Full,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // Structure box
 
 /// A dotted or dash-dot box that assigns a structure to the representations it encloses (doc 03 §5, rank 44,
@@ -422,5 +475,6 @@ open_enum!(
     LineDash,
     TextAlign,
     MarkerField,
-    BoxStyle
+    BoxStyle,
+    SurfaceLabelMode
 );

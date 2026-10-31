@@ -90,6 +90,7 @@
 //! | `layout.move` | [`MovePlacement`] | Interactive |
 //! | `layout.remove` | [`RemovePlacement`] | Interactive |
 //! | `layout.lock` | [`LockPlacement`] | Interactive |
+//! | `page.surface_view.set` | [`SetSurfaceView`] | Interactive |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380), and `revision.release`,
@@ -182,7 +183,9 @@ pub use macro_insert::{
     InsertMacro, InstantiateError, Instantiated, MACRO_FIELDS, MACRO_KINDS, binding_field_ok, coerce_value,
     instantiate, pick_variant,
 };
-pub use page::{CreatePage, DeletePages, PageScope, RenumberPages, ReorderPages};
+pub use page::{
+    CreatePage, DeletePages, LabelModeParam, PageScope, RenumberPages, ReorderPages, SetSurfaceView,
+};
 pub use part_edit::{EditPartCopy, PART_EDITABLE};
 // WP-S2.05 part 3
 pub use bus::{CreateLogicalNet, CreatePhysicalNet};
@@ -310,4 +313,6 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<MovePlacement>();
     r.register::<RemovePlacement>();
     r.register::<LockPlacement>();
+    // WP-S4.01 part 3 (D9)
+    r.register::<SetSurfaceView>();
 }

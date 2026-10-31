@@ -1926,6 +1926,29 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.set_rest("placement", id.cast(), m, &[])?;
         Ok(id)
     }
+
+    /// `page.surface_view.set` (WP-S4.01 part 3, D9): the surface view of a panel-layout page.
+    ///
+    /// # Errors
+    ///
+    /// The command's error, or an item that is not a surface view.
+    pub fn surface_view(&mut self, item: &PageItem) -> Result<Id<PageItem>> {
+        let ew_schema::PageItemKind::SurfaceView(v) = &item.kind else {
+            return Err(BuildError {
+                command: "page.surface_view.set".into(),
+                params: Value::Null,
+                message: "the page item is not a surface view".into(),
+            });
+        };
+        let p = json!({
+            "page": item.page,
+            "surface": v.surface,
+            "datum_at": v.datum_at,
+            "label_mode": v.label_mode,
+        });
+        let (id, _) = self.primary::<PageItem>("page.surface_view.set", p)?;
+        Ok(id)
+    }
 }
 
 /// The members `keys` of `m`, taken out of it, as a parameter object.

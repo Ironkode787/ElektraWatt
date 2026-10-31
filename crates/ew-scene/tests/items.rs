@@ -92,6 +92,7 @@ fn view(items: Vec<ItemView>, structure_boxes: Vec<StructureBoxView>) -> PageVie
         crossings: Default::default(),
         items,
         structure_boxes,
+        panel: None,
     }
 }
 

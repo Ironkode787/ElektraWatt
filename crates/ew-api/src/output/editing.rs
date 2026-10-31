@@ -1059,8 +1059,8 @@ pub struct PageTables {
 pub struct TableItem {
     /// The item's ID.
     pub id: Uuid,
-    /// `graphic`, `free_text`, `wire_marker`, or `unknown` for a variant this build keeps verbatim (`image` until
-    /// part 5).
+    /// `graphic`, `free_text`, `wire_marker`, `image`, `surface_view` (its bounds the datum point), or `unknown` for a
+    /// variant this build keeps verbatim.
     pub kind: String,
     /// Its bounds `[x0, y0, x1, y1]`: a graphic's shape (a circle or an arc by its full circle), a drawn text or
     /// marker group by its drawn items, else its anchor point; an unknown variant `[0, 0, 0, 0]`.
@@ -1167,6 +1167,8 @@ fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
                     None,
                     None,
                 ),
+                // A surface view by its datum point (what it draws is derived, WP-S4.01 D9).
+                K::SurfaceView(v) => ("surface_view", bounds_of([pt(v.datum_at)]), None, None),
                 K::Unknown(_) => ("unknown", None, None, None),
             };
             TableItem {

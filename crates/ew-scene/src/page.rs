@@ -24,10 +24,11 @@
 //! | [`Layer::Wires`] | `reps` (CP positions), `connections`, `junctions` | per connection (by ID): its polyline; then per junction (by ID): its dot or bevel symbol |
 //! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker`, `items`, `structure_boxes` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then per connection with a marker (by ID): the marker box and text; then the free texts, wire-marker groups and structure-box captions ([`crate::items`]) |
 //! | [`Layer::Tables`] | `table`, `embedded` | [`crate::table::lower_table`]: the house report table of a generated page; then per embedded block (by its rectangle): [`crate::embedded::lower_embedded`] (the cover's colour and standard-size tables) |
-//! | others | — | empty: revision marks and highlights arrive with their work packages |
+//! | [`Layer::Surface`], [`Layer::Carriers`], [`Layer::Placements`] | `panel` | the surface view of a panel-layout page ([`crate::panel`]); the labels layer adds its placement labels after the texts above |
+//! | others | — | empty: revision marks, highlights, features and dimensions arrive with their work packages |
 //!
-//! Panel-layout pages ([`PageKind::Panel`]) use [`Layer::PANEL`]; their surface, carrier, placement,
-//! feature and dimension layers are empty until the panel work package.
+//! Panel-layout pages ([`PageKind::Panel`]) use [`Layer::PANEL`]; their surface, carrier, placement and label
+//! layers draw the page's surface view (WP-S4.01 part 3), the feature and dimension layers stay empty (1.0).
 //!
 //! All geometry is in **page coordinates** (integer nm, y down). The form's page-to-sheet transform
 //! ([`SheetMap`]) is applied once, by [`PageScene::sheet_list`], for every writer.
@@ -144,6 +145,7 @@ use crate::forms::{
 };
 use crate::hops::{Crossings, hop_path, hops};
 use crate::items::{ItemView, StructureBoxView};
+use crate::panel::PanelView;
 use crate::route::{RouteEnd, connection_polyline};
 use crate::symbol::{self, TextSource};
 use crate::table::{TableFinding, TableView, lower_table};
@@ -363,6 +365,9 @@ pub struct PageView {
     /// The structure boxes of a drawn page with their captions (WP-S2.04 part 4a): outlines in
     /// [`Layer::Symbols`], captions in [`Layer::Labels`].
     pub structure_boxes: Vec<StructureBoxView>,
+    /// The surface view of a panel-layout page (WP-S4.01 part 3, [`crate::panel`]): drawn into [`Layer::Surface`],
+    /// [`Layer::Carriers`], [`Layer::Placements`] and [`Layer::Labels`]; `None` on every other page.
+    pub panel: Option<PanelView>,
 }
 
 /// A connection point that is a link destination on its page (see [`PageView::cp_targets`]).
@@ -463,8 +468,14 @@ pub fn page_display_list(
         Layer::Frame => b.frame(view),
         Layer::Symbols => b.symbols(view),
         Layer::Wires => b.wires(view),
-        Layer::Labels => b.labels(view),
+        Layer::Labels => {
+            b.labels(view);
+            b.panel_labels(view);
+        }
         Layer::Tables => b.tables(view),
+        Layer::Surface => b.panel_surface(view),
+        Layer::Carriers => b.panel_carriers(view),
+        Layer::Placements => b.panel_placements(view),
         _ => {}
     }
     b.out
@@ -555,7 +566,7 @@ impl PageScene {
 }
 
 pub(crate) struct Builder<'a> {
-    fonts: &'a FontSet,
+    pub(crate) fonts: &'a FontSet,
     styles: &'a TextStyleTable,
     out: LayerList,
 }
@@ -1466,7 +1477,7 @@ impl Builder<'_> {
         key
     }
 
-    fn style(&mut self, key: &str, entity: EntityRef) -> TextStyle {
+    pub(crate) fn style(&mut self, key: &str, entity: EntityRef) -> TextStyle {
         self.styles.resolve(key).unwrap_or_else(|| {
             self.out.findings.push(PageFinding::UnknownStyle {
                 entity: entity.0,
@@ -1491,6 +1502,19 @@ impl Builder<'_> {
         }
         let style = self.style(spec.style_key, spec.entity);
         let shaped = self.fonts.shape(spec.text, &style, None);
+        self.emit_text(spec, &style, &shaped, first_line);
+    }
+
+    /// [`text`](Builder::text) of a text already shaped in `style` (a label of a panel page, shaped by the memoised
+    /// `shaped_text`).
+    pub(crate) fn text_shaped(&mut self, spec: &TextSpec<'_>, style: &TextStyle, shaped: &Shaped) {
+        if spec.text.is_empty() {
+            return;
+        }
+        self.emit_text(spec, style, shaped, false);
+    }
+
+    fn emit_text(&mut self, spec: &TextSpec<'_>, style: &TextStyle, shaped: &Shaped, first_line: bool) {
         if !shaped.missing.is_empty() {
             self.out.findings.push(PageFinding::MissingGlyphs {
                 entity: spec.entity.0,
@@ -1498,8 +1522,8 @@ impl Builder<'_> {
                 chars: shaped.missing.clone(),
             });
         }
-        let lines = self.lay_out(spec, &style, &shaped, first_line);
-        let carriers = self.item_carriers(spec, &style, &shaped, &lines);
+        let lines = self.lay_out(spec, style, shaped, first_line);
+        let carriers = self.item_carriers(spec, style, shaped, &lines);
         for item in lines {
             let item = item.with_entity(spec.entity);
             self.push(match spec.link {
