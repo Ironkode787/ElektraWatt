@@ -115,6 +115,36 @@ impl PartEditor {
     }
 }
 
+/// The part kinds the editor's Kind field offers, in doc 07 §2.5's order (the `kind` field's values).
+pub const PART_KINDS: [&str; 15] = [
+    "device",
+    "terminal",
+    "cable",
+    "wire",
+    "ferrule",
+    "marker",
+    "duct",
+    "rail",
+    "busbar",
+    "end_bracket",
+    "enclosure",
+    "mounting_plate",
+    "tube",
+    "accessory",
+    "configured",
+];
+
+/// The word of part kind `kind` (`end_bracket` → "End bracket"; M39: the editor shows words, not raw values): the
+/// value with its first letter capitalised and its underscores as spaces; an empty value stays empty.
+pub fn part_kind_word(kind: &str) -> String {
+    let spaced = kind.replace('_', " ");
+    let mut chars = spaced.chars();
+    match chars.next() {
+        Some(c) => c.to_uppercase().chain(chars).collect(),
+        None => String::new(),
+    }
+}
+
 /// The words of a draft message.
 pub fn message_text(key: &str, args: &[String]) -> String {
     let args: Vec<&str> = args.iter().map(String::as_str).collect();

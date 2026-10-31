@@ -163,16 +163,37 @@ pub(crate) fn chooser(
                             color: t.text_tertiary.color32(),
                             ..Default::default()
                         };
-                        job.append(&o.part_number, 0.0, strong);
-                        job.append(&format!("  {}  ", o.manufacturer), 0.0, plain.clone());
-                        let description: String = o.description.chars().take(40).collect();
-                        job.append(&description, 0.0, plain);
+                        // M39: the badges are never cut; the description elides first, to the room the part
+                        // number, the manufacturer and the badges leave (its whole text in the row's tooltip).
                         let mut badges = vec![PartChooser::source(o)];
                         badges.extend(c.badge(o));
-                        job.append(&format!("  {}", badges.join(" \u{b7} ")), 0.0, small);
+                        let badge_text = format!("  {}", badges.join(" \u{b7} "));
+                        let maker = format!("  {}  ", o.manufacturer);
+                        let width = |text: &str, f: &egui::TextFormat| {
+                            ui.painter()
+                                .layout_no_wrap(text.to_owned(), f.font_id.clone(), theme::NONE)
+                                .size()
+                                .x
+                        };
+                        let room = ui.available_width()
+                            - 2.0 * ui.spacing().button_padding.x
+                            - t.space_2
+                            - width(&o.part_number, &strong)
+                            - width(&maker, &plain)
+                            - width(&badge_text, &small);
+                        let description = elide_to(&o.description, room, |s| width(s, &plain));
+                        job.append(&o.part_number, 0.0, strong);
+                        job.append(&maker, 0.0, plain.clone());
+                        job.append(&description, 0.0, plain);
+                        job.append(&badge_text, 0.0, small);
                         let row = ui.add(
                             egui::Button::selectable(selected, job).wrap_mode(egui::TextWrapMode::Truncate),
                         );
+                        let row = if description != o.description {
+                            row.on_hover_text(&o.description)
+                        } else {
+                            row
+                        };
                         let name = format!("{} ({}) \u{b7} {}", o.part_number, o.manufacturer, o.description);
                         row.widget_info(|| {
                             egui::WidgetInfo::selected(egui::Role::ListBoxOption, true, selected, &name)
@@ -219,6 +240,66 @@ pub(crate) fn chooser(
 }
 
 /// One labelled row of the editor: the label column, then the field; `true` when Enter was pressed in it.
+/// `text` whole when `measure` finds it no wider than `room`, else its longest prefix that fits with "…" after it
+/// (just "…" when nothing does).
+pub(crate) fn elide_to(text: &str, room: f32, measure: impl Fn(&str) -> f32) -> String {
+    if measure(text) <= room {
+        return text.to_owned();
+    }
+    let chars: Vec<char> = text.chars().collect();
+    let (mut lo, mut hi) = (0usize, chars.len());
+    while lo < hi {
+        let mid = (lo + hi).div_ceil(2);
+        let candidate: String = chars[..mid].iter().collect::<String>() + "\u{2026}";
+        if measure(&candidate) <= room {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    chars[..lo].iter().collect::<String>().trim_end().to_owned() + "\u{2026}"
+}
+
+/// The part editor's Kind (M39): a combo box that shows the kind's word ("Device") and offers every part kind by its
+/// word; picking one sends its value (`part.field {field: "kind", value: "end_bracket"}`).
+fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event>) {
+    use ew_viewmodel::shell::part_dialog::{PART_KINDS, part_kind_word};
+    let t = theme::current(ui.ctx());
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        let label = ui
+            .allocate_ui_with_layout(
+                vec2(t.size_dialog_label, t.size_control),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| {
+                    ui.set_min_size(vec2(t.size_dialog_label, t.size_control));
+                    ui.add(egui::Label::new(label_text).truncate())
+                },
+            )
+            .inner;
+        ui.add_space(t.space_3);
+        let mut picked = None;
+        egui::ComboBox::from_id_salt("part-edit-kind")
+            .selected_text(part_kind_word(value))
+            .width(ui.available_width())
+            .show_ui(ui, |ui| {
+                for k in PART_KINDS {
+                    if ui.selectable_label(k == value, part_kind_word(k)).clicked() {
+                        picked = Some(k);
+                    }
+                }
+            })
+            .response
+            .labelled_by(label.id);
+        if let Some(k) = picked.filter(|k| *k != value) {
+            events.push(Event::Action(
+                "part.field",
+                json!({ "field": "kind", "value": k }),
+            ));
+        }
+    });
+}
+
 fn labelled_field(
     ui: &mut Ui,
     label_text: &str,
@@ -271,9 +352,13 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
         .show(ui, |ui| {
             for (i, f) in ew_viewmodel::ew_api::DRAFT_FIELDS.iter().enumerate() {
                 let label = strings::text(&format!("part-field-{f}"));
-                save |= labelled_field(ui, label, d.text(f), just_opened && i == 0, |text| {
-                    events.push(Event::Action("part.field", json!({ "field": f, "value": text })));
-                });
+                if *f == "kind" {
+                    kind_field(ui, label, d.text(f), events);
+                } else {
+                    save |= labelled_field(ui, label, d.text(f), just_opened && i == 0, |text| {
+                        events.push(Event::Action("part.field", json!({ "field": f, "value": text })));
+                    });
+                }
                 if let Some(m) = d.message(f) {
                     ui.colored_label(
                         t.error.color32(),
@@ -340,5 +425,19 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
         });
     if save {
         events.push(Event::Action("part.save", serde_json::Value::Null));
+    }
+}
+
+#[cfg(test)]
+mod elide_tests {
+    use super::elide_to;
+
+    /// One unit per char: a text that fits stays whole; a longer one keeps the longest prefix that fits with "…".
+    #[test]
+    fn elides_to_the_room() {
+        let m = |s: &str| s.chars().count() as f32;
+        assert_eq!(elide_to("Contactor", 20.0, m), "Contactor");
+        assert_eq!(elide_to("Contactor with coil", 8.0, m), "Contact\u{2026}");
+        assert_eq!(elide_to("Contactor", 0.0, m), "\u{2026}");
     }
 }

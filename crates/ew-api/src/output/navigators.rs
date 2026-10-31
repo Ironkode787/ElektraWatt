@@ -794,7 +794,7 @@ impl Session {
 }
 
 /// The page order's folio and position of every drawn page.
-fn folios(q: &Q) -> BTreeMap<Id<Page>, (usize, String, Uuid)> {
+pub(crate) fn folios(q: &Q) -> BTreeMap<Id<Page>, (usize, String, Uuid)> {
     q.get::<PageOrder>(())
         .entries
         .iter()
@@ -2864,22 +2864,13 @@ fn leads_with_subject(subject: &str, message: &str) -> bool {
         .is_some_and(|rest| rest.is_empty() || rest.starts_with(':') || rest.starts_with(' '))
 }
 
-/// One finding row (§7.1): its records are the targets, its drawables theirs; its page is the finding's page, else the
-/// page of the primary target's first drawable; Enter opens that page with the targets' drawables on it selected.
-fn finding_node(
+/// A finding's page and its primary target's drawables (§7.1): the finding's page, else the page of the primary
+/// target's first drawable; the folio as the page prints it.
+pub(crate) fn finding_page(
     q: &Q,
-    b: &mut Builder,
     folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
-    parent: u32,
     f: &crate::checks::Finding,
-    kind: Option<&'static str>,
-) {
-    let mut drawables = Vec::new();
-    for t in &f.targets {
-        drawables.extend(target_drawables(q, folios, t));
-    }
-    let mut seen = std::collections::BTreeSet::new();
-    drawables.retain(|d| seen.insert(d.record));
+) -> (Option<(String, Uuid)>, Vec<Drawable>) {
     // The primary target is the one drawn first (main drawables first, then page order and cell), not the first in
     // target order: targets sort by ID, which is random in a new project, so a finding over several members (a
     // potential's) would open another page in another copy of the project.
@@ -2907,6 +2898,26 @@ fn finding_node(
         Some(p) => folios.get(&p).map(|(_, folio, u)| (folio.clone(), *u)),
         None => primary.first().map(|d| (d.folio.clone(), d.page)),
     };
+    (page, primary)
+}
+
+/// One finding row (§7.1): its records are the targets, its drawables theirs; its page is the finding's page, else the
+/// page of the primary target's first drawable; Enter opens that page with the targets' drawables on it selected.
+fn finding_node(
+    q: &Q,
+    b: &mut Builder,
+    folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
+    parent: u32,
+    f: &crate::checks::Finding,
+    kind: Option<&'static str>,
+) {
+    let mut drawables = Vec::new();
+    for t in &f.targets {
+        drawables.extend(target_drawables(q, folios, t));
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    drawables.retain(|d| seen.insert(d.record));
+    let (page, primary) = finding_page(q, folios, f);
     let page_cell = match &page {
         Some((folio, u)) => primary
             .iter()

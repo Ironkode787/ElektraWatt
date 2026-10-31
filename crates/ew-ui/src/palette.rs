@@ -101,16 +101,9 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
         text.color32(),
     );
     x += label_w + t.space_3;
-    let (tail, tail_colour) = match &entry.reason {
-        Some(reason) if !entry.enabled => (reason.clone(), t.text_secondary),
-        _ => (entry.breadcrumb.clone(), t.text_tertiary),
-    };
-    let tail = painter.layout_no_wrap(tail, theme::font(&t.type_small), tail_colour.color32());
-    painter.galley(
-        egui::pos2(x, rect.center().y - tail.size().y / 2.0),
-        tail,
-        tail_colour.color32(),
-    );
+    // The key chips first, at the right; the tail (the reason or the breadcrumb) takes the room up to them and elides
+    // with an ellipsis, its whole text in the row's tooltip (M39: a disabled reason was clipped with no ellipsis).
+    let mut tail_right = rect.right() - t.space_3;
     if !entry.shortcut.is_empty() {
         let chip_area = Rect::from_min_max(
             egui::pos2(rect.left(), rect.top()),
@@ -122,6 +115,29 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
                 .layout(Layout::right_to_left(Align::Center)),
         );
         crate::components::key_chip(&mut child, &entry.shortcut);
+        tail_right = child.min_rect().left() - t.space_3;
+    }
+    let (tail, tail_colour) = match &entry.reason {
+        Some(reason) if !entry.enabled => (reason.clone(), t.text_secondary),
+        _ => (entry.breadcrumb.clone(), t.text_tertiary),
+    };
+    let mut job = LayoutJob::single_section(
+        tail.clone(),
+        egui::TextFormat::simple(theme::font(&t.type_small), tail_colour.color32()),
+    );
+    job.wrap = egui::text::TextWrapping::truncate_at_width((tail_right - x).max(0.0));
+    let galley = ui.painter().layout_job(job);
+    let elided = galley.elided;
+    ui.painter().galley(
+        egui::pos2(x, rect.center().y - galley.size().y / 2.0),
+        galley,
+        tail_colour.color32(),
+    );
+    if elided {
+        response.clone().on_hover_text(tail);
+        response
+            .clone()
+            .on_disabled_hover_text(entry.reason.clone().unwrap_or_default());
     }
     response.clicked() && entry.enabled
 }
@@ -230,8 +246,7 @@ pub fn show(
                     ui.horizontal(|ui| {
                         ui.add_space(t.space_3);
                         ui.label(
-                            egui::RichText::new(strings::text("palette-no-match"))
-                                .color(t.text_secondary.color32()),
+                            egui::RichText::new(shell.palette_empty_text()).color(t.text_secondary.color32()),
                         );
                     });
                     ui.add_space(t.space_3);
@@ -338,5 +353,14 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
             crate::components::live_line(ui, error, true);
         });
     }
+    // M39: the form says how it applies and how it goes back, in the hint style (`type.small`, tertiary).
+    ui.horizontal(|ui| {
+        ui.add_space(t.space_3);
+        ui.label(
+            egui::RichText::new(strings::text("palette-form-hint"))
+                .font(theme::font(&t.type_small))
+                .color(t.text_tertiary.color32()),
+        );
+    });
     ui.add_space(t.space_2);
 }

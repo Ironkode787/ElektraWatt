@@ -103,6 +103,9 @@ pub struct CatalogueSymbol {
     /// The words the picker's filter matches besides the keys (cycle 36): the symbol's name in every language and its
     /// keywords.
     pub words: Vec<String>,
+    /// The symbol's name in words (M39: the Place HUD names it): its neutral text, else its first language's; empty
+    /// when the symbol has no name.
+    pub name: String,
 }
 
 /// A part row of the place catalogue: an embedded part copy with a function template, or a system library's part the
@@ -401,6 +404,7 @@ fn symbol_row(
             .as_ref()
             .is_some_and(|d| matches!(d.item.category.0.as_str(), "Terminal" | "TerminalEarth")),
         allowed: rep_type_allowed(page, &symbol.rep_type),
+        name: ml_texts(&symbol.name).into_iter().next().unwrap_or_default(),
         words: ml_texts(&symbol.name)
             .into_iter()
             .chain(symbol.keywords.as_slice().iter().map(|k| k.as_str().to_owned()))

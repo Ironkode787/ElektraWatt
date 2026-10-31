@@ -118,7 +118,7 @@ impl PropertiesPane {
                 ui.label(strings::text("props-empty"));
                 return;
             };
-            Self::header(ui, sheet, events);
+            Self::header(ui, sheet, shell.editing_folio().as_deref(), events);
             // FT-541 (doc 16a §6.8): "Filter properties" under the header while the open categories hold more than
             // twelve rows.
             let filter = shell.properties_filter().to_owned();
@@ -353,7 +353,7 @@ impl PropertiesPane {
     /// The header (§6.2): title, subtitle, location, finding chips (doc 16a §6.8: the title in `type.title`, the
     /// subtitle and the location in `type.small`, secondary; FT-530: one severity chip per finding at the right of the
     /// title line, its icon and word, the rule and message as the tooltip and in its node's name).
-    fn header(ui: &mut Ui, sheet: &PropertySheet, events: &mut Vec<Event>) {
+    fn header(ui: &mut Ui, sheet: &PropertySheet, editing: Option<&str>, events: &mut Vec<Event>) {
         let t = crate::theme::current(ui.ctx());
         // Cycle 36 (window check W36): the chips are laid out first, at the right, and the title takes what is left,
         // ellipsised; the findings collapse into one count chip per severity ("3 Warnings", every rule and message in
@@ -364,7 +364,7 @@ impl PropertiesPane {
         // with their words do not fit the line, each severity becomes one glyph chip (its icon, and the count when
         // more than one), the words in its tooltip and node name; the title is then ellipsised by the panel only.
         let findings = &sheet.header.findings;
-        let groups = severity_groups(findings);
+        let groups = severity_groups(findings, editing);
         let compact = {
             let measure = |text: String, font: &crate::theme::TypeToken| {
                 ui.painter()
@@ -492,7 +492,14 @@ impl PropertiesPane {
         let props = shell.properties();
         let label = row_label(section, row);
         let header = is_header(section, row);
-        let value = if header { String::new() } else { value_text(row) };
+        let value = if header {
+            String::new()
+        } else if is_page_kind(section, row) {
+            // M39 (doc 16a: words, not IDs): a page's Kind in the New page dialog's words ("Multi-line").
+            ew_viewmodel::strings::choice_text(&value_text(row))
+        } else {
+            value_text(row)
+        };
         let reason = read_only_reason(sheet, section, row);
         let chip = if header {
             String::new()
@@ -517,8 +524,11 @@ impl PropertiesPane {
         // label in the tooltip; `space.3` to the value cell (`size.control.inline`); a nested row is indented by
         // `space.3` per level (16a sets no property indent).
         let t = crate::theme::current(ui.ctx());
-        let (row_height, label_width, indent) = (t.size_row, t.size_property_label, t.space_3);
         let width = ui.available_width();
+        // M39 (owner 2026-10-31: scale, not cap): the label column takes `size.property_label` or 40 % of the row,
+        // whichever is wider, so a wider panel shows whole labels; a label that still does not fit elides with the
+        // whole label in its tooltip.
+        let (row_height, label_width, indent) = (t.size_row, label_column(&t, width), t.space_3);
         let (rect, _) = ui.allocate_exact_size(Vec2::new(width, row_height), Sense::hover());
         let group_id = ui.scope_id().with(("prop-row", &row.key));
         let group = ui.interact(rect, group_id, Sense::hover());
@@ -792,8 +802,9 @@ impl PropertiesPane {
         }
         // Below the row: its error (§6.1: the icon and the message in `color.error`, `type.small`), its choices, the
         // notes of the last commit, the popups.
+        // M39: the message wraps inside the panel (never cut at its edge), its icon at the first line.
         if let Some(e) = error {
-            ui.horizontal(|ui| {
+            ui.horizontal_top(|ui| {
                 ui.add_space(t.space_4);
                 let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_sm), Sense::hover());
                 crate::icons::paint(
@@ -803,10 +814,13 @@ impl PropertiesPane {
                     t.error.color32(),
                     t.icon_stroke,
                 );
-                ui.label(
-                    RichText::new(e)
-                        .font(crate::theme::font(&t.type_small))
-                        .color(t.error.color32()),
+                ui.add(
+                    egui::Label::new(
+                        RichText::new(e)
+                            .font(crate::theme::font(&t.type_small))
+                            .color(t.error.color32()),
+                    )
+                    .wrap(),
                 );
             });
             // FR-NUM-029: a refused tag-letter edit offers its proposal as one button (cycle 33, G-PP row 6).
@@ -1259,16 +1273,24 @@ fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, 
 }
 
 /// The header's findings by severity, most severe first (`error`, `warning`, then every other severity as `info`),
-/// each with its `(rule, message)` pairs; severities without a finding are left out.
-fn severity_groups(
-    findings: &[ew_viewmodel::ew_api::output::FindingChip],
-) -> Vec<(&'static str, Vec<(&str, &str)>)> {
-    ["error", "warning", "info"]
+/// then `pending`, each with its `(rule, message)` pairs; severities without a finding are left out. M39: a finding
+/// pending while `editing` (the editing page's folio) is the editing page counts as pending, not under its severity,
+/// as the Messages header counts it.
+fn severity_groups<'a>(
+    findings: &'a [ew_viewmodel::ew_api::output::FindingChip],
+    editing: Option<&str>,
+) -> Vec<(&'static str, Vec<(&'a str, &'a str)>)> {
+    let editing = editing.map(str::to_lowercase);
+    let pending =
+        |f: &ew_viewmodel::ew_api::output::FindingChip| f.pending_on.is_some() && f.pending_on == editing;
+    ["error", "warning", "info", "pending"]
         .into_iter()
         .map(|severity| {
             let of: Vec<(&str, &str)> = findings
                 .iter()
                 .filter(|f| match severity {
+                    "pending" => pending(f),
+                    _ if pending(f) => false,
                     "error" | "warning" => f.severity == severity,
                     _ => f.severity != "error" && f.severity != "warning",
                 })
@@ -1283,6 +1305,16 @@ fn severity_groups(
 /// "<n> <Word(s)>" ("1 Warning", "3 Warnings"), a count chip's word.
 fn count_words(severity: &str, n: usize) -> String {
     crate::messages::count_words(severity, n)
+}
+
+/// The Properties label column's width in a row `row` wide: `size.property_label`, or 40 % of the row when wider.
+pub(crate) fn label_column(t: &crate::theme::Tokens, row: f32) -> f32 {
+    t.size_property_label.max(row * 0.4)
+}
+
+/// Whether `row` is a page's Kind (its page type, a raw word like `multi_line` that the grid shows in words).
+fn is_page_kind(section: &ew_viewmodel::ew_api::output::SheetSection, row: &PropRow) -> bool {
+    section.kind == "page" && (row.key == "page/kind" || row.key == "page/type")
 }
 
 /// A severity's glyph chip (FT-664): the severity's subtle fill, its icon, and the count in `type.caption` when more
@@ -1314,6 +1346,7 @@ fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::R
     let (fill, text, icon_colour) = match severity {
         "error" => (t.error_subtle, t.error, t.error),
         "warning" => (t.warning_subtle, t.warning, t.warning_icon),
+        "pending" => (t.surface_sunken, t.text_secondary, t.text_secondary),
         _ => (t.info_subtle, t.info, t.info),
     };
     let count = (findings.len() > 1).then(|| {
@@ -1364,6 +1397,39 @@ mod tests {
     use egui::{Rect, pos2};
 
     use super::choices_placement;
+
+    /// M39: the label column scales with the row (40 %), never under `size.property_label`.
+    #[test]
+    fn the_label_column_scales_with_the_panel() {
+        use crate::theme::{Density, Theme, tokens};
+        let t = tokens(Theme::Light, Density::Comfortable);
+        assert_eq!(super::label_column(&t, 100.0), t.size_property_label);
+        assert_eq!(super::label_column(&t, 600.0), 240.0);
+        assert!(super::label_column(&t, 900.0) > super::label_column(&t, 300.0));
+    }
+
+    /// M39: a finding pending on the editing page counts as pending, not under its severity; elsewhere it counts
+    /// under its severity, as the Messages header counts it.
+    #[test]
+    fn pending_findings_count_as_pending() {
+        use ew_viewmodel::ew_api::output::FindingChip;
+        let chip = |severity: &str, pending: Option<&str>| FindingChip {
+            rule: "EW-CORE-041".into(),
+            severity: severity.into(),
+            message: "m".into(),
+            pending_on: pending.map(str::to_owned),
+        };
+        let findings = [
+            chip("warning", Some("101")),
+            chip("warning", None),
+            chip("error", Some("102")),
+        ];
+        let groups = super::severity_groups(&findings, Some("101"));
+        let count = |s: &str| groups.iter().find(|(g, _)| *g == s).map_or(0, |(_, of)| of.len());
+        assert_eq!((count("error"), count("warning"), count("pending")), (1, 1, 1));
+        let none = super::severity_groups(&findings, None);
+        assert!(none.iter().all(|(g, _)| *g != "pending"));
+    }
 
     /// FT-759: a page's chip filters Messages by its folio facet, a device's by its tag.
     #[test]

@@ -483,7 +483,8 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
             .get_all_by_role(egui::Role::Button)
             .find(|n| {
                 n.accesskit_node().label().as_deref() == Some(label)
-                    && (n.rect().width() - tokens.size_property_label).abs() < 0.5
+                    // M39: the column is at least `size.property_label` wide and scales with the panel.
+                    && n.rect().width() >= tokens.size_property_label - 0.5
             })
             .unwrap_or_else(|| panic!("the label {label}"))
             .rect();

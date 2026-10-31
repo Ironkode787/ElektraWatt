@@ -225,6 +225,17 @@ impl ShellModel {
         Some((self.project_epoch()?, self.revision()?, c.page().folio.clone()))
     }
 
+    /// The name in words of symbol `key` from the cached place catalogue (M39: the Place HUD names the symbol, not
+    /// its key); `None` when the catalogue is not cached, lacks the symbol, or the symbol has no name.
+    pub fn symbol_title(&self, key: &str) -> Option<String> {
+        let (_, cat) = self.tools.catalogue.as_ref()?;
+        cat.symbols
+            .iter()
+            .find(|s| s.key == key)
+            .map(|s| s.name.clone())
+            .filter(|n| !n.is_empty())
+    }
+
     /// The place catalogue of the focused page, through the cache.
     pub(super) fn catalogue(&mut self) -> Option<Arc<PlaceCatalogue>> {
         let key = self.canvas_key()?;

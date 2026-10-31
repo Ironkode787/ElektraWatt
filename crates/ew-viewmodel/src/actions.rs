@@ -892,6 +892,17 @@ fn selection_shown(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+/// Edit ▸ Delete (M39): an editable page with something selected; it deletes the canvas selection only (a navigator's
+/// rows have their own Delete, `table.clear`), so with nothing selected it is disabled for that reason, as Cut is.
+fn editable_selection(m: &ShellModel) -> Result<(), &'static str> {
+    editable_page(m)?;
+    if m.selection().is_empty() {
+        Err("reason-nothing-selected")
+    } else {
+        Ok(())
+    }
+}
+
 /// Save as macro… (WP-S1.19 §11, FT-754 (b)): a page on show with something selected (a window macro) or pages
 /// marked in the Pages navigator (a page macro).
 fn macro_scope_shown(m: &ShellModel) -> Result<(), &'static str> {
@@ -2152,7 +2163,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         "action-edit-delete-selection",
         Menu::Edit,
         &["Delete"],
-        editable_page,
+        editable_selection,
         slot_sep(Menu::Edit),
     )),
     // WP-S2.05 part 3: the clipboard (§8.8). The chords are the canvas's: a text field of the property grid or the find

@@ -88,6 +88,10 @@ pub struct FindingChip {
     pub severity: String,
     /// The message.
     pub message: String,
+    /// The folio in lower case of a completeness finding's page (its page, else its primary target's), `None` for
+    /// any other kind: the finding is pending while that page is the editing page, as the Messages pane counts it
+    /// (M39: the chip counts what the pane counts).
+    pub pending_on: Option<String>,
 }
 
 /// One section: the rows of one record kind over its targets.
@@ -1958,6 +1962,7 @@ impl Session {
             }
         }
         let mut findings: Vec<(String, String, FindingChip)> = Vec::new();
+        let folios = super::navigators::folios(q);
         {
             let report = checks::run(q, self.online_scheme(), checks::CheckMode::Online);
             for f in report
@@ -1975,6 +1980,10 @@ impl Session {
                             rule: f.rule.to_owned(),
                             severity: f.severity.name().to_owned(),
                             message: f.message.clone(),
+                            pending_on: checks::rule(f.rule)
+                                .filter(|r| r.meta().kind == checks::RuleKind::Completeness)
+                                .and_then(|_| super::navigators::finding_page(q, &folios, f).0)
+                                .map(|(folio, _)| folio.to_lowercase()),
                         },
                     ));
                 }

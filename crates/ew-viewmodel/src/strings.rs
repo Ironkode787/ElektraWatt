@@ -651,6 +651,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "palette-title" => "Command palette",
         "palette-hint" => "Type a command…",
         "palette-no-match" => "No matching command",
+        "palette-form-hint" => "Enter applies \u{b7} Escape goes back",
         "dialog-close" => "Close",
         "dialog-save" => "Save",
         "dialog-discard" => "Discard",

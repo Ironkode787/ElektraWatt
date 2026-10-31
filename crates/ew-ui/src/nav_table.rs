@@ -677,11 +677,18 @@ fn paint_text(ui: &Ui, rect: Rect, text: &str, font: FontId, colour: Rgba) -> f3
 /// wide as `content` (the unwrapped content's width) plus `space.4` on either side when that is wider, so that a
 /// column starts at `size.table_column` and fits its widest cell on show (doc 16a §6.21; as built every column
 /// shrank to its 40-px minimum). A column with a cap ([`cap_width`]) does not grow past it: its cells elide.
-fn cell_rect(ui: &Ui, t: &Tokens, kind: NavKind, key: &str, content: impl FnOnce() -> f32) -> Rect {
+fn cell_rect(
+    ui: &Ui,
+    t: &Tokens,
+    kind: NavKind,
+    key: &str,
+    pane: f32,
+    content: impl FnOnce() -> f32,
+) -> Rect {
     let rect = ui.max_rect();
     if ui.is_sizing_pass() {
         let mut width = (content() + 2.0 * t.space_4).max(start_width(t, kind, key));
-        if let Some(cap) = cap_width(t, kind, key) {
+        if let Some(cap) = cap_width(t, kind, key, pane) {
             width = width.min(cap);
         }
         Rect::from_min_size(rect.min, vec2(width, rect.height()))
@@ -705,10 +712,23 @@ fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
 
 /// The width a column's content may not widen it past: the Pages table's Title stays at `size.table_column` and
 /// elides, its whole text in the cell's tooltip, so that "Changed in" fits the default navigator width (FT-718); the
-/// Libraries table's Name likewise, so that its Kind ("Function definition") fits the default rail width (FT-755).
-fn cap_width(t: &Tokens, kind: NavKind, key: &str) -> Option<f32> {
-    ((kind == NavKind::Pages && key == "title") || (kind == NavKind::Libraries && key == "name"))
-        .then_some(t.size_table_column)
+/// Libraries table's Name gets the space first but scales with the pane (M39, owner 2026-10-31: never a width chosen
+/// for the floor): at most half the grid's width `pane`, at least `size.table_column`, so that a wider rail shows
+/// more of each name and its Kind still starts in view; past that it elides with the whole name in the tooltip and
+/// the grid scrolls sideways.
+fn cap_width(t: &Tokens, kind: NavKind, key: &str, pane: f32) -> Option<f32> {
+    if kind == NavKind::Pages && key == "title" {
+        Some(t.size_table_column)
+    } else if kind == NavKind::Libraries && key == "name" {
+        Some(libraries_name_cap(t, pane))
+    } else {
+        None
+    }
+}
+
+/// The Libraries table's Name cap in a grid `pane` wide: half the grid, never under `size.table_column`.
+pub(crate) fn libraries_name_cap(t: &Tokens, pane: f32) -> f32 {
+    (pane / 2.0).max(t.size_table_column)
 }
 
 /// The unwrapped width of `text` in `font`.
@@ -846,7 +866,7 @@ impl TableDelegate for Delegate<'_> {
         let derived = column.derived.then_some((IconId::math_function, t.text_tertiary));
         let icons: Vec<(IconId, Rgba)> = icon.into_iter().chain(derived).collect();
         let icon_room = icons.len() as f32 * (t.icon_sm + t.space_2);
-        let rect = cell_rect(ui, &t, self.kind, &column.key, || {
+        let rect = cell_rect(ui, &t, self.kind, &column.key, self.area.width(), || {
             text_width(ui, &column.label, small_strong(&t)) + icon_room
         });
         let response = ui.allocate_rect(rect, Sense::click());
@@ -962,7 +982,7 @@ impl TableDelegate for Delegate<'_> {
         }
         let is_cursor = self.cursor == Some((at, cell.col_nr));
         let on_cursor_row = self.cursor.is_some_and(|(r, _)| r == at);
-        let rect = cell_rect(ui, &t, self.kind, &column.key, || {
+        let rect = cell_rect(ui, &t, self.kind, &column.key, self.area.width(), || {
             text_width(ui, &text, theme::font(&t.type_small))
         });
         // WP-S2.07 §6.8: an unplaced terminal row is a drag source onto a canvas (its terminal device; the drop arms
@@ -1068,5 +1088,18 @@ impl TableDelegate for Delegate<'_> {
 
     fn default_row_height(&self) -> f32 {
         self.tokens.size_row
+    }
+}
+
+#[cfg(test)]
+mod cap_tests {
+    use crate::theme::{Density, Theme, tokens};
+
+    /// M39: the Libraries Name cap scales with the grid (half of it), never under `size.table_column`.
+    #[test]
+    fn the_libraries_name_cap_scales_with_the_pane() {
+        let t = tokens(Theme::Light, Density::Comfortable);
+        assert_eq!(super::libraries_name_cap(&t, 100.0), t.size_table_column);
+        assert_eq!(super::libraries_name_cap(&t, 600.0), 300.0);
     }
 }

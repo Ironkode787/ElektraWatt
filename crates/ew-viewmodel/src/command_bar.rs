@@ -611,7 +611,12 @@ pub fn hud(model: &ShellModel) -> HudModel {
             ..
         }) => {
             target = tag.or(strip);
-            let mut what = target.clone().unwrap_or(symbol);
+            // M39: the symbol by its name in words (`NO contact`), its key's last segment without a name.
+            let mut what = target.clone().unwrap_or_else(|| {
+                model
+                    .symbol_title(&symbol)
+                    .unwrap_or_else(|| crate::tools::symbol_name(&symbol).to_owned())
+            });
             if hints > 0 {
                 let count = strings::format(
                     if hints == 1 { "count-wire" } else { "count-wires" },

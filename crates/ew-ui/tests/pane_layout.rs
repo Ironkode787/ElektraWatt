@@ -140,7 +140,9 @@ fn x32b_the_property_value_cell_takes_the_rest_of_the_row() {
         "the cell {cell:?} ends at the row's padding in {pane:?}"
     );
     assert!(
-        cell.left() <= pane.left() + t.space_4 + t.size_property_label + t.space_3 + 0.5,
+        // M39: the label column is `size.property_label` or 40 % of the row, whichever is wider.
+        cell.left()
+            <= pane.left() + t.space_4 + t.size_property_label.max(0.4 * pane.width()) + t.space_3 + 0.5,
         "the cell {cell:?} starts after the label column"
     );
 }

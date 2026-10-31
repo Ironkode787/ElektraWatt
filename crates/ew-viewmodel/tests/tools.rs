@@ -751,6 +751,9 @@ fn the_canvas_context_menu_offers_the_bar_selection_commands_and_delete() {
     use ew_viewmodel::shell::Mode;
     let tmp = Tmp::new("ctx-menu");
     let mut shell = tmp.shell_in(Mode::Headless, true, "103");
+    // The window selects the object under the pointer before it opens the menu (M39: Delete needs a selection).
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
     let labels = |s: &ShellModel, over: bool| -> Vec<(String, bool)> {
         canvas_menu(s, over)
             .into_iter()

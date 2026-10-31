@@ -62,6 +62,8 @@ pub(crate) fn severity_icon_id(severity: &str) -> IconId {
     match severity {
         "error" => IconId::circle_x,
         "warning" => IconId::alert_triangle,
+        // M39: the Properties header's pending chip, as the pending badge.
+        "pending" => IconId::pencil,
         _ => IconId::info_circle,
     }
 }
@@ -136,6 +138,7 @@ fn count_colours(t: &Tokens, severity: &str) -> (Rgba, Rgba) {
     match severity {
         "error" => (t.error_subtle, t.error),
         "warning" => (t.warning_subtle, t.warning),
+        "pending" => (t.surface_sunken, t.text_secondary),
         _ => (t.info_subtle, t.info),
     }
 }
@@ -182,7 +185,10 @@ fn count_badge(ui: &mut Ui, t: &Tokens, severity: &'static str, count: usize) {
 
 /// "<n> <Word>" of a severity, singular for one ("1 Warning", "3 Warnings"): a count chip's word.
 pub(crate) fn count_words(severity: &str, n: usize) -> String {
-    let words = if n == 1 {
+    // M39: pending findings count under one word, as the Messages header counts them ("2 Pending").
+    let words = if severity == "pending" {
+        strings::text("badge-pending")
+    } else if n == 1 {
         severity_word(severity)
     } else {
         strings::text(match severity {

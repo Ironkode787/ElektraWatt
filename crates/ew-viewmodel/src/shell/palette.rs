@@ -261,6 +261,18 @@ impl ShellModel {
         let Ok(target) = project.session.resolve_goto(query) else {
             return Vec::new();
         };
+        // M39: the page's title after the folio ("102" then "Control"), not the folio twice.
+        let title = self
+            .page_rows()
+            .iter()
+            .find(|r| r.folio == target.folio)
+            .map(|r| r.title.clone())
+            .unwrap_or_default();
+        let breadcrumb = match (query.trim() == target.folio, title.is_empty()) {
+            (true, _) => title,
+            (false, true) => target.folio,
+            (false, false) => format!("{} {title}", target.folio),
+        };
         vec![PaletteEntry {
             run: PaletteRun::Cell(query.to_owned()),
             label: query.to_owned(),
@@ -268,8 +280,29 @@ impl ShellModel {
             shortcut: String::new(),
             enabled: true,
             reason: None,
-            breadcrumb: target.folio,
+            breadcrumb,
         }]
+    }
+
+    /// The palette's line when it lists nothing (M39): for the `:` prefix the page jump's refusal ("No page has the
+    /// folio 999.", "Page 101 has no cell Z9."), else "No matching command".
+    pub fn palette_empty_text(&self) -> String {
+        let query = self.palette.as_ref().map(|p| p.query.as_str()).unwrap_or("");
+        let (prefix, rest) = split_prefix(query);
+        let resolved = match (prefix, &self.project) {
+            (Prefix::Cell, Some(project)) if !rest.is_empty() => project.session.resolve_goto(rest).err(),
+            _ => None,
+        };
+        match resolved {
+            Some(ew_api::output::GotoError::NotFound) if !rest.contains('-') => {
+                strings::format("error-no-folio", &[rest])
+            }
+            Some(ew_api::output::GotoError::NotFound) => strings::format("error-goto-not-found", &[rest]),
+            Some(ew_api::output::GotoError::NoSuchCell { folio, cell }) => {
+                strings::format("error-goto-no-cell", &[&folio, &cell])
+            }
+            _ => strings::text("palette-no-match").to_owned(),
+        }
     }
 
     /// `?`: the shipped rules whose ID or title the query aligns with (the title weighs 0.9), by rank, then ID.

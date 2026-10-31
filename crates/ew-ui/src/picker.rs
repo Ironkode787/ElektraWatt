@@ -102,6 +102,28 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 .max_height(t.size_row * 13.0)
                 .show(ui, |ui| {
                     ui.spacing_mut().item_spacing.y = 0.0;
+                    // M39: the part number and the function sit in columns that stay put, as wide as their widest
+                    // text over the rows; the description takes the rest and elides (whole in the tooltip).
+                    let small = crate::theme::font(&t.type_small);
+                    let width = |text: &str| {
+                        ui.painter()
+                            .layout_no_wrap(text.to_owned(), small.clone(), crate::theme::NONE)
+                            .size()
+                            .x
+                    };
+                    let (mut number_w, mut meta_w) = (0.0_f32, 0.0_f32);
+                    for row in &picker.rows {
+                        let (_, second, meta, _) = row_texts(picker, *row);
+                        let meta = picker
+                            .disabled(*row)
+                            .map_or(meta, |r| strings::text(r).to_owned());
+                        number_w = number_w.max(second.as_deref().map_or(0.0, width));
+                        meta_w = meta_w.max(width(&meta));
+                    }
+                    // The function column takes at most a third of the row (a long disabled reason elides there,
+                    // whole in the row's tooltip), so the description keeps the most room.
+                    let meta_w = meta_w.min(ui.available_width() / 3.0);
+                    let small_h = t.type_small.line;
                     for (i, row) in picker.rows.iter().enumerate() {
                         // FT-425: the manufacturer's header above its first part row.
                         if let Some(m) = picker.header_before(i) {
@@ -136,14 +158,20 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                                 .color(text_colour.color32())
                                 .atom_shrink(true),
                         );
-                        if let Some(second) = &second {
-                            atoms.push_right(second_text(&t, second, enabled));
-                        }
                         atoms.push_right(egui::Atom::grow());
+                        if number_w > 0.0 {
+                            atoms.push_right(
+                                second_text(&t, second.as_deref().unwrap_or(""), enabled)
+                                    .atom_size(egui::vec2(number_w, small_h))
+                                    .atom_align(egui::Align2::LEFT_CENTER),
+                            );
+                        }
                         atoms.push_right(
                             egui::RichText::new(&meta)
                                 .font(crate::theme::font(&t.type_small))
-                                .color(meta_colour.color32()),
+                                .color(meta_colour.color32())
+                                .atom_size(egui::vec2(meta_w, small_h))
+                                .atom_align(egui::Align2::RIGHT_CENTER),
                         );
                         let button = Button::new(atoms)
                             .wrap_mode(egui::TextWrapMode::Truncate)
@@ -211,7 +239,7 @@ fn row_texts(
                 &[
                     &(k + 1).to_string(),
                     &part.functions.len().to_string(),
-                    &f.kind_text,
+                    &function_words(&f.kind_text, &f.fndef_key),
                 ],
             );
             if f.main {
@@ -249,9 +277,40 @@ fn row_texts(
     }
 }
 
+/// A template function in words (M39): its kind text, or, where that is only the FnDef key (a FnDef whose category
+/// has fewer than two entries, `ew.fn.blackbox`), the key's last segment as words (`Blackbox`).
+fn function_words(kind_text: &str, fndef_key: &str) -> String {
+    if kind_text != fndef_key {
+        return kind_text.to_owned();
+    }
+    let word = ew_viewmodel::tools::symbol_name(fndef_key).replace(['-', '_'], " ");
+    let mut chars = word.chars();
+    match chars.next() {
+        Some(c) => c.to_uppercase().chain(chars).collect(),
+        None => kind_text.to_owned(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::theme::{Density, Theme, font, tokens};
+
+    /// M39: a function whose kind text is its FnDef key reads as words, never as the key; a real kind text stays.
+    #[test]
+    fn function_keys_read_as_words() {
+        assert_eq!(
+            super::function_words("ew.fn.blackbox", "ew.fn.blackbox"),
+            "Blackbox"
+        );
+        assert_eq!(
+            super::function_words("ew.fn.dp-connector", "ew.fn.dp-connector"),
+            "Dp connector"
+        );
+        assert_eq!(
+            super::function_words("NO contact 13-14", "ew.fn.contact-no"),
+            "NO contact 13-14"
+        );
+    }
 
     /// FT-759: the part number after a part row's description is `type.small` in `color.text.secondary`.
     #[test]
