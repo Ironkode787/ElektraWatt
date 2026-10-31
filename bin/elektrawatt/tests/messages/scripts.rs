@@ -228,10 +228,10 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
     // Golden A's drafting findings (doc 20 §18.1): EF-08 and the EW-POT errors EF-01 (T55, S56) and EF-06 (W6,
     // 101.8), the 28 EW-PLC-012 coil bindings of EF-02 (WP-S1.21 part 3); the warnings EF-09, EF-10 and EF-11, two
     // each; the ten EW-NUM-001 infos; WP-S1.21 part 4: the TBD DP station address EF-03 (EW-BUS-001, an error) and
-    // EF-16 (EW-BUS-004, an info).
+    // EF-16 (EW-BUS-004, an info); WP-S4.01 part 5: EF-05's five EW-LAY-001 findings (warnings online).
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"drafting\" errors 33 warnings 25 infos 13 waived 0 pending 0"
+        "  messages scheme \"drafting\" errors 33 warnings 30 infos 13 waived 0 pending 0"
     );
     let rows = finding_rows(d);
     // Golden A's findings in their groups: a lower bound, not a total (CONTRIBUTING: no pinned totals).
@@ -326,8 +326,8 @@ pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_c
     let d = describe(&lines[10]);
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"drafting\" errors 33 warnings 21 infos 13 waived 0 pending 5",
-        "errors unchanged, pending 5"
+        "  messages scheme \"drafting\" errors 33 warnings 22 infos 13 waived 0 pending 9",
+        "errors unchanged, pending 9 (four of EF-05's EW-LAY-001 warnings name devices drawn on 101)"
     );
     let rows = finding_rows(d);
     assert_eq!(rows.len(), 1, "{d}");
@@ -336,7 +336,7 @@ pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_c
     let d = describe(&lines[12]);
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"drafting\" errors 34 warnings 25 infos 13 waived 0 pending 0",
+        "  messages scheme \"drafting\" errors 34 warnings 30 infos 13 waived 0 pending 0",
         "Run checks makes it an error"
     );
     let rows = finding_rows(d);
@@ -399,6 +399,6 @@ pub(crate) fn ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_ca
     // Folio 102 is the edited page: EF-09's two completeness warnings on it (-102F2:13, :14) are pending (§7.2).
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"drafting\" errors 33 warnings 23 infos 13 waived 0 pending 2"
+        "  messages scheme \"drafting\" errors 33 warnings 28 infos 13 waived 0 pending 2"
     );
 }
