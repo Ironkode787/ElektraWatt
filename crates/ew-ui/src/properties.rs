@@ -57,6 +57,9 @@ pub struct PropertiesPane {
     label_need: f32,
     /// The filter field's text (FT-541; the shell's filter is set from it).
     filter: String,
+    /// The shell's filter text as last seen: a change made elsewhere (`props.filter`, Clear filter) shows in the field
+    /// even while a text field has the focus.
+    filter_seen: String,
 }
 
 /// `text` ellipsised in the middle at [`MAX_SHOWN`] characters.
@@ -270,8 +273,9 @@ impl PropertiesPane {
     fn filter_field(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let t = crate::theme::current(ui.ctx());
         let wanted = shell.properties().filter();
-        if self.filter != wanted && !ui.ctx().text_edit_focused() {
+        if wanted != self.filter_seen || (self.filter != wanted && !ui.ctx().text_edit_focused()) {
             self.filter = wanted.to_owned();
+            self.filter_seen = wanted.to_owned();
         }
         let line = {
             let free = ui.available_rect_before_wrap();
@@ -293,6 +297,7 @@ impl PropertiesPane {
         field.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, hint));
         ui.add_space(t.space_2);
         if field.changed() {
+            self.filter_seen = self.filter.clone();
             events.push(Event::Action("props.filter", json!({ "text": self.filter })));
         }
     }
@@ -418,9 +423,36 @@ impl PropertiesPane {
                 .map(|(severity, of)| chip(count_words(severity, of.len())))
                 .sum();
             let gaps = t.space_1 * groups.len().saturating_sub(1) as f32;
-            let title = measure(sheet.header.title.clone(), &t.type_title);
-            !findings.is_empty() && title + t.space_2 + chips + gaps > ui.available_width()
+            // C39 (window check W39c2): the title elides first (whole in its tooltip), down to its first three
+            // characters and the ellipsis; only past that do the chips lose their words.
+            let shortest: String = sheet
+                .header
+                .title
+                .chars()
+                .take(3)
+                .chain(std::iter::once('\u{2026}'))
+                .collect();
+            let title = measure(shortest, &t.type_title);
+            !findings.is_empty() && title + t.space_2 + chips + gaps > ui.available_width() - 2.0 * t.space_4
         };
+        // C39: the header keeps the pane's `space.4` gutter on both sides, as the filter field and the row labels, so
+        // a chip at the right end is never clipped by the pane's edge.
+        egui::Frame::new()
+            .inner_margin(egui::Margin::symmetric(t.space_4 as i8, 0))
+            .show(ui, |ui| Self::header_lines(ui, sheet, &groups, compact, events));
+        ui.separator();
+    }
+
+    /// The header's lines inside its gutter: the title line with its chips, the subtitle, the location, the read-only
+    /// reason ([`Self::header`]).
+    fn header_lines(
+        ui: &mut Ui,
+        sheet: &PropertySheet,
+        groups: &[(&str, Vec<(&str, &str)>)],
+        compact: bool,
+        events: &mut Vec<Event>,
+    ) {
+        let t = crate::theme::current(ui.ctx());
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.spacing_mut().item_spacing.x = t.space_1;
@@ -461,7 +493,6 @@ impl PropertiesPane {
         if let Some(r) = &sheet.read_only {
             ui.label(RichText::new(r).italics());
         }
-        ui.separator();
     }
 
     /// The inline preview card (§6.6; WP-S2.17 part 4, doc 16a §6.23): "Preview of `<command>`" with its revision and

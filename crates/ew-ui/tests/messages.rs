@@ -321,6 +321,12 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
         (link.center().y - rule.center().y).abs() <= 2.0 && link.right() <= list.right() + 0.5,
         "the link {link:?} at the right end of the title line {rule:?}"
     );
+    // C39 (W39c2): the link keeps a gutter from the detail's scroll bar at the pane's right edge.
+    let tokens = ew_ui::theme::current(&h.ctx);
+    assert!(
+        link.right() <= list.right() - tokens.space_2,
+        "the link {link:?} touches the pane's edge {list:?}"
+    );
 }
 
 /// FT-528: `navigator.row` to a finding under a collapsed group expands the path and scrolls the cursor row into view;

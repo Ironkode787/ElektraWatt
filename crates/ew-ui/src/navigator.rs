@@ -328,7 +328,17 @@ impl NavigatorPane {
                             .id_salt("messages-detail-scroll")
                             .max_height(inner)
                             .min_scrolled_height(inner)
-                            .show(ui, |ui| crate::messages::detail(ui, shell, events));
+                            .show(ui, |ui| {
+                                // C39 (window check W39c2): the text keeps a gutter from the scroll bar, so the
+                                // Rule page link and a wrapped line never touch the bar or the pane's edge.
+                                let gutter = ui.spacing().scroll.bar_width + t.space_2;
+                                egui::Frame::new()
+                                    .inner_margin(egui::Margin {
+                                        right: gutter as i8,
+                                        ..egui::Margin::ZERO
+                                    })
+                                    .show(ui, |ui| crate::messages::detail(ui, shell, events));
+                            });
                         let measured = shown.content_size.y;
                         if ui.data(|d| d.get_temp::<f32>(content)) != Some(measured) {
                             ui.data_mut(|d| d.insert_temp(content, measured));

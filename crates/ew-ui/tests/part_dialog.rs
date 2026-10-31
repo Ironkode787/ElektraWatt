@@ -122,10 +122,16 @@ fn the_part_editor_by_keyboard() {
         "Part number",
         "Description",
         "Unit",
-        "rated_current",
+        "Rated current",
     ] {
         let _ = field(&h, label);
     }
+    // A technical-data key reads in words, never as the raw key.
+    assert!(
+        h.get_all_by_role(egui::Role::TextInput)
+            .all(|n| n.accesskit_node().label().as_deref() != Some("rated_current")),
+        "a raw technical-data key"
+    );
     // The first field has the focus; Tab moves to Description (after Part number, Type designation, Order number,
     // GTIN), End to its end, where " C4" is typed.
     assert!(

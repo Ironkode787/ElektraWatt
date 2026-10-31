@@ -687,5 +687,18 @@ fn the_pages_table_shows_changed_in_at_the_default_width() {
         h.query_by_label("Sort by Generated").is_none(),
         "Generated waits in the chooser"
     );
+    // C39 (window check W39c2): the Title takes the room Folio and Changed in leave, so no room is left free right of
+    // Changed in while a title is cut.
+    let t = ew_ui::theme::current(&h.ctx);
+    assert!(
+        title.width() >= t.size_table_column,
+        "the Title {title:?} under `size.table_column`"
+    );
+    // The pane ends at the canvas (less its splitter and the grid's gutter).
+    assert!(
+        canvas.x0 as f32 - changed.right() < 2.0 * t.space_4,
+        "room left free right of Changed in {changed:?} before the canvas at {}",
+        canvas.x0
+    );
     h.state_mut().shell_mut().shutdown();
 }

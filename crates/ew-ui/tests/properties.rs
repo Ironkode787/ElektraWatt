@@ -511,27 +511,42 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
         .expect("the Number label")
         .rect();
     let row_width = number.width();
-    // The widest label of the rows on show (scrolled out of view or not), as the sheet lists them.
+    // The widest label of the rows on show (scrolled out of view or not), as the sheet lists them, with its indent:
+    // `space.3` per level below the shallowest row of its group (at most six; the Main group is not indented).
     let need = {
+        use ew_viewmodel::properties::{RowGroup, groups, row_label, visible_rows};
         let shell = h.state().shell();
         let sheet = shell.properties().sheet().expect("a sheet");
-        let rows = ew_viewmodel::properties::visible_rows(
+        let advanced = shell.properties_show_advanced();
+        let rows = visible_rows(
             sheet,
             &shell.properties_collapsed(),
-            shell.properties_show_advanced(),
+            advanced,
             shell.properties_filter(),
         );
+        let on_show = |r: &ew_viewmodel::properties::PropRow| rows.iter().any(|v| std::ptr::eq(v.row, r));
         let font = ew_ui::theme::font(&tokens.type_small);
-        rows.iter()
-            .map(|v| {
-                let label = ew_viewmodel::properties::row_label(v.section, v.row);
-                h.ctx.fonts_mut(|f| {
-                    f.layout_no_wrap(label, font.clone(), egui::Color32::WHITE)
-                        .size()
-                        .x
-                })
-            })
-            .fold(0.0_f32, f32::max)
+        let mut need = 0.0_f32;
+        for section in &sheet.sections {
+            for (group, group_rows) in groups(section, advanced) {
+                let shown: Vec<_> = group_rows.into_iter().filter(|r| on_show(r)).collect();
+                let base = if matches!(group, RowGroup::Main) {
+                    u8::MAX
+                } else {
+                    shown.iter().map(|r| r.depth).min().unwrap_or(0)
+                };
+                for row in shown {
+                    let depth = tokens.space_3 * f32::from(row.depth.saturating_sub(base)).min(6.0);
+                    let w = h.ctx.fonts_mut(|f| {
+                        f.layout_no_wrap(row_label(section, row), font.clone(), egui::Color32::WHITE)
+                            .size()
+                            .x
+                    });
+                    need = need.max(depth + w);
+                }
+            }
+        }
+        need
     };
     let expected = need.min(row_width * 0.4).max(tokens.size_property_label);
     assert!(
@@ -916,6 +931,17 @@ fn ft541_the_properties_filter_for_more_than_twelve_rows() {
     for l in &painted_rows {
         assert!(kept.contains(l), "the painted row {l} matches {needle}");
     }
+    // `props.filter` with an empty text, while the field keeps the focus: the field shows what filters (C39 item 8).
+    dispatch(&mut h, "props.filter", json!({"text": ""}));
+    settle(&mut h);
+    settle(&mut h);
+    let shown = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Filter properties"))
+        .and_then(|n| n.accesskit_node().value())
+        .unwrap_or_default();
+    assert_eq!(shown, "", "the field still shows {needle}");
+    assert_eq!(row_names(&h), all, "every row again");
     // A filter without hits: the empty state and Clear filter.
     dispatch(&mut h, "props.filter", json!({"text": "zzzz-no-such-row"}));
     settle(&mut h);
@@ -1023,4 +1049,45 @@ fn c37_typing_into_an_opened_field_replaces_its_text() {
         .expect("still editing")
         .clone();
     assert_eq!(edit.buffer, "-102G8");
+}
+
+/// C39 (window check W39c2): at the floor (1280 by 800) the page's warning chip keeps its count and word ("1 Warning",
+/// not the icon alone) while the title elides, and the chip stands inside the pane's gutter (its right edge with the
+/// filter field's), never clipped by the pane's edge.
+#[test]
+fn c39_the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    settle(&mut h);
+    let chip = h
+        .get_all_by_role(egui::Role::Button)
+        .find(|n| {
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| l.starts_with("1 Warning: "))
+        })
+        .expect("the page's warning chip")
+        .rect();
+    let tokens = ew_ui::theme::current(&h.ctx);
+    let word = h.ctx.fonts_mut(|f| {
+        f.layout_no_wrap(
+            "1 Warning".to_owned(),
+            ew_ui::theme::font(&tokens.type_caption),
+            egui::Color32::WHITE,
+        )
+        .size()
+        .x
+    });
+    assert!(chip.width() > word, "the chip {chip:?} shows only its icon");
+    let filter = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Filter properties"))
+        .expect("the filter field")
+        .rect();
+    assert!(
+        chip.right() <= filter.right() + 0.5,
+        "the chip {chip:?} past the gutter of the filter field {filter:?}"
+    );
 }

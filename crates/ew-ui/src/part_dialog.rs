@@ -370,7 +370,9 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             ui.label(RichText::new(strings::text("part-field-tech")).font(theme::font(&t.type_body_strong)));
             for (k, v) in &d.tech {
                 let field = format!("tech:{k}");
-                save |= labelled_field(ui, k, v, false, |text| {
+                // The key in words ("rated_current" reads "Rated current"); the field keeps the raw key.
+                let label = strings::field_label("part", &format!("tech_data.{k}"));
+                save |= labelled_field(ui, &label, v, false, |text| {
                     events.push(Event::Action(
                         "part.field",
                         json!({ "field": field, "value": text }),

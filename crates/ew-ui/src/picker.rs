@@ -50,6 +50,11 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         PickerMode::BlackBox => strings::text("picker-title-black-box"),
     };
     let t = crate::theme::current(ctx);
+    let width = crate::dialog::grown(
+        t.size_palette,
+        crate::palette::PALETTE_SHARE,
+        ctx.content_rect().width(),
+    );
     Window::new(title)
         .id(Id::unique("place-picker"))
         .anchor(
@@ -58,7 +63,10 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         )
         .collapsible(false)
         .resizable(false)
-        .default_width(t.size_palette)
+        // C39 (doc 16a §2): the picker grows with the window as the palette does; the description takes the gain.
+        .default_width(width)
+        .min_width(width)
+        .max_width(width)
         .show(ctx, |ui| {
             let mut filter = picker.filter.clone();
             // Cycle 37 (window check W37): the focus is taken before the field reads this frame's input, so the key

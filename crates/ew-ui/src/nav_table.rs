@@ -203,12 +203,16 @@ impl TableUi {
             events,
             painted: 0,
             cursor_rect: None,
+            others: None,
         };
         let column_ids: Vec<(egui::Id, String)> = shown
             .iter()
             .map(|c| (column_id(&table.columns[*c].key), table.columns[*c].label.clone()))
             .collect();
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(table_id), |ui| {
+            // C39 (window check W39c2, item 9): the rows are clipped to the grid's rect, so the top of the row past the
+            // last one in view does not show as a ghost row under the grid's border.
+            ui.set_clip_rect(ui.clip_rect().intersect(area));
             // Doc 16a §6.21: the header band in `color.surface.sunken` across the grid with a 1-px
             // `color.border.subtle` line under it; the resize handles are invisible at rest and a 1-px `color.accent`
             // line on hover and while dragging (egui_table paints them with the widget strokes).
@@ -676,19 +680,19 @@ fn paint_text(ui: &Ui, rect: Rect, text: &str, font: FontId, colour: Rgba) -> f3
 /// A cell's rect: the whole cell, or in egui_table's sizing pass (the first frame) `size.table_column` wide or as
 /// wide as `content` (the unwrapped content's width) plus `space.4` on either side when that is wider, so that a
 /// column starts at `size.table_column` and fits its widest cell on show (doc 16a §6.21; as built every column
-/// shrank to its 40-px minimum). A column with a cap ([`cap_width`]) does not grow past it: its cells elide.
+/// shrank to its 40-px minimum). A column with a cap ([`fill_cap`]) does not grow past it: its cells elide.
 fn cell_rect(
     ui: &Ui,
     t: &Tokens,
     kind: NavKind,
     key: &str,
-    pane: f32,
+    cap: impl FnOnce() -> Option<f32>,
     content: impl FnOnce() -> f32,
 ) -> Rect {
     let rect = ui.max_rect();
     if ui.is_sizing_pass() {
         let mut width = (content() + 2.0 * t.space_4).max(start_width(t, kind, key));
-        if let Some(cap) = cap_width(t, kind, key, pane) {
+        if let Some(cap) = cap() {
             width = width.min(cap);
         }
         Rect::from_min_size(rect.min, vec2(width, rect.height()))
@@ -710,19 +714,24 @@ fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
     }
 }
 
-/// The width a column's content may not widen it past: the Pages table's Title and the Libraries table's Name get
-/// the space first but scale with the pane (M39, owner 2026-10-31: never a width chosen for the floor): at most half
-/// the grid's width `pane`, at least `size.table_column`, so that a wider rail shows more of each title or name and
-/// the next column ("Changed in", FT-718; Kind, FT-755) still starts in view; past that the cell elides with its whole
-/// text in the tooltip and the grid scrolls sideways.
-fn cap_width(t: &Tokens, kind: NavKind, key: &str, pane: f32) -> Option<f32> {
-    ((kind == NavKind::Pages && key == "title") || (kind == NavKind::Libraries && key == "name"))
-        .then(|| libraries_name_cap(t, pane))
+/// Whether a column fills the room the others leave: the Pages table's Title ([`fill_cap`]).
+fn fills(kind: NavKind, key: &str) -> bool {
+    kind == NavKind::Pages && key == "title"
 }
 
-/// The Pages Title and Libraries Name cap in a grid `pane` wide: half the grid, never under `size.table_column`.
+/// The Libraries table's Name cap in a grid `pane` wide: half the grid, never under `size.table_column` (M39). Its
+/// other columns (Kind, Tier, Version) start wide and would leave the name too little room under [`fill_cap`].
 pub(crate) fn libraries_name_cap(t: &Tokens, pane: f32) -> f32 {
     (pane / 2.0).max(t.size_table_column)
+}
+
+/// The width the Pages Title or the Libraries Name may not grow past in a grid `pane` wide whose other columns need
+/// `others` (C39, owner 2026-10-31: never a width chosen for the floor): the room the other columns leave, at least
+/// `size.table_column`, so that nothing is cut while the pane has room and the next column ("Changed in", FT-718;
+/// Kind, FT-755) still starts in view; past that the cell elides with its whole text in the tooltip and the grid
+/// scrolls sideways.
+pub(crate) fn fill_cap(t: &Tokens, pane: f32, others: f32) -> f32 {
+    (pane - others).max(t.size_table_column)
 }
 
 /// The unwrapped width of `text` in `font`.
@@ -771,9 +780,58 @@ struct Delegate<'a> {
     painted: usize,
     /// The cursor row's key cell as painted this frame (the chooser list opens under it).
     cursor_rect: Option<Rect>,
+    /// The width the columns other than the filling one need ([`fill_cap`]), measured once in a sizing pass.
+    others: Option<f32>,
 }
 
 impl Delegate<'_> {
+    /// The cap of the column `key`: the Libraries Name ([`libraries_name_cap`]), the Pages Title ([`fill_cap`]),
+    /// `None` for any other column.
+    fn cap(&mut self, ui: &Ui, key: &str) -> Option<f32> {
+        if self.kind == NavKind::Libraries && key == "name" {
+            return Some(libraries_name_cap(&self.tokens, self.area.width()));
+        }
+        if !fills(self.kind, key) {
+            return None;
+        }
+        let others = match self.others {
+            Some(w) => w,
+            None => {
+                let w = self.others_width(ui);
+                self.others = Some(w);
+                w
+            }
+        };
+        Some(fill_cap(&self.tokens, self.area.width(), others))
+    }
+
+    /// The widths the shown columns other than the filling one size to (as [`cell_rect`] sizes them: the widest of
+    /// the header and the cells on show plus `space.4` on either side, at least the column's start width), summed.
+    fn others_width(&self, ui: &Ui) -> f32 {
+        let t = &self.tokens;
+        let cell_font = theme::font(&t.type_small);
+        let header_font = small_strong(t);
+        self.shown
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| !fills(self.kind, &self.table.columns[**c].key))
+            .map(|(at, &c)| {
+                let column = &self.table.columns[c];
+                let icons =
+                    usize::from(self.sort.is_some_and(|(i, _)| i == at)) + usize::from(column.derived);
+                let header = text_width(ui, &column.label, header_font.clone())
+                    + icons as f32 * (t.icon_sm + t.space_2);
+                let cells = self
+                    .rows
+                    .iter()
+                    .filter_map(|r| self.table.nodes[r.node as usize].cells.get(c))
+                    .map(|text| text_width(ui, text, cell_font.clone()))
+                    .fold(0.0_f32, f32::max);
+                (header.max(cells) + 2.0 * t.space_4).max(start_width(t, self.kind, &column.key))
+            })
+            .sum()
+    }
+
     /// The cell editor in its cell (doc 16a §6.21 "Editing", the value cell of §6.8): inset `space.1`, the panel fill,
     /// a 1-px accent border and a 1-px accent ring outside it, `radius.sm`, the text where the cell's text was.
     fn editor(&mut self, ui: &mut Ui, name: &str) {
@@ -847,6 +905,12 @@ impl TableDelegate for Delegate<'_> {
             return;
         };
         let t = self.tokens.clone();
+        let cap = if ui.is_sizing_pass() {
+            let table = self.table;
+            self.cap(ui, &table.columns[c].key)
+        } else {
+            None
+        };
         let column = &self.table.columns[c];
         let sorted = self.sort.filter(|(i, _)| *i == cell.col_range.start);
         // Doc 16a §6.21: a Subtle button over the whole header cell; the label in `type.small` SemiBold, secondary
@@ -860,9 +924,14 @@ impl TableDelegate for Delegate<'_> {
         let derived = column.derived.then_some((IconId::math_function, t.text_tertiary));
         let icons: Vec<(IconId, Rgba)> = icon.into_iter().chain(derived).collect();
         let icon_room = icons.len() as f32 * (t.icon_sm + t.space_2);
-        let rect = cell_rect(ui, &t, self.kind, &column.key, self.area.width(), || {
-            text_width(ui, &column.label, small_strong(&t)) + icon_room
-        });
+        let rect = cell_rect(
+            ui,
+            &t,
+            self.kind,
+            &column.key,
+            || cap,
+            || text_width(ui, &column.label, small_strong(&t)) + icon_room,
+        );
         let response = ui.allocate_rect(rect, Sense::click());
         crate::command_bar::state_overlay(ui, &t, &response, true, 0.0);
         let content = rect.shrink2(vec2(t.space_4, 0.0));
@@ -950,6 +1019,12 @@ impl TableDelegate for Delegate<'_> {
         };
         self.painted += 1;
         let t = self.tokens.clone();
+        let cap = if ui.is_sizing_pass() {
+            let table = self.table;
+            self.cap(ui, &table.columns[c].key)
+        } else {
+            None
+        };
         let node = &self.table.nodes[row.node as usize];
         let column = &self.table.columns[c];
         let text = node.cells.get(c).cloned().unwrap_or_default();
@@ -976,9 +1051,14 @@ impl TableDelegate for Delegate<'_> {
         }
         let is_cursor = self.cursor == Some((at, cell.col_nr));
         let on_cursor_row = self.cursor.is_some_and(|(r, _)| r == at);
-        let rect = cell_rect(ui, &t, self.kind, &column.key, self.area.width(), || {
-            text_width(ui, &text, theme::font(&t.type_small))
-        });
+        let rect = cell_rect(
+            ui,
+            &t,
+            self.kind,
+            &column.key,
+            || cap,
+            || text_width(ui, &text, theme::font(&t.type_small)),
+        );
         // WP-S2.07 §6.8: an unplaced terminal row is a drag source onto a canvas (its terminal device; the drop arms
         // Place with the terminal's main function).
         let unplaced = (node.role == NavRole::Terminal && node.badges.iter().any(|b| b == "unplaced"))
@@ -1095,5 +1175,14 @@ mod cap_tests {
         let t = tokens(Theme::Light, Density::Comfortable);
         assert_eq!(super::libraries_name_cap(&t, 100.0), t.size_table_column);
         assert_eq!(super::libraries_name_cap(&t, 600.0), 300.0);
+    }
+
+    /// C39: the Pages Title takes the room the other columns leave, never under `size.table_column`.
+    #[test]
+    fn the_filling_column_takes_the_room_the_others_leave() {
+        let t = tokens(Theme::Light, Density::Comfortable);
+        assert_eq!(super::fill_cap(&t, 300.0, 250.0), t.size_table_column);
+        assert_eq!(super::fill_cap(&t, 600.0, 250.0), 350.0);
+        assert!(super::fill_cap(&t, 900.0, 250.0) > super::fill_cap(&t, 600.0, 250.0));
     }
 }

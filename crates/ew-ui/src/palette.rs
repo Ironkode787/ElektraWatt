@@ -27,6 +27,10 @@ use crate::app::Event;
 use crate::icons::{self, IconId};
 use crate::theme::{self, Tokens};
 
+/// The share of the window the command palette and the place picker take once that is wider than `size.palette`
+/// (C39; owner 2026-10-31: the UI grows with the space it has, never a width chosen for the floor).
+pub(crate) const PALETTE_SHARE: f32 = 0.4;
+
 /// The label of `entry` with the characters the query's best alignment matches (WP-S2.08 D2) in `type.body.strong`;
 /// `query` is the text after the prefix.
 fn label_job(t: &Tokens, label: &str, query: &str, colour: egui::Color32) -> LayoutJob {
@@ -202,7 +206,9 @@ pub fn show(
             .shadow(theme::shadow(&t.elevation_2))
             .inner_margin(egui::Margin::same(t.space_2 as i8))
             .show(ui, |ui| {
-                ui.set_width(t.size_palette - 2.0 * t.space_2);
+                // C39 (doc 16a §2, ID-908): the palette grows with the window (never narrower than at the floor).
+                let width = crate::dialog::grown(t.size_palette, PALETTE_SHARE, ctx.content_rect().width());
+                ui.set_width(width - 2.0 * t.space_2);
                 ui.spacing_mut().item_spacing.y = t.space_1;
                 // The 36-px search field with its icon.
                 let field_h = t.size_control + t.space_3;
