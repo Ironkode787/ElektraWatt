@@ -1,6 +1,6 @@
 # Symbols, parts and macros
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-10-30, cycle-38 design pass, part 3, the Macros and Libraries navigators as built, §5, decision log ID-885; 2026-10-30, cycle-38 design pass, `macro.insert`'s orientation and the valve typical as built, §4.6, §9.3, decision log ID-878; 2026-10-29, cycle-35 design pass, WP-S1.19 parts 2 to 4 and WP-S2.18 parts 2 and 3 as built: the generic starter parts in `ew-starter-parts`, the tiers and the index, `part.assign`, `library.update`, the parts import and the manufacturer copies, §2.1, §2.2, §3.1, §3.3, §3.6, §4.5, §4.7, §9.2, decision log ID-818, ID-820, ID-824, ID-830; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-10-31, cycle-40 design pass, part 1, the part bus section as built, §2.5, WP-S1.21 part 4b, decision log ID-927; 2026-10-30, cycle-38 design pass, part 3, the Macros and Libraries navigators as built, §5, decision log ID-885; 2026-10-30, cycle-38 design pass, `macro.insert`'s orientation and the valve typical as built, §4.6, §9.3, decision log ID-878; 2026-10-29, cycle-35 design pass, WP-S1.19 parts 2 to 4 and WP-S2.18 parts 2 and 3 as built: the generic starter parts in `ew-starter-parts`, the tiers and the index, `part.assign`, `library.update`, the parts import and the manufacturer copies, §2.1, §2.2, §3.1, §3.3, §3.6, §4.5, §4.7, §9.2, decision log ID-818, ID-820, ID-824, ID-830; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, manufacturer and macro copies, `MacroInstance`, `Project.basic_project` and `SYSTEM_LIBRARY`, §2.5, §2.7, §2.8, open question 17, decision log ID-334, ID-783; cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies ElektraWatt's (EW) master data: symbols and function definitions (FnDefs), the
 parts database, macros with value sets, basic projects (company templates), and the libraries and governance that
@@ -463,6 +463,13 @@ EW-CORE-014 reports it where the canonical order differs, which is accepted with
 MlText, aliases, brands}`, embedded under `lib/manufacturers/` by `library.embed` with the checks of the other kinds;
 the slot texts still read the manufacturer name from the `LibRef`'s `extra["key"]` until WP-S1.19 part 3 resolves the
 `LibRef` to the embedded copy (FT-39). No Golden A copy uses a typed member, so no golden file or hash changed.
+*As built (cycle 40, WP-S1.21 part 4b, D15; decision log ID-927).* **The part bus section** `sections.bus` is typed
+after `mounting_plate`: `{ports: [...], extra}`, each port written in the order `interface`, `port_label`, `bus`,
+`role`, `termination`, then its `extra`; `interface`, `bus` and `role` are required and the enums keep `Unknown`. A
+section `{"ports": []}` is written `{}`. The station address, the nets, the address range, rates, connector and
+signal map are not typed (they stay in `extra`; FT-829). An older build's copy is rewritten canonically, and a
+pre-cycle-40 build reports EW-CORE-014 on a copy this build wrote (WP-S1.21 §8a.1 as amended). EW-GEN-CPU-1 0.1.1
+carries one port `DP`, `profibus_dp`, `master`.
 
 ### 2.6 Classification: ETIM bundled, ECLASS identifiers only
 

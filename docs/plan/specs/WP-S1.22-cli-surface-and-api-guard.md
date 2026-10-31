@@ -6,7 +6,7 @@ page and row outputs (0.4 pw, D7, D8), part 3 the format, recovery and import su
 `ew query` with `--explain` and the query registry (0.5 pw, D11, D12), part 5 the API guard and the generated
 references (0.4 pw, D13 to D15); part 1 first; parts 2, 3 and 4 after it in any order or side by side; part 5 last ·
 **Part 1 built in cycle 39** (lane J39, decision log ID-906; CL-1 to CL-7; 17 result schemas; O1 decided: `boon` as a
-dev-only validator, D5's as-built note) · **Date:** 2026-10-30 · **Work package:**
+dev-only validator, D5's as-built note) · **Part 2 built in cycle 40** (lane E40, decision log ID-925; OU-1 to OU-4 and OU-6 met, OU-5 built with its Linux proof recorded at the cycle's delivery; five result schemas; `--block` by ID or first folio; Golden A's `expected/png/102`, `106`, `204`, `205` and `206.png` re-blessed for OU-2's byte equality; doc 17 §3.3 and doc 18 CI-PR-05 as built; the label of §13 is `api-break`, ID-931) · **Date:** 2026-10-30 · **Work package:**
 [WP-S1.22](../02-work-packages.md#wp-s122-cli-surface-and-api-stability-guard) · **Decision log:** ID-895 · **Part
 of:** ElektraWatt plan, specifications
 

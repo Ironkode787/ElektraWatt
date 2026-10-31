@@ -1,6 +1,6 @@
 # Project format and persistence
 
-**Status:** Draft v0.3 · Amended 2026-10-31, cycle-39 design pass, part 2: §14.1 step 4 and "On failure" as built, the archive temp named by its owner and a discard that keeps another project's archive and tag (decision log ID-914). · Amended 2026-10-29, cycle-35 design pass: the library tiers as built, with the compiled-in generic starter parts, §13.1 (decision log ID-818, ID-830). · Amended 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: `macro_instance`, `macro` and `manufacturer` implemented, a part copy with `mech`, the typed part members within 0.1 and manufacturer and macro copies, §2.2, §3.5, §10.3, §13.2, decision log ID-334, ID-783. · Amended 2026-10-28, cycle 30: the journal recovery dialog as built, §8.3, decision log ID-714, ID-715. · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-21 (amended 2026-10-25, cycle 27: the page-item records as written and an older build's lines rewritten canonically, §2.2, §10.3, decision log ID-647; the project fragment, §12, ID-648; the parts import's copies, §13.2, ID-651; amended 2026-10-24, cycle 24: the purge command (`HumanOnly`, the data-safety rules of lane C's fix round, ID-620), the export's image findings, the SVG hazard checks, the drawn image subset and the mechanical asset-presence guard as built, §13.3, decision log ID-605; amended 2026-10-23, cycle 23: the asset store as built and the rule that a save never removes an asset file, §13.3; the asset temps, the journal's assets and the logo reference form, §2.1, §8.1, §10.3, §17.2; `page_item` and `structure_box` specified and implemented additively under ADR-0011 amendment 4, §2.2, §10.3, decision log ID-566, ID-573 to ID-575; amended 2026-10-22, cycle 22: the members written by the four commands of FT-336 stay in `extra`, no schema change, §10.3, §17.2, decision log ID-545, ID-547; amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
+**Status:** Draft v0.3 · Amended 2026-10-31, cycle-40 design pass, part 1: §1's state directory holds the release runs' records, §14.1 steps 4 and 5 and "On failure" as built after FT-814 (a discard needs this project directory's own run record; temps owned by the directory's key; decision log ID-921); §2.2's layout kinds as built (ranks 50 to 54, WP-S4.01 part 1, ID-924). · Amended 2026-10-31, cycle-39 design pass, part 2: §14.1 step 4 and "On failure" as built, the archive temp named by its owner and a discard that keeps another project's archive and tag (decision log ID-914). · Amended 2026-10-29, cycle-35 design pass: the library tiers as built, with the compiled-in generic starter parts, §13.1 (decision log ID-818, ID-830). · Amended 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: `macro_instance`, `macro` and `manufacturer` implemented, a part copy with `mech`, the typed part members within 0.1 and manufacturer and macro copies, §2.2, §3.5, §10.3, §13.2, decision log ID-334, ID-783. · Amended 2026-10-28, cycle 30: the journal recovery dialog as built, §8.3, decision log ID-714, ID-715. · Amended 2026-10-26, cycle 28: accepted implementation; final local validation and publication status in ID-665; hosted CI pending at publication; hold after delivery; scoped follow-ups (ID-659 to ID-666); merged references/raster validation and accepted window corrections recorded; scoped Windows window checks passed. · **Date:** 2026-10-21 (amended 2026-10-25, cycle 27: the page-item records as written and an older build's lines rewritten canonically, §2.2, §10.3, decision log ID-647; the project fragment, §12, ID-648; the parts import's copies, §13.2, ID-651; amended 2026-10-24, cycle 24: the purge command (`HumanOnly`, the data-safety rules of lane C's fix round, ID-620), the export's image findings, the SVG hazard checks, the drawn image subset and the mechanical asset-presence guard as built, §13.3, decision log ID-605; amended 2026-10-23, cycle 23: the asset store as built and the rule that a save never removes an asset file, §13.3; the asset temps, the journal's assets and the logo reference form, §2.1, §8.1, §10.3, §17.2; `page_item` and `structure_box` specified and implemented additively under ADR-0011 amendment 4, §2.2, §10.3, decision log ID-566, ID-573 to ID-575; amended 2026-10-22, cycle 22: the members written by the four commands of FT-336 stay in `extra`, no schema change, §10.3, §17.2, decision log ID-545, ID-547; amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
 ADR-0010 amendment 3, decision log ID-200 to ID-217; cycle 11: journal granularity of `project.settings.set`, Golden B1 files, ID-290) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
@@ -64,7 +64,7 @@ Apache-2.0), `ew-store` and `ew-library` (GPL-3.0-or-later).
 | `<name>.ew/.ew/u-<hash>/` | Per-user view state in `view.json`: open pages, viewports, jump history, workspace (FR-UI-033). `<hash>` = 8 hex digits of SHA-256(`user@host`), so the users of a shared folder do not overwrite each other. From 1.0 also `base.ewz`, the base generation of a work copy ([15](15-checks-revisions-collaboration.md) §6.8) | Ignored |
 | `<name>.ew/.~ew.lock` | Lock record (§7); `.~ew.lock.stale-<session>` after a takeover | Ignored |
 | `<name>.ew/.~ew.requests/` | "Request edit" files (1.x, [15](15-checks-revisions-collaboration.md) §6.2) | Ignored |
-| OS state directory | Journal and recovery snapshots (§8); user-only permissions; removed on clean close, leftovers pruned after 30 days (NFR-PRIV-05) | Never |
+| OS state directory | Journal and recovery snapshots (§8); user-only permissions; removed on clean close, leftovers pruned after 30 days (NFR-PRIV-05). *As built (cycle 40, ID-921):* also `releases/`, one record per release run of a project directory and archive (§14.1), removed when the run is settled or found stale | Never |
 | OS cache directory | STEP meshes, thumbnails, the file-backed SQL projection at XL, read-only `.ewz` extractions, the derived per-user library search index (§13.1) | Never |
 | OS data directory | User library and installed community packs ([07](07-symbols-parts-macros.md) §2.1) | Never |
 | OS configuration directory | Settings, recent projects, **trust decisions** (§13.4) | Never |
@@ -261,6 +261,14 @@ source fields re-keys the dependent records, and the writer marks both their old
 | `Representation.page` of an IP representation | its IP function |
 | `Function.device` | page-less connections, potential, net and medium definitions and bonds at the function's CPs |
 | `Carrier.surface`, `MountingSurface.enclosure`, `Enclosure.space` | dependent layout records |
+
+*As built (cycle 40, WP-S4.01 part 1; decision log ID-924).* Ranks 50 to 54 (`layout_space`, `enclosure`,
+`mounting_surface`, `carrier`, `placement`) are implemented in `layout/<space>.jsonl`: a space owns itself, an
+enclosure names its space, and a surface, carrier and placement reach it through carrier → surface → enclosure. The
+follow closure re-keys the dependants of `Carrier.surface`, `MountingSurface.enclosure` and `Enclosure.space`, so a
+carrier moved to another surface moves its placements' lines, and an incremental save equals a full save (LM-1).
+Ranks 55 to 58 (`route_override`, `committed_route`, `routing_path`, `surface_feature`) have no table yet and are
+kept and written as unknown records.
 
 A property test guards the table: after any random command sequence, incremental saves must equal a full save,
 byte for byte (NFR-REL-16).
@@ -1632,14 +1640,27 @@ a signature over this hash; it counts only for a signer key the user has trusted
    commits only that directory as "Release V2.0" and records commit C (open question 7).
 4. **Archive.**
    - Build it from snapshot g plus the explicit **release context** (date, label).
-   - Write `V2.0.ewarchive.tmp-<owner>-<g>` and sync it. The owner is the project's ID (sanitised as in §14.2):
-     a leftover temp of the same archive name and owner, a crashed release of this project, is removed first,
-     and a temp of any other owner is never touched, because an archive root may be shared and another
-     project's release may be writing in it. Only one run of a project writes at a time (its write lock), so a
-     temp that carries the owner is never a live run's. An existing archive of the name is never replaced.
+   - Write `V2.0.ewarchive.tmp-<owner>-<g>` and sync it. The owner is the key of the project directory (as built
+     in cycle 40, decision log ID-921; before, the project's ID): the first 16 hex digits of the SHA-256 of the
+     directory's path made absolute, cleaned and canonicalised where it exists, in the stored case. A leftover
+     temp of the same archive name and owner, a crashed release of this directory, is removed first, and a temp
+     of any other owner is never touched, because an archive root may be shared and another project's release,
+     or a copy of this directory elsewhere (which carries the same project ID), may be writing in it. Only one run
+     of a project directory writes at a time (its write lock), so a temp that carries the owner is never a live
+     run's. An existing archive of the name is never replaced.
    - Verify it: re-read the ZIP, check the sums, and check that the canonical text hashes equal manifest g.
-   - Rename it into place.
-5. **Tag.** Create the annotated tag `ew/rev/V2.0` on C. Its message carries the archive's SHA-256.
+   - **Record the run** (as built in cycle 40, FT-814): write durably, in the per-user state directory, the record
+     `<state>/releases/<key of the directory>-<key of the archive>.json`: the project directory and the archive
+     (as path texts), the project, revision, label and generation, the archive's SHA-256 and modification time
+     (the temp's, which the archive keeps), and the run's mark (a new session ID). It is the positive evidence
+     that this directory's run wrote the archive, which a discard requires; it comes before the archive has its
+     name, so a crash right after the rename stays discardable.
+   - Put it into place without replacement: a hard link, which keeps the temp's time; on a file system without
+     hard links the archive is created anew (`create_new`, never over an existing file, removed again if its write
+     fails) with the temp's time set. A file system that cannot set the time keeps the archive and the record is
+     rewritten with the archive's own time.
+5. **Tag.** Create the annotated tag `ew/rev/V2.0` on C. Its message carries the archive's SHA-256 and, as built
+   in cycle 40, the run's mark as a line `Run: <mark>`.
 6. **Stamp.** A transaction sets `Released` and writes `ReleaseRecord{generation g, released_on, approval,
    rule_packs, derivation_profile, archive{name, sha256}, git_tag}`, plus `content_digest`, `page_digests` and
    `changed_pages` ([15](15-checks-revisions-collaboration.md) §5.5). EW then saves generation g+1 and leaves it
@@ -1657,6 +1678,18 @@ a signature over this hash; it counts only for a signer key the user has trusted
   it or names another archive root (`--archive-dir`). The tag `ew/rev/V2.0` is deleted by a discard, or reused by a
   completion, only when its message carries the archive's `SHA-256:` line; a completion refuses another archive's
   tag before it commits. A discard removes only this project's leftover temps of the name.
+- *As built (cycle 40, FT-814; decision log ID-921, ID-929).* Two copies of one project directory carry the same
+  project ID and, at the same generation, write the same archive bytes, so the archive cannot tell whose run wrote
+  it. **Discard** therefore also needs this directory's run record naming that archive, its SHA-256 and its time;
+  without it (a copy, a wiped state directory, a session without one) nothing is removed and the refusal says why
+  ("unproven"), and the incomplete release says so up front. The tag is deleted only when its message carries the
+  archive's SHA-256 and the record's `Run:` mark. **Complete** is unchanged: it destroys nothing. A failure in steps
+  4 to 6 takes back the record with the temp and any archive this run created, never a file it did not create; a
+  settled run removes its record. A record left **stale** (its archive gone, or its revision released with the
+  archive's SHA-256 by a roll-forward or a completion) is removed when the project opens for editing and when the
+  incomplete release is looked up; a removal or rewrite that fails is kept as release trouble for the front-end
+  (the CLI prints it as a warning; the window does not yet, FT-842). A temp of the cycle-39 form
+  `<label>.ewarchive.tmp-<project id>-<g>` is never cleaned (FT-833).
 
 This is the release atomicity of NFR-REL-15.
 

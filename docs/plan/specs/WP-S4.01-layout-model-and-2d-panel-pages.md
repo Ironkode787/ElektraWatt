@@ -4,7 +4,7 @@
 commands (1.1 pw, D3 to D7), part 2 the layout queries and Golden A's layout data (1.1 pw, D5, D8, D13), part 3 the
 panel page (1.2 pw, D9, D10), part 4 layout objects in the BOM, the legend and PART DATA (0.9 pw, D11), part 5 the
 EW-LAYOUT rules (0.8 pw, D12); part 1 first (cycle 40); part 2 after part 1; parts 3 and 5 after part 2, side by
-side; part 4 after part 3 · **Date:** 2026-10-30 ·
+side; part 4 after part 3 · **Part 1 built in cycle 40** (lane B40 with fix lane FIX40b, decision log ID-924; LM-1 to LM-8 met; the refusals beyond D6's letter and `part.edit_copy`'s re-pointing of a carrier's part and a placement's `part` accepted; `replace_all` over several placed part uses moves only the first replaced use's placements; `edit.delete` on layout kinds, `source_ref`, grid editing and the missing edit commands are FT-837 to FT-840; LQ-3 and LQ-4 amended to the surface frame) · **Date:** 2026-10-30 ·
 **Work package:** [WP-S4.01](../02-work-packages.md#wp-s401-layout-model-and-2d-panel-pages-mvp-slice) ·
 **Decision log:** ID-893 · **Part of:** ElektraWatt plan, specifications
 
@@ -271,11 +271,14 @@ unplaced (EF-05); A-R inserts them.
 - **LQ-2** `unplaced` of the space is exactly F55, E55, E56, S56, -201U9; -XPE, -3X1, the valves, the terminals, the
   cables, -UC1, -UC1-plate and the +FIELD valves are not in it, each asserted with its D8 case; a device of another
   location is never listed (FR-LAY-001).
-- **LQ-3** `placement_geometry`: -102G1's footprint is (61, 675)–(131, 805) mm; -X1031's is (58.6, 444)–(162.6, 516);
+- **LQ-3** `placement_geometry`: -102G1's footprint is (101, 675)–(171, 805) mm; -X1031's is (98.6, 444)–(202.6, 516)
+  mm, both in the surface frame (*amended in cycle 40, ID-924:* the earlier (61, 675)–(131, 805) and (58.6, 444)–
+  (162.6, 516) were not in the surface frame);
   flipping -102G1 gives the same rectangle; a screw part on the surface rotated by 90° swaps W and H about its origin;
   a placed device without dimensions gives the unknown 20 × 20 mm square.
 - **LQ-4** Assigning -102F1 a 27 mm-wide test part whose `rail_offset` is (9, 42.5) mm, the 18 mm part's clip point
-  (D7), widens its footprint to (149, …)–(176, …) at the same pose and
+  (D7), widens its rail-occupancy interval to s = 149 … 176 mm (in the surface frame (189, …)–(216, …); *amended in
+  cycle 40, ID-924:* the interval is in s, not in the surface frame) at the same pose and
   `rail_occupancy(R1)` shows its interval overlapping -102F2's.
 - **LQ-5** `layout_label` of -X1031 is "-X1031" (abbreviated) and "=P01+J-E-2416-X1031" (full); T55 renumbered to T57
   changes its label and no file under `layout/` (FR-LAY-006, D-02).

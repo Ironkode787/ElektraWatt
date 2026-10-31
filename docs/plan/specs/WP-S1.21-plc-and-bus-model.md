@@ -5,7 +5,7 @@ work, in five parts: part 1 PLC records from the window and the channel members 
 PLC texts on the pages (0.6 pw, D7), part 3 addressing commands, the EW-PLC rules and AC-29 (1.1 pw, D8 to D10), part 4
 the bus model, the EW-BUS rules and AC-31 (1.2 pw, D11, D12), part 5 the I/O list, card supply groups and the model
 follow-ups (0.5 pw, D13); part 1 first; parts 2 and 3 after it in any order or side by side; part 4 after part 1;
-part 5 last; WP-S2.18 part 4 (`brief-plc-io`) waits for parts 1 and 2 and WP-S2.07 part 3 · **Parts 1 and 2 built in cycle 37** (lane A37, decision log ID-854; lane G37, ID-860; Golden A unchanged, its folios 203 to 206 wait for FT-698) · **Part 3 built in cycle 38** (lane A38, decision log ID-870; PA-2 de-scoped, FT-725; the prevent half of EW-PLC-001 and -007 not built, FT-726); Golden A prints its Q addresses since FT-698 (lane F38, ID-874) · **Part 4 built in cycle 39** (lane A39, decision log ID-896; BU-1 to BU-6 and BU-8, AC-31 passes; BU-7 waits for a part-level bus port, FT-770; a golden change: folio 3 prints "Node TBD", folio 909's DP row has 4 members; the master JE-N1000-03 is the external partner behind folio 3's interruption point DP, not a device record) · **Part 4b specified in cycle 40** (lane S40, decision log ID-920; documents only): BU-7's part-level bus port, `PartSections.bus` with its port list (D15), normaliser N5 that gives a part's ports to the device's port-less bus-port functions and never rewrites one (D16), and EW-GEN-CPU-1's `DP` port at library 0.2.1 with no golden change (D17); BU-7 is closed by BU-7a to BU-7k of §8a, built by lane I40 (0.35 pw) · **Date:** 2026-10-31 ·
+part 5 last; WP-S2.18 part 4 (`brief-plc-io`) waits for parts 1 and 2 and WP-S2.07 part 3 · **Parts 1 and 2 built in cycle 37** (lane A37, decision log ID-854; lane G37, ID-860; Golden A unchanged, its folios 203 to 206 wait for FT-698) · **Part 3 built in cycle 38** (lane A38, decision log ID-870; PA-2 de-scoped, FT-725; the prevent half of EW-PLC-001 and -007 not built, FT-726); Golden A prints its Q addresses since FT-698 (lane F38, ID-874) · **Part 4 built in cycle 39** (lane A39, decision log ID-896; BU-1 to BU-6 and BU-8, AC-31 passes; BU-7 waits for a part-level bus port, FT-770; a golden change: folio 3 prints "Node TBD", folio 909's DP row has 4 members; the master JE-N1000-03 is the external partner behind folio 3's interruption point DP, not a device record) · **Part 4b specified in cycle 40** (lane S40, decision log ID-920; documents only): BU-7's part-level bus port, `PartSections.bus` with its port list (D15), normaliser N5 that gives a part's ports to the device's port-less bus-port functions and never rewrites one (D16), and EW-GEN-CPU-1's `DP` port at library 0.2.1 with no golden change (D17); BU-7 is closed by BU-7a to BU-7k of §8a, built by lane I40 (0.35 pw) · **Part 4b built in cycle 40** (lane I40, decision log ID-927; BU-7a to BU-7f and BU-7h to BU-7k met, BU-7g in part: its `rep.join_device` clause is refused by WP-S2.18 D2, FT-841; FT-770 closed; §8a.1's compatibility claim corrected in both directions; no golden change) · **Date:** 2026-10-31 ·
 **Work package:** [WP-S1.21](../02-work-packages.md#wp-s121-plc-and-bus-model-with-addressing-mvp) ·
 **Decision log:** ID-835 · **Part of:** ElektraWatt plan, specifications
 
@@ -331,10 +331,15 @@ pub struct PartBusPort {                         // members in this order; the f
   (D16); that function's CPs are the port's connection points. A part names no function or CP, so a part needs no
   template entry for its port, as Golden A's -201U1:DP shows (an auxiliary `ew.fn.dp-port` function outside its part's
   template).
-- **Compatibility.** Additive within format 0.1 (ADR-0011 amendment 4, ID-334): an older 0.1 build keeps `bus` in
-  `PartSections.extra`, which it writes after `mounting_plate` in key order, so both builds write the same bytes; only
-  a copy that also carries an unknown section key sorting before `bus` is re-ordered (reported not canonical, its stored
-  `sha256` kept). The member carries no cascade semantics, so it would stay additive after a format release.
+- **Compatibility.** Additive within format 0.1 (ADR-0011 amendment 4, ID-334). *Amended in cycle 40 (decision log
+  ID-927; the lane's finding, the review's part-3 finding 6):* the claim that both builds write the same bytes was
+  wrong. An older 0.1 build keeps `bus` in `PartSections.extra` and writes the section's members with sorted keys,
+  while this build writes D15's member order. **Older → this build:** such a copy is reported not canonical and
+  rewritten in D15's order at the next save, its stored `sha256` kept. **This build → a pre-cycle-40 build:** the older
+  build re-serialises the section with sorted keys, so its `library_copy_hash` differs from the stored hash and
+  EW-CORE-014 fires on every copy of EW-GEN-CPU-1 0.1.1. Both are accepted within 0.1 under ID-334, as for the PLC and
+  enclosure sections: no 0.1 build ever wrote a part bus section, so nothing existing is affected. The member carries
+  no cascade semantics, so it would stay additive after a format release.
 - `HeapSize` for both structs (`crates/ew-commands/src/heap.rs`); `schemas/0.1` re-blessed.
 
 ### 8a.2 The relation part → function: normaliser N5 (D16)
@@ -438,7 +443,9 @@ decision 1). The check that a function's port disagrees with its part's is 1.0 (
 - **BU-7g** (`ew-commands`) A device with a black box and two `ew.fn.dp-port` functions and no part: `part.assign`
   EW-GEN-CPU-1 gives the lower-ID function the port and leaves the other port-less; `part.assign` onto a device without
   a bus-port function gives no port and no notice; `rep.join_device` moving a port-less `ew.fn.dp-port` function onto a
-  CPU device whose port is not carried gives it the port.
+  CPU device whose port is not carried gives it the port. *As built (cycle 40, ID-927): met in part.* The `part.assign`
+  clauses pass; the `rep.join_device` clause cannot be reached, because WP-S2.18 D2 lets only a contact join a device as
+  an auxiliary function, so the join is refused before N5 runs; extending D2 is FT-841.
 - **BU-7h** (never rewritten) After `fields.set` `bus_port.address` to `{"value": {"profibus": 2}}` on BU-7f's port:
   `part.assign replace` to a fixture part whose port is `{interface: DP, bus: profinet, role: controller}` leaves the
   port unchanged with the notice `<port> keeps its bus port; part <number> declares profinet controller`;

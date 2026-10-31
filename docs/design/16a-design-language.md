@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; amended 2026-10-31, cycle-39 design pass, part 2: §6.23, the Preview tab a card opened closes with its last card (decision log ID-916); amended 2026-10-31, cycle-39 design pass, part 1: the owner's two-size rule in §2's Screens (decision log ID-908); amended 2026-10-30, cycle-38 design pass, part 3: the bottom dock's close control, the Messages toggle and Escape, the zoom kept across docks and the clamp at half the client height (§5.7), the last check's counts in the findings field (§5.8), a failed card's lead in words (§6.23), a shared pin by its ordinal (§8), decision log ID-889; amended 2026-10-30, cycle-38 design pass, part 2: the open-CP marker's value (§4.6), the double-click rule and the canvas context menu (§5.5), the one-toast import outcome (§6.10), a terminal in a sentence (§8), decision log ID-883, ID-884; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; amended 2026-10-31, cycle-40 design pass, part 1: §2's widths at the typical size as built, the size tokens of §4.9 and §5.6's right column (decision log ID-922); amended 2026-10-31, cycle-39 design pass, part 2: §6.23, the Preview tab a card opened closes with its last card (decision log ID-916); amended 2026-10-31, cycle-39 design pass, part 1: the owner's two-size rule in §2's Screens (decision log ID-908); amended 2026-10-30, cycle-38 design pass, part 3: the bottom dock's close control, the Messages toggle and Escape, the zoom kept across docks and the clamp at half the client height (§5.7), the last check's counts in the findings field (§5.8), a failed card's lead in words (§6.23), a shared pin by its ordinal (§8), decision log ID-889; amended 2026-10-30, cycle-38 design pass, part 2: the open-CP marker's value (§4.6), the double-click rule and the canvas context menu (§5.5), the one-toast import outcome (§6.10), a terminal in a sentence (§8), decision log ID-883, ID-884; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -70,6 +70,19 @@ remote desktop sessions are common (no reliance on animation or subtle gradients
 1280 × 800 floor for nothing truncated or overlapping; a fix for the floor scales with the window, it never caps a
 width chosen for 1280. Both sizes render offscreen (`--window`, `--ppp`; the gated snapshot
 `main-light-comfortable-1920`).
+
+*As built (cycle 40, FT-798, FT-816; decision log ID-922).* **Widths at the typical size.** The left column (the
+Schematic workspace's navigator and Properties) is `size.panel.left` (280) at the floor and, while the user has not
+dragged it, is shown at 280 + 0.35 × (window width − 1280), up to `size.panel.left_max` (480): display only, the
+user's share stays the layout, like the bottom dock's clamp (§5.7); at 1920 it is 480. The command search takes 0.2
+of the tab row, from `size.search` (280) up to `size.search.max_width` (400); 384 at 1920. Form dialogs take 0.45
+of the window from `size.dialog.form` (864 at 1920); dialogs that hold a list fit their content: the parts mapping
+card from `size.dialog.form` up to the grown form width, the Show changes popup from `size.dialog.small` up to 0.3 of
+the window; a short list keeps the token width, nothing is stretched. The navigator table re-fills its capped
+columns on a resize. **Exceptions, fixed on purpose:** the junction editor and the parts card keep
+`size.dialog.small`; the first-run screen keeps the reading measure `size.text_measure` (520), a line length that
+does not grow with the window. A menu's popup width is still a literal 160 px (FT-836). What remains of the look at
+1920 (the ribbon's and the menu bar's empty middle, the right rail) is FT-798.
 
 ## 3. Pillars
 
@@ -362,13 +375,16 @@ padding). Spacing tokens (a subset of Carbon's scale plus `space.icon`):
 | `size.command.large` | 46 × ≥ 52 | 28 high | Comfortable: icon 20 over label, 2-px gap; Compact: icon 20 beside label |
 | `size.command.small` | 24 | 24 | Icon 16 and label beside it |
 | `size.quick_access` | 28 × 24 | 28 × 24 | Save, Undo, Redo |
-| `size.search` | 280 × 24 | 280 × 24 | The command search field |
+| `size.search` | 280 × 24 | 280 × 24 | The command search field; at the floor (as built, cycle 40: it grows with the tab row, §2) |
+| `size.search.max_width` | 400 | 400 | As built (cycle 40, ID-922): the widest the command search grows to |
 | `size.panel_header` | 32 | 32 | Navigator, Properties and palette headers |
 | `size.dock_tab_bar` | 32 | 32 | Canvas-tab bar (tabs 28 high) and the bottom dock's tab row |
 | `size.rail` | 40 | 40 | Rail width; rail buttons 32 square |
 | `size.status` | 26 | 26 | Status bar; its fields 22 high |
-| `size.panel.left` | 280 (220 to 480) | 280 | Navigator and Properties column; Properties takes half its height |
-| `size.panel.right` | 280 (220 to 480) | 280 | Palettes |
+| `size.panel.left` | 280 (220 to 480) | 280 | Navigator and Properties column; Properties takes half its height; its width at the floor (as built, cycle 40: shown wider with the window while not dragged, §2) |
+| `size.panel.left_max` | 480 | 480 | As built (cycle 40, ID-922): the widest the left column is shown while it keeps its default share |
+| `size.panel.right` | 280 (220 to 480) | 280 | Palettes. *Not built:* the token was removed in cycle 40 because nothing read it (ID-922); FT-835 proposes the right column that reads it |
+| `size.text_measure` | 520 | 520 | As built (cycle 40, ID-922): the line length of running text on a full-window page (the first-run screen), fixed on purpose |
 | `size.dock.bottom` | 184 | 184 | The mockup's reference height of the bottom dock only (the mockup's `.bottom` rule, checked by DL8); as built the dock does not open at it (§5.7, ID-743) |
 | `size.dock.bottom_min` | 300 | 300 | The bottom dock's least shown height: in the vertical split that holds the page view, the child holding a bottom pane is shown at least this high, at most 2/3 of the split; display only, the user's shares stay the layout (§5.7, ID-743) |
 | `size.property_label` | 96 | 96 | The property label column |
@@ -660,6 +676,10 @@ symbols as a filterable grid of 72-px thumbnails with names; a click arms Place 
 placed" in `color.text.secondary`, turning to `color.success` with a check icon when every function of the part is
 placed, `color.warning` with "unplaced" when the part has functions not on any page. The Insert ▸ Symbol picker (I)
 stays as the keyboard path; both open the same Place tool.
+
+*As built (cycle 40, ID-922).* The right column is not built: the right rail is a nearly empty column at 1920, and
+`size.panel.right` was removed because nothing read it. FT-835 proposes the palettes' `size.panel.right` column as
+described here (FT-798's remainder).
 
 *As built (cycle 38; decision log ID-875, FT-712).* The part picker's rows lead with the part's description in words, not its code (`CataloguePart.description`); a disabled row says why on hover (`disabled_tip`), as the command bar's disabled tools already did; a change-over contact reads "changeover contact 11-12-14" by a display mapping.
 

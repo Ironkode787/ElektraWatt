@@ -1,6 +1,6 @@
 # Domain model
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335; 2026-10-22, cycle 17: the typed `Revision` as built and the `Revision.withdraws` forbid link, §4.2, §18, decision log ID-427 to ID-431; 2026-10-22, cycle 22: the stored shapes written by the four commands of FT-336 and the frame fall-through rule, §5.1, §19, decision log ID-545 to ID-547; 2026-10-23, cycle 23: the `StructureBox` and `PageItem` shapes specified for WP-S2.04 part 4a with their two invariants and their derivation, §4.2, §5, §6, §8.2, decision log ID-566; the `settings.extra.drawing` member, §5.1, ID-567, ID-568; the company logo reference as built, §5.1, ID-573; 2026-10-24, cycle 25: `project.drawing.set` registered, §5.1, ID-625; revision author and checker read-only in the property grid, §18, ID-626; 2026-10-25, cycle 27: the `PageItem` notes as built (`text` optional, `arc.start`'s default, `$v`) and the wire markers' unlink on a cross-page move, §6, ID-647; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, `Manufacturer`, `MacroDef` and `MacroInstance` with its links, `Project.basic_project`, §7, decision log ID-334, ID-783) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (2026-10-31, cycle-40 design pass, part 1: the five layout kinds as built, §16, WP-S4.01 part 1, decision log ID-924; a part's bus port carried by a bus-port function, §7, WP-S1.21 part 4b, ID-927; cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335; 2026-10-22, cycle 17: the typed `Revision` as built and the `Revision.withdraws` forbid link, §4.2, §18, decision log ID-427 to ID-431; 2026-10-22, cycle 22: the stored shapes written by the four commands of FT-336 and the frame fall-through rule, §5.1, §19, decision log ID-545 to ID-547; 2026-10-23, cycle 23: the `StructureBox` and `PageItem` shapes specified for WP-S2.04 part 4a with their two invariants and their derivation, §4.2, §5, §6, §8.2, decision log ID-566; the `settings.extra.drawing` member, §5.1, ID-567, ID-568; the company logo reference as built, §5.1, ID-573; 2026-10-24, cycle 25: `project.drawing.set` registered, §5.1, ID-625; revision author and checker read-only in the property grid, §18, ID-626; 2026-10-25, cycle 27: the `PageItem` notes as built (`text` optional, `arc.start`'s default, `$v`) and the wire markers' unlink on a cross-page move, §6, ID-647; 2026-10-29, cycle-34 design pass, WP-S1.19 part 1 as built: the typed part members, `Manufacturer`, `MacroDef` and `MacroInstance` with its links, `Project.basic_project`, §7, decision log ID-334, ID-783) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -1191,6 +1191,13 @@ flowchart TB
 | `Assembly` | BOM modes, generated overview | Part sets / configured products (unverified detail) | none |
 | `DeviceLink` | linkage graphics, target tracking | mechanical linkage, target tracking (unverified detail) | dashed shapes |
 
+*As built (cycle 40, WP-S1.21 part 4b; decision log ID-927).* **A part's bus ports** are `PartSections.bus`
+(`ports: [{interface, port_label?, bus, role, termination?}]`, doc 07 §2.5). A part port is carried by a function of
+the device whose FnDef has contact kind `bus_port`; its CPs are the port's connection points, and the part names no
+function or CP. Normaliser N5 (doc 06 §3.2) seeds a port-less bus-port function from the part's first port that no
+function of the device carries: address `tbd` (`not_applicable` for a passive role), the part's termination, no
+nets; it never rewrites or removes a port, so the function's `BusPort` stays the engineered record.
+
 ---
 
 ## 8. Tags and numbering
@@ -2193,6 +2200,20 @@ classDiagram
 | `RoutingPath`, `SurfaceFeature` (added) | A, layout file (ranks 57, 58) | routing path: `kind: FreeAir \| Hinge \| WiringHole \| Guide`, points, class set, cost factor (FR-LAY-043/044); surface feature: user-authored hole, thread, cut-out, slot, keyhole or custom outline on a surface side (FR-LAY-056) | All other machining features are derived by `surface_features(surface)` | — |
 | `RoutingGraph` | D, Class II | duct centrelines at mid-depth with slot nodes every max(slot pitch, 25 mm), joints, CP stubs, free-air and hinge paths; edges with length, capacity, segregation mask, cost (FR-LAY-042/043) | Built on a fork from carriers and placements | — |
 | `Route`, wire length | C | per wire: path as `RouteNodeRef = Duct{carrier, seg, s} \| Joint{carrier, vertex} \| Path{routing_path, idx} \| Stub{cp} \| Entry{feature}` (carrier positions, not graph indices, so the route stays readable after a graph rebuild), `length: Nm` = the unrounded calibrated length (stubs + path + Δz + end allowances + reserve, FR-LAY-051), `input_hash`; rounding happens once, in the `WireRecord`, to the project length increment ([13](13-manufacturing-outputs.md) §3.3) | Only `RouteWires` writes it (FR-LAY-046); EW-LAY-011 flags a stale input hash | Release exports require fresh routes |
+
+*As built (cycle 40, WP-S4.01 part 1; decision log ID-924).* Five kinds are typed within format 0.1: `layout_space`
+`{location, name}`, `enclosure {space, device, pose}`, `mounting_surface {enclosure, kind, device?, frame, usable,
+pe_bond}`, `carrier {surface, kind, part?, path, params, pe_bond}` and `placement {device, function?, part?, carrier,
+pose, locked}` (ranks 50 to 54, `layout/<space>.jsonl`); every other member above (`install`, thermal inputs, `policy`,
+`install_type`, doors, `max_depth`, `segment`, `variant`), surface kinds other than `Plate`, the carrier kinds busbar
+and surface and the `Placement` variant of `CarrierRef` are kept verbatim. `Pose3` is integer nanometres for `t` and a
+unit quaternion scaled by 10⁹ for `q`, in the surface frame (u right, v up, w out). A **rail** placement's pose is
+`t = (s, 0, 0)` with `q` identity or 180° about w, `s` in [0, L] along the rail from `path[0]`; a **surface** placement's
+is `t = (u, v, 0)`, rotated by k·90° about w; a **duct** carries no placement. Carriers are axis-parallel. An
+enclosure's pose defaults to identity; the plate surface's frame centres the plate in the enclosure's outer W×H and
+its usable polygon is the plate rectangle. `layout.place` always writes `placement.part` (the given part use, else
+the primary mountable part), and `part.assign` replace follows the new copy (WP-S4.01 D7). MVP limits: one space
+per location, one enclosure per space, one plate surface per enclosure.
 
 **PE through carriers.** A rail-bonded PE terminal on a carrier with `pe_bond`, on a surface with `pe_bond`, joins
 the PE potential through that carrier. While a layout space models no PE-bonded carrier, rail-bonded
