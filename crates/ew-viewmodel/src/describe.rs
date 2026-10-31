@@ -284,6 +284,8 @@ pub const VOCABULARY: &[&str] = &[
     "star",
     "chain",
     "connect",
+    // FIXPT41: the IP tool's ghost names the pin a click connects the point to (`connects "-102F2:14"`).
+    "connects",
     // The page text of `page.describe` (WP-S6.13 part 1, §5.5.3; ID-474 extended): 11 words, a reviewed vocabulary
     // change (`wire`, `->`, `route`, `bends`, `style`, `dot`, `bevel`, `wiring`, `star`, `chain` and `sequence` are
     // WP-S2.04 part 2's words above).
@@ -652,6 +654,10 @@ pub const IP_WORDS: &[&str] = &[
     "arrange",
     "by",
 ];
+
+/// The word FIXPT41 adds to [`VOCABULARY`]: the IP tool's ghost names the pin a click connects the point to
+/// (`connects "-102F2:14"`); `tests/it/ip_on_pin.rs` reaches it.
+pub const IP_PIN_WORDS: &[&str] = &["connects"];
 
 // WP-S2.05 part 3
 /// The 6 words WP-S2.05 part 3 adds to [`VOCABULARY`] (§8.8): the `clipboard` line and the paste ghost's line.
@@ -2333,6 +2339,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             star,
             at_nm,
             external,
+            connects,
         }) => {
             let mut line = format!(
                 "canvas ghost ip name \"{name}\" direction {direction} star {}",
@@ -2343,6 +2350,10 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             }
             if let Some(e) = external {
                 line.push_str(&format!(" external \"{e}\""));
+            }
+            // FIXPT41: the pin a click connects the point to.
+            if let Some(c) = connects {
+                line.push_str(&format!(" connects \"{c}\""));
             }
             lines.push(line);
         }

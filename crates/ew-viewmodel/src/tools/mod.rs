@@ -300,6 +300,8 @@ pub enum Ghost {
         at_nm: Option<(i64, i64)>,
         /// The printed text of the external reference of an external connection point.
         external: Option<String>,
+        /// The pin a click connects the point to, in words (`-102F2:14`; FIXPT41); `None` where it places it free.
+        connects: Option<String>,
     },
     /// The black box tool's rectangle (WP-S2.04 §9.6).
     Box {

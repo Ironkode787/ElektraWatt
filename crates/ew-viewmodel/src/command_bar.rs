@@ -669,6 +669,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             direction,
             star,
             external,
+            connects,
             ..
         }) => {
             target = Some(name.clone());
@@ -685,6 +686,10 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 parts.push(strings::text("action-tool-star-source").to_owned());
             }
             parts.extend(external);
+            // FIXPT41: a click on a pin connects the point; the HUD says it before the click.
+            if let Some(cp) = connects {
+                parts.push(strings::format("hud-ip-connects", &[&cp]));
+            }
             parts.join(" \u{b7} ")
         }
         // FT-759: the count says what it counts ("7 connection points"), never a bare "· 7".

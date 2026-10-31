@@ -24,6 +24,7 @@ mod gpp_m33;
 mod gpp_m34;
 mod gpp_parts;
 mod h40;
+mod ip_on_pin;
 mod ip_role_plc_card;
 mod ip_typed_name;
 mod join;

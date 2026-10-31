@@ -11,8 +11,10 @@
 //! | floating | `Key(ToggleDirection)` (D) | floating | the direction source → target → undirected → source; `Transient` |
 //! | floating | `Key(ToggleStar)` | floating | the star source toggled (the host refuses it for an external point); `Transient` |
 //! | floating | `Text(s)` (`ip.name`) | floating | the name is `s`; `Transient` |
-//! | floating | `Dwell { ms ≥ 80 }` | floating | `Preview(ip.place …)` |
-//! | floating | `Press` primary or `Activate` | floating | `Commit(ip.place …)`; sticky |
+//! | floating | `Dwell { ms ≥ 80 }` | floating | `Preview` of the command a click commits |
+//! | floating | `Press` primary or `Activate`, the ghost's CP on a free grid point, or Alt held | floating | `Commit(ip.place …)`; sticky |
+//! | floating | `Press` primary or `Activate`, the ghost's CP on a pin | floating | `Commit(connection.draw_to_ip {a: the pin, route: []} …)`; sticky |
+//! | floating | `Press` primary or `Activate`, the ghost's CP on another interruption point, or an external point's on a pin | floating | refused by the host ([`IpTool::refusal`]): nothing committed, the ghost stays |
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
 //! **The name** is the typed one, unchanged; else a proposal: (not for an external point) the derived potential name
@@ -28,13 +30,20 @@
 //!
 //! **External connection points** (FR-XRF-012): while the host has set an external reference, the ghost and the
 //! commit use the external-arrow symbol the host gives, `ip.place` carries `external`, and the star is refused.
+//!
+//! **A drop on a pin connects** (FIXPT41, FR-CON-003, WP-S2.04 §9.1): when the ghost's CP lies exactly on a CP of the
+//! page that no interruption point draws (a pin, free or wired), the click commits `connection.draw_to_ip` with that
+//! CP as `a` and an empty route (a route-less wire of length zero, one undo step), and the ghost says so ("connects
+//! to -102F2:14"); Alt (held on the last pointer move or the press, or `canvas.activate_alt`) places the point free
+//! with `ip.place`. On the CP of another interruption point, and for an external connection point on any CP (which
+//! `connection.draw_to_ip` cannot create), the click is refused in words.
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_api::AnyCommand;
 use ew_api::geometry::{orient_point, orient_then};
-use ew_api::output::{PageTables, SymbolShape, TableEnd, Uuid};
+use ew_api::output::{PageTables, SymbolShape, TableCp, TableEnd, Uuid};
 use serde_json::{Value, json};
 
 use super::place::ORIENT_NAMES;
@@ -340,6 +349,21 @@ pub struct IpTool {
     /// The library documents the placement embeds (`ip.place`'s `copies`, FT-673); the host sends only those the
     /// project lacks.
     copies: Vec<Value>,
+    /// Alt held on the last pointer move or press: a drop on a pin places the point without connecting (FIXPT41).
+    suppressed: bool,
+    /// The pin the last overlay's click would connect to, in words (the ghost's `connects`).
+    shown_connects: Option<String>,
+}
+
+/// What a click does with the ghost's CP where it is (FIXPT41).
+#[derive(Clone, PartialEq, Eq, Debug)]
+enum DropOn {
+    /// A free grid point, or Alt held: `ip.place`.
+    Free,
+    /// The pin of the page at the ghost's CP (the first in the page tables' order): `connection.draw_to_ip`.
+    Pin(TableCp),
+    /// Refused, with the words the host shows.
+    Refused(String),
 }
 
 impl IpTool {
@@ -363,6 +387,8 @@ impl IpTool {
             project: ProjectIps::default(),
             project_rev: None,
             copies: Vec::new(),
+            suppressed: false,
+            shown_connects: None,
         }
     }
 
@@ -484,29 +510,112 @@ impl IpTool {
         propose(&base, false, auto, chosen, self.star, &self.project, tables)
     }
 
-    /// The `ip.place` at the current point.
+    /// What a click at the insertion point `pos` does with the ghost's CP (FIXPT41): on the CP of an interruption
+    /// point of the page it is refused (16a P10: no point stacked on another), as for an external connection point on
+    /// any CP (`connection.draw_to_ip` places none, ruling 3), Alt or not; on another CP (a pin, free or wired, ruling
+    /// 2) it connects unless Alt is held; elsewhere it places the point free.
+    fn drop_on(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> DropOn {
+        let Some(c) = self.cp_at(pos) else {
+            return DropOn::Free;
+        };
+        let tables = &cx.page.tables;
+        let under: Vec<&TableCp> = tables.cps.iter().filter(|x| x.at == c).collect();
+        // An interruption point's CP anywhere among them refuses, whatever the tables' order (after a connecting drop
+        // the new point's CP and the pin coincide).
+        let ip_name = under.iter().find_map(|x| {
+            tables
+                .reps
+                .iter()
+                .find(|r| r.id == x.rep)
+                .and_then(|r| r.ip.as_ref())
+                .map(|ip| ip.name.clone())
+        });
+        if let Some(name) = ip_name {
+            return DropOn::Refused(crate::strings::format("notice-ip-on-ip", &[&name]));
+        }
+        let Some(pin) = under.first() else {
+            return DropOn::Free;
+        };
+        if self.external.is_some() {
+            return DropOn::Refused(crate::strings::format(
+                "notice-external-on-pin",
+                &[&crate::describe::pin_in_sentence(&pin.label)],
+            ));
+        }
+        if self.suppressed {
+            DropOn::Free
+        } else {
+            DropOn::Pin((*pin).clone())
+        }
+    }
+
+    /// The words of the refusal of a click at the press point `at` (sheet nm; `None` for Enter at the current point),
+    /// with the overlay there (the ghost stays); `None` when the click commits. The host asks before it sends the
+    /// click (FIXPT41).
+    pub fn refusal(&mut self, at: Option<(i64, i64)>, cx: &ToolCx<'_>) -> Option<(String, Overlay)> {
+        if let Some(at) = at {
+            let s = cx.snapper.snap_grid(at);
+            self.at = Some((s.at_nm, s.page_nm));
+        }
+        let (_, pos) = self.at?;
+        match self.drop_on(cx, pos) {
+            DropOn::Refused(text) => Some((text, self.refresh(cx))),
+            DropOn::Free | DropOn::Pin(_) => None,
+        }
+    }
+
+    /// The command a click at the current point commits: `connection.draw_to_ip` from the pin under the ghost's CP
+    /// with an empty route (FIXPT41), else `ip.place`; `None` before the first move or where the click is refused.
     fn command(&self, cx: &ToolCx<'_>) -> Option<(Box<AnyCommand>, String, IpDir)> {
         let (_, pos) = self.at?;
         let (name, direction) = self.resolve(cx, Some(pos));
-        let mut params = json!({
-            "page": cx.page.tables.page.to_string(),
-            "symbol": self.shape.copy.to_string(),
-            "pos": [pos.0, pos.1],
-            "orient": ORIENT_NAMES[usize::from(self.orient % 8)],
-            "name": name,
-            "direction": direction.word(),
-        });
-        if self.star {
-            params["star_source"] = Value::Bool(true);
-        }
-        if let Some(e) = &self.external {
-            params["external"] = Value::from(e.id.clone());
-        }
+        let page = cx.page.tables.page.to_string();
+        let (cmd_name, mut params) = match self.drop_on(cx, pos) {
+            DropOn::Refused(_) => return None,
+            DropOn::Pin(pin) => {
+                let mut ip = json!({
+                    "symbol": self.shape.copy.to_string(),
+                    "pos": [pos.0, pos.1],
+                    "orient": ORIENT_NAMES[usize::from(self.orient % 8)],
+                    "name": name,
+                    "direction": direction.word(),
+                });
+                if self.star {
+                    ip["star_source"] = Value::Bool(true);
+                }
+                (
+                    "connection.draw_to_ip",
+                    json!({
+                        "a": {"cp": {"function": pin.function.to_string(), "idx": pin.idx}},
+                        "page": page,
+                        "route": [],
+                        "ip": ip,
+                    }),
+                )
+            }
+            DropOn::Free => {
+                let mut params = json!({
+                    "page": page,
+                    "symbol": self.shape.copy.to_string(),
+                    "pos": [pos.0, pos.1],
+                    "orient": ORIENT_NAMES[usize::from(self.orient % 8)],
+                    "name": name,
+                    "direction": direction.word(),
+                });
+                if self.star {
+                    params["star_source"] = Value::Bool(true);
+                }
+                if let Some(e) = &self.external {
+                    params["external"] = Value::from(e.id.clone());
+                }
+                ("ip.place", params)
+            }
+        };
         if !self.copies.is_empty() {
             params["copies"] = Value::Array(self.copies.clone());
         }
         let cmd = Box::new(AnyCommand {
-            name: "ip.place".into(),
+            name: cmd_name.into(),
             params,
         });
         Some((cmd, name, direction))
@@ -518,6 +627,10 @@ impl IpTool {
         let (name, direction) = self.resolve(cx, pos);
         self.shown = name.clone();
         self.shown_dir = direction;
+        self.shown_connects = match pos.map(|p| self.drop_on(cx, p)) {
+            Some(DropOn::Pin(pin)) => Some(crate::describe::pin_in_sentence(&pin.label)),
+            _ => None,
+        };
         let Some((sheet, pos)) = self.at else {
             return Overlay::default();
         };
@@ -539,9 +652,10 @@ impl IpTool {
         Overlay::new(items)
     }
 
-    fn moved(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
+    fn moved(&mut self, at: (i64, i64), alt: bool, cx: &ToolCx<'_>) -> ToolOutput {
         let s = cx.snapper.snap_grid(at);
         self.at = Some((s.at_nm, s.page_nm));
+        self.suppressed = alt;
         ToolOutput::Transient(self.refresh(cx))
     }
 
@@ -571,7 +685,10 @@ impl Tool for IpTool {
             ToolOutput::Transient(t.refresh(cx))
         };
         match ev {
-            CanvasEvent::PointerMove { at, .. } | CanvasEvent::CursorMove { at } => self.moved(*at, cx),
+            // Alt on a pointer move holds for the hover and its dwell preview (`Dwell` carries no modifiers), as the
+            // Place tool's does; a grid-cursor move releases it.
+            CanvasEvent::PointerMove { at, mods } => self.moved(*at, mods.alt, cx),
+            CanvasEvent::CursorMove { at } => self.moved(*at, false, cx),
             CanvasEvent::Key(ToolKey::RotateCw) => turn(self, 1, false),
             CanvasEvent::Key(ToolKey::RotateCcw) => turn(self, 3, false),
             CanvasEvent::Key(ToolKey::MirrorX) => turn(self, 0, true),
@@ -607,9 +724,9 @@ impl Tool for IpTool {
             CanvasEvent::Press {
                 at,
                 button: Button::Primary,
-                ..
+                mods,
             } => {
-                let _ = self.moved(*at, cx);
+                let _ = self.moved(*at, mods.alt, cx);
                 self.commit(cx)
             }
             CanvasEvent::Activate => self.commit(cx),
@@ -653,6 +770,7 @@ impl Tool for IpTool {
             star: self.star,
             at_nm: pos,
             external: self.external.as_ref().map(|e| e.label.clone()),
+            connects: self.shown_connects.clone(),
         })
     }
 

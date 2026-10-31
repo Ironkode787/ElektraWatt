@@ -684,6 +684,7 @@ fn ghost_json(shell: &ShellModel) -> String {
             star,
             at_nm,
             external,
+            connects,
         }) => object(vec![
             member("kind", &Value::from("ip")),
             member("name", &Value::from(name)),
@@ -695,6 +696,8 @@ fn ghost_json(shell: &ShellModel) -> String {
             ),
             // The external reference's printed text, as the describe line prints it (fix round, item 9).
             member("external", &external.map_or(Value::Null, Value::from)),
+            // FIXPT41: the pin a click connects the point to, `null` where it places it free.
+            member("connects", &connects.map_or(Value::Null, Value::from)),
         ]),
         Some(Ghost::Box { outline, cps }) => object(vec![
             member("kind", &Value::from("box")),

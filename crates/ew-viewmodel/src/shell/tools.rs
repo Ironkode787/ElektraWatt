@@ -339,6 +339,11 @@ impl ShellModel {
                 reason_key: "reason-designation-needed",
             };
         }
+        // FIXPT41: the IP tool's click on another interruption point, or an external point's on a pin, is refused in
+        // words before it reaches the tool; the ghost stays.
+        if let Some(out) = self.ip_drop_refused(ev) {
+            return out;
+        }
         match self.run_tool(ev) {
             Some(out) => {
                 let refused = matches!(out, ToolOutput::Refused(_));
@@ -401,6 +406,15 @@ impl ShellModel {
                 self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
                 // FT-485 item 3: the wires a placement draws by its autoconnect hints, said in the toast.
                 let connects = self.autoconnect_words(cmd.as_ref());
+                // FIXPT41: the pin the IP tool's point connects to, as its ghost named it before the commit.
+                let ip_pin = match self.tools.tool.ghost() {
+                    Some(crate::tools::Ghost::Ip { connects, .. })
+                        if cmd.name() == "connection.draw_to_ip" =>
+                    {
+                        connects
+                    }
+                    _ => None,
+                };
                 // WP-S2.09 D6: an earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
@@ -416,6 +430,17 @@ impl ShellModel {
                     self.tools.result_note = Some(ResultNote::Placed {
                         pos: (x, y),
                         wires: connects,
+                    });
+                }
+                if out == Outcome::Done
+                    && let Some(pin) = ip_pin
+                    && let Ok(json) = cmd.to_json()
+                    && let (Some(x), Some(y)) = (json["ip"]["pos"][0].as_i64(), json["ip"]["pos"][1].as_i64())
+                {
+                    self.tools.result_note = Some(ResultNote::IpConnected {
+                        pos: (x, y),
+                        name: json["ip"]["name"].as_str().unwrap_or_default().to_owned(),
+                        pin,
                     });
                 }
                 self.tools.tool.on_commit(out == Outcome::Done);

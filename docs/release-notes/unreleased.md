@@ -30,3 +30,9 @@ SPDX-License-Identifier: CC-BY-4.0
   is refused in words: "error: <dir>: the project opens read-only: <reason>; nothing was written", the held lock as
   "another session holds the project (<user> on <host>, since <time>)"; no session or process ID; FT-877)
 - text-change: cli ew project checks set (the off-terminal refusal loses its run of embedded spaces; FT-878)
+- api-add: window script state and describe text, the Interruption point tool's ghost (`canvas.ghost.connects`, the
+  pin a click connects the point to or `null`; the describe line ends ` connects "<pin>"`; FIXPT41)
+- text-change: window Interruption point tool (a point whose connection point lies on a pin connects to it in one undo
+  step: the command bar adds "connects to -102F2:14" and the toast says "Placed the interruption point 0V at <cell>
+  and connected it to -102F2:14. Alt+Click or Ctrl+Enter places it without connecting"; a drop on another
+  interruption point, and an external point's on a pin, are refused in words; FIXPT41)

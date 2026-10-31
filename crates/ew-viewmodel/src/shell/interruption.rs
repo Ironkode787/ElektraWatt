@@ -513,6 +513,41 @@ impl ShellModel {
         }
     }
 
+    /// FIXPT41: the IP tool's click (a primary press or Enter) whose point's CP would lie on another interruption
+    /// point, or an external connection point's on a pin, is refused as FT-822's refused point is: nothing is
+    /// committed, the ghost stays where the click put it, the words stand in the HUD until the next canvas input and
+    /// in a warning toast. `None` for every other event, tool or drop.
+    pub(super) fn ip_drop_refused(&mut self, ev: &CanvasEvent) -> Option<Outcome> {
+        let at = match ev {
+            CanvasEvent::Press {
+                at,
+                button: crate::tools::Button::Primary,
+                ..
+            } => Some(*at),
+            CanvasEvent::Activate => None,
+            _ => return None,
+        };
+        if self.tools.tool.name() != "ip" {
+            return None;
+        }
+        let (text, overlay) = self
+            .with_tool(|t, cx| {
+                t.as_any_mut()
+                    .and_then(|a| a.downcast_mut::<IpTool>())
+                    .and_then(|ip| ip.refusal(at, cx))
+            })
+            .flatten()?;
+        self.tools.overlay = overlay;
+        self.tools.notice = Some(text.clone());
+        self.tools.notice_sticky = true;
+        // As a refused tool output's: the press's point, or (Enter) kept until the pointer or the cursor moves.
+        self.tools.notice_at = Some(at.unwrap_or((i64::MIN, i64::MIN)));
+        self.notify_toned(text, crate::notifications::NoteTone::Warning);
+        Some(Outcome::Refused {
+            reason_key: "reason-ip-not-placed",
+        })
+    }
+
     /// FT-822: the IP tool's commit that the model refused (a prevent rule: EW-CORE-052 for a second source of a name)
     /// is a refusal of the tool's click, not a failure: the tool stays armed with its ghost where it was (the second
     /// member: keep the overlay), the reason stands in words in the HUD until the next canvas input and in a warning

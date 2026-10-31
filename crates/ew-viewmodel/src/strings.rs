@@ -226,6 +226,13 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         // FT-822: a refused interruption point (a prevent rule) keeps its ghost; the HUD and a toast say why.
         "reason-ip-not-placed" => "The interruption point was not placed",
         "notice-ip-not-placed" => "Not placed: {0}",
+        // FIXPT41: the two drops on a connection point the IP tool cannot honour.
+        "notice-ip-on-ip" => {
+            "Not placed: the point would cover the interruption point {0}; place it on a free grid point or on a pin"
+        }
+        "notice-external-on-pin" => {
+            "Not placed: an external point on {0} would not be connected. Place it beside the pin and draw a wire to it"
+        }
         // H40 item 6: EW-CORE-052 in words: what is in the way (the existing source's page) and the way out.
         "notice-ip-second-source" => {
             "Not placed: {0} already has a source on page {1}. Press {2} for a target, or mark one source as the star."
@@ -544,6 +551,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "hud-selected" => "{0} selected \u{b7} Del deletes \u{b7} {1} rotates",
         "hud-keys-place" => "{0} rotates \u{b7} {1} variant \u{b7} Esc done",
         "hud-place-wires" => "connects {0}; Alt+Click or {1} places without",
+        // FIXPT41: the IP tool's ghost on a pin.
+        "hud-ip-connects" => "connects to {0}",
         "hud-tool-options" => "Tool options",
         "zoom-control" => "Zoom",
         "action-tools-palette" => "Command palette",
@@ -929,6 +938,13 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "toast-placed" => "Placed {0} at {1}",
         "toast-placed-no-cell" => "Placed {0}",
         "toast-placed-in-wire" => "{0}, connected into the wire it was dropped on",
+        // FIXPT41: an interruption point dropped on a pin ({3} the key of `canvas.activate_alt`).
+        "toast-ip-connected" => {
+            "Placed the interruption point {0} at {1} and connected it to {2}. Alt+Click or {3} places it without connecting"
+        }
+        "toast-ip-connected-no-cell" => {
+            "Placed the interruption point {0} and connected it to {2}. Alt+Click or {3} places it without connecting"
+        }
         "terminal-in-sentence" => "{0} terminal {1}",
         // FX38d: a pin whose designation the device shares, by its position in words ("-1A4 pin - (2nd)").
         "pin-in-sentence" => "{0} pin {1} ({2})",

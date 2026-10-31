@@ -166,6 +166,16 @@ pub enum ResultNote {
         /// The wires' count and list.
         wires: Option<(String, String)>,
     },
+    /// The IP tool's `connection.draw_to_ip` from the pin under the point's CP (FIXPT41): the point's insertion point
+    /// (page nm), its committed name and the pin in words.
+    IpConnected {
+        /// The insertion point.
+        pos: (i64, i64),
+        /// The committed name.
+        name: String,
+        /// The pin, as the ghost named it.
+        pin: String,
+    },
     /// A delete of representations (Delete, the command bar's Delete): the names of the interruption points among
     /// them and the connections at their connection points that the selection did not name (said only for those
     /// the delete removed, FT-547); and the devices that keep no representation but stay in the project (FT-709),

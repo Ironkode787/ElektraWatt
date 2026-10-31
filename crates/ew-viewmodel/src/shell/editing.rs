@@ -162,6 +162,20 @@ impl ShellModel {
                 };
                 self.notify(text, true);
             }
+            // FIXPT41: an interruption point dropped on a pin says where it stands, what it connects to and the way
+            // to place it free (the key from the keymap).
+            ResultNote::IpConnected { pos, name, pin } => {
+                let cell = self.canvas().and_then(|c| {
+                    let page = c.page();
+                    page.cell_text(page.snapper.page_to_sheet(pos))
+                });
+                let key = crate::command_bar::key_of(self, "canvas.activate_alt");
+                let text = match cell {
+                    Some(cell) => strings::format("toast-ip-connected", &[&name, &cell, &pin, &key]),
+                    None => strings::format("toast-ip-connected-no-cell", &[&name, "", &pin, &key]),
+                };
+                self.notify(text, true);
+            }
             ResultNote::Deleted {
                 names,
                 wires,
