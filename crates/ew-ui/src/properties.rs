@@ -53,6 +53,8 @@ pub struct PropertiesPane {
     choices_rect: Option<(String, egui::Rect)>,
     /// The nesting level of the shallowest rows of the group being drawn (their labels are not indented).
     base_depth: u8,
+    /// The width the widest label of the rows on show needs this frame (M39: the label column fits its labels).
+    label_need: f32,
     /// The filter field's text (FT-541; the shell's filter is set from it).
     filter: String,
 }
@@ -159,6 +161,37 @@ impl PropertiesPane {
                 }
                 return;
             }
+            // M39: the label column fits the widest label of the rows on show (with its indent).
+            self.label_need = {
+                let font = crate::theme::font(&t.type_small);
+                let mut need = 0.0_f32;
+                for section in &sheet.sections {
+                    for (group, rows) in groups(section, advanced) {
+                        if collapsed.contains(&group_key(&section.kind, group)) {
+                            continue;
+                        }
+                        let rows: Vec<&PropRow> = rows
+                            .into_iter()
+                            .filter(|r| row_matches(section, r, &filter))
+                            .collect();
+                        let base = if matches!(group, ew_viewmodel::properties::RowGroup::Main) {
+                            u8::MAX
+                        } else {
+                            rows.iter().map(|r| r.depth).min().unwrap_or(0)
+                        };
+                        for row in rows {
+                            let depth = t.space_3 * f32::from(row.depth.saturating_sub(base)).min(6.0);
+                            let w = ui
+                                .painter()
+                                .layout_no_wrap(row_label(section, row), font.clone(), crate::theme::NONE)
+                                .size()
+                                .x;
+                            need = need.max(depth + w);
+                        }
+                    }
+                }
+                need
+            };
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
@@ -525,10 +558,11 @@ impl PropertiesPane {
         // `space.3` per level (16a sets no property indent).
         let t = crate::theme::current(ui.ctx());
         let width = ui.available_width();
-        // M39 (owner 2026-10-31: scale, not cap): the label column takes `size.property_label` or 40 % of the row,
-        // whichever is wider, so a wider panel shows whole labels; a label that still does not fit elides with the
-        // whole label in its tooltip.
-        let (row_height, label_width, indent) = (t.size_row, label_column(&t, width), t.space_3);
+        // M39 (owner 2026-10-31: scale, not cap): the label column fits the widest label on show, between
+        // `size.property_label` and 40 % of the row; a label that still does not fit elides with the whole label in
+        // its tooltip.
+        let (row_height, label_width, indent) =
+            (t.size_row, label_column(&t, width, self.label_need), t.space_3);
         let (rect, _) = ui.allocate_exact_size(Vec2::new(width, row_height), Sense::hover());
         let group_id = ui.scope_id().with(("prop-row", &row.key));
         let group = ui.interact(rect, group_id, Sense::hover());
@@ -1307,9 +1341,10 @@ fn count_words(severity: &str, n: usize) -> String {
     crate::messages::count_words(severity, n)
 }
 
-/// The Properties label column's width in a row `row` wide: `size.property_label`, or 40 % of the row when wider.
-pub(crate) fn label_column(t: &crate::theme::Tokens, row: f32) -> f32 {
-    t.size_property_label.max(row * 0.4)
+/// The Properties label column's width in a row `row` wide whose widest label on show needs `need`: `need`, never
+/// below `size.property_label` and never above 40 % of the row (the floor wins in a row too narrow for both).
+pub(crate) fn label_column(t: &crate::theme::Tokens, row: f32, need: f32) -> f32 {
+    need.min(row * 0.4).max(t.size_property_label)
 }
 
 /// Whether `row` is a page's Kind (its page type, a raw word like `multi_line` that the grid shows in words).
@@ -1403,9 +1438,11 @@ mod tests {
     fn the_label_column_scales_with_the_panel() {
         use crate::theme::{Density, Theme, tokens};
         let t = tokens(Theme::Light, Density::Comfortable);
-        assert_eq!(super::label_column(&t, 100.0), t.size_property_label);
-        assert_eq!(super::label_column(&t, 600.0), 240.0);
-        assert!(super::label_column(&t, 900.0) > super::label_column(&t, 300.0));
+        // Short labels: the floor. A long label: its width, up to 40 % of the row.
+        assert_eq!(super::label_column(&t, 600.0, 40.0), t.size_property_label);
+        assert_eq!(super::label_column(&t, 600.0, 150.0), 150.0);
+        assert_eq!(super::label_column(&t, 600.0, 400.0), 240.0);
+        assert_eq!(super::label_column(&t, 100.0, 400.0), t.size_property_label);
     }
 
     /// M39: a finding pending on the editing page counts as pending, not under its severity; elsewhere it counts
