@@ -950,8 +950,9 @@ fn every_arm_commits_and_refuses_what_it_should() {
                 let Some(Step::Cmd(s)) = build(&live, &mut rng) else {
                     continue;
                 };
-                let applied = apply(&mut session, &s, &mut stats)
-                    .unwrap_or_else(|e| panic!("setup chain of arm `{}` attempt {attempt}: {e}", arm.command));
+                let applied = apply(&mut session, &s, &mut stats).unwrap_or_else(|e| {
+                    panic!("setup chain of arm `{}` attempt {attempt}: {e}", arm.command)
+                });
                 if applied.changed {
                     set_up += 1;
                 }
@@ -1569,7 +1570,8 @@ fn layout_command_sequences_save_incrementally_as_a_full_save() {
                 session
                     .save()
                     .unwrap_or_else(|e| panic!("seed {seed}, step {i}: save: {e:?}"));
-                saw_layout |= std::fs::read_dir(incremental.join("layout")).is_ok_and(|mut d| d.next().is_some());
+                saw_layout |=
+                    std::fs::read_dir(incremental.join("layout")).is_ok_and(|mut d| d.next().is_some());
             }
         }
         session.save().expect("the last incremental save");
@@ -1591,7 +1593,12 @@ fn layout_command_sequences_save_incrementally_as_a_full_save() {
             let _ = std::fs::remove_dir_all(dir);
         }
     }
-    for command in ["layout.place", "layout.move", "layout.carrier.add", "layout.remove"] {
+    for command in [
+        "layout.place",
+        "layout.move",
+        "layout.carrier.add",
+        "layout.remove",
+    ] {
         assert!(
             committed.contains_key(command),
             "the sequences never committed {command}: {committed:?}"

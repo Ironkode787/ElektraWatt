@@ -404,7 +404,9 @@ pub struct LayoutLive {
 
 impl LayoutLive {
     fn read(q: &Q) -> LayoutLive {
-        use ew_schema::{Carrier, CarrierKind, CarrierRef, Enclosure, LayoutSpace, MountingSurface, Placement};
+        use ew_schema::{
+            Carrier, CarrierKind, CarrierRef, Enclosure, LayoutSpace, MountingSurface, Placement,
+        };
         let spaces = q.table::<LayoutSpace>();
         let spaced: BTreeSet<String> = spaces.iter().map(|(_, s)| s.location.to_string()).collect();
         let enclosures = q.table::<Enclosure>();
@@ -423,8 +425,7 @@ impl LayoutLive {
                 length: length(c),
             })
             .collect();
-        let rail_length: BTreeMap<String, i64> =
-            rails.iter().map(|r| (id_text(&r.id), r.length)).collect();
+        let rail_length: BTreeMap<String, i64> = rails.iter().map(|r| (id_text(&r.id), r.length)).collect();
         // the space and enclosure of every carrier, for the occupied set
         let mut occupied = BTreeSet::new();
         for (_, p) in placements.iter() {
@@ -443,16 +444,19 @@ impl LayoutLive {
         }
         let with_enclosure: BTreeSet<String> = enclosures.iter().map(|(_, e)| e.space.to_string()).collect();
         let encl_part = |d: &ew_schema::Device| {
-            d.parts
-                .iter()
-                .any(|u| q.parts().get(u.part.copy).is_some_and(|c| c.item.sections.enclosure.is_some()))
+            d.parts.iter().any(|u| {
+                q.parts()
+                    .get(u.part.copy)
+                    .is_some_and(|c| c.item.sections.enclosure.is_some())
+            })
         };
         LayoutLive {
             free_locations: q
                 .structure_nodes()
                 .iter()
                 .filter(|(id, n)| {
-                    n.aspect == ew_schema::Open::Known(ew_rds::Aspect::Location) && !spaced.contains(&id.to_string())
+                    n.aspect == ew_schema::Open::Known(ew_rds::Aspect::Location)
+                        && !spaced.contains(&id.to_string())
                 })
                 .map(|(id, _)| id_json(id))
                 .collect(),
@@ -479,9 +483,7 @@ impl LayoutLive {
                     id: id_json(id),
                     device: id_json(p.device),
                     rail: match p.carrier {
-                        CarrierRef::Carrier(c) => rail_length
-                            .get(&c.to_string())
-                            .map(|l| (id_json(c), *l)),
+                        CarrierRef::Carrier(c) => rail_length.get(&c.to_string()).map(|l| (id_json(c), *l)),
                         _ => None,
                     },
                     surface: match p.carrier {

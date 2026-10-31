@@ -989,7 +989,10 @@ impl<'q> IdxView<'q> {
     }
 
     /// The placements of a device (`Placement.device`, WP-S4.01).
-    pub fn placements_of_device(&self, device: Id<Device>) -> impl Iterator<Item = Id<ew_schema::Placement>> + 'q {
+    pub fn placements_of_device(
+        &self,
+        device: Id<Device>,
+    ) -> impl Iterator<Item = Id<ew_schema::Placement>> + 'q {
         self.by_id(
             IndexName::PlacementsByDevice,
             self.indexes().placements_by_device(),

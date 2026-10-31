@@ -39,6 +39,8 @@ ew-commands = { path = "../crates/ew-commands", features = ["testkit"] }
 ew-derive = { path = "../crates/ew-derive" }
 ew-ids = { path = "../crates/ew-ids", features = ["testkit"] }
 ew-import-tables = { path = "../crates/ew-import-tables" }
+# The command fuzzer's live state (`command_fuzz/live.rs`) names `ew_rds::Aspect`.
+ew-rds = { path = "../crates/ew-rds" }
 ew-schema = { path = "../crates/ew-schema" }
 ew-testkit = { path = "../crates/ew-testkit" }
 ew-units = { path = "../crates/ew-units" }

@@ -5893,13 +5893,17 @@ fn assign_enclosure_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     if !t["sections"].is_object() {
         t["sections"] = json!({});
     }
-    t["sections"]["enclosure"] = json!({"width": 750 * LAY_MM, "height": 1000 * LAY_MM, "depth": 420 * LAY_MM});
+    t["sections"]["enclosure"] =
+        json!({"width": 750 * LAY_MM, "height": 1000 * LAY_MM, "depth": 420 * LAY_MM});
     let c = relineaged(&t, &rng.uuid(), &rng.uuid())?;
     let id = c["id"].clone();
     Some(
-        Step::cmd("part.assign", json!({"devices": [device], "part": id, "copies": [c]}))
-            .accept()
-            .counts(&[(Table::Parts, 1)]),
+        Step::cmd(
+            "part.assign",
+            json!({"devices": [device], "part": id, "copies": [c]}),
+        )
+        .accept()
+        .counts(&[(Table::Parts, 1)]),
     )
 }
 
@@ -5918,7 +5922,13 @@ fn setup_enclosure_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn setup_enclosure(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let space = rng.pick(&live.layout.empty_spaces)?;
     let device = rng.pick(&live.layout.enclosure_devices)?;
-    Some(Step::cmd("layout.enclosure.create", json!({"space": space, "device": device})).accept())
+    Some(
+        Step::cmd(
+            "layout.enclosure.create",
+            json!({"space": space, "device": device}),
+        )
+        .accept(),
+    )
 }
 
 fn setup_rail(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -5931,12 +5941,26 @@ fn setup_rail(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 /// A plain device without a placement put on the plate itself (a surface checks no profile).
 fn setup_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let surface = rng.pick(&live.layout.surfaces)?;
-    let placed: std::collections::BTreeSet<String> =
-        live.layout.placements.iter().map(|p| id_text(&p.device)).collect();
-    let free: Vec<&Value> = live.plain_devices.iter().filter(|d| !placed.contains(&id_text(d))).collect();
+    let placed: std::collections::BTreeSet<String> = live
+        .layout
+        .placements
+        .iter()
+        .map(|p| id_text(&p.device))
+        .collect();
+    let free: Vec<&Value> = live
+        .plain_devices
+        .iter()
+        .filter(|d| !placed.contains(&id_text(d)))
+        .collect();
     let device = *rng.pick(&free)?;
     let pose = lay_pose([100 * LAY_MM, 100 * LAY_MM, 0], QUARTERS[0]);
-    Some(Step::cmd("layout.place", json!({"device": device, "carrier": {"surface": surface}, "pose": pose})).accept())
+    Some(
+        Step::cmd(
+            "layout.place",
+            json!({"device": device, "carrier": {"surface": surface}, "pose": pose}),
+        )
+        .accept(),
+    )
 }
 
 /// `layout.space.create`: a location without a space, with or without a name (accepted); refused: a node that does not
@@ -5947,11 +5971,16 @@ fn layout_space_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(6) {
         0 => Some(cmd(json!({"location": rng.uuid()})).refuse()),
         1 => {
-            let taken: Vec<&Value> = live.locations.iter().filter(|n| !l.free_locations.contains(n)).collect();
+            let taken: Vec<&Value> = live
+                .locations
+                .iter()
+                .filter(|n| !l.free_locations.contains(n))
+                .collect();
             Some(cmd(json!({"location": *rng.pick(&taken)?})).refuse())
         }
         2 => {
-            let other: Vec<&super::live::NodeInfo> = live.nodes.iter().filter(|n| n.aspect != "location").collect();
+            let other: Vec<&super::live::NodeInfo> =
+                live.nodes.iter().filter(|n| n.aspect != "location").collect();
             Some(cmd(json!({"location": rng.pick(&other)?.id})).refuse())
         }
         _ => {
@@ -6107,7 +6136,11 @@ fn layout_carrier_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         3 => {
             let r = rng.pick(&l.rails)?;
             let s = rng.pick(&l.surfaces)?;
-            Some(cmd(json!({"carrier": r.id, "surface": s})).accept().counts(&[(Table::Carriers, 0)]))
+            Some(
+                cmd(json!({"carrier": r.id, "surface": s}))
+                    .accept()
+                    .counts(&[(Table::Carriers, 0)]),
+            )
         }
         4 | 5 => {
             let r = rng.pick(&l.rails)?;
@@ -6133,7 +6166,11 @@ fn layout_carrier_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (carrier, n) = rng.pick(&l.carriers)?;
     let n = isize::try_from(*n).expect("a count fits isize");
     if n == 0 {
-        return Some(cmd(json!({"carrier": carrier})).accept().counts(&[(Table::Carriers, -1)]));
+        return Some(
+            cmd(json!({"carrier": carrier}))
+                .accept()
+                .counts(&[(Table::Carriers, -1)]),
+        );
     }
     Some(match rng.below(3) {
         0 => cmd(json!({"carrier": carrier})).refuse(),
@@ -6205,7 +6242,9 @@ fn layout_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let l = &live.layout;
     let cmd = |p: Value| Step::cmd("layout.move", p);
     if rng.chance(6) {
-        return Some(cmd(json!({"placement": rng.uuid(), "pose": lay_pose([0, 0, 0], QUARTERS[0])})).refuse());
+        return Some(
+            cmd(json!({"placement": rng.uuid(), "pose": lay_pose([0, 0, 0], QUARTERS[0])})).refuse(),
+        );
     }
     let p = rng.pick(&l.placements)?;
     match (&p.rail, &p.surface, rng.below(4)) {
@@ -6214,17 +6253,27 @@ fn layout_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         }
         (Some((_, len)), _, 1 | 2) => {
             let pose = lay_pose([rng.range(0, *len), 0, 0], QUARTERS[2]);
-            Some(cmd(json!({"placement": p.id, "pose": pose})).accept().counts(&[(Table::Placements, 0)]))
+            Some(
+                cmd(json!({"placement": p.id, "pose": pose}))
+                    .accept()
+                    .counts(&[(Table::Placements, 0)]),
+            )
         }
         (None, Some(_), 1 | 2) => {
             let t = [LAY_MM * rng.range(0, 650), LAY_MM * rng.range(0, 900), 0];
             let pose = lay_pose(t, *rng.pick(&QUARTERS)?);
-            Some(cmd(json!({"placement": p.id, "pose": pose})).accept().counts(&[(Table::Placements, 0)]))
+            Some(
+                cmd(json!({"placement": p.id, "pose": pose}))
+                    .accept()
+                    .counts(&[(Table::Placements, 0)]),
+            )
         }
         _ => {
             let surface = rng.pick(&l.surfaces)?;
             let pose = lay_pose([10 * LAY_MM, 10 * LAY_MM, 0], QUARTERS[1]);
-            Some(cmd(json!({"placement": p.id, "carrier": {"surface": surface}, "pose": pose})))
+            Some(cmd(
+                json!({"placement": p.id, "carrier": {"surface": surface}, "pose": pose}),
+            ))
         }
     }
 }
@@ -6236,7 +6285,11 @@ fn layout_remove(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         return Some(cmd(json!({"placement": rng.uuid()})).refuse());
     }
     let p = rng.pick(&live.layout.placements)?;
-    Some(cmd(json!({"placement": p.id})).accept().counts(&[(Table::Placements, -1)]))
+    Some(
+        cmd(json!({"placement": p.id}))
+            .accept()
+            .counts(&[(Table::Placements, -1)]),
+    )
 }
 
 /// `layout.lock`: a placement locked or unlocked (accepted); one that does not exist is refused.
