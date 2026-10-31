@@ -725,3 +725,40 @@ fn a_structure_node_leaves_an_armed_place_tool_and_its_preview_alone() {
     assert_eq!(s.canvas().unwrap().page().tables.reps.len(), before + 1);
     s.shutdown();
 }
+
+/// FT-779 (cycle-40 review): an invalid parameter reads "{title}: {field in words}: {message}" on every shell path
+/// that shows a command error, never with its JSON Pointer: `command.run` (the headless tool commit's path too) and a
+/// creation dialog, whose refusal stays under its fields.
+#[test]
+fn an_invalid_parameter_names_its_field_in_words_on_every_path() {
+    let tmp = Tmp::new("invalid-param-words");
+    let mut shell = new_project(&tmp, Mode::Headless);
+    let message = failed(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": "x"}}),
+    );
+    assert_eq!(
+        message,
+        "Create page: Number: expected integer or null, found string"
+    );
+    shell.shutdown();
+
+    let tmp = Tmp::new("invalid-param-dialog");
+    let mut shell = new_project(&tmp, Mode::Gui);
+    done(&mut shell, "page.new", json!({}));
+    shell.set_form_field("folio", "101");
+    shell.set_form_field("title", &"x".repeat(1024 * 1024 + 1));
+    let Outcome::Failed { message } = shell.submit_form() else {
+        panic!()
+    };
+    assert_eq!(
+        message,
+        "Create page: Title: the string is 1048577 bytes long; the limit is 1048576 bytes"
+    );
+    let Some(Dialog::Form(form)) = shell.dialog() else {
+        panic!()
+    };
+    assert_eq!(form.error.as_deref(), Some(message.as_str()));
+    shell.shutdown();
+}

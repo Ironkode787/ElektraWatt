@@ -30,9 +30,9 @@ pub(super) struct KeymapTrouble {
 /// after a colon: its first letter in lower case ("it is not valid TOML.").
 fn clause(reason: &str) -> String {
     let mut chars = reason.chars();
-    chars.next().map_or_else(String::new, |first| {
-        first.to_lowercase().chain(chars).collect()
-    })
+    chars
+        .next()
+        .map_or_else(String::new, |first| first.to_lowercase().chain(chars).collect())
 }
 
 /// The user's keymap in `dir` checked against the preset `preset_word`: `Ok(None)` without a file. A file that does

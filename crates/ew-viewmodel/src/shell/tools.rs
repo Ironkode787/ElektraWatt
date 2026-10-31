@@ -1020,9 +1020,10 @@ impl ShellModel {
     }
 }
 
-/// The toast of a refused tool command (FT-779): an invalid parameter names its field in words, never its JSON
-/// Pointer (the command error itself stays machine-readable for the CLI); any other error as it prints.
-fn command_failed(e: &CmdError, params: &Value) -> Outcome {
+/// The toast of a refused command (FT-779): an invalid parameter names its field in words, never its JSON Pointer
+/// (the command error itself stays machine-readable for the CLI); any other error as it prints. Every shell path that
+/// shows a command error goes through it: the tool host, `command.run`, the creation dialogs, paste, undo and redo.
+pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
     match e {
         CmdError::InvalidParams {
             command,

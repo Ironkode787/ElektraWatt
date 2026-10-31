@@ -467,7 +467,7 @@ impl ShellModel {
         };
         let json = match cmd.to_json() {
             Ok(v) => v,
-            Err(e) => return failed("error-command", &[&e.to_string()]),
+            Err(e) => return super::tools::command_failed(&e, &cmd.params),
         };
         let Some(base_rev) = self.revision() else {
             return Outcome::Refused {
@@ -484,7 +484,7 @@ impl ShellModel {
         self.count(|c| c.preview_with += 1);
         let preview = match result {
             Ok(p) => p,
-            Err(e) => return failed("error-command", &[&e.to_string()]),
+            Err(e) => return super::tools::command_failed(&e, &json),
         };
         // A tool's own kept preview (the armed Place tool's ghost) is put back: it is stale after the commit and the
         // tool computes it again, as it would without this action.

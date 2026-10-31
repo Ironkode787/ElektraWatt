@@ -441,6 +441,7 @@ impl ShellModel {
                             CardOrigin::PasteUpdate { text: pending.text },
                         )
                     }
+                    Err(ew_api::ApiError::Cmd(e)) => super::tools::command_failed(&e, &Value::Null),
                     Err(e) => Outcome::Failed {
                         message: e.to_string(),
                     },
