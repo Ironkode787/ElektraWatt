@@ -304,11 +304,13 @@ fn lm2_a_location_has_one_layout_space() {
         "node P01 is not a location; a layout space lays out a location"
     );
     // An unnamed space is named by its location (ID-900: no ID in a refusal).
-    e.execute(&CreateLayoutSpace {
-        location: LOC,
-        name: None,
-    })
-    .unwrap();
+    let unnamed_space: Id<LayoutSpace> = created(
+        e.execute(&CreateLayoutSpace {
+            location: LOC,
+            name: None,
+        })
+        .unwrap(),
+    );
     let unnamed = rejected(e.execute(&CreateLayoutSpace {
         location: LOC,
         name: Some(ident("Second")),
@@ -317,6 +319,7 @@ fn lm2_a_location_has_one_layout_space() {
         unnamed,
         "the layout space of location J-E-2416 already exists; a location has one layout space"
     );
+    e.execute(&DeleteLayoutSpace { space: unnamed_space }).unwrap();
     assert_eq!(
         pointer(e.execute(&CreateLayoutSpace {
             location: id(0xeeee),
