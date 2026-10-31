@@ -134,9 +134,25 @@ pub struct IncompleteRelease {
     pub sha256: Sha256,
     /// What its `ARCHIVE.json` says, when it reads: the release context's date, the generation and the record's facts.
     pub facts: Option<(Date, u64, ReleaseRecord)>,
-    /// Why completing it is refused now, if it is (a damaged archive, another revision's, a project that changed since
-    /// it was written): then the person discards it.
+    /// Why completing it is refused now, if it is (a damaged archive, another project's or revision's, a project that
+    /// changed since it was written): then the person discards it, unless [`IncompleteRelease::foreign`] says it is kept.
     pub refusal: Option<String>,
+    /// Why the archive is not this project's incomplete release, if it is not: its `ARCHIVE.json` names another project
+    /// or another revision, or does not read (a root may be shared, and the file name carries only the label). Then it
+    /// is neither completed nor discarded: it is kept ([`ReleaseError::Foreign`]).
+    pub foreign: Option<String>,
+}
+
+/// What [`Session::discard_incomplete_release`] removed, and the tag it kept.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Discarded {
+    /// The archive removed.
+    pub archive: PathBuf,
+    /// The tag `ew/rev/<label>` removed: its message carried the archive's SHA-256 (the crashed run created it).
+    pub tag_removed: Option<String>,
+    /// The tag `ew/rev/<label>` kept: it exists, but its message does not carry the archive's SHA-256 (another
+    /// release's, or someone else's).
+    pub tag_kept: Option<String>,
 }
 
 /// Why a release (or settling an incomplete one) was refused or failed.
@@ -217,6 +233,9 @@ pub enum ReleaseError {
     NoIncomplete,
     /// The incomplete release cannot be completed (it says why): discard it.
     NotCompletable(String),
+    /// The archive of the label in the archive root is not this project's incomplete release (it says why): it is
+    /// neither completed nor discarded.
+    Foreign(String),
 }
 
 impl fmt::Display for ReleaseError {
@@ -282,6 +301,7 @@ impl fmt::Display for ReleaseError {
             ReleaseError::NotCompletable(why) => {
                 write!(f, "the incomplete release cannot be completed: {why}")
             }
+            ReleaseError::Foreign(why) => write!(f, "{why}; it is kept"),
         }
     }
 }
@@ -313,19 +333,33 @@ fn archive_json(
     text.into_bytes()
 }
 
-/// The facts `ARCHIVE.json` holds: the release context's date, the generation and the record.
-fn archive_facts(bytes: &[u8]) -> Option<(Id<Revision>, Date, u64, ReleaseRecord)> {
+/// The facts `ARCHIVE.json` holds: the project, the revision, the release context's date, the generation and the
+/// record.
+fn archive_facts(bytes: &[u8]) -> Option<(String, Id<Revision>, Date, u64, ReleaseRecord)> {
     let v: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    let project = v.get("project")?.as_str()?.to_owned();
     let revision = v.get("revision")?.get("id")?.as_str()?.parse().ok()?;
     let date = v.get("context")?.get("date")?.as_str()?.parse().ok()?;
     let generation = v.get("generation")?.as_u64()?;
     let record = serde_json::from_value(v.get("release")?.clone()).ok()?;
-    Some((revision, date, generation, record))
+    Some((project, revision, date, generation, record))
 }
 
 /// The tag message of a release (doc 05 §14.1 step 5): it carries the archive's SHA-256.
 fn tag_message(label: &str, name: &str, sha256: &Sha256) -> String {
     format!("Release {label}\n\nArchive: {name}\nSHA-256: {sha256}\n")
+}
+
+/// Whether a tag's message carries the archive's SHA-256 (the line [`tag_message`] writes): then the tag is this
+/// archive's release's, and a discard may delete it or a completion keep it.
+fn tag_carries(message: &str, sha256: &Sha256) -> bool {
+    let line = format!("SHA-256: {sha256}");
+    message.lines().any(|l| l.trim() == line)
+}
+
+/// The owner marker of the project's archive temps ([`archive::temp_name`]): the project's ID.
+fn temp_owner(session: &Session) -> String {
+    session.query().project().id.to_string()
 }
 
 impl Session {
@@ -341,7 +375,8 @@ impl Session {
                 why: "the project directory has no parent, so there is no default archive root; name one",
             })?,
         };
-        if chosen.starts_with(project) {
+        let vfs = self.release_vfs()?;
+        if archive::lies_inside(&*vfs, &chosen, project) {
             return Err(ReleaseError::ArchiveRoot {
                 root: chosen,
                 why: "it lies inside the project directory; an archive is kept outside the project (ADR-0013)",
@@ -415,7 +450,7 @@ impl Session {
                 {
                     return Err(ReleaseError::TagExists { tag });
                 }
-                let inside = root.starts_with(&w);
+                let inside = archive::lies_inside(&*vfs, &root, &w);
                 (Some((w, tag)), inside)
             }
         };
@@ -514,8 +549,10 @@ impl Session {
             let entries = archive::read(back, &limits)?;
             archive::check_project(&entries, &manifest.0, &manifest.1)
         };
-        let written = archive::write_atomically(&*vfs, &root, &ctx.label, generation, &bytes, &verify)
-            .map_err(ReleaseError::Write)?;
+        let owner = temp_owner(self);
+        let written =
+            archive::write_atomically(&*vfs, &root, &ctx.label, &owner, generation, &bytes, &verify)
+                .map_err(ReleaseError::Write)?;
         let sha256 = Sha256(written.sha256);
         // Step 5: the tag.
         if let Some((_, tag)) = &plan.git {
@@ -793,8 +830,9 @@ impl Session {
     /// The incomplete release a crash left (doc 05 §14.1 "On failure"): an archive of the open revision's label in the
     /// archive root (`archive_root`, else the default one), which no release record names because the revision is still
     /// open. `None` when there is no open revision or no such archive. The archive is read and checked: a damaged one,
-    /// one of another revision, or one whose generation is not the saved one is reported with the reason it cannot be
-    /// completed ([`IncompleteRelease::refusal`]).
+    /// one of another project or revision, or one whose generation is not the saved one is reported with the reason it
+    /// cannot be completed ([`IncompleteRelease::refusal`]); a damaged one or one of another project or revision is not
+    /// this project's at all and is kept ([`IncompleteRelease::foreign`]).
     ///
     /// # Errors
     ///
@@ -825,6 +863,7 @@ impl Session {
             max_ratio: u64::MAX,
             ..ZipLimits::default()
         };
+        let name = archive::file_name(&label);
         let mut found = IncompleteRelease {
             revision,
             label,
@@ -832,27 +871,48 @@ impl Session {
             sha256,
             facts: None,
             refusal: None,
+            foreign: None,
+        };
+        let foreign = |found: &mut IncompleteRelease, why: String| {
+            found.refusal = Some(why.clone());
+            found.foreign = Some(why);
         };
         let entries = match archive::read(&bytes, &limits) {
             Ok(e) => e,
             Err(e) => {
-                found.refusal = Some(format!("the archive is damaged: {e}"));
+                foreign(
+                    &mut found,
+                    format!("the archive {name} in that folder is damaged ({e}), so it names no project"),
+                );
                 return Ok(Some(found));
             }
         };
-        let Some((of, date, generation, record)) = entries
+        let Some((project, of, date, generation, record)) = entries
             .get(archive::DESCRIPTION_ENTRY)
             .and_then(|b| archive_facts(b))
         else {
-            found.refusal = Some("its ARCHIVE.json does not read".to_owned());
+            foreign(
+                &mut found,
+                format!(
+                    "the archive {name} in that folder has no readable ARCHIVE.json, so it names no project"
+                ),
+            );
             return Ok(Some(found));
         };
         found.facts = Some((date, generation, record.clone()));
-        found.refusal = if of != revision {
-            Some(format!("it is the archive of another revision ({of})"))
+        if project != temp_owner(self) {
+            foreign(
+                &mut found,
+                format!("the archive {name} in that folder belongs to another project"),
+            );
+        } else if of != revision {
+            foreign(
+                &mut found,
+                format!("the archive {name} in that folder belongs to another revision"),
+            );
         } else {
-            self.completable(&entries, generation, &record).err()
-        };
+            found.refusal = self.completable(&entries, generation, &record).err();
+        }
         Ok(Some(found))
     }
 
@@ -879,23 +939,29 @@ impl Session {
     }
 
     /// Discards the incomplete release (doc 05 §14.1 "On failure"): deletes the tag `ew/rev/<label>` when the project
-    /// lies in a worktree and the tag exists (the crashed run created it), then the archive and any leftover temp of
-    /// its name. Returns the archive and the tag removed. The revision stays open.
+    /// lies in a worktree and the tag's message carries the archive's SHA-256 (the crashed run created it; any other
+    /// tag of the label is kept), then the archive and the leftover temps of its name that this project wrote. Only an
+    /// archive whose `ARCHIVE.json` names this project and the open revision is discarded. The revision stays open.
     ///
     /// # Errors
     ///
-    /// [`ReleaseError`]: the origin, a read-only session, [`ReleaseError::NoIncomplete`], git, I/O.
+    /// [`ReleaseError`]: the origin, a read-only session, [`ReleaseError::NoIncomplete`], [`ReleaseError::Foreign`]
+    /// (nothing is removed), git, I/O.
     pub fn discard_incomplete_release(
         &mut self,
         options: &ReleaseOptions<'_>,
-    ) -> Result<(PathBuf, Option<String>), ReleaseError> {
+    ) -> Result<Discarded, ReleaseError> {
         self.settle_guard()?;
         let found = self
             .incomplete_release(options.archive_root)?
             .ok_or(ReleaseError::NoIncomplete)?;
+        if let Some(why) = found.foreign {
+            return Err(ReleaseError::Foreign(why));
+        }
         let vfs = self.release_vfs()?;
         let project = self.store().map(|s| s.root().to_path_buf()).unwrap_or_default();
         let mut tag_removed = None;
+        let mut tag_kept = None;
         let worktree = options
             .git
             .worktree(&*vfs, &project)
@@ -907,16 +973,20 @@ impl Session {
             && let Ok(tag) = git::tag_name(&found.label)
         {
             options.git.available().map_err(ReleaseError::Git)?;
-            if options
+            match options
                 .git
-                .tag_exists(&project, &tag)
+                .tag_message(&project, &tag)
                 .map_err(ReleaseError::Git)?
             {
-                options
-                    .git
-                    .delete_tag(&project, &tag)
-                    .map_err(ReleaseError::Git)?;
-                tag_removed = Some(tag);
+                Some(message) if tag_carries(&message, &found.sha256) => {
+                    options
+                        .git
+                        .delete_tag(&project, &tag)
+                        .map_err(ReleaseError::Git)?;
+                    tag_removed = Some(tag);
+                }
+                Some(_) => tag_kept = Some(tag),
+                None => {}
             }
         }
         archive::remove(&*vfs, &found.archive).map_err(|error| ReleaseError::Io {
@@ -924,10 +994,15 @@ impl Session {
             error,
         })?;
         let root = found.archive.parent().map(Path::to_path_buf).unwrap_or_default();
-        for temp in archive::leftover_temps(&*vfs, &root, &found.label).unwrap_or_default() {
+        let owner = temp_owner(self);
+        for temp in archive::leftover_temps(&*vfs, &root, &found.label, &owner).unwrap_or_default() {
             let _ = archive::remove(&*vfs, &temp);
         }
-        Ok((found.archive, tag_removed))
+        Ok(Discarded {
+            archive: found.archive,
+            tag_removed,
+            tag_kept,
+        })
     }
 
     /// Completes the incomplete release (doc 05 §14.1 "On failure"): the gate on the saved generation, which must be
@@ -937,8 +1012,10 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// [`ReleaseError`]: [`ReleaseError::NoIncomplete`], [`ReleaseError::NotCompletable`] (discard it then), the gate's
-    /// refusals, git, the stamp and its save (the archive stays: it is still the incomplete release).
+    /// [`ReleaseError`]: [`ReleaseError::NoIncomplete`], [`ReleaseError::Foreign`] (not this project's: it is kept),
+    /// [`ReleaseError::NotCompletable`] (discard it then; also when the tag of the label exists but its message does not
+    /// carry the archive's SHA-256), the gate's refusals, git, the stamp and its save (the archive stays: it is still
+    /// the incomplete release).
     pub fn complete_release(
         &mut self,
         integrity: &[checks::IntegrityItem],
@@ -948,6 +1025,9 @@ impl Session {
         let found = self
             .incomplete_release(options.archive_root)?
             .ok_or(ReleaseError::NoIncomplete)?;
+        if let Some(why) = found.foreign {
+            return Err(ReleaseError::Foreign(why));
+        }
         if let Some(why) = found.refusal {
             return Err(ReleaseError::NotCompletable(why));
         }
@@ -980,15 +1060,24 @@ impl Session {
                 return Err(ReleaseError::GitConsent { worktree: w, tag });
             }
             options.git.available().map_err(ReleaseError::Git)?;
+            // An existing tag of the label is reused only when it is this archive's (its message carries the SHA-256);
+            // judged before the commit, so that a refusal writes nothing.
+            let existing = options
+                .git
+                .tag_message(&project, &tag)
+                .map_err(ReleaseError::Git)?;
+            if let Some(message) = &existing
+                && !tag_carries(message, &found.sha256)
+            {
+                return Err(ReleaseError::NotCompletable(format!(
+                    "the git tag {tag} exists and names another archive; it is kept"
+                )));
+            }
             let committed = options
                 .git
                 .commit_dir(&project, &format!("Release {}", found.label))
                 .map_err(ReleaseError::Git)?;
-            if !options
-                .git
-                .tag_exists(&project, &tag)
-                .map_err(ReleaseError::Git)?
-            {
+            if existing.is_none() {
                 let name = archive::file_name(&found.label);
                 options
                     .git
@@ -1098,6 +1187,9 @@ mod tests {
         }
         fn tag_exists(&self, _: &Path, _: &str) -> Result<bool, GitError> {
             Ok(false)
+        }
+        fn tag_message(&self, _: &Path, _: &str) -> Result<Option<String>, GitError> {
+            Ok(None)
         }
         fn tag(&self, _: &Path, _: &str, _: &str) -> Result<(), GitError> {
             Err(GitError::Failed {

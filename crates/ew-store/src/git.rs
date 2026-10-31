@@ -196,6 +196,15 @@ pub trait Git {
     /// [`GitError`].
     fn tag(&self, dir: &Path, tag: &str, message: &str) -> Result<(), GitError>;
 
+    /// The message of the tag `tag` (an annotated tag's own message), or `None` when the tag does not exist. A release
+    /// deletes or reuses a tag only when its message carries the archive's SHA-256 (two projects in one repository
+    /// share the tag names).
+    ///
+    /// # Errors
+    ///
+    /// [`GitError`].
+    fn tag_message(&self, dir: &Path, tag: &str) -> Result<Option<String>, GitError>;
+
     /// Deletes the tag `tag` (a failed or discarded release's).
     ///
     /// # Errors
@@ -248,6 +257,36 @@ impl GitExe {
                 GitError::Spawn(e)
             }
         })
+    }
+
+    /// Runs `git -C dir args…` and returns its standard output when it succeeds.
+    fn output(&self, dir: &Path, step: &'static str, args: &[&str]) -> Result<Vec<u8>, GitError> {
+        let mut cmd = Command::new(&self.program);
+        cmd.arg("-C")
+            .arg(dir)
+            .args(args)
+            .stdin(Stdio::null())
+            .stderr(Stdio::null())
+            .env("GIT_TERMINAL_PROMPT", "0")
+            .env("GIT_OPTIONAL_LOCKS", "0");
+        for var in ISOLATE {
+            cmd.env_remove(var);
+        }
+        let out = cmd.output().map_err(|e| {
+            if e.kind() == io::ErrorKind::NotFound {
+                GitError::Missing
+            } else {
+                GitError::Spawn(e)
+            }
+        })?;
+        if out.status.success() {
+            Ok(out.stdout)
+        } else {
+            Err(GitError::Failed {
+                step,
+                code: out.status.code(),
+            })
+        }
     }
 
     /// [`GitExe::run`] that must succeed.
@@ -315,6 +354,19 @@ impl Git for GitExe {
             "tag",
             &["tag", "--annotate", "--message", message, tag, "HEAD"],
         )
+    }
+
+    fn tag_message(&self, dir: &Path, tag: &str) -> Result<Option<String>, GitError> {
+        if !self.tag_exists(dir, tag)? {
+            return Ok(None);
+        }
+        let reference = format!("refs/tags/{tag}");
+        let out = self.output(
+            dir,
+            "for-each-ref",
+            &["for-each-ref", "--format=%(contents)", &reference],
+        )?;
+        Ok(Some(String::from_utf8_lossy(&out).into_owned()))
     }
 
     fn delete_tag(&self, dir: &Path, tag: &str) -> Result<(), GitError> {

@@ -17,17 +17,23 @@
 //! the project (ADR-0013).
 //!
 //! **The atomic write** ([`write_atomically`], doc 05 §14.1 step 4): the root is created; a leftover temp of the same
-//! archive name (`<name>.tmp-<digits>`, a crashed release's) is removed; an existing archive of that name is never
-//! replaced ([`WriteError::Exists`]: archives are immutable, FR-REV-009; a complete unreferenced one is the next open's
-//! "incomplete release"). The archive is written as `<name>.tmp-<g>`, synced with its directory, read back through the
-//! seam, compared byte for byte with what was written and checked by the caller's verification (the sums and the
-//! project's hashes against manifest g), then renamed into place without replacement and the directory synced. Any
-//! failure removes the temp. The archive's name is therefore durable before the caller stamps the release.
+//! archive name and the same owner (`<name>.tmp-<owner>-<digits>`, a crashed release of the same project's) is
+//! removed, and a temp of any other owner is never touched (a root may be shared, and another project's release may be
+//! writing in it); an existing archive of that name is never replaced ([`WriteError::Exists`]: archives are
+//! immutable, FR-REV-009; a complete unreferenced one is the next open's "incomplete release"). The archive is written
+//! as `<name>.tmp-<owner>-<g>`, synced with its directory, read back through the seam, compared byte for byte with what
+//! was written and checked by the caller's verification (the sums and the project's hashes against manifest g), then
+//! renamed into place without replacement and the directory synced. Any failure removes the temp. The archive's name
+//! is therefore durable before the caller stamps the release.
+//!
+//! The owner is the caller's marker of the project (the release uses the project's ID): only one run of a project
+//! writes at a time (the project's write lock), so a temp that carries the owner is a crashed run's, never a live
+//! one's.
 
 use std::collections::BTreeMap;
 use std::fmt;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use ew_format::{FileHash, Manifest, hash_text, sha256};
 
@@ -86,14 +92,15 @@ pub fn file_name(label: &str) -> String {
     format!("{}.{EXTENSION}", sanitise(label))
 }
 
-/// The temp name of the archive of `label` written for generation `generation`: `<file name>.tmp-<g>`.
-pub fn temp_name(label: &str, generation: u64) -> String {
-    format!("{}.tmp-{generation}", file_name(label))
+/// The temp name of the archive of `label` written by `owner` for generation `generation`:
+/// `<file name>.tmp-<owner>-<g>`, with the owner sanitised ([`sanitise`]).
+pub fn temp_name(label: &str, owner: &str, generation: u64) -> String {
+    format!("{}.tmp-{}-{generation}", file_name(label), sanitise(owner))
 }
 
-/// The default archive root of the project directory `project` (an absolute path): `<parent>/<name>.ew-archive`, where
-/// `<name>` is the directory's name without a trailing `.ew` (doc 05 §1, §14.2). `None` for a path without a parent
-/// or a name.
+/// The default archive root of the project directory `project`: `<parent>/<name>.ew-archive`, where `<name>` is the
+/// directory's name without a trailing `.ew` (doc 05 §1, §14.2). A path without a name (`.`, `a/..`) is
+/// [`resolved`] first. `None` for a path without a parent or a name even then (a file-system root).
 ///
 /// ```
 /// use std::path::Path;
@@ -103,9 +110,76 @@ pub fn temp_name(label: &str, generation: u64) -> String {
 /// assert_eq!(default_root(Path::new("/w/plant")).unwrap(), Path::new("/w/plant.ew-archive"));
 /// ```
 pub fn default_root(project: &Path) -> Option<PathBuf> {
+    let resolved_project;
+    let project = if project.file_name().is_none() {
+        resolved_project = resolved(project);
+        resolved_project.as_path()
+    } else {
+        project
+    };
     let name = project.file_name()?.to_string_lossy();
     let stem = name.strip_suffix(".ew").unwrap_or(&name);
     Some(project.parent()?.join(format!("{stem}{ROOT_SUFFIX}")))
+}
+
+/// `path` made absolute (against the current directory when it has no root) and cleaned lexically: `.` dropped, `..`
+/// taking back the component before it. No link is resolved and nothing is read.
+pub fn resolved(path: &Path) -> PathBuf {
+    let absolute = if path.has_root() {
+        path.to_path_buf()
+    } else {
+        std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf())
+    };
+    let mut out = PathBuf::new();
+    for c in absolute.components() {
+        match c {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                // `..` at the root stays at the root.
+                if out.file_name().is_some() {
+                    out.pop();
+                }
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
+/// `path` in the form [`lies_inside`] compares: [`resolved`], its longest existing ancestor canonicalised through
+/// `vfs` (links, `..` through a link, the case the file system stores), and folded to lower case on Windows.
+fn comparable(vfs: &dyn Vfs, path: &Path) -> PathBuf {
+    let path = resolved(path);
+    let mut base = path.as_path();
+    let mut rest = Vec::new();
+    let canonical = loop {
+        if let Ok(c) = vfs.canonicalize(base) {
+            break Some(c);
+        }
+        match (base.parent(), base.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_owned());
+                base = parent;
+            }
+            _ => break None,
+        }
+    };
+    let mut out = canonical.unwrap_or_else(|| base.to_path_buf());
+    for name in rest.iter().rev() {
+        out.push(name);
+    }
+    if cfg!(windows) {
+        PathBuf::from(out.to_string_lossy().to_lowercase())
+    } else {
+        out
+    }
+}
+
+/// Whether `path` lies in the directory `dir` (or is it), judged on both made absolute, cleaned and canonicalised where
+/// they exist, and case-insensitively on Windows (ADR-0013: an archive root is never inside the project; a relative
+/// path, a `..` path or a different case reaches the same directory).
+pub fn lies_inside(vfs: &dyn Vfs, path: &Path, dir: &Path) -> bool {
+    comparable(vfs, path).starts_with(comparable(vfs, dir))
 }
 
 /// Why an archive's bytes are not an archive of this layout, or not the release they claim.
@@ -367,24 +441,28 @@ pub struct Written {
     pub sha256: [u8; 32],
 }
 
-/// Whether `name` is a temp of the archive file `file`: `<file>.tmp-<digits>`.
-fn is_temp_of(name: &str, file: &str) -> bool {
+/// Whether `name` is a temp of the archive file `file` written by `owner` (sanitised): `<file>.tmp-<owner>-<digits>`.
+fn is_temp_of(name: &str, file: &str, owner: &str) -> bool {
     name.strip_prefix(file)
         .and_then(|rest| rest.strip_prefix(".tmp-"))
+        .and_then(|rest| rest.strip_prefix(owner))
+        .and_then(|rest| rest.strip_prefix('-'))
         .is_some_and(|g| !g.is_empty() && g.bytes().all(|b| b.is_ascii_digit()))
 }
 
-/// The leftover temps of the archive of `label` in `root` (a crashed release's), by path.
+/// The leftover temps of the archive of `label` that `owner` wrote in `root` (a crashed release of the same project's),
+/// by path. A temp of another owner is never listed.
 ///
 /// # Errors
 ///
 /// An I/O error listing `root` other than its absence.
-pub fn leftover_temps(vfs: &dyn Vfs, root: &Path, label: &str) -> io::Result<Vec<PathBuf>> {
+pub fn leftover_temps(vfs: &dyn Vfs, root: &Path, label: &str, owner: &str) -> io::Result<Vec<PathBuf>> {
     let file = file_name(label);
+    let owner = sanitise(owner);
     match vfs.list(root) {
         Ok(entries) => Ok(entries
             .into_iter()
-            .filter(|(name, kind)| *kind == EntryKind::File && is_temp_of(name, &file))
+            .filter(|(name, kind)| *kind == EntryKind::File && is_temp_of(name, &file, &owner))
             .map(|(name, _)| root.join(name))
             .collect()),
         Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Vec::new()),
@@ -392,8 +470,8 @@ pub fn leftover_temps(vfs: &dyn Vfs, root: &Path, label: &str) -> io::Result<Vec
     }
 }
 
-/// Writes the archive `bytes` of the release `label` at generation `generation` into `root` atomically (see the module
-/// documentation); `verify` checks the bytes read back (the sums and the project against manifest g).
+/// Writes the archive `bytes` of the release `label` by `owner` at generation `generation` into `root` atomically (see
+/// the module documentation); `verify` checks the bytes read back (the sums and the project against manifest g).
 ///
 /// # Errors
 ///
@@ -402,6 +480,7 @@ pub fn write_atomically(
     vfs: &dyn Vfs,
     root: &Path,
     label: &str,
+    owner: &str,
     generation: u64,
     bytes: &[u8],
     verify: &dyn Fn(&[u8]) -> Result<(), ArchiveError>,
@@ -411,7 +490,7 @@ pub fn write_atomically(
         move |error: io::Error| WriteError::Io { step, path, error }
     };
     let target = root.join(file_name(label));
-    let temp = root.join(temp_name(label, generation));
+    let temp = root.join(temp_name(label, owner, generation));
     // The root, durable before anything is named in it.
     let created = match vfs.stat(root) {
         Ok(_) => false,
@@ -424,7 +503,7 @@ pub fn write_atomically(
             vfs.sync_dir(parent).map_err(io_err(WriteStep::Root, parent))?;
         }
     }
-    for leftover in leftover_temps(vfs, root, label).map_err(io_err(WriteStep::Root, root))? {
+    for leftover in leftover_temps(vfs, root, label, owner).map_err(io_err(WriteStep::Root, root))? {
         vfs.remove_file(&leftover)
             .map_err(io_err(WriteStep::Root, &leftover))?;
     }
@@ -613,24 +692,85 @@ mod tests {
         Ok(())
     }
 
-    /// The atomic write: the archive lands under its name, durable; a leftover temp of the name is removed; an
-    /// existing archive is never replaced.
+    /// FIX39a (finding 2): a `..` path, a `.` path and (on Windows) a case difference reach the project directory, and
+    /// are inside it; a sibling with the project's name as a prefix is not.
+    #[test]
+    fn inside_is_judged_on_normalised_paths() {
+        let vfs = MemVfs::new(DirSync::Explicit);
+        vfs.put_dir(Path::new("/w/p.ew"));
+        let dir = Path::new("/w/p.ew");
+        for inside in [
+            "/w/p.ew",
+            "/w/p.ew/arch",
+            "/w/p.ew/../p.ew/arch",
+            "/w/x/../p.ew/./a/b",
+            "/w/./p.ew/",
+        ] {
+            assert!(lies_inside(&vfs, Path::new(inside), dir), "{inside}");
+        }
+        for outside in ["/w/p.ew-archive", "/w/p.ew/../q", "/w", "/p.ew"] {
+            assert!(!lies_inside(&vfs, Path::new(outside), dir), "{outside}");
+        }
+        assert!(lies_inside(&vfs, Path::new("/w/arch"), Path::new("/w/p.ew/..")));
+        if cfg!(windows) {
+            assert!(lies_inside(&vfs, Path::new("/W/P.EW/arch"), dir));
+        }
+    }
+
+    /// FIX39a (finding 2): a relative path is made absolute against the current directory before the comparison, and a
+    /// project given as `.` has a default archive root beside it.
+    #[test]
+    fn relative_paths_are_made_absolute() {
+        let cwd = std::env::current_dir().unwrap();
+        let vfs = crate::vfs::OsVfs;
+        assert!(lies_inside(&vfs, Path::new("arch"), &cwd));
+        assert!(lies_inside(&vfs, Path::new("./src/../arch"), Path::new(".")));
+        assert!(lies_inside(&vfs, &cwd.join("arch"), Path::new(".")));
+        assert!(!lies_inside(&vfs, Path::new("../elsewhere"), &cwd));
+        let name = cwd.file_name().unwrap().to_string_lossy();
+        let expected = cwd.parent().unwrap().join(format!(
+            "{}.ew-archive",
+            name.strip_suffix(".ew").unwrap_or(&name)
+        ));
+        assert_eq!(default_root(Path::new(".")).unwrap(), expected);
+        assert_eq!(default_root(&Path::new("src").join("..")).unwrap(), expected);
+        assert_eq!(resolved(Path::new("a/./b/../c")), cwd.join("a").join("c"));
+    }
+
+    /// The atomic write: the archive lands under its name, durable; a leftover temp of the name and the owner is
+    /// removed, and another owner's temp (another project's release, maybe still writing) and any other file are kept;
+    /// an existing archive is never replaced.
     #[test]
     fn the_atomic_write() {
         let vfs = MemVfs::new(DirSync::Explicit);
         vfs.put_dir(Path::new("/w"));
-        vfs.put(Path::new("/w/p.ew-archive/V1.0.ewarchive.tmp-7"), b"junk");
-        vfs.put(Path::new("/w/p.ew-archive/V1.0.ewarchive.tmp-x"), b"not ours");
+        vfs.put(Path::new("/w/p.ew-archive/V1.0.ewarchive.tmp-a1-7"), b"junk");
+        vfs.put(Path::new("/w/p.ew-archive/V1.0.ewarchive.tmp-a1-3"), b"junk");
+        vfs.put(
+            Path::new("/w/p.ew-archive/V1.0.ewarchive.tmp-b2-3"),
+            b"another run",
+        );
+        vfs.put(Path::new("/w/p.ew-archive/V1.0.ewarchive.tmp-7"), b"another run");
+        vfs.put(
+            Path::new("/w/p.ew-archive/V1.0.ewarchive.tmp-a1-x"),
+            b"not a temp",
+        );
         let bytes = build(&entries()).unwrap();
         let root = Path::new("/w/p.ew-archive");
-        let w = write_atomically(&vfs, root, "V1.0", 3, &bytes, &ok).unwrap();
+        let w = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok).unwrap();
         assert_eq!(w.path, root.join("V1.0.ewarchive"));
         assert_eq!(w.sha256, sha256(&bytes));
         let files = vfs.files(root);
         assert_eq!(
             files.keys().map(String::as_str).collect::<Vec<_>>(),
-            ["V1.0.ewarchive", "V1.0.ewarchive.tmp-x"]
+            [
+                "V1.0.ewarchive",
+                "V1.0.ewarchive.tmp-7",
+                "V1.0.ewarchive.tmp-a1-x",
+                "V1.0.ewarchive.tmp-b2-3"
+            ]
         );
+        assert_eq!(files["V1.0.ewarchive.tmp-b2-3"], b"another run");
         // Durable: a power loss keeps it.
         vfs.set_fault(Fault::PowerLoss { at: 1, keep: 0 });
         assert!(vfs.stat(root).is_err());
@@ -638,10 +778,14 @@ mod tests {
         assert_eq!(vfs.files(root)["V1.0.ewarchive"], bytes);
         // Never replaced.
         assert!(matches!(
-            write_atomically(&vfs, root, "V1.0", 4, &bytes, &ok),
+            write_atomically(&vfs, root, "V1.0", "a1", 4, &bytes, &ok),
             Err(WriteError::Exists { .. })
         ));
-        assert!(leftover_temps(&vfs, root, "V1.0").unwrap().is_empty());
+        assert!(leftover_temps(&vfs, root, "V1.0", "a1").unwrap().is_empty());
+        assert_eq!(
+            leftover_temps(&vfs, root, "V1.0", "b2").unwrap(),
+            [root.join("V1.0.ewarchive.tmp-b2-3")]
+        );
     }
 
     /// Every failing call of the write leaves no temp and no archive behind (the error is reported).
@@ -658,7 +802,7 @@ mod tests {
                 at: n,
                 kind: io::ErrorKind::Other,
             });
-            let result = write_atomically(&vfs, root, "V1.0", 3, &bytes, &ok);
+            let result = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok);
             let calls = vfs.calls();
             vfs.set_fault(Fault::None);
             match result {
@@ -680,7 +824,7 @@ mod tests {
         let vfs = MemVfs::new(DirSync::Explicit);
         let refuse = |_: &[u8]| -> Result<(), ArchiveError> { Err(ArchiveError::Project("no".to_owned())) };
         assert!(matches!(
-            write_atomically(&vfs, root, "V1.0", 3, &bytes, &refuse),
+            write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &refuse),
             Err(WriteError::Verify(_))
         ));
         assert!(vfs.files(root).is_empty());

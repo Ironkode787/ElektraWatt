@@ -160,7 +160,7 @@ pub use ew_store::{archive, git, zip};
 pub use new_project::{NewProjectKind, ProjectTemplate, SaveAsBasicError};
 pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
 pub use release_run::{
-    IncompleteRelease, ReleaseContext, ReleaseError, ReleaseOptions, ReleasePlan, Released,
+    Discarded, IncompleteRelease, ReleaseContext, ReleaseError, ReleaseOptions, ReleasePlan, Released,
 };
 
 pub use ew_commands::{

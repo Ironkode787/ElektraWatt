@@ -2200,7 +2200,9 @@ fn released_lines(output: &mut dyn std::io::Write, done: &ew_api::Released) {
 }
 
 /// An archive of the open revision's label that a crashed release left (doc 05 section 14.1 "On failure"): the
-/// person types `complete` (when it can be completed) to stamp it, or `discard` to remove it and its tag.
+/// person types `complete` (when it can be completed) to stamp it, or `discard` to remove it and its tag. An archive
+/// that is not this project's (another project's or revision's, or one that names no project) is offered neither: it is
+/// kept, and the release is refused.
 fn settle_release(
     session: &mut ew_api::Session,
     items: &[ew_api::checks::IntegrityItem],
@@ -2210,6 +2212,13 @@ fn settle_release(
     output: &mut dyn std::io::Write,
 ) -> i32 {
     let label = &found.label;
+    if let Some(why) = &found.foreign {
+        eprintln!(
+            "error: release of {label} refused: {why}; it is kept. Name another archive folder with --archive-dir \
+             <dir>; nothing was changed"
+        );
+        return 1;
+    }
     let mut summary = format!(
         "incomplete release {label}: the archive {} ({}) is in place, but the revision is still open\n",
         found.archive.display(),
@@ -2244,13 +2253,22 @@ fn settle_release(
             }
         },
         (true, "discard", _) => match session.discard_incomplete_release(&release.options(true)) {
-            Ok((archive, tag)) => {
-                let tag = tag.map_or_else(String::new, |t| format!(" and the tag {t}"));
+            Ok(done) => {
+                let tag = done
+                    .tag_removed
+                    .map_or_else(String::new, |t| format!(" and the tag {t}"));
                 let _ = writeln!(
                     output,
                     "discarded the incomplete release {label}: removed {}{tag}; the revision is still open",
-                    archive.display()
+                    done.archive.display()
                 );
+                if let Some(t) = done.tag_kept {
+                    let _ = writeln!(
+                        output,
+                        "note: the git tag {t} names another archive, so it was kept; a new release of {label} needs \
+                         it gone"
+                    );
+                }
                 0
             }
             Err(e) => {
@@ -4432,6 +4450,9 @@ mod revision_tests {
         fn commit_dir(&self, _: &Path, _: &str) -> Result<ew_api::git::Committed, ew_api::git::GitError> {
             Err(ew_api::git::GitError::Missing)
         }
+        fn tag_message(&self, _: &Path, _: &str) -> Result<Option<String>, ew_api::git::GitError> {
+            Err(ew_api::git::GitError::Missing)
+        }
         fn tag_exists(&self, _: &Path, _: &str) -> Result<bool, ew_api::git::GitError> {
             Err(ew_api::git::GitError::Missing)
         }
@@ -4692,7 +4713,7 @@ mod revision_tests {
             "the same release record as the uninterrupted release"
         );
 
-        // A damaged archive of an open revision: only discard.
+        // A damaged archive names no project: neither completed nor discarded, but kept, and nothing is offered.
         let c = a.with_file_name(format!("ew-cli-revision-incomplete-c-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&c);
         copy_dir(&golden(), &c);
@@ -4700,18 +4721,19 @@ mod revision_tests {
         let _ = std::fs::remove_dir_all(&root_c);
         std::fs::create_dir_all(&root_c).unwrap();
         std::fs::write(root_c.join("V2.0.ewarchive"), b"not an archive").unwrap();
-        let (code, shown) = run(&c, release_into("V2.0", &root_c), true, "complete\n");
-        assert_eq!(code, 1, "{shown}");
-        assert!(
-            shown.contains("it cannot be completed: the archive is damaged"),
-            "{shown}"
-        );
-        let (code, shown) = run(&c, release_into("V2.0", &root_c), true, "discard\n");
-        assert_eq!(code, 0, "{shown}");
-        assert!(shown.contains("discarded the incomplete release V2.0"), "{shown}");
-        assert!(!root_c.join("V2.0.ewarchive").exists());
+        for answer in ["complete\n", "discard\n"] {
+            let (code, shown) = run(&c, release_into("V2.0", &root_c), true, answer);
+            assert_eq!(code, 1, "{shown}");
+            assert!(!shown.contains("Type `discard`"), "{shown}");
+            assert_eq!(
+                std::fs::read(root_c.join("V2.0.ewarchive")).unwrap(),
+                b"not an archive",
+                "{answer}: the damaged archive is kept"
+            );
+        }
         for d in [&a, &b, &c, &root_a, &root_b, &root_c] {
             let _ = std::fs::remove_dir_all(d);
         }
+    }
     }
 }
