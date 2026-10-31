@@ -133,11 +133,64 @@ fn ft822_the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
         prompt(&s),
         format!("0V \u{b7} source: feeds its targets \u{b7} {d}: target")
     );
+    // W42b: with the star on, the star's hint stands alone in the role's place.
     done(&mut s, "tool.star_source", json!({}));
     assert_eq!(
         prompt(&s),
-        format!(
-            "0V \u{b7} source: feeds its targets \u{b7} {d}: target \u{b7} star source: feeds every point of the name"
+        format!("0V \u{b7} star source: feeds every point of the name \u{b7} {d}: target")
+    );
+}
+
+/// The text of the IP tool's ghost label.
+fn ghost_label(s: &ShellModel) -> String {
+    s.tool_overlay()
+        .items
+        .iter()
+        .find_map(|i| match i {
+            ew_viewmodel::tools::OverlayItem::Label { text, .. } => Some(text.clone()),
+            _ => None,
+        })
+        .expect("the ghost's label")
+}
+
+/// W42b (ruling: the window says what ew-derive does, which takes a starred point as its name's star source whatever
+/// its direction): with the star on, in each of the three directions, the HUD names the star source alone (no role
+/// beside it) and the ghost label says "0V star source"; with the star off the role and "0V <direction>" come back.
+#[test]
+fn w42b_a_starred_point_is_named_the_star_source_alone_in_every_direction() {
+    let tmp = Tmp::new("w42b-star");
+    let mut s = source_on_101(&tmp);
+    arm_ip(&mut s, "0V", 150.0);
+    let d = key_of(&s, "tool.ip_direction");
+    let prompt = |s: &ShellModel| ew_viewmodel::command_bar::hud(s).prompt;
+    // A starred name is not offered as a target (the star source is a source), so the walk starts at source; D still
+    // sets the direction that is saved.
+    done(&mut s, "tool.star_source", json!({}));
+    let mut seen = Vec::new();
+    for _ in 0..3 {
+        let direction = ghost(&s)["direction"].as_str().unwrap().to_owned();
+        seen.push((direction, prompt(&s), ghost_label(&s)));
+        done(&mut s, "tool.ip_direction", json!({}));
+    }
+    let star =
+        |next: &str| format!("0V \u{b7} star source: feeds every point of the name \u{b7} {d}: {next}");
+    let label = "0V star source".to_owned();
+    assert_eq!(
+        seen,
+        [
+            ("source".to_owned(), star("target"), label.clone()),
+            ("target".to_owned(), star("undirected"), label.clone()),
+            ("undirected".to_owned(), star("source"), label),
+        ]
+    );
+    // The star off: the role in words and the "<name> <direction>" label, as before.
+    done(&mut s, "tool.star_source", json!({}));
+    assert_eq!(ghost(&s)["direction"], "source");
+    assert_eq!(
+        (prompt(&s), ghost_label(&s)),
+        (
+            format!("0V \u{b7} source: feeds its targets \u{b7} {d}: target"),
+            "0V source".to_owned()
         )
     );
 }

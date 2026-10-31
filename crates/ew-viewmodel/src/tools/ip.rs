@@ -646,7 +646,12 @@ impl IpTool {
         }
         items.push(OverlayItem::Label {
             at: sheet,
-            text: format!("{name} {}", direction.word()),
+            // W42b: a starred point is labelled as its name's star source, which it is whatever its direction.
+            text: if self.star {
+                crate::strings::format("ghost-ip-star", &[&name])
+            } else {
+                format!("{name} {}", direction.word())
+            },
             anchor: Anchor::Above,
         });
         Overlay::new(items)

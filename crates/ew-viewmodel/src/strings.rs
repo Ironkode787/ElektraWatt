@@ -585,6 +585,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "hud-ip-target" => "target: fed by its source",
         "hud-ip-undirected" => "undirected: pairs either way",
         "hud-ip-star" => "star source: feeds every point of the name",
+        // W42b: the IP tool's ghost label of a starred point ("<name> <direction>" otherwise).
+        "ghost-ip-star" => "{0} star source",
         "hud-tool-options" => "Tool options",
         "zoom-control" => "Zoom",
         "action-tools-palette" => "Command palette",

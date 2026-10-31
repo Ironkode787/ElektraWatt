@@ -710,8 +710,11 @@ pub fn hud(model: &ShellModel) -> HudModel {
             let mut parts = vec![name];
             // FT-822: the role and the key that changes it ("0V · source: feeds its targets · D: target"), so the next
             // role is on screen; FT-899: the role says what it does, the key's part keeps the short next word.
+            // W42b: a starred point is its name's star source whatever its direction (ew-derive pairs from it), so the
+            // star's hint stands alone in the role's place.
             if let Some(d) = crate::tools::IpDir::from_word(direction) {
-                parts.push(strings::text(ip_role_key(d)).to_owned());
+                let role = if star { "hud-ip-star" } else { ip_role_key(d) };
+                parts.push(strings::text(role).to_owned());
                 parts.push(format!(
                     "{}: {}",
                     key_of(model, "tool.ip_direction"),
@@ -720,7 +723,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             } else {
                 parts.push(direction.to_owned());
             }
-            if star {
+            if star && crate::tools::IpDir::from_word(direction).is_none() {
                 parts.push(strings::text("hud-ip-star").to_owned());
             }
             parts.extend(external);
