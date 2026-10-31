@@ -52,6 +52,11 @@ pub trait Vfs: Send + Sync + fmt::Debug {
     fn create_dir_all(&self, dir: &Path) -> io::Result<()>;
     /// Creates a new file with `data` (`O_EXCL`, SMB2 `FILE_CREATE`); `AlreadyExists` when the path exists.
     /// Nothing is durable until [`Vfs::sync`] and [`Vfs::sync_dir`].
+    ///
+    /// All or nothing: when the call fails after it created the file (a write that fails part-way, a full disk), it
+    /// removes that file before it returns the error, so a failed call never leaves a partial file under `path`
+    /// (the archive's fallback placement relies on it). An existing file (`AlreadyExists`) is never touched. Every
+    /// implementation keeps this contract, the test doubles included.
     fn create_new(&self, path: &Path, data: &[u8]) -> io::Result<()>;
     /// Appends `data` to a file, creating it when absent. Not durable until [`Vfs::sync`].
     fn append(&self, path: &Path, data: &[u8]) -> io::Result<()>;
@@ -154,8 +159,7 @@ impl Vfs for OsVfs {
     }
 
     fn create_new(&self, path: &Path, data: &[u8]) -> io::Result<()> {
-        let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
-        file.write_all(data)
+        create_new_with(path, |file| file.write_all(data))
     }
 
     fn append(&self, path: &Path, data: &[u8]) -> io::Result<()> {
@@ -210,6 +214,24 @@ impl Vfs for OsVfs {
 
     fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
         Ok(without_verbatim_prefix(fs::canonicalize(path)?))
+    }
+}
+
+/// Creates the new file `path` (`create_new`) and runs `write` on it; when `write` fails, the file this call created
+/// is removed (best effort) before the error is returned: the all-or-nothing contract of [`Vfs::create_new`].
+pub(crate) fn create_new_with(
+    path: &Path,
+    write: impl FnOnce(&mut fs::File) -> io::Result<()>,
+) -> io::Result<()> {
+    let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
+    match write(&mut file) {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            // Close the handle first: Windows cannot remove a file that is open without delete sharing.
+            drop(file);
+            let _ = fs::remove_file(path);
+            Err(e)
+        }
     }
 }
 

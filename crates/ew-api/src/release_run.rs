@@ -801,6 +801,13 @@ impl Session {
         .map_err(ReleaseError::Write)?;
         let sha256 = Sha256(written.sha256);
         let run_record = written.run_record.clone();
+        if let Some(e) = &written.record_trouble {
+            // FIX40b (finding 2): the archive is kept; only the discard evidence after a crash is lost.
+            self.release_troubles.borrow_mut().push(format!(
+                "the release record of {} could not be updated with the archive's time, so a discard after a crash                  keeps the archive: {e}",
+                written.path.display()
+            ));
+        }
         // Step 5: the tag.
         if let Some((_, tag)) = &plan.git {
             let name = archive::file_name(&ctx.label);

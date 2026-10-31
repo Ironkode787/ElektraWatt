@@ -1963,3 +1963,53 @@ fn ra7_the_release_commits_and_tags_in_a_git_repository() {
     s.close();
     let _ = std::fs::remove_dir_all(&base);
 }
+
+/// FIX40b (finding 2): on a file system without hard links that cannot set the archive's time (some SMB or FUSE
+/// mounts), the release goes on and keeps its archive. One failing call at a time over the run: whenever the release
+/// succeeds the archive is in place and the revision released; a run whose record could not be rewritten with the
+/// archive's time reports it as housekeeping trouble (and at least one call reaches that branch).
+#[test]
+fn a_release_whose_archive_time_cannot_be_set_goes_on() {
+    let image = approved_image();
+    let mut reported = false;
+    for n in 1..2000 {
+        let vfs = mem_vfs(&image);
+        vfs.set_noreplace_unsupported(true);
+        vfs.set_times_refused_under(Some(Path::new(MEM_ROOT)));
+        let git = FakeGit::default();
+        let (mut s, integrity) = mem_open(&vfs, 1);
+        vfs.reset_calls();
+        vfs.set_fault(Fault::Error {
+            at: n,
+            kind: std::io::ErrorKind::Other,
+        });
+        let result = s.release(&context(), &integrity, &options(&git, None));
+        let calls = vfs.calls();
+        vfs.set_fault(Fault::None);
+        let troubles = s.take_release_troubles();
+        if result.is_ok() {
+            assert_eq!(revision(&s).state, RevisionState::Released, "call {n}");
+            assert!(
+                root_files(&vfs).contains_key("V1.0.ewarchive"),
+                "call {n}: the archive is kept"
+            );
+        }
+        if let Some(t) = troubles
+            .iter()
+            .find(|t| t.contains("could not be updated with the archive's time"))
+        {
+            assert!(result.is_ok(), "call {n}: {t}");
+            assert!(
+                t.starts_with("the release record of ") && t.contains("V1.0.ewarchive"),
+                "{t}"
+            );
+            reported = true;
+        }
+        s.close();
+        if result.is_ok() && calls < n {
+            assert!(reported, "a failed rewrite of the record is reported");
+            return;
+        }
+    }
+    panic!("the release made more than 2000 file-system calls")
+}

@@ -172,6 +172,7 @@ struct State {
     holds: HashMap<String, u32>,
     read_only: bool,
     noreplace_unsupported: bool,
+    times_refused_under: Option<String>,
     now: SystemTime,
     trace: Option<Vec<String>>,
 }
@@ -365,6 +366,7 @@ impl MemVfs {
                 holds: HashMap::new(),
                 read_only: false,
                 noreplace_unsupported: false,
+                times_refused_under: None,
                 now: UNIX_EPOCH + Duration::from_secs(1_792_222_930),
                 trace: None,
             }),
@@ -509,6 +511,12 @@ impl MemVfs {
     /// Whether [`Vfs::rename_noreplace`] fails with [`io::ErrorKind::Unsupported`].
     pub fn set_noreplace_unsupported(&self, yes: bool) {
         self.lock().noreplace_unsupported = yes;
+    }
+
+    /// Whether [`Vfs::set_modified`] fails with [`io::ErrorKind::Unsupported`] for the files below `dir` (some SMB or
+    /// FUSE mounts cannot set a file's time); `None` (the default) sets every time.
+    pub fn set_times_refused_under(&self, dir: Option<&Path>) {
+        self.lock().times_refused_under = dir.map(|d| child_prefix(&norm(d).expect("a path without `..`")));
     }
 
     /// The modification time given to files created or appended to from now on (default 2026-10-17T07:42:10Z).
@@ -779,6 +787,12 @@ impl Vfs for MemVfs {
     fn set_modified(&self, path: &Path, time: SystemTime) -> io::Result<()> {
         let mut s = self.enter("set_modified", &[path], true)?;
         let p = norm(path)?;
+        if s.times_refused_under.as_deref().is_some_and(|d| p.starts_with(d)) {
+            return Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "the file system cannot set a file's time",
+            ));
+        }
         let i = s.file_index(&p)?;
         s.inodes[i].modified = time;
         Ok(())

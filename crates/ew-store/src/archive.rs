@@ -482,7 +482,7 @@ impl fmt::Display for WriteError {
 impl std::error::Error for WriteError {}
 
 /// The archive in place: its path and the SHA-256 of its bytes.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct Written {
     /// The archive.
     pub path: PathBuf,
@@ -490,6 +490,11 @@ pub struct Written {
     pub sha256: [u8; 32],
     /// The run's record, when one was asked for and written ([`write_atomically`]'s `record`).
     pub run_record: Option<PathBuf>,
+    /// Why the run's record was dropped although the archive is in place: the file system did not keep the temp's
+    /// modification time on the archive and rewriting the record with the archive's own time failed. The record was
+    /// then removed (or, when that failed too, is still [`Written::run_record`], naming a time the archive does not
+    /// have), so a discard after a crash keeps the archive; the caller reports it as housekeeping trouble.
+    pub record_trouble: Option<io::Error>,
 }
 
 /// The run record [`write_atomically`] writes before the archive has its name (FT-814): the state directory and the
@@ -616,18 +621,23 @@ pub fn write_atomically(
             modified: modified.and_then(record_time),
             ..at.record
         };
-        write_run_record(vfs, at.state, &record).ok()
+        write_run_record(vfs, at.state, &record)
+            .ok()
+            .map(|path| (path, at.state, record))
     });
-    let fail = |e: WriteError| {
-        if let Some(path) = &run_record {
+    let fail = |e: WriteError, run_record: &Option<(PathBuf, &Path, RunRecord)>| {
+        if let Some((path, _, _)) = run_record {
             let _ = remove_run_record(vfs, path);
         }
         cleanup(e)
     };
     // Into place without replacing anything: a hard link (the same file), else, on a file system without hard links,
-    // the target created anew (`create_new`: an existing file, another copy's archive, is never replaced; a torn one
-    // reads as damaged and is kept). Only a target this call created is ever removed.
+    // the target created anew (`create_new`: an existing file, another copy's archive, is never replaced; a failed
+    // `create_new` leaves no partial file, its contract). Only a target this call created is ever removed.
     let mut placed = false;
+    // Whether the archive kept the temp's modification time, which the record names. A file system that cannot set it
+    // (some SMB or FUSE mounts) keeps the archive; the record is rewritten with the archive's own time below.
+    let mut time_kept = true;
     let renamed = match vfs.rename_noreplace(&temp, &target) {
         Ok(()) => {
             placed = true;
@@ -636,10 +646,10 @@ pub fn write_atomically(
         Err(e) if e.kind() == io::ErrorKind::Unsupported => match vfs.create_new(&target, bytes) {
             Ok(()) => {
                 placed = true;
-                modified
-                    .map_or(Ok(()), |t| vfs.set_modified(&target, t))
-                    .and_then(|()| vfs.sync(&target))
-                    .and_then(|()| vfs.remove_file(&temp))
+                if let Some(t) = modified {
+                    time_kept = vfs.set_modified(&target, t).is_ok();
+                }
+                vfs.sync(&target).and_then(|()| vfs.remove_file(&temp))
             }
             Err(e) => Err(e),
         },
@@ -648,25 +658,50 @@ pub fn write_atomically(
     match renamed {
         Ok(()) => {}
         Err(e) if e.kind() == io::ErrorKind::AlreadyExists && !placed => {
-            return Err(fail(WriteError::Exists { path: target }));
+            return Err(fail(WriteError::Exists { path: target }, &run_record));
         }
         Err(e) => {
             if placed {
                 let _ = vfs.remove_file(&target);
             }
-            return Err(fail(io_err(WriteStep::Rename, &target)(e)));
+            return Err(fail(io_err(WriteStep::Rename, &target)(e), &run_record));
         }
     }
     if let Err(e) = vfs.sync_dir(root) {
         // The archive is in place but its name may not be durable: take it back (this call created it), so that the
         // caller's failure leaves nothing behind.
         let _ = vfs.remove_file(&target);
-        return Err(fail(io_err(WriteStep::Rename, root)(e)));
+        return Err(fail(io_err(WriteStep::Rename, root)(e), &run_record));
     }
+    // FIX40b (finding 2): the archive did not keep the temp's time. Until the record is rewritten it names another
+    // time, so the archive reads as foreign and is kept (the safe side); the rewrite makes the discard evidence true
+    // again. If the rewrite fails, the record goes (the archive stays foreign and kept) and the caller reports it.
+    let mut record_trouble = None;
+    let run_record = match run_record {
+        Some((path, state, record)) if !time_kept => {
+            let rewritten = vfs.stat(&target).and_then(|stat| {
+                let record = RunRecord {
+                    modified: stat.modified.and_then(record_time),
+                    ..record
+                };
+                write_run_record(vfs, state, &record)
+            });
+            match rewritten {
+                Ok(path) => Some(path),
+                Err(e) => {
+                    record_trouble = Some(e);
+                    // A record left behind names the temp's time, which the archive does not have: harmless too.
+                    remove_run_record(vfs, &path).is_err().then_some(path)
+                }
+            }
+        }
+        other => other.map(|(path, _, _)| path),
+    };
     Ok(Written {
         path: target,
         sha256: sha256(bytes),
         run_record,
+        record_trouble,
     })
 }
 
@@ -1564,5 +1599,208 @@ mod tests {
         let mut expected = vec![(mine, record("run-1")), (mine2, other)];
         expected.sort_by(|a, b| a.0.cmp(&b.0));
         assert_eq!(run_records_of(&vfs, state, "/w/a/p.ew").unwrap(), expected);
+    }
+
+    /// A file system without hard links (`rename_noreplace` is `Unsupported`) around `inner`, with faults: `torn`, a
+    /// `create_new` of that path that writes half its bytes and then fails with `StorageFull`; `fail_record_write`, the
+    /// n-th (1-based) `create_new` of a run record failing with `StorageFull`; `after_temp`, run once the temp is
+    /// written (a clock that moves on).
+    #[derive(Debug)]
+    struct Faulty<V> {
+        inner: V,
+        torn: Option<PathBuf>,
+        fail_record_write: Option<u32>,
+        record_writes: std::sync::atomic::AtomicU32,
+        after_temp: Option<fn(&V)>,
+    }
+
+    impl<V> Faulty<V> {
+        fn new(inner: V) -> Self {
+            Faulty {
+                inner,
+                torn: None,
+                fail_record_write: None,
+                record_writes: std::sync::atomic::AtomicU32::new(0),
+                after_temp: None,
+            }
+        }
+    }
+
+    fn storage_full() -> io::Error {
+        io::Error::new(io::ErrorKind::StorageFull, "no space left on the device")
+    }
+
+    impl<V: Vfs> Vfs for Faulty<V> {
+        fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
+            self.inner.read(path)
+        }
+        fn stat(&self, path: &Path) -> io::Result<crate::vfs::Stat> {
+            self.inner.stat(path)
+        }
+        fn list(&self, dir: &Path) -> io::Result<Vec<(String, EntryKind)>> {
+            self.inner.list(dir)
+        }
+        fn create_dir_all(&self, dir: &Path) -> io::Result<()> {
+            self.inner.create_dir_all(dir)
+        }
+        fn create_new(&self, path: &Path, data: &[u8]) -> io::Result<()> {
+            if self.torn.as_deref() == Some(path) {
+                // The real file system's path, with a write that stops half-way: the contract under test.
+                return crate::vfs::create_new_with(path, |file| {
+                    use std::io::Write;
+                    file.write_all(&data[..data.len() / 2])?;
+                    Err(storage_full())
+                });
+            }
+            if path.parent().and_then(Path::file_name) == Some(std::ffi::OsStr::new(RUNS_DIR)) {
+                let n = self
+                    .record_writes
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+                    + 1;
+                if self.fail_record_write == Some(n) {
+                    return Err(storage_full());
+                }
+            }
+            let created = self.inner.create_new(path, data);
+            if path.to_string_lossy().contains(".tmp-") {
+                if let Some(after) = self.after_temp {
+                    after(&self.inner);
+                }
+            }
+            created
+        }
+        fn append(&self, path: &Path, data: &[u8]) -> io::Result<()> {
+            self.inner.append(path, data)
+        }
+        fn sync(&self, path: &Path) -> io::Result<()> {
+            self.inner.sync(path)
+        }
+        fn sync_dir(&self, dir: &Path) -> io::Result<()> {
+            self.inner.sync_dir(dir)
+        }
+        fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
+            self.inner.rename(from, to)
+        }
+        fn rename_noreplace(&self, _from: &Path, _to: &Path) -> io::Result<()> {
+            Err(io::Error::new(io::ErrorKind::Unsupported, "no hard links"))
+        }
+        fn remove_file(&self, path: &Path) -> io::Result<()> {
+            self.inner.remove_file(path)
+        }
+        fn remove_dir(&self, dir: &Path) -> io::Result<()> {
+            self.inner.remove_dir(dir)
+        }
+        fn set_modified(&self, path: &Path, time: SystemTime) -> io::Result<()> {
+            self.inner.set_modified(path, time)
+        }
+        fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+            self.inner.canonicalize(path)
+        }
+    }
+
+    /// FIX40b (finding 1): on a file system without hard links, a placement whose write stops part-way (a full disk)
+    /// leaves no partial archive under the final name: the archive root is empty afterwards, the record is taken back
+    /// and the release reports the failure.
+    #[test]
+    fn a_torn_fallback_leaves_no_partial_archive() {
+        let base = ew_testdir::fresh_dir("ew-archive-torn");
+        let root = base.join("p.ew-archive");
+        let state = base.join("state");
+        let project = base.join("p.ew");
+        std::fs::create_dir_all(&project).unwrap();
+        let mut vfs = Faulty::new(crate::vfs::OsVfs);
+        vfs.torn = Some(root.join(file_name("V1.0")));
+        let bytes = build(&entries()).unwrap();
+        let at = RecordAt {
+            state: &state,
+            record: RunRecord {
+                project_dir: path_text(&vfs, &project),
+                ..record("run-1")
+            },
+        };
+        let result = write_atomically(&vfs, &root, "V1.0", "k", 3, &bytes, &ok, Some(at));
+        match result {
+            Err(WriteError::Io {
+                step: WriteStep::Rename,
+                error,
+                ..
+            }) => assert_eq!(error.kind(), io::ErrorKind::StorageFull),
+            other => panic!("the failure is reported: {other:?}"),
+        }
+        let left: Vec<_> = std::fs::read_dir(&root)
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        assert!(left.is_empty(), "the archive root is empty: {left:?}");
+        assert_eq!(
+            std::fs::read_dir(state.join(RUNS_DIR)).map_or(0, Iterator::count),
+            0,
+            "the record is taken back"
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// The clock of the finding-2 tests once the temp is written.
+    fn later() -> SystemTime {
+        SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_900_000_000)
+    }
+
+    /// The memory file system of the finding-2 tests: no hard links, no times set below the archive root, and a clock
+    /// that moves on once the temp is written (so the archive's own time differs from the temp's).
+    fn timeless(fail_record_write: Option<u32>) -> Faulty<MemVfs> {
+        let inner = MemVfs::new(DirSync::Explicit);
+        inner.put_dir(Path::new("/w"));
+        inner.put_dir(Path::new("/state"));
+        inner.set_times_refused_under(Some(Path::new("/w/p.ew-archive")));
+        let mut vfs = Faulty::new(inner);
+        vfs.fail_record_write = fail_record_write;
+        vfs.after_temp = Some(|m: &MemVfs| m.set_now(later()));
+        vfs
+    }
+
+    /// FIX40b (finding 2): a file system that cannot set the archive's time keeps the archive (the write succeeds) and
+    /// the run record is rewritten with the archive's actual time, so the discard evidence stays true.
+    #[test]
+    fn an_archive_whose_time_cannot_be_set_is_kept_and_recorded() {
+        let bytes = build(&entries()).unwrap();
+        let root = Path::new("/w/p.ew-archive");
+        let vfs = timeless(None);
+        let w = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at()))
+            .expect("the release goes on");
+        assert!(w.record_trouble.is_none(), "{:?}", w.record_trouble);
+        assert_eq!(
+            vfs.inner.files(root).keys().collect::<Vec<_>>(),
+            ["V1.0.ewarchive"]
+        );
+        let modified = vfs.stat(&w.path).unwrap().modified;
+        assert_eq!(
+            modified,
+            Some(later()),
+            "the archive has its own time, not the temp's"
+        );
+        let kept = read_run_record(&vfs, w.run_record.as_deref().unwrap()).unwrap();
+        assert!(same_time(kept.modified, modified), "{kept:?}");
+        assert_eq!(kept.sha256, hash_text(&sha256(&bytes)));
+    }
+
+    /// FIX40b (finding 2): when rewriting the record fails too, the archive is kept, the record is removed (the archive
+    /// is then foreign and kept by a discard, the safe side) and the write returns the trouble for the caller to report.
+    #[test]
+    fn a_record_that_cannot_be_rewritten_is_removed_and_reported() {
+        let bytes = build(&entries()).unwrap();
+        let root = Path::new("/w/p.ew-archive");
+        let vfs = timeless(Some(2));
+        let w = write_atomically(&vfs, root, "V1.0", "a1", 3, &bytes, &ok, Some(record_at()))
+            .expect("the release goes on");
+        assert_eq!(
+            w.record_trouble.as_ref().map(io::Error::kind),
+            Some(io::ErrorKind::StorageFull)
+        );
+        assert_eq!(w.run_record, None);
+        assert_eq!(vfs.read(&w.path).unwrap(), bytes, "the archive is kept");
+        assert!(
+            vfs.inner.files(&Path::new("/state").join(RUNS_DIR)).is_empty(),
+            "the record is removed"
+        );
     }
 }
