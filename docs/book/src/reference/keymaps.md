@@ -35,7 +35,7 @@ The keys of the two keymap presets, EW and KiCad-like (Help ▸ Keyboard shortcu
 | Tool step back | `tool.back` | canvas | `Backspace` | `Backspace` |
 | Zoom in | `view.zoom_in` | global | `Ctrl+Plus`, `Ctrl+Equals` | `Ctrl+Plus`, `Ctrl+Equals` |
 | Zoom out | `view.zoom_out` | global | `Ctrl+Minus` | `Ctrl+Minus` |
-| Actual size | `view.zoom_actual` | global | `Ctrl+0` | `Ctrl+0` |
+| Actual size | `view.zoom_actual` | global | `Ctrl+phys:Digit0` | `Ctrl+phys:Digit0` |
 | Fit page | `view.fit_page` | global | `Home` | `Home` |
 | Pan left | `view.pan_left` | global | `Ctrl+Arrow Left` | `Ctrl+Arrow Left` |
 | Pan right | `view.pan_right` | global | `Ctrl+Arrow Right` | `Ctrl+Arrow Right` |
