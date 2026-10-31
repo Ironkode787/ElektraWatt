@@ -38,6 +38,7 @@ roots = [
     "ew-import-tables",
     "ew-mltext",
     "ew-model",
+    "ew-rds",
     "ew-schema",
     "ew-store",
     "ew-testkit",
