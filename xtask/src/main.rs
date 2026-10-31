@@ -28,6 +28,7 @@ mod plan_counts;
 mod raw_read;
 mod repo;
 mod symbols;
+mod test_layout;
 mod vet_imports;
 mod workflows;
 
@@ -64,6 +65,9 @@ commands:
                        `disallowed-methods`, FT-317), and the calls in the reader crates, which opt out of the
                        lint: prints them per crate and compares them with ci/disallowed-methods-allow.toml;
                        --bless (or --write) rewrites the list
+  check-test-layout    each package's integration tests are modules of one test binary (tests/it/main.rs); a
+                       top-level file under tests/ is only for a separate binary that a workflow, xtask or
+                       nextest names (the list in xtask/src/test_layout.rs)
   check-workflows      actions pinned by commit SHA, read-only default token, no pull_request_target,
                        credential-free checkouts, secrets only in `release` (.github/workflows/)
   check-licence-map    path licences, collective notice, crate licences, permissive-layer licence boundary
@@ -187,6 +191,7 @@ fn main() -> ExitCode {
                 Ok(false)
             }
         },
+        "check-test-layout" => run_check("check-test-layout", check_test_layout),
         "check-workflows" => run_check("check-workflows", check_workflows),
         "check-licence-map" => run_check("check-licence-map", check_licence_map),
         "check-anonymisation" => match args.get(1).map(String::as_str) {
@@ -465,6 +470,11 @@ pub(crate) fn check_anonymisation_at(root: &Path, require_entries: bool) -> Resu
     Ok(anonymise::check(&files, &denylist))
 }
 
+/// `check-test-layout`: no loose integration-test file outside the one `tests/it` binary of its package.
+fn check_test_layout() -> Result<Violations> {
+    Ok(test_layout::check(&workspace_root()))
+}
+
 fn check_governance_files() -> Result<Violations> {
     Ok(governance::check(&workspace_root()))
 }
@@ -680,7 +690,7 @@ fn ci() -> Result<bool> {
             &["test", "--doc", "--workspace", "--all-features", "--locked"],
         ),
     ];
-    let checks: [Check; 13] = [
+    let checks: [Check; 14] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
         ("check-raw-read", check_raw_read),
@@ -694,6 +704,7 @@ fn ci() -> Result<bool> {
         ("check-governance-files", check_governance_files),
         ("docs-gen-check", check_docs_gen),
         ("gen-icons-check", check_gen_icons),
+        ("check-test-layout", check_test_layout),
     ];
 
     let mut summary: Vec<(&str, bool)> = Vec::new();

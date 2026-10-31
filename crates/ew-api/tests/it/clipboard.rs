@@ -1,0 +1,1287 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The clipboard below the shell on Golden A (WP-S2.05 part 3, acceptance checks CB1 to CB3 and the session half of
+//! CB4 to CB6): the fragment `Session::copy_fragment` writes (byte-equal, against a committed file, the closure rules),
+//! `parse_fragment`'s refusals of hostile text, and `edit.paste` (every rejection at its pointer, the child device, the
+//! library copies, the structure rebinding, the exact grid-step translation, one undo step). The LINKS oracle of CB3 is
+//! the unit test `mandatory_and_optional_follow_the_oracle_for_every_link` of `ew-commands`. The page-item and
+//! structure-box cases (FT-452) run on the golden batch, so that a record of an unknown page-item variant can be added.
+
+use crate::golden_common;
+
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
+
+use ew_api::output::{CopyError, FragmentError, parse_fragment};
+use ew_api::{
+    AnyCommand, CmdError, NewProjectKind, Origin, ProjectTemplate, Receipt, Session, SessionOptions,
+};
+use ew_commands::testkit::seeded_ids;
+use ew_ids::{Id, Uuid};
+use ew_schema::{Connection, Device, Kind, Page, PageItem, PageItemKind, Slot, StructureBox, TagScheme};
+use ew_units::{Grid, Nm};
+use serde_json::{Value, json};
+
+/// Golden A's fixture, read-only (no lock; commands run in memory).
+fn golden() -> Session {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
+    Session::open_read_only(&dir, "ElektraWatt test")
+        .expect("the golden fixture opens")
+        .0
+}
+
+/// A new project as the wizard makes it (one empty multi-line page `1` on the QET grid).
+fn wizard(seed: u64) -> Session {
+    Session::new_project(
+        ProjectTemplate::Builtin,
+        NewProjectKind::Schematic,
+        SessionOptions {
+            ids: Some(seeded_ids(seed)),
+            ..SessionOptions::default()
+        },
+    )
+    .expect("a new project")
+}
+
+/// The representations on `folio` of the devices printed as `tags`, in page order.
+fn reps_of(s: &Session, folio: &str, tags: &[&str]) -> Vec<Uuid> {
+    let devices: Vec<Uuid> = tags
+        .iter()
+        .map(|t| s.resolve_reference(&format!("tag:{t}")).expect(t))
+        .collect();
+    let out: Vec<Uuid> = s
+        .page_tables(folio)
+        .expect("a drawn page")
+        .reps
+        .iter()
+        .filter(|r| r.device.is_some_and(|d| devices.contains(&d)))
+        .map(|r| r.id)
+        .collect();
+    assert!(!out.is_empty(), "{tags:?} on {folio}");
+    out
+}
+
+/// The page ID of `folio`.
+fn page_of(s: &Session, folio: &str) -> Uuid {
+    s.page_tables(folio).expect("a drawn page").page
+}
+
+/// The fragment parameter of `ids` (copied, then read back like clipboard text).
+fn fragment(s: &Session, ids: &[Uuid]) -> Value {
+    parse_fragment(&s.copy_fragment(ids).expect("copied").text)
+        .expect("the copy reads")
+        .params
+}
+
+/// The QET grid of Golden A's and the wizard's pages.
+const QET: Grid = Grid::QET_10PX;
+
+/// The anchor of `fragment` moved by `steps` grid steps.
+fn at_steps(fragment: &Value, steps: (i64, i64)) -> [i64; 2] {
+    let step = |v: &Value, k: i64| {
+        let x = Nm(v.as_i64().unwrap());
+        QET.at(QET.snap(x) + k).unwrap().0
+    };
+    [
+        step(&fragment["anchor"][0], steps.0),
+        step(&fragment["anchor"][1], steps.1),
+    ]
+}
+
+fn paste_cmd(page: Uuid, at: [i64; 2], fragment: &Value) -> AnyCommand {
+    AnyCommand {
+        name: "edit.paste".into(),
+        params: json!({"page": page.to_string(), "at": at, "fragment": fragment}),
+    }
+}
+
+/// `edit.paste` through preview and commit.
+fn paste(s: &mut Session, folio: &str, at: [i64; 2], fragment: &Value) -> Result<Receipt, CmdError> {
+    let cmd = paste_cmd(page_of(s, folio), at, fragment);
+    let preview = s.preview(&cmd)?;
+    s.commit(preview)
+}
+
+/// The pointer of a parameter refusal.
+fn pointer(e: CmdError) -> String {
+    match e {
+        CmdError::InvalidParams { path, .. } => path,
+        other => panic!("expected a parameter refusal, got {other}"),
+    }
+}
+
+/// The created keys of `kind`.
+fn created(r: &Receipt, kind: Kind) -> Vec<Uuid> {
+    r.created
+        .iter()
+        .filter(|k| k.0 == kind)
+        .map(|k| k.1.as_uuid())
+        .collect()
+}
+
+fn device(s: &Session, id: Uuid) -> Device {
+    (**s.query().devices().get(Id::from_uuid(id)).expect("the device")).clone()
+}
+
+/// The ID of the golden batch record `key` (`pages|101`, `connections|W4`).
+fn id<T>(ids: &BTreeMap<String, String>, key: &str) -> Id<T> {
+    ids.get(key)
+        .unwrap_or_else(|| panic!("no record {key}"))
+        .parse()
+        .unwrap_or_else(|_| panic!("{key} is an ID"))
+}
+
+/// Runs a command and returns its receipt.
+fn run(s: &mut Session, name: &str, params: Value) -> Receipt {
+    s.execute(&AnyCommand {
+        name: name.into(),
+        params,
+    })
+    .unwrap_or_else(|e| panic!("{name}: {e}"))
+}
+
+fn page_item(s: &Session, id: Uuid) -> PageItem {
+    (**s.query()
+        .page_items()
+        .get(Id::from_uuid(id))
+        .expect("the page item"))
+    .clone()
+}
+
+fn structure_box(s: &Session, id: Uuid) -> StructureBox {
+    (**s.query()
+        .structure_boxes()
+        .get(Id::from_uuid(id))
+        .expect("the structure box"))
+    .clone()
+}
+
+/// Whether `EW_BLESS=1` asks the golden-text tests to rewrite their expected files (WP-S6.13).
+// Allowed: the program boundary of a test, read once; the value never reaches a result.
+#[allow(clippy::disallowed_methods)]
+fn bless() -> bool {
+    std::env::var_os("EW_BLESS").is_some_and(|v| v == "1")
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// CB1: the fragment
+
+/// CB1: the fragment of -102F1's representation on 102 is byte-equal on two runs and equals the committed file; it
+/// holds the device, its function, the representation, the potential definition at its CP, the part, symbol and FnDef
+/// copies and the two structure nodes, in that order, and no import lineage.
+#[test]
+fn cb1_the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
+    let s = golden();
+    let reps = reps_of(&s, "102", &["-102F1"]);
+    let a = s.copy_fragment(&reps).unwrap();
+    let b = golden().copy_fragment(&reps).unwrap();
+    assert_eq!(a.text, b.text, "two runs give equal bytes");
+    // The part, its manufacturer (WP-S1.19 D10), the symbol and the FnDef.
+    assert_eq!((a.records, a.copies, a.dropped_connections), (4, 4, 0));
+    assert!(a.skipped.is_empty());
+    assert!(
+        a.text
+            .starts_with("#ew-fragment v1\n{\"$fragment\":{\"format\":\"0.1\",\"project\":")
+    );
+    assert!(a.text.ends_with('\n'));
+    assert!(!a.text.contains("source_ref"), "a copy drops the import lineage");
+    let kinds: Vec<String> = a
+        .text
+        .lines()
+        .skip(2)
+        .map(|l| {
+            let v: Value = serde_json::from_str(l).unwrap();
+            v.get("$k")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+                .or_else(|| v.as_object().and_then(|o| o.keys().next().cloned()))
+                .unwrap()
+        })
+        .collect();
+    assert_eq!(
+        kinds,
+        [
+            "device",
+            "function",
+            "representation",
+            "potential_def",
+            "$lib",
+            "$lib",
+            "$lib",
+            "$lib",
+            "$node",
+            "$node"
+        ]
+    );
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected/fragment_102F1.txt");
+    if bless() {
+        std::fs::write(&path, &a.text).unwrap();
+    }
+    let expected = std::fs::read_to_string(&path).expect("the expected fragment; bless with EW_BLESS=1");
+    assert_eq!(a.text, expected.replace("\r\n", "\n"));
+}
+
+/// CB1: a terminal brings its strip device (with only the copied terminal), not the strip's other terminals: 1X1:1 on
+/// folio 101.
+#[test]
+fn cb1_a_terminal_brings_its_strip() {
+    let s = golden();
+    let rep = s
+        .page_tables("101")
+        .unwrap()
+        .reps
+        .iter()
+        .find(|r| {
+            r.device.is_some_and(|d| {
+                s.tag_list(&[d])
+                    == "1X1:1
+"
+            })
+        })
+        .expect("1X1:1 on 101")
+        .clone();
+    let terminal = rep.device.unwrap();
+    let frag = fragment(&s, &[rep.id]);
+    let devices: Vec<&Value> = frag["records"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["$k"] == "device")
+        .collect();
+    let strip = device(&s, terminal).aspects.terminal.unwrap().strip;
+    assert_eq!(devices.len(), 2, "the terminal and its strip");
+    assert!(
+        devices
+            .iter()
+            .any(|d| d["id"] == strip.to_string() && d.get("strip").is_some())
+    );
+    assert!(devices.iter().any(|d| d["id"] == terminal.to_string()));
+}
+
+/// CB1: copying -102G1 and -102F1 brings the junction where their wires meet and its three connections; a selected
+/// wire with one end outside is dropped and counted.
+#[test]
+fn cb1_internal_connections_and_junctions_come_along_and_an_outside_wire_is_dropped() {
+    let s = golden();
+    let mut ids = reps_of(&s, "102", &["-102G1", "-102F1"]);
+    let tables = s.page_tables("102").unwrap();
+    let f1 = s.resolve_reference("tag:-102F1").unwrap();
+    let f1_fn = tables
+        .reps
+        .iter()
+        .find(|r| r.device == Some(f1))
+        .unwrap()
+        .functions[0];
+    // -102F1's CP 1 runs to a junction whose other wires go to a device that is not copied.
+    let outside = tables
+        .connections
+        .iter()
+        .find(|c| matches!(c.a, ew_api::output::TableEnd::Cp { function, idx: 1 } if function == f1_fn))
+        .expect("-102F1:2's wire")
+        .id;
+    ids.push(outside);
+    let c = s.copy_fragment(&ids).unwrap();
+    assert_eq!(c.dropped_connections, 1);
+    let frag = parse_fragment(&c.text).unwrap().params;
+    let count = |k: &str| {
+        frag["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["$k"] == k)
+            .count()
+    };
+    assert_eq!(count("junction"), 1, "the junction between them");
+    assert_eq!(count("connection"), 3, "its three wires");
+    let junction = frag["records"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["$k"] == "junction")
+        .unwrap();
+    assert_eq!(junction["sequence"].as_array().unwrap().len(), 3);
+    assert!(!c.text.contains(&outside.to_string()));
+}
+
+/// CB1: what is not copied: nothing, a device alone, generated content, two pages.
+#[test]
+fn cb1_the_copy_refusals() {
+    let s = golden();
+    assert_eq!(s.copy_fragment(&[]), Err(CopyError::Empty));
+    let dev = s.resolve_reference("tag:-102F1").unwrap();
+    assert_eq!(s.copy_fragment(&[dev]), Err(CopyError::Empty));
+    assert_eq!(s.copy_fragment(&[Uuid::from_u128(7)]), Err(CopyError::Generated));
+    let mut two = reps_of(&s, "102", &["-102F1"]);
+    two.extend(reps_of(&s, "101", &["-101F1"]));
+    assert_eq!(s.copy_fragment(&two), Err(CopyError::NotOnePage));
+}
+
+/// FR-UI-040's tag list: -101F1, S51 and F55 in natural order, one per line.
+#[test]
+fn the_tag_list_is_natural_order_one_per_line() {
+    let s = golden();
+    let ids = reps_of(&s, "101", &["S51", "-101F1", "F55"]);
+    assert_eq!(s.tag_list(&ids), "-101F1\nF55\nS51\n");
+    assert_eq!(s.tag_list(&[]), "");
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// CB2: parsing
+
+fn valid_text() -> String {
+    let s = golden();
+    s.copy_fragment(&reps_of(&s, "102", &["-102F1"])).unwrap().text
+}
+
+/// The text with line `n` (1-based) replaced.
+fn with_line(text: &str, n: usize, line: &str) -> String {
+    text.lines()
+        .enumerate()
+        .map(|(i, l)| if i + 1 == n { line.to_owned() } else { l.to_owned() })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n"
+}
+
+/// The text with `line` added after the header.
+fn plus_line(text: &str, line: &str) -> String {
+    let mut lines: Vec<&str> = text.lines().collect();
+    lines.insert(2, line);
+    lines.join("\n") + "\n"
+}
+
+fn header_with(text: &str, f: impl Fn(&mut Value)) -> String {
+    let mut h: Value = serde_json::from_str(text.lines().nth(1).unwrap()).unwrap();
+    f(&mut h["$fragment"]);
+    with_line(text, 2, &h.to_string())
+}
+
+/// CB2: every refusal of §8.3 on hostile input.
+#[test]
+fn cb2_every_refusal_of_the_parser() {
+    let text = valid_text();
+    assert_eq!(parse_fragment(&text).unwrap().records, 4);
+    let record = text.lines().nth(2).unwrap().to_owned();
+    let invalid = |r: Result<_, FragmentError>| matches!(r, Err(FragmentError::Invalid { .. }));
+    // Not a fragment, a later fragment version.
+    assert_eq!(parse_fragment("hello"), Err(FragmentError::NotAFragment));
+    assert_eq!(parse_fragment(""), Err(FragmentError::NotAFragment));
+    assert_eq!(
+        parse_fragment(&text.replacen("v1", "v2", 1)),
+        Err(FragmentError::Newer { version: "v2".into() })
+    );
+    // Oversized: the whole text, one line, the records, the nesting.
+    let big = format!("{text}{}", " ".repeat(4 << 20));
+    assert!(matches!(parse_fragment(&big), Err(FragmentError::TooLarge(_))));
+    let long = plus_line(
+        &text,
+        &format!("{{\"$k\":\"device\",\"x\":\"{}\"}}", "a".repeat(1 << 20)),
+    );
+    assert!(matches!(parse_fragment(&long), Err(FragmentError::TooLarge(_))));
+    let deep = plus_line(&text, &format!("{}{}", "[".repeat(65), "]".repeat(65)));
+    assert!(matches!(parse_fragment(&deep), Err(FragmentError::TooLarge(_))));
+    // Repeated member names, unknown `$` lines, foreign kinds, malformed records, a line that is no JSON.
+    let repeated = plus_line(&text, &record.replacen("\"tag\":", "\"tag\":{},\"tag\":", 1));
+    assert!(invalid(parse_fragment(&repeated)));
+    assert!(invalid(parse_fragment(&plus_line(&text, r#"{"$macro":{}}"#))));
+    assert!(invalid(parse_fragment(&plus_line(
+        &text,
+        r#"{"$node":{"id":"0190a000-0000-7000-8000-000000000009","aspect":"location","path":["X"],"aliases":[],"extra":1}}"#
+    ))));
+    let foreign = r#"{"$k":"bond","id":"0190a000-0000-7000-8000-000000000001","a":{"junction":"0190a000-0000-7000-8000-000000000002"},"b":{"junction":"0190a000-0000-7000-8000-000000000003"}}"#;
+    assert!(invalid(parse_fragment(&plus_line(&text, foreign))));
+    assert!(invalid(parse_fragment(&plus_line(
+        &text,
+        r#"{"$k":"page_item","id":"0190a000-0000-7000-8000-000000000001"}"#
+    ))));
+    assert!(invalid(parse_fragment(&plus_line(
+        &text,
+        &record.replacen("\"letter\":\"F\"", "\"letter\":7", 1)
+    ))));
+    assert!(invalid(parse_fragment(&plus_line(&text, "{not json"))));
+    assert!(invalid(parse_fragment(&plus_line(&text, r#"{"no":"kind"}"#))));
+    // The same record twice.
+    assert!(invalid(parse_fragment(&plus_line(&text, &record))));
+    // A newer and an older format; a record of another `$v`.
+    let newer = header_with(&text, |h| h["format"] = json!("0.2"));
+    assert_eq!(
+        parse_fragment(&newer),
+        Err(FragmentError::Newer {
+            version: "0.2".into()
+        })
+    );
+    let older = header_with(&text, |h| h["format"] = json!("0.0"));
+    assert!(invalid(parse_fragment(&older)));
+    let v2 = with_line(
+        &text,
+        3,
+        &record.replacen("{\"$k\":\"device\",", "{\"$k\":\"device\",\"$v\":2,", 1),
+    );
+    assert!(matches!(parse_fragment(&v2), Err(FragmentError::Newer { .. })));
+    // A header without a known member, or with a malformed one.
+    assert!(invalid(parse_fragment(&header_with(&text, |h| {
+        h.as_object_mut().unwrap().remove("grid");
+    }))));
+    assert!(invalid(parse_fragment(
+        &header_with(&text, |h| h["project"] = json!("nope"))
+    )));
+    // No header at all.
+    assert!(invalid(parse_fragment("#ew-fragment v1\n")));
+}
+
+/// CB2: an unknown `$fragment` member is ignored (a later minor addition such as WP-S1.19's), CRLF line ends read, and a byte-order mark is skipped.
+#[test]
+fn cb2_an_unknown_header_member_is_ignored_and_crlf_reads() {
+    let text = valid_text();
+    let more = header_with(&text, |h| h["macro"] = json!({"name": "later"}));
+    let a = parse_fragment(&more).unwrap();
+    let b = parse_fragment(&text).unwrap();
+    assert_eq!(a.params, b.params);
+    assert_eq!(
+        parse_fragment(&format!("\u{feff}{text}")).unwrap().params,
+        b.params
+    );
+    assert_eq!(
+        parse_fragment(&text.replace('\n', "\r\n")).unwrap().params,
+        b.params
+    );
+    assert_eq!(b.grid, (7_937_500, 3));
+    assert_eq!(b.ghost.len(), 1);
+}
+
+/// SplitMix64, the fuzzer's generator.
+struct Rng(u64);
+
+impl Rng {
+    fn next(&mut self) -> u64 {
+        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut z = self.0;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    }
+
+    fn below(&mut self, n: usize) -> usize {
+        usize::try_from(self.next() % n.max(1) as u64).unwrap_or(0)
+    }
+}
+
+/// CB2: random text and random mutations of a valid fragment never panic `parse_fragment`.
+#[test]
+fn cb2_random_text_never_panics_the_parser() {
+    let text = valid_text();
+    let mut rng = Rng(0x5EED);
+    let alphabet: Vec<char> = "{}[]\":,$kv0123456789abcdef-\\ \n\r#ewfragment".chars().collect();
+    for _ in 0..3000 {
+        let mut chars: Vec<char> = text.chars().collect();
+        for _ in 0..1 + rng.below(8) {
+            let i = rng.below(chars.len());
+            match rng.below(3) {
+                0 => chars[i] = alphabet[rng.below(alphabet.len())],
+                1 => {
+                    chars.remove(i);
+                }
+                _ => chars.insert(i, alphabet[rng.below(alphabet.len())]),
+            }
+        }
+        let mutated: String = chars.into_iter().collect();
+        let _ = parse_fragment(&mutated);
+        let random: String = (0..rng.below(200))
+            .map(|_| alphabet[rng.below(alphabet.len())])
+            .collect();
+        let _ = parse_fragment(&format!("#ew-fragment v1\n{random}"));
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// CB3: edit.paste
+
+/// CB3: every rejection of §8.4 at its pointer.
+#[test]
+fn cb3_every_rejection_at_its_pointer() {
+    let mut s = golden();
+    let frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
+    let at = at_steps(&frag, (2, 2));
+    let page = page_of(&s, "102");
+    let mut run = |page: Uuid, at: [i64; 2], f: &Value| s.preview(&paste_cmd(page, at, f)).map(|_| ());
+    assert_eq!(pointer(run(Uuid::from_u128(9), at, &frag).unwrap_err()), "/page");
+    let mut grid = frag.clone();
+    grid["grid"] = json!([4_000_000, 1]);
+    assert_eq!(pointer(run(page, at, &grid).unwrap_err()), "/fragment/grid");
+    assert_eq!(pointer(run(page, [at[0] + 1, at[1]], &frag).unwrap_err()), "/at");
+    let mut format = frag.clone();
+    format["format"] = json!("0.2");
+    assert_eq!(pointer(run(page, at, &format).unwrap_err()), "/fragment/format");
+    // A record of a kind that is not pasted.
+    let mut foreign = frag.clone();
+    foreign["records"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"$k": "section", "id": Uuid::from_u128(3).to_string(),
+        "number": 9, "folio_range": [1, 2], "title": "x"}));
+    match run(page, at, &foreign).unwrap_err() {
+        CmdError::InvalidParams { path, message, .. } => {
+            assert_eq!(path, "/fragment/records/4");
+            assert_eq!(
+                message,
+                "a record of kind section is not pasted (only devices, functions, representations, connections, \
+                 junctions, potential definitions, page items and structure boxes)"
+            );
+        }
+        other => panic!("expected InvalidParams, got {other:?}"),
+    }
+    // A mandatory reference that resolves to nothing: the representation's function is not in the fragment.
+    let mut orphan = frag.clone();
+    orphan["records"].as_array_mut().unwrap().remove(1);
+    let p = pointer(run(page, at, &orphan).unwrap_err());
+    assert_eq!(p, "/fragment/records/1", "the representation, now second");
+    // Another version of a held copy; a copy library.embed refuses; the same copy twice.
+    let mut other = frag.clone();
+    other["copies"][0]["sha256"] = json!(format!("sha256:{}", "0".repeat(64)));
+    assert_eq!(pointer(run(page, at, &other).unwrap_err()), "/fragment/copies/0");
+    let mut twice = frag.clone();
+    let first = twice["copies"][0].clone();
+    twice["copies"].as_array_mut().unwrap().push(first);
+    assert_eq!(pointer(run(page, at, &twice).unwrap_err()), "/fragment/copies/4");
+    // More than 10,000 records.
+    let mut many = frag.clone();
+    many["records"] = json!(vec![Value::Null; 10_001]);
+    assert_eq!(pointer(run(page, at, &many).unwrap_err()), "/fragment/records");
+    // A page whose type takes no symbols: Golden A's title page.
+    let title = s
+        .query()
+        .pages()
+        .iter()
+        .find(|(_, p)| p.kind == ew_schema::PageType::TitlePage)
+        .map(|(id, _)| id.as_uuid())
+        .expect("Golden A has a title page");
+    assert_eq!(
+        pointer(s.preview(&paste_cmd(title, at, &frag)).unwrap_err()),
+        "/page"
+    );
+}
+
+/// CB3: a child device whose parent is not copied loses its parent, position and child scheme, with a notice.
+#[test]
+fn cb3_a_child_whose_parent_is_not_copied() {
+    let mut s = golden();
+    let child = s.resolve_reference("tag:-201U4-Q2").unwrap();
+    assert_eq!(device(&s, child).tag.scheme, TagScheme::Child);
+    let (folio, rep) = s
+        .page_labels()
+        .into_iter()
+        .find_map(|f| {
+            let t = s.page_tables(&f)?;
+            let r = t.reps.iter().find(|r| r.device == Some(child))?.id;
+            Some((f, r))
+        })
+        .expect("-201U4-Q2 is drawn");
+    let frag = fragment(&s, &[rep]);
+    let receipt = paste(&mut s, &folio, at_steps(&frag, (0, 4)), &frag).unwrap();
+    let new = created(&receipt, Kind::Device);
+    assert_eq!(new.len(), 1);
+    let d = device(&s, new[0]);
+    assert_eq!((d.parent, d.position), (None, None));
+    assert_eq!(d.tag.scheme, TagScheme::Default);
+    assert!(d.tag.counter.is_some(), "numbered by the target's scheme");
+    assert!(
+        receipt
+            .outcome
+            .notices
+            .iter()
+            .any(|n| n == "-Q2 was a child of a device that was not copied"),
+        "{:?}",
+        receipt.outcome.notices
+    );
+}
+
+/// CB3: a fragment whose records carry an import lineage (one written elsewhere) pastes; the pasted records have none.
+#[test]
+fn cb3_an_import_lineage_is_dropped_not_refused() {
+    let mut s = golden();
+    let mut frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
+    for r in frag["records"].as_array_mut().unwrap() {
+        r["source_ref"] = json!({"lineage": Uuid::from_u128(77).to_string(), "key": "elsewhere"});
+    }
+    let receipt = paste(&mut s, "102", at_steps(&frag, (0, 6)), &frag).unwrap();
+    let d = device(&s, created(&receipt, Kind::Device)[0]);
+    assert_eq!(d.source_ref, None);
+}
+
+/// CB3 and CB4: the held library copies are reused in the same project: -102F1 pasted on 102 is -102F3 with part
+/// A9F78116, no connection, and no copy is inserted.
+#[test]
+fn cb3_held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f3() {
+    let mut s = golden();
+    let frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
+    let parts = s.query().parts().len();
+    let receipt = paste(&mut s, "102", at_steps(&frag, (0, 6)), &frag).unwrap();
+    assert_eq!(s.query().parts().len(), parts, "the part copy is reused");
+    assert!(created(&receipt, Kind::Part).is_empty());
+    assert!(created(&receipt, Kind::Connection).is_empty());
+    let new = created(&receipt, Kind::Device);
+    assert_eq!(s.tag_list(&new), "-102F3\n");
+    let d = device(&s, new[0]);
+    let part = s.query().parts().get(d.parts[0].part.copy).unwrap().clone();
+    assert_eq!(part.item.part_number.as_str(), "A9F78116");
+    // Structure by path: the nodes are this project's own.
+    assert_eq!(
+        d.structure,
+        device(&s, s.resolve_reference("tag:-102F1").unwrap()).structure
+    );
+}
+
+/// CB3: in another project the copies are embedded in the paste's transaction, once, and one undo removes them with
+/// the records; a copy the target holds in another version is refused.
+#[test]
+fn cb3_copies_are_embedded_once_and_undone_with_the_records() {
+    let g = golden();
+    let frag = fragment(&g, &reps_of(&g, "101", &["T55", "E55", "E56"]));
+    let mut w = wizard(11);
+    let before = (
+        w.query().parts().len(),
+        w.query().symbols().len(),
+        w.query().devices().len(),
+    );
+    let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
+    let devices = created(&receipt, Kind::Device);
+    assert_eq!(devices.len(), 3);
+    let parts = created(&receipt, Kind::Part);
+    let distinct: BTreeSet<Uuid> = parts.iter().copied().collect();
+    assert_eq!(parts.len(), distinct.len(), "each copy embedded once");
+    assert!(!parts.is_empty());
+    for d in &devices {
+        let dev = device(&w, *d);
+        assert_eq!(dev.tag.frozen, None, "no frozen tag");
+        assert!(dev.tag.counter.is_some(), "numbered by the project's scheme");
+    }
+    // A second paste reuses what the first embedded.
+    let again = paste(&mut w, "1", at_steps(&frag, (0, 30)), &frag).unwrap();
+    assert!(created(&again, Kind::Part).is_empty());
+    w.undo(&Origin::Gui).unwrap();
+    w.undo(&Origin::Gui).unwrap();
+    let after = (
+        w.query().parts().len(),
+        w.query().symbols().len(),
+        w.query().devices().len(),
+    );
+    assert_eq!(
+        after, before,
+        "one undo step each removes the records and the embedded copies"
+    );
+    // Another version of a copy the project holds.
+    paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
+    let mut other = frag.clone();
+    let part = other["copies"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|c| c["$k"] == "part")
+        .unwrap();
+    other["copies"][part]["sha256"] = json!(format!("sha256:{}", "0".repeat(64)));
+    let err = w.execute(&paste_cmd(page_of(&w, "1"), at_steps(&frag, (0, 30)), &other));
+    assert_eq!(pointer(err.unwrap_err()), format!("/fragment/copies/{part}"));
+}
+
+/// CB3: structure nodes rebind by aspect and path, else by an alias of the leaf code; an unmatched node clears the slot
+/// with a notice; no node is created.
+#[test]
+fn cb3_structure_rebinds_by_path_and_alias_or_clears() {
+    let g = golden();
+    let frag = fragment(&g, &reps_of(&g, "102", &["-102F1"]));
+    let mut w = wizard(12);
+    let node = w
+        .execute(&AnyCommand {
+            name: "structure.create_node".into(),
+            params: json!({"aspect": "location", "code": "CAB", "aliases": ["J-E-2416"]}),
+        })
+        .unwrap()
+        .outcome
+        .primary
+        .unwrap()
+        .1
+        .as_uuid();
+    let nodes = w.query().structure_nodes().len();
+    let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
+    assert_eq!(w.query().structure_nodes().len(), nodes, "no node is created");
+    let d = device(&w, created(&receipt, Kind::Device)[0]);
+    assert_eq!(
+        serde_json::to_value(&d.structure).unwrap(),
+        json!({"location": node.to_string()}),
+        "the location by alias; the function node is not in this project"
+    );
+    assert!(
+        receipt
+            .outcome
+            .notices
+            .contains(&"structure function P01 is not in this project: inherits the page".to_owned()),
+        "{:?}",
+        receipt.outcome.notices
+    );
+}
+
+/// CB3: the translation in grid steps is exact on the QET grid (`7_937_500/3` nm): -101F1, S51 and T55 sit at y grid
+/// indices 12, 14 and 22 (0, 2 and 1 mod 3); each pasted representation is at its index plus the steps on both axes.
+#[test]
+fn cb3_the_step_translation_is_exact_on_the_qet_grid() {
+    let mut s = golden();
+    let reps = reps_of(&s, "101", &["-101F1", "S51", "T55"]);
+    let tables = s.page_tables("101").unwrap();
+    let before: Vec<(i64, i64)> = reps
+        .iter()
+        .map(|r| tables.reps.iter().find(|t| t.id == *r).unwrap().pos)
+        .collect();
+    let mods: BTreeSet<i64> = before.iter().map(|p| QET.snap(Nm(p.1)).rem_euclid(3)).collect();
+    assert_eq!(mods.len(), 3, "three residues mod 3");
+    let frag = fragment(&s, &reps);
+    let steps = (1, 7);
+    let receipt = paste(&mut s, "101", at_steps(&frag, steps), &frag).unwrap();
+    let after = s.page_tables("101").unwrap();
+    let mut got: Vec<(i64, i64)> = created(&receipt, Kind::Representation)
+        .iter()
+        .map(|r| after.reps.iter().find(|t| t.id == *r).unwrap().pos)
+        .collect();
+    let mut want: Vec<(i64, i64)> = before
+        .iter()
+        .map(|p| {
+            (
+                QET.at(QET.snap(Nm(p.0)) + steps.0).unwrap().0,
+                QET.at(QET.snap(Nm(p.1)) + steps.1).unwrap().0,
+            )
+        })
+        .collect();
+    got.sort_unstable();
+    want.sort_unstable();
+    assert_eq!(got, want);
+}
+
+/// Effect 6: the copies are numbered in the fragment's position order, whatever IDs the session mints: two sessions
+/// with other ID seeds give the same tags at the same places, and of E55 and E56 the left one is numbered first.
+#[test]
+fn cb3_the_numbering_follows_the_fragment_order_not_the_minted_ids() {
+    let g = golden();
+    let frag = fragment(&g, &reps_of(&g, "101", &["T55", "E55", "E56"]));
+    let placed = |seed: u64| {
+        let mut w = wizard(seed);
+        let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
+        let tables = w.page_tables("1").unwrap();
+        let mut out: Vec<((i64, i64), String)> = created(&receipt, Kind::Representation)
+            .iter()
+            .map(|r| {
+                let t = tables.reps.iter().find(|t| t.id == *r).unwrap();
+                (t.pos, w.tag_list(&[t.device.unwrap()]))
+            })
+            .collect();
+        out.sort();
+        out
+    };
+    let a = placed(31);
+    assert_eq!(a, placed(32));
+    assert_eq!(a, placed(33));
+    let e: Vec<&String> = a
+        .iter()
+        .filter(|(_, t)| t.contains('E'))
+        .map(|(_, t)| t)
+        .collect();
+    assert_eq!(e.len(), 2);
+    assert!(e[0].trim_end().ends_with("E1"), "{a:?}");
+    assert!(e[1].trim_end().ends_with("E2"), "{a:?}");
+}
+
+/// FT-456: a fragment of five breakers built from -102F1's device, function and representation, at the QET grid
+/// indexes below, listed in this (fragment) order; the cells are those of the wizard page's frame.
+const FIVE_BREAKERS: [(i64, i64); 5] = [(41, 14), (17, 46), (17, 14), (29, 30), (19, 14)];
+
+/// The fragment of [`FIVE_BREAKERS`]: -102F1's fragment with its records repeated under fresh fragment-local IDs and
+/// moved to each grid index (the potential definition left out, its name would repeat).
+fn five_breakers(g: &Session) -> Value {
+    let mut frag = fragment(g, &reps_of(g, "102", &["-102F1"]));
+    let records = frag["records"].as_array().unwrap().clone();
+    let of = |k: &str| records.iter().find(|r| r["$k"] == k).unwrap().clone();
+    let (dev, fun, rep) = (of("device"), of("function"), of("representation"));
+    let mut out = Vec::new();
+    for (i, (kx, ky)) in FIVE_BREAKERS.iter().enumerate() {
+        let local = |n: u128| {
+            Uuid::from_u128(0x0190_a000_0000_7000_8000_0000_0000_0000 + (i as u128) * 16 + n).to_string()
+        };
+        let mut d = dev.clone();
+        d["id"] = json!(local(1));
+        let mut f = fun.clone();
+        f["id"] = json!(local(2));
+        f["device"] = json!(local(1));
+        let mut r = rep.clone();
+        r["id"] = json!(local(3));
+        r["functions"] = json!([local(2)]);
+        r["pos"] = json!([QET.at(*kx).unwrap().0, QET.at(*ky).unwrap().0]);
+        out.extend([d, f, r]);
+    }
+    frag["records"] = json!(out);
+    frag["anchor"] = json!([QET.at(10).unwrap().0, QET.at(10).unwrap().0]);
+    frag
+}
+
+/// The counters `edit.paste` gives the five breakers on the wizard page of a session with ID seed `seed`, by grid
+/// index, and the grid indexes in the order of the minted device IDs.
+type Pasted = (BTreeMap<(i64, i64), u32>, Vec<(i64, i64)>);
+
+/// An ID source whose clock stands still, as a fast machine's within one transaction: the UUIDv7s it mints order by
+/// their random bits alone, so the order of the IDs one transaction mints is not the minting order and changes with
+/// the seed (`SeededSource` advances its clock per ID, which keeps them in minting order).
+struct FrozenClock(u64);
+
+impl ew_ids::IdSource for FrozenClock {
+    fn now(&mut self) -> ew_ids::UnixTime {
+        ew_ids::UnixTime {
+            millis: 1_767_225_600_000,
+            sub_ms_nanos: 0,
+        }
+    }
+
+    fn fill(&mut self, buf: &mut [u8]) -> Result<(), ew_ids::EntropyError> {
+        for b in buf {
+            // splitmix64
+            self.0 = self.0.wrapping_add(0x9e37_79b9_7f4a_7c15);
+            let mut z = self.0;
+            z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+            z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+            *b = (z ^ (z >> 31)) as u8;
+        }
+        Ok(())
+    }
+}
+
+fn five_breakers_pasted(frag: &Value, seed: u64) -> Pasted {
+    let mut w = Session::new_project(
+        ProjectTemplate::Builtin,
+        NewProjectKind::Schematic,
+        SessionOptions {
+            ids: Some(Box::new(FrozenClock(seed))),
+            ..SessionOptions::default()
+        },
+    )
+    .expect("a new project");
+    let receipt = paste(&mut w, "1", at_steps(frag, (0, 0)), frag).unwrap();
+    let q = w.query();
+    let mut by_id = BTreeMap::new();
+    let mut out = BTreeMap::new();
+    for r in created(&receipt, Kind::Representation) {
+        let rep = q.reps().get(Id::from_uuid(r)).unwrap();
+        let k = (QET.snap(rep.pos.x), QET.snap(rep.pos.y));
+        let f = q.functions().get(rep.functions[0]).unwrap();
+        let d = f.device.unwrap();
+        out.insert(k, q.devices().get(d).unwrap().tag.counter.expect("numbered"));
+        by_id.insert(d, k);
+    }
+    (out, by_id.into_values().collect())
+}
+
+/// Whether grid indexes listed in ID order are in cell order (column, then row, then x): the cells of
+/// [`FIVE_BREAKERS`] on the QET frame, column `(kx - 2) / 6`, row `(ky - 2) / 8`.
+fn in_cell_order(by_id: &[(i64, i64)]) -> bool {
+    let key = |(kx, ky): (i64, i64)| ((kx - 2) / 6, (ky - 2) / 8, kx, ky);
+    by_id.windows(2).all(|w| key(w[0]) < key(w[1]))
+}
+
+/// FT-456 (FR-NUM-028): one transaction that creates several numbered devices numbers them in the order of their
+/// anchor cells (column, then row; in one cell by position), not in the order of the IDs it mints nor in fragment
+/// order: (17, 14) and (19, 14) share column 2 row B and come first, left before right, then (17, 46) in column 2 row
+/// F, then (29, 30) in column 4, then (41, 14) in column 6.
+#[test]
+fn ft456_new_devices_are_numbered_in_cell_order_not_id_order() {
+    let g = golden();
+    let frag = five_breakers(&g);
+    let want: BTreeMap<(i64, i64), u32> = [
+        ((17, 14), 1),
+        ((19, 14), 2),
+        ((17, 46), 3),
+        ((29, 30), 4),
+        ((41, 14), 5),
+    ]
+    .into();
+    let mut out_of_order = 0;
+    for seed in 41..49 {
+        let (got, by_id) = five_breakers_pasted(&frag, seed);
+        assert_eq!(got, want, "seed {seed}");
+        out_of_order += usize::from(!in_cell_order(&by_id));
+    }
+    assert!(out_of_order > 0, "some seed mints the IDs out of cell order");
+}
+
+/// FT-456: a replay of the paste (the same command in a session that mints other IDs, as `ew apply` replays a command
+/// log) gives every breaker the number it had in the first session, also when the replay's IDs fall in another
+/// order (at least one of the replays below does).
+#[test]
+fn ft456_a_replay_numbers_the_new_devices_alike() {
+    let g = golden();
+    let frag = five_breakers(&g);
+    let (first, first_order) = five_breakers_pasted(&frag, 7);
+    let mut other_order = 0;
+    for seed in 41..49 {
+        let (replayed, order) = five_breakers_pasted(&frag, seed);
+        assert_eq!(replayed, first, "seed {seed}");
+        other_order += usize::from(order != first_order);
+    }
+    assert!(other_order > 0, "a replay mints the IDs in another order");
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// FT-452: page items and structure boxes in the fragment
+
+/// FT-452: a free text alone copies (no representation is needed) and pastes by the same grid steps.
+#[test]
+fn cb_items_a_free_text_alone_copies_and_pastes_by_grid_steps() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let mut s = golden_common::session(&batch);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let at = [QET.at(20).unwrap().0, QET.at(12).unwrap().0];
+    let placed = run(
+        &mut s,
+        "item.place",
+        json!({"page": page.to_string(), "kind": {"free_text": {"text": "40x60", "at": at}}}),
+    );
+    let item = placed.outcome.primary.expect("the item").1.as_uuid();
+    let copied = s.copy_fragment(&[item]).expect("a free text alone copies");
+    assert_eq!(copied.records, 1, "one page item record");
+    assert!(copied.skipped.is_empty(), "{:?}", copied.skipped);
+    let frag = parse_fragment(&copied.text).expect("the copy reads").params;
+    let receipt = paste(&mut s, "102", at_steps(&frag, (2, 0)), &frag).expect("pasted");
+    let new = created(&receipt, Kind::PageItem);
+    assert_eq!(new.len(), 1);
+    let item = page_item(&s, new[0]);
+    assert_eq!(item.page, Id::from_uuid(page_of(&s, "102")));
+    let PageItemKind::FreeText(t) = &item.kind else {
+        panic!("a free text")
+    };
+    assert_eq!(t.text.as_neutral(), Some("40x60"));
+    assert_eq!(
+        (t.at.x.0, t.at.y.0),
+        (QET.at(22).unwrap().0, QET.at(12).unwrap().0),
+        "the paste moves it by exactly two grid steps to the right"
+    );
+}
+
+/// FT-452: a marker keeps the copied connections only (W4 joins 1X1:1 and S51:2; W5 ends at 1X1:2, which is not
+/// copied), and a marker without either wire is left out of the fragment and counted.
+#[test]
+fn cb_items_a_marker_keeps_the_copied_wires_only() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let mut s = golden_common::session(&batch);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let w4: Id<Connection> = id(&ids, "connections|W4");
+    let w5: Id<Connection> = id(&ids, "connections|W5");
+    let marker = run(
+        &mut s,
+        "marker.place",
+        json!({"page": page.to_string(), "connections": [w4.to_string(), w5.to_string()],
+            "at": [QET.at(30).unwrap().0, QET.at(20).unwrap().0]}),
+    );
+    let marker_id = marker.outcome.primary.expect("the marker").1.as_uuid();
+    let mut selected = reps_of(&s, "101", &["S51"]);
+    let terminal = s
+        .page_tables("101")
+        .unwrap()
+        .reps
+        .iter()
+        .find(|r| {
+            r.device.is_some_and(|d| {
+                s.tag_list(&[d])
+                    == "1X1:1
+"
+            })
+        })
+        .expect("1X1:1 on 101")
+        .id;
+    selected.push(terminal);
+    selected.push(marker_id);
+    let frag = fragment(&s, &selected);
+    let copied_marker = frag["records"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["$k"] == "page_item")
+        .expect("the copied marker");
+    assert_eq!(
+        copied_marker["kind"]["wire_marker"]["connections"],
+        json!([w4.to_string()]),
+        "W4 only"
+    );
+    let receipt = paste(&mut s, "101", at_steps(&frag, (0, 4)), &frag).expect("pasted");
+    let new_connections = created(&receipt, Kind::Connection);
+    assert_eq!(new_connections.len(), 1, "the copy of W4 only");
+    let new_marker = created(&receipt, Kind::PageItem);
+    assert_eq!(new_marker.len(), 1);
+    let PageItemKind::WireMarker(m) = &page_item(&s, new_marker[0]).kind else {
+        panic!("a marker")
+    };
+    assert_eq!(
+        m.connections.iter().map(|c| c.as_uuid()).collect::<Vec<_>>(),
+        new_connections,
+        "the pasted marker lists the pasted copy"
+    );
+    // Without either wire the marker keeps no connection: it is not copied and counted.
+    let alone = s
+        .copy_fragment(&[marker_id])
+        .expect("a selected page item is not Empty");
+    assert_eq!(alone.records, 0);
+    assert_eq!(alone.skipped, vec![("wire_marker".to_owned(), 1)]);
+    assert!(!alone.text.contains(&marker_id.to_string()));
+}
+
+/// FT-452: a page item of an unknown variant is counted by a copy and left out by a paste, with a notice.
+#[test]
+fn cb_items_an_unknown_page_item_is_skipped_on_copy_and_on_paste() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let unknown = Uuid::from_u128(0x0192_f3a0_0000_7000_8000_0000_0000_a001);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let mut s = golden_common::session_with(&batch, |_, records| {
+        let item: PageItem = serde_json::from_value(json!({
+            "id": unknown.to_string(),
+            "page": page.to_string(),
+            "kind": {"macro_box": {"name": "later"}}
+        }))
+        .expect("the unknown page item reads");
+        records.push(ew_schema::Record::PageItem(item));
+    });
+    let copied = s
+        .copy_fragment(&[unknown])
+        .expect("a selected page item is not Empty");
+    assert_eq!(copied.records, 0);
+    assert_eq!(copied.skipped, vec![("page_item".to_owned(), 1)]);
+    // The paste half, from a fragment text written by hand that holds the same variant.
+    let header = json!({"$fragment": {
+        "format": "0.1",
+        "project": s.query().project().id.as_uuid().hyphenated().to_string(),
+        "grid": [QET.num(), QET.den()],
+        "page_kind": "multi_line",
+        "anchor": [QET.at(20).unwrap().0, QET.at(20).unwrap().0],
+        "ghost": []
+    }});
+    let record = json!({"$k": "page_item", "id": unknown.to_string(), "page": page.to_string(),
+        "kind": {"macro_box": {"name": "later"}}});
+    let text = format!("#ew-fragment v1\n{header}\n{record}\n");
+    let frag = parse_fragment(&text)
+        .expect("the hand-made fragment reads")
+        .params;
+    let before = s.query().page_items().len();
+    let receipt = paste(&mut s, "102", at_steps(&frag, (0, 0)), &frag).expect("the paste succeeds");
+    assert_eq!(s.query().page_items().len(), before, "the unknown item is absent");
+    assert!(
+        created(&receipt, Kind::PageItem).is_empty(),
+        "the unknown item is not inserted"
+    );
+    assert!(
+        receipt
+            .outcome
+            .notices
+            .iter()
+            .any(|n| n == "a page item of a kind this version does not know was left out"),
+        "{:?}",
+        receipt.outcome.notices
+    );
+}
+
+/// FT-452: a structure box keeps its `external` in its own project only; its location rebinds as a device's slots
+/// do and clears with the node notice otherwise.
+#[test]
+fn cb_items_a_structure_box_keeps_its_external_in_its_own_project_only() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let mut s = golden_common::session(&batch);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let (location, external) = {
+        let q = s.query();
+        let location = q
+            .structure_nodes()
+            .iter()
+            .find(|(_, n)| n.code.as_str() == "J-E-206")
+            .map(|(id, _)| id.as_uuid())
+            .expect("the J-E-206 location node");
+        let external = q
+            .external_refs()
+            .iter()
+            .next()
+            .map(|(id, _)| id.as_uuid())
+            .expect("an external reference of Golden A");
+        (location, external)
+    };
+    let outline = [
+        [QET.at(10).unwrap().0, QET.at(10).unwrap().0],
+        [QET.at(20).unwrap().0, QET.at(10).unwrap().0],
+        [QET.at(20).unwrap().0, QET.at(15).unwrap().0],
+        [QET.at(10).unwrap().0, QET.at(15).unwrap().0],
+    ];
+    let placed = run(
+        &mut s,
+        "box.structure",
+        json!({
+            "page": page.to_string(),
+            "outline": outline,
+            "style": "dotted",
+            "caption": "External Connection",
+            "assigns": {"location": location.to_string()},
+            "external": external.to_string(),
+        }),
+    );
+    let box_id = placed.outcome.primary.expect("the box").1.as_uuid();
+    let copied = s.copy_fragment(&[box_id]).expect("a structure box alone copies");
+    assert_eq!(copied.records, 1, "one structure box record");
+    let frag = parse_fragment(&copied.text).expect("the copy reads").params;
+    let receipt = paste(&mut s, "101", at_steps(&frag, (2, 0)), &frag).expect("pasted");
+    let pasted = structure_box(&s, created(&receipt, Kind::StructureBox)[0]);
+    assert_eq!(pasted.external, Some(Id::from_uuid(external)));
+    assert_eq!(pasted.assigns.location, Some(Slot::Node(Id::from_uuid(location))));
+    // Into a wizard project: no such external reference and no such location node.
+    let mut w = wizard(41);
+    let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).expect("pasted into the wizard");
+    let pasted = structure_box(&w, created(&receipt, Kind::StructureBox)[0]);
+    assert_eq!(pasted.external, None);
+    assert_eq!(pasted.assigns.location, None);
+    assert!(
+        receipt
+            .outcome
+            .notices
+            .iter()
+            .any(|n| n == "structure location J-E-206 is not in this project: inherits the page"),
+        "{:?}",
+        receipt.outcome.notices
+    );
+    assert!(
+        receipt
+            .outcome
+            .notices
+            .iter()
+            .any(|n| n.contains("external") && n.contains("cleared")),
+        "{:?}",
+        receipt.outcome.notices
+    );
+    // With the node in the target the location rebinds; the external still stays cleared.
+    let node = run(
+        &mut w,
+        "structure.create_node",
+        json!({"aspect": "location", "code": "J-E-206"}),
+    )
+    .outcome
+    .primary
+    .expect("the node")
+    .1
+    .as_uuid();
+    let receipt = paste(&mut w, "1", at_steps(&frag, (0, 4)), &frag).expect("pasted again");
+    let pasted = structure_box(&w, created(&receipt, Kind::StructureBox)[0]);
+    assert_eq!(pasted.external, None);
+    assert_eq!(pasted.assigns.location, Some(Slot::Node(Id::from_uuid(node))));
+}
+
+/// Copy preserves its lossy bytes and notices while reporting whether Cut can transfer every selected item.
+#[test]
+fn copy_fragment_reports_incomplete_page_items() {
+    let batch = golden_common::batch();
+    let ids = golden_common::ids_by_key(&batch);
+    let page: Id<Page> = id(&ids, "pages|101");
+    let unknown = Uuid::from_u128(0x0192_f3a0_0000_7000_8000_0000_0000_a002);
+    let mut s = golden_common::session_with(&batch, |_, records| {
+        records.push(ew_schema::Record::PageItem(
+            serde_json::from_value(json!({
+                "id": unknown.to_string(), "page": page.to_string(),
+                "kind": {"macro_box": {"name": "later"}}
+            }))
+            .unwrap(),
+        ));
+    });
+    let w4: Id<Connection> = id(&ids, "connections|W4");
+    let w5: Id<Connection> = id(&ids, "connections|W5");
+    let marker = run(
+        &mut s,
+        "marker.place",
+        json!({"page":page.to_string(),
+        "connections":[w4.to_string(),w5.to_string()], "at":[0,0]}),
+    )
+    .outcome
+    .primary
+    .unwrap()
+    .1
+    .as_uuid();
+    let text = run(
+        &mut s,
+        "item.place",
+        json!({"page":page.to_string(),
+        "kind":{"free_text":{"text":"copy text","at":[0,0]}}}),
+    )
+    .outcome
+    .primary
+    .unwrap()
+    .1
+    .as_uuid();
+    let graphic = run(
+        &mut s,
+        "item.place",
+        json!({"page":page.to_string(),
+        "kind":{"graphic":{"shape":{"line":{"a":[0,0],"b":[1000,1000]}}}}}),
+    )
+    .outcome
+    .primary
+    .unwrap()
+    .1
+    .as_uuid();
+    let box_id = run(
+        &mut s,
+        "box.structure",
+        json!({"page":page.to_string(),
+        "outline":[[0,0],[1000,0],[1000,1000],[0,1000]],"style":"dotted","assigns":{}}),
+    )
+    .outcome
+    .primary
+    .unwrap()
+    .1
+    .as_uuid();
+    let empty = s.copy_fragment(&[unknown]).unwrap();
+    assert_eq!(empty.incomplete_page_items, 1);
+    assert_eq!(empty.skipped, vec![("page_item".to_owned(), 1)]);
+    assert_eq!(empty.records, 0);
+    let omitted = s.copy_fragment(&[marker]).unwrap();
+    assert_eq!(omitted.incomplete_page_items, 1, "an empty marker counts once");
+    assert_eq!(omitted.skipped, vec![("wire_marker".to_owned(), 1)]);
+    assert_eq!(omitted.records, 0);
+    // With no record lines, each retains the exact same fragment bytes as an empty known-item selection's header.
+    assert_eq!(omitted.text, empty.text);
+    let terminal = s
+        .page_tables("101")
+        .unwrap()
+        .reps
+        .iter()
+        .find(|r| r.device.is_some_and(|d| s.tag_list(&[d]) == "1X1:1\n"))
+        .unwrap()
+        .id;
+    let mut partial = reps_of(&s, "101", &["S51"]);
+    partial.extend([terminal, marker]);
+    let copied = s.copy_fragment(&partial).unwrap();
+    assert_eq!(copied.incomplete_page_items, 1);
+    assert!(copied.skipped.is_empty());
+    let records = parse_fragment(&copied.text).unwrap().params["records"].clone();
+    assert_eq!(
+        records
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["$k"] == "page_item")
+            .unwrap()["kind"]["wire_marker"]["connections"],
+        json!([w4.to_string()])
+    );
+    // Omitted items do not change Copy's bytes or record/library counts.
+    partial.push(unknown);
+    let mixed = s.copy_fragment(&partial).unwrap();
+    assert_eq!(mixed.incomplete_page_items, 2);
+    assert_eq!(mixed.text, copied.text);
+    assert_eq!((mixed.records, mixed.copies), (copied.records, copied.copies));
+    assert_eq!(mixed.skipped, empty.skipped);
+    let mut complete: Vec<_> = s.page_tables("101").unwrap().reps.iter().map(|r| r.id).collect();
+    complete.extend([marker, text, graphic, box_id]);
+    let copied = s.copy_fragment(&complete).unwrap();
+    assert_eq!(copied.incomplete_page_items, 0);
+    for selected in [text, graphic, box_id] {
+        assert_eq!(s.copy_fragment(&[selected]).unwrap().incomplete_page_items, 0);
+    }
+}

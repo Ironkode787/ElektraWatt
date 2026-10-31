@@ -45,7 +45,7 @@ path = "junit.xml"
 # Local development and cycle gates omit performance measurements (ID-664).
 # Select with NEXTEST_PROFILE=local-dev; hosted CI and performance profiles stay unchanged.
 [profile.local-dev]
-default-filter = 'not binary(perf) and not test(/^perf_/)'
+default-filter = 'not binary(perf) and not test(/(^|::)perf_/)'
 
 # A hung test of the ew-viewmodel `jobs` binary is ended after 5 minutes instead of blocking the run (cycle 31
 # review R3-1). Overrides of the default profile apply to every profile.

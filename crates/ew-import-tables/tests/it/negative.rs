@@ -1,0 +1,1016 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Defective tables on small in-memory inputs: what is refused, what is dropped and what is kept with a finding.
+
+use crate::common;
+
+use ew_ids::Uuid;
+use ew_import_tables::TablesImporter;
+use ew_import_tables::ids;
+use ew_interop_api::ReportEntry;
+use ew_interop_api::{Code, ImportBatch, ImportError, LineageInfo, Severity};
+use ew_schema::{
+    AddrSpec, Channel, ChannelKind, ChannelState, Device, DeviceLinkKind, IoClass, IoDir, LibDocument,
+    LibItem, MapSpec, Page, PlcRole, Record, Representation, StationRole,
+};
+
+const PAGES: &str = "key,number,kind,form,grid\n101,101,multi_line,ew.frame.qet-a4-landscape-grid,qet10\n";
+const DEVICES: &str = "key,letter,counter\n-1F1,F,1\n";
+const FUNCTIONS: &str = "key,device,fndef\n-1F1,-1F1,ew.fn.mcb-1pn\n";
+const REPS: &str = "key,functions,page,symbol,cell,dx,dy\n-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,,\n";
+
+/// The base tables with the files of `replace` substituted by name and the rest of `extra` appended.
+fn run_with(replace: &[(&str, &str)]) -> Result<ImportBatch, ImportError> {
+    let mut files: Vec<(&str, &str)> = vec![
+        ("project.csv", common::PROJECT_CSV),
+        ("pages.csv", PAGES),
+        ("devices.csv", DEVICES),
+        ("functions.csv", FUNCTIONS),
+        ("representations.csv", REPS),
+    ];
+    for (name, text) in replace {
+        match files.iter_mut().find(|(n, _)| n == name) {
+            Some(slot) => slot.1 = text,
+            None => files.push((name, text)),
+        }
+    }
+    common::import(&common::inputs(&files))
+}
+
+fn run(replace: &[(&str, &str)]) -> ImportBatch {
+    run_with(replace).expect("the import succeeds")
+}
+
+fn count(b: &ImportBatch, code: u16, severity: Severity) -> usize {
+    b.report
+        .with_code(Code::imp(code))
+        .filter(|e| e.severity == severity)
+        .count()
+}
+
+fn devices(b: &ImportBatch) -> usize {
+    b.records
+        .iter()
+        .filter(|r| matches!(r, Record::Device(_)))
+        .count()
+}
+
+fn representations(b: &ImportBatch) -> Vec<&Representation> {
+    b.records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Representation(x) => Some(x),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The base tables import without a single finding.
+#[test]
+fn the_base_tables_are_clean() {
+    let b = run(&[]);
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+    assert_eq!(devices(&b), 1);
+    assert_eq!(representations(&b).len(), 1);
+}
+
+/// A table without a required column is refused, and rows that name its keys do not resolve.
+#[test]
+fn a_missing_required_column_refuses_the_table() {
+    let b = run(&[("devices.csv", "key,counter\n-1F1,1\n")]);
+    assert_eq!(
+        b.report.with_code(Code::imp(2)).count(),
+        1,
+        "{:#?}",
+        b.report.entries
+    );
+    let e = b.report.with_code(Code::imp(2)).next().unwrap();
+    assert_eq!(e.severity, Severity::Error);
+    assert_eq!(e.location.as_ref().unwrap().file, "devices.csv");
+    assert_eq!(devices(&b), 0);
+    assert!(
+        count(&b, 3, Severity::Error) >= 1,
+        "the function names a device that does not exist"
+    );
+}
+
+/// A representation on an unknown page is dropped as an unresolved reference.
+#[test]
+fn a_representation_on_an_unknown_page_is_dropped() {
+    let reps = "key,functions,page,symbol,cell\n-1F1,-1F1,999,ew.iec.mcb-1pn@qet10,B2\n";
+    let b = run(&[("representations.csv", reps)]);
+    assert_eq!(count(&b, 3, Severity::Error), 1, "{:#?}", b.report.entries);
+    assert!(representations(&b).is_empty());
+}
+
+/// The typed revisions (FT-165): a row that would break a revision invariant is dropped with one error each
+/// (a second open revision, EW-INV-016; the author as checker, EW-INV-018; a page listed twice, EW-INV-019),
+/// so the batch always loads as a model.
+#[test]
+fn a_revision_row_that_breaks_an_invariant_is_dropped() {
+    let parties = "key,role,name\neng,engineer,<engineer>\nchk,checker,<checker>\n";
+    let revisions = "key,date,state,author,checker,changed_pages\n\
+                     V1.0,2025-03-03,released,,,\n\
+                     V2.0,2025-04-14,open,eng,chk,101\n\
+                     V3.0,,open,,,\n\
+                     V4.0,,released,eng,eng,\n\
+                     V5.0,,released,,,101;101\n";
+    let b = run(&[("parties.csv", parties), ("revisions.csv", revisions)]);
+    assert_eq!(count(&b, 2, Severity::Error), 3, "{:#?}", b.report.entries);
+    let labels: Vec<&str> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Revision(v) => Some(v.label.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(labels.len(), 2, "{labels:?}");
+    assert!(labels.contains(&"V1.0") && labels.contains(&"V2.0"), "{labels:?}");
+}
+
+/// A position off the page grid drops the representation with one error; nothing is snapped.
+#[test]
+fn an_off_grid_position_drops_the_row() {
+    let reps = "key,functions,page,symbol,cell,dx,dy\n-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,5,\n";
+    let b = run(&[("representations.csv", reps)]);
+    assert_eq!(count(&b, 2, Severity::Error), 1, "{:#?}", b.report.entries);
+    assert_eq!(count(&b, 2, Severity::Warning), 0, "{:#?}", b.report.entries);
+    let e = errors(&b, 2).remove(0);
+    assert!(e.message.contains("off the page grid"), "{}", e.message);
+    assert_eq!(e.location.as_ref().unwrap().file, "representations.csv");
+    assert!(representations(&b).is_empty());
+}
+
+/// Runs `check`, naming `case` in its failure message.
+fn in_case(case: &str, check: impl FnOnce()) {
+    if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(check)) {
+        let msg = e
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| e.downcast_ref::<&str>().copied())
+            .unwrap_or("a panic without a message");
+        panic!("case {case}: {msg}");
+    }
+}
+
+/// A bad row of a project table is dropped with one EW-IMP-002 error and the good rows stay, one case per defect:
+/// a repeated key (devices.csv drops the second row), an arrangement the symbol does not define (the error names
+/// symbol and name), an arrangement cell that is not an identifier, a bad cell reference, and an unknown
+/// enumeration value (pages.csv drops page 102, page 101 stays).
+#[test]
+fn generic_row_drops() {
+    type Check = fn(&ImportBatch);
+    let cases: [(&str, &str, &str, Check); 5] = [
+        (
+            "a_duplicate_key_is_dropped",
+            "devices.csv",
+            "key,letter,counter\n-1F1,F,1\n-1F1,F,2\n",
+            |b| assert_eq!(devices(b), 1),
+        ),
+        (
+            "an_unknown_arrangement_drops_the_row",
+            "representations.csv",
+            "key,functions,page,symbol,cell,arrangement\n-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,nonexistent\n",
+            |b| {
+                expect_error(
+                    b,
+                    2,
+                    "representations.csv",
+                    "-1F1",
+                    "symbol `ew.iec.mcb-1pn@qet10` has no arrangement `nonexistent`",
+                );
+                assert!(representations(b).is_empty());
+            },
+        ),
+        (
+            "an_invalid_arrangement_identifier_drops_the_row",
+            "representations.csv",
+            "key,functions,page,symbol,cell,arrangement\n-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,not an ident!\n",
+            |b| {
+                expect_error(b, 2, "representations.csv", "-1F1", "arrangement");
+                assert!(representations(b).is_empty());
+            },
+        ),
+        (
+            "a_bad_cell_drops_the_row",
+            "representations.csv",
+            "key,functions,page,symbol,cell\n-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,Z9\n",
+            |b| assert!(representations(b).is_empty()),
+        ),
+        (
+            "a_bad_enum_value_drops_the_row",
+            "pages.csv",
+            "key,number,kind,form,grid\n\
+             101,101,multi_line,ew.frame.qet-a4-landscape-grid,qet10\n\
+             102,102,nonsense,ew.frame.qet-a4-landscape-grid,qet10\n",
+            |b| {
+                let n = b.records.iter().filter(|r| matches!(r, Record::Page(_))).count();
+                assert_eq!(n, 1);
+                let gone: ew_ids::Id<Page> = ids::record_id("pages", "102");
+                assert!(
+                    !b.records
+                        .iter()
+                        .any(|r| matches!(r, Record::Page(p) if p.id == gone))
+                );
+            },
+        ),
+    ];
+    for (name, file, text, check) in cases {
+        let b = run(&[(file, text)]);
+        assert_eq!(
+            count(&b, 2, Severity::Error),
+            1,
+            "case {name}: {:#?}",
+            b.report.entries
+        );
+        in_case(name, || check(&b));
+    }
+}
+
+/// An unknown table file is a warning, a non-CSV file an info; both are ignored.
+#[test]
+fn unknown_and_non_csv_files_are_reported_and_ignored() {
+    let b = run(&[("mystery.csv", "key\nx\n"), ("notes.txt", "hello")]);
+    let warn: Vec<_> = b
+        .report
+        .with_code(Code::imp(4))
+        .filter(|e| e.severity == Severity::Warning)
+        .collect();
+    let info: Vec<_> = b
+        .report
+        .with_code(Code::imp(4))
+        .filter(|e| e.severity == Severity::Info)
+        .collect();
+    assert_eq!(warn.len(), 1, "{:#?}", b.report.entries);
+    assert_eq!(warn[0].location.as_ref().unwrap().file, "mystery.csv");
+    assert_eq!(info.len(), 1);
+    assert_eq!(info[0].location.as_ref().unwrap().file, "notes.txt");
+    assert_eq!(devices(&b), 1);
+}
+
+/// A stray quote refuses the table with an error, but the import still succeeds.
+#[test]
+fn a_malformed_csv_refuses_the_table_only() {
+    let b = run(&[("devices.csv", "key,letter\n-1F1,F\"x\n")]);
+    let e: Vec<_> = b.report.with_code(Code::imp(2)).collect();
+    assert_eq!(e.len(), 1, "{:#?}", b.report.entries);
+    assert_eq!(e[0].severity, Severity::Error);
+    assert_eq!(e[0].location.as_ref().unwrap().file, "devices.csv");
+    assert!(e[0].message.contains("table refused"), "{}", e[0].message);
+    assert_eq!(devices(&b), 0);
+}
+
+/// Without project.csv the import is refused.
+#[test]
+fn a_missing_project_table_is_refused() {
+    let inputs = common::inputs(&[("pages.csv", PAGES)]);
+    let r = common::import(&inputs);
+    assert!(matches!(r, Err(ImportError::Malformed { .. })), "{r:?}");
+}
+
+/// A foreign lineage is unsupported.
+#[test]
+fn a_foreign_lineage_is_unsupported() {
+    let inputs = common::inputs(&[("project.csv", common::PROJECT_CSV)]);
+    let mut ctx = common::context();
+    ctx.lineage = Some(LineageInfo {
+        id: ids::lineage_id(),
+        namespace: Uuid::from_u128(0x1234_5678_9abc_def0),
+    });
+    let r = TablesImporter::new(common::library()).import(&inputs, &ctx);
+    assert!(matches!(r, Err(ImportError::Unsupported { .. })), "{r:?}");
+}
+
+/// A terminal whose key is not `<strip>:<designation>` is dropped.
+#[test]
+fn a_terminal_key_must_name_strip_and_designation() {
+    let devices_csv = "key,letter,counter,strip_label_mode\n-1F1,F,1,\n-1X1,X,1,designation\n";
+    let terminals = "key,strip,seq,designation\nbogus,-1X1,1,1\n";
+    let b = run(&[("devices.csv", devices_csv), ("terminals.csv", terminals)]);
+    assert_eq!(count(&b, 2, Severity::Error), 1, "{:#?}", b.report.entries);
+    let n = b
+        .records
+        .iter()
+        .filter(|r| matches!(r, Record::Device(d) if d.aspects.terminal.is_some()))
+        .count();
+    assert_eq!(n, 0);
+    let _: Option<Device> = None;
+}
+
+// ---- finding helpers --------------------------------------------------------------------------------------
+
+/// The findings of `code` with severity error.
+fn errors(b: &ImportBatch, code: u16) -> Vec<&ReportEntry> {
+    b.report
+        .with_code(Code::imp(code))
+        .filter(|e| e.severity == Severity::Error)
+        .collect()
+}
+
+/// Asserts exactly one error of `code` at `file`/`item` whose message contains `needle`.
+fn expect_error(b: &ImportBatch, code: u16, file: &str, item: &str, needle: &str) {
+    let hits: Vec<_> = errors(b, code)
+        .into_iter()
+        .filter(|e| {
+            let l = e.location.as_ref().unwrap();
+            l.file == file && l.item.as_deref() == Some(item)
+        })
+        .collect();
+    assert_eq!(
+        hits.len(),
+        1,
+        "{file}:{item} EW-IMP-00{code}: {:#?}",
+        b.report.entries
+    );
+    assert!(hits[0].message.contains(needle), "{}", hits[0].message);
+}
+
+type PartCopy = ew_schema::LibCopy<ew_schema::Part>;
+
+/// The project-local part copies of the batch.
+fn part_copies(b: &ImportBatch) -> Vec<&PartCopy> {
+    b.lib
+        .iter()
+        .filter_map(|d| match d {
+            LibDocument::Part(c) => Some(c),
+            _ => None,
+        })
+        .collect()
+}
+
+fn part<'a>(b: &'a ImportBatch, key: &str) -> Option<&'a PartCopy> {
+    let id: ew_ids::Id<LibItem> = ids::record_id("parts", key);
+    part_copies(b).into_iter().find(|c| c.item_id == id)
+}
+
+const PARTS: &str = "key,manufacturer,part_number,kind\nP1,ACME,N1,device\n";
+
+fn with_parts(extra: &[(&str, &str)]) -> ImportBatch {
+    let mut files = vec![("parts.csv", PARTS)];
+    files.extend_from_slice(extra);
+    run(&files)
+}
+
+// ---- parts.csv --------------------------------------------------------------------------------------------
+
+/// A bad row of the part tables is dropped with one error naming file, key and cause, and the good rows stay,
+/// one case per defect. `with_parts` cases add their table to a parts.csv with the one part P1.
+#[test]
+fn part_rows_dropped() {
+    type Check = fn(&ImportBatch);
+    let cases: [(&str, bool, &str, &str, Check); 6] = [
+        (
+            "a_part_without_manufacturer_is_dropped",
+            false,
+            "parts.csv",
+            "key,manufacturer,part_number\nP1,,N1\nP2,ACME,N2\n",
+            |b| {
+                expect_error(b, 2, "parts.csv", "P1", "manufacturer");
+                assert_eq!(errors(b, 2).len(), 1);
+                assert!(part(b, "P1").is_none());
+                assert!(part(b, "P2").is_some());
+                assert_eq!(part_copies(b).len(), 1);
+            },
+        ),
+        (
+            "a_duplicate_part_key_is_dropped",
+            false,
+            "parts.csv",
+            "key,manufacturer,part_number\nP1,ACME,N1\nP1,ACME,N9\n",
+            |b| {
+                expect_error(b, 2, "parts.csv", "P1", "duplicate key");
+                let copies = part_copies(b);
+                assert_eq!(copies.len(), 1);
+                assert_eq!(copies[0].item.part_number.as_str(), "N1", "the first row is kept");
+            },
+        ),
+        (
+            "a_part_with_a_bad_kind_is_dropped",
+            false,
+            "parts.csv",
+            "key,manufacturer,part_number,kind\nP1,ACME,N1,nonsense\nP2,ACME,N2,cable\n",
+            |b| {
+                expect_error(b, 2, "parts.csv", "P1", "kind");
+                assert!(part(b, "P1").is_none());
+                assert!(part(b, "P2").is_some());
+            },
+        ),
+        (
+            "a_cp_of_an_unknown_part_is_dropped",
+            true,
+            "part_cps.csv",
+            "key,part,idx,designation\nP1:0,P1,0,1\nX:0,NOPE,0,1\n",
+            |b| {
+                expect_error(b, 3, "part_cps.csv", "X:0", "unknown part");
+                assert_eq!(errors(b, 3).len(), 1);
+                assert_eq!(part(b, "P1").unwrap().item.cp_pattern.len(), 1);
+            },
+        ),
+        (
+            "a_cp_with_a_bad_clamp_is_dropped",
+            true,
+            "part_cps.csv",
+            "key,part,idx,designation,clamp\nP1:0,P1,0,1,ZZ\nP1:1,P1,1,2,b\n",
+            |b| {
+                expect_error(b, 2, "part_cps.csv", "P1:0", "clamp");
+                assert_eq!(part(b, "P1").unwrap().item.cp_pattern.len(), 1);
+            },
+        ),
+        (
+            "a_core_without_a_name_is_dropped",
+            true,
+            "cable_cores.csv",
+            "key,part,n,core\nP1:A,P1,0,\nP1:B,P1,1,B\n",
+            |b| {
+                expect_error(b, 2, "cable_cores.csv", "P1:A", "core");
+                assert_eq!(part(b, "P1").unwrap().item.sections.cable_cores.len(), 1);
+            },
+        ),
+    ];
+    for (name, add_to_parts, file, text, check) in cases {
+        let b = if add_to_parts {
+            with_parts(&[(file, text)])
+        } else {
+            run(&[(file, text)])
+        };
+        in_case(name, || check(&b));
+    }
+}
+
+// ---- part_cps.csv -----------------------------------------------------------------------------------------
+
+#[test]
+fn a_repeated_pattern_index_drops_the_second_cp() {
+    let cps = "key,part,idx,designation\nP1:0,P1,0,1\nP1:0b,P1,0,2\nP1:1,P1,1,3\n";
+    let b = with_parts(&[("part_cps.csv", cps)]);
+    expect_error(&b, 2, "part_cps.csv", "P1:0b", "repeated");
+    assert_eq!(errors(&b, 2).len(), 1);
+    assert_eq!(part(&b, "P1").unwrap().item.cp_pattern.len(), 2);
+}
+
+// ---- part_templates.csv -----------------------------------------------------------------------------------
+
+const ONE_CP: &str = "key,part,idx,designation\nP1:0,P1,0,1\n";
+
+#[test]
+fn a_template_index_outside_the_pattern_is_dropped() {
+    let tpl = "key,part,n,fndef,main,cps\nP1:t0,P1,0,ew.fn.mcb-1pn,true,0\nP1:t1,P1,1,ew.fn.mcb-1pn,,5\n";
+    let b = with_parts(&[("part_cps.csv", ONE_CP), ("part_templates.csv", tpl)]);
+    expect_error(&b, 2, "part_templates.csv", "P1:t1", "CP pattern");
+    assert_eq!(part(&b, "P1").unwrap().item.function_template.len(), 1);
+}
+
+#[test]
+fn a_template_with_an_unknown_fndef_is_dropped() {
+    let tpl = "key,part,n,fndef,main,cps\nP1:t0,P1,0,ew.fn.nope,true,0\nP1:t1,P1,1,ew.fn.mcb-1pn,,0\n";
+    let b = with_parts(&[("part_cps.csv", ONE_CP), ("part_templates.csv", tpl)]);
+    expect_error(&b, 3, "part_templates.csv", "P1:t0", "unknown FnDef");
+    assert_eq!(part(&b, "P1").unwrap().item.function_template.len(), 1);
+}
+
+// ---- cable_cores.csv --------------------------------------------------------------------------------------
+
+#[test]
+fn a_core_of_an_unknown_part_is_dropped() {
+    let cores = "key,part,n,core\nP1:A,P1,0,A\nX:A,NOPE,0,A\n";
+    let b = with_parts(&[("cable_cores.csv", cores)]);
+    expect_error(&b, 3, "cable_cores.csv", "X:A", "unknown part");
+    assert_eq!(part(&b, "P1").unwrap().item.sections.cable_cores.len(), 1);
+}
+
+// ---- potentials.csv ---------------------------------------------------------------------------------------
+
+fn potentials(b: &ImportBatch) -> usize {
+    b.records
+        .iter()
+        .filter(|r| matches!(r, Record::PotentialDef(_)))
+        .count()
+}
+
+// ---- bonds.csv --------------------------------------------------------------------------------------------
+
+fn bonds(b: &ImportBatch) -> usize {
+    b.records.iter().filter(|r| matches!(r, Record::Bond(_))).count()
+}
+
+/// A bad potentials.csv or bonds.csv row is dropped with one error naming file, key and cause, and the good row
+/// stays, one case per defect.
+#[test]
+fn potential_bond_rows() {
+    type Count = fn(&ImportBatch) -> usize;
+    let cases: [(&str, &str, &str, u16, &str, &str, Count); 6] = [
+        (
+            "a_potential_at_an_unknown_endpoint_is_dropped",
+            "potentials.csv",
+            "key,at,ptype\n+24V,-1F1:2,l_plus\n+12V,-9X9:1,l_plus\n",
+            3,
+            "+12V",
+            "unknown device",
+            potentials,
+        ),
+        (
+            "a_potential_with_a_bad_ptype_is_dropped",
+            "potentials.csv",
+            "key,at,ptype\n+24V,-1F1:2,nonsense\n+12V,-1F1:1,l_plus\n",
+            2,
+            "+24V",
+            "ptype",
+            potentials,
+        ),
+        (
+            "a_potential_key_must_be_an_identifier",
+            "potentials.csv",
+            "key,at\nbad\u{7}key,-1F1:2\n+12V,-1F1:1\n",
+            2,
+            "bad\u{7}key",
+            "not an identifier",
+            potentials,
+        ),
+        (
+            "a_bond_with_equal_endpoints_is_dropped",
+            "bonds.csv",
+            "key,a,b,kind\nB1,-1F1:1,-1F1:1,fe_pe\nB2,-1F1:1,-1F1:2,fe_pe\n",
+            2,
+            "B1",
+            "same",
+            bonds,
+        ),
+        (
+            "a_bond_with_an_unknown_via_is_dropped",
+            "bonds.csv",
+            "key,a,b,kind,via\nB1,-1F1:1,-1F1:2,fe_pe,W99\nB2,-1F1:1,-1F1:2,fe_pe,\n",
+            3,
+            "B1",
+            "unknown connection",
+            bonds,
+        ),
+        (
+            "a_bond_with_a_bad_kind_is_dropped",
+            "bonds.csv",
+            "key,a,b,kind\nB1,-1F1:1,-1F1:2,nonsense\nB2,-1F1:1,-1F1:2,shield\n",
+            2,
+            "B1",
+            "kind",
+            bonds,
+        ),
+    ];
+    for (name, file, text, code, item, needle, kept) in cases {
+        let b = run(&[(file, text)]);
+        in_case(name, || expect_error(&b, code, file, item, needle));
+        assert_eq!(kept(&b), 1, "case {name}: the good row stays");
+        if name == "a_potential_at_an_unknown_endpoint_is_dropped" {
+            assert_eq!(
+                errors(&b, 3).len(),
+                1,
+                "case {name}: the only unresolved reference"
+            );
+        }
+    }
+}
+
+// ---- report_blocks.csv ------------------------------------------------------------------------------------
+
+const FORM: &str = "ew.frame.qet-a4-landscape-nogrid";
+const BLOCK_HEAD: &str = "key,kind,form,first_folio,include,embedded_page,embedded_rect\n";
+
+fn blocks(b: &ImportBatch) -> usize {
+    b.records
+        .iter()
+        .filter(|r| matches!(r, Record::ReportBlock(_)))
+        .count()
+}
+
+fn block_row(key: &str, form: &str, first_folio: &str, include: &str, page: &str, rect: &str) -> String {
+    format!("{key},toc,{form},{first_folio},{include},{page},{rect}\n")
+}
+
+#[test]
+fn a_report_block_with_an_unknown_form_is_dropped() {
+    let csv = format!(
+        "{BLOCK_HEAD}{}{}",
+        block_row("R1", "ew.frame.nope", "2", "", "", ""),
+        block_row("R2", FORM, "3", "", "", "")
+    );
+    let b = run(&[("report_blocks.csv", &csv)]);
+    expect_error(&b, 3, "report_blocks.csv", "R1", "unknown form");
+    assert_eq!(blocks(&b), 1);
+}
+
+#[test]
+fn a_report_block_including_an_unknown_device_is_dropped() {
+    let csv = format!(
+        "{BLOCK_HEAD}{}{}",
+        block_row("R1", FORM, "2", "-1F1;-9Z9", "", ""),
+        block_row("R2", FORM, "3", "-1F1", "", "")
+    );
+    let b = run(&[("report_blocks.csv", &csv)]);
+    expect_error(&b, 3, "report_blocks.csv", "R1", "unknown device");
+    assert_eq!(blocks(&b), 1);
+}
+
+#[test]
+fn an_embedded_page_needs_an_embedded_rect() {
+    let csv = format!(
+        "{BLOCK_HEAD}{}{}",
+        block_row("R1", FORM, "", "", "101", ""),
+        block_row("R2", FORM, "3", "", "", "")
+    );
+    let b = run(&[("report_blocks.csv", &csv)]);
+    expect_error(&b, 2, "report_blocks.csv", "R1", "go together");
+    assert_eq!(blocks(&b), 1);
+}
+
+#[test]
+fn a_page_oriented_block_needs_a_first_folio() {
+    let csv = format!(
+        "{BLOCK_HEAD}{}{}",
+        block_row("R1", FORM, "", "", "", ""),
+        block_row("R2", FORM, "3", "", "", "")
+    );
+    let b = run(&[("report_blocks.csv", &csv)]);
+    expect_error(&b, 2, "report_blocks.csv", "R1", "first_folio");
+    assert_eq!(blocks(&b), 1);
+}
+
+// ---- structure.csv ----------------------------------------------------------------------------------------
+
+fn structure_nodes(b: &ImportBatch) -> Vec<ew_ids::Id<ew_schema::StructureNode>> {
+    b.records
+        .iter()
+        .filter_map(|r| match r {
+            Record::StructureNode(n) => Some(n.id),
+            _ => None,
+        })
+        .collect()
+}
+
+fn node(key: &str) -> ew_ids::Id<ew_schema::StructureNode> {
+    ids::record_id("structure", key)
+}
+
+#[test]
+fn a_structure_node_with_an_unknown_parent_is_dropped() {
+    let csv = "key,aspect,code,parent\n+A,location,A,\n+B,location,B,+NOPE\n+C,location,C,+A\n";
+    let b = run(&[("structure.csv", csv)]);
+    expect_error(&b, 3, "structure.csv", "+B", "unknown parent");
+    assert_eq!(errors(&b, 3).len(), 1);
+    let nodes = structure_nodes(&b);
+    assert_eq!(nodes.len(), 2);
+    assert!(nodes.contains(&node("+A")) && nodes.contains(&node("+C")));
+}
+
+/// Today a node naming itself reports EW-IMP-003 `unknown parent`; the cycle detection (F8) may reclassify it
+/// as EW-IMP-002. The test pins only "dropped with exactly one error".
+#[test]
+fn a_structure_node_that_is_its_own_parent_is_dropped() {
+    let csv = "key,aspect,code,parent\n+A,location,A,+A\n+B,location,B,\n";
+    let b = run(&[("structure.csv", csv)]);
+    let n = errors(&b, 2).len() + errors(&b, 3).len();
+    assert_eq!(n, 1, "{:#?}", b.report.entries);
+    assert_eq!(structure_nodes(&b), vec![node("+B")]);
+}
+
+/// F8: parent cycles are refused; a child of a cycle member is dropped with it.
+#[test]
+fn a_structure_parent_cycle_is_dropped_with_its_children() {
+    let csv = "key,aspect,code,parent\n\
+        +A,location,A,+B\n+B,location,B,+A\n+C,location,C,+A\n+D,location,D,\n";
+    let b = run(&[("structure.csv", csv)]);
+    expect_error(&b, 2, "structure.csv", "+A", "parent chain is a cycle");
+    expect_error(&b, 2, "structure.csv", "+B", "parent chain is a cycle");
+    expect_error(&b, 3, "structure.csv", "+C", "was dropped");
+    assert_eq!(structure_nodes(&b), vec![node("+D")]);
+}
+
+/// F8: the same for `devices.csv` parents (EW-INV-009).
+#[test]
+fn a_device_parent_cycle_is_dropped_with_its_children() {
+    let csv = "key,letter,counter,parent\n\
+        -1F1,F,1,-1F2\n-1F2,F,2,-1F1\n-1F3,F,3,-1F1\n-1F4,F,4,\n";
+    let b = run(&[("devices.csv", csv)]);
+    expect_error(&b, 2, "devices.csv", "-1F1", "parent chain is a cycle");
+    expect_error(&b, 2, "devices.csv", "-1F2", "parent chain is a cycle");
+    expect_error(&b, 3, "devices.csv", "-1F3", "was dropped");
+    assert_eq!(devices(&b), 1);
+}
+
+/// A profile table needs its header row in `profiles.csv` (key, name, basis, standards): without one the table is
+/// ignored and reported; with one the members of the project settings appear.
+#[test]
+fn a_profile_table_without_its_profiles_row_is_ignored() {
+    let colours = "key,voltage_class,function,code\n1,24 VDC,Positive,DBU\n";
+    let b = run(&[("colour_profile.csv", colours)]);
+    let unresolved = errors(&b, 3);
+    assert_eq!(unresolved.len(), 1, "{:#?}", b.report.entries);
+    assert!(unresolved[0].message.contains("profiles.csv has no `colour` row"));
+    let project = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Project(p) => Some(p),
+            _ => None,
+        })
+        .expect("the project");
+    assert!(!project.settings.extra.contains_key("colour_profile"));
+
+    let profiles = "key,profile,name,basis,dbu_code\nc.p,colour,P,company_convention,DBU:BU:dark\n";
+    let b = run(&[("colour_profile.csv", colours), ("profiles.csv", profiles)]);
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+    let project = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Project(p) => Some(p),
+            _ => None,
+        })
+        .expect("the project");
+    let colour = &project.settings.extra["colour_profile"];
+    assert_eq!(colour["key"], "c.p");
+    assert_eq!(colour["codes"][0]["code"], "DBU");
+    // A malformed company code or JSON drops the profile row.
+    let bad = "key,profile,name,dbu_code\nc.p,colour,P,DBU\n";
+    let b = run(&[("colour_profile.csv", colours), ("profiles.csv", bad)]);
+    assert!(
+        b.report.with_code(Code::imp(2)).count() >= 1,
+        "{:#?}",
+        b.report.entries
+    );
+}
+
+/// Technical data cells are `<key>=<value>` items: a malformed item, an unknown unit or a repeated key drops
+/// the row; a good cell becomes typed values of the device, in key order.
+#[test]
+fn technical_data_cells_are_typed_or_the_row_is_dropped() {
+    for bad in [
+        "rated_current",
+        "rated_current=10 A;rated_current=16 A",
+        "rated_current=10 parsec",
+        "rated_current=x A",
+        "=10 A",
+    ] {
+        let csv = format!("key,letter,counter,tech_data\n-1F1,F,1,\"{bad}\"\n");
+        let b = run(&[("devices.csv", &csv)]);
+        let errors = b.report.with_code(Code::imp(2)).count();
+        assert!(errors >= 1, "`{bad}`: {:#?}", b.report.entries);
+        assert_eq!(devices(&b), 0, "`{bad}` drops the device");
+    }
+    let csv = "key,letter,counter,tech_data\n-1F1,F,1,setpoint=15 degC;characteristic=C\n";
+    let b = run(&[("devices.csv", csv)]);
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+    let dev = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Device(d) => Some(d),
+            _ => None,
+        })
+        .expect("the device");
+    let keys: Vec<&str> = dev.tech_data.iter().map(|t| t.key.as_str()).collect();
+    assert_eq!(keys, ["characteristic", "setpoint"]);
+}
+
+// ---- PLC tables ------------------------------------------------------------------------------------------
+
+const PLC_DEVICES: &str = "key,letter,counter,plc_station,plc_role,plc_order,plc_module\n\
+    -1F1,F,1,,,,\n\
+    -1U1,U,1,PLC1,valve_terminal,2,\n\
+    -1U3,U,3,,,,true\n";
+const PLC_PROJECTS: &str = "key,name,profile,cpu\nPLC1,PLC1,siemens-tia-intl@2027.1,\n";
+
+fn plc_run(extra: &[(&str, &str)]) -> ImportBatch {
+    let mut files = vec![
+        ("devices.csv", PLC_DEVICES),
+        ("plc_config_projects.csv", PLC_PROJECTS),
+    ];
+    for (name, text) in extra {
+        match files.iter_mut().find(|(n, _)| n == name) {
+            Some(slot) => slot.1 = text,
+            None => files.push((name, text)),
+        }
+    }
+    run(&files)
+}
+
+fn channels(b: &ImportBatch) -> Vec<&Channel> {
+    b.records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Channel(c) => Some(c),
+            _ => None,
+        })
+        .collect()
+}
+
+fn device<'a>(b: &'a ImportBatch, key: &str) -> Option<&'a Device> {
+    let id: ew_ids::Id<Device> = ids::record_id("devices", key);
+    b.records.iter().find_map(|r| match r {
+        Record::Device(d) if d.id == id => Some(d),
+        _ => None,
+    })
+}
+
+fn plc_aspects(b: &ImportBatch) -> usize {
+    b.records
+        .iter()
+        .filter(|r| {
+            matches!(r, Record::Device(d)
+                if d.aspects.plc_station.is_some() || d.aspects.plc_module.is_some())
+        })
+        .count()
+}
+
+/// The station, module, channel and project rows import cleanly; a channel ID is `plc_channel_id`.
+#[test]
+fn the_plc_tables_import() {
+    let b = plc_run(&[(
+        "channels.csv",
+        "key,module,number,kind,address,state,symbol,comment,binding\n\
+         -1U3:0,-1U3,0,do,tbd,spare,Y0,a comment,\n\
+         -1U3:1,-1U3,1,do,,,,,-1F1:1\n",
+    )]);
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+    let station = device(&b, "-1U1")
+        .and_then(|d| d.aspects.plc_station.as_ref())
+        .unwrap();
+    assert_eq!(station.role, StationRole::ValveTerminal);
+    assert_eq!(station.order, Some(2));
+    assert_eq!(
+        station.config_project,
+        ids::record_id("plc_config_projects", "PLC1")
+    );
+    assert!(device(&b, "-1U3").unwrap().aspects.plc_module.is_some());
+    assert!(device(&b, "-1F1").unwrap().aspects.plc_module.is_none());
+    let module: ew_ids::Id<Device> = ids::record_id("devices", "-1U3");
+    let all = channels(&b);
+    assert_eq!(all.len(), 2);
+    let c0 = all.iter().find(|c| c.number == 0).unwrap();
+    assert_eq!(c0.id, ew_ids::v5::plc_channel_id::<_, Channel>(module, 0));
+    assert_eq!(c0.address, AddrSpec::Tbd);
+    assert_eq!(c0.state, Some(ChannelState::Spare));
+    assert_eq!(c0.symbol.as_ref().map(|s| s.as_str()), Some("Y0"));
+    assert_eq!(c0.comment.as_neutral(), Some("a comment"));
+    assert!(c0.binding.is_none());
+    let c1 = all.iter().find(|c| c.number == 1).unwrap();
+    assert_eq!(c1.address, AddrSpec::Auto);
+    assert!(matches!(c1.binding, Some(ew_schema::Endpoint::Cp(_, 0))));
+}
+
+/// A second row of the same module and number is a duplicate channel, whatever its key.
+#[test]
+fn a_duplicate_channel_is_dropped() {
+    let b = plc_run(&[(
+        "channels.csv",
+        "key,module,number,kind\n-1U3:1,-1U3,1,do\n-1U3:1b,-1U3,1,do\n",
+    )]);
+    expect_error(&b, 2, "channels.csv", "-1U3:1b", "duplicate channel");
+    assert_eq!(channels(&b).len(), 1);
+    assert_eq!(
+        channels(&b)[0].source_ref.as_ref().unwrap().key,
+        "channels|-1U3:1"
+    );
+}
+
+/// Manual addresses are no fixture form: `address` is `auto`, `tbd` or `excluded`.
+#[test]
+fn a_manual_channel_address_is_malformed() {
+    let b = plc_run(&[(
+        "channels.csv",
+        "key,module,number,kind,address\n-1U3:1,-1U3,1,do,Q0.1\n",
+    )]);
+    expect_error(&b, 2, "channels.csv", "-1U3:1", "Q0.1");
+    assert!(channels(&b).is_empty());
+}
+
+#[test]
+fn a_channel_reference_that_does_not_resolve_is_dropped() {
+    let b = plc_run(&[(
+        "channels.csv",
+        "key,module,number,kind,binding,target\n\
+         A,-9U9,0,do,,\n\
+         B,-1U3,1,do,-1F1:99,\n\
+         C,-1U3,2,do,,nope\n\
+         D,-1U3,3,laser,,\n\
+         E,-1U3,70000,do,,\n\
+         F,-1U3,4,do,@J9,\n",
+    )]);
+    expect_error(&b, 3, "channels.csv", "A", "unknown device `-9U9`");
+    expect_error(&b, 3, "channels.csv", "B", "no CP `99`");
+    expect_error(&b, 3, "channels.csv", "C", "unknown function `nope`");
+    expect_error(&b, 2, "channels.csv", "D", "kind");
+    expect_error(&b, 2, "channels.csv", "E", "number");
+    expect_error(&b, 3, "channels.csv", "F", "junction");
+    assert!(channels(&b).is_empty());
+}
+
+#[test]
+fn a_plc_role_needs_a_station_and_a_station_needs_a_role() {
+    let rows = "key,letter,counter,plc_station,plc_role,plc_order\n\
+        -1F1,F,1,,valve_terminal,\n\
+        -1U1,U,1,PLC1,,\n\
+        -1U2,U,2,,,5\n\
+        -1U3,U,3,PLC1,sideways,\n\
+        -1U4,U,4,PLC9,drive,\n";
+    let b = plc_run(&[("devices.csv", rows)]);
+    expect_error(&b, 2, "devices.csv", "-1F1", "needs column `plc_station`");
+    expect_error(&b, 2, "devices.csv", "-1U1", "required with `plc_station`");
+    expect_error(&b, 2, "devices.csv", "-1U2", "needs column `plc_station`");
+    expect_error(&b, 2, "devices.csv", "-1U3", "plc_role");
+    expect_error(&b, 3, "devices.csv", "-1U4", "PLC9");
+    assert_eq!(devices(&b), 0);
+    assert_eq!(plc_aspects(&b), 0);
+}
+
+/// A project whose CPU is unknown is dropped, and the stations that named it lose their aspect.
+#[test]
+fn a_project_with_an_unknown_cpu_is_dropped_with_its_stations() {
+    let projects = "key,name,profile,cpu\nPLC1,PLC1,siemens-tia-intl@2027.1,-9X9\n";
+    let b = plc_run(&[("plc_config_projects.csv", projects)]);
+    expect_error(&b, 3, "plc_config_projects.csv", "PLC1", "-9X9");
+    expect_error(&b, 3, "devices.csv", "-1U1", "station aspect is removed");
+    assert!(!b.records.iter().any(|r| matches!(r, Record::PlcConfigProject(_))));
+    assert!(device(&b, "-1U1").unwrap().aspects.plc_station.is_none());
+    // A known CPU resolves to the device.
+    let projects = "key,name,profile,cpu\nPLC1,PLC1,siemens-tia-intl@2027.1,-1F1\n";
+    let b = plc_run(&[("plc_config_projects.csv", projects)]);
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+    let p = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::PlcConfigProject(p) => Some(p),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(p.cpu, Some(ids::record_id("devices", "-1F1")));
+}
+
+#[test]
+fn a_device_link_needs_two_distinct_known_devices() {
+    let b = plc_run(&[(
+        "device_links.csv",
+        "key,from,to,kind\n\
+         ok,-1U3,-1F1,drives\n\
+         unknown,-1U3,-9Z9,drives\n\
+         same,-1U3,-1U3,drives\n\
+         odd,-1U3,-1F1,pushes\n",
+    )]);
+    expect_error(&b, 3, "device_links.csv", "unknown", "`-9Z9` in column `to`");
+    expect_error(&b, 2, "device_links.csv", "same", "same device");
+    expect_error(&b, 2, "device_links.csv", "odd", "kind");
+    let links: Vec<_> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::DeviceLink(l) => Some(l),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(links.len(), 1);
+    assert_eq!(links[0].kind, DeviceLinkKind::Drives);
+}
+
+#[test]
+fn the_plc_section_of_a_part_is_read_or_the_row_dropped() {
+    let b = with_parts(&[(
+        "part_plc.csv",
+        "key,role,io,channel_count,channel_kind,data_type,designation,bit_of,unbound\n\
+         P1,module,out:8;in:16:analog,8,do,Bool,{n},n,deactivated\n\
+         P9,module,,,,,,,\n\
+         P2,module,,8,,,,,\n\
+         P3,module,sideways:8,,,,,,\n\
+         P4,robot,,,,,,,\n\
+         P5,module,,,,Bool,,,\n\
+         P6,module,,,,,,,gone\n",
+    )]);
+    expect_error(&b, 3, "part_plc.csv", "P9", "unknown part `P9`");
+    expect_error(&b, 2, "part_plc.csv", "P2", "channel_kind");
+    expect_error(&b, 2, "part_plc.csv", "P3", "sideways:8");
+    expect_error(&b, 2, "part_plc.csv", "P4", "robot");
+    expect_error(&b, 2, "part_plc.csv", "P5", "need `channel_count`");
+    expect_error(&b, 2, "part_plc.csv", "P6", "gone");
+    let plc = part(&b, "P1")
+        .unwrap()
+        .item
+        .sections
+        .plc
+        .as_ref()
+        .expect("the PLC section");
+    assert_eq!(plc.role, PlcRole::Module);
+    assert_eq!(
+        plc.io
+            .iter()
+            .map(|r| (r.dir.clone(), r.bits, r.class.clone()))
+            .collect::<Vec<_>>(),
+        [
+            (IoDir::Out, 8, IoClass::Digital),
+            (IoDir::In, 16, IoClass::Analog)
+        ]
+    );
+    let channels = plc.channels.as_ref().unwrap();
+    assert_eq!((channels.count, channels.kind.clone()), (8, ChannelKind::Do));
+    assert_eq!(channels.designation.as_deref(), Some("{n}"));
+    assert_eq!(plc.bit_of, Some(MapSpec::Expr("n".to_owned())));
+    assert_eq!(plc.unbound, Some(ChannelState::Deactivated));
+}

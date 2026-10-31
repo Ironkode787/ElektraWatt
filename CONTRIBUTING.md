@@ -26,6 +26,9 @@ cargo xtask ci
 `cargo xtask ci` runs fmt, clippy, nextest and the policy checks, as CI does. [ci/README.md](ci/README.md) lists
 the full per-PR CI set and how to reproduce each job locally.
 
+A new integration test goes into its crate's one test binary: `tests/it/<name>.rs`, declared with `mod <name>;` in
+`tests/it/main.rs` (`cargo xtask check-test-layout` names any other top-level file under `tests/`).
+
 The golden-project commands (`ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf`, and the acceptance runner
 `ew-testkit accept`) follow with M1.
 
