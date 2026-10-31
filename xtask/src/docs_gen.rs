@@ -940,8 +940,10 @@ fn keymaps_text(sheet: &Value) -> Result<String> {
          them; the active preset is the Keymap setting). \"Where\" is the part of the window that must have the focus: \
          `global` anywhere, `canvas`, `navigator`, `properties` or `find` only there, where such a key shadows a global \
          one. `Ctrl` reads `Cmd` on macOS. A punctuation key (`]`, `[`) is the key at that place on a US keyboard, \
-         whatever your layout prints on it. The table is generated from the keymap sheet [`{KEYMAP_SHEET}`]({}), which \
-         the action registry generates.\n\n\
+         whatever your layout prints on it. A key written `phys:<code>` (`Ctrl+phys:Digit0`, `phys:BracketRight`) binds \
+         that physical key by its W3C key code, as your own `keymap.toml` writes it; the window shows its key cap \
+         (`Ctrl+0`, `]`). The table is generated from the keymap sheet [`{KEYMAP_SHEET}`]({}), which the action \
+         registry generates.\n\n\
          | Action | ID | Where | {} |\n|---|---|---|{}\n{rows}",
         header(KEYMAP_SHEET),
         repo_link(KEYMAP_SHEET, None),
