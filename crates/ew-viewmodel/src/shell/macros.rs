@@ -119,12 +119,13 @@ pub(super) fn badge_word(code: &str) -> &str {
     }
 }
 
-/// A macro key from a name: lower case, every run of other characters one `-` (`PSU 24 V` → `psu-24-v`).
+/// A macro key from a name: lower case, letters and digits of any script kept, every run of other characters one `-`
+/// (`PSU 24 V` → `psu-24-v`, `Übersicht` → `übersicht`).
 fn key_of(name: &str) -> String {
     let mut out = String::new();
     for c in name.chars() {
-        if c.is_ascii_alphanumeric() {
-            out.push(c.to_ascii_lowercase());
+        if c.is_alphanumeric() {
+            out.extend(c.to_lowercase());
         } else if !out.is_empty() && !out.ends_with('-') {
             out.push('-');
         }
@@ -853,7 +854,7 @@ impl ShellModel {
         }
         let (target, target_name) = (target.id, target.name.clone());
         let key = if key.is_empty() { key_of(&name) } else { key };
-        // FX38b: a name without an ASCII letter or digit gives no key; refused in words before any write, not left
+        // FX38b: a name without a letter or digit gives no key; refused in words before any write, not left
         // to the library's identifier error.
         if key.is_empty() {
             return self.save_done(Outcome::Refused {
@@ -916,10 +917,12 @@ mod tests {
     fn keys_are_lower_case_words_joined_by_dashes() {
         assert_eq!(key_of("PSU 24 V DC"), "psu-24-v-dc");
         assert_eq!(key_of("  Motor (DOL) "), "motor-dol");
-        // ASCII only (FX38b): a non-ASCII letter is dropped, and a name of none gives the empty key `macros.save`
-        // refuses.
-        assert_eq!(key_of("Übersicht"), "bersicht");
-        assert_eq!(key_of("Ωμέγα"), "");
+        // FT-763: letters and digits of any script are kept; a name of none gives the empty key `macros.save` refuses.
+        assert_eq!(key_of("Übersicht"), "übersicht");
+        assert_eq!(key_of("Ωμέγα"), "ωμέγα");
+        assert_eq!(key_of("Schütz K1"), "schütz-k1");
+        assert_eq!(key_of("  "), "");
+        assert_eq!(key_of("--"), "");
     }
 
     #[test]

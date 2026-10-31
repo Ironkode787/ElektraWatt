@@ -304,8 +304,8 @@ fn ui3_save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
     assert_eq!(reason, "reason-library-write-window");
 }
 
-/// FX38b: a name with no ASCII letter or digit gives no key and is refused in words before any write (the library
-/// directory is as it was); a typed key still saves it.
+/// FX38b: a name with no letter or digit gives no key and is refused in words before any write (the library
+/// directory is as it was); a typed key still saves it. FT-763: a Greek name is a key now, so the refused name is `--`.
 #[test]
 fn fx38b_a_name_that_gives_no_key_is_refused_before_any_write() {
     let tmp = Tmp::new("macros-nokey");
@@ -325,7 +325,7 @@ fn fx38b_a_name_that_gives_no_key_is_refused_before_any_write() {
     let reason = refused(
         &mut shell,
         "macros.save",
-        json!({"name": "Ωμέγα", "library": "Mine", "confirm": true}),
+        json!({"name": "--", "library": "Mine", "confirm": true}),
     );
     assert_eq!(reason, "reason-macro-no-key");
     assert_eq!(listing(&t.user), before, "nothing written");
