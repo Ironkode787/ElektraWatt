@@ -31,6 +31,7 @@ mod plc_positions;
 mod potential_conflicts;
 mod structure;
 mod supply_names;
+mod supply_roles;
 mod tags;
 mod title_block;
 mod unwind;

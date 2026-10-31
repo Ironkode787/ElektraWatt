@@ -77,6 +77,8 @@ pub struct Cp {
 /// - `Function.cp_overrides` then replace designation, alias and description where given, copy the
 ///   `unused` flag and mark the CP `overridden`. An override whose index has no CP is ignored (finding it
 ///   is a normaliser's job).
+/// - Before the overrides, a CP with no potential role from its pattern or FnDef takes `L+` or `M` from the first
+///   supply group of its device's PLC part that names its designation (WP-S1.21 D13, FR-PLC-024).
 #[derive(Debug)]
 pub struct FunctionCps;
 
@@ -95,6 +97,7 @@ impl Query for FunctionCps {
             _ => None,
         });
         let mut cps = pattern.unwrap_or_else(|| fndef_cps(q, function));
+        supply_role_fallback(q, function, &mut cps);
         for o in &function.cp_overrides {
             let Some(cp) = cps.iter_mut().find(|c| c.idx == o.idx) else {
                 continue;
@@ -112,6 +115,58 @@ impl Query for FunctionCps {
             cp.overridden = true;
         }
         Arc::new(cps)
+    }
+}
+
+/// The potential roles that the supply groups of the device's PLC part give its pins (WP-S1.21 D13, FR-PLC-024):
+/// pin designation → `L+` or `M`, in group order. The part is found by the rule of WP-S1.21 D2: the part use named by
+/// `plc_module.part_use`, else the first part use whose copy has a PLC section with at least one group.
+fn supply_roles(q: &Q, function: &Function) -> Vec<(String, PotentialType)> {
+    let Some(device) = function.device.and_then(|d| q.devices().get(d)) else {
+        return Vec::new();
+    };
+    let parts = q.parts();
+    let groups = |i: usize| {
+        let copy = parts.get(device.parts.get(i)?.part.copy)?;
+        let plc = copy.item.sections.plc.as_ref()?;
+        (!plc.supply_groups.is_empty()).then(|| plc.supply_groups.clone())
+    };
+    let named = device.aspects.plc_module.as_ref().and_then(|m| m.part_use);
+    let found = match named {
+        Some(i) => groups(usize::from(i)),
+        None => (0..device.parts.len()).find_map(groups),
+    };
+    found
+        .unwrap_or_default()
+        .into_iter()
+        .flat_map(|g| {
+            [
+                (g.cps.l_plus.as_str().to_owned(), PotentialType::LPlus),
+                (g.cps.m.as_str().to_owned(), PotentialType::M),
+            ]
+        })
+        .collect()
+}
+
+/// The supply-group fallback of a CP's potential role (WP-S1.21 D13; the orchestrator's ruling 2 of cycle 42): a CP
+/// takes its role from its authored part-pattern CP, else from its definition CP (the instantiation above), else, when
+/// it has neither, from the first supply group of the device's PLC part that names its designation as `l_plus` (`L+`)
+/// or `m` (`M`). An authored role always wins. Applied to the CPs of every instantiation path (FnDef, template, black
+/// box) before the overrides, so the group matches the part's pin designation, not an overridden one. It reads the
+/// device row and the part copies the instantiation reads already: no new memo input.
+fn supply_role_fallback(q: &Q, function: &Function, cps: &mut [Cp]) {
+    if cps.iter().all(|c| c.potential_role.is_some()) {
+        return;
+    }
+    let roles = supply_roles(q, function);
+    if roles.is_empty() {
+        return;
+    }
+    for cp in cps.iter_mut().filter(|c| c.potential_role.is_none()) {
+        cp.potential_role = roles
+            .iter()
+            .find(|(pin, _)| *pin == cp.designation)
+            .map(|(_, role)| role.clone());
     }
 }
 
