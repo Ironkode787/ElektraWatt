@@ -317,18 +317,10 @@ fn the_editor_records_refuses_shadows_resets_and_round_trips() {
     assert_eq!(shell.shortcuts_of(open), ["Ctrl+Shift+O"]);
 }
 
-/// The preset bindings that D8's reachability rule flags today, listed for the orchestrator before any binding changes
-/// (spec §11.2 item 3, R4): each with its proposed fix. Logical `Plus`, `Equals` and `0` need Shift on some layouts.
-const PENDING_D8: &[(&str, &str, &str)] = &[
-    // Ctrl+Plus types Shift+= on US and AZERTY (zoom in also has Ctrl+Equals, which types there).
-    ("needs-shift", "Ctrl+Plus", "QWERTY-US"),
-    // `=` is Shift+0 on QWERTZ (zoom in also has Ctrl+Plus, which types there).
-    ("needs-shift", "Ctrl+Equals", "QWERTZ-DE"),
-    ("needs-shift", "Ctrl+Plus", "AZERTY-FR"),
-    // `0` is Shift+à on AZERTY, and Ctrl+0 is zoom to 100 %'s only binding: proposed fix `Ctrl+phys:Digit0`.
-    ("needs-shift", "Ctrl+0", "AZERTY-FR"),
-    ("unreachable", "view.zoom_actual", "AZERTY-FR"),
-];
+/// The preset bindings that D8's reachability rule flags as errors (spec §11.2 item 3, R4): none since the KM-4
+/// ruling (cycle 40) bound zoom to 100 % to the physical digit (`Ctrl+phys:Digit0`) and made a binding that needs
+/// Shift an info when another binding of its action types on that layout (zoom in's Ctrl+Plus and Ctrl+Equals).
+const PENDING_D8: &[(&str, &str, &str)] = &[];
 
 fn pending_word(f: &Finding) -> (String, String, String) {
     match f {
@@ -355,8 +347,11 @@ fn every_preset_action_is_reachable_on_the_three_layouts() {
             .filter(|f| f.severity() == Severity::Error)
             .collect();
         assert!(errors.is_empty(), "{preset:?}: {errors:?}");
-        let found: Vec<(String, String, String)> =
-            keymap::reachability(&bound).iter().map(pending_word).collect();
+        let found: Vec<(String, String, String)> = keymap::reachability(&bound)
+            .iter()
+            .filter(|f| f.severity() == Severity::Error)
+            .map(pending_word)
+            .collect();
         let expected: Vec<(String, String, String)> = PENDING_D8
             .iter()
             .map(|(a, b, c)| ((*a).to_owned(), (*b).to_owned(), (*c).to_owned()))

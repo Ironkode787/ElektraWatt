@@ -159,7 +159,7 @@ action = "view.zoom_out"
 context = "global"
 
 [[bind]]
-keys = "Ctrl+0"
+keys = "Ctrl+phys:Digit0"
 action = "view.zoom_actual"
 context = "global"
 

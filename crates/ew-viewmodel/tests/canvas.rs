@@ -120,7 +120,8 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
     let keys = |id: &str| actions::find(id).unwrap().shortcut.to_vec();
     assert_eq!(keys("view.zoom_in"), ["Ctrl+Plus", "Ctrl+Equals"]);
     assert_eq!(keys("view.zoom_out"), ["Ctrl+Minus"]);
-    assert_eq!(keys("view.zoom_actual"), ["Ctrl+0"]);
+    // KM-4 ruling: the physical digit key, so zoom to 100 % types on AZERTY too.
+    assert_eq!(keys("view.zoom_actual"), ["Ctrl+phys:Digit0"]);
     assert_eq!(keys("view.fit_page"), ["Home"]);
     assert_eq!(keys("view.pan_right"), ["Ctrl+Arrow Right"]);
     // No shortcut is bound twice within a shell context (WP-S2.01 A1; a context's binding may shadow a global

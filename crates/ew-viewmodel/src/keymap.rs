@@ -855,7 +855,8 @@ pub enum Finding {
         /// The action.
         action: &'static str,
     },
-    /// The chord's character needs Shift on `layout` and the chord has none (an error).
+    /// The chord's character needs Shift on `layout` and the chord has none: an error, unless another binding of
+    /// the action types on that layout (`covered`), when it is an info (KM-4 ruling, cycle 40).
     NeedsShift {
         /// The chord.
         chord: Chord,
@@ -863,6 +864,8 @@ pub enum Finding {
         action: &'static str,
         /// The layout.
         layout: Layout,
+        /// Whether another binding of the action types on the layout.
+        covered: bool,
     },
     /// No binding of the action types on `layout` without AltGr (an error).
     Unreachable {
@@ -877,7 +880,7 @@ impl Finding {
     /// Its severity.
     pub fn severity(&self) -> Severity {
         match self {
-            Finding::Shadow { .. } => Severity::Info,
+            Finding::Shadow { .. } | Finding::NeedsShift { covered: true, .. } => Severity::Info,
             _ => Severity::Error,
         }
     }
@@ -995,7 +998,7 @@ pub fn conflicts(binds: &[Bound]) -> Vec<Finding> {
 }
 
 /// The reachability findings of `binds` on each layout (D8): a binding whose character needs a Shift it does not
-/// have, and an action with no typable binding.
+/// have (an info when another binding of the action types there), and an action with no typable binding.
 pub fn reachability(binds: &[Bound]) -> Vec<Finding> {
     let mut out = Vec::new();
     for layout in Layout::ALL {
@@ -1005,10 +1008,14 @@ pub fn reachability(binds: &[Bound]) -> Vec<Finding> {
                 actions.push(b.action);
             }
             if typing(&b.chord, layout) == Typing::NeedsShift {
+                let covered = binds
+                    .iter()
+                    .any(|o| o.action == b.action && typing(&o.chord, layout) == Typing::Yes);
                 out.push(Finding::NeedsShift {
                     chord: b.chord.clone(),
                     action: b.action,
                     layout,
+                    covered,
                 });
             }
         }
@@ -1301,6 +1308,7 @@ mod tests {
                     chord: chord("Ctrl+0"),
                     action: "a.zero",
                     layout: Layout::AzertyFr,
+                    covered: false,
                 },
                 Finding::Unreachable {
                     action: "a.zero",
@@ -1326,6 +1334,16 @@ mod tests {
             action: "z",
             layout: Layout::QwertzDe
         }));
+        // KM-4 ruling: a binding that needs Shift is an info when another binding of the action types there.
+        let f = reachability(&[
+            bound("in", "Ctrl+Plus", Context::Global),
+            bound("in", "Ctrl+Equals", Context::Global),
+        ]);
+        assert!(!f.is_empty());
+        assert!(f.iter().all(|x| x.severity() == Severity::Info), "{f:?}");
+        assert!(f.iter().all(|x| matches!(x, Finding::NeedsShift { covered: true, .. })));
+        let lone = reachability(&[bound("a.zero", "Ctrl+0", Context::Global)]);
+        assert_eq!(lone[0].severity(), Severity::Error);
     }
 
     #[test]

@@ -163,12 +163,14 @@ pub fn chord_text(key: Key, physical: Option<Key>, modifiers: Modifiers) -> Opti
     Chord::parse(&text).ok().map(|c| c.text())
 }
 
-/// The text of a binding for display: `Ctrl` reads `Cmd` on macOS.
+/// The text of a binding for display: `Ctrl` reads `Cmd` on macOS, and a physical digit or letter key reads as its
+/// key cap (`Ctrl+phys:Digit0` is "Ctrl+0", KM-4 ruling): the window never prints the `phys:` grammar.
 pub fn display(text: &str) -> String {
+    let caps = text.replace("phys:Digit", "").replace("phys:Key", "");
     if cfg!(target_os = "macos") {
-        text.replace("Ctrl", "Cmd")
+        caps.replace("Ctrl", "Cmd")
     } else {
-        text.to_owned()
+        caps
     }
 }
 
@@ -221,6 +223,15 @@ mod tests {
             Some((Key::Num0, true))
         );
         assert!(shortcut_of(&Chord::parse("Win+E").unwrap()).is_none());
+    }
+
+    /// KM-4 ruling: the window shows a physical digit or letter as its key cap, never the `phys:` grammar.
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn a_physical_digit_displays_as_its_key_cap() {
+        assert_eq!(display("Ctrl+phys:Digit0"), "Ctrl+0");
+        assert_eq!(display("phys:KeyA"), "A");
+        assert_eq!(display("Ctrl+Shift+W"), "Ctrl+Shift+W");
     }
 
     #[test]

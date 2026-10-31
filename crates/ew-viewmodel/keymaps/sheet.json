@@ -420,10 +420,10 @@
       "action": "view.zoom_actual",
       "bindings": {
         "ew": [
-          "Ctrl+0"
+          "Ctrl+phys:Digit0"
         ],
         "kicad": [
-          "Ctrl+0"
+          "Ctrl+phys:Digit0"
         ]
       },
       "context": "global",

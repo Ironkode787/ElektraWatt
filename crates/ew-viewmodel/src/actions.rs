@@ -1467,7 +1467,7 @@ pub static ACTIONS: &[ActionMeta] = &[
                 View,
                 "action-view-zoom-actual",
                 Menu::View,
-                &["Ctrl+0"],
+                &["Ctrl+phys:Digit0"],
                 has_pages,
                 None,
             ),
