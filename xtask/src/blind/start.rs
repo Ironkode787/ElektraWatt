@@ -41,7 +41,7 @@ pub struct StartArgs {
     pub out: Option<PathBuf>,
     /// The folder of the built binaries (default `target/debug`).
     pub bin: Option<PathBuf>,
-    /// Whether the run has no keeper.
+    /// Whether the run has no keeper; always true for a check run (FT-766).
     pub stateless: bool,
     /// `--window` and `--ppp` (a visual run's window size and scale); `None`: the default 1280 × 800 at 1.2.
     pub geometry: Option<Geometry>,
@@ -340,7 +340,7 @@ fn populate(
         golden_scope: Some(GOLDEN_SCOPE_PROJECT.to_owned()),
         app_version,
         harness_version: HARNESS_VERSION.to_owned(),
-        stateless: a.stateless,
+        stateless: a.stateless || a.kind == Kind::Check,
         senses: visual.then(|| a.senses.word().to_owned()),
         ppp: visual.then(|| geometry.ppp()),
         window: visual.then_some(geometry.window),
@@ -495,7 +495,7 @@ pub fn start(root: &Path, a: &StartArgs) -> Result<Run> {
         let _ = std::fs::remove_dir_all(&run.dir);
         bail!("{}", super::visual::NO_ADAPTER);
     }
-    if !a.stateless {
+    if !(a.stateless || a.kind == Kind::Check) {
         super::keeper::spawn_keeper(&run, false, super::keeper::DEFAULT_IDLE_MINUTES)?;
     }
     Ok(run)
@@ -746,6 +746,40 @@ mod tests {
         assert!(!plain.path("work/project").exists());
         std::fs::remove_dir_all(tmp.0.join("runs/drafter")).unwrap();
         assert!(reseed_check_project(&check).is_err());
+    }
+
+    /// FT-766: a check run has no keeper whatever the flag says (its `run.json` is stateless); a gate or free run keeps
+    /// the flag it was started with.
+    #[test]
+    fn ft766_a_check_run_is_stateless_without_the_flag() {
+        let tmp = Tmp::new("start-ft766");
+        let root = fake_repo(&tmp);
+        std::fs::write(root.join("tools/blind/CHECKER.md"), "You check {run}.\n").unwrap();
+        let stateless_of = |a: &StartArgs| -> bool {
+            let run = prepare(&root, a, &|_| Ok("0".to_owned())).unwrap();
+            run.load().unwrap().stateless
+        };
+        let mut gate = args(&tmp, "g1");
+        gate.kind = Kind::Gate;
+        gate.stateless = false;
+        assert!(!stateless_of(&gate), "a gate run keeps the flag");
+        let mut free = args(&tmp, "f1");
+        free.stateless = false;
+        assert!(!stateless_of(&free), "a free run keeps the flag");
+        // A stopped drafter, then a check run started without `--stateless`.
+        let mut d = args(&tmp, "d1");
+        d.stateless = false;
+        let drafter = prepare(&root, &d, &|_| Ok("0".to_owned())).unwrap();
+        std::fs::create_dir_all(drafter.path("work/project")).unwrap();
+        std::fs::create_dir_all(drafter.path("out")).unwrap();
+        std::fs::write(drafter.path("out/report.md"), "# Run d1\n").unwrap();
+        let mut c = args(&tmp, "c1");
+        c.kind = Kind::Check;
+        c.of = Some("d1".to_owned());
+        c.folios = Vec::new();
+        c.stateless = false;
+        let check = prepare(&root, &c, &|_| Ok("0".to_owned())).unwrap();
+        assert!(check.load().unwrap().stateless, "a check run is stateless");
     }
 
     /// BD10 (FT-484): the golden project fixture is hashed at the start and compared at the stop; a changed byte or a

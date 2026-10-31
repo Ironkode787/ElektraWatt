@@ -64,7 +64,7 @@ In a visual run (--senses visual) `do` takes mouse and key inputs (help prints H
   look <run> [--zoom <x> <y> <w> <h>]         the current frame again, or a region of it twice as large
 For the orchestrator:
   start --kind free|gate|check|brief --task <t> [--senses text|visual] [--persona <p>] [--of <run>]
-        [--folios <a,b>] --run <id> [--out <dir>] [--bin <dir>] [--stateless]
+        [--folios <a,b>] --run <id> [--out <dir>] [--bin <dir>] [--stateless] (always on for --kind check)
         [--window <W>x<H>] [--ppp <n>]        (visual) the window in points and its scale
   stop <run> [--reason <r>]                   the epilogue, the exports, the report
   report <run> check|bom|score                what the stop wrote
