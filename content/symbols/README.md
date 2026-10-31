@@ -79,10 +79,10 @@ edition are not whole pixels; only the CPs are on the grid. The edition is linte
 
 1. Draw the native symbol in `content/symbols/<key>.json` (and its FnDef in `content/fndefs/` unless it shares an
    existing one). The sealed files show the member order; ids and hash may be placeholders at this point.
-2. Canonicalise the files: `EW_BLESS_CONTENT=1 cargo nextest run -p ew-scene --test starter_symbols bless_native_documents`
+2. Canonicalise the files: `EW_BLESS_CONTENT=1 cargo nextest run -p ew-scene --test it -E 'test(/^starter_symbols::/) and test(bless_native_documents)'`
    (PowerShell: `$env:EW_BLESS_CONTENT='1'; cargo nextest ...`).
 3. Seal and generate: `cargo xtask symbols-qet10` (ids, hashes, the `@qet10` edition).
-4. Run the tests: `cargo nextest run -p ew-scene --locked --test starter_symbols` and `cargo xtask symbols-qet10 --check`.
+4. Run the tests: `cargo nextest run -p ew-scene --locked --test it -E 'test(/^starter_symbols::/)'` and `cargo xtask symbols-qet10 --check`.
 5. A new key must be added to the expected list in `starter_symbols.rs`.
 
 A change that moves a CP or the anchor, or removes a CP, is a minor or major change of the item (doc 07 §3.1); bump

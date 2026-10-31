@@ -585,8 +585,8 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   box_x1_mm,box_y1_mm`. The **anchor** of §3.3 recorded is the run origin (the baseline start, `x_mm,y_mm`, 3 decimals)
   together with the run's layout box; `size_pt` has 2 decimals; `angle_mdeg` is the run's own angle in [0, 360000).
 - `rows/<block>.csv` (903 … 907, 909): the printed rows of the connectivity report blocks, written by
-  `crates/ew-api/tests/connectivity_reports.rs` (`EW_BLESS=1 cargo nextest run -p ew-api --test
-  connectivity_reports`). First column `row` is `data` or `heading`, then the columns of the kind as printed (neutral
+  `crates/ew-api/tests/it/connectivity_reports.rs` (`EW_BLESS=1 cargo nextest run -p ew-api --test it
+  -E 'test(/^connectivity_reports::/)'`). First column `row` is `data` or `heading`, then the columns of the kind as printed (neutral
   language). They are read from a `Q` without the report engine and over the golden tables **with** the colour and
   size profiles of doc 20 §7.1, §7.2. Same dialect as above. The kinds also derive and paginate inside the report
   engine's `Q`, so their page text files carry the same rows (the bootstrap emits the profiles, so the wire list 907
@@ -771,7 +771,7 @@ across the pass-through pair, FT-108). The columns "switched", "protected by" an
 CSV bootstrap (path (a)) written by `ew-format`, as generation 1. It is generated and never edited by hand; a
 change to `tables/` regenerates it in the same commit (doc 20 §3.2):
 
-    EW_BLESS_GOLDEN_FIXTURE=1 cargo nextest run -p ew-api --test golden_fixture --locked -E 'test(the_fixture_is_byte_identical_to_the_bootstrap)'
+    EW_BLESS_GOLDEN_FIXTURE=1 cargo nextest run -p ew-api --test it --locked -E 'test(/^golden_fixture::/) and test(the_fixture_is_byte_identical_to_the_bootstrap)'
 
 The filter runs the comparing test alone: nextest runs the tests of a file in parallel, and the other tests of
 `golden_fixture.rs` read the fixture while bless writes it. Bless mode only writes files; it never deletes one. A
@@ -886,7 +886,7 @@ apply to that exact file). It prints counts, Golden A's own strings and sanitise
 skips when the variable is unset:
 
 ```text
-EW_PRIVATE_CORPUS=<dir> cargo nextest run -p ew-api --test golden_c --run-ignored all --no-capture
+EW_PRIVATE_CORPUS=<dir> cargo nextest run -p ew-api --test it -E 'test(/^golden_c::/)' --run-ignored all --no-capture
 ```
 
 **Migration report (cycle 12).** `expected/c-migration-report.csv` has one row per code: the MF rows of doc 20

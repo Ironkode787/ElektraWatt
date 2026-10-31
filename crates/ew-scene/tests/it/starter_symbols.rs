@@ -26,7 +26,7 @@
 //!
 //! # Content blessing
 //!
-//! `EW_BLESS_CONTENT=1 cargo nextest run -p ew-scene --test starter_symbols bless_native_documents`
+//! `EW_BLESS_CONTENT=1 cargo nextest run -p ew-scene --test it -E 'test(/^starter_symbols::/) and test(bless_native_documents)'`
 //! rewrites every native symbol and fndef file to the canonical text (member order and default omission
 //! of `serde_json::to_string_pretty` over the typed document). It never touches envelope values and never
 //! the generated `qet10` edition.

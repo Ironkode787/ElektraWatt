@@ -238,7 +238,7 @@ fn a_deep_library_document_is_opaque() {
 
 /// The loader's time on the hostile inputs above, against a 2 s budget (debug or release). A performance
 /// test: run it at milestone deliveries with
-/// `cargo nextest run -p ew-format --test hostile --run-ignored only`.
+/// `cargo nextest run -p ew-format --test it -E 'test(/^hostile::/)' --run-ignored only`.
 #[test]
 #[ignore = "perf: wall-clock timing, milestone deliveries only"]
 fn hostile_inputs_load_within_the_budget() {

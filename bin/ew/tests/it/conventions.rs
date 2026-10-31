@@ -6,7 +6,7 @@
 //! (OU-6; their outputs are checked in `tests/outputs.rs`).
 //!
 //! The result schemas under `bin/ew/schemas/` are an equality snapshot of `ew_api::cli_results::schema_files()`;
-//! `EW_CLI_BLESS=1 cargo nextest run -p ew --test conventions` rewrites the directory. Every `--json` output is
+//! `EW_CLI_BLESS=1 cargo nextest run -p ew --test it -E 'test(/^conventions::/)'` rewrites the directory. Every `--json` output is
 //! checked three ways: it validates against its committed schema file (an independent JSON Schema validator,
 //! `boon`), it deserialises into its type (`deny_unknown_fields`) and re-serialises byte for byte, and a second run
 //! prints the same bytes.
@@ -234,7 +234,7 @@ fn committed_result_schemas_match_the_generated_ones() {
     assert!(
         stale.is_empty() && differing.is_empty(),
         "bin/ew/schemas/ is out of date (differing or missing: {differing:?}; stale: {stale:?}); run \
-         `EW_CLI_BLESS=1 cargo nextest run -p ew --test conventions` and commit the result"
+         `EW_CLI_BLESS=1 cargo nextest run -p ew --test it -E 'test(/^conventions::/)'` and commit the result"
     );
 }
 

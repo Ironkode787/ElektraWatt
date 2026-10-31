@@ -6,7 +6,7 @@
 //! the SemiBold face, DL8 the token values of the approved mockup (read with `include_str!`).
 //!
 //! ```text
-//! EW_BLESS=1 cargo nextest run -p ew-ui --test theme
+//! EW_BLESS=1 cargo nextest run -p ew-ui --test it -E 'test(/^theme::/)'
 //! ```
 
 use std::collections::BTreeMap;
@@ -185,7 +185,7 @@ fn dl2_the_dump_equals_the_blessed_file_and_is_deterministic() {
         .replace("\r\n", "\n");
     assert!(
         expected == a,
-        "tests/expected/tokens.txt differs; re-bless with EW_BLESS=1 cargo nextest run -p ew-ui --test theme"
+        "tests/expected/tokens.txt differs; re-bless with EW_BLESS=1 cargo nextest run -p ew-ui --test it -E 'test(/^theme::/)'"
     );
 }
 

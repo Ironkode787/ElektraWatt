@@ -4,7 +4,7 @@
 //! The committed JSON Schemas under `schemas/<FORMAT>/` (doc 05 §10.4) equal what `ew-schema` generates.
 //!
 //! The test regenerates every file in memory and fails when a committed file differs, is missing or is
-//! stale; `EW_SCHEMA_BLESS=1 cargo test -p ew-schema --test schemas` rewrites the directory. A second test
+//! stale; `EW_SCHEMA_BLESS=1 cargo test -p ew-schema --test it schemas::` rewrites the directory. A second test
 //! checks that every schema is a usable JSON Schema document.
 
 // Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
@@ -60,7 +60,7 @@ fn committed_schemas_match_the_generated_ones() {
     assert!(
         stale.is_empty() && differing.is_empty(),
         "schemas/{FORMAT}/ is out of date (differing or missing: {differing:?}; stale: {stale:?}); run \
-         `EW_SCHEMA_BLESS=1 cargo test -p ew-schema --test schemas` and commit the result"
+         `EW_SCHEMA_BLESS=1 cargo test -p ew-schema --test it schemas::` and commit the result"
     );
 }
 

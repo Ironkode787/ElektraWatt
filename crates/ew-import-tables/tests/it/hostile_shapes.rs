@@ -6,7 +6,7 @@
 //!
 //! The correctness tests run moderate sizes in the normal suite and assert output and findings only. The
 //! timing tests are performance tests (`CLAUDE.md` testing policy): `#[ignore]`d, run at milestone deliveries
-//! with `cargo nextest run -p ew-import-tables --release --run-ignored only --test hostile_shapes`, and assert
+//! with `cargo nextest run -p ew-import-tables --release --run-ignored only --test it -E 'test(/^hostile_shapes::/)'`, and assert
 //! ≤ 1 s each at the review sizes (20,000-row chain, 1,000-junction cascade, 20,000 orphans).
 
 // A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.

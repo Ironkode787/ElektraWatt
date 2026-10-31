@@ -11,7 +11,7 @@
 //! They print counts, Golden A's own (public) strings and imported strings that pass the sanitiser
 //! ([`San`]): a string prints as itself only when Golden A uses it too or when it is short and technical,
 //! otherwise as `<Nch>`. Run them with
-//! `EW_PRIVATE_CORPUS=<dir> cargo nextest run -p ew-api --test golden_c --run-ignored all --no-capture`.
+//! `EW_PRIVATE_CORPUS=<dir> cargo nextest run -p ew-api --test it -E 'test(/^golden_c::/)' --run-ignored all --no-capture`.
 //!
 //! 1. `the_migration_report_has_the_expected_counts_per_code`: the findings of the import per code (the
 //!    migration report groups and the lenient checks) against `expected/c-migration-report.csv`.

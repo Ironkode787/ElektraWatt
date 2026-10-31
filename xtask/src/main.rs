@@ -67,7 +67,8 @@ commands:
                        --bless (or --write) rewrites the list
   check-test-layout    each package's integration tests are modules of one test binary (tests/it/main.rs); a
                        top-level file under tests/ is only for a separate binary that a workflow, xtask or
-                       nextest names (the list in xtask/src/test_layout.rs)
+                       nextest names (the list in xtask/src/test_layout.rs); every `--test <name>` in a text file
+                       names a test binary of its `-p` package (of any package without `-p`)
   check-workflows      actions pinned by commit SHA, read-only default token, no pull_request_target,
                        credential-free checkouts, secrets only in `release` (.github/workflows/)
   check-licence-map    path licences, collective notice, crate licences, permissive-layer licence boundary
@@ -472,7 +473,10 @@ pub(crate) fn check_anonymisation_at(root: &Path, require_entries: bool) -> Resu
 
 /// `check-test-layout`: no loose integration-test file outside the one `tests/it` binary of its package.
 fn check_test_layout() -> Result<Violations> {
-    Ok(test_layout::check(&workspace_root()))
+    let root = workspace_root();
+    let mut violations = test_layout::check(&root);
+    violations.extend(test_layout::check_commands_in_repo(&root)?);
+    Ok(violations)
 }
 
 fn check_governance_files() -> Result<Violations> {

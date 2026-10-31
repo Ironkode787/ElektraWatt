@@ -404,7 +404,7 @@ decision 1). The check that a function's port disagrees with its part's is 1.0 (
   because a CPU's DP interface is the master by default, and Golden A already exercises the slave. Part version
   **0.1.1** (`BUMPED`), library **0.2.1** (`LIBRARY_VERSION`): 0.2.0 is published on `main` and a library refuses other
   content under a published version (doc 05 §13.1); a patch step, as FT-659's part changes took. Regenerated with
-  `EW_BLESS=1 cargo nextest run -p ew-library --test starter_parts`, run twice.
+  `EW_BLESS=1 cargo nextest run -p ew-library --test it -E 'test(/^starter_parts::/)'`, run twice.
 - **No other starter part** gains a port (none has a bus interface).
 - **Golden A:** no part gains a `bus` section; its -201U1:DP and -3X1 ports are typed on their functions (D11) and its
   parts 195740 and the plug have unverified signal maps and no template entry that would carry a port. **No golden
