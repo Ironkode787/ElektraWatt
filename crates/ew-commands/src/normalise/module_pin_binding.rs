@@ -99,7 +99,12 @@ fn base_part_copy(tx: &TxBuilder<'_>, dev: &Device) -> Option<Arc<LibCopy<Part>>
 }
 
 /// FT-321: re-pins the channels of `dev` after its PLC part changed from `old` to `new` (see the module documentation).
-fn repin(tx: &mut TxBuilder<'_>, dev: &Device, old: &LibCopy<Part>, new: &LibCopy<Part>) -> Result<bool, CmdError> {
+fn repin(
+    tx: &mut TxBuilder<'_>,
+    dev: &Device,
+    old: &LibCopy<Part>,
+    new: &LibCopy<Part>,
+) -> Result<bool, CmdError> {
     let Some(old_map) = old.item.sections.plc.as_ref().and_then(|s| s.pin_of.clone()) else {
         return Ok(false); // the old part gave no pins: nothing was pinned by it
     };
@@ -118,7 +123,8 @@ fn repin(tx: &mut TxBuilder<'_>, dev: &Device, old: &LibCopy<Part>, new: &LibCop
         if number >= count {
             continue; // surplus: removed by `plc.set_module_part`, never re-pinned
         }
-        let Some(old_idx) = ew_derive::channel_pin(&old_map, number).and_then(|pin| pin_idx(tx, Some(old), &main, &pin))
+        let Some(old_idx) =
+            ew_derive::channel_pin(&old_map, number).and_then(|pin| pin_idx(tx, Some(old), &main, &pin))
         else {
             continue;
         };

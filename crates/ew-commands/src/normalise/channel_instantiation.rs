@@ -130,7 +130,13 @@ pub(crate) fn cp_words(tx: &TxBuilder<'_>, function: Id<ew_schema::Function>, id
     let from_def = f
         .as_ref()
         .and_then(|f| tx.get::<LibCopy<ew_schema::FnDef>>(f.def))
-        .and_then(|d| d.item.cps.iter().find(|c| c.idx == idx).map(|c| c.designation.as_str().to_owned()));
+        .and_then(|d| {
+            d.item
+                .cps
+                .iter()
+                .find(|c| c.idx == idx)
+                .map(|c| c.designation.as_str().to_owned())
+        });
     let from_pattern = || {
         let dev = tx.get::<Device>(f.as_ref()?.device?)?;
         dev.parts.iter().find_map(|u| {

@@ -27,6 +27,7 @@ mod cmd_paste_adapt;
 mod cmd_place_arrange;
 mod cmd_plc_normalisers;
 mod cmd_plc_part1;
+mod cmd_plc_part5;
 mod cmd_project;
 mod cmd_revision;
 mod cmd_set_many;
