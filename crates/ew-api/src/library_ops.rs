@@ -187,6 +187,87 @@ pub struct UpdatePlan {
     pub derived: DerivedDiff,
 }
 
+// WP-S2.07 part 4b
+/// One library copy a pasted fragment carries in another version than the project holds (WP-S2.07 D22, FT-396), as
+/// the paste choice card lists it: "FX-MCB-1PN (Fixture): this project 1.1.0, pasted 1.0.0, patch".
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct VersionConflict {
+    /// The kind of the copy.
+    pub kind: Kind,
+    /// The copy ID (equal across versions).
+    pub copy: Uuid,
+    /// The copy's printed name: a part's `<part number> (<manufacturer>)`, else its key or name.
+    pub title: String,
+    /// The project's version.
+    pub held: String,
+    /// The fragment's version.
+    pub pasted: String,
+    /// The class of the change from the pasted version to the project's (doc 07 §4.5): what "Use the project's copy"
+    /// does to the pasted records; `Major` (a CP they may name disappears) disables it.
+    pub class: ChangeClass,
+    /// Whether the pasted version is newer than the project's (semantic version core); "Update the project's copy" is
+    /// offered only when every listed copy's is.
+    pub newer: bool,
+}
+
+/// The FnDefs and the manufacturer a part names, the FnDef a symbol names (FT-640's closure items), by (kind, copy ID).
+fn named_items(doc: &LibDocument) -> Vec<(Kind, Uuid)> {
+    let copy = |r: &LibRef| -> Uuid {
+        let id: Id<()> = ew_derive::ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
+        id.as_uuid()
+    };
+    match doc {
+        LibDocument::Part(c) => c
+            .item
+            .function_template
+            .iter()
+            .map(|t| (Kind::Fndef, copy(&t.fndef)))
+            .chain(std::iter::once((Kind::Manufacturer, copy(&c.item.manufacturer))))
+            .collect(),
+        LibDocument::Symbol(c) => vec![(Kind::Fndef, copy(&c.item.fndef))],
+        _ => Vec::new(),
+    }
+}
+
+/// A library document's printed name for the paste choice card: a part's `<part number> (<manufacturer>)` (the
+/// manufacturer as the project holds it, else as `docs` carry it, else left out), else the item's key or name, else
+/// its kind.
+fn copy_title(q: &Q, doc: &LibDocument, docs: &[LibDocument]) -> String {
+    if let LibDocument::Part(c) = doc {
+        let mut name = ew_derive::manufacturer_name(q, &c.item.manufacturer);
+        if name.is_empty() {
+            let id: Id<()> = ew_derive::ew_ids::v5::lib_copy_id(
+                c.item.manufacturer.library.as_uuid(),
+                c.item.manufacturer.item.as_uuid(),
+            );
+            name = docs
+                .iter()
+                .find_map(|d| match d {
+                    LibDocument::Manufacturer(m) if m.id.as_uuid() == id.as_uuid() => {
+                        Some(m.item.key.as_str().to_owned())
+                    }
+                    _ => None,
+                })
+                .unwrap_or_default();
+        }
+        let number = c.item.part_number.as_str();
+        return if name.is_empty() {
+            number.to_owned()
+        } else {
+            format!("{number} ({name})")
+        };
+    }
+    let v = to_value(doc);
+    ["key", "name"]
+        .into_iter()
+        .find_map(|m| match v.get(m) {
+            Some(serde_json::Value::String(s)) => Some(s.clone()),
+            Some(serde_json::Value::Object(o)) => o.values().find_map(|t| t.as_str().map(str::to_owned)),
+            _ => None,
+        })
+        .unwrap_or_else(|| identity(doc).map(|i| i.0.to_string()).unwrap_or_default())
+}
+
 fn ref_text(r: &LibRef) -> String {
     format!("{}/{}@{}", r.library, r.item, r.version_req)
 }
@@ -655,6 +736,48 @@ impl Session {
         out
     }
 
+    /// The library copies of a fragment that the project holds in another version (WP-S2.07 D22, FT-396), in
+    /// fragment order: what makes `edit.paste` refuse without `adapt`. `fragment` is `edit.paste`'s `fragment`
+    /// member (`ParsedFragment::params`); a copy that does not read as a library document is left out (the paste
+    /// refuses it). Empty when the paste needs no choice.
+    pub fn paste_versions(&self, fragment: &serde_json::Value) -> Vec<VersionConflict> {
+        let q = self.query();
+        let docs: Vec<LibDocument> = fragment
+            .get("copies")
+            .and_then(serde_json::Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(|v| LibDocument::from_value(v.clone()).ok())
+            .collect();
+        let mut out = Vec::new();
+        for doc in &docs {
+            let Some((kind, copy, _, _, pasted, sha)) = identity(doc) else {
+                continue;
+            };
+            let Some(h) = held(&q, kind, copy) else {
+                continue;
+            };
+            let (_, _, _, _, held_version, held_sha) = identity(&h).expect("a held copy");
+            if held_sha == sha {
+                continue;
+            }
+            let newer = matches!(
+                (version_core(&pasted), version_core(&held_version)),
+                (Some(p), Some(h)) if p > h
+            );
+            out.push(VersionConflict {
+                kind,
+                copy,
+                title: copy_title(&q, &h, &docs),
+                held: held_version,
+                pasted,
+                class: classify_update(doc, &h).class,
+                newer,
+            });
+        }
+        out
+    }
+
     /// The plan of "update from library" (D9, doc 07 §4.5, FR-PRT-014): for each held copy, the item as
     /// [`Session::libraries`] holds it now; copies whose hash did not change are left out. The plan carries the
     /// `library.update` command (Bulk: preview and commit it), each copy's class and field diff, the devices and
@@ -668,15 +791,12 @@ impl Session {
     /// downgrade, a connected CP left unmapped).
     pub fn update_from_library(&self, copies: &[Uuid], cp_maps: &[CpMap]) -> Result<UpdatePlan, ApiError> {
         let q = self.query();
-        let mut docs = Vec::new();
+        let mut pairs: Vec<(LibDocument, LibDocument)> = Vec::new();
         let mut embed: Vec<LibDocument> = Vec::new();
         let mut embed_seen: BTreeSet<Uuid> = BTreeSet::new();
-        let mut plan_copies = Vec::new();
-        let mut devices = BTreeSet::new();
-        let mut reps = BTreeSet::new();
         for copy in copies {
             let held_doc = held_any(&q, *copy).ok_or(ApiError::NotHeld(*copy))?;
-            let (kind, _, library, item, from, sha) = identity(&held_doc).expect("a held copy");
+            let (_, _, library, item, _, sha) = identity(&held_doc).expect("a held copy");
             let r = LibRef {
                 library: Id::from_uuid(library),
                 item: Id::from_uuid(item),
@@ -687,7 +807,7 @@ impl Session {
                 reference: ref_text(&r),
                 error,
             })?;
-            let (_, _, _, _, to, lib_sha) = identity(&lib).expect("a typed document");
+            let (_, _, _, _, _, lib_sha) = identity(&lib).expect("a typed document");
             if lib_sha == sha {
                 continue;
             }
@@ -707,13 +827,89 @@ impl Session {
                     embed.push(d);
                 }
             }
+            pairs.push((held_doc, lib));
+        }
+        self.update_plan(&q, pairs, &embed, cp_maps)
+    }
+
+    /// The plan of "update the project's copy" from documents (WP-S2.07 D22, FT-396): as
+    /// [`Session::update_from_library`], with the new versions taken from `docs` (a pasted fragment's copies) instead
+    /// of the installed libraries. A document the project holds with another hash is updated to it; one it holds with
+    /// the same hash is left out; one it does not hold travels in the command's `embed` when an updated document names
+    /// it (its manufacturer or template FnDefs, a symbol's FnDef; FT-640), else it is left for the paste to embed.
+    ///
+    /// # Errors
+    ///
+    /// [`ApiError::NothingToDo`] when the project holds no document of `docs` in another version; [`ApiError::Cmd`]
+    /// when the command is refused (a downgrade, a connected CP left unmapped).
+    pub fn update_from_documents(
+        &self,
+        docs: &[LibDocument],
+        cp_maps: &[CpMap],
+    ) -> Result<UpdatePlan, ApiError> {
+        let q = self.query();
+        let mut pairs: Vec<(LibDocument, LibDocument)> = Vec::new();
+        let mut lacking: Vec<LibDocument> = Vec::new();
+        for doc in docs {
+            let Some((kind, copy, _, _, _, sha)) = identity(doc) else {
+                continue;
+            };
+            match held(&q, kind, copy) {
+                Some(h) if identity(&h).is_some_and(|i| i.5 != sha) => pairs.push((h, doc.clone())),
+                Some(_) => {}
+                None if kind != Kind::Macro => lacking.push(doc.clone()),
+                None => {}
+            }
+        }
+        let named: BTreeSet<(Kind, Uuid)> = pairs.iter().flat_map(|(_, new)| named_items(new)).collect();
+        let embed: Vec<LibDocument> = lacking
+            .into_iter()
+            .filter(|d| identity(d).is_some_and(|(k, c, ..)| named.contains(&(k, c))))
+            .collect();
+        self.update_plan(&q, pairs, &embed, cp_maps)
+    }
+
+    /// [`Session::update_from_documents`] with the copies of a pasted fragment (`edit.paste`'s `fragment` member, as
+    /// [`Session::paste_versions`] reads it): FT-396's "Update the project's copy" for a front end that holds the
+    /// fragment as JSON. A copy that does not read as a library document is left out.
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::update_from_documents`].
+    pub fn paste_update(&self, fragment: &serde_json::Value) -> Result<UpdatePlan, ApiError> {
+        let docs: Vec<LibDocument> = fragment
+            .get("copies")
+            .and_then(serde_json::Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(|v| LibDocument::from_value(v.clone()).ok())
+            .collect();
+        self.update_from_documents(&docs, &[])
+    }
+
+    /// The update plan of the pairs (held copy, new version) with the closure documents `embed` (FT-640): the
+    /// `library.update` command, each copy's class and field diff, and what a preview on a throwaway engine changes.
+    fn update_plan(
+        &self,
+        q: &Q,
+        pairs: Vec<(LibDocument, LibDocument)>,
+        embed: &[LibDocument],
+        cp_maps: &[CpMap],
+    ) -> Result<UpdatePlan, ApiError> {
+        let mut docs = Vec::new();
+        let mut plan_copies = Vec::new();
+        let mut devices = BTreeSet::new();
+        let mut reps = BTreeSet::new();
+        for (held_doc, lib) in pairs {
+            let (kind, copy, _, _, from, _) = identity(&held_doc).expect("a held copy");
+            let (_, _, _, _, to, _) = identity(&lib).expect("a typed document");
             let diff = classify_update(&held_doc, &lib);
-            let (d, rp) = where_used(&q, &held_doc);
+            let (d, rp) = where_used(q, &held_doc);
             devices.extend(d);
             reps.extend(rp);
             plan_copies.push(CopyUpdate {
                 kind,
-                copy: *copy,
+                copy,
                 from,
                 to,
                 class: diff.class,
@@ -748,13 +944,13 @@ impl Session {
         );
         let preview = engine.preview(&command).map_err(ApiError::Cmd)?;
         let after = self.query_over(preview.candidate());
-        let derived = ew_commands::derived_diff(&q, &after);
+        let derived = ew_commands::derived_diff(q, &after);
         let bom = |q: &Q| -> Vec<String> {
             ew_reports::export::export_csv(q, Export::Bom(BomMode::Component))
                 .map(|t| t.lines().skip(1).map(str::to_owned).collect())
                 .unwrap_or_default()
         };
-        let (before_rows, after_rows) = (bom(&q), bom(&after));
+        let (before_rows, after_rows) = (bom(q), bom(&after));
         let bom_removed = before_rows
             .iter()
             .filter(|r| !after_rows.contains(r))

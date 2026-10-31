@@ -740,3 +740,187 @@ fn ps7_a_library_copy_forks() {
     commit(&mut s, &plan.command);
     assert_ne!(s.next_fork_item(original), fork_item);
 }
+
+// WP-S2.07 part 4b
+
+/// FX-MCB-1PN of the fixture catalogue at `version`, its description `description` and its CP designations `cps`.
+fn mcb_version(lib: Uuid, version: &str, description: &str, cps: &[&str]) -> LibDocument {
+    let doc = fixture_docs(lib)
+        .into_iter()
+        .find(|d| matches!(d, LibDocument::Part(c) if c.item.part_number.as_str() == "FX-MCB-1PN"))
+        .unwrap();
+    let mut v = serde_json::to_value(&doc).unwrap();
+    v["version"] = json!(version);
+    v["description"] = json!({"en": description});
+    v["cp_pattern"] = json!(
+        cps.iter()
+            .enumerate()
+            .map(|(i, d)| json!({"idx": i, "designation": d}))
+            .collect::<Vec<_>>()
+    );
+    v["function_template"][0]["cps"] = json!((0..cps.len()).collect::<Vec<_>>());
+    LibDocument::from_value(v).unwrap()
+}
+
+/// Writes `doc` into the fixture library (the next version of its item).
+fn publish(t: &LibraryTiers, lib: Uuid, doc: LibDocument) {
+    let mut reg = Registry::open(t).unwrap();
+    reg.write(lib, &[doc]).unwrap();
+}
+
+/// A copy of Golden A whose F55 uses FX-MCB-1PN as the fixture library holds it now (its first use replaced).
+fn holding_mcb(t: &LibraryTiers, lib: Uuid) -> Session {
+    let mut s = golden(Some(t.clone()));
+    let f55 = device(&s, "F55");
+    let from = copy_of(&s, "5SY4204-7");
+    let cmd = s
+        .part_pick_command(
+            &PartTarget::Devices {
+                devices: vec![f55],
+                mode: AssignMode::Replace { from },
+            },
+            &PartPick::Library {
+                library: lib,
+                item: item(lib, "FX-MCB-1PN"),
+            },
+        )
+        .unwrap();
+    s.execute(&cmd).unwrap();
+    s
+}
+
+/// F55's representations on folio 101 as a fragment (`edit.paste`'s `fragment` member).
+fn f55_fragment(s: &Session) -> Value {
+    let f55 = device(s, "F55");
+    let reps: Vec<Uuid> = s
+        .page_tables("101")
+        .unwrap()
+        .reps
+        .iter()
+        .filter(|r| r.device == Some(f55))
+        .map(|r| r.id)
+        .collect();
+    assert!(!reps.is_empty(), "F55 is drawn on 101");
+    let copied = s.copy_fragment(&reps).unwrap();
+    ew_api::output::parse_fragment(&copied.text).unwrap().params
+}
+
+/// `edit.paste` of `fragment` on folio 101 at its own anchor, with `adapt`.
+fn paste_cmd(s: &Session, fragment: &Value, adapt: &[Uuid]) -> AnyCommand {
+    let page = s.page_tables("101").unwrap().page;
+    let mut params = json!({"page": page.to_string(), "at": fragment["anchor"], "fragment": fragment});
+    if !adapt.is_empty() {
+        params["adapt"] = json!(adapt.iter().map(ToString::to_string).collect::<Vec<_>>());
+    }
+    AnyCommand {
+        name: "edit.paste".into(),
+        params,
+    }
+}
+
+fn the_copy(s: &Session, copy: Uuid) -> (String, String) {
+    let q = s.query();
+    let c = q.parts().get(Id::<Part>::from_uuid(copy)).unwrap();
+    (
+        c.version.clone(),
+        serde_json::to_value(&c.item.description).unwrap().to_string(),
+    )
+}
+
+/// PS8 below the shell (D22, FT-396): P1 holds FX-MCB-1PN 1.0.0 on F55, P2 holds 1.1.0 (a description change, a
+/// patch). F55 copied in P1 and pasted in P2: `paste_versions` lists the copy as a patch, not newer; `edit.paste`
+/// refuses without `adapt` and with it reuses P2's copy (one undo step). Pasted the other way the pasted version is
+/// newer: `paste_update` plans `library.update` from the fragment's document, and after it the paste needs no choice
+/// (two commands, two undo steps; P1 holds 1.1.0). A version that drops a CP makes "Use the project's copy" major,
+/// and `edit.paste` refuses that `adapt` at `/adapt/0`.
+#[test]
+fn ps8_the_paste_choice_below_the_shell() {
+    let (_dir, t, lib) = fixture("ew-api-ps8");
+    let copy = v5::lib_copy_id::<Part>(lib, item(lib, "FX-MCB-1PN")).as_uuid();
+    let mut p1 = holding_mcb(&t, lib);
+    publish(
+        &t,
+        lib,
+        mcb_version(lib, "1.1.0", "MCB 1P+N C10, new text", &["1", "2", "N", "N"]),
+    );
+    let mut p2 = holding_mcb(&t, lib);
+    assert_eq!(the_copy(&p1, copy).0, "1.0.0");
+    assert_eq!(the_copy(&p2, copy).0, "1.1.0");
+
+    // P1 → P2: the pasted version is older.
+    let from_p1 = f55_fragment(&p1);
+    let conflicts = p2.paste_versions(&from_p1);
+    assert_eq!(conflicts.len(), 1, "{conflicts:?}");
+    let c = &conflicts[0];
+    assert_eq!(c.copy, copy);
+    assert_eq!(c.title, "FX-MCB-1PN (Fixture)");
+    assert_eq!((c.held.as_str(), c.pasted.as_str()), ("1.1.0", "1.0.0"));
+    assert_eq!(c.class, ew_api::ChangeClass::Patch);
+    assert!(!c.newer);
+    assert!(
+        p1.paste_versions(&from_p1).is_empty(),
+        "no choice in the source project"
+    );
+    let cmd = paste_cmd(&p2, &from_p1, &[]);
+    let refused = p2.preview(&cmd);
+    assert!(
+        refused.is_err_and(|e| e.to_string().contains("update from library first")),
+        "the plain paste is refused"
+    );
+    let before = lines(&p2);
+    let devices = p2.query().devices().len();
+    let cmd = paste_cmd(&p2, &from_p1, &[copy]);
+    commit(&mut p2, &cmd);
+    let pasted: Vec<Uuid> = {
+        let q = p2.query();
+        q.devices()
+            .iter()
+            .filter(|(_, d)| d.parts.iter().any(|u| u.part.copy.as_uuid() == copy))
+            .map(|(id, _)| id.as_uuid())
+            .collect()
+    };
+    assert_eq!(p2.query().devices().len(), devices + 1);
+    assert_eq!(pasted.len(), 2, "F55 and the pasted device use P2's copy");
+    assert_eq!(the_copy(&p2, copy).0, "1.1.0", "the project's copy stays");
+    p2.undo(&ew_api::Origin::Gui).unwrap();
+    assert_eq!(lines(&p2), before, "one undo step");
+
+    // P2 → P1: the pasted version is newer; Update the project's copy, then paste.
+    let from_p2 = f55_fragment(&p2);
+    let conflicts = p1.paste_versions(&from_p2);
+    assert_eq!(conflicts.len(), 1);
+    assert!(conflicts[0].newer);
+    let before = lines(&p1);
+    let plan = p1.paste_update(&from_p2).unwrap();
+    assert_eq!(plan.command.name, "library.update");
+    assert_eq!(plan.copies.len(), 1);
+    assert_eq!(
+        (plan.copies[0].from.as_str(), plan.copies[0].to.as_str()),
+        ("1.0.0", "1.1.0")
+    );
+    commit(&mut p1, &plan.command);
+    assert_eq!(the_copy(&p1, copy).0, "1.1.0");
+    assert!(
+        p1.paste_versions(&from_p2).is_empty(),
+        "the paste needs no choice now"
+    );
+    let cmd = paste_cmd(&p1, &from_p2, &[]);
+    commit(&mut p1, &cmd);
+    p1.undo(&ew_api::Origin::Gui).unwrap();
+    assert_eq!(the_copy(&p1, copy).0, "1.1.0", "the paste is its own undo step");
+    p1.undo(&ew_api::Origin::Gui).unwrap();
+    assert_eq!(lines(&p1), before, "two undo steps");
+    // Nothing to update in a project that holds the pasted version.
+    assert!(matches!(p2.paste_update(&from_p2), Err(ApiError::NothingToDo)));
+
+    // A version that drops a CP: adapting P1's fragment to it is major.
+    publish(&t, lib, mcb_version(lib, "1.2.0", "MCB 1P C10", &["1", "2"]));
+    let mut p3 = holding_mcb(&t, lib);
+    let conflicts = p3.paste_versions(&from_p1);
+    assert_eq!(conflicts[0].class, ew_api::ChangeClass::Major, "{conflicts:?}");
+    let cmd = paste_cmd(&p3, &from_p1, &[copy]);
+    match p3.preview(&cmd) {
+        Err(e) => assert!(e.to_string().contains("/adapt/0"), "{e}"),
+        Ok(_) => panic!("a major adapt is refused"),
+    }
+}

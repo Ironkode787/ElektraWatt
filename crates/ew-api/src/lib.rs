@@ -105,7 +105,9 @@ use ew_store::{Changes, LockState, RecoverError, SaveReport, Store};
 
 pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA, ScriptDiff};
 pub use ew_commands::commands::{ChangeClass, CopyDiff, FieldChange, classify_update};
-pub use library_ops::{ApiError, AssignMode, CopyState, CopyStatus, CopyUpdate, CpMap, UpdatePlan};
+pub use library_ops::{
+    ApiError, AssignMode, CopyState, CopyStatus, CopyUpdate, CpMap, UpdatePlan, VersionConflict,
+};
 pub use macros::{
     InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues, SavedMacro, macro_item_id,
 };
