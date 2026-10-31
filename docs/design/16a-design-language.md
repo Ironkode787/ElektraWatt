@@ -1,6 +1,6 @@
 # Design language
 
-**Status:** v1.3, accepted 2026-10-28; amended 2026-10-31, cycle-40 design pass, part 2: §2's macro-card value columns and §6.11's one refusal of the interruption point tool as built (decision log ID-934); amended 2026-10-31, cycle-40 design pass, part 1: §2's widths at the typical size as built, the size tokens of §4.9 and §5.6's right column (decision log ID-922); amended 2026-10-31, cycle-39 design pass, part 2: §6.23, the Preview tab a card opened closes with its last card (decision log ID-916); amended 2026-10-31, cycle-39 design pass, part 1: the owner's two-size rule in §2's Screens (decision log ID-908); amended 2026-10-30, cycle-38 design pass, part 3: the bottom dock's close control, the Messages toggle and Escape, the zoom kept across docks and the clamp at half the client height (§5.7), the last check's counts in the findings field (§5.8), a failed card's lead in words (§6.23), a shared pin by its ordinal (§8), decision log ID-889; amended 2026-10-30, cycle-38 design pass, part 2: the open-CP marker's value (§4.6), the double-click rule and the canvas context menu (§5.5), the one-toast import outcome (§6.10), a terminal in a sentence (§8), decision log ID-883, ID-884; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
+**Status:** v1.3, accepted 2026-10-28; amended 2026-10-31, cycle-40 design pass, part 3: §2's keyboard-shortcuts list, §6.8's label column and §6.10's toast width and wrapping as built (FIX40e, decision log ID-940); amended 2026-10-31, cycle-40 design pass, part 2: §2's macro-card value columns and §6.11's one refusal of the interruption point tool as built (decision log ID-934); amended 2026-10-31, cycle-40 design pass, part 1: §2's widths at the typical size as built, the size tokens of §4.9 and §5.6's right column (decision log ID-922); amended 2026-10-31, cycle-39 design pass, part 2: §6.23, the Preview tab a card opened closes with its last card (decision log ID-916); amended 2026-10-31, cycle-39 design pass, part 1: the owner's two-size rule in §2's Screens (decision log ID-908); amended 2026-10-30, cycle-38 design pass, part 3: the bottom dock's close control, the Messages toggle and Escape, the zoom kept across docks and the clamp at half the client height (§5.7), the last check's counts in the findings field (§5.8), a failed card's lead in words (§6.23), a shared pin by its ordinal (§8), decision log ID-889; amended 2026-10-30, cycle-38 design pass, part 2: the open-CP marker's value (§4.6), the double-click rule and the canvas context menu (§5.5), the one-toast import outcome (§6.10), a terminal in a sentence (§8), decision log ID-883, ID-884; amended 2026-10-30: the macOS notes of the app button, the dialog button order and the key notation kept for portability only (decision log ID-880); amended 2026-10-30, cycle 38: the open-CP marker and its neutral-ink ruling and the black-box pin texts (§4.6), the picker rows (§5.6), one finding count for the toast, the status bar and the chip (§5.8, §6.10), the delete toast (§6.10), decision log ID-872, ID-875, ID-876, ID-879; amended 2026-10-29, cycle 35: the chooser list's two uses as built (§6.22, decision log ID-782, ID-817) and FT-595's ruling on a merged 0 V/PE potential's colour (§7.5, ID-828); amended 2026-10-29, cycle 34: the component tokens `size.dialog.label` and `color.badge.on_chrome` (§4.15, §6.12, §6.16), the dark dialog backdrop black at 40 % (§6.12, FT-557) and FT-581's ruling on the disabled Primary (§6.1), as built; amended 2026-10-29, cycle 33: the data grid's cursor bar, scroll handle and editor baseline (§6.21) and the disabled Primary (§6.1) as built (decision log ID-764, ID-775); v1.3: WP-S2.17 parts 2 to 5 as built, the deliberate departures noted in §5.2, §5.4, §5.5, §5.8, §6.8, §6.10, §6.12, §6.14, §6.16, §7.1, §7.2 and §9.2, the Project tab's Import group and the search placeholder in §5.2 and §5.3 (decision log ID-747 to ID-757); v1.2: the bottom dock's height as built, `size.dock.bottom_min` (decision log ID-743); v1.1 adds the built widgets (§4.15, §6.21 to §6.25); cycle-31 design pass: the
 Messages pane has no table mode as built, the History keys as built, the follow-ups numbered (decision log ID-727, ID-732) · **Date:** 2026-10-28 · **Decision:** [ADR-0031](../adr/0031-design-language-and-task-ordered-command-bar.md)
 (Accepted) · **Visual reference:** [the mockup](assets/design-language-mockup.html) (approved by the owner) · **Work package:**
 [WP-S2.17](../plan/specs/WP-S2.17-design-language-and-ui-polish.md) · **Part of:** ElektraWatt design document set
@@ -89,6 +89,13 @@ the preview's width: the label column is as wide as the widest label, at most ha
 a form dialog's field (`dialog::form_width` less its margins, growing with the window, never wider than the panel);
 a refusal sits right under its field (about 525 px of field at the floor, 735 px at 1920). The Macros navigator's
 thumbnail gives up height before its detail card clips.
+
+*As built (cycle 40, FIX40e; decision log ID-940).* **The keyboard-shortcuts list** (Help ▸ Keyboard shortcuts) is a
+list dialog that fits its content up to half the window's height, in whole rows: a row is `max(size.row,
+size.control)` high (28 px) with no gap, so 14 rows show at the floor and 19 at 1920; mid-scroll positions are not
+snapped to whole rows (FT-858). Of the columns' room the keys column takes at most 25 % and the "where" column at most
+35 %, each fitting its widest content below that; the action column takes the rest, and a cut action title shows its
+whole text on hover.
 
 ## 3. Pillars
 
@@ -863,6 +870,14 @@ button that appears on hover and focus. Two rows never share a label: duplicate 
 
 *As built (cycle 37; decision log ID-868).* The header shows one count chip per severity, also for one finding ("1 Warning", "2 Warnings"); glyphs replace the words when the title does not fit. An edit field opened on its stored value starts with the whole text selected, so typing replaces it.
 
+*As built (cycle 39, M39, and cycle 40, FIX40e; decision log ID-909, ID-940).* **The label column fits its labels,
+then gives way to a value.** It is as wide as the widest label of the rows on show, from `size.property_label` up to
+40 % of the row (M39); then it gives way, down to half of `size.property_label`, to the widest value it can make
+whole: a value counts whole, or, when too wide for that, by its first word if that word contains a digit (a tag, a
+part number: "EW-GEN-CPU-1 …"), so the tag or the number is not cut while the labels have room. The row's "…" button
+does not count. As built a prose value that fits whole narrows the labels too; the review's ruling is that only
+identifier values do, and that the widths get a 0.5 px margin (FT-861, FT-862, cycle 41).
+
 ### 6.9 Cards
 
 A card is a bounded panel inside a pane for one object that waits for a decision (the preview card of WP-S2.05 and
@@ -886,6 +901,11 @@ in tree-row style, newest first, each with its time, message and still-valid act
 *As built (cycle 38; decision log ID-875, FT-709, FT-710).* Deleting a device's last representation names the device left without a symbol in the delete toast, with "(now <new tag>)" after a re-tag. The check toast counts findings by the status bar's rule (§5.8).
 
 *As built (cycle 38; decision log ID-883, FT-719).* A parts import says each outcome in one toast, the applied import's with Undo; the banner over the tab title is gone (a banner is for a state of the whole project, §6.11), and the Preview tab shows the summary and the lists without repeating the counts.
+
+*As built (cycle 40, FIX40e; decision log ID-940).* **A toast grows with the window:** `size.toast` (300 px) at the
+1280 × 800 floor, 0.22 of the window's width above it (422 px at 1920), never wider than the window. Its line wraps at
+word boundaries up to three rows, so a refusal's reason is never cut at one line; what does not fit in three rows ends
+in an ellipsis, with the whole text in the tooltip, the HUD and the log.
 
 ### 6.11 Banners
 
