@@ -7,7 +7,10 @@
 use ew_api::cli_results as results;
 use ew_api::fmt::{FmtError, KeptLine, Rewrite};
 
-use super::{FmtArgs, RecoverAction, RecoverArgs, open_editing, plural, printable, project_dir, typed_word};
+use super::{
+    FmtArgs, RecoverAction, RecoverArgs, journal_refusal, open_editing, plural, printable, project_dir,
+    typed_word,
+};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -39,8 +42,8 @@ pub(super) fn run_fmt(a: &FmtArgs) -> i32 {
         )
         .and_then(|(session, report)| {
             if report.recovery.is_some() {
-                // A save would hide the crashed session's unsaved changes (doc 05 section 8.3).
-                eprintln!("{}", fmt_journal_refusal(&dir));
+                // A save would hide the crashed session's unsaved changes (doc 05 section 8.3): every writer's text.
+                eprintln!("{}", journal_refusal(&dir));
                 session.close();
                 return Err(2);
             }
@@ -138,15 +141,6 @@ fn fmt_summary(check: bool, files: &[Rewrite], generation: u64) -> String {
             plural(n, "file", "files")
         ),
     }
-}
-
-/// The refusal of `ew fmt` while a crashed session's journal holds unsaved changes: `ew recover` comes first.
-fn fmt_journal_refusal(dir: &std::path::Path) -> String {
-    format!(
-        "error: {}: a crashed session left unsaved changes in its journal; replay or discard them first with `ew \
-         recover`; nothing was written",
-        dir.display()
-    )
 }
 
 /// The refusal text of a format that wrote nothing (or, after its commit point, completes at the next open).
@@ -627,6 +621,40 @@ mod tests {
             assert_eq!(journals(&dir), before, "{action:?}");
         }
         editor.close();
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Ruling 1 of the cycle-41 review's fix round: "`journal_refusal` names the command that now exists and no FT
+    /// number ... add a whole-text test for one subcommand of each kind that prints it (`ew apply`, `ew import
+    /// parts`, a human-only subcommand)." The human-only kind: `project assets purge`, confirmed on the injected
+    /// terminal (ruling 3 of cycle 41), opens through `open_for_writing_with` and refuses a project with a crashed
+    /// session's journal before it asks: exit 2, nothing prompted, the journal unchanged. It prints
+    /// `journal_refusal`'s text on stderr, which a unit test does not capture, so the text is asserted whole here;
+    /// `ew apply` and `ew import parts` assert the same text through the binary (`tests/cli.rs`).
+    #[test]
+    fn a_human_only_subcommand_refuses_a_crashed_session_journal() {
+        let dir = setup("human-only");
+        crash(&dir, 5);
+        let before = journals(&dir);
+        assert_eq!(before.len(), 1);
+        let project = dir.join("p.ew");
+        let args = crate::cli::AssetsPurgeArgs {
+            project: Some(project.clone()),
+            preview: false,
+        };
+        let mut input = std::io::Cursor::new(b"purge\n".to_vec());
+        let mut output = Vec::new();
+        let code = crate::cli::run_assets_purge_with(&args, true, &mut input, &mut output, store(&dir));
+        assert_eq!((code, String::from_utf8(output).unwrap().as_str()), (2, ""));
+        assert_eq!(journals(&dir), before, "the journal stays");
+        assert_eq!(
+            journal_refusal(&project),
+            format!(
+                "error: {}: a crashed session left unsaved changes in its journal; replay or discard them first with \
+                 `ew recover`; nothing was written",
+                project.display()
+            )
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 

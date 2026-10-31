@@ -1228,8 +1228,9 @@ fn export_svg_replaces_the_set_and_keeps_other_files() {
     assert_eq!(std::fs::read_to_string(mixed.join("notes.txt")).unwrap(), "keep");
 }
 
-/// `ew apply` refuses a project whose crashed session left a journal (exit 2, naming the recovery), and applies
-/// nothing.
+/// `ew apply` refuses a project whose crashed session left a journal (exit 2, naming `ew recover` and no follow-up
+/// number: ruling 1 of the cycle-41 review's fix round, "`journal_refusal` names the command that now exists and no FT
+/// number"), and applies nothing.
 #[test]
 fn apply_refuses_a_project_with_a_crashed_session_journal() {
     let t = Tmp::new();
@@ -1261,18 +1262,56 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
     assert_eq!(
         stderr(&o),
         format!(
-            "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first: discard \
-             it in ElektraWatt (File > Discard unsaved changes of the earlier session) or wait for `ew recover` \
-             (FT-252); nothing was applied\n",
+            "error: {}: a crashed session left unsaved changes in its journal; replay or discard them first with \
+             `ew recover`; nothing was written\n",
             project.display()
         )
     );
     assert!(tree(&project) == before, "nothing is applied");
     // FM-5 (FT-253): the other session's journal is still there, unchanged. The second half, a clean close deletes only
     // its own segment, is `Journal::close` (`crates/ew-store/src/journal.rs`), shown by
-    // `recovery_replays_the_newest_journal_and_keeps_the_other_unchanged` (`crates/ew-store/tests/recovery.rs`) and
-    // `the_app_path_recovers_one_journal_at_a_time` (`crates/ew-api/tests/recovery.rs`).
+    // `recovery_replays_the_newest_journal_and_keeps_the_other_unchanged` (`crates/ew-store/tests/it/recovery.rs`)
+    // and `the_app_path_recovers_one_journal_at_a_time` (`crates/ew-api/tests/it/recovery.rs`).
     assert!(journal_files(&home) == journals, "the journal is still there");
+}
+
+/// Ruling 1 of the cycle-41 review's fix round: "add a whole-text test for one subcommand of each kind that prints it
+/// (`ew apply`, `ew import parts`, a human-only subcommand)." `ew import parts` refuses a project whose crashed session
+/// left a journal with `ew apply`'s text (exit 2, before the table is read) and writes nothing; the journal stays. The
+/// human-only kind is a unit test with the injected terminal (`cli/project_files.rs`).
+#[test]
+fn import_parts_refuses_a_project_with_a_crashed_session_journal() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = parts_target(&t, "parts-journal.ew");
+    crashed_session(&home, &project, &[new_page(7777)]);
+    let before = tree(&project);
+    let journals = journal_files(&home);
+    assert_eq!(journals.len(), 1);
+    let o = ew_isolated(
+        &home,
+        &[
+            "import".as_ref(),
+            "parts".as_ref(),
+            GOLDEN_PARTS.as_ref(),
+            "--project".as_ref(),
+            project.as_os_str(),
+        ],
+    );
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: a crashed session left unsaved changes in its journal; replay or discard them first with \
+                 `ew recover`; nothing was written\n",
+                project.display()
+            )
+        )
+    );
+    assert!(tree(&project) == before, "nothing is imported");
+    assert!(journal_files(&home) == journals, "the journal stays");
 }
 
 /// FT-336 (ruling 1, design-pass correction): `ew project checks set` submits the `HumanOnly` command

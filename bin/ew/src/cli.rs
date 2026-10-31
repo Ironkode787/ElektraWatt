@@ -2398,13 +2398,13 @@ fn read_only_refusal(dir: &Path, reason: &ew_api::ReadOnlyReason) -> String {
     )
 }
 
-/// The refusal of the existing writers (`apply`, `import parts`, the human-only subcommands) while a crashed session's
-/// journal holds unsaved changes, which a new save would hide (doc 05 section 8.3); the text as built (§10.2 rule 3).
+/// The refusal of every writer (`apply`, `fmt`, `import parts`, the human-only subcommands) while a crashed session's
+/// journal holds unsaved changes, which a new save would hide (doc 05 section 8.3). It names the command that replays
+/// or discards them, `ew recover`, and no follow-up number (cycle 41 review, ruling 1 of its fix round).
 fn journal_refusal(dir: &Path) -> String {
     format!(
-        "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first: discard it \
-         in ElektraWatt (File > Discard unsaved changes of the earlier session) or wait for `ew recover` (FT-252); \
-         nothing was applied",
+        "error: {}: a crashed session left unsaved changes in its journal; replay or discard them first with `ew \
+         recover`; nothing was written",
         dir.display()
     )
 }
