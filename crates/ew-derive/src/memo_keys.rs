@@ -130,6 +130,11 @@ macro_rules! by_kind {
             Kind::StructureBox => $f::<StructureBox>($($arg),*),
             Kind::ReportBlock => $f::<ReportBlock>($($arg),*),
             Kind::MacroInstance => $f::<ew_schema::MacroInstance>($($arg),*),
+            Kind::LayoutSpace => $f::<ew_schema::LayoutSpace>($($arg),*),
+            Kind::Enclosure => $f::<ew_schema::Enclosure>($($arg),*),
+            Kind::MountingSurface => $f::<ew_schema::MountingSurface>($($arg),*),
+            Kind::Carrier => $f::<ew_schema::Carrier>($($arg),*),
+            Kind::Placement => $f::<ew_schema::Placement>($($arg),*),
             Kind::Revision => $f::<ew_schema::Revision>($($arg),*),
             Kind::Waiver => $f::<ew_schema::Waiver>($($arg),*),
             Kind::Part => $f::<LibCopy<Part>>($($arg),*),
@@ -239,6 +244,11 @@ fn index_key_stamp(model: &Model, name: IndexName, key: IxKey) -> Rev {
         (IndexName::StructureBoxesByPage, IxKey::Id(id)) => {
             bucket_stamp(ix.structure_boxes_by_page(), &id.cast())
         }
+        (IndexName::PlacementsByDevice, IxKey::Id(id)) => bucket_stamp(ix.placements_by_device(), &id.cast()),
+        (IndexName::PlacementsByCarrier, IxKey::Id(id)) => {
+            bucket_stamp(ix.placements_by_carrier(), &id.cast())
+        }
+        (IndexName::CarriersBySurface, IxKey::Id(id)) => bucket_stamp(ix.carriers_by_surface(), &id.cast()),
         _ => model.rev(),
     }
 }
@@ -262,6 +272,9 @@ fn index_stamp(model: &Model, name: IndexName) -> Rev {
         IndexName::BondsByEndpoint => ix.bonds_by_endpoint().changed_at(),
         IndexName::PageItemsByPage => ix.page_items_by_page().changed_at(),
         IndexName::StructureBoxesByPage => ix.structure_boxes_by_page().changed_at(),
+        IndexName::PlacementsByDevice => ix.placements_by_device().changed_at(),
+        IndexName::PlacementsByCarrier => ix.placements_by_carrier().changed_at(),
+        IndexName::CarriersBySurface => ix.carriers_by_surface().changed_at(),
     }
 }
 
@@ -429,6 +442,13 @@ fn index_keys(row: &AnyRow) -> Vec<(IndexName, IxKey)> {
             at(&mut out, IndexName::BondsByEndpoint, &b.a);
             at(&mut out, IndexName::BondsByEndpoint, &b.b);
         }
+        AnyRow::Placement(p) => {
+            by_id(&mut out, IndexName::PlacementsByDevice, p.device);
+            if let ew_schema::CarrierRef::Carrier(c) = p.carrier {
+                by_id(&mut out, IndexName::PlacementsByCarrier, c);
+            }
+        }
+        AnyRow::Carrier(c) => by_id(&mut out, IndexName::CarriersBySurface, c.surface),
         _ => {}
     }
     out.sort_unstable();
@@ -481,7 +501,7 @@ mod tests {
     const ABSENT: u128 = 0xdead;
 
     /// The kinds with a table, in the order of the `by_kind!` macro.
-    const TABLE_KINDS: [Kind; 25] = [
+    const TABLE_KINDS: [Kind; 30] = [
         Kind::PlcConfigProject,
         Kind::ImportLineage,
         Kind::StructureNode,
@@ -501,6 +521,11 @@ mod tests {
         Kind::LogicalNet,
         Kind::PhysicalNet,
         Kind::ReportBlock,
+        Kind::LayoutSpace,
+        Kind::Enclosure,
+        Kind::MountingSurface,
+        Kind::Carrier,
+        Kind::Placement,
         Kind::Revision,
         Kind::Waiver,
         Kind::Part,
@@ -509,7 +534,7 @@ mod tests {
         Kind::Form,
     ];
 
-    const INDEXES: [IndexName; 15] = [
+    const INDEXES: [IndexName; 18] = [
         IndexName::FunctionsByDevice,
         IndexName::RepsByPage,
         IndexName::RepsByFunction,
@@ -525,6 +550,9 @@ mod tests {
         IndexName::BondsByEndpoint,
         IndexName::PageItemsByPage,
         IndexName::StructureBoxesByPage,
+        IndexName::PlacementsByDevice,
+        IndexName::PlacementsByCarrier,
+        IndexName::CarriersBySurface,
     ];
 
     /// The `i`-th ID of a pool as UUID text.
@@ -721,6 +749,9 @@ mod tests {
         endpoint_buckets!(out, IndexName::BondsByEndpoint, ix.bonds_by_endpoint());
         id_buckets!(out, IndexName::PageItemsByPage, ix.page_items_by_page());
         id_buckets!(out, IndexName::StructureBoxesByPage, ix.structure_boxes_by_page());
+        id_buckets!(out, IndexName::PlacementsByDevice, ix.placements_by_device());
+        id_buckets!(out, IndexName::PlacementsByCarrier, ix.placements_by_carrier());
+        id_buckets!(out, IndexName::CarriersBySurface, ix.carriers_by_surface());
         out
     }
 
@@ -1037,6 +1068,27 @@ mod tests {
                 typed::<ew_schema::StructureBox>(json!({
                     "id": uid(1), "page": target, "outline": [[0, 0], [1, 0], [1, 1]], "style": "dotted",
                     "assigns": {},
+                })),
+                by_id,
+            ),
+            (Kind::Carrier, "surface") => (
+                typed::<ew_schema::Carrier>(json!({
+                    "id": uid(1), "surface": target, "kind": "rail", "path": [[0, 0], [1, 0]],
+                    "params": {"rail": {"profile": "ts35x7_5"}},
+                })),
+                by_id,
+            ),
+            (Kind::Placement, "device") => (
+                typed::<ew_schema::Placement>(json!({
+                    "id": uid(1), "device": target, "carrier": {"surface": uid(0x9998)},
+                    "pose": {"t": [0, 0, 0], "q": [1_000_000_000, 0, 0, 0]},
+                })),
+                by_id,
+            ),
+            (Kind::Placement, "carrier.carrier") => (
+                typed::<ew_schema::Placement>(json!({
+                    "id": uid(1), "device": uid(0x9998), "carrier": {"carrier": target},
+                    "pose": {"t": [0, 0, 0], "q": [1_000_000_000, 0, 0, 0]},
                 })),
                 by_id,
             ),

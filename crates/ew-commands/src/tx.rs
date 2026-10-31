@@ -61,6 +61,14 @@ pub enum IndexRead {
     /// `MacroInstance.members[][1]` → the macro instances listing a record as a member (the generic referrer index
     /// of the kind-erased link, keyed under its nominal kind `Page`).
     MacroInstancesOfMember(AnyId),
+    /// `Placement.device` → placements.
+    PlacementsOfDevice(Id<Device>),
+    /// `Placement.carrier` (a carrier) → placements.
+    PlacementsOnCarrier(Id<ew_schema::Carrier>),
+    /// `Placement.carrier` (a surface itself) → placements (the generic referrer index of the link).
+    PlacementsOnSurface(Id<ew_schema::MountingSurface>),
+    /// `Carrier.surface` → carriers.
+    CarriersOfSurface(Id<ew_schema::MountingSurface>),
 }
 
 /// The referrers of `target` through the link `from.field`, in ID order (the generic referrer index serves
@@ -131,6 +139,19 @@ impl IndexRead {
             IndexRead::MacroInstancesOfMember(m) => {
                 referrers_through(idx, Kind::MacroInstance, "members[][1]", (Kind::Page, m))
             }
+            IndexRead::PlacementsOfDevice(d) => {
+                idx.placements_by_device().get(&d).map(|v| v.cast()).collect()
+            }
+            IndexRead::PlacementsOnCarrier(c) => {
+                idx.placements_by_carrier().get(&c).map(|v| v.cast()).collect()
+            }
+            IndexRead::PlacementsOnSurface(s) => referrers_through(
+                idx,
+                Kind::Placement,
+                "carrier.surface",
+                (Kind::MountingSurface, s.cast()),
+            ),
+            IndexRead::CarriersOfSurface(s) => idx.carriers_by_surface().get(&s).map(|v| v.cast()).collect(),
         };
         ids
     }
@@ -182,6 +203,11 @@ fn row_changed_at(model: &Model, key: &AnyKey) -> Option<Rev> {
         Kind::StructureBox => at::<ew_schema::StructureBox>(model, id),
         Kind::ReportBlock => at::<ReportBlock>(model, id),
         Kind::MacroInstance => at::<ew_schema::MacroInstance>(model, id),
+        Kind::LayoutSpace => at::<ew_schema::LayoutSpace>(model, id),
+        Kind::Enclosure => at::<ew_schema::Enclosure>(model, id),
+        Kind::MountingSurface => at::<ew_schema::MountingSurface>(model, id),
+        Kind::Carrier => at::<ew_schema::Carrier>(model, id),
+        Kind::Placement => at::<ew_schema::Placement>(model, id),
         Kind::Revision => at::<ew_schema::Revision>(model, id),
         Kind::Waiver => at::<ew_schema::Waiver>(model, id),
         Kind::Part => at::<LibCopy<Part>>(model, id),
@@ -223,6 +249,11 @@ fn table_changed_at(model: &Model, kind: Kind) -> Rev {
         Kind::StructureBox => at::<ew_schema::StructureBox>(model),
         Kind::ReportBlock => at::<ReportBlock>(model),
         Kind::MacroInstance => at::<ew_schema::MacroInstance>(model),
+        Kind::LayoutSpace => at::<ew_schema::LayoutSpace>(model),
+        Kind::Enclosure => at::<ew_schema::Enclosure>(model),
+        Kind::MountingSurface => at::<ew_schema::MountingSurface>(model),
+        Kind::Carrier => at::<ew_schema::Carrier>(model),
+        Kind::Placement => at::<ew_schema::Placement>(model),
         Kind::Revision => at::<ew_schema::Revision>(model),
         Kind::Waiver => at::<ew_schema::Waiver>(model),
         Kind::Part => at::<LibCopy<Part>>(model),
@@ -613,6 +644,36 @@ impl<'a> TxBuilder<'a> {
         })
     }
 
+    /// The placements of a device, in ID order.
+    pub fn placements_of_device(&self, device: Id<Device>) -> Vec<Id<ew_schema::Placement>> {
+        self.indexed::<ew_schema::Placement>(IndexRead::PlacementsOfDevice(device), |p| p.device == device)
+    }
+
+    /// The placements on a carrier, in ID order.
+    pub fn placements_on_carrier(&self, carrier: Id<ew_schema::Carrier>) -> Vec<Id<ew_schema::Placement>> {
+        self.indexed::<ew_schema::Placement>(IndexRead::PlacementsOnCarrier(carrier), |p| {
+            p.carrier == ew_schema::CarrierRef::Carrier(carrier)
+        })
+    }
+
+    /// The placements on a mounting surface itself (not on one of its carriers), in ID order.
+    pub fn placements_on_surface(
+        &self,
+        surface: Id<ew_schema::MountingSurface>,
+    ) -> Vec<Id<ew_schema::Placement>> {
+        self.indexed::<ew_schema::Placement>(IndexRead::PlacementsOnSurface(surface), |p| {
+            p.carrier == ew_schema::CarrierRef::Surface(surface)
+        })
+    }
+
+    /// The carriers of a mounting surface, in ID order.
+    pub fn carriers_of_surface(
+        &self,
+        surface: Id<ew_schema::MountingSurface>,
+    ) -> Vec<Id<ew_schema::Carrier>> {
+        self.indexed::<ew_schema::Carrier>(IndexRead::CarriersOfSurface(surface), |c| c.surface == surface)
+    }
+
     /// The next free counter for `letter` in `scope` (FR-NUM-007); see [`crate::numbering`].
     pub fn next_free_counter(&self, letter: &ew_mltext::Ident, scope: crate::numbering::CounterScope) -> u32 {
         crate::numbering::next_free_counter(self, letter, scope, None)
@@ -964,6 +1025,17 @@ mod tests {
                 "Channel.{field} is served by the generic referrer index"
             );
         }
+    }
+
+    /// The surface-placement read goes through the generic referrer index of `placement.carrier.surface`.
+    #[test]
+    fn the_referrer_link_of_the_surface_placement_read_exists() {
+        let link = ew_model::LINKS
+            .iter()
+            .find(|l| l.from == Kind::Placement && l.field == "carrier.surface")
+            .expect("Placement.carrier.surface is a declared link");
+        assert_eq!(link.to, Kind::MountingSurface);
+        assert!(!link.indexed());
     }
 
     /// The macro-member read keys the generic referrer index under the kind-erased link's nominal `to`.

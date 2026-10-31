@@ -62,6 +62,8 @@ mod index;
 mod ip;
 mod items;
 mod joins;
+// WP-S4.01 part 1: the layout's pure geometry (D5), the compatibility table and the pose validator
+pub mod layout;
 mod links;
 mod memo_keys;
 mod memo_store;

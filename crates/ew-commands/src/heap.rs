@@ -95,6 +95,11 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::StructureBox(r) => of(&**r),
         AnyRow::ReportBlock(r) => of(&**r),
         AnyRow::MacroInstance(r) => of(&**r),
+        AnyRow::LayoutSpace(r) => of(&**r),
+        AnyRow::Enclosure(r) => of(&**r),
+        AnyRow::MountingSurface(r) => of(&**r),
+        AnyRow::Carrier(r) => of(&**r),
+        AnyRow::Placement(r) => of(&**r),
         AnyRow::Revision(r) => of(&**r),
         AnyRow::Waiver(r) => of(&**r),
         AnyRow::Part(r) => of(&**r),
@@ -746,6 +751,61 @@ impl HeapSize for ew_schema::PhysicalNet {
             + self.order_hint.heap_size()
             + self.source_ref.heap_size()
             + self.extra.heap_size()
+    }
+}
+
+// ---- layout (WP-S4.01) ----
+
+impl HeapSize for ew_schema::LayoutSpace {
+    fn heap_size(&self) -> usize {
+        self.name.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::Enclosure {
+    fn heap_size(&self) -> usize {
+        self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::MountingSurface {
+    fn heap_size(&self) -> usize {
+        let kind = match &self.kind {
+            ew_schema::SurfaceKind::Unknown(v) => v.heap_size(),
+            _ => 0,
+        };
+        kind + self.usable.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::Carrier {
+    fn heap_size(&self) -> usize {
+        let kind = match &self.kind {
+            ew_schema::CarrierKind::Unknown(v) => v.heap_size(),
+            _ => 0,
+        };
+        let params = match &self.params {
+            ew_schema::CarrierParams::Rail(r) => {
+                let profile = match &r.profile {
+                    ew_schema::MountKind::Unknown(v) => v.heap_size(),
+                    _ => 0,
+                };
+                profile + r.extra.heap_size()
+            }
+            ew_schema::CarrierParams::Duct(d) => d.extra.heap_size(),
+            ew_schema::CarrierParams::Unknown(v) => v.heap_size(),
+        };
+        kind + self.part.heap_size() + self.path.heap_size() + params + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::Placement {
+    fn heap_size(&self) -> usize {
+        let carrier = match &self.carrier {
+            ew_schema::CarrierRef::Unknown(v) => v.heap_size(),
+            _ => 0,
+        };
+        self.part.heap_size() + carrier + self.extra.heap_size()
     }
 }
 
