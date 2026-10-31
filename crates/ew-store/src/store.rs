@@ -2180,6 +2180,13 @@ impl Store {
         &self.opts.vfs
     }
 
+    /// The per-user state directory ([`StoreOptions::state_dir`]); `None` when the store keeps nothing outside the
+    /// project (an in-memory or new project, a test). The release keeps its run records there ([`crate::archive`],
+    /// FT-814).
+    pub fn state_dir(&self) -> Option<&Path> {
+        self.opts.state_dir.as_deref()
+    }
+
     /// The canonical project directory of the generation on disk, read back through the seam and verified (doc 05
     /// §14.1 step 4: the archive's `project/`): the bytes of `manifest.json`, which must be the manifest this store
     /// loaded or wrote, and of every file it lists, each with the manifest's SHA-256.

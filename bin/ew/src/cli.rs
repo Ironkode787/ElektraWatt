@@ -136,10 +136,12 @@ directory and the tag `ew/rev/<label>` it makes there (a warning when the archiv
 are never added to git). After the typed label it writes and verifies the archive, commits and tags, then stamps the
 revision released and saves; a failure leaves the revision open and removes what the run wrote. An archive of the
 label left by a crashed release is offered first: type `complete` to stamp it or `discard` to remove it (with its
-tag). `revision withdraw <label> --reason <text>` withdraws a released revision (`revision.withdraw`) and saves. Exit
-0 when approved, released, settled or withdrawn and saved, 1 when refused (the gate's blockers, a wrong label, a
-refused command or git step) or not confirmed, 2 on usage, terminal and open errors and when writing the release
-fails.
+tag). `discard` is offered only when this computer's record shows that a release from this project directory wrote
+the archive: a copy of the directory names the same project, so without that record the archive is kept (remove it
+by hand if you know it is a leftover). `revision withdraw <label> --reason <text>` withdraws a released revision
+(`revision.withdraw`) and saves. Exit 0 when approved, released, settled or withdrawn and saved, 1 when refused (the
+gate's blockers, a wrong label, a refused command or git step) or not confirmed, 2 on usage, terminal and open errors
+and when writing the release fails.
 
 `verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
 the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.
@@ -2200,9 +2202,10 @@ fn released_lines(output: &mut dyn std::io::Write, done: &ew_api::Released) {
 }
 
 /// An archive of the open revision's label that a crashed release left (doc 05 section 14.1 "On failure"): the
-/// person types `complete` (when it can be completed) to stamp it, or `discard` to remove it and its tag. An archive
-/// that is not this project's (another project's or revision's, or one that names no project) is offered neither: it is
-/// kept, and the release is refused.
+/// person types `complete` (when it can be completed) to stamp it, or `discard` (when this project directory's own run
+/// provably wrote it, FT-814) to remove it and its tag. An archive that is not this project's (another project's or
+/// revision's, or one that names no project) is offered neither: it is kept, and the release is refused; so is one that
+/// can neither be completed nor provably discarded.
 fn settle_release(
     session: &mut ew_api::Session,
     items: &[ew_api::checks::IntegrityItem],
@@ -2219,19 +2222,34 @@ fn settle_release(
         );
         return 1;
     }
+    if let (Some(refusal), Some(unproven)) = (&found.refusal, &found.unproven) {
+        eprintln!(
+            "error: release of {label} refused: {unproven}, and it cannot be completed ({refusal}); it is kept. Remove \
+             the file by hand if you know it is a leftover, or name another archive folder with --archive-dir <dir>; \
+             nothing was changed"
+        );
+        return 1;
+    }
     let mut summary = format!(
         "incomplete release {label}: the archive {} ({}) is in place, but the revision is still open\n",
         found.archive.display(),
         found.sha256
     );
-    let words = match &found.refusal {
-        Some(why) => {
+    let words = match (&found.refusal, &found.unproven) {
+        (Some(why), _) => {
             summary.push_str(&format!("  it cannot be completed: {why}\n"));
-            "`discard` to remove it (and the tag of the label, if a crashed release created it)"
+            "`discard` to remove it (and the tag of the label, if this folder's crashed release created it)"
         }
-        None => {
+        (None, Some(why)) => {
+            summary.push_str(&format!(
+                "  it is not offered for discarding: {why}; remove the file by hand if you know it is a leftover\n"
+            ));
             "`complete` to stamp the revision released with it (committing and tagging when the project lies in a git \
-             worktree), `discard` to remove it (and the tag of the label, if a crashed release created it)"
+             worktree)"
+        }
+        (None, None) => {
+            "`complete` to stamp the revision released with it (committing and tagging when the project lies in a git \
+             worktree), `discard` to remove it (and the tag of the label, if this folder's crashed release created it)"
         }
     };
     let prompt = format!("{summary}Type {words}, anything else to abort: ");
@@ -2265,8 +2283,8 @@ fn settle_release(
                 if let Some(t) = done.tag_kept {
                     let _ = writeln!(
                         output,
-                        "note: the git tag {t} names another archive, so it was kept; a new release of {label} needs \
-                         it gone"
+                        "note: the git tag {t} was not made by this folder's crashed release, so it was kept; a new \
+                         release of {label} needs it gone"
                     );
                 }
                 0
@@ -4466,13 +4484,26 @@ mod revision_tests {
 
     /// Runs `ew revision <action> <dir>` with `terminal` and the typed `answer`; the exit code and what it printed.
     fn run(dir: &Path, action: RevisionAction, terminal: bool, answer: &str) -> (i32, String) {
+        run_in(dir, action, terminal, answer, None)
+    }
+
+    /// [`run`] with the state directory `state` (the release's run records, FT-814).
+    fn run_in(
+        dir: &Path,
+        action: RevisionAction,
+        terminal: bool,
+        answer: &str,
+        state: Option<&Path>,
+    ) -> (i32, String) {
         let args = RevisionArgs {
             action,
             project: Some(dir.to_path_buf()),
         };
         let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
         let mut output = Vec::new();
-        let code = run_revision_with(&args, terminal, &mut input, &mut output, store(), date(), &NoGit);
+        let mut store = store();
+        store.state_dir = state.map(Path::to_path_buf);
+        let code = run_revision_with(&args, terminal, &mut input, &mut output, store, date(), &NoGit);
         (code, String::from_utf8(output).unwrap())
     }
 
@@ -4673,7 +4704,9 @@ mod revision_tests {
 
     /// RA-3 through the CLI: an archive of the open revision's label that no record names (what a crashed release
     /// leaves: here the archive of an identical copy) is offered before a new release; `complete` stamps the revision
-    /// with it, and a damaged one can only be discarded.
+    /// with it, and a damaged one can only be discarded. FT-814: a copy of the project finds the other copy's archive
+    /// in the shared archive folder, but `discard` is not offered without this folder's run record, and typed it
+    /// removes nothing; with the record it is offered and removes the archive and the record.
     #[test]
     fn an_incomplete_release_is_completed_or_discarded() {
         let a = golden_copy("incomplete-a");
@@ -4685,11 +4718,32 @@ mod revision_tests {
         copy_dir(&a, &b);
         let root_a = a.with_extension("archives");
         let root_b = b.with_extension("archives");
-        for r in [&root_a, &root_b] {
+        let state = a.with_extension("state");
+        for r in [&root_a, &root_b, &state] {
             let _ = std::fs::remove_dir_all(r);
         }
-        let (code, shown) = run(&a, release_into("V2.0", &root_a), true, "V2.0\n");
+        let (code, shown) = run_in(&a, release_into("V2.0", &root_a), true, "V2.0\n", Some(&state));
         assert_eq!(code, 0, "{shown}");
+
+        // B, a copy of A, on A's archive folder with the same state directory: `discard` is not offered, and typed it
+        // removes nothing (FT-814).
+        let archived = std::fs::read(root_a.join("V2.0.ewarchive")).unwrap();
+        let before_b = files(&b);
+        let (code, shown) = run_in(&b, release_into("V2.0", &root_a), true, "discard\n", Some(&state));
+        assert_eq!(code, 1, "{shown}");
+        assert!(
+            shown.contains(
+                "  it is not offered for discarding: the archive V2.0.ewarchive in that folder is not provably a \
+                 leftover of this project folder's own release (no release from this folder recorded writing it, and a \
+                 copy of the folder names the same project); remove the file by hand if you know it is a leftover\n"
+            ),
+            "{shown}"
+        );
+        assert!(shown.contains("Type `complete` to stamp"), "{shown}");
+        assert!(!shown.contains("`discard`"), "{shown}");
+        assert_eq!(std::fs::read(root_a.join("V2.0.ewarchive")).unwrap(), archived);
+        assert_eq!(files(&b), before_b);
+
         std::fs::create_dir_all(&root_b).unwrap();
         std::fs::copy(root_a.join("V2.0.ewarchive"), root_b.join("V2.0.ewarchive")).unwrap();
 
@@ -4703,6 +4757,21 @@ mod revision_tests {
         );
         assert!(shown.contains("Type `complete` to stamp"), "{shown}");
         assert_eq!(files(&b), before);
+        // With a run record of B's folder for the archive (what B's own crashed run leaves), `discard` is offered and
+        // removes the archive and the record.
+        let record = run_record_of(&b, &root_b, &state);
+        let (code, shown) = run_in(&b, release_into("V2.0", &root_b), true, "discard\n", Some(&state));
+        assert_eq!(code, 0, "{shown}");
+        assert!(shown.contains(", `discard` to remove it"), "{shown}");
+        assert!(
+            shown.contains("discarded the incomplete release V2.0: removed "),
+            "{shown}"
+        );
+        assert!(!root_b.join("V2.0.ewarchive").exists());
+        assert!(!record.exists(), "the run's record is removed");
+        assert_eq!(files(&b), before_b);
+        std::fs::copy(root_a.join("V2.0.ewarchive"), root_b.join("V2.0.ewarchive")).unwrap();
+
         // Completed with the archive's own facts.
         let (code, shown) = run(&b, release_into("V2.0", &root_b), true, "complete\n");
         assert_eq!(code, 0, "{shown}");
@@ -4731,8 +4800,40 @@ mod revision_tests {
                 "{answer}: the damaged archive is kept"
             );
         }
-        for d in [&a, &b, &c, &root_a, &root_b, &root_c] {
+        for d in [&a, &b, &c, &root_a, &root_b, &root_c, &state] {
             let _ = std::fs::remove_dir_all(d);
         }
+    }
+
+    /// Writes the run record a release of the project in `dir` leaves in `state` once it has written the archive of the
+    /// open revision in `root` (FT-814), as if that run had crashed right after; returns the record's file.
+    fn run_record_of(dir: &Path, root: &Path, state: &Path) -> PathBuf {
+        let mut options = store();
+        options.state_dir = Some(state.to_path_buf());
+        let (session, _) = ew_api::Session::open(
+            dir,
+            options,
+            ew_api::SessionOptions::default(),
+            ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        let found = session.incomplete_release(Some(root)).unwrap().unwrap();
+        let store = session.store().unwrap();
+        let vfs = &**store.vfs();
+        let modified = std::fs::metadata(&found.archive).unwrap().modified().unwrap();
+        let record = ew_api::archive::RunRecord {
+            project_dir: ew_api::archive::path_text(vfs, store.root()),
+            archive: ew_api::archive::path_text(vfs, &found.archive),
+            project: session.query().project().id.to_string(),
+            revision: found.revision.to_string(),
+            label: found.label.clone(),
+            generation: found.facts.as_ref().unwrap().1,
+            sha256: found.sha256.to_string(),
+            modified: ew_api::archive::record_time(modified),
+            run: "the-crashed-run".to_owned(),
+        };
+        let path = ew_api::archive::write_run_record(vfs, state, &record).unwrap();
+        session.close();
+        path
     }
 }

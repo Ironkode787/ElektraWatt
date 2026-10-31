@@ -12,10 +12,11 @@
 
 mod golden_common;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::{Duration, SystemTime};
 
 use ew_api::archive;
 use ew_api::git::{Committed, Git, GitError, GitExe};
@@ -455,6 +456,11 @@ fn ra1_ra2_ra6_the_release_writes_the_archive_and_the_record() {
     assert!(!s.is_dirty());
     assert_eq!(s.store().expect("a store").generation(), g + 1);
     assert_eq!(s.incomplete_release(Some(&root)).expect("looked"), None);
+    assert_eq!(
+        os_run_records(&base.join("state")),
+        0,
+        "a settled run leaves no record (FT-814)"
+    );
 
     // RA-6.
     let record = release_record(&s);
@@ -836,6 +842,19 @@ fn root_files(vfs: &MemVfs) -> BTreeMap<String, Vec<u8>> {
     vfs.files(Path::new(MEM_ROOT))
 }
 
+/// The folder of the release runs' records in the memory state directory (FT-814).
+const MEM_RUNS: &str = "/state/releases";
+
+/// The release runs' records in the memory state directory, by name.
+fn run_records(vfs: &MemVfs) -> BTreeMap<String, Vec<u8>> {
+    vfs.files(Path::new(MEM_RUNS))
+}
+
+/// The number of release runs' records in the state directory `state` on disk.
+fn os_run_records(state: &Path) -> usize {
+    std::fs::read_dir(state.join(archive::RUNS_DIR)).map_or(0, Iterator::count)
+}
+
 /// What a sweep saw after the restarts.
 #[derive(Default, Debug)]
 struct Seen {
@@ -847,12 +866,17 @@ struct Seen {
     completed: u32,
     /// Open with an incomplete release that was discarded.
     discarded: u32,
+    /// Open with an incomplete release that no run record proves this directory's (the crash came between the
+    /// archive's rename and its record): a discard kept it, and it was completed.
+    kept: u32,
 }
 
 /// After a crash (the fault fired; the process is gone), the project reopens in one of three states: released, with
 /// the archive the record names (and its tag); open with no archive and no tag of the run (a new release then
 /// succeeds); or open with one complete archive that no record names, which `incomplete_release` reports as
-/// completable and which `discard` removes (with its tag and temps; a new release then succeeds) or `complete` stamps.
+/// completable and which `discard` removes (with its tag, temps and run record; a new release then succeeds) or
+/// `complete` stamps. When the crash came before the run recorded the archive (FT-814), `discard` keeps everything in
+/// words and `complete` stamps it.
 fn after_the_crash(vfs: &Arc<MemVfs>, git: &dyn Git, fake: Option<&FakeGit>, n: u64, seen: &mut Seen) {
     let (mut r, integrity) = mem_open(vfs, 2);
     let rev = revision(&r);
@@ -902,6 +926,26 @@ fn after_the_crash(vfs: &Arc<MemVfs>, git: &dyn Git, fake: Option<&FakeGit>, n: 
                     "call {n}: the incomplete release can be completed"
                 );
                 assert_eq!(found.archive, Path::new(MEM_ROOT).join("V1.0.ewarchive"));
+                if let Some(why) = &found.unproven {
+                    assert_eq!(why, NO_RECORD, "call {n}");
+                    let before = root_files(vfs);
+                    let tag_before = tag_of(fake);
+                    match r.discard_incomplete_release(&options(git, None)) {
+                        Err(ReleaseError::Unproven {
+                            why: w,
+                            completable: true,
+                        }) => assert_eq!(&w, why, "call {n}"),
+                        other => panic!("call {n}: expected Unproven, got {other:?}"),
+                    }
+                    assert_eq!(root_files(vfs), before, "call {n}: nothing removed");
+                    assert_eq!(tag_of(fake), tag_before, "call {n}: the tag is kept");
+                    r.complete_release(&integrity, &options(git, None))
+                        .unwrap_or_else(|e| panic!("call {n}: completed: {e}"));
+                    assert_eq!(revision(&r).state, RevisionState::Released);
+                    seen.kept += 1;
+                    r.close();
+                    return;
+                }
                 if n.is_multiple_of(2) {
                     let done = r
                         .complete_release(&integrity, &options(git, None))
@@ -917,6 +961,10 @@ fn after_the_crash(vfs: &Arc<MemVfs>, git: &dyn Git, fake: Option<&FakeGit>, n: 
                     if fake.is_some() {
                         assert!(tag_of(fake).is_some(), "call {n}: completed with its tag");
                     }
+                    assert!(
+                        run_records(vfs).is_empty(),
+                        "call {n}: the completion removes the record"
+                    );
                     seen.completed += 1;
                     r.close();
                     return;
@@ -930,6 +978,7 @@ fn after_the_crash(vfs: &Arc<MemVfs>, git: &dyn Git, fake: Option<&FakeGit>, n: 
                     root_files(vfs).is_empty(),
                     "call {n}: the archive and its temps are gone"
                 );
+                assert!(run_records(vfs).is_empty(), "call {n}: the run's record is gone");
                 assert_eq!(tag_of(fake), None, "call {n}: the tag of the run is gone");
                 assert_eq!(revision(&r).state, RevisionState::Open);
                 seen.discarded += 1;
@@ -938,6 +987,10 @@ fn after_the_crash(vfs: &Arc<MemVfs>, git: &dyn Git, fake: Option<&FakeGit>, n: 
             r.release(&context(), &integrity, &options(git, None))
                 .unwrap_or_else(|e| panic!("call {n}: the release after the crash: {e}"));
             assert_eq!(revision(&r).state, RevisionState::Released);
+            assert!(
+                run_records(vfs).is_empty(),
+                "call {n}: a settled run leaves no record"
+            );
         }
     }
     r.close();
@@ -961,7 +1014,7 @@ fn sweep(fault: fn(u64) -> Fault, in_worktree: bool) -> Seen {
         vfs.restart();
         drop(s);
         if result.is_ok() && calls < n {
-            assert!(seen.released + seen.clean + seen.completed + seen.discarded > 0);
+            assert!(seen.released + seen.clean + seen.completed + seen.discarded + seen.kept > 0);
             return seen;
         }
         after_the_crash(&vfs, git, in_worktree.then_some(&fake), n, &mut seen);
@@ -971,13 +1024,14 @@ fn sweep(fault: fn(u64) -> Fault, in_worktree: bool) -> Seen {
 
 /// RA-3 (process kill): a kill at every file-system call of the release, inside a worktree (the fake port keeps the
 /// tag across the crash). Every outcome of [`after_the_crash`] occurs: open with nothing written, an incomplete
-/// release completed and discarded, and released.
+/// release completed and discarded, one kept by a discard because the crash came before its run record, and released.
 #[test]
 fn ra3_a_kill_at_every_call_leaves_a_settled_or_incomplete_release() {
     let seen = sweep(|at| Fault::Kill { at }, true);
     assert!(seen.clean > 0, "{seen:?}");
     assert!(seen.completed > 0, "{seen:?}");
     assert!(seen.discarded > 0, "{seen:?}");
+    assert!(seen.kept > 0, "{seen:?}");
     assert!(seen.released > 0, "{seen:?}");
 }
 
@@ -1030,6 +1084,10 @@ fn ra3_one_failing_call_cleans_up_what_the_run_created() {
                     root_files(&vfs).keys()
                 );
                 assert!(git.tags.borrow().is_empty(), "call {n}: {e}");
+                assert!(
+                    run_records(&vfs).is_empty(),
+                    "call {n}: {e}: the run's record is removed"
+                );
                 assert!(!s.is_dirty(), "call {n}: {e}");
                 s.release(&context(), &integrity, &options(&git, None))
                     .unwrap_or_else(|e| panic!("call {n}: the release again: {e}"));
@@ -1072,6 +1130,7 @@ fn ra3_a_git_failure_leaves_the_revision_open() {
         }
         assert!(root_files(&vfs).is_empty(), "{:?}", root_files(&vfs).keys());
         assert!(git.tags.borrow().is_empty());
+        assert!(run_records(&vfs).is_empty(), "the run's record is removed");
         assert_eq!(revision(&s).state, RevisionState::Open);
         assert!(!s.is_dirty());
         let git = FakeGit::default();
@@ -1087,10 +1146,12 @@ fn ra3_a_git_failure_leaves_the_revision_open() {
             message.contains(&format!("SHA-256: {}", released.sha256)),
             "{message}"
         );
+        assert!(message.contains("\nRun: "), "the run's mark (FT-814): {message}");
         assert_eq!(
             release_record(&s).git_tag.map(|t| t.as_str().to_owned()),
             Some(tag)
         );
+        assert!(run_records(&vfs).is_empty(), "a settled run leaves no record");
         s.close();
     }
 }
@@ -1167,6 +1228,7 @@ fn a_foreign_archive_in_the_root_is_kept() {
         let foreign = found.foreign.clone().expect("not this project's");
         assert!(foreign.starts_with(why), "{foreign}");
         assert_eq!(found.refusal.as_deref(), Some(foreign.as_str()));
+        assert_eq!(found.unproven, None, "a foreign archive is refused as foreign");
         let fake = FakeGit::default();
         fake.tags
             .borrow_mut()
@@ -1193,84 +1255,408 @@ fn a_foreign_archive_in_the_root_is_kept() {
     }
 }
 
-/// FIX39a (finding 1): a tag of the label whose message does not carry the archive's SHA-256 (another project's in the
-/// same repository) is kept by a discard, which still removes this project's archive and its own temps but no other
-/// run's temp; a completion with such a tag is refused before the commit.
-#[test]
-fn a_foreign_tag_and_another_runs_temp_are_kept() {
-    let image = approved_image();
-    let released = released_archive(&image);
-    let vfs = mem_vfs(&image);
-    let root = Path::new(MEM_ROOT);
-    vfs.put(&root.join("V1.0.ewarchive"), &released);
-    let other_temp = "V1.0.ewarchive.tmp-00000000-0000-4000-8000-0000000000b2-4";
-    vfs.put(
-        &root.join(other_temp),
-        b"another project's release, still writing",
-    );
-    vfs.put(&root.join("V1.0.ewarchive.tmp-9"), b"not a temp of this project");
-    let foreign_tag = "Release V1.0\n\nArchive: V1.0.ewarchive\nSHA-256: 00ff\n";
-    let fake = FakeGit::default();
-    fake.tags
-        .borrow_mut()
-        .insert("ew/rev/V1.0".to_owned(), foreign_tag.to_owned());
+// ---------------------------------------------------------------------------------------------------------------
+// FT-814: what a discard may remove when two copies of one project directory share an archive root or a repository
+
+/// Why a discard keeps an archive of this project and the open revision that no run record of this project directory
+/// names (FT-814).
+const NO_RECORD: &str = "the archive V1.0.ewarchive in that folder is not provably a leftover of this project \
+                         folder's own release (no release from this folder recorded writing it, and a copy of the \
+                         folder names the same project)";
+
+/// Why a discard keeps an archive whose bytes or modification time are not the ones the run recorded (FT-814).
+const OTHER_FILE: &str = "the archive V1.0.ewarchive in that folder is not provably a leftover of this project \
+                          folder's own release (the release from this folder recorded another file under that name)";
+
+/// What a discard of a completable archive without evidence says (FT-814): `why`, then that it is kept and what to do.
+fn kept_text(why: &str) -> String {
+    format!(
+        "{why}; it is kept: complete the release with it, or remove the file by hand if you know it is a leftover"
+    )
+}
+
+/// A git port in a worktree whose process dies in the tag step (step 5): before creating the tag, or (`after`) right
+/// after it. From then on every call of the memory file system and of the port fails, as after a kill.
+struct CrashAtTag<'a> {
+    git: &'a FakeGit,
+    vfs: Arc<MemVfs>,
+    after: bool,
+    dead: Cell<bool>,
+}
+
+impl CrashAtTag<'_> {
+    fn die(&self) {
+        self.dead.set(true);
+        self.vfs.set_fault(Fault::Kill { at: 1 });
+    }
+
+    fn alive(&self) -> Result<(), GitError> {
+        if self.dead.get() {
+            Err(GitError::Failed {
+                step: "killed",
+                code: None,
+            })
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl Git for CrashAtTag<'_> {
+    fn worktree(&self, vfs: &dyn Vfs, dir: &Path) -> std::io::Result<Option<PathBuf>> {
+        self.alive().map_err(std::io::Error::other)?;
+        self.git.worktree(vfs, dir)
+    }
+    fn available(&self) -> Result<(), GitError> {
+        self.alive()
+    }
+    fn commit_dir(&self, dir: &Path, message: &str) -> Result<Committed, GitError> {
+        self.alive()?;
+        self.git.commit_dir(dir, message)
+    }
+    fn tag_exists(&self, dir: &Path, tag: &str) -> Result<bool, GitError> {
+        self.alive()?;
+        self.git.tag_exists(dir, tag)
+    }
+    fn tag_message(&self, dir: &Path, tag: &str) -> Result<Option<String>, GitError> {
+        self.alive()?;
+        self.git.tag_message(dir, tag)
+    }
+    fn tag(&self, dir: &Path, tag: &str, message: &str) -> Result<(), GitError> {
+        self.alive()?;
+        if self.after {
+            self.git.tag(dir, tag, message)?;
+        }
+        self.die();
+        if self.after { Ok(()) } else { self.alive() }
+    }
+    fn delete_tag(&self, dir: &Path, tag: &str) -> Result<(), GitError> {
+        self.alive()?;
+        self.git.delete_tag(dir, tag)
+    }
+}
+
+/// The approved fixture in a memory file system after a release inside a worktree (the tags in `git`) that died in the
+/// tag step, before creating the tag or (`after`) right after it: the archive and the run's record are in place and the
+/// revision is open.
+fn crashed_at_the_tag(image: &[(String, Vec<u8>)], git: &FakeGit, after: bool) -> Arc<MemVfs> {
+    let vfs = mem_vfs(image);
     let (mut s, integrity) = mem_open(&vfs, 1);
-    let found = s
+    let crashing = CrashAtTag {
+        git,
+        vfs: Arc::clone(&vfs),
+        after,
+        dead: Cell::new(false),
+    };
+    let result = s.release(&context(), &integrity, &options(&crashing, None));
+    assert!(result.is_err(), "the process died: {result:?}");
+    // As the sweep: the file system restarts, then the dropped session lets its lock go.
+    vfs.restart();
+    drop(s);
+    assert!(
+        root_files(&vfs).contains_key("V1.0.ewarchive"),
+        "the archive is in place"
+    );
+    assert_eq!(run_records(&vfs).len(), 1, "the run recorded the archive");
+    assert_eq!(git.tags.borrow().contains_key("ew/rev/V1.0"), after);
+    vfs
+}
+
+/// FT-814: two copies of one project directory (an operating-system copy at the same generation, in two places) on one
+/// archive root, with one state directory (one user on one computer) and one tag namespace (two worktrees of one
+/// repository). Copy A releases V1.0 completely; copy B, with V1.0 still open, finds A's archive: it names the same
+/// project and revision and, at the same generation, could be completed, but no run record of B's directory proves it
+/// B's, so B's discard removes nothing (the archive's bytes and SHA-256 and the tag are unchanged) and says so in words
+/// (no ID, no address). B completing it is harmless: it stamps only B's revision and writes neither the archive nor the
+/// tag.
+#[test]
+fn a_copy_of_the_project_never_discards_the_other_copys_archive() {
+    let base = ew_testdir::fresh_dir("ew-release-copies");
+    let state = base.join("state");
+    let root = base.join("archives");
+    let dir_a = base.join("a").join("release-min");
+    let dir_b = base.join("b").join("release-min");
+    copy_dir(&fixture(), &dir_a);
+    let (mut a, integrity) = open(&dir_a, &state);
+    approve(&mut a, &integrity);
+    a.close();
+    copy_dir(&dir_a, &dir_b);
+    let git = FakeGit::default();
+    let (mut a, integrity_a) = open(&dir_a, &state);
+    let (mut b, integrity_b) = open(&dir_b, &state);
+    assert_eq!(
+        a.query().project().id,
+        b.query().project().id,
+        "the copies share the project ID"
+    );
+
+    let released = a
+        .release(&context(), &integrity_a, &options(&git, Some(&root)))
+        .expect("A releases");
+    let archive = root.join("V1.0.ewarchive");
+    let bytes = std::fs::read(&archive).expect("A's archive");
+    assert_eq!(released.sha256, ew_api::Sha256(ew_format::sha256(&bytes)));
+    let tag = git.tags.borrow()["ew/rev/V1.0"].clone();
+    assert_eq!(os_run_records(&state), 0, "A's run is settled");
+
+    let found = b
+        .incomplete_release(Some(&root))
+        .expect("looked")
+        .expect("B finds A's archive");
+    assert_eq!(found.foreign, None, "it names B's project and revision");
+    assert_eq!(found.refusal, None, "the same generation: B could complete it");
+    assert_eq!(found.unproven.as_deref(), Some(NO_RECORD));
+    let refused = b.discard_incomplete_release(&options(&git, Some(&root)));
+    let Err(e @ ReleaseError::Unproven { .. }) = refused else {
+        panic!("expected Unproven, got {refused:?}")
+    };
+    let text = e.to_string();
+    assert_eq!(text, kept_text(NO_RECORD));
+    assert!(!text.contains('@'), "{text}");
+    assert!(!text.contains(&b.query().project().id.to_string()), "{text}");
+    assert_eq!(
+        std::fs::read(&archive).expect("kept"),
+        bytes,
+        "A's archive is kept byte for byte"
+    );
+    assert_eq!(git.tags.borrow()["ew/rev/V1.0"], tag, "A's tag is kept");
+    assert_eq!(revision(&b).state, RevisionState::Open);
+
+    let done = b
+        .complete_release(&integrity_b, &options(&git, Some(&root)))
+        .expect("B completes");
+    assert_eq!(done.sha256, released.sha256);
+    assert_eq!(revision(&b).state, RevisionState::Released);
+    assert_eq!(std::fs::read(&archive).expect("kept"), bytes);
+    assert_eq!(
+        git.tags.borrow()["ew/rev/V1.0"],
+        tag,
+        "the tag is reused, never moved"
+    );
+    assert_eq!(revision(&a).state, RevisionState::Released);
+    assert_eq!(std::fs::read_dir(&root).expect("the root").count(), 1);
+    a.close();
+    b.close();
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+/// FT-814: this project directory's own crashed run (it died in the tag step, before creating the tag or right after
+/// it) is discarded by the directory: the archive, the tag its run created (its message carries the run's mark) and
+/// the run's record are removed, and a new release then succeeds and leaves no record.
+#[test]
+fn the_own_crashed_run_is_discarded_with_its_tag_and_record() {
+    let image = approved_image();
+    for after in [false, true] {
+        let fake = FakeGit::default();
+        let vfs = crashed_at_the_tag(&image, &fake, after);
+        if after {
+            let message = fake.tags.borrow()["ew/rev/V1.0"].clone();
+            assert!(message.contains("\nRun: "), "{message}");
+        }
+        let (mut r, integrity) = mem_open(&vfs, 2);
+        let found = r
+            .incomplete_release(None)
+            .expect("looked")
+            .expect("the incomplete release");
+        assert_eq!(
+            (found.foreign, found.refusal, found.unproven),
+            (None, None, None),
+            "after {after}"
+        );
+        let discarded = r
+            .discard_incomplete_release(&options(&fake, None))
+            .expect("discarded");
+        assert_eq!(discarded.tag_removed.as_deref(), after.then_some("ew/rev/V1.0"));
+        assert_eq!(discarded.tag_kept, None);
+        assert!(root_files(&vfs).is_empty(), "{:?}", root_files(&vfs).keys());
+        assert!(run_records(&vfs).is_empty(), "the run's record is gone");
+        assert!(fake.tags.borrow().is_empty());
+        assert_eq!(revision(&r).state, RevisionState::Open);
+        r.release(&context(), &integrity, &options(&fake, None))
+            .expect("released");
+        assert!(run_records(&vfs).is_empty(), "a settled run leaves no record");
+        r.close();
+    }
+}
+
+/// FT-814: a crashed run of this directory whose record is missing (the state directory was wiped) is kept by a
+/// discard, with the words, and can be completed; so is one whose archive was replaced by another file of the same
+/// bytes written later (the modification time is not the recorded one: a copy's release of the same generation).
+#[test]
+fn a_crashed_run_without_its_record_is_kept() {
+    let image = approved_image();
+
+    let fake = FakeGit::default();
+    let vfs = crashed_at_the_tag(&image, &fake, true);
+    for name in run_records(&vfs).keys() {
+        vfs.remove_file(&Path::new(MEM_RUNS).join(name))
+            .expect("the record removed");
+    }
+    let before = root_files(&vfs);
+    let tags = fake.tags.borrow().clone();
+    let (mut r, integrity) = mem_open(&vfs, 2);
+    let found = r
         .incomplete_release(None)
         .expect("looked")
         .expect("the incomplete release");
-    assert_eq!(found.foreign, None);
-    assert_eq!(found.refusal, None, "this project's archive of the open revision");
-    let own_temp = archive::temp_name("V1.0", &s.query().project().id.to_string(), 7);
-    vfs.put(&root.join(&own_temp), b"this project's crashed run");
-
-    let completed = s.complete_release(&integrity, &options(&fake, None));
-    let Err(ReleaseError::NotCompletable(why)) = &completed else {
-        panic!("{completed:?}")
+    assert_eq!(found.unproven.as_deref(), Some(NO_RECORD));
+    let refused = r.discard_incomplete_release(&options(&fake, None));
+    let Err(e @ ReleaseError::Unproven { .. }) = refused else {
+        panic!("expected Unproven, got {refused:?}")
     };
-    assert_eq!(
-        why,
-        "the git tag ew/rev/V1.0 exists and names another archive; it is kept"
+    assert_eq!(e.to_string(), kept_text(NO_RECORD));
+    assert_eq!(root_files(&vfs), before, "the archive is kept");
+    assert_eq!(*fake.tags.borrow(), tags, "the tag is kept");
+    r.complete_release(&integrity, &options(&fake, None))
+        .expect("it can still be completed");
+    assert_eq!(revision(&r).state, RevisionState::Released);
+    r.close();
+
+    let fake = FakeGit::default();
+    let vfs = crashed_at_the_tag(&image, &fake, false);
+    let path = Path::new(MEM_ROOT).join("V1.0.ewarchive");
+    let bytes = root_files(&vfs)["V1.0.ewarchive"].clone();
+    vfs.set_now(SystemTime::UNIX_EPOCH + Duration::from_secs(1_900_000_000));
+    vfs.remove_file(&path).expect("removed");
+    vfs.put(&path, &bytes);
+    let (mut r, _) = mem_open(&vfs, 2);
+    let refused = r.discard_incomplete_release(&options(&fake, None));
+    let Err(e @ ReleaseError::Unproven { .. }) = refused else {
+        panic!("expected Unproven, got {refused:?}")
+    };
+    assert_eq!(e.to_string(), kept_text(OTHER_FILE));
+    assert_eq!(root_files(&vfs)["V1.0.ewarchive"], bytes);
+    assert_eq!(run_records(&vfs).len(), 1, "the record stays with what it names");
+    r.close();
+}
+
+/// FT-814: two copies of one project writing at once in one archive root never remove each other's temps. The temps
+/// are named by the key of the project directory, which the copies do not share (at the same generation their names
+/// differ too); a release removes only a leftover temp of its own directory, and keeps a copy's live temp and a temp
+/// named by the project's ID (the owner before FT-814, which every copy shared).
+#[test]
+fn two_copies_writing_at_once_keep_each_others_temps() {
+    let image = approved_image();
+    let vfs = mem_vfs(&image);
+    let (mut s, integrity) = mem_open(&vfs, 1);
+    let g = s.content_digest().expect("saved").1;
+    let own = archive::path_key(&*vfs, Path::new(MEM_PROJECT));
+    let copy = archive::path_key(&*vfs, Path::new("/q"));
+    assert_ne!(own, copy);
+    assert_ne!(
+        archive::temp_name(LABEL, &own, g),
+        archive::temp_name(LABEL, &copy, g)
     );
-    assert!(fake.commits.borrow().is_empty(), "refused before the commit");
-
-    let discarded = s
-        .discard_incomplete_release(&options(&fake, None))
-        .expect("discarded");
-    assert_eq!(discarded.tag_removed, None);
-    assert_eq!(discarded.tag_kept.as_deref(), Some("ew/rev/V1.0"));
-    assert_eq!(fake.tags.borrow()["ew/rev/V1.0"], foreign_tag);
-    let left = root_files(&vfs);
-    assert_eq!(
-        left.keys().map(String::as_str).collect::<Vec<_>>(),
-        [
-            "V1.0.ewarchive.tmp-00000000-0000-4000-8000-0000000000b2-4",
-            "V1.0.ewarchive.tmp-9"
-        ],
-        "the archive and this project's temp are gone; another run's temp is kept"
+    let root = Path::new(MEM_ROOT);
+    let copy_temp = archive::temp_name(LABEL, &copy, g);
+    let id_temp = archive::temp_name(LABEL, &s.query().project().id.to_string(), g);
+    let own_leftover = archive::temp_name(LABEL, &own, g - 1);
+    vfs.put(&root.join(&copy_temp), b"the copy's release, still writing");
+    vfs.put(
+        &root.join(&id_temp),
+        b"a release before FT-814, maybe still writing",
     );
-    assert_eq!(left[other_temp], b"another project's release, still writing");
-
-    // A tag that carries this archive's SHA-256 (the crashed run's) is removed.
-    vfs.put(&root.join("V1.0.ewarchive"), &released);
-    let sha = ew_api::Sha256(ew_format::sha256(&released));
-    let own_tag = format!("Release V1.0\n\nArchive: V1.0.ewarchive\nSHA-256: {sha}\n");
-    fake.tags.borrow_mut().insert("ew/rev/V1.0".to_owned(), own_tag);
-    let discarded = s
-        .discard_incomplete_release(&options(&fake, None))
-        .expect("discarded");
-    assert_eq!(discarded.tag_removed.as_deref(), Some("ew/rev/V1.0"));
-    assert_eq!(discarded.tag_kept, None);
-    assert!(fake.tags.borrow().is_empty());
-
-    // A new release writes beside another run's temp and keeps it.
+    vfs.put(&root.join(&own_leftover), b"this directory's crashed run");
     s.release(&context(), &integrity, &options(&NoGit, None))
         .expect("released");
+    let left = root_files(&vfs);
     assert_eq!(
-        root_files(&vfs)[other_temp],
-        b"another project's release, still writing"
+        left.keys().cloned().collect::<BTreeSet<_>>(),
+        ["V1.0.ewarchive".to_owned(), copy_temp.clone(), id_temp.clone()]
+            .into_iter()
+            .collect::<BTreeSet<_>>(),
+        "this directory's leftover temp is removed; the others are kept"
     );
+    assert_eq!(left[&copy_temp], b"the copy's release, still writing");
+    assert_eq!(left[&id_temp], b"a release before FT-814, maybe still writing");
     s.close();
+}
+
+/// FIX39a (finding 1) and FT-814: a discard of this directory's own crashed run (it died before creating the tag) keeps
+/// a tag of the label that is not its run's: one whose message does not carry the archive's SHA-256 (another
+/// project's in the same repository), or carries it without the run's mark (a copy's in another worktree of the same
+/// repository, whose archive at the same generation has the same bytes). It removes the archive, this directory's own
+/// temps and the run's record, and keeps every temp another directory wrote. A completion with a tag that names
+/// another archive is refused before the commit.
+#[test]
+fn a_foreign_tag_and_another_runs_temp_are_kept() {
+    let image = approved_image();
+    for copys_tag in [false, true] {
+        let fake = FakeGit::default();
+        let vfs = crashed_at_the_tag(&image, &fake, false);
+        let root = Path::new(MEM_ROOT);
+        let sha = ew_api::Sha256(ew_format::sha256(&root_files(&vfs)["V1.0.ewarchive"]));
+        let foreign_tag = if copys_tag {
+            format!("Release V1.0\n\nArchive: V1.0.ewarchive\nSHA-256: {sha}\nRun: the-copys-run\n")
+        } else {
+            "Release V1.0\n\nArchive: V1.0.ewarchive\nSHA-256: 00ff\n".to_owned()
+        };
+        fake.tags
+            .borrow_mut()
+            .insert("ew/rev/V1.0".to_owned(), foreign_tag.clone());
+        let other_project = "V1.0.ewarchive.tmp-00000000-0000-4000-8000-0000000000b2-4";
+        let copy_temp = archive::temp_name(LABEL, &archive::path_key(&*vfs, Path::new("/q")), 4);
+        let own_temp = archive::temp_name(LABEL, &archive::path_key(&*vfs, Path::new(MEM_PROJECT)), 7);
+        vfs.put(
+            &root.join(other_project),
+            b"another project's release, still writing",
+        );
+        vfs.put(&root.join(&copy_temp), b"a copy's release, still writing");
+        vfs.put(&root.join("V1.0.ewarchive.tmp-9"), b"not a temp of this project");
+        vfs.put(&root.join(&own_temp), b"this directory's crashed run");
+        let (mut s, integrity) = mem_open(&vfs, 2);
+        let found = s
+            .incomplete_release(None)
+            .expect("looked")
+            .expect("the incomplete release");
+        assert_eq!((found.foreign, found.refusal, found.unproven), (None, None, None));
+
+        if !copys_tag {
+            let commits = fake.commits.borrow().len();
+            let completed = s.complete_release(&integrity, &options(&fake, None));
+            let Err(ReleaseError::NotCompletable(why)) = &completed else {
+                panic!("{completed:?}")
+            };
+            assert_eq!(
+                why,
+                "the git tag ew/rev/V1.0 exists and names another archive; it is kept"
+            );
+            assert_eq!(fake.commits.borrow().len(), commits, "refused before the commit");
+        }
+
+        let discarded = s
+            .discard_incomplete_release(&options(&fake, None))
+            .expect("discarded");
+        assert_eq!(discarded.tag_removed, None, "copy's tag {copys_tag}");
+        assert_eq!(discarded.tag_kept.as_deref(), Some("ew/rev/V1.0"));
+        assert_eq!(fake.tags.borrow()["ew/rev/V1.0"], foreign_tag);
+        let left = root_files(&vfs);
+        assert_eq!(
+            left.keys().cloned().collect::<BTreeSet<_>>(),
+            [
+                other_project.to_owned(),
+                copy_temp.clone(),
+                "V1.0.ewarchive.tmp-9".to_owned()
+            ]
+            .into_iter()
+            .collect::<BTreeSet<_>>(),
+            "the archive and this directory's temp are gone; every other temp is kept"
+        );
+        assert_eq!(left[other_project], b"another project's release, still writing");
+        assert_eq!(left[&copy_temp], b"a copy's release, still writing");
+        assert!(run_records(&vfs).is_empty(), "the run's record is gone");
+
+        // A new release writes beside the other runs' temps and keeps them.
+        fake.tags.borrow_mut().clear();
+        s.release(&context(), &integrity, &options(&NoGit, None))
+            .expect("released");
+        assert_eq!(
+            root_files(&vfs)[other_project],
+            b"another project's release, still writing"
+        );
+        assert_eq!(root_files(&vfs)[&copy_temp], b"a copy's release, still writing");
+        s.close();
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1370,6 +1756,7 @@ fn ra7_the_release_commits_and_tags_in_a_git_repository() {
         "{shown}"
     );
     assert!(shown.contains("Archive: V1.0.ewarchive"), "{shown}");
+    assert!(shown.contains("\nRun: "), "the run's mark (FT-814): {shown}");
     // The port reads the tag's own message back (a discard deletes the tag only when it carries the SHA-256).
     let message = git
         .tag_message(&dir, "ew/rev/V1.0")

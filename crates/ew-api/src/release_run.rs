@@ -26,6 +26,16 @@
 //! the session commits it, so a failed save leaves the model as it was. A crash leaves at most one complete archive
 //! that no release record names; [`Session::incomplete_release`] reports it at the next open.
 //!
+//! **Evidence** (FT-814). Two copies of one project directory (an operating-system copy, a restore, a Save as) carry
+//! the same project ID, and at the same generation write the same archive bytes, so nothing in an archive or in the
+//! project files tells whose run wrote it. Once its archive is in place, the run records it in the per-user state
+//! directory ([`ew_store::archive::RunRecord`]: the project directory, the archive, its SHA-256 and modification time,
+//! and the run's mark, which the tag's message carries as `Run: <mark>`), and removes the record when the run is
+//! settled. [`Session::discard_incomplete_release`] removes an archive only with a matching record of this project
+//! directory, and the tag only when its message also carries the record's mark; without the record (a copy, a wiped
+//! state directory, a session without one) everything is kept ([`ReleaseError::Unproven`]). The archive temps are named
+//! by the key of the project directory, so a copy's live temp is never removed either.
+//!
 //! **Reachability.** Only [`Session::release`] and [`Session::complete_release`] submit `revision.release`, from a human
 //! origin (the GUI, a confirmed CLI subcommand); [`Session::execute`] and [`Session::preview`] refuse it, and a command
 //! log, a script, MCP and a plugin get the exposure error.
@@ -135,12 +145,18 @@ pub struct IncompleteRelease {
     /// What its `ARCHIVE.json` says, when it reads: the release context's date, the generation and the record's facts.
     pub facts: Option<(Date, u64, ReleaseRecord)>,
     /// Why completing it is refused now, if it is (a damaged archive, another project's or revision's, a project that
-    /// changed since it was written): then the person discards it, unless [`IncompleteRelease::foreign`] says it is kept.
+    /// changed since it was written): then the person discards it, unless [`IncompleteRelease::foreign`] or
+    /// [`IncompleteRelease::unproven`] says it is kept.
     pub refusal: Option<String>,
     /// Why the archive is not this project's incomplete release, if it is not: its `ARCHIVE.json` names another project
     /// or another revision, or does not read (a root may be shared, and the file name carries only the label). Then it
     /// is neither completed nor discarded: it is kept ([`ReleaseError::Foreign`]).
     pub foreign: Option<String>,
+    /// Why a discard keeps the archive although it names this project and the open revision, if it does (FT-814): no
+    /// run record of this project directory in the state directory matches it, so it is not provably this directory's
+    /// own leftover (a copy of the directory names the same project). Then it is not discarded
+    /// ([`ReleaseError::Unproven`]); completing it is unaffected. `None` when the archive is foreign.
+    pub unproven: Option<String>,
 }
 
 /// What [`Session::discard_incomplete_release`] removed, and the tag it kept.
@@ -148,10 +164,11 @@ pub struct IncompleteRelease {
 pub struct Discarded {
     /// The archive removed.
     pub archive: PathBuf,
-    /// The tag `ew/rev/<label>` removed: its message carried the archive's SHA-256 (the crashed run created it).
+    /// The tag `ew/rev/<label>` removed: its message carried the archive's SHA-256 and the crashed run's mark (this
+    /// project directory's run created it).
     pub tag_removed: Option<String>,
-    /// The tag `ew/rev/<label>` kept: it exists, but its message does not carry the archive's SHA-256 (another
-    /// release's, or someone else's).
+    /// The tag `ew/rev/<label>` kept: it exists, but its message does not carry both the archive's SHA-256 and the
+    /// crashed run's mark (another release's, another copy's in the same repository, or someone else's).
     pub tag_kept: Option<String>,
 }
 
@@ -236,6 +253,14 @@ pub enum ReleaseError {
     /// The archive of the label in the archive root is not this project's incomplete release (it says why): it is
     /// neither completed nor discarded.
     Foreign(String),
+    /// The archive names this project and the open revision, but no run record of this project directory shows that
+    /// its own release wrote it (FT-814): a discard removes nothing.
+    Unproven {
+        /// Why (it names the archive).
+        why: String,
+        /// Whether the incomplete release can be completed instead.
+        completable: bool,
+    },
 }
 
 impl fmt::Display for ReleaseError {
@@ -256,7 +281,8 @@ impl fmt::Display for ReleaseError {
             }
             ReleaseError::Incomplete { archive } => write!(
                 f,
-                "the archive {} exists: an incomplete release; discard or complete it first",
+                "the archive {} exists: an incomplete release; complete or discard it first, or name another archive \
+                 folder",
                 archive.display()
             ),
             ReleaseError::GitConsent { worktree, tag } => write!(
@@ -302,6 +328,22 @@ impl fmt::Display for ReleaseError {
                 write!(f, "the incomplete release cannot be completed: {why}")
             }
             ReleaseError::Foreign(why) => write!(f, "{why}; it is kept"),
+            ReleaseError::Unproven {
+                why,
+                completable: true,
+            } => write!(
+                f,
+                "{why}; it is kept: complete the release with it, or remove the file by hand if you know it is a \
+                 leftover"
+            ),
+            ReleaseError::Unproven {
+                why,
+                completable: false,
+            } => write!(
+                f,
+                "{why}; it is kept: remove the file by hand if you know it is a leftover, or name another archive \
+                 folder"
+            ),
         }
     }
 }
@@ -345,20 +387,34 @@ fn archive_facts(bytes: &[u8]) -> Option<(String, Id<Revision>, Date, u64, Relea
     Some((project, revision, date, generation, record))
 }
 
-/// The tag message of a release (doc 05 §14.1 step 5): it carries the archive's SHA-256.
-fn tag_message(label: &str, name: &str, sha256: &Sha256) -> String {
-    format!("Release {label}\n\nArchive: {name}\nSHA-256: {sha256}\n")
+/// The tag message of a release (doc 05 §14.1 step 5): it carries the archive's SHA-256 and, from the release itself,
+/// the run's mark (`Run: <mark>`, FT-814), which the run's record in the state directory holds too.
+fn tag_message(label: &str, name: &str, sha256: &Sha256, run: Option<&str>) -> String {
+    let mut message = format!("Release {label}\n\nArchive: {name}\nSHA-256: {sha256}\n");
+    if let Some(run) = run {
+        message.push_str("Run: ");
+        message.push_str(run);
+        message.push('\n');
+    }
+    message
 }
 
 /// Whether a tag's message carries the archive's SHA-256 (the line [`tag_message`] writes): then the tag is this
-/// archive's release's, and a discard may delete it or a completion keep it.
+/// archive's release's, and a completion may keep it.
 fn tag_carries(message: &str, sha256: &Sha256) -> bool {
     let line = format!("SHA-256: {sha256}");
     message.lines().any(|l| l.trim() == line)
 }
 
-/// The owner marker of the project's archive temps ([`archive::temp_name`]): the project's ID.
-fn temp_owner(session: &Session) -> String {
+/// Whether a tag's message carries the run's mark (the line [`tag_message`] writes): then this project directory's run
+/// created it, and a discard may delete it (FT-814; another copy in the same repository shares the tag names).
+fn tag_of_run(message: &str, run: &str) -> bool {
+    let line = format!("Run: {run}");
+    message.lines().any(|l| l.trim() == line)
+}
+
+/// The project's ID: what an archive's `ARCHIVE.json` must name to be this project's.
+fn project_id(session: &Session) -> String {
     session.query().project().id.to_string()
 }
 
@@ -390,6 +446,126 @@ impl Session {
         self.store()
             .map(|s| std::sync::Arc::clone(s.vfs()))
             .ok_or(ReleaseError::Gate(GateError::NoProject))
+    }
+
+    /// The owner marker of the project directory's archive temps ([`archive::temp_name`]): the key of the project
+    /// directory ([`archive::path_key`]). A copy of the directory elsewhere carries the same project ID but has another
+    /// key, so it never removes a temp of this directory's live run, nor this directory one of its (FT-814).
+    fn temp_owner(&self) -> Result<String, ReleaseError> {
+        let store = self.store().ok_or(ReleaseError::Gate(GateError::NoProject))?;
+        Ok(archive::path_key(&**store.vfs(), store.root()))
+    }
+
+    /// The file of this project directory's run record for `archive` ([`archive::run_record_path`]); `None` without a
+    /// state directory.
+    fn run_record_path(&self, archive: &Path) -> Option<PathBuf> {
+        let store = self.store()?;
+        let state = store.state_dir()?;
+        let vfs = &**store.vfs();
+        Some(archive::run_record_path(
+            state,
+            &archive::path_text(vfs, store.root()),
+            &archive::path_text(vfs, archive),
+        ))
+    }
+
+    /// Records that this project directory's run wrote the archive `written` (FT-814), with the run's mark; returns the
+    /// record's file. Best effort: without a state directory, or when the write fails, there is no record, and a
+    /// discard after a crash keeps the archive (the release itself goes on).
+    fn write_run_record(
+        &self,
+        written: &archive::Written,
+        revision: Id<Revision>,
+        label: &str,
+        generation: u64,
+        run: &str,
+    ) -> Option<PathBuf> {
+        let store = self.store()?;
+        let state = store.state_dir()?;
+        let vfs = &**store.vfs();
+        let modified = vfs
+            .stat(&written.path)
+            .ok()
+            .and_then(|s| s.modified)
+            .and_then(archive::record_time);
+        let record = archive::RunRecord {
+            project_dir: archive::path_text(vfs, store.root()),
+            archive: archive::path_text(vfs, &written.path),
+            project: project_id(self),
+            revision: revision.to_string(),
+            label: label.to_owned(),
+            generation,
+            sha256: Sha256(written.sha256).to_string(),
+            modified,
+            run: run.to_owned(),
+        };
+        archive::write_run_record(vfs, state, &record).ok()
+    }
+
+    /// Removes the run record at `path`, if any (best effort: a record left behind names an archive whose bytes and
+    /// modification time a later file must both match).
+    fn remove_run_record(&self, path: Option<&Path>) {
+        if let (Some(path), Some(store)) = (path, self.store()) {
+            let _ = archive::remove_run_record(&**store.vfs(), path);
+        }
+    }
+
+    /// Removes the archive this run wrote after a failure in steps 5 or 6 (D13), then its run record. When the archive
+    /// cannot be removed, the record stays with it: the archive is then an incomplete release that a discard removes.
+    fn take_back(&self, archive_path: &Path, run_record: Option<&Path>) {
+        let Some(store) = self.store() else { return };
+        if archive::remove(&**store.vfs(), archive_path).is_ok() {
+            self.remove_run_record(run_record);
+        }
+    }
+
+    /// The run record of this project directory that proves its own release wrote the incomplete release's archive
+    /// (FT-814): the record of the directory and the archive, naming this project, the revision, the label, the
+    /// archive's generation, its SHA-256 and its modification time. Else why the archive is not provably this
+    /// directory's leftover (it names the archive).
+    fn run_evidence(&self, found: &IncompleteRelease) -> Result<archive::RunRecord, String> {
+        let name = archive::file_name(&found.label);
+        let unproven = |why: &str| {
+            format!(
+                "the archive {name} in that folder is not provably a leftover of this project folder's own release \
+                 ({why})"
+            )
+        };
+        let store = self.store().ok_or_else(|| GateError::NoProject.to_string())?;
+        let Some(state) = store.state_dir() else {
+            return Err(unproven(
+                "this session keeps no release records: it has no state directory",
+            ));
+        };
+        let vfs = &**store.vfs();
+        let project_dir = archive::path_text(vfs, store.root());
+        let archive_text = archive::path_text(vfs, &found.archive);
+        let path = archive::run_record_path(state, &project_dir, &archive_text);
+        let record = archive::read_run_record(vfs, &path)
+            .filter(|r| r.project_dir == project_dir && r.archive == archive_text)
+            .ok_or_else(|| {
+                unproven(
+                    "no release from this folder recorded writing it, and a copy of the folder names the same \
+                     project",
+                )
+            })?;
+        let modified = vfs.stat(&found.archive).ok().and_then(|s| s.modified);
+        let same = record.project == project_id(self)
+            && record.revision == found.revision.to_string()
+            && record.label == found.label
+            && found
+                .facts
+                .as_ref()
+                .is_some_and(|(_, generation, _)| *generation == record.generation)
+            && record.sha256 == found.sha256.to_string()
+            && archive::same_time(record.modified, modified);
+        if same {
+            Ok(record)
+        } else {
+            Err(unproven(
+                "the release from this folder recorded another file under that name",
+            ))
+        }
     }
 
     /// What [`Session::release`] would do for the open revision `label`, judged without writing anything: the gate
@@ -549,19 +725,24 @@ impl Session {
             let entries = archive::read(back, &limits)?;
             archive::check_project(&entries, &manifest.0, &manifest.1)
         };
-        let owner = temp_owner(self);
+        let owner = self.temp_owner()?;
         let written =
             archive::write_atomically(&*vfs, &root, &ctx.label, &owner, generation, &bytes, &verify)
                 .map_err(ReleaseError::Write)?;
         let sha256 = Sha256(written.sha256);
+        // The run's record (FT-814): the evidence a discard after a crash needs that this directory's run wrote the
+        // archive. Its mark goes into the tag's message.
+        let run = ew_store::lock::new_session_id();
+        let run_record = self.write_run_record(&written, plan.gate.revision, &ctx.label, generation, &run);
         // Step 5: the tag.
         if let Some((_, tag)) = &plan.git {
             let name = archive::file_name(&ctx.label);
-            if let Err(e) = options
-                .git
-                .tag(&project, tag, &tag_message(&ctx.label, &name, &sha256))
-            {
-                let _ = archive::remove(&*vfs, &written.path);
+            if let Err(e) = options.git.tag(
+                &project,
+                tag,
+                &tag_message(&ctx.label, &name, &sha256, Some(&run)),
+            ) {
+                self.take_back(&written.path, run_record.as_deref());
                 return Err(ReleaseError::Tag(e));
             }
         }
@@ -569,13 +750,22 @@ impl Session {
         let tag = plan.git.as_ref().map(|(_, t)| t.clone());
         let stamped = self.stamp(&plan.gate, &record, &written.path, sha256, tag.as_deref());
         let (stamped, save_incomplete) = match stamped {
-            Ok(s) => s,
-            Err(e @ (ReleaseError::Unsettled(_) | ReleaseError::Undecided(_))) => return Err(e),
+            Ok(s) => {
+                self.remove_run_record(run_record.as_deref());
+                s
+            }
+            // The stamp is saved: the release record names the archive and the tag.
+            Err(e @ ReleaseError::Unsettled(_)) => {
+                self.remove_run_record(run_record.as_deref());
+                return Err(e);
+            }
+            // The next open completes the release or reports the incomplete one: the record stays with the archive.
+            Err(e @ ReleaseError::Undecided(_)) => return Err(e),
             Err(e) => {
                 if let Some(t) = &tag {
                     let _ = options.git.delete_tag(&project, t);
                 }
-                let _ = archive::remove(&*vfs, &written.path);
+                self.take_back(&written.path, run_record.as_deref());
                 return Err(e);
             }
         };
@@ -832,7 +1022,9 @@ impl Session {
     /// open. `None` when there is no open revision or no such archive. The archive is read and checked: a damaged one,
     /// one of another project or revision, or one whose generation is not the saved one is reported with the reason it
     /// cannot be completed ([`IncompleteRelease::refusal`]); a damaged one or one of another project or revision is not
-    /// this project's at all and is kept ([`IncompleteRelease::foreign`]).
+    /// this project's at all and is kept ([`IncompleteRelease::foreign`]). One of this project and revision that no run
+    /// record of this project directory matches is not provably this directory's leftover, and a discard keeps it
+    /// ([`IncompleteRelease::unproven`], FT-814).
     ///
     /// # Errors
     ///
@@ -872,6 +1064,7 @@ impl Session {
             facts: None,
             refusal: None,
             foreign: None,
+            unproven: None,
         };
         let foreign = |found: &mut IncompleteRelease, why: String| {
             found.refusal = Some(why.clone());
@@ -900,7 +1093,7 @@ impl Session {
             return Ok(Some(found));
         };
         found.facts = Some((date, generation, record.clone()));
-        if project != temp_owner(self) {
+        if project != project_id(self) {
             foreign(
                 &mut found,
                 format!("the archive {name} in that folder belongs to another project"),
@@ -912,6 +1105,7 @@ impl Session {
             );
         } else {
             found.refusal = self.completable(&entries, generation, &record).err();
+            found.unproven = self.run_evidence(&found).err();
         }
         Ok(Some(found))
     }
@@ -939,14 +1133,16 @@ impl Session {
     }
 
     /// Discards the incomplete release (doc 05 §14.1 "On failure"): deletes the tag `ew/rev/<label>` when the project
-    /// lies in a worktree and the tag's message carries the archive's SHA-256 (the crashed run created it; any other
-    /// tag of the label is kept), then the archive and the leftover temps of its name that this project wrote. Only an
-    /// archive whose `ARCHIVE.json` names this project and the open revision is discarded. The revision stays open.
+    /// lies in a worktree and the tag's message carries the archive's SHA-256 and the crashed run's mark (this project
+    /// directory's run created it; any other tag of the label is kept), then the archive, the leftover temps of its
+    /// name that this project directory wrote, and the run's record. Only an archive whose `ARCHIVE.json` names this
+    /// project and the open revision, and that a run record of this project directory proves its own (FT-814), is
+    /// discarded. The revision stays open.
     ///
     /// # Errors
     ///
-    /// [`ReleaseError`]: the origin, a read-only session, [`ReleaseError::NoIncomplete`], [`ReleaseError::Foreign`]
-    /// (nothing is removed), git, I/O.
+    /// [`ReleaseError`]: the origin, a read-only session, [`ReleaseError::NoIncomplete`], [`ReleaseError::Foreign`] and
+    /// [`ReleaseError::Unproven`] (nothing is removed), git, I/O.
     pub fn discard_incomplete_release(
         &mut self,
         options: &ReleaseOptions<'_>,
@@ -958,6 +1154,11 @@ impl Session {
         if let Some(why) = found.foreign {
             return Err(ReleaseError::Foreign(why));
         }
+        let evidence = self.run_evidence(&found).map_err(|why| ReleaseError::Unproven {
+            why,
+            completable: found.refusal.is_none(),
+        })?;
+        let record_path = self.run_record_path(&found.archive);
         let vfs = self.release_vfs()?;
         let project = self.store().map(|s| s.root().to_path_buf()).unwrap_or_default();
         let mut tag_removed = None;
@@ -978,7 +1179,9 @@ impl Session {
                 .tag_message(&project, &tag)
                 .map_err(ReleaseError::Git)?
             {
-                Some(message) if tag_carries(&message, &found.sha256) => {
+                Some(message)
+                    if tag_carries(&message, &found.sha256) && tag_of_run(&message, &evidence.run) =>
+                {
                     options
                         .git
                         .delete_tag(&project, &tag)
@@ -994,10 +1197,11 @@ impl Session {
             error,
         })?;
         let root = found.archive.parent().map(Path::to_path_buf).unwrap_or_default();
-        let owner = temp_owner(self);
+        let owner = self.temp_owner()?;
         for temp in archive::leftover_temps(&*vfs, &root, &found.label, &owner).unwrap_or_default() {
             let _ = archive::remove(&*vfs, &temp);
         }
+        self.remove_run_record(record_path.as_deref());
         Ok(Discarded {
             archive: found.archive,
             tag_removed,
@@ -1008,7 +1212,10 @@ impl Session {
     /// Completes the incomplete release (doc 05 §14.1 "On failure"): the gate on the saved generation, which must be
     /// the archive's, then steps 3, 5 and 6 with the archive's own facts (`ARCHIVE.json`): the commit (nothing when the
     /// project directory is committed already), the tag when it is missing, the stamp. A consent is needed inside a
-    /// worktree, as for [`Session::release`].
+    /// worktree, as for [`Session::release`]. A tag it creates carries the mark of this project directory's run record
+    /// of the archive, when there is one (so a discard after a crash still removes it); a completed release removes
+    /// that record. Completing never writes or removes the archive: a copy of the project directory that completes
+    /// another copy's archive stamps only its own revision (its `project/` must equal the copy's saved generation).
     ///
     /// # Errors
     ///
@@ -1028,6 +1235,8 @@ impl Session {
         if let Some(why) = found.foreign {
             return Err(ReleaseError::Foreign(why));
         }
+        let evidence = self.run_evidence(&found).ok();
+        let record_path = self.run_record_path(&found.archive);
         if let Some(why) = found.refusal {
             return Err(ReleaseError::NotCompletable(why));
         }
@@ -1079,9 +1288,14 @@ impl Session {
                 .map_err(ReleaseError::Git)?;
             if existing.is_none() {
                 let name = archive::file_name(&found.label);
+                let run = evidence.as_ref().map(|r| r.run.as_str());
                 options
                     .git
-                    .tag(&project, &tag, &tag_message(&found.label, &name, &found.sha256))
+                    .tag(
+                        &project,
+                        &tag,
+                        &tag_message(&found.label, &name, &found.sha256, run),
+                    )
                     .map_err(ReleaseError::Tag)?;
                 created_tag = Some(tag.clone());
             }
@@ -1097,8 +1311,15 @@ impl Session {
             git_done.as_ref().map(|(_, t)| t.as_str()),
         );
         let (stamped, save_incomplete) = match stamped {
-            Ok(s) => s,
-            Err(e @ (ReleaseError::Unsettled(_) | ReleaseError::Undecided(_))) => return Err(e),
+            Ok(s) => {
+                self.remove_run_record(record_path.as_deref());
+                s
+            }
+            Err(e @ ReleaseError::Unsettled(_)) => {
+                self.remove_run_record(record_path.as_deref());
+                return Err(e);
+            }
+            Err(e @ ReleaseError::Undecided(_)) => return Err(e),
             Err(e) => {
                 if let Some(t) = &created_tag {
                     let _ = options.git.delete_tag(&project, t);
