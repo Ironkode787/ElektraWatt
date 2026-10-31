@@ -17,7 +17,7 @@ use ew_schema::{Endpoint, Record};
 const EXTRA: &[(&str, &str)] = &[
     (
         "parts.csv",
-        "KPOS,Siemens,KPOS,,,Positional test contactor,piece,,",
+        "KPOS,Siemens,KPOS,,,Positional test contactor,piece,,,,,,,,,,",
     ),
     ("part_cps.csv", "KPOS:0,KPOS,0,A1,,,,"),
     ("part_cps.csv", "KPOS:1,KPOS,1,A2,,,,"),

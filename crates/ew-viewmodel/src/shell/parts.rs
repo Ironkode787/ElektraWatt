@@ -36,9 +36,10 @@ use crate::tools::PreviewState;
 const COMMAND: &str = "parts.import";
 
 /// The columns of the golden dialect's `parts.csv` (`ew-import-tables`) and the member each fills in a column map:
-/// the required `key`, `manufacturer` and `part_number`, then the optional ones; `key`, `test_data` and `tech_data`
-/// (a `name=value;…` list) fill no member of the general importer.
-const GOLDEN_COLUMNS: [(&str, Option<&str>); 9] = [
+/// the required `key`, `manufacturer` and `part_number`, then the optional ones; `key`, `test_data`, `tech_data` (a
+/// `name=value;…` list) and the mechanical columns (WP-S4.01 D13: `width` … `rail_profile`, read by the golden reader)
+/// fill no member of the general importer.
+const GOLDEN_COLUMNS: [(&str, Option<&str>); 17] = [
     ("key", None),
     ("manufacturer", Some("manufacturer")),
     ("part_number", Some("part_number")),
@@ -48,6 +49,14 @@ const GOLDEN_COLUMNS: [(&str, Option<&str>); 9] = [
     ("unit", Some("unit")),
     ("test_data", None),
     ("tech_data", None),
+    ("width", None),
+    ("height", None),
+    ("depth", None),
+    ("mount_kind", None),
+    ("enclosure", None),
+    ("enclosure_plate", None),
+    ("plate", None),
+    ("rail_profile", None),
 ];
 
 /// The golden pre-fill of a table whose headers are exactly golden-dialect columns, the three required ones among

@@ -127,8 +127,9 @@ impl Session {
     /// project) as a new project of kind [`NewProjectKind::Basic`] under a new project ID (a UUIDv7 of the system
     /// clock) and new record IDs, as [`Session::new_project`] copies a directory. Schemes, profiles, frames and
     /// forms, sections, structure, report blocks and library copies are kept; `omit_pages` leaves out every page
-    /// (and what the pages own), `omit_devices` every device, function, representation and connection, and the
-    /// junctions, conductors and bonds of the wiring. The omission runs `edit.delete` on a scratch session over a
+    /// (and what the pages own), `omit_devices` every device, function, representation and connection, the
+    /// junctions, conductors and bonds of the wiring, and the panel layout's placements and enclosures (with their
+    /// surfaces and carriers; the layout spaces stay with the structure). The omission runs `edit.delete` on a scratch session over a
     /// copy of the model, so the delete policies decide what goes along (a report block embedded in a page goes
     /// with the page; a block that lists omitted devices, such as the terminal diagram of one strip, stays and
     /// loses them from its list); the session itself, its history and its project directory are not touched. The
@@ -146,6 +147,41 @@ impl Session {
         store: StoreOptions,
     ) -> Result<(), SaveAsBasicError> {
         let mut scratch = Session::new(self.engine.model().clone(), SessionOptions::default());
+        if omit_devices {
+            // The panel layout goes with the devices (WP-S4.01): the placements, then the enclosures with their
+            // surfaces and carriers (an enclosure keeps its device, `enclosure.device` forbid); the layout spaces
+            // belong to the kept structure and stay.
+            let (placements, enclosures) = {
+                let q = scratch.query();
+                (
+                    q.table::<ew_schema::Placement>().ids().collect::<Vec<_>>(),
+                    q.table::<ew_schema::Enclosure>().ids().collect::<Vec<_>>(),
+                )
+            };
+            let layout = placements
+                .into_iter()
+                .map(|p| ("layout.remove", serde_json::json!({ "placement": p })))
+                .chain(
+                    enclosures
+                        .into_iter()
+                        .map(|e| ("layout.enclosure.delete", serde_json::json!({ "enclosure": e }))),
+                );
+            for (name, params) in layout {
+                let cmd = AnyCommand {
+                    name: name.into(),
+                    params,
+                };
+                match scratch.execute(&cmd) {
+                    Err(CmdError::NeedsPreview { .. }) => {
+                        let preview = scratch.preview(&cmd).map_err(SaveAsBasicError::Omit)?;
+                        scratch.commit(preview).map_err(SaveAsBasicError::Omit)?;
+                    }
+                    other => {
+                        other.map_err(SaveAsBasicError::Omit)?;
+                    }
+                }
+            }
+        }
         let targets: Vec<Value> = {
             let q = scratch.query();
             let mut targets = Vec::new();

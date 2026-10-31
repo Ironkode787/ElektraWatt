@@ -21,8 +21,9 @@ use ew_store::ew_format::{FindingKind, Severity, hash_text, lib_document_text, s
 use ew_store::mem::DirSync;
 use ew_store::{Access, Changes, Opened, Store, Vfs, join};
 
-/// A part copy of the golden project (Festo 552286): no sections, no new members.
-const PART_COPY: &str = "lib/parts/07a6c371-1881-5acc-9ac3-0d773f0ddc16.json";
+/// A part copy of the golden project (the configured product 51E-F13GCQP-D+H2GG): no sections, no new members (the
+/// copies of mounted parts carry `mech` since doc 20 §13's test geometry, WP-S4.01 D13).
+const PART_COPY: &str = "lib/parts/1d4f67c2-712f-539f-888b-2a6ec30629aa.json";
 
 /// The new members as an older build kept them: unknown, so JSON values in `extra`.
 const MECH: &str = r#"{"width":45000000,"height":90000000,"depth":60000000,"mount_kind":"ts35x7_5","rail_offset":[22500000,45000000],"clearance":{"top":20000000,"bottom":20000000},"mass":120}"#;

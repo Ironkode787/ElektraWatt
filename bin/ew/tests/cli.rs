@@ -1604,7 +1604,7 @@ fn parts_target(t: &Tmp, name: &str) -> PathBuf {
 }
 
 /// The part copies of a `lib/parts` folder by `item_id`, without the members that legitimately differ between
-/// projects (ids, hash, provenance, the manufacturer's library).
+/// projects (ids, hash, provenance, the library of the manufacturer and of an enclosure's plate part).
 fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String, serde_json::Value> {
     let mut out = std::collections::BTreeMap::new();
     for (_, bytes) in tree(dir) {
@@ -1619,6 +1619,15 @@ fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String,
         }
         if let Some(m) = o.get_mut("manufacturer").and_then(|m| m.as_object_mut()) {
             m.remove("library");
+        }
+        // The enclosure section's plate part is project-local too (WP-S4.01 D13).
+        if let Some(p) = o
+            .get_mut("sections")
+            .and_then(|s| s.get_mut("enclosure"))
+            .and_then(|e| e.get_mut("plate"))
+            .and_then(|p| p.as_object_mut())
+        {
+            p.remove("library");
         }
         assert!(out.insert(item, v).is_none(), "one copy per item");
     }
