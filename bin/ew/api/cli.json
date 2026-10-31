@@ -1,0 +1,1261 @@
+{
+  "cli": [
+    {
+      "path": "apply",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--preview",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--one-step",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "every line commits"
+        },
+        {
+          "code": 1,
+          "meaning": "a prevent or domain rule refuses a line"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, a malformed log, an unresolvable reference, a refused command, open, lock and save errors"
+        }
+      ],
+      "result": "ew.apply-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "check",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--scheme",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--mode",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--lang",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "no unwaived error"
+        },
+        {
+          "code": 1,
+          "meaning": "unwaived errors"
+        },
+        {
+          "code": 2,
+          "meaning": "usage and open errors"
+        }
+      ],
+      "result": "ew.check-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "commands",
+      "flags": [
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        }
+      ],
+      "result": "ew.commands-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "export bom",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--block",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--mode",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage and open errors, a project without the block, an unknown or wrong block"
+        }
+      ],
+      "result": "ew.export-bom-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "export cables",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--block",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage and open errors, a project without the block, an unknown or wrong block"
+        }
+      ],
+      "result": "ew.export-cables-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "export pdf",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--pages",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--threads",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.export-pdf-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "export png",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--pages",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--dpi",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--threads",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.export-png-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "export report",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--block",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and writer errors, an unknown block, a block without rows or pages"
+        }
+      ],
+      "result": "ew.export-report-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "export svg",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--pages",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--threads",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.export-svg-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "export terminals",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--block",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--strip",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage and open errors, a project without the block, an unknown or wrong block, an unknown strip"
+        }
+      ],
+      "result": "ew.export-terminals-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "export wires",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--block",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage and open errors, a project without the block, an unknown or wrong block"
+        }
+      ],
+      "result": "ew.export-wires-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "fmt",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--check",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "every file is canonical, or the files were rewritten and saved"
+        },
+        {
+          "code": 1,
+          "meaning": "`--check` found files to rewrite"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, lock, a crashed session's journal, a content change and save errors"
+        }
+      ],
+      "result": "ew.fmt-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "import csv",
+      "flags": [
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--content",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--strict",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--lenient",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "written, with its findings"
+        },
+        {
+          "code": 1,
+          "meaning": "nothing written: `--strict` refused error findings, or the records do not make a project"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, starter content, an unreadable table, an `--out` that holds something, write errors"
+        }
+      ],
+      "result": "ew.import-csv-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "import parts",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--map",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--as-of",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--company",
+          "value": true,
+          "repeatable": true
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "imported and saved"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.import-parts-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "import qet",
+      "flags": [
+        {
+          "name": "--content",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--report",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--report-out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--strict",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "imported, even with findings"
+        },
+        {
+          "code": 1,
+          "meaning": "the model check failed, or `--strict` with lost connections or error findings"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.import-qet-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "lib create",
+      "flags": [
+        {
+          "name": "--key",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--name",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--licence",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--company",
+          "value": true,
+          "repeatable": true
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.lib-create-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "lib import parts",
+      "flags": [
+        {
+          "name": "--map",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--as-of",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--bump",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--take-over",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--company",
+          "value": true,
+          "repeatable": true
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.lib-import-parts-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "lib index",
+      "flags": [
+        {
+          "name": "--rebuild",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--company",
+          "value": true,
+          "repeatable": true
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.lib-index-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "lib list",
+      "flags": [
+        {
+          "name": "--company",
+          "value": true,
+          "repeatable": true
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.lib-list-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "lib search",
+      "flags": [
+        {
+          "name": "--kind",
+          "value": true,
+          "repeatable": true
+        },
+        {
+          "name": "--all",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--limit",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--company",
+          "value": true,
+          "repeatable": true
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.lib-search-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "project assets purge",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--preview",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "confirmed, done and saved"
+        },
+        {
+          "code": 1,
+          "meaning": "refused or not confirmed"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, no controlling terminal, open and save errors"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "project checks set",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--active",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--release",
+          "value": true,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "confirmed, done and saved"
+        },
+        {
+          "code": 1,
+          "meaning": "refused or not confirmed"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, no controlling terminal, open and save errors"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "queries",
+      "flags": [
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        }
+      ],
+      "result": "ew.queries-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "query",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--explain",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "answered"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, an unknown query, open errors, a key that names no record or one of another kind"
+        }
+      ],
+      "result": "ew.query-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "recover",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--replay",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--discard",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "summarised, replayed and saved, discarded, or no journal"
+        },
+        {
+          "code": 1,
+          "meaning": "the replay refused or the discard not confirmed"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, no controlling terminal, lock, open and save errors"
+        }
+      ],
+      "result": "ew.recover-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "render",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--page",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--png",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--dpi",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and writer errors, an unknown folio"
+        }
+      ],
+      "result": "ew.render-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "revision approve",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--as",
+          "value": true,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "confirmed, done and saved"
+        },
+        {
+          "code": 1,
+          "meaning": "refused or not confirmed"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, no controlling terminal, open and save errors"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "revision release",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--archive-dir",
+          "value": true,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "confirmed, done and saved"
+        },
+        {
+          "code": 1,
+          "meaning": "refused or not confirmed"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, no controlling terminal, open and save errors"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "revision withdraw",
+      "flags": [
+        {
+          "name": "--reason",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "confirmed, done and saved"
+        },
+        {
+          "code": 1,
+          "meaning": "refused or not confirmed"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, no controlling terminal, open and save errors"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "schema",
+      "flags": [],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, an unknown schema name"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "sql",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--file",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--format",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        },
+        {
+          "name": "--timeout",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--out",
+          "value": true,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open and SQL errors, denials and limits"
+        }
+      ],
+      "result": "ew.sql-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "sql dump",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        },
+        {
+          "code": 2,
+          "meaning": "usage, open, I/O and every other error"
+        }
+      ],
+      "result": "ew.sql-dump-result/1",
+      "stability": "preview"
+    },
+    {
+      "path": "sql schema",
+      "flags": [],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "success"
+        }
+      ],
+      "result": null,
+      "stability": "preview"
+    },
+    {
+      "path": "verify-derived",
+      "flags": [
+        {
+          "name": "--project",
+          "value": true,
+          "repeatable": false
+        },
+        {
+          "name": "--json",
+          "value": false,
+          "repeatable": false
+        }
+      ],
+      "exits": [
+        {
+          "code": 0,
+          "meaning": "no difference"
+        },
+        {
+          "code": 1,
+          "meaning": "differences"
+        },
+        {
+          "code": 2,
+          "meaning": "usage and open errors"
+        }
+      ],
+      "result": "ew.verify-derived-result/1",
+      "stability": "preview"
+    }
+  ]
+}

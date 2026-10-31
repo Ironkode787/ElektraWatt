@@ -72,6 +72,14 @@ pub(crate) enum Action {
         filter: Option<&'static str>,
         env: &'static str,
     },
+    /// A bless test among the unit tests of a binary: `<env>=1 cargo nextest run -p <package> --all-features --bin
+    /// <bin> [-E <filter>]` (the CLI snapshot, whose table is a module of the `ew` binary).
+    BlessBin {
+        package: &'static str,
+        bin: &'static str,
+        filter: Option<&'static str>,
+        env: &'static str,
+    },
     /// An xtask generator `run(root, check)`: `docs-gen`, `gen-icons`.
     Xtask(fn(&Path, bool) -> Result<bool>),
     /// `check-raw-read --bless` (`check-raw-read` with `--check`).
@@ -123,11 +131,18 @@ const KEYMAPS: [&str; 3] = [
     "crates/ew-viewmodel/keymaps/sheet.json",
 ];
 const BLIND_REFERENCE: &str = "tools/blind/reference/**";
-const BOOK_PAGES: [&str; 4] = [
+const CLI_SNAPSHOT: &str = "bin/ew/api/cli.json";
+const API_V1_SNAPSHOT: &str = "crates/ew-sqlview/api/api_v1.json";
+const QUERY_SNAPSHOT: &str = "crates/ew-api/api/queries.json";
+const BOOK_PAGES: [&str; 8] = [
     "docs/book/src/reference/commands/**",
     "docs/book/src/reference/rules/**",
     "docs/book/src/reference/glossary.md",
     "docs/book/src/reference/keymaps.md",
+    "docs/book/src/reference/cli/**",
+    "docs/book/src/reference/queries.md",
+    "docs/book/src/reference/api-v1.md",
+    "docs/book/src/reference/format/**",
 ];
 const BOOK_SUMMARY: &str = "docs/book/src/SUMMARY.md";
 const ICONS: &str = "crates/ew-ui/src/icons/generated.rs";
@@ -138,7 +153,7 @@ const SELFTEST_RECORDING: &str = "tools/blind/recordings/selftest/**";
 const SELFTEST_VISUAL_RECORDING: &str = "tools/blind/recordings/selftest-visual/**";
 
 /// The steps in their order: rustfmt, the command schemas, the CLI schemas, the rule catalogue, the keymaps, the
-/// blind reference, `docs-gen`, `gen-icons`, the clippy list, the fuzz table, the golden change list and the two
+/// blind reference, the CLI, `api_v1` and query snapshots, `docs-gen`, `gen-icons`, the clippy list, the fuzz table, the golden change list and the two
 /// self-tests; then the checks; then the review gates of `--merge`.
 pub(crate) const STEPS: &[Step] = &[
     Step {
@@ -220,12 +235,61 @@ pub(crate) const STEPS: &[Step] = &[
             env: "EW_BLESS",
         },
     },
+    // WP-S1.22 part 5 (the orchestrator's ruling 2, cycle 42): the published-surface snapshots that the API guard and
+    // docs-gen read.
+    Step {
+        name: "cli-snapshot",
+        phase: Phase::Regen,
+        triggers: &[CLI_SNAPSHOT],
+        deps_of: &["ew"],
+        outputs: &[CLI_SNAPSHOT],
+        partial: &[],
+        action: Action::BlessBin {
+            package: "ew",
+            bin: "ew",
+            filter: Some("test(/^catalogue::/)"),
+            env: "EW_CLI_BLESS",
+        },
+    },
+    Step {
+        name: "api-v1-snapshot",
+        phase: Phase::Regen,
+        triggers: &[API_V1_SNAPSHOT],
+        deps_of: &["ew-sqlview"],
+        outputs: &[API_V1_SNAPSHOT],
+        partial: &[],
+        action: Action::BlessTest {
+            package: "ew-sqlview",
+            test: "it",
+            filter: Some("test(/^api_v1::/)"),
+            env: "EW_BLESS",
+        },
+    },
+    Step {
+        name: "query-snapshot",
+        phase: Phase::Regen,
+        triggers: &[QUERY_SNAPSHOT],
+        deps_of: &["ew-api"],
+        outputs: &[QUERY_SNAPSHOT],
+        partial: &[],
+        action: Action::BlessTest {
+            package: "ew-api",
+            test: "it",
+            filter: Some("test(the_query_snapshot_equals_the_registry)"),
+            env: "EW_BLESS",
+        },
+    },
     Step {
         name: "docs-gen",
         phase: Phase::Regen,
         triggers: &[
             COMMAND_SCHEMAS,
             CATALOGUE,
+            CLI_SNAPSHOT,
+            CLI_SCHEMAS,
+            QUERY_SNAPSHOT,
+            API_V1_SNAPSHOT,
+            "schemas/0.1/**",
             "crates/ew-viewmodel/glossary/**",
             "crates/ew-viewmodel/keymaps/sheet.json",
             "docs/book/src/**",
@@ -241,6 +305,10 @@ pub(crate) const STEPS: &[Step] = &[
             BOOK_PAGES[1],
             BOOK_PAGES[2],
             BOOK_PAGES[3],
+            BOOK_PAGES[4],
+            BOOK_PAGES[5],
+            BOOK_PAGES[6],
+            BOOK_PAGES[7],
             BOOK_SUMMARY,
         ],
         partial: &[BOOK_SUMMARY],
@@ -685,6 +753,35 @@ fn python() -> &'static str {
     if cfg!(windows) { "python" } else { "python3" }
 }
 
+/// A bless test: `<env>=1 cargo nextest run -p <package> --all-features <target> [-E <filter>]`, or without the
+/// variable when `check`.
+fn bless_test(
+    root: &Path,
+    check: bool,
+    package: &str,
+    target: [&str; 2],
+    filter: Option<&str>,
+    env: &str,
+) -> Result<Outcome> {
+    let mut c = Command::new(crate::cargo());
+    c.args(["nextest", "run", "-p", package, "--all-features"])
+        .args(target)
+        .current_dir(root);
+    if let Some(f) = filter {
+        c.args(["-E", f]);
+    }
+    if !check {
+        c.env(env, "1");
+    }
+    let what = format!(
+        "{}cargo nextest run -p {package} --all-features {}{}",
+        if check { String::new() } else { format!("{env}=1 ") },
+        target.join(" "),
+        filter.map(|f| format!(" -E '{f}'")).unwrap_or_default()
+    );
+    captured(c, &what)
+}
+
 /// Runs the action of `step`.
 fn execute(step: &Step, root: &Path, check: bool, files: &BTreeSet<String>, all: bool) -> Result<Outcome> {
     match step.action {
@@ -694,23 +791,13 @@ fn execute(step: &Step, root: &Path, check: bool, files: &BTreeSet<String>, all:
             test,
             filter,
             env,
-        } => {
-            let mut c = Command::new(crate::cargo());
-            c.args(["nextest", "run", "-p", package, "--all-features", "--test", test])
-                .current_dir(root);
-            if let Some(f) = filter {
-                c.args(["-E", f]);
-            }
-            if !check {
-                c.env(env, "1");
-            }
-            let what = format!(
-                "{}cargo nextest run -p {package} --all-features --test {test}{}",
-                if check { String::new() } else { format!("{env}=1 ") },
-                filter.map(|f| format!(" -E '{f}'")).unwrap_or_default()
-            );
-            captured(c, &what)
-        }
+        } => bless_test(root, check, package, ["--test", test], filter, env),
+        Action::BlessBin {
+            package,
+            bin,
+            filter,
+            env,
+        } => bless_test(root, check, package, ["--bin", bin], filter, env),
         Action::Xtask(run) => Ok(Outcome::of(run(root, check)?, "see its report above")),
         Action::RawRead => Ok(Outcome::of(
             crate::raw_read::run(root, !check)?,
@@ -922,6 +1009,9 @@ mod tests {
                 "rule-catalogue",
                 "keymaps",
                 "blind-reference",
+                "cli-snapshot",
+                "api-v1-snapshot",
+                "query-snapshot",
                 "docs-gen",
                 "gen-icons",
                 "clippy-list",
@@ -983,6 +1073,14 @@ mod tests {
             ("blind-reference", "tools/blind/reference/actions.txt"),
             ("docs-gen", "crates/ew-checks/catalogue/rules.json"),
             ("docs-gen", "docs/plan/work-packages.csv"),
+            ("cli-snapshot", "bin/ew/api/cli.json"),
+            ("api-v1-snapshot", "crates/ew-sqlview/api/api_v1.json"),
+            ("query-snapshot", "crates/ew-api/api/queries.json"),
+            ("docs-gen", "bin/ew/api/cli.json"),
+            ("docs-gen", "bin/ew/schemas/index.json"),
+            ("docs-gen", "crates/ew-api/api/queries.json"),
+            ("docs-gen", "crates/ew-sqlview/api/api_v1.json"),
+            ("docs-gen", "schemas/0.1/part.schema.json"),
             ("gen-icons", "assets/icons/tabler/x.svg"),
             ("clippy-list", "crates/ew-model/Cargo.toml"),
             ("fuzz-table", "crates/ew-format/Cargo.toml"),

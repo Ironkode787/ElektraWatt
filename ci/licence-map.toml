@@ -382,6 +382,25 @@ allowed = ["GPL-3.0-or-later"]
 glob = "docs/book/src/reference/keymaps.md"
 allowed = ["GPL-3.0-or-later"]
 
+# WP-S1.22 D15 (the orchestrator's ruling 3, cycle 42: each generated page keeps its source's licence): the CLI, query
+# and api_v1 pages are generated from the snapshots of the GPL crates bin/ew, ew-api and ew-sqlview; the format pages
+# from the project format's JSON Schemas (schemas/0.1, L5, MIT OR Apache-2.0).
+[[path]]
+glob = "docs/book/src/reference/cli/**"
+allowed = ["GPL-3.0-or-later"]
+
+[[path]]
+glob = "docs/book/src/reference/queries.md"
+allowed = ["GPL-3.0-or-later"]
+
+[[path]]
+glob = "docs/book/src/reference/api-v1.md"
+allowed = ["GPL-3.0-or-later"]
+
+[[path]]
+glob = "docs/book/src/reference/format/**"
+allowed = ["MIT OR Apache-2.0"]
+
 # The blind drafter's files (WP-S6.13, ID-622, FT-415): the prompts, personas, task sheets, recordings and the harness
 # help are prose and data written for agents, CC-BY-4.0 like docs/ (L9); the generated reference files under
 # tools/blind/reference/ are made of ew-viewmodel's strings (the action labels and the describe vocabulary), so they

@@ -13,6 +13,7 @@
 
 mod affected;
 mod anonymise;
+mod api_guard;
 mod blind;
 mod build_scripts;
 mod dco;
@@ -87,7 +88,9 @@ commands:
                        --check changes nothing and fails when the committed files differ
   docs-gen [--check]   the generated reference pages of the user documentation book (docs/book/src/reference/):
                        one page per command (crates/ew-commands/schemas/) and per rule pack
-                       (crates/ew-checks/catalogue/rules.json); --check changes nothing and fails when a
+                       (crates/ew-checks/catalogue/rules.json), the CLI, query, api_v1 and format references
+                       (bin/ew/api/cli.json, bin/ew/schemas/, crates/ew-api/api/queries.json,
+                       crates/ew-sqlview/api/api_v1.json, schemas/0.1/); --check changes nothing and fails when a
                        committed page differs; both modes fail when a WP count stated by hand in
                        docs/plan/01-global-plan.md or docs/plan/03-*.md differs from docs/plan/work-packages.csv
   gen-icons [--check]  the icon table of ew-ui (crates/ew-ui/src/icons/generated.rs) from the vendored Tabler
@@ -107,7 +110,7 @@ commands:
   settle [--check] [--merge] [--all] [--base <rev>]
                        the mechanical upkeep of a change, one table of steps in one order (xtask/src/settle.rs):
                        rustfmt on the changed .rs files, the command and CLI schemas, the rule catalogue, the
-                       keymaps, the blind reference, docs-gen, gen-icons, check-raw-read --bless, fuzz-smoke-table,
+                       keymaps, the blind reference, the CLI, api_v1 and query snapshots, docs-gen, gen-icons, check-raw-read --bless, fuzz-smoke-table,
                        golden_changes.py --write and the blind self-tests, each only when a file it reads changed
                        since the merge base of <rev> (default main) and HEAD (--all: every step); then the checks
                        symbols-qet10 --check and the fuzz crate's cargo check. A step that changes a file outside
@@ -116,6 +119,13 @@ commands:
                        to the verify's replay); --merge adds check-disallowed-methods --bless and
                        check-ordered-collections --bless, printing each list's change per crate and the sites
                        added. One line per step: unchanged | rewrote <files> | would rewrite | FAILED | skipped
+  api-guard [--base <rev>]
+                       the API stability guard (NFR-MAINT-10, CI-PR-14, WP-S1.22 D14): compares the published-
+                       surface snapshots (the command schemas, bin/ew/api/cli.json, the result schemas, the query
+                       registry and the api_v1 columns) at the merge base of <rev> (default main) and HEAD with
+                       the working tree, prints each change as breaking or additive, and fails when a breaking
+                       change has no line `- api-break: <surface> <item>` added to
+                       docs/release-notes/unreleased.md
   fuzz-smoke-table [--check]
                        ci/fuzz-smoke-targets.toml: each target's path-dependency closure of its roots (FT-335),
                        the targets of fuzz/Cargo.toml and their max_len from .github/workflows/deep-nightly.yml;
@@ -280,6 +290,7 @@ fn main() -> ExitCode {
         },
         "affected" => affected::run(&args[1..], &workspace_root()),
         "settle" => settle::run(&args[1..], &workspace_root()),
+        "api-guard" => api_guard::run(&args[1..], &workspace_root()),
         "fuzz-smoke-table" => match args.get(1).map(String::as_str) {
             None => workflows::run_fuzz_smoke_table(&workspace_root(), false),
             Some("--check") => workflows::run_fuzz_smoke_table(&workspace_root(), true),
@@ -411,6 +422,16 @@ fn check_ordered_collections() -> Result<Violations> {
 
 fn check_disallowed_methods() -> Result<Violations> {
     ordered::violations(&workspace_root(), &ordered::METHODS)
+}
+
+/// `api-guard` against the merge base of `main` and `HEAD` (the orchestrator's ruling 6, cycle 42: `cargo xtask ci`
+/// runs the guard with the default base): the change lines are printed, the failure lines are the violations.
+fn check_api_guard() -> Result<Violations> {
+    let report = api_guard::guard_at(&workspace_root(), "main")?;
+    for line in &report.lines {
+        println!("{line}");
+    }
+    Ok(report.failure)
 }
 
 fn check_workflows() -> Result<Violations> {
@@ -720,7 +741,7 @@ fn ci() -> Result<bool> {
             &["test", "--doc", "--workspace", "--all-features", "--locked"],
         ),
     ];
-    let checks: [Check; 14] = [
+    let checks: [Check; 15] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
         ("check-raw-read", check_raw_read),
@@ -735,6 +756,7 @@ fn ci() -> Result<bool> {
         ("docs-gen-check", check_docs_gen),
         ("gen-icons-check", check_gen_icons),
         ("check-test-layout", check_test_layout),
+        ("api-guard", check_api_guard),
     ];
 
     let mut summary: Vec<(&str, bool)> = Vec::new();

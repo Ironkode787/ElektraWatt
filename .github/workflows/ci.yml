@@ -111,6 +111,51 @@ jobs:
       - name: wall clock, environment and randomness
         run: cargo xtask check-disallowed-methods
 
+  # CI-PR-14 (NFR-MAINT-10, WP-S1.22 D14): the API stability guard. `cargo xtask api-guard` compares the committed
+  # snapshots of the published surfaces (the command schemas, bin/ew/api/cli.json, the result schemas, the query
+  # registry and the api_v1 columns; each written by its crate's test, read here as data, so xtask links no GPL crate)
+  # at the base revision with the checkout, and fails a breaking change that has no `- api-break: <surface> <item>`
+  # line added to docs/release-notes/unreleased.md. The base (the orchestrator's ruling 6, cycle 42): a pull request's
+  # base commit; a push's previous tip, or HEAD^ when there is none; a dispatch's merge base with main.
+  api-guard:
+    name: api-guard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # The whole history, so that the base revision is there to compare with.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: select the base revision
+        id: base
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          base=""
+          case "$EVENT" in
+            pull_request) base="$PR_BASE" ;;
+            push) base="$PUSH_BEFORE" ;;
+            *) base="$(git merge-base origin/main HEAD)" ;;
+          esac
+          if [ -z "$base" ] || printf '%s' "$base" | grep -Eq '^0+$' || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            base="$(git rev-parse HEAD^)"
+          fi
+          echo "base revision for a $EVENT event: $base"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+      - name: cargo xtask api-guard
+        env:
+          BASE: ${{ steps.base.outputs.base }}
+        run: cargo xtask api-guard --base "$BASE"
+
   # CI-PR-02, CI-PR-03 (test-linux and test-linux-default; test-windows-build, -1, -2 and -3)
   test-linux:
     name: test-linux

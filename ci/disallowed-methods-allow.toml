@@ -41,6 +41,11 @@ item = "fn source_date_epoch"
 count = 1
 
 [[allow]]
+crate = "ew"
+item = "mod tests > fn bless"
+count = 1
+
+[[allow]]
 crate = "ew-api"
 item = "fn bless"
 count = 3
@@ -173,6 +178,11 @@ count = 3
 [[allow]]
 crate = "ew-schema"
 item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "ew-sqlview"
+item = "fn bless"
 count = 1
 
 [[allow]]

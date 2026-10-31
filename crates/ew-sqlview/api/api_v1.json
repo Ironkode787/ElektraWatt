@@ -1,0 +1,1434 @@
+{
+  "api_status": "preview",
+  "views": [
+    {
+      "name": "api_v1_bom_assembly",
+      "row": "bill-of-materials row in assembly mode (doc 20 §14.2), in list order",
+      "preview": false,
+      "columns": [
+        {
+          "name": "position",
+          "type": "INTEGER",
+          "doc": "the 1-based position within its group",
+          "preview": false
+        },
+        {
+          "name": "configured",
+          "type": "INTEGER",
+          "doc": "1 for a configured product (printed A1, A2, …)",
+          "preview": true
+        },
+        {
+          "name": "part_id",
+          "type": "TEXT",
+          "doc": "the part copy",
+          "preview": false
+        },
+        {
+          "name": "variant",
+          "type": "TEXT",
+          "doc": "the variant key; NULL without one",
+          "preview": true
+        },
+        {
+          "name": "manufacturer",
+          "type": "TEXT",
+          "doc": "the manufacturer as printed",
+          "preview": false
+        },
+        {
+          "name": "part_number",
+          "type": "TEXT",
+          "doc": "the part number (the order code for a configured product)",
+          "preview": false
+        },
+        {
+          "name": "type",
+          "type": "TEXT",
+          "doc": "the type designation; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "doc": "the part description, neutral text",
+          "preview": false
+        },
+        {
+          "name": "description_ml",
+          "type": "TEXT",
+          "doc": "the part description, JSON of all languages",
+          "preview": true
+        },
+        {
+          "name": "quantity",
+          "type": "TEXT",
+          "doc": "the summed quantity, exact decimal text",
+          "preview": false
+        },
+        {
+          "name": "unit",
+          "type": "TEXT",
+          "doc": "the order unit",
+          "preview": false
+        },
+        {
+          "name": "tags",
+          "type": "TEXT",
+          "doc": "the devices with this part, JSON array of list-form tags in natural order",
+          "preview": false
+        },
+        {
+          "name": "folios",
+          "type": "TEXT",
+          "doc": "the folios of those devices' main representations, JSON array in page order",
+          "preview": false
+        },
+        {
+          "name": "assembly_tag",
+          "type": "TEXT",
+          "doc": "the list-form tag of the configured product's head device when the row has exactly one; NULL otherwise (not derived for several heads yet)",
+          "preview": false
+        },
+        {
+          "name": "level",
+          "type": "INTEGER",
+          "doc": "the level in the assembly tree; NULL until assembly levels are derived",
+          "preview": false
+        }
+      ]
+    },
+    {
+      "name": "api_v1_bom_component",
+      "row": "bill-of-materials row in component mode (doc 20 §14.1), in list order",
+      "preview": false,
+      "columns": [
+        {
+          "name": "position",
+          "type": "INTEGER",
+          "doc": "the 1-based position within its group",
+          "preview": false
+        },
+        {
+          "name": "configured",
+          "type": "INTEGER",
+          "doc": "1 for a configured product (printed A1, A2, …)",
+          "preview": true
+        },
+        {
+          "name": "part_id",
+          "type": "TEXT",
+          "doc": "the part copy",
+          "preview": false
+        },
+        {
+          "name": "variant",
+          "type": "TEXT",
+          "doc": "the variant key; NULL without one",
+          "preview": true
+        },
+        {
+          "name": "manufacturer",
+          "type": "TEXT",
+          "doc": "the manufacturer as printed",
+          "preview": false
+        },
+        {
+          "name": "part_number",
+          "type": "TEXT",
+          "doc": "the part number (the order code for a configured product)",
+          "preview": false
+        },
+        {
+          "name": "type",
+          "type": "TEXT",
+          "doc": "the type designation; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "doc": "the part description, neutral text",
+          "preview": false
+        },
+        {
+          "name": "description_ml",
+          "type": "TEXT",
+          "doc": "the part description, JSON of all languages",
+          "preview": true
+        },
+        {
+          "name": "quantity",
+          "type": "TEXT",
+          "doc": "the summed quantity, exact decimal text",
+          "preview": false
+        },
+        {
+          "name": "unit",
+          "type": "TEXT",
+          "doc": "the order unit",
+          "preview": false
+        },
+        {
+          "name": "tags",
+          "type": "TEXT",
+          "doc": "the devices with this part, JSON array of list-form tags in natural order",
+          "preview": false
+        },
+        {
+          "name": "folios",
+          "type": "TEXT",
+          "doc": "the folios of those devices' main representations, JSON array in page order",
+          "preview": false
+        }
+      ]
+    },
+    {
+      "name": "api_v1_bond",
+      "row": "bond between two potentials (doc 08 §3.7)",
+      "preview": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "doc": "the bond UUID",
+          "preview": true
+        },
+        {
+          "name": "label",
+          "type": "TEXT",
+          "doc": "B1, B2, … in the partition's bond order",
+          "preview": true
+        },
+        {
+          "name": "kind",
+          "type": "TEXT",
+          "doc": "the bond kind (pelv_0v_pe, …)",
+          "preview": true
+        },
+        {
+          "name": "a_potential_id",
+          "type": "TEXT",
+          "doc": "the potential at end a",
+          "preview": true
+        },
+        {
+          "name": "a_potential_name",
+          "type": "TEXT",
+          "doc": "its name",
+          "preview": true
+        },
+        {
+          "name": "b_potential_id",
+          "type": "TEXT",
+          "doc": "the potential at end b",
+          "preview": true
+        },
+        {
+          "name": "b_potential_name",
+          "type": "TEXT",
+          "doc": "its name",
+          "preview": true
+        },
+        {
+          "name": "wire_id",
+          "type": "TEXT",
+          "doc": "the physical wire realising the bond; NULL without one",
+          "preview": true
+        },
+        {
+          "name": "names",
+          "type": "TEXT",
+          "doc": "the interruption-point names on the bond path, JSON array in natural order",
+          "preview": true
+        },
+        {
+          "name": "pages",
+          "type": "TEXT",
+          "doc": "the folios of the bond wire's pages in page order, JSON array",
+          "preview": true
+        }
+      ]
+    },
+    {
+      "name": "api_v1_cable",
+      "row": "cable",
+      "preview": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "doc": "the cable device UUID",
+          "preview": false
+        },
+        {
+          "name": "tag",
+          "type": "TEXT",
+          "doc": "the list form of the cable's tag (\"-106W1\")",
+          "preview": false
+        },
+        {
+          "name": "tag_full",
+          "type": "TEXT",
+          "doc": "the full designation",
+          "preview": true
+        },
+        {
+          "name": "part_number",
+          "type": "TEXT",
+          "doc": "the part number of the cable's part; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "cores",
+          "type": "INTEGER",
+          "doc": "the number of conductors",
+          "preview": false
+        },
+        {
+          "name": "length_nm",
+          "type": "INTEGER",
+          "doc": "the manual length; NULL otherwise",
+          "preview": false
+        },
+        {
+          "name": "length_source",
+          "type": "TEXT",
+          "doc": "manual, part or missing",
+          "preview": false
+        },
+        {
+          "name": "from_location",
+          "type": "TEXT",
+          "doc": "the location aspect of end A; NULL until derived",
+          "preview": false
+        },
+        {
+          "name": "to_location",
+          "type": "TEXT",
+          "doc": "the location aspect of end B; NULL until derived",
+          "preview": false
+        },
+        {
+          "name": "end_a",
+          "type": "TEXT",
+          "doc": "the devices at the From ends of its cores, a terminal standing for its strip, JSON array in natural order",
+          "preview": true
+        },
+        {
+          "name": "end_b",
+          "type": "TEXT",
+          "doc": "the devices at the To ends of its cores, JSON array in natural order",
+          "preview": true
+        },
+        {
+          "name": "external_end",
+          "type": "INTEGER",
+          "doc": "1 when a core wire ends at an external point",
+          "preview": false
+        },
+        {
+          "name": "shield",
+          "type": "INTEGER",
+          "doc": "1 when the cable has a shield conductor",
+          "preview": false
+        },
+        {
+          "name": "pages",
+          "type": "TEXT",
+          "doc": "the folios of the cable's representations in page order, JSON array",
+          "preview": false
+        }
+      ]
+    },
+    {
+      "name": "api_v1_conductor",
+      "row": "conductor of a cable",
+      "preview": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "doc": "the conductor UUID",
+          "preview": false
+        },
+        {
+          "name": "cable_id",
+          "type": "TEXT",
+          "doc": "the cable",
+          "preview": false
+        },
+        {
+          "name": "cable_tag",
+          "type": "TEXT",
+          "doc": "the list form of the cable's tag",
+          "preview": false
+        },
+        {
+          "name": "core",
+          "type": "TEXT",
+          "doc": "the core name (\"BN\", \"1\", \"SH\")",
+          "preview": false
+        },
+        {
+          "name": "pair",
+          "type": "INTEGER",
+          "doc": "the pair number; NULL without one",
+          "preview": true
+        },
+        {
+          "name": "colour",
+          "type": "TEXT",
+          "doc": "the conductor's colour as printed; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "colour_iec",
+          "type": "TEXT",
+          "doc": "the colour when every code is an IEC 60757 code; NULL otherwise",
+          "preview": false
+        },
+        {
+          "name": "csa",
+          "type": "TEXT",
+          "doc": "the conductor's cross-section, exact decimal text; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "csa_unit",
+          "type": "TEXT",
+          "doc": "mm², AWG or kcmil; NULL without a cross-section",
+          "preview": true
+        },
+        {
+          "name": "shield",
+          "type": "INTEGER",
+          "doc": "1 for a shield conductor",
+          "preview": false
+        },
+        {
+          "name": "wire_id",
+          "type": "TEXT",
+          "doc": "the physical wire running over the core; NULL without one",
+          "preview": false
+        }
+      ]
+    },
+    {
+      "name": "api_v1_device",
+      "row": "device (strips, terminals and cables included)",
+      "preview": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "doc": "the device UUID",
+          "preview": false
+        },
+        {
+          "name": "tag",
+          "type": "TEXT",
+          "doc": "the list form of the tag (\"-101F1\", \"-X1031:1\"); NULL for a device without one",
+          "preview": false
+        },
+        {
+          "name": "tag_full",
+          "type": "TEXT",
+          "doc": "the full designation (\"=P01+J-E-2416-101F1\")",
+          "preview": false
+        },
+        {
+          "name": "letter",
+          "type": "TEXT",
+          "doc": "the letter code of the tag spec",
+          "preview": false
+        },
+        {
+          "name": "counter",
+          "type": "INTEGER",
+          "doc": "the stored counter; NULL when unnumbered",
+          "preview": false
+        },
+        {
+          "name": "frozen",
+          "type": "INTEGER",
+          "doc": "1 for a frozen tag",
+          "preview": false
+        },
+        {
+          "name": "kind",
+          "type": "TEXT",
+          "doc": "the device kind (psu, terminal, …); NULL without one",
+          "preview": false
+        },
+        {
+          "name": "parent_id",
+          "type": "TEXT",
+          "doc": "the parent device; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "structure_function",
+          "type": "TEXT",
+          "doc": "the function aspect of the device (\"=P01\"); NULL without one",
+          "preview": false
+        },
+        {
+          "name": "structure_location",
+          "type": "TEXT",
+          "doc": "the location aspect of the device (\"+J-E-2416\"); NULL without one",
+          "preview": false
+        },
+        {
+          "name": "function_text",
+          "type": "TEXT",
+          "doc": "the function text, neutral text; NULL when empty",
+          "preview": false
+        },
+        {
+          "name": "function_text_ml",
+          "type": "TEXT",
+          "doc": "the function text, JSON of all languages; NULL when empty",
+          "preview": true
+        },
+        {
+          "name": "process_tag",
+          "type": "TEXT",
+          "doc": "the process tag; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "doc": "the lifecycle state as authored (used, spare, reserved, not_fitted)",
+          "preview": false
+        },
+        {
+          "name": "main_page_id",
+          "type": "TEXT",
+          "doc": "the page of the main representation; NULL when not drawn",
+          "preview": false
+        },
+        {
+          "name": "main_folio",
+          "type": "TEXT",
+          "doc": "the folio of the main representation; NULL when not drawn",
+          "preview": false
+        },
+        {
+          "name": "main_cell",
+          "type": "TEXT",
+          "doc": "the frame cell of the main representation (\"B8\"); NULL without one",
+          "preview": false
+        },
+        {
+          "name": "has_part",
+          "type": "INTEGER",
+          "doc": "1 when the device has a part",
+          "preview": false
+        },
+        {
+          "name": "manufacturer",
+          "type": "TEXT",
+          "doc": "the manufacturer of the main part; NULL without a part",
+          "preview": false
+        },
+        {
+          "name": "part_number",
+          "type": "TEXT",
+          "doc": "the part number of the main part; NULL without a part",
+          "preview": false
+        },
+        {
+          "name": "tech_data",
+          "type": "TEXT",
+          "doc": "the technical data as printed (\"6 A, C\"); NULL without any",
+          "preview": false
+        },
+        {
+          "name": "aspects",
+          "type": "TEXT",
+          "doc": "the typed aspects, JSON array (\"strip\", \"terminal\", \"cable\")",
+          "preview": false
+        },
+        {
+          "name": "placed",
+          "type": "INTEGER",
+          "doc": "1 when placed in a panel layout; NULL until panel layout is derived (1.0)",
+          "preview": false
+        }
+      ]
+    },
+    {
+      "name": "api_v1_function",
+      "row": "function (interruption points included)",
+      "preview": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "doc": "the function UUID",
+          "preview": false
+        },
+        {
+          "name": "device_id",
+          "type": "TEXT",
+          "doc": "the device; NULL for an interruption point",
+          "preview": false
+        },
+        {
+          "name": "device_tag",
+          "type": "TEXT",
+          "doc": "the list form of the device's tag; NULL without a device",
+          "preview": false
+        },
+        {
+          "name": "role",
+          "type": "TEXT",
+          "doc": "main or aux",
+          "preview": false
+        },
+        {
+          "name": "kind",
+          "type": "TEXT",
+          "doc": "normal, ip or black_box",
+          "preview": false
+        },
+        {
+          "name": "ip_name",
+          "type": "TEXT",
+          "doc": "the name of an interruption point; NULL otherwise",
+          "preview": true
+        },
+        {
+          "name": "fndef",
+          "type": "TEXT",
+          "doc": "the name of the function definition",
+          "preview": false
+        },
+        {
+          "name": "category",
+          "type": "TEXT",
+          "doc": "the category of the function definition; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "page_id",
+          "type": "TEXT",
+          "doc": "the page of its first representation in page order; NULL when not drawn",
+          "preview": false
+        },
+        {
+          "name": "folio",
+          "type": "TEXT",
+          "doc": "the folio of that representation; NULL when not drawn",
+          "preview": false
+        },
+        {
+          "name": "cell",
+          "type": "TEXT",
+          "doc": "the frame cell of that representation; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "xref_text",
+          "type": "TEXT",
+          "doc": "the printed cross-reference of that representation; NULL without one",
+          "preview": false
+        }
+      ]
+    },
+    {
+      "name": "api_v1_message",
+      "row": "finding of the projection's check run (open and waived)",
+      "preview": false,
+      "columns": [
+        {
+          "name": "fingerprint",
+          "type": "TEXT",
+          "doc": "the 128-bit fingerprint, 32 lowercase hex digits (FR-CHK-044)",
+          "preview": false
+        },
+        {
+          "name": "rule",
+          "type": "TEXT",
+          "doc": "the rule ID (\"EW-CORE-033\")",
+          "preview": false
+        },
+        {
+          "name": "pack",
+          "type": "TEXT",
+          "doc": "the rule pack",
+          "preview": false
+        },
+        {
+          "name": "pack_version",
+          "type": "TEXT",
+          "doc": "the pack version; NULL until packs are versioned",
+          "preview": false
+        },
+        {
+          "name": "severity",
+          "type": "TEXT",
+          "doc": "info, warning or error (the scheme's effective severity)",
+          "preview": false
+        },
+        {
+          "name": "mode",
+          "type": "TEXT",
+          "doc": "the check mode of the run (release, online)",
+          "preview": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "doc": "open or waived",
+          "preview": false
+        },
+        {
+          "name": "target_ids",
+          "type": "TEXT",
+          "doc": "the target records, JSON array of UUIDs, the primary target first",
+          "preview": false
+        },
+        {
+          "name": "target_tags",
+          "type": "TEXT",
+          "doc": "the subject as printed (a derived tag or a name)",
+          "preview": false
+        },
+        {
+          "name": "page_id",
+          "type": "TEXT",
+          "doc": "the page the finding is shown on; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "cell",
+          "type": "TEXT",
+          "doc": "the frame cell; NULL until findings carry a position",
+          "preview": false
+        },
+        {
+          "name": "message",
+          "type": "TEXT",
+          "doc": "the message in English",
+          "preview": false
+        },
+        {
+          "name": "args",
+          "type": "TEXT",
+          "doc": "the discriminator that tells findings over the same targets apart",
+          "preview": false
+        },
+        {
+          "name": "waiver_id",
+          "type": "TEXT",
+          "doc": "the waiver of a waived finding; NULL otherwise",
+          "preview": false
+        }
+      ]
+    },
+    {
+      "name": "api_v1_meta",
+      "row": "the projection (one row)",
+      "preview": false,
+      "columns": [
+        {
+          "name": "rev",
+          "type": "INTEGER",
+          "doc": "the model revision the projection was built from",
+          "preview": false
+        },
+        {
+          "name": "generation",
+          "type": "INTEGER",
+          "doc": "the store generation the project was opened at; NULL for a model without a store",
+          "preview": false
+        },
+        {
+          "name": "format",
+          "type": "TEXT",
+          "doc": "the project format version (\"1\")",
+          "preview": false
+        },
+        {
+          "name": "derivation_profile",
+          "type": "TEXT",
+          "doc": "the derivation profile version of the project",
+          "preview": false
+        },
+        {
+          "name": "ew_version",
+          "type": "TEXT",
+          "doc": "the version of the program that built the projection",
+          "preview": false
+        },
+        {
+          "name": "languages",
+          "type": "TEXT",
+          "doc": "the project languages, JSON array of BCP 47 tags",
+          "preview": false
+        },
+        {
+          "name": "as_of",
+          "type": "TEXT",
+          "doc": "the date of the release context; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "api_status",
+          "type": "TEXT",
+          "doc": "\"preview\": api_v1 is Preview until the 1.0 freeze (ADR-0017 amendment 2); columns may still be added",
+          "preview": true
+        },
+        {
+          "name": "preview_additions",
+          "type": "TEXT",
+          "doc": "the views and columns beyond doc 17 §6.1, JSON array of \"view\" or \"view.column\" (PREVIEW_ADDITIONS)",
+          "preview": true
+        }
+      ]
+    },
+    {
+      "name": "api_v1_page",
+      "row": "page in page order, dividers and generated report pages included",
+      "preview": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "doc": "the page UUID; a divider page has its section's UUID, a generated page its v5 page ID",
+          "preview": false
+        },
+        {
+          "name": "physical_index",
+          "type": "INTEGER",
+          "doc": "the 0-based position in the page order",
+          "preview": false
+        },
+        {
+          "name": "folio",
+          "type": "TEXT",
+          "doc": "the printed folio label (\"101\", \"901.1\")",
+          "preview": false
+        },
+        {
+          "name": "number",
+          "type": "INTEGER",
+          "doc": "the folio number",
+          "preview": true
+        },
+        {
+          "name": "label",
+          "type": "TEXT",
+          "doc": "the stored folio label of an authored page (\"101a\"); NULL otherwise",
+          "preview": false
+        },
+        {
+          "name": "section_id",
+          "type": "TEXT",
+          "doc": "the section UUID; NULL for front matter",
+          "preview": true
+        },
+        {
+          "name": "kind",
+          "type": "TEXT",
+          "doc": "the page type (schematic, section_divider, report, …)",
+          "preview": false
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "doc": "the page title (TOC title), neutral text",
+          "preview": false
+        },
+        {
+          "name": "title_ml",
+          "type": "TEXT",
+          "doc": "the page title, JSON of all languages",
+          "preview": true
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "doc": "the title-block description override of the page; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "description_overridden",
+          "type": "INTEGER",
+          "doc": "1 when the page overrides the project description",
+          "preview": false
+        },
+        {
+          "name": "structure_function",
+          "type": "TEXT",
+          "doc": "the function aspect of the page (\"=P01\"); NULL without one",
+          "preview": false
+        },
+        {
+          "name": "structure_location",
+          "type": "TEXT",
+          "doc": "the location aspect of the page (\"+J-E-2416\"); NULL without one",
+          "preview": false
+        },
+        {
+          "name": "prev_folio",
+          "type": "TEXT",
+          "doc": "the folio of the previous page; NULL on the first",
+          "preview": false
+        },
+        {
+          "name": "next_folio",
+          "type": "TEXT",
+          "doc": "the folio of the next page; NULL on the last",
+          "preview": false
+        },
+        {
+          "name": "generated",
+          "type": "INTEGER",
+          "doc": "1 for a generated report page",
+          "preview": false
+        },
+        {
+          "name": "report_block_id",
+          "type": "TEXT",
+          "doc": "the report block of a generated page; NULL otherwise",
+          "preview": false
+        }
+      ]
+    },
+    {
+      "name": "api_v1_potential",
+      "row": "potential (doc 08 §3)",
+      "preview": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "doc": "the potential ID: its minimum definition UUID, else its minimum member CP ID",
+          "preview": false
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "doc": "the canonical name",
+          "preview": false
+        },
+        {
+          "name": "aliases",
+          "type": "TEXT",
+          "doc": "the other interruption-point names on the potential, JSON array in natural order",
+          "preview": false
+        },
+        {
+          "name": "ptype",
+          "type": "TEXT",
+          "doc": "the potential's own type (\"L+\", \"M\", \"PE\"); NULL without one",
+          "preview": false
+        },
+        {
+          "name": "voltage",
+          "type": "TEXT",
+          "doc": "the potential's own voltage in V, exact decimal text; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "ac_dc",
+          "type": "TEXT",
+          "doc": "ac or dc; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "circuit_class",
+          "type": "TEXT",
+          "doc": "mains, control, analogue, bus or PE; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "colour",
+          "type": "TEXT",
+          "doc": "the profile's default colour for the potential: the effective colour of its first wire that takes it from the profile or a definition",
+          "preview": false
+        },
+        {
+          "name": "colour_iec",
+          "type": "TEXT",
+          "doc": "that colour when every code is an IEC 60757 code; NULL otherwise",
+          "preview": true
+        },
+        {
+          "name": "default_csa",
+          "type": "TEXT",
+          "doc": "the profile's default cross-section, exact decimal text",
+          "preview": false
+        },
+        {
+          "name": "default_csa_unit",
+          "type": "TEXT",
+          "doc": "mm², AWG or kcmil",
+          "preview": true
+        },
+        {
+          "name": "switched",
+          "type": "INTEGER",
+          "doc": "1 when functionally switched (doc 08 §3.6)",
+          "preview": false
+        },
+        {
+          "name": "protected_by_device_id",
+          "type": "TEXT",
+          "doc": "the device of the nearest upstream protective function; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "protected_by_tag",
+          "type": "TEXT",
+          "doc": "that device's tag",
+          "preview": false
+        },
+        {
+          "name": "protected_by_cp",
+          "type": "TEXT",
+          "doc": "the CP of the protective function on this potential's side (\"Out1\"), when it is the direct upstream pair; NULL otherwise",
+          "preview": false
+        },
+        {
+          "name": "bond_ids",
+          "type": "TEXT",
+          "doc": "the bonds joining this potential to another, JSON array of UUIDs",
+          "preview": false
+        },
+        {
+          "name": "bus_cable_ids",
+          "type": "TEXT",
+          "doc": "the cables of the potential's bus lines (`Bus` connections with a cable, FR-CBL-008), JSON array of UUIDs; a bus line takes its colour and size from them (doc 20 §7.3 \"(cable)\")",
+          "preview": true
+        },
+        {
+          "name": "member_count",
+          "type": "INTEGER",
+          "doc": "device CPs (a terminal once) and external points on the potential (doc 20 §7.3)",
+          "preview": false
+        },
+        {
+          "name": "pages",
+          "type": "TEXT",
+          "doc": "the folios of its wires' pages in page order, JSON array",
+          "preview": false
+        }
+      ]
+    },
+    {
+      "name": "api_v1_terminal",
+      "row": "terminal",
+      "preview": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "doc": "the terminal device UUID",
+          "preview": false
+        },
+        {
+          "name": "tag",
+          "type": "TEXT",
+          "doc": "the list form of the terminal's tag (\"-X1031:1\")",
+          "preview": true
+        },
+        {
+          "name": "strip_id",
+          "type": "TEXT",
+          "doc": "the strip",
+          "preview": false
+        },
+        {
+          "name": "strip_tag",
+          "type": "TEXT",
+          "doc": "the list form of the strip's tag (\"-X1031\")",
+          "preview": false
+        },
+        {
+          "name": "designation",
+          "type": "TEXT",
+          "doc": "the terminal designation (\"1\", \"PE\")",
+          "preview": false
+        },
+        {
+          "name": "printed",
+          "type": "TEXT",
+          "doc": "the designation as printed on the terminal marker",
+          "preview": false
+        },
+        {
+          "name": "seq",
+          "type": "INTEGER",
+          "doc": "the position on the strip",
+          "preview": false
+        },
+        {
+          "name": "function_text",
+          "type": "TEXT",
+          "doc": "the terminal's function text (\"1+\"); NULL when empty",
+          "preview": true
+        },
+        {
+          "name": "strip_group",
+          "type": "TEXT",
+          "doc": "the caption of the strip group holding the terminal (\"Pneumatics\"); NULL outside a group",
+          "preview": true
+        },
+        {
+          "name": "part_number",
+          "type": "TEXT",
+          "doc": "the part number of the terminal's part; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "levels",
+          "type": "INTEGER",
+          "doc": "the number of levels",
+          "preview": false
+        },
+        {
+          "name": "potential_id",
+          "type": "TEXT",
+          "doc": "the potential of its first connected CP; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "potential_name",
+          "type": "TEXT",
+          "doc": "that potential's name",
+          "preview": false
+        },
+        {
+          "name": "potential_type",
+          "type": "TEXT",
+          "doc": "that potential's type (\"L+\", \"PE\"); NULL without one",
+          "preview": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "doc": "spare, reserved or not fitted as authored, else used (wired or bridged) or unused",
+          "preview": false
+        },
+        {
+          "name": "bridge",
+          "type": "TEXT",
+          "doc": "the label of the bridge the terminal belongs to (\"BR1\"); NULL without one",
+          "preview": true
+        },
+        {
+          "name": "rail_bonded",
+          "type": "INTEGER",
+          "doc": "1 when the terminal is bonded to the rail",
+          "preview": false
+        },
+        {
+          "name": "page_id",
+          "type": "TEXT",
+          "doc": "the page of its main representation; NULL when not drawn",
+          "preview": false
+        },
+        {
+          "name": "cell",
+          "type": "TEXT",
+          "doc": "the frame cell of its main representation; NULL without one",
+          "preview": false
+        }
+      ]
+    },
+    {
+      "name": "api_v1_wire",
+      "row": "physical wire or terminal bridge (doc 08 §3.8, §6.5)",
+      "preview": false,
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "doc": "the wire UUID (its carrier connection); for a bridge the strip UUID and group (\"<uuid>/bridge/<n>\")",
+          "preview": false
+        },
+        {
+          "name": "seq",
+          "type": "INTEGER",
+          "doc": "the order of the wire list: wires in the numbering order of FR-NUM-028 (doc 08 §5.2), then bridges by label",
+          "preview": true
+        },
+        {
+          "name": "number",
+          "type": "TEXT",
+          "doc": "the printed wire number (\"101.1\", `wire_numbers`; NULL for a cable core); a bridge's label \"BR1\"",
+          "preview": false
+        },
+        {
+          "name": "kind",
+          "type": "TEXT",
+          "doc": "wire or bridge",
+          "preview": false
+        },
+        {
+          "name": "from_end",
+          "type": "TEXT",
+          "doc": "device, external or open",
+          "preview": true
+        },
+        {
+          "name": "from_device_id",
+          "type": "TEXT",
+          "doc": "the device at the From end; NULL for an external or open end",
+          "preview": false
+        },
+        {
+          "name": "from_tag",
+          "type": "TEXT",
+          "doc": "the list form of that device's tag",
+          "preview": false
+        },
+        {
+          "name": "from_cp",
+          "type": "TEXT",
+          "doc": "the CP designation at the From end",
+          "preview": false
+        },
+        {
+          "name": "from_level",
+          "type": "INTEGER",
+          "doc": "the terminal level at the From end; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "from_clamp",
+          "type": "TEXT",
+          "doc": "the terminal clamp at the From end (\"a\"); NULL without one",
+          "preview": false
+        },
+        {
+          "name": "from_side",
+          "type": "INTEGER",
+          "doc": "the terminal side at the From end (1 or 2); NULL without one",
+          "preview": true
+        },
+        {
+          "name": "from_ip",
+          "type": "TEXT",
+          "doc": "the interruption point an external or open end ends at; NULL for a device end",
+          "preview": true
+        },
+        {
+          "name": "to_end",
+          "type": "TEXT",
+          "doc": "device, external or open",
+          "preview": true
+        },
+        {
+          "name": "to_device_id",
+          "type": "TEXT",
+          "doc": "the device at the To end; NULL for an external or open end",
+          "preview": false
+        },
+        {
+          "name": "to_tag",
+          "type": "TEXT",
+          "doc": "the list form of that device's tag",
+          "preview": false
+        },
+        {
+          "name": "to_cp",
+          "type": "TEXT",
+          "doc": "the CP designation at the To end",
+          "preview": false
+        },
+        {
+          "name": "to_level",
+          "type": "INTEGER",
+          "doc": "the terminal level at the To end; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "to_clamp",
+          "type": "TEXT",
+          "doc": "the terminal clamp at the To end; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "to_side",
+          "type": "INTEGER",
+          "doc": "the terminal side at the To end (1 or 2); NULL without one",
+          "preview": true
+        },
+        {
+          "name": "to_ip",
+          "type": "TEXT",
+          "doc": "the interruption point an external or open end ends at; NULL for a device end",
+          "preview": true
+        },
+        {
+          "name": "potential_id",
+          "type": "TEXT",
+          "doc": "the potential; NULL for a bond wire",
+          "preview": false
+        },
+        {
+          "name": "potential_name",
+          "type": "TEXT",
+          "doc": "the potential's name; \"A ⇄ B\" for a bond wire",
+          "preview": false
+        },
+        {
+          "name": "csa",
+          "type": "TEXT",
+          "doc": "the effective cross-section, exact decimal text",
+          "preview": false
+        },
+        {
+          "name": "csa_unit",
+          "type": "TEXT",
+          "doc": "mm², AWG or kcmil",
+          "preview": false
+        },
+        {
+          "name": "colour",
+          "type": "TEXT",
+          "doc": "the effective colour as printed (\"DBU\", \"GNYE\")",
+          "preview": false
+        },
+        {
+          "name": "colour_iec",
+          "type": "TEXT",
+          "doc": "the colour when every code is an IEC 60757 code; NULL otherwise",
+          "preview": false
+        },
+        {
+          "name": "wire_part",
+          "type": "TEXT",
+          "doc": "the part number of the wire part; NULL without one",
+          "preview": false
+        },
+        {
+          "name": "length_nm",
+          "type": "INTEGER",
+          "doc": "the wire length; NULL until lengths are derived (1.0)",
+          "preview": false
+        },
+        {
+          "name": "length_source",
+          "type": "TEXT",
+          "doc": "where the length comes from; NULL until lengths are derived (1.0)",
+          "preview": false
+        },
+        {
+          "name": "cable_id",
+          "type": "TEXT",
+          "doc": "the cable of a core wire; NULL otherwise",
+          "preview": false
+        },
+        {
+          "name": "cable_tag",
+          "type": "TEXT",
+          "doc": "the list form of that cable's tag",
+          "preview": false
+        },
+        {
+          "name": "core",
+          "type": "TEXT",
+          "doc": "the core name of a core wire (\"BN\")",
+          "preview": false
+        },
+        {
+          "name": "conductor_id",
+          "type": "TEXT",
+          "doc": "the conductor of a core wire",
+          "preview": true
+        },
+        {
+          "name": "bond_id",
+          "type": "TEXT",
+          "doc": "the bond a bond wire realises; NULL otherwise",
+          "preview": true
+        },
+        {
+          "name": "ips",
+          "type": "TEXT",
+          "doc": "the interruption points the wire passes, JSON array of names in path order",
+          "preview": true
+        },
+        {
+          "name": "junction_id",
+          "type": "TEXT",
+          "doc": "the first junction the wire passes (doc 08 §3.2); NULL otherwise",
+          "preview": true
+        },
+        {
+          "name": "junction_style",
+          "type": "TEXT",
+          "doc": "that junction's style: dot or bevel (\"junction\" for a newer style); NULL without a junction",
+          "preview": true
+        },
+        {
+          "name": "junction_wiring",
+          "type": "TEXT",
+          "doc": "its effective wiring: star or chain (the style's default when unset); NULL without a junction",
+          "preview": true
+        },
+        {
+          "name": "junction_cell",
+          "type": "TEXT",
+          "doc": "its folio and frame cell (\"101-C11\"; the folio alone outside the drawing area); NULL without a junction",
+          "preview": true
+        },
+        {
+          "name": "junction_cps",
+          "type": "TEXT",
+          "doc": "star: the entering CP; chain: the wire's ends shared with another wire of the junction; JSON array of CP texts (\"F55:2\", \"-102G1:−#1\": `#n` where printed designations repeat)",
+          "preview": true
+        },
+        {
+          "name": "chain_cps",
+          "type": "TEXT",
+          "doc": "the wire's ends on a CP that two or more drawn connections touch (a daisy chain, FR-CON-006), JSON array of CP texts",
+          "preview": true
+        },
+        {
+          "name": "bridge_kind",
+          "type": "TEXT",
+          "doc": "plug-in, saddle, wire or inter-level for a bridge; NULL for a wire",
+          "preview": true
+        },
+        {
+          "name": "pages",
+          "type": "TEXT",
+          "doc": "the folios of the wire's pages in page order, JSON array",
+          "preview": false
+        },
+        {
+          "name": "csa_source",
+          "type": "TEXT",
+          "doc": "where the cross-section comes from: cdp, core, rule, bond, potential, project, built-in",
+          "preview": true
+        },
+        {
+          "name": "colour_source",
+          "type": "TEXT",
+          "doc": "where the colour comes from: cdp, core, rule, potential, project, built-in",
+          "preview": true
+        },
+        {
+          "name": "prov_csa",
+          "type": "TEXT",
+          "doc": "the provenance of the cross-section in words",
+          "preview": false
+        },
+        {
+          "name": "prov_colour",
+          "type": "TEXT",
+          "doc": "the provenance of the colour in words",
+          "preview": false
+        }
+      ]
+    }
+  ]
+}

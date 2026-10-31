@@ -12,6 +12,13 @@ These pages are generated from the code by `cargo xtask docs-gen` and checked in
 - [Command reference](commands/index.md): every registered command, with its parameters, types, constraints and exit
   codes, from the parameter schemas of the command registry.
 - [Rule reference](rules/index.md): every shipped check rule, one page per rule pack, from the rule registry.
+- [CLI reference](cli/index.md): every subcommand of `ew`, with its flags, exit codes and `--json` result schema,
+  from the CLI table.
+- [Query reference](queries.md): every public query of `ew query`, with its key, example and output, from the query
+  registry.
+- [api_v1 reference](api-v1.md): every `api_v1` view of `ew sql`, with its columns, types and Preview marks.
+- [Format reference](format/index.md): every record kind of the project format, with its file, rank and fields,
+  from the format's JSON Schemas.
 
 ## Command-line program
 
@@ -22,5 +29,5 @@ codes of every subcommand, is
 
 ## Not generated yet
 
-The file-format specification with its JSON Schemas, the `api_v1` view reference, the CLI reference and the keymap
-sheets are also meant to be generated (NFR-DOC-06). They are not part of the book yet.
+The documentation of the plugin interface (WIT, 1.x) is also meant to be generated (NFR-DOC-06). It is not part of
+the book yet.
