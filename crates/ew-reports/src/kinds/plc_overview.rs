@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `plc_overview`: the PLC overview, one row per channel of a station (FR-PLC-022, FR-REP-019; doc 10 §5;
-//! golden 908, 908.1, 908.2).
+//! golden 908, 908.1, 908.2), and the PLC overview box of a module or station embedded on a page (FR-PLC-052; WP-S1.21
+//! part 5, PX-3).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
@@ -10,13 +11,15 @@ use ew_derive::ew_schema::{ChannelKind, Device, ReportBlock};
 use ew_derive::{ChannelAddr, PageRef, PlcRow, PlcRows, Q, RepAnchorCell};
 
 use super::conn::{put, tag_short};
-use crate::kind::ReportKindDef;
+use crate::kind::{EmbeddedLayout, ReportKindDef};
 use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowKey, RowSet};
 
 /// The PLC overview.
 ///
-/// The stations are the devices of the block's manual selection (`manual.include`) that carry a
-/// `plc_station` aspect, else every station in natural order of its tag. Rows come from `plc_rows(station)`
+/// The selection is the block's manual selection (`manual.include`): its devices that carry a `plc_station` aspect
+/// give every row of that station, its devices that carry a `plc_module` aspect give the rows of that module (the PLC
+/// overview box of a module, FR-PLC-052); a selection that names neither prints every station. Stations print in
+/// natural order of their tags, each with its rows in `plc_rows` order. Rows come from `plc_rows(station)`
 /// (`ew-derive`): the channels of every module in slot order, then by channel number, in every state
 /// (doc 10 §5). The columns are those of doc 10 §5: module, part, address (rendered by the configuration
 /// project's profile; "TBD" for an open item, empty when excluded), channel number, designation, kind,
@@ -50,35 +53,92 @@ impl ReportKindDef for PlcOverview {
 
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet {
         let mut set = RowSet::new(self.columns());
-        for station in stations_of(q, block) {
+        let selection = Selection::of(q, block);
+        for station in selection.stations(q) {
+            let whole = selection.whole_station(station);
             for r in q.get::<PlcRows>(station).iter() {
-                let row = plc_row(q, &set.columns, r);
-                set.rows.push(row);
+                if whole || selection.modules.contains(&r.module) {
+                    let row = plc_row(q, &set.columns, r);
+                    set.rows.push(row);
+                }
             }
         }
         set
     }
+
+    /// The PLC overview box (FR-PLC-052, doc 10 §5): the channel's number, address, symbol, function text and state
+    /// and the cross-reference to its coil's representation, under the title "PLC OVERVIEW" and a header row, in one
+    /// flow column. The weights are the I/O list's for the same columns (tenths of a millimetre of the widest text at
+    /// the 1.8 mm cap height, plus 0.6 mm); the page column's is estimated the same way from its widest Golden A cell
+    /// (`203-D7`), since its header is shorter than the I/O list's "Target page".
+    fn embedded_layout(&self) -> EmbeddedLayout {
+        EmbeddedLayout {
+            columns: [
+                ("channel", 114),
+                ("address", 112),
+                ("symbol", 104),
+                ("function", 171),
+                ("state", 154),
+                ("page", 96),
+            ]
+            .into_iter()
+            .map(|(k, w)| (k.to_owned(), w))
+            .collect(),
+            title: "PLC OVERVIEW".to_owned(),
+            headers: true,
+            flow_columns: 1,
+        }
+    }
 }
 
-fn stations_of(q: &Q, block: &ReportBlock) -> Vec<Id<Device>> {
-    let is_station = |d: Id<Device>| {
-        q.devices()
-            .get(d)
-            .is_some_and(|d| d.aspects.plc_station.is_some())
-    };
-    let selected: Vec<Id<Device>> = block
-        .manual
-        .include
-        .as_slice()
-        .iter()
-        .map(|a| Id::<Device>::from_uuid(a.as_uuid()))
-        .filter(|d| is_station(*d))
-        .collect();
-    let stations = if selected.is_empty() {
-        ew_derive::stations(q)
-    } else {
-        selected
-    };
+/// The manual selection of a PLC overview block: its stations and its modules (see [`PlcOverview`]).
+struct Selection {
+    stations: Vec<Id<Device>>,
+    modules: Vec<Id<Device>>,
+}
+
+impl Selection {
+    fn of(q: &Q, block: &ReportBlock) -> Self {
+        let devices = q.devices();
+        let mut out = Selection {
+            stations: Vec::new(),
+            modules: Vec::new(),
+        };
+        for a in block.manual.include.as_slice() {
+            let id = Id::<Device>::from_uuid(a.as_uuid());
+            match devices.get(id) {
+                Some(d) if d.aspects.plc_station.is_some() => out.stations.push(id),
+                Some(d) if d.aspects.plc_module.is_some() => out.modules.push(id),
+                _ => {}
+            }
+        }
+        out
+    }
+
+    /// Whether the selection names neither a station nor a module (every station prints).
+    fn is_empty(&self) -> bool {
+        self.stations.is_empty() && self.modules.is_empty()
+    }
+
+    /// Whether every row of `station` prints.
+    fn whole_station(&self, station: Id<Device>) -> bool {
+        self.is_empty() || self.stations.contains(&station)
+    }
+
+    /// The stations to read, in natural order of their tags: the selected ones, every station when modules are
+    /// selected (a module's rows sit under its station's), else every station.
+    fn stations(&self, q: &Q) -> Vec<Id<Device>> {
+        let stations = if self.modules.is_empty() && !self.stations.is_empty() {
+            self.stations.clone()
+        } else {
+            ew_derive::stations(q)
+        };
+        sorted_by_tag(q, stations)
+    }
+}
+
+/// `stations` in natural order of their tags, without repeats.
+fn sorted_by_tag(q: &Q, stations: Vec<Id<Device>>) -> Vec<Id<Device>> {
     let mut keyed: Vec<(NaturalKey, Id<Device>)> = stations
         .into_iter()
         .map(|s| (natural_key(&tag_short(q, s)), s))

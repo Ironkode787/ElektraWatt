@@ -61,6 +61,7 @@ mod part_selection;
 mod parts_import;
 mod persistence;
 mod plc_navigator;
+mod plc_overview_box;
 mod plc_part3;
 mod plc_texts;
 mod plc_window;
