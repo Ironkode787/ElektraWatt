@@ -3197,7 +3197,7 @@ fn structure_create_node(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 }
 
 fn report_block_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    const KINDS: [&str; 14] = [
+    const KINDS: [&str; 15] = [
         "profile_tables",
         "part_data",
         "toc",
@@ -3212,6 +3212,8 @@ fn report_block_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         "plc_overview",
         "io_list",
         "potential_overview",
+        // WP-S3.06 part 2 (R1): the open-items list runs check rules inside the page order.
+        "open_items",
     ];
     let form = rng.pick(&live.forms)?;
     let kind = *rng.pick(&KINDS)?;

@@ -568,6 +568,7 @@ dependencies = [
 name = "ew-reports"
 version = "0.0.0"
 dependencies = [
+ "ew-checks",
  "ew-derive",
  "ew-sqlview",
  "ew-text",

@@ -227,7 +227,11 @@ No decision changes an ADR. D8 changes one edge of `ci/dep-rules.toml` and arch 
   (-102F2:13, -102F2:14, EF-09), "Missing length" 1 (-3W1, EF-08): **10 rows**; with EW-LAY-001 registered at the
   lane's base, also "Unplaced device" 5 (F55, E55, E56, S56, -201U9, EF-05): **15 rows**. EW-PLC-012's 28 and
   EW-POT-013's 2 are not listed. The output of `--kind open_items` equals `expected/csv/open_items.csv`. Another count
-  is a stop.
+  is a stop. *As built (cycle 42, ruled at H42's stop 1, project owner (delegated)):* **24 rows**. Golden A as checked
+  in does not hold W-1 (it is recorded in a test copy only, WP-S1.16 §10.3), so -XPE is listed, and the eight process
+  valves =P01+FIELD-203Q1 … Q8 have no part until FT-209 (FT-638), so "Device without part" has 11 rows. D7's invariant
+  wins: a finding is listed exactly when `ew check --mode release` prints it open, and the list shrinks by itself when
+  FT-209 lands or a waiver is recorded. OI-2's waiver case records W-1 on a copy, and exactly the -XPE row leaves.
 - **OI-2** Agreement: on Golden A and on fixtures (a TBD channel address, where EW-PLC-015 lists it once and
   EW-CORE-044 not; S56's finding waived, where its row goes; a project whose release scheme is `drafting`), the rows
   are exactly the open findings of the open-item rules (EW-BUS-001 with discriminator `address` only) that

@@ -37,7 +37,7 @@ use ew_schema::{Record, ReportBlock};
 use serde_json::{Value, json};
 
 /// The kinds with a golden CSV of Golden A's rows (WP-S3.06 D4), each written by the export by kind.
-const KIND_CSVS: &[&str] = &["device_list", "terminal_overview", "io_list"];
+const KIND_CSVS: &[&str] = &["device_list", "terminal_overview", "io_list", "open_items"];
 
 fn expected_csv(kind: &str) -> PathBuf {
     golden_common::repo()

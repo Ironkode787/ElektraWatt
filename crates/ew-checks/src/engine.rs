@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{AnyId, Kind};
-use ew_derive::{Policy, PotentialPartition, Q, Query};
+use ew_derive::{Cycle, Policy, PotentialPartition, Q, Query};
 
 use crate::finding::{Finding, FindingState, Fingerprint, Severity, Target, sort_findings};
 use crate::registry::{rule, rules};
@@ -274,13 +274,40 @@ fn supersede(findings: Vec<Finding>) -> Vec<Finding> {
 ///
 /// A rule that panics in a scope yields EW-CORE-083 there and leaves every other finding as it is; a rule whose data
 /// table does not load is not evaluated and EW-CORE-084 names it (WP-S1.16 part 4).
+///
+/// # Panics
+///
+/// On a query cycle through [`CheckOf`] (a rule's memo already evaluating for its scope), with the cycle's text, as
+/// [`Q::get`] does; [`run_table_rules`] returns the cycle instead.
 pub fn run(q: &Q, scheme: &Scheme, mode: CheckMode) -> CheckReport {
-    run_rules(q, scheme, mode, rules(), &data_tables(), true)
+    match run_rules(q, scheme, mode, rules(), &data_tables(), true) {
+        Ok(report) => report,
+        Err(cycle) => panic!("{cycle}"),
+    }
+}
+
+/// [`run`] over the registered rules of `list` only (WP-S3.06 D7, D8: the open-item rules of
+/// [`open_items`](crate::open_items)): the same path (scheme enablement, effective severities, supersession among the
+/// findings of `list`, waivers, EW-CORE-081), with the memo reads through [`Q::try_get`], so a query cycle is
+/// returned, never a panic. Supersession sees only the findings of `list`: a rule outside `list` that supersedes a
+/// rule of `list` hides nothing here.
+///
+/// # Errors
+///
+/// The [`Cycle`] when a rule's memo [`CheckOf`] is already evaluating for a scope: the caller records it
+/// ([`Q::note_cycle`]) and shows no findings.
+pub fn run_table_rules(
+    q: &Q,
+    scheme: &Scheme,
+    mode: CheckMode,
+    list: &[&'static dyn Rule],
+) -> Result<CheckReport, Cycle> {
+    run_rules(q, scheme, mode, list, &data_tables(), true)
 }
 
 /// [`run`] over `list` with the data tables `tables`. With `memo` the rules are evaluated through [`CheckOf`] (they
-/// must be registered); without it directly, each under `catch_unwind`, which lets the unit tests add a rule that
-/// panics (P4-3).
+/// must be registered), read with [`Q::try_get`]; without it directly, each under `catch_unwind`, which lets the unit
+/// tests add a rule that panics (P4-3). A query cycle of a memo read is returned as it is.
 fn run_rules(
     q: &Q,
     scheme: &Scheme,
@@ -288,7 +315,7 @@ fn run_rules(
     list: &[&'static dyn Rule],
     tables: &[DataTable],
     memo: bool,
-) -> CheckReport {
+) -> Result<CheckReport, Cycle> {
     let (pack_issues, skipped) = pack_findings(tables);
     let mut evaluated: Vec<&'static RuleMeta> = Vec::new();
     let mut findings: Vec<Finding> = Vec::new();
@@ -304,7 +331,7 @@ fn run_rules(
             .or_insert_with(|| scopes(q, meta.scope));
         for scope in instances.iter() {
             let found = if memo {
-                q.get::<CheckOf>((meta.id, *scope))
+                q.try_get::<CheckOf>((meta.id, *scope))?
             } else {
                 let mut out = run_caught(*r, q, scope);
                 sort_findings(&mut out);
@@ -396,13 +423,13 @@ fn run_rules(
     sort_findings(&mut findings);
     let counts = count(&findings);
     evaluated.sort_by_key(|m| m.id);
-    CheckReport {
+    Ok(CheckReport {
         scheme: scheme.name,
         mode,
         rules: evaluated,
         findings,
         counts,
-    }
+    })
 }
 
 /// Prevent mode (ADR-0009 decision 3, doc 15 §3.5): the violations the batch from `before` to `after`
@@ -519,7 +546,7 @@ mod tests {
             (CheckMode::Online, Severity::Warning),
             (CheckMode::Release, Severity::Error),
         ] {
-            let base = run_rules(&q, &FULL, mode, rules(), &tables, false);
+            let base = run_rules(&q, &FULL, mode, rules(), &tables, false).expect("no cycle");
             assert_eq!(
                 printed(&base.findings),
                 printed(&run(&q, &FULL, mode).findings),
@@ -528,7 +555,7 @@ mod tests {
             assert!(base.findings.iter().any(|f| f.rule == "EW-TERM-002"));
             let mut list: Vec<&'static dyn Rule> = rules().to_vec();
             list.push(&PANICS_RULE);
-            let with = run_rules(&q, &FULL, mode, &list, &tables, false);
+            let with = run_rules(&q, &FULL, mode, &list, &tables, false).expect("no cycle");
             let (caught, rest): (Vec<Finding>, Vec<Finding>) =
                 with.findings.into_iter().partition(|f| f.rule == "EW-CORE-083");
             assert_eq!(caught.len(), 1, "{caught:#?}");
@@ -567,7 +594,7 @@ mod tests {
             file: "data/x.toml",
             error: Some("missing".to_owned()),
         }];
-        let report = run_rules(&q, &FULL, CheckMode::Release, rules(), &tables, false);
+        let report = run_rules(&q, &FULL, CheckMode::Release, rules(), &tables, false).expect("no cycle");
         assert!(!report.findings.iter().any(|f| f.rule == "EW-TERM-002"));
         assert!(!report.rules.iter().any(|m| m.id == "EW-TERM-002"));
         let f: Vec<&Finding> = report

@@ -14,7 +14,9 @@
 //! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview` and `io_list` (FR-PLC-023). From the tags and wire numbers:
 //! `numbering_report` (frozen values with their rule values, FR-REP-022). From the revision records:
 //! `revision_overview` (`revision_rows`, FT-207; WP-S1.18 part 2). From the layout: `enclosure_legend`
-//! (`layout_legend`, WP-S4.01 part 4; registered, drawn on no page until part 4b). Other schema kinds are not registered; their blocks
+//! (`layout_legend`, WP-S4.01 part 4; registered, drawn on no page until part 4b). From the check engine:
+//! `open_items` (FR-REP-021, the open findings of the open-item rules, `ew_checks::open_items`; WP-S3.06 D7, D8: none
+//! of those rules reads the page order, so the list paginates inside it). Other schema kinds are not registered; their blocks
 //! report [`NotDerived::Unsupported`]. [`Pending`] registers a kind with its columns before its row source exists.
 
 use ew_derive::Q;
@@ -29,6 +31,7 @@ mod device_list;
 mod enclosure_legend;
 mod io_list;
 mod numbering_report;
+mod open_items;
 mod part_data;
 mod parts;
 mod plc_overview;
@@ -47,6 +50,7 @@ pub use device_list::DeviceList;
 pub use enclosure_legend::EnclosureLegend;
 pub use io_list::IoList;
 pub use numbering_report::NumberingReport;
+pub use open_items::OpenItems;
 pub use part_data::PartData;
 pub use parts::{PartsList, PartsSummary};
 pub use plc_overview::PlcOverview;
@@ -79,6 +83,7 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &EnclosureLegend,
         &DeviceList,
         &TerminalOverview,
+        &OpenItems,
     ]
 }
 

@@ -26,6 +26,7 @@
 | Waivable | yes |
 | Pack content | MVP |
 | Supersedes | `EW-CORE-044` |
+| Open item | TBD value (findings with discriminator `address` only) |
 | Runs in schemes, online mode | `drafting`, `full`, `migration`, `pre-delivery` |
 | Runs in schemes, release mode | `drafting`, `full`, `migration`, `pre-delivery` |
 
@@ -46,6 +47,7 @@
 | Waivable | yes |
 | Pack content | MVP |
 | Supersedes | none |
+| Open item | no |
 | Runs in schemes, online mode | `drafting`, `full`, `migration`, `pre-delivery` |
 | Runs in schemes, release mode | `drafting`, `full`, `migration`, `pre-delivery` |
 

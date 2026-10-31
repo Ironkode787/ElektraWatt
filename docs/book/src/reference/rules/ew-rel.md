@@ -27,6 +27,7 @@
 | Waivable | no |
 | Pack content | MVP |
 | Supersedes | none |
+| Open item | no |
 | Runs in schemes, online mode | none |
 | Runs in schemes, release mode | none |
 
@@ -47,6 +48,7 @@
 | Waivable | no |
 | Pack content | MVP |
 | Supersedes | none |
+| Open item | no |
 | Runs in schemes, online mode | none |
 | Runs in schemes, release mode | none |
 
@@ -67,6 +69,7 @@
 | Waivable | no |
 | Pack content | MVP |
 | Supersedes | none |
+| Open item | no |
 | Runs in schemes, online mode | none |
 | Runs in schemes, release mode | none |
 

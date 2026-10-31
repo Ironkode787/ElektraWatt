@@ -440,7 +440,7 @@ fn report_refuses_xlsx_and_an_unknown_block() {
 // parameters on save (D9)
 
 /// The kinds with a golden CSV written by the export by kind (`crates/ew-api/tests/it/report_kinds.rs` blesses them).
-const KIND_CSVS: &[&str] = &["device_list", "terminal_overview", "io_list"];
+const KIND_CSVS: &[&str] = &["device_list", "terminal_overview", "io_list", "open_items"];
 
 /// RK-1, RK-2, RK-7 and the orchestrator's ruling 10 (cycle 42): `ew export report --kind <kind> --format csv` writes
 /// `expected/csv/<kind>.csv` byte for byte, twice the same.

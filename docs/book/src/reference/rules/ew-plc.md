@@ -31,6 +31,7 @@
 | Waivable | yes |
 | Pack content | MVP |
 | Supersedes | none |
+| Open item | no |
 | Runs in schemes, online mode | `drafting`, `full`, `migration`, `pre-delivery` |
 | Runs in schemes, release mode | `drafting`, `full`, `migration`, `pre-delivery` |
 
@@ -51,6 +52,7 @@
 | Waivable | yes |
 | Pack content | MVP |
 | Supersedes | none |
+| Open item | no |
 | Runs in schemes, online mode | `drafting`, `full`, `migration`, `pre-delivery` |
 | Runs in schemes, release mode | `drafting`, `full`, `migration`, `pre-delivery` |
 
@@ -71,6 +73,7 @@
 | Waivable | yes |
 | Pack content | MVP |
 | Supersedes | none |
+| Open item | no |
 | Runs in schemes, online mode | `drafting`, `full`, `migration`, `pre-delivery` |
 | Runs in schemes, release mode | `drafting`, `full`, `migration`, `pre-delivery` |
 
@@ -91,6 +94,7 @@
 | Waivable | yes |
 | Pack content | MVP |
 | Supersedes | none |
+| Open item | no |
 | Runs in schemes, online mode | `drafting`, `full`, `migration`, `pre-delivery` |
 | Runs in schemes, release mode | `drafting`, `full`, `migration`, `pre-delivery` |
 
@@ -111,6 +115,7 @@
 | Waivable | yes |
 | Pack content | MVP |
 | Supersedes | none |
+| Open item | no |
 | Runs in schemes, online mode | `drafting`, `full`, `migration`, `pre-delivery` |
 | Runs in schemes, release mode | `drafting`, `full`, `migration`, `pre-delivery` |
 
@@ -131,6 +136,7 @@
 | Waivable | yes |
 | Pack content | MVP |
 | Supersedes | `EW-NUM-002` |
+| Open item | no |
 | Runs in schemes, online mode | `drafting`, `full`, `migration`, `pre-delivery` |
 | Runs in schemes, release mode | `drafting`, `full`, `migration`, `pre-delivery` |
 
@@ -151,6 +157,7 @@
 | Waivable | yes |
 | Pack content | MVP |
 | Supersedes | `EW-CORE-044` |
+| Open item | TBD value |
 | Runs in schemes, online mode | `drafting`, `full`, `migration`, `pre-delivery` |
 | Runs in schemes, release mode | `drafting`, `full`, `migration`, `pre-delivery` |
 

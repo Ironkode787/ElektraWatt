@@ -168,7 +168,7 @@ pub fn toc_rows_per_page(q: &Q, block: &ReportBlock) -> u32 {
 }
 
 /// An empty, not-derived row set for a query cycle, which is recorded as a note.
-fn cycle_rows(q: &Q, cycle: Cycle) -> RowSet {
+pub(crate) fn cycle_rows(q: &Q, cycle: Cycle) -> RowSet {
     let family = cycle.family.to_owned();
     q.note_cycle(cycle);
     RowSet::not_derived(Vec::new(), NotDerived::Cycle(family))

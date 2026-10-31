@@ -25,6 +25,9 @@
 //!   [`CheckReport`] is in canonical order (code, printed subject and message, fingerprint) and carries the totals and `ew check`'s exit code.
 //!   [`prevent`] is the commit validator's entry (ADR-0009): `ew-api` installs it as the model's
 //!   `PreventHook`.
+//! - **Open items** ([`open_items`], WP-S3.06 D7, D8): the open findings of the open-item rules
+//!   ([`OPEN_ITEM_RULES`]) in release mode of the project's release scheme ([`release_scheme_of`]), through
+//!   [`run_table_rules`], the path of [`run`] over a subset that returns a query cycle instead of panicking.
 //! - **The release gate** ([`gate`], WP-S1.18 D10): the release scheme in release mode together with the gate-only
 //!   EW-REL rules (mode `g`, which no plain run evaluates), with the saved generation's content digest handed in
 //!   ([`GateInput`]); [`blockers`] are the release's refusal list, [`safety_waivers`] what a checker acknowledges, and
@@ -47,19 +50,24 @@ mod engine;
 mod finding;
 mod gate;
 pub mod messages;
+mod open_items;
 mod registry;
 pub mod report;
 mod rule;
 pub mod rules;
 mod scheme;
 
-pub use engine::{CheckOf, CheckReport, Counts, IntegrityItem, prevent, run, scopes};
+pub use engine::{CheckOf, CheckReport, Counts, IntegrityItem, prevent, run, run_table_rules, scopes};
 pub use finding::{Finding, FindingState, Fingerprint, QuickFix, Severity, Target, sort_findings};
 pub use gate::{
     GateInput, PackVersion, SHIPPED_PACK_VERSION, blockers, gate, pack_definition, pack_versions,
     safety_waivers,
 };
 pub use messages::render;
+pub use open_items::{OPEN_ITEM_RULES, OpenItemRule, open_item_of, open_items};
 pub use registry::{rule, rules};
 pub use rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
-pub use scheme::{CheckMode, DRAFTING, FULL, MIGRATION, PRE_DELIVERY, SCHEMES, Scheme, scheme};
+pub use scheme::{
+    CHECKS_MEMBER, CheckMode, DRAFTING, FULL, MIGRATION, PRE_DELIVERY, SCHEMES, Scheme, project_scheme_name,
+    release_scheme_of, scheme,
+};

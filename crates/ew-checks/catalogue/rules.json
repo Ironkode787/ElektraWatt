@@ -8,6 +8,10 @@
         "online",
         "release"
       ],
+      "open_item": {
+        "category": "TBD value",
+        "discriminator": "address"
+      },
       "pack": "EW-BUS",
       "release": "MVP",
       "release_severity": null,
@@ -49,6 +53,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-BUS",
       "release": "MVP",
       "release_severity": null,
@@ -87,6 +92,7 @@
       "modes": [
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -126,6 +132,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -166,6 +173,7 @@
         "prevent",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -205,6 +213,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -244,6 +253,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -283,6 +293,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": "warning",
@@ -323,6 +334,7 @@
         "prevent",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -362,6 +374,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -401,6 +414,10 @@
         "online",
         "release"
       ],
+      "open_item": {
+        "category": "Missing length",
+        "discriminator": null
+      },
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -440,6 +457,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -479,6 +497,7 @@
         "online",
         "prevent"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -517,6 +536,7 @@
       "modes": [
         "online"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -556,6 +576,10 @@
         "online",
         "release"
       ],
+      "open_item": {
+        "category": "Device without part",
+        "discriminator": null
+      },
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -595,6 +619,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -634,6 +659,10 @@
         "online",
         "release"
       ],
+      "open_item": {
+        "category": "TBD value",
+        "discriminator": null
+      },
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": "error",
@@ -673,6 +702,10 @@
         "online",
         "release"
       ],
+      "open_item": {
+        "category": "TBD value",
+        "discriminator": null
+      },
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": "error",
@@ -712,6 +745,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -751,6 +785,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": "error",
@@ -790,6 +825,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -829,6 +865,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -869,6 +906,7 @@
         "prevent",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -908,6 +946,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -947,6 +986,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -985,6 +1025,7 @@
       "modes": [
         "online"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -1024,6 +1065,7 @@
         "offline",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "1.0",
       "release_severity": null,
@@ -1062,6 +1104,7 @@
       "modes": [
         "online"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -1101,6 +1144,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": null,
@@ -1143,6 +1187,7 @@
         "release",
         "export"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": "error",
@@ -1185,6 +1230,7 @@
         "release",
         "export"
       ],
+      "open_item": null,
       "pack": "EW-CORE",
       "release": "MVP",
       "release_severity": "error",
@@ -1224,6 +1270,10 @@
         "online",
         "release"
       ],
+      "open_item": {
+        "category": "Unplaced device",
+        "discriminator": null
+      },
       "pack": "EW-LAYOUT",
       "release": "MVP",
       "release_severity": "error",
@@ -1263,6 +1313,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-LAYOUT",
       "release": "MVP",
       "release_severity": null,
@@ -1302,6 +1353,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-LAYOUT",
       "release": "MVP",
       "release_severity": null,
@@ -1341,6 +1393,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-LAYOUT",
       "release": "MVP",
       "release_severity": null,
@@ -1380,6 +1433,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-LAYOUT",
       "release": "MVP",
       "release_severity": null,
@@ -1419,6 +1473,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-LAYOUT",
       "release": "MVP",
       "release_severity": null,
@@ -1458,6 +1513,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-IEC81346",
       "release": "MVP",
       "release_severity": null,
@@ -1500,6 +1556,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-IEC81346",
       "release": "MVP",
       "release_severity": null,
@@ -1539,6 +1596,7 @@
         "online",
         "prevent"
       ],
+      "open_item": null,
       "pack": "EW-PLC",
       "release": "MVP",
       "release_severity": null,
@@ -1578,6 +1636,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-PLC",
       "release": "MVP",
       "release_severity": null,
@@ -1617,6 +1676,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-PLC",
       "release": "MVP",
       "release_severity": null,
@@ -1657,6 +1717,7 @@
         "prevent",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-PLC",
       "release": "MVP",
       "release_severity": null,
@@ -1697,6 +1758,7 @@
         "release",
         "export"
       ],
+      "open_item": null,
       "pack": "EW-PLC",
       "release": "MVP",
       "release_severity": null,
@@ -1736,6 +1798,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-PLC",
       "release": "MVP",
       "release_severity": null,
@@ -1777,6 +1840,10 @@
         "online",
         "release"
       ],
+      "open_item": {
+        "category": "TBD value",
+        "discriminator": null
+      },
       "pack": "EW-PLC",
       "release": "MVP",
       "release_severity": "error",
@@ -1818,6 +1885,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -1857,6 +1925,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -1896,6 +1965,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -1935,6 +2005,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -1974,6 +2045,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2013,6 +2085,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2052,6 +2125,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2091,6 +2165,10 @@
         "online",
         "release"
       ],
+      "open_item": {
+        "category": "Unconnected connection point",
+        "discriminator": null
+      },
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2129,6 +2207,7 @@
       "modes": [
         "online"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2167,6 +2246,7 @@
       "modes": [
         "online"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2206,6 +2286,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2245,6 +2326,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2284,6 +2366,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2322,6 +2405,7 @@
       "modes": [
         "online"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2361,6 +2445,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2400,6 +2485,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-POT",
       "release": "MVP",
       "release_severity": null,
@@ -2439,6 +2525,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-IEC81346",
       "release": "MVP",
       "release_severity": null,
@@ -2477,6 +2564,7 @@
       "modes": [
         "online"
       ],
+      "open_item": null,
       "pack": "EW-IEC81346",
       "release": "MVP",
       "release_severity": null,
@@ -2516,6 +2604,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-IEC81346",
       "release": "MVP",
       "release_severity": null,
@@ -2555,6 +2644,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-IEC81346",
       "release": "MVP",
       "release_severity": null,
@@ -2594,6 +2684,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-IEC81346",
       "release": "MVP",
       "release_severity": null,
@@ -2634,6 +2725,7 @@
         "prevent",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-IEC81346",
       "release": "MVP",
       "release_severity": null,
@@ -2673,6 +2765,7 @@
         "online",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-IEC81346",
       "release": "MVP",
       "release_severity": null,
@@ -2711,6 +2804,7 @@
       "modes": [
         "gate"
       ],
+      "open_item": null,
       "pack": "EW-REL",
       "release": "MVP",
       "release_severity": null,
@@ -2749,6 +2843,7 @@
       "modes": [
         "gate"
       ],
+      "open_item": null,
       "pack": "EW-REL",
       "release": "MVP",
       "release_severity": null,
@@ -2788,6 +2883,7 @@
         "prevent",
         "gate"
       ],
+      "open_item": null,
       "pack": "EW-REL",
       "release": "MVP",
       "release_severity": null,
@@ -2828,6 +2924,7 @@
         "prevent",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-TERM",
       "release": "MVP",
       "release_severity": null,
@@ -2868,6 +2965,7 @@
         "prevent",
         "release"
       ],
+      "open_item": null,
       "pack": "EW-TERM",
       "release": "MVP",
       "release_severity": null,
@@ -2906,6 +3004,7 @@
       "modes": [
         "online"
       ],
+      "open_item": null,
       "pack": "EW-TERM",
       "release": "MVP",
       "release_severity": null,
@@ -2945,6 +3044,7 @@
         "online",
         "prevent"
       ],
+      "open_item": null,
       "pack": "EW-TERM",
       "release": "MVP",
       "release_severity": null,
@@ -2983,6 +3083,7 @@
       "modes": [
         "online"
       ],
+      "open_item": null,
       "pack": "EW-TERM",
       "release": "MVP",
       "release_severity": null,

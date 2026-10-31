@@ -1437,7 +1437,7 @@ struct SchemeInfo {
     lenient: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 struct Rule {
     id: String,
     code: String,
@@ -1452,9 +1452,36 @@ struct Rule {
     release: String,
     waivable: bool,
     schemes: Vec<RuleScheme>,
+    /// Whether the rule's open findings are open items (WP-S3.06 D8): `null` when not.
+    #[serde(default)]
+    open_item: Option<OpenItem>,
 }
 
-#[derive(Deserialize)]
+/// The `open_item` member of a catalogue rule (WP-S3.06 D8).
+#[derive(Clone, Deserialize)]
+struct OpenItem {
+    category: String,
+    discriminator: Option<String>,
+}
+
+impl OpenItem {
+    /// The rule page's "Open item" cell for `item`: the category, with the discriminator when only some findings are.
+    fn cell(item: Option<&OpenItem>) -> String {
+        match item {
+            None => "no".to_owned(),
+            Some(OpenItem {
+                category,
+                discriminator: None,
+            }) => cell(category),
+            Some(OpenItem {
+                category,
+                discriminator: Some(d),
+            }) => format!("{} (findings with discriminator `{d}` only)", cell(category)),
+        }
+    }
+}
+
+#[derive(Clone, Deserialize)]
 struct RuleScheme {
     name: String,
     online: bool,
@@ -1584,6 +1611,7 @@ fn pack_page(pack: &str, rules: &[&Rule]) -> String {
              | Waivable | {waivable} |\n\
              | Pack content | {release} |\n\
              | Supersedes | {supersedes} |\n\
+             | Open item | {open_item} |\n\
              | Runs in schemes, online mode | {online} |\n\
              | Runs in schemes, release mode | {release_mode} |\n\n",
             id = r.id,
@@ -1602,6 +1630,7 @@ fn pack_page(pack: &str, rules: &[&Rule]) -> String {
             } else {
                 supersedes.join(", ")
             },
+            open_item = OpenItem::cell(r.open_item.as_ref()),
             online = running(true),
             release_mode = running(false),
         );
@@ -1754,11 +1783,37 @@ mod tests {
                     release: true,
                 },
             ],
+            open_item: None,
         };
         let page = pack_page("EW-TERM", &[&rule]);
         assert!(
             page.contains("## EW-TERM-002\n\n**Duplicate designation**"),
             "{page}"
+        );
+        assert!(page.contains("| Open item | no |"), "{page}");
+        let bus = Rule {
+            id: "EW-BUS-001".into(),
+            open_item: Some(OpenItem {
+                category: "TBD value".into(),
+                discriminator: Some("address".into()),
+            }),
+            ..rule.clone()
+        };
+        let bus_page = pack_page("EW-BUS", &[&bus]);
+        assert!(
+            bus_page.contains("| Open item | TBD value (findings with discriminator `address` only) |"),
+            "{bus_page}"
+        );
+        let length = Rule {
+            open_item: Some(OpenItem {
+                category: "Missing length".into(),
+                discriminator: None,
+            }),
+            ..rule.clone()
+        };
+        assert!(
+            pack_page("EW-CORE", &[&length]).contains("| Open item | Missing length |"),
+            "the category alone"
         );
         assert!(
             page.contains("| Runs in schemes, online mode | `drafting`, `full` |"),

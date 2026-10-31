@@ -8,6 +8,8 @@
 //! and their resolution order (pack defaults, company scheme, project scheme) follow with the scheme
 //! editor.
 
+use ew_derive::Q;
+
 use crate::finding::Severity;
 use crate::rule::{Release, RuleMeta};
 
@@ -133,6 +135,36 @@ pub const SCHEMES: &[&Scheme] = &[&DRAFTING, &FULL, &MIGRATION, &PRE_DELIVERY];
 /// The shipped scheme of this name.
 pub fn scheme(name: &str) -> Option<&'static Scheme> {
     SCHEMES.iter().copied().find(|s| s.name == name)
+}
+
+/// The member of the project settings (`settings.extra`) that holds the project's check schemes, as
+/// `project.checks.set` writes it (FT-366). The same text as `ew_commands::commands::CHECKS_MEMBER`, which this crate
+/// may not name (`ci/dep-rules.toml`); a test of `ew-api` keeps the two equal (WP-S3.06 part 2, ruling 4).
+pub const CHECKS_MEMBER: &str = "checks";
+
+/// The name the project gives the check scheme of a run in `mode`, whether or not this build ships it: the member
+/// `release_scheme` of [`CHECKS_MEMBER`] for [`CheckMode::Release`] (the release gate, `ew check` and the open-items
+/// list), `active_scheme` for [`CheckMode::Online`]. `None` when the project names none.
+pub fn project_scheme_name(q: &Q, mode: CheckMode) -> Option<String> {
+    let member = match mode {
+        CheckMode::Release => "release_scheme",
+        CheckMode::Online => "active_scheme",
+    };
+    q.project()
+        .settings
+        .extra
+        .get(CHECKS_MEMBER)?
+        .get(member)?
+        .as_str()
+        .map(str::to_owned)
+}
+
+/// The scheme of a release-mode run of the project (WP-S3.06 D7, D8): the release scheme the project names when this
+/// build ships it, else [`PRE_DELIVERY`].
+pub fn release_scheme_of(q: &Q) -> &'static Scheme {
+    project_scheme_name(q, CheckMode::Release)
+        .and_then(|name| scheme(&name))
+        .unwrap_or(&PRE_DELIVERY)
 }
 
 #[cfg(test)]

@@ -929,20 +929,10 @@ impl Session {
 
     /// The name the project gives the check scheme of a run in `mode` (the member [`Session::project_check_scheme`]
     /// reads), whether or not this build ships it; `None` when the project names none. `ew check` prints a notice for
-    /// a name this build does not ship before it falls back to `pre-delivery` (FT-405, decision log ID-602).
+    /// a name this build does not ship before it falls back to `pre-delivery` (FT-405, decision log ID-602). The lookup
+    /// is `ew-checks`' ([`checks::project_scheme_name`]), which the open-items list shares (WP-S3.06 D8).
     pub fn project_check_scheme_name(&self, mode: checks::CheckMode) -> Option<String> {
-        let member = match mode {
-            checks::CheckMode::Release => "release_scheme",
-            checks::CheckMode::Online => "active_scheme",
-        };
-        let q = self.query();
-        q.project()
-            .settings
-            .extra
-            .get(ew_commands::commands::CHECKS_MEMBER)?
-            .get(member)?
-            .as_str()
-            .map(str::to_owned)
+        checks::project_scheme_name(&self.query(), mode)
     }
 
     /// Runs the check scheme `scheme` in `mode` over the current snapshot through the session's memo store

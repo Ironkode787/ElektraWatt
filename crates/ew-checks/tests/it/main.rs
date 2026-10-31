@@ -14,6 +14,7 @@ mod core_part4;
 mod layout;
 mod messages;
 mod num;
+mod open_items;
 mod plc;
 mod pot;
 mod pot_pack;

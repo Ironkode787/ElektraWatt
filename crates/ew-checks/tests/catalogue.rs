@@ -15,7 +15,7 @@
 
 use std::path::PathBuf;
 
-use ew_checks::{CheckMode, Modes, SCHEMES, rules};
+use ew_checks::{CheckMode, Modes, OPEN_ITEM_RULES, SCHEMES, rules};
 use serde_json::{Value, json};
 
 fn path() -> PathBuf {
@@ -67,6 +67,12 @@ fn generated() -> String {
                 "release": m.release.name(),
                 "waivable": m.waivable(),
                 "schemes": schemes,
+                // WP-S3.06 D8 and the orchestrator's ruling 6 (cycle 42): "`\"open_item\": null` or
+                // `{\"category\": \"<words>\", \"discriminator\": \"<d>\" | null}` from `OPEN_ITEM_RULES`".
+                "open_item": OPEN_ITEM_RULES.iter().find(|o| o.rule == m.id).map(|o| json!({
+                    "category": o.category,
+                    "discriminator": o.discriminator,
+                })),
             })
         })
         .collect();
@@ -95,5 +101,39 @@ fn committed_catalogue_matches_the_registry() {
         committed == generated,
         "catalogue/rules.json is out of date; run `EW_CHECKS_BLESS=1 cargo test -p ew-checks --test catalogue` \
          and commit the result (then `cargo xtask docs-gen`)"
+    );
+}
+
+/// OI-4 (WP-S3.06 D8): the committed snapshot's `open_item` marks exactly the open-item rules, each with its category,
+/// and EW-BUS-001 with the discriminator `address`.
+#[test]
+fn the_catalogue_marks_exactly_the_open_item_rules() {
+    let committed: Value = serde_json::from_str(&std::fs::read_to_string(path()).expect("the catalogue"))
+        .expect("the catalogue is JSON");
+    let marked: Vec<(String, Value)> = committed["rules"]
+        .as_array()
+        .expect("rules")
+        .iter()
+        .filter(|r| !r["open_item"].is_null())
+        .map(|r| (r["id"].as_str().expect("id").to_owned(), r["open_item"].clone()))
+        .collect();
+    let mut want: Vec<(String, Value)> = OPEN_ITEM_RULES
+        .iter()
+        .map(|o| {
+            (
+                o.rule.to_owned(),
+                json!({"category": o.category, "discriminator": o.discriminator}),
+            )
+        })
+        .collect();
+    want.sort_by(|a, b| a.0.cmp(&b.0));
+    assert_eq!(marked, want);
+    let bus = marked
+        .iter()
+        .find(|(id, _)| id == "EW-BUS-001")
+        .expect("EW-BUS-001 is an open-item rule");
+    assert_eq!(
+        bus.1,
+        json!({"category": "TBD value", "discriminator": "address"})
     );
 }

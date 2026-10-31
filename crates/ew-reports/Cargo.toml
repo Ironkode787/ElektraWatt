@@ -17,6 +17,8 @@ workspace = true
 [dependencies]
 ew-derive = { path = "../ew-derive" }
 ew-sqlview = { path = "../ew-sqlview" }
+# The open-items list (`ew_checks::open_items`, WP-S3.06 D8): the open findings of the open-item rules.
+ew-checks = { path = "../ew-checks" }
 ew-text = { path = "../ew-text" }
 # `profile_tables` reads the provisional `colour_profile` and `size_profile` members of the project settings
 # (`ProjectSettings.extra`, doc 03 §5.1) as JSON values.
