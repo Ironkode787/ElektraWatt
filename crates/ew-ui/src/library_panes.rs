@@ -134,6 +134,17 @@ fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail)
 /// The thumbnail box's height in points; its width is the detail block's.
 const THUMBNAIL_HEIGHT: f32 = 64.0;
 
+/// A variable line of the detail (`<name> (<type>)`, maybe with ` = <default>`) with its type in words (W40a 5e:
+/// "pt (process tag)"); a line of another shape as it is.
+fn variable_line(item: &str) -> String {
+    if let Some((name, rest)) = item.split_once(" (") {
+        if let Some((ty, tail)) = rest.split_once(')') {
+            return format!("{name} ({}){tail}", strings::var_type_word(ty));
+        }
+    }
+    item.to_owned()
+}
+
 /// The thumbnail's height in a detail region `cap` high whose lists take `lists` (W40a 5f): [`THUMBNAIL_HEIGHT`]
 /// when both fit, else what the lists leave, never under `floor` (the lists then scroll).
 fn thumbnail_height(cap: f32, lists: f32, floor: f32) -> f32 {
@@ -149,6 +160,14 @@ mod thumbnail_tests {
         assert_eq!(thumbnail_height(400.0, 100.0, 28.0), THUMBNAIL_HEIGHT);
         assert_eq!(thumbnail_height(150.0, 110.0, 28.0), 40.0);
         assert_eq!(thumbnail_height(150.0, 300.0, 28.0), 28.0);
+    }
+
+    /// W40a 5e: a variable's type in words on the detail card.
+    #[test]
+    fn a_variable_line_names_its_type_in_words() {
+        assert_eq!(super::variable_line("pt (process_tag)"), "pt (process tag)");
+        assert_eq!(super::variable_line("n (tag_counter) = 3"), "n (tag counter) = 3");
+        assert_eq!(super::variable_line("plain"), "plain");
     }
 }
 
@@ -325,9 +344,9 @@ fn macro_detail(
                         t.text_tertiary,
                     );
                 }
-                for (title, items) in [
-                    (strings::text("macro-devices"), &d.devices),
-                    (strings::text("macro-variables"), &d.variables),
+                for (title, items, typed) in [
+                    (strings::text("macro-devices"), &d.devices, false),
+                    (strings::text("macro-variables"), &d.variables, true),
                 ] {
                     if items.is_empty() {
                         continue;
@@ -339,7 +358,8 @@ fn macro_detail(
                         t.text_secondary,
                     );
                     for item in items {
-                        line(ui, item, &t.type_small, t.text_primary);
+                        let text = if typed { variable_line(item) } else { item.clone() };
+                        line(ui, &text, &t.type_small, t.text_primary);
                     }
                 }
             });
