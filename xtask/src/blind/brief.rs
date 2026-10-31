@@ -667,7 +667,7 @@ mod tests {
     #[test]
     fn bv9_the_committed_briefs_have_valid_files() {
         let root = crate::workspace_root();
-        for brief in ["brief-valve-switch", "brief-relays-valves"] {
+        for brief in ["brief-valve-switch", "brief-relays-valves", "brief-plc-io"] {
             let (c, acceptance) = check_files(&root, brief).unwrap();
             assert!(c.problems.is_empty(), "{brief}: {:?}", c.problems);
             assert!(
@@ -768,9 +768,11 @@ mod tests {
     /// BV9 and the feasibility rule: the reference solutions replayed on the built product. Both briefs are runnable
     /// (every hard item met, the soft ones met or marked infeasible): `brief-relays-valves` since WP-S2.18 part 1, whose
     /// `place.pick function=<tag>:13-14` puts each relay's contact on its relay's auxiliary slot (FT-599, WP-S2.18 D4;
-    /// since FT-655 the contactor's contacts are template slots and `device=<tag>` fills the first, 1-2). Needs
-    /// `elektrawatt` and `ew` built in `target/debug` (the workspace run builds them); without them the test says so and checks nothing. Its scratch
-    /// folders live in a temporary folder of its own, removed after it, so a parallel run shares none of them.
+    /// since FT-655 the contactor's contacts are template slots and `device=<tag>` fills the first, 1-2).
+    /// `brief-plc-io` since WP-S2.18 part 4 (ID-882).
+    /// Needs `elektrawatt` and `ew` built in `target/debug` (the workspace run builds them); without them the test says
+    /// so and checks nothing. Its scratch folders live in a temporary folder of its own, removed after it, so a parallel
+    /// run shares none of them.
     #[test]
     fn bv9_check_brief_replays_the_reference_solutions() {
         let root = crate::workspace_root();
@@ -783,7 +785,7 @@ mod tests {
             return;
         }
         let tmp = crate::blind::testkit::Tmp::new("bv9-check");
-        for brief in ["brief-valve-switch", "brief-relays-valves"] {
+        for brief in ["brief-valve-switch", "brief-relays-valves", "brief-plc-io"] {
             let c = check_brief_in(&root, brief, &bin, &tmp.0).unwrap();
             assert!(c.runnable(), "{}", c.text(brief));
             assert!(
