@@ -1990,6 +1990,12 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
                 // WP-S1.21 part 4: no state of this sequence selects a bus net.
                 | "logical_net"
                 | "physical_net"
+                // WP-S4.01 part 1: no state of this sequence selects a layout record (Golden A holds none yet).
+                | "layout_space"
+                | "enclosure"
+                | "mounting_surface"
+                | "carrier"
+                | "placement"
                 | "page_item"
                 | "structure_box"
                 // WP-S1.19 part 1: no command creates a macro instance yet, so no state selects one.

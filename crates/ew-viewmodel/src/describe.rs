@@ -239,6 +239,12 @@ pub const VOCABULARY: &[&str] = &[
     // WP-S1.21 part 4 (D11): the typed bus nets have property sheets; a reviewed vocabulary change.
     "logical_net",
     "physical_net",
+    // WP-S4.01 part 1 (D3): the typed layout kinds have property sheets; a reviewed vocabulary change.
+    "layout_space",
+    "enclosure",
+    "mounting_surface",
+    "carrier",
+    "placement",
     // Find and replace (WP-S2.05 part 2, §7.6; ID-474 extended): 13 words and `text`, which no earlier part added,
     // so 14, a reviewed vocabulary change.
     "find",
