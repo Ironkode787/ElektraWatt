@@ -350,3 +350,70 @@ fn the_view_columns_give_902_its_surface_view_and_refuse_the_defective_ones() {
     );
     assert!(views(&b).is_empty(), "no view is imported");
 }
+
+/// FT-871: of a repeated `pages.csv` key, the page and its view come from the same row. A malformed first row of 902
+/// (grid `bad`) does not import, its valid second row does, and the view is the second row's; with a valid first
+/// row, the first row gives both and the repeated row is dropped whole.
+#[test]
+fn a_repeated_page_key_takes_its_view_from_the_row_that_imported() {
+    let pages_and_views = |b: &ImportBatch| -> (Vec<ew_schema::Page>, Vec<ew_schema::PageItem>) {
+        let page = record_id::<ew_schema::Page>("pages", "902");
+        let pages = b
+            .records
+            .iter()
+            .filter_map(|r| match r {
+                Record::Page(p) if p.id == page => Some(p.clone()),
+                _ => None,
+            })
+            .collect();
+        let items = b
+            .records
+            .iter()
+            .filter_map(|r| match r {
+                Record::PageItem(i) if i.page == page => Some(i.clone()),
+                _ => None,
+            })
+            .collect();
+        (pages, items)
+    };
+    let expected = pages_and_views(&golden());
+    assert_eq!((expected.0.len(), expected.1.len()), (1, 1));
+
+    let golden_pages = std::fs::read_to_string(common::tables_dir().join("pages.csv")).unwrap();
+    let row = golden_pages
+        .lines()
+        .find(|l| l.starts_with("902,"))
+        .unwrap()
+        .to_owned();
+    let other = row.replace(",qet10,-UC1,25 167,abbreviated", ",qet10,-UC1,0 0,full");
+    let malformed = row.replace(",qet10,-UC1,25 167,abbreviated", ",bad,-UC1,0 0,full");
+    assert!(other != row && malformed != row);
+    let with_902 = |rows: [&str; 2]| -> String {
+        golden_pages
+            .lines()
+            .map(|l| {
+                if l.starts_with("902,") {
+                    rows.join("\n")
+                } else {
+                    l.to_owned()
+                }
+            })
+            .map(|l| l + "\n")
+            .collect()
+    };
+
+    // The malformed first row is refused, and the second row gives the page and the view.
+    let b = golden_with("pages.csv", &with_902([&malformed, &row]));
+    assert_eq!(
+        messages(&b, Code::MALFORMED_ITEM)
+            .into_iter()
+            .filter(|m| m.contains("`bad`"))
+            .collect::<Vec<_>>(),
+        vec!["row dropped: column `grid`: `bad` is not qet10 or mm4".to_owned()]
+    );
+    assert_eq!(pages_and_views(&b), expected);
+
+    // A valid first row gives both; the repeated second row is dropped as a duplicate.
+    let b = golden_with("pages.csv", &with_902([&row, &other]));
+    assert_eq!(pages_and_views(&b), expected);
+}

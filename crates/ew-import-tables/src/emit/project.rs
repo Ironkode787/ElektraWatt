@@ -302,7 +302,14 @@ pub(crate) fn emit_pages(cx: &mut Cx<'_>, table: Option<&Table>) {
             continue;
         };
         let id = record_id::<Page>("pages", row.key());
-        cx.pages.insert(row.key().to_owned(), PageInfo { id, grid });
+        cx.pages.insert(
+            row.key().to_owned(),
+            PageInfo {
+                id,
+                grid,
+                line: row.line(),
+            },
+        );
         cx.records.push(Record::Page(Page {
             id,
             v: 1,
@@ -333,16 +340,17 @@ pub(crate) fn emit_pages(cx: &mut Cx<'_>, table: Option<&Table>) {
 /// `view_label_mode` (`abbreviated` or `full`). Runs after the layout, whose plate surfaces the views name.
 pub(crate) fn emit_surface_views(cx: &mut Cx<'_>, table: Option<&Table>) {
     let Some(table) = table else { return };
-    // One view per page: a repeated key was reported by `emit_pages`, and only its first row gives the view.
-    let mut seen = std::collections::BTreeSet::new();
     for row in table.rows() {
-        // A page row that did not import was reported by `emit_pages`.
-        let Some(page) = cx.pages.get(row.key()).map(|p| p.id) else {
+        // One view per page, from the row the page was imported from (FT-871): of a repeated key, that is the first
+        // row that imported, not always the first row. A row that did not import was reported by `emit_pages`.
+        let Some(page) = cx
+            .pages
+            .get(row.key())
+            .filter(|p| p.line == row.line())
+            .map(|p| p.id)
+        else {
             continue;
         };
-        if !seen.insert(page) {
-            continue;
-        }
         let mut r = row.reader();
         let kind = r.text("kind");
         let surface = r.text("view_surface").map(str::to_owned);

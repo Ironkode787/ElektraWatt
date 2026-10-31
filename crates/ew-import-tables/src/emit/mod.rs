@@ -76,6 +76,9 @@ pub(crate) struct PageInfo {
     pub(crate) id: Id<Page>,
     /// The page grid.
     pub(crate) grid: Grid,
+    /// The line of the `pages.csv` row the page was imported from: of a repeated key, the row that imported, which
+    /// is not always the first (FT-871).
+    pub(crate) line: u32,
 }
 
 /// One function of a part's template as the device emitters see it.
