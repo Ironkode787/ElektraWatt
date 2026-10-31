@@ -10,6 +10,7 @@ use ew_derive::{
     DevicePartLines, DeviceTag, Q, ResolvedSlot, ResolvedStructure, SlotSource, StructureOf, StructurePath,
 };
 
+use super::conn::is_listed_device;
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowSet};
 
@@ -76,7 +77,7 @@ impl ReportKindDef for StructureOverview {
         let mut devices: Vec<((NaturalKey, Id<Device>), Row)> = Vec::new();
         for id in q.devices().ids() {
             let Some(dev) = q.devices().get(id) else { continue };
-            if dev.aspects.terminal.is_some() {
+            if !is_listed_device(dev) {
                 continue;
             }
             let tag = q.get::<DeviceTag>(id);

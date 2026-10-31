@@ -78,6 +78,7 @@ mod recovery;
 mod release;
 mod release_gate;
 mod render;
+mod report_kinds;
 mod report_pages;
 mod reports_golden;
 mod revision_status;

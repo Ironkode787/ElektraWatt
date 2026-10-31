@@ -3,7 +3,8 @@
 
 //! The row exports of a chosen report block (WP-S1.22 part 2, D8; FT-241's CSV half, FR-EXT-027):
 //! `ew export wires`, `ew export terminals [--strip <tag>]`, `--block <name or id>` on `bom`, `cables`, `wires` and
-//! `terminals`, and `ew export report --block <name or id> --format csv|pdf`.
+//! `terminals`, `ew export report --block <name or id> --format csv|pdf`, and `ew export report --kind <kind>`, the
+//! whole-project rows of a registered kind (WP-S3.06 D4; [`RowExport::Kind`]).
 //!
 //! The rows are a block's rows as its folios print them ([`ew_reports::rows_of`], the BOM in the export's mode through
 //! [`ew_reports::arranged`]), written by the one CSV writer of the golden dialect ([`ew_reports::csv::rows_csv`]), so
@@ -26,7 +27,9 @@ use ew_derive::ew_schema::{Device, ReportBlock, ReportSource};
 use ew_derive::{BomMode, DeviceTag, PageOrder, PageRef, Q};
 use ew_reports::csv::{csv_field, rows_csv};
 use ew_reports::kinds::PartsSummary;
-use ew_reports::{Row, RowKey, RowKind, RowSet, RowSetStatus, arranged, kind_name, rows_of};
+use ew_reports::{
+    Registry, Row, RowKey, RowKind, RowSet, RowSetStatus, arranged, kind_name, project_rows, rows_of,
+};
 
 /// What a row export writes.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -44,17 +47,21 @@ pub enum RowExport {
     },
     /// The rows of a block of any kind (`ew export report --format csv`); needs a named block.
     Report,
+    /// The whole-project rows of a registered report kind (`ew export report --kind <kind>`, WP-S3.06 D4): the kind's
+    /// [`ew_reports::project_rows`] in its default order, no block arrangement; refuses a named block.
+    Kind(String),
 }
 
 impl RowExport {
-    /// The report kind whose block supplies the rows; `None` for [`RowExport::Report`] (any kind).
+    /// The report kind whose block supplies the rows; `None` for [`RowExport::Report`] (any kind) and for
+    /// [`RowExport::Kind`] (no block supplies the rows).
     pub fn kind(&self) -> Option<&'static str> {
         match self {
             RowExport::Cables => Some("cable_overview_diagrams"),
             RowExport::Bom(_) => Some("parts_summary"),
             RowExport::Wires => Some("wire_list"),
             RowExport::Terminals { .. } => Some("terminal_diagram"),
-            RowExport::Report => None,
+            RowExport::Report | RowExport::Kind(_) => None,
         }
     }
 }
@@ -107,6 +114,14 @@ pub enum RowsError {
     AmbiguousStrip(String, Vec<String>),
     /// The block has no pages (an embedded block), so it has no folios to write.
     NoPages(String),
+    /// Both a block and a kind were given (WP-S3.06 D4).
+    KindAndBlock,
+    /// A kind was asked for as pages (`--format pdf`): a kind has pages only through a block (WP-S3.06 D4).
+    KindPages,
+    /// No registered report kind has this name (the name, the registered names in order; WP-S3.06 D4).
+    UnknownKind(String, Vec<String>),
+    /// `terminal_diagram` lists one strip, so it has no whole-project rows (WP-S3.06 D4).
+    KindOneStrip,
 }
 
 impl fmt::Display for RowsError {
@@ -142,6 +157,19 @@ impl fmt::Display for RowsError {
                 fulls.join(", ")
             ),
             RowsError::NoPages(block) => write!(f, "the report block `{block}` has no pages"),
+            RowsError::KindAndBlock => write!(f, "give `--block` or `--kind`, not both"),
+            RowsError::KindPages => write!(
+                f,
+                "`--kind` exports rows: a kind has pages only through a block, use `--block <block> --format pdf`"
+            ),
+            RowsError::UnknownKind(name, names) => write!(
+                f,
+                "unknown report kind `{name}`; the kinds of this build are: {}",
+                names.join(", ")
+            ),
+            RowsError::KindOneStrip => {
+                write!(f, "`terminal_diagram` lists one strip: use `ew export terminals`")
+            }
         }
     }
 }
@@ -208,13 +236,25 @@ fn derived(set: RowSet, kind: &str) -> Result<RowSet, RowsError> {
     }
 }
 
-/// The rows of `what` (D8), from the block `block` names or, without one, the default block of the kind.
+/// The rows of `what` (D8), from the block `block` names or, without one, the default block of the kind; for
+/// [`RowExport::Kind`] the kind's whole-project rows (WP-S3.06 D4).
+///
+/// The `pages` cell of every data row of a `revision_overview` row set is the revision's changed pages as folio 911
+/// draws them (WP-S3.06 D11), for a block and a kind alike.
 ///
 /// # Errors
 ///
 /// [`RowsError`]: no block of the kind, an unknown, ambiguous or wrong-kind block, rows that do not derive, an unknown
-/// strip. [`RowExport::Report`] without a block is [`RowsError::UnknownBlock`] of the empty name.
+/// strip. [`RowExport::Report`] without a block is [`RowsError::UnknownBlock`] of the empty name. [`RowExport::Kind`]
+/// with a block is [`RowsError::KindAndBlock`]; an unregistered name [`RowsError::UnknownKind`]; `terminal_diagram`
+/// [`RowsError::KindOneStrip`].
 pub fn row_export(q: &Q, what: &RowExport, block: Option<&str>) -> Result<RowsCsv, RowsError> {
+    if let RowExport::Kind(name) = what {
+        if block.is_some() {
+            return Err(RowsError::KindAndBlock);
+        }
+        return kind_rows(q, name);
+    }
     let chosen: Vec<(Id<ReportBlock>, Arc<ReportBlock>)> = match (block, what.kind()) {
         (Some(name), want) => {
             let (id, b) = find_block(q, name)?;
@@ -253,11 +293,52 @@ pub fn row_export(q: &Q, what: &RowExport, block: Option<&str>) -> Result<RowsCs
             let set = derived((*rows_of(q, first_id)).clone(), &kind)?;
             Ok(whole(q, &set, kind, blocks))
         }
+        RowExport::Kind(_) => Err(RowsError::KindAndBlock),
     }
 }
 
-/// The CSV of a whole row set.
+/// The whole-project rows of the registered kind `name` (WP-S3.06 D4).
+fn kind_rows(q: &Q, name: &str) -> Result<RowsCsv, RowsError> {
+    let registry = Registry::builtin();
+    let Some(def) = registry.by_name(name) else {
+        return Err(RowsError::UnknownKind(
+            name.to_owned(),
+            registry.names().map(str::to_owned).collect(),
+        ));
+    };
+    if def.name() == "terminal_diagram" {
+        return Err(RowsError::KindOneStrip);
+    }
+    let set = project_rows(q, def.name(), None).ok_or_else(|| RowsError::NotDerived {
+        kind: def.name().to_owned(),
+        why: "the kind has no whole-project rows".to_owned(),
+    })?;
+    let set = derived(set, def.name())?;
+    Ok(whole(q, &set, def.name().to_owned(), Vec::new()))
+}
+
+/// `set` with the `pages` cell of every data row of a `revision_overview` row set replaced by the revision's changed
+/// pages, through the function folio 911's drawn cell uses (WP-S3.06 D11); `None` for any other kind.
+fn with_revision_pages(q: &Q, set: &RowSet, kind: &str) -> Option<RowSet> {
+    if kind != "revision_overview" {
+        return None;
+    }
+    let column = set.column("pages")?;
+    let mut set = set.clone();
+    for row in set.rows.iter_mut().filter(|r| r.kind == RowKind::Data) {
+        if let Some(pages) = super::view::revision_pages(q, row)
+            && let Some(cell) = row.cells.get_mut(column)
+        {
+            *cell = pages;
+        }
+    }
+    Some(set)
+}
+
+/// The CSV of a whole row set (a revision overview's with its changed pages, D11).
 fn whole(q: &Q, set: &RowSet, kind: String, blocks: Vec<String>) -> RowsCsv {
+    let filled = with_revision_pages(q, set, &kind);
+    let set = filled.as_ref().unwrap_or(set);
     RowsCsv {
         csv: rows_csv(q, set),
         rows: set.rows.len(),

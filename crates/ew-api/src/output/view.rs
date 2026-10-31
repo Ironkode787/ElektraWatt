@@ -1025,7 +1025,7 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
 /// The `pages` cell of a revision overview row at draw time (WP-S1.18 part 2): the revision's `changed_pages`, which
 /// sees the page digests and the generated pages the row source inside the pagination cannot
 /// (`ew_reports::kinds::revision_rows`); `None` for a row that names no revision.
-fn revision_pages(q: &Q, row: &Row) -> Option<Cell> {
+pub(super) fn revision_pages(q: &Q, row: &Row) -> Option<Cell> {
     let id = row.id.entities().next()?;
     let rev = q.table::<ew_schema::Revision>().get(Id::from_uuid(id))?;
     Some(Cell::Folios(super::revisions::changed_pages(q, rev)))

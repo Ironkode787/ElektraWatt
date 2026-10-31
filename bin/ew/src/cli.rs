@@ -39,6 +39,7 @@ pub const USAGE: &str = "usage:
   ew export terminals [<project-dir>] [--project <dir>] [--block <block>] [--strip <tag>] [--format csv]
       [--out <file>] [--json]
   ew export report [<project-dir>] [--project <dir>] --block <block> [--format csv|pdf] [--out <file>] [--json]
+  ew export report [<project-dir>] [--project <dir>] --kind <kind> [--format csv] [--out <file>] [--json]
   ew export pdf [<project-dir>] [--project <dir>] --out <file.pdf> [--pages <folios>] [--threads <n>] [--json]
   ew export svg [<project-dir>] [--project <dir>] --out <dir> [--pages <folios>] [--threads <n>] [--json]
   ew export png [<project-dir>] [--project <dir>] --out <dir> [--pages <folios>] [--dpi <n>] [--threads <n>]
@@ -121,8 +122,9 @@ row. `--block` names the report block by its ID or its first folio (`908`); with
 block of the kind with the lowest first folio (for `terminals`: every terminal diagram block); a block of another
 kind is refused. `export terminals --strip <tag>` writes the rows of one strip (`-X1031`); without it every strip,
 each strip's rows after a heading row `heading,<tag>`. `export report --block <block>` writes the rows of any block
-as CSV, or with `--format pdf` the block's pages as a PDF to `--out` (as `export pdf --pages`). XLSX waits for the
-writer of FT-61. `export` exits 0 on success and 2 on everything else (usage, open errors, a project without the
+as CSV, or with `--format pdf` the block's pages as a PDF to `--out` (as `export pdf --pages`). `export report --kind
+<kind>` writes the whole-project rows of a report kind (`device_list`, `terminal_overview`, ...) in the kind's default
+order, as CSV only, with no block. XLSX waits for the writer of FT-61. `export` exits 0 on success and 2 on everything else (usage, open errors, a project without the
 block, an unknown or wrong block or strip).
 
 `export pdf` writes the project's pages as one PDF/A-2b (outline, page labels, links) and `export svg` one
@@ -526,6 +528,8 @@ pub enum ExportKind {
         /// `--format pdf`.
         pdf: bool,
     },
+    /// The whole-project rows of a report kind (`export report --kind <kind>`, CSV only; WP-S3.06 D4).
+    ReportKind(String),
 }
 
 /// The arguments of `ew export cables|bom|wires|terminals|report`.
@@ -929,6 +933,7 @@ fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String>
     let mut out = None;
     let mut mode = BomMode::Component;
     let mut block = None;
+    let mut report_kind = None;
     let mut strip = None;
     let mut pdf = false;
     let mut json = false;
@@ -938,6 +943,7 @@ fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String>
             "--json" => json = true,
             "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
             "--block" => block = Some(value(&mut it, "--block")?),
+            "--kind" if report => report_kind = Some(value(&mut it, "--kind")?),
             "--format" => match value(&mut it, "--format")?.as_str() {
                 "csv" => pdf = false,
                 "pdf" if report => pdf = true,
@@ -976,10 +982,24 @@ fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String>
         "bom" => ExportKind::Bom(mode),
         "wires" => ExportKind::Wires,
         "terminals" => ExportKind::Terminals(strip),
-        _ => ExportKind::Report { pdf },
+        _ => match report_kind {
+            Some(name) => ExportKind::ReportKind(name),
+            None => ExportKind::Report { pdf },
+        },
     };
-    if report && block.is_none() {
-        return Err("`export report` needs `--block <block>` (its ID or first folio)".to_owned());
+    if let ExportKind::ReportKind(_) = kind {
+        // WP-S3.06 D4: the refusals are the report layer's texts.
+        if block.is_some() {
+            return Err(ew_api::output::RowsError::KindAndBlock.to_string());
+        }
+        if pdf {
+            return Err(ew_api::output::RowsError::KindPages.to_string());
+        }
+    }
+    if report && block.is_none() && !matches!(kind, ExportKind::ReportKind(_)) {
+        return Err(
+            "`export report` needs `--block <block>` (its ID or first folio) or `--kind <kind>`".to_owned(),
+        );
     }
     if pdf && out.is_none() {
         return Err("`export report --format pdf` needs `--out <file.pdf>`".to_owned());
@@ -1750,13 +1770,14 @@ fn run_export(a: &ExportArgs) -> i32 {
                 ExportKind::Wires => RowExport::Wires,
                 ExportKind::Terminals(strip) => RowExport::Terminals { strip: strip.clone() },
                 ExportKind::Report { .. } => RowExport::Report,
+                ExportKind::ReportKind(name) => RowExport::Kind(name.clone()),
             };
             match ew_api::output::row_export(&session.query(), &what, block.as_deref()) {
                 Ok(r) => {
                     for notice in &r.notices {
                         eprintln!("{notice}");
                     }
-                    if let ExportKind::Report { .. } = kind {
+                    if let ExportKind::Report { .. } | ExportKind::ReportKind(_) = kind {
                         return finish_export_report_csv(a, &r);
                     }
                     (r.csv, r.rows, r.strips)
@@ -1836,11 +1857,17 @@ fn rows_refusal(e: &ew_api::output::RowsError) -> String {
                 "the project has no report block of kind `{kind}`: {export} is the rows of that block (a project from the built-in template has none), so there is nothing to export"
             )
         }
+        // WP-S3.06 D4: each refusal of the export by kind is its own whole text.
+        e @ (ew_api::output::RowsError::KindAndBlock
+        | ew_api::output::RowsError::KindPages
+        | ew_api::output::RowsError::UnknownKind(..)
+        | ew_api::output::RowsError::KindOneStrip) => e.to_string(),
         other => other.to_string(),
     }
 }
 
-/// `ew export report --format csv`: the rows of the block, then the `--json` result.
+/// `ew export report --format csv`: the rows of the block (or of the kind, `--kind`), then the `--json` result; its
+/// `block` is empty for `--kind` (the orchestrator's ruling 2 of cycle 42).
 fn finish_export_report_csv(a: &ExportArgs, r: &ew_api::output::RowsCsv) -> i32 {
     if write_rows(a, &r.csv, r.rows) != 0 {
         return 2;
@@ -4973,6 +5000,53 @@ SELECT 1"
         assert_eq!(
             (r.kind, r.out),
             (ExportKind::Report { pdf: true }, Some(PathBuf::from("r.pdf")))
+        );
+    }
+
+    /// WP-S3.06 D4 (the orchestrator's ruling 4 of cycle 42): `export report --kind <kind>` is CSV only and excludes
+    /// `--block`; each refusal is the report layer's text, whole, given before the project opens.
+    #[test]
+    fn report_kind_forms_and_refusals() {
+        let Ok(Command::Export(r)) = p(&[
+            "export",
+            "report",
+            "proj",
+            "--kind",
+            "device_list",
+            "--format",
+            "csv",
+        ]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(
+            (r.kind, r.block, r.project),
+            (
+                ExportKind::ReportKind("device_list".to_owned()),
+                None,
+                Some(PathBuf::from("proj"))
+            )
+        );
+        assert_eq!(
+            p(&["export", "report", "--kind", "device_list", "--block", "910"]),
+            Err("give `--block` or `--kind`, not both".to_owned())
+        );
+        assert_eq!(
+            p(&["export", "report", "--kind", "device_list", "--format", "pdf", "--out", "r.pdf"]),
+            Err(
+                "`--kind` exports rows: a kind has pages only through a block, use `--block <block> --format pdf`"
+                    .to_owned()
+            )
+        );
+        assert_eq!(
+            p(&["export", "report"]),
+            Err(
+                "`export report` needs `--block <block>` (its ID or first folio) or `--kind <kind>`"
+                    .to_owned()
+            )
+        );
+        assert_eq!(
+            p(&["export", "wires", "--kind", "device_list"]),
+            Err("unknown option `--kind`".to_owned())
         );
     }
 

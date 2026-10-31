@@ -16,7 +16,8 @@ use std::sync::Arc;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_derive::ew_schema::{
-    BridgeKind, ClampKey, ColourSpec, Connection, Csa, Device, Function, FunctionKind, Page, Unit,
+    BridgeKind, ClampKey, ColourSpec, Connection, Csa, Device, DeviceState, Function, FunctionKind, Page,
+    Unit,
 };
 use ew_derive::{
     BridgeGroup, CpRef, DeviceTag, EffectiveProps, EndKind, FunctionCps, PageRef, Partition, PhysicalWire,
@@ -37,6 +38,50 @@ pub(super) fn put(columns: &[ColumnDef], cells: &mut [Cell], key: &str, cell: Ce
         panic!("the kind has no column `{key}`");
     };
     cells[i] = cell;
+}
+
+/// Whether a device has a row of its own in the device lists (`structure_overview`'s device rows, `device_list`;
+/// WP-S3.06 D5): every device that is not a terminal (the terminal reports list terminals).
+pub(super) fn is_listed_device(dev: &Device) -> bool {
+    dev.aspects.terminal.is_none()
+}
+
+/// The state of a terminal as the terminal reports print it (doc 08 §6.6; WP-S3.06 D6): `spare`, `reserved` or
+/// `not fitted` as authored, else `used` when the terminal has a wire (`wired`) or belongs to a bridge (`bridged`),
+/// and `unused` otherwise. `terminal_diagram`'s State column and `terminal_overview`'s counts use this one rule.
+pub(super) fn terminal_state(state: &DeviceState, wired: bool, bridged: bool) -> &'static str {
+    match state {
+        DeviceState::Spare => "spare",
+        DeviceState::Reserved => "reserved",
+        DeviceState::NotFitted => "not fitted",
+        DeviceState::Used | DeviceState::Unknown(_) => {
+            if wired || bridged {
+                "used"
+            } else {
+                "unused"
+            }
+        }
+    }
+}
+
+/// The physical wires by the CPs they end at.
+pub(super) fn wires_by_cp(wires: &Wires) -> BTreeMap<CpRef, Vec<&WireRec>> {
+    let mut map: BTreeMap<CpRef, Vec<&WireRec>> = BTreeMap::new();
+    for rec in &wires.wires {
+        for end in &rec.wire.ends {
+            map.entry(end.cp).or_default().push(rec);
+        }
+    }
+    map
+}
+
+/// Whether a wire ends at any CP of the terminal `t` (the `wired` of [`terminal_state`]).
+pub(super) fn terminal_wired(q: &Q, t: Id<Device>, by_cp: &BTreeMap<CpRef, Vec<&WireRec>>) -> bool {
+    q.idx().functions_of_device(t).any(|f| {
+        q.get::<FunctionCps>(f)
+            .iter()
+            .any(|cp| by_cp.contains_key(&CpRef::new(f, cp.idx)))
+    })
 }
 
 /// One physical wire of the project with its effective properties.

@@ -7,11 +7,11 @@
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{AddrValue, Channel, Device, NetAddress, PlcConfigProject, ReportBlock};
-use ew_derive::{DeriveNote, EffectiveState, FunctionCps, PlcRow, PlcRows, Q, Slot};
+use ew_derive::{EffectiveState, FunctionCps, PlcRow, PlcRows, Q, Slot};
 
 use super::conn::{put, tag_short};
 use super::plc_overview::{address_cell, kind_name, page_cell};
-use crate::kind::ReportKindDef;
+use crate::kind::{ParamDef, ParamKind, ParamValue, ReportKindDef, kind_params};
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
 /// The block parameter that lists the deactivated channels too (WP-S3.06 D9; decision log ID-950, ruling 1).
@@ -24,9 +24,9 @@ const INCLUDE_DEACTIVATED: &str = "include_deactivated";
 ///   the orchestrator's ruling 10 of cycle 42).
 /// - **Rows:** `plc_rows(station)`: the channels of every module in slot order, then by channel number. A channel
 ///   whose effective state is `deactivated` is left out unless the block parameter `params.include_deactivated` is
-///   `true` (FR-PLC-023: "the same 28 rows ... 56 with the deactivated filter off"). The parameter is read here until
-///   WP-S3.06 part 1 moves it onto `kind_params` (D9): a value that is not a boolean gives the default, `false`, and
-///   one `MalformedShim` note naming the block and the key.
+///   `true` (FR-PLC-023: "the same 28 rows ... 56 with the deactivated filter off"), read through `kind_params`
+///   (WP-S3.06 D9): a value that is not a boolean gives the default, `false`, and one `MalformedShim` note naming the
+///   block and the key.
 /// - **Columns:** the 20 columns of FR-PLC-023 this build fills (ruling 4 (b) of cycle 42: passed terminals, signal
 ///   range and the safety address are added with their writers): configuration project, CPU, station, bus address
 ///   (the station's first bus port with an address: "TBD" for the open item, the PROFIBUS station number), slot
@@ -70,8 +70,17 @@ impl ReportKindDef for IoList {
         ]
     }
 
+    /// `include_deactivated`: a boolean, `false` by default (WP-S3.06 D9; decision log ID-950, ruling 1).
+    fn params(&self) -> &'static [ParamDef] {
+        &[ParamDef {
+            key: INCLUDE_DEACTIVATED,
+            kind: ParamKind::Bool,
+            default: ParamValue::Bool(false),
+        }]
+    }
+
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet {
-        let include_deactivated = include_deactivated(q, block);
+        let include_deactivated = kind_params(q, block).bool(INCLUDE_DEACTIVATED);
         let mut set = RowSet::new(self.columns());
         for station in stations_of(q, block) {
             let head = Station::of(q, station);
@@ -84,41 +93,6 @@ impl ReportKindDef for IoList {
             }
         }
         set
-    }
-}
-
-/// The block parameter `params.include_deactivated`: `false` when absent; a value that is not a boolean gives
-/// `false` and one `MalformedShim` note naming the block and the key (WP-S3.06 D9).
-fn include_deactivated(q: &Q, block: &ReportBlock) -> bool {
-    let Some(value) = block.extra.get("params").and_then(|p| p.get(INCLUDE_DEACTIVATED)) else {
-        return false;
-    };
-    if let Some(b) = value.as_bool() {
-        return b;
-    }
-    q.note(DeriveNote::MalformedShim {
-        member: format!("params.{INCLUDE_DEACTIVATED} of {}", block_words(q, block)),
-        detail: format!("expected true or false, found {value}"),
-    });
-    false
-}
-
-/// A report block in words: "the report block at folio 950", "the report block on page 3", else "a report block".
-fn block_words(q: &Q, block: &ReportBlock) -> String {
-    if let Some(embed) = &block.embedded {
-        if let Some(page) = q.table::<ew_derive::ew_schema::Page>().get(embed.page) {
-            let folio = page
-                .folio
-                .label
-                .as_ref()
-                .map_or_else(|| page.folio.number.to_string(), |l| l.as_str().to_owned());
-            return format!("the report block on page {folio}");
-        }
-        return "a report block".to_owned();
-    }
-    match block.first_folio {
-        Some(n) => format!("the report block at folio {n}"),
-        None => "a report block".to_owned(),
     }
 }
 

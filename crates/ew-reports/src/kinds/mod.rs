@@ -3,10 +3,12 @@
 
 //! The built-in report kinds (doc 09 §2.4).
 //!
-//! Derived now (Derivation I): `toc`, `parts_summary`, `parts_list`, `part_data`, `structure_overview`, and
-//! `profile_tables` (the cover's colour and size tables, from the profiles in the project settings).
+//! Derived now (Derivation I): `toc`, `parts_summary`, `parts_list`, `part_data`, `structure_overview`, `device_list`
+//! (FR-REP-008, the device rows of `structure_overview`; WP-S3.06 D5), and `profile_tables` (the cover's colour and
+//! size tables, from the profiles in the project settings).
 //! Derived now from the Derivation II queries (potential partition, physical wires, effective wire
-//! properties): `wire_list`, `potential_overview`, `terminal_diagram`, `cable_overview_diagrams`. Those
+//! properties): `wire_list`, `potential_overview`, `terminal_diagram`, `terminal_overview` (FR-REP-010, one row per
+//! strip; WP-S3.06 D6), `cable_overview_diagrams`. Those
 //! queries read the drawn page order, which has no report pages, so these kinds derive their rows inside the
 //! pagination like the others.
 //! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview` and `io_list` (FR-PLC-023). From the tags and wire numbers:
@@ -23,6 +25,7 @@ use crate::rowset::{CellType, ColumnDef, NotDerived, RowSet};
 
 mod cable_overview;
 mod conn;
+mod device_list;
 mod enclosure_legend;
 mod io_list;
 mod numbering_report;
@@ -34,11 +37,13 @@ mod profile_tables;
 mod revision_overview;
 mod structure_overview;
 mod terminal_diagram;
+mod terminal_overview;
 mod toc;
 mod wire_list;
 
 pub use cable_overview::CableOverview;
 pub use conn::bridge_groups;
+pub use device_list::DeviceList;
 pub use enclosure_legend::EnclosureLegend;
 pub use io_list::IoList;
 pub use numbering_report::NumberingReport;
@@ -50,6 +55,7 @@ pub use profile_tables::{GROUPS as PROFILE_TABLE_GROUPS, ProfileTables};
 pub use revision_overview::{RevisionOverview, revision_rows};
 pub use structure_overview::StructureOverview;
 pub use terminal_diagram::TerminalDiagram;
+pub use terminal_overview::TerminalOverview;
 pub use toc::Toc;
 pub use wire_list::WireList;
 
@@ -71,6 +77,8 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &ProfileTables,
         &RevisionOverview,
         &EnclosureLegend,
+        &DeviceList,
+        &TerminalOverview,
     ]
 }
 

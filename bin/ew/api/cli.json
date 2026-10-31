@@ -307,6 +307,11 @@
           "repeatable": false
         },
         {
+          "name": "--kind",
+          "value": true,
+          "repeatable": false
+        },
+        {
           "name": "--format",
           "value": true,
           "repeatable": false

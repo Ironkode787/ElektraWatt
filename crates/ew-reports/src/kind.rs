@@ -7,8 +7,9 @@
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
-use ew_derive::Q;
-use ew_derive::ew_schema::{ReportBlock, ReportKind};
+use ew_derive::ew_schema::{Page, ReportBlock, ReportKind};
+use ew_derive::{DeriveNote, Q};
+use serde_json::Value;
 
 use crate::kinds;
 use crate::rowset::{ColumnDef, RowSet};
@@ -44,6 +45,183 @@ pub trait ReportKindDef: Send + Sync {
     /// [`columns`](ReportKindDef::columns).
     fn embedded_layout(&self) -> EmbeddedLayout {
         EmbeddedLayout::every_column(&self.columns())
+    }
+
+    /// The block parameters this kind declares (WP-S3.06 D9): the keys of a block's `params` object it reads, each
+    /// with its type and default, in declaration order. Read through [`kind_params`]. None by default.
+    fn params(&self) -> &'static [ParamDef] {
+        &[]
+    }
+}
+
+/// One declared block parameter of a kind ([`ReportKindDef::params`], WP-S3.06 D9).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ParamDef {
+    /// The snake_case key in the block's `params` object (`mode`).
+    pub key: &'static str,
+    /// The values it takes.
+    pub kind: ParamKind,
+    /// The value when the key is absent or its value is not one the kind takes.
+    pub default: ParamValue,
+}
+
+/// The values a block parameter takes.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ParamKind {
+    /// A JSON boolean.
+    Bool,
+    /// A JSON string, one of these words exactly (case-sensitive).
+    Choice(&'static [&'static str]),
+}
+
+/// The value of a block parameter.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ParamValue {
+    /// A [`ParamKind::Bool`] value.
+    Bool(bool),
+    /// A [`ParamKind::Choice`] value: one of its words.
+    Choice(&'static str),
+}
+
+/// The parameters of one block, one value per declared key in declaration order ([`kind_params`]).
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct KindParams {
+    values: Vec<(&'static str, ParamValue)>,
+}
+
+impl KindParams {
+    /// The value of the declared boolean `key`; `false` for a key the kind does not declare as a boolean.
+    pub fn bool(&self, key: &str) -> bool {
+        self.values
+            .iter()
+            .find(|(k, _)| *k == key)
+            .is_some_and(|(_, v)| *v == ParamValue::Bool(true))
+    }
+
+    /// The value of the declared choice `key`; `""` for a key the kind does not declare as a choice.
+    pub fn choice(&self, key: &str) -> &'static str {
+        self.values
+            .iter()
+            .find_map(|(k, v)| match v {
+                ParamValue::Choice(c) if *k == key => Some(*c),
+                _ => None,
+            })
+            .unwrap_or("")
+    }
+}
+
+/// The parameters of `block` as its kind declares them (WP-S3.06 D9): the block's top-level `params` member, a JSON
+/// object, read key by key.
+///
+/// A declared key that is absent takes its default. A value outside its kind (another JSON type, a word the choice
+/// does not list, `"Assembly"` for `"assembly"`) takes the default, a key the kind does not declare is ignored, and a
+/// `params` that is not an object gives every default; each of these pushes one [`DeriveNote::MalformedShim`] naming
+/// the block in words and the key. A block of a kind without a registered engine, or with no declared parameters and
+/// no `params`, gives no values and no note.
+pub fn kind_params(q: &Q, block: &ReportBlock) -> KindParams {
+    let Some(def) = (match &block.source {
+        ew_derive::ew_schema::ReportSource::Kind(k) => Registry::builtin().get(k),
+        _ => None,
+    }) else {
+        return KindParams::default();
+    };
+    let declared = def.params();
+    let defaults = || KindParams {
+        values: declared.iter().map(|p| (p.key, p.default)).collect(),
+    };
+    let Some(params) = block.extra.get("params") else {
+        return defaults();
+    };
+    let note = |member: String, detail: String| {
+        q.note(DeriveNote::MalformedShim { member, detail });
+    };
+    let Some(object) = params.as_object() else {
+        note(
+            format!("{} params", block_words(q, block, def.name())),
+            format!("expected an object of parameters, found {}", value_words(params)),
+        );
+        return defaults();
+    };
+    let mut values = Vec::with_capacity(declared.len());
+    for p in declared {
+        let value = match object.get(p.key) {
+            None => p.default,
+            Some(v) => match read_param(p, v) {
+                Ok(value) => value,
+                Err(detail) => {
+                    note(
+                        format!("{} params.{}", block_words(q, block, def.name()), p.key),
+                        detail,
+                    );
+                    p.default
+                }
+            },
+        };
+        values.push((p.key, value));
+    }
+    for key in object
+        .keys()
+        .filter(|k| declared.iter().all(|p| p.key != k.as_str()))
+    {
+        note(
+            format!("{} params.{}", block_words(q, block, def.name()), bounded(key)),
+            format!("`{}` has no parameter of this name", def.name()),
+        );
+    }
+    KindParams { values }
+}
+
+/// The value of `v` for the parameter `p`, or why it is not one.
+fn read_param(p: &ParamDef, v: &Value) -> Result<ParamValue, String> {
+    match p.kind {
+        ParamKind::Bool => v
+            .as_bool()
+            .map(ParamValue::Bool)
+            .ok_or_else(|| format!("expected true or false, found {}", value_words(v))),
+        ParamKind::Choice(words) => v
+            .as_str()
+            .and_then(|s| words.iter().find(|w| **w == s))
+            .map(|w| ParamValue::Choice(w))
+            .ok_or_else(|| {
+                let listed: Vec<String> = words.iter().map(|w| format!("\"{w}\"")).collect();
+                let expected = match listed.split_last() {
+                    Some((last, [])) => last.clone(),
+                    Some((last, rest)) => format!("{} or {last}", rest.join(", ")),
+                    None => "no value".to_owned(),
+                };
+                format!("expected {expected}, found {}", value_words(v))
+            }),
+    }
+}
+
+/// The longest JSON text or key a note quotes, in characters; a longer one is cut and ends in "…" (hostile input).
+const QUOTED_MAX: usize = 40;
+
+/// `text` cut to [`QUOTED_MAX`] characters.
+fn bounded(text: &str) -> String {
+    match text.char_indices().nth(QUOTED_MAX) {
+        Some((at, _)) => format!("{}…", &text[..at]),
+        None => text.to_owned(),
+    }
+}
+
+/// A JSON value as a note quotes it: its compact JSON text, cut to [`QUOTED_MAX`] characters.
+fn value_words(v: &Value) -> String {
+    bounded(&v.to_string())
+}
+
+/// A report block in words, as a note names it: `report block 912` by its first folio; an embedded block
+/// `report block part_data on page 101`; a block with neither `report block parts_summary`.
+fn block_words(q: &Q, block: &ReportBlock, kind: &str) -> String {
+    if let Some(embed) = &block.embedded {
+        if let Some(page) = q.table::<Page>().get(embed.page) {
+            return format!("report block {kind} on page {}", ew_derive::folio_label(page));
+        }
+        return format!("report block {kind}");
+    }
+    match block.first_folio {
+        Some(n) => format!("report block {n}"),
+        None => format!("report block {kind}"),
     }
 }
 

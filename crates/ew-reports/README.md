@@ -49,15 +49,36 @@ ADR-0018. Work package WP-S3.03.
 | `numbering_report` | derived | frozen tags (`TagSpec.frozen`) and frozen wire numbers with their rule-derived values (`rule_product`, `wire_numbers`; FR-REP-022) |
 | `revision_overview` | derived | `revision_rows` (FT-207): the revision records in label order, a withdrawal record after the revision it withdraws, the changed pages they record; `ew-api` completes the pages from the page digests at draw time (WP-S1.18 part 2) |
 | `enclosure_legend` | derived (embedded; drawn as "LEGEND" in two flow columns of position, DT, quantity and part number, WP-S4.01 D17) | `layout_legend(surface)` of the surface the embedded page's `surface_view` shows: the enclosure, the plate, one row per carrier (rails, then ducts; the length in metres as the quantity), then the placements by designation |
-| `device_list`, `terminal_overview`, `io_list`, `open_items`, `check_report` | placeholder (`NotDerived::Unsupported`) until their WP | not registered yet |
+| `io_list` | derived | the `plc_rows` query per station (FR-PLC-023, WP-S1.21 part 5); deactivated channels only with the block parameter `include_deactivated` |
+| `device_list` | derived | the device rows of `structure_overview` (one shared predicate: every device that is not a terminal), natural order of the full tag; parts from the device's own part lines, the main representation's cell (FR-REP-008, WP-S3.06 D5) |
+| `terminal_overview` | derived | one row per strip in `terminal_diagram`'s strip order: the terminal counts by `terminal_diagram`'s one state rule, the terminal parts, the segment cells (FR-REP-010, WP-S3.06 D6) |
+| `open_items`, `check_report` | placeholder (`NotDerived::Unsupported`) until their WP | not registered yet |
 
 A kind that is not derived yet has its columns and an empty `RowSet` whose `status` is `NotDerived(reason)`. A
 page-oriented block of such a kind paginates to **one placeholder page** whose `note` carries the reason, so its
 folio, its title and its TOC entry exist before the rows do (the rule ADR-0017 amendment 1 gives SQL blocks before
 their first result). Other schema kinds are not registered and report `NotDerived::Unsupported`.
 
+## Block parameters
+
+A block's `params` member (WP-S3.06 D9) is a top-level JSON object kept in the block's `extra` (no schema member):
+snake_case keys, JSON scalar values. A kind declares the keys it reads through `ReportKindDef::params()` (key, type
+`Bool` or `Choice`, default; none by default), and reads the block's values through `kind_params(q, block)`, one value
+per declared key in declaration order. A value outside its kind (another JSON type, a word the choice does not list,
+"Assembly" for "assembly") takes the default, an undeclared key is ignored, and a `params` that is not an object gives
+every default; each pushes one `DeriveNote::MalformedShim` that names the block in words (`report block 912
+params.mode`). Declared now: `parts_summary` `mode` ("component", the default, or "assembly") and `io_list`
+`include_deactivated` (boolean, default false).
+
+## The export by kind
+
+`ew-api`'s `row_export(q, &RowExport::Kind(kind), None)` (`ew export report --kind <kind>`) writes `project_rows(q,
+kind, None)`, the kind's whole-project rows in its default order with no block arrangement, in the golden CSV dialect
+(WP-S3.06 D4). Golden A's kinds without a folio have their golden rows as `expected/csv/<kind>.csv`: `device_list`,
+`terminal_overview` and `io_list`.
+
 ## Not yet
 
 XLSX and CSV writers (rust_xlsxwriter, csv), user SQL reports (1.0), the persisted encoding of a block's `filter`
-and `params` members, and opt-in row wrapping from form data (the schema's `WrapPolicy` has no wrapping variant
+member and the typing of `filter` and `params` (FT-385's `report_block.set`), and opt-in row wrapping from form data (the schema's `WrapPolicy` has no wrapping variant
 yet; `RowLines` is the measurement hook).

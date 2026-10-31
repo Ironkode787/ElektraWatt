@@ -3,14 +3,14 @@
 
 //! `terminal_diagram`: the terminal diagram of one strip (FR-REP-009; golden 903, 904, 905).
 
-use std::collections::BTreeMap;
-
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, DeviceState, ReportBlock, Side};
+use ew_derive::ew_schema::{Device, ReportBlock, Side};
 use ew_derive::{CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q};
 
-use super::conn::{WireRec, Wires, bridges, end_text, tag_short, text_cell};
+use super::conn::{
+    WireRec, Wires, bridges, end_text, tag_short, terminal_state, terminal_wired, text_cell, wires_by_cp,
+};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
@@ -89,7 +89,6 @@ impl ReportKindDef for TerminalDiagram {
 
                 let (mut side1, mut side2) = (Vec::new(), Vec::new());
                 let mut potential = Cell::Empty;
-                let mut wired = false;
                 for f in q.idx().functions_of_device(t) {
                     for cp in q.get::<FunctionCps>(f).iter() {
                         let r = CpRef::new(f, cp.idx);
@@ -99,7 +98,6 @@ impl ReportKindDef for TerminalDiagram {
                             potential = Cell::Ident(q.get::<PotentialNameOf>(p.id).name.text.clone());
                         }
                         let Some(recs) = by_cp.get(&r) else { continue };
-                        wired = true;
                         let target = match cp.side {
                             Some(Side::Side1) => &mut side1,
                             Some(Side::Side2) => &mut side2,
@@ -111,18 +109,7 @@ impl ReportKindDef for TerminalDiagram {
                     }
                 }
                 let bridge = bridges.iter().find(|b| b.terminals.contains(&t));
-                let state = match &dev.state {
-                    DeviceState::Spare => "spare",
-                    DeviceState::Reserved => "reserved",
-                    DeviceState::NotFitted => "not fitted",
-                    DeviceState::Used | DeviceState::Unknown(_) => {
-                        if wired || bridge.is_some() {
-                            "used"
-                        } else {
-                            "unused"
-                        }
-                    }
-                };
+                let state = terminal_state(&dev.state, terminal_wired(q, t, &by_cp), bridge.is_some());
                 let mut r = Row::data(
                     RowId(vec![
                         RowKey::Entity(strip.as_uuid()),
@@ -153,8 +140,9 @@ impl ReportKindDef for TerminalDiagram {
     }
 }
 
-/// The strips of a block: the strip devices of its manual selection, else all strips by natural tag.
-fn strips_of(q: &Q, block: &ReportBlock) -> Vec<Id<Device>> {
+/// The strips of a block: the strip devices of its manual selection, else all strips by natural tag (shared with
+/// `terminal_overview`, WP-S3.06 D6).
+pub(super) fn strips_of(q: &Q, block: &ReportBlock) -> Vec<Id<Device>> {
     let is_strip = |d: Id<Device>| q.devices().get(d).is_some_and(|d| d.aspects.strip.is_some());
     let selected: Vec<Id<Device>> = block
         .manual
@@ -176,17 +164,6 @@ fn strips_of(q: &Q, block: &ReportBlock) -> Vec<Id<Device>> {
     keyed.sort();
     keyed.dedup();
     keyed.into_iter().map(|(_, s)| s).collect()
-}
-
-/// The physical wires by the CPs they end at.
-fn wires_by_cp(wires: &Wires) -> BTreeMap<CpRef, Vec<&WireRec>> {
-    let mut map: BTreeMap<CpRef, Vec<&WireRec>> = BTreeMap::new();
-    for rec in &wires.wires {
-        for end in &rec.wire.ends {
-            map.entry(end.cp).or_default().push(rec);
-        }
-    }
-    map
 }
 
 /// What the wire `rec` ending at `at` leads to: the far end, and the cable and core when it is a core.

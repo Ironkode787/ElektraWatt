@@ -436,6 +436,189 @@ fn report_refuses_xlsx_and_an_unknown_block() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// WP-S3.06 part 1: `ew export report --kind <kind>` (D4), the revision overview's changed pages (D11), the block
+// parameters on save (D9)
+
+/// The kinds with a golden CSV written by the export by kind (`crates/ew-api/tests/it/report_kinds.rs` blesses them).
+const KIND_CSVS: &[&str] = &["device_list", "terminal_overview", "io_list"];
+
+/// RK-1, RK-2, RK-7 and the orchestrator's ruling 10 (cycle 42): `ew export report --kind <kind> --format csv` writes
+/// `expected/csv/<kind>.csv` byte for byte, twice the same.
+#[test]
+fn report_kind_writes_the_golden_kind_csvs() {
+    let t = Tmp::new();
+    let p = t.golden();
+    for kind in KIND_CSVS {
+        let o = t.ew(&args([
+            &"export",
+            &"report",
+            &p,
+            &"--kind",
+            kind,
+            &"--format",
+            &"csv",
+        ]));
+        assert_eq!(o.status.code(), Some(0), "{kind}: {}", stderr(&o));
+        assert!(
+            o.stdout == expected(&format!("csv/{kind}.csv")),
+            "{kind}: {}",
+            stdout(&o)
+        );
+        let again = t.ew(&args([&"export", &"report", &p, &"--kind", kind]));
+        assert!(again.stdout == o.stdout, "{kind}: twice-run equal");
+    }
+}
+
+/// RK-3 (the orchestrator's rulings 4 and 5, cycle 42): the refusals of the export by kind, each whole on stderr with
+/// exit 2; the unknown-kind refusal lists the registered kinds, each of which but `terminal_diagram` exports.
+#[test]
+fn report_kind_refusals_and_every_listed_kind_exports() {
+    let t = Tmp::new();
+    let p = t.golden();
+    let first_line = |o: &Output| stderr(o).lines().next().unwrap_or_default().to_owned();
+    let o = t.ew(&args([
+        &"export",
+        &"report",
+        &p,
+        &"--kind",
+        &"device_list",
+        &"--block",
+        &"910",
+    ]));
+    assert_eq!(o.status.code(), Some(2));
+    assert_eq!(first_line(&o), "error: give `--block` or `--kind`, not both");
+    let pdf = t.0.join("k.pdf");
+    let o = t.ew(&args([
+        &"export",
+        &"report",
+        &p,
+        &"--kind",
+        &"device_list",
+        &"--format",
+        &"pdf",
+        &"--out",
+        &pdf,
+    ]));
+    assert_eq!(o.status.code(), Some(2));
+    assert_eq!(
+        first_line(&o),
+        "error: `--kind` exports rows: a kind has pages only through a block, use `--block <block> --format pdf`"
+    );
+    let o = t.ew(&args([&"export", &"report", &p]));
+    assert_eq!(o.status.code(), Some(2));
+    assert_eq!(
+        first_line(&o),
+        "error: `export report` needs `--block <block>` (its ID or first folio) or `--kind <kind>`"
+    );
+    let o = t.ew(&args([&"export", &"report", &p, &"--kind", &"terminal_diagram"]));
+    assert_eq!(o.status.code(), Some(2));
+    assert_eq!(
+        stderr(&o),
+        "error: `terminal_diagram` lists one strip: use `ew export terminals`\n"
+    );
+    let o = t.ew(&args([&"export", &"report", &p, &"--kind", &"device_lists"]));
+    assert_eq!(o.status.code(), Some(2));
+    let text = stderr(&o);
+    // The list is the registry's (a growing set, not pinned here): the text is the fixed sentence, then the names in
+    // order, each once, and each of them is a kind of this build (it exports, or is `terminal_diagram`).
+    let names = text
+        .strip_prefix("error: unknown report kind `device_lists`; the kinds of this build are: ")
+        .and_then(|rest| rest.strip_suffix('\n'))
+        .unwrap_or_else(|| panic!("{text}"));
+    let names: Vec<&str> = names.split(", ").collect();
+    let mut sorted = names.clone();
+    sorted.sort_unstable();
+    sorted.dedup();
+    assert_eq!(names, sorted);
+    for want in ["device_list", "terminal_overview", "terminal_diagram", "io_list"] {
+        assert!(names.contains(&want), "{want} is listed: {names:?}");
+    }
+    for name in names.iter().filter(|n| **n != "terminal_diagram") {
+        let o = t.ew(&args([&"export", &"report", &p, &"--kind", name]));
+        assert_eq!(o.status.code(), Some(0), "{name}: {}", stderr(&o));
+        assert!(stdout(&o).starts_with("row,"), "{name}: {}", stdout(&o));
+    }
+}
+
+/// RK-6 (the orchestrator's ruling 7, cycle 42): `--block 911 --format csv` prints the changed pages as folio 911
+/// does (V1.0 empty, V2.0 "101, 106"); `--kind revision_overview` writes the same bytes.
+#[test]
+fn report_csv_of_folio_911_prints_the_changed_pages() {
+    let t = Tmp::new();
+    let p = t.golden();
+    let o = t.ew(&args([
+        &"export",
+        &"report",
+        &p,
+        &"--block",
+        &"911",
+        &"--format",
+        &"csv",
+    ]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let csv = stdout(&o);
+    let last = |label: &str| -> String {
+        let line = csv
+            .lines()
+            .find(|l| l.starts_with(&format!("data,{label},")))
+            .unwrap_or_else(|| panic!("{label}: {csv}"));
+        match line.rsplit_once(",\"") {
+            Some((_, quoted)) => quoted.trim_end_matches('"').to_owned(),
+            None => line.rsplit(',').next().unwrap_or_default().to_owned(),
+        }
+    };
+    assert_eq!(last("V1.0"), "");
+    assert_eq!(last("V2.0"), "101, 106");
+    let by_kind = t.ew(&args([&"export", &"report", &p, &"--kind", &"revision_overview"]));
+    assert_eq!(stdout(&by_kind), csv);
+}
+
+/// RK-5 (D9): a block's `params` survive the save protocol byte for byte: `ew fmt` keeps the member verbatim and a
+/// second check finds nothing to rewrite; `"Assembly"` (a value outside the kind) exports the component rows.
+#[test]
+fn block_params_survive_a_save_and_a_wrong_value_gives_the_default() {
+    let t = Tmp::new();
+    let p = t.golden();
+    let file = p.join("report-blocks.jsonl");
+    let text = std::fs::read_to_string(&file).unwrap();
+    let id = block_id(901);
+    let edited: String = text
+        .lines()
+        .map(|l| {
+            if l.contains(&format!("\"id\":\"{id}\"")) {
+                let mut v: serde_json::Value = serde_json::from_str(l).unwrap();
+                v["params"] = serde_json::json!({"mode": "Assembly"});
+                serde_json::to_string(&v).unwrap()
+            } else {
+                l.to_owned()
+            }
+        })
+        .map(|l| l + "\n")
+        .collect();
+    assert_ne!(edited, text);
+    std::fs::write(&file, &edited).unwrap();
+    let o = t.ew(&args([&"fmt", &p]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let saved = std::fs::read(&file).unwrap();
+    let line = String::from_utf8_lossy(&saved)
+        .lines()
+        .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap())
+        .find(|v| v["id"] == id.as_str())
+        .expect("the block's line");
+    assert_eq!(
+        line["params"],
+        serde_json::json!({"mode": "Assembly"}),
+        "the member is kept"
+    );
+    let o = t.ew(&args([&"fmt", &p, &"--check"]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let o = t.ew(&args([&"export", &"report", &p, &"--block", &"901"]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(o.stdout == expected("csv/bom_parts.csv"), "{}", stdout(&o));
+    assert!(std::fs::read(&file).unwrap() == saved, "an export writes nothing");
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // OU-4: `ew export wires|terminals`, `--block`
 
 /// OU-4: `ew export wires` equals `expected/csv/wires.csv` (44 wires and 6 bridges).

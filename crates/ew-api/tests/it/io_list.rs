@@ -6,7 +6,9 @@
 //! The orchestrator's rulings of cycle 42 that these tests rely on, quoted:
 //! - Ruling 4 (b): "the 20 that this build fills ..., the three added with their writers".
 //! - Ruling 5 (a): "read `extra.params.include_deactivated` provisionally as `parts_summary` reads `mode`, a value of
-//!   another type giving the default and one `DeriveNote::MalformedShim` naming the block and the key".
+//!   another type giving the default and one `DeriveNote::MalformedShim` naming the block and the key"; read through
+//!   `ew_reports::kind_params` since WP-S3.06 part 1, whose ruling 6 names the block "`report block <first folio>
+//!   params.<key>`".
 //! - Ruling 10 (a): "`io_list` takes `ew_derive::stations(q)`'s order (configuration project, order, ID)".
 //! - ID-950 ruling 1 (PX-1 as ruled): "On Golden A the default gives 28 rows (8 used, 20 spare) and
 //!   `include_deactivated: true` gives 56 (the 28 deactivated added in place)".
@@ -225,7 +227,7 @@ fn px1_a_parameter_that_is_not_a_boolean_gives_28_rows_and_one_note() {
         assert_eq!(
             notes,
             [DeriveNote::MalformedShim {
-                member: "params.include_deactivated of the report block at folio 950".to_owned(),
+                member: "report block 950 params.include_deactivated".to_owned(),
                 detail: format!("expected true or false, found {shown}"),
             }],
             "{value}"
@@ -233,8 +235,8 @@ fn px1_a_parameter_that_is_not_a_boolean_gives_28_rows_and_one_note() {
         assert_eq!(
             notes[0].to_string(),
             format!(
-                "params.include_deactivated of the report block at folio 950 is malformed (expected true or false, \
-                 found {shown}); the default applies"
+                "report block 950 params.include_deactivated is malformed (expected true or false, found {shown}); \
+                 the default applies"
             )
         );
     }

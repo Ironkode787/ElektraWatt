@@ -12,14 +12,18 @@ use ew_derive::{
     BomMode, BomRows, DevicePartLines, DeviceTag, PartLine, Q, manufacturer_copy, manufacturer_name,
 };
 
-use crate::kind::ReportKindDef;
+use crate::kind::{ParamDef, ParamKind, ParamValue, ReportKindDef, kind_params};
 use crate::rowset::{
     Cell, CellType, ColumnDef, LinkRef, LinkTarget, MissingReason, QtyUnit, Row, RowId, RowKey, RowSet,
 };
 
+/// The block parameter that chooses the BOM mode (WP-S3.06 D9).
+const MODE: &str = "mode";
+
 /// The summarised parts list (EPLAN `.f02`).
 ///
-/// Component mode by default; assembly mode when the block's `params.mode` is `"assembly"`. Both modes
+/// Component mode by default; assembly mode when the block's `params.mode` is `"assembly"` (read through
+/// [`kind_params`]: another value gives component mode and one note). Both modes
 /// print one "Part number" column (a configured product's order code prints there; ID-356); assembly mode
 /// appends the "Covers" column (doc 20 §14.2): the devices whose part lines a configured product replaces,
 /// as a compressed tag list, empty on the component rows.
@@ -44,13 +48,17 @@ impl ReportKindDef for PartsSummary {
         ]
     }
 
+    /// `mode`: `"component"` (the default) or `"assembly"` (WP-S3.06 D9).
+    fn params(&self) -> &'static [ParamDef] {
+        &[ParamDef {
+            key: MODE,
+            kind: ParamKind::Choice(&["component", "assembly"]),
+            default: ParamValue::Choice("component"),
+        }]
+    }
+
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet {
-        let assembly = block
-            .extra
-            .get("params")
-            .and_then(|p| p.get("mode"))
-            .and_then(|m| m.as_str())
-            == Some("assembly");
+        let assembly = kind_params(q, block).choice(MODE) == "assembly";
         self.rows_in_mode(
             q,
             if assembly {

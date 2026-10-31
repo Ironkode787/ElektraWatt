@@ -40,7 +40,10 @@ pub mod render;
 mod rowset;
 
 pub use arrange::{Arrangement, Filter, FilterOp, arrange};
-pub use kind::{EmbeddedLayout, Registry, ReportKindDef, kind_name};
+pub use kind::{
+    EmbeddedLayout, KindParams, ParamDef, ParamKind, ParamValue, Registry, ReportKindDef, kind_name,
+    kind_params,
+};
 pub use kinds::bridge_groups;
 pub use layout::{Layouts, PageLayout};
 pub use paginate::{BlockSpec, Break, Continuation, FixedLines, RowLines, Slice, paginate};
@@ -105,6 +108,8 @@ mod tests {
             "plc_overview",
             "profile_tables",
             "revision_overview",
+            "device_list",
+            "terminal_overview",
         ] {
             assert!(names.contains(&want), "kind `{want}` is not registered");
         }

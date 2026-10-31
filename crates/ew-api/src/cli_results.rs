@@ -498,7 +498,7 @@ pub struct ExportReportResult {
     /// [`EXPORT_REPORT`].
     #[serde(rename = "$schema")]
     pub schema: String,
-    /// The report block's ID.
+    /// The report block's ID; empty for `--kind`.
     pub block: String,
     /// The block's report kind (`plc_overview`, ...).
     pub kind: String,

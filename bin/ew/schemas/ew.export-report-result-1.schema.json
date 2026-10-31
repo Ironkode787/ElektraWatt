@@ -8,7 +8,7 @@
       "description": "The name of this schema."
     },
     "block": {
-      "description": "The report block's ID.",
+      "description": "The report block's ID; empty for `--kind`.",
       "type": "string"
     },
     "csv": {

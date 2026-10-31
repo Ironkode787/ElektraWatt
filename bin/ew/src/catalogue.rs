@@ -246,7 +246,14 @@ pub const CATALOGUE: &[Entry] = &[
     },
     Entry {
         path: &["export", "report"],
-        flags: &[PROJECT, BLOCK, valued("--format"), valued("--out"), JSON],
+        flags: &[
+            PROJECT,
+            BLOCK,
+            valued("--kind"),
+            valued("--format"),
+            valued("--out"),
+            JSON,
+        ],
         exits: &[
             OK,
             exit(

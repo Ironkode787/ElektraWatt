@@ -547,6 +547,23 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         (report.kind.as_str(), report.format.as_str()),
         ("plc_overview", "csv")
     );
+    // WP-S3.06 D4 and the orchestrator's ruling 2 (cycle 42): `--kind` prints the kind, the rows and `"block": ""`.
+    let by_kind: results::ExportReportResult = json_twice(
+        &t,
+        &args([&"export", &"report", &p, &"--kind", &"device_list", &"--json"]),
+        results::EXPORT_REPORT,
+        0,
+    );
+    assert_eq!(
+        (
+            by_kind.block.as_str(),
+            by_kind.kind.as_str(),
+            by_kind.format.as_str(),
+            by_kind.rows,
+            by_kind.folios.is_none(),
+        ),
+        ("", "device_list", "csv", Some(68), true)
+    );
     let report_pdf = t.0.join("908.pdf");
     let report: results::ExportReportResult = json_twice(
         &t,
