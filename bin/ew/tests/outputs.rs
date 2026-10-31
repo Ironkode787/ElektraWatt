@@ -213,6 +213,64 @@ fn render_refuses_an_unknown_folio_and_a_bad_resolution() {
     assert!(stderr(&o).contains("--dpi"), "{}", stderr(&o));
 }
 
+/// A copy of Golden A whose A3 frame forms declare a sheet of `width` × `height` millimetres.
+fn golden_with_sheet(t: &Tmp, width_mm: i64, height_mm: i64) -> PathBuf {
+    let p = t.golden();
+    let a3 = r#""sheet": {"width": 297000000, "height": 210000000}"#;
+    let wide = format!(
+        r#""sheet": {{"width": {}, "height": {}}}"#,
+        width_mm * 1_000_000,
+        height_mm * 1_000_000
+    );
+    for e in std::fs::read_dir(p.join("lib").join("forms")).unwrap() {
+        let path = e.unwrap().path();
+        let text = std::fs::read_to_string(&path).unwrap();
+        if text.contains(a3) {
+            std::fs::write(&path, text.replace(a3, &wide)).unwrap();
+        }
+    }
+    p
+}
+
+/// Cycle-40 review, part 3, finding 1: a page whose raster would exceed 150 million pixels is refused before anything
+/// is allocated (exit 2, the whole text), never an aborted allocation. A sheet tens of metres wide is too large at
+/// every resolution; a 4 m sheet names the highest whole dpi that fits. `export png` refuses it the same way and
+/// writes nothing.
+#[test]
+fn a_page_too_large_to_rasterise_is_refused_with_words() {
+    let t = Tmp::new();
+    let p = golden_with_sheet(&t, 4_000, 2_000);
+    let o = t.ew(&args([&"render", &p, &"--page", &"103", &"--png"]));
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert_eq!(
+        stderr(&o),
+        "error: PNG: Folio 103 would be 23622 × 11811 pixels at 150 dpi; the limit is 150 million pixels. \
+         Choose 109 dpi or less.\n"
+    );
+    assert!(!t.0.join("103.png").exists());
+    let dir = t.0.join("png");
+    let o = t.ew(&args([&"export", &"png", &p, &"--out", &dir, &"--pages", &"103"]));
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert_eq!(
+        stderr(&o),
+        "error: PNG: Folio 103 would be 23622 × 11811 pixels at 150 dpi; the limit is 150 million pixels. \
+         Choose 109 dpi or less.\n"
+    );
+    assert!(!dir.exists());
+
+    let t = Tmp::new();
+    let p = golden_with_sheet(&t, 20_000, 20_000);
+    let o = t.ew(&args([
+        &"render", &p, &"--page", &"103", &"--png", &"--dpi", &"72",
+    ]));
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert_eq!(
+        stderr(&o),
+        "error: PNG: Folio 103 would be 56693 × 56693 pixels at 72 dpi; the limit is 150 million pixels. \
+         The page is too large at every resolution from 72 dpi.\n"
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // OU-2: `ew export png`
 

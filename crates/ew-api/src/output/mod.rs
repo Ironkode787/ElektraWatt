@@ -128,7 +128,10 @@ pub use properties::{
     FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetHeader, SheetSection,
 };
 // WP-S1.22 part 2
-pub use raster::{DEFAULT_DPI, DPI_RANGE, PngExport, PngFile, export_png_with, page_png, png_file_name};
+pub use raster::{
+    DEFAULT_DPI, DPI_RANGE, MAX_PAGE_PIXELS, MAX_PIXELS_IN_FLIGHT, PngExport, PngFile, check_page_pixels,
+    export_png_with, page_png, png_file_name, raster_workers,
+};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
 pub use rows::{RowExport, RowsCsv, RowsError, block_kind, find_block, report_folios, row_export};
 // WP-S2.07 part 1
