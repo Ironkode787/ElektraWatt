@@ -193,7 +193,7 @@ pages.filter View "Filter pages" menu none shortcut none context global hidden p
 pages.toggle View "Expand or collapse" menu none shortcut none context navigator hidden params "key:text"
 pages.row View "Move in the page navigator" menu none shortcut none context navigator hidden params "key?:text, step?:int, to?:enum(first|last)"
 pages.open View "Open page" menu none shortcut none context navigator hidden params "key?:text, folio?:text, new_tab?:bool"
-navigator.show View "Navigator" menu "View ▸ Navigators" shortcut none context global needs-parameters params "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|messages), on?:bool"
+navigator.show View "Navigator" menu "View ▸ Navigators" shortcut none context global needs-parameters params "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|macros|libraries|messages), on?:bool"
 navigator.view View "Navigator view" menu none shortcut none context global hidden params "kind:text, view:text"
 navigator.sort View "Navigator order" menu none shortcut none context global hidden params "kind:text, by:text, descending?:bool"
 navigator.filter View "Filter navigator" menu none shortcut none context global hidden params "kind:text, text:text"

@@ -174,3 +174,19 @@ fn a_changed_word_fails_with_the_bless_hint() {
     assert_ne!(text, text.replacen("\npage\n", "\npagE\n", 1));
     assert!(BLESS_HINT.starts_with("EW_BLESS=1 cargo nextest run"));
 }
+
+#[test]
+fn navigator_show_lists_every_navigator_kind() {
+    use ew_viewmodel::navigators::NavKind;
+    let action = ACTIONS
+        .iter()
+        .find(|a| a.id == "navigator.show")
+        .expect("navigator.show is registered");
+    let words: Vec<&str> = NavKind::ALL.iter().map(|k| k.word()).collect();
+    let prefix = format!("kind:enum({}),", words.join("|"));
+    assert!(
+        action.params.starts_with(&prefix),
+        "navigator.show params {:?} do not start with {prefix:?}",
+        action.params
+    );
+}

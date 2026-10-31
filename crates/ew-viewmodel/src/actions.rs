@@ -3340,7 +3340,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     ),
     // WP-S2.06 part 1: the navigator framework (§6.9).
     with_params(
-        "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|messages), on?:bool",
+        "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|macros|libraries|messages), on?:bool",
         needs_parameters(placed(
             place(Group::Panels, 1, CommandSize::Small, Some("bar-navigators")),
             "layout-sidebar",
