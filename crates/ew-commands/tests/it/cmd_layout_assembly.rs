@@ -13,9 +13,10 @@ use crate::common;
 use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
-    AddCarrier, AutoFill, CarrierKindParam, CarrierParamsParam, CreateEnclosure, CreateEnclosureFromPart,
-    CreateLayoutSpace, DeleteSelection, EditEnclosure, EditLayoutSpace, EditSurface, FillOrder, KindName,
-    MovePlacement, PlaceAssembly, PlaceDevice, PlaceMode, PlaceOnParam, SetFields, TargetRef,
+    AddCarrier, AttachChildren, AutoFill, CarrierKindParam, CarrierParamsParam, ChildSpec, CreateEnclosure,
+    CreateEnclosureFromPart, CreateLayoutSpace, DeleteSelection, EditEnclosure, EditLayoutSpace, EditSurface,
+    FillOrder, KindName, MovePlacement, PageScope, PlaceAssembly, PlaceDevice, PlaceMode, PlaceOnParam,
+    RemovePlacement, RenumberPages, SetFields, TargetRef,
 };
 use ew_commands::{CmdError, Command, Cost, Engine, Origin};
 use ew_derive::Q;
@@ -1187,4 +1188,98 @@ fn as8_move_realises_another_part() {
         rejected(f.e.execute(&mv(pl, 30, Some(ITEM_MCB), None))),
         "-?KM1 is already placed with this part and function; move its placement instead"
     );
+}
+
+/// Cycle-42 review part 2, finding 1: a member that joins the assembly after the preview (K3 attached to A1 at
+/// position 4) changes the preview's reads (the `device_children` index of A1), so the commit re-runs the command
+/// and places the new member too, instead of applying the stale prepared ops.
+#[test]
+fn finding1_a_concurrent_new_member_reruns_place_assembly() {
+    let mut f = fx();
+    let preview = f.e.preview(&assembly(DEV_A1, f.rail1, Some(20), None)).unwrap();
+    let base = preview.base_rev();
+    f.e.execute(&AttachChildren {
+        parent: DEV_A1,
+        children: vec![ChildSpec {
+            device: k(3),
+            position: Some(4),
+        }],
+    })
+    .unwrap();
+    assert!(
+        !preview.read_set().unchanged_since(f.e.model(), base),
+        "the assembly read A1's member set"
+    );
+    f.e.commit(preview).unwrap();
+    assert!(placed(&f.e, k(3)), "the re-run placed the new member -?K3");
+    for d in [DEV_A1, DEV_M1, DEV_M2, DEV_M3] {
+        assert!(placed(&f.e, d), "{d} is placed");
+    }
+}
+
+/// Cycle-42 review part 2, finding 1: a device of the space that becomes unplaced after the preview (A1, whose
+/// placement is removed) changes the default list's reads (the placement table), so the commit re-runs the fill and
+/// places it, first in DT order with its members.
+#[test]
+fn finding1_a_concurrent_new_unplaced_device_reruns_auto_fill() {
+    let mut f = fx();
+    f.e.execute(&place(DEV_A1, f.rail2, 100)).unwrap();
+    let a1 = placement_of(&f.e, DEV_A1);
+    let preview = f.e.preview(&fill(f.rail1, None, FillOrder::Dt)).unwrap();
+    let base = preview.base_rev();
+    f.e.execute(&RemovePlacement { placement: a1 }).unwrap();
+    assert!(
+        !preview.read_set().unchanged_since(f.e.model(), base),
+        "the fill read the space's unplaced devices"
+    );
+    f.e.commit(preview).unwrap();
+    assert!(placed(&f.e, DEV_A1), "the re-run placed -?A1");
+    assert_eq!(
+        clips(&f.e, &[DEV_A1, DEV_M3, DEV_M1, DEV_M2]),
+        vec![9, 27, 45, 63]
+    );
+}
+
+/// Cycle-42 review part 2, finding 1: a candidate re-tagged after the preview without a change to its own row (K4's
+/// page renumbered below K5's, so its page-based tag sorts first) changes the sort key's reads (the page table), so
+/// the commit re-runs the fill in the new DT order.
+#[test]
+fn finding1_a_concurrent_re_tag_reruns_auto_fill() {
+    let mut f = fx();
+    let tags = |e: &Engine| {
+        let q = Q::new(e.model());
+        [k(4), k(5)].map(|d| {
+            q.try_get::<ew_derive::DeviceTag>(d)
+                .ok()
+                .and_then(|t| t.as_ref().as_ref().map(|t| t.full.clone()))
+                .unwrap_or_default()
+        })
+    };
+    assert_eq!(
+        tags(&f.e),
+        ["+J-E-2416-102K4".to_owned(), "+J-E-2416-101K5".to_owned()]
+    );
+    let preview =
+        f.e.preview(&fill(f.rail1, Some(vec![k(4), k(5)]), FillOrder::Dt))
+            .unwrap();
+    let base = preview.base_rev();
+    let renumber =
+        f.e.preview(&RenumberPages {
+            scope: PageScope::Pages(vec![PAGE_102]),
+            start: 100,
+            step: 1,
+            keep_gaps: false,
+        })
+        .unwrap();
+    f.e.commit(renumber).unwrap();
+    assert_eq!(
+        tags(&f.e),
+        ["+J-E-2416-100K4".to_owned(), "+J-E-2416-101K5".to_owned()]
+    );
+    assert!(
+        !preview.read_set().unchanged_since(f.e.model(), base),
+        "the fill read the pages behind the tags"
+    );
+    f.e.commit(preview).unwrap();
+    assert_eq!(clips(&f.e, &[k(4), k(5)]), vec![9, 27], "-100K4 before -101K5");
 }

@@ -26,9 +26,9 @@ use ew_model::{AnyKey, Model};
 use ew_rds::Aspect;
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, DeviceAspects, DuctParams, Enclosure,
-    EnclosureSection, Extra, FrozenTag, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind,
-    MountingSurface, Open, Part, PartRef, PartUse, Placement, RailParams, Slot, StructureAssignment,
-    StructureNode, SurfaceKind, TagScheme, TagSign, TagSpec,
+    EnclosureSection, Extra, FnDef, FrozenTag, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind,
+    MountingSurface, Open, Page, Part, PartRef, PartUse, Placement, RailParams, Representation, Section,
+    Slot, StructureAssignment, StructureNode, SurfaceKind, TagScheme, TagSign, TagSpec,
 };
 use ew_units::{Dec3, Nm, Pose3, Pt2};
 use schemars::JsonSchema;
@@ -1804,6 +1804,51 @@ fn assembly_root(q: &Q, device: &Device) -> Option<Id<Device>> {
     }
 }
 
+/// [`assembly_root`] read through the transaction (cycle-42 review part 2, finding 1): the device's children through
+/// the `device_children` index, so that a concurrent new member or a member re-parented away conflicts at merge
+/// (ADR-0008). The device row itself is the caller's `tx.get`, its parent the row's.
+fn assembly_root_tx(tx: &TxBuilder<'_>, device: &Device) -> Option<Id<Device>> {
+    if tx.children_of(device.id).iter().any(|c| *c != device.id) {
+        Some(device.id)
+    } else {
+        device.parent
+    }
+}
+
+/// Records, through the transaction, the member set of the assembly `root` that [`member_order`] reads on the base
+/// snapshot: the `device_children` index and each child's row (its position and its tag members).
+fn note_members(tx: &TxBuilder<'_>, root: Id<Device>) {
+    let _ = tx.get::<Device>(root);
+    for c in tx.children_of(root) {
+        let _ = tx.get::<Device>(c);
+    }
+}
+
+/// Records, through the transaction, the inputs from which `layout.place_assembly` and `layout.auto_fill` choose and
+/// order their devices but which they compute on the base snapshot (cycle-42 review part 2, finding 1; ADR-0008:
+/// every lookup is recorded in the read set): `mountable(dev)`, `unplaced(space)` and its device lists, the location
+/// (`StructureOf`) and the sort keys (`DeviceTag`, the drawn page order). These derived inputs cannot be read through
+/// the transaction one by one, so the tables they are derived from are recorded whole (orchestrator ruling 1): a
+/// spurious conflict only re-runs the command, a missed one would apply stale prepared ops. `placements` adds the
+/// placement table, which `unplaced(space)` reads for every device of the space.
+fn note_choice_reads(tx: &TxBuilder<'_>, placements: bool) {
+    let _ = tx.project();
+    let _ = tx.iter::<Device>();
+    let _ = tx.iter::<StructureNode>();
+    let _ = tx.iter::<Function>();
+    let _ = tx.iter::<LibCopy<FnDef>>();
+    let _ = tx.iter::<LibCopy<Part>>();
+    let _ = tx.iter::<Representation>();
+    let _ = tx.iter::<Page>();
+    let _ = tx.iter::<Section>();
+    let _ = tx.iter::<LayoutSpace>();
+    let _ = tx.iter::<Enclosure>();
+    let _ = tx.iter::<MountingSurface>();
+    if placements {
+        let _ = tx.iter::<Placement>();
+    }
+}
+
 /// Whether the layout expects a device (`mountable(dev)`, D8); a structure cycle counts as not.
 fn is_mountable(q: &Q, device: Id<Device>) -> bool {
     q.try_get::<Mountable>(device).is_ok_and(|m| m.is_mountable())
@@ -1888,12 +1933,15 @@ impl Command for PlaceAssembly {
         }
         let base_model = tx.base_model().clone();
         let q = Q::new(&base_model);
-        let Some(root) = assembly_root(&q, &device) else {
+        let Some(root) = assembly_root_tx(tx, &device) else {
             return tx.reject(format!(
                 "{} is not part of an assembly; place it on its own.",
                 tag(tx, self.device)
             ));
         };
+        // Finding 1 of cycle-42 review part 2: how the members are chosen and ordered is in the read set.
+        note_members(tx, root);
+        note_choice_reads(tx, false);
         let order = member_order(&q, root);
         let devices: Vec<std::sync::Arc<Device>> =
             order.iter().filter_map(|d| tx.get::<Device>(*d)).collect();
@@ -2170,6 +2218,9 @@ impl Command for AutoFill {
         };
         let base_model = tx.base_model().clone();
         let q = Q::new(&base_model);
+        // Finding 1 of cycle-42 review part 2: the default list, the refusals' inputs and the sort keys are in the
+        // read set.
+        note_choice_reads(tx, true);
         // the space through the transaction, so that a concurrent move of the rail conflicts
         let space = tx
             .get::<Carrier>(carrier)
@@ -2219,7 +2270,7 @@ impl Command for AutoFill {
         let mut mem = rail_items(&q, carrier);
         let mut last: Option<RailItem> = None;
         let mut placed: Vec<(Member, Pose3)> = Vec::new();
-        for unit in fill_units(&q, candidates) {
+        for unit in fill_units(tx, &q, candidates) {
             let members: Vec<Member> = unit
                 .iter()
                 .map(|(_, d)| member(tx, &q, std::sync::Arc::clone(d)))
@@ -2337,14 +2388,15 @@ fn sort_candidates(tx: &TxBuilder<'_>, q: &Q, order: FillOrder, candidates: &mut
 
 /// `layout.auto_fill`'s units in candidate order: a device alone, or the candidates of one assembly as one block at
 /// the place of the first of them, in [`member_order`] (D6).
-fn fill_units(q: &Q, candidates: Vec<Candidate>) -> Vec<Vec<Candidate>> {
+fn fill_units(tx: &TxBuilder<'_>, q: &Q, candidates: Vec<Candidate>) -> Vec<Vec<Candidate>> {
     let mut units: Vec<(Option<Id<Device>>, Vec<Candidate>)> = Vec::new();
     let mut unit_of_root: BTreeMap<Id<Device>, usize> = BTreeMap::new();
     for c in candidates {
-        match assembly_root(q, &c.1) {
+        match assembly_root_tx(tx, &c.1) {
             Some(root) => match unit_of_root.get(&root) {
                 Some(u) => units[*u].1.push(c),
                 None => {
+                    note_members(tx, root);
                     unit_of_root.insert(root, units.len());
                     units.push((Some(root), vec![c]));
                 }
