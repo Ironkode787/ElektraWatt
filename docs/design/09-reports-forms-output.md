@@ -143,6 +143,20 @@ view, lists no rows. Golden A has no `enclosure_legend` block yet: drawing embed
 902 and its export are WP-S4.01 part 4b's. In the BOM, a layout object's line (the enclosure, the plate, the carrier
 part lines) prints the panel pages that view its surface in its Folios cell only (ID-964).
 
+**As built (cycle 42, WP-S4.01 part 4b; decision log ID-1001 to ID-1003).** Embedded blocks of every kind are drawn.
+A kind says what its embedded block prints through `ReportKindDef::embedded_layout` (`EmbeddedLayout`: the printed
+columns with relative weights, the box title, whether each flow column has a header row, the number of flow columns);
+the default prints every column at weight 1 under a header row, no title, one flow column. The layout is presentation
+only: the rows, the CSV and every other export keep all the kind's columns, and a block's own non-empty `title`
+replaces the kind's. `part_data` prints "PART DATA" with no header, the label and the part number at weights 3 : 10;
+its source devices are the root ancestors of the devices drawn on the embedded page **and** the enclosure device of
+the surface the page's surface view shows; carrier lines (`LineSource::Carrier`) are left out, since the legend on
+the same page lists every carrier. `enclosure_legend` prints "LEGEND" in two flow columns, each with a header row:
+position, DT, quantity (without its unit) and part number at weights 10 : 22 : 16 : 35; the manufacturer, the
+description and the unit stay in the rows and the CSV. Golden A's legend is the block `legend-902` on 902 (doc 20
+§17.3's "Legend box"). An embedded block has no first folio, so `ew export report --block` names it by its ID
+(WP-S4.01 D18); the default block of a kind-specific export is never an embedded one.
+
 **Encodings and deferred members** (decision log ID-16):
 - `source` is `{"kind": "<report kind>"}` with the snake_case names of §2.4, or
   `{"sql_query": {"api": "v1", "file": "<uuid>"}}`.
@@ -754,6 +768,18 @@ panel page draws its embedded blocks only from WP-S4.01 part 4b. The projection 
 factor, so the page's scale holds on paper; the title block's `page.title` on a page of scale 1:n reads "<title> ·
 Scale 1:n". A placement move rebuilds `placements`, `labels` and `carriers` (the labels knock out the carriers),
 never `frame` or `tables` ([12](12-panel-layout.md) §5.1 to §5.3).
+
+*As built (cycle 42, WP-S4.01 part 4b; decision log ID-1001 to ID-1003).* The `tables` layer draws every embedded
+block on its page through one path: `ew-api`'s `PageEmbeddedOf` fills a view per block with each cell rendered for
+that page; the cover (`profile_tables`) keeps its own variant `EmbeddedContent::Cover` (folio 1 byte-equal), and
+every other kind is a boxed table, `EmbeddedContent::Table`. House values in printed mm: a 2.61 mm drop shadow, the
+box at 0.418 mm, a title band of 1.5 rows in style `box.title` when there is a title, flow columns split by a 4 mm
+gutter and filled in turn; with headers, a header row with the house fill, data rows of 6.52 mm and a 0.183 mm grid;
+without headers (PART DATA) no inner grid; a block without columns (a block whose rows do not derive) draws no header
+and prints its reason in one spanning row. Columns split by weight with the house cell rule shared with the generated
+pages' tables (`column_edges_in`; left aligned, shrunk to the 1.8 mm cap height, then reported, never clipped); rows
+beyond the capacity are not drawn and are reported (`TooManyRows`, FR-REP-039). PART DATA is drawn on 201, 202 and
+902, the legend on 902.
 
 ### 4.2 PDF (krilla)
 

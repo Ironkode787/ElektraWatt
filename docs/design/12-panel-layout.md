@@ -555,6 +555,15 @@ layout-only accessories. Positions are derived and renumber when rows are added;
 same query, so they cannot disagree. Rows come from the same `RowSet` as XLSX and CSV (FR-REP-030). The embedded
 PART DATA box of folio 902 is kept for fidelity with the reference and is bound to -UC1's part lines (REF-069).
 
+*As built (cycle 42, WP-S4.01 part 4b; decision log ID-1001 to ID-1003).* The legend is the embedded report block
+`legend-902` of kind `enclosure_legend` on 902, rect 108.00–278.00 × 19.50–167.50 mm printed (doc 20 §17.3), drawn as
+a boxed table titled "LEGEND" in two flow columns of a header and up to 20 rows of 6.52 mm each (40 rows; Golden A's
+30 print as 20 + 10); printed columns position, DT, quantity without its unit and part number at weights
+10 : 22 : 16 : 35; the manufacturer, the description and the unit stay in the rows and the CSV, which `ew export
+report --block <its ID> --format csv` writes ([09](09-reports-forms-output.md) §2.2). PART DATA on 902 lists -UC1's
+part lines (NSYPLA1074G, NSYPMM107) and no carrier line: the source is the enclosure device of the surface the page's
+surface view shows, and carrier lines are left out. A `layout.move` rebuilds no `tables` family of 902.
+
 ### 5.5 Dimensions and views (1.0)
 
 - **Associative dimensions** (FR-LAY-041) reference features: `RefPoint = CarrierAxis{carrier, end} |

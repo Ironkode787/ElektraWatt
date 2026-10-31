@@ -850,7 +850,10 @@ valve. Silencers close ports 3 and 5 of -201U9 and -202U3, and plugs close ports
 One layout space for +J-E-2416: enclosure -UC1 (NSYPLA1074G, test dimensions W × H × D = 750 × 1000 × 420 mm ▲U-26) with
 mounting plate NSYPMM107 (`pe_bond = true`). Folio 902 is a view of the plate at 1:10 ▲ with the scale printed
 after the page description ("Cabinet Layout · Scale 1:10" ▲), the PART DATA box as an embedded block bound to -UC1
-and its plate, and a placement legend block (FR-LAY-012) right of the plate.
+and its plate, and a placement legend block (FR-LAY-012) right of the plate. *As built (cycle 42, WP-S4.01 part 4b;
+decision log ID-1001 to ID-1003):* the legend is the block `legend-902` (kind `enclosure_legend`) in §17.3's "Legend
+box", 108.00–278.00 × 19.50–167.50 mm printed, titled "LEGEND", its 30 rows in two flow columns as 20 + 10; the PART
+DATA box on 902 lists NSYPLA1074G and NSYPMM107 and no carrier line.
 
 **Carriers.** Positions are the reference's paper positions relative to the cabinet outline (not to scale, for
 order only); the model holds carriers in plate millimetres from the test dimensions.
@@ -1134,7 +1137,9 @@ that shrinks to its minimum printed cap height and still does not fit reports th
 over the cell edge, because clipping is forbidden ([09](09-reports-forms-output.md) §2.5). An unbound value
 prints nothing after the label: Golden A's "Checked:" stays empty while the checker is unset (U-03). This title
 block has no scale cell, by design, because it reproduces the reference layout. FR-REP-037's scale cell applies to
-forms that declare one.
+forms that declare one. *As built (cycle 41, WP-S4.01 part 3; decision log ID-951, ID-977):* a page drawn at a
+scale 1:n prints its scale in the Page description cell after the page's title (`page.title` reads "<title> · Scale
+1:n"): "Cabinet Layout · Scale 1:10" on 902 (§13); a not-to-scale page prints the title alone.
 
 ### 17.3 Cover, section dividers, embedded boxes
 
