@@ -99,4 +99,26 @@ fn the_place_hud_names_the_symbol() {
     let hud = ew_viewmodel::command_bar::hud(&shell);
     assert!(!hud.prompt.contains("ew.iec."), "{}", hud.prompt);
     assert!(!hud.prompt.contains("@qet10"), "{}", hud.prompt);
+    // The symbol's name in words, from the catalogue cached while the tool is armed.
+    assert!(hud.prompt.starts_with("Contact, normally open"), "{}", hud.prompt);
+}
+
+/// One pending rule for the Messages rows and the Properties chips: an open completeness finding on the editing
+/// page, the folio compared case-folded; nothing is pending without an editing page.
+#[test]
+fn chips_and_rows_share_the_pending_rule() {
+    use ew_viewmodel::ew_api::output::FindingChip;
+    use ew_viewmodel::navigators::messages::{chip_pending, pending_on};
+    let chip = |page: Option<&str>| FindingChip {
+        rule: "EW-CORE-041".into(),
+        severity: "warning".into(),
+        message: "m".into(),
+        pending_on: page.map(str::to_owned),
+    };
+    assert!(pending_on(true, Some("101a"), Some("101A")));
+    assert!(!pending_on(false, Some("101"), Some("101")));
+    assert!(!pending_on(true, Some("101"), None));
+    assert!(chip_pending(&chip(Some("101a")), Some("101A")));
+    assert!(!chip_pending(&chip(Some("102")), Some("101")));
+    assert!(!chip_pending(&chip(None), Some("101")));
 }

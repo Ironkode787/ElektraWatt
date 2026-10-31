@@ -1314,9 +1314,9 @@ fn severity_groups<'a>(
     findings: &'a [ew_viewmodel::ew_api::output::FindingChip],
     editing: Option<&str>,
 ) -> Vec<(&'static str, Vec<(&'a str, &'a str)>)> {
-    let editing = editing.map(str::to_lowercase);
-    let pending =
-        |f: &ew_viewmodel::ew_api::output::FindingChip| f.pending_on.is_some() && f.pending_on == editing;
+    let pending = |f: &ew_viewmodel::ew_api::output::FindingChip| {
+        ew_viewmodel::navigators::messages::chip_pending(f, editing)
+    };
     ["error", "warning", "info", "pending"]
         .into_iter()
         .map(|severity| {

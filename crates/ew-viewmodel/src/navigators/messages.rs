@@ -122,13 +122,30 @@ fn facet<'n>(node: &'n NavNode, name: &str) -> Option<&'n str> {
         .map(|(_, v)| v.as_str())
 }
 
+/// The one pending rule (§7.2): an open completeness finding whose page (`page`, lower case) is the editing page
+/// (`editing`, a folio, any case). The Messages rows ([`is_pending`]) and the Properties header's chips
+/// ([`chip_pending`]) both read it (M39: the chip counts what the pane counts).
+pub fn pending_on(completeness_open: bool, page: Option<&str>, editing: Option<&str>) -> bool {
+    match (page, editing) {
+        (Some(page), Some(folio)) => completeness_open && page == folio.to_lowercase(),
+        _ => false,
+    }
+}
+
 /// Whether a finding row is pending while `editing` (a folio, any case) is the editing page's folio (§7.2).
 pub fn is_pending(node: &NavNode, editing: Option<&str>) -> bool {
-    let Some(folio) = editing else { return false };
     node.role == NavRole::Finding
-        && facet(node, "kind") == Some("completeness")
-        && facet(node, "state") == Some("open")
-        && facet(node, "page") == Some(folio.to_lowercase().as_str())
+        && pending_on(
+            facet(node, "kind") == Some("completeness") && facet(node, "state") == Some("open"),
+            facet(node, "page"),
+            editing,
+        )
+}
+
+/// Whether a Properties header chip's finding is pending while `editing` is the editing page's folio: its
+/// `pending_on` is the page of an open completeness finding (the header lists open findings only).
+pub fn chip_pending(chip: &ew_api::output::FindingChip, editing: Option<&str>) -> bool {
+    pending_on(chip.pending_on.is_some(), chip.pending_on.as_deref(), editing)
 }
 
 /// The severity word of a finding row (`error`, `warning`, `info`), `None` for any other row.

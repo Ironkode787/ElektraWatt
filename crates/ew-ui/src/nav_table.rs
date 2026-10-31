@@ -710,23 +710,17 @@ fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
     }
 }
 
-/// The width a column's content may not widen it past: the Pages table's Title stays at `size.table_column` and
-/// elides, its whole text in the cell's tooltip, so that "Changed in" fits the default navigator width (FT-718); the
-/// Libraries table's Name gets the space first but scales with the pane (M39, owner 2026-10-31: never a width chosen
-/// for the floor): at most half the grid's width `pane`, at least `size.table_column`, so that a wider rail shows
-/// more of each name and its Kind still starts in view; past that it elides with the whole name in the tooltip and
-/// the grid scrolls sideways.
+/// The width a column's content may not widen it past: the Pages table's Title and the Libraries table's Name get
+/// the space first but scale with the pane (M39, owner 2026-10-31: never a width chosen for the floor): at most half
+/// the grid's width `pane`, at least `size.table_column`, so that a wider rail shows more of each title or name and
+/// the next column ("Changed in", FT-718; Kind, FT-755) still starts in view; past that the cell elides with its whole
+/// text in the tooltip and the grid scrolls sideways.
 fn cap_width(t: &Tokens, kind: NavKind, key: &str, pane: f32) -> Option<f32> {
-    if kind == NavKind::Pages && key == "title" {
-        Some(t.size_table_column)
-    } else if kind == NavKind::Libraries && key == "name" {
-        Some(libraries_name_cap(t, pane))
-    } else {
-        None
-    }
+    ((kind == NavKind::Pages && key == "title") || (kind == NavKind::Libraries && key == "name"))
+        .then(|| libraries_name_cap(t, pane))
 }
 
-/// The Libraries table's Name cap in a grid `pane` wide: half the grid, never under `size.table_column`.
+/// The Pages Title and Libraries Name cap in a grid `pane` wide: half the grid, never under `size.table_column`.
 pub(crate) fn libraries_name_cap(t: &Tokens, pane: f32) -> f32 {
     (pane / 2.0).max(t.size_table_column)
 }

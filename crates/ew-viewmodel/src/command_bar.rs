@@ -611,11 +611,12 @@ pub fn hud(model: &ShellModel) -> HudModel {
             ..
         }) => {
             target = tag.or(strip);
-            // M39: the symbol by its name in words (`NO contact`), its key's last segment without a name.
+            // M39: the symbol by its name in words (`Contact, normally open`); without a cached catalogue its key's last
+            // segment in sentence case (`Contact no`), never the key.
             let mut what = target.clone().unwrap_or_else(|| {
-                model
-                    .symbol_title(&symbol)
-                    .unwrap_or_else(|| crate::tools::symbol_name(&symbol).to_owned())
+                model.symbol_title(&symbol).unwrap_or_else(|| {
+                    strings::choice_text(&crate::tools::symbol_name(&symbol).replace('-', "_"))
+                })
             });
             if hints > 0 {
                 let count = strings::format(

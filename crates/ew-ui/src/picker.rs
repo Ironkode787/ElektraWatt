@@ -278,17 +278,14 @@ fn row_texts(
 }
 
 /// A template function in words (M39): its kind text, or, where that is only the FnDef key (a FnDef whose category
-/// has fewer than two entries, `ew.fn.blackbox`), the key's last segment as words (`Blackbox`).
+/// has fewer than two entries, `ew.fn.blackbox`), the key's last segment as words (`Blackbox`, through
+/// `strings::choice_text`).
 fn function_words(kind_text: &str, fndef_key: &str) -> String {
     if kind_text != fndef_key {
         return kind_text.to_owned();
     }
-    let word = ew_viewmodel::tools::symbol_name(fndef_key).replace(['-', '_'], " ");
-    let mut chars = word.chars();
-    match chars.next() {
-        Some(c) => c.to_uppercase().chain(chars).collect(),
-        None => kind_text.to_owned(),
-    }
+    // The last fallback: the key's last segment through the shell's choice words.
+    strings::choice_text(&ew_viewmodel::tools::symbol_name(fndef_key).replace('-', "_"))
 }
 
 #[cfg(test)]

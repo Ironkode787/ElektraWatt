@@ -498,6 +498,47 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
             at.x
         );
     }
+    // M39: the column fits the widest label on show (its indent included), never under `size.property_label`, never
+    // over 40 % of the row; a label cut at that maximum (painted with an ellipsis) means the maximum.
+    let number = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Number"))
+        .expect("the Number row")
+        .rect();
+    let column = h
+        .get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Number") && number.contains_rect(n.rect()))
+        .expect("the Number label")
+        .rect();
+    let row_width = number.width();
+    // The widest label of the rows on show (scrolled out of view or not), as the sheet lists them.
+    let need = {
+        let shell = h.state().shell();
+        let sheet = shell.properties().sheet().expect("a sheet");
+        let rows = ew_viewmodel::properties::visible_rows(
+            sheet,
+            &shell.properties_collapsed(),
+            shell.properties_show_advanced(),
+            shell.properties_filter(),
+        );
+        let font = ew_ui::theme::font(&tokens.type_small);
+        rows.iter()
+            .map(|v| {
+                let label = ew_viewmodel::properties::row_label(v.section, v.row);
+                h.ctx.fonts_mut(|f| {
+                    f.layout_no_wrap(label, font.clone(), egui::Color32::WHITE)
+                        .size()
+                        .x
+                })
+            })
+            .fold(0.0_f32, f32::max)
+    };
+    let expected = need.min(row_width * 0.4).max(tokens.size_property_label);
+    assert!(
+        (column.width() - expected).abs() < 0.5,
+        "the label column {} against the rule's {expected} (widest label {need}, row {row_width})",
+        column.width()
+    );
     let painted: Vec<&str> = texts.iter().map(|(t, _)| t.as_str()).collect();
     assert!(painted.contains(&"Main"), "{painted:?}");
     assert!(!painted.contains(&"MAIN"), "{painted:?}");

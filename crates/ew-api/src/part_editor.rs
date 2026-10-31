@@ -34,6 +34,26 @@ pub const DRAFT_FIELDS: [&str; 9] = [
     "unit",
 ];
 
+/// The part kinds in doc 07 §2.5's order, as the `kind` field spells them (the part editor's Kind offers them; a test
+/// ties them to the schema's part kinds, both ways).
+pub const PART_KINDS: [&str; 15] = [
+    "device",
+    "terminal",
+    "cable",
+    "wire",
+    "ferrule",
+    "marker",
+    "duct",
+    "rail",
+    "busbar",
+    "end_bracket",
+    "enclosure",
+    "mounting_plate",
+    "tube",
+    "accessory",
+    "configured",
+];
+
 /// One field's message: the strings key and its arguments (the shell words it, D21).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DraftMessage {
@@ -585,5 +605,47 @@ impl Session {
                 .cloned()
                 .collect(),
         })
+    }
+}
+
+#[cfg(test)]
+mod part_kinds_tests {
+    use ew_schema::PartKind;
+    use serde_json::Value;
+
+    use super::{PART_KINDS, kind_word};
+
+    /// M39: every kind of [`PART_KINDS`] reads as a schema part kind and writes back the same word, and every schema
+    /// part kind (but the verbatim unknown one) is in the list, so the editor offers exactly the schema's kinds.
+    #[test]
+    fn the_part_kinds_are_the_schemas() {
+        let mut seen = Vec::new();
+        for k in PART_KINDS {
+            let kind: PartKind = serde_json::from_value(Value::String(k.to_owned())).expect(k);
+            assert!(!matches!(kind, PartKind::Unknown(_)), "{k}");
+            assert_eq!(kind_word(&kind), k);
+            seen.push(kind);
+        }
+        // Exhaustive: a new variant fails to compile here, a reminder to list it above.
+        for kind in &seen {
+            match kind {
+                PartKind::Device
+                | PartKind::Terminal
+                | PartKind::Cable
+                | PartKind::Wire
+                | PartKind::Ferrule
+                | PartKind::Marker
+                | PartKind::Duct
+                | PartKind::Rail
+                | PartKind::Busbar
+                | PartKind::EndBracket
+                | PartKind::Enclosure
+                | PartKind::MountingPlate
+                | PartKind::Tube
+                | PartKind::Accessory
+                | PartKind::Configured => {}
+                PartKind::Unknown(_) => unreachable!(),
+            }
+        }
     }
 }

@@ -135,9 +135,6 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
     );
     if elided {
         response.clone().on_hover_text(tail);
-        response
-            .clone()
-            .on_disabled_hover_text(entry.reason.clone().unwrap_or_default());
     }
     response.clicked() && entry.enabled
 }
