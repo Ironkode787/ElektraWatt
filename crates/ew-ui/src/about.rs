@@ -322,6 +322,10 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
             }
         });
     }
+    // FT-786: Save as macro's value-set table under the fields, the refusal under it.
+    if let Some(table) = &form.table {
+        crate::value_table::show(ui, table, events);
+    }
     if let Some(error) = &form.error {
         ui.colored_label(t.error.color32(), error);
     }

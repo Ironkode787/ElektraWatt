@@ -3440,9 +3440,22 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         )),
     ),
+    // FT-785: an ad-hoc value of the macro card's variable `name` (empty or absent `value`: none).
+    with_params(
+        "name:text, value?:text",
+        hidden(act(
+            "macros.value",
+            Command,
+            "action-macros-value",
+            Menu::Draw,
+            &[],
+            writable,
+            None,
+        )),
+    ),
     with_params(
         "name?:text, key?:text, description?:text, library?:text, kind?:text, pages?:list(text), x_mm?:mm, \
-         y_mm?:mm, confirm?:bool",
+         y_mm?:mm, value_sets?:json, confirm?:bool",
         in_canvas(act(
             "macros.save",
             Command,

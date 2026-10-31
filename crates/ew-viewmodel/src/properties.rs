@@ -331,8 +331,26 @@ pub struct MacroInsert {
     pub value_set: Option<String>,
     /// The macro's value sets.
     pub value_sets: Vec<String>,
+    /// The variables' ad-hoc value fields, in the macro's order (FT-785).
+    pub fields: Vec<MacroField>,
     /// The conflicts in words, the refusals first (`Session::macro_conflicts`).
     pub conflicts: Vec<String>,
+}
+
+/// One variable's ad-hoc value field on a macro card (FT-785): a typed value is a literal of `macro.insert`, which wins
+/// over the value set and the default.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct MacroField {
+    /// The variable's name.
+    pub name: String,
+    /// The variable type's word (`text`, `number`, `bool`, `tag_counter`, …).
+    pub ty: String,
+    /// What the variable takes without a typed value: the chosen value set's value, else the default; empty for none.
+    pub placeholder: String,
+    /// The typed value, empty for none.
+    pub value: String,
+    /// The command's refusal of the typed value, in words; `None` when it is taken.
+    pub error: Option<String>,
 }
 
 impl CardOrigin {
@@ -391,6 +409,14 @@ impl Card {
                 rule: None,
             });
         };
+        // FT-785: a typed value the command did not take leads in words naming its variable; the reason is under the
+        // field.
+        if let Some(f) = m.fields.iter().find(|f| f.error.is_some()) {
+            return Some(FailedLead {
+                text: strings::format("macro-failed-value", &[&f.name]),
+                rule: None,
+            });
+        }
         let (rule, rest) = split_rule_code(message);
         let text = match m.conflicts.len() {
             0 => strings::format("macro-failed-other", &[rest]),

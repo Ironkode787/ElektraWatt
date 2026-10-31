@@ -16,7 +16,7 @@
   },
   "files": {
     "tools/blind/HELP-VISUAL.md": "9246eaba3ac4da897d431a9b4366364657d59a9bd8ab5ded81c9ddc17224e875",
-    "tools/blind/reference/actions.txt": "71cdb2e2d256ca4ab6ea124c22bdff080e2317146b8d2d4fef41d9f21cd62736",
+    "tools/blind/reference/actions.txt": "fe58108c8d87895294a1826bad36aa1af438ce92ed0e81a448988167a8dbbaf6",
     "tools/blind/reference/vocabulary.txt": "e407998a7f255c29ab26cc808ec446e452a64ea25662836aa67d787f5256c949",
     "tools/blind/tasks/selftest-visual/agent.jsonl": "0a914be5b3e94b2a6d817a9f53f3200037e592d8bab5f5822fdf03f6ec0e10be",
     "tools/blind/tasks/selftest-visual/prelude.uiscript": "b5d31b6c62a5cd9cc5eafd52acd517a3528027fcc1e85532bf67cf05fb256f48",

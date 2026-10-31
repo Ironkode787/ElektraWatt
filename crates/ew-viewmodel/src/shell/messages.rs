@@ -479,6 +479,7 @@ impl ShellModel {
                     },
                 ],
                 error: None,
+                table: None,
             }));
         }
         let min = WAIVER_REASON_MIN_CHARS;

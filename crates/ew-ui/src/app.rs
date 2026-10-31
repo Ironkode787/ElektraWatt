@@ -60,6 +60,12 @@ pub(crate) enum Event {
     FormField(&'static str, String),
     /// Enter in a creation dialog, or its Create button.
     FormSubmit,
+    /// A cell of the form's table changed (FT-786): the row, the column (`None`: the first, a rename) and its text.
+    FormTableCell(usize, Option<usize>, String),
+    /// The form table's Add (FT-786).
+    FormTableAdd,
+    /// The form table's remove button of a row (FT-786).
+    FormTableRemove(usize),
     /// The banner's own button.
     DismissBanner,
     /// The privacy button of the About dialog and of the first-run privacy step: `PRIVACY.md` in the system browser.
@@ -1371,6 +1377,9 @@ impl App {
             Event::GotoGo(text) => self.dispatch("nav.goto", &json!({ "text": text })),
             Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),
             Event::FormField(name, text) => self.shell.set_form_field(name, &text),
+            Event::FormTableCell(row, column, text) => self.shell.set_form_table_cell(row, column, &text),
+            Event::FormTableAdd => self.shell.add_form_table_row(),
+            Event::FormTableRemove(row) => self.shell.remove_form_table_row(row),
             // A refusal stays in the dialog, so it is not made a banner as well.
             Event::FormSubmit => {
                 self.shell.submit_form();

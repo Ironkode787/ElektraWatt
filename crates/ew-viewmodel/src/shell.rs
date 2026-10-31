@@ -84,7 +84,7 @@ pub mod part_dialog;
 mod keymaps;
 pub use macros::MacroVariable;
 
-pub use creation::{FormDialog, FormField, PAGE_TYPES, STRUCTURE_KINDS};
+pub use creation::{FormDialog, FormField, FormRow, FormTable, PAGE_TYPES, STRUCTURE_KINDS};
 pub use drawing::TextPopup;
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 // WP-S2.06 part 1
@@ -1619,6 +1619,7 @@ impl ShellModel {
             "macros.insert" => self.act_macros_insert(p),
             "macros.place" => self.act_macros_place(p),
             "macros.value_set" => self.act_macros_value_set(p),
+            "macros.value" => self.act_macros_value(p),
             "macros.save" => self.act_macros_save(p),
             "libraries.update" => self.act_libraries_update(p),
             // WP-S2.07 part 4a (§9.4)

@@ -27,12 +27,12 @@ use ew_api::output::{LibraryCopyDetail, MacroDetail, MacroThumbnail, NavRole, Na
 use ew_api::{AnyCommand, InsertAt, MacroConflict, MacroScope, MacroSpec, MacroValues, Submit};
 use serde_json::{Map, Value, json};
 
-use super::creation::{FormDialog, FormField};
+use super::creation::{FormDialog, FormField, FormRow, FormTable};
 use super::navigation::bump;
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::canvas::PageId;
 use crate::navigators::NavKind;
-use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, MacroInsert, PendingEdit};
+use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, MacroField, MacroInsert, PendingEdit};
 use crate::strings;
 use crate::tools::{MacroTool, PreviewState};
 
@@ -105,6 +105,96 @@ fn conflict_words(conflicts: &[MacroConflict]) -> Vec<String> {
     }
     refused.extend(other);
     refused
+}
+
+/// A typed text as the JSON value `macro.insert` coerces for a variable of type `ty` (FT-785, FT-786): `bool`
+/// `true`/`yes` and `false`/`no` (any case) a boolean; `tag_counter` and `channel_binding` digits an integer; `number`
+/// a decimal text with a comma taken as the point; `part` a copy ID `{"copy": <ID>}`; anything else the text. A text
+/// that does not read as its type stays a text, which the command then refuses in words.
+fn literal_value(ty: &str, text: &str) -> Value {
+    let text = text.trim();
+    match ty {
+        "bool" => match text.to_lowercase().as_str() {
+            "true" | "yes" => Value::Bool(true),
+            "false" | "no" => Value::Bool(false),
+            _ => Value::from(text),
+        },
+        "tag_counter" | "channel_binding" => text
+            .parse::<u64>()
+            .map_or_else(|_| Value::from(text), Value::from),
+        "number" => Value::from(text.replace(',', ".")),
+        "part" if text.parse::<Uuid>().is_ok() => json!({ "copy": text }),
+        _ => Value::from(text),
+    }
+}
+
+/// A variable's value as the card and the value-set table show it: a text as it is, a part by its copy ID, any other
+/// value as its JSON text.
+fn value_text(v: &Value) -> String {
+    match v {
+        Value::String(s) => s.clone(),
+        Value::Object(o) => match o.get("copy") {
+            Some(Value::String(c)) => c.clone(),
+            _ => v.to_string(),
+        },
+        other => other.to_string(),
+    }
+}
+
+/// The typed values of a macro card's fields by variable name (blank fields left out).
+fn literals(m: &MacroInsert) -> BTreeMap<String, String> {
+    m.fields
+        .iter()
+        .filter(|f| !f.value.trim().is_empty())
+        .map(|f| (f.name.clone(), f.value.clone()))
+        .collect()
+}
+
+/// One value set of the `value_sets` parameter: its name and its values by variable name.
+type ValueSetParam = (String, Map<String, Value>);
+
+/// The `value_sets` parameter of `macros.save` (FT-786): an array of `{"name": <text>, "values": {<variable>:
+/// <value>}}`, `None` when absent.
+fn value_sets_param(p: &Map<String, Value>) -> Result<Option<Vec<ValueSetParam>>, Outcome> {
+    let bad = || failed("error-bad-param", &["value_sets"]);
+    match p.get("value_sets") {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::Array(rows)) => rows
+            .iter()
+            .map(|r| {
+                let name = r.get("name").and_then(Value::as_str).ok_or_else(bad)?;
+                let values = match r.get("values") {
+                    None | Some(Value::Null) => Map::new(),
+                    Some(Value::Object(o)) => o.clone(),
+                    Some(_) => return Err(bad()),
+                };
+                Ok((name.to_owned(), values))
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map(Some),
+        Some(_) => Err(bad()),
+    }
+}
+
+/// A refused save in words (FT-786): a value set's refusal names the set and, for a cell, the variable; any other
+/// refusal as the library gave it. `sets` are the value sets' names in the order saved.
+fn save_error(e: &ew_api::MacroError, sets: &[String]) -> Outcome {
+    if let ew_api::MacroError::Spec { at, message } = e
+        && let Some(rest) = at.strip_prefix("value_sets/")
+    {
+        let (index, variable) = match rest.split_once('/') {
+            Some((i, v)) => (i, Some(v)),
+            None => (rest, None),
+        };
+        if let Some(set) = index.parse::<usize>().ok().and_then(|i| sets.get(i)) {
+            let message = match variable {
+                Some(v) => strings::format("error-value-set-cell", &[set, v, message]),
+                None => strings::format("error-value-set", &[set, message]),
+            };
+            return Outcome::Failed { message };
+        }
+    }
+    failed("error-macro-save", &[&e.to_string()])
 }
 
 /// The words of a row badge of the Libraries and Macros navigators (the API's codes, §11); any other badge as given.
@@ -335,7 +425,7 @@ impl ShellModel {
                 reason_key: "reason-no-page",
             };
         };
-        self.open_macro_card(&key, page, page_nm, value_set)
+        self.open_macro_card(&key, page, page_nm, value_set, BTreeMap::new())
     }
 
     /// The macro tool's click ([`crate::tools::HostStep::MacroPlace`] of row `key` at `at`, page nm): the card, and
@@ -346,20 +436,22 @@ impl ShellModel {
                 reason_key: "reason-no-page",
             };
         };
-        let out = self.open_macro_card(key, page, at, None);
+        let out = self.open_macro_card(key, page, at, None, BTreeMap::new());
         let _ = self.act_tool("select");
         out
     }
 
-    /// Composes `macro.insert` of the macro of row `key` at `at` (page nm) on `page` with `value_set`, lists its
+    /// Composes `macro.insert` of the macro of row `key` at `at` (page nm) on `page` with `value_set` and the typed
+    /// values `typed` (by variable name; FT-785: literals win over the value set and the defaults), lists its
     /// conflicts and shows the `macro` card. A refused composition opens no card; a refused preview opens it with its
-    /// conflicts.
+    /// conflicts, and a typed value the command does not take shows the command's reason under its field.
     fn open_macro_card(
         &mut self,
         key: &str,
         page: Uuid,
         at: (i64, i64),
         value_set: Option<String>,
+        typed: BTreeMap<String, String>,
     ) -> Outcome {
         let Some(rev) = self.revision() else {
             return Outcome::Refused {
@@ -390,9 +482,33 @@ impl ShellModel {
             at: Some(Pt2::new(Nm(at.0), Nm(at.1))),
             orient: Orient2::default(),
         };
+        // FT-785: one field per variable; its placeholder is the chosen set's value, else the default.
+        let set_values = value_set
+            .as_ref()
+            .and_then(|v| detail.value_sets.iter().position(|n| n == v))
+            .and_then(|i| detail.value_set_values.get(i));
+        let mut fields: Vec<MacroField> = detail
+            .variable_fields
+            .iter()
+            .map(|(name, ty, default)| MacroField {
+                name: name.clone(),
+                ty: ty.clone(),
+                placeholder: set_values
+                    .and_then(|s| s.get(name))
+                    .or(default.as_ref())
+                    .map(value_text)
+                    .unwrap_or_default(),
+                value: typed.get(name).cloned().unwrap_or_default(),
+                error: None,
+            })
+            .collect();
         let values = MacroValues {
             value_set: value_set.clone(),
-            values: BTreeMap::new(),
+            values: fields
+                .iter()
+                .filter(|f| !f.value.trim().is_empty())
+                .map(|f| (f.name.clone(), literal_value(&f.ty, &f.value)))
+                .collect(),
         };
         let cmd: AnyCommand = match project
             .session
@@ -411,10 +527,17 @@ impl ShellModel {
             .map(|c| conflict_words(&c))
             .unwrap_or_default();
         bump(calls, |c| c.preview_with += 1);
-        let result = project
-            .session
-            .preview_with(&cmd, submit)
-            .map_err(|e| e.to_string());
+        let raw = project.session.preview_with(&cmd, submit);
+        // A typed value the command does not take: its reason under the field, without the variable's name the field
+        // already shows.
+        if let Err(ew_api::CmdError::InvalidParams { path, message, .. }) = &raw
+            && let Some(name) = path.strip_prefix("/values/")
+            && let Some(f) = fields.iter_mut().find(|f| f.name == name)
+        {
+            let lead = format!("variable `{name}`: ");
+            f.error = Some(message.strip_prefix(&lead).unwrap_or(message).to_owned());
+        }
+        let result = raw.map_err(|e| e.to_string());
         let derived = result
             .as_ref()
             .map(|p| project.session.derived_diff(p))
@@ -453,6 +576,7 @@ impl ShellModel {
                 instance,
                 value_set,
                 value_sets: detail.value_sets,
+                fields,
                 conflicts,
             })),
         });
@@ -460,7 +584,7 @@ impl ShellModel {
     }
 
     /// `macros.value_set {name?}`: previews the open macro card again with the value set `name` (absent or empty: the
-    /// defaults).
+    /// defaults); the typed values stay.
     pub(super) fn act_macros_value_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let name = match string_param(p, "name") {
             Ok(v) => v.filter(|v| !v.is_empty()).map(str::to_owned),
@@ -471,7 +595,38 @@ impl ShellModel {
                 reason_key: "reason-no-card",
             };
         };
-        self.open_macro_card(&m.key, m.page, m.at, name)
+        let typed = literals(&m);
+        self.open_macro_card(&m.key, m.page, m.at, name, typed)
+    }
+
+    /// `macros.value {name, value?}` (FT-785): previews the open macro card again with `value` typed for its variable
+    /// `name` (absent or blank: none, the value set's or the default's value applies); the value set and the other
+    /// typed values stay.
+    pub(super) fn act_macros_value(&mut self, p: &Map<String, Value>) -> Outcome {
+        let name = match string_param(p, "name") {
+            Ok(Some(n)) if !n.trim().is_empty() => n.trim().to_owned(),
+            Ok(_) => return failed("error-missing-param", &["name"]),
+            Err(e) => return e,
+        };
+        let value = match string_param(p, "value") {
+            Ok(v) => v.map(|v| v.trim().to_owned()).unwrap_or_default(),
+            Err(e) => return e,
+        };
+        let Some(CardOrigin::Macro(m)) = self.props.card().map(|c| c.origin.clone()) else {
+            return Outcome::Refused {
+                reason_key: "reason-no-card",
+            };
+        };
+        if !m.fields.iter().any(|f| f.name == name) {
+            return failed("error-bad-param", &["name"]);
+        }
+        let mut typed = literals(&m);
+        if value.is_empty() {
+            typed.remove(&name);
+        } else {
+            typed.insert(name, value);
+        }
+        self.open_macro_card(&m.key, m.page, m.at, m.value_set.clone(), typed)
     }
 
     /// Apply on a macro card: a fresh card commits one transaction; a refused one fails with the rule's text; a stale
@@ -492,7 +647,8 @@ impl ShellModel {
         let CardOrigin::Macro(m) = card.origin else {
             return Outcome::Done;
         };
-        self.open_macro_card(&m.key, m.page, m.at, m.value_set)
+        let typed = literals(&m);
+        self.open_macro_card(&m.key, m.page, m.at, m.value_set, typed)
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -731,6 +887,10 @@ impl ShellModel {
         };
         let mm_text = |v: Option<f64>| v.map(|v| format!("{v}")).unwrap_or_default();
         let (x_text, y_text) = (mm_text(x_mm), mm_text(y_mm));
+        let value_sets = match value_sets_param(p) {
+            Ok(v) => v.unwrap_or_default(),
+            Err(e) => return self.save_done(e),
+        };
         let confirm = match super::jobs::bool_param(p, "confirm", false) {
             Ok(c) => c || self.in_save_form(),
             Err(e) => return self.save_done(e),
@@ -824,12 +984,35 @@ impl ShellModel {
                 fields.push(field("x_mm", "form-macro-x", x_text));
                 fields.push(field("y_mm", "form-macro-y", y_text));
             }
+            // FT-786: the value-set table, one column per variable of the next save, prefilled from `value_sets`.
+            let columns: Vec<(String, String)> = self
+                .macros
+                .variables
+                .iter()
+                .map(|v| (v.name.clone(), v.ty.to_owned()))
+                .collect();
+            let rows = value_sets
+                .iter()
+                .map(|(name, values)| FormRow {
+                    key: name.clone(),
+                    cells: columns
+                        .iter()
+                        .map(|(c, _)| values.get(c).map(value_text).unwrap_or_default())
+                        .collect(),
+                })
+                .collect();
             let form = FormDialog {
                 action: SAVE,
                 title_key: "save-macro-title",
                 ok_key: "dialog-save-macro",
                 fields,
                 error: None,
+                table: Some(FormTable {
+                    name: "value_sets",
+                    key_label: "form-value-set-name",
+                    columns,
+                    rows,
+                }),
             };
             return self.open_dialog(Dialog::Form(form));
         }
@@ -876,6 +1059,38 @@ impl ShellModel {
             Ok(v) => v,
             Err(e) => return self.save_done(failed("error-macro-save", &[&e.to_string()])),
         };
+        // FT-786: the value sets, each cell read as its variable's type; a set needs a name.
+        let mut set_names = Vec::new();
+        let mut sets = Vec::new();
+        for (i, (set, values)) in value_sets.iter().enumerate() {
+            let set = ew_api::to_nfc(set.trim()).into_owned();
+            if set.is_empty() {
+                return self.save_done(failed("error-value-set-name", &[&(i + 1).to_string()]));
+            }
+            let values: Map<String, Value> = values
+                .iter()
+                .filter(|(_, v)| v.as_str().is_none_or(|s| !s.trim().is_empty()))
+                .map(|(var, v)| {
+                    let ty = self
+                        .macros
+                        .variables
+                        .iter()
+                        .find(|x| x.name == *var)
+                        .map_or("text", |x| x.ty);
+                    let v = match v {
+                        Value::String(s) => literal_value(ty, s),
+                        other => other.clone(),
+                    };
+                    (var.clone(), v)
+                })
+                .collect();
+            sets.push(json!({ "name": set, "values": values }));
+            set_names.push(set);
+        }
+        let value_sets = match serde_json::from_value(Value::Array(sets)) {
+            Ok(v) => v,
+            Err(e) => return self.save_done(failed("error-macro-save", &[&e.to_string()])),
+        };
         let (Ok(name_text), Ok(description_text)) = (
             serde_json::from_value(Value::String(name.clone())),
             serde_json::from_value(Value::String(description)),
@@ -891,14 +1106,14 @@ impl ShellModel {
             keep_tags: Vec::new(),
             variables,
             groups: Vec::new(),
-            value_sets: Vec::new(),
+            value_sets,
         };
         let Some(project) = &mut self.project else {
             return Outcome::Done;
         };
         let saved = match project.session.save_macro(target, &spec) {
             Ok(s) => s,
-            Err(e) => return self.save_done(failed("error-macro-save", &[&e.to_string()])),
+            Err(e) => return self.save_done(save_error(&e, &set_names)),
         };
         self.macros.variables.clear();
         self.libraries_changed();

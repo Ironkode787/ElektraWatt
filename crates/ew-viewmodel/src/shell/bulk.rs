@@ -464,6 +464,7 @@ impl ShellModel {
                     },
                 ],
                 error: None,
+                table: None,
             };
             return self.open_dialog(Dialog::Form(form));
         };
@@ -586,6 +587,7 @@ impl ShellModel {
                     ),
                 ],
                 error: None,
+                table: None,
             };
             return self.open_dialog(Dialog::Form(form));
         };

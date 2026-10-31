@@ -2051,6 +2051,21 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "prompt-open-keymap-title" => "Import keymap",
         "prompt-save-keymap-title" => "Export keymap",
         "prompt-keymap-name" => "keymap.toml",
+        // WP-S1.19 part 6 (FT-785, FT-786): the macro card's ad-hoc values and Save as macro's value-set table.
+        "action-macros-value" => "Type a value of the macro card's variable",
+        "macro-values" => "Values",
+        "macro-value-label" => "{0} ({1})",
+        "form-value-sets" => "Value sets",
+        "form-value-set-name" => "Value set",
+        "form-value-set-add" => "Add value set",
+        "form-value-set-remove" => "Remove value set {0}",
+        "form-value-set-new" => "Set {0}",
+        "form-value-sets-none" => "No variables yet: Make variable on a property row adds a column.",
+        "form-value-cell" => "{0}, value set {1}",
+        "error-value-set-name" => "Value set {0} needs a name.",
+        "macro-failed-value" => "The macro cannot be inserted with the value typed for {0}.",
+        "error-value-set" => "Value set \u{201c}{0}\u{201d}: {1}",
+        "error-value-set-cell" => "Value set \u{201c}{0}\u{201d}, variable \u{201c}{1}\u{201d}: {2}",
         _ => return None,
     })
 }

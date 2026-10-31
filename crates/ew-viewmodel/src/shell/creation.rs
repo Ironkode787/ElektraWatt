@@ -211,6 +211,53 @@ pub struct FormDialog {
     pub fields: Vec<FormField>,
     /// What the last attempt was refused with, shown under the fields.
     pub error: Option<String>,
+    /// The table under the fields (FT-786: Save as macro's value sets), `None` for a form without one.
+    pub table: Option<FormTable>,
+}
+
+/// An editable table of a form (FT-786: the value sets of Save as macro, doc 16a section 6.21's look): a named first
+/// column and one column per variable. Submit carries it as the JSON parameter `name`: one object per row,
+/// `{"name": <first column>, "values": {<column>: <cell>}}`, blank cells left out.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct FormTable {
+    /// The action parameter the table carries (`value_sets`).
+    pub name: &'static str,
+    /// The key of the first column's header (`Value set`).
+    pub key_label: &'static str,
+    /// The columns after the first: the variable's name and its type's word (`number`), which types the cells.
+    pub columns: Vec<(String, String)>,
+    /// The rows in order.
+    pub rows: Vec<FormRow>,
+}
+
+/// One row of a [`FormTable`]: the first column's text and one cell text per column.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct FormRow {
+    /// The first column's text (a value set's name).
+    pub key: String,
+    /// One text per column of the table, in order.
+    pub cells: Vec<String>,
+}
+
+impl FormTable {
+    /// The table as its action parameter (see [`FormTable`]).
+    fn param(&self) -> Value {
+        Value::Array(
+            self.rows
+                .iter()
+                .map(|r| {
+                    let values: Map<String, Value> = self
+                        .columns
+                        .iter()
+                        .zip(&r.cells)
+                        .filter(|(_, cell)| !cell.trim().is_empty())
+                        .map(|((col, _), cell)| (col.clone(), Value::String(cell.trim().to_owned())))
+                        .collect();
+                    serde_json::json!({ "name": r.key.trim(), "values": values })
+                })
+                .collect(),
+        )
+    }
 }
 
 impl Spec {
@@ -234,6 +281,7 @@ impl Spec {
                 })
                 .collect(),
             error: None,
+            table: None,
         }
     }
 }
@@ -295,19 +343,69 @@ impl ShellModel {
         }
     }
 
-    /// Enter in the creation dialog (or its Create button): the dialog's action with its non-empty fields as parameters.
-    /// A refusal stays in the dialog; success closes it.
+    /// Sets the first-column text (`column` `None`, a rename) or a cell of row `row` of the open form's table, and
+    /// clears the last refusal; a row or column the table does not have changes nothing (FT-786).
+    pub fn set_form_table_cell(&mut self, row: usize, column: Option<usize>, value: &str) {
+        if let Some(Dialog::Form(form)) = &mut self.dialog
+            && let Some(table) = &mut form.table
+            && let Some(r) = table.rows.get_mut(row)
+        {
+            let slot = match column {
+                None => Some(&mut r.key),
+                Some(c) => r.cells.get_mut(c),
+            };
+            if let Some(slot) = slot {
+                value.clone_into(slot);
+                form.error = None;
+            }
+        }
+    }
+
+    /// Adds a row to the open form's table: named `Set <n>` with the lowest `n` from the row count up that no row has,
+    /// its cells blank (FT-786).
+    pub fn add_form_table_row(&mut self) {
+        if let Some(Dialog::Form(form)) = &mut self.dialog
+            && let Some(table) = &mut form.table
+        {
+            let key = (table.rows.len() + 1..)
+                .map(|n| strings::format("form-value-set-new", &[&n.to_string()]))
+                .find(|k| table.rows.iter().all(|r| r.key.trim() != k))
+                .unwrap_or_default();
+            table.rows.push(FormRow {
+                key,
+                cells: vec![String::new(); table.columns.len()],
+            });
+            form.error = None;
+        }
+    }
+
+    /// Removes row `row` of the open form's table; a row it does not have changes nothing (FT-786).
+    pub fn remove_form_table_row(&mut self, row: usize) {
+        if let Some(Dialog::Form(form)) = &mut self.dialog
+            && let Some(table) = &mut form.table
+            && row < table.rows.len()
+        {
+            table.rows.remove(row);
+            form.error = None;
+        }
+    }
+
+    /// Enter in the creation dialog (or its Create button): the dialog's action with its non-empty fields as parameters
+    /// (and its table's rows, FT-786). A refusal stays in the dialog; success closes it.
     pub fn submit_form(&mut self) -> Outcome {
         let Some(Dialog::Form(form)) = &self.dialog else {
             return Outcome::Done;
         };
         let action = form.action;
-        let params: Map<String, Value> = form
+        let mut params: Map<String, Value> = form
             .fields
             .iter()
             .filter(|f| !f.value.trim().is_empty())
             .map(|f| (f.name.to_owned(), Value::String(f.value.trim().to_owned())))
             .collect();
+        if let Some(table) = &form.table {
+            params.insert(table.name.to_owned(), table.param());
+        }
         let out = self.dispatch(action, &Value::Object(params));
         // The project closed under the open dialog: nothing is left to create in.
         if matches!(out, Outcome::Refused { .. }) && !self.has_project() {

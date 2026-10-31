@@ -255,6 +255,7 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
             combo.response.labelled_by(label.id);
         });
     }
+    macro_values(ui, m, events);
     if m.conflicts.is_empty() {
         components::live_line(ui, strings::text("macro-no-conflicts"), false);
         return;
@@ -272,6 +273,87 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
             );
             let text = c.clone();
             response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &text));
+        }
+    }
+}
+
+/// FT-785: a macro card's ad-hoc values, one row per variable: the label "<name> (<type>)" in `type.small`
+/// `color.text.secondary` in a column `size.dialog.label` wide, the field filling the rest with the value set's (or
+/// the default's) value as its placeholder, and the command's refusal of a typed value under it in `color.error`. The
+/// field keeps what is typed while it has the focus and sends `macros.value` when it loses it with another text (the
+/// card is previewed again; a blank field sends none, so the placeholder's value applies).
+fn macro_values(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &mut Vec<Event>) {
+    if m.fields.is_empty() {
+        return;
+    }
+    let t = components::tokens(ui);
+    ui.label(
+        RichText::new(strings::text("macro-values"))
+            .font(theme::font(&t.type_small))
+            .color(t.text_secondary.color32()),
+    );
+    for f in &m.fields {
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = t.space_3;
+            let label = ui
+                .allocate_ui_with_layout(
+                    egui::vec2(t.size_dialog_label, t.size_control),
+                    Layout::left_to_right(Align::Center),
+                    |ui| {
+                        ui.set_min_size(egui::vec2(t.size_dialog_label, t.size_control));
+                        ui.add(
+                            egui::Label::new(
+                                RichText::new(strings::format("macro-value-label", &[&f.name, &f.ty]))
+                                    .font(theme::font(&t.type_small))
+                                    .color(t.text_secondary.color32()),
+                            )
+                            .wrap(),
+                        )
+                    },
+                )
+                .inner;
+            let id = ui.scope_id().with(("macro-value", m.instance, &f.name));
+            let focused = ui.memory(|mem| mem.has_focus(id));
+            let mut text = if focused {
+                ui.data(|d| d.get_temp::<String>(id))
+                    .unwrap_or_else(|| f.value.clone())
+            } else {
+                f.value.clone()
+            };
+            let edit = ui
+                .add(
+                    egui::TextEdit::singleline(&mut text)
+                        .id(id)
+                        .hint_text(RichText::new(&f.placeholder).color(t.text_tertiary.color32()))
+                        .desired_width(ui.available_width())
+                        .min_size(egui::vec2(0.0, t.size_control)),
+                )
+                .labelled_by(label.id);
+            if edit.changed() {
+                ui.data_mut(|d| d.insert_temp(id, text.clone()));
+            }
+            if edit.lost_focus() {
+                ui.data_mut(|d| d.remove::<String>(id));
+                if text.trim() != f.value {
+                    events.push(Event::Action(
+                        "macros.value",
+                        serde_json::json!({ "name": f.name, "value": text.trim() }),
+                    ));
+                }
+            }
+        });
+        if let Some(error) = &f.error {
+            ui.horizontal(|ui| {
+                ui.add_space(t.size_dialog_label + t.space_3);
+                ui.add(
+                    egui::Label::new(
+                        RichText::new(error)
+                            .font(theme::font(&t.type_small))
+                            .color(t.error.color32()),
+                    )
+                    .wrap(),
+                );
+            });
         }
     }
 }

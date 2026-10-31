@@ -257,16 +257,22 @@ fn macro_variables(m: &MacroDef) -> Vec<String> {
     m.variables
         .iter()
         .map(|v| {
-            let ty = serde_json::to_value(&v.ty)
-                .ok()
-                .and_then(|t| t.as_str().map(str::to_owned))
-                .unwrap_or_default();
+            let ty = var_type_word(&v.ty);
             match &v.default {
                 Some(d) => format!("{} ({ty}) = {d}", v.name),
                 None => format!("{} ({ty})", v.name),
             }
         })
         .collect()
+}
+
+/// The word of a variable type as the format writes it (`text`, `tag_counter`), empty for a type this version does
+/// not know.
+fn var_type_word(ty: &ew_schema::VarType) -> String {
+    serde_json::to_value(ty)
+        .ok()
+        .and_then(|t| t.as_str().map(str::to_owned))
+        .unwrap_or_default()
 }
 
 /// The extent of a macro's first variant about its anchor, `[x0, y0, x1, y1]` in nm: its representations' positions,
@@ -334,6 +340,12 @@ pub struct MacroDetail {
     pub variables: Vec<String>,
     /// The value sets' names.
     pub value_sets: Vec<String>,
+    /// The variables as the insert card's fields take them (FT-785): the name, the type's word (`text`, `number`,
+    /// `bool`, …) and the default, `None` without one; in the macro's order.
+    pub variable_fields: Vec<(String, String, Option<serde_json::Value>)>,
+    /// The value sets' values by variable name, in the order of [`MacroDetail::value_sets`] (FT-785: a field's
+    /// placeholder shows the chosen set's value).
+    pub value_set_values: Vec<BTreeMap<String, serde_json::Value>>,
     /// The macro in its library (`version_req` `*`), `None` for a copy no installed library holds: only a macro of an
     /// installed library is inserted (`Session::insert_macro` resolves it).
     pub reference: Option<LibRef>,
@@ -363,6 +375,13 @@ impl MacroDetail {
             devices: macro_devices(&c.item),
             variables: macro_variables(&c.item),
             value_sets: c.item.value_sets.iter().map(|v| v.name.to_string()).collect(),
+            variable_fields: c
+                .item
+                .variables
+                .iter()
+                .map(|v| (v.name.to_string(), var_type_word(&v.ty), v.default.clone()))
+                .collect(),
+            value_set_values: c.item.value_sets.iter().map(|v| v.values.clone()).collect(),
             reference,
             copy: c.id.as_uuid(),
             extent: macro_extent(&c.item),
