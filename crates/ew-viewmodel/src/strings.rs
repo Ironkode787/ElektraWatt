@@ -1855,7 +1855,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-no-writable-library" => {
             "No writable library is installed; add a user or company library first"
         }
-        "reason-macro-no-key" => "The name has no letter a–z or digit to make a key from; type a key",
+        "reason-macro-no-key" => "The name has no letter or digit to make a key from; type a key",
         "reason-library-write-window" => {
             "Only a person saves a macro, in the window: a library write is not undoable and no script reaches it"
         }
