@@ -42,11 +42,11 @@ use ew_derive::ew_schema::{
 use ew_derive::ew_units::{Pt2, Rect};
 use ew_derive::layout::{
     CarrierGeometry, Fit, PlacementGeometry, PoseError, PoseOn, Profile, RailAxis, RailOccupancy, Unplaced,
-    check_pose, fits_rail, fits_surface, primary_part, surface_pages,
+    check_pose, fits_rail, fits_surface, member_order, primary_part, surface_pages,
 };
 use ew_derive::part_confidence;
 
-use crate::finding::{Finding, Severity, Target};
+use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::full_tag;
 
@@ -370,6 +370,20 @@ impl Rule for PartNotOnDevice {
             )
             .arg("device", name)
             .arg("part", part_text);
+            // WP-S4.02 D7: realise the device's primary part again (`layout.move {part}`) at the same pose; no fix
+            // when the device has no primary part (a strip, no mountable part).
+            let f = match primary_part(q, device) {
+                Some(primary) => f.with_fix(QuickFix {
+                    label: "Realise the primary part".to_owned(),
+                    command: "layout.move".to_owned(),
+                    params: serde_json::json!({
+                        "placement": pl.id.to_string(),
+                        "pose": pl.pose,
+                        "part": primary.copy.to_string(),
+                    }),
+                }),
+                None => f,
+            };
             out.push(shown(f, q, placement_surface(q, pl)));
         }
         out
@@ -1250,9 +1264,10 @@ pub const ASSEMBLY_ORDER: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// The sort key of an assembly member: the parent first, then `Device.position` (a PLC module's slot under its
-/// station is its position), then the full designation in natural order, then the ID.
-type MemberKey = (bool, u32, String, Id<Device>);
+/// An assembly member placed on the rail: its full designation (for the texts) and its device. The wanted order is
+/// `ew_derive::layout::member_order` (WP-S4.02 D6): the parent first, then `Device.position` (a PLC module's slot under
+/// its station is its position), then the full designation in natural order, then the ID.
+type MemberKey = (String, Id<Device>);
 
 /// EW-LAY-016: on each rail, the placed members of one assembly or PLC station (the parent device and its children,
 /// `Device.parent`; a station's modules are its children) out of their order along the rail (`order`: the parent
@@ -1284,19 +1299,12 @@ impl Rule for AssemblyOrder {
                 let Some(d) = devices.get(o.device) else {
                     continue;
                 };
-                let key = |is_child: bool| {
-                    (
-                        is_child,
-                        d.position.unwrap_or(u32::MAX),
-                        device_name(q, d.id),
-                        d.id,
-                    )
-                };
+                let key = || (device_name(q, d.id), d.id);
                 if let Some(parent) = d.parent {
-                    groups.entry(parent).or_default().push((key(true), i));
+                    groups.entry(parent).or_default().push((key(), i));
                 }
                 if q.idx().device_children(d.id).next().is_some() {
-                    groups.entry(d.id).or_default().push((key(false), i));
+                    groups.entry(d.id).or_default().push((key(), i));
                 }
             }
             let at = carrier_at(c);
@@ -1304,12 +1312,13 @@ impl Rule for AssemblyOrder {
                 if members.len() < 2 {
                     continue;
                 }
-                members.sort_by(|a, b| {
-                    (a.0.0, a.0.1)
-                        .cmp(&(b.0.0, b.0.1))
-                        .then_with(|| natural_cmp(&a.0.2, &b.0.2))
-                        .then_with(|| a.0.3.cmp(&b.0.3))
-                });
+                // WP-S4.02 D6: the one member order of `ew_derive::layout`, which `layout.place_assembly` places by.
+                let rank: BTreeMap<Id<Device>, usize> = member_order(q, root)
+                    .into_iter()
+                    .enumerate()
+                    .map(|(n, d)| (d, n))
+                    .collect();
+                members.sort_by_key(|(k, _)| rank.get(&k.1).copied().unwrap_or(usize::MAX));
                 let assembly = device_name(q, root);
                 let targets = [Target::new(Kind::Device, root), Target::new(Kind::Carrier, cid)];
                 // the first member (in the wanted order) placed after a later one along the rail
@@ -1319,7 +1328,7 @@ impl Rule for AssemblyOrder {
                 let wrong = along.windows(2).find(|p| p[0].1 > p[1].1);
                 let f = if let Some(p) = wrong {
                     let (late, early) = (&members[p[0].1].0, &members[p[1].1].0);
-                    let (early, late) = (early.2.clone(), late.2.clone());
+                    let (early, late) = (early.0.clone(), late.0.clone());
                     Finding::new(
                         &ASSEMBLY_ORDER,
                         targets,

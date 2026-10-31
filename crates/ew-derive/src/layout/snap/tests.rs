@@ -502,5 +502,61 @@ proptest! {
         let _ = resolve(&items, i128::from(len), m, i128::from(at), mode);
         let _ = brackets(&items);
         let _ = free_length(i128::from(len), &items, &brackets(&items));
+        let _ = next_fit(&items, i128::from(len), &m, i128::from(at));
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// WP-S4.02 part 2: next-fit (D6, `layout.auto_fill`)
+
+/// D6: next-fit takes the first place at or after the floor where the item fits with its gaps (the rail start's on an
+/// empty rail; occupied stretches skipped), never a gap before the floor, and `None` when nothing fits.
+#[test]
+fn next_fit_takes_the_first_fit_after_the_floor() {
+    let m = new_item(180);
+    assert_eq!(next_fit(&[], L1, &m, i128::MIN), Some(0));
+    // Golden A's R1: the first gap is before -102G1 (61 mm), then after S51 (290 mm).
+    assert_eq!(next_fit(&r1(), L1, &m, i128::MIN), Some(0));
+    assert_eq!(next_fit(&r1(), L1, &m, mm10(500)), Some(mm10(2900)));
+    // A floor inside a gap starts there.
+    assert_eq!(next_fit(&r1(), L1, &m, mm10(3000)), Some(mm10(3000)));
+    // A 300 mm item fits neither the 61 mm gap nor the 280 mm one.
+    assert_eq!(next_fit(&r1(), L1, &new_item(3000), i128::MIN), None);
+    // On R2, a non-strip after -X1032 keeps its run-end bracket: 208.6 mm.
+    assert_eq!(next_fit(&r2(), L1, &m, mm10(1000)), Some(mm10(2086)));
+    // Pads count: an item with a 5 mm pad before starts 5 mm after S51.
+    let padded = RailItem {
+        pad: [5 * MM, 0],
+        ..m
+    };
+    assert_eq!(next_fit(&r1(), L1, &padded, mm10(500)), Some(mm10(2950)));
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig { cases: 256, ..ProptestConfig::default() })]
+
+    /// Next-fit: a found place is at or after the floor, inside the rail with its rail-end gaps, holds the minimum gap
+    /// to its consecutive neighbours, and is the first such place (a tenth of a millimetre before it does not fit).
+    #[test]
+    fn next_fit_holds_the_gaps((len, items) in rail(), w in 1i128..=60, floor in 0i128..=800, pb in 0i128..=6, pa in 0i128..=6) {
+        let m = RailItem { pad: [pb * MM, pa * MM], ..new_item(w * 10) };
+        let fits = |s: i128| {
+            let me = m.at(s);
+            let mut all = items.clone();
+            all.push(me);
+            let all = sorted(all);
+            let k = all.iter().position(|i| i.placement.is_none()).unwrap();
+            me.s0 >= start_gap(&me)
+                && me.s1 + end_gap(&me) <= len
+                && (k == 0 || me.s0 - all[k - 1].s1 >= min_gap(&all[k - 1], &me))
+                && (k + 1 == all.len() || all[k + 1].s0 - me.s1 >= min_gap(&me, &all[k + 1]))
+        };
+        if let Some(s) = next_fit(&items, len, &m, floor * MM) {
+            prop_assert!(s >= floor * MM);
+            prop_assert!(fits(s));
+            if s > floor * MM && s > start_gap(&m) {
+                prop_assert!(!fits(s - MM / 10));
+            }
+        }
     }
 }

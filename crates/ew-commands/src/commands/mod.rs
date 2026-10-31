@@ -91,6 +91,12 @@
 //! | `layout.remove` | [`RemovePlacement`] | Interactive |
 //! | `layout.lock` | [`LockPlacement`] | Interactive |
 //! | `page.surface_view.set` | [`SetSurfaceView`] | Interactive |
+//! | `layout.place_assembly` | [`PlaceAssembly`] | Interactive; Bulk above 200 placements |
+//! | `layout.auto_fill` | [`AutoFill`] | Interactive; Bulk above 200 devices |
+//! | `layout.enclosure.create_from_part` | [`CreateEnclosureFromPart`] | Interactive |
+//! | `layout.space.edit` | [`EditLayoutSpace`] | Interactive |
+//! | `layout.enclosure.edit` | [`EditEnclosure`] | Interactive |
+//! | `layout.surface.edit` | [`EditSurface`] | Interactive |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380), and `revision.release`,
@@ -171,9 +177,10 @@ pub use items::{
 pub use join::JoinDevice;
 pub use languages::SetProjectLanguages;
 pub use layout::{
-    AddCarrier, CarrierKindParam, CarrierParamsParam, CarrierThen, CreateEnclosure, CreateLayoutSpace,
-    DeleteCarrier, DeleteEnclosure, DeleteLayoutSpace, EditCarrier, LAYOUT_BULK_ABOVE, LockPlacement,
-    MovePlacement, PlaceDevice, PlaceMode, PlaceOnParam, RemovePlacement,
+    AddCarrier, AutoFill, CarrierKindParam, CarrierParamsParam, CarrierThen, CreateEnclosure,
+    CreateEnclosureFromPart, CreateLayoutSpace, DeleteCarrier, DeleteEnclosure, DeleteLayoutSpace, EditCarrier,
+    EditEnclosure, EditLayoutSpace, EditSurface, FillOrder, LAYOUT_BULK_ABOVE, LockPlacement, MovePlacement,
+    PlaceAssembly, PlaceDevice, PlaceMode, PlaceOnParam, RemovePlacement,
 };
 pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use library_update::{
@@ -315,4 +322,11 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<LockPlacement>();
     // WP-S4.01 part 3 (D9)
     r.register::<SetSurfaceView>();
+    // WP-S4.02 part 2 (D6, D7, FT-840)
+    r.register::<PlaceAssembly>();
+    r.register::<AutoFill>();
+    r.register::<CreateEnclosureFromPart>();
+    r.register::<EditLayoutSpace>();
+    r.register::<EditEnclosure>();
+    r.register::<EditSurface>();
 }

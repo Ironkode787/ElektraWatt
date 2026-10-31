@@ -29,6 +29,8 @@
 //! | [`resolve`], [`SnapMode`] | Where a dropped item lands in free, push or swap mode and which neighbours move (WP-S4.02 D4, D5) |
 //! | [`rail_items`], [`rail_extent`] | A rail's items from `rail_occupancy`; what a device takes along a rail |
 //! | [`GroupAccessories`] | `group_accessories(carrier)`: the derived end brackets of a rail (WP-S4.02 D3, FR-LAY-060) |
+//! | [`member_order`] | The member order of an assembly, shared with EW-LAY-016 (WP-S4.02 D6) |
+//! | [`next_fit`] | Where a fill places an item: the first fit at or after a floor (WP-S4.02 D6) |
 //!
 //! Frames (doc 12 §2.1): a surface's `u` grows to the right and `v` upwards; a rail's pose `t = (s, 0, 0)` is the part's
 //! clip point at distance `s` from `path[0]` along the axis; a surface pose `t = (u, v, 0)` is the part origin, the
@@ -37,6 +39,8 @@
 
 // WP-S4.02 part 1: the rail items and the derived end brackets (D3)
 mod accessories;
+// WP-S4.02 part 2: the member order of an assembly (D6)
+mod assembly;
 mod carrier;
 mod fit;
 // WP-S4.01 part 4: the layout legend and the surface of a panel page (D11)
@@ -48,6 +52,7 @@ mod queries;
 mod snap;
 
 pub use accessories::{Bracket, GroupAccessories, bracket_part, rail_items};
+pub use assembly::member_order;
 pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
 pub use legend::{
@@ -62,8 +67,8 @@ pub use queries::{
     primary_part, rail_extent, space_of_location,
 };
 pub use snap::{
-    BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, end_gap, free_length, min_gap, resolve,
-    runs, start_gap,
+    BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, end_gap, free_length, min_gap, next_fit,
+    resolve, runs, start_gap,
 };
 
 #[cfg(test)]

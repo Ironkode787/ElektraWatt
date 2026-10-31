@@ -10,27 +10,32 @@
 //! placements. An occupied carrier goes only through `layout.carrier.delete` with `then` (doc 12 §3.6): every other
 //! delete that would take a placement along is refused by the forbid policy of `placement.carrier` (D4).
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::Q;
 use ew_derive::layout::{
-    Fit, PathError, PoseError, PoseOn, Profile, Quarter, RailAxis, RailItem, SnapError, SnapMode,
-    bracket_part, carrier_label, check_path, check_pose, clip_offset, fits_rail, mm, plate_frame,
-    rail_extent, rail_items, rehome_pose, resolve,
+    Fit, PathError, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent, RailItem, Resolution, SnapError,
+    SnapMode, Mountable, Unplaced, bracket_part, carrier_label, check_path, check_pose, clip_offset, fits_rail, member_order,
+    min_gap, mm, next_fit, plate_frame, rail_extent, rail_items, rehome_pose, resolve,
 };
+use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf};
 use ew_ids::Id;
-use ew_mltext::Ident;
+use ew_mltext::{Ident, natural_key};
 use ew_model::{AnyKey, Model};
+use ew_rds::Aspect;
 use ew_schema::{
-    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, DuctParams, Enclosure, Extra, Function, Kind,
-    LayoutSpace, LibCopy, MechData, MountKind, MountingSurface, Open, Part, PartRef, Placement, RailParams,
-    StructureNode, SurfaceKind,
+    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, DeviceAspects, DuctParams, Enclosure, EnclosureSection,
+    Extra, FrozenTag, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind, MountingSurface, Open, Part,
+    PartRef, PartUse, Placement, RailParams, Slot, StructureAssignment, StructureNode, SurfaceKind, TagScheme,
+    TagSign, TagSpec,
 };
-use ew_units::{Nm, Pose3, Pt2};
+use ew_units::{Dec3, Nm, Pose3, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Value;
 
 use crate::command::{Command, Outcome};
+use crate::commands::assign::embed_closure;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::proxy::{IdentS, NmS, Pose3S, SurfacePt2S, UuidS};
@@ -461,19 +466,7 @@ impl Command for CreateLayoutSpace {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        let Some(node) = tx.get::<StructureNode>(self.location) else {
-            return Err(CmdError::invalid_params(
-                Self::NAME,
-                "/location",
-                "the structure node is not in the project",
-            ));
-        };
-        if node.aspect != Open::Known(ew_rds::Aspect::Location) {
-            return tx.reject(format!(
-                "node {} is not a location; a layout space lays out a location",
-                node.code.as_str()
-            ));
-        }
+        let node = checked_location(tx, Self::NAME, self.location)?;
         if let Some(first) = tx
             .iter::<LayoutSpace>()
             .into_iter()
@@ -491,16 +484,49 @@ impl Command for CreateLayoutSpace {
                 ),
             });
         }
-        let id: Id<LayoutSpace> = tx.mint();
-        tx.insert(LayoutSpace {
-            id,
-            v: 1,
-            location: self.location,
-            name: self.name.clone(),
-            extra: Extra::new(),
-        })?;
+        let id = insert_space(tx, self.location, self.name.clone())?;
         Ok(Outcome::primary((Kind::LayoutSpace, id.cast())))
     }
+}
+
+/// The location node of a new layout space (`layout.space.create`'s refusals, shared with
+/// `layout.enclosure.create_from_part`): missing at `/location`, another aspect refused.
+fn checked_location(
+    tx: &TxBuilder<'_>,
+    name: &'static str,
+    location: Id<StructureNode>,
+) -> Result<std::sync::Arc<StructureNode>, CmdError> {
+    let Some(node) = tx.get::<StructureNode>(location) else {
+        return Err(CmdError::invalid_params(
+            name,
+            "/location",
+            "the structure node is not in the project",
+        ));
+    };
+    if node.aspect != Open::Known(ew_rds::Aspect::Location) {
+        return tx.reject(format!(
+            "node {} is not a location; a layout space lays out a location",
+            node.code.as_str()
+        ));
+    }
+    Ok(node)
+}
+
+/// Inserts a layout space of `location`.
+fn insert_space(
+    tx: &mut TxBuilder<'_>,
+    location: Id<StructureNode>,
+    name: Option<Ident>,
+) -> Result<Id<LayoutSpace>, CmdError> {
+    let id: Id<LayoutSpace> = tx.mint();
+    tx.insert(LayoutSpace {
+        id,
+        v: 1,
+        location,
+        name,
+        extra: Extra::new(),
+    })?;
+    Ok(id)
 }
 
 /// `layout.space.delete` (`DeleteLayoutSpace`, D6): deletes a layout space with its enclosure, surfaces and carriers
@@ -614,46 +640,74 @@ impl Command for CreateEnclosure {
                 tag(tx, self.device)
             ));
         };
-        let plate: Option<Id<Part>> = section
-            .plate
-            .as_ref()
-            .map(|r| ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid()));
-        let plate_size = plate.and_then(|p| part_copy(tx, p)).map_or((None, None), |c| {
-            match &c.item.sections.mounting_plate {
-                Some(s) if s.width.is_some() && s.height.is_some() => (s.width, s.height),
-                _ => c.item.mech.as_ref().map_or((None, None), |m| (m.width, m.height)),
-            }
-        });
-        let surface_device = plate.and_then(|p| {
-            tx.iter::<Device>()
-                .into_iter()
-                .find(|d| d.parent == Some(self.device) && d.parts.iter().any(|u| u.part.copy == p))
-                .map(|d| d.id)
-        });
-        let (frame, usable) = plate_frame((section.width, section.height), plate_size);
-        let enclosure: Id<Enclosure> = tx.mint();
-        tx.insert(Enclosure {
-            id: enclosure,
-            v: 1,
-            space: self.space,
-            device: self.device,
-            pose: self.pose.unwrap_or(Pose3::IDENTITY),
-            extra: Extra::new(),
-        })?;
-        let surface: Id<MountingSurface> = tx.mint();
-        tx.insert(MountingSurface {
-            id: surface,
-            v: 1,
-            enclosure,
-            kind: SurfaceKind::Plate,
-            device: surface_device,
-            frame,
-            usable,
-            pe_bond: self.pe_bond.unwrap_or(false),
-            extra: Extra::new(),
-        })?;
+        let enclosure = insert_enclosure(
+            tx,
+            self.space,
+            self.device,
+            &section,
+            self.pose.unwrap_or(Pose3::IDENTITY),
+            self.pe_bond.unwrap_or(false),
+        )?;
         Ok(Outcome::primary((Kind::Enclosure, enclosure.cast())))
     }
+}
+
+/// The copy ID of the plate part an enclosure section names (`v5(NS_LIBCOPY, library ‖ item)`).
+fn plate_copy_id(section: &EnclosureSection) -> Option<Id<Part>> {
+    section
+        .plate
+        .as_ref()
+        .map(|r| ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid()))
+}
+
+/// The enclosure of `device` in `space` and its plate surface, as `layout.enclosure.create` makes them (shared with
+/// `layout.enclosure.create_from_part`, WP-S4.02 D7): the plate part from the section, its size from its mounting-plate
+/// section, else its `mech`; the surface's device the first child of `device` (in ID order) that uses the plate part;
+/// the frame centring the plate in the enclosure ([`plate_frame`]).
+fn insert_enclosure(
+    tx: &mut TxBuilder<'_>,
+    space: Id<LayoutSpace>,
+    device: Id<Device>,
+    section: &EnclosureSection,
+    pose: Pose3,
+    pe_bond: bool,
+) -> Result<Id<Enclosure>, CmdError> {
+    let plate = plate_copy_id(section);
+    let plate_size = plate.and_then(|p| part_copy(tx, p)).map_or((None, None), |c| {
+        match &c.item.sections.mounting_plate {
+            Some(s) if s.width.is_some() && s.height.is_some() => (s.width, s.height),
+            _ => c.item.mech.as_ref().map_or((None, None), |m| (m.width, m.height)),
+        }
+    });
+    let surface_device = plate.and_then(|p| {
+        tx.iter::<Device>()
+            .into_iter()
+            .find(|d| d.parent == Some(device) && d.parts.iter().any(|u| u.part.copy == p))
+            .map(|d| d.id)
+    });
+    let (frame, usable) = plate_frame((section.width, section.height), plate_size);
+    let enclosure: Id<Enclosure> = tx.mint();
+    tx.insert(Enclosure {
+        id: enclosure,
+        v: 1,
+        space,
+        device,
+        pose,
+        extra: Extra::new(),
+    })?;
+    let surface: Id<MountingSurface> = tx.mint();
+    tx.insert(MountingSurface {
+        id: surface,
+        v: 1,
+        enclosure,
+        kind: SurfaceKind::Plate,
+        device: surface_device,
+        frame,
+        usable,
+        pe_bond,
+        extra: Extra::new(),
+    })?;
+    Ok(enclosure)
 }
 
 /// `layout.enclosure.delete` (`DeleteEnclosure`, D6): deletes an enclosure with its surfaces and carriers (the cascades
@@ -703,8 +757,9 @@ impl Command for DeleteEnclosure {
 /// vertical line, a duct an orthogonal polyline. A rail's profile comes from its part's rail section when it has one
 /// (a different `profile` is refused). Rejected: a surface or part copy that does not exist (`/surface`, `/part`);
 /// parameters of the other kind (`/params`); a profile that is not a rail profile, a duct length ≤ 0 (`/params/…`); a
-/// path of the wrong number of points, a segment without length or at another angle (`/path`). Interactive. Outcome:
-/// the new carrier.
+/// path of the wrong number of points, a segment without length or at another angle (`/path`). `copies` (WP-S4.02 D7,
+/// FT-656's pattern) embeds library documents first, in the same transaction, as `device.place` does (`/copies/i`), so
+/// that a library rail or duct part can be used directly. Interactive. Outcome: the new carrier.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AddCarrier {
@@ -725,6 +780,10 @@ pub struct AddCarrier {
     /// Whether the carrier is bonded to protective earth; default false.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pe_bond: Option<bool>,
+    /// The library documents to embed first (`lib/` JSON form; WP-S4.02 D7): the part and its closure; empty when the
+    /// project holds them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<Value>,
 }
 
 fn carrier_kind(kind: CarrierKindParam) -> CarrierKind {
@@ -743,6 +802,8 @@ impl Command for AddCarrier {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let name = Self::NAME;
+        // WP-S4.02 D7: the copies first, so that the part they bring resolves below.
+        embed_closure(name, tx, &self.copies)?;
         if !tx.exists::<MountingSurface>(self.surface) {
             return Err(CmdError::invalid_params(
                 name,
@@ -998,8 +1059,10 @@ struct Resolved {
 /// Records, through the transaction, the reads the rail's items come from (orchestrator ruling 1 of lane B42): the
 /// carrier, every placement on it, their devices with their part copies, and the terminals of the strips with theirs.
 /// The items themselves are computed on the base snapshot ([`TxBuilder::base_model`], whose reads are not recorded),
-/// so these reads make a concurrent edit of a neighbour on the rail conflict at merge (ADR-0008).
-fn note_rail_reads(tx: &TxBuilder<'_>, carrier: Id<Carrier>, device: &Device) {
+/// so these reads make a concurrent edit of a neighbour on the rail conflict at merge (ADR-0008). Called once per
+/// command with every device the command places or moves (lane E42, override 2): each one's part copies and its
+/// placements (`placements_of_device`) are read too, so a concurrent placement of the same device conflicts as well.
+fn note_rail_reads(tx: &TxBuilder<'_>, carrier: Id<Carrier>, devices: &[&Device]) {
     let note_parts = |d: &Device| {
         for u in &d.parts {
             let _ = tx.get::<LibCopy<Part>>(u.part.copy);
@@ -1013,7 +1076,12 @@ fn note_rail_reads(tx: &TxBuilder<'_>, carrier: Id<Carrier>, device: &Device) {
         }
     };
     let _ = tx.get::<Carrier>(carrier);
-    note_parts(device);
+    for device in devices {
+        note_parts(device);
+        for p in tx.placements_of_device(device.id) {
+            let _ = tx.get::<Placement>(p);
+        }
+    }
     for p in tx.placements_on_carrier(carrier) {
         let Some(pl) = tx.get::<Placement>(p) else {
             continue;
@@ -1039,21 +1107,35 @@ fn rail_pose(tx: &TxBuilder<'_>, axis: &RailAxis, s: i128, like: &Pose3) -> Resu
     })
 }
 
+/// How a mode's refusal names what it resolves (D5's texts): the rail, whether it swaps, the item, and the devices of
+/// placements this command is about to insert (they are not in the transaction yet).
+struct Wording<'n> {
+    carrier: Id<Carrier>,
+    /// The mode resolved (swap words its refusals as swapping).
+    mode: PlaceMode,
+    /// The dropped item: a device's tag, or "the assembly -201U1" for an assembly's block.
+    item: String,
+    /// The tag of each placement minted by the command and not inserted yet.
+    names: &'n BTreeMap<Id<Placement>, String>,
+}
+
 /// D5's refusal of a mode, in words: the rail by its label in a sentence ("rail 1", ruling 4), devices by their tags.
-fn snap_refusal(tx: &TxBuilder<'_>, q: &Q, d: &Dropped<'_>, e: SnapError) -> String {
-    let item = tag(tx, d.device.id);
-    let verb = if d.mode == PlaceMode::Swap {
+fn snap_text(tx: &TxBuilder<'_>, q: &Q, w: &Wording<'_>, e: SnapError) -> String {
+    let item = &w.item;
+    let verb = if w.mode == PlaceMode::Swap {
         "Swapping"
     } else {
         "Pushing"
     };
-    let placed = |p: Option<Id<Placement>>| {
-        p.and_then(|p| tx.get::<Placement>(p))
-            .map_or_else(|| "a placement".to_owned(), |pl| tag(tx, pl.device))
+    let placed = |p: Option<Id<Placement>>| match p.and_then(|p| w.names.get(&p)) {
+        Some(name) => name.clone(),
+        None => p
+            .and_then(|p| tx.get::<Placement>(p))
+            .map_or_else(|| "a placement".to_owned(), |pl| tag(tx, pl.device)),
     };
     match e {
         SnapError::NoGap { width } => {
-            let rail = carrier_label(q, d.carrier).map_or_else(|| "the rail".to_owned(), |l| l.in_sentence());
+            let rail = carrier_label(q, w.carrier).map_or_else(|| "the rail".to_owned(), |l| l.in_sentence());
             format!("No gap on {rail} is wide enough for {item} ({} mm).", mm(width))
         }
         SnapError::MovedLocked => format!("Unlock {item} to push or swap it."),
@@ -1067,7 +1149,7 @@ fn snap_refusal(tx: &TxBuilder<'_>, q: &Q, d: &Dropped<'_>, e: SnapError) -> Str
             mm(by)
         ),
         SnapError::PastEnd { neighbour: None, by } => {
-            format!("{item} would pass the rail end by {} mm.", mm(by))
+            format!("{} would pass the rail end by {} mm.", sentence_start(item), mm(by))
         }
         SnapError::SwapAcrossRails => {
             "Swap works within one rail; use push or free to place it there.".to_owned()
@@ -1076,33 +1158,81 @@ fn snap_refusal(tx: &TxBuilder<'_>, q: &Q, d: &Dropped<'_>, e: SnapError) -> Str
     }
 }
 
-/// Resolves a placement dropped on a rail with a mode (D4, D5): the rail's items from `rail_occupancy` on the base
-/// snapshot (the same [`rail_items`] the tool's ghost reads), the placement's own extent from [`rail_extent`], then
-/// [`resolve`]; the pose's `t.x` is the intended clip point, turned into the footprint's left edge and back.
-fn resolve_on_rail(tx: &TxBuilder<'_>, d: &Dropped<'_>) -> Result<Resolved, CmdError> {
-    note_rail_reads(tx, d.carrier, d.device);
-    let q = Q::new(tx.base_model());
-    let items = rail_items(&q, d.carrier);
-    let flipped = Quarter::of(d.pose.q) == Some(Quarter::HALF);
-    let ext = rail_extent(&q, d.device, d.part, flipped);
-    let moved = RailItem {
+/// A text with its first letter in upper case (a sentence that starts with "the assembly …").
+fn sentence_start(text: &str) -> String {
+    let mut chars = text.chars();
+    match chars.next() {
+        Some(c) => c.to_uppercase().chain(chars).collect(),
+        None => String::new(),
+    }
+}
+
+/// The rail item of a device about to be placed or moved (D4): its extent from [`rail_extent`] (the shape
+/// `placement_geometry` places), its bracket width when it is a strip, its lock and its placement; with the extent, whose
+/// `clip` turns a clip point into the footprint's left edge (`s0 = s_clip − clip`).
+fn drop_item(
+    q: &Q,
+    device: &Device,
+    part: Option<&PartRef>,
+    flipped: bool,
+    locked: bool,
+    placement: Option<Id<Placement>>,
+) -> (RailItem, RailExtent) {
+    let ext = rail_extent(q, device, part, flipped);
+    let item = RailItem {
         s0: 0,
         s1: ext.width,
         strip: ext.strip,
         w: if ext.strip {
-            bracket_part(&q, d.device).map(|(_, w)| w)
+            bracket_part(q, device).map(|(_, w)| w)
         } else {
             None
         },
         pad: ext.pad,
-        locked: d.locked,
-        placement: d.placement,
+        locked,
+        placement,
     };
+    (item, ext)
+}
+
+/// The one resolver over a given item list (D4; lane E42's split of [`resolve_on_rail`]): [`resolve`] with its refusal
+/// worded. `layout.place` and `layout.move` pass the rail's items from the base snapshot; `layout.place_assembly`
+/// passes its in-memory list, which holds the placements it has resolved so far in the same transaction.
+fn resolve_items(
+    tx: &TxBuilder<'_>,
+    q: &Q,
+    items: &[RailItem],
+    length: i128,
+    moved: RailItem,
+    s_left: i128,
+    wording: &Wording<'_>,
+) -> Result<Resolution, CmdError> {
+    resolve(items, length, moved, s_left, wording.mode.snap()).or_else(|e| tx.reject(snap_text(tx, q, wording, e)))
+}
+
+/// Resolves a placement dropped on a rail with a mode (D4, D5): the rail's items from `rail_occupancy` on the base
+/// snapshot (the same [`rail_items`] the tool's ghost reads), the placement's own extent from [`rail_extent`], then
+/// [`resolve_items`]; the pose's `t.x` is the intended clip point, turned into the footprint's left edge and back.
+///
+/// **One placement per transaction** (cycle-42 review part 1, finding 5): the items come from
+/// [`TxBuilder::base_model`], which does not see the writes pending in the same transaction. A command that resolves
+/// several placements in one transaction (`layout.place_assembly`) keeps its own in-memory item list and calls
+/// [`resolve_items`] with it instead.
+fn resolve_on_rail(tx: &TxBuilder<'_>, d: &Dropped<'_>) -> Result<Resolved, CmdError> {
+    note_rail_reads(tx, d.carrier, &[d.device]);
+    let q = Q::new(tx.base_model());
+    let items = rail_items(&q, d.carrier);
+    let flipped = Quarter::of(d.pose.q) == Some(Quarter::HALF);
+    let (moved, ext) = drop_item(&q, d.device, d.part, flipped, d.locked, d.placement);
     let s_left = i128::from(d.pose.t[0].0) - ext.clip;
-    let r = match resolve(&items, d.axis.length, moved, s_left, d.mode.snap()) {
-        Ok(r) => r,
-        Err(e) => return tx.reject(snap_refusal(tx, &q, d, e)),
+    let names = BTreeMap::new();
+    let wording = Wording {
+        carrier: d.carrier,
+        mode: d.mode,
+        item: tag(tx, d.device.id),
+        names: &names,
     };
+    let r = resolve_items(tx, &q, &items, d.axis.length, moved, s_left, &wording)?;
     let pose = rail_pose(tx, &d.axis, r.s_left + ext.clip, &d.pose)?;
     let mut neighbours = Vec::new();
     for (p, s0) in r.moved {
@@ -1306,9 +1436,13 @@ impl Command for PlaceDevice {
 /// off the rail and resolved as `layout.place` resolves a device (WP-S4.02 D5); `swap` exchanges it with the placement
 /// under its centre on the same rail, the segment between them re-laid with every gap kept where it still meets the
 /// new minimum gap. Push and swap of a locked placement are refused ("Unlock F55 to push or swap it."), and never move
-/// another locked placement. Rejected: a placement, carrier or surface that does not exist (`/placement`, `/carrier`);
-/// an unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; D5's refusals of the mode.
-/// Interactive. Outcome: the placement.
+/// another locked placement. With `part` (WP-S4.02 D7) the placement realises that part use of its device instead
+/// (EW-LAY-003's quick fix "Realise the primary part"): checked as `layout.place` checks a part, its fit to a rail's
+/// profile checked when the part changes, and with `mode` the resolver reads the new part's extent; without `part`
+/// the realised part is unchanged. Rejected: a placement, carrier or surface that does not exist (`/placement`,
+/// `/carrier`); a part the device does not use (`/part`); a part that would give the device a second placement of one
+/// (device, part, function); an unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; D5's
+/// refusals of the mode. Interactive. Outcome: the placement.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MovePlacement {
@@ -1324,6 +1458,10 @@ pub struct MovePlacement {
     /// How the position is resolved on a rail: `free`, `push` or `swap` (WP-S4.02 D5); absent: the pose as given.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mode: Option<PlaceMode>,
+    /// The part copy of another part use of the device to realise (WP-S4.02 D7); absent: the realised part stays.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub part: Option<Id<Part>>,
 }
 
 impl Command for MovePlacement {
@@ -1346,10 +1484,40 @@ impl Command for MovePlacement {
             .carrier
             .map_or_else(|| current.carrier.clone(), PlaceOnParam::to_ref);
         let target = target(tx, name, "/carrier", carrier.clone())?;
-        if carrier != current.carrier {
+        // WP-S4.02 D7: another part use of the device, checked as `layout.place` checks it.
+        let new_part = match self.part {
+            None => None,
+            Some(copy) => {
+                let device = tx.require::<Device>(current.device)?;
+                let Some(u) = device.parts.iter().find(|u| u.part.copy == copy) else {
+                    return Err(CmdError::invalid_params(
+                        name,
+                        "/part",
+                        format!("{} does not use this part", tag(tx, current.device)),
+                    ));
+                };
+                let key = placement_key(current.device, Some(&u.part), current.function);
+                let taken = tx
+                    .placements_of_device(current.device)
+                    .into_iter()
+                    .filter(|p| *p != self.placement)
+                    .filter_map(|p| tx.get::<Placement>(p))
+                    .any(|p| placement_key(p.device, p.part.as_ref(), p.function) == key);
+                if taken {
+                    return tx.reject(format!(
+                        "{} is already placed with this part and function; move its placement instead",
+                        tag(tx, current.device)
+                    ));
+                }
+                Some(u.part.clone())
+            }
+        };
+        let part_changes = new_part.is_some() && new_part != current.part;
+        let part = new_part.clone().or_else(|| current.part.clone());
+        if carrier != current.carrier || part_changes {
             let device = tx.require::<Device>(current.device)?;
-            let part = realised_part(tx, &device, current.part.as_ref());
-            check_fit(tx, current.device, part.as_ref(), &target)?;
+            let realised = realised_part(tx, &device, part.as_ref());
+            check_fit(tx, current.device, realised.as_ref(), &target)?;
         }
         check_pose_on(tx, &target, &self.pose)?;
         let (pose, neighbours) = match mode_on_rail(tx, &target, &carrier, self.mode)? {
@@ -1362,7 +1530,7 @@ impl Command for MovePlacement {
                         carrier: rail,
                         axis,
                         device: &device,
-                        part: current.part.as_ref(),
+                        part: part.as_ref(),
                         placement: Some(self.placement),
                         locked: current.locked,
                         pose: self.pose,
@@ -1377,6 +1545,9 @@ impl Command for MovePlacement {
         tx.update::<Placement>(self.placement, |p| {
             p.carrier = carrier;
             p.pose = pose;
+            if let Some(part) = new_part {
+                p.part = Some(part);
+            }
         })?;
         Ok(Outcome::primary((Kind::Placement, self.placement.cast())))
     }
@@ -1490,4 +1661,1017 @@ pub(crate) fn follow_part_change(
         tx.update::<Placement>(p, |pl| pl.part = Some(PartRef::new(new)))?;
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Assemblies and bulk placement (WP-S4.02 D6)
+
+/// A bare non-strip item without pads: what a block's outer pads are measured against.
+const BARE: RailItem = RailItem {
+    s0: 0,
+    s1: 0,
+    strip: false,
+    w: None,
+    pad: [0, 0],
+    locked: false,
+    placement: None,
+};
+
+/// One device a bulk command is about to place: its record, the part it realises, its minted placement and its rail
+/// item with the extent.
+struct Member {
+    device: std::sync::Arc<Device>,
+    part: Option<PartRef>,
+    id: Id<Placement>,
+    item: RailItem,
+    ext: RailExtent,
+}
+
+/// Mints a member's placement and builds its item (turned 0°, unlocked; the part as `layout.place` records it).
+fn member(tx: &mut TxBuilder<'_>, q: &Q, device: std::sync::Arc<Device>) -> Member {
+    let part = primary_part(tx, &device);
+    let id: Id<Placement> = tx.mint();
+    let (item, ext) = drop_item(q, &device, part.as_ref(), false, false, Some(id));
+    Member {
+        device,
+        part,
+        id,
+        item,
+        ext,
+    }
+}
+
+/// The block of `members` laid at their minimum gaps (D6): each member's offset from the block's left edge, and the
+/// item the block resolves as: the block's width, its pads the first member's before and the last member's after (a
+/// strip's bracket width counts as its pad), not a strip, no placement. One member is its own item.
+fn block_of(members: &[Member]) -> (Vec<i128>, RailItem) {
+    if let [one] = members {
+        return (vec![0], one.item);
+    }
+    let mut offsets = Vec::with_capacity(members.len());
+    let mut end = 0i128;
+    let mut prev: Option<&RailItem> = None;
+    for m in members {
+        let off = prev.map_or(0, |p| end.saturating_add(min_gap(p, &m.item)));
+        offsets.push(off);
+        end = off.saturating_add(m.item.width());
+        prev = Some(&m.item);
+    }
+    let pad = [
+        members.first().map_or(0, |m| min_gap(&BARE, &m.item)),
+        members.last().map_or(0, |m| min_gap(&m.item, &BARE)),
+    ];
+    (
+        offsets,
+        RailItem {
+            s1: end,
+            pad,
+            ..BARE
+        },
+    )
+}
+
+/// `item` with its footprint starting at `s0`, its width kept.
+fn item_at(item: &RailItem, s0: i128) -> RailItem {
+    RailItem {
+        s0,
+        s1: s0.saturating_add(item.width()),
+        ..*item
+    }
+}
+
+/// Applies a resolution's moved neighbours to an in-memory item list.
+fn apply_moved(mem: &mut [RailItem], moved: &[(Id<Placement>, i128)]) {
+    for (p, s0) in moved {
+        if let Some(i) = mem.iter_mut().find(|i| i.placement == Some(*p)) {
+            *i = item_at(i, *s0);
+        }
+    }
+}
+
+/// The new pose of each placement of `base` (the rail's items before the command) whose footprint the in-memory list
+/// `mem` moved: its clip point shifted by the same distance (as [`resolve_on_rail`] re-poses a neighbour).
+fn moved_poses(
+    tx: &TxBuilder<'_>,
+    axis: &RailAxis,
+    base: &[RailItem],
+    mem: &[RailItem],
+) -> Result<Vec<(Id<Placement>, Pose3)>, CmdError> {
+    let mut out = Vec::new();
+    for old in base {
+        let Some(p) = old.placement else {
+            continue;
+        };
+        let Some(new) = mem.iter().find(|i| i.placement == Some(p)) else {
+            continue;
+        };
+        if new.s0 == old.s0 {
+            continue;
+        }
+        let Some(row) = tx.get::<Placement>(p) else {
+            continue;
+        };
+        let s = i128::from(row.pose.t[0].0).saturating_add(new.s0.saturating_sub(old.s0));
+        out.push((p, rail_pose(tx, axis, s, &row.pose)?));
+    }
+    Ok(out)
+}
+
+/// The rail by its label in a sentence ("rail 3"); "the rail" without one.
+fn rail_in_sentence(q: &Q, carrier: Id<Carrier>) -> String {
+    carrier_label(q, carrier).map_or_else(|| "the rail".to_owned(), |l| l.in_sentence())
+}
+
+/// The full designation of a device as the derived tag prints it (empty without one), for sorting.
+fn full_tag(q: &Q, device: Id<Device>) -> String {
+    q.try_get::<DeviceTag>(device)
+        .ok()
+        .and_then(|t| t.as_ref().as_ref().map(|t| t.full.clone()))
+        .unwrap_or_default()
+}
+
+/// Whether a device has children other than itself.
+fn has_children(q: &Q, device: Id<Device>) -> bool {
+    q.idx().device_children(device).any(|c| c != device)
+}
+
+/// The root of the assembly a device belongs to (D6, ruling 5 (c)): the device when it has children, else its
+/// parent; `None` for a device that is neither.
+fn assembly_root(q: &Q, device: &Device) -> Option<Id<Device>> {
+    if has_children(q, device.id) {
+        Some(device.id)
+    } else {
+        device.parent
+    }
+}
+
+/// Whether the layout expects a device (`mountable(dev)`, D8); a structure cycle counts as not.
+fn is_mountable(q: &Q, device: Id<Device>) -> bool {
+    q.try_get::<Mountable>(device).is_ok_and(|m| m.is_mountable())
+}
+
+/// The members of `root`'s assembly that `layout.place_assembly` places, on a snapshot: mountable and without a
+/// placement anywhere, in member order.
+fn unplaced_members(q: &Q, root: Id<Device>) -> Vec<Id<Device>> {
+    let devices = q.devices();
+    member_order(q, root)
+        .into_iter()
+        .filter(|d| devices.get(*d).is_some())
+        .filter(|d| is_mountable(q, *d) && q.idx().placements_of_device(*d).next().is_none())
+        .collect()
+}
+
+/// `layout.place_assembly` (`PlaceAssembly`, WP-S4.02 D6, FR-LAY-061): places the unplaced members of an assembly on a
+/// rail in their member order ([`member_order`], the order EW-LAY-016 checks), in one step.
+///
+/// The assembly of `device` is the device itself when it has children, else its parent's. The members placed are those
+/// of [`member_order`] that are mountable (`mountable(dev)`, D8) and have no placement anywhere; each records its
+/// primary part, turned 0°, and must fit the rail's profile (an unfit member refuses the whole command with
+/// `layout.place`'s text). When no member is on the rail yet, the members go as one block at their minimum gaps
+/// whose left edge is `s`, resolved in `mode` (`free` by default, or `push`) as one item. When some members are on the
+/// rail, `s` and `mode` are not used: each new member is pushed in after its predecessor (the nearest earlier member on
+/// the rail, a member placed by this command included), or before its first placed successor when it has no
+/// predecessor; every pushed neighbour is written in the same step.
+///
+/// Rejected: a device or carrier that does not exist (`/device`, `/carrier`); a duct or a surface ("An assembly is
+/// placed on a rail."); `mode: swap`; a device without an assembly; nothing to place; `s` missing when no member is on
+/// the rail (`/s`); an unfit member; D5's refusals of the mode. Interactive; `Bulk` when it places more than 200.
+/// Outcome: the first new placement.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PlaceAssembly {
+    /// A device of the assembly: its root or a member.
+    #[schemars(with = "UuidS")]
+    pub device: Id<Device>,
+    /// The rail.
+    pub carrier: PlaceOnParam,
+    /// The block's left edge along the rail, when no member is on it yet.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub s: Option<Nm>,
+    /// How the block is resolved: `free` (the default) or `push`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<PlaceMode>,
+}
+
+impl Command for PlaceAssembly {
+    const NAME: &'static str = "layout.place_assembly";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn cost(&self, model: &Model) -> Cost {
+        let q = Q::new(model);
+        let devices = q.devices();
+        let count = devices
+            .get(self.device)
+            .and_then(|d| assembly_root(&q, d))
+            .map_or(0, |root| unplaced_members(&q, root).len());
+        bulk_above(count)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let name = Self::NAME;
+        let Some(device) = tx.get::<Device>(self.device) else {
+            return Err(CmdError::invalid_params(
+                name,
+                "/device",
+                "the device is not in the project",
+            ));
+        };
+        let target = target(tx, name, "/carrier", self.carrier.to_ref())?;
+        let (PoseOn::Rail(axis), PlaceOnParam::Carrier(rail)) = (target.on, self.carrier) else {
+            return tx.reject("An assembly is placed on a rail.");
+        };
+        if self.mode == Some(PlaceMode::Swap) {
+            return tx.reject("Swap works with one placement; place an assembly in free or push mode.");
+        }
+        let base_model = tx.base_model().clone();
+        let q = Q::new(&base_model);
+        let Some(root) = assembly_root(&q, &device) else {
+            return tx.reject(format!(
+                "{} is not part of an assembly; place it on its own.",
+                tag(tx, self.device)
+            ));
+        };
+        let order = member_order(&q, root);
+        let devices: Vec<std::sync::Arc<Device>> = order.iter().filter_map(|d| tx.get::<Device>(*d)).collect();
+        // Override 2: one read set for every device the command reads, their placements included.
+        note_rail_reads(tx, rail, &devices.iter().map(|d| d.as_ref()).collect::<Vec<_>>());
+        let mut on_rail: BTreeMap<Id<Device>, Vec<Id<Placement>>> = BTreeMap::new();
+        let mut unplaced = Vec::new();
+        for d in &devices {
+            let placements = tx.placements_of_device(d.id);
+            if placements.is_empty() {
+                if is_mountable(&q, d.id) {
+                    unplaced.push(std::sync::Arc::clone(d));
+                }
+                continue;
+            }
+            let here: Vec<Id<Placement>> = placements
+                .into_iter()
+                .filter(|p| tx.get::<Placement>(*p).is_some_and(|p| p.carrier == CarrierRef::Carrier(rail)))
+                .collect();
+            if !here.is_empty() {
+                on_rail.insert(d.id, here);
+            }
+        }
+        if unplaced.is_empty() {
+            return tx.reject(format!(
+                "Every member of {} that mounts is already placed.",
+                tag(tx, root)
+            ));
+        }
+        let block_s = match (on_rail.is_empty(), self.s) {
+            (true, None) => {
+                return Err(CmdError::invalid_params(
+                    name,
+                    "/s",
+                    format!(
+                        "no member of {} is on {} yet; give the position s",
+                        tag(tx, root),
+                        rail_in_sentence(&q, rail)
+                    ),
+                ));
+            }
+            (true, Some(s)) => Some(i128::from(s.0)),
+            (false, _) => None,
+        };
+        for d in &unplaced {
+            let part = primary_part(tx, d);
+            check_fit(tx, d.id, part.as_ref(), &target)?;
+        }
+        let members: Vec<Member> = unplaced.into_iter().map(|d| member(tx, &q, d)).collect();
+        let names: BTreeMap<Id<Placement>, String> =
+            members.iter().map(|m| (m.id, tag(tx, m.device.id))).collect();
+        let base = rail_items(&q, rail);
+        let mut mem = base.clone();
+        match block_s {
+            Some(s_left) => {
+                let (offsets, block) = block_of(&members);
+                let item = match members.as_slice() {
+                    [one] => tag(tx, one.device.id),
+                    _ => format!("the assembly {}", tag(tx, root)),
+                };
+                let wording = Wording {
+                    carrier: rail,
+                    mode: self.mode.unwrap_or(PlaceMode::Free),
+                    item,
+                    names: &names,
+                };
+                let r = resolve_items(tx, &q, &mem, axis.length, block, s_left, &wording)?;
+                apply_moved(&mut mem, &r.moved);
+                for (m, off) in members.iter().zip(offsets) {
+                    mem.push(item_at(&m.item, r.s_left.saturating_add(off)));
+                }
+            }
+            None => insert_members(tx, &q, rail, &axis, &order, on_rail, &members, &names, &mut mem)?,
+        }
+        let neighbours = moved_poses(tx, &axis, &base, &mem)?;
+        let mut poses = Vec::with_capacity(members.len());
+        for m in &members {
+            let s0 = mem.iter().find(|i| i.placement == Some(m.id)).map_or(0, |i| i.s0);
+            let pose = rail_pose(tx, &axis, s0.saturating_add(m.ext.clip), &Pose3::IDENTITY)?;
+            check_pose_on(tx, &target, &pose)?;
+            poses.push(pose);
+        }
+        move_neighbours(tx, neighbours)?;
+        let primary = members[0].id;
+        for (m, pose) in members.into_iter().zip(poses) {
+            tx.insert(Placement {
+                id: m.id,
+                v: 1,
+                device: m.device.id,
+                function: None,
+                part: m.part,
+                carrier: CarrierRef::Carrier(rail),
+                pose,
+                locked: false,
+                extra: Extra::new(),
+            })?;
+        }
+        Ok(Outcome::primary((Kind::Placement, primary.cast())))
+    }
+}
+
+/// `layout.place_assembly` when some members are on the rail (D6, ruling 5 (d), override 3): each new member, in member
+/// order, is pushed in after its predecessor (its doubled centre the smallest value above the predecessor's, so that
+/// [`resolve`] starts it at the predecessor's end plus the minimum gap), else before its first placed successor; the
+/// in-memory list `mem` carries every member placed so far, so a member this command placed and a later insertion
+/// pushes is re-posed in memory and inserted once, at its final place.
+#[allow(clippy::too_many_arguments)]
+fn insert_members(
+    tx: &TxBuilder<'_>,
+    q: &Q,
+    rail: Id<Carrier>,
+    axis: &RailAxis,
+    order: &[Id<Device>],
+    mut on: BTreeMap<Id<Device>, Vec<Id<Placement>>>,
+    members: &[Member],
+    names: &BTreeMap<Id<Placement>, String>,
+    mem: &mut Vec<RailItem>,
+) -> Result<(), CmdError> {
+    for m in members {
+        let at = order.iter().position(|d| *d == m.device.id).unwrap_or(0);
+        let items_of = |mem: &[RailItem], d: &Id<Device>| -> Vec<RailItem> {
+            on.get(d).map_or_else(Vec::new, |ps| {
+                mem.iter()
+                    .filter(|i| i.placement.is_some_and(|p| ps.contains(&p)))
+                    .copied()
+                    .collect()
+            })
+        };
+        let width = m.item.width();
+        let pred = order[..at]
+            .iter()
+            .rev()
+            .find_map(|d| items_of(mem, d).into_iter().max_by_key(|i| (i.s1, i.s0)));
+        let s_left = match pred {
+            Some(p) => p
+                .s0
+                .saturating_add(p.s1)
+                .saturating_sub(width)
+                .div_euclid(2)
+                .saturating_add(1),
+            None => order
+                .get(at + 1..)
+                .unwrap_or_default()
+                .iter()
+                .find_map(|d| items_of(mem, d).into_iter().min_by_key(|i| (i.s0, i.s1)))
+                .map_or(0, |succ| {
+                    succ.s0
+                        .saturating_sub(min_gap(&m.item, &succ))
+                        .saturating_sub(width)
+                }),
+        };
+        let wording = Wording {
+            carrier: rail,
+            mode: PlaceMode::Push,
+            item: tag(tx, m.device.id),
+            names,
+        };
+        let r = resolve_items(tx, q, mem, axis.length, m.item, s_left, &wording)?;
+        apply_moved(mem, &r.moved);
+        mem.push(item_at(&m.item, r.s_left));
+        on.entry(m.device.id).or_default().push(m.id);
+    }
+    Ok(())
+}
+
+/// The order `layout.auto_fill` places its devices in (WP-S4.02 D6).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum FillOrder {
+    /// The natural order of the full device tag.
+    Dt,
+    /// The page order of each device's main representation, then the row and the column of its anchor cell; devices
+    /// without a main representation last, by tag.
+    Schematic,
+}
+
+/// The layout space a carrier belongs to, through its surface and enclosure, on a snapshot.
+fn space_of_carrier(q: &Q, carrier: Id<Carrier>) -> Option<Id<LayoutSpace>> {
+    let surface = q.table::<Carrier>().get(carrier)?.surface;
+    let enclosure = q.table::<MountingSurface>().get(surface)?.enclosure;
+    Some(q.table::<Enclosure>().get(enclosure)?.space)
+}
+
+/// `layout.auto_fill`'s default list (D6): the unplaced devices of the rail's space whose primary part does not
+/// refuse the rail's profile, in the order of `unplaced(space)`.
+fn fill_list(q: &Q, carrier: Id<Carrier>) -> Vec<Id<Device>> {
+    let Some(space) = space_of_carrier(q, carrier) else {
+        return Vec::new();
+    };
+    let profile = q.table::<Carrier>().get(carrier).and_then(|c| match &c.params {
+        CarrierParams::Rail(r) => Some(r.profile.clone()),
+        _ => None,
+    });
+    let devices = q.devices();
+    let copies = q.table::<LibCopy<Part>>();
+    q.get::<Unplaced>(space)
+        .iter()
+        .copied()
+        .filter(|d| {
+            let Some(profile) = &profile else {
+                return true;
+            };
+            let mount = devices
+                .get(*d)
+                .and_then(|dev| ew_derive::layout::primary_part(q, dev))
+                .and_then(|p| copies.get(p.copy).and_then(|c| c.item.mech.clone()))
+                .and_then(|m| m.mount_kind);
+            fits_rail(mount.as_ref(), profile) != Fit::DoesNotFit
+        })
+        .collect()
+}
+
+/// `layout.auto_fill` (`AutoFill`, WP-S4.02 D6, FR-LAY-013): places a list of devices on a rail, next-fit from the
+/// rail start, in one step; placed items never move.
+///
+/// `devices` defaults to the unplaced devices of the rail's layout space whose primary part fits the rail's profile.
+/// `order` is `dt` (the natural order of the full tag) or `schematic` (the page order of the main representation,
+/// then the row and the column of its anchor cell; devices without one last, by tag). The unplaced members of one
+/// assembly travel as one block (at their minimum gaps, in [`member_order`]) at the place of the first of them in that
+/// order. Each item goes to the first left edge at or after the previous item's end plus the minimum gap where it fits
+/// with every minimum gap ([`next_fit`]); an unknown footprint is the 20 mm square. A device that is not placed is
+/// named in a notice, one per device in list order: "-102F1: already placed", "-K9: not in this rail's layout
+/// space", "-UC1: not mountable", "-X5: TS 32 does not fit a TS 35×7.5 rail", "E55: screw-mounted, not on a rail",
+/// "-201U9: no room left on rail 3".
+///
+/// Rejected: a carrier that does not exist (`/carrier`); a duct ("Auto-fill works on a rail."); a listed device that
+/// does not exist or is listed twice (`/devices/i`); nothing placed at all ("Nothing was placed on rail 1: " and the
+/// notices). Interactive; `Bulk` above 200 devices in the list. Outcome: the carrier, with the notices.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct AutoFill {
+    /// The rail.
+    #[schemars(with = "UuidS")]
+    pub carrier: Id<Carrier>,
+    /// The devices to place; default the unplaced devices of the rail's space that fit it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Vec<UuidS>>")]
+    pub devices: Option<Vec<Id<Device>>>,
+    /// `dt` or `schematic`.
+    pub order: FillOrder,
+}
+
+/// The sort key of a device in `schematic` order: without a main representation last, then page position, row,
+/// column, the tag's natural key and the ID.
+type SchematicKey = (bool, usize, u32, u32, ew_mltext::NaturalKey, Id<Device>);
+
+/// A device `layout.auto_fill` considers, with its index in the list (its notice's place).
+type Candidate = (usize, std::sync::Arc<Device>);
+
+impl Command for AutoFill {
+    const NAME: &'static str = "layout.auto_fill";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn cost(&self, model: &Model) -> Cost {
+        let count = match &self.devices {
+            Some(list) => list.len(),
+            None => fill_list(&Q::new(model), self.carrier).len(),
+        };
+        bulk_above(count)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let name = Self::NAME;
+        let carrier = self.carrier;
+        let target = target(tx, name, "/carrier", CarrierRef::Carrier(carrier))?;
+        let PoseOn::Rail(axis) = target.on else {
+            return tx.reject("Auto-fill works on a rail.");
+        };
+        let base_model = tx.base_model().clone();
+        let q = Q::new(&base_model);
+        // the space through the transaction, so that a concurrent move of the rail conflicts
+        let space = tx
+            .get::<Carrier>(carrier)
+            .and_then(|c| tx.get::<MountingSurface>(c.surface))
+            .and_then(|s| tx.get::<Enclosure>(s.enclosure))
+            .and_then(|e| tx.get::<LayoutSpace>(e.space));
+        let list = match &self.devices {
+            Some(list) => {
+                let mut seen = BTreeSet::new();
+                for (i, d) in list.iter().enumerate() {
+                    if !tx.exists::<Device>(*d) {
+                        return Err(CmdError::invalid_params(
+                            name,
+                            format!("/devices/{i}"),
+                            "the device is not in the project",
+                        ));
+                    }
+                    if !seen.insert(*d) {
+                        return Err(CmdError::invalid_params(
+                            name,
+                            format!("/devices/{i}"),
+                            "the device is listed twice",
+                        ));
+                    }
+                }
+                list.clone()
+            }
+            None => fill_list(&q, carrier),
+        };
+        let devices: Vec<std::sync::Arc<Device>> = list.iter().filter_map(|d| tx.get::<Device>(*d)).collect();
+        // Override 2: every listed device's placements are in the read set.
+        note_rail_reads(tx, carrier, &devices.iter().map(|d| d.as_ref()).collect::<Vec<_>>());
+        let rail = rail_in_sentence(&q, carrier);
+        let mut notices: Vec<Option<String>> = vec![None; devices.len()];
+        let mut candidates: Vec<Candidate> = Vec::new();
+        for (i, d) in devices.iter().enumerate() {
+            match fill_refusal(tx, &q, d, space.as_deref(), target.profile.as_ref()) {
+                Some(why) => notices[i] = Some(format!("{}: {why}", tag(tx, d.id))),
+                None => candidates.push((i, std::sync::Arc::clone(d))),
+            }
+        }
+        sort_candidates(tx, &q, self.order, &mut candidates);
+        let mut mem = rail_items(&q, carrier);
+        let mut last: Option<RailItem> = None;
+        let mut placed: Vec<(Member, Pose3)> = Vec::new();
+        for unit in fill_units(&q, candidates) {
+            let members: Vec<Member> =
+                unit.iter().map(|(_, d)| member(tx, &q, std::sync::Arc::clone(d))).collect();
+            let (offsets, item) = block_of(&members);
+            let floor = last.map_or(i128::MIN, |l| l.s1.saturating_add(min_gap(&l, &item)));
+            let Some(s) = next_fit(&mem, axis.length, &item, floor) else {
+                for (i, d) in &unit {
+                    notices[*i] = Some(format!("{}: no room left on {rail}", tag(tx, d.id)));
+                }
+                continue;
+            };
+            for (m, off) in members.into_iter().zip(offsets) {
+                let at = item_at(&m.item, s.saturating_add(off));
+                mem.push(at);
+                last = Some(at);
+                let pose = rail_pose(tx, &axis, at.s0.saturating_add(m.ext.clip), &Pose3::IDENTITY)?;
+                check_pose_on(tx, &target, &pose)?;
+                placed.push((m, pose));
+            }
+        }
+        let notices: Vec<String> = notices.into_iter().flatten().collect();
+        if placed.is_empty() {
+            let why = if notices.is_empty() {
+                "no device to place.".to_owned()
+            } else {
+                notices.join("; ")
+            };
+            return tx.reject(format!("Nothing was placed on {rail}: {why}"));
+        }
+        for (m, pose) in placed {
+            tx.insert(Placement {
+                id: m.id,
+                v: 1,
+                device: m.device.id,
+                function: None,
+                part: m.part,
+                carrier: CarrierRef::Carrier(carrier),
+                pose,
+                locked: false,
+                extra: Extra::new(),
+            })?;
+        }
+        Ok(Outcome {
+            primary: Some((Kind::Carrier, carrier.cast())),
+            note: None,
+            notices,
+        })
+    }
+}
+
+/// Why `layout.auto_fill` does not place a listed device (ruling 8), after the tag and a colon: placed already, of
+/// another space, not mountable, or a mount kind the rail's profile refuses; `None` when it is a candidate.
+fn fill_refusal(
+    tx: &TxBuilder<'_>,
+    q: &Q,
+    device: &Device,
+    space: Option<&LayoutSpace>,
+    profile: Option<&MountKind>,
+) -> Option<String> {
+    if !tx.placements_of_device(device.id).is_empty() {
+        return Some("already placed".to_owned());
+    }
+    let location = q
+        .try_get::<StructureOf>(device.id)
+        .ok()
+        .and_then(|s| s.node(Aspect::Location));
+    if space.is_none_or(|s| Some(s.location) != location) {
+        return Some("not in this rail's layout space".to_owned());
+    }
+    if !is_mountable(q, device.id) {
+        return Some("not mountable".to_owned());
+    }
+    let part = primary_part(tx, device);
+    let mount = part.and_then(|p| mech_of(tx, p.copy)).and_then(|m| m.mount_kind)?;
+    let profile = profile?;
+    if fits_rail(Some(&mount), profile) != Fit::DoesNotFit {
+        return None;
+    }
+    Some(if Profile::of(&mount).is_some() {
+        format!(
+            "{} does not fit a {} rail",
+            mount_label(&mount),
+            mount_label(profile)
+        )
+    } else {
+        format!("{}, not on a rail", mount_label(&mount))
+    })
+}
+
+/// Sorts `layout.auto_fill`'s candidates in `order` (D6).
+fn sort_candidates(tx: &TxBuilder<'_>, q: &Q, order: FillOrder, candidates: &mut [Candidate]) {
+    match order {
+        FillOrder::Dt => candidates.sort_by_cached_key(|(_, d)| (natural_key(&full_tag(q, d.id)), d.id)),
+        FillOrder::Schematic => {
+            let pages = q.get::<DrawnPageOrder>(());
+            let key = |d: &Device| -> SchematicKey {
+                let tag_key = natural_key(&full_tag(q, d.id));
+                match crate::numbering::main_rep(tx, d.id) {
+                    Some(rep) => {
+                        let page = pages.position(PageRef::Drawn(rep.page)).unwrap_or(usize::MAX);
+                        let (row, column) = crate::numbering::anchor_cell(tx, rep.id)
+                            .map_or((u32::MAX, u32::MAX), |c| (c.row, c.column));
+                        (false, page, row, column, tag_key, d.id)
+                    }
+                    None => (true, usize::MAX, u32::MAX, u32::MAX, tag_key, d.id),
+                }
+            };
+            candidates.sort_by_cached_key(|(_, d)| key(d));
+        }
+    }
+}
+
+/// `layout.auto_fill`'s units in candidate order: a device alone, or the candidates of one assembly as one block at
+/// the place of the first of them, in [`member_order`] (D6).
+fn fill_units(q: &Q, candidates: Vec<Candidate>) -> Vec<Vec<Candidate>> {
+    let mut units: Vec<(Option<Id<Device>>, Vec<Candidate>)> = Vec::new();
+    let mut unit_of_root: BTreeMap<Id<Device>, usize> = BTreeMap::new();
+    for c in candidates {
+        match assembly_root(q, &c.1) {
+            Some(root) => match unit_of_root.get(&root) {
+                Some(u) => units[*u].1.push(c),
+                None => {
+                    unit_of_root.insert(root, units.len());
+                    units.push((Some(root), vec![c]));
+                }
+            },
+            None => units.push((None, vec![c])),
+        }
+    }
+    units
+        .into_iter()
+        .map(|(root, mut unit)| {
+            if let Some(root) = root {
+                let rank: BTreeMap<Id<Device>, usize> = member_order(q, root)
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, d)| (d, i))
+                    .collect();
+                unit.sort_by_key(|(_, d)| rank.get(&d.id).copied().unwrap_or(usize::MAX));
+            }
+            unit
+        })
+        .collect()
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Set-up and edits (WP-S4.02 D7, FT-840)
+
+/// An identifier this module spells as a literal.
+fn ident(name: &'static str, text: &str) -> Result<Ident, CmdError> {
+    Ident::from_input(text).map_err(|e| CmdError::invalid_params(name, "", e.to_string()))
+}
+
+/// A device's part use of one piece of `part`.
+fn one_of(part: Id<Part>) -> PartUse {
+    PartUse {
+        part: PartRef::new(part),
+        qty: Dec3::ONE,
+        extra: Extra::new(),
+    }
+}
+
+/// `layout.enclosure.create_from_part` (`CreateEnclosureFromPart`, WP-S4.02 D7, FR-LAY-002): sets up a location's
+/// enclosure from an enclosure part in one step.
+///
+/// `copies` (the `lib/` JSON form, as `device.place` takes them) are embedded first. Then, in order: the location's
+/// layout space (created without a name when the location has none); the enclosure device, tag letter U with the
+/// lowest counter `n ≥ 1` whose frozen tag `UC<n>` no device holds, frozen `UC<n>` (ruling 3: a page-less device is
+/// never numbered), its location the given one and its function `function`, one piece of `part`; when the part's
+/// enclosure section names a plate part, the plate device, a child of the enclosure device frozen `UC<n>-plate` with
+/// one piece of the plate part and the same structure; then the enclosure and its plate surface exactly as
+/// `layout.enclosure.create` makes them. One undo removes all of it, the embedded copies included.
+///
+/// Rejected: a location that does not exist or is not a location (`/location`, as `layout.space.create`); a part copy
+/// the project does not hold after the embed (`/part`); a part without an enclosure section; a function node that
+/// does not exist or is not a function (`/function`); a location that already has an enclosure; a plate part the
+/// project does not hold. Interactive. Outcome: the new enclosure.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CreateEnclosureFromPart {
+    /// The location structure node (+J-E-2416).
+    #[schemars(with = "UuidS")]
+    pub location: Id<StructureNode>,
+    /// The enclosure part copy.
+    #[schemars(with = "UuidS")]
+    pub part: Id<Part>,
+    /// The library documents to embed first (`lib/` JSON form): the enclosure part, its plate part and their closure;
+    /// empty when the project holds them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<Value>,
+    /// The function structure node of the enclosure device (the focused page's function).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub function: Option<Id<StructureNode>>,
+    /// The enclosure's pose in the space; default the identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Pose3S>")]
+    pub pose: Option<Pose3>,
+    /// Whether the plate is bonded to protective earth; default false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pe_bond: Option<bool>,
+}
+
+impl Command for CreateEnclosureFromPart {
+    const NAME: &'static str = "layout.enclosure.create_from_part";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let name = Self::NAME;
+        embed_closure(name, tx, &self.copies)?;
+        let node = checked_location(tx, name, self.location)?;
+        require_part(tx, name, "/part", self.part)?;
+        let Some(copy) = part_copy(tx, self.part) else {
+            return Err(CmdError::invalid_params(
+                name,
+                "/part",
+                format!("part copy {} is not held by the project", self.part),
+            ));
+        };
+        let Some(section) = copy.item.sections.enclosure.clone() else {
+            return tx.reject(format!(
+                "{} has no enclosure section; choose an enclosure part.",
+                copy.item.part_number.as_str()
+            ));
+        };
+        if let Some(f) = self.function {
+            let Some(fnode) = tx.get::<StructureNode>(f) else {
+                return Err(CmdError::invalid_params(
+                    name,
+                    "/function",
+                    "the structure node is not in the project",
+                ));
+            };
+            if fnode.aspect != Open::Known(Aspect::Function) {
+                return Err(CmdError::invalid_params(
+                    name,
+                    "/function",
+                    format!("node {} is not a function", fnode.code.as_str()),
+                ));
+            }
+        }
+        let existing = tx
+            .iter::<LayoutSpace>()
+            .into_iter()
+            .find(|s| s.location == self.location)
+            .map(|s| s.id);
+        if let Some(space) = existing {
+            if let Some(e) = tx.iter::<Enclosure>().into_iter().find(|e| e.space == space) {
+                return tx.reject(format!(
+                    "location {} already has enclosure {}; a location has one enclosure",
+                    node.code.as_str(),
+                    tag(tx, e.device)
+                ));
+            }
+        }
+        let plate = plate_copy_id(&section);
+        if plate.is_some_and(|p| !tx.exists::<LibCopy<Part>>(p)) {
+            // The copy is not held, so its part number is not known here (lane E42: the brief's text named it).
+            return tx.reject("the enclosure part names a plate part that the project does not hold; add it to copies");
+        }
+        let space = match existing {
+            Some(s) => s,
+            None => insert_space(tx, self.location, None)?,
+        };
+        // Ruling 3 (override 1): the lowest n ≥ 1 whose frozen tag UC<n> no device holds.
+        let frozen: BTreeSet<String> = tx
+            .iter::<Device>()
+            .into_iter()
+            .filter_map(|d| d.tag.frozen.as_ref().map(|f| f.text.as_str().to_owned()))
+            .collect();
+        let n = (1u32..).find(|n| !frozen.contains(&format!("UC{n}"))).unwrap_or(1);
+        let letter = ident(name, "U")?;
+        let structure = StructureAssignment {
+            location: Some(Slot::Node(self.location)),
+            function: self.function.map(Slot::Node),
+            ..StructureAssignment::default()
+        };
+        let device: Id<Device> = tx.mint();
+        let enclosure_tag = TagSpec {
+            letter: letter.clone(),
+            counter: Some(n),
+            scheme: TagScheme::Default,
+            frozen: Some(frozen_tag(name, &format!("UC{n}"))?),
+            extra: Extra::new(),
+        };
+        tx.insert(enclosure_device(device, enclosure_tag, None, &structure, self.part))?;
+        if let Some(p) = plate {
+            let child: Id<Device> = tx.mint();
+            let plate_tag = TagSpec {
+                letter,
+                counter: None,
+                scheme: TagScheme::Child,
+                frozen: Some(frozen_tag(name, &format!("UC{n}-plate"))?),
+                extra: Extra::new(),
+            };
+            tx.insert(enclosure_device(child, plate_tag, Some(device), &structure, p))?;
+        }
+        let enclosure = insert_enclosure(
+            tx,
+            space,
+            device,
+            &section,
+            self.pose.unwrap_or(Pose3::IDENTITY),
+            self.pe_bond.unwrap_or(false),
+        )?;
+        Ok(Outcome::primary((Kind::Enclosure, enclosure.cast())))
+    }
+}
+
+/// A frozen tag with its sign shown.
+fn frozen_tag(name: &'static str, text: &str) -> Result<FrozenTag, CmdError> {
+    Ok(FrozenTag {
+        text: ident(name, text)?,
+        sign: TagSign::Shown,
+        extra: Extra::new(),
+    })
+}
+
+/// The enclosure device or its plate device as `layout.enclosure.create_from_part` makes it: one piece of `part`.
+fn enclosure_device(
+    id: Id<Device>,
+    tag: TagSpec,
+    parent: Option<Id<Device>>,
+    structure: &StructureAssignment,
+    part: Id<Part>,
+) -> Device {
+    Device {
+        id,
+        v: 1,
+        tag,
+        kind: None,
+        parent,
+        position: None,
+        structure: structure.clone(),
+        parts: vec![one_of(part)],
+        function_text: Default::default(),
+        process_tag: None,
+        tech_data: Default::default(),
+        state: Default::default(),
+        source_ref: None,
+        aspects: DeviceAspects::default(),
+        extra: Extra::new(),
+    }
+}
+
+/// `layout.space.edit` (`EditLayoutSpace`, FT-840): renames a layout space; `name: null` clears its name. Nothing else
+/// changes. Rejected: a space that does not exist (`/space`); `name` absent (`/name`). Interactive. Outcome: the space.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct EditLayoutSpace {
+    /// The layout space.
+    #[schemars(with = "UuidS")]
+    pub space: Id<LayoutSpace>,
+    /// The new display name; `null` clears it.
+    #[serde(
+        default,
+        deserialize_with = "present",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schemars(with = "Option<IdentS>")]
+    pub name: Option<Option<Ident>>,
+}
+
+impl Command for EditLayoutSpace {
+    const NAME: &'static str = "layout.space.edit";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if !tx.exists::<LayoutSpace>(self.space) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/space",
+                "the layout space is not in the project",
+            ));
+        }
+        let Some(name) = self.name.clone() else {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/name",
+                "give the name, or null to clear it",
+            ));
+        };
+        tx.update::<LayoutSpace>(self.space, |s| s.name = name)?;
+        Ok(Outcome::primary((Kind::LayoutSpace, self.space.cast())))
+    }
+}
+
+/// `layout.enclosure.edit` (`EditEnclosure`, FT-840): moves an enclosure in its layout space. The pose is a translation
+/// with the identity rotation at this version (ruling 7: bayed suites are 1.x). Nothing else changes. Rejected: an
+/// enclosure that does not exist (`/enclosure`); a turned pose. Interactive. Outcome: the enclosure.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct EditEnclosure {
+    /// The enclosure.
+    #[schemars(with = "UuidS")]
+    pub enclosure: Id<Enclosure>,
+    /// The new pose in the space: a translation.
+    #[schemars(with = "Pose3S")]
+    pub pose: Pose3,
+}
+
+impl Command for EditEnclosure {
+    const NAME: &'static str = "layout.enclosure.edit";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if !tx.exists::<Enclosure>(self.enclosure) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/enclosure",
+                "the enclosure is not in the project",
+            ));
+        }
+        if Quarter::of(self.pose.q) != Some(Quarter::NONE) {
+            return tx.reject("an enclosure's pose is a translation at this version; give it without a turn");
+        }
+        let pose = self.pose;
+        tx.update::<Enclosure>(self.enclosure, |e| e.pose = pose)?;
+        Ok(Outcome::primary((Kind::Enclosure, self.enclosure.cast())))
+    }
+}
+
+/// `layout.surface.edit` (`EditSurface`, FT-840): sets whether a mounting surface (the plate) is bonded to protective
+/// earth. Nothing else changes. Rejected: a surface that does not exist (`/surface`). Interactive. Outcome: the surface.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct EditSurface {
+    /// The mounting surface.
+    #[schemars(with = "UuidS")]
+    pub surface: Id<MountingSurface>,
+    /// Whether it is bonded to protective earth.
+    pub pe_bond: bool,
+}
+
+impl Command for EditSurface {
+    const NAME: &'static str = "layout.surface.edit";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if !tx.exists::<MountingSurface>(self.surface) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/surface",
+                "the surface is not in the project",
+            ));
+        }
+        let pe_bond = self.pe_bond;
+        tx.update::<MountingSurface>(self.surface, |s| s.pe_bond = pe_bond)?;
+        Ok(Outcome::primary((Kind::MountingSurface, self.surface.cast())))
+    }
 }

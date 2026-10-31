@@ -183,6 +183,35 @@ pub fn free_length(length: i128, items: &[RailItem], brackets: &[BracketSpan]) -
     length.saturating_sub(used)
 }
 
+/// Next-fit (WP-S4.02 D6, `layout.auto_fill`): the smallest left edge `s ≥ floor` at which `item` (its width, strip
+/// flag, bracket width and pads; its `s0`, `s1` are not read as a position) fits on a rail of length `length` holding
+/// `items` (any order), with every minimum gap to its consecutive neighbours and the rail ends held and overlapping no
+/// footprint, as free mode judges a fit. `None` when no such place exists. Nothing moves: this is the placement
+/// rule of a fill, not a mode ([`resolve`] stays the one resolver of a drop).
+pub fn next_fit(items: &[RailItem], length: i128, item: &RailItem, floor: i128) -> Option<i128> {
+    let mut sorted: Vec<RailItem> = items.to_vec();
+    sorted.sort_by_key(|i| (i.s0, i.s1, i.placement));
+    let wm = item.width();
+    let rail_lo = start_gap(item).max(floor);
+    let rail_hi = length.saturating_sub(end_gap(item)).saturating_sub(wm);
+    let mut max_s1 = i128::MIN;
+    for k in 0..=sorted.len() {
+        let mut lo = rail_lo;
+        if let Some(a) = k.checked_sub(1).and_then(|p| sorted.get(p)) {
+            max_s1 = max_s1.max(a.s1);
+            lo = lo.max(a.s1.saturating_add(min_gap(a, item))).max(max_s1);
+        }
+        let mut hi = rail_hi;
+        if let Some(b) = sorted.get(k) {
+            hi = hi.min(b.s0.saturating_sub(min_gap(item, b)).saturating_sub(wm));
+        }
+        if lo <= hi {
+            return Some(lo);
+        }
+    }
+    None
+}
+
 /// How a dropped item is resolved against its neighbours (D5).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SnapMode {

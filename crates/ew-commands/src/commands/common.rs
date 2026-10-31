@@ -117,6 +117,16 @@ pub enum KindName {
     LogicalNet,
     /// `physical_net` (WP-S1.21 D11).
     PhysicalNet,
+    /// `layout_space` (WP-S4.02 D7, FT-837): `edit.delete` only.
+    LayoutSpace,
+    /// `enclosure` (WP-S4.02 D7, FT-837): `edit.delete` only.
+    Enclosure,
+    /// `mounting_surface` (WP-S4.02 D7, FT-837): `edit.delete` only.
+    MountingSurface,
+    /// `carrier` (WP-S4.02 D7, FT-837): `edit.delete` only.
+    Carrier,
+    /// `placement` (WP-S4.02 D7, FT-837): `edit.delete` only.
+    Placement,
 }
 
 impl KindName {
@@ -145,6 +155,11 @@ impl KindName {
             KindName::DeviceLink => Kind::DeviceLink,
             KindName::LogicalNet => Kind::LogicalNet,
             KindName::PhysicalNet => Kind::PhysicalNet,
+            KindName::LayoutSpace => Kind::LayoutSpace,
+            KindName::Enclosure => Kind::Enclosure,
+            KindName::MountingSurface => Kind::MountingSurface,
+            KindName::Carrier => Kind::Carrier,
+            KindName::Placement => Kind::Placement,
         }
     }
 }

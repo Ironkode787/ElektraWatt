@@ -449,8 +449,14 @@ impl SetFields {
                     set_one::<PhysicalNet>(tx, *t, path, value)?;
                     check_physical_net(tx, t.cast())?;
                 }
-                // Junctions and bonds have no settable fields: rejected above.
-                KindName::Junction | KindName::Bond => {
+                // Junctions, bonds and the layout kinds (WP-S4.02 D7) have no settable fields: rejected above.
+                KindName::Junction
+                | KindName::Bond
+                | KindName::LayoutSpace
+                | KindName::Enclosure
+                | KindName::MountingSurface
+                | KindName::Carrier
+                | KindName::Placement => {
                     return Err(CmdError::internal("fields.set: kind without settable fields"));
                 }
             }
