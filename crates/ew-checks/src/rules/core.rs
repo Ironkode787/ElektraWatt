@@ -214,8 +214,9 @@ impl Rule for UnpairedInterruptionPoint {
     }
 }
 
-/// EW-CORE-052 "Ambiguous interruption point" (doc 15 §4.2): conflict, o r, error, project. The catalogue
-/// also lists prevent mode (ADR-0009 amendment 1); it is not wired at MVP, so it is not declared.
+/// EW-CORE-052 "Ambiguous interruption point" (doc 15 §4.2): conflict, o p r, error, project. Prevent mode (ADR-0009
+/// amendment 1, FT-194) is declared and wired: [`AmbiguousInterruptionPoint`]'s `prevent` refuses a batch that makes a
+/// new ambiguity.
 pub const AMBIGUOUS_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     id: "EW-CORE-052",
     code: "103052",

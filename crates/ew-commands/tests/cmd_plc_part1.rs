@@ -298,6 +298,38 @@ fn a_module_without_one_station_stays_unattached() {
     );
 }
 
+/// FT-823: modules drawn before the CPU attach to it when it arrives, in the same transaction, in placement order;
+/// with a second station nothing more attaches (the user chooses, EW-PLC-008 says so).
+#[test]
+fn waiting_modules_attach_when_the_first_station_arrives() {
+    let mut e = engine(model());
+    let (m1, _) = make(&mut e, "A", 1, CARD);
+    let (m2, _) = make(&mut e, "A", 2, CARD_B);
+    assert_eq!(row(&e, m1).parent, None);
+    let (cpu, r) = make(&mut e, "A", 3, CPU);
+    for (m, pos) in [(m1, 1), (m2, 2)] {
+        let d = row(&e, m);
+        assert_eq!(
+            (d.parent, d.position),
+            (Some(cpu), Some(pos)),
+            "{:?}",
+            notices(&r)
+        );
+    }
+    assert!(has_notice(&r, "attached to -A3 as module 2"), "{:?}", notices(&r));
+    // One undo takes the station and the attachments back together.
+    e.undo(&Origin::Gui).expect("undo");
+    assert_eq!(row(&e, m1).parent, None);
+
+    // A module that waits beside two stations still waits when a third arrives.
+    let mut e = engine(model());
+    make(&mut e, "A", 1, CPU);
+    make(&mut e, "A", 2, CPU);
+    let (m, _) = make(&mut e, "A", 3, CARD);
+    make(&mut e, "A", 4, CPU);
+    assert_eq!(row(&e, m).parent, None);
+}
+
 /// D4 applies only to a module without a station ancestor: a device already below the station keeps its place.
 #[test]
 fn a_module_below_a_station_keeps_its_place() {

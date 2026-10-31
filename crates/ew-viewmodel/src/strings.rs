@@ -223,6 +223,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "hint-box-dropped" => "Click or Enter at the first corner; Escape again leaves the tool",
         "reason-no-ip-symbol" => "This page's library has no interruption-point symbol",
         "reason-ip-tool-only" => "Only while placing an interruption point",
+        // FT-822: a refused interruption point (a prevent rule) keeps its ghost; the HUD and a toast say why.
+        "reason-ip-not-placed" => "The interruption point was not placed",
+        "notice-ip-not-placed" => "Not placed: {0}",
         "reason-external-never-pairs" => "An external connection point never pairs, so it has no star source",
         "error-no-external" => {
             "No external reference is \"{0}\"; name one as device:connection, optionally after its location and \" / \" (+J-E-206 / JE-N1000-03:L). The project's: {1}"

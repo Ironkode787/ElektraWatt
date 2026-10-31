@@ -518,6 +518,86 @@ impl App {
         }
     }
 
+    /// The banner of doc 16a §6.11 (WP-S2.17 part 4) as an overlay (FT-822): along the top edge of the canvas below the
+    /// page tabs when a page view is shown, else under the command bar, full width of that area. Showing or dismissing
+    /// it never moves the canvas or a panel (the play-test's clicks missed when it pushed the window down). Returns its
+    /// rectangle.
+    fn banner_overlay(
+        &self,
+        ctx: &egui::Context,
+        tokens: &crate::theme::Tokens,
+        bar_bottom: f32,
+        events: &mut Vec<Event>,
+    ) -> Option<egui::Rect> {
+        let banner = self.shell.banner()?;
+        let area = match self.page_pane {
+            Some(pane) => egui::Rect::from_min_max(
+                egui::pos2(
+                    pane.left(),
+                    (pane.top() + tokens.size_dock_tab_bar).min(pane.bottom()),
+                ),
+                pane.max,
+            ),
+            None => {
+                let content = ctx.content_rect();
+                egui::Rect::from_min_max(egui::pos2(content.left(), bar_bottom), content.max)
+            }
+        };
+        let frame = egui::Frame::NONE
+            .fill(tokens.warning_subtle.color32())
+            .inner_margin(egui::Margin::symmetric(
+                crate::theme::margin_px(tokens.space_4),
+                crate::theme::margin_px(tokens.space_2),
+            ));
+        let inner_width = (area.width() - 2.0 * tokens.space_4).max(0.0);
+        let response = egui::Area::new(egui::Id::unique("banner"))
+            .fixed_pos(area.min)
+            .order(egui::Order::Middle)
+            .show(ctx, |ui| {
+                ui.set_clip_rect(area);
+                frame.show(ui, |ui| {
+                    ui.set_width(inner_width);
+                    ui.horizontal_wrapped(|ui| {
+                        ui.set_min_height(tokens.size_control);
+                        let (r, _) =
+                            ui.allocate_exact_size(egui::Vec2::splat(tokens.icon_md), egui::Sense::hover());
+                        crate::icons::paint(
+                            ui.painter(),
+                            crate::icons::IconId::alert_triangle,
+                            r,
+                            tokens.warning_icon.color32(),
+                            tokens.icon_stroke,
+                        );
+                        ui.label(egui::RichText::new(banner).color(tokens.text_primary.color32()));
+                        if self.shell.can_discard_journal()
+                            && crate::components::button(
+                                ui,
+                                crate::components::Kind::Primary,
+                                strings::text("action-file-discard-journal"),
+                                true,
+                                0.0,
+                            )
+                            .clicked()
+                        {
+                            events.push(Event::Action("file.discard_journal", Value::Null));
+                        }
+                        if crate::components::button(
+                            ui,
+                            crate::components::Kind::Subtle,
+                            strings::text("banner-dismiss"),
+                            true,
+                            0.0,
+                        )
+                        .clicked()
+                        {
+                            events.push(Event::DismissBanner);
+                        }
+                    });
+                });
+            });
+        Some(response.response.rect)
+    }
+
     /// Paints one frame into the root `ui` of the window.
     pub fn ui(&mut self, ui: &mut Ui) {
         let _frame = tracing::trace_span!("frame").entered();
@@ -680,54 +760,6 @@ impl App {
             ctx.memory_mut(|m| m.request_focus(tab));
         }
         self.bar_had_focus = bar_has_focus;
-        if let Some(banner) = self.shell.banner() {
-            // WP-S2.17 part 4: the banner of doc 16a §6.11 (the warning subtle fill, its icon, one sentence, one
-            // Primary action, a Subtle dismiss).
-            let frame = egui::Frame::NONE
-                .fill(tokens.warning_subtle.color32())
-                .inner_margin(egui::Margin::symmetric(
-                    crate::theme::margin_px(tokens.space_4),
-                    crate::theme::margin_px(tokens.space_2),
-                ));
-            Panel::top("banner").frame(frame).show(ui, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    ui.set_min_height(tokens.size_control);
-                    let (r, _) =
-                        ui.allocate_exact_size(egui::Vec2::splat(tokens.icon_md), egui::Sense::hover());
-                    crate::icons::paint(
-                        ui.painter(),
-                        crate::icons::IconId::alert_triangle,
-                        r,
-                        tokens.warning_icon.color32(),
-                        tokens.icon_stroke,
-                    );
-                    ui.label(egui::RichText::new(banner).color(tokens.text_primary.color32()));
-                    if self.shell.can_discard_journal()
-                        && crate::components::button(
-                            ui,
-                            crate::components::Kind::Primary,
-                            strings::text("action-file-discard-journal"),
-                            true,
-                            0.0,
-                        )
-                        .clicked()
-                    {
-                        events.push(Event::Action("file.discard_journal", Value::Null));
-                    }
-                    if crate::components::button(
-                        ui,
-                        crate::components::Kind::Subtle,
-                        strings::text("banner-dismiss"),
-                        true,
-                        0.0,
-                    )
-                    .clicked()
-                    {
-                        events.push(Event::DismissBanner);
-                    }
-                });
-            });
-        }
         // WP-S2.17 part 3: `size.status` high (doc 16a §5.8).
         Panel::bottom("status-bar")
             .exact_size(tokens.size_status)
@@ -884,7 +916,11 @@ impl App {
         // WP-S2.09 part 1: the toasts and the notifications log.
         // WP-S2.17 part 4: at the canvas's top right (doc 16a §6.10).
         let bar_bottom = self.command_bar.bar_rect().map_or(0.0, |r| r.bottom());
-        let anchor = crate::notifications::toast_anchor(&tokens, &ctx, self.page_pane, bar_bottom);
+        let mut anchor = crate::notifications::toast_anchor(&tokens, &ctx, self.page_pane, bar_bottom);
+        // FT-822: the banner lies over the top edge of the canvas; the toasts start below it.
+        if let Some(banner) = self.banner_overlay(&ctx, &tokens, bar_bottom, &mut events) {
+            anchor.y = anchor.y.max(banner.bottom() + tokens.space_4);
+        }
         let dialog_open = self.shell.dialog().is_some();
         // Doc 16a §6.12: under a modal the toasts go below its backdrop, which dims them with the rest.
         let under_modal = dialog_open || ctx.memory(|m| m.top_modal_layer().is_some());

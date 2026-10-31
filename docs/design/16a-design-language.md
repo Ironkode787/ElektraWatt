@@ -868,6 +868,8 @@ width under the command bar, `size.control` + `space.3` padding, the semantic su
 Primary action and at most one Subtle action, a close button when it may be dismissed. One banner at a time; a second
 state queues behind it with a count ("1 more").
 
+*As built (cycle 40, FT-822).* The banner lies over the content as an overlay rather than taking a band of its own: along the top edge of the canvas below the page tabs when a page view is shown (full width of the page view), else under the command bar; the toasts start below it. Showing or dismissing it never moves the canvas or a panel (the cycle-39 play-test's clicks missed when it pushed the window down). A refused canvas click (an interruption point that EW-CORE-052's prevent mode refuses) is no project state: it says why in the HUD and a toast, not in the banner.
+
 ### 6.12 Dialogs
 
 Modal only when the work cannot continue without the answer (doc 16 §4.1). `color.surface.raised`, `elevation.2`,

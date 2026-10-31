@@ -1208,12 +1208,20 @@ impl ShellModel {
                 continue;
             };
             let a = &d.aspects;
+            // FT-823: a PLC module whose aspect holds no setting (what normaliser N0 gives a card's device) is no other
+            // role: the card goes with its last symbol, its channels with it (the model's delete policy), so a card
+            // deleted to be drawn again leaves no `-?A1` behind. A station, or a module with a slot, a start, a part
+            // use or an integrated I/O, stays.
+            let set_module = a
+                .plc_module
+                .as_ref()
+                .is_some_and(|m| serde_json::to_value(m).map_or(true, |v| v != json!({})));
             if a.terminal.is_some()
                 || a.strip.is_some()
                 || a.cable.is_some()
                 || a.assembly.is_some()
                 || a.plc_station.is_some()
-                || a.plc_module.is_some()
+                || set_module
                 || q.devices().iter().any(|(_, c)| c.parent == Some(id))
             {
                 continue;

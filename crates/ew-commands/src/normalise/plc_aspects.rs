@@ -25,6 +25,12 @@
 //!   it; with several, the first by (name, ID). Joining gives a notice that names the configuration project.
 //! - a role of a newer format: nothing.
 //!
+//! **A station's arrival** (FT-823). When this run gives a device `plc_station` and the project then holds exactly one
+//! station, every module without a station ancestor (a card drawn before the CPU: N0 gave it `plc_module` with the
+//! notice "no PLC station: place a CPU first") becomes that station's child by D4, in the order of the modules' main
+//! representations' anchor cells, in the same transaction as the station. An integrated module is the station itself
+//! and is left alone, as is a module the station lies below.
+//!
 //! N0 runs before N1 (`channel_instantiation`), so the new module's channels exist in the same pass and N3 binds
 //! their pins. It never removes or rewrites an aspect (removing one stays `fields.set`). Stations are handled before
 //! modules, so a station made in the same transaction counts for D4; modules in the order of their main
@@ -200,6 +206,38 @@ fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, Cmd
     Ok(true)
 }
 
+/// FT-823: after a station arrived, the modules that waited for one (no station ancestor, not integrated) attach to
+/// the project's only station by D4, in the order of their main representations' anchor cells (ties by ID). With
+/// several stations nothing happens here: EW-PLC-008 asks the user to attach them.
+fn attach_waiting_modules(tx: &mut TxBuilder<'_>) -> Result<(), CmdError> {
+    let stations = tx
+        .iter::<Device>()
+        .into_iter()
+        .filter(|d| d.aspects.plc_station.is_some())
+        .count();
+    if stations != 1 {
+        return Ok(());
+    }
+    let waiting: Vec<Id<Device>> = tx
+        .iter::<Device>()
+        .into_iter()
+        .filter(|d| {
+            d.aspects.plc_station.is_none() && d.aspects.plc_module.as_ref().is_some_and(|m| !m.integrated)
+        })
+        .map(|d| d.id)
+        .filter(|id| !has_station_ancestor(tx, *id))
+        .collect();
+    let mut keyed: Vec<_> = waiting
+        .into_iter()
+        .map(|id| (crate::numbering::place_key(tx, id), id))
+        .collect();
+    keyed.sort();
+    for (_, module) in keyed {
+        attach_module(tx, module)?;
+    }
+    Ok(())
+}
+
 impl Normaliser for PlcAspects {
     fn id(&self) -> &'static str {
         "plc_aspects"
@@ -225,6 +263,7 @@ impl Normaliser for PlcAspects {
             return Ok(false);
         }
         stations.sort_by_key(|(d, _)| d.id);
+        let station_arrived = !stations.is_empty();
         for (dev, section) in stations {
             let cfg = config_project_for(tx, &dev)?;
             let integrated = (!section.io.is_empty()).then(|| PlcModule {
@@ -251,6 +290,9 @@ impl Normaliser for PlcAspects {
         for (_, module) in keyed {
             tx.update::<Device>(module, |d| d.aspects.plc_module = Some(PlcModule::default()))?;
             attach_module(tx, module)?;
+        }
+        if station_arrived {
+            attach_waiting_modules(tx)?;
         }
         Ok(true)
     }

@@ -8,7 +8,7 @@
 //!
 //! | # | ID | Effect |
 //! |---|---|---|
-//! | 0 | `plc_aspects` | N0: a device that gains a part with a PLC section and carries neither PLC aspect gets `plc_module` or `plc_station` from the section's role; the first station creates the configuration project `PLC<n>`, a module without a station is attached to the project's only station (WP-S1.21 D2 to D4) |
+//! | 0 | `plc_aspects` | N0: a device that gains a part with a PLC section and carries neither PLC aspect gets `plc_module` or `plc_station` from the section's role; the first station creates the configuration project `PLC<n>`, a module without a station is attached to the project's only station (WP-S1.21 D2 to D4), and so are the modules that waited for one when the first station arrives (FT-823) |
 //! | 2 | `cp_instantiation` | No-op recorder: CPs are derived from the FnDef or part pattern and only overrides persist (doc 06 §3.2 row 2), so there is nothing to store |
 //! | 3 | `channel_instantiation` | N1: a new module, or a device that gained the `plc_module` aspect or changed its parts, gets the channels of its part data with v5 IDs and the part's channel kind (doc 10 §3.3; surplus channels stay until `plc.set_module_part` removes them after its preview) |
 //! | 4 | `online_numbering` | Gives a placed numbered device without a counter the next free counter of its page scope, and a device whose page-based tag collides (after a move of its main representation) the next free one (FR-NUM-007, FR-NUM-029) |

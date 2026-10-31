@@ -28,11 +28,11 @@ use crate::tools::black_box::{
     nearest_on_outline, on_outline, outward, reshape_by_grip, reshape_command, selected_black_box,
     signed_area2,
 };
-use crate::tools::ip::{drawing_area, potential_at, potential_of_end, quarter_direction, unused_name};
+use crate::tools::ip::{drawing_area, potential_at, potential_of_end, propose, quarter_direction};
 use crate::tools::wire::PageGridMap;
 use crate::tools::{
-    CanvasEvent, IpDir, IpExternal, IpMemory, IpTool, PickerMode, ToolKey, ToolOutput, WireTool, black_box,
-    selection_kinds,
+    CanvasEvent, IpDir, IpExternal, IpMemory, IpTool, PickerMode, ProjectIps, ToolKey, ToolOutput, WireTool,
+    black_box, selection_kinds,
 };
 
 /// The natural order of two names: runs of decimal digits compare by their value, other runs by their text.
@@ -165,6 +165,51 @@ impl ShellModel {
         })
     }
 
+    /// The project's source points (FT-822): every interruption point of direction `source` that a representation
+    /// draws, with its page; external connection points are left out (they never pair).
+    fn project_ips(&self) -> ProjectIps {
+        let mut out = ProjectIps::default();
+        let Some(p) = &self.project else {
+            return out;
+        };
+        let q = p.session.query();
+        let idx = q.idx();
+        for (id, f) in q.functions().iter() {
+            // The function kind is read through its JSON form (`{"ip": {"name", "direction", …}}`): the shell names no
+            // schema type of its own.
+            let Ok(kind) = serde_json::to_value(&f.kind) else {
+                continue;
+            };
+            let Some(ip) = kind.get("ip") else {
+                continue;
+            };
+            if ip.get("direction").and_then(Value::as_str) != Some("source") || ip.get("external").is_some() {
+                continue;
+            }
+            let Some(name) = ip.get("name").and_then(Value::as_str) else {
+                continue;
+            };
+            for r in idx.reps_of_function(id) {
+                if let Some(rep) = q.reps().get(r) {
+                    out.add_source(name, rep.page.as_uuid());
+                }
+            }
+        }
+        out
+    }
+
+    /// Gives the armed IP tool the project's source points again when the model changed since it read them (FT-822).
+    pub(super) fn sync_ip_project(&mut self) {
+        let rev = self.revision();
+        let stale = self.ip_tool().is_some_and(|t| t.project_rev() != rev);
+        if stale {
+            let ips = self.project_ips();
+            if let Some(t) = self.ip_tool() {
+                t.set_project(ips, rev);
+            }
+        }
+    }
+
     /// The IP tool, when it is the active tool.
     fn ip_tool(&mut self) -> Option<&mut IpTool> {
         self.tools
@@ -187,7 +232,8 @@ impl ShellModel {
             Err(e) => return e,
         };
         let area = self.focused_area();
-        let tool = IpTool::new(shape, self.tools.ip_memory.clone(), area).with_copies(copies);
+        let mut tool = IpTool::new(shape, self.tools.ip_memory.clone(), area).with_copies(copies);
+        tool.set_project(self.project_ips(), self.revision());
         self.activate_tool(Box::new(tool));
         Outcome::Done
     }
@@ -200,6 +246,7 @@ impl ShellModel {
         };
         let memory = self.tools.ip_memory.clone();
         let area = self.focused_area();
+        let project = self.project_ips();
         let result = self
             .with_tool(|t, cx| {
                 let w = t.as_any_mut()?.downcast_mut::<WireTool>()?;
@@ -211,7 +258,9 @@ impl ShellModel {
                     let base = potential_of_end(tables, start)
                         .or_else(|| memory.last_name.clone())
                         .unwrap_or_else(|| "IP".to_owned());
-                    (unused_name(&base, direction, tables), direction.word())
+                    // FT-822: the project's sources decide the role and the series, as the IP tool's do.
+                    let (name, direction) = propose(&base, false, direction, false, false, &project, tables);
+                    (name, direction.word())
                 }))
             })
             .flatten();
@@ -448,6 +497,30 @@ impl ShellModel {
                 self.tools.overlay = overlay;
             }
         }
+    }
+
+    /// FT-822: the IP tool's commit that the model refused (a prevent rule: EW-CORE-052 for a second source of a name)
+    /// is a refusal of the tool's click, not a failure: the tool stays armed with its ghost where it was (the second
+    /// member: keep the overlay), the reason stands in words in the HUD until the next canvas input and in a warning
+    /// toast, and the window shows no banner (a banner is for a state of the whole project, doc 16a §6.11). Every
+    /// other outcome passes unchanged.
+    pub(super) fn ip_commit_refused(&mut self, out: Outcome) -> (Outcome, bool) {
+        let Outcome::Failed { message } = &out else {
+            return (out, false);
+        };
+        if self.tools.tool.name() != "ip" {
+            return (out, false);
+        }
+        let text = strings::format("notice-ip-not-placed", &[message]);
+        self.tools.notice = Some(text.clone());
+        self.tools.notice_sticky = true;
+        self.notify_toned(text, crate::notifications::NoteTone::Warning);
+        (
+            Outcome::Refused {
+                reason_key: "reason-ip-not-placed",
+            },
+            true,
+        )
     }
 
     // -----------------------------------------------------------------------------------------------------------

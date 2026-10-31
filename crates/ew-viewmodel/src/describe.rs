@@ -2921,7 +2921,8 @@ pub fn page_table_lines(table: &ew_api::output::PageListTable) -> Vec<String> {
 /// boxes, each in a named order (reading order of the anchor cell, then the position and the symbol key; connections
 /// by their end labels; junctions in reading order; items and boxes in the page tables' order). The header's
 /// `items <n> boxes <m>` follows `junctions <j>` only when the page has one of them, so a page without items prints
-/// as before. No record ID appears.
+/// as before. No record ID appears. A representation whose bound pins print PLC addresses on the canvas ends its line
+/// with `address "<pin>=<address>" …` (FT-823).
 pub fn page_describe(page: &CanvasPage) -> String {
     let t: &PageTables = &page.tables;
     let mut header = format!(
@@ -2984,13 +2985,28 @@ pub fn page_describe(page: &CanvasPage) -> String {
             (None, Some(tag)) => page_quoted(tag),
             (None, None) => "none".to_owned(),
         };
-        lines.push(format!(
+        let mut line = format!(
             "  rep {who} cell {} symbol {} variant {} {}",
             cell_word(page, r.pos),
             page_quoted(&r.symbol_key),
             page_quoted(&variant_letter(r.orient).to_string()),
             page_at(page, r.pos)
-        ));
+        );
+        // FT-823 (the checker's A11): the PLC addresses the canvas prints beside the representation's bound pins, on
+        // its own line as `address "<pin>=<address>" …` in CP order (the pin is the CP label after its last `:`).
+        let addresses: Vec<String> = cps
+            .iter()
+            .filter_map(|cp| {
+                let address = cp.plc_address.as_deref()?;
+                let pin = cp.label.rsplit_once(':').map_or(cp.label.as_str(), |(_, p)| p);
+                Some(page_quoted(&format!("{pin}={address}")))
+            })
+            .collect();
+        if !addresses.is_empty() {
+            line.push_str(" address ");
+            line.push_str(&addresses.join(" "));
+        }
+        lines.push(line);
         for cp in cps {
             // G-PP triage row 21: a terminal CP names its side beside its clamp (`"1X1:1/a" internal`).
             let side = cp.side.map_or_else(String::new, |s| format!(" {s}"));

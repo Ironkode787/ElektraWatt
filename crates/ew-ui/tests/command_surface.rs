@@ -420,3 +420,32 @@ fn ic2_every_icon_key_resolves() {
         }
     }
 }
+
+/// FT-822 (cycle-39 play-test): the banner lies over the top edge of the canvas below the page tabs; showing and
+/// dismissing it moves neither the page view nor the command bar, so a click aimed before it appears still lands.
+#[test]
+fn ft822_the_banner_overlays_the_canvas_and_moves_nothing() {
+    let tmp = Tmp::new();
+    let mut h = window(&tmp, "comfortable");
+    let (bar, _, pane) = h.state().command_surface_rects();
+    let (bar, pane) = (bar.expect("the command bar"), pane.expect("the page view"));
+    h.state_mut().shell_mut().show_banner("Something to read");
+    settle(&mut h);
+    let (bar2, _, pane2) = h.state().command_surface_rects();
+    assert_eq!(bar2, Some(bar), "the command bar stays");
+    assert_eq!(pane2, Some(pane), "the page view stays");
+    let text = h.get_by_label("Something to read").rect();
+    assert!(
+        pane.contains(text.center()) && text.top() >= pane.top(),
+        "the banner lies over the page view: {text:?} in {pane:?}"
+    );
+    h.get_by_label("Dismiss").click();
+    settle(&mut h);
+    assert!(h.state().shell().banner().is_none());
+    assert_eq!(
+        h.state().command_surface_rects().2,
+        Some(pane),
+        "dismissing moves nothing"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

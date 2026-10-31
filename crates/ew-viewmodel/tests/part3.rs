@@ -147,7 +147,8 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     assert_eq!(ghost["name"], "24VDC-1", "{ghost}");
     assert_eq!(ghost["star"], false);
     assert_eq!(ghost["at_nm"], json!([left.0, left.1]));
-    // In the right quarter it is a source, and no source of 103 has the name yet.
+    // In the right quarter the quarters give a source, but 24VDC-1 has its source on another page and none on 103: the
+    // tool offers the target of that name (FT-822, EW-CORE-052 is project-wide).
     let area = s.canvas().unwrap().page().sheet;
     let right = s
         .canvas()
@@ -158,12 +159,9 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
     let right = grid_point(&s, index_of(&s, right));
     cursor(&mut s, right);
     let ghost = canvas(&s)["ghost"].clone();
-    assert_eq!(ghost["direction"], "source");
-    assert_eq!(ghost["name"], "24VDC-1");
-    // D cycles source → target → undirected; the star toggles.
-    done(&mut s, "tool.ip_direction", json!({}));
-    assert_eq!(canvas(&s)["ghost"]["direction"], "target");
-    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-1", "typed: no series");
+    assert_eq!(ghost["direction"], "target");
+    assert_eq!(ghost["name"], "24VDC-1", "typed: no series");
+    // D goes on from the offered target: undirected; the star toggles.
     done(&mut s, "tool.ip_direction", json!({}));
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     done(&mut s, "tool.star_source", json!({}));

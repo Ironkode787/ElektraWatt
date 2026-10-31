@@ -74,7 +74,7 @@ pub use chooser::{Chooser, ChooserRow, ChooserValue};
 pub use exchange::ExchangeTool;
 pub use graphic::{GraphicShape, GraphicTool};
 pub use image::{ImageAsset, ImageTool, fit_rect};
-pub use ip::{IpDir, IpExternal, IpMemory, IpTool};
+pub use ip::{IpDir, IpExternal, IpMemory, IpTool, ProjectIps};
 pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
 pub use macro_place::MacroTool;
 pub use marker::{MarkerTool, crossed_connections};

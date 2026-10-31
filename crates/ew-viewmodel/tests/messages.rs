@@ -432,10 +432,13 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     done(&mut shell, "navigator.show", json!({"kind": "ips", "on": false}));
     let rev = shell.revision();
     arm_ip(&mut shell, &source, (60, 6), "source");
+    // FT-822: the IP tool's refused click keeps its ghost and says why in the HUD.
     match shell.dispatch("canvas.activate", &json!({})) {
-        Outcome::Failed { message } => assert!(message.contains("EW-CORE-052"), "{message}"),
+        Outcome::Refused { reason_key } => assert_eq!(reason_key, "reason-ip-not-placed"),
         other => panic!("{other:?}"),
     }
+    let notice = shell.tool_notice().unwrap_or_default().to_owned();
+    assert!(notice.contains("EW-CORE-052"), "{notice}");
     assert_eq!(shell.revision(), rev, "nothing committed");
     done(&mut shell, "ui.dismiss", json!({}));
     // Page 101 renumbered to 250, outside section 1's range: EW-CORE-021 (conflict), never pending, while the commit

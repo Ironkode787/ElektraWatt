@@ -271,6 +271,8 @@ impl ShellModel {
     /// and rubber-band states) is not, so a click or a drag does not repeat the hint to a screen reader.
     fn run_tool(&mut self, ev: &CanvasEvent) -> Option<ToolOutput> {
         let (page, points_per_nm, pane) = self.focused_canvas()?;
+        // FT-822: the IP tool's proposal reads the project's source points of this revision.
+        self.sync_ip_project();
         let before = self.tools.tool.status_hint();
         let out = {
             let host = &mut self.tools;
@@ -340,10 +342,11 @@ impl ShellModel {
         match self.run_tool(ev) {
             Some(out) => {
                 let refused = matches!(out, ToolOutput::Refused(_));
+                let committed = matches!(out, ToolOutput::Commit(_));
                 let out = self.apply_tool_output(out);
                 // The refused press's point; a refused Enter (no pointer point) is kept until the pointer or the
-                // grid cursor moves.
-                if refused {
+                // grid cursor moves. A refused commit (FT-822: an interruption point a prevent rule refuses) too.
+                if refused || (committed && matches!(out, Outcome::Refused { .. })) {
                     self.tools.notice_at = match ev {
                         CanvasEvent::Press { at, .. } => Some(*at),
                         CanvasEvent::Activate => Some((i64::MIN, i64::MIN)),
@@ -401,6 +404,8 @@ impl ShellModel {
                 // WP-S2.09 D6: an earlier toast stays (its Undo expires with this commit); a new toast of key `edit`
                 // replaces it.
                 let out = self.run_commit(cmd.as_ref());
+                // FT-822: a refused interruption point keeps its ghost where it was and says why.
+                let (out, keep_ghost) = self.ip_commit_refused(out);
                 // FT-546: every placement answers with its result line (the tag and the cell, and the wires it drew),
                 // said at the end of the dispatch, once the page tables show it.
                 if out == Outcome::Done
@@ -414,7 +419,9 @@ impl ShellModel {
                     });
                 }
                 self.tools.tool.on_commit(out == Outcome::Done);
-                self.tools.overlay = Overlay::default();
+                if !keep_ghost {
+                    self.tools.overlay = Overlay::default();
+                }
                 self.tools.preview = None;
                 // WP-S2.05 part 3: a committed paste returns to Select with the pasted representations selected.
                 self.tools.pasted = out == Outcome::Done && self.tools.tool.name() == "paste";

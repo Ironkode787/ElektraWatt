@@ -674,6 +674,14 @@ pub fn hud(model: &ShellModel) -> HudModel {
         }) => {
             target = Some(name.clone());
             let mut parts = vec![name, direction.to_owned()];
+            // FT-822: the role and the key that changes it ("0V · source · D: target"), so the next role is on screen.
+            if let Some(d) = crate::tools::IpDir::from_word(direction) {
+                parts.push(format!(
+                    "{}: {}",
+                    key_of(model, "tool.ip_direction"),
+                    d.next().word()
+                ));
+            }
             if star {
                 parts.push(strings::text("action-tool-star-source").to_owned());
             }
