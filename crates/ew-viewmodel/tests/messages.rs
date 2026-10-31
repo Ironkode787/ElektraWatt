@@ -439,10 +439,31 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     }
     // H40 item 6: EW-CORE-052 in words, naming the page of the existing source.
     let notice = shell.tool_notice().unwrap_or_default().to_owned();
-    assert!(
-        notice.starts_with(&format!("Not placed: {source} already has a source on page "))
-            && notice.ends_with(". Press D for a target, or mark one source as the star."),
-        "{notice}"
+    assert_eq!(
+        notice,
+        format!(
+            "Not placed: {source} already has a source on page 102. Press D for a target, or mark one source as the \
+             star."
+        )
+    );
+    // Cycle-40 review: the notice names the key the user has bound to `tool.ip_direction`.
+    done(&mut shell, "help.shortcuts", json!({}));
+    done(
+        &mut shell,
+        "keymap.record",
+        json!({"action": "tool.ip_direction", "keys": "Shift+Q"}),
+    );
+    done(&mut shell, "ui.dismiss", json!({}));
+    assert!(matches!(
+        shell.dispatch("canvas.activate", &json!({})),
+        Outcome::Refused { .. }
+    ));
+    assert_eq!(
+        shell.tool_notice().unwrap_or_default(),
+        format!(
+            "Not placed: {source} already has a source on page 102. Press Shift+Q for a target, or mark one source as \
+             the star."
+        )
     );
     assert_eq!(shell.revision(), rev, "nothing committed");
     done(&mut shell, "ui.dismiss", json!({}));

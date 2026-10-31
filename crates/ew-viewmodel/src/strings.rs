@@ -228,7 +228,11 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "notice-ip-not-placed" => "Not placed: {0}",
         // H40 item 6: EW-CORE-052 in words: what is in the way (the existing source's page) and the way out.
         "notice-ip-second-source" => {
-            "Not placed: {0} already has a source on page {1}. Press D for a target, or mark one source as the star."
+            "Not placed: {0} already has a source on page {1}. Press {2} for a target, or mark one source as the star."
+        }
+        // Cycle-40 review: the same, when `tool.ip_direction` has no key: the action by its title.
+        "notice-ip-second-source-unbound" => {
+            "Not placed: {0} already has a source on page {1}. Use {2} for a target, or mark one source as the star."
         }
         "reason-external-never-pairs" => "An external connection point never pairs, so it has no star source",
         "error-no-external" => {

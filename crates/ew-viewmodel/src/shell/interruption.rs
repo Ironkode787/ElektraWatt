@@ -527,7 +527,8 @@ impl ShellModel {
     }
 
     /// The words of an EW-CORE-052 refusal of the IP tool's point (H40 item 6): "Not placed: 0V already has a source
-    /// on page 101. Press D for a target, or mark one source as the star.", with the first page in page order that
+    /// on page 101. Press D for a target, or mark one source as the star.", with the key of `tool.ip_direction` as the
+    /// window names it ([`second_source_text`]) and the first page in page order that
     /// holds a source of the ghost's name, by its folio as the Pages navigator shows it; `None` for another refusal.
     fn second_source_words(&self, message: &str) -> Option<String> {
         if !message.contains("EW-CORE-052:") {
@@ -542,7 +543,8 @@ impl ShellModel {
             .iter()
             .find(|r| pages.contains(&r.id))
             .map(|r| r.folio.clone())?;
-        Some(strings::format("notice-ip-second-source", &[&name, &folio]))
+        let key = crate::command_bar::key_of(self, "tool.ip_direction");
+        Some(second_source_text(&name, &folio, &key))
     }
 
     /// Whether the kept preview failed with the refusal the HUD already carries (H40 item 6): the canvas shows no
@@ -884,9 +886,37 @@ impl ShellModel {
     }
 }
 
+/// The EW-CORE-052 notice of the IP tool for the point `name` whose existing source is on page `folio`: the way out
+/// names `key`, the first binding of `tool.ip_direction` (the user may rebind it), or the action by its title when it
+/// has none (cycle-40 review).
+fn second_source_text(name: &str, folio: &str, key: &str) -> String {
+    if key.is_empty() {
+        let title = crate::actions::find("tool.ip_direction")
+            .map_or("tool.ip_direction", |m| strings::text(m.label_key));
+        strings::format("notice-ip-second-source-unbound", &[name, folio, title])
+    } else {
+        strings::format("notice-ip-second-source", &[name, folio, key])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Cycle-40 review: the EW-CORE-052 notice names the key the user has for `tool.ip_direction`, or the action by its
+    /// title when it has none.
+    #[test]
+    fn the_second_source_notice_names_the_key_or_the_title() {
+        assert_eq!(
+            second_source_text("0V", "101", "D"),
+            "Not placed: 0V already has a source on page 101. Press D for a target, or mark one source as the star."
+        );
+        assert_eq!(
+            second_source_text("0V", "101", ""),
+            "Not placed: 0V already has a source on page 101. Use Interruption point direction for a target, or mark \
+             one source as the star."
+        );
+    }
 
     #[test]
     fn the_natural_order_reads_numbers_by_value() {

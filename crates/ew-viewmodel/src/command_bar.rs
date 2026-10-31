@@ -568,10 +568,10 @@ pub fn pointer_stack(model: &ShellModel) -> usize {
     tools::pick_stack(page, &page.snapper, at, reach).len()
 }
 
-/// The first shortcut of action `id`, or an empty text.
-fn key_of(model: &ShellModel, id: &str) -> String {
+/// The first shortcut of action `id` as the window's chips show it ([`crate::keymap::display`]), or an empty text.
+pub(crate) fn key_of(model: &ShellModel, id: &str) -> String {
     actions::find(id)
-        .map(|m| model.shortcut_text(m))
+        .map(|m| crate::keymap::display(&model.shortcut_text(m)))
         .unwrap_or_default()
 }
 
