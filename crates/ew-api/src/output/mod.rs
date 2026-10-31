@@ -770,6 +770,7 @@ pub fn export_svg_with(
     assets: &ExportAssets,
 ) -> Result<SvgExport, OutputError> {
     let pages = export_pages_with(q, options, assets)?;
+    raster::refuse_same_file_names(pages.pages.iter().map(|p| p.label.as_str()), svg_file_name)?;
     let out = ew_export::svg(
         &pages.pages,
         &svg_options(options.monochrome),

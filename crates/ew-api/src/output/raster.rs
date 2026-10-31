@@ -92,6 +92,31 @@ pub fn raster_workers(pixels: &[u64], requested: usize) -> usize {
     n.max(1)
 }
 
+/// Refuses a file set in which two folio labels give the same file name under `name` (`1/2` and `1_2` both give
+/// `1_2.png`), so that no page of a PNG or SVG set overwrites another (cycle-40 review, part 3, finding 4).
+///
+/// # Errors
+///
+/// [`OutputError::Selection`] naming the first two such folios in page order and the file name.
+pub(super) fn refuse_same_file_names<'a>(
+    labels: impl IntoIterator<Item = &'a str>,
+    name: impl Fn(&str) -> String,
+) -> Result<(), OutputError> {
+    // Case folded: `A1.png` and `a1.png` are one file on Windows and macOS, and the refusal is the same everywhere.
+    let mut seen: std::collections::BTreeMap<String, (&str, String)> = std::collections::BTreeMap::new();
+    for label in labels {
+        let file = name(label);
+        if let Some((first, file)) = seen.get(&file.to_ascii_lowercase()) {
+            return Err(OutputError::Selection(format!(
+                "folios `{first}` and `{label}` would both be written to `{file}`; export them in separate runs \
+                 (`--pages`)"
+            )));
+        }
+        seen.insert(file.to_ascii_lowercase(), (label, file));
+    }
+    Ok(())
+}
+
 /// One page raster.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PngFile {
@@ -180,6 +205,7 @@ pub fn export_png_with(
     assets: &ExportAssets,
 ) -> Result<PngExport, OutputError> {
     let pages = export_pages_with(q, options, assets)?;
+    refuse_same_file_names(pages.pages.iter().map(|p| p.label.as_str()), png_file_name)?;
     let mut pixels = Vec::with_capacity(pages.pages.len());
     for page in &pages.pages {
         check_page_pixels(&format!("Folio {}", page.label), page.width, page.height, dpi)?;
@@ -277,6 +303,27 @@ mod tests {
             "PNG: Folio 8 would be 85039 × 28 pixels at 72 dpi; the limit is 150 million pixels. \
              The page is too large at every resolution from 72 dpi."
         );
+    }
+
+    /// Cycle-40 review, part 3, finding 4: two folios whose file names are the same (after `_` for other characters,
+    /// and ignoring case) are refused naming both folios and the file; distinct names pass.
+    #[test]
+    fn two_folios_with_one_file_name_are_refused() {
+        assert_eq!(
+            refuse_same_file_names(["1", "1/2", "2", "1_2"], png_file_name)
+                .unwrap_err()
+                .to_string(),
+            "page selection: folios `1/2` and `1_2` would both be written to `1_2.png`; export them in separate \
+             runs (`--pages`)"
+        );
+        assert_eq!(
+            refuse_same_file_names(["A1", "a1"], super::super::svg_file_name)
+                .unwrap_err()
+                .to_string(),
+            "page selection: folios `A1` and `a1` would both be written to `A1.svg`; export them in separate runs \
+             (`--pages`)"
+        );
+        assert!(refuse_same_file_names(["101", "101.1", "908.2"], png_file_name).is_ok());
     }
 
     #[test]

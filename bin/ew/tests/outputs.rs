@@ -204,13 +204,20 @@ fn render_refuses_an_unknown_folio_and_a_bad_resolution() {
     let p = t.golden();
     let o = t.ew(&args([&"render", &p, &"--page", &"999", &"--png"]));
     assert_eq!(o.status.code(), Some(2));
-    assert!(stderr(&o).contains("`999`"), "{}", stderr(&o));
+    assert_eq!(
+        stderr(&o),
+        "error: page selection: the page order has no folio `999`\n"
+    );
     assert!(!t.0.join("999.png").exists());
     let o = t.ew(&args([
         &"render", &p, &"--page", &"103", &"--png", &"--dpi", &"601",
     ]));
     assert_eq!(o.status.code(), Some(2));
-    assert!(stderr(&o).contains("--dpi"), "{}", stderr(&o));
+    // A usage error: the line, then the usage text.
+    assert_eq!(
+        stderr(&o).lines().next(),
+        Some("error: `--dpi` needs a number from 72 to 600, got `601`")
+    );
 }
 
 /// A copy of Golden A whose A3 frame forms declare a sheet of `width` × `height` millimetres.
@@ -319,7 +326,13 @@ fn export_png_refuses_a_directory_with_another_file() {
     std::fs::write(dir.join("notes.txt"), "keep me").unwrap();
     let o = t.ew(&args([&"export", &"png", &p, &"--out", &dir, &"--pages", &"103"]));
     assert_eq!(o.status.code(), Some(2));
-    assert!(stderr(&o).contains("not a PNG file"), "{}", stderr(&o));
+    assert_eq!(
+        stderr(&o),
+        format!(
+            "error: {}: the directory holds notes.txt, which is not a PNG file; choose an empty or PNG-only directory\n",
+            dir.display()
+        )
+    );
     assert_eq!(files(&dir).keys().collect::<Vec<_>>(), ["notes.txt"]);
     let clean = t.0.join("clean");
     std::fs::create_dir_all(&clean).unwrap();
@@ -410,10 +423,16 @@ fn report_refuses_xlsx_and_an_unknown_block() {
         &"xlsx",
     ]));
     assert_eq!(o.status.code(), Some(2));
-    assert!(stderr(&o).contains("FT-61"), "{}", stderr(&o));
+    assert_eq!(
+        stderr(&o).lines().next(),
+        Some("error: `--format xlsx` is not built yet (csv, pdf; XLSX waits for the writer of FT-61)")
+    );
     let o = t.ew(&args([&"export", &"report", &p, &"--block", &"777"]));
     assert_eq!(o.status.code(), Some(2));
-    assert!(stderr(&o).contains("`777`"), "{}", stderr(&o));
+    assert_eq!(
+        stderr(&o),
+        "error: no report block `777` (name a block by its ID or its first folio)\n"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -474,10 +493,16 @@ fn row_exports_refuse_an_unknown_strip_and_a_block_of_another_kind() {
     let p = t.golden();
     let o = t.ew(&args([&"export", &"terminals", &p, &"--strip", &"-X9"]));
     assert_eq!(o.status.code(), Some(2));
-    assert!(stderr(&o).contains("`-X9`"), "{}", stderr(&o));
+    assert_eq!(
+        stderr(&o),
+        "error: no terminal strip `-X9` in the terminal diagrams (they list 1X1, -X1031, -X1032)\n"
+    );
     let o = t.ew(&args([&"export", &"wires", &p, &"--block", &"908"]));
     assert_eq!(o.status.code(), Some(2));
-    assert!(stderr(&o).contains("`plc_overview`"), "{}", stderr(&o));
+    assert_eq!(
+        stderr(&o),
+        "error: the report block `908` is of kind `plc_overview`, not `wire_list`\n"
+    );
     let o = t.ew(&args([
         &"export",
         &"terminals",
@@ -488,6 +513,10 @@ fn row_exports_refuse_an_unknown_strip_and_a_block_of_another_kind() {
         &"1X1",
     ]));
     assert_eq!(o.status.code(), Some(2), "1X1 is not on folio 904's block");
+    assert_eq!(
+        stderr(&o),
+        "error: no terminal strip `1X1` in the terminal diagrams (they list -X1031)\n"
+    );
 }
 
 /// OU-4: `ew export bom --block <id of 901>` equals the default bill of materials, in both modes; `cables --block 906`

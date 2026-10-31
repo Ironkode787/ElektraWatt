@@ -138,6 +138,16 @@ fn new_or_moved_functions(tx: &TxBuilder<'_>) -> BTreeMap<Id<Device>, BTreeSet<I
     out
 }
 
+/// A part as a notice names it: `part CPU-DP`, or `a part without a number` when the number is empty (an `Ident` is
+/// never empty today; the words stay right if a part ever comes without one: cycle-40 review, part 3, finding 7).
+fn part_text(number: &str) -> String {
+    if number.trim().is_empty() {
+        "a part without a number".to_owned()
+    } else {
+        format!("part {number}")
+    }
+}
+
 /// A port as a notice names it: the device's tag, a colon and the interface, then a space and the label (`-A1:DP`).
 fn port_text(tx: &TxBuilder<'_>, device: Id<Device>, key: &PortKey) -> String {
     let tag = crate::words::device(tx, device);
@@ -160,7 +170,7 @@ fn run_device(
     let Some(part) = bus_part(tx, &dev.parts) else {
         return Ok(false);
     };
-    let number = part.item.part_number.as_str().to_owned();
+    let part_words = part_text(part.item.part_number.as_str());
     let Some(section) = part.item.sections.bus.as_ref() else {
         return Ok(false);
     };
@@ -175,7 +185,7 @@ fn run_device(
         if matches!(port.bus, BusSystem::Unknown(_)) || matches!(port.role, PortRole::Unknown(_)) {
             if full {
                 tx.notice(format!(
-                    "bus port {} of part {number} is of a newer format and was not applied",
+                    "bus port {} of {part_words} is of a newer format and was not applied",
                     port.interface.as_str()
                 ));
             }
@@ -223,7 +233,7 @@ fn run_device(
             };
             if have.bus != port.bus || have.role != port.role {
                 let text = format!(
-                    "{} keeps its bus port; part {number} declares {} {}",
+                    "{} keeps its bus port; {part_words} declares {} {}",
                     port_text(tx, device, key),
                     stored_name(&port.bus),
                     stored_name(&port.role)
@@ -249,5 +259,25 @@ impl Normaliser for BusPorts {
             changed |= run_device(tx, device, full.contains(&device), moved.get(&device))?;
         }
         Ok(changed)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::part_text;
+
+    /// Cycle-40 review, part 3, finding 7: a part without a number is named in words, never `part ` and nothing.
+    #[test]
+    fn a_part_without_a_number_is_named_in_words() {
+        assert_eq!(part_text("CPU-DP"), "part CPU-DP");
+        assert_eq!(part_text(""), "a part without a number");
+        assert_eq!(part_text(" "), "a part without a number");
+        assert_eq!(
+            format!(
+                "bus port DP of {} is of a newer format and was not applied",
+                part_text("")
+            ),
+            "bus port DP of a part without a number is of a newer format and was not applied"
+        );
     }
 }

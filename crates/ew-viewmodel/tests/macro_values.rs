@@ -235,8 +235,8 @@ fn ft785_a_value_that_does_not_coerce_is_refused_under_its_field() {
     let m = card(&shell);
     let n = m.fields.iter().find(|f| f.name == "n").unwrap();
     let error = n.error.as_deref().expect("the refusal under the field");
-    assert!(error.contains("\"abc\" is not a tag counter"), "{error}");
-    assert!(!error.contains("variable `n`"), "{error}");
+    // The whole text: the refusal in words, without the variable's name (cycle-40 review, part 3, finding 2).
+    assert_eq!(error, "\"abc\" is not a tag counter (an integer from 1)");
     assert!(m.fields.iter().find(|f| f.name == "pt").unwrap().error.is_none());
     assert!(shell.properties().card().unwrap().preview.result.is_err());
     // The card leads in words naming the variable, not with the command's pointer.
@@ -246,9 +246,9 @@ fn ft785_a_value_that_does_not_coerce_is_refused_under_its_field() {
         .unwrap()
         .failed_lead()
         .expect("the lead");
-    assert!(
-        lead.text.contains(" n") && !lead.text.contains("/values"),
-        "{lead:?}"
+    assert_eq!(
+        lead.text,
+        "The macro cannot be inserted with the value typed for n."
     );
     assert!(matches!(
         shell.dispatch("preview.apply", &json!({})),
@@ -390,9 +390,10 @@ fn ft786_an_invalid_cell_is_refused_naming_the_set_and_the_variable() {
     let Outcome::Failed { message } = shell.submit_form() else {
         panic!("the save is refused")
     };
-    assert!(message.contains("\u{201c}Set 1\u{201d}"), "{message}");
-    assert!(message.contains("\u{201c}n\u{201d}"), "{message}");
-    assert!(message.contains("\"abc\" is not a tag counter"), "{message}");
+    assert_eq!(
+        message,
+        "Value set \u{201c}Set 1\u{201d}, variable \u{201c}n\u{201d}: \"abc\" is not a tag counter (an integer from 1)"
+    );
     assert_eq!(save_form(&shell).error.as_deref(), Some(message.as_str()));
     // A set without a name.
     shell.set_form_table_cell(0, Some(0), "3");

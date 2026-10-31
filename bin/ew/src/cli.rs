@@ -802,7 +802,11 @@ fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String>
                         "`--format xlsx` is not built yet ({formats}; XLSX waits for the writer of FT-61)"
                     ));
                 }
-                "pdf" => return Err("`--format pdf` is not built yet (csv)".to_owned()),
+                "pdf" => {
+                    return Err(format!(
+                        "`export {what}` is CSV only; a report block's pages go to PDF with `ew export report --block <block> --format pdf`"
+                    ));
+                }
                 other if report => return Err(format!("unknown format `{other}` (csv, pdf)")),
                 other => return Err(format!("unknown format `{other}` (csv)")),
             },
@@ -1540,6 +1544,9 @@ fn run_export(a: &ExportArgs) -> i32 {
             };
             match ew_api::output::row_export(&session.query(), &what, block.as_deref()) {
                 Ok(r) => {
+                    for notice in &r.notices {
+                        eprintln!("{notice}");
+                    }
                     if let ExportKind::Report { .. } = kind {
                         return finish_export_report_csv(a, &r);
                     }
@@ -4455,12 +4462,22 @@ SELECT 1"
         assert!(p(&["export", "report"]).is_err());
         assert!(p(&["export", "report", "--block", "908", "--format", "pdf"]).is_err());
         assert!(p(&["export", "report", "--block", "908", "--format", "svg"]).is_err());
-        for args in [
-            &["export", "wires", "--format", "xlsx"][..],
-            &["export", "report", "--block", "908", "--format", "xlsx"][..],
-        ] {
-            let e = p(args).unwrap_err();
-            assert!(e.contains("FT-61"), "{args:?}: {e}");
+        assert_eq!(
+            p(&["export", "wires", "--format", "xlsx"]).unwrap_err(),
+            "`--format xlsx` is not built yet (csv; XLSX waits for the writer of FT-61)"
+        );
+        assert_eq!(
+            p(&["export", "report", "--block", "908", "--format", "xlsx"]).unwrap_err(),
+            "`--format xlsx` is not built yet (csv, pdf; XLSX waits for the writer of FT-61)"
+        );
+        // Cycle-40 review, part 3, finding 5: the row exports are CSV only, and the refusal points to the report PDF.
+        for what in ["bom", "cables", "wires", "terminals"] {
+            assert_eq!(
+                p(&["export", what, "--format", "pdf"]).unwrap_err(),
+                format!(
+                    "`export {what}` is CSV only; a report block's pages go to PDF with `ew export report --block <block> --format pdf`"
+                )
+            );
         }
     }
 

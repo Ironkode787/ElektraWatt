@@ -14,7 +14,9 @@
 //! rows of each terminal-diagram block are split by strip (a data row's first row-ID component is its strip; a heading
 //! row goes with the strip of the next data row); with `--strip <tag>` the output is that strip's rows alone (the
 //! golden `terminals_<strip>.csv`), without it every strip of the blocks in block order, each strip's rows after a
-//! heading row `heading,<strip tag>,,…`.
+//! heading row `heading,<strip tag>,,…`. Within a block every run of a strip is kept (runs concatenated in row order);
+//! a strip a later block lists again keeps the earlier block's rows, and [`RowsCsv::notices`] says so. `--strip`
+//! takes a full tag exactly, else the printed tag, and refuses a printed tag two strips share.
 
 use std::fmt;
 use std::sync::Arc;
@@ -70,6 +72,8 @@ pub struct RowsCsv {
     pub kind: String,
     /// For terminals: the printed tags of the strips written, in output order; else empty.
     pub strips: Vec<String>,
+    /// Sentences for the user about rows left out (a strip a later block lists again); the CLI writes each on stderr.
+    pub notices: Vec<String>,
 }
 
 /// Why a row export could not produce rows.
@@ -99,6 +103,8 @@ pub enum RowsError {
     },
     /// No strip of the terminal diagrams has this tag (the tags there are).
     UnknownStrip(String, Vec<String>),
+    /// More than one strip prints this tag (their full tags).
+    AmbiguousStrip(String, Vec<String>),
     /// The block has no pages (an embedded block), so it has no folios to write.
     NoPages(String),
 }
@@ -129,6 +135,11 @@ impl fmt::Display for RowsError {
                 f,
                 "no terminal strip `{tag}` in the terminal diagrams (they list {})",
                 tags.join(", ")
+            ),
+            RowsError::AmbiguousStrip(tag, fulls) => write!(
+                f,
+                "more than one terminal strip has the tag `{tag}` ({}); name it by its full tag",
+                fulls.join(", ")
             ),
             RowsError::NoPages(block) => write!(f, "the report block `{block}` has no pages"),
         }
@@ -253,6 +264,7 @@ fn whole(q: &Q, set: &RowSet, kind: String, blocks: Vec<String>) -> RowsCsv {
         blocks,
         kind,
         strips: Vec::new(),
+        notices: Vec::new(),
     }
 }
 
@@ -301,6 +313,69 @@ fn split_by_strip(set: &RowSet) -> Vec<(Id<Device>, Vec<Row>)> {
     out
 }
 
+/// The strips of the terminal blocks, each once (cycle-40 review, part 3, finding 3).
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+struct GatheredStrips {
+    /// Each strip with the label of the block its rows come from and its rows: every run of the strip in that
+    /// block, concatenated in the block's row order. In order of first appearance, block by block.
+    strips: Vec<(Id<Device>, String, Vec<Row>)>,
+    /// A strip that a later block lists again, with that block's label: its rows there are left out.
+    repeats: Vec<(Id<Device>, String)>,
+}
+
+/// The strips of `blocks` (each block's label, its first folio, and its rows): within a block every run of a strip
+/// is kept, runs concatenated; a strip a later block lists again keeps the earlier block's rows and is a repeat.
+fn gather_strips(blocks: &[(String, &RowSet)]) -> GatheredStrips {
+    let mut out = GatheredStrips::default();
+    for (label, set) in blocks {
+        let mut here: Vec<(Id<Device>, Vec<Row>)> = Vec::new();
+        for (s, mut rows) in split_by_strip(set) {
+            match here.iter_mut().find(|(t, _)| *t == s) {
+                Some((_, kept)) => kept.append(&mut rows),
+                None => here.push((s, rows)),
+            }
+        }
+        for (s, rows) in here {
+            if out.strips.iter().any(|(t, _, _)| *t == s) {
+                out.repeats.push((s, label.clone()));
+            } else {
+                out.strips.push((s, label.clone(), rows));
+            }
+        }
+    }
+    out
+}
+
+/// The one strip `tag` names among `tags` (each strip's printed and full tag): the full tag exactly, else the printed
+/// tag; `None` when no strip has it.
+///
+/// # Errors
+///
+/// [`RowsError::AmbiguousStrip`] when two strips print the tag (their full tags).
+fn pick_strip(tag: &str, tags: &[(String, String)]) -> Result<Option<usize>, RowsError> {
+    if let Some(i) = tags.iter().position(|(_, full)| full == tag) {
+        return Ok(Some(i));
+    }
+    let printed: Vec<usize> = (0..tags.len()).filter(|&i| tags[i].0 == tag).collect();
+    match printed.as_slice() {
+        [] => Ok(None),
+        [one] => Ok(Some(*one)),
+        many => Err(RowsError::AmbiguousStrip(
+            tag.to_owned(),
+            many.iter().map(|&i| tags[i].1.clone()).collect(),
+        )),
+    }
+}
+
+/// The full tag of a strip (`=P01+L1-X1`).
+fn strip_full_tag(q: &Q, strip: Id<Device>) -> String {
+    q.get::<DeviceTag>(strip)
+        .as_ref()
+        .as_ref()
+        .map(|t| t.full.clone())
+        .unwrap_or_default()
+}
+
 /// The terminal rows of `chosen`'s blocks: one strip (`--strip`) or every strip after its heading row.
 fn terminals(
     q: &Q,
@@ -309,22 +384,34 @@ fn terminals(
     kind: &str,
     blocks: Vec<String>,
 ) -> Result<RowsCsv, RowsError> {
-    let mut sets: Vec<RowSet> = Vec::with_capacity(chosen.len());
-    for (id, _) in chosen {
-        sets.push(derived((*rows_of(q, *id)).clone(), kind)?);
+    let mut sets: Vec<(String, RowSet)> = Vec::with_capacity(chosen.len());
+    for (id, b) in chosen {
+        let label = b.first_folio.map_or_else(|| id.to_string(), |n| n.to_string());
+        sets.push((label, derived((*rows_of(q, *id)).clone(), kind)?));
     }
-    let Some(template) = sets.first() else {
+    let Some((_, template)) = sets.first() else {
         return Err(RowsError::NoBlock("terminal_diagram"));
     };
-    // Every strip once, in block order.
-    let mut strips: Vec<(Id<Device>, String, Vec<Row>)> = Vec::new();
-    for set in &sets {
-        for (s, rows) in split_by_strip(set) {
-            if !strips.iter().any(|(t, _, _)| *t == s) {
-                strips.push((s, strip_tag(q, s), rows));
-            }
-        }
-    }
+    let gathered = gather_strips(&sets.iter().map(|(l, s)| (l.clone(), s)).collect::<Vec<_>>());
+    // Every strip once, in block order, with its printed tag and the block its rows come from.
+    let strips: Vec<(Id<Device>, String, String, Vec<Row>)> = gathered
+        .strips
+        .into_iter()
+        .map(|(s, label, rows)| (s, strip_tag(q, s), label, rows))
+        .collect();
+    let notices_of = |only: Option<Id<Device>>| -> Vec<String> {
+        gathered
+            .repeats
+            .iter()
+            .filter(|(s, _)| only.is_none_or(|o| o == *s))
+            .filter_map(|(s, later)| {
+                let (_, tag, from, _) = strips.iter().find(|(t, _, _, _)| t == s)?;
+                Some(format!(
+                    "{tag} is also in the block on folio {later}; its rows come from folio {from}."
+                ))
+            })
+            .collect()
+    };
     let of = |rows: Vec<Row>| {
         let mut set = template.clone();
         set.rows = rows;
@@ -332,12 +419,17 @@ fn terminals(
         set
     };
     if let Some(tag) = strip {
-        let Some((_, name, rows)) = strips.iter().find(|(_, t, _)| t == tag).cloned() else {
+        let tags: Vec<(String, String)> = strips
+            .iter()
+            .map(|(s, t, _, _)| (t.clone(), strip_full_tag(q, *s)))
+            .collect();
+        let Some(i) = pick_strip(tag, &tags)? else {
             return Err(RowsError::UnknownStrip(
                 tag.to_owned(),
-                strips.into_iter().map(|(_, t, _)| t).collect(),
+                strips.into_iter().map(|(_, t, _, _)| t).collect(),
             ));
         };
+        let (id, name, _, rows) = strips[i].clone();
         let set = of(rows);
         return Ok(RowsCsv {
             csv: rows_csv(q, &set),
@@ -345,13 +437,15 @@ fn terminals(
             blocks,
             kind: kind.to_owned(),
             strips: vec![name],
+            notices: notices_of(Some(id)),
         });
     }
+    let notices = notices_of(None);
     let columns = template.columns.len();
     let mut csv = rows_csv(q, &of(Vec::new()));
     let mut count = 0;
     let mut names = Vec::with_capacity(strips.len());
-    for (_, name, rows) in strips {
+    for (_, name, _, rows) in strips {
         let mut heading = vec!["heading".to_owned(), csv_field(&name)];
         heading.resize(columns + 1, String::new());
         csv.push_str(&heading.join(","));
@@ -368,6 +462,7 @@ fn terminals(
         blocks,
         kind: kind.to_owned(),
         strips: names,
+        notices,
     })
 }
 
@@ -389,4 +484,68 @@ pub fn report_folios(q: &Q, block: &str) -> Result<Vec<String>, RowsError> {
         return Err(RowsError::NoPages(block.to_owned()));
     }
     Ok(folios)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ew_derive::ew_ids::Uuid;
+    use ew_reports::{Cell, RowId};
+
+    fn strip(n: u128) -> Id<Device> {
+        Id::from_uuid(Uuid::from_u128(n))
+    }
+
+    /// A data row of strip `s` with the terminal number `t`.
+    fn row(s: u128, t: u32) -> Row {
+        Row::data(
+            RowId(vec![RowKey::Entity(Uuid::from_u128(s)), RowKey::Index(t)]),
+            vec![Cell::Number(i64::from(t))],
+        )
+    }
+
+    fn set(rows: Vec<Row>) -> RowSet {
+        let mut set = RowSet::new(Vec::new());
+        set.rows = rows;
+        set
+    }
+
+    /// Cycle-40 review, part 3, finding 3: every run of a strip in a block is kept, runs concatenated; a strip a
+    /// later block lists again keeps the earlier rows and is a repeat naming the later block.
+    #[test]
+    fn every_run_of_a_strip_is_kept_and_a_repeat_across_blocks_is_named() {
+        let first = set(vec![row(1, 1), row(1, 2), row(2, 1), row(1, 3)]);
+        let second = set(vec![row(2, 5), row(3, 1)]);
+        let got = gather_strips(&[("910".to_owned(), &first), ("912".to_owned(), &second)]);
+        assert_eq!(
+            got,
+            GatheredStrips {
+                strips: vec![
+                    (strip(1), "910".to_owned(), vec![row(1, 1), row(1, 2), row(1, 3)]),
+                    (strip(2), "910".to_owned(), vec![row(2, 1)]),
+                    (strip(3), "912".to_owned(), vec![row(3, 1)]),
+                ],
+                repeats: vec![(strip(2), "912".to_owned())],
+            }
+        );
+    }
+
+    /// `--strip` takes the full tag exactly, else the one printed tag; two strips printing the tag are refused with
+    /// their full tags.
+    #[test]
+    fn a_printed_tag_two_strips_share_is_refused() {
+        let tags = vec![
+            ("-X1".to_owned(), "=A+L1-X1".to_owned()),
+            ("-X2".to_owned(), "=A+L1-X2".to_owned()),
+            ("-X1".to_owned(), "=A+L2-X1".to_owned()),
+        ];
+        assert_eq!(pick_strip("-X2", &tags), Ok(Some(1)));
+        assert_eq!(pick_strip("=A+L2-X1", &tags), Ok(Some(2)));
+        assert_eq!(pick_strip("-X9", &tags), Ok(None));
+        let e = pick_strip("-X1", &tags).unwrap_err();
+        assert_eq!(
+            e.to_string(),
+            "more than one terminal strip has the tag `-X1` (=A+L1-X1, =A+L2-X1); name it by its full tag"
+        );
+    }
 }
