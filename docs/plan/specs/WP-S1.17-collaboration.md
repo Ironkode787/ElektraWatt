@@ -1,0 +1,496 @@
+# WP-S1.17: collaboration: external change, migrations, integrity, merge driver (closed specification)
+
+**Status:** specified in cycle 42 (documents only, lane S42b), an M2 package and a dependency of WP-S6.08, in eight
+parts: part 1 the store's stamps and safeguards (0.9 pw, D3 to D7), part 2 `.ewz` transport (0.8 pw, D8, D9), part 3
+format migrations and the upgrade backup (0.8 pw, D10 to D12), part 4 the three-way merge core and `ew merge-driver`
+(1.2 pw, D13 to D16), part 5 conflict records, conflict markers and their resolution (0.9 pw, D17 to D19), part 6
+external change in the store and the session (1.1 pw, D20 to D23), part 7 the window, cloud folders and the driver
+status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge integrity and AC-41 (0.9 pw, D26 to D29).
+The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Date:** 2026-10-31 · **Work package:**
+[WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
+**Decision log:** ID-? · **Part of:** ElektraWatt plan, specifications
+
+**Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
+this package everything that happens when a project changes outside the running session or between builds: a pull
+or a colleague's save while the project is open, a hand edit, a sync client's conflict copy, a project from an older
+or newer format, a git merge of two branches, and the transport of a project as one file. This document closes the
+package against the code at `453d252d` (§2.1). Where it and a design document differ, this document is the narrower
+and wins for the lanes; the design documents stay the target, and the documents of §14 are updated at the design pass
+after each part. A choice a lane meets that this document does not settle is escalated, never guessed (`CLAUDE.md`,
+rule 2).
+
+---
+
+**Contents**
+1. [Goal and non-goals](#1-goal-and-non-goals)
+2. [Inputs and the code as it is](#2-inputs-and-the-code-as-it-is)
+3. [Requirements traced](#3-requirements-traced)
+4. [Decisions](#4-decisions)
+5. [Format and data](#5-format-and-data)
+6. [Part 1: the store's stamps and safeguards](#6-part-1-the-stores-stamps-and-safeguards)
+7. [Part 2: `.ewz` transport](#7-part-2-ewz-transport)
+8. [Part 3: format migrations and the upgrade backup](#8-part-3-format-migrations-and-the-upgrade-backup)
+9. [Part 4: the three-way merge core and `ew merge-driver`](#9-part-4-the-three-way-merge-core-and-ew-merge-driver)
+10. [Part 5: conflict records, conflict markers and their resolution](#10-part-5-conflict-records-conflict-markers-and-their-resolution)
+11. [Part 6: external change in the store and the session](#11-part-6-external-change-in-the-store-and-the-session)
+12. [Part 7: the window, cloud folders and the driver status](#12-part-7-the-window-cloud-folders-and-the-driver-status)
+13. [Part 8: `ew diff`, `ew git setup`, post-merge integrity and AC-41](#13-part-8-ew-diff-ew-git-setup-post-merge-integrity-and-ac-41)
+14. [Files owned, boundaries, risks, size and routing](#14-files-owned-boundaries-risks-size-and-routing)
+15. [Follow-ups, documents to update, open questions](#15-follow-ups-documents-to-update-open-questions)
+16. [Sources](#sources)
+
+---
+
+## 1. Goal and non-goals
+
+**Goal.** At the end of the package a project that changes on disk while it is open is detected, and the change is
+applied as one undoable "External change" step when no unsaved edit collides, or the colliding fields are shown for a
+choice; a save never overwrites a file that changed outside the session; a read-only follower reloads on each of the
+holder's saves; a project travels as a deterministic `.ewz` and opens from one, extracted or read-only; a project of
+an older format migrates in memory and its first save asks and writes a backup `.ewz`; the manifest carries a computed
+`min_reader` and, after the first release, the `unstable` mark; an untouched record with unknown members keeps its
+original line; `ew merge-driver` merges three-way per record and per field and writes conflict records; conflict
+markers left by a text merge load as conflict records; `ew merge resolve` resolves them in one step; `ew diff` and
+its textconv print changes with derived tags; `ew git setup` configures the driver; the integrity check runs on open
+and after merges with the "renumber the newer" fix for device tags; and AC-41 passes in a real git repository.
+
+**Non-goals** (each with its package):
+- No conflict-resolution panel for driver conflict records (FR-COL-015, 1.0; WP-S2.15) and no cross-file
+  reconciliation (FR-COL-016, 1.0; WP-S1.31). At MVP conflict records load, block release (EW-CORE-011) and are
+  resolved by `ew merge resolve` (doc 15 §6.5's release split).
+- No visual comparison (FR-COL-017), work copies (FR-COL-022), request-edit files (FR-COL-023), local history
+  through gix (FR-COL-020) or real-time co-editing (FR-COL-021).
+- No `--omit-personal-data` on `ew export ewz` (FR-OUT-025, WP-S3.04; FT-255).
+- No importer migration reports or `ew verify-migration` (WP-S3.09): "migration" here is ElektraWatt's own format
+  chain only (§14.2).
+- No signing of `.ewz`, trust store or threat model (WP-S6.04; §14.2).
+- No `notify` watcher: detection polls the manifest (D20).
+- No change to any exported byte of Golden A and no write into `golden/` (§5).
+
+## 2. Inputs and the code as it is
+
+| Input | What the lanes take from it |
+|---|---|
+| [Project format](../../design/05-project-format-and-persistence.md) §4, §5.2, §6.2, §6.3, §7.2, §7.3, §9, §10, §11, §12, §15, §16 | Manifest stamps, the save pre-check, mismatch classes, integrity findings, lock loss, read-only reload, external change, versioning, git integration, `.ewz`, cloud pitfalls, the UI touchpoints |
+| [Checks, revisions, collaboration](../../design/15-checks-revisions-collaboration.md) §6.1 to §6.5 | Modes of working, the git workflow, branch-safe counters, the merge panel's release split, AC-41 |
+| [Golden project](../../design/20-golden-project.md) AC-41 | The acceptance on W20 and -102F2 |
+| [Extensibility](../../design/17-extensibility.md) §3.2, §3.3 | The CLI catalogue, the project argument (`--project <dir or .ewz>`), the merge driver's exit codes |
+| ADR-0008, ADR-0009, ADR-0010 amendments 1 and 3, ADR-0011 amendments 1 to 5, ADR-0012 amendments 1 and 2 | Transactions and exposure, the invariants, the save protocol, versioning, git integration |
+| Specifications | [WP-S1.18](WP-S1.18-revisions-release-and-archive.md) (D11 ZIP writer, D12 git executable, D14 archive open), [WP-S1.22](WP-S1.22-cli-surface-and-api-guard.md) (D2 ownership by library, D9 `ew fmt`), [WP-S2.05](WP-S2.05-property-grid-find-replace-clipboard.md) §8 (fragments, FT-403), [WP-S2.09](WP-S2.09-messages-bulk-previews-history-jobs-and-recovery-ui.md) (history origins, the recovery dialog) |
+| Follow-ups | FT-95, FT-96, FT-97, FT-98, FT-403; `--integrity` of FT-191 |
+
+### 2.1 What exists at `453d252d` (the base contract)
+
+| Item | Where | Used here for |
+|---|---|---|
+| `reader_access` with `Access::{ReadWrite, ReadWriteNewer, ReadOnly, Migrate, Refuse}`; `0.x` steps count as majors | `crates/ew-format/src/version.rs` | Parts 1 and 3. `Migrate` is refused today as `OpenError::Migration` (`crates/ew-store/src/store.rs`, the open path) |
+| `Manifest {format, min_reader, generator, project, generation, files, merged, unstable, extra}`, `FileHash::Pending` | `crates/ew-format/src/manifest.rs` | Stamps (part 1), the manifest merge (part 4) |
+| `FORMAT = "0.1"`; the kind registry with `conflict` reserved at rank 255, file rule `TargetFile` | `crates/ew-schema/src/kind.rs` | Part 5 types `conflict` |
+| The reader: kept lines (unknown kinds, quarantined lines, malformed variants), `NonCanonical` rewrites, findings EW-CORE-001 to -019 with `ConflictMarkers` (EW-CORE-006) as a read-only finding; a manifest with markers is `ManifestUnreadable` | `crates/ew-format/src/read.rs`, `finding.rs` | Parts 1 and 5 |
+| The save: lock and manifest pre-check (`SaveError::ExternalChange` when `manifest.json`'s hash moved), unlisted targets moved aside to `.unlisted-<g>[-n]` names, `keep_format` for newer minors, generation = loaded + 1 (0 + 1 after an unreadable manifest, FT-97) | `crates/ew-store/src/store.rs` | Part 1 |
+| `Store::read_generation` (one verified generation), `Store::canonical_rewrite` (`ew fmt`) | `crates/ew-store/src/store.rs` | `.ewz` packing (part 2), `ew fmt` (parts 1, 2) |
+| The journal with `replay(model, txs, check)` and field collisions (`journal::Collision`), recovery onto a moved base | `crates/ew-store/src/journal.rs` | Part 6's rebase |
+| The deterministic ZIP writer and strict reader (`zip::write`, `zip::read`, `ZipLimits`; no ZIP64, at most 65,535 entries) | `crates/ew-store/src/zip.rs` | Part 2 |
+| The git seam (`Git`, `GitExe`, `worktree_root`, argument vectors, exit status only) | `crates/ew-store/src/git.rs` | Parts 6, 7, 8 |
+| `Session::open_archive`: a ZIP read whole, checked, its `project/` opened read-only from a `MemVfs` | `crates/ew-api/src/release_run.rs` | The pattern of `Session::open_ewz` (part 2) |
+| `diff_model`, `ModelDiff`, `derived_diff`, `Session::diff_from` (`ScriptDiff`) | `crates/ew-commands/src/diff.rs`, `crates/ew-api/src/cmdlog.rs` | `ew diff` (part 8) |
+| `Origin::External`, `Origin::Merge`; the history's "external change" origin text | `crates/ew-commands/src/meta.rs`, `crates/ew-api/src/output/history.rs` | Parts 5 and 6 |
+| `Vfs` with `rename_noreplace` (by hard link: files only), no exclusive directory create | `crates/ew-store/src/vfs.rs` | Part 2 adds `create_dir` |
+| The uniqueness rules EW-RDS-004, EW-TERM-002, EW-POT-015, EW-CORE-052, EW-PLC-001, EW-PLC-007; EW-CORE-011 and -013 as catalogue rows only; `QuickFix` | `crates/ew-checks/src/rules/`, `finding.rs` | Part 8 |
+| `ew fmt` and `ew recover` | `bin/ew/src/cli/project_files.rs:23, :159` | Parts 1 and 2 (`fmt` keeps original lines, `fmt --repair`) |
+| The CLI's read-only refusals of writers | `bin/ew/src/cli.rs:151, :161` | Parts 2, 3, 5 (the same refusal for `.ewz` and migrated projects) |
+| The window's read-only reasons and save errors (`readonly-lock-lost`, `saveerr-external`) | `crates/ew-viewmodel/src/shell.rs` | Part 7 |
+
+### 2.2 Gaps found (why the parts are shaped as they are)
+
+| Gap at `453d252d` | Consequence |
+|---|---|
+| `min_reader` is written equal to `format`; `unstable` is never written and is read against `!cfg!(debug_assertions)`, so an optimised test build and a debug build disagree | Part 1 (FT-95, D3) |
+| An untouched record with unknown members is re-emitted canonically (FT-96) | Part 1 (D4) |
+| The save checks only `manifest.json`: a hand edit or a checkout of a file the manifest still names is overwritten by the next save that touches that file | Part 1 (D5), a data-loss fix |
+| A conflicted manifest restarts the generation at 1 (FT-97); stray copies can multiply under a sync client (FT-98) | Part 1 (D6, D7) |
+| No `.ewz`; no `ew fmt --repair` | Part 2 |
+| No migration chain; an older format does not open | Part 3 |
+| No merge core, no driver, no strategy table in `ew-schema` | Part 4 |
+| `conflict` untyped; markers force read-only and nothing resolves them | Part 5 |
+| No detection of external change, no apply, no read-only reload | Part 6 |
+| No cloud warning, no driver status, no `.ewz` menu items, no collision dialog | Part 7 |
+| No `ew diff`, no textconv, no `ew git setup`, no managed git files, no `ew check --integrity`, EW-CORE-013 not detected | Part 8 |
+| The code and doc 05 §11.7 disagree on Golden A's W20: the data holds `overrides {csa "1.5", show_marker true}` and takes its colour DBU from the profile | AC-41 is defined on the data (D29); doc 05 §11.7 is corrected at the design pass |
+
+## 3. Requirements traced
+
+| Requirement | What this package delivers | Part | Acceptance |
+|---|---|---|---|
+| FR-COL-007 | Detection by manifest polling, quiescence, the incoming generation, the three-way apply as one undoable "External change" step, collisions held for a choice, the save pre-check of target files, the read-only reload | 1, 6, 7 | SG-3, XC-1 to XC-7, XW-1 to XW-3 |
+| FR-COL-008 | The cloud-folder warning; conflict copies listed (EW-CORE-004, built) with a test; online-only placeholders (de-scopable) | 7 | XW-4, XW-5 |
+| FR-COL-009 | `.ewz` pack, extract and read-only open; `ew export ewz`; readers accept `.ewz` | 2, 7 | EZ-1 to EZ-6, XW-6 |
+| FR-COL-010 | Two-part versions (built), computed `min_reader` and `unstable` (FT-95), original lines (FT-96), the migration chain, `ew upgrade`, the fixture corpus job | 1, 3 | SG-1, SG-2, MG-1 to MG-6 |
+| FR-COL-013 | `ew diff <from> <to>` and `ew diff --textconv` with derived tags | 8 | DG-1, DG-2 |
+| FR-COL-014 | `ew merge-driver %O %A %B %L %P` and the 4-argument form; exit 0, 1, 129 | 4 | MD-1 to MD-7 |
+| FR-COL-024 | `ew git setup [--global] [--hooks]`, the managed `.gitattributes` and `.gitignore` blocks, the status-bar driver status | 7, 8 | DG-3, DG-4, XW-7 |
+| FR-COL-025 | Conflict markers loaded as conflict records; resolved into a canonical file | 5 | CR-2, CR-3 |
+| FR-COL-029, NFR-REL-06 | The first save in a newer format asks once and writes `<name>.ew.pre-<F>.ewz` first; declining writes nothing | 3, 7 | MG-3, MG-4 |
+| FR-CHK-012 | Integrity on open (built) and after merges: merged manifests, conflict records (EW-CORE-011), EW-CORE-013 with "renumber the newer" for device tags, `ew check --integrity`, the post-merge hook | 5, 8 | CR-4, DG-5, DG-6 |
+| NFR-REL-05 | (a) the fixture-corpus job and the steward check; (b) to (d) as built and refined by D3 | 1, 3 | SG-1, MG-5, MG-6 |
+| AC-41 | Clean and conflicting merges of Golden A copies through the real `git` with `ew git setup` | 4, 8 | MD-6, DG-7 |
+
+## 4. Decisions
+
+Each is a lead ruling that the owner may reverse. The design pass records them under the decision-log row of this
+specification.
+
+| # | Decision | Reason and trade-off |
+|---|---|---|
+| D1 | **Scope and size.** The reader decisions, the save's manifest pre-check, the ZIP writer, the git seam and the in-memory archive open exist (built by WP-S1.09 and WP-S1.18) and are reused, not re-sized. The eight parts fill **7.4 pw plus 0.3 pw reserve**; the CSV's 6.8 pw PERT predates the driver's per-field strategies and the external-change apply on the merge core (O1) | Size what is left; the built seams save about 0.4 pw that the PERT counted |
+| D2 | **One three-way merge core** in `ew-format` (permissive), on `serde_json::Value` per record: the driver (part 4), the marker loader (part 5) and the external-change apply (part 6) call the same function. Work copies (1.0) and a recovery onto a moved base reuse it later | doc 15 §6.1 asks for "the same core as the driver"; one place to test and fuzz |
+| D3 | **Stamps (FT-95).** `ew-schema` gains `since` metadata: per kind (every implemented kind `"0.1"`), and the tables `MEMBER_SINCE` and `VARIANT_SINCE`, empty while every member is 0.1. `min_reader` = the greatest `since` of the kinds, members and variants present, never below the format's major floor and never above `format`. `ew-schema` gains `RELEASED_FORMATS: &[&str]`, **empty until WP-S6.08 adds `"0.1"` at the first release**. A save writes `unstable: true` exactly when `RELEASED_FORMATS` is not empty and does not hold `FORMAT`. A manifest with `unstable: true` opens read-write only in a reader whose `FORMAT` equals the file's format and is not released; every other reader opens it read-only ("written by a development build with an unreleased format"). `StoreOptions::release_build` is derived from `RELEASED_FORMATS`, never from `cfg!(debug_assertions)` | Before the first release nothing is marked, so pre-release and pilot projects open in 0.1.0 without a read-only surprise and no golden byte moves; after it, a build that changed the format has bumped `FORMAT` and marks its files. The behaviour no longer depends on the build profile |
+| D4 | **Original lines (FT-96).** `ew-format`'s `Loaded` keeps, for each record with unknown content (a non-empty `extra` at any depth), its original line and its canonical form at load. The writer emits such a record by its original line while its canonical form is unchanged. Such a line is no reason for a `NonCanonical` rewrite, and `ew fmt` keeps it (WP-S1.22 D9's "unknown members stay verbatim"). Records without unknown content cost nothing extra | ADR-0011 amendment 1 as written; byte identity for files from a newer minor (FR-COL-010's acceptance) |
+| D5 | **The save pre-check covers its targets.** Before its temps, a save reads every file it will replace or remove and compares its bytes with the baseline's hash; a file whose CRLF to LF form matches is equal (doc 05 §6.2). Any other difference refuses the save with `SaveError::ExternalChange` naming the files, and nothing is written | A hand edit or a checkout that leaves `manifest.json` alone was overwritten silently; reading the one to three targets of a typical save costs little (not measured, owner's rule) |
+| D6 | **The generation after a conflicted manifest (FT-97).** When `manifest.json` holds git conflict markers, the reader takes the `"generation": <n>` lines of every hunk side and the next save writes the greatest plus 1; without markers or without such a line, the rule stays 0 + 1. A driver-merged manifest already carries max + 1 (D16) | doc 05 §11.3's rule for the only case the driver does not cover |
+| D7 | **Stray duplicates (FT-98).** After a move-aside, when the new stray's bytes equal an older stray of the same file and generation, re-read just before, the new stray is removed; nothing else is removed | The bytes stay in the older stray; clutter only, as FT-98 says |
+| D8 | **`.ewz` = one verified generation.** `ew_store::ewz::pack` writes, through `zip::write`, `mimetype` first and stored (`application/vnd.elektrawatt.project+zip`), then `manifest.json`, every file the manifest lists, and `.gitattributes` and `.gitignore` when present, in byte order of their paths, deflated, DOS time 1980-01-01 (D11 of WP-S1.18; the `SOURCE_DATE_EPOCH` date rule of doc 05 §12 is not used). It packs `Store::read_generation`, never a dirty model: a dirty session's export packs the saved state and says so. Strays, foreign files, `.ew/`, locks, temps and `.git/` never enter. At most 65,535 entries (the writer has no ZIP64; doc 05 §12's 100,000 is lowered) | One generation, the same bytes for the same project and build; no new crate |
+| D9 | **Opening an `.ewz`.** The reader accepts only that shape: `mimetype` first with that value, then `manifest.json`, the files it lists with matching hashes, and the two git files; anything else refuses the archive (doc 05 §12's extractor rules are `zip::read`'s). **Read-only:** `Session::open_ewz(path)` opens it from a `MemVfs` (the `open_archive` pattern), no lock, no journal. **Extract:** into a sibling `<target>.tmp-ewz` directory created exclusively, every file written and synced, read back and verified against the manifest, then the directory renamed to `<target>`; a target that exists refuses before anything is written. `Vfs` gains an exclusive `create_dir`. Every CLI reader accepts an `.ewz` as its project argument; every writer refuses it ("an .ewz opens read-only; extract it first") | Never into an existing directory, never a half project under the target's name; an in-memory open needs no cache directory |
+| D10 | **The migration chain** in `ew-format`: `Migrations` holds per-kind steps `fn(Value) -> Result<Value, MigrationError>` from `$v` n to n + 1, and format steps from one format to the next (manifest-level and file-level). Steps are never deleted. **The shipped chain is empty at 0.1**; every test injects a test chain through `StoreOptions::migrations` (a `&'static Migrations`, default the shipped one). A step's error carries its JSON Pointer and refuses the open with `OpenError::Migration`, nothing written | 0.1 is the first format, so no user file can need a step yet; the machinery and its tests exist before the first format change has to ship under pressure (O3) |
+| D11 | **Opening an older format** migrates in memory: `Access::Migrate` runs the chain, every migrated file is dirty, the session opens editable with the banner "This project is in an older format; saving converts it" and `OpenReport::migrated_from`. **The first save** returns `SaveError::UpgradeConsent { from }` until `Session::confirm_upgrade()`; the confirmed save first writes `<dir name>.pre-<F>.ewz` beside the project (D8's pack of the original generation, read back and verified; a name that exists gets `-<n>`), then saves. Declining leaves every project file untouched. `ew upgrade <project> [--check]` (a writer) asks on a terminal or takes `--yes`; `--check` writes nothing and exits 1 when a migration is needed | FR-COL-029 and NFR-REL-06; the backup is written and verified before the first project byte changes |
+| D12 | **The corpus and the steward check.** `fixtures/format/<format>/` holds each released format's fixtures; the job opens, saves and compares each with its expected output. It starts empty: WP-S6.08 adds `fixtures/format/0.1/` (Golden A and `golden/fixtures/release-min` as 0.1.0 writes them) with the release. `cargo xtask check-format` fails when `RELEASED_FORMATS` is not empty and `FORMAT` is not in it while the chain has no step from the last released format, or its corpus directory is missing, or `schemas/<FORMAT>/` is stale. **FT-403:** `parse_fragment` migrates an older fragment's records through the shipped chain and refuses only what the chain cannot reach (the refusal text unchanged) | NFR-REL-05 (a) as a check that bites at the first format change, without freezing a pre-release copy that every golden change would have to re-bless |
+| D13 | **Merge strategies are an `ew-schema` table, atomic by default.** A record merges per top-level member; a member merges as one value unless the table names its path. Entries at MVP, where the member exists at the base: `object` for `connection.overrides`, `device.tag` and `project.settings`; `keyed(idx)` for `cp_overrides`; `keyed(key)` for `tech_data`; `keyed(role)` for `project.parties`; `set` for `aliases`; `max` for `project.master.edited`. Below an `object` path the members are atomic unless listed. Unknown kinds merge as whole records | The design's full recursion would merge into enum objects (`{"bridge":…}` against `{"jumper":…}`) and the `Unknown` catch-alls would accept the invalid union silently; the price is an occasional spurious conflict, never a wrong merge. Tried against AC-41's W20 (`overrides` with `csa`, `show_marker` and an added `colour`) |
+| D14 | **Record level and conflict records** as doc 05 §11.2: the table of O, A, B; a true conflict keeps ours in place (for delete/modify, the modified side) and adds `{"$k":"conflict","id":<target id>,"kind":<target $k>,"base":…,"ours":…,"theirs":…}` with only the conflicting members (`"deleted"` for a deleted side). A side that does not parse or is from a newer major keeps the other side and adds the **file-level** record `{"$k":"conflict","id":v5(CONFLICT_NS, path),"kind":"file","path":<path>,"side":"ours" or "theirs","lines":[…]}`; the `path` member is added to doc 05's form so that the record's file is known. A library document conflict is a top-level `$conflict` member holding the other side's document | The file stays loadable; nothing of either side is lost |
+| D15 | **`ew merge-driver %O %A %B %L %P`** (and `%O %A %B %P`) reads the three files under the reader limits of doc 05 §3.6, merges by `%P`'s class (record file, library document, `manifest.json`; any other path is a file-level conflict), and writes `%A` all-or-nothing (temp beside it, then rename). Exit 0 clean, 1 conflict records written, 129 on a caught internal error with `%A` untouched. A fuzz target over the three inputs joins `fuzz/` | Exit codes as ADR-0012 amendment 2; a crash never leaves a torn `%A` |
+| D16 | **Manifest merge** as doc 05 §11.3: `generation = max(a, b) + 1`, `format` and `min_reader` the maximum, `generator` from ours, `files` three-way per path with `sha256:pending` where both changed, `merged: true`, no `base` | As designed |
+| D17 | **`conflict` typed within 0.1** (ADR-0011 amendment 4, the `page_item` precedent): the members of D14, the partial objects kept as `Value`. A record-level conflict lives in its target's file and shares its target's ID; `edit.delete` of a record removes the conflict with its ID in the same transaction (a rule of the delete path, no `LINKS` row, because the target's kind varies). A record-level conflict whose target is missing at load is kept verbatim and reported. EW-CORE-011 reports each conflict and blocks release; conflict records no longer force read-only | Resolution must be one undoable transaction (doc 15 §6.5), which needs the records in the model |
+| D18 | **Markers load as conflict records (FR-COL-025).** In a JSONL file every hunk side must consist of complete record lines; then, with a diff3 base, D2's core merges the hunk's records (clean parts merge, true conflicts become records); without a base, records equal on both sides are kept, records that differ keep ours and get a conflict of every differing member, and a record on one side only is kept with a conflict whose other side is `"deleted"`. If any side line does not parse, the file stays EW-CORE-006 and the project read-only, as built. The file is rewritten canonically at the next save | Never guess at a torn hunk; a one-sided record may be a deletion, so the person confirms it |
+| D19 | **`merge.resolve {choices: [{conflict, take: ours or theirs}]}`** (exposure `Edit`, history "Resolve merge conflicts"): ours removes the conflict; theirs writes the conflicting members into the target (or deletes it for `"deleted"`) and removes the conflict; a file-level theirs replaces the file's records with its lines when every line parses as a known record, else it is refused. **`ew merge resolve <project> --take ours or theirs [--kind <k>] [--field <path>]`** (a writer) resolves the matching conflicts in one transaction and saves | doc 15 §6.5's CLI resolver at MVP; the 1.0 panel submits the same command |
+| D20 | **Detection by polling the manifest**, not `notify`: every 3 s and on window focus the session's store compares `manifest.json`'s raw bytes hash with the one it loaded or wrote. A change waits for quiescence: two reads 750 ms apart with equal bytes and no git operation in progress (`index.lock`, `MERGE_HEAD`, `rebase-merge/`, `rebase-apply/` in the git directory, a `.git` file resolved to its `gitdir`). A change of a file that leaves the manifest alone is caught by D5 at the next save | The manifest is the commit point of every save and every git change of a project; no new dependency and no platform watcher quirks on SMB; the trade-off is that a hand edit shows at the next save, not at once. Intervals from doc 05 §9, not measured (owner's rule) |
+| D21 | **The incoming generation** is read read-only through the store's open path (roll-forward never, the base check, the findings). When it carries a read-only finding (EW-CORE-002, -003, -005, -019) or its model does not build, nothing is applied: on a cloud path it is re-read after 5 s up to three times, then the session keeps its model and edits, saves are held with "The project on disk changed and cannot be read; your edits are kept. Save a copy, or wait until the disk is complete." | A partial sync or a broken merge never replaces a good model |
+| D22 | **Applying.** For each key the session merges baseline (the last loaded or saved records), ours (the current model) and theirs (incoming) with D2's core. With no conflict the result commits as one transaction `external.apply` (exposure `Internal`, submitted only by `Session::apply_external`, origin `Origin::External`, no normalisers, no prevent rules; checks run after), labelled "External change" with the git commit's short hash when `git rev-parse --short HEAD` answers. The baseline becomes the incoming generation; remaining local edits keep the project dirty. With conflicts nothing is applied: the session holds `ExternalChange {generation, changes, collisions}`, saves are refused, and `Session::apply_external(choices)` takes ours or theirs per colliding field. A gesture in progress defers the apply until it ends. Undo restores the pre-change model in memory; saving then writes it over the change | doc 05 §9 on the one core; no normaliser rewrites a state another build saved |
+| D23 | **The journal follows the baseline.** After an apply the store starts a new segment at the incoming generation and journals one transaction `external.rebase` with the net local diff (incoming to current, assets included), then deletes the old segment, as after a save. A read-only session reloads instead: `Session::reload()` reopens the new generation and keeps nothing to merge | A crash after an apply recovers the live model; replaying the external change itself onto the new base would collide on every field |
+| D24 | **The window** (doc 16a applies): the toast "External change applied: <n> records on folios <list> (git <hash>)" with Undo and Show changes (the history entry); the collision dialog, a form dialog listing each colliding field with derived tags ("W20 (-102G1:+ → -102F1:1) · overrides.colour"), base, mine and theirs, a choice per row, "All mine" and "All theirs", and "Decide later" (saves stay held, a banner says why); the read-only reload keeps page, zoom and selection where the records exist; the upgrade consent dialog of D11; File ▸ Export .ewz… and Open ▸ .ewz with "Extract and open" and "Open read-only" | doc 05 §16's touchpoints at their MVP size; the rich panel is WP-S2.15 |
+| D25 | **Cloud folders** (doc 05 §15 rows 7 to 11): `ew_store::cloud::detect(path)` from the OneDrive environment variables, `~/Library/CloudStorage/`, `~/Library/Mobile Documents/` and Dropbox's `info.json`; a banner "This project is in a cloud-synced folder (OneDrive). Two people can open it within the sync delay; use git or a network share for teams." at open; on a cloud path EW-CORE-003 is re-checked after 5 s before it is reported. Online-only placeholders (Windows recall attributes, iCloud stubs and dataless files) open read-only with "<n> files are not downloaded" (de-scopable, §14.4) | FR-COL-008 with std APIs only |
+| D26 | **`ew diff <from> <to> [--json]`**: each side a directory, an `.ewz`, an `.ewarchive` (`Session::open_archive`), `git:<rev>` or `rev:<label>` (the tag `ew/rev/<label>`). Both sides open read-only; `diff_model` and `derived_diff` print one line per changed entity labelled with the tags of its own side; exit 0 equal, 1 different with `--exit-code`, 2 errors. `git:<rev>` reads the blobs through one `git cat-file --batch` process: `<rev>:<project path>/manifest.json`, then each listed file, under the reader limits; the batch header (`<oid> <type> <size>` or `missing`) and the blob bytes are the only output parsed, a widening of WP-S1.18 D12. `--queries` is not built (FP-6) | gix stays 1.x; one process, a small fixed header to parse |
+| D27 | **`ew diff --textconv <file>`** prints one line per record in file order: `<kind> <label> <path>=<value> …`, the members flattened to dotted paths with compact JSON leaves (`overrides.csa="1.5" overrides.colour=["BU"]`), labels derived from the project found in the working directory: the nearest ancestor holding a manifest, else the `*.ew` directories at most three levels below (tried against this repository's `golden/J-E-2416.ew` at depth 2), the first whose records contain the blob's IDs; unknown IDs print as kind and short ID | Deterministic text; doc 05 §11.6's example becomes the compact form |
+| D28 | **`ew git setup [--global] [--hooks] [--yes]`** writes `merge.elektrawatt.name`, `merge.elektrawatt.driver = "<absolute ew path>" merge-driver %O %A %B %L %P`, `diff.elektrawatt.textconv` and `diff.elektrawatt.cachetextconv = true` through `git config` (argument vectors, exit status only) after consent: a y/N question on a terminal or `--yes`; without either it exits 2. It writes the managed `.gitattributes` and `.gitignore` blocks of doc 05 §11.1 into each project directory of the worktree, keeping lines outside the block. `--hooks` installs a `post-merge` hook running `ew check --integrity` and refuses to replace a hook it did not write. `Store::create` writes the two blocks only inside a git worktree; the golden fixture gets none | Git never takes drivers from a repository; consent stays the user's; no golden churn |
+| D29 | **Integrity after merges.** `ew check --integrity` (from FT-191) runs EW-CORE-001 to -019 only and exits 1 on any error. **EW-CORE-013** is reported on open, after an external change and by `--integrity` when a group of the six uniqueness rules exists and the generation carries merge evidence (`merged: true`, conflict records or markers, a git merge or rebase in progress, or `--integrity --after-merge` as the hook passes it). The keeper order is doc 15 §6.4's (1) frozen or released, then (3) the older UUIDv7; step (2), the merge base, is FP-2. The "renumber the newer" fix is built for device tags (EW-RDS-004) as one previewed command; the other five rules report without a fix (FP-1). **AC-41** is defined on the data: base W20 `overrides {csa "1.5", show_marker true}`; branch A sets -102F2's function text and adds W20's `colour` BU; branch B sets `csa` "2.5"; the conflict variant has B also add `colour` WH | Deterministic on every machine; the acceptance names the data as it is |
+
+No decision changes an ADR's decision text. D3 refines ADR-0011 decision 5's "release build" and D13 narrows
+ADR-0012 decision 2's `object` strategy; both are recorded by dated notes on ADR-0011 and ADR-0012 at the design pass
+after parts 1 and 4. D20 drops `notify` from doc 05 §9 and §19; D26 widens WP-S1.18 D12's git boundary.
+
+## 5. Format and data
+
+**Saved bytes.**
+- Golden A, `golden/fixtures/release-min` and their exported bytes do not change in any part; no lane writes into
+  `golden/`, and `golden/J-E-2416.ew` is opened only by reading or copied to a temporary directory.
+- `min_reader` stays `"0.1"` for every 0.1 file (D3); `unstable` is not written before WP-S6.08 adds `"0.1"` to
+  `RELEASED_FORMATS`.
+- Part 1 changes the bytes of a save only for records with unknown members, which now keep their original line (D4).
+- Part 4 defines new bytes: the merged manifest (D16), conflict records (D14) and the `$conflict` member.
+- Part 5 types the reserved kind `conflict` within 0.1 (D17): `schemas/0.1` re-blessed additively, no format or `$v`
+  bump; an older 0.1 build keeps conflict records verbatim as a reserved kind.
+- Parts 2 and 3 write `.ewz` files outside the project's manifest; part 8 writes `.gitattributes`, `.gitignore`, the
+  user's git configuration and a hook, none of them project data.
+- **Migrations:** none ship (D10). A migration is all-or-nothing in memory, the original stays on disk until the
+  consented save, and that save writes and verifies the backup first (D11).
+
+**Data-loss cases and their tests** (each named in its part's acceptance):
+
+| Case | Rule | Test |
+|---|---|---|
+| A file changed outside the session that the save would replace or remove | Save refused, nothing written (D5) | SG-3 |
+| An untouched record with unknown members in a file the save rewrites | Original line kept (D4) | SG-2 |
+| A save after a text-conflicted manifest | Generation max + 1, every file kept (D6) | SG-4 |
+| A move-aside under a sync client | Only a byte-equal duplicate stray removed (D7) | SG-5 |
+| An `.ewz` extracted where the target exists, interrupted, or hostile | Refused before writing; the target never half-written; refused unread (D9) | EZ-3, EZ-4 |
+| An older project whose upgrade is declined, or whose step fails | Nothing written; open refused with the path (D10, D11) | MG-2, MG-4 |
+| A consented upgrade | The verified backup exists before the first project byte changes (D11) | MG-3 |
+| A merge | No side lost: the result plus conflict records hold every input value; a side that does not parse is kept verbatim; `%A` untouched on an internal error (D14, D15) | MD-2, MD-4, MD-5 |
+| A text merge with markers | Converted only when every hunk line parses; otherwise read-only (D18) | CR-2 |
+| An external change colliding with unsaved edits | Nothing applied until chosen; saves held (D22) | XC-3 |
+| An unreadable incoming generation | Model and edits kept; saves held (D21) | XC-5 |
+| A crash after an applied external change with unsaved edits | Recovery equals the live model (D23) | XC-6 |
+| A read-only follower's reload | Writes nothing (D23) | XC-7 |
+
+## 6. Part 1: the store's stamps and safeguards
+
+**Scope.** D3 to D7; FT-95, FT-96, FT-97, FT-98. **0.9 pw.** `ew-schema` (`since`, `RELEASED_FORMATS`), `ew-format`
+(read, write, version), `ew-store` (save, open), `bin/ew` (`ew fmt` keeps original lines).
+
+**Acceptance.**
+- **SG-1** `min_reader` of Golden A is `"0.1"`; with an injected `since` table naming a member `"0.2"` present in one
+  record, it is `"0.2"`. A save writes no `unstable` while `RELEASED_FORMATS` is empty; with an injected released list
+  without `FORMAT` it writes `unstable: true`. A manifest with `unstable: true` opens read-write in a reader of the
+  same unreleased format and read-only in a released or different-format reader, the same in debug and optimised
+  builds.
+- **SG-2** A page file with one record carrying an unknown member placed before a known member, and an unknown kind's
+  line, opens, takes an edit to another record of the same file, saves, and keeps both lines byte-identical; editing
+  the first record re-emits it canonically with its unknown member kept; `ew fmt --check` reports nothing for the
+  untouched file.
+- **SG-3** A hand edit of a page file the next save replaces refuses the save with `SaveError::ExternalChange` naming
+  the file; the file and the manifest are byte-identical afterwards; a CRLF-only change does not refuse.
+- **SG-4** A manifest with conflict markers on the `generation` line (7 and 9) is followed by a save at generation 10;
+  every listed file of both sides survives.
+- **SG-5** A stray that a retried move-aside duplicates with equal bytes is removed; one with different bytes stays.
+- **SG-6** Targeted checks for `ew-schema`, `ew-format`, `ew-store`, `ew`.
+
+## 7. Part 2: `.ewz` transport
+
+**Scope.** D8, D9; `ew fmt --repair` (EW-CORE-005's fix: discard the unparseable lines after packing an `.ewz` of the
+current generation beside the project; WP-S1.22 D2). **0.8 pw.** `ew-store` (`ewz.rs`, `vfs.rs`), `ew-api`
+(`Session::open_ewz`, the export), `bin/ew` (`ew export ewz`, the reader argument, `ew extract <file.ewz> [--into
+<dir>]`, `fmt --repair`). The window's menu items are part 7's.
+
+**Acceptance.**
+- **EZ-1** Golden A packed twice gives byte-identical `.ewz` files; `mimetype` is the first entry, stored; extracting
+  gives a directory byte-equal to the source (FR-COL-009's acceptance).
+- **EZ-2** `ew check`, `ew export pdf` and `ew query` on Golden A's `.ewz` give the same output as on the directory;
+  `ew apply` on it exits 2 with D9's text.
+- **EZ-3** Extracting onto an existing directory exits 2 and writes nothing; a failure injected through the `Vfs` at
+  each write leaves no `<target>` and removes the temporary directory.
+- **EZ-4** Archives with `..`, a backslash, a duplicate name ignoring case, an entry outside D9's set, a hash mismatch,
+  a missing `mimetype` or a 201 : 1 entry are refused unread (the bounds of `ZipLimits`); a fuzz target over the
+  reader joins `fuzz/`.
+- **EZ-5** `ew fmt --repair` on a page file with one broken line writes the backup `.ewz`, then a project without the
+  line, and opens editable; without a broken line it changes nothing.
+- **EZ-6** Targeted checks for `ew-store`, `ew-api`, `ew`.
+
+## 8. Part 3: format migrations and the upgrade backup
+
+**Scope.** D10 to D12; FT-403. **0.8 pw.** `ew-format` (`migrate.rs`), `ew-store` (open, save consent), `ew-api`
+(`confirm_upgrade`, `OpenReport::migrated_from`), `ew-commands` (`parse_fragment`), `bin/ew` (`ew upgrade`), `xtask`
+(`check-format`). After parts 1 and 2.
+
+**Acceptance.**
+- **MG-1** With a test chain from a test format `"0.0"` (a kind step `$v` 1 to 2 renaming a member, a format step),
+  a `"0.0"` fixture opens editable with every migrated file dirty and `migrated_from = "0.0"`; the shipped chain is
+  empty.
+- **MG-2** A step that fails refuses the open with `OpenError::Migration` carrying its JSON Pointer; nothing on disk
+  changes.
+- **MG-3** The first save returns `UpgradeConsent`; after `confirm_upgrade` the backup `<dir>.pre-0.0.ewz` exists,
+  extracts byte-equal to the original directory, and only then the project is written in `FORMAT`; a second save
+  does not ask.
+- **MG-4** Declining (no confirmation, the session closed) leaves every project file byte-identical.
+- **MG-5** `ew upgrade --check` exits 1 on the test fixture and 0 on Golden A; `ew upgrade --yes` writes the backup
+  and saves; without a terminal or `--yes` it exits 2.
+- **MG-6** `cargo xtask check-format` passes at the base and fails on an injected released list without a step; a
+  fragment of the test format pastes through the test chain (FT-403).
+- **MG-7** Targeted checks for `ew-format`, `ew-store`, `ew-api`, `ew-commands`, `ew`, `xtask`.
+
+## 9. Part 4: the three-way merge core and `ew merge-driver`
+
+**Scope.** D2, D13 to D16. **1.2 pw.** `ew-schema` (the strategy table, `CONFLICT_NS`), `ew-format` (`merge.rs`:
+records, library documents, manifest), `bin/ew` (`ew merge-driver`), `fuzz/` (the driver target). Conflict records
+are written here as lines; part 5 types them.
+
+**Acceptance.**
+- **MD-1** Unit cases for each row of the record table and each strategy of D13, including an enum member changed to
+  different variants on both sides (one conflict, no union).
+- **MD-2** Property tests: `merge(o,a,a) = a`, `merge(o,o,b) = b`, `merge(o,a,b)` equals `merge(o,b,a)` up to the side
+  names; every value of a and b is in the result or in a conflict record.
+- **MD-3** Every merged record of typed inputs deserialises typed.
+- **MD-4** A side that does not parse, and one with a newer `$v`, keep the other side and add one file-level conflict
+  with the lines verbatim and its `path`.
+- **MD-5** The driver exits 0 and 1 as D15 says; an injected internal error exits 129 and `%A` is byte-identical; the
+  4-argument form gives the same result.
+- **MD-6** AC-41's driver half on Golden A copies (D29): the page-102 file merges cleanly to `csa "2.5"` and `colour`
+  BU; the conflict variant writes one conflict record on `overrides.colour` and keeps BU in place; the manifest merge
+  gives `max + 1`, `merged: true`, no `base`.
+- **MD-7** Targeted checks for `ew-schema`, `ew-format`, `ew`; the fuzz target builds.
+
+## 10. Part 5: conflict records, conflict markers and their resolution
+
+**Scope.** D17 to D19; FR-COL-025. **0.9 pw.** `ew-schema` (the `conflict` kind), `ew-model` (its table), `ew-format`
+(marker loading), `ew-store` (findings, read-only rule), `ew-commands` (`merge.resolve`, the delete path), `ew-checks`
+(EW-CORE-011 from the model), `bin/ew` (`ew merge resolve`), `schemas/0.1`. After parts 1 and 4.
+
+**Acceptance.**
+- **CR-1** A project with MD-6's conflict record opens editable, reports EW-CORE-011 once, and saves the record back
+  byte-identical; an older 0.1 file without conflicts reads as before; `schemas/0.1` re-blessed additively.
+- **CR-2** A page file text-merged with diff3 markers on W20 opens with one conflict and the clean parts merged; the
+  same without a base gives the D18 result; a hunk with a torn line keeps EW-CORE-006 and read-only.
+- **CR-3** `ew merge resolve --take theirs --kind connection --field overrides.colour` leaves W20 with WH, no conflict,
+  a canonical page file, and one undo step in a session; `--take ours` keeps BU.
+- **CR-4** Deleting a record removes its conflict in the same transaction; undo restores both. EW-CORE-011 appears in
+  `ew check --mode release` and blocks the gate.
+- **CR-5** Targeted checks for `ew-schema`, `ew-model`, `ew-format`, `ew-store`, `ew-commands`, `ew-checks`, `ew`.
+
+## 11. Part 6: external change in the store and the session
+
+**Scope.** D20 to D23. **1.1 pw.** `ew-store` (poll, git busy, the incoming read, adopt, journal rebase), `ew-commands`
+(`external.apply`), `ew-api` (`Session::poll_disk`, `apply_external`, `reload`). After parts 1 and 4.
+
+**Acceptance.**
+- **XC-1** In a temporary copy of Golden A opened for editing, a second store's save that changes folio 106 is
+  detected after quiescence and applied as one step "External change"; undo restores the pre-change model; saving
+  after the undo writes the earlier state (FR-COL-007's acceptance).
+- **XC-2** With a local unsaved edit on folio 101 and the external change on 106, the apply keeps the edit and the
+  project dirty; the next save writes only the edit's files and passes D5.
+- **XC-3** A local and an external change of W20's colour collide: nothing applies, saves are refused, the collision
+  names the field; choosing theirs, then mine, gives the expected models in one step each.
+- **XC-4** A git operation in progress (a test `index.lock`) defers detection until it is gone; the session's own save
+  is never taken for an external change.
+- **XC-5** An incoming generation with a missing listed file applies nothing, keeps the edits and holds saves with
+  D21's text; it applies once the file appears.
+- **XC-6** A crash after an applied external change with unsaved edits recovers the live model (D23).
+- **XC-7** A read-only session reloads on each of the holder's saves and writes nothing.
+- **XC-8** Targeted checks for `ew-store`, `ew-commands`, `ew-api`.
+
+## 12. Part 7: the window, cloud folders and the driver status
+
+**Scope.** D24, D25, and the status-bar badge "Merge driver not configured" for a project in a git worktree whose
+`git config --get merge.elektrawatt.driver` fails (exit status only), with "Set up merge driver" running part 8's
+library call. **0.8 pw.** `ew-store` (`cloud.rs`), `ew-viewmodel` (dialogs, toast, banners, menus, strings),
+`ew-ui`. After parts 2, 3 and 6; the badge's action after part 8's library. Every text follows
+[design language](../../design/16a-design-language.md) §8.
+
+**Acceptance.**
+- **XW-1** Headless: an external change shows the toast with its folios; Undo takes it back.
+- **XW-2** The collision dialog lists XC-3's field with base, mine and theirs; "All theirs" applies in one step;
+  "Decide later" leaves the banner and a held save.
+- **XW-3** A read-only window reloads on a save and keeps its page and zoom.
+- **XW-4** A project under a test OneDrive variable shows the cloud banner; elsewhere none.
+- **XW-5** An unlisted `pages/<id> (conflicted copy).jsonl` is listed at open as EW-CORE-004 (built; the test is new).
+- **XW-6** Export .ewz… writes EZ-1's file; Open with "Open read-only" opens from memory, "Extract and open" refuses an
+  existing folder; the upgrade dialog asks once (MG-3 through the window).
+- **XW-7** The driver badge appears in a temporary repository without the configuration and disappears after setup;
+  `ui.describe` words for every new control; the window check at 1920 × 1080 and the 1280 × 800 floor.
+- **XW-8** Targeted checks for `ew-store`, `ew-viewmodel`, `ew-ui`.
+
+## 13. Part 8: `ew diff`, `ew git setup`, post-merge integrity and AC-41
+
+**Scope.** D26 to D29; `ew check --integrity` (FT-191's option). **0.9 pw.** `ew-store` (`git.rs`: config, cat-file,
+hook, managed blocks), `ew-api` (diff of two sessions), `ew-checks` (EW-CORE-013, the renumber fix), `bin/ew`
+(`diff`, `git setup`, `check --integrity`). After parts 4 and 5.
+
+**Acceptance.**
+- **DG-1** `ew diff` between Golden A and a copy with -101F1's part changed prints `-101F1: part … → …` and exits 1
+  with `--exit-code`; the same between a directory and its `.ewz`, and between `git:HEAD` and the working copy in a
+  temporary repository; `--json` validates against its result schema.
+- **DG-2** `git log -p` in a temporary repository after `ew git setup --yes` shows textconv lines with derived tags
+  for a page file change (FR-COL-013's acceptance).
+- **DG-3** `ew git setup` without a terminal or `--yes` exits 2 and changes nothing; with `--yes` it writes the four
+  keys and the blocks, keeps a user's line outside the block, and is idempotent.
+- **DG-4** `--hooks` installs the hook and refuses to replace a foreign one.
+- **DG-5** A merged copy of Golden A with two devices -102F3 (`merged: true`) reports EW-CORE-013 with the older
+  UUIDv7 as keeper and the fix renumbering the other to the next free counter in one undo step (FR-CHK-012's
+  acceptance); without merge evidence only EW-RDS-004 reports.
+- **DG-6** `ew check --integrity` exits 1 on CR-1's project and 0 on Golden A.
+- **DG-7 (AC-41)** On a fresh temporary clone of a repository holding a Golden A copy: `ew git setup --yes`, two
+  branches as D29, `git merge` exits 0 with the clean result and `ew check --integrity` exits 0; the conflict variant
+  leaves one conflict record, the project opens, and `ew merge resolve --take ours` makes it clean. Without setup the
+  status is "merge driver not configured" (XW-7).
+- **DG-8** Targeted checks for `ew-store`, `ew-api`, `ew-checks`, `ew`.
+
+## 14. Files owned, boundaries, risks, size and routing
+
+### 14.1 Files owned
+
+Each part owns the crates named in its scope and fixes the file list in its dispatch brief; new modules:
+`crates/ew-format/src/{migrate.rs,merge.rs,since.rs}`, `crates/ew-store/src/{ewz.rs,cloud.rs,external.rs}`, the new
+`ew-schema` tables, `bin/ew/src/cli/{collab.rs,diff.rs}`. Shared append-only files (registry lists, fuzz targets,
+the strings table, generated schemas and command pages) may be touched by other lanes; the second to integrate
+rebases. Read-only: other crates, `golden/**`, `ci/**`, `.github/**`, `docs/**` except generated reference pages.
+
+### 14.2 Boundaries with the neighbours
+
+| Neighbour | Owns | This package |
+|---|---|---|
+| WP-S1.18 (complete) | Revisions, the release, the archive, `zip.rs`, the git release steps | Reuses `zip::write`/`read` for `.ewz` and the `open_archive` pattern; reads `.ewarchive` and `ew/rev/<label>` tags in `ew diff`; changes no archive byte |
+| WP-S1.22 | The CLI conventions, `ew fmt`, `ew recover`, the API guard and the CLI snapshot (part 5) | Builds `ew diff`, `ew upgrade`, `ew merge-driver`, `ew merge resolve`, `ew git setup`, `ew export ewz`, `ew extract`, `ew fmt --repair` and `ew check --integrity` (D2 of WP-S1.22), each joining its conventions and snapshot; changes `ew fmt` only to keep original lines (D4) |
+| WP-S3.09 (not specified) | Importer contracts and the migration report of foreign formats | "Migration" here is only ElektraWatt's own format chain (D10); no shared code; WP-S3.09 must not add steps to `Migrations` |
+| WP-S6.04 | The threat model, signing, the trust store, the supply chain and the fuzz harness conventions | "Integrity" here is the project-integrity check (FR-CHK-012) and the bounds of the new parsers; the merge-driver and `.ewz` fuzz targets follow its harness; no signing |
+| WP-S6.08 | The first signed release | Adds `"0.1"` to `RELEASED_FORMATS` and `fixtures/format/0.1/` (D3, D12) |
+| WP-S2.15, WP-S1.31 | The 1.0 merge panel, cross-file reconciliation | Submit `merge.resolve` and reuse D2's core |
+| WP-S3.04 | `--omit-personal-data` | Adds the flag to `ew export ewz` |
+
+### 14.3 What a lane may not decide
+
+A lane stops and reports when: a change needs a new crate, a new external dependency or a new `ci/dep-rules.toml`
+edge; a kind, member or variant beyond D14 and D17 would be typed or added; any exported byte of Golden A changes or
+a file under `golden/` would be written; a strategy beyond D13's table seems needed; a shipped migration step would be
+added; an external change or a resolution would be applied without the core of D2; a save could proceed with a
+target changed outside the session; `external.apply` could be reached from a script, a replay, MCP or a plugin; a
+later part's work is reached. The lane decides private names, module layout inside its files, test fixtures and
+texts beyond those quoted (doc 16a §8).
+
+### 14.4 Risks
+
+| Risk | Likelihood · impact | Mitigation |
+|---|---|---|
+| R1 A merge produces a structurally invalid record | Medium · high | Atomic by default (D13); MD-3; the fuzz target |
+| R2 An external change overwrites unsaved work or a pull | Low · high | D5, D21, D22; XC-2, XC-3, XC-5; parts 1 and 6 at `xhigh` |
+| R3 The journal and the baseline disagree after an apply | Medium · high | D23; XC-6 |
+| R4 `unstable` read-only surprises at the release | Low · medium | D3 marks nothing before the release |
+| R5 Polling misses a change or reads a half pull | Medium · medium | The manifest is the commit point; quiescence and git state (D20); D21 |
+| R6 The package outgrows 7.4 pw | Medium · medium | The reserve and the de-scope rule below |
+
+### 14.5 Size, order and routing
+
+**Size.** Part 1 **0.9** (stamps 0.2, original lines 0.3, target pre-check 0.15, FT-97 and FT-98 0.15, tests 0.1);
+part 2 **0.8** (pack 0.15, extract 0.2, read-only open and the CLI argument 0.2, `fmt --repair` 0.1, tests 0.15);
+part 3 **0.8** (chain 0.2, open and consent 0.25, `ew upgrade` 0.1, corpus check 0.15, FT-403 0.05, tests 0.05);
+part 4 **1.2** (table 0.15, record and field merge 0.4, conflict records 0.15, manifest and library documents 0.15,
+driver 0.15, property and fuzz tests 0.2); part 5 **0.9** (typing 0.25, markers 0.25, `merge.resolve` and CLI 0.25,
+tests 0.15); part 6 **1.1** (poll and quiescence 0.2, incoming and adopt 0.25, apply and collisions 0.35, journal
+rebase 0.15, reload 0.05, tests 0.1); part 7 **0.8** (dialogs and toast 0.35, menus 0.1, cloud 0.2, badge 0.05,
+tests 0.1); part 8 **0.9** (diff 0.25, textconv 0.15, git setup and blocks 0.2, integrity and EW-CORE-013 0.2, AC-41
+0.1). Total **7.4 pw plus 0.3 reserve**.
+
+**De-scope rule** (a part projected or found more than 20 % over its size), in this order, without a further ruling,
+each becoming a follow-up: `ew git setup --hooks`; online-only placeholders (D25); `rev:<label>` sides; FT-403; the
+collision dialog's per-field choice (All mine and All theirs stay); textconv discovery below the working directory.
+
+**Order and routing** (Opus or Haiku only, ID-700). Wave A: part 1 (**Opus `xhigh`**, the save and the format),
+part 4 (**Opus `xhigh`**, new format bytes), part 2 (**Opus `xhigh`**, file writes; beside part 1, different files).
+Wave B: part 3 after parts 1 and 2 (**Opus `xhigh`**), part 5 after parts 1 and 4 (**Opus `xhigh`**, a core crate),
+part 6 after parts 1 and 4 (**Opus `xhigh`**, concurrency and data loss). Wave C: part 8 after parts 4 and 5 (**Opus
+`high`**), part 7 after parts 2, 3 and 6 (**Opus `medium`**, window work). The feasibility read flags parts 1 and 3
+to 6 (format, store, a core crate). **Unblocks:** WP-S6.08 after part 8; WP-S2.15 and WP-S1.31 on D2 and D19.
+
+## 15. Follow-ups, documents to update, open questions
+
+**Follow-ups.** FT-95, FT-96, FT-97 and FT-98 close with part 1; FT-403 with part 3; FT-191's `--integrity` with part
+8. Proposed (not opened; the design pass numbers them):
+- **FP-1** "Renumber the newer" for EW-TERM-002, EW-POT-015, EW-CORE-052, EW-PLC-001 and EW-PLC-007.
+- **FP-2** EW-CORE-013's keeper step (2), the merge base, with WP-S1.31.
+- **FP-3** "Merge this copy" for an EW-CORE-004 conflict copy through D22.
+- **FP-4** "Merge into current" after a lost lock (doc 05 §7.2) through D22.
+- **FP-5** ZIP64 for `.ewz` beyond 65,535 entries; the export-date rule of doc 05 §12.
+- **FP-6** `ew diff --queries` (bom, wires, terminals, plc, xref) and per-language `MlText` merging.
+- A de-scoped item of §14.5 becomes a new FT at the design pass.
+
+**Documents.** **After part 1:** doc 05 §4 and §10.3, §10.4 (stamps, original lines as built), §5.2 step 2 (D5),
+§11.3 (FT-97); ADR-0011 a dated note (D3). **After part 2:** doc 05 §12 (D8, D9), doc 17 §3.3 (`export ewz`,
+`extract`, `fmt --repair`). **After part 3:** doc 05 §10.1, §10.2, §10.4 (the chain, the consent, the corpus).
+**After part 4:** doc 05 §11.2, §11.3 (D13 to D16, the file-level `path`); ADR-0012 a dated note (D13). **After part
+5:** doc 05 §2.2, §6.3 (EW-CORE-006 and -011), §11.4; doc 15 §6.5. **After part 6:** doc 05 §9 (D20 to D23) and §19
+(no `notify`). **After part 7:** doc 05 §15, §16; doc 16 (the dialogs). **After part 8:** doc 05 §11.1, §11.6, §11.7
+(W20 as the data holds it), doc 15 §6.4 (the MVP keeper order), doc 17 §3.3, doc 20 AC-41.
+
+**Open questions for the orchestrator.**
+- **O1 (effort).** The parts are 7.4 pw plus 0.3 reserve against a 6.8 pw PERT. *Options:* (1) re-estimate
+  WP-S1.17 at O 5.5 · L 7.5 · P 10.5 · PERT 7.7 (σ 0.8) in `work-packages.csv` and regenerate the schedule; (2) keep
+  6.8 by moving parts 3's consent and backup and part 8's textconv to the first format change and 1.0.
+  *Recommendation:* (1); the Shoulds left are what AC-41 and the 0.1.0 pilot rely on.
+- **O2 (detection).** D20 polls the manifest instead of `notify`. *Options:* (1) polling; (2) `notify` 8.2.0 as doc
+  05 §9 names. *Recommendation:* (1): no dependency, the manifest is the commit point, and D5 covers hand edits.
+- **O3 (migrations at MVP).** No user file can need a step before 0.2. *Options:* (1) build part 3 now with an empty
+  shipped chain; (2) defer part 3 to the package that first changes the format. *Recommendation:* (1): FR-COL-010
+  is a Must and the first format change should not also build the machinery.
+- **O4 (EW-CORE-013).** *Options:* (1) report on merge evidence only (D29); (2) report on every duplicate group,
+  doubling the six rules' findings. *Recommendation:* (1), with FP-1 putting the fix on the rules' own findings later.
+
+---
+
+## Sources
+
+- [Work breakdown](../02-work-packages.md): WP-S1.09, WP-S1.17, WP-S1.18, WP-S1.22, WP-S6.08; Appendix B (FT-95 to
+  FT-98, FT-191, FT-403).
+- [Decision log](../06-decision-log.md): ID-200 to ID-217, ID-334, ID-566, ID-596, ID-700, ID-827, ID-836, ID-895.
+- [Project format](../../design/05-project-format-and-persistence.md) §4 to §12, §15, §16, §18, §19;
+  [checks, revisions, collaboration](../../design/15-checks-revisions-collaboration.md) §6;
+  [extensibility](../../design/17-extensibility.md) §3; [golden project](../../design/20-golden-project.md) AC-41.
+- [ADR-0008](../../adr/0008-transactions-undo-preview.md), [ADR-0009](../../adr/0009-invariant-catalogue.md),
+  [ADR-0010](../../adr/0010-project-storage-jsonl-directory.md), [ADR-0011](../../adr/0011-format-versioning-and-migration.md),
+  [ADR-0012](../../adr/0012-git-integration.md).
+- Requirements: FR-COL-007 to FR-COL-010, FR-COL-013, FR-COL-014, FR-COL-024, FR-COL-025, FR-COL-029, FR-CHK-012,
+  NFR-REL-05, NFR-REL-06.

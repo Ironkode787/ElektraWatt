@@ -1201,6 +1201,8 @@ save budgets (milestone performance run).
 | Acceptance | AC-41, NFR-REL-05 |
 | Owner role | Core developer |
 
+*Status (2026-10-31, cycle 42).* **Specified** ([closed specification](specs/WP-S1.17-collaboration.md); decision log ID-?, lane S42b, against `453d252d`): eight parts filling 7.4 pw plus 0.3 pw reserve against the 6.8 pw PERT (open question O1: PERT 7.7 proposed). Part 1 the store's stamps and safeguards (FT-95 to FT-98, the save's pre-check of its target files), part 2 `.ewz`, part 3 the migration chain with an empty shipped chain and the upgrade backup (FT-403), part 4 the three-way merge core and `ew merge-driver` (strategies atomic by default), part 5 the typed `conflict` kind, conflict markers and `ew merge resolve`, part 6 external change by manifest polling with one undoable apply, part 7 the window, cloud folders and the driver status, part 8 `ew diff`, `ew git setup`, `ew check --integrity`, EW-CORE-013 and AC-41. No golden change; no ADR decision changed (dated notes on ADR-0011 and ADR-0012 at the design pass).
+
 #### WP-S1.18 Revisions, release gate and as-built archive
 
 | Field | Value |
