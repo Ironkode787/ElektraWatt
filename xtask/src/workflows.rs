@@ -368,6 +368,240 @@ fn check_top_level_permissions(file: &str, lines: &[Line<'_>], v: &mut Vec<Strin
     }
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// The fuzz smoke table (`cargo xtask fuzz-smoke-table [--check]`, FT-335)
+
+/// The table of the CI-PR-08 path filter, relative to the workspace root.
+pub(crate) const FUZZ_TABLE: &str = "ci/fuzz-smoke-targets.toml";
+/// The cargo-fuzz crate's manifest, relative to the workspace root.
+const FUZZ_MANIFEST: &str = "fuzz/Cargo.toml";
+/// The deep nightly, whose fuzz matrix gives each target's `max_len`.
+const DEEP_NIGHTLY: &str = ".github/workflows/deep-nightly.yml";
+/// The longest line of an array written on one line; a longer one is written one element per line.
+const TABLE_WIDTH: usize = 120;
+
+/// The path-dependency closure of `roots` over the `Cargo.toml` files of `crates/` under `root` (normal, build and
+/// target dependencies; path dependencies only): the crates whose source a target is built from. A crate is named by
+/// its directory.
+///
+/// # Errors
+///
+/// A manifest that cannot be read or parsed, or an `ew-*` dependency inherited from the workspace (it has no `path`
+/// key, so it would silently leave the closure).
+pub(crate) fn path_closure(root: &Path, roots: &[String]) -> Result<std::collections::BTreeSet<String>> {
+    fn path_deps(manifest: &Path) -> Result<Vec<String>> {
+        let text =
+            std::fs::read_to_string(manifest).with_context(|| format!("reading {}", manifest.display()))?;
+        let table: toml::Table = text
+            .parse()
+            .with_context(|| format!("parsing {}", manifest.display()))?;
+        let mut tables: Vec<&toml::Table> = Vec::new();
+        for key in ["dependencies", "build-dependencies"] {
+            tables.extend(table.get(key).and_then(toml::Value::as_table));
+        }
+        for target in table
+            .get("target")
+            .and_then(toml::Value::as_table)
+            .into_iter()
+            .flat_map(toml::Table::values)
+        {
+            for key in ["dependencies", "build-dependencies"] {
+                tables.extend(target.get(key).and_then(toml::Value::as_table));
+            }
+        }
+        let mut out = Vec::new();
+        for deps in tables {
+            for (dep_name, spec) in deps {
+                if dep_name.starts_with("ew-")
+                    && spec.get("workspace").and_then(toml::Value::as_bool) == Some(true)
+                {
+                    anyhow::bail!(
+                        "{}: `{dep_name}` must use `path = ...`, not `workspace = true`, so that the fuzz smoke table \
+                         can follow it",
+                        manifest.display()
+                    );
+                }
+                if let Some(path) = spec.get("path").and_then(toml::Value::as_str) {
+                    let name = Path::new(path)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .with_context(|| {
+                            format!(
+                                "{}: the path of `{dep_name}` names no directory",
+                                manifest.display()
+                            )
+                        })?;
+                    out.push(name.to_owned());
+                }
+            }
+        }
+        Ok(out)
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    let mut stack: Vec<String> = roots.to_vec();
+    while let Some(name) = stack.pop() {
+        if !seen.insert(name.clone()) {
+            continue;
+        }
+        stack.extend(path_deps(&root.join("crates").join(&name).join("Cargo.toml"))?);
+    }
+    Ok(seen)
+}
+
+/// The `max_len` of each target of the deep nightly's fuzz matrix (`- target: <name>` followed by
+/// `max_len: "<n>"`), in the matrix's order.
+fn matrix_max_len(nightly: &str) -> Result<Vec<(String, u64)>> {
+    let mut out = Vec::new();
+    let mut target: Option<String> = None;
+    for line in nightly.lines() {
+        let line = line.trim();
+        if let Some(name) = line.strip_prefix("- target:") {
+            target = Some(name.trim().to_owned());
+        } else if let (Some(value), Some(name)) = (line.strip_prefix("max_len:"), target.take()) {
+            let value = value.trim().trim_matches('"');
+            let n = value.parse().with_context(|| {
+                format!("{DEEP_NIGHTLY}: the max_len of `{name}` is not a number: `{value}`")
+            })?;
+            out.push((name, n));
+        }
+    }
+    Ok(out)
+}
+
+/// `key = [..]` on one line when it fits [`TABLE_WIDTH`], otherwise one element per line.
+fn toml_array(key: &str, items: &[String]) -> String {
+    let quoted: Vec<String> = items.iter().map(|s| format!("\"{s}\"")).collect();
+    let line = format!("{key} = [{}]", quoted.join(", "));
+    if line.len() <= TABLE_WIDTH {
+        return line;
+    }
+    let mut out = format!("{key} = [\n");
+    for q in quoted {
+        out.push_str(&format!("    {q},\n"));
+    }
+    out.push(']');
+    out
+}
+
+/// The fuzz smoke table for the repository at `root`: the committed file's header comment and each target's `roots`
+/// kept, the targets in the order of `fuzz/Cargo.toml`'s `[[bin]]` entries under `fuzz_targets/`, each `max_len`
+/// from the deep nightly's matrix and each `closure` recomputed with [`path_closure`].
+///
+/// # Errors
+///
+/// A file that cannot be read or parsed; a target with no entry (roots) in the table or no `max_len` in the matrix;
+/// a direct path dependency of `ew-fuzz` that is the root of no target.
+pub(crate) fn fuzz_smoke_table(root: &Path) -> Result<String> {
+    let read = |rel: &str| -> Result<String> {
+        std::fs::read_to_string(root.join(rel))
+            .map(|t| t.replace("\r\n", "\n"))
+            .with_context(|| format!("reading {rel}"))
+    };
+    let committed = read(FUZZ_TABLE)?;
+    let header: String = committed
+        .lines()
+        .take_while(|l| !l.starts_with('['))
+        .map(|l| format!("{l}\n"))
+        .collect();
+    let table: toml::Table = committed
+        .parse()
+        .with_context(|| format!("parsing {FUZZ_TABLE}"))?;
+    let targets = table
+        .get("targets")
+        .and_then(toml::Value::as_table)
+        .with_context(|| format!("{FUZZ_TABLE} has no [targets] table"))?;
+    let manifest: toml::Table = read(FUZZ_MANIFEST)?
+        .parse()
+        .with_context(|| format!("parsing {FUZZ_MANIFEST}"))?;
+    let bins: Vec<String> = manifest
+        .get("bin")
+        .and_then(toml::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|b| {
+            b.get("path")
+                .and_then(toml::Value::as_str)
+                .is_some_and(|p| p.starts_with("fuzz_targets/"))
+        })
+        .filter_map(|b| b.get("name").and_then(toml::Value::as_str).map(str::to_owned))
+        .collect();
+    let max_len = matrix_max_len(&read(DEEP_NIGHTLY)?)?;
+    let mut out = header.trim_end_matches('\n').to_owned();
+    out.push('\n');
+    let mut rooted = std::collections::BTreeSet::new();
+    for name in &bins {
+        let roots: Vec<String> = targets
+            .get(name)
+            .and_then(|t| t.get("roots"))
+            .and_then(toml::Value::as_array)
+            .with_context(|| {
+                format!("{FUZZ_TABLE}: the target `{name}` of {FUZZ_MANIFEST} has no entry; add `[targets.{name}]` with its `roots`")
+            })?
+            .iter()
+            .map(|r| r.as_str().map(str::to_owned).with_context(|| format!("{FUZZ_TABLE}: a root of `{name}` is not a string")))
+            .collect::<Result<_>>()?;
+        let len = max_len
+            .iter()
+            .find(|(t, _)| t == name)
+            .map(|(_, n)| *n)
+            .with_context(|| format!("{DEEP_NIGHTLY}: the fuzz matrix has no max_len for `{name}`"))?;
+        let closure: Vec<String> = path_closure(root, &roots)?.into_iter().collect();
+        rooted.extend(roots.iter().cloned());
+        out.push_str(&format!(
+            "\n[targets.{name}]\nmax_len = {len}\n{}\n{}\n",
+            toml_array("roots", &roots),
+            toml_array("closure", &closure)
+        ));
+    }
+    let direct: std::collections::BTreeSet<String> = manifest
+        .get("dependencies")
+        .and_then(toml::Value::as_table)
+        .into_iter()
+        .flat_map(toml::Table::values)
+        .filter_map(|spec| spec.get("path").and_then(toml::Value::as_str))
+        .filter_map(|p| {
+            Path::new(p)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .map(str::to_owned)
+        })
+        .collect();
+    let unrooted: Vec<&String> = direct.difference(&rooted).collect();
+    if !unrooted.is_empty() {
+        anyhow::bail!(
+            "{FUZZ_MANIFEST}: the path dependencies {unrooted:?} are the root of no target in {FUZZ_TABLE}; add each to \
+             the `roots` of the targets that use it"
+        );
+    }
+    Ok(out)
+}
+
+/// `cargo xtask fuzz-smoke-table [--check]`: writes [`FUZZ_TABLE`] from [`fuzz_smoke_table`] when its parsed content
+/// differs (a layout-only difference is left alone); `check` writes nothing and fails on a difference. The write is
+/// all or nothing (a temporary file renamed over the table).
+///
+/// # Errors
+///
+/// What [`fuzz_smoke_table`] refuses, or a write that fails.
+pub(crate) fn run_fuzz_smoke_table(root: &Path, check: bool) -> Result<bool> {
+    let wanted = fuzz_smoke_table(root)?;
+    let path = root.join(FUZZ_TABLE);
+    let current = std::fs::read_to_string(&path).with_context(|| format!("reading {FUZZ_TABLE}"))?;
+    let parse =
+        |t: &str, what: &str| -> Result<toml::Table> { t.parse().with_context(|| format!("parsing {what}")) };
+    if parse(&current, FUZZ_TABLE)? == parse(&wanted, "the generated fuzz smoke table")? {
+        println!("fuzz-smoke-table: {FUZZ_TABLE} is up to date");
+        return Ok(true);
+    }
+    if check {
+        eprintln!("fuzz-smoke-table: {FUZZ_TABLE} is stale; run `cargo xtask fuzz-smoke-table`");
+        return Ok(false);
+    }
+    crate::settle::write_atomic(&path, &wanted)?;
+    println!("fuzz-smoke-table: wrote {FUZZ_TABLE}");
+    Ok(true)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -785,128 +1019,55 @@ mod tests {
         );
     }
 
-    /// The path-dependency closure of `roots` over the `Cargo.toml` files of `crates/` (normal, build and target
-    /// dependencies; path dependencies only): the crates whose source a target is built from.
-    fn path_closure(root: &std::path::Path, roots: &[String]) -> std::collections::BTreeSet<String> {
-        fn path_deps(manifest: &std::path::Path) -> Vec<String> {
-            let text =
-                std::fs::read_to_string(manifest).unwrap_or_else(|e| panic!("{}: {e}", manifest.display()));
-            let table: toml::Table = text
-                .parse()
-                .unwrap_or_else(|e| panic!("{}: {e}", manifest.display()));
-            let mut tables: Vec<&toml::Table> = Vec::new();
-            for key in ["dependencies", "build-dependencies"] {
-                tables.extend(table.get(key).and_then(toml::Value::as_table));
-            }
-            for target in table
-                .get("target")
-                .and_then(toml::Value::as_table)
-                .into_iter()
-                .flat_map(toml::Table::values)
-            {
-                for key in ["dependencies", "build-dependencies"] {
-                    tables.extend(target.get(key).and_then(toml::Value::as_table));
-                }
-            }
-            let mut out = Vec::new();
-            for deps in tables {
-                for (dep_name, spec) in deps {
-                    // A dependency inherited from the workspace has no `path` key, so it would silently leave the
-                    // closure; the root manifest declares no path dependencies today, and this keeps it that way.
-                    assert!(
-                        !(dep_name.starts_with("ew-")
-                            && spec.get("workspace").and_then(toml::Value::as_bool) == Some(true)),
-                        "{dep_name}: an `ew-*` dependency must use `path = ...`, not `workspace = true`, so the                          fuzz-smoke closure test can see it"
-                    );
-                    if let Some(path) = spec.get("path").and_then(toml::Value::as_str) {
-                        let name = std::path::Path::new(path)
-                            .file_name()
-                            .and_then(|n| n.to_str())
-                            .expect("a path dependency names a directory");
-                        out.push(name.to_owned());
-                    }
-                }
-            }
-            out
-        }
-        let mut seen = std::collections::BTreeSet::new();
-        let mut stack: Vec<String> = roots.to_vec();
-        while let Some(name) = stack.pop() {
-            if !seen.insert(name.clone()) {
-                continue;
-            }
-            stack.extend(path_deps(&root.join("crates").join(&name).join("Cargo.toml")));
-        }
-        seen
-    }
-
     /// FT-335: the table of the path filter (`ci/fuzz-smoke-targets.toml`) is the path-dependency closure of each
-    /// target's roots, recomputed here from the Cargo.toml files, so a new dependency of a crate that a target uses
-    /// fails this test until the table is regenerated. Every direct path dependency of `ew-fuzz` is the root of a
-    /// target, and the targets are those of `fuzz/Cargo.toml`.
+    /// target's roots: the committed table equals, as parsed TOML, what the writer (`cargo xtask fuzz-smoke-table`)
+    /// generates from the Cargo.toml files, so a new dependency of a crate that a target uses fails this test until
+    /// the table is regenerated. The writer also refuses a direct path dependency of `ew-fuzz` that is the root of no
+    /// target, and takes the targets from `fuzz/Cargo.toml` and their `max_len` from the deep nightly.
     #[test]
     fn the_fuzz_smoke_table_is_the_path_dependency_closure_of_each_target() {
         let root = crate::workspace_root();
-        let read = |p: &str| -> toml::Table {
-            std::fs::read_to_string(root.join(p))
-                .unwrap_or_else(|e| panic!("{p}: {e}"))
-                .parse()
-                .unwrap_or_else(|e| panic!("{p}: {e}"))
-        };
-        let strings = |v: &toml::Value| -> Vec<String> {
-            v.as_array()
-                .expect("an array")
-                .iter()
-                .map(|s| s.as_str().expect("a string").to_owned())
-                .collect()
-        };
-        let table = read("ci/fuzz-smoke-targets.toml");
-        let targets = table["targets"].as_table().expect("[targets]");
-        let mut rooted = std::collections::BTreeSet::new();
-        for (name, spec) in targets {
-            let roots = strings(&spec["roots"]);
-            let committed: std::collections::BTreeSet<String> =
-                strings(&spec["closure"]).into_iter().collect();
-            let computed = path_closure(&root, &roots);
-            assert_eq!(
-                committed, computed,
-                "the closure of `{name}` in ci/fuzz-smoke-targets.toml is not the path-dependency closure of its roots"
-            );
-            rooted.extend(roots);
-        }
-        // every direct path dependency of ew-fuzz is a root of some target
-        let manifest = std::fs::read_to_string(root.join("fuzz/Cargo.toml")).expect("fuzz/Cargo.toml");
-        let fuzz: toml::Table = manifest.parse().expect("fuzz/Cargo.toml parses");
-        let direct: std::collections::BTreeSet<String> = fuzz["dependencies"]
-            .as_table()
-            .expect("[dependencies]")
-            .values()
-            .filter_map(|spec| spec.get("path").and_then(toml::Value::as_str))
-            .filter_map(|p| {
-                std::path::Path::new(p)
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .map(str::to_owned)
-            })
-            .collect();
+        let generated = fuzz_smoke_table(&root).unwrap();
+        let committed = std::fs::read_to_string(root.join(FUZZ_TABLE)).unwrap();
+        let parse = |t: &str| -> toml::Table { t.parse().unwrap() };
         assert_eq!(
-            direct, rooted,
-            "the path dependencies of fuzz/Cargo.toml and the roots of the targets in ci/fuzz-smoke-targets.toml differ"
+            parse(&committed),
+            parse(&generated),
+            "ci/fuzz-smoke-targets.toml is stale; run `cargo xtask fuzz-smoke-table`"
         );
-        // the targets are the [[bin]] targets under fuzz_targets/
-        let bins: std::collections::BTreeSet<String> = fuzz["bin"]
-            .as_array()
-            .expect("[[bin]]")
-            .iter()
-            .filter(|b| b["path"].as_str().is_some_and(|p| p.starts_with("fuzz_targets/")))
-            .map(|b| b["name"].as_str().expect("a name").to_owned())
-            .collect();
-        assert_eq!(bins, targets.keys().cloned().collect());
         // a crate's directory is its package name (the table names crates by directory)
-        for name in targets.values().flat_map(|s| strings(&s["closure"])) {
-            let manifest = read(&format!("crates/{name}/Cargo.toml"));
-            assert_eq!(manifest["package"]["name"].as_str(), Some(name.as_str()));
+        let table = parse(&committed);
+        for spec in table["targets"].as_table().unwrap().values() {
+            for name in spec["closure"].as_array().unwrap() {
+                let name = name.as_str().unwrap();
+                let manifest =
+                    parse(&std::fs::read_to_string(root.join(format!("crates/{name}/Cargo.toml"))).unwrap());
+                assert_eq!(manifest["package"]["name"].as_str(), Some(name));
+            }
         }
+    }
+
+    /// The writer's pieces: a short array stays on one line, a long one takes a line per element; the matrix's
+    /// `max_len` values are read in order.
+    #[test]
+    fn the_fuzz_table_writer_formats_arrays_and_reads_the_matrix() {
+        let short = vec!["ew-a".to_owned(), "ew-b".to_owned()];
+        assert_eq!(toml_array("roots", &short), "roots = [\"ew-a\", \"ew-b\"]");
+        let long: Vec<String> = (0..20).map(|i| format!("ew-crate-{i}")).collect();
+        let text = toml_array("closure", &long);
+        assert!(text.starts_with("closure = [\n    \"ew-crate-0\",\n"), "{text}");
+        assert!(text.ends_with("    \"ew-crate-19\",\n]"), "{text}");
+        let matrix = "matrix:\n  include:\n    - target: a\n      max_len: \"65\"\n    - target: b\n      max_len: \"512\"\n";
+        assert_eq!(
+            matrix_max_len(matrix).unwrap(),
+            [("a".to_owned(), 65), ("b".to_owned(), 512)]
+        );
+        assert_eq!(
+            matrix_max_len("- target: a\n  max_len: \"x\"\n")
+                .unwrap_err()
+                .to_string(),
+            ".github/workflows/deep-nightly.yml: the max_len of `a` is not a number: `x`"
+        );
     }
 
     /// The fuzz crate's cargo-deny policy (`fuzz/deny.toml`, run by the deep nightly's `fuzz-deny` job) has the

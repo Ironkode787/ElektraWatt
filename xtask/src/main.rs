@@ -27,6 +27,7 @@ mod perf;
 mod plan_counts;
 mod raw_read;
 mod repo;
+mod settle;
 mod symbols;
 mod test_layout;
 mod vet_imports;
@@ -103,6 +104,22 @@ commands:
                        metadata), and the targeted `cargo nextest run -p ...` (with the features the crates'
                        tests require) and `cargo clippy -p ...` commands for them; for between-wave and
                        fix-round verifies only, a gate runs the full suite
+  settle [--check] [--merge] [--all] [--base <rev>]
+                       the mechanical upkeep of a change, one table of steps in one order (xtask/src/settle.rs):
+                       rustfmt on the changed .rs files, the command and CLI schemas, the rule catalogue, the
+                       keymaps, the blind reference, docs-gen, gen-icons, check-raw-read --bless, fuzz-smoke-table,
+                       golden_changes.py --write and the blind self-tests, each only when a file it reads changed
+                       since the merge base of <rev> (default main) and HEAD (--all: every step); then the checks
+                       symbols-qet10 --check and the fuzz crate's cargo check. A step that changes a file outside
+                       its listed outputs fails; settle never writes golden outputs, snapshots or fixtures.
+                       --check writes nothing and fails when a step would rewrite a file (the self-tests are left
+                       to the verify's replay); --merge adds check-disallowed-methods --bless and
+                       check-ordered-collections --bless, printing each list's change per crate and the sites
+                       added. One line per step: unchanged | rewrote <files> | would rewrite | FAILED | skipped
+  fuzz-smoke-table [--check]
+                       ci/fuzz-smoke-targets.toml: each target's path-dependency closure of its roots (FT-335),
+                       the targets of fuzz/Cargo.toml and their max_len from .github/workflows/deep-nightly.yml;
+                       --check changes nothing and fails when the committed table differs
   perf-gate [--classes S,M] [--quick] [--report <file>] [--baseline <file>] [--from <bench-output>]...
             [--bless] [--enforce] [--dry-run]
                        the performance and memory gate of WP-S6.03 (nightly, .github/workflows/perf.yml): runs
@@ -262,6 +279,15 @@ fn main() -> ExitCode {
             }
         },
         "affected" => affected::run(&args[1..], &workspace_root()),
+        "settle" => settle::run(&args[1..], &workspace_root()),
+        "fuzz-smoke-table" => match args.get(1).map(String::as_str) {
+            None => workflows::run_fuzz_smoke_table(&workspace_root(), false),
+            Some("--check") => workflows::run_fuzz_smoke_table(&workspace_root(), true),
+            Some(other) => {
+                eprint!("fuzz-smoke-table: unknown argument `{other}`\n\n{USAGE}");
+                Ok(false)
+            }
+        },
         "perf-gate" => perf::run(&args[1..]),
         "blind" => blind::run(&args[1..], &workspace_root()),
         "ci" => ci(),

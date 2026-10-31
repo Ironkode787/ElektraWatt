@@ -9,8 +9,8 @@
 # Cargo.toml files of the crates (normal and build dependencies, path dependencies only) and fails when this file
 # differs, when a direct dependency of `ew-fuzz` is the root of no target, or when a target of `fuzz/Cargo.toml` or of
 # the deep nightly's matrix is missing here. A new crate dependency of a target changes the closure and fails the
-# test until the list is regenerated; the `max_len` values are those of the matrix of deep-nightly.yml (the
-# self-test of the script compares them).
+# test until the list is regenerated (`cargo xtask fuzz-smoke-table`, which keeps this header and the roots); the
+# `max_len` values are those of the matrix of deep-nightly.yml (the self-test of the script compares them).
 #
 # `jsonl_loader` feeds `ew-format` alone (src/loader.rs); `migration_chain` opens a project directory with `ew-store`
 # (src/open_path.rs); `command_sequence` runs the seeded command generator of `ew-testkit`

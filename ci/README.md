@@ -199,6 +199,13 @@ tests and the command fuzzer run only in the `nextest-all-features` step, as in 
 `check-anonymisation`, `check-governance-files`, `docs-gen --check`) in sequence and prints a summary: the local
 mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
 
+`cargo xtask settle` is the mechanical upkeep of a change: one table of steps (`xtask/src/settle.rs`) runs rustfmt on the
+changed Rust files and every generator the change reaches (the command and CLI schemas, the rule catalogue, the keymaps,
+the blind reference, `docs-gen`, `gen-icons`, `check-raw-read --bless`, `fuzz-smoke-table`, `golden_changes.py --write`,
+the blind self-tests) in one order, and reports `symbols-qet10 --check` and the fuzz crate's `cargo check`. `--check`
+writes nothing and fails when a step would rewrite a file (the merged-tip verify runs it); `--merge` adds the allow-list
+review gates. The outputs that a step rewrites whole carry `merge=regen` in `.gitattributes`.
+
 The licence-boundary check that 18 §5.2 lists under CI-PR-09 is part of `check-licence-map` and therefore runs in
 `legal-docs`, next to the licence map it shares its policy file with; the dependency-rule part of the same
 boundary (no permissive crate depends on a GPL workspace crate, `ew-import-qet` confinement) stays in `check-deps`

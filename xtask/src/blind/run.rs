@@ -337,10 +337,13 @@ pub struct RunJson {
     /// The caps.
     pub caps: Caps,
     /// Path (relative to the repository root, with `/`) to SHA-256 of every composed prompt file, the task files and
-    /// the reference files.
-    #[serde(default)]
+    /// the reference files. Empty, and left out of the file, in a self-test recording ([`is_selftest`]): its replay is
+    /// the evidence, and digests of files that many changes re-bless only made merge conflicts.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub files: BTreeMap<String, String>,
-    /// The SHA-256 at `start` over the files `golden_scope` names (D16, FT-484).
+    /// The SHA-256 at `start` over the files `golden_scope` names (D16, FT-484). Empty, and left out of the file, in a
+    /// self-test recording ([`is_selftest`]); a live run always has it, and `stop` compares it.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub golden: String,
     /// What `golden` covers: `project` (every file under `golden/J-E-2416.ew/`, the scheme since FT-484); absent in a
     /// run recorded before FT-484, whose `golden` digests all of `golden/` (the legacy scheme, kept for those runs).
@@ -388,6 +391,13 @@ pub struct RunJson {
     /// After `stop`: whether `golden/` changed during the run (D16); such a run is never blessed.
     #[serde(default)]
     pub golden_changed: bool,
+}
+
+/// Whether `task` is one of the self-test tasks (`selftest`, `selftest-visual`). Their prompt names no persona and no
+/// role file, and their recordings pin no digests of the files they depend on: `run.json` keeps no `files` and no
+/// `golden`, the composed prompt no file digests, and the PDF digest is not recorded.
+pub fn is_selftest(task: &str) -> bool {
+    task.starts_with("selftest")
 }
 
 impl RunJson {

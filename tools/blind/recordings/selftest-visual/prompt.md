@@ -1,4 +1,4 @@
-<!-- file: tools/blind/tasks/selftest-visual/task.md sha256 803ac2aa72326c1d0ca1ac34ed25da98cd2a2bc853e3a96739e98343e68b4f72 -->
+<!-- file: tools/blind/tasks/selftest-visual/task.md -->
 # The visual self-test task
 
 This task is for the harness, not for an agent. A scripted agent (`agent.jsonl`) plays the part of a play-tester and
@@ -21,7 +21,7 @@ more and reports how many differ from the recording's hashes (R4, a report). A c
 recording (a moved button, a new dialog) is repaired by running the visual self-test again in the same change; the
 coordinates of `agent.jsonl` are read off its frames.
 
-<!-- file: tools/blind/HELP-VISUAL.md sha256 9246eaba3ac4da897d431a9b4366364657d59a9bd8ab5ded81c9ddc17224e875 -->
+<!-- file: tools/blind/HELP-VISUAL.md -->
 ---
 prompt: blind-help-visual
 version: 2

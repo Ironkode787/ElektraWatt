@@ -5,3 +5,23 @@
 *.png binary
 # Real exporter corpora: kept byte for byte as their exporters wrote them (CRLF included; FT-418, FT-436).
 crates/*/tests/fixtures/*-exporters/** -text
+
+# Generated files: every output that a regeneration step of `cargo xtask settle` rewrites entirely from its sources
+# (the step table in xtask/src/settle.rs; a test of xtask keeps this list equal to it, in its order). With the driver
+# configured (`git config merge.regen.driver true`, which keeps one side) a merge or cherry-pick never stops on them,
+# and `cargo xtask settle` then regenerates them. Without the driver git merges them as text.
+crates/ew-commands/schemas/** merge=regen
+bin/ew/schemas/** merge=regen
+crates/ew-checks/catalogue/rules.json merge=regen
+crates/ew-viewmodel/keymaps/ew.toml merge=regen
+crates/ew-viewmodel/keymaps/kicad.toml merge=regen
+crates/ew-viewmodel/keymaps/sheet.json merge=regen
+tools/blind/reference/** merge=regen
+docs/book/src/reference/commands/** merge=regen
+docs/book/src/reference/rules/** merge=regen
+docs/book/src/reference/glossary.md merge=regen
+docs/book/src/reference/keymaps.md merge=regen
+crates/ew-ui/src/icons/generated.rs merge=regen
+/clippy.toml merge=regen
+tools/blind/recordings/selftest/** merge=regen
+tools/blind/recordings/selftest-visual/** merge=regen

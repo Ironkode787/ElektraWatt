@@ -26,6 +26,10 @@ cargo xtask ci
 `cargo xtask ci` runs fmt, clippy, nextest and the policy checks, as CI does. [ci/README.md](ci/README.md) lists
 the full per-PR CI set and how to reproduce each job locally.
 
+Run `cargo xtask settle` before you push: it formats the changed Rust files and regenerates the derived reference files
+your change reaches (schemas, keymaps, the book's generated pages, the fuzz table, the self-test recordings, ...);
+`cargo xtask settle --check` is what the verify runs.
+
 A new integration test goes into its crate's one test binary: `tests/it/<name>.rs`, declared with `mod <name>;` in
 `tests/it/main.rs` (`cargo xtask check-test-layout` names any other top-level file under `tests/`).
 

@@ -107,7 +107,8 @@ pub fn compose(inp: &ComposeIn) -> Result<Composed> {
     if visual && inp.kind == Kind::Check {
         bail!("a check run reads the exports: it is a text run");
     }
-    if !inp.task.starts_with("selftest") {
+    let selftest = super::run::is_selftest(inp.task);
+    if !selftest {
         rels.push(match inp.kind {
             Kind::Check => "tools/blind/CHECKER.md".to_owned(),
             _ if visual => "tools/blind/PLAYTESTER.md".to_owned(),
@@ -159,7 +160,13 @@ pub fn compose(inp: &ComposeIn) -> Result<Composed> {
             .replace("{looks}", &inp.caps.looks.to_string())
             .replace("{refusals}", &inp.caps.refusals.to_string())
             .replace("{frames}", inp.frames);
-        text.push_str(&format!("<!-- file: {rel} sha256 {sha} -->\n"));
+        // A self-test's prompt names its files without digests: it is committed with the recording, and the digest
+        // of a file that many changes touch would only make merge conflicts (its `run.json` keeps none either).
+        if selftest {
+            text.push_str(&format!("<!-- file: {rel} -->\n"));
+        } else {
+            text.push_str(&format!("<!-- file: {rel} sha256 {sha} -->\n"));
+        }
         text.push_str(body.trim_end_matches('\n'));
         if rel.ends_with("/HELP-VISUAL.md") {
             text.push_str("\n\n");
@@ -405,6 +412,27 @@ mod tests {
         assert_eq!(
             rels,
             ["tools/blind/HELP.md", "tools/blind/tasks/selftest/task.md"]
+        );
+        // The self-test's prompt names its files without digests; a persona run's names them with theirs.
+        let lines: Vec<&str> = selftest
+            .text
+            .lines()
+            .filter(|l| l.starts_with("<!-- file: "))
+            .collect();
+        assert_eq!(
+            lines,
+            [
+                "<!-- file: tools/blind/tasks/selftest/task.md -->",
+                "<!-- file: tools/blind/HELP.md -->"
+            ]
+        );
+        let persona = compose(&input(&tmp.0, Kind::Gate, "gpp", Some("qet-veteran"))).unwrap();
+        assert!(
+            persona
+                .text
+                .lines()
+                .filter(|l| l.starts_with("<!-- file: "))
+                .all(|l| l.contains(" sha256 ") && l.ends_with(" -->"))
         );
         // A name that climbs out of the folder, and a missing file, are errors.
         assert!(compose(&input(&tmp.0, Kind::Free, "../x", None)).is_err());

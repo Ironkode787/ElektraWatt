@@ -883,9 +883,99 @@ pub fn run(root: &Path, rule: &Rule, bless: bool) -> Result<bool> {
     }
 }
 
+/// What a rewrite of the list changes, for review (`cargo xtask settle --merge`): per crate whose total changes,
+/// `crate: old -> new`, then each site key added or raised (`+ crate: item (old -> new)`) and each one removed or
+/// lowered (`- crate: item (old -> new)`), sorted; `unchanged` when the two are equal.
+pub fn diff(old: &BTreeMap<Site, usize>, new: &BTreeMap<Site, usize>) -> String {
+    let totals = |m: &BTreeMap<Site, usize>| {
+        let mut t: BTreeMap<String, usize> = BTreeMap::new();
+        for (site, n) in m {
+            *t.entry(site.krate.clone()).or_default() += n;
+        }
+        t
+    };
+    let (old_t, new_t) = (totals(old), totals(new));
+    let mut crates: Vec<&String> = old_t.keys().chain(new_t.keys()).collect();
+    crates.sort();
+    crates.dedup();
+    let mut out = String::new();
+    for krate in crates {
+        let (a, b) = (
+            old_t.get(krate).copied().unwrap_or(0),
+            new_t.get(krate).copied().unwrap_or(0),
+        );
+        if a != b {
+            out.push_str(&format!("{krate}: {a} -> {b}\n"));
+        }
+    }
+    let mut sites: Vec<&Site> = old.keys().chain(new.keys()).collect();
+    sites.sort();
+    sites.dedup();
+    for site in sites {
+        let (a, b) = (
+            old.get(site).copied().unwrap_or(0),
+            new.get(site).copied().unwrap_or(0),
+        );
+        if a != b {
+            let sign = if b > a { '+' } else { '-' };
+            out.push_str(&format!("{sign} {}: {} ({a} -> {b})\n", site.krate, site.item));
+        }
+    }
+    if out.is_empty() {
+        out.push_str("unchanged\n");
+    }
+    out
+}
+
+/// `--bless` with the review print of `settle --merge`: rewrites the list of `rule`, prints [`diff`] of the old list
+/// against the new one, then checks (a site without a justification still fails).
+///
+/// # Errors
+///
+/// A package or the list that does not load, or a list that cannot be written.
+pub fn bless_with_diff(root: &Path, rule: &Rule) -> Result<bool> {
+    let packages = load_packages(root)?;
+    let found = found_sites(rule, &packages);
+    let old = load_list(root, rule)?.counts();
+    let new = tally(&found);
+    print!("{}: {}\n{}", rule.command, rule.list_file, diff(&old, &new));
+    if old != new {
+        crate::settle::write_atomic(&root.join(rule.list_file), &generate(rule, &found))?;
+    }
+    let violations = check(rule, &packages, &load_list(root, rule)?);
+    if violations.is_empty() {
+        Ok(true)
+    } else {
+        eprintln!("{}: {} violation(s)", rule.command, violations.len());
+        for v in &violations {
+            eprintln!("  - {v}");
+        }
+        Ok(false)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_merge_diff_names_the_crate_totals_and_the_sites_added_and_removed() {
+        let site = |k: &str, i: &str| Site {
+            krate: k.to_owned(),
+            item: i.to_owned(),
+        };
+        let old = BTreeMap::from([(site("ew-a", "fn x"), 1), (site("ew-b", "fn y"), 2)]);
+        let new = BTreeMap::from([
+            (site("ew-a", "fn x"), 1),
+            (site("ew-a", "fn z"), 1),
+            (site("ew-b", "fn y"), 1),
+        ]);
+        assert_eq!(
+            diff(&old, &new),
+            "ew-a: 1 -> 2\new-b: 2 -> 1\n+ ew-a: fn z (0 -> 1)\n- ew-b: fn y (2 -> 1)\n"
+        );
+        assert_eq!(diff(&old, &old), "unchanged\n");
+    }
 
     fn pkg(name: &str, files: &[(&str, &str)]) -> Package {
         Package {

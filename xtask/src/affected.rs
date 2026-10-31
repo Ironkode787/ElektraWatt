@@ -159,7 +159,7 @@ pub(crate) fn commands(selection: &Selection, members: &Members) -> Vec<String> 
 }
 
 /// The members of the workspace at `root`, from `cargo metadata --all-features`.
-fn members_of(metadata: &cargo_metadata::Metadata) -> Result<Members> {
+pub(crate) fn members_of(metadata: &cargo_metadata::Metadata) -> Result<Members> {
     use cargo_metadata::DependencyKind;
     let root = metadata.workspace_root.as_std_path();
     let ids: BTreeSet<&cargo_metadata::PackageId> = metadata.workspace_members.iter().collect();
@@ -242,7 +242,7 @@ fn git_output(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
 /// does not ignore, sorted and without duplicates. A rename counts as the removal of the old path and the addition
 /// of the new one (`--no-renames`), so the crate a file moved out of is selected too; the paths come NUL-terminated
 /// (`-z`), so a non-ASCII path is not quoted (R1-9).
-fn changed_files(root: &Path, merge_base: &str) -> Result<Vec<String>> {
+pub(crate) fn changed_files(root: &Path, merge_base: &str) -> Result<Vec<String>> {
     let mut files = nul_paths(&git_output(
         root,
         &["diff", "--name-only", "--no-renames", "-z", merge_base],
@@ -275,6 +275,14 @@ fn git_lines(root: &Path, args: &[&str]) -> Result<Vec<String>> {
         .collect())
 }
 
+/// The merge base of `base` and `HEAD` in the repository at `root` (a full commit hash).
+pub(crate) fn merge_base(root: &Path, base: &str) -> Result<String> {
+    git_lines(root, &["merge-base", base, "HEAD"])?
+        .into_iter()
+        .next()
+        .with_context(|| format!("no merge base of `{base}` and HEAD"))
+}
+
 /// `affected [--base <rev>]`.
 pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
     let base = match args {
@@ -282,10 +290,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         [flag, rev] if flag == "--base" => rev.as_str(),
         _ => bail!("usage: cargo xtask affected [--base <rev>]"),
     };
-    let merge_base = git_lines(root, &["merge-base", base, "HEAD"])?
-        .into_iter()
-        .next()
-        .with_context(|| format!("no merge base of `{base}` and HEAD"))?;
+    let merge_base = merge_base(root, base)?;
     let files = changed_files(root, &merge_base)?;
 
     let members = members_of(&crate::metadata_all_features(root)?)?;

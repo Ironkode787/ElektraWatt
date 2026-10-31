@@ -1,4 +1,4 @@
-<!-- file: tools/blind/tasks/selftest/task.md sha256 8dc13e819e7de7afe56f8ee4a21719f1ec5a0825f13b9a1e442f13f0242afd0c -->
+<!-- file: tools/blind/tasks/selftest/task.md -->
 # The self-test task
 
 This task is for the harness, not for an agent. A scripted agent (`agent.jsonl`) plays the part of a drafter and
@@ -15,7 +15,7 @@ agent saves its own work) and quits.
 the recording `tools/blind/recordings/selftest/` and replays that recording twice. A change of the product that breaks
 the recording is repaired by running the self-test again in the same change.
 
-<!-- file: tools/blind/HELP.md sha256 d05854152eb7dd672f84aa5d591cf6a5ec028c3b9aefc257981a68c38f236c2b -->
+<!-- file: tools/blind/HELP.md -->
 ---
 prompt: blind-help
 version: 7

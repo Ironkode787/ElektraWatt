@@ -18,7 +18,7 @@ use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 
 use super::normalise::{Normaliser, absolute_path_in, find_uuid_line, first_uuid};
-use super::run::{Run, RunJson, Turn, read_script, script_header, step_line};
+use super::run::{Run, RunJson, Turn, is_selftest, read_script, script_header, step_line};
 use super::score::{Score, score_json, score_markdown, score_run};
 
 /// The folder of the committed recordings.
@@ -565,7 +565,7 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
     // The PDF's digest ties a gate run's recording to the PDF attached to the release (FT-420). It is evidence only,
     // never compared, and not reproducible: a new project mints random IDs that reach the PDF. The self-test
     // recording therefore leaves it out, or every bless would change a committed file.
-    if !rj.task.starts_with("selftest")
+    if !is_selftest(&rj.task)
         && let Ok(pdf) = std::fs::read_to_string(run.path("out/project-t1.pdf.sha256"))
     {
         files.push(("out/project-t1.pdf.sha256".to_owned(), pdf));
@@ -573,12 +573,9 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
     if let Ok(log) = read("record.ewcmd") {
         files.push(("record.ewcmd.txt".to_owned(), alias_uuids(&norm.text(&log))));
     }
-    let mut recorded = rj.clone();
-    recorded.ci = ci.to_owned();
-    recorded.stale = None;
     files.push((
         "run.json".to_owned(),
-        format!("{}\n", serde_json::to_string_pretty(&recorded)?),
+        format!("{}\n", serde_json::to_string_pretty(&recorded_run_json(&rj, ci))?),
     ));
     for (rel, text) in &files {
         if let Some(path) = absolute_path_in(text) {
@@ -598,6 +595,22 @@ pub fn bless(root: &Path, run: &Run, name: &str, ci: &str) -> Result<PathBuf> {
         std::fs::write(path, text)?;
     }
     Ok(dest)
+}
+
+/// The `run.json` a recording keeps of the run `rj`, blessed with `ci`: not stale. A self-test recording keeps no
+/// digests (no `files`, no `golden`, no `golden_scope`): its replay (R1, R2) is the evidence, and the digests of the
+/// reference and task files, which many changes re-bless, only made merge conflicts. A persona or check recording
+/// keeps both: they mark a recording made under older references.
+fn recorded_run_json(rj: &RunJson, ci: &str) -> RunJson {
+    let mut recorded = rj.clone();
+    recorded.ci = ci.to_owned();
+    recorded.stale = None;
+    if is_selftest(&rj.task) {
+        recorded.files.clear();
+        recorded.golden.clear();
+        recorded.golden_scope = None;
+    }
+    recorded
 }
 
 /// `rescore <recording> [--bin <dir>] [--write]` (FT-555): scores a committed recording again against its task's
@@ -770,6 +783,62 @@ mod tests {
         assert_eq!(run["ci"], "pr");
         assert_eq!(run["stale"], Value::Null);
         assert_eq!(run["end"], "handback");
+    }
+
+    /// Both committed self-test recordings pin no digest: `run.json` has no `files`, `golden` or `golden_scope` key,
+    /// and the prompt names its files without a digest.
+    #[test]
+    fn the_committed_self_test_recordings_pin_no_digests() {
+        for name in ["selftest", "selftest-visual"] {
+            let dir = recordings_dir(&crate::workspace_root()).join(name);
+            let run: Value =
+                serde_json::from_str(&std::fs::read_to_string(dir.join("run.json")).unwrap()).unwrap();
+            for key in ["files", "golden", "golden_scope"] {
+                assert_eq!(run.get(key), None, "{name}/run.json: {key}");
+            }
+            let prompt = std::fs::read_to_string(dir.join("prompt.md")).unwrap();
+            let lines: Vec<&str> = prompt.lines().filter(|l| l.starts_with("<!-- file: ")).collect();
+            assert!(!lines.is_empty(), "{name}/prompt.md names its files");
+            for l in lines {
+                assert!(!l.contains("sha256"), "{name}/prompt.md: {l}");
+            }
+        }
+    }
+
+    /// A self-test's recorded `run.json` drops the digests (and the scope of `golden`); a persona run's and a check
+    /// run's keep them. Both are blessed with the given `ci` and are not stale.
+    #[test]
+    fn a_self_test_bless_drops_the_digests_and_a_persona_bless_keeps_them() {
+        let mut rj = super::super::testkit::new_run_json("r", super::super::run::Kind::Free);
+        rj.files = std::collections::BTreeMap::from([(
+            "tools/blind/reference/actions.txt".to_owned(),
+            "ab".to_owned(),
+        )]);
+        rj.golden = "cd".to_owned();
+        rj.golden_scope = Some("project".to_owned());
+        rj.stale = Some("old".to_owned());
+        for task in ["selftest", "selftest-visual"] {
+            rj.task = task.to_owned();
+            let recorded = recorded_run_json(&rj, "pr");
+            assert_eq!((recorded.ci.as_str(), &recorded.stale), ("pr", &None));
+            let json: Value = serde_json::to_value(&recorded).unwrap();
+            for key in ["files", "golden", "golden_scope"] {
+                assert_eq!(json.get(key), None, "{task}: {key}");
+            }
+            // The recording still loads: the keys have defaults.
+            let back: RunJson = serde_json::from_value(json).unwrap();
+            assert_eq!((back.files.len(), back.golden.as_str()), (0, ""));
+        }
+        rj.task = "gpp".to_owned();
+        rj.persona = Some("qet-veteran".to_owned());
+        let json: Value = serde_json::to_value(recorded_run_json(&rj, "none")).unwrap();
+        assert_eq!(
+            json["files"],
+            serde_json::json!({"tools/blind/reference/actions.txt": "ab"})
+        );
+        assert_eq!(json["golden"], "cd");
+        assert_eq!(json["golden_scope"], "project");
+        assert_eq!(json["stale"], Value::Null);
     }
 
     #[test]
