@@ -99,6 +99,7 @@
     - [EW-REL](reference/rules/ew-rel.md)
     - [EW-TERM](reference/rules/ew-term.md)
   - [Glossary](reference/glossary.md)
+  - [Keymaps](reference/keymaps.md)
 
 # Explanation
 

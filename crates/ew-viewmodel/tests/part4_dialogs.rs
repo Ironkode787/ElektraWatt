@@ -242,6 +242,9 @@ fn ui_strings() -> Vec<String> {
 /// list in the same reviewed commit.
 const OPENS_INPUT: &[&str] = &[
     "file.new",
+    // WP-S2.08 part 2: the keymap editor's Import… and Export… ask for a file.
+    "keymap.import",
+    "keymap.export",
     "file.open",
     "file.save_as",
     "file.import_qet",

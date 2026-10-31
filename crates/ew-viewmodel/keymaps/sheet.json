@@ -1,0 +1,1455 @@
+{
+  "actions": [
+    {
+      "action": "file.new",
+      "bindings": {
+        "ew": [
+          "Ctrl+N"
+        ],
+        "kicad": [
+          "Ctrl+N"
+        ]
+      },
+      "context": "global",
+      "label": "New project…",
+      "label_key": "action-file-new"
+    },
+    {
+      "action": "file.open",
+      "bindings": {
+        "ew": [
+          "Ctrl+O"
+        ],
+        "kicad": [
+          "Ctrl+O"
+        ]
+      },
+      "context": "global",
+      "label": "Open…",
+      "label_key": "action-file-open"
+    },
+    {
+      "action": "file.save",
+      "bindings": {
+        "ew": [
+          "Ctrl+S"
+        ],
+        "kicad": [
+          "Ctrl+S"
+        ]
+      },
+      "context": "global",
+      "label": "Save",
+      "label_key": "action-file-save"
+    },
+    {
+      "action": "file.save_as",
+      "bindings": {
+        "ew": [
+          "Ctrl+Shift+S"
+        ],
+        "kicad": [
+          "Ctrl+Shift+S"
+        ]
+      },
+      "context": "global",
+      "label": "Save as…",
+      "label_key": "action-file-save-as"
+    },
+    {
+      "action": "file.export_pdf",
+      "bindings": {
+        "ew": [
+          "Ctrl+Shift+E"
+        ],
+        "kicad": [
+          "Ctrl+Shift+E"
+        ]
+      },
+      "context": "global",
+      "label": "Export PDF…",
+      "label_key": "action-file-export-pdf"
+    },
+    {
+      "action": "file.close",
+      "bindings": {
+        "ew": [
+          "Ctrl+Shift+W"
+        ],
+        "kicad": [
+          "Ctrl+Shift+W"
+        ]
+      },
+      "context": "global",
+      "label": "Close project",
+      "label_key": "action-file-close"
+    },
+    {
+      "action": "app.quit",
+      "bindings": {
+        "ew": [
+          "Ctrl+Q"
+        ],
+        "kicad": [
+          "Ctrl+Q"
+        ]
+      },
+      "context": "global",
+      "label": "Quit",
+      "label_key": "action-app-quit"
+    },
+    {
+      "action": "edit.undo",
+      "bindings": {
+        "ew": [
+          "Ctrl+Z"
+        ],
+        "kicad": [
+          "Ctrl+Z"
+        ]
+      },
+      "context": "global",
+      "label": "Undo",
+      "label_key": "action-edit-undo"
+    },
+    {
+      "action": "edit.redo",
+      "bindings": {
+        "ew": [
+          "Ctrl+Shift+Z",
+          "Ctrl+Y"
+        ],
+        "kicad": [
+          "Ctrl+Shift+Z",
+          "Ctrl+Y"
+        ]
+      },
+      "context": "global",
+      "label": "Redo",
+      "label_key": "action-edit-redo"
+    },
+    {
+      "action": "view.bottom_dock",
+      "bindings": {
+        "ew": [
+          "Ctrl+J"
+        ],
+        "kicad": [
+          "Ctrl+J"
+        ]
+      },
+      "context": "global",
+      "label": "Bottom dock",
+      "label_key": "action-view-bottom-dock"
+    },
+    {
+      "action": "props.focus",
+      "bindings": {
+        "ew": [
+          "E",
+          "Alt+Enter"
+        ],
+        "kicad": [
+          "E",
+          "Alt+Enter"
+        ]
+      },
+      "context": "canvas",
+      "label": "Properties of selection",
+      "label_key": "action-props-focus"
+    },
+    {
+      "action": "find.open",
+      "bindings": {
+        "ew": [
+          "Ctrl+F"
+        ],
+        "kicad": [
+          "Ctrl+F"
+        ]
+      },
+      "context": "global",
+      "label": "Find…",
+      "label_key": "action-find-open"
+    },
+    {
+      "action": "find.open_replace",
+      "bindings": {
+        "ew": [
+          "Ctrl+H"
+        ],
+        "kicad": [
+          "Ctrl+H"
+        ]
+      },
+      "context": "global",
+      "label": "Find and replace…",
+      "label_key": "action-find-open-replace"
+    },
+    {
+      "action": "find.replace_all",
+      "bindings": {
+        "ew": [
+          "Ctrl+Enter"
+        ],
+        "kicad": [
+          "Ctrl+Enter"
+        ]
+      },
+      "context": "find",
+      "label": "Replace all",
+      "label_key": "action-find-replace-all"
+    },
+    {
+      "action": "page.next",
+      "bindings": {
+        "ew": [
+          "Page Down"
+        ],
+        "kicad": [
+          "Page Down"
+        ]
+      },
+      "context": "global",
+      "label": "Next page",
+      "label_key": "action-page-next"
+    },
+    {
+      "action": "page.previous",
+      "bindings": {
+        "ew": [
+          "Page Up"
+        ],
+        "kicad": [
+          "Page Up"
+        ]
+      },
+      "context": "global",
+      "label": "Previous page",
+      "label_key": "action-page-previous"
+    },
+    {
+      "action": "nav.goto",
+      "bindings": {
+        "ew": [
+          "Ctrl+G"
+        ],
+        "kicad": [
+          "Ctrl+G"
+        ]
+      },
+      "context": "global",
+      "label": "Go to page or cell…",
+      "label_key": "action-nav-goto"
+    },
+    {
+      "action": "nav.back",
+      "bindings": {
+        "ew": [
+          "Alt+Arrow Left"
+        ],
+        "kicad": [
+          "Alt+Arrow Left"
+        ]
+      },
+      "context": "global",
+      "label": "Back",
+      "label_key": "action-nav-back"
+    },
+    {
+      "action": "nav.forward",
+      "bindings": {
+        "ew": [
+          "Alt+Arrow Right"
+        ],
+        "kicad": [
+          "Alt+Arrow Right"
+        ]
+      },
+      "context": "global",
+      "label": "Forward",
+      "label_key": "action-nav-forward"
+    },
+    {
+      "action": "nav.follow",
+      "bindings": {
+        "ew": [
+          "F"
+        ],
+        "kicad": [
+          "F"
+        ]
+      },
+      "context": "canvas",
+      "label": "Follow cross-reference",
+      "label_key": "action-nav-follow"
+    },
+    {
+      "action": "nav.next_link",
+      "bindings": {
+        "ew": [
+          "Shift+F"
+        ],
+        "kicad": [
+          "Shift+F"
+        ]
+      },
+      "context": "canvas",
+      "label": "Next cross-reference",
+      "label_key": "action-nav-next-link"
+    },
+    {
+      "action": "nav.previous_link",
+      "bindings": {
+        "ew": [
+          "Ctrl+Shift+F"
+        ],
+        "kicad": [
+          "Ctrl+Shift+F"
+        ]
+      },
+      "context": "canvas",
+      "label": "Previous cross-reference",
+      "label_key": "action-nav-previous-link"
+    },
+    {
+      "action": "cp.next",
+      "bindings": {
+        "ew": [
+          "]",
+          "Alt+N"
+        ],
+        "kicad": [
+          "]",
+          "Alt+N"
+        ]
+      },
+      "context": "canvas",
+      "label": "Next connection point",
+      "label_key": "action-cp-next"
+    },
+    {
+      "action": "cp.previous",
+      "bindings": {
+        "ew": [
+          "[",
+          "Alt+Shift+N"
+        ],
+        "kicad": [
+          "[",
+          "Alt+Shift+N"
+        ]
+      },
+      "context": "canvas",
+      "label": "Previous connection point",
+      "label_key": "action-cp-previous"
+    },
+    {
+      "action": "cp.next_unconnected",
+      "bindings": {
+        "ew": [
+          "N"
+        ],
+        "kicad": [
+          "N"
+        ]
+      },
+      "context": "canvas",
+      "label": "Next unconnected connection point",
+      "label_key": "action-cp-next-unconnected"
+    },
+    {
+      "action": "canvas.activate",
+      "bindings": {
+        "ew": [
+          "Enter"
+        ],
+        "kicad": [
+          "Enter"
+        ]
+      },
+      "context": "canvas",
+      "label": "Click at the grid cursor",
+      "label_key": "action-canvas-activate"
+    },
+    {
+      "action": "tool.back",
+      "bindings": {
+        "ew": [
+          "Backspace"
+        ],
+        "kicad": [
+          "Backspace"
+        ]
+      },
+      "context": "canvas",
+      "label": "Tool step back",
+      "label_key": "action-tool-back"
+    },
+    {
+      "action": "view.zoom_in",
+      "bindings": {
+        "ew": [
+          "Ctrl+Plus",
+          "Ctrl+Equals"
+        ],
+        "kicad": [
+          "Ctrl+Plus",
+          "Ctrl+Equals"
+        ]
+      },
+      "context": "global",
+      "label": "Zoom in",
+      "label_key": "action-view-zoom-in"
+    },
+    {
+      "action": "view.zoom_out",
+      "bindings": {
+        "ew": [
+          "Ctrl+Minus"
+        ],
+        "kicad": [
+          "Ctrl+Minus"
+        ]
+      },
+      "context": "global",
+      "label": "Zoom out",
+      "label_key": "action-view-zoom-out"
+    },
+    {
+      "action": "view.zoom_actual",
+      "bindings": {
+        "ew": [
+          "Ctrl+0"
+        ],
+        "kicad": [
+          "Ctrl+0"
+        ]
+      },
+      "context": "global",
+      "label": "Actual size",
+      "label_key": "action-view-zoom-actual"
+    },
+    {
+      "action": "view.fit_page",
+      "bindings": {
+        "ew": [
+          "Home"
+        ],
+        "kicad": [
+          "Home"
+        ]
+      },
+      "context": "global",
+      "label": "Fit page",
+      "label_key": "action-view-fit-page"
+    },
+    {
+      "action": "view.pan_left",
+      "bindings": {
+        "ew": [
+          "Ctrl+Arrow Left"
+        ],
+        "kicad": [
+          "Ctrl+Arrow Left"
+        ]
+      },
+      "context": "global",
+      "label": "Pan left",
+      "label_key": "action-view-pan-left"
+    },
+    {
+      "action": "view.pan_right",
+      "bindings": {
+        "ew": [
+          "Ctrl+Arrow Right"
+        ],
+        "kicad": [
+          "Ctrl+Arrow Right"
+        ]
+      },
+      "context": "global",
+      "label": "Pan right",
+      "label_key": "action-view-pan-right"
+    },
+    {
+      "action": "view.pan_up",
+      "bindings": {
+        "ew": [
+          "Ctrl+Arrow Up"
+        ],
+        "kicad": [
+          "Ctrl+Arrow Up"
+        ]
+      },
+      "context": "global",
+      "label": "Pan up",
+      "label_key": "action-view-pan-up"
+    },
+    {
+      "action": "view.pan_down",
+      "bindings": {
+        "ew": [
+          "Ctrl+Arrow Down"
+        ],
+        "kicad": [
+          "Ctrl+Arrow Down"
+        ]
+      },
+      "context": "global",
+      "label": "Pan down",
+      "label_key": "action-view-pan-down"
+    },
+    {
+      "action": "messages.next",
+      "bindings": {
+        "ew": [
+          "F8"
+        ],
+        "kicad": [
+          "F8"
+        ]
+      },
+      "context": "global",
+      "label": "Next finding",
+      "label_key": "action-messages-next"
+    },
+    {
+      "action": "messages.previous",
+      "bindings": {
+        "ew": [
+          "Shift+F8"
+        ],
+        "kicad": [
+          "Shift+F8"
+        ]
+      },
+      "context": "global",
+      "label": "Previous finding",
+      "label_key": "action-messages-previous"
+    },
+    {
+      "action": "view.command_bar",
+      "bindings": {
+        "ew": [
+          "Ctrl+F1"
+        ],
+        "kicad": [
+          "Ctrl+F1"
+        ]
+      },
+      "context": "global",
+      "label": "Collapse command bar",
+      "label_key": "action-view-command-bar"
+    },
+    {
+      "action": "tools.palette",
+      "bindings": {
+        "ew": [
+          "Ctrl+K",
+          "Ctrl+Shift+P"
+        ],
+        "kicad": [
+          "Ctrl+K",
+          "Ctrl+Shift+P"
+        ]
+      },
+      "context": "global",
+      "label": "Command palette",
+      "label_key": "action-tools-palette"
+    },
+    {
+      "action": "tool.place",
+      "bindings": {
+        "ew": [
+          "I"
+        ],
+        "kicad": [
+          "A"
+        ]
+      },
+      "context": "canvas",
+      "label": "Symbol…",
+      "label_key": "action-tool-place"
+    },
+    {
+      "action": "tool.place_part",
+      "bindings": {
+        "ew": [
+          "Shift+I"
+        ],
+        "kicad": [
+          "Shift+I"
+        ]
+      },
+      "context": "canvas",
+      "label": "Device from part…",
+      "label_key": "action-tool-place-part"
+    },
+    {
+      "action": "place.join",
+      "bindings": {
+        "ew": [
+          "J"
+        ],
+        "kicad": [
+          "J"
+        ]
+      },
+      "context": "canvas",
+      "label": "Join device…",
+      "label_key": "action-place-join"
+    },
+    {
+      "action": "tool.rotate_cw",
+      "bindings": {
+        "ew": [
+          "R"
+        ],
+        "kicad": [
+          "R"
+        ]
+      },
+      "context": "canvas",
+      "label": "Rotate clockwise",
+      "label_key": "action-tool-rotate-cw"
+    },
+    {
+      "action": "tool.rotate_ccw",
+      "bindings": {
+        "ew": [
+          "Shift+R"
+        ],
+        "kicad": [
+          "Shift+R"
+        ]
+      },
+      "context": "canvas",
+      "label": "Rotate counter-clockwise",
+      "label_key": "action-tool-rotate-ccw"
+    },
+    {
+      "action": "tool.mirror_x",
+      "bindings": {
+        "ew": [
+          "X"
+        ],
+        "kicad": [
+          "X"
+        ]
+      },
+      "context": "canvas",
+      "label": "Mirror left to right",
+      "label_key": "action-tool-mirror-x"
+    },
+    {
+      "action": "tool.mirror_y",
+      "bindings": {
+        "ew": [
+          "Y"
+        ],
+        "kicad": [
+          "Y"
+        ]
+      },
+      "context": "canvas",
+      "label": "Mirror top to bottom",
+      "label_key": "action-tool-mirror-y"
+    },
+    {
+      "action": "tool.next_variant",
+      "bindings": {
+        "ew": [
+          "V"
+        ],
+        "kicad": [
+          "V"
+        ]
+      },
+      "context": "canvas",
+      "label": "Next variant",
+      "label_key": "action-tool-next-variant"
+    },
+    {
+      "action": "tool.next_rep_type",
+      "bindings": {
+        "ew": [
+          "Shift+V"
+        ],
+        "kicad": [
+          "Shift+V"
+        ]
+      },
+      "context": "canvas",
+      "label": "Next representation type",
+      "label_key": "action-tool-next-rep-type"
+    },
+    {
+      "action": "tool.move",
+      "bindings": {
+        "ew": [
+          "M"
+        ],
+        "kicad": [
+          "M",
+          "G"
+        ]
+      },
+      "context": "canvas",
+      "label": "Move",
+      "label_key": "action-tool-move"
+    },
+    {
+      "action": "edit.delete_selection",
+      "bindings": {
+        "ew": [
+          "Delete"
+        ],
+        "kicad": [
+          "Delete"
+        ]
+      },
+      "context": "canvas",
+      "label": "Delete",
+      "label_key": "action-edit-delete-selection"
+    },
+    {
+      "action": "edit.cut",
+      "bindings": {
+        "ew": [
+          "Ctrl+X"
+        ],
+        "kicad": [
+          "Ctrl+X"
+        ]
+      },
+      "context": "canvas",
+      "label": "Cut",
+      "label_key": "action-edit-cut"
+    },
+    {
+      "action": "edit.copy",
+      "bindings": {
+        "ew": [
+          "Ctrl+C"
+        ],
+        "kicad": [
+          "Ctrl+C"
+        ]
+      },
+      "context": "canvas",
+      "label": "Copy",
+      "label_key": "action-edit-copy"
+    },
+    {
+      "action": "edit.paste_clip",
+      "bindings": {
+        "ew": [
+          "Ctrl+V"
+        ],
+        "kicad": [
+          "Ctrl+V"
+        ]
+      },
+      "context": "canvas",
+      "label": "Paste",
+      "label_key": "action-edit-paste-clip"
+    },
+    {
+      "action": "edit.duplicate",
+      "bindings": {
+        "ew": [
+          "Ctrl+D"
+        ],
+        "kicad": [
+          "Ctrl+D"
+        ]
+      },
+      "context": "canvas",
+      "label": "Duplicate",
+      "label_key": "action-edit-duplicate"
+    },
+    {
+      "action": "tool.finish",
+      "bindings": {
+        "ew": [
+          "Shift+Enter"
+        ],
+        "kicad": [
+          "Shift+Enter"
+        ]
+      },
+      "context": "canvas",
+      "label": "Finish",
+      "label_key": "action-tool-finish"
+    },
+    {
+      "action": "tool.wire",
+      "bindings": {
+        "ew": [
+          "W"
+        ],
+        "kicad": [
+          "W"
+        ]
+      },
+      "context": "canvas",
+      "label": "Connection",
+      "label_key": "action-tool-wire"
+    },
+    {
+      "action": "canvas.activate_alt",
+      "bindings": {
+        "ew": [
+          "Ctrl+Enter"
+        ],
+        "kicad": [
+          "Ctrl+Enter"
+        ]
+      },
+      "context": "canvas",
+      "label": "Click with Alt at the grid cursor",
+      "label_key": "action-canvas-activate-alt"
+    },
+    {
+      "action": "tool.next_proposal",
+      "bindings": {
+        "ew": [
+          "Tab"
+        ],
+        "kicad": [
+          "Tab"
+        ]
+      },
+      "context": "canvas",
+      "label": "Next autoconnect proposal",
+      "label_key": "action-tool-next-proposal"
+    },
+    {
+      "action": "tool.connect_on_move",
+      "bindings": {
+        "ew": [
+          "C"
+        ],
+        "kicad": [
+          "C"
+        ]
+      },
+      "context": "canvas",
+      "label": "Connect while moving",
+      "label_key": "action-tool-connect-on-move"
+    },
+    {
+      "action": "tool.ip",
+      "bindings": {
+        "ew": [
+          "P"
+        ],
+        "kicad": [
+          "P"
+        ]
+      },
+      "context": "canvas",
+      "label": "Interruption point",
+      "label_key": "action-tool-ip"
+    },
+    {
+      "action": "tool.black_box",
+      "bindings": {
+        "ew": [
+          "B"
+        ],
+        "kicad": [
+          "B"
+        ]
+      },
+      "context": "canvas",
+      "label": "Black box…",
+      "label_key": "action-tool-black-box"
+    },
+    {
+      "action": "tool.ip_direction",
+      "bindings": {
+        "ew": [
+          "D"
+        ],
+        "kicad": [
+          "D"
+        ]
+      },
+      "context": "canvas",
+      "label": "Interruption point direction",
+      "label_key": "action-tool-ip-direction"
+    },
+    {
+      "action": "tool.text",
+      "bindings": {
+        "ew": [
+          "T"
+        ],
+        "kicad": [
+          "T"
+        ]
+      },
+      "context": "canvas",
+      "label": "Text",
+      "label_key": "action-tool-text"
+    },
+    {
+      "action": "tool.graphic",
+      "bindings": {
+        "ew": [
+          "L"
+        ],
+        "kicad": [
+          "L"
+        ]
+      },
+      "context": "canvas",
+      "label": "Graphic",
+      "label_key": "action-tool-graphic"
+    },
+    {
+      "action": "text.edit",
+      "bindings": {
+        "ew": [
+          "F2"
+        ],
+        "kicad": [
+          "F2"
+        ]
+      },
+      "context": "canvas",
+      "label": "Edit text",
+      "label_key": "action-text-edit"
+    },
+    {
+      "action": "strip.insert",
+      "bindings": {
+        "ew": [
+          "Insert"
+        ],
+        "kicad": [
+          "Insert"
+        ]
+      },
+      "context": "navigator",
+      "label": "Insert terminal",
+      "label_key": "action-strip-insert"
+    },
+    {
+      "action": "strip.delete_rows",
+      "bindings": {
+        "ew": [
+          "Ctrl+Delete"
+        ],
+        "kicad": [
+          "Ctrl+Delete"
+        ]
+      },
+      "context": "navigator",
+      "label": "Delete rows",
+      "label_key": "action-strip-delete-rows"
+    },
+    {
+      "action": "tool.marker",
+      "bindings": {
+        "ew": [
+          "Shift+W"
+        ],
+        "kicad": [
+          "Shift+W"
+        ]
+      },
+      "context": "canvas",
+      "label": "Wire marker",
+      "label_key": "action-tool-marker"
+    },
+    {
+      "action": "tool.structure_box",
+      "bindings": {
+        "ew": [
+          "Shift+B"
+        ],
+        "kicad": [
+          "Shift+B"
+        ]
+      },
+      "context": "canvas",
+      "label": "Structure box",
+      "label_key": "action-tool-structure-box"
+    },
+    {
+      "action": "messages.check",
+      "bindings": {
+        "ew": [
+          "F7"
+        ],
+        "kicad": [
+          "F7"
+        ]
+      },
+      "context": "global",
+      "label": "Run checks",
+      "label_key": "action-messages-check"
+    },
+    {
+      "action": "devices.renumber",
+      "bindings": {
+        "ew": [
+          "Ctrl+Shift+N"
+        ],
+        "kicad": [
+          "Ctrl+Shift+N"
+        ]
+      },
+      "context": "global",
+      "label": "Renumber devices…",
+      "label_key": "action-devices-renumber"
+    },
+    {
+      "action": "tab.new",
+      "bindings": {
+        "ew": [
+          "Ctrl+T"
+        ],
+        "kicad": [
+          "Ctrl+T"
+        ]
+      },
+      "context": "global",
+      "label": "New tab",
+      "label_key": "action-tab-new"
+    },
+    {
+      "action": "tab.close",
+      "bindings": {
+        "ew": [
+          "Ctrl+W"
+        ],
+        "kicad": [
+          "Ctrl+W"
+        ]
+      },
+      "context": "global",
+      "label": "Close tab",
+      "label_key": "action-tab-close"
+    },
+    {
+      "action": "tab.next",
+      "bindings": {
+        "ew": [
+          "Ctrl+Tab"
+        ],
+        "kicad": [
+          "Ctrl+Tab"
+        ]
+      },
+      "context": "global",
+      "label": "Next tab",
+      "label_key": "action-tab-next"
+    },
+    {
+      "action": "tab.previous",
+      "bindings": {
+        "ew": [
+          "Ctrl+Shift+Tab"
+        ],
+        "kicad": [
+          "Ctrl+Shift+Tab"
+        ]
+      },
+      "context": "global",
+      "label": "Previous tab",
+      "label_key": "action-tab-previous"
+    },
+    {
+      "action": "tab.focus_other",
+      "bindings": {
+        "ew": [
+          "Ctrl+F6"
+        ],
+        "kicad": [
+          "Ctrl+F6"
+        ]
+      },
+      "context": "global",
+      "label": "Other tab group",
+      "label_key": "action-tab-focus-other"
+    },
+    {
+      "action": "help.documentation",
+      "bindings": {
+        "ew": [
+          "F1"
+        ],
+        "kicad": [
+          "F1"
+        ]
+      },
+      "context": "global",
+      "label": "Documentation",
+      "label_key": "action-help-documentation"
+    },
+    {
+      "action": "cursor.left",
+      "bindings": {
+        "ew": [
+          "Arrow Left"
+        ],
+        "kicad": [
+          "Arrow Left"
+        ]
+      },
+      "context": "canvas",
+      "label": "Cursor left",
+      "label_key": "action-cursor-left"
+    },
+    {
+      "action": "cursor.right",
+      "bindings": {
+        "ew": [
+          "Arrow Right"
+        ],
+        "kicad": [
+          "Arrow Right"
+        ]
+      },
+      "context": "canvas",
+      "label": "Cursor right",
+      "label_key": "action-cursor-right"
+    },
+    {
+      "action": "cursor.up",
+      "bindings": {
+        "ew": [
+          "Arrow Up"
+        ],
+        "kicad": [
+          "Arrow Up"
+        ]
+      },
+      "context": "canvas",
+      "label": "Cursor up",
+      "label_key": "action-cursor-up"
+    },
+    {
+      "action": "cursor.down",
+      "bindings": {
+        "ew": [
+          "Arrow Down"
+        ],
+        "kicad": [
+          "Arrow Down"
+        ]
+      },
+      "context": "canvas",
+      "label": "Cursor down",
+      "label_key": "action-cursor-down"
+    },
+    {
+      "action": "cursor.cell_left",
+      "bindings": {
+        "ew": [
+          "Shift+Arrow Left"
+        ],
+        "kicad": [
+          "Shift+Arrow Left"
+        ]
+      },
+      "context": "canvas",
+      "label": "Cursor one cell left",
+      "label_key": "action-cursor-cell-left"
+    },
+    {
+      "action": "cursor.cell_right",
+      "bindings": {
+        "ew": [
+          "Shift+Arrow Right"
+        ],
+        "kicad": [
+          "Shift+Arrow Right"
+        ]
+      },
+      "context": "canvas",
+      "label": "Cursor one cell right",
+      "label_key": "action-cursor-cell-right"
+    },
+    {
+      "action": "cursor.cell_up",
+      "bindings": {
+        "ew": [
+          "Shift+Arrow Up"
+        ],
+        "kicad": [
+          "Shift+Arrow Up"
+        ]
+      },
+      "context": "canvas",
+      "label": "Cursor one cell up",
+      "label_key": "action-cursor-cell-up"
+    },
+    {
+      "action": "cursor.cell_down",
+      "bindings": {
+        "ew": [
+          "Shift+Arrow Down"
+        ],
+        "kicad": [
+          "Shift+Arrow Down"
+        ]
+      },
+      "context": "canvas",
+      "label": "Cursor one cell down",
+      "label_key": "action-cursor-cell-down"
+    },
+    {
+      "action": "navigator.mark",
+      "bindings": {
+        "ew": [
+          "Space"
+        ],
+        "kicad": [
+          "Space"
+        ]
+      },
+      "context": "navigator",
+      "label": "Toggle mark",
+      "label_key": "action-navigator-mark"
+    },
+    {
+      "action": "pages.move_up",
+      "bindings": {
+        "ew": [
+          "Alt+Arrow Up"
+        ],
+        "kicad": [
+          "Alt+Arrow Up"
+        ]
+      },
+      "context": "navigator",
+      "label": "Move page up",
+      "label_key": "action-pages-move-up"
+    },
+    {
+      "action": "pages.move_down",
+      "bindings": {
+        "ew": [
+          "Alt+Arrow Down"
+        ],
+        "kicad": [
+          "Alt+Arrow Down"
+        ]
+      },
+      "context": "navigator",
+      "label": "Move page down",
+      "label_key": "action-pages-move-down"
+    },
+    {
+      "action": "navigator.highlight",
+      "bindings": {
+        "ew": [
+          "Ctrl+Shift+H"
+        ],
+        "kicad": [
+          "Ctrl+Shift+H"
+        ]
+      },
+      "context": "navigator",
+      "label": "Highlight",
+      "label_key": "action-navigator-highlight"
+    },
+    {
+      "action": "table.edit",
+      "bindings": {
+        "ew": [
+          "F2"
+        ],
+        "kicad": [
+          "F2"
+        ]
+      },
+      "context": "navigator",
+      "label": "Edit cell",
+      "label_key": "action-table-edit"
+    },
+    {
+      "action": "table.fill_down",
+      "bindings": {
+        "ew": [
+          "Ctrl+D"
+        ],
+        "kicad": [
+          "Ctrl+D"
+        ]
+      },
+      "context": "navigator",
+      "label": "Fill down",
+      "label_key": "action-table-fill-down"
+    },
+    {
+      "action": "table.pattern_fill",
+      "bindings": {
+        "ew": [
+          "Ctrl+Shift+D"
+        ],
+        "kicad": [
+          "Ctrl+Shift+D"
+        ]
+      },
+      "context": "navigator",
+      "label": "Pattern fill…",
+      "label_key": "action-table-pattern-fill"
+    },
+    {
+      "action": "table.paste",
+      "bindings": {
+        "ew": [
+          "Ctrl+V"
+        ],
+        "kicad": [
+          "Ctrl+V"
+        ]
+      },
+      "context": "navigator",
+      "label": "Paste cells",
+      "label_key": "action-table-paste"
+    },
+    {
+      "action": "table.copy",
+      "bindings": {
+        "ew": [
+          "Ctrl+C"
+        ],
+        "kicad": [
+          "Ctrl+C"
+        ]
+      },
+      "context": "navigator",
+      "label": "Copy cells",
+      "label_key": "action-table-copy"
+    },
+    {
+      "action": "table.clear",
+      "bindings": {
+        "ew": [
+          "Delete"
+        ],
+        "kicad": [
+          "Delete"
+        ]
+      },
+      "context": "navigator",
+      "label": "Clear cells",
+      "label_key": "action-table-clear"
+    },
+    {
+      "action": "ui.focus_next",
+      "bindings": {
+        "ew": [
+          "F6"
+        ],
+        "kicad": [
+          "F6"
+        ]
+      },
+      "context": "global",
+      "label": "Next area",
+      "label_key": "action-ui-focus-next"
+    },
+    {
+      "action": "ui.focus_previous",
+      "bindings": {
+        "ew": [
+          "Shift+F6"
+        ],
+        "kicad": [
+          "Shift+F6"
+        ]
+      },
+      "context": "global",
+      "label": "Previous area",
+      "label_key": "action-ui-focus-previous"
+    },
+    {
+      "action": "ui.dismiss",
+      "bindings": {
+        "ew": [
+          "Escape"
+        ],
+        "kicad": [
+          "Escape"
+        ]
+      },
+      "context": "global",
+      "label": "Dismiss popup or dialog",
+      "label_key": "action-ui-dismiss"
+    },
+    {
+      "action": "props.edit",
+      "bindings": {
+        "ew": [
+          "F2"
+        ],
+        "kicad": [
+          "F2"
+        ]
+      },
+      "context": "properties",
+      "label": "Edit the property",
+      "label_key": "action-props-edit"
+    },
+    {
+      "action": "props.row_menu",
+      "bindings": {
+        "ew": [
+          "Shift+F10"
+        ],
+        "kicad": [
+          "Shift+F10"
+        ]
+      },
+      "context": "properties",
+      "label": "Property actions",
+      "label_key": "action-props-row-menu"
+    },
+    {
+      "action": "props.mltext",
+      "bindings": {
+        "ew": [
+          "Shift+Enter"
+        ],
+        "kicad": [
+          "Shift+Enter"
+        ]
+      },
+      "context": "properties",
+      "label": "Texts per language",
+      "label_key": "action-props-mltext"
+    },
+    {
+      "action": "preview.apply",
+      "bindings": {
+        "ew": [
+          "Ctrl+Enter"
+        ],
+        "kicad": [
+          "Ctrl+Enter"
+        ]
+      },
+      "context": "properties",
+      "label": "Apply the preview",
+      "label_key": "action-preview-apply"
+    }
+  ],
+  "presets": [
+    {
+      "id": "ew",
+      "name": "EW"
+    },
+    {
+      "id": "kicad",
+      "name": "KiCad-like"
+    }
+  ]
+}

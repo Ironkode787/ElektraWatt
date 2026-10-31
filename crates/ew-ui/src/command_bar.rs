@@ -839,14 +839,14 @@ impl CommandBarHost {
         self.search = Some(search);
         let placeholder = strings::text("commandbar-search").to_owned();
         let response = ui.interact(search, Id::unique("command-search"), Sense::click());
+        // WP-S2.08 part 2: the palette's key as the keymap binds it.
         let palette_key = ew_viewmodel::actions::find("tools.palette")
-            .and_then(|a| a.shortcut.first())
-            .copied()
+            .map(|a| shell.shortcut_text(a))
             .unwrap_or_default();
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::SearchInput, true, &placeholder));
         ui.ctx().accesskit_node_builder(response.id, |n| {
             n.set_placeholder(placeholder.clone());
-            n.set_keyboard_shortcut(crate::keys::display(palette_key));
+            n.set_keyboard_shortcut(crate::keys::display(&palette_key));
         });
         let open = shell.palette().is_some();
         if (response.clicked() || response.gained_focus()) && !open {

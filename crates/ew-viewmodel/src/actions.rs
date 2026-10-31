@@ -2818,6 +2818,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // WP-S2.09 part 3 (§8.3, §8.6): Tools, Renumber devices… and Purge unused images…
+    // WP-S2.08 D7: Ctrl+Shift+N, doc 16 §4.4's shell binding.
     with_params(
         "scope?:enum(project|page|selection), scheme?:text, include_frozen?:bool, only_nonconforming?:bool",
         placed(
@@ -2828,7 +2829,7 @@ pub static ACTIONS: &[ActionMeta] = &[
                 Command,
                 "action-devices-renumber",
                 Menu::Draw,
-                &[],
+                &["Ctrl+Shift+N"],
                 writable,
                 None,
             ),
@@ -4483,7 +4484,90 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
         )),
     ),
+    // WP-S2.08 part 2 (D8): the keymap editor's own controls (Help ▸ Keyboard shortcuts); the window dispatches them.
+    with_params(
+        "text:text",
+        hidden(act(
+            "keymap.search",
+            View,
+            "action-keymap-search",
+            Menu::Help,
+            &[],
+            keymap_editor_open,
+            None,
+        )),
+    ),
+    with_params(
+        "action?:text",
+        hidden(act(
+            "keymap.record_start",
+            View,
+            "action-keymap-record-start",
+            Menu::Help,
+            &[],
+            keymap_editor_open,
+            None,
+        )),
+    ),
+    with_params(
+        "action:text, keys:text",
+        hidden(act(
+            "keymap.record",
+            View,
+            "action-keymap-record",
+            Menu::Help,
+            &[],
+            keymap_editor_open,
+            None,
+        )),
+    ),
+    with_params(
+        "action:text",
+        hidden(act(
+            "keymap.reset",
+            View,
+            "action-keymap-reset",
+            Menu::Help,
+            &[],
+            keymap_editor_open,
+            None,
+        )),
+    ),
+    with_params(
+        "path?:path",
+        hidden(act(
+            "keymap.import",
+            View,
+            "action-keymap-import",
+            Menu::Help,
+            &[],
+            keymap_editor_open,
+            None,
+        )),
+    ),
+    with_params(
+        "path?:path",
+        hidden(act(
+            "keymap.export",
+            View,
+            "action-keymap-export",
+            Menu::Help,
+            &[],
+            keymap_editor_open,
+            None,
+        )),
+    ),
 ];
+
+// WP-S2.08 part 2
+/// The keymap editor's controls need the keyboard shortcuts dialog.
+fn keymap_editor_open(m: &ShellModel) -> Result<(), &'static str> {
+    if matches!(m.dialog(), Some(crate::shell::Dialog::Shortcuts)) {
+        Ok(())
+    } else {
+        Err("reason-no-keymap-editor")
+    }
+}
 
 // WP-S2.07 part 4b
 /// The paste choice card's choices need the card and a writable project.
@@ -4717,7 +4801,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
         id: meta.id,
         params: Value::Object(serde_json::Map::new()),
         label: strings::text(meta.label_key).to_owned(),
-        shortcut: shortcut_text(meta),
+        shortcut: model.shortcut_text(meta),
         enabled,
         reason: paste_reason.or_else(|| state.err().map(|k| strings::text(k).to_owned())),
         checked: match meta.id {

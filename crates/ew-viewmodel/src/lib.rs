@@ -41,6 +41,8 @@ pub mod highlight;
 pub mod history;
 // WP-S2.09 part 1: the jobs (the PDF export) and the notifications.
 pub mod jobs;
+// WP-S2.08 part 2: the keymap files, the presets, the conflict and reachability rules and the editor's rows.
+pub mod keymap;
 pub mod layout;
 pub mod navigator;
 // WP-S2.06 part 1

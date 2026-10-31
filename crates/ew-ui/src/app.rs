@@ -192,6 +192,8 @@ pub struct App {
     dock: Dock,
     initial: Option<PathBuf>,
     bindings: Vec<Binding>,
+    /// The keymap the bindings were built for (WP-S2.08 part 2): the preset and the user keymap's version.
+    bindings_for: (ew_viewmodel::keymap::Preset, u64),
     title: String,
     palette_was_open: bool,
     /// Whether the picker was open in the previous frame (its filter field takes the focus when it opens).
@@ -278,7 +280,9 @@ impl App {
             preview_view: PageView::new(),
             dock,
             initial,
-            bindings: keys::bindings(),
+            // Built by the first frame from the shell's keymap (`App::sync_bindings`).
+            bindings: Vec::new(),
+            bindings_for: (ew_viewmodel::keymap::Preset::Ew, u64::MAX),
             title: String::new(),
             palette_was_open: false,
             picker_was_open: false,
@@ -514,6 +518,12 @@ impl App {
         let ctx = ui.ctx().clone();
         // `ui_scale` is a factor on the native scale: egui's zoom factor is exactly that, and follows the window
         // to another monitor. It is set once when the setting changes.
+        // WP-S2.08 part 2: the bindings follow the keymap preset and the user's keymap.
+        let keymap = (self.shell.keymap_preset(), self.shell.keymap_version());
+        if self.bindings_for != keymap {
+            self.bindings = keys::bindings(&self.shell.bindings());
+            self.bindings_for = keymap;
+        }
         let scale = self.shell.settings().ui_scale;
         if self.applied_scale != Some(scale) {
             ctx.set_zoom_factor(scale);
@@ -1066,30 +1076,57 @@ impl App {
                 return;
             }
         }
-        if focused == Context::Canvas && !palette_open {
-            let bracket = ctx.input_mut(|i| {
+        // The chords bound by physical key (`]` and `[` in the canvas, any `phys:` key of a keymap, WP-S2.08 D6) are
+        // matched on the key's position, so they need no AltGr on QWERTZ and AZERTY: the focused context's first, the
+        // most modifiers first; a chord without Shift also takes the key with Shift.
+        if !palette_open {
+            let mut physical: Vec<&Binding> = self
+                .bindings
+                .iter()
+                .filter(|b| b.physical && (b.context == Context::Global || b.context == focused))
+                .collect();
+            physical.sort_by_key(|b| {
+                let m = b.shortcut.modifiers;
+                (
+                    std::cmp::Reverse(usize::from(m.shift) + usize::from(m.alt) + usize::from(m.command)),
+                    b.context != focused,
+                )
+            });
+            let hit = ctx.input_mut(|i| {
                 let mut hit = None;
                 i.events.retain(|e| match e {
+                    // A platform that reports no physical key (a test's) has its logical key matched instead.
                     egui::Event::Key {
-                        physical_key: Some(k @ (Key::OpenBracket | Key::CloseBracket)),
+                        key,
+                        physical_key,
                         pressed: true,
                         modifiers,
                         ..
-                    } if hit.is_none() && !modifiers.command && !modifiers.ctrl && !modifiers.alt => {
-                        hit = Some(*k);
-                        false
+                    } if hit.is_none() => {
+                        let k = physical_key.unwrap_or(*key);
+                        let found = physical.iter().find(|b| {
+                            let want = b.shortcut.modifiers;
+                            b.shortcut.logical_key == k
+                                && want.command == (modifiers.command || modifiers.ctrl)
+                                && want.alt == modifiers.alt
+                                && (!want.shift || modifiers.shift)
+                        });
+                        match found {
+                            Some(b) => {
+                                hit = Some(b.action);
+                                false
+                            }
+                            None => true,
+                        }
                     }
                     _ => true,
                 });
                 hit
             });
-            if let Some(k) = bracket {
-                let action = if k == Key::CloseBracket {
-                    "cp.next"
-                } else {
-                    "cp.previous"
-                };
-                events.push(Event::Action(action, Value::Null));
+            if let Some(action) = hit {
+                let (action, params) = self.shell.shortcut_action(action);
+                self.shell.note_shortcut_use(action);
+                events.push(Event::Action(action, params));
                 return;
             }
         }
@@ -1161,7 +1198,7 @@ impl App {
         let mut candidates: Vec<&Binding> = self
             .bindings
             .iter()
-            .filter(|b| b.context == Context::Global || b.context == focused)
+            .filter(|b| !b.physical && (b.context == Context::Global || b.context == focused))
             .collect();
         candidates.sort_by_key(|b| {
             let m = b.shortcut.modifiers;

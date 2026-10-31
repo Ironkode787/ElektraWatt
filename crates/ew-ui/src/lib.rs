@@ -46,6 +46,8 @@ mod hud;
 // WP-S2.09 part 1: the Jobs pane, the toasts and the notifications log.
 mod jobs;
 pub mod keys;
+// WP-S2.08 part 2: the keymap editor (Help ▸ Keyboard shortcuts).
+mod keymap_editor;
 mod latest;
 // WP-S1.19 part 6: the Macros navigator's detail and the Libraries navigator's Update….
 mod library_panes;

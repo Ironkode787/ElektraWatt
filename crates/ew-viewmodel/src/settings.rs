@@ -31,8 +31,8 @@ pub const FILE_NAME: &str = "settings.toml";
 /// The UI languages of this version (WP-S2.08 adds the others).
 pub const LANGUAGES: [&str; 1] = ["en"];
 
-/// The keymap presets the settings can name. The EW preset is the only one with bindings today; the KiCad-like
-/// preset is recorded and takes effect with the keymap files of WP-S2.08 (doc 16 section 4.4).
+/// The keymap presets the settings can name (WP-S2.08 part 2, D6): EW and KiCad-like (`keymap::Preset`); the user's
+/// `keymap.toml` beside `settings.toml` replaces bindings of either.
 pub const KEYMAPS: [&str; 2] = ["ew", "kicad"];
 
 /// The themes of the design language (doc 16a §4, WP-S2.17 part 1): follow the system (light or dark), light, dark and
@@ -594,9 +594,15 @@ pub fn valid_workspace_name(name: &str) -> bool {
 /// Copies the bad settings file to `settings.toml.bad-<n>` (the lowest free `n`); the name, or `None` when the
 /// copy failed.
 fn copy_aside(path: &Path) -> Option<String> {
+    copy_aside_as(path, FILE_NAME)
+}
+
+/// Copies the bad file `path` to `<file_name>.bad-<n>` beside it (the lowest free `n`); the name, or `None` when the
+/// copy failed. WP-S2.08 part 2: a refused `keymap.toml` is kept the same way.
+pub(crate) fn copy_aside_as(path: &Path, file_name: &str) -> Option<String> {
     let dir = path.parent()?;
     for n in 1..=999 {
-        let name = format!("{FILE_NAME}.bad-{n}");
+        let name = format!("{file_name}.bad-{n}");
         let target: PathBuf = dir.join(&name);
         if !target.exists() {
             return std::fs::copy(path, &target).ok().map(|_| name);

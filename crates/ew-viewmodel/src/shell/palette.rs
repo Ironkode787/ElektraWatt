@@ -139,7 +139,7 @@ impl ShellModel {
                     run: PaletteRun::Action(meta.id),
                     label: label.to_owned(),
                     id: meta.id.to_owned(),
-                    shortcut: actions::shortcut_text(meta),
+                    shortcut: self.shortcut_text(meta),
                     enabled: state.is_ok(),
                     reason: state.err().map(|k| strings::text(k).to_owned()),
                     breadcrumb: actions::breadcrumb(meta),

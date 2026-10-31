@@ -39,6 +39,10 @@ const CATALOGUE: &str = "crates/ew-checks/catalogue/rules.json";
 const GLOSSARY: &str = "crates/ew-viewmodel/glossary/glossary.toml";
 /// The generated glossary page, relative to [`BOOK_SRC`].
 const GLOSSARY_PAGE: &str = "reference/glossary.md";
+/// The keymap sheet of `ew-viewmodel` (WP-S2.08 part 2, KM-6), written by that crate's `keymaps` test.
+const KEYMAP_SHEET: &str = "crates/ew-viewmodel/keymaps/sheet.json";
+/// The generated keymap page, relative to [`BOOK_SRC`].
+const KEYMAPS_PAGE: &str = "reference/keymaps.md";
 /// The book's Markdown sources, relative to the workspace root.
 const BOOK_SRC: &str = "docs/book/src";
 /// Generated command pages, relative to [`BOOK_SRC`].
@@ -222,6 +226,10 @@ fn generate(root: &Path) -> Result<Generated> {
     let commands = command_pages(root, &mut files)?;
     let packs = rule_pages(root, &mut files)?;
     files.insert(GLOSSARY_PAGE.to_owned(), glossary_page(root)?);
+    files.insert(
+        KEYMAPS_PAGE.to_owned(),
+        keymaps_text(&read_json(root, KEYMAP_SHEET)?)?,
+    );
     Ok(Generated {
         files,
         commands,
@@ -871,6 +879,78 @@ fn glossary_text(file: &GlossaryFile) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// The keymaps (WP-S2.08 part 2, KM-6)
+
+/// A binding as a code span (doubled backticks around a binding that holds one).
+fn key_span(key: &str) -> String {
+    if key.contains('`') {
+        format!("`` {key} ``")
+    } else {
+        format!("`{key}`")
+    }
+}
+
+/// The keymap page (NFR-DOC-06's keymap sheets): one row per bound action of the sheet, in its order, with where the
+/// keys apply and the bindings of each preset.
+fn keymaps_text(sheet: &Value) -> Result<String> {
+    let presets: Vec<(String, String)> = sheet["presets"]
+        .as_array()
+        .context("the keymap sheet has no presets")?
+        .iter()
+        .map(|p| {
+            (
+                p["id"].as_str().unwrap_or_default().to_owned(),
+                p["name"].as_str().unwrap_or_default().to_owned(),
+            )
+        })
+        .collect();
+    let mut rows = String::new();
+    for a in sheet["actions"]
+        .as_array()
+        .context("the keymap sheet has no actions")?
+    {
+        let keys = presets
+            .iter()
+            .map(|(id, _)| {
+                let list: Vec<String> = a["bindings"][id.as_str()]
+                    .as_array()
+                    .map(|b| b.iter().filter_map(Value::as_str).map(key_span).collect())
+                    .unwrap_or_default();
+                if list.is_empty() {
+                    "—".to_owned()
+                } else {
+                    // Code spans as they are (`cell` would read `[` and `]` as link brackets); only a pipe is escaped.
+                    list.join(", ").replace('|', "\\|")
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" | ");
+        let _ = writeln!(
+            rows,
+            "| {} | `{}` | {} | {keys} |",
+            cell(a["label"].as_str().unwrap_or_default()),
+            a["action"].as_str().unwrap_or_default(),
+            a["context"].as_str().unwrap_or_default(),
+        );
+    }
+    let names: Vec<&str> = presets.iter().map(|(_, n)| n.as_str()).collect();
+    Ok(format!(
+        "# Keymaps\n\n{}\n\n\
+         The keys of the two keymap presets, EW and KiCad-like (Help ▸ Keyboard shortcuts shows them and lets you change \
+         them; the active preset is the Keymap setting). \"Where\" is the part of the window that must have the focus: \
+         `global` anywhere, `canvas`, `navigator`, `properties` or `find` only there, where such a key shadows a global \
+         one. `Ctrl` reads `Cmd` on macOS. A punctuation key (`]`, `[`) is the key at that place on a US keyboard, \
+         whatever your layout prints on it. The table is generated from the keymap sheet [`{KEYMAP_SHEET}`]({}), which \
+         the action registry generates.\n\n\
+         | Action | ID | Where | {} |\n|---|---|---|{}\n{rows}",
+        header(KEYMAP_SHEET),
+        repo_link(KEYMAP_SHEET, None),
+        names.join(" | "),
+        "---|".repeat(names.len()),
+    ))
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Rules
 
 #[derive(Deserialize)]
@@ -1237,6 +1317,32 @@ mod tests {
         );
         assert!(
             page.contains("| Report block |  |  |  | A table. | — |"),
+            "{page}"
+        );
+    }
+
+    #[test]
+    fn the_keymap_page_has_one_row_per_action_with_each_presets_keys() {
+        let sheet = serde_json::json!({
+            "presets": [{"id": "ew", "name": "EW"}, {"id": "kicad", "name": "KiCad-like"}],
+            "actions": [
+                {"action": "tool.place", "label": "Place symbol…", "label_key": "x", "context": "canvas",
+                 "bindings": {"ew": ["I"], "kicad": ["A"]}},
+                {"action": "cp.next", "label": "Next | point", "label_key": "y", "context": "canvas",
+                 "bindings": {"ew": ["]", "Alt+N"], "kicad": []}},
+            ],
+        });
+        let page = keymaps_text(&sheet).unwrap();
+        assert!(
+            page.contains("| Action | ID | Where | EW | KiCad-like |\n|---|---|---|---|---|\n"),
+            "{page}"
+        );
+        assert!(
+            page.contains("| Place symbol… | `tool.place` | canvas | `I` | `A` |"),
+            "{page}"
+        );
+        assert!(
+            page.contains("| Next \\| point | `cp.next` | canvas | `]`, `Alt+N` | — |"),
             "{page}"
         );
     }

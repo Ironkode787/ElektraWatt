@@ -1,0 +1,525 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# The EW keymap preset (WP-S2.08 D6), generated from the action registry by ew-viewmodel's `keymaps` test.
+# Do not edit: change the registry (or the preset's rule in keymap.rs) and run EW_BLESS=1 cargo nextest run -p ew-viewmodel --test keymaps.
+
+[meta]
+name = "EW"
+version = 1
+
+[[bind]]
+keys = "Ctrl+N"
+action = "file.new"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+O"
+action = "file.open"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+S"
+action = "file.save"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Shift+S"
+action = "file.save_as"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Shift+E"
+action = "file.export_pdf"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Shift+W"
+action = "file.close"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Q"
+action = "app.quit"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Z"
+action = "edit.undo"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Shift+Z"
+action = "edit.redo"
+context = "global"
+alt = "Ctrl+Y"
+
+[[bind]]
+keys = "Ctrl+J"
+action = "view.bottom_dock"
+context = "global"
+
+[[bind]]
+keys = "E"
+action = "props.focus"
+context = "canvas"
+alt = "Alt+Enter"
+
+[[bind]]
+keys = "Ctrl+F"
+action = "find.open"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+H"
+action = "find.open_replace"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Enter"
+action = "find.replace_all"
+context = "find"
+
+[[bind]]
+keys = "Page Down"
+action = "page.next"
+context = "global"
+
+[[bind]]
+keys = "Page Up"
+action = "page.previous"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+G"
+action = "nav.goto"
+context = "global"
+
+[[bind]]
+keys = "Alt+Arrow Left"
+action = "nav.back"
+context = "global"
+
+[[bind]]
+keys = "Alt+Arrow Right"
+action = "nav.forward"
+context = "global"
+
+[[bind]]
+keys = "F"
+action = "nav.follow"
+context = "canvas"
+
+[[bind]]
+keys = "Shift+F"
+action = "nav.next_link"
+context = "canvas"
+
+[[bind]]
+keys = "Ctrl+Shift+F"
+action = "nav.previous_link"
+context = "canvas"
+
+[[bind]]
+keys = "phys:BracketRight"
+action = "cp.next"
+context = "canvas"
+alt = "Alt+N"
+
+[[bind]]
+keys = "phys:BracketLeft"
+action = "cp.previous"
+context = "canvas"
+alt = "Alt+Shift+N"
+
+[[bind]]
+keys = "N"
+action = "cp.next_unconnected"
+context = "canvas"
+
+[[bind]]
+keys = "Enter"
+action = "canvas.activate"
+context = "canvas"
+
+[[bind]]
+keys = "Backspace"
+action = "tool.back"
+context = "canvas"
+
+[[bind]]
+keys = "Ctrl+Plus"
+action = "view.zoom_in"
+context = "global"
+alt = "Ctrl+Equals"
+
+[[bind]]
+keys = "Ctrl+Minus"
+action = "view.zoom_out"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+0"
+action = "view.zoom_actual"
+context = "global"
+
+[[bind]]
+keys = "Home"
+action = "view.fit_page"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Arrow Left"
+action = "view.pan_left"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Arrow Right"
+action = "view.pan_right"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Arrow Up"
+action = "view.pan_up"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Arrow Down"
+action = "view.pan_down"
+context = "global"
+
+[[bind]]
+keys = "F8"
+action = "messages.next"
+context = "global"
+
+[[bind]]
+keys = "Shift+F8"
+action = "messages.previous"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+F1"
+action = "view.command_bar"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+K"
+action = "tools.palette"
+context = "global"
+alt = "Ctrl+Shift+P"
+
+[[bind]]
+keys = "I"
+action = "tool.place"
+context = "canvas"
+
+[[bind]]
+keys = "Shift+I"
+action = "tool.place_part"
+context = "canvas"
+
+[[bind]]
+keys = "J"
+action = "place.join"
+context = "canvas"
+
+[[bind]]
+keys = "R"
+action = "tool.rotate_cw"
+context = "canvas"
+
+[[bind]]
+keys = "Shift+R"
+action = "tool.rotate_ccw"
+context = "canvas"
+
+[[bind]]
+keys = "X"
+action = "tool.mirror_x"
+context = "canvas"
+
+[[bind]]
+keys = "Y"
+action = "tool.mirror_y"
+context = "canvas"
+
+[[bind]]
+keys = "V"
+action = "tool.next_variant"
+context = "canvas"
+
+[[bind]]
+keys = "Shift+V"
+action = "tool.next_rep_type"
+context = "canvas"
+
+[[bind]]
+keys = "M"
+action = "tool.move"
+context = "canvas"
+
+[[bind]]
+keys = "Delete"
+action = "edit.delete_selection"
+context = "canvas"
+
+[[bind]]
+keys = "Ctrl+X"
+action = "edit.cut"
+context = "canvas"
+
+[[bind]]
+keys = "Ctrl+C"
+action = "edit.copy"
+context = "canvas"
+
+[[bind]]
+keys = "Ctrl+V"
+action = "edit.paste_clip"
+context = "canvas"
+
+[[bind]]
+keys = "Ctrl+D"
+action = "edit.duplicate"
+context = "canvas"
+
+[[bind]]
+keys = "Shift+Enter"
+action = "tool.finish"
+context = "canvas"
+
+[[bind]]
+keys = "W"
+action = "tool.wire"
+context = "canvas"
+
+[[bind]]
+keys = "Ctrl+Enter"
+action = "canvas.activate_alt"
+context = "canvas"
+
+[[bind]]
+keys = "Tab"
+action = "tool.next_proposal"
+context = "canvas"
+
+[[bind]]
+keys = "C"
+action = "tool.connect_on_move"
+context = "canvas"
+
+[[bind]]
+keys = "P"
+action = "tool.ip"
+context = "canvas"
+
+[[bind]]
+keys = "B"
+action = "tool.black_box"
+context = "canvas"
+
+[[bind]]
+keys = "D"
+action = "tool.ip_direction"
+context = "canvas"
+
+[[bind]]
+keys = "T"
+action = "tool.text"
+context = "canvas"
+
+[[bind]]
+keys = "L"
+action = "tool.graphic"
+context = "canvas"
+
+[[bind]]
+keys = "F2"
+action = "text.edit"
+context = "canvas"
+
+[[bind]]
+keys = "Insert"
+action = "strip.insert"
+context = "navigator"
+
+[[bind]]
+keys = "Ctrl+Delete"
+action = "strip.delete_rows"
+context = "navigator"
+
+[[bind]]
+keys = "Shift+W"
+action = "tool.marker"
+context = "canvas"
+
+[[bind]]
+keys = "Shift+B"
+action = "tool.structure_box"
+context = "canvas"
+
+[[bind]]
+keys = "F7"
+action = "messages.check"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Shift+N"
+action = "devices.renumber"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+T"
+action = "tab.new"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+W"
+action = "tab.close"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Tab"
+action = "tab.next"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+Shift+Tab"
+action = "tab.previous"
+context = "global"
+
+[[bind]]
+keys = "Ctrl+F6"
+action = "tab.focus_other"
+context = "global"
+
+[[bind]]
+keys = "F1"
+action = "help.documentation"
+context = "global"
+
+[[bind]]
+keys = "Arrow Left"
+action = "cursor.left"
+context = "canvas"
+
+[[bind]]
+keys = "Arrow Right"
+action = "cursor.right"
+context = "canvas"
+
+[[bind]]
+keys = "Arrow Up"
+action = "cursor.up"
+context = "canvas"
+
+[[bind]]
+keys = "Arrow Down"
+action = "cursor.down"
+context = "canvas"
+
+[[bind]]
+keys = "Shift+Arrow Left"
+action = "cursor.cell_left"
+context = "canvas"
+
+[[bind]]
+keys = "Shift+Arrow Right"
+action = "cursor.cell_right"
+context = "canvas"
+
+[[bind]]
+keys = "Shift+Arrow Up"
+action = "cursor.cell_up"
+context = "canvas"
+
+[[bind]]
+keys = "Shift+Arrow Down"
+action = "cursor.cell_down"
+context = "canvas"
+
+[[bind]]
+keys = "Space"
+action = "navigator.mark"
+context = "navigator"
+
+[[bind]]
+keys = "Alt+Arrow Up"
+action = "pages.move_up"
+context = "navigator"
+
+[[bind]]
+keys = "Alt+Arrow Down"
+action = "pages.move_down"
+context = "navigator"
+
+[[bind]]
+keys = "Ctrl+Shift+H"
+action = "navigator.highlight"
+context = "navigator"
+
+[[bind]]
+keys = "F2"
+action = "table.edit"
+context = "navigator"
+
+[[bind]]
+keys = "Ctrl+D"
+action = "table.fill_down"
+context = "navigator"
+
+[[bind]]
+keys = "Ctrl+Shift+D"
+action = "table.pattern_fill"
+context = "navigator"
+
+[[bind]]
+keys = "Ctrl+V"
+action = "table.paste"
+context = "navigator"
+
+[[bind]]
+keys = "Ctrl+C"
+action = "table.copy"
+context = "navigator"
+
+[[bind]]
+keys = "Delete"
+action = "table.clear"
+context = "navigator"
+
+[[bind]]
+keys = "F6"
+action = "ui.focus_next"
+context = "global"
+
+[[bind]]
+keys = "Shift+F6"
+action = "ui.focus_previous"
+context = "global"
+
+[[bind]]
+keys = "Escape"
+action = "ui.dismiss"
+context = "global"
+
+[[bind]]
+keys = "F2"
+action = "props.edit"
+context = "properties"
+
+[[bind]]
+keys = "Shift+F10"
+action = "props.row_menu"
+context = "properties"
+
+[[bind]]
+keys = "Shift+Enter"
+action = "props.mltext"
+context = "properties"
+
+[[bind]]
+keys = "Ctrl+Enter"
+action = "preview.apply"
+context = "properties"

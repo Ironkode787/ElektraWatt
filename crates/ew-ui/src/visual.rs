@@ -228,7 +228,10 @@ impl Platform for VisualPlatform {
         match prompt {
             Prompt::OpenFolder | Prompt::NewFolder => Pick::Path(self.base.join("project")),
             Prompt::SavePdf => Pick::Path(self.base.join("project.pdf")),
-            Prompt::OpenQet | Prompt::OpenPartsTable | Prompt::OpenImage => Pick::Cancelled,
+            Prompt::SaveKeymap => Pick::Path(self.base.join("keymap.toml")),
+            Prompt::OpenQet | Prompt::OpenPartsTable | Prompt::OpenImage | Prompt::OpenKeymap => {
+                Pick::Cancelled
+            }
         }
     }
 }

@@ -98,6 +98,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             | Dialog::Form(_)
             | Dialog::PartChoose(_)
             | Dialog::PartEdit(_)
+            | Dialog::Shortcuts
     );
     // WP-S2.07 part 4a: Choose picks the list's active row, which the window keeps.
     if matches!(d, Dialog::PartChoose(_)) {
@@ -148,24 +149,8 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     }
                 });
         }
-        Dialog::Shortcuts => {
-            let t = crate::theme::current(ui.ctx());
-            ScrollArea::vertical()
-                .max_height(t.size_row * 14.0)
-                .show(ui, |ui| {
-                    egui::Grid::new("shortcuts").num_columns(2).show(ui, |ui| {
-                        for (label, shortcut) in ew_viewmodel::dialogs::shortcut_rows() {
-                            ui.label(label);
-                            ui.horizontal(|ui| {
-                                for s in shortcut {
-                                    crate::components::key_chip(ui, s);
-                                }
-                            });
-                            ui.end_row();
-                        }
-                    });
-                });
-        }
+        // WP-S2.08 part 2: the keymap editor.
+        Dialog::Shortcuts => crate::keymap_editor::show(ui, shell, just_opened, events),
         Dialog::ConfirmPurge { files, .. } => {
             let t = crate::theme::current(ui.ctx());
             for f in files.iter().take(ew_viewmodel::shell::PURGE_LISTED) {

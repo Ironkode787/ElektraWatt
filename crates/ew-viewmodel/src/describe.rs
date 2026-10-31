@@ -2562,16 +2562,14 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             let text = crate::about::notices_text(model);
             lines.push(format!("  notices: {} lines", text.lines().count()));
         }
+        // WP-S2.08 part 2: the editor's rows with a binding (the effective keymap, filtered by the search).
         Dialog::Shortcuts => {
-            for meta in actions::ACTIONS
-                .iter()
-                .filter(|a| !a.headless_only && !a.hidden && !a.shortcut.is_empty())
-            {
+            for row in model.keymap_rows().iter().filter(|r| !r.chords.is_empty()) {
                 lines.push(format!(
                     "  {} \"{}\" {}",
-                    meta.id,
-                    strings::text(meta.label_key),
-                    meta.shortcut.join(", ")
+                    row.action,
+                    row.label,
+                    row.chords.join(", ")
                 ));
             }
         }

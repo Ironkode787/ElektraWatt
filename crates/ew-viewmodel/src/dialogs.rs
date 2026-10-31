@@ -13,7 +13,6 @@
 
 use serde_json::{Value, json};
 
-use crate::actions::ACTIONS;
 use crate::shell::{ConfirmAnswer, Dialog, PURGE_LISTED, ShellModel};
 use crate::strings;
 
@@ -136,8 +135,19 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             form: true,
             ..small(strings::text("notices-title").to_owned(), Vec::new(), close())
         },
+        // WP-S2.08 D8: the keymap editor; import and export a keymap file beside Close.
         Dialog::Shortcuts => DialogSpec {
             form: true,
+            secondary: vec![
+                DialogButton::new(
+                    "action-keymap-import",
+                    DialogAnswer::Action("keymap.import", Value::Null),
+                ),
+                DialogButton::new(
+                    "action-keymap-export",
+                    DialogAnswer::Action("keymap.export", Value::Null),
+                ),
+            ],
             ..small(strings::text("shortcuts-title").to_owned(), Vec::new(), close())
         },
         // The quit and close prompt (doc 16a §6.12): Save, Cancel, and Don't save apart.
@@ -301,14 +311,4 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             )
         },
     }
-}
-
-/// The lines of the keyboard-shortcuts dialog: `(label, shortcuts)` of every action with a shortcut, in registry
-/// order.
-pub fn shortcut_rows() -> Vec<(&'static str, &'static [&'static str])> {
-    ACTIONS
-        .iter()
-        .filter(|a| !a.headless_only && !a.hidden && !a.shortcut.is_empty())
-        .map(|a| (strings::text(a.label_key), a.shortcut))
-        .collect()
 }

@@ -234,6 +234,18 @@ impl RfdPlatform {
                     .add_filter("PDF", &["pdf"]),
                 DialogKind::Save,
             ),
+            // WP-S2.08 D8: the keymap editor's Import… and Export….
+            Prompt::OpenKeymap => (
+                base.set_title(strings::text("prompt-open-keymap-title"))
+                    .add_filter("TOML", &["toml"]),
+                DialogKind::File,
+            ),
+            Prompt::SaveKeymap => (
+                base.set_title(strings::text("prompt-save-keymap-title"))
+                    .set_file_name(strings::text("prompt-keymap-name"))
+                    .add_filter("TOML", &["toml"]),
+                DialogKind::Save,
+            ),
         }
     }
 

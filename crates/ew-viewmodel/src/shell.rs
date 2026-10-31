@@ -80,6 +80,8 @@ mod workspaces;
 mod macros;
 // WP-S2.07 part 4a
 pub mod part_dialog;
+// WP-S2.08 part 2: the user's keymap and the keymap editor.
+mod keymaps;
 pub use macros::MacroVariable;
 
 pub use creation::{FormDialog, FormField, PAGE_TYPES, STRUCTURE_KINDS};
@@ -328,6 +330,10 @@ pub enum Prompt {
     OpenPartsTable,
     /// An image file the asset store accepts: SVG, PNG or JPEG (Insert, Image).
     OpenImage,
+    /// An existing keymap file (the keymap editor's Import…, WP-S2.08 D8).
+    OpenKeymap,
+    /// A keymap file name (the keymap editor's Export…).
+    SaveKeymap,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).
@@ -419,6 +425,12 @@ pub struct ShellModel {
     palette: Option<PaletteState>,
     /// The palette's recents (WP-S2.08 D3): the last 50 palette or shortcut invocations of this run.
     recents: crate::palette::Recents,
+    /// The user's keymap (`keymap.toml`, WP-S2.08 D6), when there is one and it was not refused.
+    user_keymap: Option<crate::keymap::Keymap>,
+    /// Bumped when the user's keymap changes: the window rebuilds its bindings.
+    keymap_version: u64,
+    /// The keymap editor's state (Help ▸ Keyboard shortcuts, D8).
+    keymap_editor: crate::keymap::EditorState,
     dialog: Option<Dialog>,
     prompt: Option<PromptRequest>,
     record: Record,
@@ -951,6 +963,17 @@ impl ShellModel {
             }
             None => Settings::default(),
         };
+        // WP-S2.08 D8 (KM-2): a refused keymap file is kept aside with a banner, and the preset applies.
+        let user_keymap = match &config.config_dir {
+            Some(dir) => match keymaps::load_user_keymap(dir, &settings.keymap) {
+                Ok(k) => k,
+                Err(text) => {
+                    banner = banner.or(Some(text));
+                    None
+                }
+            },
+            None => None,
+        };
         let workspace = settings.workspace.clone();
         let mut model = ShellModel {
             mode,
@@ -960,6 +983,9 @@ impl ShellModel {
             banner,
             palette: None,
             recents: crate::palette::Recents::default(),
+            user_keymap,
+            keymap_version: 0,
+            keymap_editor: crate::keymap::EditorState::default(),
             dialog: None,
             prompt: None,
             record: Record::default(),
@@ -1770,7 +1796,17 @@ impl ShellModel {
             "view.command_tab" => self.act_command_tab(p),
             "view.command_bar" => self.act_command_bar(p),
             "tools.palette" => self.act_palette(p),
-            "help.shortcuts" => self.open_dialog(Dialog::Shortcuts),
+            "help.shortcuts" => {
+                // WP-S2.08 D8: the editor opens with an empty search and nothing recording.
+                self.keymap_editor = crate::keymap::EditorState::default();
+                self.open_dialog(Dialog::Shortcuts)
+            }
+            "keymap.search" => self.act_keymap_search(p),
+            "keymap.record_start" => self.act_keymap_record_start(p),
+            "keymap.record" => self.act_keymap_record(p),
+            "keymap.reset" => self.act_keymap_reset(p),
+            "keymap.import" => self.act_keymap_import(p),
+            "keymap.export" => self.act_keymap_export(p),
             "help.about" => self.open_dialog(Dialog::About),
             "command.run" => self.act_command_run(p),
             "view.snapshot" => failed("message-no-snapshot", &[]),
@@ -2350,6 +2386,10 @@ impl ShellModel {
         }
         // WP-S2.08 D5 (a): Escape in a parameter form returns to the palette's list.
         if self.close_palette_form() {
+            return Outcome::Done;
+        }
+        // WP-S2.08 D8: Escape while the keymap editor records ends the recording and leaves the dialog open.
+        if matches!(self.dialog, Some(Dialog::Shortcuts)) && self.keymap_editor.recording.take().is_some() {
             return Outcome::Done;
         }
         if self.palette.take().is_some()

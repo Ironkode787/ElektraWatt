@@ -570,8 +570,10 @@ pub fn pointer_stack(model: &ShellModel) -> usize {
 }
 
 /// The first shortcut of action `id`, or an empty text.
-fn key_of(id: &str) -> String {
-    actions::find(id).map(actions::shortcut_text).unwrap_or_default()
+fn key_of(model: &ShellModel, id: &str) -> String {
+    actions::find(id)
+        .map(|m| model.shortcut_text(m))
+        .unwrap_or_default()
 }
 
 /// The HUD of `model` (doc 16a §5.5, FT-521).
@@ -591,7 +593,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             } else if selected > 0 {
                 strings::format(
                     "hud-selected",
-                    &[&selected.to_string(), &key_of("tool.rotate_cw")],
+                    &[&selected.to_string(), &key_of(model, "tool.rotate_cw")],
                 )
             } else {
                 hint()
@@ -625,7 +627,10 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 );
                 what = format!(
                     "{what} \u{b7} {}",
-                    strings::format("hud-place-wires", &[&count, &key_of("canvas.activate_alt")])
+                    strings::format(
+                        "hud-place-wires",
+                        &[&count, &key_of(model, "canvas.activate_alt")]
+                    )
                 );
             }
             // WP-S2.18 D2: "J Join device…" while the symbol can be an auxiliary function, before "Esc done".
@@ -633,15 +638,18 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 strings::format(
                     "hud-keys-place-join",
                     &[
-                        &key_of("tool.rotate_cw"),
-                        &key_of("tool.next_variant"),
-                        &key_of("place.join"),
+                        &key_of(model, "tool.rotate_cw"),
+                        &key_of(model, "tool.next_variant"),
+                        &key_of(model, "place.join"),
                     ],
                 )
             } else {
                 strings::format(
                     "hud-keys-place",
-                    &[&key_of("tool.rotate_cw"), &key_of("tool.next_variant")],
+                    &[
+                        &key_of(model, "tool.rotate_cw"),
+                        &key_of(model, "tool.next_variant"),
+                    ],
                 )
             };
             format!("{what} \u{b7} {keys}")
