@@ -174,11 +174,13 @@ fn prefer_numbered(
     }
 }
 
-/// A wire's number in words for a refusal (FT-779): `numbered "101"`, or how it is numbered.
+/// A wire's number in words for a refusal (FT-779): `numbered "101"` for a frozen number, `with assigned number 5`
+/// for an assigned one (its counter: a wire's printed number is derived and two members of one physical wire print
+/// the same), so two different numbers never read the same; or how it is numbered.
 fn number_words(n: &NumberSpec) -> String {
     match n {
         NumberSpec::Frozen(i) => format!("numbered \"{i}\""),
-        NumberSpec::Assigned(_) => "with an assigned number".to_owned(),
+        NumberSpec::Assigned(a) => format!("with assigned number {}", a.counter),
         NumberSpec::Unassigned => "without a number".to_owned(),
         NumberSpec::Unknown(_) => "with a number of a newer format".to_owned(),
     }

@@ -451,6 +451,43 @@ fn a_junction_that_cannot_merge_two_numbers_is_named_in_words() {
     }
 }
 
+/// FT-779 (cycle-40 review): two different assigned numbers are named each, never both as "a wire with an assigned
+/// number".
+#[test]
+fn a_junction_that_cannot_merge_two_assigned_numbers_names_both() {
+    let (p, mut records, _) = mini_golden_parts();
+    let assigned = |counter: u32| {
+        serde_json::from_value::<ew_schema::NumberSpec>(serde_json::json!({"assigned": {"counter": counter}}))
+            .expect("an assigned number")
+    };
+    for r in &mut records {
+        if let Record::Connection(c) = r {
+            if c.id == CON_J5_IN {
+                c.number = assigned(3);
+            } else if c.id == CON_W22 {
+                c.number = assigned(4);
+            }
+        }
+        if let Record::Junction(j) = r {
+            if j.id == J5 {
+                j.at = ew_units::Pt2::new(ew_units::Nm(120_000_000), ew_units::Nm(45_500_000));
+            }
+        }
+    }
+    let mut e = engine(Model::from_records(p, records, library()).expect("valid"));
+    match e.execute(&DeleteConnections {
+        connections: vec![CON_W27],
+    }) {
+        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
+            reason,
+            "the junction at x 120, y 45.5 mm on page 102 would merge a wire with assigned number 3 and a wire \
+             with assigned number 4, which carry different numbers; clear one of the numbers or delete the wires \
+             separately"
+        ),
+        other => panic!("expected a rejection, got {other:?}"),
+    }
+}
+
 #[test]
 fn delete_of_two_members_removes_the_junction_with_the_last() {
     let mut e = engine(golden_model());
