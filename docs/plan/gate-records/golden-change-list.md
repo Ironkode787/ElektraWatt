@@ -23,7 +23,7 @@ Per change: the commit's short hash and date, its subject, the decision IDs it c
 
 feat(golden): Golden A's layout test geometry (WP-S4.01 part 2, D13, FT-205)
 
-Decision IDs: ID-316, ID-893, FT-205
+Decision IDs: ID-316, ID-893, ID-932, FT-205
 
 - doc 20, 13. Panel layout, table 3: new table, 8 rows
 - doc 20, 13. Panel layout, table 4: new table, 9 rows
