@@ -71,6 +71,7 @@ pub const SWEPT: &[&str] = &[
     "ip_notes",
     "ip_pairing",
     "ip_structure",
+    "layout_label",
     "module_channel_ids",
     "module_order",
     "module_start_of",
@@ -95,6 +96,7 @@ pub const SWEPT: &[&str] = &[
     "page_table",
     "pageless_links",
     "physical_wires_of",
+    "placement_geometry",
     "plc_address_text",
     "plc_rows",
     "potential_attrs",
@@ -103,6 +105,7 @@ pub const SWEPT: &[&str] = &[
     "potential_partition",
     "profile_row_for",
     "rail_bonds",
+    "rail_occupancy",
     "rail_terminal",
     "rail_terminals",
     "rep_structure_box",
@@ -116,6 +119,7 @@ pub const SWEPT: &[&str] = &[
     "text_styles",
     "title_block",
     "toc_rows",
+    "unplaced",
     "wire_default_props",
     "wire_numbers",
     "wire_profile_notes",
@@ -143,6 +147,10 @@ struct Keys {
     potentials: Vec<PotentialId>,
     /// The profile keys of the potentials, and the same attributes with each known circuit class.
     profile_keys: BTreeSet<ProfileKey>,
+    /// The layout spaces, carriers and placements (WP-S4.01 part 2).
+    spaces: Vec<Id<ew_schema::LayoutSpace>>,
+    carriers: Vec<Id<ew_schema::Carrier>>,
+    placements: Vec<Id<ew_schema::Placement>>,
 }
 
 impl Keys {
@@ -182,6 +190,9 @@ impl Keys {
             page_refs: q.get::<PageOrder>(()).entries.iter().map(|e| e.page).collect(),
             potentials,
             profile_keys,
+            spaces: q.table::<ew_schema::LayoutSpace>().ids().collect(),
+            carriers: q.table::<ew_schema::Carrier>().ids().collect(),
+            placements: q.table::<ew_schema::Placement>().ids().collect(),
         }
     }
 }
@@ -308,6 +319,24 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<WireProfilesQ>(memo, cold, [()], o);
     check::<WirePropsOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<XrefTextOf>(memo, cold, keys.reps.iter().copied(), o);
+    // WP-S4.01 part 2: the layout queries; a label in both modes on every page (the abbreviated one reads the page).
+    check::<ew_derive::layout::Unplaced>(memo, cold, keys.spaces.iter().copied(), o);
+    check::<ew_derive::layout::RailOccupancy>(memo, cold, keys.carriers.iter().copied(), o);
+    check::<ew_derive::layout::PlacementGeometry>(memo, cold, keys.placements.iter().copied(), o);
+    check::<ew_derive::layout::LayoutLabel>(
+        memo,
+        cold,
+        keys.placements.iter().flat_map(|p| {
+            keys.pages.iter().flat_map(move |page| {
+                [
+                    ew_derive::layout::LabelMode::Abbreviated,
+                    ew_derive::layout::LabelMode::Full,
+                ]
+                .map(|mode| (*p, *page, mode))
+            })
+        }),
+        o,
+    );
     // The page output (FT-59): the memoised parts of the page views and the page display list of every layer.
     check::<PageFrameOf>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<PageGridOf>(memo, cold, keys.page_refs.iter().copied(), o);

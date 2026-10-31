@@ -15,6 +15,12 @@
 //! | [`Quarter`], [`check_pose`], [`PoseOn`] | The degrees of freedom of a pose per carrier kind (doc 12 §2.3) |
 //! | [`clip_offset`], [`rehome_pose`] | The surface pose equivalent to a rail pose (doc 12 §3.6, `rehome_to_surface`) |
 //! | [`plate_frame`] | The frame and usable rectangle of a plate centred in its enclosure (D5) |
+//! | [`Mountable`] | `mountable(dev)`: the mountable predicate as built (D8, doc 12 §2.7) |
+//! | [`Unplaced`] | `unplaced(space)`: the mountable devices of the space's location without a placement |
+//! | [`PlacementGeometry`] | `placement_geometry(p)`: the footprint and outline in the surface frame (D5) |
+//! | [`RailOccupancy`] | `rail_occupancy(carrier)`: the sorted intervals along a rail |
+//! | [`LayoutLabel`] | `layout_label((p, page, mode))`: the label text (D10) |
+//! | [`CarrierGeometry`] | `carrier_geometry(carrier)`: the axis check, length, axis and outline of a carrier |
 //!
 //! Frames (doc 12 §2.1): a surface's `u` grows to the right and `v` upwards; a rail's pose `t = (s, 0, 0)` is the part's
 //! clip point at distance `s` from `path[0]` along the axis; a surface pose `t = (u, v, 0)` is the part origin, the
@@ -24,10 +30,16 @@
 mod carrier;
 mod fit;
 mod pose;
+// WP-S4.01 part 2: the layout queries (doc 12 §2.6)
+mod queries;
 
 pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
 pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, mm, plate_frame, rehome_pose};
+pub use queries::{
+    CarrierGeom, CarrierGeometry, Exempt, LabelMode, LayoutLabel, MountAs, Mountability, Mountable, Occupied,
+    PlacementGeom, PlacementGeometry, RailOccupancy, UNKNOWN_SIDE, Unplaced, primary_part, space_of_location,
+};
 
 #[cfg(test)]
 mod tests;

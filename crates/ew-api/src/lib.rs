@@ -547,6 +547,33 @@ impl Session {
             .collect()
     }
 
+    /// The layout spaces of the project with their locations, in ID order (WP-S4.01, FR-LAY-001).
+    pub fn layout_spaces(
+        &self,
+    ) -> Vec<(
+        ew_derive::ew_ids::Id<ew_schema::LayoutSpace>,
+        ew_derive::ew_ids::Id<ew_schema::StructureNode>,
+    )> {
+        self.query()
+            .table::<ew_schema::LayoutSpace>()
+            .iter()
+            .map(|(id, s)| (id, s.location))
+            .collect()
+    }
+
+    /// `unplaced(space)` (FR-LAY-013, doc 12 §2.6; WP-S4.01 part 2): the mountable devices of the space's location
+    /// without a placement, in natural order of their full tag ([`ew_derive::layout::Unplaced`]). Empty for a space
+    /// that is not in the project.
+    pub fn unplaced(
+        &self,
+        space: ew_derive::ew_ids::Id<ew_schema::LayoutSpace>,
+    ) -> Vec<ew_derive::ew_ids::Id<ew_schema::Device>> {
+        self.query()
+            .get::<ew_derive::layout::Unplaced>(space)
+            .as_ref()
+            .clone()
+    }
+
     /// The session's memo store (statistics, memory, oracle mode); `None` with [`MemoMode::Off`].
     pub fn memo(&self) -> Option<&MemoStore> {
         self.memo.as_ref()
