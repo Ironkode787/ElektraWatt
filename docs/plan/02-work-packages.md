@@ -2106,6 +2106,8 @@ are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of do
 | Acceptance | AC-29, AC-33 |
 | Owner role | Output and migration developer |
 
+*Status (2026-10-31, cycle 41).* **Specified** ([closed specification](specs/WP-S3.06-mvp-report-pack.md); decision log ID-?): eight of the fourteen requirement rows are built by other packages and traced with their evidence (FR-REP-007, -017, -018, -019, -022, -046, -047, FR-PLC-022), FR-REP-042 for connection points only, and FR-PLC-023 and FR-PLC-052 are WP-S1.21 part 5's. Three parts remain, 2.2 pw plus 0.3 pw reserve: part 1 `device_list`, `terminal_overview`, `ew export report --kind`, the `params` encoding ruled (FT-46) and the revision overview's CSV pages (FT-704) (0.9, Opus `medium`), part 2 `open_items` from the open-item rules' findings with the edge `ew-reports` → `ew-checks` (0.7, `high`), part 3 the report back-links drawn, one per listed folio (0.6, `high`; FT-231, a golden PDF change; after parts 1 and 2 and WP-S4.01 part 4b). Golden examples of the new kinds are new CSV files of Golden A's data, no new folio. The XLSX writer is WP-S3.08's. In M2's order after WP-S1.21's remaining work; proposed PERT for the remaining scope 2.5 pw (O 1.8 · L 2.4 · P 3.6).
+
 #### WP-S3.07 SVG export and printing
 
 | Field | Value |
