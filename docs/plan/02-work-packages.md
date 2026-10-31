@@ -2374,7 +2374,7 @@ S4 starts with the thin MVP slice that [panel layout](../design/12-panel-layout.
 | Field | Value |
 |---|---|
 | Objective | Let users place devices on rails quickly and keep strips and assemblies together. |
-| Scope in | Drag from the unplaced list; rail snapping (free, push, swap); strip placement in order with accessories; bulk placement; group brackets; assembly placement |
+| Scope in | Drag from the unplaced list; rail snapping (free, push, swap); strip placement in order with accessories; bulk placement; group brackets; assembly placement; *added in cycle 41 (FT-804, the specification's D1):* create the layout space and the enclosure from a part, draw a rail, draw a duct, set the surface view, the layout records' Properties rows (FT-839); the Unplaced devices navigator (FT-486); the starter library's layout parts (FT-805); `edit.delete` on layout records and the missing layout edit commands (FT-837, FT-840) |
 | Scope out | 3D editing (WP-S4.05) |
 | Deliverables | Layout tools with kittest flows |
 | Depends on | WP-S4.01, WP-S2.03 |
@@ -2383,6 +2383,8 @@ S4 starts with the thin MVP slice that [panel layout](../design/12-panel-layout.
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-33 |
 | Owner role | Physical developer |
+
+*Status (2026-10-31, cycle 41).* **Specified** ([closed specification](specs/WP-S4.02-2d-panel-editing-tools.md); decision log ID-?): six parts, 5.2 pw plus 0.3 pw reserve: part 1 the rail model, snapping and the placing commands (1.1, Opus `high`; it may start now), part 2 assemblies, bulk placement and the set-up and edit commands (1.0, `high`), part 3 placing in the window with the Unplaced devices navigator (1.2, `high`; after WP-S4.01 part 3), part 4 setting up and editing in the window (1.0, `medium`), part 5 end brackets in the BOM, on 902 and in the legend (0.6, `high`; after WP-S4.01 parts 3 to 5; FT-204's row 26, a golden change), part 6 the starter library's layout parts (0.3, Haiku `medium`). The "Scope in" row above gains FT-804's window gestures by the cycle-41 ruling (no other package owns them). **The PERT above covers the five requirement rows only;** the added scope is about 2.1 pw, and the specification's O1 asks for a re-estimate (proposed O 4 · L 5.5 · P 7 · PERT 5.5). AC-33 passes in full after part 5.
 
 #### WP-S4.03 STEP worker (ew-step-worker)
 
