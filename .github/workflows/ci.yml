@@ -156,6 +156,16 @@ jobs:
       # job, here, in the all-features run: the filter that the other jobs use is the rule of .config/nextest.toml
       # and is kept equal to xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
+      # The cycle-39 delivery run 41169864175 passed the usual 18 to 20 minutes of the nextest step and was cancelled at
+      # the job timeout, with no log (the job log needs admin rights to read). So the tests are compiled in a step of
+      # their own (`cargo test --no-run` builds what nextest runs; the step timings are public and tell a slow build
+      # from a slow run), the free disk and memory are sampled every 30 s, and a step after the run annotates the
+      # samples and the slowest tests. A hung test is ended by the ci profile's slow-timeout (.config/nextest.toml).
+      - name: sample free disk and memory
+        shell: bash
+        run: nohup bash -c 'while sleep 30; do echo "$(date -u +%H:%M:%S) disk $(df -BG --output=avail / | tail -1 | tr -d " ") mem $(free -g | awk "/^Mem:/{print \$7}")G" >> "$RUNNER_TEMP/samples.txt"; done' > /dev/null 2>&1 &
+      - name: compile the tests (all features)
+        run: cargo test --workspace --all-features --locked --no-run
       - name: cargo nextest (all features, with the acceptance tests and the fuzzer)
         run: cargo nextest run --workspace --all-features --locked --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
@@ -181,6 +191,26 @@ jobs:
               text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
               print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
           print(f"{n} failed test case(s) annotated")
+          PY
+      # The lowest free disk and memory of the samples, the last samples, and the ten slowest tests, as notices.
+      - name: disk, memory and slowest tests as annotations
+        if: always()
+        shell: bash
+        run: |
+          python3 - "$RUNNER_TEMP/samples.txt" <<'PY'
+          import xml.etree.ElementTree as ET, os, re, sys
+          rows = open(sys.argv[1]).read().split("\n") if os.path.exists(sys.argv[1]) else []
+          rows = [r for r in rows if r]
+          nums = [tuple(int(x) for x in re.findall(r"(\d+)G", r)) for r in rows]
+          nums = [n for n in nums if len(n) == 2]
+          if nums:
+              low = f"lowest free disk {min(n[0] for n in nums)}G, lowest available memory {min(n[1] for n in nums)}G"
+              print(f"::notice title=samples::{low}%0A" + "%0A".join(rows[-8:]))
+          p = os.path.join("target", "nextest", "ci", "junit.xml")
+          if os.path.exists(p):
+              cases = [(float(tc.get("time") or 0), f"{tc.get('classname')} {tc.get('name')}") for tc in ET.parse(p).getroot().iter("testcase")]
+              cases.sort(reverse=True)
+              print("::notice title=slowest tests::" + "%0A".join(f"{t:.1f}s {n}" for t, n in cases[:10]))
           PY
       # nextest does not run doctests.
       - name: cargo test --doc

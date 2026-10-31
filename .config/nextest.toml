@@ -34,6 +34,10 @@ path = "junit.xml"
 [profile.ci]
 retries = 0
 fail-fast = false
+# A test that runs longer than 10 minutes is ended and fails under its name, instead of holding the job until the job
+# timeout cancels it without a log (cycle-39 delivery, run 41169864175: test-linux's all-features run passed its usual
+# 18 to 20 minutes and was cancelled at 50). The longest CI tests, the acceptance shards, take about 2 minutes.
+slow-timeout = { period = "60s", terminate-after = 10 }
 
 [profile.ci.junit]
 path = "junit.xml"
