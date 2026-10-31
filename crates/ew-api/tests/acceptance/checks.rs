@@ -807,16 +807,12 @@ fn ac06_tags(c: &Ctx) -> Outcome {
 /// The differences between the printed parts list and the table of doc 20 §14.1 that are accepted, as
 /// `(position, column, doc 20 prints, the parts list prints, why)`. Every other cell must be equal.
 ///
-/// - Rows 22 to 26, folio column: §14.1 gives folio 902 (the layout page the enclosure, plate, rail, duct and
-///   brackets are placed on). The layout placements are not modelled yet (follow-up task), so rows 22 to 25
-///   have no folio and row 26 lists the folios of the strips that carry the brackets.
+/// - Row 26, folio column: §14.1 gives folio 902 (the layout page the brackets are placed on). The end brackets
+///   are part uses of the strips until WP-S4.02 derives them (FT-204), so row 26 lists the folios of the strips that
+///   carry them. Rows 22 to 25 print 902 since WP-S4.01 part 4 (the layout objects' panel page).
 /// - Row 26, tags: §14.1 lists "1X1, -X1031, -X1032"; the parts list sorts the tags in the order of the ID-9
 ///   sign order, "-X1031, -X1032, 1X1" (ruling).
-const AC07_ACCEPTED: [(&str, &str, &str, &str); 6] = [
-    ("22", "Folios", "902", ""),
-    ("23", "Folios", "902", ""),
-    ("24", "Folios", "902", ""),
-    ("25", "Folios", "902", ""),
+const AC07_ACCEPTED: [(&str, &str, &str, &str); 2] = [
     ("26", "Folios", "902", "101, 103"),
     ("26", "Tags", "1X1, -X1031, -X1032", "-X1031, -X1032, 1X1"),
 ];
@@ -873,7 +869,7 @@ fn compare_14_1(got_rows: &[Vec<String>], what: &str) -> Outcome {
     }
     if wrong.is_empty() {
         pass(format!(
-            "{what} in every cell but {accepted} accepted differences (folio 902 of rows 22-26: layout placements are not modelled; row 26 tags in the ID-9 sign order)"
+            "{what} in every cell but {accepted} accepted differences (row 26: folio 902, the end brackets are not placed until WP-S4.02, and its tags in the ID-9 sign order)"
         ))
     } else {
         fail(format!(

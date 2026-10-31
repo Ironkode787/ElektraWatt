@@ -20,9 +20,9 @@ data,18,1,pc,Festo,552286,VMPA-FB-EPLM-G pneumatic interface,-201U2,201
 data,19,7,pc,Festo,533361,"VMPA1-FB-EMG-8 electronic module, 4 positions","-201U3 … -201U8, -202U2","201, 202"
 data,20,2,pc,Festo,533354,VMPA1-FB-SP supply plate,"-201U9, -202U3","201, 202"
 data,21,28,pc,Festo,571334,5/2 monostable solenoid valve,-201U3-Q1 … -202U2-Q4,203–206
-data,22,1,pc,Schneider Electric,NSYPLA1074G,"Enclosure, polyester",-UC1,
-data,23,1,pc,Schneider Electric,NSYPMM107,Mounting plate,-UC1-plate,
-data,24,2.192,m,TBD,TBD,DIN rail TS 35,-UC1,
-data,25,3.81,m,TBD,TBD,Wiring duct 40×60,-UC1,
+data,22,1,pc,Schneider Electric,NSYPLA1074G,"Enclosure, polyester",-UC1,902
+data,23,1,pc,Schneider Electric,NSYPMM107,Mounting plate,-UC1-plate,902
+data,24,1.71,m,TBD,TBD,DIN rail TS 35,-UC1,902
+data,25,3.17,m,TBD,TBD,Wiring duct 40×60,-UC1,902
 data,26,4,pc,TBD,TBD,End bracket,"-X1031, -X1032, 1X1","101, 103"
 data,27,6,pc,TBD,TBD,Plug-in bridge,"-X1031, -X1032",103

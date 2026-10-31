@@ -222,7 +222,8 @@ fn the_tbd_parts_are_used_by_the_enclosure_and_the_strips() {
         assert_eq!((&p.kind, &p.unit), (&kind, &unit), "{key}");
         assert_eq!(p.description.as_neutral(), Some(description), "{key}");
     }
-    // Quantity per device: -UC1 the carriers' lengths in metres, the strips their brackets and bridges.
+    // Quantity per device: the strips their brackets and bridges. -UC1 has no rail or duct part use: its rails and
+    // ducts are carrier part lines (WP-S4.01 part 4, FT-205).
     let uses = |tag: &str| -> Vec<(String, String)> {
         let id: Id<Device> = record_id("devices", tag);
         let dev = b
@@ -250,10 +251,7 @@ fn the_tbd_parts_are_used_by_the_enclosure_and_the_strips() {
             .map(|(k, q)| ((*k).to_owned(), (*q).to_owned()))
             .collect()
     };
-    assert_eq!(
-        uses("-UC1"),
-        owned(&[("TBD DIN rail", "2.192"), ("TBD wiring duct", "3.81")])
-    );
+    assert_eq!(uses("-UC1"), owned(&[]));
     assert_eq!(uses("1X1"), owned(&[("TBD end bracket", "2")]));
     assert_eq!(
         uses("-X1031"),

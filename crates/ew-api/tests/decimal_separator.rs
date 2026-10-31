@@ -38,8 +38,9 @@ fn the_project_decimal_separator_prints_in_the_tables_of_the_generated_pages() {
     let point = with_separator(Some(DecimalSeparator::Point));
     let none = with_separator(None);
     let comma = with_separator(Some(DecimalSeparator::Comma));
-    // The golden cable list prints "0.75 mm²" and the bill of materials the length "2.192" (metres).
-    for printed in ["0.75 mm²", "1.5 mm²", "2.192", "3.81"] {
+    // The golden cable list prints "0.75 mm²" and the bill of materials the lengths "1.71" and "3.17" (metres, the
+    // carrier part lines of -UC1).
+    for printed in ["0.75 mm²", "1.5 mm²", "1.71", "3.17"] {
         assert!(
             point.iter().any(|c| c == printed),
             "{printed} in the point output"

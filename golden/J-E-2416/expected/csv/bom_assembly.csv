@@ -16,9 +16,9 @@ data,14,5,pc,Phoenix Contact,PT 2.5-TWIN-PE,"PE terminal, 3 connections",-X1032:
 data,15,2,pc,Festo,NEBU-G78W5-K-2-N-LE5,"Connecting cable 7/8"", 5-pin, open end","-106W1, -106W2",106,
 data,A1,1,set,Festo,51E-F13GCQP-D+H2GG,CPX terminal (order code 1),-201U1,201,-201U1
 data,A2,1,set,Festo,32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS,MPA valve terminal (order code 2),-201U1,201,"-201U2 … -202U3, -201U3-Q1 … -202U2-Q4"
-data,16,1,pc,Schneider Electric,NSYPLA1074G,"Enclosure, polyester",-UC1,,
-data,17,1,pc,Schneider Electric,NSYPMM107,Mounting plate,-UC1-plate,,
-data,18,2.192,m,TBD,TBD,DIN rail TS 35,-UC1,,
-data,19,3.81,m,TBD,TBD,Wiring duct 40×60,-UC1,,
+data,16,1,pc,Schneider Electric,NSYPLA1074G,"Enclosure, polyester",-UC1,902,
+data,17,1,pc,Schneider Electric,NSYPMM107,Mounting plate,-UC1-plate,902,
+data,18,1.71,m,TBD,TBD,DIN rail TS 35,-UC1,902,
+data,19,3.17,m,TBD,TBD,Wiring duct 40×60,-UC1,902,
 data,20,4,pc,TBD,TBD,End bracket,"-X1031, -X1032, 1X1","101, 103",
 data,21,6,pc,TBD,TBD,Plug-in bridge,"-X1031, -X1032",103,

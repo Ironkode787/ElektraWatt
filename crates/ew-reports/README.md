@@ -48,7 +48,8 @@ ADR-0018. Work package WP-S3.03.
 | `profile_tables` | derived | the colour and size profiles of the project settings (the cover's tables) |
 | `numbering_report` | derived | frozen tags (`TagSpec.frozen`) and frozen wire numbers with their rule-derived values (`rule_product`, `wire_numbers`; FR-REP-022) |
 | `revision_overview` | derived | `revision_rows` (FT-207): the revision records in label order, a withdrawal record after the revision it withdraws, the changed pages they record; `ew-api` completes the pages from the page digests at draw time (WP-S1.18 part 2) |
-| `device_list`, `terminal_overview`, `io_list`, `open_items`, `enclosure_legend`, `check_report` | placeholder (`NotDerived::Unsupported`) until their WP | not registered yet |
+| `enclosure_legend` | derived (embedded; drawn on no page until WP-S4.01 part 4b) | `layout_legend(surface)` of the surface the embedded page's `surface_view` shows: the enclosure, the plate, one row per carrier (rails, then ducts; the length in metres as the quantity), then the placements by designation |
+| `device_list`, `terminal_overview`, `io_list`, `open_items`, `check_report` | placeholder (`NotDerived::Unsupported`) until their WP | not registered yet |
 
 A kind that is not derived yet has its columns and an empty `RowSet` whose `status` is `NotDerived(reason)`. A
 page-oriented block of such a kind paginates to **one placeholder page** whose `note` carries the reason, so its

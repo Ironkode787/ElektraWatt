@@ -22,7 +22,7 @@ Pos,Qty,Unit,Manufacturer,Part number,Description,Tags,Folios
 21,28,pc,Festo,571334,5/2 monostable solenoid valve,-201U3-Q1 … -202U2-Q4,203–206
 22,1,pc,Schneider Electric,NSYPLA1074G,"Enclosure, polyester",-UC1,902
 23,1,pc,Schneider Electric,NSYPMM107,Mounting plate,-UC1-plate,902
-24,2.192,m,TBD,TBD,DIN rail TS 35,-UC1,902
-25,3.81,m,TBD,TBD,Wiring duct 40×60,-UC1,902
+24,1.71,m,TBD,TBD,DIN rail TS 35,-UC1,902
+25,3.17,m,TBD,TBD,Wiring duct 40×60,-UC1,902
 26,4,pc,TBD,TBD,End bracket,"1X1, -X1031, -X1032",902
 27,6,pc,TBD,TBD,Plug-in bridge,"-X1031, -X1032",103

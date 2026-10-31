@@ -11,7 +11,8 @@
 //! pagination like the others.
 //! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview`. From the tags and wire numbers:
 //! `numbering_report` (frozen values with their rule values, FR-REP-022). From the revision records:
-//! `revision_overview` (`revision_rows`, FT-207; WP-S1.18 part 2). Other schema kinds are not registered; their blocks
+//! `revision_overview` (`revision_rows`, FT-207; WP-S1.18 part 2). From the layout: `enclosure_legend`
+//! (`layout_legend`, WP-S4.01 part 4; registered, drawn on no page until part 4b). Other schema kinds are not registered; their blocks
 //! report [`NotDerived::Unsupported`]. [`Pending`] registers a kind with its columns before its row source exists.
 
 use ew_derive::Q;
@@ -22,6 +23,7 @@ use crate::rowset::{CellType, ColumnDef, NotDerived, RowSet};
 
 mod cable_overview;
 mod conn;
+mod enclosure_legend;
 mod numbering_report;
 mod part_data;
 mod parts;
@@ -36,6 +38,7 @@ mod wire_list;
 
 pub use cable_overview::CableOverview;
 pub use conn::bridge_groups;
+pub use enclosure_legend::EnclosureLegend;
 pub use numbering_report::NumberingReport;
 pub use part_data::PartData;
 pub use parts::{PartsList, PartsSummary};
@@ -64,6 +67,7 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &NumberingReport,
         &ProfileTables,
         &RevisionOverview,
+        &EnclosureLegend,
     ]
 }
 

@@ -21,6 +21,9 @@
 //! | [`RailOccupancy`] | `rail_occupancy(carrier)`: the sorted intervals along a rail |
 //! | [`LayoutLabel`] | `layout_label((p, page, mode))`: the label text (D10) |
 //! | [`CarrierGeometry`] | `carrier_geometry(carrier)`: the axis check, length, axis and outline of a carrier |
+//! | [`layout_legend`], [`LegendRow`] | `layout_legend(surface)`: the legend rows of a surface (D11, doc 12 §5.4) |
+//! | [`page_surface`], [`surface_pages`] | The surface a panel-layout page shows, and the pages that show a surface (D9) |
+//! | [`carrier_order`], [`metres_of_nm`] | The legend order of carriers and a length in metres exact to the millimetre (D11) |
 //!
 //! Frames (doc 12 §2.1): a surface's `u` grows to the right and `v` upwards; a rail's pose `t = (s, 0, 0)` is the part's
 //! clip point at distance `s` from `path[0]` along the axis; a surface pose `t = (u, v, 0)` is the part origin, the
@@ -29,12 +32,18 @@
 
 mod carrier;
 mod fit;
+// WP-S4.01 part 4: the layout legend and the surface of a panel page (D11)
+mod legend;
 mod pose;
 // WP-S4.01 part 2: the layout queries (doc 12 §2.6)
 mod queries;
 
 pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
+pub use legend::{
+    CarrierOrder, LegendItem, LegendRow, carrier_length, carrier_order, carriers_in_order, layout_legend,
+    metres_of_nm, page_surface, surface_pages,
+};
 pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, mm, plate_frame, rehome_pose};
 pub use queries::{
     CarrierGeom, CarrierGeometry, Exempt, LabelMode, LayoutLabel, MountAs, Mountability, Mountable, Occupied,

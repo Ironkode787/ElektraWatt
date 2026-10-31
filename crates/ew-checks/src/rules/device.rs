@@ -16,7 +16,9 @@ use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
     AddrSpec, AddrValue, BomBasis, Channel, ContactKind, Device, FormDef, Function, Kind, LibCopy, Page, Part,
 };
-use ew_derive::{ChannelsByModule, FrameSettings, Q, folio_label, manufacturer_name};
+use ew_derive::{
+    ChannelsByModule, DevicePartLines, FrameSettings, LineSource, Q, folio_label, manufacturer_name,
+};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -198,7 +200,8 @@ const PLACEHOLDER_NUMBER: &str = "TBD";
 /// EW-CORE-043: a placeholder part: a part copy whose part number is `TBD` (FR-CHK-034, D-04, EF-17). The schema has
 /// no typed placeholder marker on a part; Golden A's four placeholder parts carry the part number `TBD` (doc 20
 /// §14.1, decision log ID-316, ID-317). One finding per placeholder copy, as EF-17 counts them: targets the copy and
-/// every device that uses it, the fingerprint keyed on the copy, discriminator `placeholder`. It is reported in the
+/// every device that uses it (a part use, or a carrier part line of its enclosure: WP-S4.01 part 4 moved -UC1's rail
+/// and duct from part uses to its carriers), the fingerprint keyed on the copy, discriminator `placeholder`. It is reported in the
 /// scope of the first of those devices by printed tag, so a further user of the part changes neither the count nor
 /// the fingerprint. A warning online, an error in release mode (an open item that blocks release).
 #[derive(Clone, Copy, Debug)]
@@ -217,7 +220,7 @@ impl Rule for PlaceholderPart {
             return Vec::new();
         };
         let mut out = Vec::new();
-        for (id, part) in parts_of(q, d) {
+        for (id, part) in placeholder_candidates(q, d) {
             if part.item.part_number.as_str() != PLACEHOLDER_NUMBER {
                 continue;
             }
@@ -225,7 +228,7 @@ impl Rule for PlaceholderPart {
             let mut users: Vec<(String, Id<Device>)> = q
                 .devices()
                 .iter()
-                .filter(|(_, x)| x.parts.iter().any(|u| u.part.copy == id))
+                .filter(|(x, dev)| uses_copy(q, *x, dev, id))
                 .map(|(x, _)| (full_tag(q, x, "device"), x))
                 .collect();
             users.sort_by(|a, b| {
@@ -268,6 +271,38 @@ impl Rule for PlaceholderPart {
         }
         out
     }
+}
+
+/// The part copies EW-CORE-043 looks at for a device: its part uses ([`parts_of`]) and the parts of its carrier part
+/// lines (`LineSource::Carrier`: the rails and ducts of its enclosure, WP-S4.01 D11), in the order of [`parts_of`]. A
+/// placeholder rail or duct reaches the BOM through the carriers since WP-S4.01 part 4 (FT-205), so it stays an open
+/// item that blocks release (EF-17), owned by the enclosure device.
+fn placeholder_candidates(q: &Q, device: &Device) -> Vec<(Id<Part>, std::sync::Arc<LibCopy<Part>>)> {
+    let mut out = parts_of(q, device);
+    let parts = q.parts();
+    for line in q.get::<DevicePartLines>(device.id).iter() {
+        if line.source == LineSource::Carrier {
+            if let Some(copy) = parts.get(line.part) {
+                out.push((line.part, copy.clone()));
+            }
+        }
+    }
+    out.sort_by(|(ia, a), (ib, b)| {
+        let (na, nb) = (a.item.part_number.as_str(), b.item.part_number.as_str());
+        natural_cmp(na, nb)
+            .then_with(|| na.cmp(nb))
+            .then_with(|| ia.cmp(ib))
+    });
+    out.dedup_by_key(|(id, _)| *id);
+    out
+}
+
+/// Whether `device` uses the part copy `part` for EW-CORE-043: as a part use or through a carrier part line.
+fn uses_copy(q: &Q, id: Id<Device>, device: &Device, part: Id<Part>) -> bool {
+    device.parts.iter().any(|u| u.part.copy == part)
+        || q.get::<DevicePartLines>(id)
+            .iter()
+            .any(|l| l.source == LineSource::Carrier && l.part == part)
 }
 
 // ---------------------------------------------------------------------------------------------------------

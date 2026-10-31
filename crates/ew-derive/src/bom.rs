@@ -10,12 +10,14 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText, NaturalKey, natural_key};
 use ew_schema::{
-    BomBasis, Device, DeviceState, LibRef, OrderUnit, Part, PartKind, PartRef, RepType, Representation,
+    BomBasis, Carrier, Device, DeviceState, Enclosure, LibRef, MountingSurface, OrderUnit, Page, PageType,
+    Part, PartKind, PartRef, RepType, Representation,
 };
 use ew_units::Dec3;
 
 use crate::Q;
 use crate::cell::RepAnchorCell;
+use crate::layout::{carrier_length, carriers_in_order, metres_of_nm, page_surface};
 use crate::pages::{DrawnPageOrder, PageOrderV, PageRef};
 use crate::query::{Policy, Query};
 use crate::strip_bridges::StripBridges;
@@ -44,6 +46,9 @@ pub enum LineSource {
     /// An order code of the device's assembly aspect (`Assembly.configs[].part`), one set each; assembly
     /// mode only.
     AssemblyConfig,
+    /// The carriers (rails, ducts) with one part copy on the surfaces of an enclosure whose device owns the line,
+    /// by their summed path length in metres (WP-S4.01 D11, FR-LAY-004, FR-LAY-005, FR-LAY-008).
+    Carrier,
 }
 
 /// One part line of one device.
@@ -68,7 +73,16 @@ pub struct PartLine {
 /// A missing device and a device that is not fitted have no lines. Otherwise one line per part use of the
 /// device (`Device.parts` order), then, for a strip device, one line of quantity 1 per strip accessory
 /// (mounting order), then one line of quantity 1 per bridge group of the strip that has a part
-/// ([`StripBridges`], group order; WP-S2.07 D6). A line whose part copy is missing is dropped.
+/// ([`StripBridges`], group order; WP-S2.07 D6), then, for the device of an enclosure, one **carrier line**
+/// per part ([`LineSource::Carrier`], WP-S4.01 D11 as amended by the orchestrator's ruling 5 of cycle 41): the
+/// carriers with a part on the enclosure's mounting surfaces that share a part copy (and variant) give one line,
+/// whose quantity is the sum of their path lengths in metres exact to the millimetre (summed in nanometres, rounded
+/// once, half up). A carrier without a derivable length (a path that breaks D5, a kind of a newer format; only
+/// loaded data has one, EW-LAY-010 reports it) adds nothing, and a line all of whose carriers lack a length stays
+/// with quantity 0 (ruling 6). The carrier lines come in the legend order of their first carrier (surfaces by ID,
+/// then rails before ducts, each top to bottom then left to right; [`crate::layout::carrier_order`]), after the
+/// device's own lines, so a reader of the first line keeps the device's own part. A line whose part copy is
+/// missing is dropped.
 #[derive(Debug)]
 pub struct DevicePartLines;
 
@@ -112,8 +126,107 @@ impl Query for DevicePartLines {
                 }
             }
         }
+        for g in carrier_groups(q, *key) {
+            push(&g.part, metres_of_nm(g.nm), LineSource::Carrier);
+        }
         Arc::new(lines)
     }
+}
+
+/// The carriers of one part copy (and variant) on the surfaces of a device's enclosures: one carrier line.
+struct CarrierGroup {
+    /// The part (the first carrier's reference).
+    part: PartRef,
+    /// The summed path length in nanometres (a carrier without a length adds nothing).
+    nm: i128,
+    /// The surfaces those carriers are on.
+    surfaces: BTreeSet<Id<MountingSurface>>,
+}
+
+/// The mounting surfaces of the enclosures whose device is `device`, in ID order.
+fn enclosure_surfaces(q: &Q, device: Id<Device>) -> Vec<Id<MountingSurface>> {
+    let enclosures: BTreeSet<Id<Enclosure>> = q
+        .table::<Enclosure>()
+        .iter()
+        .filter(|(_, e)| e.device == device)
+        .map(|(id, _)| id)
+        .collect();
+    if enclosures.is_empty() {
+        return Vec::new();
+    }
+    q.table::<MountingSurface>()
+        .iter()
+        .filter(|(_, s)| enclosures.contains(&s.enclosure))
+        .map(|(id, _)| id)
+        .collect()
+}
+
+/// The carrier lines of `device` (see [`DevicePartLines`]): the carriers with a part on its enclosures' surfaces,
+/// grouped by part copy and variant, in the legend order of each group's first carrier.
+fn carrier_groups(q: &Q, device: Id<Device>) -> Vec<CarrierGroup> {
+    let carriers = q.table::<Carrier>();
+    let mut groups: Vec<CarrierGroup> = Vec::new();
+    for surface in enclosure_surfaces(q, device) {
+        for c in carriers_in_order(q, surface) {
+            let Some(part) = carriers.get(c).and_then(|rec| rec.part.clone()) else {
+                continue;
+            };
+            let nm = carrier_length(q, c).unwrap_or(0);
+            match groups
+                .iter_mut()
+                .find(|g| g.part.copy == part.copy && g.part.variant == part.variant)
+            {
+                Some(g) => {
+                    g.nm = g.nm.saturating_add(nm);
+                    g.surfaces.insert(surface);
+                }
+                None => groups.push(CarrierGroup {
+                    part,
+                    nm,
+                    surfaces: BTreeSet::from([surface]),
+                }),
+            }
+        }
+    }
+    groups
+}
+
+/// The surfaces a part line of a layout object shows (WP-S4.01 D11, FT-204): a carrier line's carriers' surfaces; any
+/// other line of the device of an enclosure, its enclosures' surfaces; a line of the device of a surface (the plate),
+/// that surface. Empty for every other line.
+fn line_surfaces(q: &Q, line: &PartLine) -> BTreeSet<Id<MountingSurface>> {
+    if line.source == LineSource::Carrier {
+        return carrier_groups(q, line.device)
+            .into_iter()
+            .find(|g| g.part.copy == line.part && g.part.variant == line.variant)
+            .map(|g| g.surfaces)
+            .unwrap_or_default();
+    }
+    let mut out: BTreeSet<Id<MountingSurface>> = enclosure_surfaces(q, line.device).into_iter().collect();
+    out.extend(
+        q.table::<MountingSurface>()
+            .iter()
+            .filter(|(_, s)| s.device == Some(line.device))
+            .map(|(id, _)| id),
+    );
+    out
+}
+
+/// The panel-layout pages showing each surface ([`page_surface`]), as drawn pages.
+fn surface_views(q: &Q) -> BTreeMap<Id<MountingSurface>, Vec<PageRef>> {
+    let panel: Vec<Id<Page>> = q
+        .pages()
+        .iter()
+        .filter(|(_, p)| p.kind == PageType::PanelLayout)
+        .map(|(id, _)| id)
+        .collect();
+    let mut out: BTreeMap<Id<MountingSurface>, Vec<PageRef>> = BTreeMap::new();
+    for page in panel {
+        if let Some(s) = page_surface(q, page) {
+            out.entry(s).or_default().push(PageRef::Drawn(page));
+        }
+    }
+    out
 }
 
 /// The stable identity of a BOM row: the part copy and its variant.
@@ -151,7 +264,9 @@ pub struct BomRow {
     pub description: MlText,
     /// The devices with this part, in tag natural order.
     pub devices: Vec<Id<Device>>,
-    /// The pages of those devices' main representations, in page order, without repeats.
+    /// The pages of those devices' main representations and, for a part line of a layout object (the device of an
+    /// enclosure or of a surface, a carrier line), the panel-layout pages whose surface view shows its surface
+    /// (WP-S4.01 D11, FT-204), in page order, without repeats.
     pub pages: Vec<PageRef>,
 }
 
@@ -172,7 +287,10 @@ pub struct BomRow {
 /// 3. **Aggregation** by [`BomRowKey`] and the configured flag: quantities add up (an overflowing sum
 ///    saturates at the `Dec3` limit); part data comes from the part copy; the devices are sorted by their
 ///    short tag, full tag and ID (natural order); the pages are those of the devices' main
-///    representations, in page order; the covers of a configured row are the union of its configs' covers.
+///    representations together with, for a line of a layout object (the device of an enclosure or of a
+///    mounting surface, a carrier line), the panel-layout pages whose surface view shows its surface (WP-S4.01
+///    D11, FT-204: -UC1's rows print folio 902), in page order. That is the Folios cell only: the order below
+///    reads the representations alone. The covers of a configured row are the union of its configs' covers.
 /// 4. **Order:** rows with a placed device first, by the least (page-order position, column, row) of their
 ///    devices' main representations (a terminal without one takes its strip's first segment; a missing
 ///    cell counts as `u32::MAX`), then by the head rank, then by
@@ -205,6 +323,7 @@ impl Query for BomRows {
         // the relative order of drawn pages (WP-S3.03).
         let order = q.get::<DrawnPageOrder>(());
         let parts = q.parts();
+        let views = surface_views(q);
 
         // Aggregate.
         let mut acc: BTreeMap<(bool, BomRowKey), Acc> = BTreeMap::new();
@@ -217,10 +336,22 @@ impl Query for BomRows {
             e.qty = Dec3(e.qty.0.saturating_add(l.line.qty.0));
             e.devices.insert(l.line.device);
             e.covers.extend(l.covers.iter().copied());
+            if !views.is_empty() {
+                e.surfaces.extend(line_surfaces(q, &l.line));
+            }
         }
 
         let mut rows: Vec<(RowOrder, BomRow)> = Vec::new();
-        for ((configured, k), Acc { qty, devices, covers }) in acc {
+        for (
+            (configured, k),
+            Acc {
+                qty,
+                devices,
+                covers,
+                surfaces,
+            },
+        ) in acc
+        {
             let Some(copy) = parts.get(k.part) else {
                 continue;
             };
@@ -230,6 +361,7 @@ impl Query for BomRows {
                 .filter_map(|d| placement(q, &order, *d).map(|p| (*d, p)))
                 .collect();
             let mut pages: Vec<PageRef> = placements.iter().map(|(_, p)| p.page).collect();
+            pages.extend(surfaces.iter().filter_map(|s| views.get(s)).flatten().copied());
             pages.sort_by_key(|p| (order.position(*p).unwrap_or(usize::MAX), *p));
             pages.dedup();
             let mut devices: Vec<Id<Device>> = devices.into_iter().collect();
@@ -294,6 +426,8 @@ struct Acc {
     qty: Dec3,
     devices: BTreeSet<Id<Device>>,
     covers: BTreeSet<Id<Device>>,
+    /// The surfaces the row's layout-object lines show (their panel pages print in the Folios cell).
+    surfaces: BTreeSet<Id<MountingSurface>>,
 }
 
 /// A part line after the mode filter, with the devices it covers (a config line) or none.

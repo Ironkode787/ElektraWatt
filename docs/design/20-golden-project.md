@@ -864,7 +864,7 @@ order only); the model holds carriers in plate millimetres from the test dimensi
 | D5 | duct, lower, type ▲U-26 | 7.82, 54.80, 73.07, 5.22 |
 | R1 … R3 | TS 35 rails, rows 1–3 (not drawn in the reference) ▲, `pe_bond = true` | between D1/D4, D4/D5, below D5 |
 
-As built (cycle 12; decision log ID-316), the rail length of 2.192 m and the duct length of 3.81 m are stored as quantities of -UC1's part uses; this is interim, and they are derived from the carriers once layout exists (FT-205).
+As built (cycle 41, WP-S4.01 part 4; FT-205, superseding the interim of decision log ID-316), the rail length of 1.71 m and the duct length of 3.17 m are derived from the carriers of the test geometry below (rails R1 … R3, ducts D1 … D5) as part lines of -UC1, which carries no rail or duct part use.
 
 **Placements, in order on each carrier** (acceptance: carrier, order, no overlap, derived labels):
 
@@ -962,12 +962,12 @@ screw-mounted test part ([12](12-panel-layout.md) §10).
 | 21 | 28 | pc | Festo | 571334 | 5/2 monostable solenoid valve | -201U3-Q1 … -202U2-Q4 | 203–206 |
 | 22 | 1 | pc | Schneider Electric | NSYPLA1074G | Enclosure, polyester | -UC1 | 902 |
 | 23 | 1 | pc | Schneider Electric | NSYPMM107 | Mounting plate | -UC1 (plate) | 902 |
-| 24 | ▲ | m | ▲ | TBD | DIN rail TS 35 (3 rows; length from carriers) | -UC1 | 902 |
-| 25 | ▲ | m | ▲ | TBD | Wiring duct 40×60 (5 segments; length from carriers) | -UC1 | 902 |
+| 24 | 1.71 ▲U-50 | m | ▲ | TBD | DIN rail TS 35 (3 rows; length from carriers) | -UC1 | 902 |
+| 25 | 3.17 ▲U-50 | m | ▲ | TBD | Wiring duct 40×60 (5 segments; length from carriers) | -UC1 | 902 |
 | 26 | 4 | pc | ▲ | TBD | End bracket | 1X1, -X1031, -X1032 | 902 |
 | 27 | 6 | pc | ▲ | TBD | Plug-in bridge (pole count per use) | -X1031, -X1032 | 103 |
 
-**As built (cycle 12; decision log ID-316, ID-317).** Rows 24–27 come from four TBD test parts (DIN rail, wiring duct, end bracket, plug-in bridge; part number TBD; kinds `rail`, `duct`, `end_bracket`, `accessory`), generated from §13, §8.3 and §14.1. The rail (2.192 m) and the duct (3.81 m) are stored as quantities of -UC1's part uses (interim; derived from carriers once layout exists, FT-205); the 4 end brackets and 6 bridges are part uses on the strips. Folio 901.1 holds rows 24–27, so the page order has 34 of 36 pages. The EF-17 placeholder-part check on the four TBD parts is part of FT-192. Until layout placements exist, accessory and layout rows print the folios of their devices' representations: rows 22–25 (on -UC1, which has no representation) print no folio, row 26 prints "101, 103" and row 27 "103", where the table above prints 902 for rows 22–26 (accepted interim; FT-204). Row 26's tags print in the sign order of decision log ID-9, "-X1031, -X1032, 1X1"; the manual order "1X1, -X1031, -X1032" of the table above is an accepted difference.
+**As built (cycle 12; decision log ID-316, ID-317).** Rows 24–27 come from four TBD test parts (DIN rail, wiring duct, end bracket, plug-in bridge; part number TBD; kinds `rail`, `duct`, `end_bracket`, `accessory`), generated from §13, §8.3 and §14.1. The rail (1.71 m) and the duct (3.17 m) are derived from the carriers of §13's test geometry as part lines of -UC1 (cycle 41, WP-S4.01 part 4, FT-205; the interim part uses of ID-316 are gone); the 4 end brackets and 6 bridges are part uses on the strips. Folio 901.1 holds rows 24–27, so the page order has 34 of 36 pages. The EF-17 placeholder-part check on the four TBD parts is part of FT-192. Rows 22–25 print folio 902, the panel page whose surface view shows the plate (cycle 41, WP-S4.01 part 4, FT-204). Until the end brackets are derived (WP-S4.02), accessory rows print the folios of their devices' representations: row 26 prints "101, 103" and row 27 "103", where the table above prints 902 for row 26 (accepted interim; FT-204). Row 26's tags print in the sign order of decision log ID-9, "-X1031, -X1032, 1X1"; the manual order "1X1, -X1031, -X1032" of the table above is an accepted difference.
 
 27 rows: folio 901 holds 23, folio 901.1 holds 4. S56 and E56 have no rows (no parts, EF-04); field devices and the
 external master are excluded. Consecutive tags are compressed into ranges (FR-REP-046). Descriptions come from part

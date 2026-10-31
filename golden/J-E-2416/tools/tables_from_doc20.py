@@ -1071,39 +1071,38 @@ def mech_values_cache():
 
 
 def carrier_lengths():
-    """(duct metres, rail metres) from the section 13 carriers table: the paper lengths of D1 ... D5 at the 1:10 scale
-    of folio 902 (test input), and three rails of the width of D4."""
-    scale = Decimal(10)
-    rows = table_dicts("**Carriers.**")
-    ducts, widths = [], {}
-    rails = 0
-    for r in rows:
-        name = r["Carrier"]
-        if re.fullmatch(r"D\d", name):
-            x, y, w, h = (Decimal(v) for v in re.split(r",\s*", r["Reference x, y, w, h (paper mm)"]))
-            ducts.append(max(w, h) * scale)
-            widths[name] = w * scale
-        elif name.startswith("R"):
-            rails = len(expand_range(name))
-    check(len(ducts) == 5, f"section 13: {len(ducts)} ducts, 5 expected")
-    check(rails == 3 and "D4" in widths, f"section 13: {rails} rails, 3 expected, and the duct D4")
-    metres = Decimal("0.001")
-    return (sum(ducts) / 1000).quantize(metres, ROUND_HALF_UP), (3 * widths["D4"] / 1000).quantize(metres, ROUND_HALF_UP)
+    """(duct metres, rail metres) from section 13's test geometry (WP-S4.01 D13, ▲U-50): the summed path lengths of the
+    ducts D1 ... D5 and of the rails R1 ... R3, in metres. The model derives the same lengths from the carriers
+    (WP-S4.01 part 4: the carrier part lines of -UC1, FT-205)."""
+    lengths = {"rail": Decimal(0), "duct": Decimal(0)}
+    counts = {"rail": 0, "duct": 0}
+    for r in table_dicts("**Test geometry**"):
+        kind = "duct" if re.fullmatch(r"D\d", r["Carrier"]) else "rail"
+        check(kind == "duct" or re.fullmatch(r"R\d", r["Carrier"]), f"section 13: carrier {r['Carrier']!r}")
+        lengths[kind] += Decimal(r["Length"])
+        counts[kind] += 1
+    check(counts == {"rail": 3, "duct": 5}, f"section 13: {counts} carriers, 3 rails and 5 ducts expected")
+    return lengths["duct"] / 1000, lengths["rail"] / 1000
 
 
 def tbd_part_uses():
-    """{device key: [``<part key>[*<qty>]``]}: where the four TBD parts of section 14.1 are used.
+    """{device key: [``<part key>[*<qty>]``]}: where the four TBD parts of section 14.1 are used as part uses.
 
-    The enclosure -UC1 carries the rails and ducts (rows 24, 25: tags -UC1, quantity from the carriers of section 13);
-    the strips carry the end brackets (row 26) and the plug-in bridges (row 27). Every quantity and tag set is checked
-    against its section 14.1 row."""
+    The rails and ducts (rows 24, 25: tags -UC1) are no part use: the model derives them as -UC1's carrier part lines
+    from section 13's test geometry (WP-S4.01 part 4, FT-205), so the quantity cells of rows 24 and 25 are checked
+    against the carriers' lengths. The strips carry the end brackets (row 26) and the plug-in bridges (row 27). Every
+    quantity and tag set is checked against its section 14.1 row."""
     rows = {r["Pos"]: r for r in table_dicts("### 14.1 Component mode (folio 901)")}
     key = {pos: k for pos, (k, _) in TBD_PARTS.items()}
     duct_m, rail_m = carrier_lengths()
-    uses = {"-UC1": [f"{key['24']}*{dec(str(rail_m))}", f"{key['25']}*{dec(str(duct_m))}"]}
-    for pos in ("24", "25"):
+    uses = {}
+    for pos, metres in (("24", rail_m), ("25", duct_m)):
         check(strip_tri(rows[pos]["Tags"]) == "-UC1", f"section 14.1 row {pos}: the tags are {rows[pos]['Tags']!r}")
-        check(strip_tri(rows[pos]["Qty"]) == "", f"section 14.1 row {pos}: the quantity is {rows[pos]['Qty']!r}")
+        check(
+            strip_tri(rows[pos]["Qty"]) == dec(str(metres)),
+            f"section 14.1 row {pos}: the quantity is {rows[pos]['Qty']!r}, the carriers of section 13 sum to {dec(str(metres))} m",
+        )
+        check(tri_marks(rows[pos]["Qty"]) == LAYOUT_MARKS, f"section 14.1 row {pos}: the quantity is not marked {LAYOUT_MARKS}")
     check("3 rows" in rows["24"]["Description"], "section 14.1 row 24: not 3 rows")
     check("5 segments" in rows["25"]["Description"], "section 14.1 row 25: not 5 segments")
 
@@ -1141,13 +1140,7 @@ def tbd_part_uses():
         uses[strip].append(key["27"] + (f"*{n}" if n != 1 else ""))
 
     fixture(
-        "devices", "parts", "-UC1", f"{key['24']}*{dec(str(rail_m))}; {key['25']}*{dec(str(duct_m))}", "§13, §14.1 rows 24, 25",
-        "the quantity of the rails and ducts is a ▲ (length from carriers): the paper lengths of the carriers table at the"
-        " 1:10 scale of folio 902 (the five ducts D1 ... D5 added, and three rails of the width of D4), in metres",
-        marks=["U-26", "U-27"],
-    )  # fmt: skip
-    fixture(
-        "devices", "parts", strips, " / ".join(f"{k}: {'; '.join(v)}" for k, v in uses.items() if k != "-UC1"),
+        "devices", "parts", strips, " / ".join(f"{k}: {'; '.join(v)}" for k, v in uses.items()),
         "§13 (R2), §14.1 row 26",
         "the end brackets sit on the strips as part uses (a bracket belongs to the strip before it, the first to the first"
         " strip), the bridges of §8.3 as one part use per bridge on its strip: the parts list prints them after the legend"
@@ -1160,17 +1153,16 @@ def tbd_part_uses():
 def parts_list_expected():
     """The 27 rows of doc 20 section 14.1 as the parts list prints them (``expected/parts_list_14_1.csv``): the cells of
     the table without the unknown marks, with the fixture values where the table leaves a ▲: quantity 1 for the cable
-    -3W1 (U-46), the lengths of rails and ducts of section 13, the manufacturer TBD of the TBD parts; the parentheses
-    that explain a quantity of the TBD rows are no part of the description; the plate's tag reads -UC1-plate."""
-    duct_m, rail_m = carrier_lengths()
-    lengths = {"24": dec(str(rail_m)), "25": dec(str(duct_m))}
+    -3W1 (U-46), the manufacturer TBD of the TBD parts; the lengths of rails and ducts are the table's (rows 24 and 25,
+    checked against section 13's carriers by tbd_part_uses); the parentheses that explain a quantity of the TBD rows are
+    no part of the description; the plate's tag reads -UC1-plate."""
     out = []
     for r in table_dicts("### 14.1 Component mode (folio 901)"):
         pos = r["Pos"]
         tbd = strip_tri(r["Part number"]) == "TBD"
         qty = strip_tri(r["Qty"])
         if not qty:
-            qty = lengths.get(pos) or ("1" if strip_tri(r["Part number"]) == PROFIBUS_CABLE else "")
+            qty = "1" if strip_tri(r["Part number"]) == PROFIBUS_CABLE else ""
         check(qty, f"section 14.1 row {pos}: no quantity")
         desc = strip_tri(r["Description"])
         tags = strip_tri(r["Tags"])

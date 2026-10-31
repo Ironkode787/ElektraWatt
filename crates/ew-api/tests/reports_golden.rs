@@ -200,8 +200,7 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
         ]
     );
     let placed = |i: usize| matches!(&rows.rows[i].cells[7], Cell::Folios(f) if !f.is_empty());
-    assert!((0..21).all(placed));
-    assert!((21..25).all(|i| !placed(i)));
+    assert!((0..25).all(placed));
     // The accessories keep the folios of their strips: the brackets 101 and 103, the bridges 103.
     let folios_of = |i: usize| -> Vec<String> {
         let Cell::Folios(folios) = &rows.rows[i].cells[7] else {
@@ -212,14 +211,20 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
             .map(|p| order.entry(*p).expect("in the page order").folio.clone())
             .collect()
     };
+    // WP-S4.01 part 4 (FT-204; ruling 5 of cycle 41: "layout objects print the folios of the panel pages that show
+    // their surface"): the enclosure, the plate, the rail and the duct print 902.
+    for i in 21..25 {
+        assert_eq!(folios_of(i), ["902"], "row {}", i + 1);
+    }
     assert_eq!(folios_of(25), ["101", "103"]);
     assert_eq!(folios_of(26), ["103"]);
-    // Quantities: 2.192 m of rail and 3.81 m of duct from the carriers, 4 brackets, 6 bridges.
+    // Quantities: 1.71 m of rail and 3.17 m of duct, the carrier part lines of -UC1 (R1 … R3, D1 … D5; WP-S4.01 part 4,
+    // FT-205), 4 brackets, 6 bridges.
     let qty = |i: usize| match &rows.rows[i].cells[1] {
         Cell::Qty(q, _) => q.to_string(),
         other => panic!("not a quantity: {other:?}"),
     };
-    assert_eq!([qty(23), qty(24), qty(25), qty(26)], ["2.192", "3.81", "4", "6"]);
+    assert_eq!([qty(23), qty(24), qty(25), qty(26)], ["1.71", "3.17", "4", "6"]);
     for i in [12, 13] {
         let Cell::Folios(folios) = &rows.rows[i].cells[7] else {
             panic!("folios column")
