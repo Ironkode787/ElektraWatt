@@ -386,6 +386,15 @@ impl ShellModel {
         }
     }
 
+    /// The words of a tool's refusal: the reason's text, except where it names keys, which come from the keymap
+    /// (a refused turn during a layout drag reads as `layout.rotate`'s and `layout.flip`'s refusal; cycle-42 review).
+    pub(super) fn refusal_text(&self, reason_key: &'static str) -> String {
+        match reason_key {
+            "reason-layout-turn" => self.layout_turn_refusal(),
+            key => strings::text(key).to_owned(),
+        }
+    }
+
     /// The host's action on a tool's output (§7.2).
     pub(super) fn apply_tool_output(&mut self, out: ToolOutput) -> Outcome {
         match out {
@@ -516,7 +525,7 @@ impl ShellModel {
                 // `Select` and the old `Transient(Overlay::default())` did (review fix, F1).
                 self.tools.overlay = Overlay::default();
                 self.tools.preview = None;
-                self.tools.notice = Some(strings::text(reason_key).to_owned());
+                self.tools.notice = Some(self.refusal_text(reason_key));
                 self.tools.notice_sticky = true;
                 Outcome::Refused { reason_key }
             }

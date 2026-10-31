@@ -776,3 +776,83 @@ fn pw6_nudge_turn_lock_and_delete_a_selected_placement() {
     assert_eq!(unplaced(&shell, "-102F1"), device);
     shell.shutdown();
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Cycle-42 review part 3, finding 1
+
+/// The sheet point of the centre of the footprint of the placement of `tag`.
+fn footprint_centre(shell: &ShellModel, tag: &str) -> (i64, i64) {
+    let t = panel(shell);
+    let fp = t.placements.iter().find(|p| p.tag == tag).unwrap().footprint;
+    sheet_of(
+        shell,
+        (
+            (i128::from(fp.min().x.0) + i128::from(fp.max().x.0)) / 2,
+            (i128::from(fp.min().y.0) + i128::from(fp.max().y.0)) / 2,
+        ),
+    )
+}
+
+/// A refused turn names the keymap's keys on every path: with `tool.rotate_cw` rebound to Q, the rotate key on a rail
+/// reads the same whole text from `layout.rotate` on the selected placement (the shell), from the layout place tool's
+/// floating ghost and from Select's drag of a placement (the tools); the reason itself names no keys.
+#[test]
+fn a_refused_turn_names_the_rebound_keys_on_every_path() {
+    const TEXT: &str = "Q turns a placement on the plate; X flips one on a rail.";
+    let tmp = Tmp::new("layout-turn-keys");
+    let mut shell = writable(&tmp);
+    assert_eq!(
+        ew_viewmodel::strings::text("reason-layout-turn"),
+        "Turn a placement on the plate; flip one on a rail"
+    );
+    done(&mut shell, "help.shortcuts", json!({}));
+    done(
+        &mut shell,
+        "keymap.record_start",
+        json!({"action": "tool.rotate_cw"}),
+    );
+    done(
+        &mut shell,
+        "keymap.record",
+        json!({"action": "tool.rotate_cw", "keys": "Q"}),
+    );
+    done(&mut shell, "ui.dismiss", json!({}));
+    let turn_refused = Outcome::Refused {
+        reason_key: "reason-layout-turn",
+    };
+
+    // The shell: the selected placement -102F1 on Rail 1.
+    select_placement(&mut shell, "-102F1");
+    assert_eq!(key(&mut shell, "tool.rotate_cw"), turn_refused);
+    assert_eq!(shell.tool_notice(), Some(TEXT));
+    assert_eq!(shell.tool_announcement(), Some(TEXT));
+    done(&mut shell, "ui.dismiss", json!({}));
+
+    // The layout place tool: F55's ghost over Rail 1.
+    let f55 = unplaced(&shell, "F55");
+    done(
+        &mut shell,
+        "tool.place_layout",
+        json!({"device": f55.to_string()}),
+    );
+    let over = on_rail(&shell, "Rail 1", 120 * MM);
+    done(&mut shell, "canvas.pointer", at(over, json!({})));
+    assert_eq!(ghost(&shell)["carrier"], "Rail 1");
+    assert_eq!(key(&mut shell, "tool.rotate_cw"), turn_refused);
+    assert_eq!(shell.tool_notice(), Some(TEXT));
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(&mut shell, "tool.select", json!({}));
+    assert_eq!(shell.tool().name(), "select");
+
+    // The Select tool: -102F1 dragged along Rail 1.
+    let revision = shell.revision();
+    let from = footprint_centre(&shell, "-102F1");
+    done(&mut shell, "canvas.press", at(from, json!({})));
+    let to = on_rail(&shell, "Rail 1", 300 * MM);
+    done(&mut shell, "canvas.pointer", at(to, json!({})));
+    assert_eq!(ghost(&shell)["kind"], "layout", "{}", ghost(&shell));
+    assert_eq!(key(&mut shell, "tool.rotate_cw"), turn_refused);
+    assert_eq!(shell.tool_notice(), Some(TEXT));
+    assert_eq!(shell.revision(), revision, "nothing committed");
+    shell.shutdown();
+}

@@ -108,7 +108,7 @@ text.input View "Type into the tool" menu none shortcut none context canvas hidd
 tool.wire Command "Wire" menu "Draw" shortcut "W" context canvas params ""
 canvas.activate_alt View "Click with Alt at the grid cursor" menu none shortcut "Ctrl+Enter" context canvas hidden params ""
 tool.next_proposal View "Next autoconnect proposal" menu none shortcut "Tab" context canvas hidden params ""
-tool.place_layout Command "Place on carrier…" menu none shortcut none context global hidden params "device:ref"
+tool.place_layout Command "Place device" menu none shortcut none context global hidden params "device:ref"
 layout.next View "Next placement on the rail" menu none shortcut none context canvas hidden params ""
 layout.previous View "Previous placement on the rail" menu none shortcut "Shift+Tab" context canvas hidden params ""
 layout.nudge Command "Nudge placement" menu none shortcut none context canvas hidden params "dx?:int, dy?:int"

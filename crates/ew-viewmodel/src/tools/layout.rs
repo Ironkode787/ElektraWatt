@@ -618,7 +618,11 @@ pub fn round_to(v: i128, step: i128) -> i128 {
     }
     let q = v.div_euclid(step);
     let r = v.rem_euclid(step);
-    if r * 2 >= step { (q + 1) * step } else { q * step }
+    if r * 2 > step || (r * 2 == step && v > 0) {
+        (q + 1) * step
+    } else {
+        q * step
+    }
 }
 
 /// How many surface nm one sheet nm stands for near `at` (the frame's factor and the projection's scale).
@@ -1229,5 +1233,23 @@ impl LayoutPlaceTool {
             Some(cmd) => ToolOutput::Commit(Box::new(cmd)),
             None => ToolOutput::Refused("reason-layout-refused"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::round_to;
+
+    /// Halves round away from zero, as `round_to`'s doc says (cycle-42 review part 3, nit 4).
+    #[test]
+    fn halves_round_away_from_zero() {
+        assert_eq!(round_to(5, 10), 10);
+        assert_eq!(round_to(-5, 10), -10);
+        assert_eq!(round_to(4, 10), 0);
+        assert_eq!(round_to(-4, 10), 0);
+        assert_eq!(round_to(6, 10), 10);
+        assert_eq!(round_to(-6, 10), -10);
+        assert_eq!(round_to(-15, 10), -20);
+        assert_eq!(round_to(7, 0), 7, "no step leaves the value");
     }
 }

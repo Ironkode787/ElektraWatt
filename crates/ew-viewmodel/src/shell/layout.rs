@@ -182,7 +182,7 @@ impl ShellModel {
         Outcome::Refused { reason_key }
     }
 
-    /// `tool.place_layout {device}` (Place on carrier…, Enter on an Unplaced devices row, a drop of the row): arms the
+    /// `tool.place_layout {device}` (Place device, Enter on an Unplaced devices row, a drop of the row): arms the
     /// layout place tool with the device on the focused panel page; refused without one ("Open a panel layout page").
     pub(super) fn act_place_layout(&mut self, p: &Map<String, Value>) -> Outcome {
         let device = match string_param(p, "device") {
@@ -427,17 +427,24 @@ impl ShellModel {
                 "mode": "free",
             }),
             _ => {
-                let text = strings::format(
-                    "layout-wrong-turn",
-                    &[
-                        &crate::command_bar::key_of(self, "tool.rotate_cw"),
-                        &crate::command_bar::key_of(self, "tool.mirror_x"),
-                    ],
-                );
+                let text = self.layout_turn_refusal();
                 return self.refuse_with(text, "reason-layout-turn");
             }
         };
         self.commit_layout("layout.move", cmd)
+    }
+
+    /// The words of a refused turn (R on a rail, X on the plate) with the keys of the keymap (ruling 7): the text of
+    /// `reason-layout-turn` wherever it shows, from `layout.rotate` and `layout.flip` here and from the layout place
+    /// and Select tools' turn keys during a drag ([`ShellModel::refusal_text`]).
+    pub(super) fn layout_turn_refusal(&self) -> String {
+        strings::format(
+            "layout-wrong-turn",
+            &[
+                &crate::command_bar::key_of(self, "tool.rotate_cw"),
+                &crate::command_bar::key_of(self, "tool.mirror_x"),
+            ],
+        )
     }
 
     /// `layout.lock_selection` and `layout.unlock_selection` (Lock and Unlock in the canvas context menu over a
