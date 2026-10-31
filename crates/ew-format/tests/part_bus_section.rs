@@ -10,8 +10,8 @@ use std::collections::BTreeMap;
 
 use ew_format::ew_schema::{BusSystem, LibDocument, Project, Record, Sha256};
 use ew_format::{
-    EntryKind, FilePath, FindingKind, Limits, Loaded, Manifest, Severity, hash_text, lib_document_text, lib_file,
-    library_copy_hash, load, plan, project_files, sha256,
+    EntryKind, FilePath, FindingKind, Limits, Loaded, Manifest, Severity, hash_text, lib_document_text,
+    lib_file, library_copy_hash, load, plan, project_files, sha256,
 };
 
 const PROJECT: &str =
@@ -50,7 +50,11 @@ fn project() -> Project {
 
 fn write_and_read(lib: &[LibDocument]) -> (BTreeMap<FilePath, Vec<u8>>, Loaded) {
     let files = project_files(&project(), &[], lib, 1, "test").unwrap();
-    let manifest = Manifest::parse(&files[&FilePath::new("manifest.json").unwrap()], &Limits::default()).unwrap();
+    let manifest = Manifest::parse(
+        &files[&FilePath::new("manifest.json").unwrap()],
+        &Limits::default(),
+    )
+    .unwrap();
     let present: BTreeMap<String, EntryKind> = files
         .keys()
         .map(|k| (k.as_str().to_owned(), EntryKind::File))
@@ -71,7 +75,11 @@ fn write_and_read(lib: &[LibDocument]) -> (BTreeMap<FilePath, Vec<u8>>, Loaded) 
 fn a_part_copy_with_a_bus_section_round_trips_and_its_hash_verifies() {
     let item = item();
     let doc = LibDocument::from_json(&compact(&item)).unwrap();
-    assert_eq!(serde_json::to_string(&doc).unwrap(), compact(&item), "not canonical");
+    assert_eq!(
+        serde_json::to_string(&doc).unwrap(),
+        compact(&item),
+        "not canonical"
+    );
     assert_eq!(library_copy_hash(&doc), Some(sha256(item.as_bytes())));
     let LibDocument::Part(copy) = &doc else {
         panic!("a part");
@@ -83,7 +91,7 @@ fn a_part_copy_with_a_bus_section_round_trips_and_its_hash_verifies() {
     let (files, loaded) = write_and_read(std::slice::from_ref(&doc));
     assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
     assert!(loaded.rewrite.is_empty(), "{:?}", loaded.rewrite);
-    assert_eq!(loaded.lib, [doc.clone()]);
+    assert_eq!(loaded.lib, std::slice::from_ref(&doc));
     let path = lib_file(&doc).unwrap();
     assert_eq!(files[&path], lib_document_text(&doc).unwrap().into_bytes());
     // A second save of the loaded copy writes the same bytes.

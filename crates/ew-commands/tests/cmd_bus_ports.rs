@@ -171,7 +171,12 @@ fn port(e: &Engine, f: Id<Function>) -> Option<BusPort> {
     row(e, f).bus_port.clone()
 }
 
-fn assign(devices: Vec<Id<Device>>, part: Id<Part>, mode: AssignModeParam, from: Option<Id<Part>>) -> AssignPart {
+fn assign(
+    devices: Vec<Id<Device>>,
+    part: Id<Part>,
+    mode: AssignModeParam,
+    from: Option<Id<Part>>,
+) -> AssignPart {
     AssignPart {
         devices,
         part,
@@ -231,7 +236,13 @@ fn bus_notices(r: &Receipt) -> Vec<String> {
 }
 
 /// The port D16 seeds from a part port: no nets, the address `tbd` (`not_applicable` when passive).
-fn seeded(interface: &str, label: Option<&str>, bus: BusSystem, role: PortRole, termination: Option<OnOff>) -> BusPort {
+fn seeded(
+    interface: &str,
+    label: Option<&str>,
+    bus: BusSystem,
+    role: PortRole,
+    termination: Option<OnOff>,
+) -> BusPort {
     BusPort {
         interface: ident(interface),
         port_label: label.map(ident),
@@ -258,7 +269,12 @@ fn dp_master() -> BusPort {
 
 #[test]
 fn bu7j_bus_ports_runs_after_module_pin_binding_and_before_revision_ensure_open() {
-    let at = |n: &str| ORDER.iter().position(|o| *o == n).unwrap_or_else(|| panic!("{n} in {ORDER:?}"));
+    let at = |n: &str| {
+        ORDER
+            .iter()
+            .position(|o| *o == n)
+            .unwrap_or_else(|| panic!("{n} in {ORDER:?}"))
+    };
     assert_eq!(at("bus_ports"), at("module_pin_binding") + 1, "{ORDER:?}");
     assert_eq!(at("revision_ensure_open"), at("bus_ports") + 1, "{ORDER:?}");
 }
@@ -345,7 +361,11 @@ fn ports_pair_in_list_order_with_functions_in_id_order() {
         ))
     );
     assert_eq!(port(&e, FN_3C), None);
-    assert_eq!(bus_notices(&r), Vec::<String>::new(), "the duplicate DP is ignored silently");
+    assert_eq!(
+        bus_notices(&r),
+        Vec::<String>::new(),
+        "the duplicate DP is ignored silently"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -370,7 +390,12 @@ fn bu7h_a_port_is_never_rewritten() {
     assert_eq!(port(&e, f), Some(set_port.clone()));
 
     let r = e
-        .execute(&assign(vec![DEV_CPU], CPU_PN, AssignModeParam::Replace, Some(CPU)))
+        .execute(&assign(
+            vec![DEV_CPU],
+            CPU_PN,
+            AssignModeParam::Replace,
+            Some(CPU),
+        ))
         .expect("part.assign replace");
     assert_eq!(row(&e, DEV_CPU).parts, uses(CPU_PN));
     assert_eq!(port(&e, f), Some(set_port.clone()), "kept");
@@ -390,7 +415,11 @@ fn bu7h_a_port_is_never_rewritten() {
     let r = e
         .execute(&set(KindName::Device, DEV_CPU.cast(), "parts", json!([])))
         .expect("fields.set parts []");
-    assert_eq!(port(&e, f), Some(set_port.clone()), "removing the bus part removes no port");
+    assert_eq!(
+        port(&e, f),
+        Some(set_port.clone()),
+        "removing the bus part removes no port"
+    );
     assert_eq!(bus_notices(&r), Vec::<String>::new());
 
     e.execute(&assign(vec![DEV_CPU], CPU, AssignModeParam::Append, None))
@@ -455,7 +484,13 @@ fn bu7i_a_passive_connector_port_has_no_address_and_keeps_its_termination() {
     assert_eq!(p.termination, Some(OnOff::On));
     assert_eq!(
         p,
-        seeded("DP", None, BusSystem::ProfibusDp, PortRole::Passive, Some(OnOff::On))
+        seeded(
+            "DP",
+            None,
+            BusSystem::ProfibusDp,
+            PortRole::Passive,
+            Some(OnOff::On)
+        )
     );
     assert_eq!(bus_notices(&r), Vec::<String>::new());
 }

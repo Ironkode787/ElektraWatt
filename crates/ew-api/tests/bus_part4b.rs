@@ -154,10 +154,10 @@ fn bu7f_the_dp_port_symbol_on_the_generic_cpu_gets_its_port() {
     let [function] = added.as_slice() else {
         panic!("one new function: {added:?}");
     };
-    let candidate_port = preview
-        .candidate()
-        .table::<Function>()
-        .get(function)
+    let candidate_port = s
+        .query_over(preview.candidate())
+        .functions()
+        .get(*function)
         .and_then(|f| f.bus_port.clone());
     assert_eq!(candidate_port, Some(dp_master()), "the preview lists the port");
     assert!(
@@ -171,10 +171,17 @@ fn bu7f_the_dp_port_symbol_on_the_generic_cpu_gets_its_port() {
     assert_eq!(ports(&s, cpu), [(*function, dp_master())]);
 
     s.undo(&Origin::Gui).expect("undo");
-    assert!(s.query().functions().get(*function).is_none(), "undo removes the function");
+    assert!(
+        s.query().functions().get(*function).is_none(),
+        "undo removes the function"
+    );
     assert_eq!(ports(&s, cpu), []);
     s.redo(&Origin::Gui).expect("redo");
-    assert_eq!(ports(&s, cpu), [(*function, dp_master())], "redo restores identical IDs");
+    assert_eq!(
+        ports(&s, cpu),
+        [(*function, dp_master())],
+        "redo restores identical IDs"
+    );
 
     let report = s.check(&PRE_DELIVERY, CheckMode::Online);
     let open: Vec<&Finding> = report

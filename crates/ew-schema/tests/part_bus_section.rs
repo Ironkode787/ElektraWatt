@@ -39,7 +39,11 @@ fn a_bus_section_types_its_members_and_keeps_the_rest() {
     let doc: LibDocument = serde_json::from_str(&line).unwrap();
     assert_eq!(serde_json::to_string(&doc).unwrap(), line, "not canonical");
     let p = part(&doc);
-    assert!(p.sections.extra.is_empty(), "left in extra: {:?}", p.sections.extra);
+    assert!(
+        p.sections.extra.is_empty(),
+        "left in extra: {:?}",
+        p.sections.extra
+    );
     let bus = p.sections.bus.as_ref().expect("the bus section is typed");
     assert_eq!(bus.ports.len(), 2);
     assert_eq!(
@@ -82,14 +86,8 @@ fn a_part_without_a_bus_section_and_an_empty_port_list() {
 
     let empty = part_line(r#"{"bus":{"ports":[]}}"#);
     let doc: LibDocument = serde_json::from_str(&empty).unwrap();
-    assert_eq!(
-        part(&doc).sections.bus.as_ref().map(|b| b.ports.len()),
-        Some(0)
-    );
-    assert_eq!(
-        serde_json::to_string(&doc).unwrap(),
-        part_line(r#"{"bus":{}}"#)
-    );
+    assert_eq!(part(&doc).sections.bus.as_ref().map(|b| b.ports.len()), Some(0));
+    assert_eq!(serde_json::to_string(&doc).unwrap(), part_line(r#"{"bus":{}}"#));
 }
 
 /// §8a.1: the section is written after `mounting_plate` and before the unknown sections, where an older build,
