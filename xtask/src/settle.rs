@@ -549,22 +549,78 @@ fn captured(mut command: Command, what: &str) -> Result<Outcome> {
     }
 }
 
-/// The `.rs` files rustfmt takes: the existing changed ones, or every tracked and untracked one with `all`.
+/// The `.rs` files rustfmt takes: the existing changed ones, or every tracked and untracked one with `all`; never a
+/// module its parent declares under `#[rustfmt::skip]` (rustfmt given the file itself would not see the attribute,
+/// and `cargo fmt` leaves such a module alone).
 fn rust_files(root: &Path, files: &BTreeSet<String>, all: bool) -> Result<Vec<String>> {
+    let tracked = git_ls_rs(root)?;
     let candidates: Vec<String> = if all {
         affected::changed_files(root, "HEAD")?
             .into_iter()
-            .chain(git_ls_rs(root)?)
+            .chain(tracked.iter().cloned())
             .collect::<BTreeSet<_>>()
             .into_iter()
             .collect()
     } else {
         files.iter().cloned().collect()
     };
+    let mut skipped = Vec::new();
+    for parent in &tracked {
+        if let Ok(text) = std::fs::read_to_string(root.join(parent)) {
+            skipped.extend(skipped_modules(parent, &text));
+        }
+    }
     Ok(candidates
         .into_iter()
         .filter(|f| f.ends_with(".rs") && root.join(f).is_file())
+        .filter(|f| {
+            !skipped
+                .iter()
+                .any(|m| f == &format!("{m}.rs") || f.starts_with(&format!("{m}/")))
+        })
         .collect())
+}
+
+/// The module paths (without `.rs`, relative to the root) that the file `parent` declares under `#[rustfmt::skip]`
+/// (`#[rustfmt::skip]` and then, on the next non-empty line, `mod name;` with any visibility): `dir/name` for a
+/// parent `dir/lib.rs`, `dir/main.rs` or `dir/mod.rs`, `dir/stem/name` for a parent `dir/stem.rs`. The module's file
+/// is `<path>.rs` or under `<path>/`.
+fn skipped_modules(parent: &str, text: &str) -> Vec<String> {
+    let (dir, stem) = match parent.rsplit_once('/') {
+        Some((d, f)) => (d.to_owned(), f.trim_end_matches(".rs").to_owned()),
+        None => (String::new(), parent.trim_end_matches(".rs").to_owned()),
+    };
+    let base = if ["lib", "main", "mod"].contains(&stem.as_str()) {
+        dir
+    } else if dir.is_empty() {
+        stem
+    } else {
+        format!("{dir}/{stem}")
+    };
+    let mut out = Vec::new();
+    let mut armed = false;
+    for line in text.lines().map(str::trim) {
+        if line.is_empty() {
+            continue;
+        }
+        if armed {
+            let decl = line
+                .split_whitespace()
+                .skip_while(|w| w.starts_with("pub"))
+                .collect::<Vec<_>>();
+            if let ["mod", name] = decl.as_slice()
+                && let Some(name) = name.strip_suffix(';')
+            {
+                out.push(if base.is_empty() {
+                    name.to_owned()
+                } else {
+                    format!("{base}/{name}")
+                });
+            }
+        }
+        armed = line == "#[rustfmt::skip]";
+    }
+    out
 }
 
 fn git_ls_rs(root: &Path) -> Result<Vec<String>> {
@@ -1074,6 +1130,39 @@ mod tests {
         for o in [BOOK_SUMMARY, FUZZ_TABLE, GOLDEN_LIST] {
             assert!(!whole_file_outputs().contains(&o), "{o}");
         }
+    }
+
+    /// A module its parent declares under `#[rustfmt::skip]` is not given to rustfmt: `cargo fmt` leaves it alone,
+    /// and rustfmt given the file itself would not see the attribute.
+    #[test]
+    fn modules_under_rustfmt_skip_are_found() {
+        let text =
+            "//! x\n#[rustfmt::skip]\nmod data;\n\n#[rustfmt::skip]\n\npub(crate) mod table;\nmod other;\n";
+        assert_eq!(
+            skipped_modules("crates/ew-rds/src/sets/mod.rs", text),
+            ["crates/ew-rds/src/sets/data", "crates/ew-rds/src/sets/table"]
+        );
+        assert_eq!(
+            skipped_modules("crates/ew-ui/src/icons.rs", "#[rustfmt::skip]\nmod generated;\n"),
+            ["crates/ew-ui/src/icons/generated"]
+        );
+        assert_eq!(
+            skipped_modules("src/lib.rs", "#[rustfmt::skip]\nfn f() {}\nmod a;\n"),
+            Vec::<String>::new()
+        );
+        // The two in the workspace today.
+        let root = crate::workspace_root();
+        let rs = rust_files(
+            &root,
+            &set(&[
+                "crates/ew-rds/src/sets/data.rs",
+                "crates/ew-ui/src/icons/generated.rs",
+                "crates/ew-ui/src/icons/mod.rs",
+            ]),
+            false,
+        )
+        .unwrap();
+        assert_eq!(rs, ["crates/ew-ui/src/icons/mod.rs"]);
     }
 
     #[test]
