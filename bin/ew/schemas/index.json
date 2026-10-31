@@ -56,6 +56,16 @@
       "schema": "ew.export-wires-result-1.schema.json"
     },
     {
+      "command": "fmt",
+      "name": "ew.fmt-result/1",
+      "schema": "ew.fmt-result-1.schema.json"
+    },
+    {
+      "command": "import csv",
+      "name": "ew.import-csv-result/1",
+      "schema": "ew.import-csv-result-1.schema.json"
+    },
+    {
       "command": "import parts",
       "name": "ew.import-parts-result/1",
       "schema": "ew.import-parts-result-1.schema.json"
@@ -89,6 +99,11 @@
       "command": "lib search",
       "name": "ew.lib-search-result/1",
       "schema": "ew.lib-search-result-1.schema.json"
+    },
+    {
+      "command": "recover",
+      "name": "ew.recover-result/1",
+      "schema": "ew.recover-result-1.schema.json"
     },
     {
       "command": "render",

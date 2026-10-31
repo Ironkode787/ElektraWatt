@@ -371,3 +371,271 @@ pub fn read_parts_tables(
     }
     parse_parts_tables(&parts, &siblings, project, &name(path)).map_err(PartsReadError::Import)
 }
+
+// -------------------------------------------------------------------------------------------------------------------
+// Golden-dialect tables (`ew import csv`, FR-IMP-022, FT-27)
+
+pub use ew_import_tables::csv::CsvError;
+pub use ew_import_tables::ew_interop_api::ImportMode;
+pub use ew_import_tables::{LibraryError, MAX_TABLE_FILES};
+
+/// Why `ew import csv` imports nothing.
+#[derive(Debug)]
+pub enum TablesError {
+    /// The tables directory or one of its files cannot be read.
+    Read {
+        /// The directory or file.
+        path: std::path::PathBuf,
+        /// The error.
+        error: std::io::Error,
+    },
+    /// The directory holds more CSV files than the importer reads ([`MAX_TABLE_FILES`]).
+    TooManyFiles {
+        /// The limit.
+        limit: usize,
+    },
+    /// The CSV files are larger together than the bootstrap's input limit (64 MiB, doc 14 §11).
+    TooLarge {
+        /// The limit in bytes.
+        limit: u64,
+    },
+    /// A table of the dialect that is not readable CSV, with the reader's error (its line, and its column where the
+    /// reader names one).
+    Unreadable {
+        /// The table's file name.
+        file: String,
+        /// The reader's error.
+        error: CsvError,
+    },
+    /// The starter content does not make a library the tables can reference.
+    Library(LibraryError),
+    /// The import as a whole is refused (a limit, no project table, a file name that is a path).
+    Import(ImportError),
+}
+
+impl std::fmt::Display for TablesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TablesError::Read { path, error } => write!(f, "{}: {error}", path.display()),
+            TablesError::TooManyFiles { limit } => {
+                write!(
+                    f,
+                    "the directory holds more than {limit} CSV files; nothing was imported"
+                )
+            }
+            TablesError::TooLarge { limit } => write!(
+                f,
+                "the CSV files are larger than {limit} bytes together; nothing was imported"
+            ),
+            TablesError::Unreadable { file, error } => write!(f, "{file}: {error}; nothing was imported"),
+            TablesError::Library(e) => write!(f, "starter content: {e}"),
+            TablesError::Import(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl std::error::Error for TablesError {}
+
+/// Reads every `*.csv` regular file of `dir` (no links, no sub-directories), in file-name order: at most
+/// [`MAX_TABLE_FILES`] files, their sum within the bootstrap's input limit, both checked before a byte is read.
+///
+/// # Errors
+///
+/// [`TablesError`]: an unreadable directory or file, too many files, too many bytes, a file name the importer
+/// refuses.
+pub fn read_tables(dir: &Path) -> Result<Vec<ImportInput>, TablesError> {
+    use std::io::Read as _;
+    let read_err = |path: &Path| {
+        let path = path.to_path_buf();
+        move |error| TablesError::Read { path, error }
+    };
+    let limit = ew_import_tables::bootstrap_context().limits.max_input_bytes;
+    let mut files: Vec<(String, std::path::PathBuf)> = Vec::new();
+    for entry in std::fs::read_dir(dir).map_err(read_err(dir))? {
+        let entry = entry.map_err(read_err(dir))?;
+        let is_file = entry.file_type().map_err(read_err(&entry.path()))?.is_file();
+        let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+            continue;
+        };
+        if !is_file || !name.ends_with(".csv") {
+            continue;
+        }
+        if files.len() == MAX_TABLE_FILES {
+            return Err(TablesError::TooManyFiles {
+                limit: MAX_TABLE_FILES,
+            });
+        }
+        files.push((name, entry.path()));
+    }
+    files.sort();
+    let mut total: u64 = 0;
+    let mut inputs = Vec::with_capacity(files.len());
+    for (name, path) in files {
+        let len = std::fs::metadata(&path).map_err(read_err(&path))?.len();
+        if total.saturating_add(len) > limit {
+            return Err(TablesError::TooLarge { limit });
+        }
+        // The file may grow after the size check: read at most what is left of the limit, plus one byte to see it.
+        let left = limit - total;
+        let mut bytes = Vec::new();
+        std::fs::File::open(&path)
+            .and_then(|f| f.take(left.saturating_add(1)).read_to_end(&mut bytes))
+            .map_err(read_err(&path))?;
+        let read = bytes.len() as u64;
+        if read > left {
+            return Err(TablesError::TooLarge { limit });
+        }
+        total += read;
+        let input = ImportInput::new(&name, bytes).map_err(|e| {
+            TablesError::Import(ImportError::Unsupported {
+                message: e.to_string(),
+            })
+        })?;
+        inputs.push(input);
+    }
+    Ok(inputs)
+}
+
+/// Imports golden-dialect tables (`golden/J-E-2416/tables/`, doc 20) with the symbols, FnDefs and forms of `library`
+/// in `mode` (strict, the bootstrap's default, drops a row with a foreign colour code with EW-IMP-002; lenient keeps
+/// it with EW-IMP-008, decision log ID-375). A table of the dialect that is not readable CSV refuses the import, with
+/// the reader's line (the importer itself would only drop the table with a finding).
+///
+/// # Errors
+///
+/// [`TablesError::Unreadable`] for an unreadable table, [`TablesError::Library`] for starter content the tables
+/// cannot reference, [`TablesError::Import`] when the import as a whole is refused. Row problems are report entries.
+pub fn import_tables(
+    inputs: &[ImportInput],
+    library: &StarterLibrary,
+    mode: ImportMode,
+) -> Result<ImportBatch, TablesError> {
+    let limits = ew_import_tables::TableLimits::default();
+    let known: std::collections::BTreeSet<String> = ew_import_tables::table_names().collect();
+    for input in inputs.iter().filter(|i| known.contains(i.name())) {
+        if let Err(error) = ew_import_tables::csv::parse(input.bytes(), &limits) {
+            return Err(TablesError::Unreadable {
+                file: input.name().to_owned(),
+                error,
+            });
+        }
+    }
+    let builtin =
+        ew_import_tables::BuiltinLibrary::new(library.docs.iter().cloned()).map_err(TablesError::Library)?;
+    let mut ctx = ew_import_tables::bootstrap_context();
+    ctx.mode = mode;
+    ew_import_tables::TablesImporter::new(builtin)
+        .import(inputs, &ctx)
+        .map_err(TablesError::Import)
+}
+
+/// Why a new project was not written.
+#[derive(Debug)]
+pub enum CreateError {
+    /// The target exists and is not an empty directory.
+    NotEmpty(std::path::PathBuf),
+    /// The batch does not pass the model's structural check.
+    Model(String),
+    /// Writing the project failed; nothing is left at the target.
+    Write {
+        /// The target directory.
+        path: std::path::PathBuf,
+        /// What failed.
+        error: String,
+    },
+}
+
+impl std::fmt::Display for CreateError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CreateError::NotEmpty(p) => write!(
+                f,
+                "{}: not an empty directory; the new project needs a new or empty directory",
+                p.display()
+            ),
+            CreateError::Model(e) => write!(f, "the imported records do not make a project: {e}"),
+            CreateError::Write { path, error } => {
+                write!(f, "{}: {error}; nothing was written", path.display())
+            }
+        }
+    }
+}
+
+impl std::error::Error for CreateError {}
+
+/// Writes `batch` as a new project (generation 1) into `out`, which must not exist or be an empty directory: the
+/// project is written into a new sibling directory and renamed to `out` once complete, so `out` never holds a part of
+/// a project. The project is not journalled and its lock is released afterwards.
+///
+/// # Errors
+///
+/// [`CreateError`]: `out` holds something, the batch does not make a model, or the write fails (the sibling directory
+/// is removed again).
+pub fn create_project(
+    batch: &ImportBatch,
+    out: &Path,
+    mut store: crate::StoreOptions,
+) -> Result<(), CreateError> {
+    let empty_dir = match std::fs::symlink_metadata(out) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Ok(meta) if meta.is_dir() => {
+            let mut entries = std::fs::read_dir(out).map_err(|e| CreateError::Write {
+                path: out.to_path_buf(),
+                error: e.to_string(),
+            })?;
+            if entries.next().is_some() {
+                return Err(CreateError::NotEmpty(out.to_path_buf()));
+            }
+            true
+        }
+        Ok(_) => return Err(CreateError::NotEmpty(out.to_path_buf())),
+        Err(e) => {
+            return Err(CreateError::Write {
+                path: out.to_path_buf(),
+                error: e.to_string(),
+            });
+        }
+    };
+    let Some(name) = out.file_name() else {
+        return Err(CreateError::NotEmpty(out.to_path_buf()));
+    };
+    let mut session = session_from_batch(batch, SessionOptions::default()).map_err(CreateError::Model)?;
+    let parent = out
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let mut temp_name = std::ffi::OsString::from(".");
+    temp_name.push(name);
+    temp_name.push(format!(".import-{}", std::process::id()));
+    let temp = parent.join(temp_name);
+    let write_err = |error: String| CreateError::Write {
+        path: out.to_path_buf(),
+        error,
+    };
+    // A new directory of ours: `create_dir` fails when anything is at that name.
+    std::fs::create_dir(&temp).map_err(|e| write_err(format!("{}: {e}", temp.display())))?;
+    store.state_dir = None;
+    let written = match session.create(&temp, store) {
+        Ok(()) => {
+            session.close();
+            let moved = if empty_dir {
+                std::fs::remove_dir(out).and_then(|()| std::fs::rename(&temp, out))
+            } else {
+                std::fs::rename(&temp, out)
+            };
+            moved.map_err(|e| write_err(e.to_string()))
+        }
+        Err(e) => {
+            session.close();
+            Err(write_err(e.to_string()))
+        }
+    };
+    if written.is_err() {
+        // Only the directory created above, which holds only what this call wrote.
+        let _ = std::fs::remove_dir_all(&temp);
+    } else {
+        use ew_store::Vfs as _;
+        let _ = ew_store::OsVfs.sync_dir(parent);
+    }
+    written
+}

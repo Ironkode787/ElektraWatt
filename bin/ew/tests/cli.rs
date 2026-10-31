@@ -1253,11 +1253,26 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
         .unwrap();
     drop(session);
     let before = tree(&project);
+    let journals = journal_files(&home);
+    assert_eq!(journals.len(), 1);
     let log = std::path::Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
     let o = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
     assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
-    assert!(stderr(&o).contains("ew recover"), "{}", stderr(&o));
+    assert_eq!(
+        stderr(&o),
+        format!(
+            "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first: discard \
+             it in ElektraWatt (File > Discard unsaved changes of the earlier session) or wait for `ew recover` \
+             (FT-252); nothing was applied\n",
+            project.display()
+        )
+    );
     assert!(tree(&project) == before, "nothing is applied");
+    // FM-5 (FT-253): the other session's journal is still there, unchanged. The second half, a clean close deletes only
+    // its own segment, is `Journal::close` (`crates/ew-store/src/journal.rs`), shown by
+    // `recovery_replays_the_newest_journal_and_keeps_the_other_unchanged` (`crates/ew-store/tests/recovery.rs`) and
+    // `the_app_path_recovers_one_journal_at_a_time` (`crates/ew-api/tests/recovery.rs`).
+    assert!(journal_files(&home) == journals, "the journal is still there");
 }
 
 /// FT-336 (ruling 1, design-pass correction): `ew project checks set` submits the `HumanOnly` command
@@ -2267,4 +2282,725 @@ fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
             "{rule} on {subject} is gone: update AC21_KNOWN_EXCESS with FT-638"
         );
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// WP-S1.22 part 3: `ew fmt`, `ew recover` and `ew import csv`
+
+/// The journal files of the isolated `ew` (`home`) with their bytes.
+fn journal_files(home: &std::path::Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+    let dir = isolated_state_dir(home);
+    if !dir.exists() {
+        return std::collections::BTreeMap::new();
+    }
+    tree(&dir)
+        .into_iter()
+        .filter(|(name, _)| name.ends_with(".jsonl"))
+        .collect()
+}
+
+/// A session on `project` with the journals of the isolated `ew` (`home`) that runs `cmds` and is dropped without a
+/// save or a clean close: its journal stays, as a crashed session's does.
+fn crashed_session(home: &std::path::Path, project: &std::path::Path, cmds: &[ew_api::AnyCommand]) {
+    let mut store = ew_api::StoreOptions::new("test");
+    store.state_dir = Some(isolated_state_dir(home));
+    let (mut session, opened) = ew_api::Session::open(
+        project,
+        store,
+        ew_api::SessionOptions::default(),
+        ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    assert_eq!(opened.access, ew_api::Access::Edit);
+    for c in cmds {
+        session.execute(c).unwrap();
+    }
+    drop(session);
+}
+
+fn new_page(number: u32) -> ew_api::AnyCommand {
+    ew_api::AnyCommand {
+        name: "page.create".into(),
+        params: serde_json::json!({"number": number, "title": {"en": "T"}}),
+    }
+}
+
+/// The page labels of the saved project.
+fn saved_pages(project: &std::path::Path) -> Vec<String> {
+    let (s, _) = ew_api::Session::open_reader(project, "test", "test").unwrap();
+    let labels = s.page_labels().to_vec();
+    s.close();
+    labels
+}
+
+/// The files of a project directory but its manifest, and the manifest's `files` member.
+fn files_and_hashes(
+    dir: &std::path::Path,
+) -> (std::collections::BTreeMap<String, Vec<u8>>, serde_json::Value) {
+    let mut files = tree(dir);
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&files.remove("manifest.json").expect("a manifest")).unwrap();
+    (files, manifest["files"].clone())
+}
+
+/// `ew <args>` isolated under `home`, with `extra` after them.
+fn ew_in(home: &std::path::Path, args: &[&std::ffi::OsStr], extra: &[&str]) -> Output {
+    let mut all: Vec<&std::ffi::OsStr> = args.to_vec();
+    all.extend(extra.iter().map(std::ffi::OsStr::new));
+    ew_isolated(home, &all)
+}
+
+/// Swaps the first two lines of the project file `rel`.
+fn swap_first_lines(project: &std::path::Path, rel: &str) {
+    let file = project.join(rel);
+    let text = std::fs::read_to_string(&file).unwrap();
+    let mut lines: Vec<&str> = text.lines().collect();
+    lines.swap(0, 1);
+    std::fs::write(&file, format!("{}\n", lines.join("\n"))).unwrap();
+}
+
+/// FM-1 (FR-EXT-008): `ew fmt --check` on Golden A's copy exits 0; after two lines of `devices/71.jsonl` are swapped it
+/// exits 1 naming that file and writes nothing; `ew fmt` rewrites that file only (ruling 6 of cycle 41: "`ew fmt`
+/// writes only the rewrite set: save through the plan that starts from `Loaded.rewrite`, never `Changes::All`"); then
+/// `ew fmt --check` exits 0 and the files equal the original bytes. The manifest is a new generation by necessity; its
+/// file hashes equal the original ones.
+#[test]
+fn fmt_check_names_a_swapped_file_and_fmt_restores_its_bytes() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let fmt = |extra: &[&str]| ew_in(&home, &["fmt".as_ref(), project.as_os_str()], extra);
+    let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
+    let original = files_and_hashes(&project);
+    assert_eq!(
+        run(&fmt(&["--check"])),
+        (
+            Some(0),
+            String::new(),
+            "fmt: every file is in canonical form\n".to_owned()
+        )
+    );
+
+    swap_first_lines(&project, "devices/71.jsonl");
+    let swapped = tree(&project);
+    assert_eq!(
+        run(&fmt(&["--check"])),
+        (
+            Some(1),
+            "would rewrite devices/71.jsonl\n".to_owned(),
+            "fmt: 1 file is not in canonical form; nothing was written\n".to_owned()
+        )
+    );
+    assert!(tree(&project) == swapped, "`--check` writes nothing");
+
+    assert_eq!(
+        run(&fmt(&[])),
+        (
+            Some(0),
+            "rewrote devices/71.jsonl\n".to_owned(),
+            "fmt: rewrote 1 file; saved generation 2\n".to_owned()
+        )
+    );
+    assert_eq!(
+        run(&fmt(&["--check"])),
+        (
+            Some(0),
+            String::new(),
+            "fmt: every file is in canonical form\n".to_owned()
+        )
+    );
+    assert!(
+        files_and_hashes(&project) == original,
+        "the files equal the original bytes"
+    );
+    let after = tree(&project);
+    let changed: Vec<&String> = after
+        .keys()
+        .filter(|k| after.get(*k) != swapped.get(*k))
+        .collect();
+    assert_eq!(
+        changed,
+        ["devices/71.jsonl", "manifest.json"],
+        "only the rewrite set and the manifest"
+    );
+    assert!(journal_files(&home).is_empty(), "the format's journal is closed");
+}
+
+/// FM-2 (ADR-0011's preservation): a line with an unknown member survives `ew fmt` verbatim, and a quarantined line
+/// (EW-CORE-007, a schema violation) is listed as kept and stays in its file, while the file they share is rewritten
+/// for a swap. A line that is not JSON (EW-CORE-005) makes the project read-only: `ew fmt --check` lists it, and `ew
+/// fmt` is refused and writes nothing, so no line it cannot parse is lost.
+#[test]
+fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let rel = "devices/71.jsonl";
+    let text = std::fs::read_to_string(project.join(rel)).unwrap();
+    let mut lines: Vec<String> = text.lines().map(str::to_owned).collect();
+    let third = lines[2].strip_suffix('}').unwrap().to_owned();
+    let unknown = format!("{third},\"zz_future\":{{\"a\":[1,2]}}}}");
+    lines[2] = unknown.clone();
+    let quarantined = r#"{"$k":"device","id":"0e9d8b7a-6c5d-7e4f-8a3b-2c1d0e9f8a71","tag":5}"#;
+    lines.push(quarantined.to_owned());
+    lines.swap(0, 1);
+    std::fs::write(project.join(rel), format!("{}\n", lines.join("\n"))).unwrap();
+    let at = lines.len();
+
+    let (_, report) = ew_api::Session::open_reader(&project, "test", "test").unwrap();
+    let kept = ew_api::fmt::kept_lines(&report);
+    assert_eq!(kept.len(), 1, "{kept:?}");
+    assert_eq!(
+        (kept[0].file.as_str(), kept[0].line, kept[0].code.as_str()),
+        (rel, Some(u32::try_from(at).unwrap()), "EW-CORE-007")
+    );
+    let kept_text = format!("kept {rel}:{at} (EW-CORE-007): {}\n", kept[0].reason);
+
+    let fmt = |extra: &[&str]| ew_in(&home, &["fmt".as_ref(), project.as_os_str()], extra);
+    let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
+    assert_eq!(
+        run(&fmt(&["--check"])),
+        (
+            Some(1),
+            format!("would rewrite {rel}\n"),
+            format!("{kept_text}fmt: 1 file is not in canonical form; nothing was written\n")
+        )
+    );
+    assert_eq!(
+        run(&fmt(&[])),
+        (
+            Some(0),
+            format!("rewrote {rel}\n"),
+            format!("{kept_text}fmt: rewrote 1 file; saved generation 2\n")
+        )
+    );
+    let written = std::fs::read_to_string(project.join(rel)).unwrap();
+    let written: Vec<&str> = written.lines().collect();
+    assert!(
+        written.contains(&unknown.as_str()),
+        "the unknown member's line, verbatim: {written:#?}"
+    );
+    assert!(
+        written.contains(&quarantined),
+        "the quarantined line, verbatim: {written:#?}"
+    );
+    assert_eq!(written.len(), lines.len(), "no line is lost");
+    let o = fmt(&["--check"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+
+    // A line that is not JSON: the reader lists it, the writer is refused (the project opens read-only).
+    let broken = t.0.join("broken.ew");
+    copy_dir(std::path::Path::new(GOLDEN_A), &broken);
+    swap_first_lines(&broken, rel);
+    let mut text = std::fs::read_to_string(broken.join(rel)).unwrap();
+    text.push_str("{\"$k\":\"device\",\n");
+    std::fs::write(broken.join(rel), &text).unwrap();
+    let before = tree(&broken);
+    let (_, report) = ew_api::Session::open_reader(&broken, "test", "test").unwrap();
+    let kept = ew_api::fmt::kept_lines(&report);
+    assert_eq!(kept.len(), 1, "{kept:?}");
+    assert_eq!(kept[0].code, "EW-CORE-005");
+    let kept_text = format!(
+        "kept {rel}:{} (EW-CORE-005): {}\n",
+        kept[0].line.unwrap(),
+        kept[0].reason
+    );
+    let fmt = |extra: &[&str]| ew_in(&home, &["fmt".as_ref(), broken.as_os_str()], extra);
+    assert_eq!(
+        run(&fmt(&["--check"])),
+        (
+            Some(1),
+            format!("would rewrite {rel}\n"),
+            format!("{kept_text}fmt: 1 file is not in canonical form; nothing was written\n")
+        )
+    );
+    assert_eq!(
+        run(&fmt(&[])),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: the project opens read-only (Integrity)\n",
+                broken.display()
+            )
+        )
+    );
+    assert!(tree(&broken) == before, "nothing is written");
+}
+
+/// FM-3: `ew fmt` on a project with a crashed session's journal exits 2, pointing at `ew recover`, and writes nothing,
+/// though a file is out of canonical form; the journal stays.
+#[test]
+fn fmt_refuses_a_project_with_a_crashed_session_journal() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    swap_first_lines(&project, "devices/71.jsonl");
+    crashed_session(&home, &project, &[new_page(7777)]);
+    let before = tree(&project);
+    let journals = journal_files(&home);
+    assert_eq!(journals.len(), 1);
+    let o = ew_isolated(&home, &["fmt".as_ref(), project.as_os_str()]);
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: {}: a crashed session left unsaved changes in its journal; replay or discard them first with \
+                 `ew recover`; nothing was written\n",
+                project.display()
+            )
+        )
+    );
+    assert!(tree(&project) == before, "nothing is written");
+    assert!(journal_files(&home) == journals, "the journal stays");
+}
+
+/// FM-4 (FT-252): `ew recover` prints the journal's summary and changes nothing; `--discard` off a terminal exits 2
+/// before the project is opened (the typed paths are unit tests with the injected terminal, `cli/project_files.rs`);
+/// `--replay` saves the journal's transactions and removes it.
+#[test]
+fn recover_summarises_and_replays_a_crashed_session_journal() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    crashed_session(&home, &project, &[new_page(7777), new_page(7778)]);
+    let before = tree(&project);
+    let journals = journal_files(&home);
+    let recover = |extra: &[&str]| ew_in(&home, &["recover".as_ref(), project.as_os_str()], extra);
+    let run = |o: &Output| (o.status.code(), stdout(o), stderr(o));
+    let summary = "a crashed session left 2 unsaved transactions in its journal:\n  1. page.create\n  2. page.create\nthe \
+                   project is unchanged since that session last opened or saved it\n";
+    assert_eq!(
+        run(&recover(&[])),
+        (
+            Some(0),
+            format!(
+                "{summary}`ew recover --replay` replays and saves them; `ew recover --discard` deletes them\n"
+            ),
+            String::new()
+        )
+    );
+    assert!(
+        tree(&project) == before && journal_files(&home) == journals,
+        "the summary changes nothing"
+    );
+
+    assert_eq!(
+        run(&recover(&["--discard"])),
+        (
+            Some(2),
+            String::new(),
+            "error: HumanOnly: needs an interactive terminal (`recover --discard` is confirmed by typing `discard`; \
+             `ew recover` prints the summary without one); nothing was discarded\n"
+                .to_owned()
+        )
+    );
+    assert!(
+        tree(&project) == before && journal_files(&home) == journals,
+        "off a terminal nothing changes"
+    );
+
+    assert_eq!(
+        run(&recover(&["--replay"])),
+        (
+            Some(0),
+            format!(
+                "{summary}replayed 2 transactions of the crashed session's journal; saved generation 2\n"
+            ),
+            String::new()
+        )
+    );
+    assert!(journal_files(&home).is_empty(), "the journal is removed");
+    let pages = saved_pages(&project);
+    assert!(
+        pages.contains(&"7777".to_owned()) && pages.contains(&"7778".to_owned()),
+        "{pages:?}"
+    );
+    assert_eq!(
+        run(&recover(&[])),
+        (
+            Some(0),
+            "no journal of a crashed session: nothing to recover\n".to_owned(),
+            String::new()
+        )
+    );
+}
+
+/// Ruling 2 of cycle 41: "Replaying a segment whose base is not the open generation behaves exactly as the existing
+/// code does for that case today (refused or applied)". A crashed session set page 1's title; another session set the
+/// same title and saved; `ew recover --replay` is refused (exit 1) and keeps the journal and the project unchanged.
+#[test]
+fn recover_refuses_a_replay_that_collides_with_a_later_save() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    // A page's ID: its file name (`pages/<id>.jsonl`).
+    let page = std::fs::read_dir(project.join("pages"))
+        .unwrap()
+        .map(|e| {
+            let name = e.unwrap().file_name().to_string_lossy().into_owned();
+            name.trim_end_matches(".jsonl").to_owned()
+        })
+        .min()
+        .expect("a page");
+    let title = |text: &str| ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({"kind": "page", "targets": [page], "path": "title", "value": {"en": text}}),
+    };
+    crashed_session(&home, &project, &[title("from the crashed session")]);
+    let mut store = ew_api::StoreOptions::new("test");
+    store.state_dir = None;
+    let (mut other, _) = ew_api::Session::open(
+        &project,
+        store,
+        ew_api::SessionOptions::default(),
+        ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    other.execute(&title("from a later session")).unwrap();
+    other.save().unwrap();
+    other.close();
+    let before = tree(&project);
+    let journals = journal_files(&home);
+
+    let o = ew_isolated(
+        &home,
+        &["recover".as_ref(), project.as_os_str(), "--replay".as_ref()],
+    );
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(1),
+            "a crashed session left 1 unsaved transaction in its journal:\n  1. fields.set\nthe project was saved by \
+             another session since; a replay is refused when it meets a field changed in that save\n"
+                .to_owned(),
+            "error: the replay is refused: 1 field of the journal changed on disk too; the journal is kept and \
+             nothing was saved (`ew recover --discard` deletes it)\n"
+                .to_owned()
+        )
+    );
+    assert!(tree(&project) == before, "nothing is saved");
+    assert!(journal_files(&home) == journals, "the journal is kept, unchanged");
+}
+
+/// Ruling 2 of cycle 41: "`ew recover` checks that it got edit access ... Then it refuses with exit 2 and the same
+/// text `ew apply` uses for a held lock; it never acts read-only." While this test process holds the project's lock,
+/// `ew recover` and `ew apply` exit 2 with the same text, `ew apply`'s as built: the read-only reason a second open
+/// sees, with the lock's holder (FR-COL-006); the crashed session's journal stays.
+#[test]
+fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    crashed_session(&home, &project, &[new_page(7777)]);
+    let journals = journal_files(&home);
+    let mut store = ew_api::StoreOptions::new("test");
+    store.state_dir = None;
+    let (holder, opened) = ew_api::Session::open(
+        &project,
+        store,
+        ew_api::SessionOptions::default(),
+        ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    assert_eq!(opened.access, ew_api::Access::Edit);
+    // A second open in this process sees the lock as the binary does (the holder is alive and has another session).
+    let mut second = ew_api::StoreOptions::new("test");
+    second.state_dir = None;
+    let (reader, seen) = ew_api::Session::open(
+        &project,
+        second,
+        ew_api::SessionOptions::default(),
+        ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    let ew_api::Access::ReadOnly(reason @ ew_api::ReadOnlyReason::LockedBy(info)) = &seen.access else {
+        panic!("the second open is read-only by the lock: {:?}", seen.access);
+    };
+    assert!(
+        info.record
+            .as_ref()
+            .is_some_and(|r| !r.user.is_empty() && !r.host.is_empty()),
+        "the reason names the holder: {info:?}"
+    );
+    let expected = format!(
+        "error: {}: the project opens read-only ({reason:?})\n",
+        project.display()
+    );
+    reader.close();
+    let before = tree(&project);
+    let log = std::path::Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    for args in [
+        vec!["recover".as_ref(), project.as_os_str()],
+        vec!["recover".as_ref(), project.as_os_str(), "--replay".as_ref()],
+        vec!["apply".as_ref(), project.as_os_str(), log.as_os_str()],
+    ] {
+        let o = ew_isolated(&home, &args);
+        assert_eq!(
+            (o.status.code(), stdout(&o), stderr(&o)),
+            (Some(2), String::new(), expected.clone()),
+            "{args:?}"
+        );
+    }
+    assert!(tree(&project) == before, "nothing is written");
+    assert!(journal_files(&home) == journals, "the journal stays");
+    holder.close();
+}
+
+const GOLDEN_TABLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/tables");
+
+/// A copy of the golden tables in `t` as `name`.
+fn tables_copy(t: &Tmp, name: &str) -> PathBuf {
+    let copy = t.0.join(name);
+    copy_dir(std::path::Path::new(GOLDEN_TABLES), &copy);
+    copy
+}
+
+/// What `ew import csv` prints on stdout for the import of `tables` in `mode` (the finding lines, from the library
+/// itself), ending with `last` when given.
+fn import_lines(tables: &std::path::Path, mode: ew_api::import::ImportMode, last: Option<&str>) -> String {
+    let library = ew_api::import::StarterLibrary::from_dir(std::path::Path::new(CONTENT)).unwrap();
+    let inputs = ew_api::import::read_tables(tables).unwrap();
+    let batch = ew_api::import::import_tables(&inputs, &library, mode).unwrap();
+    let mut out = String::new();
+    for e in &batch.report.entries {
+        let severity = match e.severity {
+            ew_api::import::Severity::Info => "info",
+            ew_api::import::Severity::Warning => "warning",
+            ew_api::import::Severity::Error => "error",
+        };
+        let at = match &e.location {
+            Some(l) => match l.line {
+                Some(n) => format!("{}:{n}: ", l.file),
+                None => format!("{}: ", l.file),
+            },
+            None => String::new(),
+        };
+        out.push_str(&format!("{} {severity}: {at}{}\n", e.code, e.message));
+    }
+    if let Some(last) = last {
+        out.push_str(last);
+        out.push('\n');
+    }
+    out
+}
+
+/// `ew import csv` with the starter content.
+fn import_csv(
+    home: &std::path::Path,
+    tables: &std::path::Path,
+    out: &std::path::Path,
+    extra: &[&str],
+) -> Output {
+    let content = std::path::Path::new(CONTENT);
+    ew_in(
+        home,
+        &[
+            "import".as_ref(),
+            "csv".as_ref(),
+            tables.as_os_str(),
+            "--out".as_ref(),
+            out.as_os_str(),
+            "--content".as_ref(),
+            content.as_os_str(),
+        ],
+        extra,
+    )
+}
+
+/// FM-6 (FT-27) through the binary: the golden tables import to a new project that is in canonical form and opens at
+/// generation 1 (its model and check findings against the bootstrap are `crates/ew-api/tests/import_csv.rs`); the
+/// files that differ from `golden/J-E-2416.ew` are printed (reported, not required). Without the starter content, or
+/// into an `--out` that holds something, nothing is written (exit 2).
+#[test]
+fn import_csv_writes_the_golden_tables_as_a_new_project() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let tables = std::path::Path::new(GOLDEN_TABLES);
+    let out = t.0.join("new.ew");
+    let o = import_csv(&home, tables, &out, &[]);
+    let n = ew_api::import::read_tables(tables).unwrap().len();
+    let library = ew_api::import::StarterLibrary::from_dir(std::path::Path::new(CONTENT)).unwrap();
+    let batch = ew_api::import::import_tables(
+        &ew_api::import::read_tables(tables).unwrap(),
+        &library,
+        ew_api::import::ImportMode::Strict,
+    )
+    .unwrap();
+    let last = format!(
+        "imported {n} tables into {}: {} records, {} library documents",
+        out.display(),
+        batch.records.len(),
+        batch.lib.len()
+    );
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(0),
+            import_lines(tables, ew_api::import::ImportMode::Strict, Some(&last)),
+            String::new()
+        )
+    );
+    let o = ew_isolated(&home, &["fmt".as_ref(), out.as_os_str(), "--check".as_ref()]);
+    assert_eq!(
+        o.status.code(),
+        Some(0),
+        "the new project is canonical: {}",
+        stderr(&o)
+    );
+    let (s, report) = ew_api::Session::open_reader(&out, "test", "test").unwrap();
+    assert_eq!(report.generation, 1);
+    assert!(report.findings.is_empty(), "{:?}", report.findings);
+    s.close();
+    let written = tree(&out);
+    let golden = tree(std::path::Path::new(GOLDEN_A));
+    let differ: std::collections::BTreeSet<&String> = golden
+        .keys()
+        .chain(written.keys())
+        .filter(|k| golden.get(*k) != written.get(*k))
+        .collect();
+    println!("FM-6 through `ew import csv`: the files that differ from golden/J-E-2416.ew: {differ:?}");
+
+    // An `--out` that holds something: refused, kept.
+    let o = import_csv(&home, tables, &out, &[]);
+    assert_eq!(
+        (o.status.code(), stderr(&o)),
+        (
+            Some(2),
+            format!(
+                "error: {}: not an empty directory; the new project needs a new or empty directory\n",
+                out.display()
+            )
+        )
+    );
+    assert!(tree(&out) == written, "the project there is kept");
+    // Without the starter content.
+    let other = t.0.join("other.ew");
+    let o = ew_isolated(
+        &home,
+        &[
+            "import".as_ref(),
+            "csv".as_ref(),
+            tables.as_os_str(),
+            "--out".as_ref(),
+            other.as_os_str(),
+        ],
+    );
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(2),
+            String::new(),
+            "error: `import csv` needs the starter content (`--content <dir>` or EW_CONTENT_DIR): the tables name its \
+             symbols, function definitions and forms; nothing was written\n"
+                .to_owned()
+        )
+    );
+    assert!(!other.exists());
+}
+
+/// FM-6: a row with a foreign colour code is reported as the library reports it, EW-IMP-002 under `--strict` (the
+/// default: nothing is written, exit 1) and EW-IMP-008 under `--lenient` (written, exit 0) (ID-375); an unreadable
+/// table exits 2 with its line, and its column where the reader names one, before anything is written.
+#[test]
+fn import_csv_strict_lenient_and_unreadable_tables() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let tables = tables_copy(&t, "tables");
+    let conductors = tables.join("conductors.csv");
+    let text = std::fs::read_to_string(&conductors).unwrap();
+    let brown = text.replacen("-106W1:BN,-106W1,BN,BN,", "-106W1:BN,-106W1,BN,BR,", 1);
+    assert_ne!(brown, text);
+    std::fs::write(&conductors, brown).unwrap();
+
+    let strict = t.0.join("strict.ew");
+    let o = import_csv(&home, &tables, &strict, &[]);
+    let lines = import_lines(&tables, ew_api::import::ImportMode::Strict, None);
+    assert!(lines.contains("EW-IMP-002 error: conductors.csv:6: "), "{lines}");
+    // The dropped conductor's two connections are dropped with it (EW-IMP-003).
+    let errors = lines
+        .lines()
+        .filter(|l| l.split(' ').nth(1) == Some("error:"))
+        .count();
+    assert_eq!(errors, 3, "{lines}");
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(1),
+            lines,
+            "error: the import made 3 error findings under `--strict` (the default); nothing was written\n"
+                .to_owned()
+        )
+    );
+    assert!(!strict.exists(), "nothing is written");
+    let o = import_csv(&home, &tables, &strict, &["--strict"]);
+    assert_eq!(o.status.code(), Some(1), "`--strict` is the default");
+
+    let lenient = t.0.join("lenient.ew");
+    let o = import_csv(&home, &tables, &lenient, &["--lenient"]);
+    let library = ew_api::import::StarterLibrary::from_dir(std::path::Path::new(CONTENT)).unwrap();
+    let batch = ew_api::import::import_tables(
+        &ew_api::import::read_tables(&tables).unwrap(),
+        &library,
+        ew_api::import::ImportMode::Lenient,
+    )
+    .unwrap();
+    let n = ew_api::import::read_tables(&tables).unwrap().len();
+    let last = format!(
+        "imported {n} tables into {}: {} records, {} library documents",
+        lenient.display(),
+        batch.records.len(),
+        batch.lib.len()
+    );
+    let lines = import_lines(&tables, ew_api::import::ImportMode::Lenient, Some(&last));
+    assert!(
+        lines.contains("EW-IMP-008 warning: conductors.csv:6: "),
+        "{lines}"
+    );
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (Some(0), lines, String::new())
+    );
+    assert!(lenient.join("manifest.json").is_file());
+
+    // Unreadable tables: a ragged row (its line) and a cell over the reader's limit (its line and column).
+    let devices = tables.join("devices.csv");
+    let original = std::fs::read_to_string(&devices).unwrap();
+    let rows = original.lines().count();
+    let fields = original.lines().next().unwrap().split(',').count();
+    std::fs::write(&devices, format!("{original}a,b\n")).unwrap();
+    let out = t.0.join("unreadable.ew");
+    let o = import_csv(&home, &tables, &out, &[]);
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: devices.csv: line {}: expected {fields} fields, found 2; nothing was imported\n",
+                rows + 1
+            )
+        )
+    );
+    let long = "x".repeat(40_000);
+    std::fs::write(
+        &devices,
+        format!("{original}-K9,{long}{}\n", ",".repeat(fields - 2)),
+    )
+    .unwrap();
+    let o = import_csv(&home, &tables, &out, &[]);
+    assert_eq!(
+        (o.status.code(), stdout(&o), stderr(&o)),
+        (
+            Some(2),
+            String::new(),
+            format!(
+                "error: devices.csv: line {}, column 2: cell longer than 32768 bytes; nothing was imported\n",
+                rows + 1
+            )
+        )
+    );
+    assert!(!out.exists(), "nothing is written");
 }

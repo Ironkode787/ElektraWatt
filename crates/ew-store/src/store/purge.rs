@@ -189,7 +189,9 @@ impl Store {
         if let Some(g) = self.pending {
             return Some(PurgeError::Incomplete(g));
         }
-        if self.recovery.is_some() {
+        // Every crashed session's journal blocks a purge, not only the summarised one: recovery acts on one
+        // journal at a time, and a journal still waiting for the next open may name an asset file.
+        if self.recovery.is_some() || !self.leftovers.is_empty() {
             return Some(PurgeError::Recovery);
         }
         if !self.quarantined.is_empty() {

@@ -76,6 +76,7 @@ pub mod catalog;
 // WP-S1.22 part 1: the JSON results of the `ew` subcommands and their published schemas (D3, D5).
 pub mod cli_results;
 mod cmdlog;
+pub mod fmt;
 pub mod geometry;
 pub mod import;
 mod library_ops;
@@ -101,7 +102,7 @@ use ew_derive::{
 };
 use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
-use ew_store::{Changes, LockState, RecoverError, SaveReport, Store};
+use ew_store::{Changes, LockState, SaveReport, Store};
 
 pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA, ScriptDiff};
 pub use ew_commands::commands::{ChangeClass, CopyDiff, FieldChange, classify_update};
@@ -153,9 +154,12 @@ pub use ew_schema::{
 };
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
+/// The summary of a crashed session's journal ([`OpenReport::recovery`]) and why a replay was refused
+/// ([`Session::recovery_refusal`]): the CLI's `ew recover` and the shell name them through `ew-api`.
+pub use ew_store::journal::{Collision, RecoveryInfo, ReplayError};
 pub use ew_store::{
-    Access, Clock, OpenError, OpenReport, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason, SaveError,
-    StoreOptions, SystemClock, Vfs,
+    Access, Clock, OpenError, OpenReport, PurgeError, PurgeFile, PurgePlan, ReadOnlyReason, RecoverError,
+    SaveError, StoreOptions, SystemClock, Vfs,
 };
 /// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14; WP-S1.18 D11 to D13):
 /// the CLI and the shell name them through `ew-api` (no workspace edge of their own).
@@ -360,6 +364,9 @@ struct Persistence {
     unsaved: BTreeSet<AnyKey>,
     /// Recovered changes that the history does not know about.
     recovered: bool,
+    /// Why [`Recovery::Apply`] did not replay the crashed session's journal (collisions, an unreadable journal); the
+    /// journal is kept and the disk state is open.
+    refusal: Option<RecoverError>,
 }
 
 /// One open project: the facade every front-end (GUI, `ew` CLI, scripts, MCP) talks to.
@@ -807,6 +814,7 @@ impl Session {
         let (mut store, mut model, report) = (opened.store, opened.model, opened.report);
         let mut unsaved = BTreeSet::new();
         let mut recovered = false;
+        let mut refusal = None;
         if store.recovery().is_some() {
             match recovery {
                 Recovery::Keep => {}
@@ -817,8 +825,9 @@ impl Session {
                         unsaved = r.keys;
                         recovered = true;
                     }
-                    // Collisions or an unreadable journal: the journal is kept and the disk state opens.
-                    Err(RecoverError::Nothing | RecoverError::Replay(_) | RecoverError::Io(_)) => {}
+                    // Collisions or an unreadable journal: the journal is kept, the disk state opens and the
+                    // refusal is reported (`Session::recovery_refusal`).
+                    Err(e) => refusal = Some(e),
                 },
             }
         }
@@ -827,6 +836,7 @@ impl Session {
             store,
             unsaved,
             recovered,
+            refusal,
         });
         // FT-814: this directory's stale release-run records (archive gone or released) go now.
         session.remove_stale_run_records();
@@ -975,6 +985,7 @@ impl Session {
             store,
             unsaved: BTreeSet::new(),
             recovered: false,
+            refusal: None,
         });
         if let Some(p) = previous {
             p.store.close();
@@ -1184,6 +1195,45 @@ impl Session {
     /// The project directory's store, if the session has one.
     pub fn store(&self) -> Option<&Store> {
         self.persistence.as_ref().map(|p| &p.store)
+    }
+
+    /// Why [`Recovery::Apply`] did not replay the crashed session's journal at [`Session::open`]: the base moved and
+    /// both sides changed a field ([`RecoverError::Replay`] with [`ReplayError::Collisions`]), the journal does not
+    /// replay, or it could not be journalled again. `None` when it replayed, or with another [`Recovery`].
+    pub fn recovery_refusal(&self) -> Option<&RecoverError> {
+        self.persistence.as_ref().and_then(|p| p.refusal.as_ref())
+    }
+
+    /// "Discard" after the user confirmed it (`ew recover --discard`): deletes the summarised journal of a crashed
+    /// session ([`OpenReport::recovery`]) and only that one; the other crashed sessions' journals stay and are offered
+    /// at the next open, one at a time (ruling 2 of cycle 41). Returns whether a journal was deleted.
+    pub fn discard_recovery(&mut self) -> bool {
+        let Some(p) = self.persistence.as_mut() else {
+            return false;
+        };
+        if p.store.recovery().is_none() {
+            return false;
+        }
+        p.store.discard_recovery();
+        p.refusal = None;
+        true
+    }
+
+    /// Saves, then closes (`ew recover --replay`): the clean close follows a save, and a save that passed its commit
+    /// point ([`SaveError::Incomplete`] of this save: decided, it completes by roll-forward at the next open). After
+    /// any other failure the session is dropped without its clean close, which would delete its journal: the journal,
+    /// which holds every unsaved transaction (a replayed journal's among them), stays and is offered at the next open
+    /// (doc 05 §8.3); the lock is released.
+    ///
+    /// # Errors
+    ///
+    /// The [`SaveError`] of [`Session::save`].
+    pub fn save_and_close(mut self) -> Result<SaveReport, SaveError> {
+        let result = self.save();
+        if result.is_ok() || !self.is_dirty() {
+            self.close();
+        }
+        result
     }
 
     /// A clean close (doc 05 §8.1): deletes this session's journal and releases the lock. Unsaved changes

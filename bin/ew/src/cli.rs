@@ -13,6 +13,8 @@ use ew_api::import::{StarterLibrary, import_qet};
 use ew_api::output::{ExportOptions, PageSelection, Parallelism, RowExport, date_from_epoch};
 use ew_api::{BomMode, CmdLog, Export};
 
+mod project_files;
+
 /// The usage text.
 pub const USAGE: &str = "usage:
   ew --version | -V
@@ -20,6 +22,7 @@ pub const USAGE: &str = "usage:
   ew import parts <parts.csv> [--project <dir>] [--json]
   ew import parts <table.csv|table.xlsx> --map <map.toml> [--as-of <date>] [--project <dir>] [--company <dir>]...
       [--json]
+  ew import csv <tables-dir> --out <dir> [--content <dir>] [--strict] [--lenient] [--json]
   ew check [<project-dir>] [--project <dir>] [--scheme <name>] [--mode release|online] [--format text|md|json]
       [--json] [--lang <tag>] [--out <file>]
   ew sql [<project-dir>] \"<select>\" [--project <dir>] [--format csv|json] [--json] [--timeout <seconds>]
@@ -41,6 +44,8 @@ pub const USAGE: &str = "usage:
       [--json]
   ew render [<project-dir>] [--project <dir>] --page <folio> --png [--dpi <n>] [--out <file.png>] [--json]
   ew apply [<project-dir>] <file.ewcmd> [--project <dir>] [--preview] [--one-step] [--json]
+  ew fmt [<project-dir>] [--project <dir>] [--check] [--json]
+  ew recover [<project-dir>] [--project <dir>] [--replay] [--discard] [--json]
   ew project checks set [<project-dir>] [--project <dir>] [--active <scheme>] [--release <scheme>]
   ew project assets purge [<project-dir>] [--project <dir>] [--preview]
   ew revision approve [<project-dir>] [--project <dir>] --as <role>
@@ -61,8 +66,8 @@ Every subcommand that works on one project takes it as the positional directory 
 both, else the nearest ancestor of the current directory holding `manifest.json`. Every subcommand that prints a
 result takes `--json`: stdout is then one JSON object whose first member `$schema` names its published schema
 (`ew.<command>-result/1`; `ew schema <name>` prints it), diagnostics stay on stderr and the exit codes are unchanged.
-For `check` and `sql`, `--json` is `--format json`. The human-only subcommands (`project`, `revision`) print a
-dialogue, not a result, and take no `--json`.
+For `check` and `sql`, `--json` is `--format json`. The human-only subcommands (`project`, `revision`,
+`recover --discard`) print a dialogue, not a result, and take no `--json`.
 
 `import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
 error findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.
@@ -80,6 +85,17 @@ of the libraries (`--company` as for `lib`); `--as-of` (YYYY-MM-DD) stamps the p
 unchanged (the project holds it), duplicate, rejected with the reason; an `A / B` part number becomes two candidates
 flagged for review. The new parts are imported with `parts.import`, with copies of the manufacturers they name, and
 the project is saved.
+
+`import csv` imports golden-dialect tables (the `*.csv` files of `<tables-dir>`: `project.csv`, `devices.csv`,
+`conductors.csv` and the others of `golden/J-E-2416/tables/`) with the starter content (`--content` or
+`EW_CONTENT_DIR`; required, the tables name its symbols, function definitions and forms) as a new project in `--out`,
+which must not exist or be an empty directory: the project is written beside it and renamed into place, so `--out`
+never holds a part of one. Every finding of the import is printed. `--strict` (the default) drops a row the dialect
+refuses, such as a foreign colour code (EW-IMP-002), and then writes nothing; `--lenient` keeps a foreign colour code
+with a warning (EW-IMP-008) and writes the project with its findings. Exit 0 when written, 1 when nothing is written
+because `--strict` refused error findings or the records do not make a project, 2 on usage, starter content, an
+unreadable table (with its line, and its column where the reader names one), an `--out` that holds something, and
+write errors.
 
 `check` runs a check scheme (mode `release`, format `text`) over a project directory
 (default: the nearest ancestor of the current directory holding `manifest.json`) and exits 0 with no unwaived
@@ -120,9 +136,28 @@ resolution). Exit 0 on success, 2 on everything else (usage, open errors, an unk
 `apply` replays a command log (`.ewcmd`, doc 17 section 3.5) on the project, each line one transaction, and saves.
 `--preview` replays it on a copy in memory, prints the changed records, tags and cross-references, and saves
 nothing; `--one-step` saves only when every line commits. A project with unsaved changes of a crashed session is
-refused (exit 2) until they are recovered or discarded. Exit 0 when every line commits, 1 when a prevent or
-domain rule refuses a line, 2 on everything else (usage, a malformed log, an unresolvable reference, a refused
-command, an open, lock or save error). Without `--one-step` the lines before a failing one are saved.
+refused (exit 2) until they are recovered or discarded (`ew recover`). Exit 0 when every line commits, 1 when a
+prevent or domain rule refuses a line, 2 on everything else (usage, a malformed log, an unresolvable reference, a
+refused command, an open, lock or save error). Without `--one-step` the lines before a failing one are saved.
+
+`fmt` rewrites the project's files in their canonical encoding and line order (doc 05 section 3), only the files
+that are not, through the save protocol (a crash leaves the old or the new generation, never a torn file). It
+changes form only, never content: a file whose canonical form would change a record's content refuses the whole
+format (exit 2). Quarantined lines, malformed values and unknown kinds, members and files stay verbatim; they are
+listed on stderr. `fmt --check` is a reader (no lock): it lists the files a format would rewrite and writes nothing.
+A project with unsaved changes of a crashed session, or one that opens read-only, is refused (exit 2). Exit 0 when
+every file is canonical or was rewritten, 1 when `--check` finds files to rewrite, 2 on usage, open, lock, content
+and save errors.
+
+`recover` works on the journals that crashed sessions left (doc 05 section 8.3), one at a time, the latest change
+first. Without a flag it prints the journal's summary (its unsaved transactions with their commands, whether the
+project was saved since, how many more journals remain) and changes nothing. `--replay` replays its transactions on
+the saved project and saves; a replay that meets a change saved since (the same field) is refused and the journal
+kept. `--discard` prints the summary and deletes the journal, losing its work, so it is human-only: type `discard`
+on a controlling terminal; there is no `--yes` flag, and without a terminal it exits 2 before the project is opened.
+`recover` needs the project's lock: a project another session holds, or one that opens read-only, is refused (exit
+2) as `apply` refuses it. Exit 0 when summarised, replayed and saved, discarded, or there is no journal; 1 when the
+replay is refused or the discard not confirmed; 2 on usage, terminal, lock, open and save errors.
 
 `project checks set` names the project's check schemes (`project.checks.set`): `--active` the online scheme,
 `--release` the scheme of the release gate and `ew check`; a scheme not given returns to its default (`drafting`,
@@ -198,6 +233,8 @@ pub enum Command {
     ImportQet(ImportQetArgs),
     /// `ew import parts`.
     ImportParts(ImportPartsArgs),
+    /// `ew import csv`: golden-dialect tables as a new project (WP-S1.22 part 3, FT-27).
+    ImportCsv(ImportCsvArgs),
     /// Check a project.
     Check(CheckArgs),
     /// Run a read-only query on the SQL projection.
@@ -216,6 +253,10 @@ pub enum Command {
     Render(RenderArgs),
     /// Replay a command log.
     Apply(ApplyArgs),
+    /// `ew fmt`: the project files in canonical form (WP-S1.22 D9).
+    Fmt(FmtArgs),
+    /// `ew recover`: a crashed session's journal (WP-S1.22 D10, FT-252).
+    Recover(RecoverArgs),
     /// Name the project's check schemes (`project checks set`, a human-only command).
     ChecksSet(ChecksSetArgs),
     /// Delete the asset files nothing names (`project assets purge`).
@@ -321,6 +362,54 @@ pub struct LibArgs {
     /// The company library paths (`--company`, repeatable).
     pub company: Vec<PathBuf>,
     /// Print JSON (`--json`).
+    pub json: bool,
+}
+
+/// The arguments of `ew fmt`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct FmtArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// List the files a format would rewrite and write nothing (`--check`, a reader).
+    pub check: bool,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
+/// What `ew recover` does with the journal of a crashed session.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RecoverAction {
+    /// No flag: print its summary.
+    Summary,
+    /// `--replay`: replay its transactions and save.
+    Replay,
+    /// `--discard`: delete it after the word typed on a controlling terminal.
+    Discard,
+}
+
+/// The arguments of `ew recover`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RecoverArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// What to do.
+    pub action: RecoverAction,
+    /// Print the result as JSON (`--json`; not with `--discard`).
+    pub json: bool,
+}
+
+/// The arguments of `ew import csv`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ImportCsvArgs {
+    /// The directory of the tables.
+    pub tables: PathBuf,
+    /// The new project's directory (`--out`): absent or empty.
+    pub out: PathBuf,
+    /// The starter content directory (`--content`); `None`: `EW_CONTENT_DIR`.
+    pub content: Option<PathBuf>,
+    /// Keep foreign colour codes with a warning and write the project with its findings (`--lenient`); else strict.
+    pub lenient: bool,
+    /// Print the result as JSON (`--json`).
     pub json: bool,
 }
 
@@ -568,14 +657,17 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
         "import" => match it.next().as_deref() {
             Some("qet") => parse_import_qet(it),
             Some("parts") => parse_import_parts(it),
+            Some("csv") => parse_import_csv(it),
             Some(other) => Err(format!("unknown import format `{other}`")),
-            None => Err("`import` needs a format (qet, parts)".to_owned()),
+            None => Err("`import` needs a format (qet, parts, csv)".to_owned()),
         },
         "check" => parse_check(it),
         "sql" => parse_sql(it),
         "export" => parse_export(it),
         "render" => parse_render(it),
         "apply" => parse_apply(it),
+        "fmt" => parse_fmt(it),
+        "recover" => parse_recover(it),
         "project" => match (it.next().as_deref(), it.next().as_deref()) {
             (Some("checks"), Some("set")) => parse_checks_set(it),
             (Some("assets"), Some("purge")) => parse_assets_purge(it),
@@ -683,6 +775,40 @@ fn parse_import_parts(mut it: impl Iterator<Item = String>) -> Result<Command, S
         map,
         as_of,
         company,
+        json,
+    }))
+}
+
+fn parse_import_csv(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut tables = None;
+    let mut out = None;
+    let mut content = None;
+    let (mut strict, mut lenient, mut json) = (false, false, false);
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
+            "--content" => content = Some(PathBuf::from(value(&mut it, "--content")?)),
+            "--strict" => strict = true,
+            "--lenient" => lenient = true,
+            "--json" => json = true,
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => {
+                if tables.replace(PathBuf::from(&a)).is_some() {
+                    return Err(format!("unexpected argument `{a}`"));
+                }
+            }
+        }
+    }
+    if strict && lenient {
+        return Err("`--strict` and `--lenient` cannot be combined".to_owned());
+    }
+    let tables = tables.ok_or_else(|| "`import csv` needs a tables directory (<tables-dir>)".to_owned())?;
+    let out = out.ok_or_else(|| "`import csv` needs `--out <dir>`, a new or empty directory".to_owned())?;
+    Ok(Command::ImportCsv(ImportCsvArgs {
+        tables,
+        out,
+        content,
+        lenient,
         json,
     }))
 }
@@ -981,6 +1107,65 @@ fn parse_apply(mut it: impl Iterator<Item = String>) -> Result<Command, String> 
         log,
         preview,
         one_step,
+        json,
+    }))
+}
+
+fn parse_fmt(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut project = None;
+    let mut project_opt = None;
+    let (mut check, mut json) = (false, false);
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
+            "--check" => check = true,
+            "--json" => json = true,
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => {
+                if project.replace(PathBuf::from(&a)).is_some() {
+                    return Err(format!("unexpected argument `{a}`"));
+                }
+            }
+        }
+    }
+    let project = one_project(project_opt, project)?;
+    Ok(Command::Fmt(FmtArgs { project, check, json }))
+}
+
+fn parse_recover(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut project = None;
+    let mut project_opt = None;
+    let (mut replay, mut discard, mut json) = (false, false, false);
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
+            "--replay" => replay = true,
+            "--discard" => discard = true,
+            "--json" => json = true,
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => {
+                if project.replace(PathBuf::from(&a)).is_some() {
+                    return Err(format!("unexpected argument `{a}`"));
+                }
+            }
+        }
+    }
+    let action = match (replay, discard) {
+        (true, true) => return Err("`--replay` and `--discard` cannot be combined".to_owned()),
+        (true, false) => RecoverAction::Replay,
+        (false, true) => RecoverAction::Discard,
+        (false, false) => RecoverAction::Summary,
+    };
+    if action == RecoverAction::Discard && json {
+        return Err(
+            "`--discard` asks for a typed word on a terminal and prints no result: it takes no `--json`"
+                .to_owned(),
+        );
+    }
+    let project = one_project(project_opt, project)?;
+    Ok(Command::Recover(RecoverArgs {
+        project,
+        action,
         json,
     }))
 }
@@ -1375,6 +1560,7 @@ pub fn run(cmd: Command) -> i32 {
         }
         Command::ImportQet(a) => run_import_qet(&a),
         Command::ImportParts(a) => run_import_parts(&a),
+        Command::ImportCsv(a) => run_import_csv(&a),
         Command::Check(a) => run_check(&a),
         Command::Sql(a) => run_sql(&a),
         Command::SqlDump(a) => run_sql_dump(&a),
@@ -1383,6 +1569,8 @@ pub fn run(cmd: Command) -> i32 {
         Command::ExportPages(a) => run_export_pages(&a),
         Command::Render(a) => run_render(&a),
         Command::Apply(a) => run_apply(&a),
+        Command::Fmt(a) => project_files::run_fmt(&a),
+        Command::Recover(a) => project_files::run_recover(&a),
         Command::ChecksSet(a) => run_checks_set(&a),
         Command::AssetsPurge(a) => run_assets_purge(&a),
         Command::Lib(a) => run_lib(&a),
@@ -2140,11 +2328,30 @@ fn open_for_writing_items(
     origin: ew_api::Origin,
     store: ew_api::StoreOptions,
 ) -> Result<(ew_api::Session, Vec<ew_api::checks::IntegrityItem>), i32> {
+    let (session, opened) = open_editing(dir, origin, store, ew_api::Recovery::Keep)?;
+    if opened.recovery.is_some() {
+        eprintln!("{}", journal_refusal(dir));
+        session.close();
+        return Err(2);
+    }
+    let items = ew_api::integrity_items(&opened);
+    Ok((session, items))
+}
+
+/// Opens the project in `dir` for editing with `origin`, `recovery` saying what happens to a crashed session's
+/// journal: refused (exit 2, [`read_only_refusal`]) when the open went read-only, which an editing open does silently
+/// when another session holds the lock (ruling 2 of cycle 41: a writer never acts read-only).
+fn open_editing(
+    dir: &Path,
+    origin: ew_api::Origin,
+    store: ew_api::StoreOptions,
+    recovery: ew_api::Recovery,
+) -> Result<(ew_api::Session, ew_api::OpenReport), i32> {
     let options = ew_api::SessionOptions {
         origin,
         ..ew_api::SessionOptions::default()
     };
-    let (session, opened) = match ew_api::Session::open(dir, store, options, ew_api::Recovery::Keep) {
+    let (session, opened) = match ew_api::Session::open(dir, store, options, recovery) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {}: {e}", dir.display());
@@ -2152,25 +2359,47 @@ fn open_for_writing_items(
         }
     };
     if let ew_api::Access::ReadOnly(reason) = &opened.access {
-        eprintln!(
-            "error: {}: the project opens read-only ({reason:?})",
-            dir.display()
-        );
+        eprintln!("{}", read_only_refusal(dir, reason));
         session.close();
         return Err(2);
     }
-    if opened.recovery.is_some() {
-        eprintln!(
-            "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first: \
-             discard it in ElektraWatt (File > Discard unsaved changes of the earlier session) or wait for \
-             `ew recover` (FT-252); nothing was applied",
-            dir.display()
-        );
-        session.close();
-        return Err(2);
-    }
-    let items = ew_api::integrity_items(&opened);
-    Ok((session, items))
+    Ok((session, opened))
+}
+
+/// The refusal of every writer (`apply`, `fmt`, `recover`, `import parts`, the human-only subcommands) whose open went
+/// read-only, `ew apply`'s text as built (ruling 2 of cycle 41: `ew recover` refuses a held lock with it). The reason
+/// prints as its debug form; a text in words is a follow-up, since changing an existing subcommand's text needs a
+/// ruling (WP-S1.22 §10.2 rule 3).
+fn read_only_refusal(dir: &Path, reason: &ew_api::ReadOnlyReason) -> String {
+    format!(
+        "error: {}: the project opens read-only ({reason:?})",
+        dir.display()
+    )
+}
+
+/// The refusal of the existing writers (`apply`, `import parts`, the human-only subcommands) while a crashed session's
+/// journal holds unsaved changes, which a new save would hide (doc 05 section 8.3); the text as built (§10.2 rule 3).
+fn journal_refusal(dir: &Path) -> String {
+    format!(
+        "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first: discard it \
+         in ElektraWatt (File > Discard unsaved changes of the earlier session) or wait for `ew recover` (FT-252); \
+         nothing was applied",
+        dir.display()
+    )
+}
+
+/// `text` with its control characters escaped: text from a project or state file (a journal's command name, a finding
+/// about a file's content) never reaches the terminal as a control sequence.
+fn printable(text: &str) -> String {
+    text.chars()
+        .map(|c| {
+            if c.is_control() {
+                c.escape_default().to_string()
+            } else {
+                c.to_string()
+            }
+        })
+        .collect()
 }
 
 /// `ew project checks set`: `project.checks.set` from a confirmed CLI subcommand, the human origin the command's
@@ -3900,6 +4129,149 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
         );
     }
     code
+}
+
+/// `ew import csv` (WP-S1.22 part 3, FT-27): the golden-dialect tables of a directory with the starter content as a new
+/// project in `--out`. Every finding is printed; `--strict` (the default) writes nothing when the import made error
+/// findings (exit 1), `--lenient` writes the project with them.
+fn run_import_csv(a: &ImportCsvArgs) -> i32 {
+    use ew_api::import::{CreateError, ImportMode, create_project, import_tables, read_tables};
+    let Some(content) = a.content.clone().or_else(content_dir) else {
+        eprintln!(
+            "error: `import csv` needs the starter content (`--content <dir>` or EW_CONTENT_DIR): the tables name its \
+             symbols, function definitions and forms; nothing was written"
+        );
+        return 2;
+    };
+    let library = match StarterLibrary::from_dir(&content) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("error: starter content: {}: {e}", content.display());
+            return 2;
+        }
+    };
+    let inputs = match read_tables(&a.tables) {
+        Ok(i) => i,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let mode = if a.lenient {
+        ImportMode::Lenient
+    } else {
+        ImportMode::Strict
+    };
+    let batch = match import_tables(&inputs, &library, mode) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let rows = table_report_rows(&batch.report.entries);
+    // With `--json` stdout is the result: the human lines go to stderr.
+    let say = |line: String| {
+        if a.json {
+            eprintln!("{line}");
+        } else {
+            println!("{line}");
+        }
+    };
+    for r in &rows {
+        let severity = match r.severity {
+            results::ReportSeverity::Info => "info",
+            results::ReportSeverity::Warning => "warning",
+            results::ReportSeverity::Error => "error",
+        };
+        let at = match (&r.file, r.line) {
+            (Some(f), Some(l)) => format!("{}:{l}: ", printable(f)),
+            (Some(f), None) => format!("{}: ", printable(f)),
+            _ => String::new(),
+        };
+        say(format!("{} {severity}: {at}{}", r.code, printable(&r.message)));
+    }
+    let errors = rows
+        .iter()
+        .filter(|r| r.severity == results::ReportSeverity::Error)
+        .count();
+    let tables = inputs.len();
+    let (records, documents) = (batch.records.len(), batch.lib.len());
+    let (code, written) = if !a.lenient && errors > 0 {
+        eprintln!(
+            "error: the import made {} under `--strict` (the default); nothing was written",
+            plural(errors, "error finding", "error findings")
+        );
+        (1, false)
+    } else {
+        match create_project(
+            &batch,
+            &a.out,
+            ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
+        ) {
+            Ok(()) => {
+                say(format!(
+                    "imported {} into {}: {}, {}",
+                    plural(tables, "table", "tables"),
+                    a.out.display(),
+                    plural(records, "record", "records"),
+                    plural(documents, "library document", "library documents")
+                ));
+                (0, true)
+            }
+            Err(e @ CreateError::Model(_)) => {
+                eprintln!("error: {e}; nothing was written");
+                (1, false)
+            }
+            Err(e) => {
+                eprintln!("error: {e}");
+                return 2;
+            }
+        }
+    };
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::ImportCsvResult {
+                schema: results::IMPORT_CSV.to_owned(),
+                tables: inputs.iter().map(|i| i.name().to_owned()).collect(),
+                mode: if a.lenient {
+                    results::ImportCsvMode::Lenient
+                } else {
+                    results::ImportCsvMode::Strict
+                },
+                out: a.out.display().to_string(),
+                written,
+                records,
+                documents,
+                report: rows,
+            })
+        );
+    }
+    code
+}
+
+/// The findings of a table import as result rows, in the report's order.
+fn table_report_rows(entries: &[ew_api::import::ReportEntry]) -> Vec<results::TableReportRow> {
+    entries
+        .iter()
+        .map(|e| results::TableReportRow {
+            code: e.code.to_string(),
+            severity: match e.severity {
+                Severity::Info => results::ReportSeverity::Info,
+                Severity::Warning => results::ReportSeverity::Warning,
+                Severity::Error => results::ReportSeverity::Error,
+            },
+            file: e.location.as_ref().map(|l| l.file.clone()),
+            line: e.location.as_ref().and_then(|l| l.line).map(u64::from),
+            message: e.message.clone(),
+        })
+        .collect()
+}
+
+/// `n` with the singular or plural noun: `1 file`, `2 files`.
+fn plural(n: usize, one: &str, many: &str) -> String {
+    format!("{n} {}", if n == 1 { one } else { many })
 }
 
 /// `ew commands [--json]` (WP-S1.22 D6): the command registry, one line per command (name, parameters version,

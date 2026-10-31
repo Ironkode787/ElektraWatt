@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "ImportCsvMode": {
+      "description": "The mode of `ew import csv`.",
+      "oneOf": [
+        {
+          "const": "strict",
+          "description": "A row the dialect refuses is dropped with an error finding, and the project is not written.",
+          "type": "string"
+        },
+        {
+          "const": "lenient",
+          "description": "Foreign colour codes are kept with a warning; the project is written with its findings.",
+          "type": "string"
+        }
+      ]
+    },
+    "ReportSeverity": {
+      "description": "The severity of a [`ReportRow`].",
+      "oneOf": [
+        {
+          "const": "info",
+          "description": "Info.",
+          "type": "string"
+        },
+        {
+          "const": "warning",
+          "description": "Warning.",
+          "type": "string"
+        },
+        {
+          "const": "error",
+          "description": "Error.",
+          "type": "string"
+        }
+      ]
+    },
+    "TableReportRow": {
+      "additionalProperties": false,
+      "description": "One finding of a table import.",
+      "properties": {
+        "code": {
+          "description": "The finding code (`EW-IMP-002`).",
+          "type": "string"
+        },
+        "file": {
+          "description": "The table file, where the finding has one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line": {
+          "description": "The table line, where the finding has one.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "message": {
+          "description": "The message.",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/ReportSeverity",
+          "description": "The severity."
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew import csv --json` ([`IMPORT_CSV`]): the tables read, the import report and whether the new project was written.",
+  "properties": {
+    "$schema": {
+      "const": "ew.import-csv-result/1",
+      "description": "The name of this schema."
+    },
+    "documents": {
+      "description": "The library documents the import embedded.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "mode": {
+      "$ref": "#/$defs/ImportCsvMode",
+      "description": "The import mode: `strict` (the default) or `lenient`."
+    },
+    "out": {
+      "description": "The new project's directory, as given (`--out`).",
+      "type": "string"
+    },
+    "records": {
+      "description": "The records the import made.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "report": {
+      "description": "The import report, one entry per finding, in the report's order.",
+      "items": {
+        "$ref": "#/$defs/TableReportRow"
+      },
+      "type": "array"
+    },
+    "tables": {
+      "description": "The table files read, by name, in name order.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "written": {
+      "description": "Whether the project was written (`false`: `--strict` refused the error findings).",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "$schema",
+    "tables",
+    "mode",
+    "out",
+    "written",
+    "records",
+    "documents",
+    "report"
+  ],
+  "title": "ew.import-csv-result/1",
+  "type": "object"
+}

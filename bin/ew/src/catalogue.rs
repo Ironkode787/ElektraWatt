@@ -127,6 +127,29 @@ pub const CATALOGUE: &[Entry] = &[
         stability: Stability::Preview,
     },
     Entry {
+        path: &["import", "csv"],
+        flags: &[
+            valued("--out"),
+            valued("--content"),
+            flag("--strict"),
+            flag("--lenient"),
+            JSON,
+        ],
+        exits: &[
+            exit(0, "written, with its findings"),
+            exit(
+                1,
+                "nothing written: `--strict` refused error findings, or the records do not make a project",
+            ),
+            exit(
+                2,
+                "usage, starter content, an unreadable table, an `--out` that holds something, write errors",
+            ),
+        ],
+        result: Some(ew_api::cli_results::IMPORT_CSV),
+        stability: Stability::Preview,
+    },
+    Entry {
         path: &["check"],
         flags: &[
             PROJECT,
@@ -303,6 +326,34 @@ pub const CATALOGUE: &[Entry] = &[
             ),
         ],
         result: Some(ew_api::cli_results::APPLY),
+        stability: Stability::Preview,
+    },
+    Entry {
+        path: &["fmt"],
+        flags: &[PROJECT, flag("--check"), JSON],
+        exits: &[
+            exit(
+                0,
+                "every file is canonical, or the files were rewritten and saved",
+            ),
+            exit(1, "`--check` found files to rewrite"),
+            exit(
+                2,
+                "usage, open, lock, a crashed session's journal, a content change and save errors",
+            ),
+        ],
+        result: Some(ew_api::cli_results::FMT),
+        stability: Stability::Preview,
+    },
+    Entry {
+        path: &["recover"],
+        flags: &[PROJECT, flag("--replay"), flag("--discard"), JSON],
+        exits: &[
+            exit(0, "summarised, replayed and saved, discarded, or no journal"),
+            exit(1, "the replay refused or the discard not confirmed"),
+            exit(2, "usage, no controlling terminal, lock, open and save errors"),
+        ],
+        result: Some(ew_api::cli_results::RECOVER),
         stability: Stability::Preview,
     },
     Entry {

@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "FmtFile": {
+      "additionalProperties": false,
+      "description": "One file of [`FmtResult`].",
+      "properties": {
+        "file": {
+          "description": "The file, relative to the project directory.",
+          "type": "string"
+        },
+        "removed": {
+          "description": "Whether nothing is left in it and it is removed (its records belong in other files).",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "file",
+        "removed"
+      ],
+      "type": "object"
+    },
+    "KeptRow": {
+      "additionalProperties": false,
+      "description": "One kept line of [`FmtResult`].",
+      "properties": {
+        "code": {
+          "description": "The finding's rule (`EW-CORE-007`).",
+          "type": "string"
+        },
+        "file": {
+          "description": "The file, relative to the project directory.",
+          "type": "string"
+        },
+        "line": {
+          "description": "The 1-based line; `null` for a whole file.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "reason": {
+          "description": "Why it is kept.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "code",
+        "reason"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew fmt --json` ([`FMT`]): the files not in canonical form (with `--check`: those a format would rewrite; without:\nthose it rewrote), and the lines kept verbatim.",
+  "properties": {
+    "$schema": {
+      "const": "ew.fmt-result/1",
+      "description": "The name of this schema."
+    },
+    "check": {
+      "description": "Whether this was `--check` (nothing is written).",
+      "type": "boolean"
+    },
+    "files": {
+      "description": "The files not in canonical form, in path order.",
+      "items": {
+        "$ref": "#/$defs/FmtFile"
+      },
+      "type": "array"
+    },
+    "generation": {
+      "description": "The generation on disk afterwards.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "kept": {
+      "description": "The lines (or files) kept verbatim as the open reported them: quarantined lines, malformed values, unknown\nkinds, members or files.",
+      "items": {
+        "$ref": "#/$defs/KeptRow"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "$schema",
+    "check",
+    "files",
+    "kept",
+    "generation"
+  ],
+  "title": "ew.fmt-result/1",
+  "type": "object"
+}

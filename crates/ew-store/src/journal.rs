@@ -748,9 +748,15 @@ pub struct RecoveryInfo {
     pub transactions: usize,
     /// Epoch milliseconds of the last change.
     pub last_change_ms: u64,
+    /// The command name of each unsaved transaction, in journal order (each journal line carries its `cmd`).
+    pub labels: Vec<String>,
+    /// How many further crashed sessions' journals with unsaved transactions remain after this one. Recovery acts on
+    /// one journal at a time (the newest); the others are offered at the next open, one at a time.
+    pub further: usize,
 }
 
-/// The unsaved transactions of the newest leftover segment against the disk state.
+/// The unsaved transactions of the newest leftover segment against the disk state; `segments` are the leftovers
+/// with unsaved transactions, newest first.
 pub(crate) fn summarise(
     segments: &[Segment],
     disk_gen: u64,
@@ -779,6 +785,14 @@ pub(crate) fn summarise(
             })
             .max()
             .unwrap_or(0),
+        labels: txs
+            .iter()
+            .filter_map(|e| match e {
+                Entry::Tx { cmd, .. } => Some(cmd.clone()),
+                _ => None,
+            })
+            .collect(),
+        further: segments.len() - 1,
     })
 }
 

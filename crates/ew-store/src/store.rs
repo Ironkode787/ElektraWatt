@@ -2021,6 +2021,33 @@ impl Store {
         Ok(out)
     }
 
+    /// The rewrite set of the generation on disk in canonical form (`ew fmt`, WP-S1.22 D9): each file the loader
+    /// found not in canonical form or holding a record of another file (`Loaded::rewrite`), with the bytes the next
+    /// save writes for it (`None`: the save removes it, nothing is left in it). Files already canonical are not in
+    /// it: this is the save plan with no changed record, never a full rewrite. Rendered from the generation on disk
+    /// (unsaved edits are not in it); kept lines (quarantined, unknown kinds, untouched malformed values) are in the
+    /// bytes verbatim, as in every save. Nothing is written.
+    ///
+    /// # Errors
+    ///
+    /// [`SaveError::Format`] for a record without a file or a JSON form.
+    pub fn canonical_rewrite(&self) -> Result<BTreeMap<FilePath, Option<Vec<u8>>>, SaveError> {
+        let plan = self.plan(&self.base, Changes::Keys(&BTreeSet::new()))?;
+        let mut out: BTreeMap<FilePath, Option<Vec<u8>>> = plan
+            .writes
+            .into_iter()
+            .filter(|(path, _)| {
+                matches!(
+                    classify(path.as_str()),
+                    PathClass::Records(_) | PathClass::LibDocument { .. }
+                )
+            })
+            .map(|(path, bytes)| (path, Some(bytes)))
+            .collect();
+        out.extend(plan.removes.into_iter().map(|path| (path, None)));
+        Ok(out)
+    }
+
     // -----------------------------------------------------------------------------------------------------
     // Lock, journal, recovery, close
 
@@ -2082,11 +2109,19 @@ impl Store {
     }
 
     /// Replays the leftover journal onto `model`, the generation just opened (doc 05 §8.2). The result is
-    /// journalled in this session's segment, and the leftover is deleted.
+    /// journalled in this session's segment, and the replayed leftover is deleted.
+    ///
+    /// Recovery acts on one journal at a time and never deletes an unreplayed one (project owner (delegated),
+    /// 2026-10-31): only the summarised segment ([`Store::recovery`], the newest) is replayed and removed. The
+    /// other crashed sessions' segments stay on disk and are offered at the next open, newest first; they leave only
+    /// by their own replay or discard or by the age rule (`journal::KEEP_LEFTOVERS`). A segment whose base is not the
+    /// generation on disk replays with the collision check (the before-values of its operations against the model);
+    /// a collision refuses the replay. There is no merge of segments.
     ///
     /// # Errors
     ///
-    /// [`RecoverError`]; with collisions (the base moved and both sides changed a field) nothing is applied.
+    /// [`RecoverError`]; with collisions (the base moved and both sides changed a field) nothing is applied and
+    /// nothing is removed.
     pub fn recover(&mut self, model: &Model) -> Result<Recovered, RecoverError> {
         let Some(info) = self.recovery.clone() else {
             return Err(RecoverError::Nothing);
@@ -2131,9 +2166,10 @@ impl Store {
                 &|r| asset_on_disk(opaque, r),
             )
             .map_err(RecoverError::Io)?;
-            j.discard(&self.leftovers);
+            j.discard(std::slice::from_ref(&seg));
         }
-        self.leftovers.clear();
+        // `seg` is the first leftover (above); the others stay for the next open.
+        self.leftovers.remove(0);
         self.recovery = None;
         Ok(Recovered {
             model: recovered,
@@ -2143,13 +2179,17 @@ impl Store {
         })
     }
 
-    /// "Discard": deletes the leftover journal.
+    /// "Discard": deletes the summarised leftover journal ([`Store::recovery`]) and only that one; the other
+    /// crashed sessions' segments stay for the next open ([`Store::recover`]). Without a summary (none found, or
+    /// already recovered or discarded in this session) nothing is deleted.
     pub fn discard_recovery(&mut self) {
-        if let Some(j) = &self.journal {
-            j.discard(&self.leftovers);
+        if self.recovery.take().is_none() || self.leftovers.is_empty() {
+            return;
         }
-        self.leftovers.clear();
-        self.recovery = None;
+        let seg = self.leftovers.remove(0);
+        if let Some(j) = &self.journal {
+            j.discard(std::slice::from_ref(&seg));
+        }
     }
 
     /// The access of the session.

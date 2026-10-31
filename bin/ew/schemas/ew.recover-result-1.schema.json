@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "JournalSummary": {
+      "additionalProperties": false,
+      "description": "The summary of a crashed session's journal.",
+      "properties": {
+        "base_matches": {
+          "description": "Whether the project on disk is still the journal's base (the replay cannot collide).",
+          "type": "boolean"
+        },
+        "further": {
+          "description": "How many further crashed sessions' journals remain after this one (each is offered by its own `ew recover`).",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "labels": {
+          "description": "The command of each transaction, in journal order.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "transactions": {
+          "description": "Its unsaved transactions.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "transactions",
+        "labels",
+        "base_matches",
+        "further"
+      ],
+      "type": "object"
+    },
+    "RecoverAction": {
+      "description": "What `ew recover` did.",
+      "oneOf": [
+        {
+          "const": "summary",
+          "description": "The summary only.",
+          "type": "string"
+        },
+        {
+          "const": "replay",
+          "description": "The replay and save.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew recover --json` ([`RECOVER`]): the crashed session's journal that was summarised, and whether it was replayed.",
+  "properties": {
+    "$schema": {
+      "const": "ew.recover-result/1",
+      "description": "The name of this schema."
+    },
+    "action": {
+      "$ref": "#/$defs/RecoverAction",
+      "description": "What ran: `summary` (no flag) or `replay` (`--replay`)."
+    },
+    "generation": {
+      "description": "The generation on disk afterwards.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "journal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JournalSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The journal of the newest crashed session; `null` when there is none."
+    },
+    "replayed": {
+      "description": "Whether its transactions were replayed and saved.",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "$schema",
+    "action",
+    "replayed",
+    "generation"
+  ],
+  "title": "ew.recover-result/1",
+  "type": "object"
+}

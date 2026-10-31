@@ -27,6 +27,7 @@ const GOLDEN_PARTS: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../golden/J-E-2416/tables/parts.csv"
 );
+const GOLDEN_TABLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/tables");
 const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 const QET: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 
@@ -77,6 +78,19 @@ impl Tmp {
 
     fn ew(&self, args: &[OsString]) -> Output {
         self.ew_with(args, false)
+    }
+
+    /// The OS state directory of [`Tmp::ew_with`]'s user directories, where a writer keeps its journal.
+    fn state_dir(&self) -> PathBuf {
+        let home = self.0.join("home");
+        if cfg!(windows) {
+            home.join("localappdata").join("ElektraWatt").join("state")
+        } else if cfg!(target_os = "macos") {
+            home.join("home")
+                .join("Library/Application Support/ElektraWatt/state")
+        } else {
+            home.join("xdg_state_home").join("elektrawatt")
+        }
     }
 
     /// A copy of Golden A named `name`.
@@ -346,6 +360,8 @@ fn project_flag_equals_the_positional_directory() {
             &p,
         ),
         (vec!["verify-derived"], args([&"--json"]), &tiny),
+        (vec!["fmt"], args([&"--check", &"--json"]), &p),
+        (vec!["recover"], args([&"--json"]), &p),
         (vec!["project", "assets", "purge"], args([&"--preview"]), &p),
         (
             vec!["project", "checks", "set"],
@@ -638,6 +654,12 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         matches!(parts.hits.first(), Some(results::LibHit::Part(_))),
         "{parts:?}"
     );
+    let fmt: results::FmtResult = json_twice(&t, &args([&"fmt", &p, &"--check", &"--json"]), results::FMT, 0);
+    assert_eq!(
+        (fmt.check, fmt.files.len(), fmt.kept.len()),
+        (true, 0, 0),
+        "{fmt:?}"
+    );
     let commands: results::CommandsResult =
         json_twice(&t, &args([&"commands", &"--json"]), results::COMMANDS, 0);
     assert!(!commands.commands.is_empty());
@@ -743,6 +765,88 @@ fn every_writing_json_result_validates_and_round_trips() {
     let r: results::LibImportPartsResult = assert_result(&stdout(&o), results::LIB_IMPORT_PARTS);
     assert_eq!((r.library.as_str(), r.rows.new), ("std", 1), "{r:?}");
     assert!(r.written.is_some_and(|w| w.added > 0), "{r:?}");
+    // `fmt` on two copies with the same two lines swapped.
+    let mut outs = Vec::new();
+    for name in ["f.ew", "g.ew"] {
+        let p = t.golden(name);
+        let file = p.join("devices").join("71.jsonl");
+        let text = std::fs::read_to_string(&file).unwrap();
+        let mut lines: Vec<&str> = text.lines().collect();
+        lines.swap(0, 1);
+        std::fs::write(&file, format!("{}\n", lines.join("\n"))).unwrap();
+        let o = t.ew(&args([&"fmt", &p, &"--json"]));
+        assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+        let r: results::FmtResult = assert_result(&stdout(&o), results::FMT);
+        assert_eq!((r.check, r.files.len(), r.generation), (false, 1, 2), "{r:?}");
+        outs.push(stdout(&o));
+    }
+    assert_eq!(outs[0], outs[1]);
+    // `recover` and `recover --replay` of a crashed session's journal on two copies.
+    let mut outs = Vec::new();
+    for name in ["h.ew", "i.ew"] {
+        let p = t.golden(name);
+        let mut store = ew_api::StoreOptions::new("test");
+        store.state_dir = Some(t.state_dir());
+        let (mut crashed, _) = ew_api::Session::open(
+            &p,
+            store,
+            ew_api::SessionOptions::default(),
+            ew_api::Recovery::Keep,
+        )
+        .unwrap();
+        crashed
+            .execute(&ew_api::AnyCommand {
+                name: "page.create".into(),
+                params: serde_json::json!({"number": 7777, "title": {"en": "T"}}),
+            })
+            .unwrap();
+        drop(crashed);
+        let o = t.ew(&args([&"recover", &p, &"--json"]));
+        assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+        let r: results::RecoverResult = assert_result(&stdout(&o), results::RECOVER);
+        assert_eq!(
+            (r.action, r.replayed, r.generation),
+            (results::RecoverAction::Summary, false, 1),
+            "{r:?}"
+        );
+        let o = t.ew(&args([&"recover", &p, &"--replay", &"--json"]));
+        assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+        let r: results::RecoverResult = assert_result(&stdout(&o), results::RECOVER);
+        assert_eq!(
+            r.journal,
+            Some(results::JournalSummary {
+                transactions: 1,
+                labels: vec!["page.create".to_owned()],
+                base_matches: true,
+                further: 0,
+            })
+        );
+        assert_eq!(
+            (r.action, r.replayed, r.generation),
+            (results::RecoverAction::Replay, true, 2),
+            "{r:?}"
+        );
+        outs.push(stdout(&o));
+    }
+    assert_eq!(outs[0], outs[1]);
+    // `import csv` twice into the same fresh target.
+    let out = t.0.join("csv.ew");
+    let mut outs = Vec::new();
+    for _ in 0..2 {
+        let _ = std::fs::remove_dir_all(&out);
+        let o = t.ew_with(
+            &args([&"import", &"csv", &GOLDEN_TABLES, &"--out", &out, &"--json"]),
+            true,
+        );
+        assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+        let r: results::ImportCsvResult = assert_result(&stdout(&o), results::IMPORT_CSV);
+        assert!(
+            r.written && r.records > 0 && r.mode == results::ImportCsvMode::Strict,
+            "{r:?}"
+        );
+        outs.push(stdout(&o));
+    }
+    assert_eq!(outs[0], outs[1]);
 }
 
 // ---------------------------------------------------------------------------------------------------------

@@ -69,6 +69,12 @@ fn schema_of<T: JsonSchema>() -> Value {
 
 /// `ew import qet --json`.
 pub const IMPORT_QET: &str = "ew.import-qet-result/1";
+/// `ew import csv --json`.
+pub const IMPORT_CSV: &str = "ew.import-csv-result/1";
+/// `ew fmt --json`.
+pub const FMT: &str = "ew.fmt-result/1";
+/// `ew recover --json`.
+pub const RECOVER: &str = "ew.recover-result/1";
 /// `ew import parts --json`.
 pub const IMPORT_PARTS: &str = "ew.import-parts-result/1";
 /// `ew check --json`.
@@ -170,6 +176,16 @@ pub const RESULTS: &[ResultSchema] = &[
         schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
+        name: FMT,
+        command: "fmt",
+        schema: schema_of::<FmtResult>,
+    },
+    ResultSchema {
+        name: IMPORT_CSV,
+        command: "import csv",
+        schema: schema_of::<ImportCsvResult>,
+    },
+    ResultSchema {
         name: IMPORT_PARTS,
         command: "import parts",
         schema: schema_of::<ImportPartsResult>,
@@ -203,6 +219,11 @@ pub const RESULTS: &[ResultSchema] = &[
         name: LIB_SEARCH,
         command: "lib search",
         schema: schema_of::<LibSearchResult>,
+    },
+    ResultSchema {
+        name: RECOVER,
+        command: "recover",
+        schema: schema_of::<RecoverResult>,
     },
     ResultSchema {
         name: RENDER,
@@ -815,6 +836,139 @@ pub struct CommandEntry {
     pub stability: String,
     /// The parameter schema's file (`ew schema <name>` prints it).
     pub schema: String,
+}
+
+/// `ew import csv --json` ([`IMPORT_CSV`]): the tables read, the import report and whether the new project was written.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ImportCsvResult {
+    /// [`IMPORT_CSV`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The table files read, by name, in name order.
+    pub tables: Vec<String>,
+    /// The import mode: `strict` (the default) or `lenient`.
+    pub mode: ImportCsvMode,
+    /// The new project's directory, as given (`--out`).
+    pub out: String,
+    /// Whether the project was written (`false`: `--strict` refused the error findings).
+    pub written: bool,
+    /// The records the import made.
+    pub records: usize,
+    /// The library documents the import embedded.
+    pub documents: usize,
+    /// The import report, one entry per finding, in the report's order.
+    pub report: Vec<TableReportRow>,
+}
+
+/// The mode of `ew import csv`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ImportCsvMode {
+    /// A row the dialect refuses is dropped with an error finding, and the project is not written.
+    Strict,
+    /// Foreign colour codes are kept with a warning; the project is written with its findings.
+    Lenient,
+}
+
+/// One finding of a table import.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TableReportRow {
+    /// The finding code (`EW-IMP-002`).
+    pub code: String,
+    /// The severity.
+    pub severity: ReportSeverity,
+    /// The table file, where the finding has one.
+    pub file: Option<String>,
+    /// The table line, where the finding has one.
+    pub line: Option<u64>,
+    /// The message.
+    pub message: String,
+}
+
+/// `ew fmt --json` ([`FMT`]): the files not in canonical form (with `--check`: those a format would rewrite; without:
+/// those it rewrote), and the lines kept verbatim.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FmtResult {
+    /// [`FMT`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// Whether this was `--check` (nothing is written).
+    pub check: bool,
+    /// The files not in canonical form, in path order.
+    pub files: Vec<FmtFile>,
+    /// The lines (or files) kept verbatim as the open reported them: quarantined lines, malformed values, unknown
+    /// kinds, members or files.
+    pub kept: Vec<KeptRow>,
+    /// The generation on disk afterwards.
+    pub generation: u64,
+}
+
+/// One file of [`FmtResult`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FmtFile {
+    /// The file, relative to the project directory.
+    pub file: String,
+    /// Whether nothing is left in it and it is removed (its records belong in other files).
+    pub removed: bool,
+}
+
+/// One kept line of [`FmtResult`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct KeptRow {
+    /// The file, relative to the project directory.
+    pub file: String,
+    /// The 1-based line; `null` for a whole file.
+    pub line: Option<u32>,
+    /// The finding's rule (`EW-CORE-007`).
+    pub code: String,
+    /// Why it is kept.
+    pub reason: String,
+}
+
+/// `ew recover --json` ([`RECOVER`]): the crashed session's journal that was summarised, and whether it was replayed.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RecoverResult {
+    /// [`RECOVER`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// What ran: `summary` (no flag) or `replay` (`--replay`).
+    pub action: RecoverAction,
+    /// The journal of the newest crashed session; `null` when there is none.
+    pub journal: Option<JournalSummary>,
+    /// Whether its transactions were replayed and saved.
+    pub replayed: bool,
+    /// The generation on disk afterwards.
+    pub generation: u64,
+}
+
+/// What `ew recover` did.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum RecoverAction {
+    /// The summary only.
+    Summary,
+    /// The replay and save.
+    Replay,
+}
+
+/// The summary of a crashed session's journal.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct JournalSummary {
+    /// Its unsaved transactions.
+    pub transactions: usize,
+    /// The command of each transaction, in journal order.
+    pub labels: Vec<String>,
+    /// Whether the project on disk is still the journal's base (the replay cannot collide).
+    pub base_matches: bool,
+    /// How many further crashed sessions' journals remain after this one (each is offered by its own `ew recover`).
+    pub further: usize,
 }
 
 /// The command registry as [`CommandsResult`]: the entries of the built-in registry's `index.json`, in its order.
