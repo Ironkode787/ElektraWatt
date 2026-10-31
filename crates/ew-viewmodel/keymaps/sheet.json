@@ -826,6 +826,20 @@
       "label_key": "action-tool-next-proposal"
     },
     {
+      "action": "layout.previous",
+      "bindings": {
+        "ew": [
+          "Shift+Tab"
+        ],
+        "kicad": [
+          "Shift+Tab"
+        ]
+      },
+      "context": "canvas",
+      "label": "Previous placement on the rail",
+      "label_key": "action-layout-previous"
+    },
+    {
       "action": "tool.connect_on_move",
       "bindings": {
         "ew": [
