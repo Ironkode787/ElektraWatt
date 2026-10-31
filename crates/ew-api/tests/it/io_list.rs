@@ -62,7 +62,13 @@ fn golden_with_io_list() -> (Session, ReportBlock) {
         json!({"source": {"kind": "io_list"}, "form": form, "first_folio": FOLIO, "title": "I/O List {n}"}),
     );
     let id: Id<ReportBlock> = Id::from_uuid(r.outcome.primary.expect("the block").1.as_uuid());
-    let block = s.query().report_blocks().get(id).expect("created").as_ref().clone();
+    let block = s
+        .query()
+        .report_blocks()
+        .get(id)
+        .expect("created")
+        .as_ref()
+        .clone();
     (s, block)
 }
 
@@ -128,8 +134,26 @@ fn px1_the_default_io_list_lists_28_rows_of_used_and_spare_channels() {
     assert_eq!(
         rows[27],
         row([
-            "PLC1", "", "-201U1", "TBD", "7", "-202U2", "533361", "7", "7", "DO", "Q6.7", "", "Bool", "",
-            "Spare", "", "-202U2-Q4", "12", "", "spare",
+            "PLC1",
+            "",
+            "-201U1",
+            "TBD",
+            "7",
+            "-202U2",
+            "533361",
+            "7",
+            "7",
+            "DO",
+            "Q6.7",
+            "",
+            "Bool",
+            "",
+            "Spare",
+            "",
+            "-202U2-Q4",
+            "14",
+            "206-D7",
+            "spare",
         ])
     );
     // doc 20 §11.3: modules -201U3 to -201U8 and -202U2, the odd bits of each byte, in module order
@@ -150,8 +174,26 @@ fn px1_include_deactivated_lists_56_rows_in_place() {
     assert_eq!(
         rows[0],
         row([
-            "PLC1", "", "-201U1", "TBD", "1", "-201U3", "533361", "0", "0", "DO", "Q0.0", "", "Bool", "", "", "", "",
-            "", "", "deactivated",
+            "PLC1",
+            "",
+            "-201U1",
+            "TBD",
+            "1",
+            "-201U3",
+            "533361",
+            "0",
+            "0",
+            "DO",
+            "Q0.0",
+            "",
+            "Bool",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "deactivated",
         ])
     );
     assert_eq!(rows[1], first_used());

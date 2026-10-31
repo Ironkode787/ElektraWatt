@@ -42,28 +42,31 @@ impl ReportKindDef for IoList {
         "io_list"
     }
 
+    /// The weights are the printed width, in tenths of a millimetre, that the widest Golden A text of each column
+    /// (the header or a cell of the 56 rows) takes at the 1.8 mm cap-height floor, plus 0.6 mm: the 20 columns fit the
+    /// house table's 260.96 mm without an overflow (the brief's stop 1; 248.3 mm at the floor).
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("config_project", CellType::Ident, "Configuration project").weighted(10),
-            ColumnDef::new("cpu", CellType::Ident, "CPU").weighted(5),
-            ColumnDef::new("station", CellType::Ident, "Station").weighted(7),
-            ColumnDef::new("bus_address", CellType::Ident, "Bus address").weighted(6),
-            ColumnDef::new("slot", CellType::Ident, "Slot").weighted(4),
-            ColumnDef::new("module", CellType::Ident, "Module").weighted(7),
-            ColumnDef::new("part", CellType::Ident, "Part").weighted(6),
-            ColumnDef::new("channel", CellType::Number, "Channel").weighted(5),
-            ColumnDef::new("designation", CellType::Ident, "Designation").weighted(7),
-            ColumnDef::new("kind", CellType::Text, "Kind").weighted(4),
-            ColumnDef::new("address", CellType::Address, "Address").weighted(5),
-            ColumnDef::new("symbol", CellType::Ident, "Symbol").weighted(6),
-            ColumnDef::new("data_type", CellType::Ident, "Data type").weighted(5),
-            ColumnDef::new("comment", CellType::Text, "Comment").weighted(7),
-            ColumnDef::new("function", CellType::Text, "Function text").weighted(8),
-            ColumnDef::new("process_tag", CellType::Ident, "Process tag").weighted(7),
-            ColumnDef::new("target", CellType::Ident, "Target").weighted(9),
-            ColumnDef::new("target_pin", CellType::Ident, "Target pin").weighted(6),
-            ColumnDef::new("page", CellType::CellRef, "Target page").weighted(7),
-            ColumnDef::new("state", CellType::Text, "State").weighted(7),
+            ColumnDef::new("config_project", CellType::Ident, "Configuration project").weighted(269),
+            ColumnDef::new("cpu", CellType::Ident, "CPU").weighted(66),
+            ColumnDef::new("station", CellType::Ident, "Station").weighted(101),
+            ColumnDef::new("bus_address", CellType::Ident, "Bus address").weighted(161),
+            ColumnDef::new("slot", CellType::Ident, "Slot").weighted(61),
+            ColumnDef::new("module", CellType::Ident, "Module").weighted(106),
+            ColumnDef::new("part", CellType::Ident, "Part").weighted(103),
+            ColumnDef::new("channel", CellType::Number, "Channel").weighted(114),
+            ColumnDef::new("designation", CellType::Ident, "Designation").weighted(159),
+            ColumnDef::new("kind", CellType::Text, "Kind").weighted(70),
+            ColumnDef::new("address", CellType::Address, "Address").weighted(112),
+            ColumnDef::new("symbol", CellType::Ident, "Symbol").weighted(104),
+            ColumnDef::new("data_type", CellType::Ident, "Data type").weighted(131),
+            ColumnDef::new("comment", CellType::Text, "Comment").weighted(134),
+            ColumnDef::new("function", CellType::Text, "Function text").weighted(171),
+            ColumnDef::new("process_tag", CellType::Ident, "Process tag").weighted(153),
+            ColumnDef::new("target", CellType::Ident, "Target").weighted(143),
+            ColumnDef::new("target_pin", CellType::Ident, "Target pin").weighted(136),
+            ColumnDef::new("page", CellType::CellRef, "Target page").weighted(158),
+            ColumnDef::new("state", CellType::Text, "State").weighted(154),
         ]
     }
 
