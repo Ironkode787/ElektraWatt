@@ -17,6 +17,7 @@
 //! | 12 | `wire_numbering` | Online wire numbering is off in v0 (no scheme before WP-S1.11): every new connection is `NumberSpec::Unassigned` |
 //! | 13 | `solenoid_binding` | N2: a valve added to or moved within a module whose part has a solenoid-position map, or a new channel of such a module, binds the declared coil to the channel the map assigns when both are free (doc 10 §3.3, FR-PLC-051) |
 //! | 14 | `module_pin_binding` | N3: a new unbound channel of a module whose part has a channel → pin map binds the module pin (doc 10 §3.3) |
+//! | 14a | `bus_ports` | N5: a device that is new or whose bus part (the first part use with a `bus` section with ports) changed, or a bus-port function new to or moved onto a device with a bus part, gives the part's uncarried ports to the device's port-less bus-port functions in list and ID order: address `not_applicable` for a passive port, else `tbd`, no nets; it never rewrites a port, and a carried port that disagrees with the part gives a notice (WP-S1.21 D16) |
 //! | 18 | `revision_ensure_open` | `revision.ensure_open`: a content edit in a project with a released revision and no open one adds the open revision with the next label and the ID `v5(latest released, "next")` (doc 15 §5.3, WP-S1.18 D3) |
 //!
 //! A pass runs every normaliser in order; a normaliser whose input another one creates later in the same
@@ -26,6 +27,7 @@
 //! ([`crate::CmdError::Internal`]). Every normaliser breaks ties by ID and is idempotent on its own
 //! output.
 
+mod bus_ports;
 pub(crate) mod channel_instantiation;
 mod connection_split;
 mod cp_instantiation;
@@ -37,6 +39,7 @@ mod revision_ensure_open;
 mod solenoid_binding;
 mod wire_numbering;
 
+pub use bus_ports::BusPorts;
 pub use channel_instantiation::ChannelInstantiation;
 pub use connection_split::{ConnectionSplit, split_connection};
 pub use cp_instantiation::CpInstantiation;
@@ -62,7 +65,7 @@ pub trait Normaliser: Send + Sync {
 }
 
 /// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 10] = [
+pub const ORDER: [&str; 11] = [
     "plc_aspects",
     "cp_instantiation",
     "channel_instantiation",
@@ -72,6 +75,7 @@ pub const ORDER: [&str; 10] = [
     "wire_numbering",
     "solenoid_binding",
     "module_pin_binding",
+    "bus_ports",
     "revision_ensure_open",
 ];
 
@@ -90,6 +94,7 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
         Box::new(WireNumbering),
         Box::new(SolenoidBinding),
         Box::new(ModulePinBinding),
+        Box::new(BusPorts),
         Box::new(RevisionEnsureOpen),
     ]
 }

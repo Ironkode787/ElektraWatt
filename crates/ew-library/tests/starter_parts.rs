@@ -28,18 +28,27 @@ const NAME: &str = "ElektraWatt starter parts";
 const LICENCE: &str = "CC0-1.0";
 const VERSION: &str = "0.1.0";
 /// The library's version: 0.1.1 since FT-659 and FT-655 changed parts, 0.1.2 since FT-606 added the one-pole on/off
-/// switch EW-GEN-SW-1, 0.2.0 since WP-S1.21 D5 added the generic CPU EW-GEN-CPU-1 (a library refuses other content
-/// under a published version, doc 05 §13.1).
-const LIBRARY_VERSION: &str = "0.2.0";
+/// switch EW-GEN-SW-1, 0.2.0 since WP-S1.21 D5 added the generic CPU EW-GEN-CPU-1, 0.2.1 since WP-S1.21 D17 gave
+/// it its DP port (a library refuses other content under a published version, doc 05 §13.1).
+const LIBRARY_VERSION: &str = "0.2.1";
 /// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. FT-655: the relay
-/// and the contactor template their contacts beside the coil).
+/// and the contactor template their contacts beside the coil. WP-S1.21 D17: the CPU's bus section, after 0.2.0).
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.1"),
     ("EW-GEN-VLV-1", "0.1.1"),
     ("EW-GEN-RLY-1", "0.1.1"),
     ("EW-GEN-CON-1", "0.1.1"),
+    ("EW-GEN-CPU-1", "0.1.1"),
 ];
+
+/// The bus section of part `number` (WP-S1.21 D17): the generic CPU's DP interface, the master by default; no
+/// termination (the plug carries it), connector, signal map or address range (a generic part claims no pinout). No
+/// other starter part has a bus interface.
+fn bus_section(number: &str) -> Option<Value> {
+    (number == "EW-GEN-CPU-1")
+        .then(|| json!({"ports": [{"interface": "DP", "bus": "profibus_dp", "role": "master"}]}))
+}
 
 /// The version of part `number`.
 fn part_version(number: &str) -> &'static str {
@@ -332,8 +341,8 @@ fn defs() -> Vec<Def> {
             template: vec![("ew.fn.blackbox", true, range(0, 2))],
             contacts: Vec::new(),
             tech: vec![("rated_voltage", q("24", "V"))],
-            // WP-S1.21 D5: a station without I/O ranges, so the cards' addresses start at byte 0; the typed DP port
-            // follows with the bus model (part 4).
+            // WP-S1.21 D5: a station without I/O ranges, so the cards' addresses start at byte 0; its DP port is
+            // the bus section (D17, `bus_section`).
             plc: Some(json!({"role": "station"})),
         },
         Def {
@@ -428,6 +437,9 @@ fn parts() -> Vec<LibDocument> {
             }
             if let Some(plc) = d.plc {
                 v["sections"] = json!({ "plc": plc });
+            }
+            if let Some(bus) = bus_section(d.number) {
+                v["sections"]["bus"] = bus;
             }
             LibDocument::from_value(v).unwrap_or_else(|e| panic!("{}: {e}", d.number))
         })
@@ -669,10 +681,11 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
 }
 
 /// WP-S1.21 D5: the generic CPU is a station without I/O ranges on a black box with the supply CPs L+ and M, a new
-/// item at 0.1.0 in the library's minor version 0.2.0; the cards are modules of 8 channels each.
+/// item at 0.1.0 in the library's minor version 0.2.0 (0.1.1 in 0.2.1 with its DP port, D17); the cards are modules
+/// of 8 channels each.
 #[test]
 fn the_generic_cpu_is_a_station_without_io() {
-    assert_eq!(LIBRARY_VERSION, "0.2.0");
+    assert_eq!(LIBRARY_VERSION, "0.2.1");
     let part = |number: &str| {
         parts()
             .into_iter()
@@ -683,7 +696,7 @@ fn the_generic_cpu_is_a_station_without_io() {
             .unwrap_or_else(|| panic!("{number}"))
     };
     let cpu = part("EW-GEN-CPU-1");
-    assert_eq!(cpu.version, "0.1.0");
+    assert_eq!(cpu.version, "0.1.1");
     let plc = cpu.item.sections.plc.as_ref().expect("a PLC section");
     assert_eq!(plc.role, ew_format::ew_schema::PlcRole::Station);
     assert!(plc.io.is_empty() && plc.channels.is_none());
@@ -699,5 +712,52 @@ fn the_generic_cpu_is_a_station_without_io() {
         let plc = c.item.sections.plc.as_ref().expect("a PLC section");
         assert_eq!(plc.role, ew_format::ew_schema::PlcRole::Module, "{card}");
         assert_eq!(plc.channels.as_ref().map(|s| s.count), Some(8), "{card}");
+    }
+}
+
+/// BU-7e (WP-S1.21 D17): the generic CPU at 0.1.1 carries one bus port `DP`, `profibus_dp`, `master`, with no port
+/// label, termination or other member; its CP pattern, function template and PLC section are 0.1.0's (the compact
+/// JSON of 0.1.0's members as `ew-starter-parts` 0.2.0 published them), and no other starter part has a bus section.
+#[test]
+fn the_generic_cpu_has_its_dp_port() {
+    use ew_format::ew_schema::{BusSystem, PortRole};
+    let parts = parts();
+    let cpu = parts
+        .iter()
+        .find_map(|d| match d {
+            LibDocument::Part(c) if c.item.part_number.as_str() == "EW-GEN-CPU-1" => Some(c),
+            _ => None,
+        })
+        .expect("the generic CPU");
+    assert_eq!(cpu.version, "0.1.1");
+    let bus = cpu.item.sections.bus.as_ref().expect("a bus section");
+    assert!(bus.extra.is_empty());
+    let [port] = bus.ports.as_slice() else {
+        panic!("one port: {:?}", bus.ports);
+    };
+    assert_eq!(port.interface.as_str(), "DP");
+    assert_eq!(port.port_label, None);
+    assert_eq!(port.bus, BusSystem::ProfibusDp);
+    assert_eq!(port.role, PortRole::Master);
+    assert_eq!(port.termination, None);
+    assert!(port.extra.is_empty());
+    assert_eq!(
+        serde_json::to_string(&cpu.item.cp_pattern).unwrap(),
+        r#"[{"idx":0,"designation":"L+","potential_role":"l_plus"},{"idx":1,"designation":"M","potential_role":"m"}]"#
+    );
+    assert_eq!(
+        serde_json::to_string(&cpu.item.function_template).unwrap(),
+        r#"[{"fndef":{"library":"7202fd8b-1024-4bf1-9e99-670772eaa589","item":"8f2f5a49-a5bc-5d27-815c-47dd24106efb","version_req":"^0.1","key":"ew.fn.blackbox"},"main":true,"cps":[0,1]}]"#
+    );
+    assert_eq!(
+        serde_json::to_string(&cpu.item.sections.plc).unwrap(),
+        r#"{"role":"station"}"#
+    );
+    for d in &parts {
+        if let LibDocument::Part(c) = d {
+            if c.item.part_number.as_str() != "EW-GEN-CPU-1" {
+                assert_eq!(c.item.sections.bus, None, "{}", c.item.part_number.as_str());
+            }
+        }
     }
 }
