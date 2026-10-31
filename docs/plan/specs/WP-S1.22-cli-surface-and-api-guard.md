@@ -6,7 +6,7 @@ page and row outputs (0.4 pw, D7, D8), part 3 the format, recovery and import su
 `ew query` with `--explain` and the query registry (0.5 pw, D11, D12), part 5 the API guard and the generated
 references (0.4 pw, D13 to D15); part 1 first; parts 2, 3 and 4 after it in any order or side by side; part 5 last ·
 **Part 1 built in cycle 39** (lane J39, decision log ID-906; CL-1 to CL-7; 17 result schemas; O1 decided: `boon` as a
-dev-only validator, D5's as-built note) · **Part 2 built in cycle 40** (lane E40, decision log ID-925; OU-1 to OU-4 and OU-6 met, OU-5 built with its Linux proof recorded at the cycle's delivery; five result schemas; `--block` by ID or first folio; Golden A's `expected/png/102`, `106`, `204`, `205` and `206.png` re-blessed for OU-2's byte equality; doc 17 §3.3 and doc 18 CI-PR-05 as built; the label of §13 is `api-break`, ID-931) · **Date:** 2026-10-30 · **Work package:**
+dev-only validator, D5's as-built note) · **Part 2 built in cycle 40** (lane E40, decision log ID-925; OU-1 to OU-4 and OU-6 met, OU-5 built with its Linux proof recorded at the cycle's delivery; five result schemas; `--block` by ID or first folio; Golden A's `expected/png/102`, `106`, `204`, `205` and `206.png` re-blessed for OU-2's byte equality; doc 17 §3.3 and doc 18 CI-PR-05 as built; the label of §13 is `api-break`, ID-931) · **OU-2 met on Windows and Linux in cycle 40** (decision log ID-937: the `ew` outputs tests, 13 of 13, pass on a Linux host at 1 and 4 threads, so the CPU renderer's PNG bytes are equal on both; R2 did not occur on Linux); OU-5 proven by CI at the cycle's delivery; FIX40c's refusals (the raster bounds, every run of a strip, clashing file names, ID-933) · **Date:** 2026-10-30 · **Work package:**
 [WP-S1.22](../02-work-packages.md#wp-s122-cli-surface-and-api-stability-guard) · **Decision log:** ID-895 · **Part
 of:** ElektraWatt plan, specifications
 
@@ -220,7 +220,9 @@ writes a PDF of folios 908, 908.1 and 908.2 only; `--format xlsx` exits 2 naming
 equals `expected/csv/wires.csv` (44 wires and 6 bridges); `ew export terminals --strip -X1031` equals
 `expected/csv/terminals_X1031.csv`, and without `--strip` the three strips 1X1, -X1031 and -X1032 (3, 20 and 5 rows);
 `ew export bom --block <id of 901>` equals the default. **OU-5** CI-PR-05 runs `ew render --page 103 --png` in the
-container and compares the digest with `expected/png/103.png`'s (NFR-PLAT-04). **OU-6** `--json` results for each new
+container and compares the digest with `expected/png/103.png`'s (NFR-PLAT-04). *As built (cycle 40, ID-925, ID-937):*
+OU-1 to OU-4 and OU-6 met; OU-2 met on Windows and on a Linux host; OU-5 built, proven by CI at the cycle's delivery.
+**OU-6** `--json` results for each new
 subcommand (part 1's rule); targeted checks for `ew`, `ew-api`, `ew-reports`.
 
 ## 7. Part 3: format, recovery and import

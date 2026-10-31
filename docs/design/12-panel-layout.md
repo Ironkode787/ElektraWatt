@@ -1,6 +1,6 @@
 # Panel layout: 2D, 3D, routing, wire lengths and thermal
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · Amended 2026-10-31, cycle 40 (WP-S4.01 part 2, decision log ID-932): §2.6's MVP queries, §2.7's predicate and Open question 3 as built · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document designs the physical side of an ElektraWatt (EW) project: layout spaces, enclosures and
 mounting surfaces modelled at 1:1 in nanometres, rails and ducts as parametric carriers, placements bound to
@@ -258,6 +258,24 @@ Optional accuracy fields for robot wiring stay out of v1 (PARK-07); the record i
 | `wire_length(wire)` | `LengthBreakdown`, source | I (reads committed) | committed route, policy, overrides |
 | `thermal(space)` | `ThermalResult` | II, job | placements, loss models, load model, enclosure, inputs, coefficient set |
 
+*As built (cycle 40, WP-S4.01 part 2; decision log ID-932).* The MVP's queries are in `ew_derive::layout` (D2: no
+`ew-panel` crate yet), and none is stored: a footprint, a label, the unplaced list and an occupancy are derived from
+the placement records and the part data each time. Values are integer nanometres in the mounting surface's frame
+(u right, v up), exact, since carriers are axis-parallel and turns are quarter turns. `mountable(dev)` (D8, cold; §2.7
+as built); `unplaced(space)` (memo): the mountable devices of the space's location without a placement, in natural
+order of their full tag, a device of another location never listed, `Session::unplaced` in the API (Golden A: F55,
+E55, E56, S56, -201U9); `placement_geometry(p)` (memo): the footprint and outline in the surface frame and the unknown
+flag only (no OBB, CP3D or keep-outs at the MVP): on a rail the clip point lies on the axis at u = `path[0].u` + s
+(-102G1 on R1: (101, 675)–(171, 805) mm), an unknown part is the 20 × 20 mm square about the pose, a strip is its
+terminals side by side, and a placement on a duct or a rail without a valid axis has none; `rail_occupancy(carrier)`
+(memo): intervals `(s0, s1, placement, device, locked, unknown)` in s along the rail, sorted, a strip one interval,
+overlaps kept for EW-LAY-006, no clearance padding and no group accessories yet (WP-S4.02); `layout_label(p, page, mode)`
+(memo): the device's displayed tag on the page (abbreviated) or its full designation, so renumbering changes the label
+and no layout record; a placement of one function prints its device's label without D10's ":" suffix (functions
+carry no designation member in format 0.1); `carrier_geometry(carrier)` (cold): the axis check, length, rail axis and
+outline, a rail's width from its profile. `strip_layout`, `carrier_order` and the rest of the table wait for their
+packages. The four memo families are in `verify-derived`'s sweep.
+
 ### 2.7 The mountable predicate
 
 EW-LAY-001 and the unplaced list need one exact definition of "a device that must appear in the layout of its
@@ -273,6 +291,17 @@ location":
 | Cable, conductor, wire, interruption point, external device | Exempt | -106W1, -3W1 |
 | Enclosure and surface devices | Exempt: they are the layout | -UC1, NSYPMM107 plate |
 | Integral device (kind `PeStud`, no part, parent = a surface's device) | Exempt; its CPs take their 3D position from the parent part's CP3D (the plate's PE stud), so wires to it stay routable | -XPE (waiver W-1); W6 ends on the plate's PE stud |
+
+*As built (cycle 40, WP-S4.01 D8; decision log ID-932).* `ew_derive::layout::Mountable`, first match wins: (1) a device
+whose location has no layout space is not considered (*supplied by others* waits for its attribute, FT-209); (2) the
+device of an enclosure or a surface is exempt; (3) a strip with terminals is mountable as one placement without a
+part; (4) a terminal of a strip, a cable and a device without functions are exempt; (5) a part use whose part has a
+mount kind other than `none` and `on_parent` is mountable, the first such use the primary part; (6) part uses that
+are all `on_parent` or `none` are exempt; (7) part uses without a mount kind are mountable with an unknown footprint;
+(8) a device without parts whose functions are all of the PE point's FnDef category is exempt as an integral PE point
+(-XPE, by its FnDef category rather than a `PeStud` kind); (9) any other device without parts is mountable with an
+unknown footprint. Assembly children are not exempt by being children: "with its parent" holds only through
+`on_parent`.
 
 ---
 
@@ -1217,7 +1246,10 @@ for:
 3. **Golden plate and rail geometry.** U-26 fixes the enclosure test size and the scale but not the plate's usable
    area, the rail lengths or the gland plate. *Recommendation:* add test values to [20](20-golden-project.md) §13
    (for example a 650 × 900 mm usable plate and a bottom gland surface ▲) and confirm the real NSYPMM107 data with
-   the pilot (PQ-24).
+   the pilot (PQ-24). **Resolved (cycle 40, WP-S4.01 D13; decision log ID-932):** [20](20-golden-project.md) §13's
+   test geometry (▲U-50): the plate 650 × 900 mm, centred at plate frame (50, 50) mm in the 750 × 1000 × 420 mm
+   enclosure, the eight carriers in plate millimetres (rails 1.71 m, ducts 3.17 m) and the twenty placements; no gland
+   surface at the MVP; the real NSYPMM107 data stay a pilot question (PQ-24).
 4. **End brackets: per strip or per group.** Golden BOM row 26 has 4 brackets for 3 abutting strips, while
    [07](07-symbols-parts-macros.md) OQ5 proposed authored part uses on strips at MVP, which would give 6 unless
    hand-adjusted; FR-TRM-016 (1.0) already expects 4. **Resolved:** end brackets are derived from the rail occupancy
