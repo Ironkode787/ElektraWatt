@@ -160,15 +160,27 @@ fn prefer_numbered(
     let unassigned = |n: &NumberSpec| matches!(n, NumberSpec::Unassigned);
     if !unassigned(&n1) && !unassigned(&n2) && n1 != n2 {
         return tx.reject(format!(
-            "{} would merge two wires that carry different numbers; clear one of the numbers or delete \
-             the wires separately",
-            crate::words::junction(tx, j)
+            "{} would merge a wire {} and a wire {}, which carry different numbers; clear one of the \
+             numbers or delete the wires separately",
+            crate::words::junction(tx, j),
+            number_words(&n1),
+            number_words(&n2)
         ));
     }
     if unassigned(&n1) && !unassigned(&n2) {
         Ok((second, first))
     } else {
         Ok((first, second))
+    }
+}
+
+/// A wire's number in words for a refusal (FT-779): `numbered "101"`, or how it is numbered.
+fn number_words(n: &NumberSpec) -> String {
+    match n {
+        NumberSpec::Frozen(i) => format!("numbered \"{i}\""),
+        NumberSpec::Assigned(_) => "with an assigned number".to_owned(),
+        NumberSpec::Unassigned => "without a number".to_owned(),
+        NumberSpec::Unknown(_) => "with a number of a newer format".to_owned(),
     }
 }
 

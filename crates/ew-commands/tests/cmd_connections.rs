@@ -443,8 +443,9 @@ fn a_junction_that_cannot_merge_two_numbers_is_named_in_words() {
     }) {
         Err(CmdError::Rejected { reason, .. }) => assert_eq!(
             reason,
-            "the junction at x 120, y 45.5 mm on page 102 would merge two wires that carry different \
-             numbers; clear one of the numbers or delete the wires separately"
+            "the junction at x 120, y 45.5 mm on page 102 would merge a wire numbered \"101\" and a wire \
+             numbered \"102\", which carry different numbers; clear one of the numbers or delete the \
+             wires separately"
         ),
         other => panic!("expected a rejection, got {other:?}"),
     }
