@@ -8,7 +8,9 @@
 //! A top-level `.rs` file under a package's `tests/` is allowed only when it is one of the separate binaries
 //! in [`SEPARATE`] (a workflow, xtask, nextest, a bless command or a data-file header names it), or when it is
 //! the package's only loose test file and the package has no `tests/it/`. Subdirectories (helpers such as
-//! `tests/common/`, data, a directory binary with its own `main.rs`) are not checked.
+//! `tests/common/`, data, a directory binary with its own `main.rs`) are not checked. Inside `tests/it/`, every file
+//! other than `main.rs` and every subdirectory with Rust files must be declared by a `mod` line of `main.rs`, or it
+//! compiles in no binary (FT-886).
 //!
 //! The check also reads every `--test <name>` in the repository's text files (code, Markdown, TOML, YAML,
 //! JSON, scripts): `<name>` must be a test binary of the package that the command names with `-p`, or of any
@@ -107,8 +109,120 @@ pub fn check(root: &Path) -> Vec<String> {
                  nextest names: add it to the list in xtask/src/test_layout.rs)"
             ));
         }
+        v.extend(undeclared_it_modules(package, &tests.join("it")));
     }
     v
+}
+
+/// The files and subdirectories of a package's `tests/it/` that its `main.rs` does not declare (FT-886): such a file
+/// compiles in no test binary, so its tests never run. Every `tests/it/*.rs` other than `main.rs`, and every
+/// subdirectory that holds a `.rs` file, needs a `mod <name>;` line in `main.rs`; a module with a `#[path]`
+/// attribute declares the attribute's target instead of its own name. A subdirectory without Rust files (data) is
+/// not a module and is not checked.
+fn undeclared_it_modules(package: &str, it: &Path) -> Vec<String> {
+    let Ok(main) = std::fs::read_to_string(it.join("main.rs")) else {
+        return Vec::new();
+    };
+    let declared = declared_it_entries(&main);
+    let mut entries: Vec<(String, bool)> = std::fs::read_dir(it)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|e| {
+            let path = e.path();
+            let file = e.file_name().to_str()?.to_owned();
+            if path.is_dir() {
+                holds_rust(&path).then_some((file, true))
+            } else {
+                let stem = file.strip_suffix(".rs")?;
+                (stem != "main").then(|| (stem.to_owned(), false))
+            }
+        })
+        .collect();
+    entries.sort();
+    entries
+        .into_iter()
+        .filter(|(name, _)| !declared.contains(name))
+        .map(|(name, dir)| {
+            let (shown, what) = if dir {
+                (format!("{name}/"), "a directory of test files")
+            } else {
+                (format!("{name}.rs"), "a test file")
+            };
+            format!(
+                "{package}/tests/it/{shown}: {what} that {package}/tests/it/main.rs does not declare compiles in no \
+                 test binary; add `mod {name};` to {package}/tests/it/main.rs"
+            )
+        })
+        .collect()
+}
+
+/// Whether `dir` holds a `.rs` file, at any depth.
+fn holds_rust(dir: &Path) -> bool {
+    std::fs::read_dir(dir).into_iter().flatten().flatten().any(|e| {
+        let path = e.path();
+        if path.is_dir() {
+            holds_rust(&path)
+        } else {
+            path.extension().is_some_and(|x| x == "rs")
+        }
+    })
+}
+
+/// The names of `tests/it/` that the `mod` lines of its `main.rs` declare: a file stem or a subdirectory name. A
+/// `#[path = "…"]` attribute before a `mod` line declares its target (when it lies inside `tests/it/`) instead of the
+/// module's own name.
+fn declared_it_entries(main: &str) -> std::collections::BTreeSet<String> {
+    let mut declared = std::collections::BTreeSet::new();
+    let mut path_target: Option<String> = None;
+    for line in main.lines() {
+        let line = line.trim();
+        if let Some(rest) = line.strip_prefix("#[path") {
+            path_target = rest.split('"').nth(1).map(str::to_owned);
+            continue;
+        }
+        let item = match line.strip_prefix("pub") {
+            Some(rest) if rest.starts_with('(') => rest.split_once(')').map_or("", |(_, r)| r).trim_start(),
+            Some(rest) if rest.starts_with(' ') => rest.trim_start(),
+            _ => line,
+        };
+        let Some(rest) = item.strip_prefix("mod ") else {
+            continue;
+        };
+        let name: String = rest
+            .trim_start()
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
+        match path_target.take() {
+            Some(target) => declared.extend(it_entry_of_path(&target)),
+            None if !name.is_empty() => {
+                declared.insert(name);
+            }
+            None => {}
+        }
+    }
+    declared
+}
+
+/// The `tests/it/` entry a `#[path]` target relative to `tests/it/` names: the file stem of a direct child, or the
+/// first subdirectory of a deeper one; `None` when the target lies outside `tests/it/`.
+fn it_entry_of_path(target: &str) -> Option<String> {
+    let mut parts: Vec<&str> = vec!["it"];
+    for c in target.split(['/', '\\']) {
+        match c {
+            "" | "." => {}
+            ".." => {
+                parts.pop()?;
+            }
+            c => parts.push(c),
+        }
+    }
+    match parts.as_slice() {
+        ["it", file] => file.strip_suffix(".rs").map(str::to_owned),
+        ["it", dir, _, ..] => Some((*dir).to_owned()),
+        _ => None,
+    }
 }
 
 /// A package and its test binaries, as cargo discovers them.
@@ -349,7 +463,7 @@ mod tests {
     #[test]
     fn a_loose_file_beside_the_it_binary_fails_with_where_it_belongs() {
         let dir = fresh("loose");
-        touch(&dir, "crates/ew-format/tests/it/main.rs");
+        write(&dir, "crates/ew-format/tests/it/main.rs", "mod roundtrip;\n");
         touch(&dir, "crates/ew-format/tests/it/roundtrip.rs");
         touch(&dir, "crates/ew-format/tests/limits.rs");
         touch(&dir, "crates/ew-format/tests/common/mod.rs");
@@ -405,6 +519,64 @@ mod tests {
             ))
             .collect();
         assert_eq!(v, expected);
+    }
+
+    fn write(root: &Path, rel: &str, text: &str) {
+        let path = root.join(rel);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    }
+
+    /// FT-886: a `tests/it/` file or subdirectory that `main.rs` does not declare fails, naming the line to add; a
+    /// declared file, a declared subdirectory, a `#[path]` target inside `tests/it/` and a data directory pass. A
+    /// `#[path]` module declares its target, not its own name.
+    #[test]
+    fn an_undeclared_file_or_subdirectory_of_it_fails_with_the_line_to_add() {
+        let dir = fresh("undeclared");
+        write(
+            &dir,
+            "crates/ew-dl/tests/it/main.rs",
+            "#[path = \"../common/mod.rs\"]\nmod common;\nmod declared;\npub(crate) mod nested;\n\
+             #[path = \"aliased_file.rs\"]\nmod alias;\n#[path = \"../it/deep/inner.rs\"]\nmod deep_inner;\n",
+        );
+        touch(&dir, "crates/ew-dl/tests/common/mod.rs");
+        touch(&dir, "crates/ew-dl/tests/it/declared.rs");
+        touch(&dir, "crates/ew-dl/tests/it/nested/mod.rs");
+        touch(&dir, "crates/ew-dl/tests/it/aliased_file.rs");
+        touch(&dir, "crates/ew-dl/tests/it/deep/inner.rs");
+        touch(&dir, "crates/ew-dl/tests/it/data/input.json");
+        // Undeclared: a file, a subdirectory, and `common.rs` (the `mod common` line declares `../common/mod.rs`).
+        touch(&dir, "crates/ew-dl/tests/it/forgotten.rs");
+        touch(&dir, "crates/ew-dl/tests/it/lost/mod.rs");
+        touch(&dir, "crates/ew-dl/tests/it/common.rs");
+        let v = check(&dir);
+        std::fs::remove_dir_all(&dir).unwrap();
+        let expected: Vec<String> = [
+            ("common.rs", "a test file", "common"),
+            ("forgotten.rs", "a test file", "forgotten"),
+            ("lost/", "a directory of test files", "lost"),
+        ]
+        .iter()
+        .map(|(shown, what, name)| {
+            format!(
+                "crates/ew-dl/tests/it/{shown}: {what} that crates/ew-dl/tests/it/main.rs does not declare compiles \
+                 in no test binary; add `mod {name};` to crates/ew-dl/tests/it/main.rs"
+            )
+        })
+        .collect();
+        assert_eq!(v, expected);
+    }
+
+    /// FT-886: a package whose `tests/it/` files are all declared passes.
+    #[test]
+    fn a_declared_it_tree_passes() {
+        let dir = fresh("declared");
+        write(&dir, "crates/ew-dl/tests/it/main.rs", "mod a;\nmod b;\n");
+        touch(&dir, "crates/ew-dl/tests/it/a.rs");
+        touch(&dir, "crates/ew-dl/tests/it/b/mod.rs");
+        let v = check(&dir);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(v, Vec::<String>::new());
     }
 
     #[test]
