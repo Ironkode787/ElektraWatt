@@ -48,7 +48,7 @@ count = 1
 [[allow]]
 crate = "ew-api"
 item = "fn bless"
-count = 3
+count = 4
 
 [[allow]]
 crate = "ew-api"

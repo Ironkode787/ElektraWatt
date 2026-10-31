@@ -13,7 +13,7 @@
 | [`ew export cables`](export.md#ew-export-cables) | `--project`, `--block`, `--format`, `--out`, `--json` | `ew.export-cables-result/1` |
 | [`ew export pdf`](export.md#ew-export-pdf) | `--project`, `--out`, `--pages`, `--threads`, `--json` | `ew.export-pdf-result/1` |
 | [`ew export png`](export.md#ew-export-png) | `--project`, `--out`, `--pages`, `--dpi`, `--threads`, `--json` | `ew.export-png-result/1` |
-| [`ew export report`](export.md#ew-export-report) | `--project`, `--block`, `--format`, `--out`, `--json` | `ew.export-report-result/1` |
+| [`ew export report`](export.md#ew-export-report) | `--project`, `--block`, `--kind`, `--format`, `--out`, `--json` | `ew.export-report-result/1` |
 | [`ew export svg`](export.md#ew-export-svg) | `--project`, `--out`, `--pages`, `--threads`, `--json` | `ew.export-svg-result/1` |
 | [`ew export terminals`](export.md#ew-export-terminals) | `--project`, `--block`, `--strip`, `--format`, `--out`, `--json` | `ew.export-terminals-result/1` |
 | [`ew export wires`](export.md#ew-export-wires) | `--project`, `--block`, `--format`, `--out`, `--json` | `ew.export-wires-result/1` |

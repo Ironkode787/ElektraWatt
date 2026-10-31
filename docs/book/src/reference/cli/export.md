@@ -139,7 +139,7 @@ Stability: preview.
 ## `ew export report`
 
 ```text
-ew export report [--project <project>] [--block <block>] [--format <format>] [--out <out>] [--json]
+ew export report [--project <project>] [--block <block>] [--kind <kind>] [--format <format>] [--out <out>] [--json]
 ```
 
 Stability: preview.
@@ -148,6 +148,7 @@ Stability: preview.
 |---|---|---|
 | `--project` | yes | no |
 | `--block` | yes | no |
+| `--kind` | yes | no |
 | `--format` | yes | no |
 | `--out` | yes | no |
 | `--json` | no | no |
@@ -164,7 +165,7 @@ Stability: preview.
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `$schema` | `"ew.export-report-result/1"` | yes |  | The name of this schema. |
-| `block` | string | yes |  | The report block's ID. |
+| `block` | string | yes |  | The report block's ID; empty for `--kind`. |
 | `csv` | string or `null` | no |  | The CSV text when it goes to stdout; else `null`. |
 | `folios` | array of string or `null` | no |  | For PDF: the folio labels of the block's pages written, in page order; `null` for CSV. |
 | `format` | string | yes |  | `csv` or `pdf`. |
