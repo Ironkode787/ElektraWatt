@@ -12,6 +12,7 @@
 
 use egui::{Align, Layout, RichText, Sense, Ui, vec2};
 use ew_viewmodel::actions::Context;
+use ew_viewmodel::keymap::EditorRow;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::json;
@@ -20,8 +21,15 @@ use crate::app::Event;
 use crate::components::{self, Kind};
 use crate::theme;
 
-/// The rows the list shows before it scrolls.
-const VISIBLE_ROWS: f32 = 12.0;
+/// The share of the window's height the list may take before it scrolls (doc 16a §2: a list dialog fits its content
+/// up to a share of the window, so it grows at 1920 × 1080; W40b).
+const LIST_SHARE: f32 = 0.5;
+
+/// The most a row's keys column takes of the columns' room (it fits its widest chips below that).
+const KEYS_SHARE: f32 = 0.25;
+
+/// The most a row's "where" column takes of the columns' room (it fits its widest text below that).
+const WHERE_SHARE: f32 = 0.35;
 
 /// The width of a row's Record and Reset buttons (a dialog button's minimum, doc 16a §6.2).
 const BUTTON_WIDTH: f32 = 72.0;
@@ -70,6 +78,36 @@ fn record(ui: &Ui, action: &'static str, events: &mut Vec<Event>) {
     }
 }
 
+/// The number of whole rows of `row_height` the list shows in a window `window_height` high with `rows` rows: as many
+/// as fit in [`LIST_SHARE`] of the window, never fewer than one, never more than there are (W40b: the list never
+/// ends in a half-cut row, and it grows with the window).
+pub(crate) fn visible_rows(window_height: f32, row_height: f32, rows: usize) -> usize {
+    let fit = (window_height * LIST_SHARE / row_height.max(1.0)).floor() as usize;
+    fit.max(1).min(rows)
+}
+
+/// The widths of the action, keys and "where" columns in `room` points: the keys and "where" columns fit their widest
+/// content (`keys_need`, `where_need`) up to [`KEYS_SHARE`] and [`WHERE_SHARE`] of the room, and the action column
+/// takes the rest (W40b: the action column takes the free width).
+pub(crate) fn columns(room: f32, keys_need: f32, where_need: f32) -> (f32, f32, f32) {
+    let keys = keys_need.min(room * KEYS_SHARE);
+    let place = where_need.min(room * WHERE_SHARE);
+    ((room - keys - place).max(0.0), keys, place)
+}
+
+/// The text of a row's "where" cell: where its keys apply, "Changed" for the user's own, "shadows" when it shadows.
+fn where_text(row: &EditorRow) -> String {
+    let mut place = strings::text(context_key(row.context)).to_owned();
+    if row.custom {
+        place = format!("{place} · {}", strings::text("keymap-custom"));
+    }
+    if row.notes.is_empty() {
+        place
+    } else {
+        format!("{place} · {}", strings::text("keymap-shadows"))
+    }
+}
+
 /// Paints the editor's content between the dialog's title and its footer.
 pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
@@ -113,12 +151,40 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
         }
     }
     let rows = shell.keymap_rows();
-    let row_height = t.size_row;
+    // A row is as high as its Record and Reset buttons, with no gap between rows, so the list's height is a whole
+    // number of rows (W40b).
+    let row_height = t.size_row.max(t.size_control);
     let width = ui.available_width();
-    // Column widths as shares of the dialog's body, so they grow with the dialog (doc 16a §2, ID-908).
-    // Five cells (three columns and two 72-px buttons) with four `space.3` gaps between them.
-    let rest = (width - 2.0 * BUTTON_WIDTH - 4.0 * t.space_3).max(0.0);
-    let (label_w, keys_w, where_w) = (rest * 0.40, rest * 0.25, rest * 0.35);
+    // Five cells (three columns and two 72-px buttons) with four `space.3` gaps between them. The keys and "where"
+    // columns fit their widest content; the action column takes the rest of the dialog's body, which grows with the
+    // window (doc 16a §2, ID-908; W40b).
+    let room = (width - 2.0 * BUTTON_WIDTH - 4.0 * t.space_3).max(0.0);
+    let (keys_need, where_need) = {
+        let painter = ui.painter();
+        let measure = |text: String, font: &theme::TypeToken| {
+            painter
+                .layout_no_wrap(text, theme::font(font), theme::NO_TINT)
+                .size()
+                .x
+        };
+        let mut keys = measure(strings::text("keymap-recording").to_owned(), &t.type_small);
+        let mut place = 0.0_f32;
+        for row in &rows {
+            let chips = row
+                .chords
+                .iter()
+                .map(|c| {
+                    measure(crate::keys::display(c).replace('+', " "), &t.type_caption) + 2.0 * t.space_2
+                })
+                .sum::<f32>()
+                + t.space_1 * row.chords.len().saturating_sub(1) as f32;
+            keys = keys.max(chips);
+            place = place.max(measure(where_text(row), &t.type_small));
+        }
+        (keys, place)
+    };
+    let (label_w, keys_w, where_w) = columns(room, keys_need, where_need);
+    let shown = visible_rows(ui.ctx().content_rect().height(), row_height, rows.len());
     if rows.is_empty() {
         ui.label(
             RichText::new(strings::text("keymap-none"))
@@ -126,8 +192,9 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                 .color(t.text_secondary.color32()),
         );
     }
+    let gap = std::mem::replace(&mut ui.spacing_mut().item_spacing.y, 0.0);
     egui::ScrollArea::vertical()
-        .max_height(row_height * VISIBLE_ROWS)
+        .max_height(row_height * shown as f32)
         .auto_shrink([false, true])
         .show_rows(ui, row_height, rows.len(), |ui, range| {
             for row in &rows[range] {
@@ -136,6 +203,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                     Layout::left_to_right(Align::Center),
                     |ui| {
                         ui.spacing_mut().item_spacing.x = t.space_3;
+                        // A cut action label shows its whole text on hover (egui's truncated label does).
                         cell(ui, label_w, row_height, |ui| {
                             let mut text = RichText::new(&row.label)
                                 .font(theme::font(&t.type_body))
@@ -160,19 +228,15 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                             }
                         });
                         cell(ui, where_w, row_height, |ui| {
-                            let mut place = strings::text(context_key(row.context)).to_owned();
-                            if row.custom {
-                                place = format!("{place} · {}", strings::text("keymap-custom"));
-                            }
                             // A short tag in the cell; the full text on hover and, for a changed row, below the list.
-                            let (colour, text) = if row.notes.is_empty() {
-                                (t.text_secondary, place)
+                            let colour = if row.notes.is_empty() {
+                                t.text_secondary
                             } else {
-                                (t.info, format!("{place} · {}", strings::text("keymap-shadows")))
+                                t.info
                             };
                             let label = ui.add(
                                 egui::Label::new(
-                                    RichText::new(&text)
+                                    RichText::new(where_text(row))
                                         .font(theme::font(&t.type_small))
                                         .color(colour.color32()),
                                 )
@@ -212,6 +276,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                 );
             }
         });
+    ui.spacing_mut().item_spacing.y = gap;
     // W40a 5a: the Menu key's note only while a shortcut is being recorded, under the list that shows the recording.
     if state.recording.is_some() {
         ui.label(
@@ -248,4 +313,32 @@ fn cell(ui: &mut Ui, width: f32, height: f32, content: impl FnOnce(&mut Ui)) {
         ui.set_clip_rect(ui.max_rect().intersect(ui.clip_rect()));
         content(ui);
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{columns, visible_rows};
+
+    /// W40b: the list shows whole rows, more in a taller window, never more than there are and never none.
+    #[test]
+    fn the_list_fits_whole_rows_and_grows_with_the_window() {
+        let (floor, typical) = (visible_rows(800.0, 32.0, 500), visible_rows(1080.0, 32.0, 500));
+        assert_eq!(floor, 12);
+        assert!(typical > floor, "{typical} rows at 1080");
+        assert_eq!(visible_rows(1080.0, 32.0, 3), 3, "a short list fits its content");
+        assert_eq!(visible_rows(20.0, 32.0, 500), 1);
+        assert_eq!(visible_rows(1080.0, 32.0, 0), 0);
+    }
+
+    /// W40b: the keys and "where" columns fit their content up to their shares; the action column takes the rest.
+    #[test]
+    fn the_action_column_takes_the_free_width() {
+        let (label, keys, place) = columns(600.0, 80.0, 120.0);
+        assert_eq!((label, keys, place), (400.0, 80.0, 120.0));
+        // Content wider than the shares: capped, the action column keeps the rest.
+        let (label, keys, place) = columns(400.0, 300.0, 300.0);
+        assert_eq!((label, keys, place), (160.0, 100.0, 140.0));
+        // A wider room goes to the action column alone.
+        assert_eq!(columns(800.0, 80.0, 120.0), (600.0, 80.0, 120.0));
+    }
 }

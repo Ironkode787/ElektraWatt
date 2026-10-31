@@ -8,14 +8,15 @@
 //! keeps off the earlier ones.
 //!
 //! **Obstacles** (FT-508): the outside of the canvas, the frame-statistics panel, the chrome the caller reports
-//! over the canvas (the tool HUD and the zoom control, [`crate::canvas::CanvasHost::set_chrome_obstacles`]), the
+//! over the canvas (the tool HUD, the zoom control and the tool options card,
+//! [`crate::canvas::CanvasHost::set_chrome_obstacles`]), the
 //! pointer's 16-point box, and every chip placed before. **Targets**: a label stands by its point; a highlight's
 //! name chip by the first vertex of its first drawn wire; a tag change by the printed tag text of the device's first
 //! representation on the page (`TableRep::tag_at`, FT-502), else the top-left corner of its body, else the Place
 //! tool's floating insertion point; a cross-reference change by its representation's body; the header right above
 //! the first placed change (its target is a point 8 points left of that chip's top-left corner, so the rule's
 //! preferred anchor is straight above it); changes the page does not draw, and the header without a placed change,
-//! stack from the canvas's top-left corner.
+//! stack from the canvas's top-left corner, below the chrome there ([`clear_corner`]).
 //!
 //! **Look** (doc 16a §7.4, §4.6): a canvas chip is `canvas.chip` (the inverse surface at 94 %) with
 //! `canvas.chip_text` in `type.small`, `radius.sm`, `space.2` by `space.1` padding and `elevation.1`; a highlight
@@ -289,9 +290,17 @@ fn preview(
             frames[k] = Some(placer.put(ChipKind::PreviewChange, text.clone(), point(*at)));
         }
     }
-    // The header straight above the first placed change, else in the corner; the unplaced changes below it.
+    // The header straight above the first placed change, else in the corner; the unplaced changes below it. The
+    // corner lies clear of the chrome there (W40b: the tool options card at the canvas's top left).
     let t = placer.tokens;
-    let corner = point(input.rect.min + Vec2::splat(t.space_4 - OFFSET));
+    let corner = clear_corner(
+        input.rect,
+        input.rect.min + Vec2::splat(t.space_4 - OFFSET),
+        placer.size(ChipKind::PreviewHeader, &header),
+        input.obstacles,
+        t.space_2,
+    );
+    let corner = point(corner);
     let head_target = frames
         .iter()
         .flatten()
@@ -325,6 +334,26 @@ fn preview(
     }
     ordered.extend(chips);
     placer.out.extend(ordered);
+}
+
+/// The target in the canvas `canvas`'s corner that the preview's unplaced chips stack from: `corner`, moved down until
+/// a chip of `size` below right of it (the rule's candidate there) overlaps none of the chrome `obstacles`, `gap`
+/// under the lowest one it met (W40b: the preview chip lies below the tool options card, never behind it). A corner
+/// pushed past the canvas's bottom stays where it was (the rule then fades the chip).
+pub fn clear_corner(canvas: Rect, corner: Pos2, size: Vec2, obstacles: &[Rect], gap: f32) -> Pos2 {
+    let mut at = corner;
+    for _ in 0..=obstacles.len() {
+        let chip = Rect::from_min_size(at + Vec2::splat(OFFSET), size);
+        match obstacles.iter().find(|o| to_vm(**o).overlaps(&to_vm(chip))) {
+            Some(o) => at.y = o.bottom() + gap - OFFSET,
+            None => break,
+        }
+    }
+    if at.y + OFFSET + size.y > canvas.bottom() {
+        corner
+    } else {
+        at
+    }
 }
 
 /// The colour `c` at the chip's opacity.
@@ -383,4 +412,33 @@ pub fn paint_popup_frame(ui: &Ui, clip: Rect, rect: Rect, folio: &str) {
     );
     painter.rect_filled(frame, crate::theme::radius(t.radius_sm), t.canvas_chip.color32());
     painter.galley(frame.min + pad, galley, t.canvas_chip_text.color32());
+}
+
+#[cfg(test)]
+mod tests {
+    use egui::{Rect, pos2, vec2};
+
+    use super::{OFFSET, clear_corner};
+
+    /// W40b: the preview's corner moves below the tool options card at the canvas's top left, and stays put when
+    /// nothing is there or when below the card would leave the canvas.
+    #[test]
+    fn the_preview_corner_lies_clear_of_the_tool_options_card() {
+        let canvas = Rect::from_min_max(pos2(530.0, 150.0), pos2(1870.0, 1070.0));
+        let corner = canvas.min + vec2(12.0 - OFFSET, 12.0 - OFFSET);
+        let size = vec2(200.0, 20.0);
+        // The card starts a little below the chip's top: it still overlaps the chip.
+        let card = Rect::from_min_max(pos2(541.0, 165.0), pos2(843.0, 240.0));
+        let at = clear_corner(canvas, corner, size, &[card], 4.0);
+        let chip = Rect::from_min_size(at + vec2(OFFSET, OFFSET), size);
+        assert_eq!(chip.top(), card.bottom() + 4.0, "below the card, a gap under it");
+        assert_eq!(chip.left(), canvas.left() + 12.0, "in the same column");
+        // Nothing there, or chrome elsewhere (the HUD at the bottom): the corner stays.
+        assert_eq!(clear_corner(canvas, corner, size, &[], 4.0), corner);
+        let hud = Rect::from_min_max(pos2(1000.0, 1020.0), pos2(1400.0, 1056.0));
+        assert_eq!(clear_corner(canvas, corner, size, &[hud], 4.0), corner);
+        // A card reaching the canvas's bottom: below it is outside, so the corner stays.
+        let tall = Rect::from_min_max(pos2(541.0, 165.0), pos2(843.0, 1065.0));
+        assert_eq!(clear_corner(canvas, corner, size, &[tall], 4.0), corner);
+    }
 }

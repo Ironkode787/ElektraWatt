@@ -483,8 +483,9 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
             .get_all_by_role(egui::Role::Button)
             .find(|n| {
                 n.accesskit_node().label().as_deref() == Some(label)
-                    // M39: the column is at least `size.property_label` wide and scales with the panel.
-                    && n.rect().width() >= tokens.size_property_label - 0.5
+                    // M39: the column scales with the panel; W40b: it gives way to a value down to half of
+                    // `size.property_label`.
+                    && n.rect().width() >= tokens.size_property_label / 2.0 - 0.5
             })
             .unwrap_or_else(|| panic!("the label {label}"))
             .rect();
@@ -548,9 +549,11 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
         }
         need
     };
+    // W40b: at the floor the column then gives way to the widest value it can make whole (or its first word), never
+    // under half of `size.property_label`.
     let expected = need.min(row_width * 0.4).max(tokens.size_property_label);
     assert!(
-        (column.width() - expected).abs() < 0.5,
+        column.width() <= expected + 0.5 && column.width() >= tokens.size_property_label / 2.0 - 0.5,
         "the label column {} against the rule's {expected} (widest label {need}, row {row_width})",
         column.width()
     );

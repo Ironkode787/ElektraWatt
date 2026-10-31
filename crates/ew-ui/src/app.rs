@@ -864,15 +864,20 @@ impl App {
         // WP-S2.17 part 2: the HUD, the zoom control and the tool options over the page view (doc 16a §5.5).
         self.page_pane = page_pane.filter(|_| canvas_shown);
         self.hud_rect = None;
+        let mut options_card = None;
         if let Some(pane) = self.page_pane {
             self.hud_rect = Some(crate::hud::show(&ctx, &self.shell, pane, &mut events));
             crate::hud::show_zoom(&ctx, &self.shell, pane, &mut events);
-            self.tool_options(&ctx, pane, &mut events);
+            options_card = self.tool_options(&ctx, pane, &mut events);
         }
         // OV2/OV6: the canvas painted before the HUD (whose place follows the pointer), so the chips keep off this
-        // frame's HUD and zoom control from the next frame on; the next input repaints anyway, no extra repaint.
+        // frame's HUD, zoom control and tool options card (W40b) from the next frame on; the next input repaints
+        // anyway, no extra repaint.
         let chrome: Vec<egui::Rect> = match (self.page_pane, self.hud_rect) {
-            (Some(pane), Some(hud)) => vec![hud, crate::hud::zoom_rect(&crate::theme::current(&ctx), pane)],
+            (Some(pane), Some(hud)) => [hud, crate::hud::zoom_rect(&crate::theme::current(&ctx), pane)]
+                .into_iter()
+                .chain(options_card)
+                .collect(),
             _ => Vec::new(),
         };
         for group in 0..crate::canvas::GROUPS {
@@ -1318,8 +1323,14 @@ impl App {
 
     /// The tool options card at the page view's top left (WP-S2.17 part 2): the fields of the IP tool (WP-S2.04 §9.1),
     /// the Text tool's binding, the Wire marker's fields and the Structure box's style and fields (WP-S2.04 §10.5),
-    /// which the removed tool strip held. Shown only while one of those tools runs.
-    fn tool_options(&mut self, ctx: &egui::Context, pane: egui::Rect, events: &mut Vec<Event>) {
+    /// which the removed tool strip held. Shown only while one of those tools runs; returns the card's frame (the
+    /// canvas chips keep off it, W40b).
+    fn tool_options(
+        &mut self,
+        ctx: &egui::Context,
+        pane: egui::Rect,
+        events: &mut Vec<Event>,
+    ) -> Option<egui::Rect> {
         let tool = self.shell.tool().name();
         let (ip, text, marker, structure_box) = (
             tool == "ip",
@@ -1328,7 +1339,7 @@ impl App {
             tool == "structure_box",
         );
         if !(ip || text || marker || structure_box) {
-            return;
+            return None;
         }
         let t = crate::theme::current(ctx);
         let externals = if ip || structure_box {
@@ -1349,7 +1360,7 @@ impl App {
             structure_location,
             ..
         } = self;
-        egui::Area::new(egui::Id::unique("tool-options"))
+        let card = egui::Area::new(egui::Id::unique("tool-options"))
             .fixed_pos(at)
             .order(egui::Order::Middle)
             .show(ctx, |ui| {
@@ -1388,6 +1399,7 @@ impl App {
                         });
                     });
             });
+        Some(card.response.rect)
     }
 
     fn apply(&mut self, event: Event) {

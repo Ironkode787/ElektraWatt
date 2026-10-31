@@ -5,11 +5,11 @@
 //! by WP-S2.17 part 4 (doc 16a §6.10).
 //!
 //! **Toasts.** At most three, stacked at the canvas's top right, `space.4` from its edges (under the canvas tabs), the
-//! newest at the top: 300 px wide, `color.surface.raised`, `elevation.2`, `radius.lg`, `space.4` padding; three
+//! newest at the top: 300 px wide (`size.toast`; W40b: [`TOAST_SHARE`] of a wider window), `color.surface.raised`, `elevation.2`, `radius.lg`, `space.4` padding; three
 //! columns with `space.3` gaps: the 20-px semantic icon ([`tone_icon`]: a result's worst severity with the icons of
 //! §6.24, else a check in `color.success` for a toast with an action, the info icon otherwise), the title in
-//! `type.body.strong` with a result's line of counts under it in `type.small` and `color.text.secondary` (the check's
-//! "4 errors, 25 warnings, 12 infos" on one line), and the action as a text link in `type.small` SemiBold
+//! `type.body.strong` with a result's line under it in `type.small` and `color.text.secondary` (the check's
+//! "4 errors, 25 warnings, 12 infos" on one line; a refusal's reason wrapped up to [`LINE_ROWS`] rows), and the action as a text link in `type.small` SemiBold
 //! `color.accent` (Undo, Open; disabled once it is no longer valid), and a 24-px Dismiss icon button. Each is a polite
 //! live region. Without a canvas (the start page) they stand at the window's top right under the command bar. Each
 //! goes 8 seconds after the frame that first showed it, on the window's clock ([`crate::app::App`] keeps the times); the
@@ -78,8 +78,31 @@ pub(crate) fn tone_icon(t: &Tokens, tone: NoteTone) -> (IconId, theme::Rgba) {
     }
 }
 
+/// The share of the window's width a toast takes once that is wider than `size.toast` (W40b; doc 16a §2: the UI
+/// grows with the space it has).
+pub(crate) const TOAST_SHARE: f32 = 0.22;
+
+/// The rows a toast's line wraps to before it is cut (W40b: a refusal's reason is never cut at one line; what does
+/// not fit in three rows is in the HUD, the log and the tooltip).
+pub(crate) const LINE_ROWS: usize = 3;
+
+/// A toast's width in a window `window` wide: `size.toast`, growing with the window ([`TOAST_SHARE`]).
+pub(crate) fn toast_width(t: &Tokens, window: f32) -> f32 {
+    crate::dialog::grown(t.size_toast, TOAST_SHARE, window)
+}
+
+/// The layout of a toast's line: wrapped at the text column, up to [`LINE_ROWS`] rows, then cut with an ellipsis.
+fn line_job(line: &str, font: egui::FontId, colour: egui::Color32) -> egui::text::LayoutJob {
+    let mut job =
+        egui::text::LayoutJob::single_section(line.to_owned(), egui::TextFormat::simple(font, colour));
+    job.wrap.max_rows = LINE_ROWS;
+    job.wrap.break_anywhere = false;
+    job
+}
+
 /// One toast (doc 16a §6.10).
 fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: &mut Vec<Event>) {
+    let width = toast_width(t, ui.ctx().content_rect().width());
     let frame = egui::Frame::new()
         .fill(t.surface_raised.color32())
         .stroke(theme::stroke(t.border_raised_width, t.border_default))
@@ -87,7 +110,7 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
         .shadow(theme::shadow(&t.elevation_2))
         .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_4)))
         .show(ui, |ui| {
-            let inner = t.size_toast - 2.0 * t.space_4;
+            let inner = width - 2.0 * t.space_4;
             ui.set_width(inner);
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = t.space_3;
@@ -100,9 +123,10 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
                     ui.spacing_mut().item_spacing.y = t.space_icon;
                     match n.lines() {
                         (title, Some(line)) => {
-                            // The title carries the whole text as the live region; the counts stay on one line
-                            // (FT-664: the waived and pending counts qualify the title, so the severities fit; a
-                            // longer line is cut with an ellipsis, whole in its tooltip, never wrapped).
+                            // The title carries the whole text as the live region. The line wraps (W40b: a refusal's
+                            // reason is never cut at one line) up to three rows, then is cut with an ellipsis, whole in
+                            // its tooltip; a check's counts stay on one line (FT-664: the waived and pending counts
+                            // qualify the title, so the severities fit).
                             let response = ui.add(
                                 egui::Label::new(
                                     RichText::new(title)
@@ -117,12 +141,12 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
                                 node.set_value(live);
                             });
                             ui.add(
-                                egui::Label::new(
-                                    RichText::new(line)
-                                        .font(theme::font(&t.type_small))
-                                        .color(t.text_secondary.color32()),
-                                )
-                                .truncate(),
+                                egui::Label::new(line_job(
+                                    line,
+                                    theme::font(&t.type_small),
+                                    t.text_secondary.color32(),
+                                ))
+                                .wrap(),
                             );
                         }
                         (_, None) => {
@@ -279,5 +303,42 @@ mod tests {
             tone_icon(&t, NoteTone::Success),
             (IconId::circle_check, t.success)
         );
+    }
+
+    /// W40b: a toast keeps `size.toast` at the floor, is wider at 1920 and stays inside a narrow window.
+    #[test]
+    fn the_toast_grows_with_the_window() {
+        let t = theme::tokens(Theme::Light, Density::Comfortable);
+        assert_eq!(toast_width(&t, 1280.0), t.size_toast);
+        let typical = toast_width(&t, 1920.0);
+        assert!(typical > t.size_toast && typical < 1920.0, "{typical} at 1920");
+        assert_eq!(toast_width(&t, 200.0), 200.0);
+    }
+
+    /// W40b: a refusal's reason wraps at word boundaries up to three rows, then is cut with an ellipsis.
+    #[test]
+    fn the_line_wraps_up_to_three_rows() {
+        let ctx = egui::Context::default();
+        let reason =
+            "0V already has a source on page 101. Press D for a target, or mark one source as the star.";
+        let mut rows = (0, 0);
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let t = theme::tokens(Theme::Light, Density::Comfortable);
+            let font = theme::font(&t.type_small);
+            let mut job = line_job(reason, font.clone(), theme::NO_TINT);
+            job.wrap.max_width = 120.0;
+            let short = ui.painter().layout_job(job);
+            let mut job = line_job(reason, font, theme::NO_TINT);
+            job.wrap.max_width = 260.0;
+            let wide = ui.painter().layout_job(job);
+            assert!(
+                short.elided && !wide.elided,
+                "cut only when three rows do not hold it"
+            );
+            rows = (short.rows.len(), wide.rows.len());
+        });
+        output.textures_delta.clear();
+        assert_eq!(rows.0, LINE_ROWS);
+        assert!(rows.1 > 1 && rows.1 <= LINE_ROWS, "{} rows", rows.1);
     }
 }
