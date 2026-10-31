@@ -500,6 +500,8 @@ pub enum MissingReason {
     CrossSection,
     /// A colour.
     Colour,
+    /// A manufacturer: the part's manufacturer copy is absent and the reference keeps no key (FT-876).
+    Manufacturer,
 }
 
 /// The destination of one cell's link: the PDF turns it into a link annotation, the canvas into a jump.

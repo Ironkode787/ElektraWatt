@@ -8,7 +8,7 @@ use ew_derive::Q;
 use ew_derive::ew_schema::{AnyId, OrderUnit, ReportBlock};
 use ew_derive::layout::{LegendItem, layout_legend, page_surface};
 
-use super::parts::{manufacturer_text, part_number_cell, qty_cell, unit_symbol};
+use super::parts::{manufacturer_cell, part_number_cell, qty_cell, unit_symbol};
 use crate::kind::{EmbeddedLayout, ReportKindDef};
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowSet};
 
@@ -67,7 +67,7 @@ impl ReportKindDef for EnclosureLegend {
             let copy = row.part.as_ref().and_then(|p| q.parts().get(p.copy));
             let (manufacturer, part_number, description, unit) = match copy {
                 Some(copy) => (
-                    Cell::Ident(manufacturer_text(q, &copy.item.manufacturer)),
+                    manufacturer_cell(q, &copy.item.manufacturer),
                     part_number_cell(copy.item.part_number.as_str()),
                     Cell::Text(copy.item.description.clone()),
                     copy.item.unit.clone(),

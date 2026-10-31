@@ -87,6 +87,7 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
         Cell::Missing(MissingReason::Part) => "part missing".to_owned(),
         Cell::Missing(MissingReason::CrossSection) => "cross-section missing".to_owned(),
         Cell::Missing(MissingReason::Colour) => "colour missing".to_owned(),
+        Cell::Missing(MissingReason::Manufacturer) => "manufacturer missing".to_owned(),
         Cell::Stale(v, _) => format!("≈ {}", render(q, v, opts)),
         Cell::Empty => String::new(),
     }

@@ -24,3 +24,5 @@ SPDX-License-Identifier: CC-BY-4.0
   `ew.queries-result/1`, the text of `crates/ew-api/api/queries.json`)
 - text-change: cli ew import csv, the window's import (a table refused for a stray quote, a stray carriage return or
   an unterminated quoted field names the column too: "table refused: line 2, column 3: stray quote"; FT-880)
+- text-change: reports parts_summary, parts_list, part_data, enclosure_legend (a manufacturer whose copy is missing
+  and whose reference keeps no key prints "manufacturer missing" instead of the item's UUID; FT-876)

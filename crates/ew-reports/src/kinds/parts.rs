@@ -13,7 +13,9 @@ use ew_derive::{
 };
 
 use crate::kind::ReportKindDef;
-use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, QtyUnit, Row, RowId, RowKey, RowSet};
+use crate::rowset::{
+    Cell, CellType, ColumnDef, LinkRef, LinkTarget, MissingReason, QtyUnit, Row, RowId, RowKey, RowSet,
+};
 
 /// The summarised parts list (EPLAN `.f02`).
 ///
@@ -100,7 +102,7 @@ impl PartsSummary {
                 Cell::Ident(pos),
                 qty_cell(row.qty),
                 Cell::Ident(unit_symbol(&row.unit)),
-                Cell::Ident(manufacturer_text(q, &row.manufacturer)),
+                manufacturer_cell(q, &row.manufacturer),
                 part_number_cell(&row.part_number),
                 Cell::Text(row.description.clone()),
                 Cell::Range(row.devices.clone()),
@@ -163,7 +165,7 @@ impl ReportKindDef for PartsList {
                         Cell::Tag(device),
                         qty_cell(line.qty),
                         Cell::Ident(unit_symbol(&part.unit)),
-                        Cell::Ident(manufacturer_text(q, &part.manufacturer)),
+                        manufacturer_cell(q, &part.manufacturer),
                         part_number_cell(part.part_number.as_str()),
                         Cell::Text(part.description.clone()),
                     ],
@@ -222,14 +224,15 @@ pub(super) fn unit_symbol(unit: &OrderUnit) -> String {
     }
 }
 
-/// A readable text of a manufacturer reference: the name of the embedded manufacturer copy, else the `key` a file
-/// written before WP-S1.19 part 3 keeps on the reference (`ew_derive::manufacturer_name`), else the item ID.
-pub(super) fn manufacturer_text(q: &Q, m: &LibRef) -> String {
+/// The manufacturer cell of a manufacturer reference: the name of the embedded manufacturer copy, else the `key` a
+/// file written before WP-S1.19 part 3 keeps on the reference (`ew_derive::manufacturer_name`), else "manufacturer
+/// missing", never the item ID (FT-876). A copy with an empty name prints its empty name.
+pub(super) fn manufacturer_cell(q: &Q, m: &LibRef) -> Cell {
     let name = manufacturer_name(q, m);
     if name.is_empty() && manufacturer_copy(q, m).is_none() {
-        return m.item.as_uuid().to_string();
+        return Cell::Missing(MissingReason::Manufacturer);
     }
-    name
+    Cell::Ident(name)
 }
 
 /// The part-number cell: `Tbd` when empty or "TBD".
@@ -244,7 +247,7 @@ pub(super) fn part_number_cell(part_number: &str) -> Cell {
 /// The manufacturer, part-number and description cells of a part.
 pub(super) fn part_cells(q: &Q, part: &Part) -> [Cell; 3] {
     [
-        Cell::Ident(manufacturer_text(q, &part.manufacturer)),
+        manufacturer_cell(q, &part.manufacturer),
         part_number_cell(part.part_number.as_str()),
         Cell::Text(part.description.clone()),
     ]
@@ -280,5 +283,47 @@ mod tests {
         let b = line_id(prefix, &lines, 1);
         assert_ne!(a, b);
         assert_ne!(a.to_string(), b.to_string());
+    }
+
+    /// FT-876: a manufacturer reference with no embedded copy and no `key` prints "manufacturer missing", never the
+    /// item ID; with a `key` it prints the key. Ruling 2 of the FT42 brief: "(a). FT42 edits that one line" of
+    /// `enclosure_legend`, so every caller of `manufacturer_cell` (the summary, the list, `part_cells` and the
+    /// enclosure legend) shows the missing cell.
+    #[test]
+    fn a_missing_manufacturer_prints_the_missing_cell_not_its_id() {
+        use ew_derive::ew_schema::{Project, Record};
+
+        use crate::render::{RenderOptions, render};
+
+        let project: Project = serde_json::from_value(serde_json::json!({
+            "id": Uuid::from_u128(1).hyphenated().to_string(),
+            "derivation_profile": "2027.1",
+        }))
+        .unwrap();
+        let m = ew_model::Model::from_records(project, Vec::<Record>::new(), []).unwrap();
+        let q = Q::new(&m);
+        let item = Uuid::from_u128(0x7001);
+        let reference = |key: Option<&str>| -> LibRef {
+            let mut v = serde_json::json!({
+                "library": Uuid::from_u128(0x7000).hyphenated().to_string(),
+                "item": item.hyphenated().to_string(),
+                "version_req": "^1",
+            });
+            if let Some(key) = key {
+                v["key"] = key.into();
+            }
+            serde_json::from_value(v).unwrap()
+        };
+
+        let missing = manufacturer_cell(&q, &reference(None));
+        assert_eq!(missing, Cell::Missing(MissingReason::Manufacturer));
+        let text = render(&q, &missing, &RenderOptions::default());
+        assert_eq!(text, "manufacturer missing");
+        assert!(!text.contains(&item.to_string()));
+
+        assert_eq!(
+            manufacturer_cell(&q, &reference(Some("ACME"))),
+            Cell::Ident("ACME".to_owned())
+        );
     }
 }
