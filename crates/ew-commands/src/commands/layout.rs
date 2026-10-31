@@ -452,14 +452,17 @@ impl Command for CreateLayoutSpace {
             .into_iter()
             .find(|s| s.location == self.location)
         {
-            let named = first.name.as_ref().map_or_else(
-                || first.id.to_string(),
-                |n| format!("\"{}\" ({})", n.as_str(), first.id),
-            );
-            return tx.reject(format!(
-                "location {} already has layout space {named}; a location has one layout space",
-                node.code.as_str()
-            ));
+            // ID-900: the space in words, by its name, else as the layout space of its location; never by its ID.
+            let code = node.code.as_str();
+            return tx.reject(match first.name.as_ref() {
+                Some(n) => format!(
+                    "location {code} already has layout space \"{}\"; a location has one layout space",
+                    n.as_str()
+                ),
+                None => format!(
+                    "the layout space of location {code} already exists; a location has one layout space"
+                ),
+            });
         }
         let id: Id<LayoutSpace> = tx.mint();
         tx.insert(LayoutSpace {
@@ -1182,14 +1185,23 @@ impl Command for LockPlacement {
 }
 
 /// D7: when `part.assign` adds the one copy `new` to `device` (modes `replace` and `replace_all`, the part not used
-/// before), every placement of the device whose part copy left the device follows `new`, in the same transaction. A
-/// placement without a part (the primary) and one whose copy the device still uses stay.
+/// before), the placements of the device whose part copy left the device follow `new`, in the same transaction. A
+/// placement without a part (the primary) and one whose copy the device still uses stay. `before` is the device's part
+/// copies in its part-use order before the change.
+///
+/// When the change replaced two or more placed part uses with the one copy `new` (`replace_all`), only the placements
+/// of the first replaced part use (in `before`'s order) follow; the others keep their part, which EW-LAY-003 then
+/// reports ("otherwise it stays"), so the placement key (device, part, function) stays unique. A follow onto a key
+/// that is already taken is skipped for the same reason.
 pub(crate) fn follow_part_change(
     tx: &mut TxBuilder<'_>,
     device: Id<Device>,
     new: Id<Part>,
+    before: &[Id<Part>],
 ) -> Result<(), CmdError> {
     let dev = tx.require::<Device>(device)?;
+    let mut left = Vec::new();
+    let mut taken = BTreeSet::new();
     for p in tx.placements_of_device(device) {
         let Some(row) = tx.get::<Placement>(p) else {
             continue;
@@ -1197,7 +1209,20 @@ pub(crate) fn follow_part_change(
         let Some(old) = row.part.as_ref() else {
             continue;
         };
+        if old.copy == new {
+            taken.insert(row.function);
+        }
         if dev.parts.iter().any(|u| u.part.copy == old.copy) {
+            continue;
+        }
+        left.push((p, old.copy, row.function));
+    }
+    // FIX40b ruling (C40 review part 2, finding 6): only the first replaced part use's placements follow the new copy.
+    let Some(first) = before.iter().find(|c| left.iter().any(|(_, copy, _)| copy == *c)) else {
+        return Ok(());
+    };
+    for (p, copy, function) in left {
+        if copy != *first || !taken.insert(function) {
             continue;
         }
         tx.update::<Placement>(p, |pl| pl.part = Some(PartRef::new(new)))?;

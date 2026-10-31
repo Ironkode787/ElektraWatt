@@ -282,11 +282,13 @@ impl Command for AssignPart {
         };
         for d in &self.devices {
             // D7: the command adds a copy when the device did not use the part before.
-            let adds_copy = !tx
+            let before: Vec<Id<Part>> = tx
                 .require::<Device>(*d)?
                 .parts
                 .iter()
-                .any(|u| u.part.copy == self.part);
+                .map(|u| u.part.copy)
+                .collect();
+            let adds_copy = !before.contains(&self.part);
             match self.mode {
                 AssignModeParam::Append => tx.update::<Device>(*d, |dev| dev.parts.push(new_use(qty)))?,
                 AssignModeParam::ReplaceAll => {
@@ -304,7 +306,7 @@ impl Command for AssignPart {
                 }
             }
             if self.mode != AssignModeParam::Append && adds_copy {
-                crate::commands::layout::follow_part_change(tx, *d, self.part)?;
+                crate::commands::layout::follow_part_change(tx, *d, self.part, &before)?;
             }
         }
         Ok(Outcome::primary((Kind::Device, self.devices[0].cast())))

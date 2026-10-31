@@ -291,15 +291,32 @@ fn lm2_a_location_has_one_layout_space() {
         location: LOC_206,
         name: None,
     }));
-    assert!(
-        second.contains(&space.to_string()) && second.contains("Cabinet 206"),
-        "{second}"
+    assert_eq!(
+        second,
+        "location J-E-206 already has layout space \"Cabinet 206\"; a location has one layout space"
     );
     let not_location = rejected(e.execute(&CreateLayoutSpace {
         location: FUNC_P01,
         name: None,
     }));
-    assert!(not_location.contains("not a location"), "{not_location}");
+    assert_eq!(
+        not_location,
+        "node P01 is not a location; a layout space lays out a location"
+    );
+    // An unnamed space is named by its location (ID-900: no ID in a refusal).
+    e.execute(&CreateLayoutSpace {
+        location: LOC,
+        name: None,
+    })
+    .unwrap();
+    let unnamed = rejected(e.execute(&CreateLayoutSpace {
+        location: LOC,
+        name: Some(ident("Second")),
+    }));
+    assert_eq!(
+        unnamed,
+        "the layout space of location J-E-2416 already exists; a location has one layout space"
+    );
     assert_eq!(
         pointer(e.execute(&CreateLayoutSpace {
             location: id(0xeeee),
@@ -338,7 +355,7 @@ fn lm3_an_enclosure_brings_its_plate() {
         pose: None,
         pe_bond: None,
     }));
-    assert!(none.ends_with("the device has no enclosure part"), "{none}");
+    assert_eq!(none, "-?K1: the device has no enclosure part");
     let enclosure: Id<Enclosure> = created(
         e.execute(&CreateEnclosure {
             space,
@@ -374,9 +391,9 @@ fn lm3_an_enclosure_brings_its_plate() {
         pose: None,
         pe_bond: None,
     }));
-    assert!(
-        second.contains("already has enclosure") && second.contains("UC1"),
-        "{second}"
+    assert_eq!(
+        second,
+        "the layout space already has enclosure -?UC1; a layout space has one enclosure"
     );
     assert_eq!(e.history().cursor(), 2, "one step each");
 }
@@ -437,7 +454,10 @@ fn lm4_an_occupied_rail_goes_only_with_then() {
         carrier: rail,
         then: None,
     }));
-    assert!(refused.contains("give `then`"), "{refused}");
+    assert_eq!(
+        refused,
+        "the carrier holds 1 placement(s); give `then`: `remove_placements` or `rehome_to_surface`"
+    );
     let cursor = e.history().cursor();
     let remove = DeleteCarrier {
         carrier: rail,
@@ -549,10 +569,7 @@ fn lm5_placement_refusals() {
         ..
     } = layout();
     let unfit = rejected(e.execute(&place(DEV_K1, PlaceOnParam::Carrier(rail32), at(10))));
-    assert!(
-        unfit.ends_with("K1 (TS 35×7.5) does not fit a TS 32 rail"),
-        "{unfit}"
-    );
+    assert_eq!(unfit, "-?K1 (TS 35×7.5) does not fit a TS 32 rail");
     e.execute(&place(DEV_K3, PlaceOnParam::Carrier(rail32), at(10)))
         .unwrap();
     let off = rejected(e.execute(&place(DEV_K1, PlaceOnParam::Carrier(rail), at(601))));
@@ -560,7 +577,7 @@ fn lm5_placement_refusals() {
     let mut lifted = at(10);
     lifted.t[1] = Nm(5 * MM);
     let axis = rejected(e.execute(&place(DEV_K1, PlaceOnParam::Carrier(rail), lifted)));
-    assert!(axis.contains("t = (s, 0, 0)"), "{axis}");
+    assert_eq!(axis, "a pose on a rail lies on its axis: t = (s, 0, 0)");
     let mut quarter = at(10);
     quarter.q = Quat9::new(707_106_781, 0, 0, 707_106_781).unwrap();
     rejected(e.execute(&place(DEV_K1, PlaceOnParam::Carrier(rail), quarter)));
@@ -571,7 +588,10 @@ fn lm5_placement_refusals() {
             .unwrap(),
     );
     let twice = rejected(e.execute(&place(DEV_K1, PlaceOnParam::Surface(surface), Pose3::IDENTITY)));
-    assert!(twice.contains("already placed"), "{twice}");
+    assert_eq!(
+        twice,
+        "-?K1 is already placed with this part and function; move its placement instead"
+    );
     let mut not_used = place(DEV_K1, PlaceOnParam::Carrier(rail), at(100));
     not_used.part = Some(copy_id(ITEM_G_RAIL));
     assert_eq!(pointer(e.execute(&not_used)), "/part");
@@ -591,7 +611,7 @@ fn lm5_placement_refusals() {
         carrier: Some(PlaceOnParam::Carrier(rail32)),
         pose: at(10),
     }));
-    assert!(onto.contains("does not fit a TS 32 rail"), "{onto}");
+    assert_eq!(onto, "-?K1 (TS 35×7.5) does not fit a TS 32 rail");
     // the explicit part of another use of K2 is recorded with that use's reference
     let mut explicit = place(DEV_K2, PlaceOnParam::Carrier(rail), at(300));
     explicit.part = Some(copy_id(ITEM_MCB));
@@ -702,6 +722,58 @@ fn lm7_a_part_change_follows_the_placement() {
         get(&e, k2).unwrap().part,
         Some(PartRef::new(copy_id(ITEM_MCB_WIDE))),
         "kept"
+    );
+}
+
+/// FIX40b (C40 review part 2, finding 6): `replace_all` that replaces two placed part uses of one device (-K2's TS 35
+/// MCBs, placed in the opposite order to its part uses) with one new copy moves only the placement of the first
+/// replaced part use in the device's part-use order; the other keeps its `part` (EW-LAY-003 reports it), so no two
+/// placements share a key (device, part, function). Undo restores both.
+#[test]
+fn replace_all_moves_one_placement_of_two() {
+    let Layout { mut e, rail, .. } = layout();
+    let mut mcb = place(DEV_K2, PlaceOnParam::Carrier(rail), at(350));
+    mcb.part = Some(copy_id(ITEM_MCB));
+    let mcb: Id<Placement> = created(e.execute(&mcb).unwrap());
+    let mut wide = place(DEV_K2, PlaceOnParam::Carrier(rail), at(300));
+    wide.part = Some(copy_id(ITEM_MCB_WIDE));
+    let wide: Id<Placement> = created(e.execute(&wide).unwrap());
+    let cursor = e.history().cursor();
+    e.execute(&AssignPart {
+        devices: vec![DEV_K2],
+        part: copy_id(ITEM_G_RAIL),
+        copies: vec![],
+        mode: AssignModeParam::ReplaceAll,
+        from: None,
+        qty: None,
+    })
+    .unwrap();
+    assert_eq!(e.history().cursor(), cursor + 1);
+    assert_eq!(get(&e, DEV_K2).unwrap().parts, uses(&[ITEM_G_RAIL]));
+    assert_eq!(
+        get(&e, wide).unwrap().part,
+        Some(PartRef::new(copy_id(ITEM_G_RAIL))),
+        "the first replaced part use follows"
+    );
+    assert_eq!(
+        get(&e, mcb).unwrap().part,
+        Some(PartRef::new(copy_id(ITEM_MCB))),
+        "the other stays"
+    );
+    let mut keys: Vec<_> = rows::<Placement>(&e)
+        .into_iter()
+        .filter(|p| p.device == DEV_K2)
+        .map(|p| (p.part.map(|r| r.copy), p.function))
+        .collect();
+    let n = keys.len();
+    keys.sort();
+    keys.dedup();
+    assert_eq!(keys.len(), n, "no two placements share a key");
+    e.undo(&Origin::Gui).unwrap();
+    assert_eq!(get(&e, mcb).unwrap().part, Some(PartRef::new(copy_id(ITEM_MCB))));
+    assert_eq!(
+        get(&e, wide).unwrap().part,
+        Some(PartRef::new(copy_id(ITEM_MCB_WIDE)))
     );
 }
 
