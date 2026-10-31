@@ -41,6 +41,9 @@ work is done by Claude subagents; there is no external coder.
    own worktree, the findings verbatim as its brief); then the same reviewer (continued with SendMessage; a fresh
    Opus `high` reviewer with the previous findings if it is gone) re-reviews the fixes and the remaining diff.
    Fix → re-review repeats until the reviewer accepts; only then does the cycle go to the gate.
+   **In parts, one per wave (cycle-39 retro, 2026-10-31):** the same reviewer reviews each wave's range (`<previous
+   part's tip>..<wave tip>`) on the wave's verified tip while the next wave builds, and its findings go to the fixer at
+   once; the last part covers the last wave and the fix rounds. The cycle is accepted when every part is.
 7. **Isolation and integration.** Every subagent that edits files runs with `isolation: "worktree"` and commits on
    its own branch; the orchestrator picks or merges onto the working branch, regenerates generated files once on
    the merged tip, and verifies before claiming the tip is green. Subagent check results are claims until re-run.
@@ -52,7 +55,11 @@ work is done by Claude subagents; there is no external coder.
    `high` with a checklist: named items exist, a claimed bug reproduces, files and format touched; Opus at `low` only
    for flagged briefs: file format/schema, a check rule's meaning, a core crate, or a bug that did not reproduce).
    One merged-tip verify per wave, not per lane, covering every package the wave's changes can reach (bin crates
-   included). The review starts on the last wave's tip while the play-test and window checks run. Mechanical upkeep
+   included). The review runs per wave (rule 6); its last part starts on the last wave's tip while the play-test and
+   window checks run. A window check runs per wave too, beside the next wave; its report lists every refused or failed
+   step of its transcripts (`log.jsonl`) and quotes the `strings.rs` key of a text finding, and a finding that comes
+   from a refused step is a script error, not a defect. CI-only checks run in the local verify and gate (cargo-about
+   since cycle 39). Mechanical upkeep
    (re-bless, regeneration, seed corpus) goes to Haiku. Tests never pin totals of growing sets (CONTRIBUTING.md).
    **Retro after every delivery (owner, 2026-10-29):** measure the cycle from its own record (delivery spacing, time
    per phase, rework: merge breakages, failed verifies, stopped lanes, fix-round size), name at most three recurring
@@ -60,8 +67,8 @@ work is done by Claude subagents; there is no external coder.
    with the next cycle's table.
    **Cycles are large (owner, 2026-10-28: "more wps, not parallel"):** plan about twice the work per cycle as
    sequential waves of lanes, still at most three builders at once; a finished lane's slot goes to the next queued WP
-   instead of closing the cycle; a merged-tip verify between waves; the window checks, design pass, review loop and
-   gate run once, after the last wave. Window checks never drive the desktop while the owner is using it: verify the
+   instead of closing the cycle; a merged-tip verify, a window check and a review part between waves; the last window
+   check, the design pass, the end of the review loop and the gate run once, after the last wave. Window checks never drive the desktop while the owner is using it: verify the
    app window has the focus before every key or click, and stop if it does not.
 
 ## Testing policy (owner's rule, 2026-10-18)
