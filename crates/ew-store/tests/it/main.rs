@@ -14,3 +14,4 @@ mod layout_incremental;
 mod lock;
 mod migration;
 mod part1_migration;
+mod recovery;

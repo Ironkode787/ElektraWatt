@@ -7,7 +7,7 @@
 // The writer's tests read the model untracked, ADR-0001 amendment 2.
 #![allow(clippy::disallowed_methods)]
 
-mod common;
+use crate::common;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
