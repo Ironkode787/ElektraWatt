@@ -814,13 +814,17 @@ fn refuse_no_port(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), C
     }
     let f = tx.require::<Function>(target.cast())?;
     if f.bus_port.is_none() {
+        // "function -Q1 has no …", or "a function without a device has no …": the fallback is its own subject.
+        let who = crate::words::function(tx, target.cast());
+        let subject = if who.starts_with("a function ") {
+            who
+        } else {
+            format!("function {who}")
+        };
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/path",
-            format!(
-                "function {} has no bus port; set `bus_port` first",
-                crate::words::function(tx, target.cast())
-            ),
+            format!("{subject} has no bus port; set `bus_port` first"),
         ));
     }
     Ok(())

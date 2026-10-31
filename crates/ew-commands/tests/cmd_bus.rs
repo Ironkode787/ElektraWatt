@@ -135,6 +135,18 @@ fn fields_set_writes_a_bus_port_and_refuses_what_it_cannot_write() {
         !message.contains(&f.to_string()) && !message.contains('@'),
         "{message}"
     );
+    // A function without a device (an interruption point) is its own subject: no "function a function …".
+    let (path, message) = invalid(e.execute(&set(
+        KindName::Function,
+        FN_IP_101.cast(),
+        "bus_port.termination",
+        json!("on"),
+    )));
+    assert_eq!(path, "/path");
+    assert_eq!(
+        message,
+        "a function without a device has no bus port; set `bus_port` first"
+    );
 
     e.execute(&set(
         KindName::Function,
