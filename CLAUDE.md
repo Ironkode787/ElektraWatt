@@ -38,7 +38,8 @@ log. Real-world owner actions stay the owner's: legal, GitHub settings, funding,
    are queued, the end phase included: fixes and the last verify run one after another in the third slot, and only a
    major's fix may take a work-package slot, by delaying the next work-package dispatch (2026-10-31). A finished
    lane's slot takes the next queued lane. Docs-only lanes write the next cycle's specifications during the current
-   one (2026-10-31).
+   one (2026-10-31). The next cycle's first-wave briefs are written, feasibility-read and ruled by the time the last
+   wave is dispatched, so a freed work-package slot never waits for a brief (cycle-41 retro).
 7. **A wave ends at a merge point.** Integrate the lanes that are back, regenerate the generated files once, and run
    one merged-tip verify on `cargo xtask affected`'s selection (every package the changes reach, bin crates
    included) plus every policy check (2026-10-29, 2026-10-31); a checkpoint's last verify runs the full suite.
@@ -91,10 +92,12 @@ log. Real-world owner actions stay the owner's: legal, GitHub settings, funding,
 ### Integration and checks (owner, 2026-10-27, 2026-10-29)
 
 16. **Isolation.** Every editing subagent runs with `isolation: "worktree"`, resets to the tip its brief names, and
-    commits on its own branch; it never checks out, resets, stashes or builds in the main checkout. The orchestrator
-    merges onto the working branch, regenerates once on the merged tip (`cargo xtask settle` once it exists; the
-    main checkout sets `git config merge.regen.driver true` for its `merge=regen` files, 2026-10-31) and verifies
-    before calling the tip green. Subagent check results are claims until re-run.
+    commits on its own branch; it never checks out, resets, stashes or builds in the main checkout. It commits work
+    in progress at each milestone (before a long test run, before a re-bless), so a lost worktree costs little
+    (cycle-41 retro). The orchestrator merges onto the working branch, runs `cargo xtask settle --merge` once on the
+    merged tip and commits its rewrites (the main checkout sets `git config merge.regen.driver true` for its
+    `merge=regen` files, 2026-10-31), and verifies, `settle --check` included, before calling the tip green.
+    Subagent check results are claims until re-run.
 17. **Feasibility read before dispatch** of every brief, window checks included.
     - Haiku `high` checks with a checklist: named items exist, a claimed bug reproduces, files and format touched,
       consumers of a changed behaviour, an item's version already on `main`.
@@ -102,8 +105,10 @@ log. Real-world owner actions stay the owner's: legal, GitHub settings, funding,
       not reproduce.
     - For a brief that touches a core crate, the file format or golden data, the orchestrator writes its rulings
       after the Haiku read, and the Opus `low` read checks those rulings (cycle-40 retro).
+    - A spec or brief that fixes a fit (column weights, rectangles, scales, capacities) names the fixture data it was
+      tried against, or leaves the number to the lane with a stop (cycle-41 retro).
 18. **Upkeep** (re-bless, regeneration, seed corpus, count bumps) runs through `cargo xtask settle` at each merge
-    point once it exists, and lanes run `settle --check`; a Haiku lane takes what settle cannot do (2026-10-31).
+    point, and lanes run `settle --check --base <their base>`; a Haiku lane takes what settle cannot do (2026-10-31).
     Tests never pin totals of growing sets (CONTRIBUTING.md).
 19. **Window checks** run per wave, beside the next wave, and once at the end.
     - They render offscreen only (`--visual`) and never drive the owner's desktop (2026-10-28). If a real window is
@@ -156,7 +161,9 @@ log. Real-world owner actions stay the owner's: legal, GitHub settings, funding,
 
 - **Environment.** `.claude/settings.json` sets `CARGO_PROFILE_DEV_DEBUG=line-tables-only`, `CARGO_INCREMENTAL=0` and
   `CARGO_BUILD_JOBS=8`. Do not override them in a worktree. Dependencies build without debug info (`Cargo.toml`,
-  owner, 2026-10-31).
+  owner, 2026-10-31). Integration tests build as one test binary per crate (`tests/it/`), except the separate
+  binaries `xtask/src/test_layout.rs` names (owner ruling C, 2026-10-31; a full test build's target fell from about
+  100 GB to about 20 GB).
 - **At most three builders at once:** a subagent's cargo run, a verify chain and a gate each count as one.
 - **Jobs.** Memory is the limit (24 cores, 32 GB).
   - 8 jobs per builder while up to three run; 16 for a lone verify; 12 for a fallback local gate on either host.
