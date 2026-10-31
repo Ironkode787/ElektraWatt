@@ -31,26 +31,46 @@ work is done by Claude subagents; there is no external coder.
    types/signatures or text, the behaviour with an example per branch, the error texts, the tests to write and what
    each asserts, the commands that must pass, what not to touch, and when to stop and report instead of choosing.
    An Opus brief may state the goal and constraints and leave the design to it; a Haiku brief leaves nothing open.
-6. **One independent review per cycle.** After the cycle's work is integrated on the working branch and before the
-   gate, one fresh-context Opus subagent at `high` effort reviews the cycle's total diff (`git diff <last delivered
-   main>..<tip>`) against the ADRs, the specs and the design docs: format bytes and data loss first, then
-   determinism, panics, spec gaps, tests, CI/supply chain and repository hygiene. It did not write the briefs and is
-   given the code, not the orchestrator's conclusions. It reports ranked findings with `path:line` and evidence,
-   and a verdict (accepted / not accepted). The findings go to a fix subagent on Sonnet at `xhigh` effort (while rule 0 holds: Opus at
-   `medium`) (in its
-   own worktree, the findings verbatim as its brief); then the same reviewer (continued with SendMessage; a fresh
-   Opus `high` reviewer with the previous findings if it is gone) re-reviews the fixes and the remaining diff.
-   Fix → re-review repeats until the reviewer accepts; only then does the cycle go to the gate.
-   **In parts, one per wave (cycle-39 retro, 2026-10-31):** the same reviewer reviews each wave's range (`<previous
-   part's tip>..<wave tip>`) on the wave's verified tip while the next wave builds, and its findings go to the fixer at
-   once; the last part covers the last wave and the fix rounds. The cycle is accepted when every part is.
+6. **One independent review per cycle, in parts.** One fresh-context Opus subagent at `high` effort reviews the
+   cycle's work in parts, one per wave (cycle-39 retro, 2026-10-31): each wave's range (`<previous part's tip>..<wave
+   tip>`) on the wave's verified tip while the next wave builds, against the ADRs, the specs and the design docs:
+   format bytes and data loss first, then determinism, panics, spec gaps, tests, CI/supply chain and repository
+   hygiene. It did not write the briefs and is given the code, not the orchestrator's conclusions. It reports ranked
+   findings with `path:line` and evidence, and a verdict per part (accepted / not accepted); the same reviewer is
+   continued with SendMessage (a fresh Opus `high` reviewer with the previous findings if it is gone).
+   **The fix loop (owner, 2026-10-31):**
+   - *Triage.* Majors, and minors that touch data, the file format or what users see, are fixed in the cycle. Other
+     minors and nits become FT rows, fixed in one batch lane in the next cycle's first wave, without a re-review.
+   - *Back to the author.* The findings go, verbatim with the orchestrator's rulings, to the lane that wrote the code,
+     continued with SendMessage (its context intact; its worktree is kept, without `target`, until its part is
+     accepted). A fresh fix subagent (Opus at `medium` while rule 0 holds) only when that lane is gone or a fix spans
+     lanes.
+   - *No separate re-review rounds.* A fix lands on the working branch and the reviewer checks it first in its next
+     part (each earlier finding closed, and the test that shows it); the last part ends with a re-review scoped to the
+     fixes. Only a major re-opens a full re-review.
+   - *Shift left.* Every lane's rules carry the review checklist, the finding classes the reviews keep raising
+     (whole-text assertions; words, not IDs, in user texts; every call site of a changed behaviour; keys from the
+     keymap, never hard-coded; bounded memory and time on hostile input; all-or-nothing file writes), and the lane
+     reports its diff checked against it.
+
+   The cycle is accepted when every part is.
 7. **Isolation and integration.** Every subagent that edits files runs with `isolation: "worktree"` and commits on
    its own branch; the orchestrator picks or merges onto the working branch, regenerates generated files once on
    the merged tip, and verifies before claiming the tip is green. Subagent check results are claims until re-run.
 8. **Cycle rhythm.** Plan and dispatch → integrate → window checks of user-visible changes (a model that reads
    screenshots, on a normal build) → design pass (decision-log rows, FT rows, as-built spec text, doc 01 cycle
-   section, next candidates) → the cycle review (rule 6), fix and re-review until accepted → one full gate → fast-forward `main`, push,
-   watch CI on the full SHA → the retro. Report outcomes faithfully, including what was skipped or not proven.
+   section, next candidates) → the cycle review (rule 6) until accepted → at a delivery, the gate (CI) → fast-forward
+   `main`, push → the retro. Report outcomes faithfully, including what was skipped or not proven.
+   **Deliveries every second cycle (owner, 2026-10-31):** cycles end alternately at a checkpoint and at a delivery
+   (cycle 40 a checkpoint, 41 a delivery, and so on). A checkpoint ends after the last merged-tip verify, the design
+   pass and the accepted review: the working branch is pushed, `main` does not move and CI does not run. A delivery's
+   gate is CI on the working branch: push it, dispatch `ci.yml` and `docs.yml` on it (`workflow_dispatch`), watch both
+   on the full SHA, and fast-forward `main` and push only when both are green. Locally only what CI lacks runs, in the
+   last merged-tip verify: the blind selftests and `golden_changes.py --check` (the per-wave verifies also cover the
+   Windows default-features run, which CI's Windows jobs skip). Local Windows and WSL gates only as a fallback when CI
+   cannot run.
+   **Slots (owner, 2026-10-31):** at least two of the three builder slots go to work-package parts; polish and FT lanes
+   take the third. The next cycle's specs are written during the current cycle.
    **Speed rules (owner, 2026-10-29):** before dispatch, a feasibility read of every brief against the code (Haiku at
    `high` with a checklist: named items exist, a claimed bug reproduces, files and format touched; Opus at `low` only
    for flagged briefs: file format/schema, a check rule's meaning, a core crate, or a bug that did not reproduce).
@@ -58,17 +78,17 @@ work is done by Claude subagents; there is no external coder.
    included). The review runs per wave (rule 6); its last part starts on the last wave's tip while the play-test and
    window checks run. A window check runs per wave too, beside the next wave; its report lists every refused or failed
    step of its transcripts (`log.jsonl`) and quotes the `strings.rs` key of a text finding, and a finding that comes
-   from a refused step is a script error, not a defect. CI-only checks run in the local verify and gate (cargo-about
-   since cycle 39). Mechanical upkeep
+   from a refused step is a script error, not a defect. CI-only checks run in the local verify (cargo-about since
+   cycle 39). Mechanical upkeep
    (re-bless, regeneration, seed corpus) goes to Haiku. Tests never pin totals of growing sets (CONTRIBUTING.md).
-   **Retro after every delivery (owner, 2026-10-29):** measure the cycle from its own record (delivery spacing, time
+   **Retro after every cycle, checkpoint or delivery (owner, 2026-10-29):** measure the cycle from its own record (delivery spacing, time
    per phase, rework: merge breakages, failed verifies, stopped lanes, fix-round size), name at most three recurring
    problems with evidence, decide at most three process changes, check the previous retro's changes, and report it
    with the next cycle's table.
    **Cycles are large (owner, 2026-10-28: "more wps, not parallel"):** plan about twice the work per cycle as
    sequential waves of lanes, still at most three builders at once; a finished lane's slot goes to the next queued WP
    instead of closing the cycle; a merged-tip verify, a window check and a review part between waves; the last window
-   check, the design pass, the end of the review loop and the gate run once, after the last wave. Window checks never drive the desktop while the owner is using it: verify the
+   check, the design pass, the end of the review loop and, at a delivery, the gate run once, after the last wave. Window checks never drive the desktop while the owner is using it: verify the
    app window has the focus before every key or click, and stop if it does not.
 
 ## Testing policy (owner's rule, 2026-10-18)
@@ -78,8 +98,9 @@ work is done by Claude subagents; there is no external coder.
   checks their change touches (`cargo xtask check-deps`, `check-features`, `check-licence-map`, `reuse lint`).
   Never the workspace-wide suite, never `cargo xtask ci`.
 - **The full suite** (`cargo xtask ci`, workspace nextest with and without `--all-features`, doctests, rustdoc,
-  `cargo deny`, `cargo vet`) runs once per **cycle delivery** or **milestone delivery**, by the integrating session,
-  right before the fast-forward into `main`.
+  `cargo deny`, `cargo vet`) runs once per **delivery** (every second cycle, rule 8) or **milestone delivery**, as the
+  CI run dispatched on the working branch right before the fast-forward into `main` (owner, 2026-10-31); the
+  integrating session runs locally only what CI lacks.
 - **Performance tests** (the `#[ignore]`d release-profile tests, hostile-input timings, `cargo xtask perf-gate`
   and the G-SP re-test) do **not run during development at all** (owner's rule, 2026-10-22): not in a fix round,
   not in a cycle gate, not at a milestone delivery. Performance criteria are assumed to pass and are addressed in
@@ -93,7 +114,7 @@ work is done by Claude subagents; there is no external coder.
   not override them in a worktree; a full-debuginfo build is a deliberate, one-off choice.
 - **Build jobs scale to the free cores (owner, 2026-10-28; the machine has 24 cores and 32 GB of RAM):** 8 jobs per
   builder while up to three builders run (the settings default); a verify chain that runs as the only builder
-  exports `CARGO_BUILD_JOBS=16`, and a full gate 12 on either host (a 16-job Windows gate ran out of system
+  exports `CARGO_BUILD_JOBS=16`, and a full local gate (a fallback since 2026-10-31, rule 8) 12 on either host (a 16-job Windows gate ran out of system
   resources in cycle 32; after a resource failure, `cargo clean` before the re-run). Memory, not cores, is the limit: the WSL VM holds about 11 GB once it has
   built, so the Windows and WSL gates run one after the other, not in parallel (two 12-job gates ran out of memory:
   LNK1104, E0463). The three-builder and disk rules are unchanged.
@@ -105,7 +126,8 @@ work is done by Claude subagents; there is no external coder.
 
 ## Repository rules
 
-- Commit on the working branch, then merge into `main` and push both (owner's standing instruction).
+- Commit on the working branch; at a delivery (every second cycle, rule 8) fast-forward `main` and push both, at a
+  checkpoint push the working branch only (owner's standing instruction, amended 2026-10-31).
 - Public repository: never commit customer or end-user names, addresses, project or drawing numbers, personal names,
   e-mail addresses, the reference drawing PDF, or local filesystem paths.
 - Design decisions live in `docs/adr/`; requirements in `docs/design/02a/02b/02c-*.md`; the plan in `docs/plan/`.
