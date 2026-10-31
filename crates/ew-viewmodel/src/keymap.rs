@@ -449,18 +449,30 @@ impl Keymap {
     }
 }
 
-/// Reads the user's keymap `<dir>/keymap.toml`: `Ok(None)` when there is none, `Err` with the reason when it does
-/// not parse.
+/// Why the user's keymap file could not be used ([`read_user`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum UserFileError {
+    /// The file is there but could not be read (locked by an antivirus or another instance, no permission): it may
+    /// be valid, so it is neither copied aside nor written over. The I/O error in words.
+    Read(String),
+    /// The file was read but is not a keymap: the reason of [`Keymap::parse`], or that it is not UTF-8.
+    Invalid(String),
+}
+
+/// Reads the user's keymap `<dir>/keymap.toml`: `Ok(None)` only when there is no file (`NotFound`).
 ///
 /// # Errors
 ///
-/// The reason of [`Keymap::parse`], or that the file is not UTF-8.
-pub fn read_user(dir: &Path) -> Result<Option<Keymap>, String> {
-    let Ok(bytes) = std::fs::read(dir.join(USER_FILE)) else {
-        return Ok(None);
+/// [`UserFileError::Read`] for any other read error, [`UserFileError::Invalid`] when the file does not parse.
+pub fn read_user(dir: &Path) -> Result<Option<Keymap>, UserFileError> {
+    let bytes = match std::fs::read(dir.join(USER_FILE)) {
+        Ok(bytes) => bytes,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(UserFileError::Read(e.to_string())),
     };
-    let text = std::str::from_utf8(&bytes).map_err(|_| strings::text("keymap-error-toml").to_owned())?;
-    Keymap::parse(text).map(Some)
+    let text = std::str::from_utf8(&bytes)
+        .map_err(|_| UserFileError::Invalid(strings::text("keymap-error-toml").to_owned()))?;
+    Keymap::parse(text).map(Some).map_err(UserFileError::Invalid)
 }
 
 /// Writes the user's keymap as `<dir>/keymap.toml` through a temporary file and a rename; creates `dir` if needed.

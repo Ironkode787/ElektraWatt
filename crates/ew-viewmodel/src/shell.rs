@@ -431,6 +431,9 @@ pub struct ShellModel {
     keymap_version: u64,
     /// The keymap editor's state (Help ▸ Keyboard shortcuts, D8).
     keymap_editor: crate::keymap::EditorState,
+    /// Whether `keymap.toml` is left as it is for this run: it could not be read, or a refused file could not be
+    /// copied aside, at start-up (the editor's edits then apply without being written).
+    keymap_keep_file: bool,
     dialog: Option<Dialog>,
     prompt: Option<PromptRequest>,
     record: Record,
@@ -964,11 +967,13 @@ impl ShellModel {
             None => Settings::default(),
         };
         // WP-S2.08 D8 (KM-2): a refused keymap file is kept aside with a banner, and the preset applies.
+        let mut keymap_keep_file = false;
         let user_keymap = match &config.config_dir {
             Some(dir) => match keymaps::load_user_keymap(dir, &settings.keymap) {
                 Ok(k) => k,
-                Err(text) => {
-                    banner = banner.or(Some(text));
+                Err(trouble) => {
+                    banner = banner.or(Some(trouble.banner));
+                    keymap_keep_file = trouble.keep_file;
                     None
                 }
             },
@@ -986,6 +991,7 @@ impl ShellModel {
             user_keymap,
             keymap_version: 0,
             keymap_editor: crate::keymap::EditorState::default(),
+            keymap_keep_file,
             dialog: None,
             prompt: None,
             record: Record::default(),

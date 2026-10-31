@@ -16,9 +16,21 @@ use crate::actions::{self, ActionMeta};
 use crate::keymap::{self, Bind, Bound, Chord, EditorRow, Keymap, Preset, Refusal};
 use crate::strings;
 
-/// The user's keymap in `dir` checked against the preset `preset_word`: `Ok(None)` without a file; `Err` with the
-/// banner text when the file does not parse or has an error (D8), after copying it to `keymap.toml.bad-<n>`.
-pub(super) fn load_user_keymap(dir: &Path, preset_word: &str) -> Result<Option<Keymap>, String> {
+/// Why the user's keymap does not apply at start-up ([`load_user_keymap`]): the banner text, and whether the editor
+/// must leave `keymap.toml` as it is (it could not be read, or a refused file could not be copied aside).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(super) struct KeymapTrouble {
+    /// The banner.
+    pub banner: String,
+    /// Whether writing `keymap.toml` is blocked for this run.
+    pub keep_file: bool,
+}
+
+/// The user's keymap in `dir` checked against the preset `preset_word`: `Ok(None)` without a file. A file that does
+/// not parse or has an error (D8) is copied to `keymap.toml.bad-<n>` and refused with a banner; a file that cannot be
+/// read, or a refused one whose copy-aside failed, is refused with a banner and kept: the editor does not write over
+/// it in this run (C40 review part 2, finding 8).
+pub(super) fn load_user_keymap(dir: &Path, preset_word: &str) -> Result<Option<Keymap>, KeymapTrouble> {
     let preset = Preset::from_setting(preset_word);
     let reason = match keymap::read_user(dir) {
         Ok(None) => return Ok(None),
@@ -33,14 +45,27 @@ pub(super) fn load_user_keymap(dir: &Path, preset_word: &str) -> Result<Option<K
                 .collect::<Vec<_>>()
                 .join("; ")
         }
-        Err(reason) => reason,
+        Err(keymap::UserFileError::Read(error)) => {
+            return Err(KeymapTrouble {
+                banner: strings::format("banner-keymap-unread", &[&error, preset.name()]),
+                keep_file: true,
+            });
+        }
+        Err(keymap::UserFileError::Invalid(reason)) => reason,
     };
-    let copy =
-        crate::settings::copy_aside_as(&dir.join(keymap::USER_FILE), keymap::USER_FILE).unwrap_or_default();
-    Err(strings::format(
-        "banner-keymap-refused",
-        &[reason.trim_end_matches('.'), preset.name(), &copy],
-    ))
+    let reason = reason.trim_end_matches('.');
+    Err(
+        match crate::settings::copy_aside_as(&dir.join(keymap::USER_FILE), keymap::USER_FILE) {
+            Some(copy) => KeymapTrouble {
+                banner: strings::format("banner-keymap-refused", &[reason, preset.name(), &copy]),
+                keep_file: false,
+            },
+            None => KeymapTrouble {
+                banner: strings::format("banner-keymap-refused-kept", &[reason, preset.name()]),
+                keep_file: true,
+            },
+        },
+    )
 }
 
 impl ShellModel {
@@ -200,12 +225,16 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Installs `user` as the user's keymap and writes `keymap.toml` (a banner when the write fails).
+    /// Installs `user` as the user's keymap and writes `keymap.toml` (a banner when the write fails). While the file
+    /// must be kept (it could not be read or copied aside at start-up), the keymap applies for this run only and the
+    /// file is left as it is, with a banner.
     fn set_user_keymap(&mut self, user: Keymap) {
-        if let Some(dir) = &self.config.config_dir
-            && keymap::write_user(dir, &user).is_err()
-        {
-            self.banner = Some(strings::text("banner-keymap-write").to_owned());
+        if let Some(dir) = &self.config.config_dir {
+            if self.keymap_keep_file {
+                self.banner = Some(strings::text("banner-keymap-kept").to_owned());
+            } else if keymap::write_user(dir, &user).is_err() {
+                self.banner = Some(strings::text("banner-keymap-write").to_owned());
+            }
         }
         self.user_keymap = Some(user);
         self.keymap_version += 1;

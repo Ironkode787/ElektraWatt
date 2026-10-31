@@ -413,3 +413,92 @@ fn the_keymap_sheet_equals_the_presets() {
     assert_eq!(place["context"], "canvas");
     assert_eq!(place["label_key"], "action-tool-place");
 }
+
+/// Records Ctrl+Shift+W for `tool.wire` in the keymap editor (the edit has no D8 error).
+fn record_wire(shell: &mut ShellModel) {
+    done(shell, "help.shortcuts", json!({}));
+    done(
+        shell,
+        "keymap.record",
+        json!({"action": "tool.wire", "keys": "Ctrl+Shift+W"}),
+    );
+    let wire = actions::find("tool.wire").unwrap();
+    assert_eq!(
+        shell.shortcuts_of(wire),
+        ["Ctrl+Shift+W"],
+        "applies for the session"
+    );
+}
+
+/// FIX40b (C40 review part 2, finding 8): a `keymap.toml` that is there but cannot be read (here a directory, which
+/// no platform reads as a file: an error other than NotFound) is not treated as absent: the banner names the read
+/// error, the preset applies, the file is neither copied aside nor written over by the editor's next edit.
+#[test]
+fn an_unreadable_user_keymap_is_reported_and_kept() {
+    let tmp = Tmp::new("keymap-unread");
+    let dir = tmp.0.join("config");
+    let file = dir.join(keymap::USER_FILE);
+    std::fs::create_dir_all(&file).unwrap();
+    std::fs::write(file.join("inside"), "kept").unwrap();
+    let error = std::fs::read(&file).unwrap_err().to_string();
+    let mut shell = shell_in(&dir);
+    assert_eq!(
+        shell.banner(),
+        Some(
+            format!(
+                "The keymap file could not be read ({error}); the {} preset applies and the file is left as it is.",
+                shell.keymap_preset().name()
+            )
+            .as_str()
+        )
+    );
+    assert!(shell.user_keymap().is_none(), "the preset applies");
+    record_wire(&mut shell);
+    assert_eq!(
+        shell.banner(),
+        Some("The keymap applies for this session but was not written: keymap.toml is left as it is.")
+    );
+    assert!(file.is_dir(), "left as it is");
+    assert_eq!(std::fs::read_to_string(file.join("inside")).unwrap(), "kept");
+    assert!(!dir.join("keymap.toml.tmp").exists(), "no write was tried");
+    assert!(!dir.join("keymap.toml.bad-1").exists(), "not copied aside");
+}
+
+/// FIX40b (C40 review part 2, finding 8): a refused `keymap.toml` whose copy-aside fails (every `.bad-<n>` name is
+/// taken) is reported as kept, and the editor's next edit does not write over it.
+#[test]
+fn a_refused_keymap_that_cannot_be_copied_aside_is_not_written_over() {
+    let tmp = Tmp::new("keymap-no-copy");
+    let dir = tmp.0.join("config");
+    std::fs::create_dir_all(&dir).unwrap();
+    let bad =
+        "[meta]\nversion = 1\n[[bind]]\nkeys = \"Ctrl+Nope\"\naction = \"file.open\"\ncontext = \"global\"\n";
+    std::fs::write(dir.join(keymap::USER_FILE), bad).unwrap();
+    for n in 1..=999 {
+        std::fs::write(dir.join(format!("keymap.toml.bad-{n}")), "taken").unwrap();
+    }
+    let mut shell = shell_in(&dir);
+    let reason = Keymap::parse(bad).unwrap_err();
+    assert_eq!(
+        shell.banner(),
+        Some(
+            format!(
+                "The keymap file was refused ({}); the {} preset applies and the file is left as it is (it could \
+                 not be copied aside).",
+                reason.trim_end_matches('.'),
+                shell.keymap_preset().name()
+            )
+            .as_str()
+        )
+    );
+    record_wire(&mut shell);
+    assert_eq!(
+        shell.banner(),
+        Some("The keymap applies for this session but was not written: keymap.toml is left as it is.")
+    );
+    assert_eq!(
+        std::fs::read_to_string(dir.join(keymap::USER_FILE)).unwrap(),
+        bad,
+        "not written over"
+    );
+}

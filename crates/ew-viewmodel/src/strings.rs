@@ -2022,6 +2022,16 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "The keymap file was refused ({0}); the {1} preset applies and the file was kept as {2}."
         }
         "banner-keymap-write" => "The keymap could not be written.",
+        "banner-keymap-unread" => {
+            "The keymap file could not be read ({0}); the {1} preset applies and the file is left as it is."
+        }
+        "banner-keymap-refused-kept" => {
+            "The keymap file was refused ({0}); the {1} preset applies and the file is left as it is (it could not be \
+             copied aside)."
+        }
+        "banner-keymap-kept" => {
+            "The keymap applies for this session but was not written: keymap.toml is left as it is."
+        }
         "reason-keymap-conflict" => "The shortcut conflicts with another binding",
         "reason-no-keymap-editor" => "The keyboard shortcuts dialog is not open",
         "error-keymap-import" => "The keymap file could not be imported: {0}",
