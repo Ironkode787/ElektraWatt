@@ -243,16 +243,22 @@ pub enum CsvError {
     StrayQuote {
         /// The line.
         line: u32,
+        /// 1-based column of the field.
+        column: usize,
     },
     /// A CR that is not part of a CRLF line end and not inside quotes.
     StrayCr {
         /// The line.
         line: u32,
+        /// 1-based column of the field.
+        column: usize,
     },
     /// A quoted field that is never closed.
     UnterminatedQuote {
         /// Line where the quoted field started.
         line: u32,
+        /// 1-based column of the field.
+        column: usize,
     },
     /// A record whose field count differs from the header's.
     RaggedRow {
@@ -283,10 +289,14 @@ impl fmt::Display for CsvError {
             Self::EmptyColumnName { column } => write!(f, "column {column} has an empty name"),
             Self::DuplicateColumn { name } => write!(f, "duplicate column name {name:?}"),
             Self::EmptyLine { line } => write!(f, "line {line}: empty line"),
-            Self::StrayQuote { line } => write!(f, "line {line}: stray quote"),
-            Self::StrayCr { line } => write!(f, "line {line}: stray carriage return"),
-            Self::UnterminatedQuote { line } => {
-                write!(f, "line {line}: quoted field is not terminated")
+            Self::StrayQuote { line, column } => {
+                write!(f, "line {line}, column {column}: stray quote")
+            }
+            Self::StrayCr { line, column } => {
+                write!(f, "line {line}, column {column}: stray carriage return")
+            }
+            Self::UnterminatedQuote { line, column } => {
+                write!(f, "line {line}, column {column}: quoted field is not terminated")
             }
             Self::RaggedRow {
                 line,
@@ -415,6 +425,7 @@ impl Scanner<'_> {
                     self.pos = i;
                     return Err(CsvError::StrayQuote {
                         line: line_u32(self.line),
+                        column,
                     });
                 }
                 b'\r' => {
@@ -424,6 +435,7 @@ impl Scanner<'_> {
                     self.pos = i;
                     return Err(CsvError::StrayCr {
                         line: line_u32(self.line),
+                        column,
                     });
                 }
                 _ => {}
@@ -471,6 +483,7 @@ impl Scanner<'_> {
                 }
                 return Err(CsvError::UnterminatedQuote {
                     line: line_u32(start_line),
+                    column,
                 });
             };
             if len + q > max {
@@ -509,6 +522,7 @@ impl Scanner<'_> {
         }
         Err(CsvError::StrayQuote {
             line: line_u32(self.line),
+            column,
         })
     }
 }
@@ -856,32 +870,37 @@ mod tests {
                 "err_stray_quote",
                 b"a\nx\"y\n",
                 d,
-                CsvError::StrayQuote { line: 2 },
+                CsvError::StrayQuote { line: 2, column: 1 },
             ),
             (
                 "err_stray_quote after a quoted field",
                 b"a\n\"x\"y\n",
                 d,
-                CsvError::StrayQuote { line: 2 },
+                CsvError::StrayQuote { line: 2, column: 1 },
             ),
             (
                 "err_stray_quote after a multi-line field",
                 b"a,b\n\"x\ny\"z,1\n",
                 d,
-                CsvError::StrayQuote { line: 3 },
+                CsvError::StrayQuote { line: 3, column: 1 },
             ),
-            ("err_stray_cr", b"a\nx\ry\n", d, CsvError::StrayCr { line: 2 }),
+            (
+                "err_stray_cr",
+                b"a\nx\ry\n",
+                d,
+                CsvError::StrayCr { line: 2, column: 1 },
+            ),
             (
                 "err_stray_cr at the end",
                 b"a\n1\r",
                 d,
-                CsvError::StrayCr { line: 2 },
+                CsvError::StrayCr { line: 2, column: 1 },
             ),
             (
                 "err_unterminated_quote",
                 b"a\n1\n\"abc\ndef\n",
                 d,
-                CsvError::UnterminatedQuote { line: 3 },
+                CsvError::UnterminatedQuote { line: 3, column: 1 },
             ),
             ("err_ragged_row long", b"a,b\n1,2\n1,2,3\n", d, ragged(3, 2, 3)),
             ("err_ragged_row short", b"a,b\n1\n", d, ragged(2, 2, 1)),
@@ -894,6 +913,40 @@ mod tests {
         ];
         for (name, input, limits, want) in cases {
             assert_eq!(parse(input, &limits), Err(want), "case {name}");
+        }
+    }
+
+    /// FT-880: a stray quote, a stray CR and an unterminated quote name the column of their field, as an over-long
+    /// cell does; the whole text is what the import prints after "table refused: ".
+    #[test]
+    fn the_quote_and_cr_errors_name_their_column() {
+        let d = TableLimits::default();
+        let cases: [(&[u8], CsvError, &str); 4] = [
+            (
+                b"a,b,c\n1,x\"y,3\n",
+                CsvError::StrayQuote { line: 2, column: 2 },
+                "line 2, column 2: stray quote",
+            ),
+            (
+                b"a,b,c\n1,2,\"z\"q\n",
+                CsvError::StrayQuote { line: 2, column: 3 },
+                "line 2, column 3: stray quote",
+            ),
+            (
+                b"a,b\n1,2\r3\n",
+                CsvError::StrayCr { line: 2, column: 2 },
+                "line 2, column 2: stray carriage return",
+            ),
+            (
+                b"a,b,c\n1,2,3\n4,\"open\nstill open\n",
+                CsvError::UnterminatedQuote { line: 3, column: 2 },
+                "line 3, column 2: quoted field is not terminated",
+            ),
+        ];
+        for (input, want, text) in cases {
+            let got = parse(input, &d).unwrap_err();
+            assert_eq!(got, want);
+            assert_eq!(got.to_string(), text);
         }
     }
 

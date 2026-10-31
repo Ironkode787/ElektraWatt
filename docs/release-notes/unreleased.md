@@ -22,3 +22,5 @@ SPDX-License-Identifier: CC-BY-4.0
   a reader; `--explain` adds the memo policy, the dependencies and the provenance; result `ew.query-result/1`)
 - api-add: cli ew queries [--json] (lists the query registry with each query's output schema; result
   `ew.queries-result/1`, the text of `crates/ew-api/api/queries.json`)
+- text-change: cli ew import csv, the window's import (a table refused for a stray quote, a stray carriage return or
+  an unterminated quoted field names the column too: "table refused: line 2, column 3: stray quote"; FT-880)

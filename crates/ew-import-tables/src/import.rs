@@ -323,9 +323,9 @@ pub(crate) fn error_line(e: &CsvError) -> Option<u32> {
         | CsvError::CellTooLong { line, .. }
         | CsvError::NotUtf8 { line }
         | CsvError::EmptyLine { line }
-        | CsvError::StrayQuote { line }
-        | CsvError::StrayCr { line }
-        | CsvError::UnterminatedQuote { line }
+        | CsvError::StrayQuote { line, .. }
+        | CsvError::StrayCr { line, .. }
+        | CsvError::UnterminatedQuote { line, .. }
         | CsvError::RaggedRow { line, .. } => Some(*line),
         _ => None,
     }
