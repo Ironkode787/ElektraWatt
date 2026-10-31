@@ -75,6 +75,11 @@ mod schema;
 mod table;
 
 pub use csv::TableLimits;
+/// The importer's own check of a carrier path (WP-S4.01 D5). `ew-derive`'s `check_path` is the rule; this crate may not
+/// depend on `ew-derive` (ci/dep-rules.toml), so it keeps a copy, and `ew-api`'s `golden_csv` test runs both over one
+/// set of paths and asserts they agree (cycle-40 review, part 4, finding 5).
+#[doc(hidden)]
+pub use emit::layout::path_problem as carrier_path_problem;
 /// The importer contract this crate implements, re-exported for hosts that reach the importer through
 /// `ew-api` only (`ImportInput`, `ImportContext`, `ImportBatch`, the report types).
 pub use ew_interop_api;

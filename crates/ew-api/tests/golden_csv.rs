@@ -326,3 +326,58 @@ fn list(cps: &[ew_derive::Cp]) -> String {
         .collect();
     format!("[{}]", items.join(", "))
 }
+
+/// Cycle-40 review, part 4, finding 5 (WP-S4.01 D5): the importer's copy of the carrier-path rule agrees with
+/// `ew-derive`'s `check_path` on every case (the importer may not depend on `ew-derive`, so the copy stays).
+#[test]
+fn the_importer_and_the_derivation_agree_on_carrier_paths() {
+    use ew_schema::CarrierKind;
+    use ew_units::{Nm, Pt2};
+    let p = |u: i64, v: i64| Pt2::new(Nm(u * 1_000_000), Nm(v * 1_000_000));
+    let cases: Vec<(&str, CarrierKind, Vec<Pt2>, bool)> = vec![
+        (
+            "horizontal rail",
+            CarrierKind::Rail,
+            vec![p(0, 0), p(500, 0)],
+            true,
+        ),
+        ("vertical rail", CarrierKind::Rail, vec![p(0, 0), p(0, 500)], true),
+        (
+            "diagonal rail",
+            CarrierKind::Rail,
+            vec![p(0, 0), p(100, 100)],
+            false,
+        ),
+        (
+            "zero-length rail",
+            CarrierKind::Rail,
+            vec![p(10, 10), p(10, 10)],
+            false,
+        ),
+        (
+            "three-point rail",
+            CarrierKind::Rail,
+            vec![p(0, 0), p(10, 0), p(20, 0)],
+            false,
+        ),
+        ("one-point duct", CarrierKind::Duct, vec![p(0, 0)], false),
+        (
+            "orthogonal duct",
+            CarrierKind::Duct,
+            vec![p(0, 600), p(400, 600), p(400, 900)],
+            true,
+        ),
+        (
+            "duct with a diagonal segment",
+            CarrierKind::Duct,
+            vec![p(0, 600), p(400, 600), p(500, 900)],
+            false,
+        ),
+    ];
+    for (name, kind, path, valid) in cases {
+        let derive = ew_derive::layout::check_path(&kind, &path);
+        let import = ew_import_tables::carrier_path_problem(&kind, &path);
+        assert_eq!(derive.is_ok(), valid, "{name}: check_path {derive:?}");
+        assert_eq!(import.is_none(), valid, "{name}: the importer {import:?}");
+    }
+}

@@ -410,7 +410,8 @@ fn pt(u: i128, v: i128) -> Option<Pt2> {
 /// 20 × 20 mm square centred on the pose's point (the clip point on a rail, `(u, v)` on the surface).
 ///
 /// `None` for a missing placement or device, a carrier that is not a rail with a valid axis (a duct carries none), a
-/// missing surface, a turn that is not a quarter turn, or a coordinate outside the `Nm` range. A rail pose with `s`
+/// missing surface, a turn that is not a quarter turn, or a footprint coordinate outside the `Nm` range (an outline
+/// point outside it drops the outline only, [`PlacementGeom::outline`] empty). A rail pose with `s`
 /// outside `[0, L]` or `t.y`, `t.z` other than 0 still gets its footprint (from `t.x`): EW-LAY-010 reports it.
 #[derive(Debug)]
 pub struct PlacementGeometry;
@@ -424,6 +425,20 @@ impl Query for PlacementGeometry {
     fn run(q: &Q, key: &Self::Key) -> Arc<Option<PlacementGeom>> {
         Arc::new(placement_geom(q, *key))
     }
+}
+
+/// The `front_2d` polylines placed by `place`; empty (no outline) when any point falls outside the `Nm` range, so the
+/// footprint and the occupancy stay (cycle-40 review, part 4, finding 4).
+fn placed_outline(lines: &[Vec<Pt2>], place: impl Fn((i128, i128)) -> Option<Pt2>) -> Vec<Vec<Pt2>> {
+    lines
+        .iter()
+        .map(|line| {
+            line.iter()
+                .map(|p| place((i128::from(p.x.0), i128::from(p.y.0))))
+                .collect::<Option<Vec<Pt2>>>()
+        })
+        .collect::<Option<Vec<_>>>()
+        .unwrap_or_default()
 }
 
 fn placement_geom(q: &Q, key: Id<Placement>) -> Option<PlacementGeom> {
@@ -480,15 +495,7 @@ fn placement_geom(q: &Q, key: Id<Placement>) -> Option<PlacementGeom> {
         pt(origin.0 + du, origin.1 + dv)
     };
     let footprint = Rect::from_points(place((0, 0))?, place((w, h))?);
-    let outline = shape
-        .outline
-        .iter()
-        .map(|line| {
-            line.iter()
-                .map(|p| place((i128::from(p.x.0), i128::from(p.y.0))))
-                .collect::<Option<Vec<Pt2>>>()
-        })
-        .collect::<Option<Vec<_>>>()?;
+    let outline = placed_outline(&shape.outline, place);
     Some(PlacementGeom {
         surface,
         footprint,
@@ -703,5 +710,26 @@ impl Query for CarrierGeometry {
                 .flatten(),
             outline,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Cycle-40 review, part 4, finding 4: an outline point that lands outside the `Nm` range drops the outline (an
+    /// empty one), never the placement's geometry; points in range are placed.
+    #[test]
+    fn an_outline_point_outside_the_nm_range_drops_only_the_outline() {
+        let p = |x: i64, y: i64| Pt2::new(Nm(x), Nm(y));
+        let lines = vec![vec![p(0, 0), p(5, 0)], vec![p(0, 0), p(20, 0)]];
+        // Near the top of the range: the second line's (20, 0) overflows.
+        let far = |(x, y): (i128, i128)| pt(i128::from(i64::MAX) - 10 + x, y);
+        assert_eq!(placed_outline(&lines, far), Vec::<Vec<Pt2>>::new());
+        let near = |(x, y): (i128, i128)| pt(100 + x, y);
+        assert_eq!(
+            placed_outline(&lines, near),
+            vec![vec![p(100, 0), p(105, 0)], vec![p(100, 0), p(120, 0)]]
+        );
     }
 }

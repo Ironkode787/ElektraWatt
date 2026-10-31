@@ -1999,9 +1999,14 @@ fn a_release_whose_archive_time_cannot_be_set_goes_on() {
             .find(|t| t.contains("could not be updated with the archive's time"))
         {
             assert!(result.is_ok(), "call {n}: {t}");
-            assert!(
-                t.starts_with("the release record of ") && t.contains("V1.0.ewarchive"),
-                "{t}"
+            // The whole text (cycle-40 review, part 4, finding 1: one space at the line continuation).
+            assert_eq!(
+                *t,
+                format!(
+                    "the release record of {} could not be updated with the archive's time, so a discard after a \
+                     crash keeps the archive: injected error",
+                    Path::new(MEM_ROOT).join("V1.0.ewarchive").display()
+                )
             );
             reported = true;
         }

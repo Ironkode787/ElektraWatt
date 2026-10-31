@@ -794,6 +794,89 @@ fn golden_a_saved_as_basic_without_devices_keeps_its_conventions() {
     let _ = std::fs::remove_dir_all(&work);
 }
 
+/// The lines of each kind in a project directory's `layout/` files, and the number of those files.
+fn layout_files(dir: &Path) -> (usize, std::collections::BTreeMap<String, usize>) {
+    let mut counts = std::collections::BTreeMap::new();
+    let mut files = 0;
+    let Ok(entries) = std::fs::read_dir(dir.join("layout")) else {
+        return (0, counts);
+    };
+    for e in entries {
+        let path = e.unwrap().path();
+        files += 1;
+        for line in std::fs::read_to_string(&path).unwrap().lines() {
+            let v: serde_json::Value = serde_json::from_str(line).expect("a JSON line");
+            *counts.entry(v["$k"].as_str().unwrap().to_owned()).or_default() += 1;
+        }
+    }
+    (files, counts)
+}
+
+/// Cycle-40 review, part 4, finding 2 (WP-S4.01 with FR-MAC-011): without devices the basic project keeps Golden A's
+/// one layout space and nothing of its panel layout (no enclosure, mounting surface, carrier or placement), its
+/// `layout/<space>.jsonl` reopens without integrity findings and its derived values verify; with the devices kept
+/// the layout is whole.
+#[test]
+fn a_basic_project_without_devices_keeps_only_the_layout_space() {
+    let layout_kinds = [
+        "layout_space",
+        "enclosure",
+        "mounting_surface",
+        "carrier",
+        "placement",
+    ];
+    let work = temp("bp2-layout");
+    let state = work.join("state");
+    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    // Golden A's layout, by name: 1 space, 1 enclosure, 1 surface, 8 carriers, 20 placements.
+    let golden_layout: Vec<(&str, usize)> = vec![
+        ("layout_space", 1),
+        ("enclosure", 1),
+        ("mounting_surface", 1),
+        ("carrier", 8),
+        ("placement", 20),
+    ];
+    let gc = kind_counts(&golden);
+    for (kind, n) in &golden_layout {
+        assert_eq!(gc.get(*kind), Some(n), "Golden A's {kind} lines");
+    }
+
+    let dir = work.join("without.ew");
+    golden.save_as_basic(&dir, false, true, store(&state)).unwrap();
+    let (basic, report) =
+        Session::open(&dir, store(&state), SessionOptions::default(), Recovery::Keep).unwrap();
+    assert!(
+        ew_api::integrity_items(&report)
+            .iter()
+            .all(|i| i.severity == ew_api::checks::Severity::Info),
+        "{:?}",
+        ew_api::integrity_items(&report)
+    );
+    let bc = kind_counts(&basic);
+    assert_eq!(bc.get("layout_space"), Some(&1), "the layout space stays");
+    for kind in &layout_kinds[1..] {
+        assert_eq!(bc.get(*kind), None, "no {kind} is left");
+    }
+    let (files, lines) = layout_files(&dir);
+    assert_eq!(files, 1, "one layout file");
+    assert_eq!(
+        lines.into_iter().collect::<Vec<_>>(),
+        [("layout_space".to_owned(), 1)]
+    );
+    let verified = ew_api::verify::verify_derived(&basic).expect("memo on");
+    assert!(verified.is_clean(), "{:?}", verified.differences);
+    basic.close();
+
+    let dir = work.join("with.ew");
+    golden.save_as_basic(&dir, false, false, store(&state)).unwrap();
+    let (whole, _) = Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let wc = kind_counts(&whole);
+    for (kind, n) in &golden_layout {
+        assert_eq!(wc.get(*kind), Some(n), "every {kind} is kept");
+    }
+    let _ = std::fs::remove_dir_all(&work);
+}
+
 /// FR-MAC-011: without pages and devices the basic project keeps the sections, the structure and the report blocks
 /// and has no page; the session that saved it is unchanged, and a directory that holds a project is refused.
 #[test]

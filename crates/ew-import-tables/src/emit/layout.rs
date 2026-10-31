@@ -38,7 +38,7 @@ pub(crate) struct LayoutKeys {
 
 /// Why a carrier path breaks WP-S4.01 D5 (a rail is two points on one horizontal or vertical line, a duct an
 /// orthogonal polyline), or `None`.
-fn path_problem(kind: &CarrierKind, path: &[Pt2]) -> Option<String> {
+pub fn path_problem(kind: &CarrierKind, path: &[Pt2]) -> Option<String> {
     match kind {
         CarrierKind::Rail if path.len() != 2 => {
             return Some(format!("a rail is two points, not {}", path.len()));

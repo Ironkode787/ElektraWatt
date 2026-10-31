@@ -804,7 +804,8 @@ impl Session {
         if let Some(e) = &written.record_trouble {
             // FIX40b (finding 2): the archive is kept; only the discard evidence after a crash is lost.
             self.release_troubles.borrow_mut().push(format!(
-                "the release record of {} could not be updated with the archive's time, so a discard after a crash                  keeps the archive: {e}",
+                "the release record of {} could not be updated with the archive's time, so a discard after a crash \
+                 keeps the archive: {e}",
                 written.path.display()
             ));
         }
