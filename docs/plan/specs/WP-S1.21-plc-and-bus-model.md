@@ -5,7 +5,7 @@ work, in five parts: part 1 PLC records from the window and the channel members 
 PLC texts on the pages (0.6 pw, D7), part 3 addressing commands, the EW-PLC rules and AC-29 (1.1 pw, D8 to D10), part 4
 the bus model, the EW-BUS rules and AC-31 (1.2 pw, D11, D12), part 5 the I/O list, card supply groups and the model
 follow-ups (0.5 pw, D13); part 1 first; parts 2 and 3 after it in any order or side by side; part 4 after part 1;
-part 5 last; WP-S2.18 part 4 (`brief-plc-io`) waits for parts 1 and 2 and WP-S2.07 part 3 · **Parts 1 and 2 built in cycle 37** (lane A37, decision log ID-854; lane G37, ID-860; Golden A unchanged, its folios 203 to 206 wait for FT-698) · **Part 3 built in cycle 38** (lane A38, decision log ID-870; PA-2 de-scoped, FT-725; the prevent half of EW-PLC-001 and -007 not built, FT-726); Golden A prints its Q addresses since FT-698 (lane F38, ID-874) · **Part 4 built in cycle 39** (lane A39, decision log ID-896; BU-1 to BU-6 and BU-8, AC-31 passes; BU-7 waits for a part-level bus port, FT-770; a golden change: folio 3 prints "Node TBD", folio 909's DP row has 4 members; the master JE-N1000-03 is the external partner behind folio 3's interruption point DP, not a device record) · **Date:** 2026-10-30 ·
+part 5 last; WP-S2.18 part 4 (`brief-plc-io`) waits for parts 1 and 2 and WP-S2.07 part 3 · **Parts 1 and 2 built in cycle 37** (lane A37, decision log ID-854; lane G37, ID-860; Golden A unchanged, its folios 203 to 206 wait for FT-698) · **Part 3 built in cycle 38** (lane A38, decision log ID-870; PA-2 de-scoped, FT-725; the prevent half of EW-PLC-001 and -007 not built, FT-726); Golden A prints its Q addresses since FT-698 (lane F38, ID-874) · **Part 4 built in cycle 39** (lane A39, decision log ID-896; BU-1 to BU-6 and BU-8, AC-31 passes; BU-7 waits for a part-level bus port, FT-770; a golden change: folio 3 prints "Node TBD", folio 909's DP row has 4 members; the master JE-N1000-03 is the external partner behind folio 3's interruption point DP, not a device record) · **Part 4b specified in cycle 40** (lane S40, decision log ID-920; documents only): BU-7's part-level bus port, `PartSections.bus` with its port list (D15), normaliser N5 that gives a part's ports to the device's port-less bus-port functions and never rewrites one (D16), and EW-GEN-CPU-1's `DP` port at library 0.2.1 with no golden change (D17); BU-7 is closed by BU-7a to BU-7k of §8a, built by lane I40 (0.35 pw) · **Date:** 2026-10-31 ·
 **Work package:** [WP-S1.21](../02-work-packages.md#wp-s121-plc-and-bus-model-with-addressing-mvp) ·
 **Decision log:** ID-835 · **Part of:** ElektraWatt plan, specifications
 
@@ -30,7 +30,8 @@ document does not settle is escalated, never guessed (`CLAUDE.md`, rule 2).
 5. [Part 1: PLC records from the window and the channel members](#5-part-1-plc-records-from-the-window-and-the-channel-members)
 6. [Part 2: the derived PLC texts on the pages](#6-part-2-the-derived-plc-texts-on-the-pages)
 7. [Part 3: addressing commands, the EW-PLC rules and AC-29](#7-part-3-addressing-commands-the-ew-plc-rules-and-ac-29)
-8. [Part 4: the bus model, the EW-BUS rules and AC-31](#8-part-4-the-bus-model-the-ew-bus-rules-and-ac-31)
+8. [Part 4: the bus model, the EW-BUS rules and AC-31](#8-part-4-the-bus-model-the-ew-bus-rules-and-ac-31);
+   8a. [Part 4b: the part-level bus port (BU-7)](#8a-part-4b-the-part-level-bus-port-bu-7)
 9. [Part 5: the I/O list, card supply groups and the model follow-ups](#9-part-5-the-io-list-card-supply-groups-and-the-model-follow-ups)
 10. [Files owned and what a lane may not decide](#10-files-owned-and-what-a-lane-may-not-decide)
 11. [Risks](#11-risks)
@@ -133,7 +134,7 @@ The 33 rows of the package. "Built" names the cycle that delivered the row; the 
 | FR-PLC-052 | The PLC overview box (MVP Should; de-scope candidate) | 5 | PX-3 |
 | FR-PLC-053 | Built (cycle 18) | — | — |
 | FR-PLC-055 | Built; re-asserted for placement | 1 | PW-6 |
-| FR-BUS-001 | The `BusPort` aspect | 4 | BU-1 |
+| FR-BUS-001 | The `BusPort` aspect; a port from the part's bus section (part 4b, cycle 40) | 4, 4b | BU-1, BU-7a to BU-7k |
 | FR-BUS-002 | `LogicalNet` | 4 | BU-1 |
 | FR-BUS-003 | `PhysicalNet` and `bus_segments` (A5) | 4 | BU-2 |
 | FR-BUS-004 | Connector termination as a property, its rendered text | 4 | BU-3 |
@@ -165,6 +166,9 @@ entries after each part).
 | D12 | **The MVP EW-BUS rules** EW-BUS-001 (superseding EW-CORE-044 for bus addresses) and EW-BUS-004 (an external end gives one info). FT-589's EW-PLC-012, EW-BUS-001 and EW-BUS-004 rows join the AC-21 subset of WP-S1.16 D10 | AC-31 and EF-03, EF-16 |
 | D13 | **Part 5:** `io_list` as a report kind with FR-PLC-023's columns (one row per channel in module order); `PlcSection.supply_groups` typed (`{cps, feeds, kind: load | electronics}`, FR-PLC-024), read by the potential rules as typed roles; FT-320 (a valve leaving its module unbinds its coil with a notice), FT-321 (N3 re-pins after a part change), FT-352 (N2 through the parent index); the PLC overview box (FR-PLC-052, Should) last, as a placed box of kind `plc_overview` on an overview page, and its de-scope candidate | The remaining MVP rows and the follow-ups due before G-M2 |
 | D14 | **Parts 2 to 5 in the detail they need now.** Part 1 is closed to the field; later parts are closed to their items, decisions and acceptance; each part is re-read against the delivered earlier parts at dispatch without reopening D1 to D13 | Part 1 dispatches first (cycle 36); WP-S2.18 part 4 waits for it |
+| D15 | **The part-level bus port** (cycle 40, FT-770; §8a.1): `PartSections` gains `bus: Option<BusSection>` after `mounting_plate`; `BusSection {ports: Vec<PartBusPort>, extra}`; `PartBusPort {interface, port_label?, bus: BusSystem, role: PortRole, termination?: OnOff, extra}`, required `interface`, `bus` and `role`, the enums of D11 with their `Unknown` catch-alls. No address, net, connector, signal map or address range is typed: the address and the nets belong to the drawn port, and the 1.0 part facts stay in `extra` (FT-829). Additive within format 0.1 (ADR-0011 amendment 4, ID-334): doc 10 §2.6 names the section, and it adds no cascade semantics | The smallest shape whose every typed member has a reader (N5, D16); the function's `BusPort` cannot be reused in a library part because it requires an address and names project nets |
+| D16 | **Part → function: N5 "bus ports from the part"** (§8a.2), a normaliser (`bus_ports`, after `module_pin_binding`). A device whose bus part changed (or that is new), or a bus-port function new to a device with a bus part, gets the part's ports that no function of the device carries yet, given in list order to the device's port-less functions whose FnDef has contact kind `bus_port`, by ID: `{interface, port_label, bus, role, termination}` from the part, address `not_applicable` for a passive port and `tbd` otherwise, no nets. N5 never rewrites or removes a port; a carried port that differs from the part's gives a notice. No EW-BUS rule reads the part port at the MVP; the check of a disagreement is 1.0 (FT-829) | One rule for every path, as N0's (D2): placement, `part.assign`, `fields.set parts`, `rep.join_device`, paste and macros agree. A port is engineered data (address, nets, termination), so the part seeds it once and never overwrites it. A part port without a bus-port function seeds nothing and says nothing, so placing a CPU adds no open item until the drafter draws its port |
+| D17 | **The data** (§8a.3): EW-GEN-CPU-1 gains `bus.ports = [{interface: DP, bus: profibus_dp, role: master}]` and nothing else (part version 0.1.1, `ew-starter-parts` 0.2.1; 0.2.0 is published on `main` and immutable). No other starter part has a bus interface. No Golden A part gains a bus section, so no golden change | BU-7 met by data the window can use (place the DP port symbol on the CPU and it is typed); Golden A's DP ports are already typed on its functions (D11), and its parts' signal maps are unverified |
 
 No decision changes an ADR.
 
@@ -258,7 +262,217 @@ master in the network list and absent from the BOM (FR-BUS-005). **BU-5** folio 
 row has 4 members; every other exported byte of Golden A equal; the golden change listed. **BU-6 (AC-31)** EW-BUS-004
 reports no error with -3X1 on and one info for the external end; EW-BUS-001 reports the `tbd` station address once
 (EF-03), superseding EW-CORE-044; the AC-21 subset gains EF-03 and EF-16. **BU-7** the generic CPU's `DP` port typed
-(D5). **BU-8** targeted checks for `ew-schema`, `ew-format`, `ew-derive`, `ew-checks`, `ew-import-tables`.
+(D5): not met in cycle 39 (FT-770); specified in cycle 40 as part 4b, §8a, and closed by its BU-7a to BU-7k. **BU-8** targeted checks for `ew-schema`, `ew-format`, `ew-derive`, `ew-checks`, `ew-import-tables`.
+
+## 8a. Part 4b: the part-level bus port (BU-7)
+
+**Scope.** D15 to D17, FT-770; specified in cycle 40 (lane S40, decision log ID-920), built by lane I40. **0.35 pw**,
+the remainder of part 4's BU-7, which part 4's 1.2 pw sized as 0.05 for the CPU part (the CSV is unchanged, D1).
+Written against the code at `a3b25fed`.
+
+**Base contract.** I40 relies on exactly these items; if one differs, it stops and reports.
+
+| Item | Where |
+|---|---|
+| `BusPort`, `BusSystem`, `PortRole`, `AddrValue`, `OnOff` with their `Unknown(Value)` catch-alls (D11); `Function.bus_port` | `crates/ew-schema/src/bus.rs`, `device.rs` |
+| `PartSections` with `cable_cores`, `plc`, `enclosure`, `duct`, `rail`, `mounting_plate`, then `extra` (a `BTreeMap`) | `crates/ew-schema/src/library.rs` |
+| `ContactKind::BusPort`; the starter FnDefs `ew.fn.dp-port` and `ew.fn.dp-connector` (contact kind `bus_port`) and the starter symbol `ew.bus.dp-port` on `ew.fn.dp-port` | `crates/ew-schema/src/library.rs`; `content/fndefs/`, `content/symbols/` |
+| The normaliser registry, `ORDER` ending `solenoid_binding`, `module_pin_binding`, `revision_ensure_open`; `TxBuilder::notice` keeps each text once | `crates/ew-commands/src/normalise/mod.rs`, `tx.rs` |
+| `rep.join_device` moves a function to another device; `device.place` with `join_device` adds one | `crates/ew-commands/src/commands/join.rs`, `device.rs` |
+| EW-GEN-CPU-1 (`plc = {role: station}`, part version 0.1.0) and `LIBRARY_VERSION = "0.2.0"` in the generator; `main` publishes 0.2.0 | `crates/ew-library/tests/starter_parts.rs`; `git show main:content/libraries/ew-starter-parts.ewlib/library.json` |
+
+### 8a.1 The member (D15)
+
+`crates/ew-schema/src/bus.rs` gains two structs, and `PartSections` gains one member, appended after
+`mounting_plate` (doc 07 §2.5's order: a copy's `sha256` is taken over its compact JSON in member order, so the place
+is fixed now):
+
+```rust
+pub struct PartSections { /* … mounting_plate, */
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bus: Option<crate::BusSection>,          // sections.bus (doc 10 §2.6)
+    /* extra */ }
+
+pub struct BusSection {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ports: Vec<PartBusPort>,                 // the part's bus interfaces, in the part's order
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,                            // 1.0 device-description facts (rates, ident number), FT-829
+}
+
+pub struct PartBusPort {                         // members in this order; the first four as in `BusPort`
+    pub interface: Ident,                        // required: "DP", "X1"
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port_label: Option<Ident>,               // "P1R" (a multi-port interface)
+    pub bus: BusSystem,                          // required
+    pub role: PortRole,                          // required: the role a port made from it takes
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub termination: Option<OnOff>,              // present: the port has a termination switch, in this state
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,                            // connector, signals, address range… (1.0, FT-829)
+}
+```
+
+- **Names and values.** JSON keys `bus`, `ports`, `interface`, `port_label`, `bus`, `role`, `termination`. `bus` takes
+  `profibus_dp`, `profinet`, `ethercat`, `ethernet_ip`, `io_link`, `asi`, `canopen`, `modbus_tcp`; `role` `master`,
+  `slave`, `controller`, `device`, `passive`; `termination` `on`, `off`; any other value is kept as `Unknown(Value)`
+  and written back verbatim. No member has a unit. `ports` is omitted when empty, so `{"ports": []}` is written `{}`
+  (the canonical form; doc 07 §2.5's "not canonical" rule applies).
+- **Required.** `interface`, `bus` and `role`, as in the function's `BusPort` (D11); a port without one fails the
+  copy's load with the deserialiser's error naming the member, as a PLC section without `role` does.
+- **A list.** A part has as many ports as interfaces (a CPU with MPI and DP; a PROFINET device's `X1` `P1R` and `X1`
+  `P2R`). The schema enforces no uniqueness; every reader takes the first port of an (`interface`, `port_label`) pair
+  and ignores later ones (the part linter's report of the duplicate is FT-351).
+- **Not typed** (kept verbatim in the port's or the section's `extra`): the station address and the nets, which belong
+  to the drawn port, not to the part; the address range and supported rates (FR-BUS-009 "range from data", FR-PLC-025's
+  GSD facts); the connector type (`connector`, EW-BUS-009); the signal map (`signals`, FR-BUS-023). All are 1.0 and
+  have no reader before WP-S1.24 (FT-829).
+- **Connection points.** A part port is carried by a function of the device whose FnDef has contact kind `bus_port`
+  (D16); that function's CPs are the port's connection points. A part names no function or CP, so a part needs no
+  template entry for its port, as Golden A's -201U1:DP shows (an auxiliary `ew.fn.dp-port` function outside its part's
+  template).
+- **Compatibility.** Additive within format 0.1 (ADR-0011 amendment 4, ID-334): an older 0.1 build keeps `bus` in
+  `PartSections.extra`, which it writes after `mounting_plate` in key order, so both builds write the same bytes; only
+  a copy that also carries an unknown section key sorting before `bus` is re-ordered (reported not canonical, its stored
+  `sha256` kept). The member carries no cascade semantics, so it would stay additive after a format release.
+- `HeapSize` for both structs (`crates/ew-commands/src/heap.rs`); `schemas/0.1` re-blessed.
+
+### 8a.2 The relation part → function: normaliser N5 (D16)
+
+N5 "bus ports from the part", registry ID `bus_ports`, `crates/ew-commands/src/normalise/bus_ports.rs`, in `ORDER`
+after `module_pin_binding` and before `revision_ensure_open` (doc 06 §3.2: between rows 14 and 15, so N4's
+logical-net inheritance, 1.0, will find the port; after online numbering, so its notices print numbered tags).
+
+- **The bus part** of a device: its first part use (in `Device.parts` order) whose part copy has a `bus` section with
+  at least one port.
+- **A bus-port function:** a function whose FnDef copy has contact kind `bus_port`.
+- **A carried port:** a part port is carried when a function of the device has a `bus_port` with the same `interface`
+  and `port_label` (compared exactly).
+
+**Trigger.** (i) A device of the transaction that is new, or whose bus part names another part copy than in the base
+snapshot (`device.place` and `box.black` from a part, `device.create`, `part.assign` in every mode, `fields.set` on
+`parts`, `edit.paste`, `macro.insert`). (ii) A bus-port function that is new in the transaction or whose `device`
+changed in it (`device.place` with `join_device`, `rep.join_device`), on a device with a bus part.
+
+**Effect.** For each triggered device:
+1. The part's ports in list order, the first of each (`interface`, `port_label`) pair; a port whose `bus` or `role` is
+   `Unknown` is left out with notice **N5-c** (trigger (i) only).
+2. Of those, the ports that no function of the device carries, in list order, are paired with the device's port-less
+   bus-port functions in ID order (under trigger (ii) alone, only the new or moved functions are candidates, so a port a
+   drafter removed from an older function stays removed), and each pair gives the function
+   `bus_port = {interface, port_label, bus, role, address, termination, logical_net: none, physical_net: none}` with
+   `address` = `not_applicable` for role `passive`, else `tbd`, and `termination` the part's (absent when the part has
+   none). Surplus ports and surplus functions are left as they are, without a notice: a CPU placed before its port is
+   drawn has nothing to report.
+3. Under trigger (i), each carried port whose `bus` or `role` differs from the part port's keeps its value, with notice
+   **N5-b**.
+
+**Notices** (exact texts; `<port>` is the device's tag as `crate::words` prints it, a colon and the interface, then a
+space and the port label when there is one: `-A1:DP`):
+- **N5-b** `<port> keeps its bus port; part <number> declares <bus> <role>`, with the stored names (`profinet
+  controller`).
+- **N5-c** `bus port <interface> of part <number> is of a newer format and was not applied`.
+
+**Never rewritten.** N5 never changes or removes an existing `bus_port`; removing one stays `fields.set bus_port null`,
+and the function stays port-less until a trigger finds it a candidate again (a new part, or the function moved to
+another device). On `part.assign replace` (and `replace_all`, `fields.set parts`) the carried ports stay, the new
+part's uncarried ports go to port-less functions, and a disagreement is a notice. Removing the bus part removes no
+port. Deleting the function or device deletes its port as before. `library.update` keeps a copy's ID, so it does not
+trigger N5 (as for N0; FT-830).
+
+**Undo and preview.** N5's writes are part of the command's transaction: they appear in its preview and undo and redo
+with it as one step, with identical IDs. N5 is idempotent: after a run every paired function carries its port, so a
+confirming pass changes nothing and repeats no notice.
+
+**Rules.** No EW-BUS rule reads the part port at the MVP: EW-BUS-001 and EW-BUS-004 read `Function.bus_port`, and a
+seeded `tbd` address is reported by EW-CORE-044 outside every logical net and by EW-BUS-001 inside one (ID-896
+decision 1). The check that a function's port disagrees with its part's is 1.0 (FT-829).
+
+### 8a.3 The data (D17)
+
+- **EW-GEN-CPU-1** gains, beside `plc = {role: station}`,
+  `"bus": {"ports": [{"interface": "DP", "bus": "profibus_dp", "role": "master"}]}`, and nothing else: no CP, no
+  template entry (the box would otherwise draw the port's pins, because a black box takes the whole part pattern), no
+  termination (the plug carries it), no connector, signal map or range (a generic part claims no pinout). Master,
+  because a CPU's DP interface is the master by default, and Golden A already exercises the slave. Part version
+  **0.1.1** (`BUMPED`), library **0.2.1** (`LIBRARY_VERSION`): 0.2.0 is published on `main` and a library refuses other
+  content under a published version (doc 05 §13.1); a patch step, as FT-659's part changes took. Regenerated with
+  `EW_BLESS=1 cargo nextest run -p ew-library --test starter_parts`, run twice.
+- **No other starter part** gains a port (none has a bus interface).
+- **Golden A:** no part gains a `bus` section; its -201U1:DP and -3X1 ports are typed on their functions (D11) and its
+  parts 195740 and the plug have unverified signal maps and no template entry that would carry a port. **No golden
+  change**; Golden A's parts gain their ports with FT-829.
+
+### 8a.4 Build list
+
+1. `ew-schema`: `BusSection` and `PartBusPort` in `bus.rs`, re-exported from `lib.rs`; `PartSections.bus` in
+   `library.rs`; `schemas/0.1` re-blessed (the generator in `crates/ew-schema/src/schema.rs`).
+2. `ew-commands`: `HeapSize` for both structs; N5 in `normalise/bus_ports.rs`, registered in `registry()` and `ORDER`,
+   the module documentation's table gaining its row, the order test updated.
+3. `ew-library`: EW-GEN-CPU-1's section, `BUMPED` and `LIBRARY_VERSION` in `tests/starter_parts.rs`; the regenerated
+   `content/libraries/ew-starter-parts.ewlib/**` and `src/starter_parts.rs`.
+4. Tests of §8a.5; no new command, refusal, rule, message, DSL verb or fuzzer arm.
+
+### 8a.5 Acceptance
+
+- **BU-7a** (`ew-schema`) A part document whose `sections.bus` holds a port with every typed member, unknown port
+  members (`connector`, `signals`, `address_range`), an unknown section member (`rates`) and a second port with
+  `bus: "sercos"`, `role: "observer"`, `termination: "auto"` deserialises with the typed members typed and the rest in
+  `extra` or `Unknown`, and serialises byte-equal (compact JSON; members in §8a.1's order, then `extra`). A part without
+  `bus` serialises as before; `{"bus": {"ports": []}}` serialises as `{"bus": {}}`.
+- **BU-7b** A port without `interface`, one without `bus` and one without `role` each fail to deserialise, the error
+  naming the member.
+- **BU-7c** `schemas/0.1` re-blessed; the diff only adds (`BusSection`, `PartBusPort`, the `bus` property of
+  `PartSections`); no existing definition changes otherwise.
+- **BU-7d** (`ew-format`) A project whose `lib/` holds a part copy with BU-7a's section loads and saves byte-equal and
+  its stored `sha256` verifies; `ew-library` reads a library whose part has the section.
+- **BU-7e** (`ew-library`) EW-GEN-CPU-1 is at 0.1.1 with `sections.bus.ports` = one port `DP`, `profibus_dp`,
+  `master`, no `port_label` or `termination`; its CP pattern, function template and PLC section equal 0.1.0's; the
+  library is 0.2.1; the generator test passes and a second `EW_BLESS=1` run changes nothing.
+- **BU-7f** (`ew-api`, through `Session`) In a new project, placing EW-GEN-CPU-1 from the picker gives no bus port
+  and no notice. Placing the starter symbol `ew.bus.dp-port` with `join_device {device: the CPU, role: aux}` gives the
+  new function `bus_port = {interface: "DP", bus: "profibus_dp", role: "master", address: "tbd"}` with no termination
+  and no nets, in the placement's one undo step: undo removes the function and its port, redo restores identical IDs;
+  the placement's preview lists the port. The checks then report one EW-CORE-044 finding with discriminator
+  `bus_address` for that port.
+- **BU-7g** (`ew-commands`) A device with a black box and two `ew.fn.dp-port` functions and no part: `part.assign`
+  EW-GEN-CPU-1 gives the lower-ID function the port and leaves the other port-less; `part.assign` onto a device without
+  a bus-port function gives no port and no notice; `rep.join_device` moving a port-less `ew.fn.dp-port` function onto a
+  CPU device whose port is not carried gives it the port.
+- **BU-7h** (never rewritten) After `fields.set` `bus_port.address` to `{"value": {"profibus": 2}}` on BU-7f's port:
+  `part.assign replace` to a fixture part whose port is `{interface: DP, bus: profinet, role: controller}` leaves the
+  port unchanged with the notice `<port> keeps its bus port; part <number> declares profinet controller`;
+  `part.assign replace_all` to a part without a bus section and `fields.set parts []` leave it unchanged with no
+  notice; after `fields.set bus_port null`, an unrelated edit of the device leaves the function port-less.
+- **BU-7i** A fixture part whose port has `bus: "sercos"`: placement or assignment seeds nothing, with the notice `bus
+  port DP of part <number> is of a newer format and was not applied`. A fixture connector part with a passive port and
+  `termination: on` on an `ew.fn.dp-connector` function seeds `address: not_applicable`, `termination: on`.
+- **BU-7j** `ORDER` has `bus_ports` between `module_pin_binding` and `revision_ensure_open`; the order test asserts
+  it. Golden A and AC-15 path (b): every exported byte and the acceptance result unchanged (N5 a no-op: no part of
+  Golden A has a bus section); twice-run determinism.
+- **BU-7k** `cargo nextest run -p ew-schema -p ew-format -p ew-library -p ew-commands -p ew-api`, the matching
+  clippy, `cargo fmt --all --check`, `cargo xtask check-deps`.
+
+### 8a.6 Files owned and stop rules
+
+**Files owned (I40):** `crates/ew-schema/src/{bus.rs,library.rs,lib.rs}`, `crates/ew-schema/tests/**`,
+`schemas/0.1/**` (re-bless only); `crates/ew-format/tests/**`; `crates/ew-commands/src/normalise/{mod.rs,bus_ports.rs}`,
+`crates/ew-commands/src/heap.rs`, `crates/ew-commands/tests/**`; `crates/ew-library/tests/starter_parts.rs`,
+`crates/ew-library/src/starter_parts.rs`, `content/libraries/ew-starter-parts.ewlib/**`; `crates/ew-api/tests/**`.
+Read-only: everything else, `golden/**` included.
+
+**I40 stops and reports instead of choosing when:**
+1. any exported byte of Golden A, AC-15's path (b) or the acceptance result changes;
+2. a member beyond D15's would be typed, a required member beyond `interface`, `bus` and `role` added, or `bus` placed
+   elsewhere than after `mounting_plate`;
+3. N5 would need to change or remove an existing port, set a net, seed an address other than `tbd` or
+   `not_applicable`, or give a port to a function whose FnDef's contact kind is not `bus_port`;
+4. a new command, refusal, rule, catalogue row or message would be needed, or a test outside the owned files changes
+   its expectation;
+5. `main` does not publish `ew-starter-parts` 0.2.0, or 0.2.1 is already published;
+6. a new workspace package, dependency edge or external crate would be needed.
+
+I40 decides freely: private helper names, the module layout inside the owned files, fixture parts and test names.
 
 ## 9. Part 5: the I/O list, card supply groups and the model follow-ups
 
@@ -280,7 +494,7 @@ results as before on Golden A. **PX-5** targeted checks for the changed crates.
 `crates/ew-commands/tests/**`; the field catalogue in `crates/ew-api/src/output/fields.rs`, `crates/ew-api/tests/**`;
 `crates/ew-library/tests/starter_parts.rs`, `crates/ew-library/src/starter_parts.rs`,
 `content/libraries/ew-starter-parts.ewlib/**`. **Parts 2 to 5:** named by crate in their scope and fixed by each
-part's dispatch brief; golden files only under D11 and PT-4.
+part's dispatch brief; golden files only under D11 and PT-4. **Part 4b:** §8a.6 (no golden file).
 
 Shared append-only files (registry lists, `params.rs`, fuzzer arms, DSL verbs, the strings table, `schemas/0.1`,
 the rule catalogue's generated pages) may be touched by other lanes; the second to integrate rebases. Read-only for
@@ -291,7 +505,7 @@ pages. Each lane commits on its own branch and does not merge or push.
 
 A lane stops and reports instead of choosing when:
 1. a change needs a new workspace package, a new dependency edge in `ci/dep-rules.toml` or a new external crate;
-2. a member or kind beyond D6 and D11 would be typed, or a required member added;
+2. a member or kind beyond D6, D11 and D15 would be typed, or a required member added (part 4b: §8a.6);
 3. any exported byte of Golden A, AC-15's path (b) or the acceptance result changes outside PT-4 and BU-5;
 4. a golden fact here (the 56 channels, H1/H2's 28/0, the segment order, EF-02, EF-03, EF-16) is contradicted by the
    data;
@@ -312,13 +526,16 @@ those quoted here, test fixtures.
 | R3 The bus typing breaks the DP potential (folio 909) | Medium · medium | BU-5's byte-equal tests; D11 lists the only intended changes |
 | R4 Part 3 overruns with the Should commands | Medium · low | They are built last and leave first (§12) |
 | R5 The golden address texts of PT-2 move other texts | Low · medium | PT-4's per-folio byte comparison; the lane lists every changed folio |
+| R6 N5 seeds a port the drafter did not want (part 4b) | Low · low | Only on a port-less bus-port function, only from the part's uncarried ports; one undo step; never on a CPU placed alone (no bus-port function); `fields.set bus_port null` removes it for good |
 
 ## 12. Size, order and routing
 
 **Size.** 4.3 pw of the 6.3 pw PERT (D1): part 1 **0.9** (N0 and the configuration project 0.35, channel fields
 0.3, the CPU part 0.05, tests 0.2), part 2 **0.6** (slot resolution 0.25, black-box pins 0.2, tests 0.15), part 3
 **1.1** (commands 0.25, cut-off 0.15, seven rules with pages 0.5, Should commands 0.1, tests 0.1), part 4 **1.2**
-(kinds and schemas 0.35, `bus_segments` 0.3, golden change 0.2, two rules 0.2, tests 0.15), part 5 **0.5**. **De-scope
+(kinds and schemas 0.35, `bus_segments` 0.3, golden change 0.2, two rules 0.2, tests 0.15), part 4b **0.35** (cycle
+40: the member and schemas 0.1, N5 0.15, the CPU part 0.02, tests 0.08; over part 4's 0.05 for BU-7, recorded, the CSV
+unchanged), part 5 **0.5**. **De-scope
 rule:** when a part is projected (at its lane's midpoint report) or found (at its review) more than 20 % over its
 size, these items leave as follow-ups without a further ruling, in this order: the PLC overview box (FR-PLC-052),
 `plc.convert_manual_to_auto`, `plc.readdress`, the IEC profile's rendering (PA-3 then tests TIA only); the lane
@@ -326,7 +543,8 @@ reports which ones left.
 
 **Order and routing** (Opus or Haiku only, ID-700): part 1 first, **Opus at `high`** (a core normaliser and
 commands; cycle 36); part 2 after part 1, **Opus at `medium`**; part 3 after part 1, side by side with part 2,
-**Opus at `high`**; part 4 after part 1, **Opus at `xhigh`** (format typing and a golden change); part 5 last, **Opus
+**Opus at `high`**; part 4 after part 1, **Opus at `xhigh`** (format typing and a golden change); part 4b after part 4,
+**Opus at `high`** (a format member and a core normaliser, no golden change; cycle 40, lane I40); part 5 last, **Opus
 at `medium`**. **Unblocks:** WP-S2.18 part 4 after parts 1 and 2 and WP-S2.07 part 3; WP-S1.20 (fluid) reads part 1's
 aspects; WP-S1.24 builds on parts 3 and 4.
 
@@ -335,12 +553,18 @@ aspects; WP-S1.24 builds on parts 3 and 4.
 **Follow-ups.** FT-224, FT-225, FT-226, FT-227, FT-270, FT-320, FT-321, FT-350, FT-352 and the PLC and bus rows of
 FT-589 close with their parts; FT-323 closes with part 3 for the PLC section and stays open for the bus section until
 WP-S1.24; FT-324 and FT-322 stay with their packages. A de-scoped item becomes a new FT at the design pass.
+**Part 4b** (cycle 40): FT-770 closes with it; it opens FT-829 (the part port at 1.0: the disagreement check, the
+address range, rates, connector and signal map, Golden A's part ports), FT-830 (`library.update` triggers neither N0
+nor N5) and FT-831 (the window offers a part's ports as a placement).
 
 **Documents.** **After part 1:** doc 06 §3.2 (row N0 and `ORDER`), doc 10 §3.3 (as built), doc 10 §2.2 (the
 configuration project on demand); [WP-S2.18](WP-S2.18-basic-elements-from-the-window.md) D5 (EW-GEN-CPU-1).
 **After part 2:** doc 10 §3.6 (as built). **After part 3:** doc 10 §3.9 and §3.10 (as built), doc 15 §4.5.1 (rule
 pages), doc 06 §3.1 (the command count). **After part 4:** doc 10 §2.7 and §3.8 (as built), doc 05 §2.2 (the kinds),
-doc 03 §14, doc 20 §11 and the golden change list. **After part 5:** doc 09 (`io_list`), doc 10 §5.
+doc 03 §14, doc 20 §11 and the golden change list. **After part 4b:** doc 10 §2.6 (as built; specified there in
+cycle 40), doc 07 §2.5 (`PartSections.bus` in the typed list), doc 03 §7 (the part record's sections), doc 06 §3.2
+(N5, between rows 14 and 15), [WP-S2.18](WP-S2.18-basic-elements-from-the-window.md) D5 (EW-GEN-CPU-1's port).
+**After part 5:** doc 09 (`io_list`), doc 10 §5.
 
 ---
 

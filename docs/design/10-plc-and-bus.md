@@ -1,6 +1,6 @@
 # PLC, I/O and fieldbus
 
-**Status:** Draft v0.6 · **Date:** 2026-10-30 (v0.6: cycle-38 design pass, part 2: the IEC bit address without its size, EW-PLC-001 per overlap group and a black-box card's pins in `plc.bind_channel` as built, §2.5, §3.9, §3.10; decision log ID-884; v0.5: cycle-38 design pass: the pin texts, the addressing commands, the MVP EW-PLC rules and the PLC navigator as built, §3.6, §3.9, §3.10, §6; decision log ID-870, ID-874, ID-876, ID-877; v0.4: cycle-21 design pass: the map-language grammar as normative text, no subtraction, §2.6; decision log ID-523 to ID-525; v0.3: cycle-18 design pass: the solenoid-position map and the pin-designation map as built, derivation step 4, N1 to N3 and `plc.set_module_part`, the FR-PLC-051 rewording, §2.4, §2.6, §2.10, §3.2, §3.3, §3.9, §4; decision log ID-464 to ID-469; v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.7 · **Date:** 2026-10-31 (v0.7: cycle-40 specification lane S40: the part's bus section `sections.bus` and normaliser N5, specified, §2.6; decision log ID-920; v0.6: cycle-38 design pass, part 2: the IEC bit address without its size, EW-PLC-001 per overlap group and a black-box card's pins in `plc.bind_channel` as built, §2.5, §3.9, §3.10; decision log ID-884; v0.5: cycle-38 design pass: the pin texts, the addressing commands, the MVP EW-PLC rules and the PLC navigator as built, §3.6, §3.9, §3.10, §6; decision log ID-870, ID-874, ID-876, ID-877; v0.4: cycle-21 design pass: the map-language grammar as normative text, no subtraction, §2.6; decision log ID-523 to ID-525; v0.3: cycle-18 design pass: the solenoid-position map and the pin-designation map as built, derivation step 4, N1 to N3 and `plc.set_module_part`, the FR-PLC-051 rewording, §2.4, §2.6, §2.10, §3.2, §3.3, §3.9, §4; decision log ID-464 to ID-469; v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) models PLC configuration projects, stations, modules,
 channels and fieldbus networks. It defines how EW derives addresses, symbols, function texts and targets instead of
@@ -313,7 +313,7 @@ pin  = "3"
 role = "FE"                         # ▲U-18; D-16
 
 # part 195740 CPX-FB13: PROFIBUS DP bus node
-[[bus.port]]
+[[bus.ports]]                       # `ports`, a list, since cycle 40 (WP-S1.21 D15; was `port`)
 interface = "DP"
 bus       = "profibus-dp"
 role      = "slave"
@@ -379,6 +379,41 @@ The memoised query `solenoid_positions(module)` applies the module part's positi
 slot per position and map entry, with the channel, the valve (the lowest ID when two children hold the position) and
 the valve's coil CP. Until N-FL-1, a valve declares solenoid s when one of its functions has a non-physical CP named s
 ([11](11-fluid-power.md) §3.1, decision log ID-469). The part-data confidence of `[plc.meta]` is FT-323.
+
+**The bus section: specified, cycle 40; built by I40** ([WP-S1.21](../plan/specs/WP-S1.21-plc-and-bus-model.md) §8a,
+D15 to D17; decision log ID-920; FT-770). A part's bus interfaces are `sections.bus`, typed within format 0.1
+(ADR-0011 amendment 4, ID-334), appended to `PartSections` after `mounting_plate`:
+
+```rust
+pub struct BusSection  { pub ports: Vec<PartBusPort>, pub extra: Extra }     // `ports` omitted when empty
+pub struct PartBusPort {
+    pub interface: Ident,                // required: "DP", "X1"
+    pub port_label: Option<Ident>,       // "P1R"
+    pub bus: BusSystem,                  // required: §2.7's enum, newer values kept verbatim
+    pub role: PortRole,                  // required: the role a port made from it takes
+    pub termination: Option<OnOff>,      // present: the port has a termination switch, in this state
+    pub extra: Extra,                    // `connector`, `signals`, an address range: 1.0, kept verbatim
+}
+```
+
+- **What the part holds and what it does not.** The part states which interfaces exist, their bus, role and
+  termination switch. The station address and the nets belong to the drawn port (§2.7), never to the part. The
+  connector type, the signal map of the example above (FR-BUS-023) and the address range and supported rates
+  (FR-BUS-009, the GSD facts of §2.8) are 1.0 data, kept in `extra` with the example's shape until WP-S1.24 types them
+  (FT-829). Readers take the first port of an (`interface`, `port_label`) pair.
+- **Part to function (N5, "bus ports from the part").** A part names no function or CP. A port is carried by a function
+  of the device whose FnDef has contact kind `bus_port` (the DP port and the DP plug), and that function's CPs are the
+  port's connection points. The normaliser N5 runs after N3 and before N4: when a device is new or its bus part (the
+  first part use with a port) changes, or a bus-port function is added to or moved onto such a device, the part's ports
+  that no function of the device carries (by `interface` and `port_label`) go, in list order, to its port-less bus-port
+  functions in ID order, as `BusPort {interface, port_label, bus, role, termination}` with address `not_applicable` for
+  a passive port and `tbd` otherwise and no nets. N5 never rewrites or removes a port: a carried port that differs in
+  bus or role keeps its value with a notice ("-A1:DP keeps its bus port; part … declares profinet controller"), and a
+  removed part leaves its ports. Its writes are in the command's preview and undo step. No EW-BUS rule reads the part
+  port before 1.0; the disagreement check is FT-829.
+- **Data.** The generic CPU EW-GEN-CPU-1 carries one port, `DP`, `profibus_dp`, `master` (`ew-starter-parts` 0.2.1);
+  placing the DP port symbol on the CPU types its port. Golden A's parts carry no bus section; its ports are typed on
+  its functions (§2.7).
 
 ### 2.7 Bus model
 
