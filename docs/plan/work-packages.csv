@@ -68,7 +68,7 @@ WP-S3.02,S3,"Frames, forms, title blocks, text and fonts",M1,M1,,MVP,3,4.5,7,WP-
 WP-S3.03,S3,Report engine and spine report folios,M1,M1,,MVP,3.9,5.4,7.9,WP-S3.02 WP-S1.06 WP-S1.07,,FR-REP-001..FR-REP-006 FR-REP-009 FR-REP-012..FR-REP-014 FR-REP-016 FR-REP-027 FR-REP-028 FR-REP-038 FR-REP-039 FR-REP-041 FR-REP-048 FR-PAG-011 FR-PAG-030 FR-I18N-009 NFR-PERF-10 FR-EXP-005 FR-LAY-009,AC-03 AC-07 AC-08 AC-09 AC-10 AC-11 AC-12,Output and migration developer
 WP-S3.04,S3,"Page output: CPU renderer, PNG goldens and PDF",M1,M1,,MVP,4.5,6.5,10,WP-S3.02 WP-S3.03,,FR-OUT-001..FR-OUT-011 FR-OUT-014 FR-OUT-019 FR-OUT-020 FR-OUT-022 FR-OUT-025 FR-OUT-026 FR-EXT-004 NFR-PERF-11,AC-02 AC-13 AC-14 AC-17,Output and migration developer
 WP-S3.05,S3,Spine importers: CSV golden bootstrap and QET element reader,M1,M1,,MVP,2.5,4,6.5,WP-S1.03 WP-S3.01,,FR-IMP-022 FR-SYM-018 FR-IMP-008 FR-IMP-038,AC-15,Output and migration developer
-WP-S3.06,S3,MVP report pack,M2,M2,,MVP,2.5,3.5,5.5,WP-S3.03 WP-S1.14 WP-S1.21,,FR-REP-007 FR-REP-008 FR-REP-010 FR-REP-017..FR-REP-019 FR-REP-021 FR-REP-022 FR-REP-042 FR-REP-046 FR-REP-047 FR-PLC-022 FR-PLC-023 FR-PLC-052,AC-29 AC-33,Output and migration developer
+WP-S3.06,S3,MVP report pack,M2,M2,,MVP,1.8,2.4,3.6,WP-S3.03 WP-S1.14 WP-S1.21,,FR-REP-007 FR-REP-008 FR-REP-010 FR-REP-017..FR-REP-019 FR-REP-021 FR-REP-022 FR-REP-042 FR-REP-046 FR-REP-047 FR-PLC-022 FR-PLC-023 FR-PLC-052,AC-29 AC-33,Output and migration developer
 WP-S3.07,S3,SVG export and printing,M2,M2,,MVP,2,3,5,WP-S3.04,,FR-OUT-013 FR-OUT-017 FR-OUT-018 FR-EXT-009,AC-37,Output and migration developer
 WP-S3.08,S3,Table exports and Excel round trip,M2,M2,,MVP,1.6,2.6,4.1,WP-S3.03 WP-S1.04,,FR-EXP-001..FR-EXP-004 FR-EXP-006 FR-REP-030 FR-PLC-038 NFR-SEC-17,AC-07,Output and migration developer
 WP-S3.09,S3,"Importer contracts, lineage and migration report",M2,M2,,MVP,2,3,4.5,WP-S3.05 WP-S1.15,,FR-IMP-001..FR-IMP-005 FR-IMP-040 FR-IMP-041 NFR-SEC-02 NFR-SEC-18,AC-25,Output and migration developer
@@ -84,7 +84,7 @@ WP-S3.18,S3,"EDZ, EPLAN parts XML and QET 1.0 import",M3,M3,,1.0,4.5,6.5,10,WP-S
 WP-S3.19,S3,DXF and DWG exchange,M3,M3,,1.0,3,4.5,7,WP-S3.09 WP-S3.04,,FR-IMP-032..FR-IMP-036 FR-OUT-015,AC-37,Output and migration developer
 WP-S3.20,S3,Interop 1.x backlog,1.x,1.x,,1.x,5,8,12,WP-S3.18 WP-S3.19,,FR-IMP-024 FR-IMP-037 FR-PRT-020 FR-PRT-029 FR-PRT-030 FR-PRT-033 FR-EXP-010 FR-PLC-027 FR-PLC-034 FR-PLC-039 FR-REP-043 FR-REP-044,,Output and migration developer
 WP-S4.01,S4,Layout model and 2D panel pages (MVP slice),M2,M2,,MVP,4,5.5,8,WP-S1.19 WP-S1.13 WP-S3.03,,FR-LAY-001 FR-LAY-002 FR-LAY-004..FR-LAY-013 FR-LAY-017 FR-LAY-018 FR-LAY-059 FR-LAY-062 FR-REP-007 FR-CHK-039 FR-CHK-005,AC-33,Physical developer
-WP-S4.02,S4,2D panel editing tools,M2,M2,,MVP,2,3,4.5,WP-S4.01 WP-S2.03,,FR-LAY-014..FR-LAY-016 FR-LAY-060 FR-LAY-061,AC-33,Physical developer
+WP-S4.02,S4,2D panel editing tools,M2,M2,,MVP,4,5.5,7,WP-S4.01 WP-S2.03,,FR-LAY-014..FR-LAY-016 FR-LAY-060 FR-LAY-061,AC-33,Physical developer
 WP-S4.03,S4,STEP worker (ew-step-worker),M4,M4,,1.0,4,6,10,WP-S1.02 WP-S0.01,,FR-LAY-020..FR-LAY-022 NFR-PERF-18 NFR-REL-12,NFR-PERF-18,Physical developer
 WP-S4.04,S4,3D renderer and the Panel 3D workspace,M4,M4,,1.0,5.5,8,12,WP-S2.02 WP-S4.01 WP-S2.06,,FR-LAY-019 FR-LAY-064 FR-UI-029 FR-UI-003 FR-UI-006,AC-34,Physical developer
 WP-S4.05,S4,"3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs",M4,M4,,1.0,3.5,5,7.5,WP-S4.01 WP-S4.03,,FR-LAY-003 FR-LAY-023 FR-LAY-024 FR-LAY-026 FR-LAY-027 FR-LAY-032 FR-LAY-063,AC-34,Physical developer

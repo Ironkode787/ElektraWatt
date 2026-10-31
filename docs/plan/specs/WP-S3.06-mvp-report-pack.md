@@ -3,8 +3,8 @@
 **Status:** specified in cycle 41 (documents only), an M2 package, in three parts: part 1 the list kinds and the
 export by kind (0.9 pw, D4 to D6, D9, D11), part 2 the open-items list (0.7 pw, D7, D8), part 3 the report back-links
 drawn (0.6 pw, D10); 0.3 pw reserve; in M2's order after WP-S1.21's remaining work (doc 01, ID-779); part 1 and
-part 2 in any order or side by side, part 3 after both and after WP-S4.01 part 4b · **Date:** 2026-10-31 ·
-**Work package:** [WP-S3.06](../02-work-packages.md#wp-s306-mvp-report-pack) · **Decision log:** ID-? ·
+part 2 in any order or side by side, part 3 after both and after WP-S4.01 part 4b · **Ruled in cycle 41** (decision log ID-950, project owner (delegated)): §12's O1 to O4 as proposed, except FP-2 (O4), which is not taken at MVP; the PERT in `work-packages.csv`; the FT annotations made · **Date:** 2026-10-31 ·
+**Work package:** [WP-S3.06](../02-work-packages.md#wp-s306-mvp-report-pack) · **Decision log:** ID-950 ·
 **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** Most of WP-S3.06's scope was built ahead of the package by other packages: nine of its fourteen
@@ -145,7 +145,7 @@ the legend rows and FR-REP-007, both WP-S4.01's (parts 4a and 4b); this package 
 ## 4. Decisions
 
 Each is a lead ruling that the owner may reverse. The design pass records them under the decision log row of this
-specification (ID-?) and the as-built entries after each part.
+specification (ID-950) and the as-built entries after each part.
 
 | # | Decision | Reason and trade-off |
 |---|---|---|
@@ -366,6 +366,8 @@ can offer the three kinds.
 - **O2** The PERT re-estimate of D1 (O 1.8 · L 2.4 · P 3.6 · PERT 2.5) for `work-packages.csv`.
 - **O3** The FT annotations of §13 for the design pass.
 - **O4** FP-2: whether new projects get the three blocks.
+
+*Ruled at the cycle-41 design pass (ID-950, project owner (delegated)):* O1 as proposed, into WP-S1.21 part 5's brief (`include_deactivated`, default false: 28 rows, 56 with it); O2 entered in `work-packages.csv` (PERT 2.5, the remaining work only); O3 the annotations made in doc 02; O4 no open-items block in the company standard by default at MVP (the export by kind and the report kind cover it).
 
 ## 13. Follow-ups and the documents to update
 

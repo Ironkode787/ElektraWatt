@@ -6,9 +6,9 @@ D6, D7), part 3 placing in the window (1.2 pw, D8 to D10), part 4 setting up and
 to D12), part 5 end brackets in the outputs (0.6 pw, D13), part 6 the starter library's layout parts (0.3 pw, D14);
 part 1 first; part 2 after part 1; part 3 after part 1 and WP-S4.01 part 3; part 4 after parts 2 and 3; part 5 after
 part 1 and WP-S4.01 parts 3 to 5; part 6 at any time. The parts sum to **5.2 pw plus 0.3 pw reserve** against a 3.1
-pw PERT that covered the five requirement rows only (D15, O1) · **Date:** 2026-10-31 ·
+pw PERT that covered the five requirement rows only (D15, O1) · **Ruled in cycle 41** (decision log ID-948, project owner (delegated)): O1 accepted, `work-packages.csv` O 4 · L 5.5 · P 7 · PERT 5.5; O2: one rebase is accepted, but part 1 never runs beside WP-S4.01 part 5 (both edit `ew-derive/src/layout/queries.rs`) · **Date:** 2026-10-31 ·
 **Work package:** [WP-S4.02](../02-work-packages.md#wp-s402-2d-panel-editing-tools) ·
-**Decision log:** ID-? · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-948 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S4.01 made the layout a model with outputs and checks and left every gesture to this package (its
 D1). WP-S4.02 is where a person lays out a panel: drag a device from the unplaced list onto a rail, let it snap,
@@ -330,7 +330,7 @@ legend block's rect at the form's row height, the lane stops and reports (WP-S4.
 EW-LAY-010 reports a bracket overlapping a placement (a fixture with a 5 mm gap between two strips) and a bracket past
 the rail end (-X1031 grown by added terminals); Golden A gives none. **EB-5** AC-33 passes in full; the golden change
 is exactly 901.1's row 26, 902's expected outputs and the legend block, decided by the orchestrator and recorded;
-every other exported byte equal. **EB-6** Targeted checks for `ew-derive`, `ew-reports`, `ew-checks`, `ew-api`.
+every other exported byte equal. *Added in cycle 41 (the window check W41a, ID-975):* row 26 must then match doc 20 §14.1 in its folios (902 alone; it prints "101, 103" today) and its tag order ("1X1, -X1031, -X1032"). **EB-6** Targeted checks for `ew-derive`, `ew-reports`, `ew-checks`, `ew-api`.
 
 ## 10. Part 6: the starter library's layout parts
 
@@ -428,7 +428,7 @@ alignment with the rail above (D4), the auto-fill dialog (the command stays), ca
 placement's Tab cycling (the live region stays); the lane reports which ones left.
 
 **Order and routing** (Opus or Haiku only, ID-700): part 1 first, **Opus at `high`** (core derived data with an
-exact geometric invariant; it can start now, on WP-S4.01 parts 1 and 2); part 2 after part 1, **Opus at `high`**
+exact geometric invariant; it can start now, on WP-S4.01 parts 1 and 2; never beside WP-S4.01 part 5, the O2 ruling); part 2 after part 1, **Opus at `high`**
 (`edit.delete`'s cascade policies and the one-transaction enclosure command); part 3 after part 1 and WP-S4.01 part
 3, **Opus at `high`** (a new session API and the tool behaviour); part 4 after parts 2 and 3, **Opus at `medium`**
 (window work within the patterns part 3 sets); part 5 after part 1 and WP-S4.01 parts 3, 4 and 5, **Opus at `high`**
