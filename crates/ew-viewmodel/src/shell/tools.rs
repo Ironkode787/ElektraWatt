@@ -654,7 +654,7 @@ impl ShellModel {
         }
         let json = match cmd.to_json() {
             Ok(v) => v,
-            Err(e) => return failed("error-command", &[&e.to_string()]),
+            Err(e) => return command_failed(&e, &Value::Null),
         };
         let name = cmd.name().to_owned();
         if self.mode == Mode::Headless {
@@ -707,7 +707,7 @@ impl ShellModel {
                 });
                 Outcome::Done
             }
-            Err(e) => failed("error-command", &[&e.to_string()]),
+            Err(e) => command_failed(&e, &json),
         };
         self.refresh();
         outcome
@@ -1017,5 +1017,89 @@ impl ShellModel {
         self.tools.last_cp = Some((key.0, key.1, key.2, at));
         self.cursor_moved(g);
         Outcome::Done
+    }
+}
+
+/// The toast of a refused tool command (FT-779): an invalid parameter names its field in words, never its JSON
+/// Pointer (the command error itself stays machine-readable for the CLI); any other error as it prints.
+fn command_failed(e: &CmdError, params: &Value) -> Outcome {
+    match e {
+        CmdError::InvalidParams {
+            command,
+            path,
+            message,
+        } => failed(
+            "error-command-field",
+            &[
+                strings::command_title(command),
+                &param_words(params, path),
+                message,
+            ],
+        ),
+        other => failed("error-command", &[&other.to_string()]),
+    }
+}
+
+/// The words of the parameter at the JSON Pointer `path` of a command's `params`: for a command that sets a field
+/// of a record kind (`kind` and `path` members, as `fields.set`), its `/value` and `/path` are that field's label
+/// in the property grid's words; any other parameter is its last member humanised as field labels are, with a list
+/// position kept (`/ips/2` is "Interruption points, item 3").
+pub(crate) fn param_words(params: &Value, path: &str) -> String {
+    if matches!(path, "/value" | "/path") {
+        if let (Some(kind), Some(field)) = (
+            params.get("kind").and_then(Value::as_str),
+            params.get("path").and_then(Value::as_str),
+        ) {
+            return strings::field_label(kind, field);
+        }
+    }
+    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+    let Some(at) = segments.iter().rposition(|s| s.parse::<usize>().is_err()) else {
+        return strings::text("error-param-whole").to_owned();
+    };
+    let base = match segments[at] {
+        "ips" => "Interruption points".to_owned(),
+        "cps" => "Connection points".to_owned(),
+        "reps" => "Symbols".to_owned(),
+        "rep" => "Symbol".to_owned(),
+        other => strings::field_label("", other),
+    };
+    match segments.get(at + 1).and_then(|s| s.parse::<usize>().ok()) {
+        Some(i) => strings::format("error-param-item", &[&base, &(i + 1).to_string()]),
+        None => base,
+    }
+}
+
+#[cfg(test)]
+mod ft779 {
+    use super::*;
+
+    fn message(o: Outcome) -> String {
+        match o {
+            Outcome::Failed { message } => message,
+            other => panic!("expected a failure, got {other:?}"),
+        }
+    }
+
+    /// FT-779: the toast of an invalid parameter names the field in words: a field set by `fields.set` by its label,
+    /// any other parameter by its member humanised with its list position; never a JSON Pointer.
+    #[test]
+    fn an_invalid_parameter_toast_names_the_field_in_words() {
+        let set = serde_json::json!({"kind": "function", "targets": [], "path": "kind.ip.sort", "value": "x"});
+        let e = CmdError::invalid_params("fields.set", "/value", "a whole number is needed");
+        assert_eq!(
+            message(command_failed(&e, &set)),
+            "Set property: Chain order: a whole number is needed"
+        );
+        let e = CmdError::invalid_params("ip.arrange", "/ips/2", "the interruption point is listed twice");
+        assert_eq!(
+            message(command_failed(&e, &Value::Null)),
+            "Arrange interruption points: Interruption points, item 3: the interruption point is listed twice"
+        );
+        let e = CmdError::invalid_params("connection.delete", "/connections", "list at least one connection");
+        assert_eq!(
+            message(command_failed(&e, &Value::Null)),
+            "Delete wire: Connections: list at least one connection"
+        );
     }
 }

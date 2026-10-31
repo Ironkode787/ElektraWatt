@@ -612,6 +612,10 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "The part needs the function definitions {0}, which neither the project nor the starter library holds."
         }
         "error-command" => "{0}",
+        // FT-779: a refused parameter named by its field's words: the command's title, the field, the refusal.
+        "error-command-field" => "{0}: {1}: {2}",
+        "error-param-item" => "{0}, item {1}",
+        "error-param-whole" => "The parameters",
         "error-render" => "The page could not be drawn: {0}",
         "openerr-io" => "the files cannot be read",
         "openerr-not-dir" => "it is not a project directory",

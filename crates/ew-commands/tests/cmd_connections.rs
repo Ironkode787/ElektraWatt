@@ -418,6 +418,38 @@ fn delete_of_a_third_member_dissolves_the_junction() {
     assert_eq!(lines(e.model()), before);
 }
 
+/// FT-779: a junction that cannot dissolve because its two remaining wires carry different numbers is named by
+/// its position and page, never by its ID.
+#[test]
+fn a_junction_that_cannot_merge_two_numbers_is_named_in_words() {
+    let (p, mut records, _) = mini_golden_parts();
+    for r in &mut records {
+        if let Record::Connection(c) = r {
+            if c.id == CON_J5_IN {
+                c.number = ew_schema::NumberSpec::Frozen(ident("101"));
+            } else if c.id == CON_W22 {
+                c.number = ew_schema::NumberSpec::Frozen(ident("102"));
+            }
+        }
+        if let Record::Junction(j) = r {
+            if j.id == J5 {
+                j.at = ew_units::Pt2::new(ew_units::Nm(120_000_000), ew_units::Nm(45_500_000));
+            }
+        }
+    }
+    let mut e = engine(Model::from_records(p, records, library()).expect("valid"));
+    match e.execute(&DeleteConnections {
+        connections: vec![CON_W27],
+    }) {
+        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
+            reason,
+            "the junction at x 120, y 45.5 mm on page 102 would merge two wires that carry different \
+             numbers; clear one of the numbers or delete the wires separately"
+        ),
+        other => panic!("expected a rejection, got {other:?}"),
+    }
+}
+
 #[test]
 fn delete_of_two_members_removes_the_junction_with_the_last() {
     let mut e = engine(golden_model());

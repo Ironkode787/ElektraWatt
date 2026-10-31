@@ -160,9 +160,9 @@ fn prefer_numbered(
     let unassigned = |n: &NumberSpec| matches!(n, NumberSpec::Unassigned);
     if !unassigned(&n1) && !unassigned(&n2) && n1 != n2 {
         return tx.reject(format!(
-            "junction {j} would merge connection {first} (number {n1:?}) and connection {second} \
-             (number {n2:?}), which carry different numbers; clear one of the numbers or delete the \
-             connections separately"
+            "{} would merge two wires that carry different numbers; clear one of the numbers or delete \
+             the wires separately",
+            crate::words::junction(tx, j)
         ));
     }
     if unassigned(&n1) && !unassigned(&n2) {

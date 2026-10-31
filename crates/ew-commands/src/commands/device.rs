@@ -429,13 +429,13 @@ impl Command for PlaceSymbol {
 fn missing_target(tx: &TxBuilder<'_>, to: &EndpointParam) -> Option<String> {
     match to {
         EndpointParam::Cp { function, .. } => {
-            (!tx.exists::<Function>(*function)).then(|| format!("function {function}"))
+            (!tx.exists::<Function>(*function)).then(|| "the function it connects to".to_owned())
         }
         EndpointParam::Junction { junction } => {
-            (!tx.exists::<Junction>(*junction)).then(|| format!("junction {junction}"))
+            (!tx.exists::<Junction>(*junction)).then(|| "the junction it connects to".to_owned())
         }
         EndpointParam::OnConnection { connection, .. } => {
-            (!tx.exists::<Connection>(*connection)).then(|| format!("connection {connection}"))
+            (!tx.exists::<Connection>(*connection)).then(|| "the wire it connects to".to_owned())
         }
     }
 }

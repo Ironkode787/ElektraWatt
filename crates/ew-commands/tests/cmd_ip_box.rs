@@ -572,10 +572,14 @@ fn arrange_ips_rejections_write_nothing() {
     // A missing function.
     not_found(e.execute(&arrange(&[IP_A, id(0xdead)], false)));
     // A function that is not an interruption point.
-    rejected_with(
-        e.execute(&arrange(&[IP_A, FN_102F2], false)),
-        "not an interruption point",
-    );
+    // FT-779: the whole text, the function named by its device's tag.
+    match e.execute(&arrange(&[IP_A, FN_102F2], false)) {
+        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
+            reason,
+            "-102F2 is not an interruption point; arrange interruption points only"
+        ),
+        other => panic!("expected a rejection, got {other:?}"),
+    }
     // IPs on two pages (FN_IP_101 is on page 101).
     rejected_with(e.execute(&arrange(&[IP_A, FN_IP_101], false)), "different pages");
     assert_eq!(e.model().rev(), rev);

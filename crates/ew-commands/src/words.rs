@@ -6,7 +6,7 @@
 //! not exist has no words: the refusal says so and its JSON Pointer names the parameter.
 
 use ew_derive::{DeviceTag, Q};
-use ew_schema::{Device, Function, Page, Representation};
+use ew_schema::{Device, Function, FunctionKind, Junction, Page, Representation};
 
 use crate::tx::TxBuilder;
 
@@ -74,4 +74,39 @@ pub(crate) fn symbol(tx: &TxBuilder<'_>, id: ew_ids::Id<Representation>) -> Stri
         .and_then(|f| f.device)
         .and_then(|d| existing_tag(tx, d));
     tag.map_or_else(|| "a symbol".to_owned(), |t| format!("the symbol of {t}"))
+}
+
+/// A length in whole millimetres where exact, else to one decimal.
+fn mm(n: ew_units::Nm) -> String {
+    let v = n.to_mm_f64();
+    if v.fract() == 0.0 {
+        format!("{v:.0}")
+    } else {
+        format!("{v:.1}")
+    }
+}
+
+/// A junction by its page and position ("the junction at x 120, y 45 mm on page 3"), or "a junction that is
+/// not in the project".
+pub(crate) fn junction(tx: &TxBuilder<'_>, id: ew_ids::Id<Junction>) -> String {
+    tx.get::<Junction>(id).map_or_else(
+        || "a junction that is not in the project".to_owned(),
+        |j| {
+            format!(
+                "the junction at x {}, y {} mm on {}",
+                mm(j.at.x),
+                mm(j.at.y),
+                page(tx, j.page)
+            )
+        },
+    )
+}
+
+/// An interruption point by its name ("interruption point 0V"); a function that is no interruption point by
+/// its device's tag, as [`function`] names it.
+pub(crate) fn interruption_point(tx: &TxBuilder<'_>, id: ew_ids::Id<Function>) -> String {
+    match tx.get::<Function>(id).map(|f| f.kind.clone()) {
+        Some(FunctionKind::Ip(ip)) => format!("interruption point {}", ip.name.as_str()),
+        _ => function(tx, id),
+    }
 }

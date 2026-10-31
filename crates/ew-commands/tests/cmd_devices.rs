@@ -452,8 +452,12 @@ fn place_hints_reject_bad_cps_and_connections_and_drop_missing_targets() {
     }];
     // a hint whose target no longer exists is dropped with a notice; the symbol is still placed
     let r = e.execute(&cmd).unwrap();
+    // FT-779: the notice names the gone record in words, never by its ID.
     assert!(
-        r.outcome.notices.iter().any(|n| n.contains("no longer exists")),
+        r.outcome
+            .notices
+            .iter()
+            .any(|n| n == "autoconnect hint 1 dropped: the junction it connects to no longer exists"),
         "{:?}",
         r.outcome.notices
     );

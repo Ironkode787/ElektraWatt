@@ -999,13 +999,15 @@ impl Command for ArrangeIps {
             let function = tx.require::<Function>(*f)?;
             if !matches!(function.kind, FunctionKind::Ip(_)) {
                 return tx.reject(format!(
-                    "function {f} is not an interruption point; arrange interruption points only"
+                    "{} is not an interruption point; arrange interruption points only",
+                    crate::words::function(tx, *f)
                 ));
             }
             let ids = tx.reps_of_function(*f);
             let [rid] = ids.as_slice() else {
                 return tx.reject(format!(
-                    "interruption point {f} has {} representations; an arranged interruption point has exactly one",
+                    "{} is drawn {} times; an arranged interruption point is drawn exactly once",
+                    crate::words::interruption_point(tx, *f),
                     ids.len()
                 ));
             };
