@@ -1,6 +1,6 @@
 # Reports, forms and page output
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-30: no macOS print adapter, CI exports on Windows and Linux, macOS is not a supported platform (decision log ID-880); amended 2026-10-24, cycle-24 design pass: which renderers draw the logo, §2.6, decision log ID-605; amended 2026-10-23, cycle-23 design pass: `report_block.create` with `form_copies` and the wizard's golden layout in §2.2, the logo reference in §2.6, decision log ID-572, ID-573, ID-576; amended 2026-10-22, cycle-22 design pass: the stored frame defaults, the notice member and the frame fall-through rule as built, §2.6, §2.7, decision log ID-545, ID-547; amended 2026-10-22, cycle-19 design pass: the shell's PDF export as built, §4.3, decision log ID-485; amended 2026-10-22, cycle-20 design pass: the export still synchronous after WP-S2.01 part 2, §4.3, ID-504) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-31, cycle-41 design pass, part 2: the `enclosure_legend` kind as built in §2.2 and the panel pages' layers as built in §4.1, WP-S4.01 parts 3 and 4a, decision log ID-951, ID-963 to ID-966, ID-996; amended 2026-10-30: no macOS print adapter, CI exports on Windows and Linux, macOS is not a supported platform (decision log ID-880); amended 2026-10-24, cycle-24 design pass: which renderers draw the logo, §2.6, decision log ID-605; amended 2026-10-23, cycle-23 design pass: `report_block.create` with `form_copies` and the wizard's golden layout in §2.2, the logo reference in §2.6, decision log ID-572, ID-573, ID-576; amended 2026-10-22, cycle-22 design pass: the stored frame defaults, the notice member and the frame fall-through rule as built, §2.6, §2.7, decision log ID-545, ID-547; amended 2026-10-22, cycle-19 design pass: the shell's PDF export as built, §4.3, decision log ID-485; amended 2026-10-22, cycle-20 design pass: the export still synchronous after WP-S2.01 part 2, §4.3, ID-504) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -131,6 +131,17 @@ pub struct ReportBlock {
 **As built (cycle 12; decision log ID-319).** The cover block is the report kind `profile_tables` (`ew-reports`), drawn by the
 `embedded` module of `ew-scene` into the tables layer; its layout (proportions in 560ths of the block width, 24 rows) is
 hard-coded in `ew-scene` and provisional until it moves into the form's regions (FT-203).
+
+**As built (cycle 41, WP-S4.01 part 4a; decision log ID-963 to ID-966).** The report kind `enclosure_legend` is
+registered in `ew-reports` (`kinds/enclosure_legend.rs`) with its rows from `layout_legend(surface)`, plain functions
+in `ew-derive` (`layout/legend.rs`), not memo families: the enclosure, the plate (falling back to the enclosure's plate
+copy), one row per carrier (rails, then ducts, then carrier kinds the build does not know, each top to bottom then left
+to right by its first point; the DT cell empty; the length in metres as the quantity, "Missing" without one), then
+the placements by DT in natural order; positions 1 … n, derived; a row that is not a carrier has quantity 1. The
+block takes its surface only from the page it is embedded on, so a block on no page, or on a page without a surface
+view, lists no rows. Golden A has no `enclosure_legend` block yet: drawing embedded blocks of every kind, the legend on
+902 and its export are WP-S4.01 part 4b's. In the BOM, a layout object's line (the enclosure, the plate, the carrier
+part lines) prints the panel pages that view its surface in its Folios cell only (ID-964).
 
 **Encodings and deferred members** (decision log ID-16):
 - `source` is `{"kind": "<report kind>"}` with the snake_case names of §2.4, or
@@ -734,6 +745,15 @@ manufacturer, the part number and the type designation (ID-315, FT-206). Each pa
 each layer is its own Memo + LRU family (`page_display_list_frame`, `_symbols`, `_wires`, `_labels`, `_tables`) over
 the parts it reads, so a wire edit re-runs no frame layer and a renumber re-runs exactly the frames whose title-block
 values change (tested on the golden project; the memo oracle compares every layer with its cold value).
+
+*As built (cycle 41, WP-S4.01 part 3; decision log ID-951, ID-957, ID-977, ID-978).* A PanelLayout page draws its
+surface view through the `surface`, `carriers`, `placements` and `labels` layers of `ew-scene`'s `panel` module, each
+its own memo family (`page_display_list_surface`, `_carriers`, `_placements` and the shared `_labels`), from a view
+that `ew-api` fills from the layout queries; `features` and `dims` are empty until 1.0, and the `tables` layer of a
+panel page draws its embedded blocks only from WP-S4.01 part 4b. The projection divides by the frame's page-to-sheet
+factor, so the page's scale holds on paper; the title block's `page.title` on a page of scale 1:n reads "<title> ·
+Scale 1:n". A placement move rebuilds `placements`, `labels` and `carriers` (the labels knock out the carriers),
+never `frame` or `tables` ([12](12-panel-layout.md) §5.1 to §5.3).
 
 ### 4.2 PDF (krilla)
 

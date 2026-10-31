@@ -1,6 +1,6 @@
 # Panel layout: 2D, 3D, routing, wire lengths and thermal
 
-**Status:** Draft v0.1 · Amended 2026-10-31, cycle 40 (WP-S4.01 part 2, decision log ID-932): §2.6's MVP queries, §2.7's predicate and Open question 3 as built · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · Amended 2026-10-31, cycle 40 (WP-S4.01 part 2, decision log ID-932): §2.6's MVP queries, §2.7's predicate and Open question 3 as built · Amended 2026-10-31, cycle 41 (WP-S4.01 parts 3 and 5, decision log ID-951 to ID-955, ID-977, ID-978, ID-996): §5.1 to §5.3 as built · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document designs the physical side of an ElektraWatt (EW) project: layout spaces, enclosures and
 mounting surfaces modelled at 1:1 in nanometres, rails and ducts as parametric carriers, placements bound to
@@ -480,6 +480,17 @@ rounding to the nearest nm. At 1:10 the GP enclosure (W 750 × H 1000 mm ▲U-26
 which leaves the grid columns right of the plate for the legend. Changing the scale changes no stored pose
 (FR-LAY-002).
 
+*As built (cycle 41, WP-S4.01 part 3; decision log ID-951, ID-952, ID-955, ID-977).* The page item `surface_view`
+is typed with `surface`, `datum_at` and `label_mode`; `side`, `clip` and `layers` stay verbatim until typed
+([03](03-domain-model.md) §6). `page.surface_view.set {page, surface, datum_at, label_mode?}` sets it on a
+`panel_layout` page and is refused on another kind; a second set replaces the view in place; the view cascades with
+its surface. **The stated scale holds on paper:** the frame maps the page to the sheet at `scale_ppb` (0.986282578 on
+every frame of Golden A and the starters), so the projection divides by it too, `num/den = 10⁹ / (n · scale_ppb)`
+(10⁹ without a map), i128, one rounding half away from zero; the datum stays in page coordinates. On 902 the
+enclosure measures 75.0 × 100.0 mm printed (76.043 mm on the page for its 750 mm edge). A page without a scale draws
+the surface at 1:1 on the page. The projection is built in `ew-scene`'s `panel` module from a view that `ew-api` fills
+from the layout queries (arch §3, ID-957).
+
 ### 5.2 Layers of the display list
 
 A PanelLayout page is drawn by the same `page_display_list(page, layer, lang)` query as every page (arch §6.4,
@@ -502,6 +513,18 @@ move rebuilds `placements` and `labels` only, never `frame` or `tables`.
 Every item carries an `EntityRef` (placement, carrier, feature), so hit-testing, selection sync and "show all
 representations" work on folio 902 as on schematic pages (FR-UI-007).
 
+*As built (cycle 41, WP-S4.01 part 3; decision log ID-951, ID-955, ID-978).* The `surface`, `carriers`, `placements`
+and `labels` layers are drawn, each its own memo family (`page_display_list_surface`, `_carriers`, `_placements`,
+`_labels`); `features` and `dims` stay empty until 1.0, and the embedded blocks of a panel page are drawn by WP-S4.01
+part 4b. `surface`: the enclosure outline, the plate outline and the usable polygon thin dashed; `carriers`: per
+carrier by ID its outline rectangles, a rail's axis as a chain line and a duct's "W×H" label in millimetres;
+`placements`: per placement by ID its `front_2d` outline, else its footprint rectangle (an unknown footprint dashed).
+Carrier outlines and duct labels carry the carrier's entity, footprints and labels the placement's; the surface
+outlines and a rail's axis carry none, so a click on a footprint selects the placement. **Labels knock out the
+carriers:** the carriers layer cuts the rails' and ducts' outlines and the rails' axes around every label's ink box as
+placed (a cut, not a paper-coloured fill), so the carriers layer reads the labels' fit and **a placement move rebuilds
+`placements`, `labels` and `carriers`**, never `frame` or `tables`.
+
 ### 5.3 Labels
 
 - `layout_label(p)` = `device_tag(dev).displayed(page)`. With `label_mode = Abbreviated`, identifier suppression
@@ -516,6 +539,13 @@ representations" work on folio 902 as on schematic pages (FR-UI-007).
   are exactly what D-29 and D-31 forbid. Example: at 1:10 an 18 mm MCB *(unverified width)* is 1.8 mm wide on
   paper. "-101F1" in `xref.device` (1.83 mm em, ink height ≈ 1.31 mm with the default font's cap height of 0.714 em,
   length ≈ 5.8 mm) does not fit horizontally but fits rotated: 1.31 + 0.2 = 1.51 mm ≤ 1.8 mm.
+
+*As built (cycle 41, WP-S4.01 part 3; decision log ID-953, ID-954, ID-978).* `layout.label` is a constant of
+`ew-scene` bound to the `xref.device` style, not a slot kind of the symbol library. The ink box is estimated as the
+shaped text's advance + 0.2 mm by the face's cap height + 0.2 mm, plus the descent only when the text has a descender
+(a true ink-box query is FT-870), and compared with the footprint in page space; a label placed outside starts its
+leader 1.5 mm off the footprint, above it, or below when above leaves the surface. Balloons are not built (1.0, FP-3).
+A function's placement adds no ":" suffix, since functions carry no designation member (ID-932).
 
 ### 5.4 Legend and PART DATA
 

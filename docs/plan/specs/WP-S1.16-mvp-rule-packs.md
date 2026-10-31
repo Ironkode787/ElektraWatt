@@ -240,7 +240,9 @@ Golden A reports, nl-NL those twelve with en-GB as the fallback; Fluent argument
 D10: `findings_mvp.csv` holds doc 20 §18.1; AC-21's known excess is `=P01+FIELD-203Q1` to `Q8` (FT-638). W-1 waives
 EF-19 through the file. FT-654 built (the PE colour of an unbonded merged 0 V/PE potential); EW-POT-001's conflict
 colour has no canvas surface yet (FT-675); the window's Waive… action is FT-674. De-scoped by §13.1: nl-NL beyond the
-twelve rules (FT-680) and FT-186's quick fix (P5-6 not met).
+twelve rules (FT-680) and FT-186's quick fix (P5-6 not met). *The AC-21 subset since (decision log ID-870, ID-896,
+ID-979):* EW-PLC (cycle 38), EW-BUS (cycle 39) and EW-LAYOUT (cycle 41, WP-S4.01 part 5: EF-05 compared, no longer
+pending) joined the compared packs, seven in all; the fluid rows EF-13 and EF-14 stay pending with WP-S1.20 (FT-589).
 
 **Scope.** D6, D7, D10; FT-494; FT-186 (EW-TERM-002's "renumber 1–n, keep labels as function text" quick fix, a
 previewed `terminal.designate`). **1.1 pw, D4.** **Acceptance (outline closed to the checks):** P5-1 every registered
