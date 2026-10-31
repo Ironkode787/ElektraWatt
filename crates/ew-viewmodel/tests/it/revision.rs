@@ -558,9 +558,14 @@ fn ruling2_completing_in_a_git_repository_passes_the_toggle_as_consent() {
 /// would have kept it before a crash), through the release's own record format (`ew_api::archive`), in the shell's
 /// state directory.
 fn record_as_own(tmp: &Tmp, dir: &Path) {
-    use ew_viewmodel::ew_api::{Recovery, Session, SessionOptions, StoreOptions, Vfs as _, archive};
+    write_own_record(dir, &tmp.0.join("config").join("state"));
+}
+
+/// [`record_as_own`] for the state directory `state`.
+fn write_own_record(dir: &Path, state: &Path) {
+    use ew_viewmodel::ew_api::{Recovery, Session, SessionOptions, StoreOptions, archive};
     let mut options = StoreOptions::new("revision-test");
-    options.state_dir = Some(tmp.0.join("config").join("state"));
+    options.state_dir = Some(state.to_path_buf());
     let (session, _) = Session::open(dir, options, SessionOptions::default(), Recovery::Keep).expect("opens");
     let found = session
         .incomplete_release(None)
@@ -578,13 +583,16 @@ fn record_as_own(tmp: &Tmp, dir: &Path) {
         label: found.label.clone(),
         generation,
         sha256: found.sha256.to_string(),
-        modified: vfs.stat(&found.archive).ok().and_then(|s| s.modified),
+        modified: vfs
+            .stat(&found.archive)
+            .ok()
+            .and_then(|s| s.modified)
+            .and_then(archive::record_time),
         run: "revision-test-run".to_owned(),
     };
     archive::write_run_record(vfs, state, &record).expect("the record");
     drop(session);
 }
-
 /// Cycle 41, FIX41b ruling 2 ("Discard archive also gets a danger confirmation with Cancel as the primary button"): a
 /// provably own incomplete release offers Discard archive (the danger button of the offer), which opens its
 /// confirmation; cancelled there, the archive stays and the release is still incomplete.
