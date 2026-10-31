@@ -559,9 +559,14 @@ pub fn refusal_text(finding: &Finding, recorded: &str) -> String {
             actions,
         } if actions.contains(&recorded) => {
             let label = |id: &str| {
-                crate::actions::find(id).map_or_else(|| id.to_owned(), |m| strings::text(m.label_key).to_owned())
+                crate::actions::find(id)
+                    .map_or_else(|| id.to_owned(), |m| strings::text(m.label_key).to_owned())
             };
-            let others: Vec<String> = actions.iter().filter(|a| **a != recorded).map(|a| label(a)).collect();
+            let others: Vec<String> = actions
+                .iter()
+                .filter(|a| **a != recorded)
+                .map(|a| label(a))
+                .collect();
             strings::format(
                 "keymap-taken",
                 &[&chord.text(), &others.join(", "), context_phrase(*context)],
@@ -1390,7 +1395,10 @@ mod tests {
         ]);
         assert!(!f.is_empty());
         assert!(f.iter().all(|x| x.severity() == Severity::Info), "{f:?}");
-        assert!(f.iter().all(|x| matches!(x, Finding::NeedsShift { covered: true, .. })));
+        assert!(
+            f.iter()
+                .all(|x| matches!(x, Finding::NeedsShift { covered: true, .. }))
+        );
         let lone = reachability(&[bound("a.zero", "Ctrl+0", Context::Global)]);
         assert_eq!(lone[0].severity(), Severity::Error);
     }

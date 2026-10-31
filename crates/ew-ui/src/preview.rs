@@ -393,29 +393,6 @@ fn value_columns(t: &Tokens, widest: f32, window: f32, available: f32) -> (f32, 
     (label, (body - label - t.space_3).max(0.0))
 }
 
-#[cfg(test)]
-mod value_column_tests {
-    use super::*;
-
-    /// W40a item 4: the field is a form dialog's field: it grows with the window, never fills a wide panel, and the
-    /// label column follows its widest label.
-    #[test]
-    fn the_value_field_is_as_wide_as_a_form_field() {
-        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
-        let (l_floor, f_floor) = value_columns(&t, 40.0, 1280.0, 1160.0);
-        let (l_wide, f_wide) = value_columns(&t, 40.0, 1920.0, 1160.0);
-        assert_eq!(l_floor, 40.0);
-        assert_eq!(l_wide, 40.0);
-        assert!(f_wide > f_floor, "the field grows with the window: {f_floor} → {f_wide}");
-        assert!(f_wide + l_wide < 1160.0 * 0.8, "not the whole panel: {f_wide}");
-        // A long label widens its column; a narrow panel bounds the row.
-        let (l_long, _) = value_columns(&t, t.size_dialog_label + 60.0, 1920.0, 1160.0);
-        assert_eq!(l_long, t.size_dialog_label + 60.0);
-        let (l_narrow, f_narrow) = value_columns(&t, 40.0, 1920.0, 300.0);
-        assert!(l_narrow + t.space_3 + f_narrow <= 300.0 + 0.01);
-    }
-}
-
 /// Paints the Preview tab of `shell`.
 pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let rect = ui.available_rect_before_wrap();
@@ -576,4 +553,30 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 list(ui, strings::text("preview-pages"), &pages, false);
             });
     });
+}
+
+#[cfg(test)]
+mod value_column_tests {
+    use super::*;
+
+    /// W40a item 4: the field is a form dialog's field: it grows with the window, never fills a wide panel, and the
+    /// label column follows its widest label.
+    #[test]
+    fn the_value_field_is_as_wide_as_a_form_field() {
+        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
+        let (l_floor, f_floor) = value_columns(&t, 40.0, 1280.0, 1160.0);
+        let (l_wide, f_wide) = value_columns(&t, 40.0, 1920.0, 1160.0);
+        assert_eq!(l_floor, 40.0);
+        assert_eq!(l_wide, 40.0);
+        assert!(
+            f_wide > f_floor,
+            "the field grows with the window: {f_floor} → {f_wide}"
+        );
+        assert!(f_wide + l_wide < 1160.0 * 0.8, "not the whole panel: {f_wide}");
+        // A long label widens its column; a narrow panel bounds the row.
+        let (l_long, _) = value_columns(&t, t.size_dialog_label + 60.0, 1920.0, 1160.0);
+        assert_eq!(l_long, t.size_dialog_label + 60.0);
+        let (l_narrow, f_narrow) = value_columns(&t, 40.0, 1920.0, 300.0);
+        assert!(l_narrow + t.space_3 + f_narrow <= 300.0 + 0.01);
+    }
 }

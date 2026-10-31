@@ -115,15 +115,12 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
             let font = small_strong(&t);
             let mut x = header.left();
             let labels = std::iter::once((strings::text(table.key_label).to_owned(), key_width)).chain(
-                table
-                    .columns
-                    .iter()
-                    .map(|(name, ty)| {
-                        (
-                            strings::format("macro-value-label", &[name, &strings::var_type_word(ty)]),
-                            width,
-                        )
-                    }),
+                table.columns.iter().map(|(name, ty)| {
+                    (
+                        strings::format("macro-value-label", &[name, &strings::var_type_word(ty)]),
+                        width,
+                    )
+                }),
             );
             for (label, w) in labels {
                 painter.text(

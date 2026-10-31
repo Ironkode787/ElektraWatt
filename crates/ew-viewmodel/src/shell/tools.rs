@@ -1045,13 +1045,13 @@ fn command_failed(e: &CmdError, params: &Value) -> Outcome {
 /// in the property grid's words; any other parameter is its last member humanised as field labels are, with a list
 /// position kept (`/ips/2` is "Interruption points, item 3").
 pub(crate) fn param_words(params: &Value, path: &str) -> String {
-    if matches!(path, "/value" | "/path") {
-        if let (Some(kind), Some(field)) = (
+    if matches!(path, "/value" | "/path")
+        && let (Some(kind), Some(field)) = (
             params.get("kind").and_then(Value::as_str),
             params.get("path").and_then(Value::as_str),
-        ) {
-            return strings::field_label(kind, field);
-        }
+        )
+    {
+        return strings::field_label(kind, field);
     }
     let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
     let Some(at) = segments.iter().rposition(|s| s.parse::<usize>().is_err()) else {
@@ -1085,7 +1085,8 @@ mod ft779 {
     /// any other parameter by its member humanised with its list position; never a JSON Pointer.
     #[test]
     fn an_invalid_parameter_toast_names_the_field_in_words() {
-        let set = serde_json::json!({"kind": "function", "targets": [], "path": "kind.ip.sort", "value": "x"});
+        let set =
+            serde_json::json!({"kind": "function", "targets": [], "path": "kind.ip.sort", "value": "x"});
         let e = CmdError::invalid_params("fields.set", "/value", "a whole number is needed");
         assert_eq!(
             message(command_failed(&e, &set)),
@@ -1096,7 +1097,11 @@ mod ft779 {
             message(command_failed(&e, &Value::Null)),
             "Arrange interruption points: Interruption points, item 3: the interruption point is listed twice"
         );
-        let e = CmdError::invalid_params("connection.delete", "/connections", "list at least one connection");
+        let e = CmdError::invalid_params(
+            "connection.delete",
+            "/connections",
+            "list at least one connection",
+        );
         assert_eq!(
             message(command_failed(&e, &Value::Null)),
             "Delete wire: Connections: list at least one connection"

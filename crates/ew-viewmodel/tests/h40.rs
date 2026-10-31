@@ -59,5 +59,8 @@ fn parts_list_without_a_bom_block_is_refused_in_words() {
         strings::text("reason-no-parts-list"),
         "The project has no parts list: it needs a parts list report block"
     );
-    assert_eq!(refused(&mut shell, "lists.parts", json!({})), "reason-no-parts-list");
+    assert_eq!(
+        refused(&mut shell, "lists.parts", json!({})),
+        "reason-no-parts-list"
+    );
 }

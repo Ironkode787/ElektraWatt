@@ -137,10 +137,10 @@ const THUMBNAIL_HEIGHT: f32 = 64.0;
 /// A variable line of the detail (`<name> (<type>)`, maybe with ` = <default>`) with its type in words (W40a 5e:
 /// "pt (process tag)"); a line of another shape as it is.
 fn variable_line(item: &str) -> String {
-    if let Some((name, rest)) = item.split_once(" (") {
-        if let Some((ty, tail)) = rest.split_once(')') {
-            return format!("{name} ({}){tail}", strings::var_type_word(ty));
-        }
+    if let Some((name, rest)) = item.split_once(" (")
+        && let Some((ty, tail)) = rest.split_once(')')
+    {
+        return format!("{name} ({}){tail}", strings::var_type_word(ty));
     }
     item.to_owned()
 }
@@ -149,26 +149,6 @@ fn variable_line(item: &str) -> String {
 /// when both fit, else what the lists leave, never under `floor` (the lists then scroll).
 fn thumbnail_height(cap: f32, lists: f32, floor: f32) -> f32 {
     (cap - lists).clamp(floor.min(THUMBNAIL_HEIGHT), THUMBNAIL_HEIGHT)
-}
-
-#[cfg(test)]
-mod thumbnail_tests {
-    /// W40a 5f: the thumbnail keeps its height where the lists fit, gives up height at the floor down to the floor.
-    #[test]
-    fn the_thumbnail_yields_to_the_lists() {
-        use super::{THUMBNAIL_HEIGHT, thumbnail_height};
-        assert_eq!(thumbnail_height(400.0, 100.0, 28.0), THUMBNAIL_HEIGHT);
-        assert_eq!(thumbnail_height(150.0, 110.0, 28.0), 40.0);
-        assert_eq!(thumbnail_height(150.0, 300.0, 28.0), 28.0);
-    }
-
-    /// W40a 5e: a variable's type in words on the detail card.
-    #[test]
-    fn a_variable_line_names_its_type_in_words() {
-        assert_eq!(super::variable_line("pt (process_tag)"), "pt (process tag)");
-        assert_eq!(super::variable_line("n (tag_counter) = 3"), "n (tag counter) = 3");
-        assert_eq!(super::variable_line("plain"), "plain");
-    }
 }
 
 /// Paints a macro's thumbnail (FT-754 (a)) in a box of the block's width and [`THUMBNAIL_HEIGHT`]: the region of the
@@ -378,4 +358,24 @@ fn macro_detail(
             }
         }
     });
+}
+
+#[cfg(test)]
+mod thumbnail_tests {
+    /// W40a 5f: the thumbnail keeps its height where the lists fit, gives up height at the floor down to the floor.
+    #[test]
+    fn the_thumbnail_yields_to_the_lists() {
+        use super::{THUMBNAIL_HEIGHT, thumbnail_height};
+        assert_eq!(thumbnail_height(400.0, 100.0, 28.0), THUMBNAIL_HEIGHT);
+        assert_eq!(thumbnail_height(150.0, 110.0, 28.0), 40.0);
+        assert_eq!(thumbnail_height(150.0, 300.0, 28.0), 28.0);
+    }
+
+    /// W40a 5e: a variable's type in words on the detail card.
+    #[test]
+    fn a_variable_line_names_its_type_in_words() {
+        assert_eq!(super::variable_line("pt (process_tag)"), "pt (process tag)");
+        assert_eq!(super::variable_line("n (tag_counter) = 3"), "n (tag counter) = 3");
+        assert_eq!(super::variable_line("plain"), "plain");
+    }
 }
