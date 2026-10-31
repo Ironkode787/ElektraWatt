@@ -488,6 +488,37 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: page_surface_view_set,
     },
+    // WP-S4.02 part 2 (D6, D7, D9, FT-840): appended last, for the same reason.
+    Arm {
+        command: "layout.place_assembly",
+        weight: 2,
+        build: layout_place_assembly,
+    },
+    Arm {
+        command: "layout.auto_fill",
+        weight: 2,
+        build: layout_auto_fill,
+    },
+    Arm {
+        command: "layout.enclosure.create_from_part",
+        weight: 1,
+        build: layout_enclosure_create_from_part,
+    },
+    Arm {
+        command: "layout.space.edit",
+        weight: 1,
+        build: layout_space_edit,
+    },
+    Arm {
+        command: "layout.enclosure.edit",
+        weight: 1,
+        build: layout_enclosure_edit,
+    },
+    Arm {
+        command: "layout.surface.edit",
+        weight: 1,
+        build: layout_surface_edit,
+    },
 ];
 
 /// The representation types a page type allows (`allowed_rep_types` of `ew-commands`, in JSON form).
@@ -994,12 +1025,15 @@ pub fn setup_chain_of(command: &str) -> Option<&'static [ChainStep]> {
         setup_rail,
         setup_place,
     ];
+    const UNPLACED: &[ChainStep] = &[setup_unplace_member];
     match command {
         "layout.space.delete" => Some(SPACE),
         "layout.enclosure.create" => Some(ENCLOSURE_PART),
         "layout.enclosure.delete" | "layout.carrier.add" => Some(ENCLOSURE),
         "layout.carrier.edit" | "layout.carrier.delete" | "layout.place" => Some(RAIL),
         "layout.move" | "layout.remove" | "layout.lock" => Some(PLACED),
+        // WP-S4.02 part 2: Golden A's assemblies are placed; one member is taken off its rail first.
+        "layout.place_assembly" | "layout.auto_fill" => Some(UNPLACED),
         _ => None,
     }
 }
@@ -1601,6 +1635,12 @@ fn edit_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     if rng.chance(12) {
         let target = json!({"kind": "device", "id": rng.uuid()});
         return Some(Step::cmd("edit.delete", json!({"targets": [target]})).refuse());
+    }
+    // WP-S4.02 part 2 (FT-840): a layout record, drawn after the older branches.
+    if rng.chance(10)
+        && let Some(step) = edit_delete_layout(live, rng)
+    {
+        return Some(step);
     }
     let (kind, id) = if rng.chance(2) {
         ("representation", rng.pick(&live.reps)?.clone())
@@ -5877,14 +5917,25 @@ fn lay_pose(t: [i64; 3], q: [i64; 4]) -> Value {
     json!({"t": t, "q": q})
 }
 
-/// EW-LAY-002, the fuzzer's layout invariant (LM-6): every placement's device exists.
+/// EW-LAY-002, the fuzzer's layout invariant (LM-6): every placement's device exists; and (WP-S4.02 part 2, AS-7)
+/// every placement's carrier or surface exists.
 pub fn placements_have_devices(q: &ew_derive::Q) -> Result<(), String> {
-    match q
-        .table::<ew_schema::Placement>()
-        .iter()
-        .find(|(_, p)| !q.devices().contains(p.device))
-    {
-        Some((id, _)) => Err(format!("placement {} has no device", id_text(&id_json(id)))),
+    let placements = q.table::<ew_schema::Placement>();
+    if let Some((id, _)) = placements.iter().find(|(_, p)| !q.devices().contains(p.device)) {
+        return Err(format!("placement {} has no device", id_text(&id_json(id))));
+    }
+    let carriers = q.table::<ew_schema::Carrier>();
+    let surfaces = q.table::<ew_schema::MountingSurface>();
+    let held = |p: &ew_schema::Placement| match &p.carrier {
+        ew_schema::CarrierRef::Carrier(c) => carriers.get(*c).is_some(),
+        ew_schema::CarrierRef::Surface(s) => surfaces.get(*s).is_some(),
+        ew_schema::CarrierRef::Unknown(_) => true,
+    };
+    match placements.iter().find(|(_, p)| !held(p)) {
+        Some((id, _)) => Err(format!(
+            "placement {} has no carrier or surface",
+            id_text(&id_json(id))
+        )),
         None => Ok(()),
     }
 }
@@ -6390,4 +6441,298 @@ fn page_surface_view_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
         }
     }
+}
+
+/// WP-S4.02 part 2: the assembly root of a device, in the text form of its ID: the device itself when it has children,
+/// else its parent; `None` for a device outside any assembly (the rule of `layout.place_assembly`).
+fn assembly_root_text(live: &Live, device: &str) -> Option<String> {
+    if live.tree.iter().any(|t| t.parent.as_deref() == Some(device)) {
+        return Some(device.to_owned());
+    }
+    live.tree.iter().find(|t| id_text(&t.id) == device)?.parent.clone()
+}
+
+/// The rail (with its length) of a placed member of the assembly `root`, if one is on a rail.
+fn assembly_rail(live: &Live, root: &str) -> Option<(Value, i64)> {
+    live.layout
+        .placements
+        .iter()
+        .filter(|p| p.rail.is_some())
+        .find(|p| assembly_root_text(live, &id_text(&p.device)).as_deref() == Some(root))
+        .and_then(|p| p.rail.clone())
+}
+
+/// An assembly member for the WP-S4.02 part-2 arms, with the rail a member of its assembly sits on: mostly an unplaced
+/// member whose assembly has a member on a rail (what `setup_unplace_member` leaves), else any member.
+fn assembly_member(live: &Live, rng: &mut SplitMix64) -> Option<(Value, Option<(Value, i64)>)> {
+    let placed: std::collections::BTreeSet<String> = live
+        .layout
+        .placements
+        .iter()
+        .map(|p| id_text(&p.device))
+        .collect();
+    let members: Vec<(Value, String)> = live
+        .tree
+        .iter()
+        .filter_map(|t| assembly_root_text(live, &id_text(&t.id)).map(|r| (t.id.clone(), r)))
+        .collect();
+    let ready: Vec<&(Value, String)> = members
+        .iter()
+        .filter(|(d, root)| !placed.contains(&id_text(d)) && assembly_rail(live, root).is_some())
+        .collect();
+    let (device, root) = if !ready.is_empty() && !rng.chance(4) {
+        *rng.pick(&ready)?
+    } else {
+        rng.pick(&members)?
+    };
+    Some((device.clone(), assembly_rail(live, root)))
+}
+
+/// A placement on a rail of an assembly member goes (`layout.remove`), so that the member is unplaced and its
+/// assembly has a member on a rail: what `layout.place_assembly` and `layout.auto_fill` act on in Golden A.
+fn setup_unplace_member(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let on_rails: Vec<&super::live::PlacementInfo> = live
+        .layout
+        .placements
+        .iter()
+        .filter(|p| p.rail.is_some() && assembly_root_text(live, &id_text(&p.device)).is_some())
+        .collect();
+    let p = *rng.pick(&on_rails)?;
+    Some(Step::cmd("layout.remove", json!({"placement": p.id})).accept())
+}
+
+/// `layout.place_assembly` (WP-S4.02 part 2, D6): the unplaced members of an assembly go onto the rail one of its
+/// members sits on, else onto a rail at `s` in free or push mode (either: a member may not mount or fit, the rail may
+/// lack room, every member may be placed); refused: a device that does not exist, a surface, swap, a device outside
+/// any assembly. After a commit every placement has its device and its carrier or surface.
+fn layout_place_assembly(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let cmd = |p: Value| Step::cmd("layout.place_assembly", p);
+    let rails: Vec<&super::live::RailInfo> = l.rails.iter().filter(|r| r.length > 0).collect();
+    match rng.below(9) {
+        0 => {
+            let r = *rng.pick(&rails)?;
+            Some(cmd(json!({"device": rng.uuid(), "carrier": {"carrier": r.id}, "s": 0})).refuse())
+        }
+        1 => {
+            let (device, _) = assembly_member(live, rng)?;
+            let surface = rng.pick(&l.surfaces)?;
+            Some(cmd(json!({"device": device, "carrier": {"surface": surface}, "s": 0})).refuse())
+        }
+        2 => {
+            let (device, _) = assembly_member(live, rng)?;
+            let r = *rng.pick(&rails)?;
+            Some(cmd(json!({"device": device, "carrier": {"carrier": r.id}, "s": 0, "mode": "swap"})).refuse())
+        }
+        3 => {
+            let alone: Vec<&Value> = live
+                .plain_devices
+                .iter()
+                .filter(|d| assembly_root_text(live, &id_text(d)).is_none())
+                .collect();
+            let device = *rng.pick(&alone)?;
+            let r = *rng.pick(&rails)?;
+            Some(cmd(json!({"device": device, "carrier": {"carrier": r.id}, "s": 0})).refuse())
+        }
+        _ => {
+            let (device, rail) = assembly_member(live, rng)?;
+            let (rail, length) = match rail {
+                Some(r) if !rng.chance(4) => r,
+                _ => {
+                    let r = *rng.pick(&rails)?;
+                    (r.id.clone(), r.length)
+                }
+            };
+            let mode = *rng.pick(&["free", "push"])?;
+            let p = json!({"device": device, "carrier": {"carrier": rail}, "s": rng.range(0, length), "mode": mode});
+            Some(cmd(p).check(|_, after| placements_have_devices(after)))
+        }
+    }
+}
+
+/// `layout.auto_fill` (WP-S4.02 part 2, D7): the unplaced devices of a rail's space that fit it, or a listed device,
+/// next-fit in `dt` or `schematic` order (either: nothing may fit or have room); refused: a carrier that does not
+/// exist, a duct, a device listed twice, a device that does not exist. After a commit every placement has its device
+/// and its carrier or surface.
+fn layout_auto_fill(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let cmd = |p: Value| Step::cmd("layout.auto_fill", p);
+    let order = *rng.pick(&["dt", "schematic"])?;
+    let rails: Vec<&super::live::RailInfo> = l.rails.iter().filter(|r| r.length > 0).collect();
+    match rng.below(9) {
+        0 => Some(cmd(json!({"carrier": rng.uuid(), "order": order})).refuse()),
+        1 => Some(cmd(json!({"carrier": rng.pick(&l.ducts)?, "order": order})).refuse()),
+        2 => {
+            let r = *rng.pick(&rails)?;
+            let d = rng.pick(&live.devices)?;
+            Some(cmd(json!({"carrier": r.id, "devices": [d, d], "order": order})).refuse())
+        }
+        3 => {
+            let r = *rng.pick(&rails)?;
+            Some(cmd(json!({"carrier": r.id, "devices": [rng.uuid()], "order": order})).refuse())
+        }
+        _ => {
+            let (device, rail) = assembly_member(live, rng)?;
+            let rail = match rail {
+                Some((r, _)) if !rng.chance(4) => r,
+                _ => rng.pick(&rails)?.id.clone(),
+            };
+            let mut p = json!({"carrier": rail, "order": order});
+            if rng.chance(3) {
+                p["devices"] = json!([device]);
+            }
+            Some(cmd(p).check(|_, after| placements_have_devices(after)))
+        }
+    }
+}
+
+/// `layout.enclosure.create_from_part` (WP-S4.02 part 2, D9): a new part copy with an enclosure section (no plate,
+/// embedded through `copies`) on a location without a layout space gives a space, an enclosure device, an enclosure and
+/// its plate surface (accepted); refused: a location that does not exist, a node of another aspect, a part without an
+/// enclosure section.
+fn layout_enclosure_create_from_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.enclosure.create_from_part", p);
+    let (_, template) = rng.pick(&live.fixture.part_json)?;
+    let mut t = template.clone();
+    if !t["sections"].is_object() {
+        t["sections"] = json!({});
+    }
+    let branch = rng.below(6);
+    if branch == 2 {
+        if let Some(s) = t["sections"].as_object_mut() {
+            s.remove("enclosure");
+        }
+    } else {
+        t["sections"]["enclosure"] =
+            json!({"width": 600 * LAY_MM, "height": 800 * LAY_MM, "depth": 300 * LAY_MM});
+    }
+    let c = relineaged(&t, &rng.uuid(), &rng.uuid())?;
+    let part = c["id"].clone();
+    match branch {
+        0 => Some(cmd(json!({"location": rng.uuid(), "part": part, "copies": [c]})).refuse()),
+        1 => {
+            let other: Vec<&super::live::NodeInfo> =
+                live.nodes.iter().filter(|n| n.aspect != "location").collect();
+            Some(cmd(json!({"location": rng.pick(&other)?.id, "part": part, "copies": [c]})).refuse())
+        }
+        2 => {
+            let location = rng.pick(&live.layout.free_locations)?;
+            Some(cmd(json!({"location": location, "part": part, "copies": [c]})).refuse())
+        }
+        _ => {
+            let location = rng.pick(&live.layout.free_locations)?;
+            Some(
+                cmd(json!({"location": location, "part": part, "copies": [c], "pe_bond": rng.chance(2)}))
+                    .accept()
+                    .counts(&[
+                        (Table::Parts, 1),
+                        (Table::Devices, 1),
+                        (Table::LayoutSpaces, 1),
+                        (Table::Enclosures, 1),
+                        (Table::Surfaces, 1),
+                    ])
+                    .check(|_, after| placements_have_devices(after)),
+            )
+        }
+    }
+}
+
+/// `layout.space.edit` (WP-S4.02 part 2, FT-840): a space renamed or its name cleared (accepted); refused: a space that
+/// does not exist, no name member.
+fn layout_space_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.space.edit", p);
+    match rng.below(6) {
+        0 => Some(cmd(json!({"space": rng.uuid(), "name": rng.word(8)})).refuse()),
+        1 => Some(cmd(json!({"space": rng.pick(&live.layout.spaces)?})).refuse()),
+        2 => Some(
+            cmd(json!({"space": rng.pick(&live.layout.spaces)?, "name": null}))
+                .accept()
+                .counts(&[(Table::LayoutSpaces, 0)]),
+        ),
+        _ => Some(
+            cmd(json!({"space": rng.pick(&live.layout.spaces)?, "name": rng.word(8)}))
+                .accept()
+                .counts(&[(Table::LayoutSpaces, 0)]),
+        ),
+    }
+}
+
+/// `layout.enclosure.edit` (WP-S4.02 part 2, FT-840): an enclosure moved in its space (accepted); refused: an enclosure
+/// that does not exist, a turned pose.
+fn layout_enclosure_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.enclosure.edit", p);
+    let t = [LAY_MM * rng.range(0, 2000), LAY_MM * rng.range(0, 500), 0];
+    match rng.below(6) {
+        0 => Some(cmd(json!({"enclosure": rng.uuid(), "pose": lay_pose(t, QUARTERS[0])})).refuse()),
+        1 => {
+            let e = rng.pick(&live.layout.enclosures)?;
+            Some(cmd(json!({"enclosure": e, "pose": lay_pose(t, QUARTERS[1])})).refuse())
+        }
+        _ => {
+            let e = rng.pick(&live.layout.enclosures)?;
+            Some(
+                cmd(json!({"enclosure": e, "pose": lay_pose(t, QUARTERS[0])}))
+                    .accept()
+                    .counts(&[(Table::Enclosures, 0)])
+                    .check(|_, after| placements_have_devices(after)),
+            )
+        }
+    }
+}
+
+/// `layout.surface.edit` (WP-S4.02 part 2, FT-840): a surface's PE bond set (accepted); refused: a surface that does
+/// not exist.
+fn layout_surface_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.surface.edit", p);
+    if rng.chance(5) {
+        return Some(cmd(json!({"surface": rng.uuid(), "pe_bond": true})).refuse());
+    }
+    let s = rng.pick(&live.layout.surfaces)?;
+    Some(
+        cmd(json!({"surface": s, "pe_bond": rng.chance(2)}))
+            .accept()
+            .counts(&[(Table::Surfaces, 0)]),
+    )
+}
+
+/// `edit.delete` of one layout record (WP-S4.02 part 2, FT-840): a placement goes; an empty carrier, enclosure or space
+/// goes with what it contains; refused: an occupied carrier, enclosure or space, a plate surface without its
+/// enclosure. After a commit every placement has its device and its carrier or surface.
+fn edit_delete_layout(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let del = |kind: &str, id: &Value| Step::cmd("edit.delete", json!({"targets": [{"kind": kind, "id": id}]}));
+    let step = match rng.below(5) {
+        0 => {
+            let p = rng.pick(&l.placements)?;
+            del("placement", &p.id).accept().counts(&[(Table::Placements, -1)])
+        }
+        1 => {
+            let (c, n) = rng.pick(&l.carriers)?;
+            if *n == 0 {
+                del("carrier", c).accept().counts(&[(Table::Carriers, -1)])
+            } else {
+                del("carrier", c).refuse()
+            }
+        }
+        2 => del("mounting_surface", rng.pick(&l.surfaces)?).refuse(),
+        3 => {
+            let e = rng.pick(&l.enclosures)?;
+            if l.occupied.contains(&id_text(e)) {
+                del("enclosure", e).refuse()
+            } else {
+                del("enclosure", e)
+                    .accept()
+                    .counts(&[(Table::Enclosures, -1), (Table::Surfaces, -1)])
+            }
+        }
+        _ => {
+            let s = rng.pick(&l.spaces)?;
+            if l.occupied.contains(&id_text(s)) {
+                del("layout_space", s).refuse()
+            } else {
+                del("layout_space", s).accept().counts(&[(Table::LayoutSpaces, -1)])
+            }
+        }
+    };
+    Some(step.check(|_, after| placements_have_devices(after)))
 }
