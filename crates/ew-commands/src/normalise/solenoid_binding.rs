@@ -25,12 +25,12 @@
 //!   reports the unbound solenoid). A map entry that does not resolve at the position is noticed for a
 //!   triggered valve. Ties break by ID; the modules run in ID order.
 //! - **Leaving the module** (FT-320; WP-S1.21 part 5, the orchestrator's ruling 9 of cycle 42). Before the pairs,
-//!   every device of the transaction whose parent changed (by `assembly.attach`, `fields.set parent`, a paste or any
-//!   other path) is checked: each channel bound to a CP of one of its functions whose module it is no longer on
-//!   (`commands::plc::is_on_module`: the module itself or one of its descendants) is unbound in the same transaction,
-//!   with the notice "channel <number> of <module> is unbound: <device> left the module". A move within the module
-//!   keeps the binding. The check scans the device's bound channels, not its old module, because the pairs are keyed
-//!   by the new parent.
+//!   every device of the transaction whose parent changed (by `assembly.attach`, a paste or any other path) is
+//!   checked: each channel bound to a CP of one of its functions whose module it is no longer on
+//!   (`commands::is_on_module`: the module itself or one of its descendants) is unbound in the same transaction, with
+//!   the notice "channel N of M is unbound: D left the module" (N the channel number, M the module, D the device). A
+//!   move within the module keeps the binding. The check scans the device's bound channels, not its old module,
+//!   because the pairs are keyed by the new parent. Only the moved device's own functions are checked.
 //! - **Children** (FT-352): a module's valve children come from the parent index (`TxBuilder::children_of`), not a
 //!   scan of the device table, so a prepared transaction re-runs when a child is added meanwhile.
 //! - **Notices** name records in words (`crate::words`), never by ID.

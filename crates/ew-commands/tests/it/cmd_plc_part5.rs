@@ -4,14 +4,17 @@
 //! WP-S1.21 part 5, PX-4 (D13): the model follow-ups of N2 and N3, and their notices in words.
 //!
 //! - FT-320 (ruling 9 of cycle 42: "in N2 (`solenoid_binding`) ... so every path unbinds"): a valve that leaves its
-//!   module, by `assembly.attach` or `fields.set parent`, unbinds its coil in the same step; a move within the module
-//!   keeps it; undo restores it.
-//! - FT-352: N2 reads a module's children through the parent index, so an unrelated device edit does not invalidate a
-//!   prepared transaction and a child added meanwhile does.
+//!   module by `assembly.attach` (to a plain device or another module) unbinds its coil in the same step; a move
+//!   within the module keeps it; undo restores it. (`fields.set` does not set `parent`.)
+//! - FT-352: N2 reads a module's children through the parent index, so a child added meanwhile invalidates a prepared
+//!   transaction and the commit re-runs N2 over it. (`assembly.attach` itself scans the device table, so an unrelated
+//!   device edit still invalidates an attach: not N2's read.)
 //! - FT-321: a module re-parted with `part.assign replace` re-pins its channels from the old part's pins to the new
 //!   part's; no pin, or a pin another channel holds, unbinds with a notice; a channel bound elsewhere stays.
 //! - Ruling 8 ("rewrite every notice of the two files with `crate::words::device` and `crate::words::function` ...,
 //!   each text asserted whole"): every notice of N2 and N3, whole.
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 use crate::common;
 

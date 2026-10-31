@@ -20,9 +20,10 @@
 //! below the new part's channel count, before the new channels are bound: a channel whose binding is
 //! `Cp(main, i)`, where `i` is the pin that the **old** part's `pin_of` gives its number (resolved by designation in
 //! the old part's CP pattern, else the main function's FnDef, as above), moves to the pin the new part gives it. It
-//! is unbound, with the notice "channel <number> of <module> is unbound: part <part number> gives it no pin", when
-//! the new part has no `pin_of` entry for it or no CP of that designation, and with "channel <number> of <module> is
-//! unbound: another channel binds its pin <pin> (FR-PLC-005)" when a channel that is not re-pinned binds the new pin.
+//! is unbound, with the notice "channel N of M is unbound: part P gives it no pin" (N the channel number, M the
+//! module, P the part number), when the new part has no `pin_of` entry for it or no CP of that designation, and with
+//! "channel N of M is unbound: another channel binds its pin X (FR-PLC-005)" (X the pin) when a channel that is not
+//! re-pinned binds the new pin.
 //! The re-pinned channels release their old pins first, so pins that shift between them never collide. A channel
 //! bound to anything else (another CP, a coil, a junction) is left as it is, and so are surplus channels (removed
 //! only by `plc.set_module_part`'s preview, FR-PLC-053).
@@ -98,6 +99,9 @@ fn base_part_copy(tx: &TxBuilder<'_>, dev: &Device) -> Option<Arc<LibCopy<Part>>
     }
 }
 
+/// A pin a part gives a channel: its designation and its CP index on the main function.
+type Pin = (String, u16);
+
 /// FT-321: re-pins the channels of `dev` after its PLC part changed from `old` to `new` (see the module documentation).
 fn repin(
     tx: &mut TxBuilder<'_>,
@@ -118,7 +122,7 @@ fn repin(
         .and_then(|s| s.channels.as_ref())
         .map_or(0, |c| c.count);
     // the channels on their old pins and the pin the new part gives each (None: no pin)
-    let mut moves: Vec<(Arc<Channel>, Option<(String, u16)>)> = Vec::new();
+    let mut moves: Vec<(Arc<Channel>, Option<Pin>)> = Vec::new();
     for (number, c) in channels_by_number(tx, dev.id) {
         if number >= count {
             continue; // surplus: removed by `plc.set_module_part`, never re-pinned
