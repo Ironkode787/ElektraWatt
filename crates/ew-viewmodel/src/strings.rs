@@ -2019,7 +2019,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         // WP-S2.08 part 2 (D6 to D8): the keymap files, their rules and the editor.
         "keymap-error-key" => "Unknown key in \"{0}\".",
         "keymap-error-modifier" => "Unknown or repeated modifier {0} in \"{1}\".",
-        "keymap-error-toml" => "The file is not a keymap file (not valid TOML).",
+        "keymap-error-toml" => "It is not valid TOML.",
         "keymap-error-meta" => "The file has no [meta] table with version = 1.",
         "keymap-error-bind" => "Binding {0} needs keys, action and context as texts.",
         "keymap-error-context" => "Binding {0} names the unknown context \"{1}\".",
@@ -2030,15 +2030,15 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "keymap-needs-shift" => "{0} needs Shift on {1}",
         "keymap-unreachable" => "{0} has no shortcut that types on {1} without AltGr",
         "banner-keymap-refused" => {
-            "The keymap file was refused ({0}); the {1} preset applies and the file was kept as {2}."
+            "The keymap file was refused: {0}. The {1} preset applies; the file was kept as {2}."
         }
         "banner-keymap-write" => "The keymap could not be written.",
         "banner-keymap-unread" => {
             "The keymap file could not be read ({0}); the {1} preset applies and the file is left as it is."
         }
         "banner-keymap-refused-kept" => {
-            "The keymap file was refused ({0}); the {1} preset applies and the file is left as it is (it could not be \
-             copied aside)."
+            "The keymap file was refused: {0}. The {1} preset applies; the file is left as it is because it could not \
+             be copied aside."
         }
         "banner-keymap-kept" => {
             "The keymap applies for this session but was not written: keymap.toml is left as it is."

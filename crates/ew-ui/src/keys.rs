@@ -163,16 +163,10 @@ pub fn chord_text(key: Key, physical: Option<Key>, modifiers: Modifiers) -> Opti
     Chord::parse(&text).ok().map(|c| c.text())
 }
 
-/// The text of a binding for display: `Ctrl` reads `Cmd` on macOS, and a physical digit or letter key reads as its
-/// key cap (`Ctrl+phys:Digit0` is "Ctrl+0", KM-4 ruling): the window never prints the `phys:` grammar.
-pub fn display(text: &str) -> String {
-    let caps = text.replace("phys:Digit", "").replace("phys:Key", "");
-    if cfg!(target_os = "macos") {
-        caps.replace("Ctrl", "Cmd")
-    } else {
-        caps
-    }
-}
+/// The text of a binding for display: `Ctrl` reads `Cmd` on macOS, and a physical key reads as its key cap
+/// (`Ctrl+phys:Digit0` is "Ctrl+0", `phys:Minus` "-", KM-4 ruling): the window never prints the `phys:` grammar. The
+/// view-model's one display function, so the chips, the menus and the keymap editor's texts agree.
+pub use ew_viewmodel::keymap::display;
 
 #[cfg(test)]
 mod tests {
@@ -232,6 +226,13 @@ mod tests {
         assert_eq!(display("Ctrl+phys:Digit0"), "Ctrl+0");
         assert_eq!(display("phys:KeyA"), "A");
         assert_eq!(display("Ctrl+Shift+W"), "Ctrl+Shift+W");
+        // Every physical key of the grammar reads as its US key cap (cycle-40 review).
+        assert_eq!(display("phys:Minus"), "-");
+        assert_eq!(display("Shift+phys:BracketLeft"), "Shift+[");
+        assert_eq!(display("Alt+phys:Digit7"), "Alt+7");
+        assert_eq!(display("phys:Backslash"), "\\");
+        // A text that is no chord stays as it is.
+        assert_eq!(display("Wheel"), "Wheel");
     }
 
     #[test]

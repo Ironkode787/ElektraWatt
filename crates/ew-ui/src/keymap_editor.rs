@@ -105,7 +105,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
         let what = if refusal.chord.is_empty() {
             label.to_owned()
         } else {
-            format!("{} ({label})", refusal.chord)
+            format!("{} ({label})", crate::keys::display(&refusal.chord))
         };
         components::live_line(ui, &strings::format("keymap-refused", &[&what]), true);
         for e in &refusal.errors {
@@ -231,7 +231,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     // The user keymap's bindings for actions this build does not know (D6).
     if let Some(user) = shell.user_keymap() {
         for b in user.unused() {
-            let keys: Vec<String> = b.chords().map(ew_viewmodel::keymap::Chord::text).collect();
+            let keys: Vec<String> = b.chords().map(ew_viewmodel::keymap::Chord::display).collect();
             ui.label(
                 RichText::new(strings::format("keymap-unused", &[&b.action, &keys.join(", ")]))
                     .font(theme::font(&t.type_small))

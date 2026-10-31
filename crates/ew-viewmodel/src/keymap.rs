@@ -187,6 +187,22 @@ impl Chord {
         format!("{}{key}", self.modifier_text())
     }
 
+    /// The text a person reads (the window's chips and menus, the editor's refusals and notes, KM-4 ruling): `Ctrl`
+    /// reads `Cmd` on macOS and a physical key reads as the cap it shows on a US layout (`Ctrl+phys:Digit0` is
+    /// "Ctrl+0", `phys:KeyA` "A", `phys:Minus` "-"): the `phys:` grammar belongs to the keymap file only.
+    pub fn display(&self) -> String {
+        let key = match &self.key {
+            ChordKey::Logical(name) => name.clone(),
+            ChordKey::Physical(code) => physical_cap(code),
+        };
+        let modifiers = self.modifier_text();
+        if cfg!(target_os = "macos") {
+            format!("{}{key}", modifiers.replace("Ctrl", "Cmd"))
+        } else {
+            format!("{modifiers}{key}")
+        }
+    }
+
     /// The text a keymap file writes: a physical key always in the `phys:` form (D6).
     pub fn file_text(&self) -> String {
         let key = match &self.key {
@@ -194,6 +210,30 @@ impl Chord {
             ChordKey::Physical(code) => format!("phys:{code}"),
         };
         format!("{}{key}", self.modifier_text())
+    }
+}
+
+/// The cap of physical key `code` on a US layout: a digit or letter as itself, a punctuation key as its character;
+/// a code the grammar does not know as it is.
+fn physical_cap(code: &str) -> String {
+    if let Some(ch) = PUNCTUATION.iter().find(|(c, _)| *c == code).map(|(_, ch)| *ch) {
+        return ch.to_string();
+    }
+    code.strip_prefix("Digit")
+        .or_else(|| code.strip_prefix("Key"))
+        .filter(|cap| cap.len() == 1)
+        .unwrap_or(code)
+        .to_owned()
+}
+
+/// A binding text as a person reads it ([`Chord::display`]): the window's chips and menus and every keymap text of
+/// the view-model show chords through this one function. A text that is no chord stays as it is, with `Ctrl` read
+/// as `Cmd` on macOS.
+pub fn display(text: &str) -> String {
+    match Chord::parse(text) {
+        Ok(chord) => chord.display(),
+        Err(_) if cfg!(target_os = "macos") => text.replace("Ctrl", "Cmd"),
+        Err(_) => text.to_owned(),
     }
 }
 
@@ -569,7 +609,7 @@ pub fn refusal_text(finding: &Finding, recorded: &str) -> String {
                 .collect();
             strings::format(
                 "keymap-taken",
-                &[&chord.text(), &others.join(", "), context_phrase(*context)],
+                &[&chord.display(), &others.join(", "), context_phrase(*context)],
             )
         }
         other => other.text(),
@@ -966,7 +1006,7 @@ impl Finding {
             } => strings::format(
                 "keymap-conflict",
                 &[
-                    &chord.text(),
+                    &chord.display(),
                     context_word(*context),
                     &actions.iter().map(|a| label(a)).collect::<Vec<_>>().join(", "),
                 ],
@@ -978,12 +1018,12 @@ impl Finding {
                 ..
             } => strings::format(
                 "keymap-shadow",
-                &[&chord.text(), context_word(*context), &label(shadowed)],
+                &[&chord.display(), context_word(*context), &label(shadowed)],
             ),
-            Finding::CtrlAlt { chord, .. } => strings::format("keymap-ctrl-alt", &[&chord.text()]),
-            Finding::Reserved { chord, .. } => strings::format("keymap-reserved", &[&chord.text()]),
+            Finding::CtrlAlt { chord, .. } => strings::format("keymap-ctrl-alt", &[&chord.display()]),
+            Finding::Reserved { chord, .. } => strings::format("keymap-reserved", &[&chord.display()]),
             Finding::NeedsShift { chord, layout, .. } => {
-                strings::format("keymap-needs-shift", &[&chord.text(), layout.name()])
+                strings::format("keymap-needs-shift", &[&chord.display(), layout.name()])
             }
             Finding::Unreachable { action, layout } => {
                 strings::format("keymap-unreachable", &[&label(action), layout.name()])
@@ -1254,6 +1294,24 @@ mod tests {
         assert!(Chord::parse("Ctrl+Ctrl+A").is_err());
         assert!(Chord::parse("phys:IntlRo").is_err());
         assert!(Chord::parse("").is_err());
+    }
+
+    /// Cycle-40 review: a chord reads as its key caps wherever a person sees it, for every physical key the `phys:`
+    /// grammar accepts; the binding text and the file text keep the grammar.
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn physical_keys_display_as_their_key_caps() {
+        assert_eq!(chord("Ctrl+phys:Digit0").display(), "Ctrl+0");
+        assert_eq!(chord("phys:KeyQ").display(), "Q");
+        assert_eq!(chord("phys:Minus").display(), "-");
+        assert_eq!(chord("Shift+phys:Equal").display(), "Shift+=");
+        assert_eq!(chord("Alt+phys:Backquote").display(), "Alt+`");
+        assert_eq!(chord("page down").display(), "Page Down");
+        for (code, ch) in PUNCTUATION {
+            assert_eq!(chord(&format!("phys:{code}")).display(), ch.to_string());
+        }
+        assert_eq!(display("Ctrl+phys:Digit0"), "Ctrl+0");
+        assert_eq!(display("not a chord"), "not a chord");
     }
 
     #[test]

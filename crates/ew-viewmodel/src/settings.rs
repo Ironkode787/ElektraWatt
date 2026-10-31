@@ -598,7 +598,7 @@ fn copy_aside(path: &Path) -> Option<String> {
 }
 
 /// Copies the bad file `path` to `<file_name>.bad-<n>` beside it (the lowest free `n`); the name, or `None` when the
-/// copy failed. WP-S2.08 part 2: a refused `keymap.toml` is kept the same way.
+/// copy failed.
 pub(crate) fn copy_aside_as(path: &Path, file_name: &str) -> Option<String> {
     let dir = path.parent()?;
     for n in 1..=999 {
@@ -606,6 +606,25 @@ pub(crate) fn copy_aside_as(path: &Path, file_name: &str) -> Option<String> {
         let target: PathBuf = dir.join(&name);
         if !target.exists() {
             return std::fs::copy(path, &target).ok().map(|_| name);
+        }
+    }
+    None
+}
+
+/// As [`copy_aside_as`], but a copy with the same bytes that is already there is named instead of copying again: a
+/// refused `keymap.toml` (WP-S2.08 part 2), which is read and refused on every start while the user's file stays, is
+/// copied aside once (FIX40d).
+pub(crate) fn copy_aside_once_as(path: &Path, file_name: &str) -> Option<String> {
+    let dir = path.parent()?;
+    let bytes = std::fs::read(path).ok()?;
+    for n in 1..=999 {
+        let name = format!("{file_name}.bad-{n}");
+        let target: PathBuf = dir.join(&name);
+        if !target.exists() {
+            return std::fs::write(&target, &bytes).ok().map(|()| name);
+        }
+        if std::fs::read(&target).is_ok_and(|held| held == bytes) {
+            return Some(name);
         }
     }
     None

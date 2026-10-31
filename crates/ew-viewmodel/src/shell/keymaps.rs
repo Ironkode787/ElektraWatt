@@ -26,8 +26,18 @@ pub(super) struct KeymapTrouble {
     pub keep_file: bool,
 }
 
+/// A file reason (a sentence of [`Keymap::parse`], which starts with an English word, never with a chord) as the clause
+/// after a colon: its first letter in lower case ("it is not valid TOML.").
+fn clause(reason: &str) -> String {
+    let mut chars = reason.chars();
+    chars.next().map_or_else(String::new, |first| {
+        first.to_lowercase().chain(chars).collect()
+    })
+}
+
 /// The user's keymap in `dir` checked against the preset `preset_word`: `Ok(None)` without a file. A file that does
-/// not parse or has an error (D8) is copied to `keymap.toml.bad-<n>` and refused with a banner; a file that cannot be
+/// not parse or has an error (D8) is copied to `keymap.toml.bad-<n>` (once: a copy with the same bytes is named
+/// again, FIX40d) and refused with a banner; a file that cannot be
 /// read, or a refused one whose copy-aside failed, is refused with a banner and kept: the editor does not write over
 /// it in this run (C40 review part 2, finding 8).
 pub(super) fn load_user_keymap(dir: &Path, preset_word: &str) -> Result<Option<Keymap>, KeymapTrouble> {
@@ -51,11 +61,11 @@ pub(super) fn load_user_keymap(dir: &Path, preset_word: &str) -> Result<Option<K
                 keep_file: true,
             });
         }
-        Err(keymap::UserFileError::Invalid(reason)) => reason,
+        Err(keymap::UserFileError::Invalid(reason)) => clause(&reason),
     };
     let reason = reason.trim_end_matches('.');
     Err(
-        match crate::settings::copy_aside_as(&dir.join(keymap::USER_FILE), keymap::USER_FILE) {
+        match crate::settings::copy_aside_once_as(&dir.join(keymap::USER_FILE), keymap::USER_FILE) {
             Some(copy) => KeymapTrouble {
                 banner: strings::format("banner-keymap-refused", &[reason, preset.name(), &copy]),
                 keep_file: false,
@@ -254,7 +264,7 @@ impl ShellModel {
             .and_then(|t| Keymap::parse(&t));
         let user = match parsed {
             Ok(k) => k,
-            Err(reason) => return failed("error-keymap-import", &[&reason]),
+            Err(reason) => return failed("error-keymap-import", &[&clause(&reason)]),
         };
         let errors = keymap::user_errors(self.keymap_preset(), &user);
         if !errors.is_empty() {

@@ -249,6 +249,16 @@ fn the_editor_records_refuses_shadows_resets_and_round_trips() {
     assert_eq!(refusal.errors, ["M is already Move in the canvas."]);
     let wire = actions::find("tool.wire").unwrap();
     assert_eq!(shell.shortcuts_of(wire), ["Ctrl+Shift+W"]);
+    // Cycle-40 review: a chord bound by physical key reads as its key cap, never in the `phys:` grammar.
+    refused(
+        &mut shell,
+        "keymap.record",
+        json!({"action": "file.open", "keys": "Ctrl+phys:Digit0"}),
+    );
+    let refusal = shell.keymap_editor().refusal.clone().unwrap();
+    if cfg!(not(target_os = "macos")) {
+        assert_eq!(refusal.errors, ["Ctrl+0 is already Actual size everywhere."]);
+    }
     // Ctrl+Alt and the reserved chords are errors too.
     refused(
         &mut shell,
@@ -471,17 +481,11 @@ fn a_refused_keymap_that_cannot_be_copied_aside_is_not_written_over() {
         std::fs::write(dir.join(format!("keymap.toml.bad-{n}")), "taken").unwrap();
     }
     let mut shell = shell_in(&dir);
-    let reason = Keymap::parse(bad).unwrap_err();
     assert_eq!(
         shell.banner(),
         Some(
-            format!(
-                "The keymap file was refused ({}); the {} preset applies and the file is left as it is (it could \
-                 not be copied aside).",
-                reason.trim_end_matches('.'),
-                shell.keymap_preset().name()
-            )
-            .as_str()
+            "The keymap file was refused: binding 1 needs keys, action and context as texts. Unknown key in \
+             \"Ctrl+Nope\". The EW preset applies; the file is left as it is because it could not be copied aside."
         )
     );
     record_wire(&mut shell);
@@ -493,5 +497,38 @@ fn a_refused_keymap_that_cannot_be_copied_aside_is_not_written_over() {
         std::fs::read_to_string(dir.join(keymap::USER_FILE)).unwrap(),
         bad,
         "not written over"
+    );
+}
+
+/// FIX40d (cycle-40 window check, finding 6): a refused file is copied aside once: the next start with the same bytes
+/// names the existing copy and makes none; a changed bad file gets a new copy. The user's file stays.
+#[test]
+fn a_refused_keymap_is_copied_aside_once() {
+    let tmp = Tmp::new("keymap-aside-once");
+    let dir = tmp.0.join("config");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join(keymap::USER_FILE), "not = [toml").unwrap();
+    let expected = |copy: &str| {
+        format!(
+            "The keymap file was refused: it is not valid TOML. The EW preset applies; the file was kept as {copy}."
+        )
+    };
+    for _ in 0..2 {
+        let shell = shell_in(&dir);
+        assert_eq!(shell.banner(), Some(expected("keymap.toml.bad-1").as_str()));
+        assert!(dir.join("keymap.toml.bad-1").exists());
+        assert!(!dir.join("keymap.toml.bad-2").exists(), "copied aside once");
+    }
+    assert_eq!(
+        std::fs::read_to_string(dir.join(keymap::USER_FILE)).unwrap(),
+        "not = [toml",
+        "the user's file stays"
+    );
+    std::fs::write(dir.join(keymap::USER_FILE), "still = [not toml").unwrap();
+    let shell = shell_in(&dir);
+    assert_eq!(shell.banner(), Some(expected("keymap.toml.bad-2").as_str()));
+    assert_eq!(
+        std::fs::read_to_string(dir.join("keymap.toml.bad-2")).unwrap(),
+        "still = [not toml"
     );
 }
