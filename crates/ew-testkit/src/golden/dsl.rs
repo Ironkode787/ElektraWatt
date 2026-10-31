@@ -328,6 +328,22 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         .map(|_| ())
     }
 
+    // WP-S2.07 part 4b
+    /// `edit.paste` with `adapt` (WP-S2.07 D22, FT-396's "Use the project's copy"): as `paste`, reusing the project's
+    /// copies `adapt` (copy IDs) where the fragment carries another version of them. An empty `adapt` is left out, so
+    /// the command equals `paste`'s.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn paste_adapt(&mut self, page: AnyId, at: [i64; 2], fragment: Value, adapt: &[AnyId]) -> Result<()> {
+        let mut params = json!({"page": page, "at": at, "fragment": fragment});
+        if !adapt.is_empty() {
+            params["adapt"] = json!(adapt);
+        }
+        self.run("edit.paste", params).map(|_| ())
+    }
+
     /// `macro.insert` (FT-672): inserts `m` on `page` (a window macro: its anchor at `at`, nm, a grid point of the
     /// page, turned by `orient` in the command's JSON form, `r0` … `m270`; a page macro: its pages after `page`, with
     /// `at` `None` and `orient` `r0`). `r0` is left out of the parameters, as a log written before FT-672 has it.
@@ -1961,6 +1977,36 @@ mod tests {
         assert_eq!(seen[0].0, "edit.paste");
         assert_eq!(
             seen[0].1,
+            json!({"page": page, "at": [10, 20], "fragment": fragment})
+        );
+    }
+
+    // WP-S2.07 part 4b
+    /// `paste_adapt` adds `adapt` when it names copies and leaves it out when empty (the command equals `paste`'s).
+    #[test]
+    fn paste_adapt_carries_the_adapted_copies() {
+        let mut seen: Vec<(String, Value)> = Vec::new();
+        let mut sink = |name: &str, params: Value| {
+            seen.push((name.to_owned(), params));
+            Ok(Done::default())
+        };
+        let page = AnyId::from_uuid(ew_ids::Uuid::from_u128(3));
+        let copy = AnyId::from_uuid(ew_ids::Uuid::from_u128(4));
+        let fragment = json!({"format": "0.1", "records": []});
+        let mut builder = Builder::new(&mut sink);
+        builder
+            .paste_adapt(page, [10, 20], fragment.clone(), &[copy])
+            .unwrap();
+        builder
+            .paste_adapt(page, [10, 20], fragment.clone(), &[])
+            .unwrap();
+        drop(builder);
+        assert_eq!(
+            seen[0].1,
+            json!({"page": page, "at": [10, 20], "fragment": fragment, "adapt": [copy]})
+        );
+        assert_eq!(
+            seen[1].1,
             json!({"page": page, "at": [10, 20], "fragment": fragment})
         );
     }

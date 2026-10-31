@@ -1263,8 +1263,9 @@ fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 /// `edit.paste`: a fragment of one new device with its main function drawn by an embedded symbol on a page that takes
 /// it, pasted at a grid point of that page (the copies are held, so nothing is embedded), with a free-text page item
 /// on the source page; refused: no record, another grid, a point off the grid, a record of a kind that is not pasted,
-/// and a representation whose function is not in the fragment (a mandatory reference). The boundary case pastes a
-/// wire marker that names a connection outside the fragment: the marker is left out, the paste succeeds.
+/// a representation whose function is not in the fragment (a mandatory reference), and an `adapt` that names no held
+/// copy of another version or names one twice (WP-S2.07 D22). The boundary case pastes a wire marker that names a
+/// connection outside the fragment: the marker is left out, the paste succeeds.
 fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let pages = pages_taking_reps(live);
     let page = *rng.pick(&pages)?;
@@ -1341,6 +1342,19 @@ fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     (Table::PageItems, 0),
                 ]),
             )
+        }
+        // WP-S2.07 D22: `adapt` naming no copy of the fragment that the project holds in another version, or one
+        // listed twice, is refused at `/adapt/<i>`.
+        6 => {
+            let copy = rng.uuid();
+            let adapt = if rng.below(2) == 0 {
+                json!([copy])
+            } else {
+                json!([copy, copy])
+            };
+            let mut p = params(&at, fragment(all(), page.grid));
+            p["adapt"] = adapt;
+            Some(Step::cmd("edit.paste", p).refuse())
         }
         _ => Some(
             Step::cmd("edit.paste", params(&at, fragment(all(), page.grid)))

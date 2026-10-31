@@ -672,6 +672,7 @@ impl Command for InsertMacro {
             kinds_refusal: "is not inserted (only devices, functions, representations, connections, junctions, \
                             channels, potential definitions, device links, page items and structure boxes)",
             ids: NewIds::Instance(self.instance.as_uuid()),
+            adapt: &[],
             keep_frozen: true,
             keep_counter: inst.keep_counter.clone(),
             keep_refs: inst.refs.clone(),

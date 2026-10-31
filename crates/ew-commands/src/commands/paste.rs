@@ -22,6 +22,7 @@ use serde_json::Value;
 
 use super::device::{allowed_rep_types, step_axis, step_route, steps_nm};
 use super::library::check_copy;
+use super::library_update::{ChangeClass, classify_update, row_document};
 use crate::command::{Command, Outcome};
 use crate::commands::edit::BULK_ABOVE;
 use crate::error::CmdError;
@@ -109,10 +110,13 @@ pub struct Fragment {
 /// outside device, function, representation, connection, junction, potential definition, page item and structure
 /// box, of another schema version, listed twice, a representation off the grid or of a representation type the page
 /// does not take, or a mandatory reference that resolves to nothing; `/fragment/copies/<i>` a copy that
-/// `library.embed` refuses, listed twice, or one the project holds in another version; `/fragment/nodes/<i>` a node
-/// listed twice or without a path.
+/// `library.embed` refuses, listed twice, or one the project holds in another version that `adapt` does not name;
+/// `/fragment/nodes/<i>` a node listed twice or without a path; `/adapt/<i>` an ID listed twice, one that names no copy
+/// of the fragment the project holds in another version, or one whose change from the pasted version to the held one
+/// is major (WP-S2.07 D22).
 ///
-/// **Effects.** (1) A library copy the project holds with the same `sha256` is reused, any other is embedded. (2)
+/// **Effects.** (1) A library copy the project holds with the same `sha256` is reused, and so is one that `adapt`
+/// names (the held version stays); any other is embedded. (2)
 /// Each structure node rebinds to the project's node of the same aspect and path, else to the one node of that
 /// aspect whose aliases hold the leaf code; an unmatched node clears the slots naming it (the record inherits),
 /// with a notice; no node is created. (3) Every record gets a minted ID, in (kind rank, fragment order), and loses
@@ -147,6 +151,13 @@ pub struct PasteFragment {
     pub at: Pt2,
     /// The fragment.
     pub fragment: Fragment,
+    /// The library copies (copy IDs) the project holds in another version that the paste uses as the project holds
+    /// them instead of refusing (WP-S2.07 D22, FT-396's "Use the project's copy"); each must name a copy of
+    /// `fragment.copies` that the project holds with another hash, and the change from the pasted version to the held
+    /// one must not be major (`classify_update`). Empty by default, and then left out of the parameters.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<UuidS>")]
+    pub adapt: Vec<Id<()>>,
 }
 
 /// One step of a concrete path into a record's JSON.
@@ -558,6 +569,9 @@ pub(crate) struct Insertion<'f> {
     pub(crate) kinds_refusal: &'static str,
     /// How the records get their IDs.
     pub(crate) ids: NewIds,
+    /// The held copies of another version the insertion reuses instead of refusing (`edit.paste`'s `adapt`; empty
+    /// for a macro).
+    pub(crate) adapt: &'f [Id<()>],
     /// Whether frozen tags stay (a macro clears them when it is saved, unless marked keep).
     pub(crate) keep_frozen: bool,
     /// The devices (source IDs) whose tag counter stays (set by a macro variable).
@@ -804,6 +818,13 @@ impl Insertion<'_> {
         let project = tx.project().id.as_uuid();
         let mut usable = BTreeSet::new();
         let mut embed = Vec::new();
+        let mut adapted: BTreeSet<Uuid> = BTreeSet::new();
+        for (i, a) in self.adapt.iter().enumerate() {
+            if !adapted.insert(a.as_uuid()) {
+                return Err(self.invalid(format!("/adapt/{i}"), "the copy is listed twice"));
+            }
+        }
+        let mut used: BTreeSet<Uuid> = BTreeSet::new();
         for (i, value) in self.fragment.copies.iter().enumerate() {
             let at = format!("{}/copies/{i}", self.prefix);
             let doc = LibDocument::from_value(value.clone()).map_err(|e| self.invalid(&at, e.to_string()))?;
@@ -829,7 +850,23 @@ impl Insertion<'_> {
             match tx.row(&(kind, id)) {
                 // A held copy of the same version is reused as it is (also a project-local item of this project).
                 Some(row) => {
-                    if held_sha(&row) != Some(claimed) {
+                    if held_sha(&row) != Some(claimed) && adapted.contains(&id.as_uuid()) {
+                        // D22: the held version serves the pasted records unless a CP of theirs disappears.
+                        let held = row_document(&row).expect("a held library copy");
+                        let diff = classify_update(&doc, &held);
+                        let index = self.adapt.iter().position(|a| *a == id).expect("listed in adapt");
+                        if diff.class == ChangeClass::Major {
+                            return Err(self.invalid(
+                                format!("/adapt/{index}"),
+                                format!(
+                                    "the project's version of {kind} {} differs from the pasted one in a major way                                      ({}); update instead",
+                                    lib_title(value),
+                                    diff.major_reasons.join(", ")
+                                ),
+                            ));
+                        }
+                        used.insert(id.as_uuid());
+                    } else if held_sha(&row) != Some(claimed) {
                         return Err(self.invalid(
                             &at,
                             format!(
@@ -842,6 +879,12 @@ impl Insertion<'_> {
                 // Any other is embedded exactly as `library.embed` would embed it.
                 None => embed.push(check_copy(self.name, &at, value, project)?.0),
             }
+        }
+        if let Some(i) = self.adapt.iter().position(|a| !used.contains(&a.as_uuid())) {
+            return Err(self.invalid(
+                format!("/adapt/{i}"),
+                "names no copy of the fragment that the project holds in another version",
+            ));
         }
         Ok((usable, embed))
     }
@@ -1346,6 +1389,7 @@ impl Command for PasteFragment {
             kinds_refusal: "is not pasted (only devices, functions, representations, connections, junctions, \
                             potential definitions, page items and structure boxes)",
             ids: NewIds::Mint,
+            adapt: &self.adapt,
             keep_frozen: false,
             keep_counter: BTreeSet::new(),
             keep_refs: BTreeSet::new(),
