@@ -307,6 +307,15 @@ impl Fx {
         self.ip_of(n, (FNDEF_IP0, SYM_IP0), page, name, dir);
     }
 
+    /// A source interruption point `n` named `name` on `page`, flagged as the star source of its name.
+    pub fn ip_star_source(&mut self, n: u128, page: u128, name: &str) {
+        self.push(json!({
+            "$k": "function", "id": us(n), "def": us(FNDEF_IP),
+            "kind": {"ip": {"name": name, "direction": "source", "star_source": true}},
+        }));
+        self.rep(n, SYM_IP, page);
+    }
+
     fn ip_of(&mut self, n: u128, (def, sym): (u128, u128), page: u128, name: &str, dir: &str) {
         self.push(json!({
             "$k": "function", "id": us(n), "def": us(def),

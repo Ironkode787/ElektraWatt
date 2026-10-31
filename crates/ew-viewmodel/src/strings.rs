@@ -88,6 +88,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "announce-place" => "Place {0}: {1}, variant {2}, at {3}",
         "announce-place-no-cell" => "Place {0}: {1}, variant {2}",
         "picker-title" => "Insert symbol",
+        "picker-title-device" => "Insert device",
         "picker-title-exchange" => "Change symbol",
         "picker-filter-hint" => "Filter by key, part number or function",
         "picker-badge-embedded" => "embedded",
@@ -138,7 +139,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "error-join-unknown-slot" => "{0} has no unplaced {2} function in slot {1}; its unplaced slots: {3}",
         "error-join-none" => "none",
         "reason-rep-type-not-allowed" => "The page's type does not take this symbol",
-        "reason-black-box-tool" => "Use the black box tool (B)",
+        // FT-896: the way out with its key from the keymap; `-unbound` when the action has none.
+        "reason-black-box-tool" => "This part is placed as a black box: use the Black box tool ({0})",
+        "reason-black-box-tool-unbound" => "This part is placed as a black box: use the Black box tool",
         "reason-no-symbol-for-function" => "No symbol for this function on this page",
         "reason-no-catalogue" => "Nothing can be placed on this page",
         "reason-unknown-symbol" => "No such symbol, part or function for this page",
@@ -154,6 +157,22 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "banner-host-commit" => "{0} failed: {1}",
         "tool-strip-new" => "New strip",
         "reason-page-type-no-symbols" => "This page type takes no symbols or wires: draw on a schematic page",
+        // FT-892: the same, naming the page's kind.
+        "reason-page-type-no-symbols-divider" => {
+            "A section divider takes no symbols or wires: draw on a schematic page"
+        }
+        "reason-page-type-no-symbols-title" => {
+            "A title page takes no symbols or wires: draw on a schematic page"
+        }
+        "reason-page-type-no-symbols-contents" => {
+            "A table of contents takes no symbols or wires: draw on a schematic page"
+        }
+        "reason-page-type-no-symbols-report" => {
+            "A report page takes no symbols or wires: draw on a schematic page"
+        }
+        "reason-page-type-no-symbols-panel" => {
+            "A panel layout page takes no symbols or wires: draw on a schematic page"
+        }
         // WP-S2.04 part 2 (wiring; the strip chooser of FT-421). Begin.
         "picker-title-strip" => "Choose a terminal strip",
         "picker-title-black-box" => "Insert black box",
@@ -218,7 +237,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "hint-ip-external" => {
             "Click or Enter to place the external connection point; type a name; Escape ends"
         }
-        "hint-box-armed" => "Click or Enter at the first corner; Escape ends",
+        // FT-896: the Black box tool takes two corners; the armed hint says so before the first click.
+        "hint-box-armed" => "Click the box's first corner, then its opposite corner; Escape ends",
         "hint-box-outline" => "Click or Enter at the opposite corner; Escape starts again",
         "hint-box-dropped" => "Click or Enter at the first corner; Escape again leaves the tool",
         "reason-no-ip-symbol" => "This page's library has no interruption-point symbol",
@@ -249,7 +269,11 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-external-ambiguous" => "Several external references print this text: name one by its ID",
         "reason-select-one-ip" => "Select exactly one interruption point",
         "reason-select-ips" => "Select at least two interruption points",
-        "reason-not-black-box" => "This is no black box: place it with Insert, Symbol (I)",
+        // FT-896: today's menu path and the key from the keymap; `-unbound` when `tool.place` has none.
+        "reason-not-black-box" => "This is not a black box: place it with Draw \u{25b8} Symbol\u{2026} ({0})",
+        "reason-not-black-box-unbound" => {
+            "This is not a black box: place it with Draw \u{25b8} Symbol\u{2026}"
+        }
         "reason-one-black-box" => "Select exactly one black box",
         "reason-grip-not-axis" => "Only a horizontal or vertical edge moves",
         "reason-box-too-small" => "A black box keeps a width and a height",
@@ -427,6 +451,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         // WP-S2.17 part 5 (FT-390): the link preview's accessible node.
         "link-preview-node" => "Link preview: page {0}, cell {1}",
         "link-preview-node-page" => "Link preview: page {0}",
+        // FT-902: the tooltip of a page link under the pointer, with its target's cell or folio.
+        "tip-link" => "Go to {0}",
         "canvas-cursor-live-cp" => ", connection point {0}",
         "reason-no-cp" => "The page has no connection point",
         "reason-no-unconnected-cp" => "The page has no unconnected connection point",
@@ -547,12 +573,18 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "commandbar-next" => "Next step",
         "commandbar-variants" => "Variants",
         "hud-name" => "Tool",
-        "hud-stack" => "{0} here \u{b7} click again for the next",
+        // FT-894: the pick stack in words.
+        "hud-stack" => "{0} objects overlap here \u{b7} click again to select the next",
         "hud-selected" => "{0} selected \u{b7} Del deletes \u{b7} {1} rotates",
         "hud-keys-place" => "{0} rotates \u{b7} {1} variant \u{b7} Esc done",
         "hud-place-wires" => "connects {0}; Alt+Click or {1} places without",
         // FIXPT41: the IP tool's ghost on a pin.
         "hud-ip-connects" => "connects to {0}",
+        // FT-899: the IP tool's role in words, so "target" and "star source" explain themselves.
+        "hud-ip-source" => "source: feeds its targets",
+        "hud-ip-target" => "target: fed by its source",
+        "hud-ip-undirected" => "undirected: pairs either way",
+        "hud-ip-star" => "star source: feeds every point of the name",
         "hud-tool-options" => "Tool options",
         "zoom-control" => "Zoom",
         "action-tools-palette" => "Command palette",
@@ -904,10 +936,17 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "count-wires" => "{0} wires",
         "count-box-pin" => "{0} connection point",
         "count-box-pins" => "{0} connection points",
+        // FT-893: the strip takes its tag with its first terminal; the example is the tag it would take on the page on
+        // show (`-no-example` off a schematic page).
         "toast-strip-new" => {
-            "Created terminal strip {0}; it has no terminals yet. Place them with Insert ▸ Symbol… and the terminal symbol, whose strip picker lists it"
+            "Created a terminal strip. It takes its tag, such as {0}, when its first terminal is placed: Draw ▸ Symbol… and the terminal symbol, whose strip picker lists it."
+        }
+        "toast-strip-new-no-example" => {
+            "Created a terminal strip. It takes its tag when its first terminal is placed: Draw ▸ Symbol… and the terminal symbol, whose strip picker lists it."
         }
         "toast-export-pdf" => "Exported {0}: {1} pages, {2} KiB",
+        // P-2: a second export of the same file in this session says so, so the toast visibly changes.
+        "toast-export-pdf-again" => "Exported {0} again: {1} pages, {2} KiB",
         "toast-structure-new" => "Created the {0} node {1}",
         "toast-external-ref-new" => {
             "Created the external reference {0}; the Interruption point tool links an external point to it by this label"
@@ -2666,6 +2705,12 @@ mod tests {
         assert_eq!(
             text("reason-page-type-no-symbols"),
             "This page type takes no symbols or wires: draw on a schematic page"
+        );
+        // FT-892: a drawn table of contents by name (Golden A's is a generated report page, so the window test cannot
+        // reach this kind).
+        assert_eq!(
+            text("reason-page-type-no-symbols-contents"),
+            "A table of contents takes no symbols or wires: draw on a schematic page"
         );
     }
 

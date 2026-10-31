@@ -254,7 +254,7 @@ fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
 }
 
 /// W31-1: at 1280×800 the bottom dock holds the Messages pane's header, at least three whole rows, and with a
-/// finding selected both its row and its detail block, with the footer below.
+/// finding selected both its row (of at least two whole rows, FT-915) and its detail block, with the footer below.
 #[test]
 fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
     let tmp = Tmp::new();
@@ -291,7 +291,8 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
     settle(&mut h);
     settle(&mut h);
     let (list, rows) = whole(&h);
-    assert!(rows.len() >= 3, "three whole rows beside the detail: {rows:?}");
+    // FT-915: beside a detail block the list keeps at least two rows (was three).
+    assert!(rows.len() >= 2, "two whole rows beside the detail: {rows:?}");
     assert!(
         rows.iter().any(|(l, _)| l.starts_with(&label)),
         "the selected row {label} in {list:?}: {rows:?}"
@@ -527,4 +528,56 @@ fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
         text.bottom() <= footer.top() + 0.5,
         "{text:?} ends above the footer at {footer:?}"
     );
+}
+
+/// FT-915 (W42a): with Golden A's first EW-LAY-001 finding selected, the detail block holds its message whole, wrapped
+/// to the pane's width, between the list and the footer, and the list keeps at least two whole rows; at the 1280 × 800
+/// floor (doc 16a §2: truncation is judged at the floor) and at 1920 × 1080. The ruling (project owner (delegated),
+/// cycle 42): the detail is as tall as its content, the list above it keeps at least two rows (was three), and only a
+/// still taller detail scrolls; never an ellipsis, a clipped line or a fixed pixel cap.
+#[test]
+fn ft915_the_lay_001_detail_shows_its_message_whole_at_the_floor_and_at_1920() {
+    for (w, hgt) in [(1280.0, 800.0), (1920.0, 1080.0)] {
+        let tmp = Tmp::new();
+        let mut h = on_golden(&tmp, Scripted::default());
+        h.set_size(egui::Vec2::new(w, hgt));
+        settle(&mut h);
+        dispatch(&mut h, "messages.show", json!({"on": true}));
+        settle(&mut h);
+        let row = table_nodes(&h)
+            .into_iter()
+            .find(|n| n.role == NavRole::Finding && n.cells[1] == "EW-LAY-001")
+            .expect("an EW-LAY-001 finding in Golden A");
+        dispatch(
+            &mut h,
+            "navigator.row",
+            json!({"kind": "messages", "key": row.key}),
+        );
+        settle(&mut h);
+        settle(&mut h);
+        settle(&mut h);
+        let list = h.get_by_label("Messages navigator").rect();
+        let rows = h
+            .get_all_by_role(egui::Role::TreeItem)
+            .filter(|n| list.expand(0.5).contains_rect(n.rect()))
+            .count();
+        assert!(
+            rows >= 2,
+            "{w}×{hgt}: two whole rows above the detail in {list:?}, {rows} shown"
+        );
+        let message = h.state().shell().messages_detail().expect("the detail").message;
+        let text = h.get_by_label(&message).rect();
+        let footer = h
+            .get_by_label("Checks support, but do not replace, engineering verification.")
+            .rect();
+        assert!(
+            text.top() >= list.bottom() - 0.5 && text.bottom() <= footer.top() + 0.5,
+            "{w}×{hgt}: the message {text:?} whole between the rows {list:?} and the footer {footer:?}"
+        );
+        assert!(
+            text.right() <= list.right() + 0.5,
+            "{w}×{hgt}: the message {text:?} wrapped inside the pane {list:?}"
+        );
+        h.state_mut().shell_mut().shutdown();
+    }
 }

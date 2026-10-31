@@ -45,7 +45,9 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     }
     let title = match picker.mode {
         PickerMode::Exchange => strings::text("picker-title-exchange"),
-        PickerMode::Place | PickerMode::Parts => strings::text("picker-title"),
+        PickerMode::Place => strings::text("picker-title"),
+        // FT-890: the Device button (`tool.place_part`) picks a part, so its dialog names a device.
+        PickerMode::Parts => strings::text("picker-title-device"),
         PickerMode::Strip => strings::text("picker-title-strip"),
         PickerMode::BlackBox => strings::text("picker-title-black-box"),
     };

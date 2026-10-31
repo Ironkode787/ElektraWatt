@@ -43,5 +43,6 @@ mod theme;
 mod tools;
 mod viewer;
 mod visual;
+mod wheel;
 mod window_check_w33;
 mod wiring;

@@ -285,8 +285,8 @@ impl NavigatorPane {
         // footer below them.
         if self.kind == NavKind::Messages {
             crate::messages::header(ui, shell, events);
-            // W31-1: header, the rows in their own scroll area, the detail block (at most half the pane, ID-730, and
-            // never so tall that fewer than three rows fit), then the footer, which is always on show.
+            // W31-1: header, the rows in their own scroll area, the detail block (FT-915: as tall as its content, and
+            // never so tall that fewer than two rows fit), then the footer, which is always on show.
             let row = row_height(ui.ctx());
             // X32b: the footer and the detail block keep the pane's `space.4` gutter.
             let frame = egui::Frame::new().inner_margin(egui::Margin::symmetric(
@@ -299,15 +299,16 @@ impl NavigatorPane {
                 .show(ui, crate::messages::footer);
             if shell.messages_detail().is_some() {
                 let pane = ui.available_height();
-                // X32b: the detail block is as tall as its content (measured on the last frame; half the pane until
-                // then), so its Rule page link is not cut, but never so tall that fewer than three rows fit; beyond
-                // that it scrolls.
+                // X32b, FT-915: the detail block is as tall as its content (measured on the last frame; half the pane
+                // until then), so its Rule page link and its wrapped message are not cut at the 1280 x 800 floor (doc
+                // 16a §2), but never so tall that fewer than two rows fit; beyond that it scrolls. No pixel cap: the
+                // split scales with the pane.
                 let id = ui.scope_id().with("messages-detail");
                 let content = id.with("content-height");
                 let wanted = ui
                     .data(|d| d.get_temp::<f32>(content))
                     .map_or(pane / 2.0, |h| h + 2.0 * t.space_1);
-                let size = wanted.min(pane - 3.0 * row).max(row);
+                let size = wanted.min(pane - 2.0 * row).max(row);
                 egui::Panel::bottom(id)
                     .resizable(false)
                     .exact_size(size)
@@ -494,7 +495,10 @@ impl NavigatorPane {
                 if let Some(i) = scroll_to {
                     // The closure's rectangle starts at the first row it paints, `range.start`.
                     let first = ui.max_rect().top() - range.start as f32 * row;
-                    let top = first + (i as f32 - 2.0).max(0.0) * row;
+                    // FT-915: two rows above the cursor, fewer in a list of fewer than three rows (the Messages list
+                    // beside a tall detail block keeps two), so the cursor row stays on show.
+                    let lead = 2.min(fits.saturating_sub(1)) as f32;
+                    let top = first + (i as f32 - lead).max(0.0) * row;
                     let target = egui::Rect::from_min_size(
                         egui::pos2(ui.max_rect().left(), top),
                         egui::vec2(1.0, row),

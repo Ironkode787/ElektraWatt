@@ -411,3 +411,40 @@ fn ft605_a_terminal_without_strips_says_why_and_offers_a_new_strip() {
     assert_eq!(h.state().shell().tool().name(), "place");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The key chord bound to action `id` in the effective keymap, as egui's key and modifiers.
+fn chord_of(h: &Harness<'_, App>, id: &str) -> (Key, Modifiers) {
+    let meta = ew_ui::ew_viewmodel::actions::find(id).expect("the action");
+    let text = h.state().shell().shortcut_text(meta);
+    let (key, mods) = ew_ui::visual::parse_chord(&text).unwrap_or_else(|e| panic!("`{text}`: {e}"));
+    (key.expect("a key"), mods)
+}
+
+/// FT-890: the Device button (`tool.place_part`, Shift+I by default) opens a dialog titled "Insert device"; the
+/// Symbol tool (`tool.place`, I) keeps "Insert symbol". Both keys are read from the keymap.
+#[test]
+fn ft890_the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_symbol() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    let (key, mods) = chord_of(&h, "tool.place_part");
+    h.key_press_modifiers(mods, key);
+    settle(&mut h);
+    assert!(h.state().shell().picker().is_some(), "the device picker opens");
+    assert!(
+        h.query_by_label("Insert device").is_some(),
+        "titled Insert device"
+    );
+    assert!(h.query_by_label("Insert symbol").is_none());
+    press(&mut h, Key::Escape);
+    assert!(h.state().shell().picker().is_none());
+    let (key, mods) = chord_of(&h, "tool.place");
+    h.key_press_modifiers(mods, key);
+    settle(&mut h);
+    assert!(h.state().shell().picker().is_some(), "the symbol picker opens");
+    assert!(
+        h.query_by_label("Insert symbol").is_some(),
+        "titled Insert symbol"
+    );
+    assert!(h.query_by_label("Insert device").is_none());
+    h.state_mut().shell_mut().shutdown();
+}

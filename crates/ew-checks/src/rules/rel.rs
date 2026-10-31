@@ -103,7 +103,7 @@ pub fn four_eyes(q: &Q, input: &GateInput) -> Vec<Finding> {
     if r.author.is_none() {
         out.push(finding(
             "author",
-            format!("revision {label}: author not set; set it with Revision ▸ Set author"),
+            format!("revision {label}: author not set; set it with Check ▸ Revision ▸ Set revision author…"),
         ));
     }
     match (&r.author, &r.checker) {

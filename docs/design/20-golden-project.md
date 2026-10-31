@@ -964,7 +964,7 @@ screw-mounted test part ([12](12-panel-layout.md) §10).
 | 20 | 2 | pc | Festo | 533354 | VMPA1-FB-SP supply plate ▲U-24 | -201U9, -202U3 | 201, 202 |
 | 21 | 28 | pc | Festo | 571334 | 5/2 monostable solenoid valve | -201U3-Q1 … -202U2-Q4 | 203–206 |
 | 22 | 1 | pc | Schneider Electric | NSYPLA1074G | Enclosure, polyester | -UC1 | 902 |
-| 23 | 1 | pc | Schneider Electric | NSYPMM107 | Mounting plate | -UC1 (plate) | 902 |
+| 23 | 1 | pc | Schneider Electric | NSYPMM107 | Mounting plate | -UC1-plate | 902 |
 | 24 | 1.71 ▲U-50 | m | ▲ | TBD | DIN rail TS 35 (3 rows; length from carriers) | -UC1 | 902 |
 | 25 | 3.17 ▲U-50 | m | ▲ | TBD | Wiring duct 40×60 (5 segments; length from carriers) | -UC1 | 902 |
 | 26 | 4 | pc | ▲ | TBD | End bracket | 1X1, -X1031, -X1032 | 902 |

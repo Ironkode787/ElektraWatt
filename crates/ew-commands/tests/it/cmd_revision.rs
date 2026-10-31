@@ -690,9 +690,12 @@ fn the_roles_are_not_set_by_fields_set() {
                     path: at, message, ..
                 } => {
                     assert_eq!(at, "/path");
-                    assert!(
-                        message.contains("set by Revision ▸ Set author or by approval"),
-                        "{message}"
+                    assert_eq!(
+                        message,
+                        format!(
+                            "`{path}` of a revision is not set here: set by Check ▸ Revision ▸ Set revision \
+                             author… or by approval (four eyes need one confirmed path per role, FT-402)"
+                        )
                     );
                 }
                 other => panic!("{other:?}"),

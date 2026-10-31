@@ -958,6 +958,16 @@ impl CanvasHost {
         // its kind and its potential in a tooltip in the inverse style.
         if let Some(tip) = canvas.hovered_cp_tip() {
             cp_tooltip(&response, tip);
+        } else if let Some(label) = shell
+            .tool()
+            .wants_hover()
+            .then(|| canvas.hovered_link().and_then(|l| l.label()))
+            .flatten()
+        {
+            // FT-902: a link that leads somewhere looks like one (its outline is the hover, `hover_rect`): the pointing
+            // hand and "Go to <its cell or folio>"; a link without a target stays plain.
+            ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+            cp_tooltip(&response, strings::format("tip-link", &[&label]));
         }
         if shell.area().map(|a| a.focused) == Some(group) {
             self.dwell(ui, canvas, group, events);
@@ -1555,6 +1565,8 @@ impl CanvasHost {
                 json!({"percent": zoom * 100.0, "x_mm": x, "y_mm": y, "group": group}),
             )
         };
+        // FT-895: a wheel line that pans moves the view as far as egui scrolls a line.
+        let line_pts = ui.ctx().options(|o| o.input_options.line_scroll_speed);
         let (wheel, pan) = ui.input(|i| {
             let mut lines = 0.0f32;
             let mut pan = Vec2::ZERO;
@@ -1571,7 +1583,15 @@ impl CanvasHost {
                         continue;
                     }
                     match unit {
-                        MouseWheelUnit::Line | MouseWheelUnit::Page => lines += delta.y,
+                        // FT-895: Shift with the wheel and a sideways wheel pan horizontally (a trackpad's way, and
+                        // egui's for a scroll area); the plain vertical wheel steps the zoom.
+                        MouseWheelUnit::Line | MouseWheelUnit::Page if modifiers.shift => {
+                            pan.x += (delta.x + delta.y) * line_pts;
+                        }
+                        MouseWheelUnit::Line | MouseWheelUnit::Page => {
+                            lines += delta.y;
+                            pan.x += delta.x * line_pts;
+                        }
                         MouseWheelUnit::Point => pan += *delta,
                     }
                 }

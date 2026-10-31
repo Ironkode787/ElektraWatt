@@ -341,6 +341,39 @@ fn messages_shown(shell: &ShellModel) -> bool {
         .contains(&PaneKind::Navigator(NavKind::Messages))
 }
 
+/// FT-916: with History and Messages tabbed in the bottom dock and History in front, `messages.show` brings Messages to
+/// front (it stays in the layout); a second one, Messages now in front, closes it (FX38d kept); F8 (`messages.next`,
+/// its key read from the keymap) brings it to front too.
+#[test]
+fn ft916_messages_show_and_next_bring_a_hidden_messages_tab_to_front() {
+    let tmp = Tmp::new("docks-ft916");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let messages = PaneKind::Navigator(NavKind::Messages);
+    let in_front = |s: &ShellModel| s.layout().shown_in_place_of(messages) == Some(messages);
+    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "history.show", json!({"on": true}));
+    assert!(messages_shown(&shell));
+    assert_eq!(
+        shell.layout().shown_in_place_of(messages),
+        Some(PaneKind::History),
+        "History in front of Messages"
+    );
+    done(&mut shell, "messages.show", json!({}));
+    assert!(messages_shown(&shell), "still in the layout");
+    assert!(in_front(&shell), "Messages in front");
+    assert!(shell.layout().panes().contains(&PaneKind::History));
+    done(&mut shell, "messages.show", json!({}));
+    assert!(!messages_shown(&shell), "in front, the command closes it");
+    // F8: the key of `messages.next` from the keymap, as the window dispatches it.
+    done(&mut shell, "messages.show", json!({}));
+    done(&mut shell, "history.show", json!({"on": true}));
+    assert!(!in_front(&shell));
+    let meta = ew_viewmodel::actions::find("messages.next").unwrap();
+    assert_eq!(shell.shortcut_text(meta), "F8");
+    done(&mut shell, meta.id, json!({}));
+    assert!(in_front(&shell), "F8 brings Messages to front");
+}
+
 /// FX38d (cycle 38, play-test rv-vis-2 t0035–t0039): the Messages dock closes by the command that opened it (a
 /// toggle), by its close control (`view.bottom_dock {on: false}`) and by Escape in the pane; opening and closing it,
 /// which shrinks and grows the canvas pane, never changes the zoom or the centre of the fitted page.

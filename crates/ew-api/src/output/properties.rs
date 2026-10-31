@@ -855,6 +855,8 @@ struct Picked {
     reach: BTreeMap<Kind, BTreeSet<Uuid>>,
     /// The report block of a generated page.
     generated: Option<String>,
+    /// A generated page's heading, its folio and derived title (P-1).
+    page_title: Option<String>,
 }
 
 /// WP-S2.07 D13: for devices that all have the terminal aspect, the rows "Printed label" (the `function_text` row
@@ -1268,19 +1270,26 @@ impl Session {
                     .collect()
             })
             .unwrap_or_default();
-        // The generated pages: v5 page ID → (block, block title).
-        let generated: BTreeMap<Uuid, (Uuid, String)> = q
-            .get::<PageOrder>(())
+        // The generated pages: v5 page ID → (block, block title, the page's own heading). P-1 (play-test rv-vis-5):
+        // the heading is the page's folio and derived title ("901 Partlist 1"), not the block's title format.
+        let order = q.get::<PageOrder>(());
+        let generated: BTreeMap<Uuid, (Uuid, String, String)> = order
             .entries
             .iter()
             .filter_map(|e| match e.page {
                 PageRef::Generated { block, .. } => {
                     let b = q.report_blocks().get(block)?;
+                    let page_title = order
+                        .generated(e.page)
+                        .and_then(|g| serde_json::to_value(&g.title).ok())
+                        .map(|t| ml_text(&t, source.as_deref()))
+                        .unwrap_or_default();
                     Some((
                         super::page_uuid(e.page),
                         (
                             block.as_uuid(),
                             ml_text(&serde_json::to_value(&b.title).ok()?, source.as_deref()),
+                            format!("{} {page_title}", e.folio).trim().to_owned(),
                         ),
                     ))
                 }
@@ -1294,9 +1303,9 @@ impl Session {
             if !seen.insert(*id) {
                 continue;
             }
-            let (id, gen_block) = match generated.get(id) {
-                Some((block, title)) => (*block, Some(title.clone())),
-                None => (*id, None),
+            let (id, gen_block, page_title) = match generated.get(id) {
+                Some((block, title, heading)) => (*block, Some(title.clone()), Some(heading.clone())),
+                None => (*id, None, None),
             };
             let Some((kind, _)) = lookup(&q, id) else {
                 missing += 1;
@@ -1323,6 +1332,7 @@ impl Session {
                 kind,
                 reach,
                 generated: gen_block,
+                page_title,
             });
         }
         // The sections every record reaches (D8).
@@ -1969,6 +1979,8 @@ impl Session {
         };
         let title = match (picked, device) {
             ([_], Some(d)) => device_tag_text(q, d),
+            // P-1: a generated page is titled by its own folio and title, not by its block's title format.
+            ([one], None) if one.page_title.is_some() => one.page_title.clone().unwrap_or_default(),
             ([one], None) => {
                 let id = one.reach.get(&one.kind).and_then(|s| s.iter().next()).copied();
                 id.and_then(|id| record_title(q, id, source))

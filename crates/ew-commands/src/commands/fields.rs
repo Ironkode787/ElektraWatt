@@ -311,8 +311,8 @@ impl SetFields {
                 Self::NAME,
                 "/path",
                 format!(
-                    "`{}` of a revision is not set here: set by Revision ▸ Set author or by approval (four eyes \
-                     need one confirmed path per role, FT-402)",
+                    "`{}` of a revision is not set here: set by Check ▸ Revision ▸ Set revision author… or by \
+                     approval (four eyes need one confirmed path per role, FT-402)",
                     self.path
                 ),
             ));

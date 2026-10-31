@@ -251,14 +251,37 @@ fn item10_delete_on_a_device_selected_by_tag_deletes_its_representations_on_the_
     );
 }
 
+/// FT-893: off a schematic page the strip scheme's example is left out of the toast.
+#[test]
+fn ft893_the_new_strip_toast_off_a_schematic_page_has_no_example() {
+    let tmp = Tmp::new("ft893");
+    let mut s = new_project(&tmp);
+    done(
+        &mut s,
+        "page.new",
+        json!({"folio": "201", "type": "overview", "title": "Overview"}),
+    );
+    assert_eq!(s.page_rows()[s.page_index()].kind, "overview");
+    done(&mut s, "strip.new", json!({"letter": "X"}));
+    assert_eq!(
+        toast(&s),
+        "Created a terminal strip. It takes its tag when its first terminal is placed: Draw \u{25b8} Symbol\u{2026} \
+         and the terminal symbol, whose strip picker lists it."
+    );
+}
+
 #[test]
 fn item9_an_unused_strip_is_listed_with_its_alias_and_deleted_by_delete() {
     let tmp = Tmp::new("ft485-9");
     let mut s = new_project(&tmp);
     done(&mut s, "strip.new", json!({"letter": "X"}));
-    // Item 1: the toast names the strip.
-    let t = toast(&s);
-    assert!(t.starts_with("Created terminal strip -"), "{t}");
+    // Item 1: the toast says where the strip shows. FT-893: not its `-X??` tag; the tag it takes with its first
+    // terminal on page 101, a fresh multi-line page, by the strip scheme `{letter}{page}{counter}`.
+    assert_eq!(
+        toast(&s),
+        "Created a terminal strip. It takes its tag, such as -X1011, when its first terminal is placed: Draw \u{25b8} \
+         Symbol\u{2026} and the terminal symbol, whose strip picker lists it."
+    );
     // The terminal symbol opens the strip picker, whose row ends with the strip's alias.
     done(&mut s, "place.pick", json!({"symbol": "ew.iec.terminal@qet10"}));
     let text = s.describe();

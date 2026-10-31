@@ -72,6 +72,23 @@ fn ew_rel_runs_in_the_gate_only() {
     );
 }
 
+/// FT-910: EW-REL-001's author finding names today's menu path (Check ▸ Revision and the action's label
+/// `action-revision-set-author`, "Set revision author…").
+#[test]
+fn ew_rel_001_author_hint_names_the_check_menu() {
+    assert_eq!(
+        gated(
+            vec![revision(1, "V1.0", "open", json!({"checker": "checker"}))],
+            Some(digest(1))
+        ),
+        [(
+            "EW-REL-001",
+            "author".to_owned(),
+            "revision V1.0: author not set; set it with Check ▸ Revision ▸ Set revision author…".to_owned()
+        )]
+    );
+}
+
 /// EW-REL-001's conditions (FR-REV-005, FR-REV-021): author and checker not set, a sign-off missing or incomplete, a sign-off over other content; a matching sign-off reports nothing, and a project
 /// without an open revision has nothing to judge.
 #[test]

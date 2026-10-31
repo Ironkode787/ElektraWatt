@@ -1162,7 +1162,7 @@ def parts_list_expected():
     the table without the unknown marks, with the fixture values where the table leaves a ▲: quantity 1 for the cable
     -3W1 (U-46), the manufacturer TBD of the TBD parts; the lengths of rails and ducts are the table's (rows 24 and 25,
     checked against section 13's carriers by tbd_part_uses); the parentheses that explain a quantity of the TBD rows are
-    no part of the description; the plate's tag reads -UC1-plate."""
+    no part of the description."""
     out = []
     for r in table_dicts("### 14.1 Component mode (folio 901)"):
         pos = r["Pos"]
@@ -1181,15 +1181,11 @@ def parts_list_expected():
                 "Manufacturer": strip_tri(r["Manufacturer"]) or TBD_MANUFACTURER,
                 "Part number": strip_tri(r["Part number"]),
                 "Description": re.sub(r"\s*\([^)]*\)", "", desc) if tbd else desc,
-                "Tags": re.sub(r"^(-UC1) \(plate\)$", r"\1-plate", tags),
+                "Tags": tags,
                 "Folios": strip_tri(r["Folios"]),
             }
         )
     check(len(out) == 27, f"section 14.1 has {len(out)} rows, 27 expected")
-    fixture(
-        "devices", "key", "-UC1-plate", "-UC1-plate", "§14.1 row 23",
-        "the Tags cell of row 23 reads '-UC1 (plate)': the expected parts list prints the plate under its fixture key",
-    )  # fmt: skip
     return ["Pos", "Qty", "Unit", "Manufacturer", "Part number", "Description", "Tags", "Folios"], out
 
 

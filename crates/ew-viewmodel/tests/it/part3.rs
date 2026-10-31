@@ -12,7 +12,7 @@ use crate::common;
 
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::ew_api::output::{PageTables, TableEnd, TableRep};
-use ew_viewmodel::shell::{Mode, ShellModel};
+use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::tools::black_box::on_outline;
 use serde_json::{Value, json};
 
@@ -478,10 +478,15 @@ fn ib5_the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_devic
         s.describe()
     );
     done(&mut s, "ui.dismiss", json!({}));
-    // A row that is no black box is refused by the black box tool.
+    // A row that is no black box is refused by the black box tool; FT-896: in words, with today's menu path and the
+    // Symbol tool's key from the keymap.
+    let key =
+        ew_viewmodel::keymap::display(&s.shortcut_text(ew_viewmodel::actions::find("tool.place").unwrap()));
     assert_eq!(
-        refused(&mut s, "tool.black_box", json!({"symbol": "ew.iec.mcb-1p@qet10"})),
-        "reason-not-black-box"
+        s.dispatch("tool.black_box", &json!({"symbol": "ew.iec.mcb-1p@qet10"})),
+        Outcome::Failed {
+            message: format!("This is not a black box: place it with Draw \u{25b8} Symbol\u{2026} ({key})")
+        }
     );
     done(
         &mut s,
@@ -567,7 +572,15 @@ fn ft714_the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
         json!({"part": "MICO 4.10", "template": 0}),
     );
     assert_eq!(s.tool().name(), "black_box");
-    assert_eq!(s.tool_hint(), "Click or Enter at the first corner; Escape ends");
+    // FT-896: the armed hint names both corners, and the HUD's prompt is that hint with the box's pin count.
+    assert_eq!(
+        s.tool_hint(),
+        "Click the box's first corner, then its opposite corner; Escape ends"
+    );
+    assert_eq!(
+        ew_viewmodel::command_bar::hud(&s).prompt,
+        "Click the box's first corner, then its opposite corner; Escape ends \u{b7} 10 connection points"
+    );
     cursor_k(&mut s, (30, 30));
     assert_eq!(canvas(&s)["overlay"], 1, "the grid marker");
     enter_k(&mut s, (30, 30));

@@ -372,7 +372,8 @@ fn cb6_the_command_tab_and_the_collapse_reach_the_describe_text() {
 }
 
 /// CB5's model side and FT-521: with Select and one selected object the prompt is "1 selected · Del deletes · R
-/// rotates"; with the pointer over a pick stack of n objects it is "n here · click again for the next".
+/// rotates"; with the pointer over a pick stack of n objects it is "n objects overlap here · click again to select the
+/// next" (FT-894's words).
 #[test]
 fn cb5_ft521_the_hud_prompts_the_selection_and_the_pick_stack() {
     let tmp = Tmp::new("cb5");
@@ -409,10 +410,14 @@ fn cb5_ft521_the_hud_prompts_the_selection_and_the_pick_stack() {
     assert!(n >= 3, "the stack at the overlap: {n}");
     let h = hud(&s);
     assert_eq!(h.stack, n);
-    assert_eq!(h.prompt, format!("{n} here \u{b7} click again for the next"));
+    assert_eq!(
+        h.prompt,
+        format!("{n} objects overlap here \u{b7} click again to select the next")
+    );
     assert!(
-        s.describe()
-            .contains(&format!("\nhud tool tool.select \"Select\" prompt \"{n} here")),
+        s.describe().contains(&format!(
+            "\nhud tool tool.select \"Select\" prompt \"{n} objects overlap here"
+        )),
         "the hud line"
     );
     s.shutdown();

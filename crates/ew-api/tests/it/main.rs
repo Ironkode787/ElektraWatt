@@ -28,6 +28,7 @@ mod export_bom;
 mod export_job;
 mod find;
 mod fmt;
+mod generated_page_sheet;
 mod golden_c;
 mod golden_connectivity;
 mod golden_csv;

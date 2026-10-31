@@ -99,8 +99,15 @@ fn arm_on(s: &mut ShellModel, name: &str, pin: (i64, i64)) {
 /// The HUD of the IP tool's ghost without the pin part: the name, the direction and D's next one.
 fn hud_head(s: &ShellModel, name: &str) -> String {
     let direction = ghost(s)["direction"].as_str().unwrap().to_owned();
-    let next = IpDir::from_word(&direction).unwrap().next().word();
-    format!("{name} \u{b7} {direction} \u{b7} D: {next}")
+    let dir = IpDir::from_word(&direction).unwrap();
+    // FT-899: the role in words.
+    let role = match dir {
+        IpDir::Source => "source: feeds its targets",
+        IpDir::Target => "target: fed by its source",
+        IpDir::Undirected => "undirected: pairs either way",
+    };
+    let next = dir.next().word();
+    format!("{name} \u{b7} {role} \u{b7} D: {next}")
 }
 
 /// The EW-POT-009 subjects of the saved project (the drafting scheme, online), as `(severity, subject)` sorted.

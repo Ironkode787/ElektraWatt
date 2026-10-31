@@ -429,9 +429,19 @@ impl ShellModel {
                 let now = current
                     .filter(|(epoch, rev)| *epoch == entry.epoch && *rev != entry.rev)
                     .map(|(_, rev)| rev);
-                // FT-485 item 11: the file's name (never its folder), the page count and the size.
+                // FT-485 item 11: the file's name (never its folder), the page count and the size. P-2 (play-test
+                // rv-vis-5): a file this session's log already names as exported says "again", so a second export
+                // visibly changes the toast it replaces.
+                let again = self.notes.entries().any(|n| {
+                    n.key == "export"
+                        && matches!(&n.action, Some((NoteAction::Open, Validity::Open { path })) if *path == entry.path)
+                });
                 let text = strings::format(
-                    "toast-export-pdf",
+                    if again {
+                        "toast-export-pdf-again"
+                    } else {
+                        "toast-export-pdf"
+                    },
                     &[&entry.name, &done.pages.to_string(), &kib.to_string()],
                 );
                 let open = (

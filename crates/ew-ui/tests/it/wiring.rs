@@ -370,6 +370,72 @@ fn c_shows_why_it_does_not_connect_while_moving() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-902: the pointer over a cross-reference label of folio 101 that leads to another page shows the pointing hand and
+/// the tooltip "Go to <its target's cell or folio>"; over empty sheet the cursor is the default one.
+#[test]
+fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
+    use egui_kittest::kittest::{NodeT as _, Queryable as _};
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    let screen_of_sheet = |h: &Harness<'_, App>, s: (i64, i64)| {
+        let bounds = h
+            .get_all_by_role(egui::Role::Canvas)
+            .next()
+            .expect("the canvas node")
+            .accesskit_node()
+            .raw_bounds()
+            .expect("bounds");
+        let c = h.state().shell().canvas().unwrap();
+        let k = c.points_per_nm();
+        egui::Pos2::new(
+            bounds.x0 as f32 + ((s.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
+            bounds.y0 as f32 + ((s.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
+        )
+    };
+    let (centre, label) = {
+        let c = h.state().shell().canvas().unwrap();
+        let link = c
+            .page()
+            .links
+            .iter()
+            .find(|l| l.target.is_some())
+            .expect("a cross-reference with a target on 101");
+        let r = link.rect;
+        let (a, b) = (r.min(), r.max());
+        (((a.x.0 + b.x.0) / 2, (a.y.0 + b.y.0) / 2), link.label().unwrap())
+    };
+    let at = screen_of_sheet(&h, centre);
+    h.hover_at(at);
+    settle(&mut h);
+    assert!(h.state().shell().canvas().unwrap().hovered_link().is_some());
+    assert!(h.state().shell().canvas().unwrap().hovered_cp().is_none());
+    let tip = format!("Go to {label}");
+    let mut shown = false;
+    for _ in 0..120 {
+        h.hover_at(at);
+        h.step();
+        if h.query_by_label(&tip).is_some() {
+            shown = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(shown, "a tooltip reads {tip}");
+    assert_eq!(
+        h.output().platform_output.cursor_icon,
+        egui::CursorIcon::PointingHand
+    );
+    // Over empty sheet (1 mm inside the sheet's top-left corner, outside the frame): the default cursor, no tooltip.
+    let empty = screen_of_sheet(&h, (1_000_000, 1_000_000));
+    h.hover_at(empty);
+    settle(&mut h);
+    h.step();
+    assert!(h.state().shell().canvas().unwrap().hovered_link().is_none());
+    assert_eq!(h.output().platform_output.cursor_icon, egui::CursorIcon::Default);
+    assert!(h.query_by_label(&tip).is_none());
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-512, with WP-S2.17 part 5's tooltip (OV4, doc 16a §7.2): the pointer over a connection point of folio 101 shows
 /// a tooltip with the CP's label as `cp_label` prints it, its kind and its potential (`1X1:1/a · terminal · L`), and
 /// none once the pointer leaves it.

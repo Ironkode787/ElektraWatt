@@ -829,6 +829,13 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     );
     let before = s.picker().unwrap().rows.len();
     done(&mut s, "strip.new", json!({"letter": "X"}));
+    // FT-893: the toast's example is the tag the first terminal gives the strip on this page (checked below).
+    let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
+    assert_eq!(
+        toast,
+        "Created a terminal strip. It takes its tag, such as -X1033, when its first terminal is placed: Draw \u{25b8} \
+         Symbol\u{2026} and the terminal symbol, whose strip picker lists it."
+    );
     let p = s.picker().expect("the chooser stays open");
     assert_eq!(p.rows.len(), before + 1);
     let ew_viewmodel::tools::PickerRow::Strip(k) = p.rows[p.row] else {
@@ -858,6 +865,7 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     let (numbered, rest) = label.split_once(':').expect("tag:designation");
     assert!(rest.starts_with('1'), "{label}");
     assert_ne!(numbered, tag, "numbered by its first terminal");
+    assert_eq!(numbered, "-X1033", "the toast's example");
     let line = describe_line(&s, "canvas ghost place");
     assert!(line.contains(&format!("strip \"{numbered}:2\"")), "{line}");
 }
@@ -988,14 +996,55 @@ fn a_page_type_without_symbol_tools_refuses_the_editing_actions() {
     ] {
         assert_eq!(
             refused(&mut s, action, json!({})),
-            "reason-page-type-no-symbols",
+            "reason-page-type-no-symbols-title",
             "{action}"
         );
     }
     assert_eq!(
         refused(&mut s, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"})),
-        "reason-page-type-no-symbols"
+        "reason-page-type-no-symbols-title"
     );
+}
+
+/// FT-892: on each page kind without drawing tools, the Wire button's disabled reason names the kind in words; a
+/// generated section divider reaches the divider's text, not the generic "drawn pages" one.
+#[test]
+fn ft892_the_wire_buttons_disabled_reason_names_the_page_kind() {
+    let tmp = Tmp::new("ft892");
+    let mut s = shell(&tmp, "1");
+    let wire = ew_viewmodel::actions::find("tool.wire").unwrap();
+    let expected = [
+        (
+            "section_divider",
+            "A section divider takes no symbols or wires: draw on a schematic page",
+        ),
+        (
+            "title_page",
+            "A title page takes no symbols or wires: draw on a schematic page",
+        ),
+        (
+            "report",
+            "A report page takes no symbols or wires: draw on a schematic page",
+        ),
+        (
+            "panel_layout",
+            "A panel layout page takes no symbols or wires: draw on a schematic page",
+        ),
+    ];
+    let rows: Vec<(String, String)> = s
+        .page_rows()
+        .iter()
+        .map(|r| (r.kind.clone(), r.folio.clone()))
+        .collect();
+    for (kind, text) in expected {
+        let (_, folio) = rows
+            .iter()
+            .find(|(k, _)| k == kind)
+            .unwrap_or_else(|| panic!("Golden A has a {kind} page: {rows:?}"));
+        done(&mut s, "page.goto", json!({ "folio": folio }));
+        let reason = (wire.enabled)(&s).expect_err(kind);
+        assert_eq!(ew_viewmodel::strings::text(reason), text, "{kind} {folio}");
+    }
 }
 
 /// A pending keyboard move does not survive Delete or undo (fix round, item 11): Delete cancels the move first and

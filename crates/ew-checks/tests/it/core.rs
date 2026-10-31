@@ -200,6 +200,18 @@ fn core052_cases() {
     single_fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
     let single = single_fx.build();
     let single_unpaired = findings_of(&single, "EW-CORE-051");
+    // Two points flagged as the star source of one name (FT-901's second message).
+    let mut stars_fx = Fx::base();
+    for (f, page) in [(0x1001, P1), (0x1002, P2), (0x1003, P2)] {
+        stars_fx.func(f, page);
+    }
+    stars_fx.ip_star_source(0x1101, P1, "X");
+    stars_fx.ip_star_source(0x1102, P2, "X");
+    stars_fx.ip(0x1103, P2, "X", "target");
+    stars_fx.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
+    stars_fx.conn(0x2002, P2, cp(0x1002), cp(0x1102), &Value::Null);
+    stars_fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
+    let two_stars = stars_fx.build();
     rule_table(
         "EW-CORE-052",
         vec![
@@ -211,13 +223,24 @@ fn core052_cases() {
                     assert_eq!(f[0].code, "103052", "case {c}");
                     assert_eq!(f[0].targets.len(), 3, "case {c}");
                     assert_eq!(f[0].discriminator, "star-source", "case {c}");
-                    assert!(
-                        f[0].message.contains("source points"),
-                        "case {c}: {}",
-                        f[0].message
+                    // FT-901: the remedy in words, no ID tie-break.
+                    assert_eq!(
+                        f[0].message,
+                        "interruption point X: 2 source points and no star source; set all but one to target, or \
+                         flag one as the star source",
+                        "case {c}"
                     );
                 },
             ),
+            Case::reports("two star flags are ambiguous", two_stars, |c, f| {
+                assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                assert_eq!(f[0].discriminator, "star-source", "case {c}");
+                assert_eq!(
+                    f[0].message,
+                    "interruption point X: 2 points are flagged as star source; keep the flag on one of them",
+                    "case {c}"
+                );
+            }),
             Case::silent("one source is not ambiguous", single),
         ],
     );

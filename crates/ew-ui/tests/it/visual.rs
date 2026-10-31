@@ -218,6 +218,37 @@ fn bv2_the_inputs_check_their_members_and_bounds() {
     }
 }
 
+/// FT-891, proof (2): the driver's `double_click` on the Pages navigator's row of 100 shows 100, and the next one, on
+/// 101, shows 101: the driver pauses before a double click, so egui does not count it as a triple click with the one
+/// before (both ran a few frames apart).
+#[test]
+fn ft891_the_drivers_double_clicks_on_two_rows_open_both() {
+    let tmp = Tmp::new();
+    let mut d = golden_on_101(&tmp);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "102"}));
+    d.settle();
+    let row = |d: &Driver, folio: &str| {
+        let prefix = format!("{folio} ");
+        d.labels()
+            .into_iter()
+            .find(|(l, _)| l.starts_with(&prefix) && l.contains(", page"))
+            .unwrap_or_else(|| panic!("no page row {folio}"))
+            .1
+    };
+    for folio in ["100", "101"] {
+        let at = row(&d, folio);
+        d.input(&Input::DoubleClick {
+            at,
+            mods: Modifiers::NONE,
+        });
+        assert_eq!(
+            d.app().unwrap().shell().current_folio(),
+            Some(folio),
+            "a double click on {folio}"
+        );
+    }
+}
+
 /// BV3: a click on a known button dispatches its action; a right click on a property row opens its menu; typing
 /// into a field sets it; a rubber band selects and a drag from a selected item moves the selection.
 #[test]

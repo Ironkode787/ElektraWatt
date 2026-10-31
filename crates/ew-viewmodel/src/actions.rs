@@ -432,20 +432,16 @@ pub(crate) fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
     writable(m)?;
     // The page types without wire or symbol tools (doc 06 §2.2: title page, panel layout, model view, external
     // document; the generated table of contents, dividers and reports are not drawn pages at all).
+    // FT-892: the refusal names the page's kind in words where one key exists for it, the generic text otherwise.
     let kind = m.page_rows().get(m.page_index()).map(|r| r.kind.as_str());
-    if matches!(
-        kind,
-        Some(
-            "title_page"
-                | "panel_layout"
-                | "model_view"
-                | "external_document"
-                | "table_of_contents"
-                | "section_divider"
-                | "report"
-        )
-    ) {
-        return Err("reason-page-type-no-symbols");
+    match kind {
+        Some("section_divider") => return Err("reason-page-type-no-symbols-divider"),
+        Some("title_page") => return Err("reason-page-type-no-symbols-title"),
+        Some("table_of_contents") => return Err("reason-page-type-no-symbols-contents"),
+        Some("report") => return Err("reason-page-type-no-symbols-report"),
+        Some("panel_layout") => return Err("reason-page-type-no-symbols-panel"),
+        Some("model_view" | "external_document") => return Err("reason-page-type-no-symbols"),
+        _ => {}
     }
     match m.canvas() {
         Some(c) if !c.page().tables.page.is_nil() => Ok(()),

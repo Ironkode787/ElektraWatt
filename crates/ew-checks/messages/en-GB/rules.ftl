@@ -92,7 +92,7 @@ rule-ew-core-051 =
 
 rule-ew-core-052 =
     .title = Ambiguous interruption point
-    .hint = Rename the interruption points so that each name pairs exactly one source with its targets.
+    .hint = Keep one source per name: set the other sources to target, or flag exactly one point as the star source.
 
 rule-ew-core-053 =
     .title = Cross-reference cell invalid

@@ -575,6 +575,15 @@ pub(crate) fn key_of(model: &ShellModel, id: &str) -> String {
         .unwrap_or_default()
 }
 
+/// The key of the HUD's text for an interruption point's role (FT-899).
+fn ip_role_key(d: crate::tools::IpDir) -> &'static str {
+    match d {
+        crate::tools::IpDir::Source => "hud-ip-source",
+        crate::tools::IpDir::Target => "hud-ip-target",
+        crate::tools::IpDir::Undirected => "hud-ip-undirected",
+    }
+}
+
 /// The HUD of `model` (doc 16a §5.5, FT-521).
 pub fn hud(model: &ShellModel) -> HudModel {
     let tool = model.tool();
@@ -673,17 +682,21 @@ pub fn hud(model: &ShellModel) -> HudModel {
             ..
         }) => {
             target = Some(name.clone());
-            let mut parts = vec![name, direction.to_owned()];
-            // FT-822: the role and the key that changes it ("0V · source · D: target"), so the next role is on screen.
+            let mut parts = vec![name];
+            // FT-822: the role and the key that changes it ("0V · source: feeds its targets · D: target"), so the next
+            // role is on screen; FT-899: the role says what it does, the key's part keeps the short next word.
             if let Some(d) = crate::tools::IpDir::from_word(direction) {
+                parts.push(strings::text(ip_role_key(d)).to_owned());
                 parts.push(format!(
                     "{}: {}",
                     key_of(model, "tool.ip_direction"),
                     d.next().word()
                 ));
+            } else {
+                parts.push(direction.to_owned());
             }
             if star {
-                parts.push(strings::text("action-tool-star-source").to_owned());
+                parts.push(strings::text("hud-ip-star").to_owned());
             }
             parts.extend(external);
             // FIXPT41: a click on a pin connects the point; the HUD says it before the click.

@@ -63,6 +63,10 @@ const STRIP_POINTS: u32 = 28;
 const MAX_FRAME_SIDE: (u32, u32) = (3840, 2400);
 /// One frame of the frame clock, in seconds.
 const FRAME_S: f64 = 1.0 / 60.0;
+/// The pause a double click waits after an earlier click, in seconds: egui's double-click interval (its default
+/// `max_double_click_delay`) and one frame, so that the double click is not counted as a triple click with the click
+/// before it (FT-891).
+const CLICK_PAUSE_S: f64 = 0.3 + FRAME_S;
 /// At most this many frames settle one input (2 s of frame time).
 const MAX_SETTLE_FRAMES: u32 = 120;
 /// The steps of a drag between its press and its release.
@@ -639,6 +643,10 @@ pub struct Driver {
     config: ShellConfig,
     ctx: egui::Context,
     frames: u64,
+    /// Time without frames the clock has skipped, in seconds: the pauses before double clicks (FT-891).
+    paused_s: f64,
+    /// The clock time of the last click's release.
+    last_click_s: Option<f64>,
     pointer: Option<Pos2>,
     clipboard: String,
     paste_next: bool,
@@ -738,6 +746,8 @@ impl Driver {
             config,
             ctx,
             frames: 0,
+            paused_s: 0.0,
+            last_click_s: None,
             pointer: None,
             clipboard: String::new(),
             paste_next: false,
@@ -844,7 +854,7 @@ impl Driver {
         let rect = Rect::from_min_size(Pos2::ZERO, self.geometry.window_points());
         let mut raw = egui::RawInput {
             screen_rect: Some(rect),
-            time: Some(self.frames as f64 * FRAME_S),
+            time: Some(self.frames as f64 * FRAME_S + self.paused_s),
             predicted_dt: FRAME_S as f32,
             events,
             focused: true,
@@ -953,6 +963,7 @@ impl Driver {
             modifiers: mods,
         };
         self.frame(vec![Self::mods_event(mods), moved, press]);
+        let release = self.clock_s();
         self.frame(vec![
             Event::PointerButton {
                 pos,
@@ -962,6 +973,24 @@ impl Driver {
             },
             Self::mods_event(Modifiers::NONE),
         ]);
+        self.last_click_s = Some(release);
+    }
+
+    /// The frame clock: one [`FRAME_S`] per frame, plus the pauses.
+    fn clock_s(&self) -> f64 {
+        self.frames as f64 * FRAME_S + self.paused_s
+    }
+
+    /// FT-891: before a double click, the clock skips to [`CLICK_PAUSE_S`] after the last click, as a person pauses
+    /// between two steps. Without it a script's steps run a few frames apart, and a double click right after another
+    /// one counted as a triple click (egui's count), so the second row of two double-clicked rows never opened.
+    fn pause_after_click(&mut self) {
+        if let Some(last) = self.last_click_s {
+            let since = self.clock_s() - last;
+            if since < CLICK_PAUSE_S {
+                self.paused_s += CLICK_PAUSE_S - since;
+            }
+        }
     }
 
     /// Sends one input and settles (spec §4.1, §5.1).
@@ -976,6 +1005,7 @@ impl Driver {
         match input {
             Input::Click { at, button, mods } => self.click_frames(*at, *button, *mods),
             Input::DoubleClick { at, mods } => {
+                self.pause_after_click();
                 self.click_frames(*at, PointerButton::Primary, *mods);
                 self.click_frames(*at, PointerButton::Primary, *mods);
             }

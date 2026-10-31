@@ -268,19 +268,30 @@ impl ShellModel {
     /// `messages.show {on?}` (View ▸ Messages): `navigator.show` with the kind `messages` (the pane in the bottom
     /// dock, focused), or `on: false` to close it.
     pub(super) fn act_messages_show(&mut self, p: &Map<String, Value>) -> Outcome {
-        let shown = self
-            .layout()
-            .panes()
-            .contains(&PaneKind::Navigator(NavKind::Messages));
-        // FX38d (doc 16a §5.7): the command that opens the pane closes it again; `on` sets it.
-        let on = match super::jobs::bool_param(p, "on", !shown) {
+        let pane = PaneKind::Navigator(NavKind::Messages);
+        // FX38d (doc 16a §5.7): the command that opens the pane closes it again; `on` sets it. FT-916: only a pane in
+        // front closes; one behind another tab of its group (History) is brought to front.
+        let in_front = self.layout().shown_in_place_of(pane) == Some(pane);
+        let on = match super::jobs::bool_param(p, "on", !in_front) {
             Ok(on) => on,
             Err(e) => return e,
         };
         let mut q = Map::new();
         q.insert("kind".into(), Value::from(NavKind::Messages.word()));
         q.insert("on".into(), Value::from(on));
-        self.act_navigator_show(&q)
+        let out = self.act_navigator_show(&q);
+        if on && out == Outcome::Done {
+            self.bring_messages_to_front();
+        }
+        out
+    }
+
+    /// FT-916: the Messages pane, when it is docked behind another tab of its group (History), becomes the shown tab.
+    fn bring_messages_to_front(&mut self) {
+        let layout = self.layout().showing(PaneKind::Navigator(NavKind::Messages));
+        if layout != *self.layout() {
+            self.replace_layout(layout);
+        }
     }
 
     /// `messages.next` (F8) and `messages.previous` (Shift+F8): the cursor to the next or previous finding row in the
@@ -289,6 +300,9 @@ impl ShellModel {
     pub(super) fn act_messages_walk(&mut self, forward: bool) -> Outcome {
         if !self.navs.contains_key(&NavKind::Messages) {
             self.open_messages();
+        } else {
+            // FT-916: a pane behind another tab of its group comes to front, so the opened finding is seen.
+            self.bring_messages_to_front();
         }
         let Some(nav) = self.navs.get(&NavKind::Messages) else {
             return Outcome::Done;

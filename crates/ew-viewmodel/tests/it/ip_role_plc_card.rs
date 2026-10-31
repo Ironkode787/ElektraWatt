@@ -108,15 +108,20 @@ fn ft822_the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
     let tmp = Tmp::new("g40-hud");
     let mut s = source_on_101(&tmp);
     arm_ip(&mut s, "0V", 150.0);
-    let prompt = ew_viewmodel::command_bar::hud(&s).prompt;
-    assert!(prompt.contains("target"), "{prompt}");
-    assert!(
-        prompt.contains(": undirected"),
-        "the key and the next role: {prompt}"
+    // FT-899: each role in words, and the key (from the keymap) with the next role's short word.
+    let d = key_of(&s, "tool.ip_direction");
+    let prompt = |s: &ShellModel| ew_viewmodel::command_bar::hud(s).prompt;
+    assert_eq!(
+        prompt(&s),
+        format!("0V \u{b7} target: fed by its source \u{b7} {d}: undirected")
     );
     // D goes on from the offered target, not from the quarter's source.
     done(&mut s, "tool.ip_direction", json!({}));
     assert_eq!(ghost(&s)["direction"], "undirected");
+    assert_eq!(
+        prompt(&s),
+        format!("0V \u{b7} undirected: pairs either way \u{b7} {d}: source")
+    );
     done(&mut s, "tool.ip_direction", json!({}));
     let g = ghost(&s);
     assert_eq!(
@@ -124,6 +129,22 @@ fn ft822_the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
         (Some("0V"), Some("source")),
         "a typed name stays the user's"
     );
+    assert_eq!(
+        prompt(&s),
+        format!("0V \u{b7} source: feeds its targets \u{b7} {d}: target")
+    );
+    done(&mut s, "tool.star_source", json!({}));
+    assert_eq!(
+        prompt(&s),
+        format!(
+            "0V \u{b7} source: feeds its targets \u{b7} {d}: target \u{b7} star source: feeds every point of the name"
+        )
+    );
+}
+
+/// The first shortcut of action `id` as the window's chips show it.
+fn key_of(s: &ShellModel, id: &str) -> String {
+    ew_viewmodel::keymap::display(&s.shortcut_text(ew_viewmodel::actions::find(id).unwrap()))
 }
 
 #[test]
@@ -167,9 +188,10 @@ fn ft822_a_refused_arrow_keeps_its_ghost_and_says_why() {
     let words = "Not placed: 0V already has a source on page 101. Press D for a target, or mark one source as the star.";
     let notice = s.tool_notice().expect("the reason in the HUD").to_owned();
     assert_eq!(notice, words);
-    assert!(
-        ew_viewmodel::command_bar::hud(&s).prompt.contains(words),
-        "the HUD shows the refusal"
+    assert_eq!(
+        ew_viewmodel::command_bar::hud(&s).prompt,
+        words,
+        "the HUD shows the refusal in place of its prompt"
     );
     let toasts = s.notifications().visible();
     assert!(

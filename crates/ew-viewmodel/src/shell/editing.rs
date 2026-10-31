@@ -373,6 +373,40 @@ impl ShellModel {
     /// as amended by the cycle-27 follow-up): the starter symbol and every FnDef the part's template needs are
     /// embedded in one host commit before the tool arms; an FnDef neither the project nor the starter library holds
     /// fails the pick by name and arms nothing.
+    /// The tag a new strip with letter `letter` would take from its first terminal placed on the page on show (FT-893):
+    /// the strip scheme `{letter}{page}{counter}` (doc 20 §3) with the lowest counter no device of that letter prints
+    /// on the page (FR-NUM-007 fills gaps). `None` off a schematic page or on a folio that is not a whole number, where
+    /// the scheme's `{page}` is not the folio as written.
+    fn strip_tag_example(&self, letter: &str) -> Option<String> {
+        let row = self.page_rows().get(self.page_index())?;
+        if !matches!(row.kind.as_str(), "multi_line" | "single_line")
+            || row.folio.is_empty()
+            || !row.folio.bytes().all(|b| b.is_ascii_digit())
+        {
+            return None;
+        }
+        let session = &self.project.as_ref()?.session;
+        let q = session.query();
+        let taken: std::collections::BTreeSet<String> = q
+            .devices()
+            .iter()
+            .filter(|(_, d)| d.tag.letter.as_str() == letter)
+            .filter_map(|(id, _)| session.device_tag(id.as_uuid()))
+            .collect();
+        // Bounded: at most one candidate per printed tag is taken.
+        (1..=taken.len() + 1)
+            .map(|c| format!("-{letter}{}{c}", row.folio))
+            .find(|t| !taken.contains(t))
+    }
+
+    /// A refusal whose text names action `action`'s first key: `<key>` formatted with it, or `<key>-unbound` when the
+    /// action has no key (FT-896).
+    fn refused_with_key(&self, key: &str, action: &str) -> Outcome {
+        Outcome::Failed {
+            message: text_with_key(key, &crate::command_bar::key_of(self, action)),
+        }
+    }
+
     fn arm(&mut self, cat: Arc<PlaceCatalogue>, pick: Pick, p: &Map<String, Value>) -> Outcome {
         let letter_param = match string_param(p, "letter") {
             Ok(v) => v.map(str::to_owned).or_else(|| self.tools.pick_letter.clone()),
@@ -419,15 +453,12 @@ impl ShellModel {
         // A black box (a black-box symbol, or a template function that is one) arms the black box tool (WP-S2.04 §9.5);
         // `tool.black_box` arms nothing else.
         let is_box = row.black_box || box_cps.is_some();
+        // FT-896: the refusals name the way out with its key from the keymap, or without the parenthesis when unbound.
         if self.tools.black_box_pick && !is_box {
-            return Outcome::Refused {
-                reason_key: "reason-not-black-box",
-            };
+            return self.refused_with_key("reason-not-black-box", "tool.place");
         }
         if is_box && matches!(pick, Pick::Function(..) | Pick::Join(..)) {
-            return Outcome::Refused {
-                reason_key: "reason-black-box-tool",
-            };
+            return self.refused_with_key("reason-black-box-tool", "tool.black_box");
         }
         // FT-656: what the project lacks travels in the placement itself, so that placing from the picker is one undo
         // step and the recorded command replays without a library: a starter symbol with its FnDef and, for a part's
@@ -874,20 +905,15 @@ impl ShellModel {
         if out != Outcome::Done {
             return out;
         }
-        // FT-485 item 1: the strip draws nothing until a terminal is placed, so the toast names it and says where it
-        // shows (a strip's tag counts once it has a terminal on a page: `-X??` until then).
+        // FT-485 item 1: the strip draws nothing until a terminal is placed, so the toast says where it shows. FT-893:
+        // its tag (`-X??` until then) is not shown; the toast says when it takes one, with the tag it would take from a
+        // terminal on the page on show as the example.
         self.sync_views();
-        let tag = self
-            .catalogue()
-            .and_then(|cat| {
-                let new = self.tools.last_primary.clone()?;
-                cat.strips
-                    .iter()
-                    .find(|s| s.id.to_string() == new)
-                    .map(|s| s.tag.clone())
-            })
-            .unwrap_or_else(|| format!("-{letter}"));
-        self.notify(strings::format("toast-strip-new", &[&tag]), true);
+        let text = match self.strip_tag_example(&letter) {
+            Some(tag) => strings::format("toast-strip-new", &[&tag]),
+            None => strings::text("toast-strip-new-no-example").to_owned(),
+        };
+        self.notify(text, true);
         let pending = self
             .tools
             .picker
@@ -1569,6 +1595,16 @@ impl ShellModel {
     }
 }
 
+/// The text of `key` naming the key chord `chord` (FT-896): `key` formatted with it, or `<key>-unbound` (the sentence
+/// without the parenthesis) when the action has no key.
+fn text_with_key(key: &str, chord: &str) -> String {
+    if chord.is_empty() {
+        strings::text(&format!("{key}-unbound")).to_owned()
+    } else {
+        strings::format(key, &[chord])
+    }
+}
+
 /// The library documents of a `{"copies": [...]}` parameter object (FT-656).
 fn copies_of(params: Value) -> Vec<Value> {
     match params {
@@ -1577,5 +1613,32 @@ fn copies_of(params: Value) -> Vec<Value> {
             _ => Vec::new(),
         },
         _ => Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::text_with_key;
+
+    /// FT-896: the two black-box refusals name the key from the keymap, or leave the parenthesis out when the action
+    /// has no key.
+    #[test]
+    fn the_black_box_refusals_name_the_key_or_none() {
+        assert_eq!(
+            text_with_key("reason-black-box-tool", "B"),
+            "This part is placed as a black box: use the Black box tool (B)"
+        );
+        assert_eq!(
+            text_with_key("reason-black-box-tool", ""),
+            "This part is placed as a black box: use the Black box tool"
+        );
+        assert_eq!(
+            text_with_key("reason-not-black-box", "I"),
+            "This is not a black box: place it with Draw \u{25b8} Symbol\u{2026} (I)"
+        );
+        assert_eq!(
+            text_with_key("reason-not-black-box", ""),
+            "This is not a black box: place it with Draw \u{25b8} Symbol\u{2026}"
+        );
     }
 }

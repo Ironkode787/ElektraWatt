@@ -168,7 +168,11 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pd
         assert!(d.contains("| Notifications 1"), "{d}");
         let d = steps[8]["describe"].as_str().unwrap();
         assert!(d.contains("  job 2 pdf \"out.pdf\" done pages 36 kib "), "{d}");
-        assert!(d.contains("notification 2 \"Exported out.pdf: 36 pages, "), "{d}");
+        // P-2: the second export of the same file says "again".
+        assert!(
+            d.contains("notification 2 \"Exported out.pdf again: 36 pages, "),
+            "{d}"
+        );
         // The second export's toast replaced the first (one key).
         assert_eq!(d.matches("\ntoast \"Exported out.pdf").count(), 1, "{d}");
         // No path, no time.

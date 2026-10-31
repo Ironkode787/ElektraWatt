@@ -444,6 +444,64 @@ fn nv11_scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-891, proof (1): on Golden A's Pages navigator a double click on the row of folio 100 shows 100, and then one on
+/// the row of 101 shows 101 (and so on), the rows themselves are right. Each double click is the visual driver's (a
+/// press and a release per frame, four frames of 1/60 s) or egui's four events in one frame, after a person's pause.
+/// Without the pause, a double click a few frames after another one is a triple click to egui (its click count looks
+/// at the two clicks before), so the second row never opened: the visual driver ran its script steps a few frames
+/// apart; it now pauses before a double click (`visual.rs`, `CLICK_PAUSE_S`).
+#[test]
+fn ft891_double_clicking_the_rows_of_100_and_101_shows_each_folio() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    settle(&mut h);
+    // The driver's clock: 1/60 s per frame (the harness steps 1/4 s, past egui's double-click interval), `pause` more.
+    let frame = |h: &mut Harness<'_, App>, events: Vec<egui::Event>, pause: f64| {
+        let now = h.ctx.input(|i| i.time);
+        let input = h.input_mut();
+        input.time = Some(now + pause + 1.0 / 60.0);
+        input.events.extend(events);
+        h.step();
+    };
+    let double_click = |h: &mut Harness<'_, App>, folio: &str, one_frame: bool, pause: f64| {
+        let at = item_centre(h, folio);
+        let button = |pressed| egui::Event::PointerButton {
+            pos: at,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        };
+        frame(h, vec![egui::Event::PointerMoved(at)], pause);
+        if one_frame {
+            frame(
+                h,
+                vec![button(true), button(false), button(true), button(false)],
+                0.0,
+            );
+        } else {
+            for pressed in [true, false, true, false] {
+                frame(h, vec![button(pressed)], 0.0);
+            }
+        }
+        settle(h);
+        settle(h);
+    };
+    for (folio, one_frame) in [("100", false), ("101", false), ("102", true), ("101", true)] {
+        double_click(&mut h, folio, one_frame, 0.5);
+        assert_eq!(
+            h.state().shell().current_folio(),
+            Some(folio),
+            "a double click on {folio} (one frame: {one_frame})"
+        );
+    }
+    // The play-test's case: no pause after the double click on 102: egui counts a triple click, and 103 stays shut.
+    double_click(&mut h, "102", false, 0.5);
+    double_click(&mut h, "103", false, 0.0);
+    assert_eq!(h.state().shell().current_folio(), Some("102"));
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// R30 F9 in the window: a double click on the paged Wire List row of the Report blocks navigator goes to folio 907.
 #[test]
 fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {

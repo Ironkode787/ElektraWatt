@@ -145,6 +145,32 @@ fn jb3_a_panic_after_the_sibling_is_written_is_reported_and_leaves_no_file() {
     s.shutdown();
 }
 
+/// P-2 (play-test rv-vis-5 t0085): a second export of the same file says "again", so the toast that replaces the
+/// first visibly changes; an export of another file does not. The log keeps the texts in order, newest first.
+#[test]
+fn p2_a_second_export_of_the_same_file_says_again() {
+    let tmp = Tmp::new("p2-again");
+    let mut s = small(&tmp, Mode::Headless);
+    let target = tmp.0.join("out.pdf");
+    let other = tmp.0.join("other.pdf");
+    done(&mut s, "file.export_pdf", json!({"path": path_text(&target)}));
+    let kib = |p: &Path| std::fs::metadata(p).unwrap().len().div_ceil(1024);
+    let pages = s.page_count();
+    let first = format!("Exported out.pdf: {pages} pages, {} KiB", kib(&target));
+    assert_eq!(s.toast().unwrap().text, first);
+    done(
+        &mut s,
+        "file.export_pdf",
+        json!({"path": path_text(&target), "replace": true}),
+    );
+    let second = format!("Exported out.pdf again: {pages} pages, {} KiB", kib(&target));
+    assert_eq!(s.toast().unwrap().text, second);
+    done(&mut s, "file.export_pdf", json!({"path": path_text(&other)}));
+    let third = format!("Exported other.pdf: {pages} pages, {} KiB", kib(&other));
+    assert_eq!(log_texts(&s), [third, second, first]);
+    s.shutdown();
+}
+
 #[test]
 fn jb4_the_replace_rule_and_the_marker() {
     let tmp = Tmp::new("jb4");
