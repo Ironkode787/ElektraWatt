@@ -284,7 +284,6 @@ pub const PENDING: &[(Group, u16, &str)] = &[
     (Group::Pdf, 2, "Print"),
     (Group::Reports, 1, "Report blocks"),
     (Group::Reports, 2, "Open generated page"),
-    (Group::Lists, 1, "Parts list"),
     (Group::Lists, 2, "Wire list"),
     (Group::Lists, 3, "Terminal diagram"),
     (Group::Show, 2, "Snap"),

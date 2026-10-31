@@ -1514,6 +1514,7 @@ impl ShellModel {
             "page.first" => self.walk(0),
             "page.last" => self.walk(self.page_count().saturating_sub(1)),
             "page.goto" => self.act_page_goto(p),
+            "lists.parts" => self.act_lists_parts(),
             "nav.goto" => self.act_nav_goto(p),
             "nav.back" => self.act_history(true),
             "nav.forward" => self.act_history(false),

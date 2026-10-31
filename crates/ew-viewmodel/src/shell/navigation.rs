@@ -993,6 +993,42 @@ impl ShellModel {
         }
     }
 
+    /// The folio of the first page of the project's parts list (FT-717): the first page in page order of a
+    /// `parts_summary` report block (the BOM), else of a `parts_list` block; `None` when the project has neither
+    /// with a page.
+    pub fn parts_list_folio(&self) -> Option<String> {
+        let project = self.project.as_ref()?;
+        let q = project.session.query();
+        let rows = self.page_rows();
+        ["parts_summary", "parts_list"].into_iter().find_map(|kind| {
+            q.report_blocks()
+                .iter()
+                .filter(|(_, b)| b.embedded.is_none() && ew_api::output::block_kind(b) == kind)
+                .filter_map(|(id, _)| {
+                    let folios = ew_api::output::report_folios(&q, &id.to_string()).ok()?;
+                    let first = folios.into_iter().next()?;
+                    let at = rows.iter().position(|r| r.folio == first)?;
+                    Some((at, first))
+                })
+                .min()
+                .map(|(_, folio)| folio)
+        })
+    }
+
+    /// `lists.parts` (FT-717): opens the first page of the parts list in the focused group, as `page.goto` does.
+    pub(super) fn act_lists_parts(&mut self) -> Outcome {
+        match self.parts_list_folio() {
+            Some(folio) => {
+                let mut p = Map::new();
+                p.insert("folio".to_owned(), Value::String(folio));
+                self.act_page_goto(&p)
+            }
+            None => Outcome::Refused {
+                reason_key: "reason-no-parts-list",
+            },
+        }
+    }
+
     pub(super) fn act_page_goto(&mut self, p: &Map<String, Value>) -> Outcome {
         let folio = match string_param(p, "folio") {
             Err(e) => return e,

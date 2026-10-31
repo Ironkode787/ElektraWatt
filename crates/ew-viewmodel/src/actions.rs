@@ -240,6 +240,16 @@ fn writable(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+/// FT-717: the project has a parts list to open (a `parts_summary` or `parts_list` report block with pages).
+fn has_parts_list(m: &ShellModel) -> Result<(), &'static str> {
+    project_open(m)?;
+    if m.parts_list_folio().is_some() {
+        Ok(())
+    } else {
+        Err("reason-no-parts-list")
+    }
+}
+
 fn has_pages(m: &ShellModel) -> Result<(), &'static str> {
     project_open(m)?;
     if m.page_count() > 0 {
@@ -1666,6 +1676,21 @@ pub static ACTIONS: &[ActionMeta] = &[
                 project_open,
                 None,
             ),
+        ),
+    ),
+    // FT-717: Output ▸ Parts list opens the first page of the project's parts list (the first `parts_summary` block,
+    // else the first `parts_list` block, in page order).
+    placed(
+        place(Group::Lists, 1, CommandSize::Large, None),
+        "list-details",
+        act(
+            "lists.parts",
+            View,
+            "action-lists-parts",
+            Menu::Output,
+            &[],
+            has_parts_list,
+            None,
         ),
     ),
     with_params(
