@@ -26,6 +26,11 @@ accepted = [
 # notice file (their licences are checked by `cargo xtask check-licence-map`).
 private = { ignore = true }
 
+# Dev-dependencies are never built into a shipped artefact, so they are not in the notice file; cargo-deny does not
+# walk them either. This keeps `borrow-or-share` (MIT-0, a dev-only dependency of the result-schema validator `boon`
+# in bin/ew) out of the notices without adding MIT-0 to the allowlist (decision log ID-906, ID-914).
+ignore-dev-dependencies = true
+
 # color_quant 1.1.0 (through gif, krilla's `raster-images`, FT-406) declares MIT and ships only the MIT licence file,
 # but its src/lib.rs header also carries the 1994 NeuQuant permission notice, whose one condition is that the notice
 # stays intact. cargo-about reads licence files only, so the header (the crate's MIT notice and the NeuQuant notice)

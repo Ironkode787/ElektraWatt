@@ -143,8 +143,11 @@ jobs:
         run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq --no-install-recommends mesa-vulkan-drivers
       # The runner ran out of disk building the doctests after the all-features run (os error 28, cycle-36 delivery,
       # run 41005832037): remove preinstalled toolchains this job never uses (about 20 GB) before the first build.
+      # It ran out again in the all-features nextest run with that list (cycle-39 delivery, run 41166075051): the
+      # list now also takes the other preinstalled toolchains and the cached container images; the job uses only
+      # rustup's toolchain, the cargo tools and the system python3.
       - name: free disk space
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache /usr/share/swift /usr/local/share/boost /usr/local/share/powershell /usr/local/lib/node_modules /usr/lib/jvm /opt/microsoft /opt/google /opt/az && sudo docker image prune --all --force > /dev/null && df -h /
       - name: cargo build
         run: cargo build --workspace --locked
       # FT-353 (decision log ID-527): the default-features run moved to the job test-linux-default, so that the two
@@ -215,9 +218,10 @@ jobs:
       - name: install Mesa's lavapipe for the GPU canvas tests
         run: sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq && sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq --no-install-recommends mesa-vulkan-drivers
       # The runner ran out of disk in the nextest run (no space left on device, cycle-37 delivery, run 41047161627), as
-      # test-linux did in cycle 36: remove the same preinstalled toolchains this job never uses before the first build.
+      # test-linux did in cycle 36: remove the same preinstalled toolchains this job never uses before the first build
+      # (the longer list of the cycle-39 delivery, as in test-linux).
       - name: free disk space
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache /usr/share/swift /usr/local/share/boost /usr/local/share/powershell /usr/local/lib/node_modules /usr/lib/jvm /opt/microsoft /opt/google /opt/az && sudo docker image prune --all --force > /dev/null && df -h /
       - name: cargo build
         run: cargo build --workspace --locked
       # The default-features run of the Linux test (FT-353, decision log ID-527), without the headless acceptance
