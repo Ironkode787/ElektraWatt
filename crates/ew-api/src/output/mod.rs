@@ -63,6 +63,9 @@ mod plc_bind;
 // WP-S2.09 part 3: the labelled entity list of a preview (§4.2).
 mod preview;
 mod properties;
+// WP-S1.22 part 2: page rasters (D7) and the row exports (D8).
+mod raster;
+mod rows;
 // WP-S1.18 part 2: page digests and the page change status (D6, D7).
 mod revisions;
 // WP-S2.07 part 1: the strip editor's gestures (§4.2).
@@ -124,7 +127,10 @@ pub use navigators::{
 pub use properties::{
     FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetHeader, SheetSection,
 };
+// WP-S1.22 part 2
+pub use raster::{DEFAULT_DPI, DPI_RANGE, PngExport, PngFile, export_png_with, page_png, png_file_name};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
+pub use rows::{RowExport, RowsCsv, RowsError, block_kind, find_block, report_folios, row_export};
 // WP-S2.07 part 1
 pub use strip_edit::{
     ACCESSORY_KINDS, BridgeRow, StripCell, StripEdit, StripEditError, accessory_kind_word,
@@ -170,6 +176,8 @@ pub enum OutputError {
     Pdf(PdfError),
     /// The SVG writer refused the pages.
     Svg(SvgError),
+    /// A page could not be rasterised (a sheet without size at the resolution, a font that is not bundled).
+    Raster(String),
 }
 
 impl fmt::Display for OutputError {
@@ -178,6 +186,7 @@ impl fmt::Display for OutputError {
             OutputError::Selection(m) => write!(f, "page selection: {m}"),
             OutputError::Pdf(e) => write!(f, "PDF: {e}"),
             OutputError::Svg(e) => write!(f, "SVG: {e}"),
+            OutputError::Raster(m) => write!(f, "PNG: {m}"),
         }
     }
 }

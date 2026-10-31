@@ -85,6 +85,16 @@ pub const EXPORT_BOM: &str = "ew.export-bom-result/1";
 pub const EXPORT_PDF: &str = "ew.export-pdf-result/1";
 /// `ew export svg --json`.
 pub const EXPORT_SVG: &str = "ew.export-svg-result/1";
+/// `ew export png --json`.
+pub const EXPORT_PNG: &str = "ew.export-png-result/1";
+/// `ew export wires --json`.
+pub const EXPORT_WIRES: &str = "ew.export-wires-result/1";
+/// `ew export terminals --json`.
+pub const EXPORT_TERMINALS: &str = "ew.export-terminals-result/1";
+/// `ew export report --json`.
+pub const EXPORT_REPORT: &str = "ew.export-report-result/1";
+/// `ew render --json`.
+pub const RENDER: &str = "ew.render-result/1";
 /// `ew apply --json`.
 pub const APPLY: &str = "ew.apply-result/1";
 /// `ew verify-derived --json`.
@@ -135,9 +145,29 @@ pub const RESULTS: &[ResultSchema] = &[
         schema: schema_of::<ExportPdfResult>,
     },
     ResultSchema {
+        name: EXPORT_PNG,
+        command: "export png",
+        schema: schema_of::<ExportPngResult>,
+    },
+    ResultSchema {
+        name: EXPORT_REPORT,
+        command: "export report",
+        schema: schema_of::<ExportReportResult>,
+    },
+    ResultSchema {
         name: EXPORT_SVG,
         command: "export svg",
         schema: schema_of::<ExportSvgResult>,
+    },
+    ResultSchema {
+        name: EXPORT_TERMINALS,
+        command: "export terminals",
+        schema: schema_of::<ExportTerminalsResult>,
+    },
+    ResultSchema {
+        name: EXPORT_WIRES,
+        command: "export wires",
+        schema: schema_of::<ExportRowsResult>,
     },
     ResultSchema {
         name: IMPORT_PARTS,
@@ -173,6 +203,11 @@ pub const RESULTS: &[ResultSchema] = &[
         name: LIB_SEARCH,
         command: "lib search",
         schema: schema_of::<LibSearchResult>,
+    },
+    ResultSchema {
+        name: RENDER,
+        command: "render",
+        schema: schema_of::<RenderResult>,
     },
     ResultSchema {
         name: SQL_DUMP,
@@ -361,7 +396,7 @@ pub struct SqlDumpResult {
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExportRowsResult {
-    /// [`EXPORT_CABLES`] or [`EXPORT_BOM`].
+    /// [`EXPORT_CABLES`], [`EXPORT_BOM`] or [`EXPORT_WIRES`].
     #[serde(rename = "$schema")]
     pub schema: String,
     /// The rows (data and heading rows, the header line excluded).
@@ -400,6 +435,84 @@ pub struct ExportSvgResult {
     pub out: String,
     /// The files written, one `<folio>.svg` per page, in page order.
     pub files: Vec<String>,
+    /// The page findings.
+    pub findings: usize,
+}
+
+/// `ew export terminals --json` ([`EXPORT_TERMINALS`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ExportTerminalsResult {
+    /// [`EXPORT_TERMINALS`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The rows (data and heading rows, a strip's heading row included; the header line excluded).
+    pub rows: usize,
+    /// The printed tags of the strips written, in output order.
+    pub strips: Vec<String>,
+    /// The file the CSV was written to (`--out`); `null` without one.
+    pub out: Option<String>,
+    /// The CSV text when there is no `--out`; `null` with one.
+    pub csv: Option<String>,
+}
+
+/// `ew export report --json` ([`EXPORT_REPORT`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ExportReportResult {
+    /// [`EXPORT_REPORT`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The report block's ID.
+    pub block: String,
+    /// The block's report kind (`plc_overview`, ...).
+    pub kind: String,
+    /// `csv` or `pdf`.
+    pub format: String,
+    /// For CSV: the rows (data and heading rows, the header line excluded); `null` for PDF.
+    pub rows: Option<usize>,
+    /// For PDF: the folio labels of the block's pages written, in page order; `null` for CSV.
+    pub folios: Option<Vec<String>>,
+    /// The file written (`--out`); `null` for CSV on stdout.
+    pub out: Option<String>,
+    /// The CSV text when it goes to stdout; else `null`.
+    pub csv: Option<String>,
+}
+
+/// `ew export png --json` ([`EXPORT_PNG`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ExportPngResult {
+    /// [`EXPORT_PNG`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The directory written.
+    pub out: String,
+    /// The resolution in dots per inch.
+    pub dpi: u32,
+    /// The files written, one `<folio>.png` per page, in page order.
+    pub files: Vec<String>,
+    /// The page findings.
+    pub findings: usize,
+}
+
+/// `ew render --json` ([`RENDER`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RenderResult {
+    /// [`RENDER`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The folio label of the page.
+    pub page: String,
+    /// The PNG file written.
+    pub out: String,
+    /// The resolution in dots per inch.
+    pub dpi: u32,
+    /// The width in pixels.
+    pub width: u32,
+    /// The height in pixels.
+    pub height: u32,
     /// The page findings.
     pub findings: usize,
 }

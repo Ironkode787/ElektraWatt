@@ -349,10 +349,9 @@ fn nightly_the_png_candidates_match_within_the_doc_20_tolerance_on_every_page() 
 
 /// Every page of `pages` renders to a 150 dpi PNG within doc 20's tolerance of the committed one.
 fn png_candidates_match(pages: &[&GoldenPage]) {
-    let f = fonts();
     for g in pages {
         let scene = page_scene(&g.view, ew_text::bundled(), ew_text::builtin());
-        let bytes = page_png(&scene, &f);
+        let bytes = page_png(&scene);
         let path = expected_dir("png").join(format!("{}.png", g.entry.folio));
         if blessing() {
             check_or_bless(&path, &bytes);

@@ -5,12 +5,10 @@
 //! computing its bytes from the model, and the bless switch (`EW_BLESS=1`) that rewrites the committed file
 //! from the same function instead of comparing.
 
-use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use ew_dl::{DisplayList, FontKey, Item, ItemKind, Transform};
-use ew_render_cpu::FontBytes;
+use ew_dl::{DisplayList, Item, ItemKind, Transform};
 use ew_scene::forms::{FrameGeometry, SheetMap};
 use ew_scene::page::PageScene;
 use ew_schema::{FormDef, LibCopy, LibDocument, Pen, Primitive, Stroke};
@@ -362,20 +360,9 @@ pub fn frame_json() -> String {
 // ---------------------------------------------------------------------------------------------------------
 // PNG
 
-/// The 150 dpi PNG of a page.
-pub fn page_png(scene: &PageScene, fonts: &BTreeMap<FontKey, FontBytes>) -> Vec<u8> {
-    let sheet = ew_render_cpu::SheetSize {
-        width: scene.sheet_width,
-        height: scene.sheet_height,
-    };
-    let options = ew_render_cpu::RenderOptions {
-        dpi: 150,
-        ..Default::default()
-    };
-    let (img, report) =
-        ew_render_cpu::render(&scene.sheet_list(), sheet, &options, fonts, None).expect("the page renders");
-    assert!(report.missing_fonts.is_empty(), "{report:?}");
-    ew_render_cpu::encode_png(&img, Some(150))
+/// The 150 dpi PNG of a page: the product's raster (`ew render`, `ew export png`; WP-S1.22 D7).
+pub fn page_png(scene: &PageScene) -> Vec<u8> {
+    ew_api::output::page_png(scene, ew_api::output::DEFAULT_DPI).expect("the page renders")
 }
 
 /// A decoded PNG as RGBA8 and its size.

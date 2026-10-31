@@ -587,7 +587,7 @@ fn ac02_raster(c: &Ctx) -> Outcome {
         .filter(|g| AC_02_FOLIOS.contains(&g.entry.folio.as_str()))
     {
         let scene = page_scene(&g.view, ew_text::bundled(), ew_text::builtin());
-        let bytes = page_png(&scene, &c.fonts);
+        let bytes = page_png(&scene);
         let committed = match expected(&format!("png/{}.png", g.entry.folio)) {
             Ok(b) => b,
             Err(e) => return fail(e),
