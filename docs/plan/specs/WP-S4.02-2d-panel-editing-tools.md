@@ -176,7 +176,7 @@ No decision changes an ADR. D10 is the design-language review that doc 16a §5.3
    Vec<(Id<Placement>, i128)>}, SnapError>` with D5's three modes, and `free_length(items, brackets)`.
    `SnapError` carries what the texts need; no panics on any input (overlapping or out-of-range loaded items are
    accepted as given; only the items that D5 moves are re-checked).
-4. `carrier_labels(surface)` (cold) in `crates/ew-derive/src/layout/` (D8), unless WP-S4.01 part 4 has built the
+4. `carrier_labels(surface)` (cold) in `crates/ew-derive/src/layout/` (D8), unless WP-S4.01 part 4a has built the
    legend's carrier order, which it then reuses.
 5. `crates/ew-commands/src/commands/layout.rs`: `layout.place` and `layout.move` gain `mode?` (D4); with `mode` on a
    rail, the pose's `t.x` is read as the intended clip point, converted to `s_left`, resolved, and the placement and

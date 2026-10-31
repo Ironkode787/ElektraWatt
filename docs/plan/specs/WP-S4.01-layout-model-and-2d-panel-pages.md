@@ -2,9 +2,12 @@
 
 **Status:** specified in cycle 39 (documents only), an M2 package, in five parts: part 1 the layout records and
 commands (1.1 pw, D3 to D7), part 2 the layout queries and Golden A's layout data (1.1 pw, D5, D8, D13), part 3 the
-panel page (1.2 pw, D9, D10), part 4 layout objects in the BOM, the legend and PART DATA (0.9 pw, D11), part 5 the
-EW-LAYOUT rules (0.8 pw, D12); part 1 first (cycle 40); part 2 after part 1; parts 3 and 5 after part 2, side by
-side; part 4 after part 3 · **Part 1 built in cycle 40** (lane B40 with fix lane FIX40b, decision log ID-924; LM-1 to LM-8 met; the refusals beyond D6's letter and `part.edit_copy`'s re-pointing of a carrier's part and a placement's `part` accepted; `replace_all` over several placed part uses moves only the first replaced use's placements; `edit.delete` on layout kinds, `source_ref`, grid editing and the missing edit commands are FT-837 to FT-840; LQ-3 and LQ-4 amended to the surface frame) · **Part 2 built in cycle 40** (lane J40 with fix lane FIX40c, decision log ID-932, ID-933; LQ-1 to LQ-6 met; the queries in `ew_derive::layout`, none stored, as built in doc 12 §2.6 and §2.7; footprints in the surface frame and occupancy in s; no ":" suffix for a function's placement, since functions carry no designation member; no clearance padding; D13's golden change with the re-blesses that follow from it, listed in D13; save as basic omits the layout with the devices and keeps the layout spaces, WP-S1.19 D14 as built; EW-LAY-010's geometry cases FT-845) · **Date:** 2026-10-30 ·
+panel page (1.2 pw, D9, D10), part 4 cut in cycle 41 into part 4a, layout objects in the BOM and the legend query
+(0.7 pw, D11), and part 4b, the embedded report blocks drawn (0.55 pw, D16 to D18), part 5 the EW-LAYOUT rules
+(0.8 pw, D12); part 1 first (cycle 40); part 2 after part 1; parts 3 and 5 after part 2, side by side; part 4a after
+part 3; part 4b after part 4a · **Part 4 cut in cycle 41** (lane S41b, decision log ID-?: no path drew an embedded
+block but the cover's, LB-2's legend did not fit its rect, and its export clause had no named path; D11 amended as
+built by part 4a; D16 to D18 added; 0.35 pw taken from D15's reserve) · **Part 1 built in cycle 40** (lane B40 with fix lane FIX40b, decision log ID-924; LM-1 to LM-8 met; the refusals beyond D6's letter and `part.edit_copy`'s re-pointing of a carrier's part and a placement's `part` accepted; `replace_all` over several placed part uses moves only the first replaced use's placements; `edit.delete` on layout kinds, `source_ref`, grid editing and the missing edit commands are FT-837 to FT-840; LQ-3 and LQ-4 amended to the surface frame) · **Part 2 built in cycle 40** (lane J40 with fix lane FIX40c, decision log ID-932, ID-933; LQ-1 to LQ-6 met; the queries in `ew_derive::layout`, none stored, as built in doc 12 §2.6 and §2.7; footprints in the surface frame and occupancy in s; no ":" suffix for a function's placement, since functions carry no designation member; no clearance padding; D13's golden change with the re-blesses that follow from it, listed in D13; save as basic omits the layout with the devices and keeps the layout spaces, WP-S1.19 D14 as built; EW-LAY-010's geometry cases FT-845) · **Date:** 2026-10-30 ·
 **Work package:** [WP-S4.01](../02-work-packages.md#wp-s401-layout-model-and-2d-panel-pages-mvp-slice) ·
 **Decision log:** ID-893 · **Part of:** ElektraWatt plan, specifications
 
@@ -28,7 +31,7 @@ design pass after each part. A choice a lane meets that this document does not s
 5. [Part 1: the layout records and commands](#5-part-1-the-layout-records-and-commands)
 6. [Part 2: the layout queries and Golden A's layout data](#6-part-2-the-layout-queries-and-golden-as-layout-data)
 7. [Part 3: the panel page](#7-part-3-the-panel-page)
-8. [Part 4: layout objects in the BOM, the legend and PART DATA](#8-part-4-layout-objects-in-the-bom-the-legend-and-part-data)
+8. [Part 4: layout objects in the BOM, the legend and PART DATA (parts 4a and 4b)](#8-part-4-layout-objects-in-the-bom-the-legend-and-part-data-parts-4a-and-4b)
 9. [Part 5: the EW-LAYOUT rules](#9-part-5-the-ew-layout-rules)
 10. [Files owned and what a lane may not decide](#10-files-owned-and-what-a-lane-may-not-decide)
 11. [Risks](#11-risks)
@@ -105,7 +108,8 @@ The lanes rely on exactly these items. If one differs, the lane stops and report
 | Golden A has no layout data, no part dimensions, and doc 20 §13 gives the carriers in paper positions "for order only" | Part 2 fixes the test geometry (D13) |
 | The rail and duct BOM quantities come from paper lengths of a drawing that is not to scale (2.192 m, 3.81 m; ID-316) and do not fit the test enclosure | Part 4 derives them from the carriers (FT-205), a golden change |
 | Folio 902 has no view item, no panel layer is drawn, and the title block does not print the scale | Part 3 (D9, D10) |
-| `enclosure_legend` has no rows; PART DATA on 902 lists nothing | Part 4 (D11) |
+| `enclosure_legend` has no rows; PART DATA on 902 lists nothing | Part 4a (D11) |
+| *Found in cycle 41 (ID-?):* only `profile_tables` embedded blocks are drawn (`ew-api` `output/view.rs` `PageEmbeddedOf`; `ew-scene` `embedded.rs` has the one variant `Cover`), so PART DATA is derived for 201, 202 and 902 and drawn on no page; `part_data` sources only from the page's representations, so on 902 it lists nothing | Part 4b (D16) |
 | No EW-LAY rule | Part 5 (D12) |
 
 ## 3. Requirements traced
@@ -116,21 +120,21 @@ The 19 rows of the package.
 |---|---|---|---|
 | FR-LAY-001 | One layout space per location; `unplaced(space)` keyed on the location | 1, 2 | LM-2, LQ-2 |
 | FR-LAY-002 | Enclosure and plate surface from part data, poses relative to the surface frame; a scale change moves no pose | 1, 3 | LM-3, LP-4 |
-| FR-LAY-004 | Rails as parametric carriers; in the BOM by derived length | 1, 4 | LM-4, LB-1 |
-| FR-LAY-005 | Ducts as parametric carriers with the generated "W×H" label; in the BOM | 1, 3, 4 | LM-4, LP-2, LB-1 |
+| FR-LAY-004 | Rails as parametric carriers; in the BOM by derived length | 1, 4a | LM-4, LB-1 |
+| FR-LAY-005 | Ducts as parametric carriers with the generated "W×H" label; in the BOM | 1, 3, 4a | LM-4, LP-2, LB-1 |
 | FR-LAY-006 | Placements reference a device (and optionally one function); no tag text; `layout_label` | 1, 2 | LM-5, LQ-5 |
 | FR-LAY-007 | Geometry from the part; a part change re-derives at the same pose (D7); the overlap is reported, never resolved | 1, 2, 5 | LM-7, LQ-4, LC-4 |
-| FR-LAY-008 | Layout-only parts (rails, ducts) counted in the BOM without a function; free graphics counted nowhere | 4 | LB-1, LB-4 |
+| FR-LAY-008 | Layout-only parts (rails, ducts) counted in the BOM without a function; free graphics counted nowhere | 4a | LB-1, LB-4 |
 | FR-LAY-009 | Abbreviated and full labels by the view's mode | 3 | LP-3 |
 | FR-LAY-010 | A page is a view of one surface at a scale; the scale in the title block; paper-height text | 3 | LP-2, LP-4 |
 | FR-LAY-011 | `front_2d` outline, else the footprint rectangle | 3 | LP-2 |
-| FR-LAY-012 | The generated legend per surface, embedded on 902 | 4 | LB-2 |
+| FR-LAY-012 | The generated legend per surface, embedded on 902 | 4a (rows), 4b (drawn, exported) | LB-2, LB-7, LB-8 |
 | FR-LAY-013 | The list half: `unplaced(space)` through the API and EW-LAY-001; the navigator and drag stay with WP-S4.02 (FT-486) | 2, 5 | LQ-2, LC-1 |
 | FR-LAY-017 | The mountable predicate (D8); EW-LAY-001, EW-LAY-002 (structural), EW-LAY-003 online | 1, 2, 5 | LM-6, LQ-2, LC-1, LC-2 |
 | FR-LAY-018 | EW-LAY-004 and the 2D overlap check, online | 5 | LC-3, LC-4 |
 | FR-LAY-059 | The placement names the part use it realises, written at placement (D6); EW-LAY-003 | 1, 5 | LM-5, LC-2 |
 | FR-LAY-062 | Paper-height labels, rotated, then a leader; never scaled; balloons at 1.0 (D10) | 3 | LP-3 |
-| FR-REP-007 | Enclosure, plate, rails and ducts in the BOM; the end brackets stay authored part uses until WP-S4.02 | 4 | LB-1 |
+| FR-REP-007 | Enclosure, plate, rails and ducts in the BOM; the end brackets stay authored part uses until WP-S4.02 | 4a | LB-1 |
 | FR-CHK-039 | Unplaced devices (EW-LAY-001); "layout graphics not bound to a device" met by EW-LAY-002 (D12) | 1, 5 | LM-6, LC-1 |
 | FR-CHK-005 | The EW-LAYOUT MVP subset: EW-LAY-001, -002, -003, -004, -006 (2D), -010, -016 | 5 | LC-1 to LC-7 |
 
@@ -151,11 +155,14 @@ entries after each part).
 | D8 | **The mountable predicate as built** (doc 12 §2.7), first match wins: (1) a device whose location has no layout space, or supplied by others once FT-209 exists: not considered; (2) the device of an enclosure or of a surface: exempt; (3) a strip with terminals: mountable, placed as a strip; (4) a terminal of a strip, a cable, a PLC configuration device, a device without functions (EW-CORE-041's predicates): exempt; (5) a part use with `mount_kind` other than `none` and `on_parent`: mountable, the first such use is the primary part; (6) part uses that are all `on_parent` or `none`: exempt; (7) part uses without `mount_kind`: mountable, unknown footprint; (8) no part use and every function's FnDef category is the PE point (`EarthingBar/ProtectiveEarth/Point`, `ew.fn.pe`): exempt as an integral PE point; (9) otherwise (no part): mountable, unknown footprint. Assembly children are not exempt by being children | Golden A's -XPE has no parent and no kind, so doc 12 §2.7's "kind `PeStud`, parent = a surface's device" cannot hold without a golden change; the FnDef category gives the same result from data that exists. The valve terminal's members (-201U3 … -202U3, -201U9) are placed or reported in their own right (EF-05 names -201U9), so "child of a placed sub-base" applies only through `on_parent` |
 | D9 | **The panel page.** The page item variant `surface_view {surface, datum_at, label_mode}` (`label_mode` `abbreviated` (default) or `full`; `side`, `clip`, `layers` stay verbatim) is typed within 0.1 (doc 05 §2.2 names it); a `panel_layout` page holds at most one, set by `page.surface_view.set {page, surface, datum_at, label_mode?}` (refused on another page kind). Projection doc 12 §5.1: `x = datum.x + u·num/den`, `y = datum.y − v·num/den`, i128, one rounding. Layers: `surface` (enclosure outline, plate outline, usable polygon dashed), `carriers` (rail outline and axis chain line; duct outline and its "W×H" label from `params`), `placements` (`front_2d` transformed, else the footprint rectangle; unknown dashed), `labels`. The **title block's** `page.title` value on a page with scale 1:n reads "<title> · Scale 1:n"; the TOC keeps the plain title (it reads `PageTitle`) | FR-LAY-010 binds the scale into the title block, and doc 20 §13 prints "Cabinet Layout · Scale 1:10"; composing the value avoids a form change, and every not-to-scale page is unchanged |
 | D10 | **Labels** (FR-LAY-009, FR-LAY-062, doc 12 §5.3). `layout_label(p)` = the device's displayed tag on the view's page (abbreviated: identifier suppression against the page's structure; full: the full DT); a placement of one function adds ":" and the function's designation where it has one. The label uses the slot kind `layout.label` bound to `xref.device` (1.83 mm em, doc 20 §17.5) at its paper height; the fit test is the ink box from `shaped_text` plus 0.1 mm per side against the footprint's paper rectangle: horizontal, else rotated 90°, else outside above the footprint with a leader (below when above leaves the surface). Never scaled. **Balloons are 1.0** (doc 12 §5.2), so FR-LAY-062's last step is not built | The fit needs text metrics, so it runs in the scene (`ew-text`), not in `ew-derive`; doc 12 §5.2 and FR-LAY-062 disagree on balloons, and the doc's 1.0 placement wins because a balloon needs the legend positions of a stable legend (FP-3) |
-| D11 | **BOM, legend and PART DATA.** A carrier with a part gives one part line (`LineSource::Carrier`) owned by the enclosure device of its surface, quantity = its path length in metres, exact to the millimetre (`Dec3`), no cutting increment (FR-MFG-030, 1.0); -UC1's two authored rail and duct part uses are removed (FT-205). A part line of a layout object (enclosure device, surface device, carrier) prints the folios of the panel pages whose surface view shows its surface (FT-204, rows 22 to 25); a placed device's own row keeps its representation folios. `enclosure_legend` reads `layout_legend(surface)`: the enclosure, the plate, one row per carrier (rails, then ducts, each top to bottom then left to right by `path[0]`, the DT cell empty, the length as quantity), then the placements by DT in natural order; positions 1 … n, derived. `part_data` on a panel page sources the enclosure device of its surface view and its descendants (the existing rule from that root) | Carrier lines owned by the enclosure keep the BOM's tag column at "-UC1" as doc 20 §14.1 prints it; one legend row per carrier is what a shop cuts; carriers have no name member in doc 03 §16, so the DT cell is empty (FP-5) |
+| D11 | **BOM, legend and PART DATA.** A carrier with a part gives one part line (`LineSource::Carrier`) owned by the enclosure device of its surface, quantity = its path length in metres, exact to the millimetre (`Dec3`), no cutting increment (FR-MFG-030, 1.0); -UC1's two authored rail and duct part uses are removed (FT-205). A part line of a layout object (enclosure device, surface device, carrier) prints the folios of the panel pages whose surface view shows its surface (FT-204, rows 22 to 25); a placed device's own row keeps its representation folios. `enclosure_legend` reads `layout_legend(surface)`: the enclosure, the plate, one row per carrier (rails, then ducts, each top to bottom then left to right by `path[0]`, the DT cell empty, the length as quantity), then the placements by DT in natural order; positions 1 … n, derived. `part_data` on a panel page sources the enclosure device of its surface view and its descendants (the existing rule from that root) | Carrier lines owned by the enclosure keep the BOM's tag column at "-UC1" as doc 20 §14.1 prints it; one legend row per carrier is what a shop cuts; carriers have no name member in doc 03 §16, so the DT cell is empty (FP-5). *As built (part 4a, cycle 41; project owner (delegated), ID-?; amends the decision):* **one line per part:** in `DevicePartLines` the carriers of one enclosure device that share a part copy give **one** part line (`LineSource::Carrier`), its quantity the sum of their path lengths in metres, exact to the millimetre, after the device's authored part uses; the legend keeps one row per carrier. **Folios on the BOM only:** the folio rule for layout objects applies to the BOM's Folios cell only; no other reader of a device's folios changes. **A carrier without a length** adds nothing to its line's quantity; the line is kept, at quantity 0 when no carrier of that part has a length, and EW-LAY-010 (part 5) reports the carrier. **Golden source:** part 4a's golden change goes through doc 20 §14.1 and `golden/J-E-2416/tools/tables_from_doc20.py`. PART DATA's source rule (the last sentence of the decision) is built by part 4b (D16) |
 | D12 | **The EW-LAYOUT MVP rules** (doc 15 §4.5.4), each with its catalogue row, rule page and Fluent messages (en-GB, nl-NL; WP-S1.16's pattern) and scope kinds `space`, `surface`, `carrier`: **EW-LAY-001** per mountable unplaced device, only where its location has a layout space; **EW-LAY-002** is the structural invariant of D4 (no rule run); **EW-LAY-003** a placement whose `part` is not a part use of its device; **EW-LAY-004** a placed device whose location differs from the space's; **EW-LAY-006 (2D)** a positive-area intersection, on one surface, of two placements, of a placement and a duct, or of a rail and a duct (never a placement with its own carrier, never duct with duct: joints are by design); **EW-LAY-010** mount kind against rail profile, a pose off its carrier or outside the kind's degrees of freedom, a footprint or carrier outside the usable polygon, a rail whose occupied intervals exceed `[0, L]` (a grown strip), and D3's MVP limits; **EW-LAY-016** placed members of one assembly or PLC station on one carrier (the parent first, then `Device.position` or the module slot) out of order by `s`, or with another device's placement between two members. Overlap by sort-and-sweep per surface, no new dependency. **FR-CHK-039's second half** ("layout graphics not bound to a device") is met by EW-LAY-002: a graphic never binds, and FR-LAY-008 permits free graphics, so no rule reports them | The MVP subset as catalogued; a sweep over at most a few hundred footprints per surface needs no R-tree (rstar stays with `ew-scene`); reporting permitted free graphics would be noise |
-| D13 | **Golden A's layout data** (test values ▲, `pe_bond = true` on the plate and the rails) are §6.1's tables, copied verbatim into doc 20 §13 by part 2, with one new U-row in doc 20 §23.1. **Golden changes, each decided by the orchestrator under the owner's standing delegation (2026-10-27), re-blessed and recorded:** part 2 the new layout file, the part copies that gain `mech` or a carrier section (and their stored hashes) and the tables; part 3 folio 902's expected outputs and its page file (the surface view); part 4 rows 22 to 25 of 901 and 901.1 (folio 902; rows 24 and 25 at 1.71 m and 3.17 m), -UC1's part uses, the legend block on 902 and PART DATA; part 5 the expected findings (EF-05 no longer pending). Every other exported byte is unchanged, proven by the byte-equal tests. *As built (part 2, cycle 40; decision log ID-932, the review's part-4 finding 6):* beyond the part 2 list, accepted by the orchestrator because each follows from it: `golden/J-E-2416.ew/project.jsonl` (the import lineage's `last_source_sha256`, since the tables changed); `expected/acceptance_headless.md` (the files a save writes, the path (b) command count and the memoised families: the layout file, 30 layout commands, four new families; FT-847 asks that these totals stop being pinned); `crates/ew-api/tests/expected/fragment_102F1.txt` and the three `*_fndef_part.json` fixtures built from golden copies (each copy gains its `mech` and hash); the blind selftest recording's golden hash. No exported output changed | The paper lengths of a not-to-scale drawing (2.192 m, 3.81 m) cannot fit a 750 mm enclosure; test geometry in plate millimetres is what FT-205 asks for, and doc 12 Open question 3 recommended exactly this |
+| D13 | **Golden A's layout data** (test values ▲, `pe_bond = true` on the plate and the rails) are §6.1's tables, copied verbatim into doc 20 §13 by part 2, with one new U-row in doc 20 §23.1. **Golden changes, each decided by the orchestrator under the owner's standing delegation (2026-10-27), re-blessed and recorded:** part 2 the new layout file, the part copies that gain `mech` or a carrier section (and their stored hashes) and the tables; part 3 folio 902's expected outputs and its page file (the surface view); part 4 rows 22 to 25 of 901 and 901.1 (folio 902; rows 24 and 25 at 1.71 m and 3.17 m), -UC1's part uses, the legend block on 902 and PART DATA, *as cut in cycle 41 (ID-?)* into **part 4a:** doc 20 §14.1 rows 24 and 25 and the lines that repeat their values; the generator's outputs (`tables/devices.csv`, `expected/parts_list_14_1.csv`, the README's generated block); `golden/J-E-2416.ew/**` by its bless test; 901 and 901.1 in text, CSV and rows (`expected/text/901.csv`, `901.1.csv`, `expected/csv/bom_parts.csv`, `bom_assembly.csv`, `expected/rows/901.csv`, `901.assembly.csv`); the AC-07 constants and the tests that pin 2.192 and 3.81; `findings_mvp.csv`'s EF-17; `expected/acceptance_headless.md` and the blind selftest recording's golden hash; and **part 4b:** doc 20 §17.3's one new "Legend box" row and the generator's list of embedded blocks (`tables_from_doc20.py`, its report-block count 15 → 16), so `tables/report_blocks.csv` gains the `legend-902` row; `golden/J-E-2416.ew/**` by its bless test (the new report block, the import lineage hash); the expected text and PNG of 201, 202 and 902 and the PDF hash (`expected/pdf/sha256.txt`; `structure.json` only where its counts move); `crates/ew-api/tests/reports_golden.rs`' PART DATA assertion for 902 (no rows → two); `expected/acceptance_headless.md` and the blind selftest recording's golden hash where they follow; part 5 the expected findings (EF-05 no longer pending). Every other exported byte is unchanged, proven by the byte-equal tests. *As built (part 2, cycle 40; decision log ID-932, the review's part-4 finding 6):* beyond the part 2 list, accepted by the orchestrator because each follows from it: `golden/J-E-2416.ew/project.jsonl` (the import lineage's `last_source_sha256`, since the tables changed); `expected/acceptance_headless.md` (the files a save writes, the path (b) command count and the memoised families: the layout file, 30 layout commands, four new families; FT-847 asks that these totals stop being pinned); `crates/ew-api/tests/expected/fragment_102F1.txt` and the three `*_fndef_part.json` fixtures built from golden copies (each copy gains its `mech` and hash); the blind selftest recording's golden hash. No exported output changed | The paper lengths of a not-to-scale drawing (2.192 m, 3.81 m) cannot fit a 750 mm enclosure; test geometry in plate millimetres is what FT-205 asks for, and doc 12 Open question 3 recommended exactly this |
 | D14 | **Parts 2 to 5 in the detail they need now.** Part 1 is closed to the field; later parts are closed to their items, decisions and acceptance; each part is re-read against the delivered earlier parts at dispatch without reopening D1 to D13 | Part 1 dispatches first (cycle 40) |
-| D15 | **Size and reserve.** The parts sum to **5.1 pw** of the 5.7 pw PERT; **0.6 pw** is held as reserve for the golden changes, with the de-scope rule of §12 | Four of five parts change Golden A; the reserve is spent only on golden rework, not on scope |
+| D15 | **Size and reserve.** The parts sum to **5.1 pw** of the 5.7 pw PERT; **0.6 pw** is held as reserve for the golden changes, with the de-scope rule of §12. *Amended in cycle 41 (ID-?):* part 4b takes **0.35 pw** of the reserve (the drawing path 0.25, its golden change 0.1), so the parts sum to 5.45 pw and **0.25 pw** remains | Four of five parts change Golden A; the reserve is spent only on golden rework, not on scope. The cycle-41 draw is the one exception: the base contract (§2.1) took for granted that an embedded block could be drawn, and only the cover's could, so the drawing path is missing groundwork, not new scope |
+| D16 | **Embedded report blocks are drawn, every kind through one path** (part 4b). `ew-api` assembles, `ew-scene` lowers (ARCH §3: `ew-scene` has no `ew-derive` edge; no edge changes). `PageEmbeddedOf` returns a view for **every** embedded block on the page: `profile_tables` keeps `EmbeddedContent::Cover` (folio 1 byte-equal); every other kind gives a new variant `EmbeddedContent::Table`, filled from the block's `BlockRows` with each cell rendered by `ew_reports::render::render` for that page, as the generated pages' tables are (neutral language, displayed tags); a block whose rows do not derive prints its reason as the note. What prints is the kind's: a new `ReportKindDef` method in `ew-reports` gives the printed columns (keys and weights), the box title and the number of flow columns; its default prints every column at weight 1, no title, one flow column. The block's `title`, when not empty, replaces the kind's title. **Geometry** (house values in printed mm, like the cover's proportions not read from the form, FT-203): the block's rect drawn as a box at the house grid width with a 2.61 mm drop shadow (doc 20 §17.3's PART DATA box); a title band of 1.5 rows in style `box.title` when there is a title; in each flow column a header row with the house fill when the layout has headers, then data rows of the house `ROW_HEIGHT` (6.52 mm) in `text.normal`; a table without headers draws no inner grid. Flow columns split the rect's width with a 4 mm gutter; rows fill the first column to its capacity, then the next. Cell texts follow `table.rs` (left aligned, shrink to the 1.8 mm cap height, then reported, never clipped); rows beyond the capacity are not drawn and are reported (`TooManyRows`, FR-REP-039). **PART DATA on 201 and 202 starts drawing.** **`part_data`'s sources** (D11's last sentence): the root ancestors of the devices drawn by the page's representations **and** the enclosure devices of the surfaces that the page's surface views show (a page-item test, not a page-kind test); lines with `LineSource::Carrier` are left out of PART DATA. Its layout: title "PART DATA", no header, the label and the part number at weights 1 : 3 (manufacturer and description stay in the rows) | One general path instead of a panel-page exception. Doc 20 §17.3 gives the reference's PART DATA box for 201, 202 and 902, and the fixture rects are exactly those boxes (16.31–89.38 × 16.31–52.85 printed); §3.4 lists no intended difference for a missing box, so a box drawn on no page is an unrecorded deviation, which drawing it closes. Keeping 201 and 202 undrawn would need a page-kind exception or a block member (§10.2 item 2). The cost is a golden change on 201 and 202 (D13's part 4b list). Carrier lines leave PART DATA because the legend on the same page lists every carrier: one fact in one place |
+| D17 | **The legend's fit: two flow columns at the house row height** (part 4b). The block `legend-902` (kind `enclosure_legend`, page 902) has the rect **108.00–278.00 × 19.50–167.50 mm printed** (page ≈ (99.58, 9.85)–(271.94, 159.90) mm through doc 20 §17.1's map), a doc 20 §17.3 row read by the generator; title "LEGEND"; two flow columns of 83.0 mm with a 4 mm gutter; printed columns position, DT, quantity and part number at weights 10 : 22 : 16 : 35 (the description stays in the rows and the CSV). Capacity: (148.0 − 9.78 title) / 6.52 = 21.2, so a header and **20 data rows per column, 40 rows**. Golden A's 30 rows print 20 + 10; with F55 placed, 31 print 20 + 11; WP-S4.02's end-bracket row fits too. The surface view's enclosure outline ends at 103.49 mm printed (page 95 mm, §7), so the legend keeps a 4.5 mm gap; the PART DATA box (16.31–71.11 × 16.31–52.85) is clear of it. **LB-2's stop rule, kept for this capacity:** if Golden A's rows do not fit 40, or a legend text of Golden A reports an overflow, the lane stops and reports | One column cannot hold 31 rows and a header at 6.52 mm: 32 × 6.52 = 208.64 mm, more than the grid frame's whole drawing area (15.01 to 182.02 mm printed, 167.0 mm), so no rect on the A4 sheet holds it. A smaller row height would need at most 4.48 mm (148 / 33), leave two rows of headroom and break the house rhythm that the BOM on 901 uses. Two columns keep the rhythm and leave room to grow, at the cost of the description, which stays off the sheet. LB-2's first rect (page (105, 20)–(280, 175), printed 113.35–285.95 × 29.52–182.39) crossed the frame's right edge (281.18) and ran into the title block, so it moves either way. Doc 16a says it does not touch the sheet; its principles (hierarchy title > header > rows, one rhythm, no fact twice) are kept |
+| D18 | **The legend's CSV export uses the existing named-block path; no exclusion lifts** (part 4b). `ew export report --block <ID> --format csv` (`RowExport::Report`; `find_block` by ID does not filter embedded blocks) already writes any block's rows, an embedded block's included, in the golden CSV dialect. The exclusions at `crates/ew-reports/src/export.rs:73` and `crates/ew-api/src/output/rows.rs:193` choose the **default** block of a kind-specific export (`ew export cables`, `bom`, `wires`, `terminals` without `--block`) and stay: an embedded block is never that default. An embedded block has no first folio, so it is named by its ID only | The cycle-41 premise that an embedded block has no export path was wrong: the code wins. Lifting the exclusions would only let a PART DATA or legend block compete as the default of an export of another kind; LB-2's export clause is kept (LB-8) with no code change |
 
 No decision changes an ADR.
 
@@ -313,18 +320,63 @@ expected files change as D13's part 3 list says, every other page byte-equal; re
 901, 902 and 910 in one commit (D-02; doc 12 §16.1 item 6, doc 20 §19). **LP-7** targeted checks for `ew-schema`, `ew-commands`,
 `ew-derive`, `ew-scene`, `ew-api`.
 
-## 8. Part 4: layout objects in the BOM, the legend and PART DATA
+## 8. Part 4: layout objects in the BOM, the legend and PART DATA (parts 4a and 4b)
 
-**Scope.** D11, FT-204 (rows 22 to 25), FT-205. **0.9 pw.**
+*Cut in cycle 41 (ID-?).* The feasibility reads of part 4's brief found three gaps: nothing drew an embedded report
+block but the cover's (§2.2), LB-2's 30 rows did not fit its rect at the form's row height, and its export clause had
+no named path. Part 4 is therefore built as **part 4a** and **part 4b**, in that order; part 5 does not depend on
+part 4b. Part 4a keeps the acceptance IDs LB-1, LB-2 (as cut), LB-4 and LB-5; part 4b takes LB-3 and LB-6 to LB-10.
+
+### 8.1 Part 4a: layout objects in the BOM and the legend query
+
+**Scope.** D11 with its as-built rulings, FT-204 (rows 22 to 25), FT-205: the carrier part lines and the layout
+objects' folios; `layout_legend(surface)` in `ew-derive` with its rows and F55's renumbering; the `enclosure_legend`
+report kind registered in `ew-reports` with rows from that query and placed on no page (no `report_blocks.csv` row).
+Not in part 4a: drawing any embedded block, the legend's rect, its export, PART DATA's sources (part 4b). **0.7 pw.**
 
 **Acceptance.** **LB-1** the BOM's rows 24 and 25 read 1.71 m and 3.17 m from the carriers, tagged -UC1; -UC1 carries
 no rail or duct part use; rows 22 to 25 print folio 902; the row count stays 27 (AC-07) and every other cell of 901
-and 901.1 is byte-equal. **LB-2** the legend block on 902 (a fixture choice: rect (105, 20)–(280, 175) mm, a new
-`report_blocks.csv` row) lists 30 rows: -UC1, -UC1-plate, R1 … R3, D1 … D5, then the twenty placements by DT;
-placing F55 on R1 (fixture) adds one row and renumbers the rows after it; the block exports as CSV. If 30 rows do not
-fit the rect at the form's row height, the lane stops and reports. **LB-3** PART DATA on 902 lists NSYPLA1074G and
-NSYPMM107. **LB-4** a free graphic on 902 appears in neither the BOM nor the legend nor `unplaced` (FR-LAY-008).
-**LB-5** the golden change is exactly D13's part 4 list; targeted checks for `ew-derive`, `ew-reports`, `ew-api`.
+and 901.1 is byte-equal. **LB-2** *(as cut)* `layout_legend` of Golden A's plate surface and the `enclosure_legend`
+rows list 30 rows: -UC1, -UC1-plate, R1 … R3, D1 … D5, then the twenty placements by DT, at positions 1 … 30; placing
+F55 on R1 (fixture) adds one row and renumbers the rows after it; the kind has no block in Golden A. The block, its
+rect and its export moved to LB-7 and LB-8. **LB-4** a free graphic on 902 appears in neither the BOM nor the legend
+nor `unplaced` (FR-LAY-008). **LB-5** the golden change is exactly D13's part 4a list; targeted checks for
+`ew-derive`, `ew-reports`, `ew-api`.
+
+### 8.2 Part 4b: the embedded report blocks drawn
+
+**Scope.** D16 to D18 and LB-3: every embedded report block drawn through one path; PART DATA's sources on a page
+with a surface view; the legend block on 902; PART DATA drawn on 201, 202 and 902; the legend's CSV through the
+named-block export. **0.55 pw** (0.35 pw of it from D15's reserve).
+
+**Build list.**
+1. `crates/ew-reports`: the `ReportKindDef` method of D16 (printed columns with weights, title, flow columns; the
+   default every column at weight 1, no title, one column); `part_data`'s layout and sources (D16) and its leaving out
+   of `LineSource::Carrier` lines; `enclosure_legend`'s layout (D17).
+2. `crates/ew-scene/src/embedded.rs`: the variant `EmbeddedContent::Table` and its lowering (D16's geometry, flow
+   columns, `TooManyRows`); the column split and cell rule shared with `table.rs`, whose generated-page tables stay
+   byte-equal.
+3. `crates/ew-api/src/output/view.rs`: `PageEmbeddedOf` over every embedded block (D16); the module documentation's
+   "PART DATA blocks are not drawn yet" goes.
+4. Golden A: doc 20 §17.3's "Legend box" row (D17's printed rect ▲) and the generator's embedded list, then
+   `tables_from_doc20.py` and its `--check`, which write the `legend-902` row; the fixture by its bless test; path (b)
+   of the test DSL creates the same block.
+
+**Acceptance.** **LB-3** PART DATA on 902 lists exactly NSYPLA1074G and NSYPMM107 (no carrier line) and draws them
+under the title "PART DATA". **LB-6** one path: folio 1 is byte-equal; a fixture with an embedded block of a kind that
+declares no layout (a `wire_list` block on a schematic page) draws every column; a block whose rows do not derive
+draws its reason; a fixture with more rows than the rect holds draws the capacity and reports `TooManyRows`; lowering
+twice gives the same items. **LB-7** the legend block on 902 draws the rect of D17 with the title "LEGEND", two flow
+columns, each with its header, and Golden A's 30 rows as 20 + 10; placing F55 on R1 (fixture) draws 31 as 20 + 11 and
+renumbers; no text of the legend reports an overflow; LP-5 still holds (a `layout.move` rebuilds no `tables` family
+of 902; if the legend's rows make it rebuild, the lane stops and reports). If Golden A's rows do not fit the capacity
+of D17, the lane stops and reports. **LB-8** `ew export report --block <legend-902's ID> --format csv` writes a header
+and 30 rows with every column of the kind, the description included; `ew export bom`, `cables`, `wires` and
+`terminals` without `--block` are byte-equal. **LB-9** PART DATA on 201 and 202 draws "Order Code 1"
+51E-F13GCQP-D+H2GG and "Order Code 2" 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS under the title "PART DATA", with no
+overflow finding (an overflow is a stop: the orchestrator rules the column weights); their rows are unchanged. **LB-10** the golden change is exactly D13's part 4b list, every other
+page byte-equal; twice-run determinism; targeted checks for `ew-reports`, `ew-scene`, `ew-api` (and `ew-derive` if a
+lookup is added there); the snapshot gate and both blind selftests.
 
 ## 9. Part 5: the EW-LAYOUT rules
 
@@ -351,8 +403,16 @@ in `crates/ew-format/**` and `crates/ew-store/**`; `crates/ew-model/**` (tables,
 `crates/ew-derive/src/layout/**` and its data table; `crates/ew-commands/src/commands/{layout.rs,assign.rs,mod.rs}`,
 `crates/ew-commands/tests/**`. **Part 2:** `crates/ew-derive/src/layout/**`, `crates/ew-import-tables/**`,
 `crates/ew-testkit/src/golden/**`, `golden/J-E-2416/{tables,tools,README.md}`, `golden/J-E-2416.ew/**`, and in
-`docs/design/20-golden-project.md` only §13 (§6.1's tables) and one row of §23.1. **Parts 3 to 5:** named by crate in
-their scope and fixed by each part's dispatch brief; golden files only as D13 lists for the part.
+`docs/design/20-golden-project.md` only §13 (§6.1's tables) and one row of §23.1. **Parts 3 and 5:** named by crate in
+their scope and fixed by each part's dispatch brief; golden files only as D13 lists for the part. **Part 4a:**
+`crates/ew-derive/src/bom.rs`, `crates/ew-derive/src/layout/**`, `crates/ew-reports/src/kinds/` (the
+`enclosure_legend` kind and its `mod.rs` line; `parts.rs` only where a carrier line needs it), `crates/ew-derive/tests/**`,
+`crates/ew-reports/tests/**`, `crates/ew-reports/README.md` (the `enclosure_legend` row), and the golden files, tests,
+generator rows and doc 20 §14.1 lines of D13's part 4a list. **Part 4b:** `crates/ew-scene/src/{embedded.rs,table.rs}`,
+`crates/ew-scene/tests/**`; `crates/ew-api/src/output/{view.rs,layers.rs}`, `crates/ew-api/tests/**`;
+`crates/ew-reports/src/{kind.rs,kinds/part_data.rs}`, the `enclosure_legend` kind's file, `crates/ew-reports/tests/**`;
+`crates/ew-derive/src/layout/**` only for a lookup of the surfaces a page shows, where part 4a's folio lookup does not
+serve; the golden files of D13's part 4b list, doc 20 §17.3's one new row and the generator's embedded list.
 
 Shared append-only files (registry lists, the fuzzer arms, DSL verbs, the strings table, `schemas/0.1`, the rule
 catalogue's generated pages) may be touched by other lanes; the second to integrate rebases. Read-only for every lane:
@@ -382,25 +442,33 @@ texts beyond those quoted here, test fixtures, the column names of the new golde
 | R2 The mechanical data moves the part-copy hashes and something prints differently (EW-CORE-014, a library-update preview) | Medium · medium | LQ-6 compares every exported output; §10.2 item 3 stops the lane |
 | R3 Generated 902 looks unlike the reference (true scale, rails drawn) | High · low | Doc 20 §3.4 row 17 already lists 902 as an intended difference; the values are ▲ and PQ-24 asks the pilot |
 | R4 Label fitting differs between hosts | Low · medium | Integer metrics from `ew-text`'s bundled fonts; both gates run the 902 goldens |
-| R5 The legend overflows its block | Medium · low | LB-2 stops the lane; the rect is a fixture choice the orchestrator may move |
+| R5 The legend overflows its block | Medium · low | D17's two columns hold 40 rows against Golden A's 30; LB-7 stops the lane; the rect is a fixture choice the orchestrator may move |
+| R7 Drawing PART DATA on 201 and 202 moves bytes beyond the box (part 4b) | Low · medium | LB-10 compares every page; the box is drawn into the existing rect only |
 | R6 Scope creep into WP-S4.02 (snapping, brackets, drag) | Medium · medium | D1 and §10.2 item 7 |
 
 ## 12. Size, order and routing
 
 **Size.** 5.1 pw of the 5.7 pw PERT, 0.6 pw reserve (D15): part 1 **1.1** (records and storage 0.4, invariants 0.15,
 commands 0.35, tests 0.2), part 2 **1.1** (queries 0.5, golden data through paths (a) to (c) 0.45, tests 0.15), part 3
-**1.2** (view item 0.15, layers 0.45, labels and fitting 0.3, title block 0.1, golden 0.1, tests 0.1), part 4 **0.9**
-(carrier lines and folios 0.4, legend 0.3, PART DATA 0.1, golden 0.1), part 5 **0.8** (six rules 0.45, catalogue,
+**1.2** (view item 0.15, layers 0.45, labels and fitting 0.3, title block 0.1, golden 0.1, tests 0.1), part 4 **0.9** as first sized
+(carrier lines and folios 0.4, legend 0.3, PART DATA 0.1, golden 0.1), *cut in cycle 41 (ID-?)* into part 4a **0.7**
+(carrier lines and folios 0.4, legend query and kind 0.2, golden 0.1) and part 4b **0.55** (the drawing path 0.25:
+scene variant, flow columns and box 0.15, assembly and kind layouts 0.1; legend block 0.1; PART DATA sources and
+drawing 0.1; golden 0.1), 1.25 pw against 0.9, the 0.35 pw excess (the drawing path and 4b's golden change) taken from
+D15's reserve, part 5 **0.8** (six rules 0.45, catalogue,
 pages and messages 0.2, tests 0.15). **De-scope rule:** when a part is projected (at its lane's midpoint report) or
 found (at its review) more than 20 % over its size, these items leave as follow-ups without a further ruling, in this
 order: the leader step of D10 (labels rotate or overflow, reported), EW-LAY-016, `rehome_to_surface`, the `front_2d`
-outline (footprint rectangles only), EW-LAY-004; the lane reports which ones left.
+outline (footprint rectangles only), EW-LAY-004; for part 4b, the drop shadow, then the default layout for kinds
+other than `part_data` and `enclosure_legend` (an FT row "embedded report blocks of other kinds are drawn on no page"
+is then opened); the lane reports which ones left.
 
 **Order and routing** (Opus or Haiku only, ID-700): part 1 first, **Opus at `xhigh`** (format typing, file ownership
 and invariants; cycle 40); part 2 after part 1, **Opus at `high`** (core queries and a golden change; it may run as the
 next wave of the same cycle); parts 3 and 5 after part 2, side by side, part 3 **Opus at `high`** (the page output and
-a golden change), part 5 **Opus at `medium`** (rules on WP-S1.16's pattern); part 4 after part 3, **Opus at `high`**
-(the BOM and a golden change). The feasibility read before dispatch flags parts 1 and 2 (format, golden data).
+a golden change), part 5 **Opus at `medium`** (rules on WP-S1.16's pattern); part 4a after part 3, **Opus at `high`**
+(the BOM and a golden change); part 4b after part 4a, **Opus at `high`** (a page output path and a golden change on
+three folios; its feasibility read is flagged for Opus `low`); part 5 does not wait for part 4b. The feasibility read before dispatch flags parts 1 and 2 (format, golden data).
 **AC-33** passes after parts 1 to 5 except rail R2's end brackets, which WP-S4.02 adds (FR-LAY-060); AC-33 is shared
 with WP-S4.02 in the traceability. **Unblocks:** WP-S4.02 after parts 1 to 3; FT-486 (the Unplaced devices navigator)
 after part 2; WP-S4.05 and WP-S4.07 build on part 1's records.
@@ -426,8 +494,11 @@ kinds implemented), doc 12 §2.2, §2.3, §3.7 (as built), arch 04 §3's `ew-pan
 queries in `ew-derive`). **After part 2:** doc 12 §2.6, §2.7 (the predicate as built, -XPE by its FnDef category) and
 Open question 3 (resolved by §6.1); doc 20 §13 (the lane), §23.1. **After part 3:** doc 12 §5.1 to §5.3, doc 06 (the
 page item variant and `page.surface_view.set`), doc 09 §4.1, 02b FR-LAY-062 (balloons at 1.0, D10), doc 20 §17.2
-(the scale in the description line). **After part 4:** doc 09 §2.2 (`enclosure_legend` as built), doc 12 §5.4, doc 20
-§13 and §14.1 (the as-built notes of ID-316 and ID-317 superseded). **After part 5:** doc 15 §4.5.4 (rule pages), doc
+(the scale in the description line). **After part 4a:** doc 09 §2.2 (`enclosure_legend` as built), doc 20 §13 and §14.1 (the
+as-built notes of ID-316 and ID-317 superseded). **After part 4b:** doc 09 §2.2 and §4.1 (embedded blocks of every kind
+drawn, the kind's embedded layout, PART DATA's sources), doc 12 §5.4 (the legend block as built), doc 20 §13 (the
+legend box) and §17.3 (its row, written by the lane as the golden source), doc 17 §3.3 (the legend's CSV through
+`ew export report --block`). **After part 5:** doc 15 §4.5.4 (rule pages), doc
 20 §18.1 (EF-05 no longer pending), the WP-S1.16 specification's AC-21 subset.
 
 ---
