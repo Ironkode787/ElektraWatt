@@ -12,8 +12,10 @@
 //! card's rebuild (a new revision) is a new card and a card that comes back unchanged is not fetched twice.
 //!
 //! **Opening and closing.** A new card shows the tab (`Layout::with_bottom`, then `Layout::showing`) and leaves the
-//! focus where it was; the tab stays when the card ends (Apply, Cancel), showing "No preview is open"; closing the tab
-//! while a card is open cancels the card (the shell's `sync_preview`).
+//! focus where it was. When the last card ends (Apply, Cancel), a tab the cards opened closes (cycle 39: an empty tab
+//! took the canvas's height), while a tab that was in the layout before the first card (the user opened it by hand)
+//! stays, showing "No preview is open"; closing the tab while a card is open cancels the card (the shell's
+//! `sync_preview`).
 //!
 //! **Lists.** Each list of the describe text prints at most [`MAX_LIST`] lines, then `more <list word> <n>`; the
 //! window virtualises them. Order: entities by `Session::preview_entities`' order; tags by their old text in natural
@@ -40,6 +42,21 @@ pub fn card_key(card: &Card) -> CardKey {
     )
 }
 
+/// The changed fields of a record (its top-level members) in words for the Preview tab's row (cycle 39, FIX39b-1): an
+/// underscore reads as a space (`part_number` → "part number"); a library copy's content hash (`sha256`) is no field to
+/// a reader: it is left out when another field changed, and reads "content" when it is the only change.
+pub fn field_words(fields: &[String]) -> Vec<String> {
+    let hash = |f: &String| f == "sha256";
+    if !fields.is_empty() && fields.iter().all(hash) {
+        return vec![crate::strings::text("preview-field-content").to_owned()];
+    }
+    fields
+        .iter()
+        .filter(|f| !hash(f))
+        .map(|f| f.replace('_', " "))
+        .collect()
+}
+
 /// One cross-reference text change: the folio of the representation's page (empty when it has none), the text before
 /// and after.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -60,6 +77,9 @@ pub struct PreviewPane {
     pub(crate) tags: Vec<(String, String)>,
     pub(crate) xrefs: Vec<XrefChange>,
     pub(crate) pages: Vec<String>,
+    /// Whether the card chain opened the tab (it was not in the layout when the first card came): the tab then closes
+    /// when the last card is applied or cancelled; a tab the user opened by hand stays (cycle 39, FIX39b-1).
+    pub(crate) opened_by_card: bool,
 }
 
 impl PreviewPane {
@@ -86,5 +106,33 @@ impl PreviewPane {
     /// Forgets the card's lists.
     pub(crate) fn clear(&mut self) {
         *self = PreviewPane::default();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::field_words;
+
+    fn words(fields: &[&str]) -> Vec<String> {
+        field_words(&fields.iter().map(|f| (*f).to_owned()).collect::<Vec<_>>())
+    }
+
+    #[test]
+    fn field_words_drop_the_content_hash_beside_another_field() {
+        assert_eq!(
+            words(&["description", "sha256", "version"]),
+            ["description", "version"]
+        );
+    }
+
+    #[test]
+    fn field_words_name_a_lone_content_hash_content() {
+        assert_eq!(words(&["sha256"]), ["content"]);
+    }
+
+    #[test]
+    fn field_words_read_underscores_as_spaces() {
+        assert_eq!(words(&["part_number", "tag"]), ["part number", "tag"]);
+        assert!(words(&[]).is_empty());
     }
 }

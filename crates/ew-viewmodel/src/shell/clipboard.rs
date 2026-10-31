@@ -346,7 +346,7 @@ impl ShellModel {
                 base_rev: rev,
                 command: Value::Null,
                 name: "edit.paste".to_owned(),
-                result: Err(message.clone()),
+                result: Err(message),
                 derived: DerivedDiff::default(),
             },
             edit,
@@ -355,10 +355,36 @@ impl ShellModel {
             reason: "reason-paste-versions",
             origin: CardOrigin::PasteVersions(Box::new(choice)),
         });
-        self.tools.notice = Some(message);
+        // Cycle 39 (FIX39b-1): the HUD's prompt follows the card ([`ShellModel::card_prompt`]), short, since the card
+        // holds the choice; a stale tool notice must not stand over it.
+        self.tools.notice = None;
         self.tools.notice_sticky = false;
         Outcome::Refused {
             reason_key: "reason-paste-versions",
+        }
+    }
+
+    /// The prompt an open card of the paste choice puts in the HUD and the status hint in place of the tool's own
+    /// (cycle 39, FIX39b-1): the choice card names the copies and points at the card; the update card that "Update the
+    /// project's copy" opened says the paste follows its Apply. `None` for any other card or none.
+    pub fn card_prompt(&self) -> Option<String> {
+        match &self.props.card()?.origin {
+            CardOrigin::PasteVersions(choice) => {
+                let list = choice
+                    .conflicts
+                    .iter()
+                    .map(|c| c.title.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let key = if choice.conflicts.len() == 1 {
+                    "hud-paste-versions-one"
+                } else {
+                    "hud-paste-versions-many"
+                };
+                Some(strings::format(key, &[&list]))
+            }
+            CardOrigin::PasteUpdate { .. } => Some(strings::text("hud-paste-update").to_owned()),
+            _ => None,
         }
     }
 

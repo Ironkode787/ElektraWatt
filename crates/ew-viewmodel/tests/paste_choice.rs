@@ -200,11 +200,10 @@ fn ps8_the_paste_choice_in_the_shell() {
         }
     );
     assert_ne!(p2.tool().name(), "paste", "no paste tool before the choice");
-    assert_eq!(
-        p2.status_fields(false)[0],
-        "The pasted records use another version of FX-MCB-1PN (Fixture); choose Use the project's copy or Update the \
-         project's copy"
-    );
+    // Cycle 39 (FIX39b-1): the prompt is short, since the card holds the choice; the HUD shows the same text.
+    let prompt = "Another version of FX-MCB-1PN (Fixture) is in the project; choose in the card below";
+    assert_eq!(p2.status_fields(false)[0], prompt);
+    assert_eq!(ew_viewmodel::command_bar::hud(&p2).prompt, prompt);
     let card = p2.properties().card().expect("the choice card");
     assert!(matches!(card.origin, CardOrigin::PasteVersions(_)));
     let lines = card_lines(&p2);
@@ -218,6 +217,14 @@ fn ps8_the_paste_choice_in_the_shell() {
             "choice update disabled: \"The pasted version is not newer than the project's\"",
         ]
     );
+    // Cycle 39 (FIX39b-1): the card's row says the change size in words; the describe line keeps the class word.
+    let CardOrigin::PasteVersions(choice) = &p2.properties().card().unwrap().origin else {
+        unreachable!()
+    };
+    assert_eq!(
+        ew_viewmodel::properties::PasteChoice::conflict_text(&choice.conflicts[0]),
+        "FX-MCB-1PN (Fixture): this project 1.0.1, pasted 1.0.0, a data change"
+    );
     // Apply is not a choice; Update is disabled with its reason.
     assert_eq!(
         refused(&mut p2, "preview.apply", json!({})),
@@ -228,8 +235,11 @@ fn ps8_the_paste_choice_in_the_shell() {
         "reason-paste-update-older"
     );
     // Use the project's copy: one edit.paste with adapt, one undo step.
+    assert!(p2.preview_shown(), "the choice card opens the Preview tab");
     done(&mut p2, "paste.resolve", json!({"choice": "adapt"}));
     assert!(p2.properties().card().is_none(), "the card closes");
+    // Cycle 39 (FIX39b-1): the tab the card opened closes with it.
+    assert!(!p2.preview_shown(), "the Preview tab closes with the card");
     place(&mut p2, pos);
     assert_eq!(commands(&p2).len(), steps + 1, "one command");
     let last = p2.recorded_commands().last().unwrap().clone();
@@ -267,8 +277,21 @@ fn ps8_the_paste_choice_in_the_shell() {
     assert!(matches!(card.origin, CardOrigin::PasteUpdate { .. }));
     assert_eq!(card.preview.name, "library.update");
     assert_eq!(commands(&p1).len(), steps, "nothing committed before Apply");
+    // Cycle 39 (FIX39b-1): the HUD's prompt follows the card: the update card's own, not the choice's.
+    assert_eq!(
+        ew_viewmodel::command_bar::hud(&p1).prompt,
+        "Apply the update in the card below; the paste follows"
+    );
     done(&mut p1, "preview.apply", json!({}));
     assert_eq!(held_version(&mut p1), "1.0.1");
+    assert!(
+        !p1.preview_shown(),
+        "the tab the choice card opened closes after the update card's Apply"
+    );
+    assert!(
+        !ew_viewmodel::command_bar::hud(&p1).prompt.contains("card below"),
+        "the paste tool's own prompt after Apply"
+    );
     place(&mut p1, pos);
     assert_eq!(
         commands(&p1)[steps..],
@@ -287,6 +310,19 @@ fn ps8_the_paste_choice_in_the_shell() {
     assert_eq!(held_version(&mut p1), "1.0.1", "the paste is its own undo step");
     done(&mut p1, "edit.undo", json!({}));
     assert_eq!(held_version(&mut p1), "1.0.0", "two undo steps");
+    // Cycle 39 (FIX39b-1): Cancel on the update card closes the tab the choice card opened and ends its prompt.
+    assert_eq!(
+        p1.dispatch("edit.paste_clip", &json!({ "text": text })),
+        Outcome::Refused {
+            reason_key: "reason-paste-versions"
+        }
+    );
+    done(&mut p1, "paste.resolve", json!({"choice": "update"}));
+    assert!(p1.preview_shown());
+    done(&mut p1, "preview.cancel", json!({}));
+    assert!(p1.properties().card().is_none());
+    assert!(!p1.preview_shown(), "Cancel closes the tab");
+    assert!(!ew_viewmodel::command_bar::hud(&p1).prompt.contains("card below"));
     // Without a choice card, paste.resolve is refused.
     assert_eq!(
         refused(&mut p1, "paste.resolve", json!({"choice": "adapt"})),

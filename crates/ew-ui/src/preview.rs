@@ -102,8 +102,10 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
                 (format!("{} ", e.kind), t.text_secondary),
                 (e.label.clone(), t.text_primary),
             ];
-            if !e.fields.is_empty() {
-                r.push((format!(" ({})", e.fields.join(", ")), t.text_tertiary));
+            // Cycle 39 (FIX39b-1): the fields in words, a content hash left out (`field_words`).
+            let fields = ew_viewmodel::preview::field_words(&e.fields);
+            if !fields.is_empty() {
+                r.push((format!(" ({})", fields.join(", ")), t.text_tertiary));
             }
             r
         })
@@ -186,17 +188,19 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
     ui.add_space(t.space_2);
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_2;
+        // Cycle 39 (FIX39b-1): the first enabled choice is the Primary button: Use the project's copy when it is
+        // enabled (it changes no library copy and is one undo step), else Update the project's copy.
+        let primary = if c.adapt.is_none() { "adapt" } else { "update" };
         for (word, key, reason) in [
             ("adapt", "paste-adapt", c.adapt),
             ("update", "paste-update", c.update),
         ] {
-            let response = components::button(
-                ui,
-                components::Kind::Secondary,
-                strings::text(key),
-                reason.is_none(),
-                0.0,
-            );
+            let kind = if word == primary && reason.is_none() {
+                components::Kind::Primary
+            } else {
+                components::Kind::Secondary
+            };
+            let response = components::button(ui, kind, strings::text(key), reason.is_none(), 0.0);
             let response = match reason {
                 Some(r) => response.disabled_tip(strings::text(r)),
                 None => response,
@@ -300,14 +304,23 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             ui.add_space(pad);
             ui.spacing_mut().item_spacing.x = t.space_3;
             let command = strings::command_title(&card.preview.name);
-            let title = strings::format("preview-title", &[command]);
+            // Cycle 39 (FIX39b-1): a question card (the paste choice) previews nothing: its head is the command alone,
+            // with no "Preview:" and no revision.
+            let title = if choice {
+                command.to_owned()
+            } else {
+                strings::format("preview-title", &[command])
+            };
             let response = ui.label(
                 RichText::new(&title)
                     .font(theme::font(&t.type_body_strong))
                     .color(t.text_primary.color32()),
             );
-            let mut header =
-                strings::format("preview-header", &[command, &card.preview.base_rev.to_string()]);
+            let mut header = if choice {
+                title.clone()
+            } else {
+                strings::format("preview-header", &[command, &card.preview.base_rev.to_string()])
+            };
             if status == CardStatus::Stale {
                 header.push_str(&format!(" [{}]", strings::text("preview-stale")));
             }
@@ -315,14 +328,16 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 n.set_live(egui::accesskit::Live::Polite);
                 n.set_value(header);
             });
-            ui.label(
-                RichText::new(strings::format(
-                    "card-as-of",
-                    &[&card.preview.base_rev.to_string()],
-                ))
-                .font(theme::font(&t.type_small))
-                .color(t.text_tertiary.color32()),
-            );
+            if !choice {
+                ui.label(
+                    RichText::new(strings::format(
+                        "card-as-of",
+                        &[&card.preview.base_rev.to_string()],
+                    ))
+                    .font(theme::font(&t.type_small))
+                    .color(t.text_tertiary.color32()),
+                );
+            }
             match &status {
                 CardStatus::Stale => {
                     components::status_badge(ui, components::Badge::Stale);
@@ -336,6 +351,21 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 ui.add_space(pad);
+                // Cycle 39 (FIX39b-1): a question card's answers are its choices; the head keeps Cancel only, with
+                // no Apply that could never run.
+                if choice {
+                    let cancel = components::button(
+                        ui,
+                        components::Kind::Secondary,
+                        strings::text("card-cancel"),
+                        true,
+                        0.0,
+                    );
+                    if cancel.clicked() {
+                        events.push(Event::Action("preview.cancel", serde_json::json!({})));
+                    }
+                    return;
+                }
                 let blocked = card.preview.result.as_ref().err().map(String::as_str);
                 components::apply_cancel(
                     ui,

@@ -1983,6 +1983,15 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "reason-paste-versions" => {
             "The pasted records use another version of {0}; choose Use the project's copy or Update the project's copy"
         }
+        // Cycle 39 (FIX39b-1): the HUD's short prompt while the paste choice's cards are open.
+        "hud-paste-versions-one" => "Another version of {0} is in the project; choose in the card below",
+        "hud-paste-versions-many" => "Other versions of {0} are in the project; choose in the card below",
+        "hud-paste-update" => "Apply the update in the card below; the paste follows",
+        "preview-field-content" => "content",
+        // The change size of a paste choice's conflict row in words (the describe line keeps patch, minor, major).
+        "paste-class-patch" => "a data change",
+        "paste-class-minor" => "a compatible change",
+        "paste-class-major" => "a breaking change",
         "reason-paste-adapt-major" => "The versions differ in their connection points; update instead",
         "reason-paste-update-older" => "The pasted version is not newer than the project's",
         "card-paste-versions-title" => "The pasted records use other part versions",

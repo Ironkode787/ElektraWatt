@@ -285,9 +285,15 @@ impl PasteChoice {
         }
     }
 
-    /// The card's text of one conflict (`FX-MCB-1PN (Fixture): this project 1.1.0, pasted 1.0.0, patch`).
+    /// The card's text of one conflict (`FX-MCB-1PN (Fixture): this project 1.1.0, pasted 1.0.0, a data change`): the
+    /// change size in words (cycle 39, FIX39b-1), the describe line keeps the class word.
     pub fn conflict_text(c: &PasteConflict) -> String {
-        strings::format("paste-conflict", &[&c.title, &c.held, &c.pasted, c.class])
+        let size = match c.class {
+            "major" => strings::text("paste-class-major"),
+            "minor" => strings::text("paste-class-minor"),
+            _ => strings::text("paste-class-patch"),
+        };
+        strings::format("paste-conflict", &[&c.title, &c.held, &c.pasted, size])
     }
 }
 

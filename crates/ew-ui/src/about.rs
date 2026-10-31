@@ -254,7 +254,26 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
     let t = crate::theme::current(ui.ctx());
     let mut submit = false;
     let mut first = just_opened;
-    let label_width = t.size_dialog_label;
+    // Cycle 39 (FIX39b-1): the label column is at least `size.dialog.label` and grows to the widest label, up to half
+    // the body; a label wider still wraps, so a label is never cut ("Library (cannot be undone)").
+    let font = egui::TextStyle::Body.resolve(ui.style());
+    let widest = form
+        .fields
+        .iter()
+        .map(|f| {
+            ui.fonts_mut(|fonts| {
+                fonts
+                    .layout_no_wrap(
+                        strings::text(f.label_key).to_owned(),
+                        font.clone(),
+                        crate::theme::NONE,
+                    )
+                    .size()
+                    .x
+            })
+        })
+        .fold(0.0_f32, f32::max);
+    let label_width = form_label_width(t.size_dialog_label, widest.ceil(), ui.available_width());
     for f in &form.fields {
         let label_text = strings::text(f.label_key);
         ui.horizontal(|ui| {
@@ -265,7 +284,7 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
                     egui::Layout::left_to_right(egui::Align::Center),
                     |ui| {
                         ui.set_min_size(egui::vec2(label_width, t.size_control));
-                        ui.add(egui::Label::new(label_text).truncate())
+                        ui.add(egui::Label::new(label_text).wrap())
                     },
                 )
                 .inner;
@@ -322,6 +341,12 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
         ui.colored_label(t.error.color32(), error);
     }
     submit
+}
+
+/// The width of a form's label column: `floor` (`size.dialog.label`), grown to the `widest` label, at most half of
+/// the `body` (a label wider still wraps).
+fn form_label_width(floor: f32, widest: f32, body: f32) -> f32 {
+    widest.min(body / 2.0).max(floor)
 }
 
 /// One block of the notices text: an underlined heading, or the text up to the next heading.
@@ -405,7 +430,19 @@ pub(crate) fn reflow(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{NoticeBlock, notice_blocks, reflow};
+    use super::{NoticeBlock, form_label_width, notice_blocks, reflow};
+
+    /// Cycle 39 (FIX39b-1): the label column grows to its widest label, keeps its floor, stops at half the body.
+    #[test]
+    fn form_label_column_fits_its_widest_label() {
+        assert_eq!(form_label_width(120.0, 80.0, 400.0), 120.0, "the floor");
+        assert_eq!(form_label_width(120.0, 170.0, 400.0), 170.0, "the widest label");
+        assert_eq!(
+            form_label_width(120.0, 260.0, 400.0),
+            200.0,
+            "half the body; the label wraps"
+        );
+    }
 
     /// FT-559: no SPDX header line and no underline rule reaches the dialog; the underlined lines are headings.
     #[test]

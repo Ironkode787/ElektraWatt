@@ -337,6 +337,28 @@ fn fx38b_a_name_that_gives_no_key_is_refused_before_any_write() {
     assert_ne!(listing(&t.user), before, "a typed key saves the macro");
 }
 
+/// Cycle 39 (FIX39b-1, item 8): a refused save keeps the typed name in the dialog's Name field, with the reason under
+/// the fields (the window check's empty field came from a script step that passed the name as a parameter, not
+/// through the field).
+#[test]
+fn a_refused_save_keeps_the_typed_name() {
+    let tmp = Tmp::new("macros-keepname");
+    let (t, _) = user_library(&tmp.0);
+    let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
+    let ids = psu_ids(&shell, false);
+    done(&mut shell, "select.set", json!({ "ids": ids }));
+    done(&mut shell, "macros.save", json!({}));
+    shell.set_form_field("name", "--");
+    shell.set_form_field("library", "Mine");
+    assert!(matches!(shell.submit_form(), Outcome::Refused { .. }));
+    let Some(Dialog::Form(form)) = shell.dialog() else {
+        panic!("the dialog stays open");
+    };
+    let name = form.fields.iter().find(|f| f.name == "name").unwrap();
+    assert_eq!(name.value, "--", "the name stays");
+    assert!(form.error.is_some(), "the reason under the fields");
+}
+
 /// FX38b: Save with an empty library field and no writable library installed says so, not "no library called \"\"".
 #[test]
 fn fx38b_save_without_a_writable_library_names_the_reason() {
@@ -735,6 +757,8 @@ fn ft754b_save_as_macro_takes_kind_insertion_point_and_marked_pages() {
     );
     let d = detail_of(&mut shell, "Power supply page");
     assert_eq!(d.kind, "Page");
+    // Cycle 39 (FIX39b-1): the detail carries the macro's key, which the window shows after the kind.
+    assert_eq!(d.key, "power-supply-page");
     assert!(d.devices.iter().any(|x| x.starts_with("-G")), "{:?}", d.devices);
     // Folios by name.
     done(

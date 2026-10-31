@@ -719,7 +719,11 @@ pub fn hud(model: &ShellModel) -> HudModel {
     };
     // FT-751: a tool's refusal stands in the HUD in place of its prompt, also over a ghost (the stacked twin's
     // "An identical symbol already stands here"), until the next canvas input ends it.
-    let prompt = model.tool_notice().map_or(prompt, str::to_owned);
+    // Cycle 39 (FIX39b-1): an open paste choice card's prompt stands in place of the tool's, following the card.
+    let prompt = match model.tool_notice() {
+        Some(notice) => notice.to_owned(),
+        None => model.card_prompt().unwrap_or(prompt),
+    };
     HudModel {
         tool: action,
         tool_label: tools::tool_label(name),

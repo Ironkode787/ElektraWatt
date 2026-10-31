@@ -217,7 +217,8 @@ fn golden_b(mode: Mode) {
     done(&mut shell, "preview.apply", json!({}));
     assert_eq!(history_cursor(&mut shell), cursor + 1, "one transaction");
     assert!(shell.properties().card().is_none());
-    assert_eq!(preview_section(&shell), ["preview none"]);
+    // Cycle 39 (FIX39b-1): the tab the card opened closes with it.
+    assert!(preview_section(&shell).is_empty() && !shell.preview_shown());
     done(&mut shell, "file.save", json!({}));
     assert_ne!(snapshot(&dir), before_b1);
     done(&mut shell, "edit.undo", json!({}));
@@ -421,7 +422,9 @@ fn pv3_every_origin_opens_the_tab_and_closing_it_cancels() {
     assert!(!preview_section(&shell).iter().any(|l| l.starts_with("  more ")));
     assert_eq!(preview_section(&shell).last().unwrap(), "  page \"206\"");
     done(&mut shell, "preview.cancel", json!({}));
-    assert_eq!(preview_section(&shell), ["preview none"], "the tab stays");
+    // Cycle 39 (FIX39b-1): the card opened the tab, so the tab closes with it.
+    assert!(!shell.preview_shown(), "the tab the card opened closes");
+    assert!(preview_section(&shell).is_empty());
     done(&mut shell, "find.close", json!({}));
     // Reorder: the Pages navigator's card.
     done(
@@ -468,6 +471,45 @@ fn pv3_every_origin_opens_the_tab_and_closing_it_cancels() {
     let section = preview_section(&s);
     assert!(section[1].ends_with(" created 29 skipped 0"), "{section:#?}");
     s.shutdown();
+}
+
+/// Cycle 39 (FIX39b-1): the Preview tab a card opened closes when the card is applied or cancelled; a tab the user
+/// opened by hand before the card stays, showing `preview none`.
+#[test]
+fn the_tab_a_card_opened_closes_with_the_card() {
+    let tmp = Tmp::new("pv-close");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    // Selected once: the selection survives an Apply, whose tags change with the counter.
+    done(
+        &mut shell,
+        "select.set",
+        json!({"refs": ["tag:-101F1", "tag:-102F1"]}),
+    );
+    let card = |shell: &mut ShellModel, value: &str| {
+        done(
+            shell,
+            "props.set",
+            json!({"row": "device/tag.counter", "value": value}),
+        );
+        assert!(shell.properties().card().is_some() && shell.preview_shown());
+    };
+    assert!(!shell.preview_shown());
+    // Apply: the tab the card opened closes.
+    card(&mut shell, "9");
+    done(&mut shell, "preview.apply", json!({}));
+    assert!(shell.properties().card().is_none());
+    assert!(!shell.preview_shown(), "Apply closes the tab the card opened");
+    // Cancel: the same.
+    card(&mut shell, "8");
+    done(&mut shell, "preview.cancel", json!({}));
+    assert!(!shell.preview_shown(), "Cancel closes the tab the card opened");
+    // Opened by hand: the tab stays and says no preview is open.
+    done(&mut shell, "preview.show", json!({"on": true}));
+    card(&mut shell, "7");
+    done(&mut shell, "preview.apply", json!({}));
+    assert!(shell.preview_shown(), "a tab opened by hand stays");
+    assert_eq!(preview_section(&shell), ["preview none"]);
+    shell.shutdown();
 }
 
 /// The selection as alias-free entity UUID texts.

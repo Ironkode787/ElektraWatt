@@ -319,6 +319,9 @@ pub struct MacroDetail {
     pub description: String,
     /// The kind in words (`Window`, `Page`).
     pub kind: &'static str,
+    /// The macro's key (`motor-start`), empty without one: secondary text after the kind, as the Libraries navigator's
+    /// copy detail shows it (cycle 39).
+    pub key: String,
     /// The version (`1.2.0`).
     pub version: String,
     /// The library's name, or "In this project" for a copy only the project holds.
@@ -347,6 +350,13 @@ impl MacroDetail {
             name: text(&c.item.name),
             description: text(&c.item.description),
             kind: macro_kind_word(&c.item.kind),
+            key: c
+                .item
+                .meta
+                .key
+                .as_ref()
+                .map(ToString::to_string)
+                .unwrap_or_default(),
             version: c.version.clone(),
             library,
             thumbnail: c.item.thumbnail,

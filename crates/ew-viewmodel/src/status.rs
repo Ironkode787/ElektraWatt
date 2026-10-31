@@ -102,7 +102,9 @@ fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
         },
         None => match model.tool_notice() {
             Some(notice) => notice.to_owned(),
-            None => model.tool_hint().to_owned(),
+            None => model
+                .card_prompt()
+                .unwrap_or_else(|| model.tool_hint().to_owned()),
         },
     }
 }

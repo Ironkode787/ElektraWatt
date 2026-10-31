@@ -6,7 +6,8 @@
 //!
 //! **The Preview tab.** [`ShellModel::sync_preview`] runs at the end of every dispatch and after the window changed the
 //! layout: a new card (by [`crate::preview::card_key`]) fetches its lists once (`Session::preview_entities`, counted) and
-//! shows the tab; a card whose tab was closed is cancelled. The card itself stays the property grid's state and its
+//! shows the tab; a card whose tab was closed is cancelled; when the last card is applied or cancelled, a tab the cards
+//! opened closes and a tab the user opened by hand stays. The card itself stays the property grid's state and its
 //! `card` describe line is unchanged.
 //!
 //! **The renumber dialogs** build `page.renumber` and `numbering.renumber` with explicit values (UUIDs, never
@@ -137,10 +138,16 @@ impl ShellModel {
     }
 
     /// The Preview tab follows the card (module documentation): a new card fetches its lists and shows the tab; a card
-    /// whose tab was closed is cancelled; no card forgets the lists.
+    /// whose tab was closed is cancelled; no card forgets the lists and, when the card chain opened the tab, closes it
+    /// (a tab the user opened by hand stays; a fitted, untouched view refits to the freed space, ID-904).
     pub(super) fn sync_preview(&mut self) {
         let Some(key) = self.props.card().map(card_key) else {
+            let close = self.preview.key.is_some() && self.preview.opened_by_card;
             self.preview.clear();
+            if close && self.preview_shown() {
+                let layout = self.layout.without(PaneKind::Preview);
+                self.replace_layout(layout);
+            }
             return;
         };
         if self.preview.key.as_ref() == Some(&key) {
@@ -151,8 +158,15 @@ impl ShellModel {
             }
             return;
         }
+        // A card following another (a paste choice's update card) keeps who opened the tab.
+        let opened_by_card = if self.preview.key.is_some() {
+            self.preview.opened_by_card
+        } else {
+            !self.preview_shown()
+        };
         self.fetch_preview_lists();
         self.preview.key = Some(key);
+        self.preview.opened_by_card = opened_by_card;
         let layout = self
             .layout
             .with_bottom(PaneKind::Preview)

@@ -70,7 +70,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
         + measure(&h.tool_label, theme::font(&small_strong(&t))).x
         + t.space_3;
     let prompt_size = measure(&h.prompt, theme::font(&t.type_small));
-    let width = t.space_2
+    let natural = t.space_2
         + tool_w
         + h.quick.len() as f32 * (t.space_1 + t.size_control)
         + 2.0 * t.space_1
@@ -78,6 +78,12 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
         + t.space_icon
         + prompt_size.x
         + t.space_4;
+    // Cycle 39 (FIX39b-1): the HUD never runs under the zoom column; past its room the prompt wraps onto a second
+    // line within the pill's height and only then elides, whole in the HUD's accessible value and in a tooltip on the
+    // prompt. The room grows with the page view (no fixed cap).
+    let width = natural.min(max_width(&t, pane)).max(natural - prompt_size.x);
+    let prompt_room = prompt_size.x - (natural - width);
+    let elided = width < natural;
     let lower = hud_rect(&t, pane, width, false);
     let raised = ctx
         .pointer_hover_pos()
@@ -173,15 +179,53 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
                     );
                     x += t.border_width + t.space_1 + t.space_icon;
                     let colour = t.text_on_inverse.color32().gamma_multiply(PROMPT_OPACITY);
-                    let galley =
-                        ui.painter()
-                            .layout_no_wrap(h.prompt.clone(), theme::font(&t.type_small), colour);
-                    ui.painter()
-                        .galley(pos2(x, cy - galley.size().y / 2.0), galley, colour);
+                    let galley = prompt_galley(ui, &t, &h.prompt, prompt_room, elided, colour);
+                    let at = pos2(x, cy - galley.size().y / 2.0);
+                    let frame = Rect::from_min_size(at, galley.size());
+                    let galley_cut = galley.elided;
+                    ui.painter().galley(at, galley, colour);
+                    if galley_cut {
+                        let response = ui.interact(frame, Id::unique("hud-prompt"), Sense::hover());
+                        crate::components::show_tip(
+                            ui.ctx(),
+                            egui::containers::Tooltip::for_enabled(&response),
+                            &h.prompt,
+                        );
+                    }
                 },
             );
         });
     rect
+}
+
+/// The widest the HUD may be in the page view `pane`: centred, it keeps clear of the zoom column at the right (and
+/// as much at the left), with `space.2` between them (cycle 39, FIX39b-1).
+pub(crate) fn max_width(t: &Tokens, pane: Rect) -> f32 {
+    (pane.width() - 2.0 * (t.space_4 + t.size_control + t.space_2)).max(0.0)
+}
+
+/// The most lines the HUD's prompt takes: two `type.small` lines stand within the pill's height.
+const PROMPT_LINES: usize = 2;
+
+/// The HUD's prompt: on one line when it fits, else wrapped at `room` points onto at most [`PROMPT_LINES`] lines,
+/// the last ending in "…" when it is still longer.
+fn prompt_galley(
+    ui: &Ui,
+    t: &Tokens,
+    prompt: &str,
+    room: f32,
+    wrap: bool,
+    colour: egui::Color32,
+) -> std::sync::Arc<egui::Galley> {
+    let mut job =
+        egui::text::LayoutJob::simple_singleline(prompt.to_owned(), theme::font(&t.type_small), colour);
+    if !wrap {
+        return ui.fonts_mut(|f| f.layout_job(job));
+    }
+    job.wrap.max_width = room.max(0.0);
+    job.wrap.max_rows = PROMPT_LINES;
+    job.wrap.overflow_character = Some('…');
+    ui.fonts_mut(|f| f.layout_job(job))
 }
 
 /// A quick tool of the HUD: a 28-px icon pill named by its label.
@@ -271,4 +315,35 @@ pub(crate) fn show_zoom(ctx: &egui::Context, shell: &ShellModel, pane: Rect, eve
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use egui::{Rect, pos2};
+
+    use super::{hud_rect, max_width, zoom_rect};
+    use crate::theme::{self, Density};
+
+    /// Cycle 39 (FIX39b-1): the widest HUD stays clear of the zoom column at any page view width; the room grows
+    /// with the page view (no cap chosen for the floor).
+    #[test]
+    fn the_widest_hud_keeps_clear_of_the_zoom_column() {
+        let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
+        for width in [600.0, 1000.0, 1600.0] {
+            let pane = Rect::from_min_max(pos2(100.0, 50.0), pos2(100.0 + width, 750.0));
+            let hud = hud_rect(&t, pane, max_width(&t, pane), false);
+            let zoom = zoom_rect(&t, pane);
+            assert!(
+                hud.right() + t.space_2 <= zoom.left() + 0.01,
+                "{width}: {hud:?} {zoom:?}"
+            );
+            assert!(hud.left() >= pane.left(), "{width}");
+        }
+        let narrow = Rect::from_min_max(pos2(0.0, 0.0), pos2(800.0, 600.0));
+        let wide = Rect::from_min_max(pos2(0.0, 0.0), pos2(1600.0, 600.0));
+        assert!(
+            max_width(&t, wide) - max_width(&t, narrow) >= 799.0,
+            "the room grows with the pane"
+        );
+    }
 }

@@ -46,13 +46,16 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut 
         }
         NavKind::Macros => {
             if let Some(detail) = shell.macro_detail() {
+                let room = ui.available_height();
                 let t = components::tokens(ui);
                 let frame = egui::Frame::new()
                     .inner_margin(egui::Margin::symmetric(t.space_4 as i8, t.space_2 as i8));
                 egui::Panel::bottom(ui.scope_id().with("macro-detail"))
                     .resizable(false)
                     .frame(frame)
-                    .show(ui, |ui| macro_detail(ui, detail, shell.macro_thumbnail(), events));
+                    .show(ui, |ui| {
+                        macro_detail(ui, detail, shell.macro_thumbnail(), room, events)
+                    });
             }
         }
         _ => {}
@@ -230,6 +233,7 @@ fn macro_detail(
     ui: &mut Ui,
     d: &ew_viewmodel::ew_api::output::MacroDetail,
     thumbnail: Option<&MacroThumbnail>,
+    room: f32,
     events: &mut Vec<Event>,
 ) {
     let t = components::tokens(ui);
@@ -250,7 +254,15 @@ fn macro_detail(
                 .wrap(),
             );
         };
-        line(ui, &d.name, &t.type_body_strong, t.text_primary);
+        // Cycle 39 (FIX39b-1): the key follows the name as secondary text (the Libraries navigator's copy detail
+        // shows name, kind and key); on the name's row, so the block keeps its height and its Insert button.
+        ui.horizontal_wrapped(|ui| {
+            ui.spacing_mut().item_spacing.x = t.space_2;
+            line(ui, &d.name, &t.type_body_strong, t.text_primary);
+            if !d.key.is_empty() {
+                line(ui, &d.key, &t.type_small, t.text_secondary);
+            }
+        });
         line(
             ui,
             &strings::format("macro-version", &[&d.version, &d.library]),
@@ -260,32 +272,39 @@ fn macro_detail(
         if !d.description.is_empty() {
             line(ui, &d.description, &t.type_small, t.text_primary);
         }
-        // §11: the thumbnail, or "No preview".
-        if !thumbnail.is_some_and(|th| thumbnail_ui(ui, d, th)) {
-            line(
-                ui,
-                strings::text("macro-no-preview"),
-                &t.type_small,
-                t.text_tertiary,
-            );
-        }
-        for (title, items) in [
-            (strings::text("macro-devices"), &d.devices),
-            (strings::text("macro-variables"), &d.variables),
-        ] {
-            if items.is_empty() {
-                continue;
-            }
-            line(
-                ui,
-                &format!("{title} ({})", items.len()),
-                &t.type_small,
-                t.text_secondary,
-            );
-            for item in items {
-                line(ui, item, &t.type_small, t.text_primary);
-            }
-        }
+        // Cycle 39 (FIX39b-1): the thumbnail and the lists scroll within half the navigator's room, so a long macro
+        // never pushes the Insert button out of the pane (at any window size; the room is the pane's).
+        egui::ScrollArea::vertical()
+            .id_salt("macro-detail-lists")
+            .max_height((room / 2.0).max(4.0 * t.size_control))
+            .show(ui, |ui| {
+                // §11: the thumbnail, or "No preview".
+                if !thumbnail.is_some_and(|th| thumbnail_ui(ui, d, th)) {
+                    line(
+                        ui,
+                        strings::text("macro-no-preview"),
+                        &t.type_small,
+                        t.text_tertiary,
+                    );
+                }
+                for (title, items) in [
+                    (strings::text("macro-devices"), &d.devices),
+                    (strings::text("macro-variables"), &d.variables),
+                ] {
+                    if items.is_empty() {
+                        continue;
+                    }
+                    line(
+                        ui,
+                        &format!("{title} ({})", items.len()),
+                        &t.type_small,
+                        t.text_secondary,
+                    );
+                    for item in items {
+                        line(ui, item, &t.type_small, t.text_primary);
+                    }
+                }
+            });
         if d.reference.is_some() {
             ui.add_space(t.space_1);
             if components::button(

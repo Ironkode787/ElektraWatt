@@ -77,7 +77,10 @@ fn pv2_renumber_devices_through_the_dialog_and_the_preview_tab() {
     settle(&mut h);
     assert!(h.state().shell().properties().card().is_none());
     assert!(h.state().shell().can_undo() || before);
-    assert!(has_text(&h, "No preview is open"));
+    // Cycle 39 (FIX39b-1): the tab the card opened closes with it; no empty tab takes the canvas's height.
+    assert!(!h.state().shell().preview_shown());
+    assert!(!group_named(&h, "Preview"), "the Preview tab closed");
+    assert!(!has_text(&h, "No preview is open"));
     h.state_mut().shell_mut().shutdown();
 }
 
