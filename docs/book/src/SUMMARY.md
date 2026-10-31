@@ -106,6 +106,7 @@
     - [EW-BUS](reference/rules/ew-bus.md)
     - [EW-CORE](reference/rules/ew-core.md)
     - [EW-IEC81346](reference/rules/ew-iec81346.md)
+    - [EW-LAYOUT](reference/rules/ew-layout.md)
     - [EW-PLC](reference/rules/ew-plc.md)
     - [EW-POT](reference/rules/ew-pot.md)
     - [EW-REL](reference/rules/ew-rel.md)

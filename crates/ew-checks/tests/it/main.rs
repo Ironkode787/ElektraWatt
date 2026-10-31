@@ -11,6 +11,7 @@ mod confidence;
 mod core;
 mod core_part3;
 mod core_part4;
+mod layout;
 mod messages;
 mod num;
 mod plc;

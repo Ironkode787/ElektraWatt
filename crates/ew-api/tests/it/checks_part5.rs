@@ -18,8 +18,17 @@ use ew_api::{AnyCommand, CmdError, Origin, Recovery, Session, SessionOptions, Su
 use ew_store::StoreOptions;
 
 /// The built packs of AC-21's subset (doc 15 §4): WP-S1.16's EW-CORE, EW-IEC81346 (EW-RDS and EW-NUM), EW-TERM and
-/// EW-POT, WP-S1.21 part 3's EW-PLC (EF-02 joins the subset) and part 4's EW-BUS (EF-03 and EF-16 join it, D12).
-const FOUR_PACKS: [&str; 6] = ["EW-CORE", "EW-IEC81346", "EW-TERM", "EW-POT", "EW-PLC", "EW-BUS"];
+/// EW-POT, WP-S1.21 part 3's EW-PLC (EF-02 joins the subset), part 4's EW-BUS (EF-03 and EF-16 join it, D12) and
+/// WP-S4.01 part 5's EW-LAYOUT (EF-05 joins it; LC-7, the orchestrator's ruling 3: "AC-21's subset admits EW-LAYOUT").
+const FOUR_PACKS: [&str; 7] = [
+    "EW-CORE",
+    "EW-IEC81346",
+    "EW-TERM",
+    "EW-POT",
+    "EW-PLC",
+    "EW-BUS",
+    "EW-LAYOUT",
+];
 
 /// The findings of the four packs that doc 20 §18.1 does not list, each with the follow-up that removes it (FT-638): the
 /// process valves are supplied by others and exempt once `supply_scope` exists (FT-209, WP-S7.01; decision log ID-322).
@@ -327,11 +336,7 @@ fn ac21_four_pack_subset_equals_findings_mvp_csv() {
     }
     assert_eq!(
         pending,
-        [
-            "EF-05 EW-LAY-001 (WP-S4.01)",
-            "EF-13 EW-FL-001 (WP-S1.20)",
-            "EF-14 EW-FL-004 (WP-S1.20)",
-        ]
+        ["EF-13 EW-FL-001 (WP-S1.20)", "EF-14 EW-FL-004 (WP-S1.20)"]
     );
     // The rule system is quiet (EW-CORE-083, -084 run and report nothing).
     for system in ["EW-CORE-083", "EW-CORE-084"] {

@@ -1217,6 +1217,240 @@
       "waivable": false
     },
     {
+      "code": "130001",
+      "id": "EW-LAY-001",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-LAYOUT",
+      "release": "MVP",
+      "release_severity": "error",
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Unplaced device",
+      "waivable": true
+    },
+    {
+      "code": "130003",
+      "id": "EW-LAY-003",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-LAYOUT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Part use not on the device",
+      "waivable": true
+    },
+    {
+      "code": "130004",
+      "id": "EW-LAY-004",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-LAYOUT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Location mismatch",
+      "waivable": true
+    },
+    {
+      "code": "130006",
+      "id": "EW-LAY-006",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-LAYOUT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Collision",
+      "waivable": true
+    },
+    {
+      "code": "130010",
+      "id": "EW-LAY-010",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-LAYOUT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Carrier incompatible",
+      "waivable": true
+    },
+    {
+      "code": "130016",
+      "id": "EW-LAY-016",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-LAYOUT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Assembly order",
+      "waivable": true
+    },
+    {
       "code": "017101",
       "id": "EW-NUM-001",
       "kind": "hygiene",

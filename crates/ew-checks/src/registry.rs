@@ -40,6 +40,12 @@ static RULES: &[&dyn Rule] = &[
     &shipped::core::WaiverMatchesNothing,
     &shipped::system::RuleNotEvaluated,
     &shipped::system::PackNotEvaluated,
+    &shipped::layout::UnplacedDevice,
+    &shipped::layout::PartNotOnDevice,
+    &shipped::layout::LocationMismatch,
+    &shipped::layout::Collision,
+    &shipped::layout::CarrierIncompatible,
+    &shipped::layout::AssemblyOrder,
     &shipped::num::TagDeviates,
     &shipped::num::FrozenValueDeviates,
     &shipped::plc::AddressOverlap,
@@ -106,6 +112,7 @@ mod tests {
         ("NUM", "EW-IEC81346", 100),
         ("CORE", "EW-CORE", 0),
         ("REL", "EW-REL", 0),
+        ("LAY", "EW-LAYOUT", 0),
     ];
 
     /// The class of an EW-CORE number block (doc 15 §2.2).
@@ -130,6 +137,7 @@ mod tests {
             "RDS" | "NUM" => "017",
             "CORE" => core_class(n),
             "REL" => "190",
+            "LAY" => "130",
             _ => "???",
         }
     }

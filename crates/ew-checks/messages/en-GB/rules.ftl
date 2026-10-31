@@ -126,6 +126,66 @@ rule-ew-core-084 =
     .title = Rule pack not evaluated
     .hint = Restore the pack's data file or trust the project, so that the pack can run.
 
+## EW-LAYOUT: panel layout (at the project scope until space and surface scope kinds exist)
+
+rule-ew-lay-001 = { $device } is not placed in the layout of { $location }; place it on a rail or on the mounting plate
+    .title = Unplaced device
+    .hint = Place the device on a rail or on the mounting plate of its location's layout.
+
+rule-ew-lay-003 = the placement of { $device } realises part { $part }, which the device no longer uses; place the device with one of its parts, or give it the part back
+    .title = Part use not on the device
+    .hint = Place the device again with one of its parts, or give it back the part its placement realises.
+
+rule-ew-lay-004 = { $device } { $location ->
+        [none] has no location
+       *[other] is in { $location }
+    } but is placed in the layout of { $space }; move it to the layout of its location, or correct its location
+    .title = Location mismatch
+    .hint = Move the device to the layout of its own location, or correct its location.
+
+rule-ew-lay-006 = { $form ->
+        [placements] { $device } overlaps { $other }; move one of them
+        [duct] { $device } overlaps the duct at { $duct }; move the device or the duct
+       *[rail] the rail at { $rail } overlaps the duct at { $duct }; move the rail or the duct
+    }
+    .title = Collision
+    .hint = Move one of the overlapping objects until their footprints no longer overlap.
+
+rule-ew-lay-010 = { $form ->
+        [on_duct] { $device } is placed on the duct at { $duct }, which carries no devices; place it on a rail
+        [off_rail] { $device } is placed at { $s } mm on the rail at { $rail }, outside its 0.0 to { $length } mm; move it onto the rail
+        [rail_turn] { $device } is turned on the rail at { $rail } by an angle other than 0° or 180°; turn it back
+        [off_axis] { $device } is placed beside the axis of the rail at { $rail }; move it onto the rail
+        [profile] { $device } (part { $part }) does not fit the rail at { $rail } ({ $profile }); place it on a rail it fits
+        [surface_turn] { $device } is turned on the mounting plate by an angle other than a multiple of 90°; turn it back
+        [off_surface] { $device } is placed off the plane of the mounting plate; place it on the plate
+        [surface] { $device } (part { $part }) does not mount on the plate itself; place it on a rail
+        [overflow] { $device } occupies { $from } to { $to } mm on the rail at { $rail }, beyond its 0.0 to { $length } mm; shorten it or move it
+        [outside] { $device } lies outside the usable area of the mounting plate; move it inside
+        [path] the path of the { $carrier ->
+            [rail] rail at { $at } is not two points on one horizontal or vertical line
+            [duct] duct at { $at } is not a line of horizontal and vertical segments
+           *[other] carrier at { $at } is not a line of horizontal and vertical segments
+        }; edit its path
+        [carrier_outside] the { $carrier ->
+            [rail] rail
+            [duct] duct
+           *[other] carrier
+        } at { $at } lies outside the usable area of the mounting plate; move it inside
+        [spaces] { $location } has a second layout space; a location has one layout space; remove it
+        [enclosures] the layout of { $location } has a second enclosure, { $enclosure }; a layout space has one enclosure; remove it
+       *[plates] the enclosure { $enclosure } has a second mounting plate; an enclosure has one mounting plate; remove it
+    }
+    .title = Carrier incompatible
+    .hint = Place the device on a carrier it fits, within the carrier and the usable area of the plate.
+
+rule-ew-lay-016 = { $form ->
+        [order] the members of { $assembly } on the rail at { $rail } are out of order: { $early } belongs before { $late }; place the parent first, then the members by position
+       *[between] { $other } is placed between members of { $assembly } on the rail at { $rail }; keep the members together
+    }
+    .title = Assembly order
+    .hint = Place the assembly's parent first and its members next to it, in the order of their positions.
+
 ## EW-NUM: numbering
 
 rule-ew-num-001 = { $frozen }: frozen, deviates from scheme (rule-derived value { $derived })

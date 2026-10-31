@@ -9,6 +9,8 @@ pub mod bus;
 pub mod cable;
 pub mod core;
 pub mod device;
+// WP-S4.01 part 5: the EW-LAYOUT MVP rules
+pub mod layout;
 pub mod num;
 pub mod page;
 pub mod plc;
