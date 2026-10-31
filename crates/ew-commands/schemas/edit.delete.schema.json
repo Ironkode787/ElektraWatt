@@ -119,6 +119,31 @@
           "const": "physical_net",
           "description": "`physical_net` (WP-S1.21 D11).",
           "type": "string"
+        },
+        {
+          "const": "layout_space",
+          "description": "`layout_space` (WP-S4.02 D7, FT-837): `edit.delete` only.",
+          "type": "string"
+        },
+        {
+          "const": "enclosure",
+          "description": "`enclosure` (WP-S4.02 D7, FT-837): `edit.delete` only.",
+          "type": "string"
+        },
+        {
+          "const": "mounting_surface",
+          "description": "`mounting_surface` (WP-S4.02 D7, FT-837): `edit.delete` only.",
+          "type": "string"
+        },
+        {
+          "const": "carrier",
+          "description": "`carrier` (WP-S4.02 D7, FT-837): `edit.delete` only.",
+          "type": "string"
+        },
+        {
+          "const": "placement",
+          "description": "`placement` (WP-S4.02 D7, FT-837): `edit.delete` only.",
+          "type": "string"
         }
       ]
     },
@@ -144,7 +169,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`edit.delete`: removes the selected records with everything the delete policies take along\n(FR-DEV-030), in **one** delete plan for all targets (`TxBuilder::delete_many`): the result does not\ndepend on the order of the targets, a target that another target's cascade removes is planned once,\nand a target listed twice counts once. Deleting a representation leaves its function unplaced (an IP\nfunction goes with it); deleting a device removes its functions, their representations and\nconnections. A target that does not exist at the start is `NotFound`; a forbid link (a strip with\nterminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:\n`Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by\n`cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at\n`/targets/<i>`; the open revision may be deleted. A deleted page takes the open revision's note on it along\n(FT-303, WP-S1.18 D5). Outcome: none.",
+  "description": "`edit.delete`: removes the selected records with everything the delete policies take along\n(FR-DEV-030), in **one** delete plan for all targets (`TxBuilder::delete_many`): the result does not\ndepend on the order of the targets, a target that another target's cascade removes is planned once,\nand a target listed twice counts once. Deleting a representation leaves its function unplaced (an IP\nfunction goes with it); deleting a device removes its functions, their representations and\nconnections. A target that does not exist at the start is `NotFound`; a forbid link (a strip with\nterminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:\n`Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by\n`cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at\n`/targets/<i>`; the open revision may be deleted. A deleted page takes the open revision's note on it along\n(FT-303, WP-S1.18 D5).\n\nThe layout kinds (WP-S4.02 D7, FT-837: `layout_space`, `enclosure`, `mounting_surface`, `carrier`, `placement`)\ndelete with the model's cascades as `layout.*.delete` do, after four checks on the selection (ruling 6): a plate\nsurface without its enclosure is refused; a plan that removes the device of an enclosure is refused; a carrier left\nholding a placement the same delete does not remove is refused (`layout.carrier.delete` with `then` empties it),\nthe first in `carrier_labels` order; a surface left holding placements of its own likewise. Outcome: none.",
   "properties": {
     "targets": {
       "description": "The selected records, at least one.",

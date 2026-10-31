@@ -10,9 +10,13 @@ by another placement's push, swap and auto-fill, doc 12 §2.3). With `mode` on a
 off the rail and resolved as `layout.place` resolves a device (WP-S4.02 D5); `swap` exchanges it with the placement
 under its centre on the same rail, the segment between them re-laid with every gap kept where it still meets the
 new minimum gap. Push and swap of a locked placement are refused ("Unlock F55 to push or swap it."), and never move
-another locked placement. Rejected: a placement, carrier or surface that does not exist (`/placement`, `/carrier`);
-an unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; D5's refusals of the mode.
-Interactive. Outcome: the placement.
+another locked placement. With `part` (WP-S4.02 D7) the placement realises that part use of its device instead
+(EW-LAY-003's quick fix "Realise the primary part"): checked as `layout.place` checks a part, its fit to a rail's
+profile checked when the part changes, and with `mode` the resolver reads the new part's extent; without `part`
+the realised part is unchanged. Rejected: a placement, carrier or surface that does not exist (`/placement`,
+`/carrier`); a part the device does not use (`/part`); a part that would give the device a second placement of one
+(device, part, function); an unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; D5's
+refusals of the mode. Interactive. Outcome: the placement.
 
 ## Registry entry
 
@@ -34,6 +38,7 @@ Interactive. Outcome: the placement.
 |---|---|---|---|---|
 | `carrier` | [`PlaceOnParam`](#placeonparam) or `null` | no |  | Another rail or surface; default the current one. |
 | `mode` | [`PlaceMode`](#placemode) or `null` | no |  | How the position is resolved on a rail: `free`, `push` or `swap` (WP-S4.02 D5); absent: the pose as given. |
+| `part` | [`CmdUuid`](#cmduuid) or `null` | no |  | The part copy of another part use of the device to realise (WP-S4.02 D7); absent: the realised part stays. |
 | `placement` | [`CmdUuid`](#cmduuid) | yes |  | The placement. |
 | `pose` | [`CmdPose3`](#cmdpose3) | yes |  | The new pose relative to the carrier; with `mode` on a rail, `t.x` is the intended clip point. |
 

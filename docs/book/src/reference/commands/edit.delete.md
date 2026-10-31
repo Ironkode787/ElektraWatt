@@ -12,7 +12,13 @@ terminals, a referenced structure node) rejects the whole command (`ModelError::
 `Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by
 `cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at
 `/targets/<i>`; the open revision may be deleted. A deleted page takes the open revision's note on it along
-(FT-303, WP-S1.18 D5). Outcome: none.
+(FT-303, WP-S1.18 D5).
+
+The layout kinds (WP-S4.02 D7, FT-837: `layout_space`, `enclosure`, `mounting_surface`, `carrier`, `placement`)
+delete with the model's cascades as `layout.*.delete` do, after four checks on the selection (ruling 6): a plate
+surface without its enclosure is refused; a plan that removes the device of an enclosure is refused; a carrier left
+holding a placement the same delete does not remove is refused (`layout.carrier.delete` with `then` empties it),
+the first in `carrier_labels` order; a surface left holding placements of its own likewise. Outcome: none.
 
 ## Registry entry
 
@@ -81,6 +87,11 @@ The record kinds a command may name generically (`edit.delete`, `fields.set`).
 | `"device_link"` | `device_link` (WP-S1.21 D6, FT-226). |
 | `"logical_net"` | `logical_net` (WP-S1.21 D11). |
 | `"physical_net"` | `physical_net` (WP-S1.21 D11). |
+| `"layout_space"` | `layout_space` (WP-S4.02 D7, FT-837): `edit.delete` only. |
+| `"enclosure"` | `enclosure` (WP-S4.02 D7, FT-837): `edit.delete` only. |
+| `"mounting_surface"` | `mounting_surface` (WP-S4.02 D7, FT-837): `edit.delete` only. |
+| `"carrier"` | `carrier` (WP-S4.02 D7, FT-837): `edit.delete` only. |
+| `"placement"` | `placement` (WP-S4.02 D7, FT-837): `edit.delete` only. |
 
 ## Exit codes
 

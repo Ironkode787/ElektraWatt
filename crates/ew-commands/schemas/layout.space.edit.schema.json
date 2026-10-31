@@ -1,0 +1,42 @@
+{
+  "$defs": {
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.space.edit` (`EditLayoutSpace`, FT-840): renames a layout space; `name: null` clears its name. Nothing else\nchanges. Rejected: a space that does not exist (`/space`); `name` absent (`/name`). Interactive. Outcome: the space.",
+  "properties": {
+    "name": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdIdent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The new display name; `null` clears it."
+    },
+    "space": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The layout space."
+    }
+  },
+  "required": [
+    "space"
+  ],
+  "title": "layout.space.edit",
+  "type": "object"
+}

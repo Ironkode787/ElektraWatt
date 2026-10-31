@@ -1,0 +1,30 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.surface.edit` (`EditSurface`, FT-840): sets whether a mounting surface (the plate) is bonded to protective\nearth. Nothing else changes. Rejected: a surface that does not exist (`/surface`). Interactive. Outcome: the surface.",
+  "properties": {
+    "pe_bond": {
+      "description": "Whether it is bonded to protective earth.",
+      "type": "boolean"
+    },
+    "surface": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The mounting surface."
+    }
+  },
+  "required": [
+    "surface",
+    "pe_bond"
+  ],
+  "title": "layout.surface.edit",
+  "type": "object"
+}

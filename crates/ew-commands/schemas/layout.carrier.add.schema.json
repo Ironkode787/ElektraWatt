@@ -174,8 +174,13 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`layout.carrier.add` (`AddCarrier`, D6): adds a rail or a duct to a mounting surface.\n\nThe path is in the surface frame (`u` right, `v` up) and axis-parallel (D5): a rail two points on one horizontal or\nvertical line, a duct an orthogonal polyline. A rail's profile comes from its part's rail section when it has one\n(a different `profile` is refused). Rejected: a surface or part copy that does not exist (`/surface`, `/part`);\nparameters of the other kind (`/params`); a profile that is not a rail profile, a duct length ≤ 0 (`/params/…`); a\npath of the wrong number of points, a segment without length or at another angle (`/path`). Interactive. Outcome:\nthe new carrier.",
+  "description": "`layout.carrier.add` (`AddCarrier`, D6): adds a rail or a duct to a mounting surface.\n\nThe path is in the surface frame (`u` right, `v` up) and axis-parallel (D5): a rail two points on one horizontal or\nvertical line, a duct an orthogonal polyline. A rail's profile comes from its part's rail section when it has one\n(a different `profile` is refused). Rejected: a surface or part copy that does not exist (`/surface`, `/part`);\nparameters of the other kind (`/params`); a profile that is not a rail profile, a duct length ≤ 0 (`/params/…`); a\npath of the wrong number of points, a segment without length or at another angle (`/path`). `copies` (WP-S4.02 D7,\nFT-656's pattern) embeds library documents first, in the same transaction, as `device.place` does (`/copies/i`), so\nthat a library rail or duct part can be used directly. Interactive. Outcome: the new carrier.",
   "properties": {
+    "copies": {
+      "description": "The library documents to embed first (`lib/` JSON form; WP-S4.02 D7): the part and its closure; empty when the\nproject holds them.",
+      "items": true,
+      "type": "array"
+    },
     "kind": {
       "$ref": "#/$defs/CarrierKindParam",
       "description": "`rail` or `duct`."

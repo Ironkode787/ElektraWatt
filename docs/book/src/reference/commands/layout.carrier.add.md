@@ -8,8 +8,9 @@ The path is in the surface frame (`u` right, `v` up) and axis-parallel (D5): a r
 vertical line, a duct an orthogonal polyline. A rail's profile comes from its part's rail section when it has one
 (a different `profile` is refused). Rejected: a surface or part copy that does not exist (`/surface`, `/part`);
 parameters of the other kind (`/params`); a profile that is not a rail profile, a duct length ≤ 0 (`/params/…`); a
-path of the wrong number of points, a segment without length or at another angle (`/path`). Interactive. Outcome:
-the new carrier.
+path of the wrong number of points, a segment without length or at another angle (`/path`). `copies` (WP-S4.02 D7,
+FT-656's pattern) embeds library documents first, in the same transaction, as `device.place` does (`/copies/i`), so
+that a library rail or duct part can be used directly. Interactive. Outcome: the new carrier.
 
 ## Registry entry
 
@@ -29,6 +30,7 @@ the new carrier.
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
+| `copies` | array of any JSON value | no |  | The library documents to embed first (`lib/` JSON form; WP-S4.02 D7): the part and its closure; empty when the project holds them. |
 | `kind` | [`CarrierKindParam`](#carrierkindparam) | yes |  | `rail` or `duct`. |
 | `params` | [`CarrierParamsParam`](#carrierparamsparam) | yes |  | The parameters of the kind. |
 | `part` | [`CmdUuid`](#cmduuid) or `null` | no |  | The carrier's part copy (counted in the BOM by part 4). |

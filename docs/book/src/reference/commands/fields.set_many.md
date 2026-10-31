@@ -106,6 +106,11 @@ The record kinds a command may name generically (`edit.delete`, `fields.set`).
 | `"device_link"` | `device_link` (WP-S1.21 D6, FT-226). |
 | `"logical_net"` | `logical_net` (WP-S1.21 D11). |
 | `"physical_net"` | `physical_net` (WP-S1.21 D11). |
+| `"layout_space"` | `layout_space` (WP-S4.02 D7, FT-837): `edit.delete` only. |
+| `"enclosure"` | `enclosure` (WP-S4.02 D7, FT-837): `edit.delete` only. |
+| `"mounting_surface"` | `mounting_surface` (WP-S4.02 D7, FT-837): `edit.delete` only. |
+| `"carrier"` | `carrier` (WP-S4.02 D7, FT-837): `edit.delete` only. |
+| `"placement"` | `placement` (WP-S4.02 D7, FT-837): `edit.delete` only. |
 
 ## Exit codes
 

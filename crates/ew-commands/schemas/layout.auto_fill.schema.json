@@ -1,0 +1,55 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "FillOrder": {
+      "description": "The order `layout.auto_fill` places its devices in (WP-S4.02 D6).",
+      "oneOf": [
+        {
+          "const": "dt",
+          "description": "The natural order of the full device tag.",
+          "type": "string"
+        },
+        {
+          "const": "schematic",
+          "description": "The page order of each device's main representation, then the row and the column of its anchor cell; devices\nwithout a main representation last, by tag.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.auto_fill` (`AutoFill`, WP-S4.02 D6, FR-LAY-013): places a list of devices on a rail, next-fit from the\nrail start, in one step; placed items never move.\n\n`devices` defaults to the unplaced devices of the rail's layout space whose primary part fits the rail's profile.\n`order` is `dt` (the natural order of the full tag) or `schematic` (the page order of the main representation,\nthen the row and the column of its anchor cell; devices without one last, by tag). The unplaced members of one\nassembly travel as one block (at their minimum gaps, in [`member_order`]) at the place of the first of them in that\norder. Each item goes to the first left edge at or after the previous item's end plus the minimum gap where it fits\nwith every minimum gap ([`next_fit`]); an unknown footprint is the 20 mm square. A device that is not placed is\nnamed in a notice, one per device in list order: \"-102F1: already placed\", \"-K9: not in this rail's layout\nspace\", \"-UC1: not mountable\", \"-X5: TS 32 does not fit a TS 35×7.5 rail\", \"E55: screw-mounted, not on a rail\",\n\"-201U9: no room left on rail 3\".\n\nRejected: a carrier that does not exist (`/carrier`); a duct (\"Auto-fill works on a rail.\"); a listed device that\ndoes not exist or is listed twice (`/devices/i`); nothing placed at all (\"Nothing was placed on rail 1: \" and the\nnotices). Interactive; `Bulk` above 200 devices in the list. Outcome: the carrier, with the notices.",
+  "properties": {
+    "carrier": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The rail."
+    },
+    "devices": {
+      "description": "The devices to place; default the unplaced devices of the rail's space that fit it.",
+      "items": {
+        "$ref": "#/$defs/CmdUuid"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "order": {
+      "$ref": "#/$defs/FillOrder",
+      "description": "`dt` or `schematic`."
+    }
+  },
+  "required": [
+    "carrier",
+    "order"
+  ],
+  "title": "layout.auto_fill",
+  "type": "object"
+}

@@ -119,6 +119,31 @@
           "const": "physical_net",
           "description": "`physical_net` (WP-S1.21 D11).",
           "type": "string"
+        },
+        {
+          "const": "layout_space",
+          "description": "`layout_space` (WP-S4.02 D7, FT-837): `edit.delete` only.",
+          "type": "string"
+        },
+        {
+          "const": "enclosure",
+          "description": "`enclosure` (WP-S4.02 D7, FT-837): `edit.delete` only.",
+          "type": "string"
+        },
+        {
+          "const": "mounting_surface",
+          "description": "`mounting_surface` (WP-S4.02 D7, FT-837): `edit.delete` only.",
+          "type": "string"
+        },
+        {
+          "const": "carrier",
+          "description": "`carrier` (WP-S4.02 D7, FT-837): `edit.delete` only.",
+          "type": "string"
+        },
+        {
+          "const": "placement",
+          "description": "`placement` (WP-S4.02 D7, FT-837): `edit.delete` only.",
+          "type": "string"
         }
       ]
     },

@@ -123,7 +123,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`layout.move` (`MovePlacement`, D6): gives a placement another pose, optionally on another rail or surface.\n\nThe pose is checked as `layout.place` checks it; the fit of the part to a rail's profile only when the carrier\nchanges. Without `mode`, or with `mode: free`, a locked placement moves too (the lock excludes it from being moved\nby another placement's push, swap and auto-fill, doc 12 §2.3). With `mode` on a rail the placement is first taken\noff the rail and resolved as `layout.place` resolves a device (WP-S4.02 D5); `swap` exchanges it with the placement\nunder its centre on the same rail, the segment between them re-laid with every gap kept where it still meets the\nnew minimum gap. Push and swap of a locked placement are refused (\"Unlock F55 to push or swap it.\"), and never move\nanother locked placement. Rejected: a placement, carrier or surface that does not exist (`/placement`, `/carrier`);\nan unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; D5's refusals of the mode.\nInteractive. Outcome: the placement.",
+  "description": "`layout.move` (`MovePlacement`, D6): gives a placement another pose, optionally on another rail or surface.\n\nThe pose is checked as `layout.place` checks it; the fit of the part to a rail's profile only when the carrier\nchanges. Without `mode`, or with `mode: free`, a locked placement moves too (the lock excludes it from being moved\nby another placement's push, swap and auto-fill, doc 12 §2.3). With `mode` on a rail the placement is first taken\noff the rail and resolved as `layout.place` resolves a device (WP-S4.02 D5); `swap` exchanges it with the placement\nunder its centre on the same rail, the segment between them re-laid with every gap kept where it still meets the\nnew minimum gap. Push and swap of a locked placement are refused (\"Unlock F55 to push or swap it.\"), and never move\nanother locked placement. With `part` (WP-S4.02 D7) the placement realises that part use of its device instead\n(EW-LAY-003's quick fix \"Realise the primary part\"): checked as `layout.place` checks a part, its fit to a rail's\nprofile checked when the part changes, and with `mode` the resolver reads the new part's extent; without `part`\nthe realised part is unchanged. Rejected: a placement, carrier or surface that does not exist (`/placement`,\n`/carrier`); a part the device does not use (`/part`); a part that would give the device a second placement of one\n(device, part, function); an unfit part; a pose outside the carrier kind's degrees of freedom or off the rail; D5's\nrefusals of the mode. Interactive. Outcome: the placement.",
   "properties": {
     "carrier": {
       "anyOf": [
@@ -146,6 +146,17 @@
         }
       ],
       "description": "How the position is resolved on a rail: `free`, `push` or `swap` (WP-S4.02 D5); absent: the pose as given."
+    },
+    "part": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The part copy of another part use of the device to realise (WP-S4.02 D7); absent: the realised part stays."
     },
     "placement": {
       "$ref": "#/$defs/CmdUuid",

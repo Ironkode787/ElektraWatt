@@ -1,0 +1,109 @@
+{
+  "$defs": {
+    "CmdNm": {
+      "description": "A length in nanometres (doc 05 §3.2).",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "PlaceMode": {
+      "description": "How `layout.place` and `layout.move` resolve their position on a rail (WP-S4.02 D4, D5). Without a mode the pose\nis taken exactly as given.",
+      "oneOf": [
+        {
+          "const": "free",
+          "description": "The placement stays where it fits with its minimum gaps, else goes to the nearest position where it fits;\nnothing else moves. On a surface: the explicit pose.",
+          "type": "string"
+        },
+        {
+          "const": "push",
+          "description": "The placement is inserted; the placements to its right move right as far as their minimum gaps require.",
+          "type": "string"
+        },
+        {
+          "const": "swap",
+          "description": "The placement exchanges places with the placement under its centre on the same rail.",
+          "type": "string"
+        }
+      ]
+    },
+    "PlaceOnParam": {
+      "description": "What a placement sits on (D3): `{\"carrier\": id}` (a rail) or `{\"surface\": id}` (the plate itself).",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A rail (a duct carries no placements).",
+          "properties": {
+            "carrier": {
+              "$ref": "#/$defs/CmdUuid"
+            }
+          },
+          "required": [
+            "carrier"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The mounting surface itself.",
+          "properties": {
+            "surface": {
+              "$ref": "#/$defs/CmdUuid"
+            }
+          },
+          "required": [
+            "surface"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.place_assembly` (`PlaceAssembly`, WP-S4.02 D6, FR-LAY-061): places the unplaced members of an assembly on a\nrail in their member order ([`member_order`], the order EW-LAY-016 checks), in one step.\n\nThe assembly of `device` is the device itself when it has children, else its parent's. The members placed are those\nof [`member_order`] that are mountable (`mountable(dev)`, D8) and have no placement anywhere; each records its\nprimary part, turned 0°, and must fit the rail's profile (an unfit member refuses the whole command with\n`layout.place`'s text). When no member is on the rail yet, the members go as one block at their minimum gaps\nwhose left edge is `s`, resolved in `mode` (`free` by default, or `push`) as one item. When some members are on the\nrail, `s` and `mode` are not used: each new member is pushed in after its predecessor (the nearest earlier member on\nthe rail, a member placed by this command included), or before its first placed successor when it has no\npredecessor; every pushed neighbour is written in the same step.\n\nRejected: a device or carrier that does not exist (`/device`, `/carrier`); a duct or a surface (\"An assembly is\nplaced on a rail.\"); `mode: swap`; a device without an assembly; nothing to place; `s` missing when no member is on\nthe rail (`/s`); an unfit member; D5's refusals of the mode. Interactive; `Bulk` when it places more than 200.\nOutcome: the first new placement.",
+  "properties": {
+    "carrier": {
+      "$ref": "#/$defs/PlaceOnParam",
+      "description": "The rail."
+    },
+    "device": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "A device of the assembly: its root or a member."
+    },
+    "mode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlaceMode"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "How the block is resolved: `free` (the default) or `push`."
+    },
+    "s": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdNm"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The block's left edge along the rail, when no member is on it yet."
+    }
+  },
+  "required": [
+    "device",
+    "carrier"
+  ],
+  "title": "layout.place_assembly",
+  "type": "object"
+}
