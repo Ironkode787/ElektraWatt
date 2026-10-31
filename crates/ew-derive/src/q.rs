@@ -988,6 +988,40 @@ impl<'q> IdxView<'q> {
         )
     }
 
+    /// The placements of a device (`Placement.device`, WP-S4.01).
+    pub fn placements_of_device(&self, device: Id<Device>) -> impl Iterator<Item = Id<ew_schema::Placement>> + 'q {
+        self.by_id(
+            IndexName::PlacementsByDevice,
+            self.indexes().placements_by_device(),
+            device,
+        )
+    }
+
+    /// The placements on a carrier (`Placement.carrier` naming a carrier; a placement on a surface itself is not
+    /// in this index).
+    pub fn placements_by_carrier(
+        &self,
+        carrier: Id<ew_schema::Carrier>,
+    ) -> impl Iterator<Item = Id<ew_schema::Placement>> + 'q {
+        self.by_id(
+            IndexName::PlacementsByCarrier,
+            self.indexes().placements_by_carrier(),
+            carrier,
+        )
+    }
+
+    /// The carriers of a mounting surface (`Carrier.surface`).
+    pub fn carriers_of_surface(
+        &self,
+        surface: Id<ew_schema::MountingSurface>,
+    ) -> impl Iterator<Item = Id<ew_schema::Carrier>> + 'q {
+        self.by_id(
+            IndexName::CarriersBySurface,
+            self.indexes().carriers_by_surface(),
+            surface,
+        )
+    }
+
     /// The pages of a section (`Folio.section`).
     pub fn pages_of_section(&self, section: Id<Section>) -> impl Iterator<Item = Id<Page>> + 'q {
         self.by_id(

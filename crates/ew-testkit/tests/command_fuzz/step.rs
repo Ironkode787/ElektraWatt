@@ -57,6 +57,11 @@ pub enum Table {
     PageItems,
     StructureBoxes,
     Waivers,
+    LayoutSpaces,
+    Enclosures,
+    Surfaces,
+    Carriers,
+    Placements,
 }
 
 impl Table {
@@ -86,6 +91,11 @@ impl Table {
             Table::PageItems => q.page_items().len(),
             Table::StructureBoxes => q.structure_boxes().len(),
             Table::Waivers => q.table::<ew_schema::Waiver>().len(),
+            Table::LayoutSpaces => q.table::<ew_schema::LayoutSpace>().len(),
+            Table::Enclosures => q.table::<ew_schema::Enclosure>().len(),
+            Table::Surfaces => q.table::<ew_schema::MountingSurface>().len(),
+            Table::Carriers => q.table::<ew_schema::Carrier>().len(),
+            Table::Placements => q.table::<ew_schema::Placement>().len(),
         }
     }
 }
@@ -213,6 +223,11 @@ pub fn exists(q: &Q, key: (Kind, ew_schema::AnyId)) -> bool {
         Kind::Revision => q.table::<ew_schema::Revision>().contains(id.cast()),
         Kind::PageItem => q.page_items().contains(id.cast()),
         Kind::StructureBox => q.structure_boxes().contains(id.cast()),
+        Kind::LayoutSpace => q.table::<ew_schema::LayoutSpace>().contains(id.cast()),
+        Kind::Enclosure => q.table::<ew_schema::Enclosure>().contains(id.cast()),
+        Kind::MountingSurface => q.table::<ew_schema::MountingSurface>().contains(id.cast()),
+        Kind::Carrier => q.table::<ew_schema::Carrier>().contains(id.cast()),
+        Kind::Placement => q.table::<ew_schema::Placement>().contains(id.cast()),
         // A kind no command creates (the project row, the reserved kinds): nothing to say.
         _ => true,
     }

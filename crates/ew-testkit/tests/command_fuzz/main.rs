@@ -21,7 +21,8 @@
 //! A command the engine refuses is counted and changes nothing; a panic is a bug.
 //!
 //! Oracles after every step that changed the model (an Ok command that moved the revision, an Ok undo/redo):
-//! - (a) `Model::integrity_check` (the full structural check against the engine's incremental one);
+//! - (a) `Model::integrity_check` (the full structural check against the engine's incremental one), and the layout
+//!   invariant: no placement without its device (WP-S4.01 LM-6);
 //! - (b) the memo oracle: a fixed sample of derived values is read through `session.query()` (every device
 //!   tag, the potential partition, the page order, the wire properties of every potential) and
 //!   `take_oracle_mismatches` is empty;
@@ -42,7 +43,7 @@
 //! - `fuzz_smoke`: one seed, 30 steps.
 //! - `every_registered_command_has_a_generator_arm`, `every_arm_commits_and_refuses_what_it_should`,
 //!   `save_and_reload_of_golden_a_round_trips`, `embed_then_undo_of_a_named_fndef_restores_golden_a`,
-//!   `table_import_oracles_hold`.
+//!   `table_import_oracles_hold`, `layout_command_sequences_save_incrementally_as_a_full_save` (WP-S4.01 LM-1).
 //! - `fuzz_long` (ignored, the nightly body; see the function): `EW_FUZZ_SEEDS` (a comma list, or `a..b` /
 //!   `a..=b`, default 1..=20), `EW_FUZZ_STEPS` (default 300), the cadences `EW_FUZZ_SAMPLE_EVERY`,
 //!   `EW_FUZZ_CHECK_EVERY`, `EW_FUZZ_VERIFY_EVERY`, the step mix `EW_FUZZ_SAVE_WEIGHT` and
@@ -683,6 +684,10 @@ fn run_fuzz_rng(seed: u64, mut rng: SplitMix64, steps: usize, cadence: &Cadence)
             if let Err(e) = session.world().model.integrity_check() {
                 fail(&log, "integrity_check", format!("{e:?}"));
             }
+            // (a') the layout invariant (WP-S4.01 LM-6): no placement without its device.
+            if let Err(e) = arms::placements_have_devices(&session.query()) {
+                fail(&log, "no placement without a device", e);
+            }
             lap("integrity_check");
         }
         // The cadenced oracles below also run after a step that changed nothing (the reads are then memo hits).
@@ -936,6 +941,19 @@ fn every_arm_commits_and_refuses_what_it_should() {
                     if applied.changed {
                         set_up += 1;
                     }
+                }
+            }
+            // A setup chain (`arms::setup_chain_of`, WP-S4.01: a space, an enclosure part, an enclosure, a rail, a
+            // placement) builds each step on the records the previous one created.
+            for build in arms::setup_chain_of(arm.command).unwrap_or_default() {
+                let live = Live::read(&session.query(), &fixture);
+                let Some(Step::Cmd(s)) = build(&live, &mut rng) else {
+                    continue;
+                };
+                let applied = apply(&mut session, &s, &mut stats)
+                    .unwrap_or_else(|e| panic!("setup chain of arm `{}` attempt {attempt}: {e}", arm.command));
+                if applied.changed {
+                    set_up += 1;
                 }
             }
             let undo_setup = |session: &mut Session, n: usize| {
@@ -1463,6 +1481,122 @@ fn save_and_reload_of_golden_a_round_trips() {
     while session.undo(&ew_api::Origin::Gui).is_ok() {}
     disk.closing(&mut session, &initial)
         .unwrap_or_else(|e| panic!("after undo-all: {e}"));
+}
+
+/// The files of a saved project folder by their `/`-separated relative paths, without the manifest (it counts the
+/// generations) and the lock file.
+fn project_tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
+    fn walk(root: &Path, dir: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
+        for entry in std::fs::read_dir(dir).expect("a readable folder") {
+            let path = entry.expect("a folder entry").path();
+            if path.is_dir() {
+                walk(root, &path, out);
+                continue;
+            }
+            let rel = path.strip_prefix(root).expect("below the root");
+            let rel = rel
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+                .join("/");
+            if rel == "manifest.json" || rel.starts_with(".~") {
+                continue;
+            }
+            out.insert(rel, std::fs::read(&path).expect("a readable file"));
+        }
+    }
+    let mut out = BTreeMap::new();
+    walk(dir, dir, &mut out);
+    out
+}
+
+/// WP-S4.01 LM-1 at the command level (NFR-REL-16): random sequences of the eleven `layout.*` commands, on a space,
+/// an enclosure, a rail and a placement that the setup chain makes, with undos between them and an incremental save
+/// every five steps, leave the same files byte for byte as a full save of the final model (`Session::create` in a new
+/// folder). The manifest, which counts generations, and the lock file are not compared.
+#[test]
+fn layout_command_sequences_save_incrementally_as_a_full_save() {
+    let layout: Vec<&arms::Arm> = ARMS.iter().filter(|a| a.command.starts_with("layout.")).collect();
+    let total: usize = layout.iter().map(|a| a.weight).sum();
+    let mut committed: BTreeMap<&str, usize> = BTreeMap::new();
+    for seed in 1..=3u64 {
+        let mut session = open_session_with(seed, MemoMode::On);
+        let fixture = Rc::new(Fixture::of(&session.query()));
+        let mut stats = FuzzStats::default();
+        let mut rng = SplitMix64::new(0x5401_0000 + seed);
+        let (incremental, options) = roundtrip::scratch_project(seed).expect("a scratch folder");
+        session
+            .create(&incremental, options)
+            .expect("the first save, a full one");
+        for build in arms::setup_chain_of("layout.move").unwrap_or_default() {
+            let live = Live::read(&session.query(), &fixture);
+            if let Some(Step::Cmd(s)) = build(&live, &mut rng) {
+                apply(&mut session, &s, &mut stats).unwrap_or_else(|e| panic!("seed {seed}, setup: {e}"));
+            }
+        }
+        let mut saw_layout = false;
+        for i in 0..40 {
+            if rng.chance(8) {
+                // An undo past the setup is refused at the start of the history: nothing to check.
+                let _ = session.undo(&ew_api::Origin::Gui);
+            } else {
+                let live = Live::read(&session.query(), &fixture);
+                let mut roll = rng.below(total);
+                let arm = layout
+                    .iter()
+                    .find(|a| {
+                        let hit = roll < a.weight;
+                        roll = roll.saturating_sub(a.weight);
+                        hit
+                    })
+                    .expect("a layout arm");
+                if let Some(Step::Cmd(c)) = (arm.build)(&live, &mut rng) {
+                    let line = Step::Cmd(CmdStep {
+                        name: c.name,
+                        params: c.params.clone(),
+                        verdict: c.verdict,
+                        posts: Vec::new(),
+                    })
+                    .line();
+                    let applied = apply(&mut session, &c, &mut stats)
+                        .unwrap_or_else(|e| panic!("seed {seed}, step {i}: {e}\nstep: {line}"));
+                    if applied.changed {
+                        *committed.entry(arm.command).or_default() += 1;
+                    }
+                }
+            }
+            if i % 5 == 4 {
+                session
+                    .save()
+                    .unwrap_or_else(|e| panic!("seed {seed}, step {i}: save: {e:?}"));
+                saw_layout |= std::fs::read_dir(incremental.join("layout")).is_ok_and(|mut d| d.next().is_some());
+            }
+        }
+        session.save().expect("the last incremental save");
+        let (full, options) = roundtrip::scratch_project(seed).expect("a scratch folder");
+        session.create(&full, options).expect("the full save");
+        let (inc, all) = (project_tree(&incremental), project_tree(&full));
+        let differ: Vec<&String> = inc
+            .keys()
+            .chain(all.keys())
+            .filter(|k| inc.get(*k) != all.get(*k))
+            .collect();
+        assert!(
+            differ.is_empty(),
+            "seed {seed}: the incremental saves differ from a full save in {differ:?}"
+        );
+        assert!(saw_layout, "seed {seed}: no save held a layout file");
+        drop(session);
+        for dir in [incremental, full] {
+            let _ = std::fs::remove_dir_all(dir);
+        }
+    }
+    for command in ["layout.place", "layout.move", "layout.carrier.add", "layout.remove"] {
+        assert!(
+            committed.contains_key(command),
+            "the sequences never committed {command}: {committed:?}"
+        );
+    }
 }
 
 /// FT-468: the round-trip oracle names a differing row of any kind from the model's own tables, also a kind that

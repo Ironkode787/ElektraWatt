@@ -426,6 +426,62 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: part_edit_copy,
     },
+    // WP-S4.01 part 1 (D6): last, for the same reason.
+    Arm {
+        command: "layout.space.create",
+        weight: 2,
+        build: layout_space_create,
+    },
+    Arm {
+        command: "layout.space.delete",
+        weight: 1,
+        build: layout_space_delete,
+    },
+    Arm {
+        command: "layout.enclosure.create",
+        weight: 2,
+        build: layout_enclosure_create,
+    },
+    Arm {
+        command: "layout.enclosure.delete",
+        weight: 1,
+        build: layout_enclosure_delete,
+    },
+    Arm {
+        command: "layout.carrier.add",
+        weight: 3,
+        build: layout_carrier_add,
+    },
+    Arm {
+        command: "layout.carrier.edit",
+        weight: 2,
+        build: layout_carrier_edit,
+    },
+    Arm {
+        command: "layout.carrier.delete",
+        weight: 1,
+        build: layout_carrier_delete,
+    },
+    Arm {
+        command: "layout.place",
+        weight: 4,
+        build: layout_place,
+    },
+    Arm {
+        command: "layout.move",
+        weight: 2,
+        build: layout_move,
+    },
+    Arm {
+        command: "layout.remove",
+        weight: 1,
+        build: layout_remove,
+    },
+    Arm {
+        command: "layout.lock",
+        weight: 1,
+        build: layout_lock,
+    },
 ];
 
 /// The representation types a page type allows (`allowed_rep_types` of `ew-commands`, in JSON form).
@@ -909,6 +965,35 @@ pub fn setup_of(command: &str) -> Option<Setup> {
         // Golden A has no D3-eligible contact and no device that takes one: a contact placed as a new device is the
         // source, a device created with an unplaced function of the contact's FnDef the slot it fills.
         "rep.join_device" => Some(join_setup),
+        _ => None,
+    }
+}
+
+/// One step of a setup chain ([`setup_chain_of`]), built from the live records once the previous step committed.
+pub type ChainStep = fn(&Live, &mut SplitMix64) -> Option<Step>;
+
+/// The setup chain of an arm whose command needs records that Golden A lacks and that earlier setup steps create (so
+/// each step is built only after the previous one committed), for `every_arm_commits_and_refuses_what_it_should`:
+/// committed in order before the arm's step is built and undone after it. A step that finds its record already there
+/// returns `None` and is skipped. `None` for every other command.
+pub fn setup_chain_of(command: &str) -> Option<&'static [ChainStep]> {
+    const SPACE: &[ChainStep] = &[setup_space];
+    const ENCLOSURE_PART: &[ChainStep] = &[setup_space, setup_enclosure_part];
+    const ENCLOSURE: &[ChainStep] = &[setup_space, setup_enclosure_part, setup_enclosure];
+    const RAIL: &[ChainStep] = &[setup_space, setup_enclosure_part, setup_enclosure, setup_rail];
+    const PLACED: &[ChainStep] = &[
+        setup_space,
+        setup_enclosure_part,
+        setup_enclosure,
+        setup_rail,
+        setup_place,
+    ];
+    match command {
+        "layout.space.delete" => Some(SPACE),
+        "layout.enclosure.create" => Some(ENCLOSURE_PART),
+        "layout.enclosure.delete" | "layout.carrier.add" => Some(ENCLOSURE),
+        "layout.carrier.edit" | "layout.carrier.delete" | "layout.place" => Some(RAIL),
+        "layout.move" | "layout.remove" | "layout.lock" => Some(PLACED),
         _ => None,
     }
 }
@@ -5766,4 +5851,400 @@ fn revision_withdraw(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
         }
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// WP-S4.01 part 1: the layout commands (D6)
+
+/// 1 mm in nanometres.
+const LAY_MM: i64 = 1_000_000;
+
+/// The quarter turns about `w` as sign-normalised quaternions: 0°, 90°, 180°, 270°.
+const QUARTERS: [[i64; 4]; 4] = [
+    [1_000_000_000, 0, 0, 0],
+    [707_106_781, 0, 0, 707_106_781],
+    [0, 0, 0, 1_000_000_000],
+    [707_106_781, 0, 0, -707_106_781],
+];
+
+fn lay_pose(t: [i64; 3], q: [i64; 4]) -> Value {
+    json!({"t": t, "q": q})
+}
+
+/// EW-LAY-002, the fuzzer's layout invariant (LM-6): every placement's device exists.
+pub fn placements_have_devices(q: &ew_derive::Q) -> Result<(), String> {
+    match q
+        .table::<ew_schema::Placement>()
+        .iter()
+        .find(|(_, p)| !q.devices().contains(p.device))
+    {
+        Some((id, _)) => Err(format!("placement {} has no device", id_text(&id_json(id)))),
+        None => Ok(()),
+    }
+}
+
+/// `part.assign` of a new part copy with an enclosure section (a golden template with a new lineage and a 750 × 1000
+/// × 420 mm enclosure, no plate) to a plain device, appended to its part uses: what Golden A lacks for
+/// `layout.enclosure.create`.
+fn assign_enclosure_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let device = rng.pick(&live.plain_devices)?.clone();
+    let (_, template) = rng.pick(&live.fixture.part_json)?;
+    let mut t = template.clone();
+    if !t["sections"].is_object() {
+        t["sections"] = json!({});
+    }
+    t["sections"]["enclosure"] = json!({"width": 750 * LAY_MM, "height": 1000 * LAY_MM, "depth": 420 * LAY_MM});
+    let c = relineaged(&t, &rng.uuid(), &rng.uuid())?;
+    let id = c["id"].clone();
+    Some(
+        Step::cmd("part.assign", json!({"devices": [device], "part": id, "copies": [c]}))
+            .accept()
+            .counts(&[(Table::Parts, 1)]),
+    )
+}
+
+fn setup_space(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let location = rng.pick(&live.layout.free_locations)?;
+    Some(Step::cmd("layout.space.create", json!({"location": location})).accept())
+}
+
+fn setup_enclosure_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    if !live.layout.enclosure_devices.is_empty() {
+        return None;
+    }
+    assign_enclosure_part(live, rng)
+}
+
+fn setup_enclosure(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let space = rng.pick(&live.layout.empty_spaces)?;
+    let device = rng.pick(&live.layout.enclosure_devices)?;
+    Some(Step::cmd("layout.enclosure.create", json!({"space": space, "device": device})).accept())
+}
+
+fn setup_rail(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let surface = rng.pick(&live.layout.surfaces)?;
+    let path = [[10 * LAY_MM, 500 * LAY_MM], [610 * LAY_MM, 500 * LAY_MM]];
+    let p = json!({"surface": surface, "kind": "rail", "path": path, "params": {"rail": {"profile": "ts35x7_5"}}});
+    Some(Step::cmd("layout.carrier.add", p).accept())
+}
+
+/// A plain device without a placement put on the plate itself (a surface checks no profile).
+fn setup_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let surface = rng.pick(&live.layout.surfaces)?;
+    let placed: std::collections::BTreeSet<String> =
+        live.layout.placements.iter().map(|p| id_text(&p.device)).collect();
+    let free: Vec<&Value> = live.plain_devices.iter().filter(|d| !placed.contains(&id_text(d))).collect();
+    let device = *rng.pick(&free)?;
+    let pose = lay_pose([100 * LAY_MM, 100 * LAY_MM, 0], QUARTERS[0]);
+    Some(Step::cmd("layout.place", json!({"device": device, "carrier": {"surface": surface}, "pose": pose})).accept())
+}
+
+/// `layout.space.create`: a location without a space, with or without a name (accepted); refused: a node that does not
+/// exist, a location that has a space, a node of another aspect.
+fn layout_space_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let cmd = |p: Value| Step::cmd("layout.space.create", p);
+    match rng.below(6) {
+        0 => Some(cmd(json!({"location": rng.uuid()})).refuse()),
+        1 => {
+            let taken: Vec<&Value> = live.locations.iter().filter(|n| !l.free_locations.contains(n)).collect();
+            Some(cmd(json!({"location": *rng.pick(&taken)?})).refuse())
+        }
+        2 => {
+            let other: Vec<&super::live::NodeInfo> = live.nodes.iter().filter(|n| n.aspect != "location").collect();
+            Some(cmd(json!({"location": rng.pick(&other)?.id})).refuse())
+        }
+        _ => {
+            let mut p = json!({"location": rng.pick(&l.free_locations)?});
+            if rng.chance(2) {
+                p["name"] = json!(rng.word(8));
+            }
+            Some(cmd(p).accept().counts(&[(Table::LayoutSpaces, 1)]))
+        }
+    }
+}
+
+/// `layout.space.delete`: an empty space goes with its enclosure, surfaces and carriers (accepted); refused: one with a
+/// placement below it (the forbid policy of `placement.carrier`), one that does not exist.
+fn layout_space_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let cmd = |p: Value| Step::cmd("layout.space.delete", p);
+    if rng.chance(6) {
+        return Some(cmd(json!({"space": rng.uuid()})).refuse());
+    }
+    let space = rng.pick(&l.spaces)?;
+    Some(if l.occupied.contains(&id_text(space)) {
+        cmd(json!({"space": space})).refuse()
+    } else {
+        cmd(json!({"space": space}))
+            .accept()
+            .counts(&[(Table::LayoutSpaces, -1), (Table::Placements, 0)])
+    })
+}
+
+/// `layout.enclosure.create`: an enclosure device in a space without an enclosure (accepted, with its plate surface);
+/// refused: a space that does not exist, a device without an enclosure part, a space that has an enclosure. While no
+/// device has an enclosure part (Golden A), the arm first gives one to a plain device (`part.assign` with a copy that
+/// carries an enclosure section), so that the layout arms find something to build on.
+fn layout_enclosure_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let Some(device) = rng.pick(&l.enclosure_devices).cloned() else {
+        return assign_enclosure_part(live, rng);
+    };
+    let cmd = |p: Value| Step::cmd("layout.enclosure.create", p);
+    match rng.below(6) {
+        0 => Some(cmd(json!({"space": rng.uuid(), "device": device})).refuse()),
+        1 => {
+            let plain = rng.pick(&live.plain_devices)?;
+            if l.enclosure_devices.contains(plain) {
+                return None;
+            }
+            let space = rng.pick(&l.empty_spaces)?;
+            Some(cmd(json!({"space": space, "device": plain})).refuse())
+        }
+        2 => {
+            let full: Vec<&Value> = l.spaces.iter().filter(|s| !l.empty_spaces.contains(s)).collect();
+            Some(cmd(json!({"space": *rng.pick(&full)?, "device": device})).refuse())
+        }
+        _ => {
+            let space = rng.pick(&l.empty_spaces)?;
+            Some(
+                cmd(json!({"space": space, "device": device, "pe_bond": rng.chance(2)}))
+                    .accept()
+                    .counts(&[(Table::Enclosures, 1), (Table::Surfaces, 1)]),
+            )
+        }
+    }
+}
+
+/// `layout.enclosure.delete`: an empty enclosure goes with its surface and carriers (accepted); refused: an occupied
+/// one, one that does not exist.
+fn layout_enclosure_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let cmd = |p: Value| Step::cmd("layout.enclosure.delete", p);
+    if rng.chance(6) {
+        return Some(cmd(json!({"enclosure": rng.uuid()})).refuse());
+    }
+    let enclosure = rng.pick(&l.enclosures)?;
+    Some(if l.occupied.contains(&id_text(enclosure)) {
+        cmd(json!({"enclosure": enclosure})).refuse()
+    } else {
+        cmd(json!({"enclosure": enclosure}))
+            .accept()
+            .counts(&[(Table::Enclosures, -1), (Table::Surfaces, -1)])
+    })
+}
+
+/// A random axis-parallel segment on a plate in 10 mm steps: start, end, and whether it is horizontal.
+fn lay_segment(rng: &mut SplitMix64) -> ([i64; 2], [i64; 2], bool) {
+    let start = [10 * LAY_MM * rng.range(0, 60), 10 * LAY_MM * rng.range(0, 90)];
+    let len = 10 * LAY_MM * rng.range(1, 60);
+    let horizontal = rng.chance(2);
+    let end = if horizontal {
+        [start[0] + len, start[1]]
+    } else {
+        [start[0], start[1] + len]
+    };
+    (start, end, horizontal)
+}
+
+/// `layout.carrier.add`: an axis-parallel rail of any profile, or an orthogonal duct with a turn (accepted); refused: a
+/// surface that does not exist, a diagonal rail, a duct with a rail's parameters, a segment without length.
+fn layout_carrier_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let surface = rng.pick(&live.layout.surfaces)?.clone();
+    let cmd = |p: Value| Step::cmd("layout.carrier.add", p);
+    let (start, end, horizontal) = lay_segment(rng);
+    let rail = json!({"rail": {"profile": *rng.pick(&["ts35x7_5", "ts35x15", "ts32", "ts15"])?}});
+    let duct = json!({"duct": {"width": 40 * LAY_MM, "height": 60 * LAY_MM}});
+    match rng.below(8) {
+        0 => {
+            let p = json!({"surface": rng.uuid(), "kind": "rail", "path": [start, end], "params": rail});
+            Some(cmd(p).refuse())
+        }
+        1 => {
+            let diagonal = [end[0] + 10 * LAY_MM, end[1] + 10 * LAY_MM];
+            let p = json!({"surface": surface, "kind": "rail", "path": [start, diagonal], "params": rail});
+            Some(cmd(p).refuse())
+        }
+        2 => {
+            let p = json!({"surface": surface, "kind": "duct", "path": [start, end], "params": rail});
+            Some(cmd(p).refuse())
+        }
+        3 => {
+            let p = json!({"surface": surface, "kind": "duct", "path": [start, start, end], "params": duct});
+            Some(cmd(p).refuse())
+        }
+        4 | 5 => {
+            let turn = 10 * LAY_MM * rng.range(1, 30);
+            let corner = if horizontal {
+                [end[0], end[1] + turn]
+            } else {
+                [end[0] + turn, end[1]]
+            };
+            let p = json!({"surface": surface, "kind": "duct", "path": [start, end, corner], "params": duct});
+            Some(cmd(p).accept().counts(&[(Table::Carriers, 1)]))
+        }
+        _ => {
+            let p = json!({"surface": surface, "kind": "rail", "path": [start, end], "params": rail,
+                "pe_bond": rng.chance(2)});
+            Some(cmd(p).accept().counts(&[(Table::Carriers, 1)]))
+        }
+    }
+}
+
+/// `layout.carrier.edit`: a rail on another surface or along another axis-parallel path, a carrier's PE bond
+/// (accepted); refused: a carrier that does not exist, no member, a diagonal path.
+fn layout_carrier_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let cmd = |p: Value| Step::cmd("layout.carrier.edit", p);
+    match rng.below(7) {
+        0 => Some(cmd(json!({"carrier": rng.uuid(), "pe_bond": true})).refuse()),
+        1 => Some(cmd(json!({"carrier": rng.pick(&l.carriers)?.0})).refuse()),
+        2 => {
+            let r = rng.pick(&l.rails)?;
+            Some(cmd(json!({"carrier": r.id, "path": [[0, 0], [10 * LAY_MM, 10 * LAY_MM]]})).refuse())
+        }
+        3 => {
+            let r = rng.pick(&l.rails)?;
+            let s = rng.pick(&l.surfaces)?;
+            Some(cmd(json!({"carrier": r.id, "surface": s})).accept().counts(&[(Table::Carriers, 0)]))
+        }
+        4 | 5 => {
+            let r = rng.pick(&l.rails)?;
+            let (start, end, _) = lay_segment(rng);
+            Some(cmd(json!({"carrier": r.id, "path": [start, end]})).accept())
+        }
+        _ => {
+            let (c, _) = rng.pick(&l.carriers)?;
+            Some(cmd(json!({"carrier": c, "pe_bond": rng.chance(2)})).accept())
+        }
+    }
+}
+
+/// `layout.carrier.delete`: an empty carrier goes without `then` (accepted); an occupied one is refused without
+/// `then`, goes with its placements with `remove_placements` (accepted), and with `rehome_to_surface` moves them to its
+/// surface unless it is not a rail or a pose is off it (either); one that does not exist is refused.
+fn layout_carrier_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let cmd = |p: Value| Step::cmd("layout.carrier.delete", p);
+    if rng.chance(6) {
+        return Some(cmd(json!({"carrier": rng.uuid()})).refuse());
+    }
+    let (carrier, n) = rng.pick(&l.carriers)?;
+    let n = isize::try_from(*n).expect("a count fits isize");
+    if n == 0 {
+        return Some(cmd(json!({"carrier": carrier})).accept().counts(&[(Table::Carriers, -1)]));
+    }
+    Some(match rng.below(3) {
+        0 => cmd(json!({"carrier": carrier})).refuse(),
+        1 => cmd(json!({"carrier": carrier, "then": "remove_placements"}))
+            .accept()
+            .counts(&[(Table::Carriers, -1), (Table::Placements, -n)]),
+        _ => cmd(json!({"carrier": carrier, "then": "rehome_to_surface"}))
+            .counts(&[(Table::Carriers, -1), (Table::Placements, 0)]),
+    })
+}
+
+/// `layout.place`: a plain device on a rail at `s ∈ [0, L]` turned 0° or 180°, or on a plate turned `k · 90°` (either:
+/// the device may be placed already with its part and function, its part may not fit the profile); refused: a device
+/// or carrier that does not exist, `s` beyond the rail's end, a pose off the rail's axis, a duct. After a commit every
+/// placement has its device.
+fn layout_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let device = rng.pick(&live.plain_devices)?.clone();
+    let cmd = |p: Value| Step::cmd("layout.place", p);
+    let at = |s: i64| lay_pose([s, 0, 0], QUARTERS[0]);
+    let rails: Vec<&super::live::RailInfo> = l.rails.iter().filter(|r| r.length > 0).collect();
+    match rng.below(8) {
+        0 => {
+            let r = *rng.pick(&rails)?;
+            Some(cmd(json!({"device": rng.uuid(), "carrier": {"carrier": r.id}, "pose": at(0)})).refuse())
+        }
+        1 => Some(cmd(json!({"device": device, "carrier": {"carrier": rng.uuid()}, "pose": at(0)})).refuse()),
+        2 => {
+            let r = *rng.pick(&rails)?;
+            let s = r.length + 1 + rng.range(0, 1000);
+            Some(cmd(json!({"device": device, "carrier": {"carrier": r.id}, "pose": at(s)})).refuse())
+        }
+        3 => {
+            let r = *rng.pick(&rails)?;
+            let pose = lay_pose([0, LAY_MM, 0], QUARTERS[0]);
+            Some(cmd(json!({"device": device, "carrier": {"carrier": r.id}, "pose": pose})).refuse())
+        }
+        4 => {
+            let d = rng.pick(&l.ducts)?;
+            Some(cmd(json!({"device": device, "carrier": {"carrier": d}, "pose": at(0)})).refuse())
+        }
+        5 => {
+            let surface = rng.pick(&l.surfaces)?;
+            let t = [LAY_MM * rng.range(0, 650), LAY_MM * rng.range(0, 900), 0];
+            let pose = lay_pose(t, *rng.pick(&QUARTERS)?);
+            Some(
+                cmd(json!({"device": device, "carrier": {"surface": surface}, "pose": pose}))
+                    .counts(&[(Table::Placements, 1)])
+                    .check(|_, after| placements_have_devices(after)),
+            )
+        }
+        _ => {
+            let r = *rng.pick(&rails)?;
+            let q = if rng.chance(2) { QUARTERS[0] } else { QUARTERS[2] };
+            let pose = lay_pose([rng.range(0, r.length), 0, 0], q);
+            Some(
+                cmd(json!({"device": device, "carrier": {"carrier": r.id}, "pose": pose}))
+                    .counts(&[(Table::Placements, 1)])
+                    .check(|_, after| placements_have_devices(after)),
+            )
+        }
+    }
+}
+
+/// `layout.move`: along its rail within `[0, L]`, or on its plate (accepted); onto a plate (either: the device may be
+/// on that plate already with its part and function); refused: a placement that does not exist, `s` beyond its rail's
+/// end.
+fn layout_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let l = &live.layout;
+    let cmd = |p: Value| Step::cmd("layout.move", p);
+    if rng.chance(6) {
+        return Some(cmd(json!({"placement": rng.uuid(), "pose": lay_pose([0, 0, 0], QUARTERS[0])})).refuse());
+    }
+    let p = rng.pick(&l.placements)?;
+    match (&p.rail, &p.surface, rng.below(4)) {
+        (Some((_, len)), _, 0) => {
+            Some(cmd(json!({"placement": p.id, "pose": lay_pose([len + 1, 0, 0], QUARTERS[0])})).refuse())
+        }
+        (Some((_, len)), _, 1 | 2) => {
+            let pose = lay_pose([rng.range(0, *len), 0, 0], QUARTERS[2]);
+            Some(cmd(json!({"placement": p.id, "pose": pose})).accept().counts(&[(Table::Placements, 0)]))
+        }
+        (None, Some(_), 1 | 2) => {
+            let t = [LAY_MM * rng.range(0, 650), LAY_MM * rng.range(0, 900), 0];
+            let pose = lay_pose(t, *rng.pick(&QUARTERS)?);
+            Some(cmd(json!({"placement": p.id, "pose": pose})).accept().counts(&[(Table::Placements, 0)]))
+        }
+        _ => {
+            let surface = rng.pick(&l.surfaces)?;
+            let pose = lay_pose([10 * LAY_MM, 10 * LAY_MM, 0], QUARTERS[1]);
+            Some(cmd(json!({"placement": p.id, "carrier": {"surface": surface}, "pose": pose})))
+        }
+    }
+}
+
+/// `layout.remove`: a placement goes (accepted); one that does not exist is refused.
+fn layout_remove(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.remove", p);
+    if rng.chance(5) {
+        return Some(cmd(json!({"placement": rng.uuid()})).refuse());
+    }
+    let p = rng.pick(&live.layout.placements)?;
+    Some(cmd(json!({"placement": p.id})).accept().counts(&[(Table::Placements, -1)]))
+}
+
+/// `layout.lock`: a placement locked or unlocked (accepted); one that does not exist is refused.
+fn layout_lock(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.lock", p);
+    if rng.chance(5) {
+        return Some(cmd(json!({"placement": rng.uuid(), "locked": true})).refuse());
+    }
+    let p = rng.pick(&live.layout.placements)?;
+    Some(cmd(json!({"placement": p.id, "locked": rng.chance(2)})).accept())
 }

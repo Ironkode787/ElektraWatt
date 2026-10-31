@@ -290,7 +290,7 @@ The following ID-valued fields are not links.
 | meta.status.deprecated.successor.* of part, symbol, fndef and form | `LibRef` to a library item offered by "update from library"; never resolved to an embedded copy |
 | part.manufacturer.* | `LibRef` to a manufacturer record, which has no library-copy table in v0 |
 | symbol.fndef.library, part.function_template[].fndef.library | The library half of the `LibRef` links above (the `.item` field carries the link) |
-| placement.part.copy | The part use a placement realises (WP-S4.01 D4: no delete policy). A placement whose part use left its device keeps naming the copy: EW-LAY-003 reports it, and `part.assign` replace follows the new copy (D7). The device's part uses keep the copy alive, never the placement |
+| placement.part.copy | The part use a placement realises (WP-S4.01 D4: no delete policy). A placement whose part use left its device keeps naming the copy: EW-LAY-003 reports it, and `part.assign` replace follows the new copy (D7); a fork by `part.edit_copy` re-points it with the device's part uses. The device's part uses keep the copy alive, never the placement |
 
 Each kind's own `id` is identity, not a link.
 

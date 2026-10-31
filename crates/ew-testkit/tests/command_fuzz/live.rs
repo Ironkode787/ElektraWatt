@@ -362,6 +362,144 @@ pub struct Live {
     pub join_blocked: Vec<Value>,
     /// The embedded FnDef copies that are contacts (NO, NC, change-over).
     pub contact_fndefs: Vec<Value>,
+    /// WP-S4.01 part 1: the layout records.
+    pub layout: LayoutLive,
+}
+
+/// A rail of the layout: its ID and length in nanometres (an invalid path: length 0).
+pub struct RailInfo {
+    pub id: Value,
+    pub length: i64,
+}
+
+/// A placement of the layout.
+pub struct PlacementInfo {
+    pub id: Value,
+    pub device: Value,
+    /// The rail it sits on (with its length), or `None` on a surface or another carrier.
+    pub rail: Option<(Value, i64)>,
+    /// The surface it sits on itself, or `None` on a carrier.
+    pub surface: Option<Value>,
+}
+
+/// The layout records the `layout.*` arms pick from (WP-S4.01 part 1).
+pub struct LayoutLive {
+    /// The location nodes without a layout space, and with one.
+    pub free_locations: Vec<Value>,
+    pub spaces: Vec<Value>,
+    /// The spaces without an enclosure.
+    pub empty_spaces: Vec<Value>,
+    pub enclosures: Vec<Value>,
+    pub surfaces: Vec<Value>,
+    pub rails: Vec<RailInfo>,
+    pub ducts: Vec<Value>,
+    /// Every carrier with its number of placements.
+    pub carriers: Vec<(Value, usize)>,
+    pub placements: Vec<PlacementInfo>,
+    /// The devices with a part use whose copy carries an enclosure section.
+    pub enclosure_devices: Vec<Value>,
+    /// The spaces, enclosures with any placement below them (a delete is refused).
+    pub occupied: BTreeSet<String>,
+}
+
+impl LayoutLive {
+    fn read(q: &Q) -> LayoutLive {
+        use ew_schema::{Carrier, CarrierKind, CarrierRef, Enclosure, LayoutSpace, MountingSurface, Placement};
+        let spaces = q.table::<LayoutSpace>();
+        let spaced: BTreeSet<String> = spaces.iter().map(|(_, s)| s.location.to_string()).collect();
+        let enclosures = q.table::<Enclosure>();
+        let surfaces = q.table::<MountingSurface>();
+        let carriers = q.table::<Carrier>();
+        let placements = q.table::<Placement>();
+        let length = |c: &Carrier| match c.path.as_slice() {
+            [a, b] if a.x == b.x || a.y == b.y => (b.x.0 - a.x.0).abs() + (b.y.0 - a.y.0).abs(),
+            _ => 0,
+        };
+        let rails: Vec<RailInfo> = carriers
+            .iter()
+            .filter(|(_, c)| c.kind == CarrierKind::Rail)
+            .map(|(id, c)| RailInfo {
+                id: id_json(id),
+                length: length(c),
+            })
+            .collect();
+        let rail_length: BTreeMap<String, i64> =
+            rails.iter().map(|r| (id_text(&r.id), r.length)).collect();
+        // the space and enclosure of every carrier, for the occupied set
+        let mut occupied = BTreeSet::new();
+        for (_, p) in placements.iter() {
+            let surface = match p.carrier {
+                CarrierRef::Carrier(c) => carriers.get(c).map(|c| c.surface),
+                CarrierRef::Surface(s) => Some(s),
+                CarrierRef::Unknown(_) => None,
+            };
+            let enclosure = surface.and_then(|s| surfaces.get(s)).map(|s| s.enclosure);
+            if let Some(e) = enclosure {
+                occupied.insert(e.to_string());
+                if let Some(encl) = enclosures.get(e) {
+                    occupied.insert(encl.space.to_string());
+                }
+            }
+        }
+        let with_enclosure: BTreeSet<String> = enclosures.iter().map(|(_, e)| e.space.to_string()).collect();
+        let encl_part = |d: &ew_schema::Device| {
+            d.parts
+                .iter()
+                .any(|u| q.parts().get(u.part.copy).is_some_and(|c| c.item.sections.enclosure.is_some()))
+        };
+        LayoutLive {
+            free_locations: q
+                .structure_nodes()
+                .iter()
+                .filter(|(id, n)| {
+                    n.aspect == ew_schema::Open::Known(ew_rds::Aspect::Location) && !spaced.contains(&id.to_string())
+                })
+                .map(|(id, _)| id_json(id))
+                .collect(),
+            spaces: spaces.ids().map(id_json).collect(),
+            empty_spaces: spaces
+                .ids()
+                .filter(|id| !with_enclosure.contains(&id.to_string()))
+                .map(id_json)
+                .collect(),
+            enclosures: enclosures.ids().map(id_json).collect(),
+            surfaces: surfaces.ids().map(id_json).collect(),
+            ducts: carriers
+                .iter()
+                .filter(|(_, c)| c.kind == CarrierKind::Duct)
+                .map(|(id, _)| id_json(id))
+                .collect(),
+            carriers: carriers
+                .ids()
+                .map(|id| (id_json(id), q.idx().placements_by_carrier(id).count()))
+                .collect(),
+            placements: placements
+                .iter()
+                .map(|(id, p)| PlacementInfo {
+                    id: id_json(id),
+                    device: id_json(p.device),
+                    rail: match p.carrier {
+                        CarrierRef::Carrier(c) => rail_length
+                            .get(&c.to_string())
+                            .map(|l| (id_json(c), *l)),
+                        _ => None,
+                    },
+                    surface: match p.carrier {
+                        CarrierRef::Surface(s) => Some(id_json(s)),
+                        _ => None,
+                    },
+                })
+                .collect(),
+            rails,
+            enclosure_devices: q
+                .devices()
+                .iter()
+                .filter(|(_, d)| encl_part(d))
+                .map(|(id, _)| id_json(id))
+                .collect(),
+            occupied,
+        }
+    }
 }
 
 /// The FnDef copy a template entry names.
@@ -1036,6 +1174,7 @@ impl Live {
                 })
                 .map(|(id, _)| id_json(id))
                 .collect(),
+            layout: LayoutLive::read(q),
         }
     }
 

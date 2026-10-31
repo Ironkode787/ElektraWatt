@@ -152,6 +152,13 @@ impl Disk {
     }
 }
 
+/// A new, empty scratch folder for a test that saves on its own (the rule of [`fresh_scratch`], in the folder of
+/// [`Disk::new`]), and the store options of the fuzzer's saves (no journal).
+pub fn scratch_project(seed: u64) -> Result<(PathBuf, StoreOptions), String> {
+    let base = option_env!("CARGO_TARGET_TMPDIR").map_or_else(std::env::temp_dir, PathBuf::from);
+    Ok((fresh_scratch(&base, seed, &SCRATCH_COUNTER)?, Disk::options()))
+}
+
 impl Drop for Disk {
     fn drop(&mut self) {
         // A failing run keeps its directory for the diagnosis; the next run of the same target dir does not
