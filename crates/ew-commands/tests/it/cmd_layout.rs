@@ -219,6 +219,7 @@ fn rail_cmd(surface: Id<MountingSurface>, y: i64, item: u128, profile: MountKind
         path: vec![p(20, y), p(620, y)],
         params: CarrierParamsParam::Rail { profile },
         pe_bond: Some(true),
+        copies: vec![],
     }
 }
 
@@ -426,6 +427,7 @@ fn lm4_carriers_are_axis_parallel() {
             cover: Some(true),
         },
         pe_bond: None,
+        copies: vec![],
     };
     let d: Id<Carrier> = created(e.execute(&duct).unwrap());
     assert_eq!(get(&e, d).unwrap().kind, ew_schema::CarrierKind::Duct);
@@ -544,6 +546,7 @@ fn lm5_placements_are_one_step_each() {
         carrier: None,
         pose: at(200),
         mode: None,
+        part: None,
     })
     .unwrap();
     assert_eq!(get(&e, k1).unwrap().pose, at(200));
@@ -616,6 +619,7 @@ fn lm5_placement_refusals() {
         carrier: Some(PlaceOnParam::Carrier(rail32)),
         pose: at(10),
         mode: None,
+        part: None,
     }));
     assert_eq!(onto, "-?K1 (TS 35×7.5) does not fit a TS 32 rail");
     // the explicit part of another use of K2 is recorded with that use's reference
@@ -659,7 +663,11 @@ fn lm6_a_placement_never_outlives_its_device() {
     // the plate's device is unlinked from its surface; then -UC1 has no child, and its enclosure keeps it
     e.execute(&delete(DEV_PLATE)).unwrap();
     assert_eq!(get(&e, surface).unwrap().device, None, "unlinked");
-    assert_eq!(referenced(e.execute(&delete(DEV_UC1))), "enclosure.device");
+    // WP-S4.02 D7 (ruling 6): edit.delete refuses a plan that removes an enclosure's device before the model's forbid
+    assert_eq!(
+        rejected(e.execute(&delete(DEV_UC1))),
+        "-?UC1 carries an enclosure; delete the enclosure first."
+    );
     let preview = e.preview(&delete(DEV_K1)).unwrap();
     assert!(
         preview

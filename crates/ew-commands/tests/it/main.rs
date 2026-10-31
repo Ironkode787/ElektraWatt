@@ -18,6 +18,7 @@ mod cmd_ip_box;
 mod cmd_items;
 mod cmd_join_device;
 mod cmd_layout;
+mod cmd_layout_assembly;
 mod cmd_layout_snap;
 mod cmd_library_part1;
 mod cmd_pages;

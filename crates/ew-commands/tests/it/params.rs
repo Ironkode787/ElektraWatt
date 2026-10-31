@@ -423,6 +423,33 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"page": PAGE_101.to_string(), "surface": DEV_T2.to_string(),
                 "datum_at": [25_000_000, 167_000_000], "label_mode": "full"}),
         ),
+        // WP-S4.02 part 2 (D6, D7, FT-840)
+        (
+            "layout.place_assembly",
+            json!({"device": DEV_102G1.to_string(), "carrier": {"carrier": DEV_T1.to_string()},
+                "s": 20_000_000, "mode": "push"}),
+        ),
+        (
+            "layout.auto_fill",
+            json!({"carrier": DEV_T1.to_string(), "devices": [DEV_101F1.to_string()], "order": "schematic"}),
+        ),
+        (
+            "layout.enclosure.create_from_part",
+            json!({"location": LOC.to_string(), "part": PART_MCB.to_string(), "function": DEV_T2.to_string(),
+                "pose": {"t": [0, 0, 0], "q": [1_000_000_000, 0, 0, 0]}, "pe_bond": true}),
+        ),
+        (
+            "layout.space.edit",
+            json!({"space": DEV_T1.to_string(), "name": null}),
+        ),
+        (
+            "layout.enclosure.edit",
+            json!({"enclosure": DEV_T1.to_string(), "pose": {"t": [100_000_000, 0, 0], "q": [1_000_000_000, 0, 0, 0]}}),
+        ),
+        (
+            "layout.surface.edit",
+            json!({"surface": DEV_T1.to_string(), "pe_bond": true}),
+        ),
     ]
 }
 

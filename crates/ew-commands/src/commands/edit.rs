@@ -119,8 +119,20 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
             Err(ModelError::Referenced { link, target, .. }) if link == "enclosure.device" => {
                 return carries_enclosure(tx, target.1.cast());
             }
-            // the delete itself reports any other refusal
-            Err(_) => {}
+            // Another forbid link fired first (-UC1's plate child names it through `device.parent`): a targeted
+            // enclosure device is still refused in these words; the delete itself reports any other refusal.
+            Err(_) => {
+                let targeted: BTreeSet<AnyKey> = others.iter().copied().filter(|k| k.0 == Kind::Device).collect();
+                if !targeted.is_empty() {
+                    if let Some(e) = tx
+                        .iter::<Enclosure>()
+                        .into_iter()
+                        .find(|e| targeted.contains(&(Kind::Device, e.device.cast())))
+                    {
+                        return carries_enclosure(tx, e.device);
+                    }
+                }
+            }
         }
     }
     let of = |kind: Kind| -> BTreeSet<AnyKey> { keys.iter().copied().filter(|k| k.0 == kind).collect() };

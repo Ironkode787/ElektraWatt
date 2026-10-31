@@ -183,6 +183,7 @@ fn rail_cmd(surface: Id<MountingSurface>, y: i64) -> AddCarrier {
             profile: MountKind::Ts35x7_5,
         },
         pe_bond: None,
+        copies: vec![],
     }
 }
 
@@ -251,6 +252,7 @@ fn mv(placement: Id<Placement>, pose: Pose3, mode: Option<PlaceMode>) -> MovePla
         carrier: None,
         pose,
         mode,
+        part: None,
     }
 }
 
@@ -449,6 +451,7 @@ fn swap_exchanges_within_one_rail() {
         carrier: Some(PlaceOnParam::Carrier(f.rail2)),
         pose: at(100),
         mode: Some(PlaceMode::Swap),
+        part: None,
     };
     let swap_text = "Swap works within one rail; use push or free to place it there.";
     assert_eq!(rejected(f.e.execute(&across)), swap_text);
