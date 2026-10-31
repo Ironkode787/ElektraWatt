@@ -1525,7 +1525,7 @@
     },
     "PlcSection": {
       "additionalProperties": true,
-      "description": "The PLC section of a part (doc 10 §2.6, level L2 part data). The supply groups, earth, bus ports and the\n`meta` confidence are additive and stay in `extra` until their work packages.",
+      "description": "The PLC section of a part (doc 10 §2.6, level L2 part data). The earth, bus ports and the `meta` confidence are\nadditive and stay in `extra` until their work packages.",
       "properties": {
         "bit_of": {
           "anyOf": [
@@ -1581,6 +1581,13 @@
         "role": {
           "$ref": "#/$defs/PlcRole",
           "description": "What the part is in the PLC model."
+        },
+        "supply_groups": {
+          "description": "The supply groups of the part's power-supply pins (doc 10 §2.6, FR-PLC-024, WP-S1.21 D13): each names the\nL+ and M pins of one group, so that the pins take the potential roles `L+` and `M` when neither the part\npattern nor the function definition gives them one (`ew_derive::FunctionCps`). Appended after `pin_of`, so a\npart without groups writes the bytes it wrote before (the member order fixes a copy's hash).",
+          "items": {
+            "$ref": "#/$defs/SupplyGroup"
+          },
+          "type": "array"
         },
         "unbound": {
           "anyOf": [
@@ -1872,6 +1879,90 @@
       "required": [
         "solenoid",
         "channel"
+      ],
+      "type": "object"
+    },
+    "SupplyFeeds": {
+      "description": "The channels a supply group feeds.",
+      "oneOf": [
+        {
+          "const": "all",
+          "description": "Every channel of the module (the default).",
+          "type": "string"
+        },
+        {
+          "const": "inputs",
+          "description": "The input channels.",
+          "type": "string"
+        },
+        {
+          "const": "outputs",
+          "description": "The output channels.",
+          "type": "string"
+        }
+      ]
+    },
+    "SupplyGroup": {
+      "additionalProperties": true,
+      "description": "One supply group of a PLC part (doc 10 §2.6 `[[plc.supply]]`, FR-PLC-024, WP-S1.21 D13): the L+ and M pins that\nfeed the electronics or a load group, and the channels the group feeds. The earth pin (`[plc.earth]`) is not part\nof a group and stays in [`PlcSection::extra`].",
+      "properties": {
+        "cps": {
+          "$ref": "#/$defs/SupplyPins",
+          "description": "The group's L+ and M pins."
+        },
+        "feeds": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SupplyFeeds"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The channels the group feeds; absent: all of them ([`SupplyGroup::feeds`]). Read by no rule at the MVP\n(EW-PLC-014 is 1.0)."
+        },
+        "kind": {
+          "$ref": "#/$defs/SupplyKind",
+          "description": "What the group supplies."
+        }
+      },
+      "required": [
+        "kind",
+        "cps"
+      ],
+      "type": "object"
+    },
+    "SupplyKind": {
+      "description": "What a supply group supplies (FR-PLC-024).",
+      "oneOf": [
+        {
+          "const": "electronics",
+          "description": "The module's electronics.",
+          "type": "string"
+        },
+        {
+          "const": "load",
+          "description": "A load group (the outputs' load voltage).",
+          "type": "string"
+        }
+      ]
+    },
+    "SupplyPins": {
+      "additionalProperties": true,
+      "description": "The L+ and M pins of a supply group, by the designation of the part's connection point (\"4\", \"X1:2\").",
+      "properties": {
+        "l_plus": {
+          "$ref": "#/$defs/Ident",
+          "description": "The pin that takes the potential role `L+`."
+        },
+        "m": {
+          "$ref": "#/$defs/Ident",
+          "description": "The pin that takes the potential role `M`."
+        }
+      },
+      "required": [
+        "l_plus",
+        "m"
       ],
       "type": "object"
     },

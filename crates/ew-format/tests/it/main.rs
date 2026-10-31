@@ -8,5 +8,6 @@ mod layout_files;
 mod manifest;
 mod part1;
 mod part_bus_section;
+mod plc_supply_groups;
 mod read;
 mod roundtrip;

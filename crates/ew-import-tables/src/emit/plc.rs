@@ -289,6 +289,7 @@ pub(crate) fn read_part_plc<'t>(
                     pin_of,
                     unbound,
                     positions,
+                    supply_groups: Vec::new(),
                     extra: Default::default(),
                 },
             ),

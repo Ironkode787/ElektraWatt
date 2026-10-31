@@ -157,6 +157,7 @@ pub use plc::{
     AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, IoClass, IoDir,
     IoRange, IoStarts, MapSpec, PinMap, PlcAddress, PlcArea, PlcConfigProject, PlcModule, PlcRole,
     PlcSection, PlcSize, PlcStation, PositionMap, RackSlot, SlotPath, SolenoidChannel, StationRole,
+    SupplyFeeds, SupplyGroup, SupplyKind, SupplyPins,
 };
 pub use project::{
     Address, BasicProjectRef, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, Formatting,

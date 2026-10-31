@@ -413,6 +413,25 @@ impl HeapSize for ew_schema::PlcSection {
             + self.bit_of.as_ref().map_or(0, map_heap)
             + self.positions.heap_size()
             + pins
+            + self.supply_groups.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::SupplyGroup {
+    fn heap_size(&self) -> usize {
+        let kind = match &self.kind {
+            ew_schema::SupplyKind::Unknown(v) => v.heap_size(),
+            _ => 0,
+        };
+        let feeds = match &self.feeds {
+            Some(ew_schema::SupplyFeeds::Unknown(v)) => v.heap_size(),
+            _ => 0,
+        };
+        kind + self.cps.l_plus.heap_size()
+            + self.cps.m.heap_size()
+            + self.cps.extra.heap_size()
+            + feeds
             + self.extra.heap_size()
     }
 }

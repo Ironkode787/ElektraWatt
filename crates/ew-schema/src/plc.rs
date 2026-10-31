@@ -355,8 +355,8 @@ pub enum ChannelState {
 // ---------------------------------------------------------------------------------------------------------
 // Part data
 
-/// The PLC section of a part (doc 10 §2.6, level L2 part data). The supply groups, earth, bus ports and the
-/// `meta` confidence are additive and stay in `extra` until their work packages.
+/// The PLC section of a part (doc 10 §2.6, level L2 part data). The earth, bus ports and the `meta` confidence are
+/// additive and stay in `extra` until their work packages.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PlcSection {
     /// What the part is in the PLC model.
@@ -383,9 +383,86 @@ pub struct PlcSection {
     /// no pins (internal channels, such as the solenoid outputs of a valve-terminal module).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pin_of: Option<PinMap>,
+    /// The supply groups of the part's power-supply pins (doc 10 §2.6, FR-PLC-024, WP-S1.21 D13): each names the
+    /// L+ and M pins of one group, so that the pins take the potential roles `L+` and `M` when neither the part
+    /// pattern nor the function definition gives them one (`ew_derive::FunctionCps`). Appended after `pin_of`, so a
+    /// part without groups writes the bytes it wrote before (the member order fixes a copy's hash).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub supply_groups: Vec<SupplyGroup>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// One supply group of a PLC part (doc 10 §2.6 `[[plc.supply]]`, FR-PLC-024, WP-S1.21 D13): the L+ and M pins that
+/// feed the electronics or a load group, and the channels the group feeds. The earth pin (`[plc.earth]`) is not part
+/// of a group and stays in [`PlcSection::extra`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct SupplyGroup {
+    /// What the group supplies.
+    pub kind: SupplyKind,
+    /// The group's L+ and M pins.
+    pub cps: SupplyPins,
+    /// The channels the group feeds; absent: all of them ([`SupplyGroup::feeds`]). Read by no rule at the MVP
+    /// (EW-PLC-014 is 1.0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feeds: Option<SupplyFeeds>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+impl SupplyGroup {
+    /// The channels the group feeds, `all` when the member is absent.
+    pub fn feeds(&self) -> SupplyFeeds {
+        self.feeds.clone().unwrap_or(SupplyFeeds::All)
+    }
+}
+
+/// The L+ and M pins of a supply group, by the designation of the part's connection point ("4", "X1:2").
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct SupplyPins {
+    /// The pin that takes the potential role `L+`.
+    #[schemars(with = "IdentS")]
+    pub l_plus: Ident,
+    /// The pin that takes the potential role `M`.
+    #[schemars(with = "IdentS")]
+    pub m: Ident,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// What a supply group supplies (FR-PLC-024).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "SupplyKind")]
+pub enum SupplyKind {
+    /// The module's electronics.
+    Electronics,
+    /// A load group (the outputs' load voltage).
+    Load,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The channels a supply group feeds.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "SupplyFeeds")]
+pub enum SupplyFeeds {
+    /// Every channel of the module (the default).
+    All,
+    /// The input channels.
+    Inputs,
+    /// The output channels.
+    Outputs,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The solenoid-position map of a valve-terminal module part (doc 10 §2.6 `[plc.positions]`): the channel
@@ -672,4 +749,6 @@ open_enum!(
     IoDir,
     IoClass,
     DeviceLinkKind,
+    SupplyKind,
+    SupplyFeeds,
 );

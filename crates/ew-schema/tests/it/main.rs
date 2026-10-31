@@ -11,6 +11,7 @@ mod exporters;
 mod layout_records;
 mod part1_members;
 mod part_bus_section;
+mod plc_supply_groups;
 mod props;
 mod records;
 mod registry;
