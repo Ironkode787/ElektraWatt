@@ -89,4 +89,4 @@ pub use key::{DepKey, FamilyId, SlotId};
 pub use query::{Changes, Db, Equivalence, Query};
 pub use rev::{Durability, Rev};
 pub use stats::{Counters, Stats};
-pub use store::{Cx, Cycle, FamilyMemory, MemoInfo, Mismatch, Oracle, Store};
+pub use store::{Cx, Cycle, Explain, FamilyMemory, MemoInfo, Mismatch, Oracle, Store, TrailEntry};

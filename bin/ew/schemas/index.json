@@ -101,6 +101,16 @@
       "schema": "ew.lib-search-result-1.schema.json"
     },
     {
+      "command": "queries",
+      "name": "ew.queries-result/1",
+      "schema": "ew.queries-result-1.schema.json"
+    },
+    {
+      "command": "query",
+      "name": "ew.query-result/1",
+      "schema": "ew.query-result-1.schema.json"
+    },
+    {
       "command": "recover",
       "name": "ew.recover-result/1",
       "schema": "ew.recover-result-1.schema.json"

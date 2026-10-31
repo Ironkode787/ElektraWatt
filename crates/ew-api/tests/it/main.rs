@@ -66,6 +66,7 @@ mod property_grid;
 mod qet_import;
 mod qet_lenient;
 mod qet_private_corpus;
+mod queries;
 mod raster_exporters;
 mod recovery;
 mod release;

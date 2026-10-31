@@ -1,0 +1,66 @@
+{
+  "$defs": {
+    "QueryEntry": {
+      "additionalProperties": false,
+      "description": "One query of [`QueriesResult`].",
+      "properties": {
+        "description": {
+          "description": "What it answers.",
+          "type": "string"
+        },
+        "example": {
+          "description": "Its golden example: a key on Golden A.",
+          "type": "string"
+        },
+        "key": {
+          "description": "The grammar of its key (`-` for none).",
+          "type": "string"
+        },
+        "name": {
+          "description": "The name (`device_tag`).",
+          "type": "string"
+        },
+        "output": {
+          "description": "The JSON Schema (draft 2020-12) of its output object."
+        },
+        "output_version": {
+          "description": "The version of its output type.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "key",
+        "description",
+        "example",
+        "output_version",
+        "output"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew queries --json` ([`QUERIES`]): the query registry. Its text is the committed snapshot\n`crates/ew-api/api/queries.json` (D13).",
+  "properties": {
+    "$schema": {
+      "const": "ew.queries-result/1",
+      "description": "The name of this schema."
+    },
+    "queries": {
+      "description": "The queries in name order.",
+      "items": {
+        "$ref": "#/$defs/QueryEntry"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "$schema",
+    "queries"
+  ],
+  "title": "ew.queries-result/1",
+  "type": "object"
+}

@@ -14,6 +14,7 @@ use ew_api::output::{ExportOptions, PageSelection, Parallelism, RowExport, date_
 use ew_api::{BomMode, CmdLog, Export};
 
 mod project_files;
+mod query;
 
 /// The usage text.
 pub const USAGE: &str = "usage:
@@ -52,6 +53,8 @@ pub const USAGE: &str = "usage:
   ew revision release <label> [<project-dir>] [--project <dir>] [--archive-dir <dir>]
   ew revision withdraw <label> --reason <text> [<project-dir>] [--project <dir>]
   ew verify-derived [<project-dir>] [--project <dir>] [--json]
+  ew query [<project-dir>] <name> <key> [--project <dir>] [--explain] [--json]
+  ew queries [--json]
   ew lib list [--company <dir>]... [--json]
   ew lib search <text> [--kind <kind>]... [--all] [--limit <n>] [--company <dir>]... [--json]
   ew lib index --rebuild [--company <dir>]... [--json]
@@ -201,6 +204,13 @@ and when writing the release fails.
 `verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
 the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.
 
+`query <name> <key>` answers one public query of the project (`ew queries` lists them with their keys): the key is a
+reference as in a command log (`tag:-101F1`, `id:<uuid>`, `folio:102`, a bare tag such as `-X1031:5`), or `-` for a
+query without one. `--explain` adds the memo's policy (verified and changed at which revision, and whether the value
+was memoised before the query ran), what the value depends on in words, and, for a value the property grid shows, the
+provenance of its row. `queries` lists the queries. `query` exits 0 when answered, 2 on usage, an unknown query, open
+errors and a key that names no record or a record of another kind; `queries` exits 0.
+
 `lib` works on the libraries of the four tiers: system (the compiled-in starter, and `<content>/libraries` when
 `EW_CONTENT_DIR` names the starter content), community (`<data>/packs`), company (every `--company <dir>`: a
 library directory or a directory of `*.ewlib` libraries) and user (`<data>/libraries`), with the search index in
@@ -272,6 +282,13 @@ pub enum Command {
     },
     /// `ew schema <name>`: a command's parameter schema or a result schema (WP-S1.22 D6).
     Schema(String),
+    /// `ew query <name> <key> [--explain]`: one public query (WP-S1.22 D11, D12).
+    Query(query::QueryArgs),
+    /// `ew queries [--json]`: the query registry (WP-S1.22 D11).
+    Queries {
+        /// Print the result as JSON (`--json`).
+        json: bool,
+    },
 }
 
 /// What `ew revision` does.
@@ -674,6 +691,8 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
             _ => Err("`project` takes `checks set` or `assets purge`".to_owned()),
         },
         "verify-derived" => parse_verify(it),
+        "query" => query::parse_query(it),
+        "queries" => query::parse_queries(it),
         "lib" => parse_lib(it),
         "revision" => parse_revision(it),
         "commands" => match it.next().as_deref() {
@@ -1577,6 +1596,8 @@ pub fn run(cmd: Command) -> i32 {
         Command::Revision(a) => run_revision(&a),
         Command::Commands { json } => run_commands(json),
         Command::Schema(name) => run_schema(&name),
+        Command::Query(a) => query::run_query(&a),
+        Command::Queries { json } => query::run_queries(json),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());
             0

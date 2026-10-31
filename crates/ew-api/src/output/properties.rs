@@ -595,6 +595,88 @@ fn page_item_kind_words(kind: &Value) -> Option<String> {
     Some(name.replace('_', " "))
 }
 
+/// The provenance of a device's tag row (§6.4, D15): frozen, or derived as a child, a terminal or by a numbering
+/// scheme. Shared with `ew query device_tag --explain` (WP-S1.22 D12, [`Session::tag_provenance`]).
+fn tag_provenance(q: &Q, device: Id<Device>, tag: Option<&ew_derive::Tag>) -> Provenance {
+    match tag.map(|t| &t.source) {
+        Some(TagSource::Frozen) => {
+            let hidden = tag.is_some_and(|t| !t.sign_on_pages);
+            Provenance::Frozen {
+                note: if hidden { "frozen (sign hidden)" } else { "frozen" }.to_owned(),
+            }
+        }
+        Some(TagSource::Child) => {
+            let parent = q
+                .devices()
+                .get(device)
+                .and_then(|x| x.parent)
+                .map(|p| device_tag_text(q, p))
+                .unwrap_or_default();
+            Provenance::Derived {
+                via: format!("child of {parent}"),
+            }
+        }
+        Some(TagSource::Terminal) => {
+            let strip = q
+                .devices()
+                .get(device)
+                .and_then(|x| x.aspects.terminal.as_ref().map(|t| t.strip))
+                .map(|s| device_tag_text(q, s))
+                .unwrap_or_default();
+            Provenance::Derived {
+                via: format!("terminal of strip {strip}"),
+            }
+        }
+        Some(TagSource::Scheme { key, .. }) => Provenance::Derived {
+            via: format!("numbering scheme '{key}'"),
+        },
+        None => Provenance::Derived {
+            via: "numbering".into(),
+        },
+    }
+}
+
+/// The `via` of the main-location row: the main representation's folio and anchor cell.
+const MAIN_LOCATION_VIA: &str = "main representation";
+
+/// The property sheet's texts that `ew query` shares (WP-S1.22 D11, D12): the provenance of a row the query backs and
+/// a record's title.
+impl Session {
+    /// The provenance of `device`'s tag row, as the property sheet shows it.
+    pub(crate) fn tag_provenance(q: &Q, device: Id<Device>) -> Provenance {
+        tag_provenance(q, device, q.get::<DeviceTag>(device).as_ref().as_ref())
+    }
+
+    /// The provenance of a device's main-location row (its folio and cell), as the property sheet shows it.
+    pub(crate) fn main_location_provenance() -> Provenance {
+        Provenance::Derived {
+            via: MAIN_LOCATION_VIA.into(),
+        }
+    }
+
+    /// The text of a wire property's source below level 7, as the property sheet's chip shows it.
+    pub(crate) fn wire_prop_via(
+        q: &Q,
+        source: &PropSource,
+        potential: &str,
+        class: Option<&ew_schema::CircuitClass>,
+    ) -> String {
+        prop_via(q, source, potential, class)
+    }
+
+    /// A short title of the record `id`, as the property sheet's header names it: a device's tag, a page's folio and
+    /// title, a node's path, a wire's number, a name.
+    pub(crate) fn record_words(q: &Q, id: Uuid) -> Option<String> {
+        let source = q.project().languages.as_ref().map(|l| l.source.to_string());
+        record_title(q, id, source.as_deref())
+    }
+
+    /// The device's tag as displayed on its main page, else its short tag (the sheet's tag text).
+    pub(crate) fn displayed_tag_text(q: &Q, device: Id<Device>) -> String {
+        device_tag_text(q, device)
+    }
+}
+
 /// The device's tag as displayed on its main page, else its short tag.
 pub(super) fn device_tag_text(q: &Q, device: Id<Device>) -> String {
     let main_page = (*q.get::<MainRep>(device)).and_then(|r| q.reps().get(r).map(|rep| rep.page));
@@ -1388,51 +1470,12 @@ impl Session {
                 for d in &devices {
                     let tag = q.get::<DeviceTag>(*d);
                     let text = device_tag_text(q, *d);
-                    let provenance = match tag.as_ref().as_ref().map(|t| &t.source) {
-                        Some(TagSource::Frozen) => {
-                            any_frozen = true;
-                            let hidden = tag.as_ref().as_ref().is_some_and(|t| !t.sign_on_pages);
-                            Provenance::Frozen {
-                                note: if hidden { "frozen (sign hidden)" } else { "frozen" }.to_owned(),
-                            }
-                        }
-                        Some(TagSource::Child) => {
-                            all_frozen = false;
-                            let parent = q
-                                .devices()
-                                .get(*d)
-                                .and_then(|x| x.parent)
-                                .map(|p| device_tag_text(q, p))
-                                .unwrap_or_default();
-                            Provenance::Derived {
-                                via: format!("child of {parent}"),
-                            }
-                        }
-                        Some(TagSource::Terminal) => {
-                            all_frozen = false;
-                            let strip = q
-                                .devices()
-                                .get(*d)
-                                .and_then(|x| x.aspects.terminal.as_ref().map(|t| t.strip))
-                                .map(|s| device_tag_text(q, s))
-                                .unwrap_or_default();
-                            Provenance::Derived {
-                                via: format!("terminal of strip {strip}"),
-                            }
-                        }
-                        Some(TagSource::Scheme { key, .. }) => {
-                            all_frozen = false;
-                            Provenance::Derived {
-                                via: format!("numbering scheme '{key}'"),
-                            }
-                        }
-                        None => {
-                            all_frozen = false;
-                            Provenance::Derived {
-                                via: "numbering".into(),
-                            }
-                        }
-                    };
+                    let provenance = tag_provenance(q, *d, tag.as_ref().as_ref());
+                    if matches!(provenance, Provenance::Frozen { .. }) {
+                        any_frozen = true;
+                    } else {
+                        all_frozen = false;
+                    }
                     products.insert(
                         tag.as_ref()
                             .as_ref()
@@ -1551,12 +1594,7 @@ impl Session {
                     .iter()
                     .map(|d| {
                         let loc = main_location(q, *d);
-                        (
-                            loc.map(Value::String),
-                            Provenance::Derived {
-                                via: "main representation".into(),
-                            },
-                        )
+                        (loc.map(Value::String), Session::main_location_provenance())
                     })
                     .collect();
                 let (value, provenance) = merge(cx, &FieldType::Text, per);

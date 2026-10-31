@@ -403,6 +403,26 @@ pub const CATALOGUE: &[Entry] = &[
         stability: Stability::Preview,
     },
     Entry {
+        path: &["query"],
+        flags: &[PROJECT, flag("--explain"), JSON],
+        exits: &[
+            exit(0, "answered"),
+            exit(
+                2,
+                "usage, an unknown query, open errors, a key that names no record or one of another kind",
+            ),
+        ],
+        result: Some(ew_api::cli_results::QUERY),
+        stability: Stability::Preview,
+    },
+    Entry {
+        path: &["queries"],
+        flags: &[JSON],
+        exits: &[OK],
+        result: Some(ew_api::cli_results::QUERIES),
+        stability: Stability::Preview,
+    },
+    Entry {
         path: &["lib", "list"],
         flags: &[COMPANY, JSON],
         exits: &[OK, USAGE_ETC],

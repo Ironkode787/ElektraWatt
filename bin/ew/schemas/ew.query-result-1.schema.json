@@ -1,0 +1,109 @@
+{
+  "$defs": {
+    "QueryExplain": {
+      "additionalProperties": false,
+      "description": "The explanation of a query's value (`ew query --explain`, D12): the memo's policy and state, its dependencies and\nthe property row's provenance. No wall-clock time: revisions are the session's.",
+      "properties": {
+        "changed_at": {
+          "description": "The revision at which its value last changed; `null` without a memo.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "depends_on": {
+          "description": "The memo's dependencies in read order, in words (at most 64, then `…`): memos by family and described key,\ninputs by record kind and tag, folio or ID, each with the revision observed.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "family": {
+          "description": "The memo family explained: the query's own, or the outermost memoised family of a composed query.",
+          "type": "string"
+        },
+        "hit": {
+          "description": "Whether the memo held the value, verified, before the query ran; `null` for a family without a memo.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "policy": {
+          "description": "The policy line (`Memo · device_tag · verified at rev 1 (miss) · changed at rev 1`).",
+          "type": "string"
+        },
+        "provenance": {
+          "description": "The `via` of the property-grid row the query backs (`device_tag`, `cell_of`); `null` otherwise.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verified_at": {
+          "description": "The revision at which the memo was last confirmed valid; `null` without a memo.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "family",
+        "policy",
+        "depends_on"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew query --json` ([`QUERY`]): the answer of one public query (WP-S1.22 D11, D12).",
+  "properties": {
+    "$schema": {
+      "const": "ew.query-result/1",
+      "description": "The name of this schema."
+    },
+    "explain": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/QueryExplain"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The explanation (`--explain`); `null` without it."
+    },
+    "key": {
+      "description": "The key as given (`tag:-101F1`, `-`).",
+      "type": "string"
+    },
+    "output": {
+      "description": "The query's output object; its schema is the query's `output` in `ew queries --json`."
+    },
+    "query": {
+      "description": "The query's name (`device_tag`).",
+      "type": "string"
+    },
+    "rev": {
+      "description": "The session's revision the answer was computed at.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "$schema",
+    "query",
+    "key",
+    "rev",
+    "output"
+  ],
+  "title": "ew.query-result/1",
+  "type": "object"
+}

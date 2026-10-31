@@ -985,3 +985,191 @@ proptest! {
         prop_assert_eq!(store.take_mismatches(), Vec::<Mismatch>::new());
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// `Store::explain` (WP-S1.22 D12): read-only state and trail
+
+/// The explanation of `q`'s key `k`, every field as text (the read-only comparisons of the property below).
+fn explain(store: &Store<Cells>, q: u8, k: u32) -> String {
+    match q {
+        0 => format!("{:?}", store.explain::<Cell>(&k)),
+        1 => format!("{:?}", store.explain::<Sum>(&k)),
+        2 => format!("{:?}", store.explain::<Positive>(&k)),
+        3 => format!("{:?}", store.explain::<Label>(&k)),
+        4 => format!("{:?}", store.explain::<Bulk>(&k)),
+        5 => format!("{:?}", store.explain::<Dyn>(&())),
+        _ => format!("{:?}", store.explain::<Top>(&())),
+    }
+}
+
+/// Everything a read can observe or change of a store: every memo's state, the statistics, the memory and the LRU.
+fn observable(store: &Store<Cells>) -> String {
+    let mut infos = Vec::new();
+    for k in 0..9 {
+        infos.push(format!(
+            "{:?} {:?} {:?} {:?} {:?}",
+            store.memo_info::<Cell>(&k),
+            store.memo_info::<Sum>(&k),
+            store.memo_info::<Positive>(&k),
+            store.memo_info::<Label>(&k),
+            store.memo_info::<Bulk>(&k)
+        ));
+    }
+    format!(
+        "{infos:?} {:?} {:?} {:?} {:?} {:?} {:?} {}",
+        store.memo_info::<Dyn>(&()),
+        store.memo_info::<Top>(&()),
+        store.commit_stats(),
+        store.total_stats(),
+        store.memory(),
+        store.current(),
+        store.lru_bytes()
+    )
+}
+
+#[test]
+fn explain_of_a_key_never_read_has_no_memo() {
+    let mut db = Cells::default();
+    let mut store = Store::new();
+    db.commit(&mut store, &[(0, 1, Durability::Drawing)]);
+    let e = store.explain::<Label>(&2);
+    assert_eq!(e.family, "label");
+    assert_eq!(e.key, "2");
+    assert_eq!(e.current, Rev(1));
+    assert!(!e.memoised && !e.hit && !e.lru && !e.truncated);
+    assert_eq!((e.verified_at, e.changed_at), (Rev::ZERO, Rev::ZERO));
+    assert!(e.deps.is_empty());
+    assert_eq!(e.lines(), Vec::<String>::new());
+    // A family the store has seen, with another key read.
+    let _ = store.get::<Label>(&db, &1).unwrap();
+    assert!(!store.explain::<Label>(&2).memoised);
+}
+
+#[test]
+fn explain_reports_the_hit_the_revisions_and_the_trail_in_read_order() {
+    let mut db = Cells::default();
+    let mut store = Store::new();
+    db.commit(
+        &mut store,
+        &[(0, 1, Durability::Drawing), (1, 2, Durability::Settings)],
+    );
+    assert_eq!(*store.get::<Label>(&db, &2).unwrap(), "2:+");
+
+    let label = store.explain::<Label>(&2);
+    assert!(label.memoised && label.hit);
+    assert_eq!((label.verified_at, label.changed_at), (Rev(1), Rev(1)));
+    assert_eq!(label.durability, Durability::Drawing);
+    assert_eq!(label.lines(), ["positive(2)@r1"]);
+    assert_eq!(label.deps[0].memo(), Some(("positive", "2")));
+    assert_eq!(label.deps[0].input(), None);
+    assert_eq!(label.deps[0].observed(), Rev(1));
+
+    let sum = store.explain::<Sum>(&2);
+    assert_eq!(sum.lines(), ["cell(0)@r1", "cell(1)@r1"]);
+    let cell = store.explain::<Cell>(&1);
+    assert_eq!(cell.lines(), ["input(1)@r1"]);
+    assert_eq!(cell.deps[0].input(), Some(&1));
+    assert_eq!(cell.deps[0].memo(), None);
+    assert_eq!(cell.durability, Durability::Settings);
+
+    // A commit: the memo stays, verified at the earlier revision, so a read now is no hit.
+    db.commit(&mut store, &[(0, 3, Durability::Drawing)]);
+    let label = store.explain::<Label>(&2);
+    assert!(label.memoised && !label.hit);
+    assert_eq!((label.current, label.verified_at), (Rev(2), Rev(1)));
+    // The read verifies it; `Positive` cuts off, so the label's value keeps its revision.
+    let _ = store.get::<Label>(&db, &2).unwrap();
+    let label = store.explain::<Label>(&2);
+    assert!(label.hit);
+    assert_eq!((label.verified_at, label.changed_at), (Rev(2), Rev(1)));
+}
+
+#[test]
+fn explain_keeps_64_reads_and_marks_the_rest_with_an_ellipsis() {
+    let mut db = Cells::default();
+    let mut store = Store::new();
+    db.commit(&mut store, &[(0, 1, Durability::Drawing)]);
+    let _ = store.get::<Sum>(&db, &100).unwrap();
+    let e = store.explain::<Sum>(&100);
+    assert_eq!(e.deps.len(), 64);
+    assert!(e.truncated);
+    let lines = e.lines();
+    assert_eq!(lines.len(), 65);
+    assert_eq!(lines[0], "cell(0)@r1");
+    assert_eq!(lines[63], "cell(63)@r1");
+    assert_eq!(lines[64], "…");
+}
+
+#[test]
+fn explain_names_an_lru_family_and_an_evicted_value_is_no_hit() {
+    let mut db = Cells::default();
+    let mut store = Store::new();
+    db.commit(
+        &mut store,
+        &[(3, 5, Durability::Drawing), (4, 6, Durability::Drawing)],
+    );
+    let _ = store.get::<Bulk>(&db, &3).unwrap();
+    let e = store.explain::<Bulk>(&3);
+    assert!(e.lru && e.hit);
+    // A budget that holds one of the two values evicts the older one.
+    store.set_lru_budget(Some(40));
+    let _ = store.get::<Bulk>(&db, &4).unwrap();
+    let e = store.explain::<Bulk>(&3);
+    assert!(
+        e.memoised && !e.hit,
+        "an evicted value is recomputed on its next read"
+    );
+    assert_eq!(e.lines(), ["cell(3)@r1"]);
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig { cases: 128, ..ProptestConfig::default() })]
+
+    /// R4 of WP-S1.22: `explain` changes nothing. Two stores run the same random steps; one also explains every
+    /// family at several keys before and after each step. Every read answers the same (and equals the cold
+    /// computation), every memo state, statistic, memory figure and LRU byte count stays equal between the twins,
+    /// and an explanation repeated without a step in between is the same.
+    #[test]
+    fn explain_is_read_only(steps in proptest::collection::vec(step(), 1..50)) {
+        let mut db = Cells::default();
+        let mut plain = Store::new();
+        let mut explained = Store::new();
+        let mut pending: Vec<(u32, i64, Durability)> = Vec::new();
+        let explain_all = |store: &Store<Cells>| -> Vec<String> {
+            let mut out = Vec::new();
+            for q in 0..QUERIES {
+                for k in [0, 3, 8] {
+                    out.push(explain(store, q, k));
+                }
+            }
+            out
+        };
+        for s in steps {
+            let before = explain_all(&explained);
+            prop_assert_eq!(&before, &explain_all(&explained));
+            match s {
+                Step::Set(k, v, d) => pending.push((k, v, Durability::ALL[usize::from(d)])),
+                Step::Move(k, d) => pending.push((k, db.value(k), Durability::ALL[usize::from(d)])),
+                Step::Read(q, k) => {
+                    if !pending.is_empty() {
+                        let changes = std::mem::take(&mut pending);
+                        let mut twin = db.clone();
+                        twin.commit(&mut plain, &changes);
+                        db.commit(&mut explained, &changes);
+                    }
+                    let a = read(&mut plain, &db, q, k);
+                    let b = read(&mut explained, &db, q, k);
+                    prop_assert_eq!(&a, &b);
+                    prop_assert_eq!(a, cold(&explained, &db, q, k));
+                }
+                Step::Budget(b) => {
+                    plain.set_lru_budget(b);
+                    explained.set_lru_budget(b);
+                }
+                Step::Fork | Step::ReadFork(..) | Step::Adopt => {}
+            }
+            let _ = explain_all(&explained);
+            prop_assert_eq!(observable(&plain), observable(&explained));
+        }
+    }
+}

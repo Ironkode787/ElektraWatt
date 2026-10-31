@@ -373,6 +373,12 @@ impl MemoStore {
     pub fn push_index_entries(&self) -> usize {
         self.store().push_index_entries()
     }
+
+    /// The state and the dependency trail of the memo of `F(key)` (`ew_memo::Store::explain`; `ew query --explain`,
+    /// WP-S1.22 D12): read-only, nothing is computed. A family whose policy is [`Policy::Cold`] has no memo.
+    pub fn explain<F: Query>(&self, key: &F::Key) -> ew_memo::Explain<MemoInput> {
+        self.store().explain::<MemoOf<F>>(key)
+    }
 }
 
 #[cfg(test)]

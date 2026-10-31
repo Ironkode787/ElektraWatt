@@ -110,6 +110,129 @@ pub struct MemoInfo<I> {
     pub has_value: bool,
 }
 
+/// One recorded read of a memo, as [`Store::explain`] reports it: what was read and the revision observed.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum TrailEntry<I> {
+    /// An input of the host.
+    Input {
+        /// The input.
+        input: I,
+        /// The revision observed.
+        observed: Rev,
+    },
+    /// The whole value of another memo.
+    Memo {
+        /// The family of the memo read.
+        family: &'static str,
+        /// Its key, as `Debug` text (at most 1,024 bytes).
+        key: String,
+        /// The revision observed.
+        observed: Rev,
+    },
+    /// One part of another memo's value.
+    Part {
+        /// The family of the producer.
+        family: &'static str,
+        /// The producer's key, as `Debug` text (at most 1,024 bytes).
+        key: String,
+        /// The part read.
+        part: I,
+        /// The revision observed.
+        observed: Rev,
+    },
+}
+
+impl<I: Debug> TrailEntry<I> {
+    /// The entry as an oracle [`Mismatch`] lists it: `input(<key>)@r<rev>`, `family(<key>)@r<rev>` or
+    /// `family(<key>)[<part>]@r<rev>`, an input or part text cut to 1,024 bytes.
+    pub fn line(&self) -> String {
+        match self {
+            TrailEntry::Input { input, observed } => bounded(format!("input({input:?})@{observed}")),
+            TrailEntry::Memo {
+                family,
+                key,
+                observed,
+            } => format!("{family}({key})@{observed}"),
+            TrailEntry::Part {
+                family,
+                key,
+                part,
+                observed,
+            } => bounded(format!("{family}({key})[{part:?}]@{observed}")),
+        }
+    }
+}
+
+impl<I> TrailEntry<I> {
+    /// The input read, for an [`TrailEntry::Input`] entry.
+    pub fn input(&self) -> Option<&I> {
+        match self {
+            TrailEntry::Input { input, .. } => Some(input),
+            _ => None,
+        }
+    }
+
+    /// The family and the key text of the memo read, for a [`TrailEntry::Memo`] or [`TrailEntry::Part`] entry.
+    pub fn memo(&self) -> Option<(&'static str, &str)> {
+        match self {
+            TrailEntry::Memo { family, key, .. } | TrailEntry::Part { family, key, .. } => {
+                Some((*family, key.as_str()))
+            }
+            TrailEntry::Input { .. } => None,
+        }
+    }
+
+    /// The revision observed.
+    pub fn observed(&self) -> Rev {
+        match self {
+            TrailEntry::Input { observed, .. }
+            | TrailEntry::Memo { observed, .. }
+            | TrailEntry::Part { observed, .. } => *observed,
+        }
+    }
+}
+
+/// The state of the memo of one key, read without changing the store ([`Store::explain`], the trail of
+/// `ew query --explain`, WP-S1.22 D12).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Explain<I> {
+    /// The query family.
+    pub family: &'static str,
+    /// The key, as `Debug` text (at most 1,024 bytes).
+    pub key: String,
+    /// Whether the family's values live under the byte-budget LRU ([`Query::LRU`]).
+    pub lru: bool,
+    /// The store's current revision.
+    pub current: Rev,
+    /// Whether the key has a memo (it was read since the memo was created and not collected).
+    pub memoised: bool,
+    /// Whether a read now would be a hit: the memo holds its value and was verified at the current revision, so
+    /// it is returned without a verification.
+    pub hit: bool,
+    /// The revision at which the memo was last confirmed valid ([`Rev::ZERO`] without a memo).
+    pub verified_at: Rev,
+    /// The revision at which its value last changed ([`Rev::ZERO`] without a memo).
+    pub changed_at: Rev,
+    /// The memo's durability ([`Durability::Library`] without a memo).
+    pub durability: Durability,
+    /// Its recorded reads in read order, at most 64 (empty without a memo).
+    pub deps: Vec<TrailEntry<I>>,
+    /// Whether further reads were left out after the 64th.
+    pub truncated: bool,
+}
+
+impl<I: Debug> Explain<I> {
+    /// The dependency lines an oracle [`Mismatch`] lists: one [`TrailEntry::line`] per read, then `…` when reads
+    /// were left out.
+    pub fn lines(&self) -> Vec<String> {
+        let mut lines: Vec<String> = self.deps.iter().map(TrailEntry::line).collect();
+        if self.truncated {
+            lines.push("…".to_owned());
+        }
+        lines
+    }
+}
+
 /// Memory of one query family (G-SP-04, NFR-PERF-13).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct FamilyMemory {
@@ -1234,6 +1357,46 @@ impl<D: Db> Store<D> {
         })
     }
 
+    /// The state and the dependency trail of the memo of `Q(key)` (WP-S1.22 D12, `ew query --explain`): whether a
+    /// read now would be a hit, the revisions, the durability and the recorded reads (at most 64). Read-only: no
+    /// memo, statistic, mark or LRU position changes, and nothing is executed or verified, so the answer describes
+    /// the memo as the last read left it. A key that was never read, or whose family the store has not seen, has
+    /// no memo (`memoised` false).
+    pub fn explain<Q: Query<D>>(&self, key: &Q::Key) -> Explain<D::Input> {
+        let st = self.st.borrow();
+        let mut out = Explain {
+            family: Q::NAME,
+            key: bounded(format!("{key:?}")),
+            lru: Q::LRU,
+            current: st.current,
+            memoised: false,
+            hit: false,
+            verified_at: Rev::ZERO,
+            changed_at: Rev::ZERO,
+            durability: Durability::Library,
+            deps: Vec::new(),
+            truncated: false,
+        };
+        let Some(&fid) = st.by_type.get(&TypeId::of::<Q>()) else {
+            return out;
+        };
+        let Some(&slot) = st.storage::<Q>(fid).index.get(key) else {
+            return out;
+        };
+        let Some(m) = st.storage::<Q>(fid).slots[slot.index()].memo.as_ref() else {
+            return out;
+        };
+        out.memoised = true;
+        out.hit = m.value.is_some() && m.verified_at == st.current;
+        out.verified_at = m.verified_at;
+        out.changed_at = m.changed_at;
+        out.durability = m.durability;
+        let (deps, truncated) = trail_entries(&st, &m.deps);
+        out.deps = deps;
+        out.truncated = truncated;
+        out
+    }
+
     /// Memory per family, in family-name order.
     pub fn memory(&self) -> Vec<FamilyMemory> {
         let st = self.st.borrow();
@@ -2064,20 +2227,49 @@ fn memo_trail<D: Db, Q: Query<D>>(
     let Some(m) = st.storage::<Q>(fid).slots[slot.index()].memo.as_ref() else {
         return (Rev::ZERO, Rev::ZERO, Durability::Library, Vec::new());
     };
-    let mut deps: Vec<String> = m
-        .deps
-        .iter()
-        .take(MISMATCH_DEPS)
-        .map(|(dep, rev)| match dep {
-            DepKey::Input(input) => bounded(format!("input({input:?})@{rev}")),
-            DepKey::Memo(f, s) => format!("{}@{rev}", st.describe(*f, *s)),
-            DepKey::Part(f, s, p) => bounded(format!("{}[{p:?}]@{rev}", st.describe(*f, *s))),
-        })
-        .collect();
-    if m.deps.len() > MISMATCH_DEPS {
+    let (entries, truncated) = trail_entries(st, &m.deps);
+    let mut deps: Vec<String> = entries.iter().map(TrailEntry::line).collect();
+    if truncated {
         deps.push("…".to_owned());
     }
     (m.verified_at, m.changed_at, m.durability, deps)
+}
+
+/// The first [`MISMATCH_DEPS`] recorded reads of a memo as trail entries, and whether more were left out (the
+/// trail of a [`Mismatch`] and of [`Store::explain`]).
+fn trail_entries<D: Db>(st: &State<D>, deps: &Deps<D::Input>) -> (Vec<TrailEntry<D::Input>>, bool) {
+    let memo = |f: FamilyId, s: SlotId| {
+        let family = &st.families[f.0 as usize];
+        (family.name, (family.describe)(&family.storage, s))
+    };
+    let entries = deps
+        .iter()
+        .take(MISMATCH_DEPS)
+        .map(|(dep, observed)| match dep {
+            DepKey::Input(input) => TrailEntry::Input {
+                input: input.clone(),
+                observed,
+            },
+            DepKey::Memo(f, s) => {
+                let (family, key) = memo(*f, *s);
+                TrailEntry::Memo {
+                    family,
+                    key,
+                    observed,
+                }
+            }
+            DepKey::Part(f, s, part) => {
+                let (family, key) = memo(*f, *s);
+                TrailEntry::Part {
+                    family,
+                    key,
+                    part: part.clone(),
+                    observed,
+                }
+            }
+        })
+        .collect();
+    (entries, deps.len() > MISMATCH_DEPS)
 }
 
 /// Cuts `Debug` text to [`DEBUG_LIMIT`] bytes on a character boundary.

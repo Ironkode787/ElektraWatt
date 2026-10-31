@@ -117,6 +117,10 @@ pub const LIB_CREATE: &str = "ew.lib-create-result/1";
 pub const LIB_IMPORT_PARTS: &str = "ew.lib-import-parts-result/1";
 /// `ew commands --json`.
 pub const COMMANDS: &str = "ew.commands-result/1";
+/// `ew query --json`.
+pub const QUERY: &str = "ew.query-result/1";
+/// `ew queries --json`.
+pub const QUERIES: &str = "ew.queries-result/1";
 
 /// Every published result schema, in name order.
 pub const RESULTS: &[ResultSchema] = &[
@@ -219,6 +223,16 @@ pub const RESULTS: &[ResultSchema] = &[
         name: LIB_SEARCH,
         command: "lib search",
         schema: schema_of::<LibSearchResult>,
+    },
+    ResultSchema {
+        name: QUERIES,
+        command: "queries",
+        schema: schema_of::<QueriesResult>,
+    },
+    ResultSchema {
+        name: QUERY,
+        command: "query",
+        schema: schema_of::<QueryResult>,
     },
     ResultSchema {
         name: RECOVER,
@@ -969,6 +983,85 @@ pub struct JournalSummary {
     pub base_matches: bool,
     /// How many further crashed sessions' journals remain after this one (each is offered by its own `ew recover`).
     pub further: usize,
+}
+
+/// `ew query --json` ([`QUERY`]): the answer of one public query (WP-S1.22 D11, D12).
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct QueryResult {
+    /// [`QUERY`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The query's name (`device_tag`).
+    pub query: String,
+    /// The key as given (`tag:-101F1`, `-`).
+    pub key: String,
+    /// The session's revision the answer was computed at.
+    pub rev: u64,
+    /// The query's output object; its schema is the query's `output` in `ew queries --json`.
+    pub output: Value,
+    /// The explanation (`--explain`); `null` without it.
+    pub explain: Option<QueryExplain>,
+}
+
+/// The explanation of a query's value (`ew query --explain`, D12): the memo's policy and state, its dependencies and
+/// the property row's provenance. No wall-clock time: revisions are the session's.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct QueryExplain {
+    /// The memo family explained: the query's own, or the outermost memoised family of a composed query.
+    pub family: String,
+    /// The policy line (`Memo · device_tag · verified at rev 1 (miss) · changed at rev 1`).
+    pub policy: String,
+    /// Whether the memo held the value, verified, before the query ran; `null` for a family without a memo.
+    pub hit: Option<bool>,
+    /// The revision at which the memo was last confirmed valid; `null` without a memo.
+    pub verified_at: Option<u64>,
+    /// The revision at which its value last changed; `null` without a memo.
+    pub changed_at: Option<u64>,
+    /// The memo's dependencies in read order, in words (at most 64, then `…`): memos by family and described key,
+    /// inputs by record kind and tag, folio or ID, each with the revision observed.
+    pub depends_on: Vec<String>,
+    /// The `via` of the property-grid row the query backs (`device_tag`, `cell_of`); `null` otherwise.
+    pub provenance: Option<String>,
+}
+
+/// `ew queries --json` ([`QUERIES`]): the query registry. Its text is the committed snapshot
+/// `crates/ew-api/api/queries.json` (D13).
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct QueriesResult {
+    /// [`QUERIES`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The queries in name order.
+    pub queries: Vec<QueryEntry>,
+}
+
+/// One query of [`QueriesResult`].
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct QueryEntry {
+    /// The name (`device_tag`).
+    pub name: String,
+    /// The grammar of its key (`-` for none).
+    pub key: String,
+    /// What it answers.
+    pub description: String,
+    /// Its golden example: a key on Golden A.
+    pub example: String,
+    /// The version of its output type.
+    pub output_version: u32,
+    /// The JSON Schema (draft 2020-12) of its output object.
+    pub output: Value,
+}
+
+/// The query registry as [`QueriesResult`] ([`crate::queries::REGISTRY`], in name order).
+pub fn queries() -> QueriesResult {
+    QueriesResult {
+        schema: QUERIES.to_owned(),
+        queries: crate::queries::REGISTRY.iter().map(|q| q.entry()).collect(),
+    }
 }
 
 /// The command registry as [`CommandsResult`]: the entries of the built-in registry's `index.json`, in its order.

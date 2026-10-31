@@ -1,0 +1,457 @@
+{
+  "$schema": "ew.queries-result/1",
+  "queries": [
+    {
+      "description": "The bill of materials in the parts mode that folio 901 prints: position, quantity, part, manufacturer, description, tags and folios of each row.",
+      "example": "-",
+      "key": "-",
+      "name": "bom_rows",
+      "output": {
+        "$defs": {
+          "BomRowOut": {
+            "additionalProperties": false,
+            "description": "One row of [`BomRowsOutput`].",
+            "properties": {
+              "description": {
+                "description": "The description.",
+                "type": "string"
+              },
+              "folios": {
+                "description": "The folios.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "manufacturer": {
+                "description": "The manufacturer's name.",
+                "type": "string"
+              },
+              "part_number": {
+                "description": "The part number.",
+                "type": "string"
+              },
+              "position": {
+                "description": "The position (`1`; `A1` for a configured product).",
+                "type": "string"
+              },
+              "quantity": {
+                "description": "The quantity.",
+                "type": "string"
+              },
+              "tags": {
+                "description": "The devices' tags.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "position",
+              "quantity",
+              "part_number",
+              "manufacturer",
+              "description",
+              "tags",
+              "folios"
+            ],
+            "type": "object"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`bom_rows`.",
+        "properties": {
+          "rows": {
+            "description": "The rows in order.",
+            "items": {
+              "$ref": "#/$defs/BomRowOut"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows"
+        ],
+        "title": "BomRowsOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "The folio and frame cell of a device's main representation.",
+      "example": "tag:-101F1",
+      "key": "tag:<tag> | id:<uuid> (a device)",
+      "name": "cell_of",
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`cell_of`.",
+        "properties": {
+          "cell": {
+            "description": "The frame cell of its anchor, row then column (`B8`); `null` outside the frame grid or unplaced.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "folio": {
+            "description": "The folio of the main representation's page; `null` for a device that is not placed.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "title": "CellOfOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "The address of each channel of a PLC module, in channel-number order.",
+      "example": "tag:-201U5",
+      "key": "tag:<tag> | id:<uuid> (a PLC module)",
+      "name": "channel_addresses",
+      "output": {
+        "$defs": {
+          "ChannelAddress": {
+            "additionalProperties": false,
+            "description": "One channel of [`ChannelAddressesOutput`].",
+            "properties": {
+              "address": {
+                "description": "The address as drawings print it (`Q0.1`), `TBD`, `excluded` or `unresolved`.",
+                "type": "string"
+              },
+              "number": {
+                "description": "The channel number.",
+                "format": "uint16",
+                "maximum": 65535,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "number",
+              "address"
+            ],
+            "type": "object"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`channel_addresses`.",
+        "properties": {
+          "channels": {
+            "description": "The channels in number order.",
+            "items": {
+              "$ref": "#/$defs/ChannelAddress"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "channels"
+        ],
+        "title": "ChannelAddressesOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "A device's full designation and its tag as displayed on its main page.",
+      "example": "tag:-101F1",
+      "key": "tag:<tag> | id:<uuid> (a device)",
+      "name": "device_tag",
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`device_tag`.",
+        "properties": {
+          "displayed": {
+            "description": "The tag as displayed on the device's main page (`-101F1`), else its short tag.",
+            "type": "string"
+          },
+          "full": {
+            "description": "The full designation (`=P01+J-E-2416-101F1`).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "full",
+          "displayed"
+        ],
+        "title": "DeviceTagOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "A device's tag as a page prints it: the structure the page shares is left out.",
+      "example": "tag:-101F1,folio:101",
+      "key": "<device>,folio:<label> (a device and a page)",
+      "name": "displayed_tag",
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`displayed_tag`.",
+        "properties": {
+          "displayed": {
+            "description": "The tag as the page prints it.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayed"
+        ],
+        "title": "DisplayedTagOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "The folio labels of every page in page order: drawn pages, section dividers and generated report pages.",
+      "example": "-",
+      "key": "-",
+      "name": "page_order",
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`page_order`.",
+        "properties": {
+          "folios": {
+            "description": "The folio labels in page order.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "folios"
+        ],
+        "title": "PageOrderOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "The PLC addresses a function's representation prints beside it.",
+      "example": "tag:-201U3-Q1",
+      "key": "id:<uuid> (a function) | tag:<tag> (a device: its main function)",
+      "name": "plc_address_text",
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`plc_address_text`.",
+        "properties": {
+          "text": {
+            "description": "The text a `PlcAddress` slot prints (`Q0.1`, `I0.0 / I0.1`); `null` when no address resolves.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "title": "PlcAddressTextOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "The name of the potential a wire, a junction or a terminal belongs to, with its aliases.",
+      "example": "id:5945bf6c-b3b1-5964-8651-59a4b48396d3",
+      "key": "id:<uuid> (a wire or a junction) | tag:<tag> (a terminal)",
+      "name": "potential_name",
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`potential_name`.",
+        "properties": {
+          "aliases": {
+            "description": "The other names its definitions give it.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "The name (`?` for a potential without one).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "aliases"
+        ],
+        "title": "PotentialNameOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "The values a drawn page's title block prints, by binding path.",
+      "example": "folio:101",
+      "key": "folio:<label> (a drawn page)",
+      "name": "title_block",
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`title_block`.",
+        "properties": {
+          "values": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Binding path (`page.title`) → printed text; a path without a value is absent, an image prints `(image)`.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "values"
+        ],
+        "title": "TitleBlockOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "The numbers of the wires numbered on a drawn page (their From end lies on it), in numbering order.",
+      "example": "folio:102",
+      "key": "folio:<label> (a drawn page)",
+      "name": "wire_numbers",
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`wire_numbers`.",
+        "properties": {
+          "numbers": {
+            "description": "The printed numbers in numbering order.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "numbers"
+        ],
+        "title": "WireNumbersOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "The cross-section and colour of each physical wire of a connection, each with where it comes from.",
+      "example": "id:13c75a2c-b8f2-5b51-8e22-4cb6522139b0",
+      "key": "id:<uuid> (a wire)",
+      "name": "wire_props_of",
+      "output": {
+        "$defs": {
+          "WireOut": {
+            "additionalProperties": false,
+            "description": "One physical wire of [`WirePropsOutput`].",
+            "properties": {
+              "colour": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/WireProp"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The colour; `null` when no level gives one."
+              },
+              "cross_section": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/WireProp"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The cross-section; `null` when no level gives one."
+              },
+              "number": {
+                "description": "The printed wire number (`?` when unnumbered).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "number"
+            ],
+            "type": "object"
+          },
+          "WireProp": {
+            "additionalProperties": false,
+            "description": "One effective property of a wire with where it comes from.",
+            "properties": {
+              "value": {
+                "description": "The value as text (`1.5`, `BU`).",
+                "type": "string"
+              },
+              "via": {
+                "description": "Where it comes from, as the property grid's chip names it.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "value",
+              "via"
+            ],
+            "type": "object"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`wire_props_of`.",
+        "properties": {
+          "potential": {
+            "description": "The potential's name.",
+            "type": "string"
+          },
+          "wires": {
+            "description": "The physical wires the connection belongs to, in the order of their numbers.",
+            "items": {
+              "$ref": "#/$defs/WireOut"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "potential",
+          "wires"
+        ],
+        "title": "WirePropsOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    },
+    {
+      "description": "The cross-reference text printed at a device's main representation.",
+      "example": "tag:-201U1",
+      "key": "tag:<tag> | id:<uuid> (a device)",
+      "name": "xref_text_of",
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "description": "`xref_text_of`.",
+        "properties": {
+          "text": {
+            "description": "The printed cross-reference; empty when the representation has none.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "XrefTextOutput",
+        "type": "object"
+      },
+      "output_version": 1
+    }
+  ]
+}

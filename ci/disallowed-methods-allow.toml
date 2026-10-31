@@ -23,7 +23,7 @@ count = 1
 [[allow]]
 crate = "ew"
 item = "fn bin_exe"
-count = 3
+count = 4
 
 [[allow]]
 crate = "ew"
@@ -43,7 +43,7 @@ count = 1
 [[allow]]
 crate = "ew-api"
 item = "fn bless"
-count = 2
+count = 3
 
 [[allow]]
 crate = "ew-api"

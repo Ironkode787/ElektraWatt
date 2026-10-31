@@ -18,3 +18,7 @@ SPDX-License-Identifier: CC-BY-4.0
   session with the latest change, one at a time; result `ew.recover-result/1`)
 - api-add: cli ew import csv <tables-dir> --out <dir> [--content <dir>] [--strict | --lenient] [--json] (creates a new
   project from the CSV tables; result `ew.import-csv-result/1`)
+- api-add: cli ew query [<project-dir>] <name> <key> [--explain] [--json] (answers one of the twelve public queries as
+  a reader; `--explain` adds the memo policy, the dependencies and the provenance; result `ew.query-result/1`)
+- api-add: cli ew queries [--json] (lists the query registry with each query's output schema; result
+  `ew.queries-result/1`, the text of `crates/ew-api/api/queries.json`)
