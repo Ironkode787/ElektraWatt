@@ -12,10 +12,13 @@ fragment's; `/at` a point that is not a grid point of the page; `/fragment/ancho
 outside device, function, representation, connection, junction, potential definition, page item and structure
 box, of another schema version, listed twice, a representation off the grid or of a representation type the page
 does not take, or a mandatory reference that resolves to nothing; `/fragment/copies/<i>` a copy that
-`library.embed` refuses, listed twice, or one the project holds in another version; `/fragment/nodes/<i>` a node
-listed twice or without a path.
+`library.embed` refuses, listed twice, or one the project holds in another version that `adapt` does not name;
+`/fragment/nodes/<i>` a node listed twice or without a path; `/adapt/<i>` an ID listed twice, one that names no copy
+of the fragment the project holds in another version, or one whose change from the pasted version to the held one
+is major (WP-S2.07 D22).
 
-**Effects.** (1) A library copy the project holds with the same `sha256` is reused, any other is embedded. (2)
+**Effects.** (1) A library copy the project holds with the same `sha256` is reused, and so is one that `adapt`
+names (the held version stays); any other is embedded. (2)
 Each structure node rebinds to the project's node of the same aspect and path, else to the one node of that
 aspect whose aliases hold the leaf code; an unmatched node clears the slots naming it (the record inherits),
 with a notice; no node is created. (3) Every record gets a minted ID, in (kind rank, fragment order), and loses
@@ -58,6 +61,7 @@ reference and unmatched structure node.
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
+| `adapt` | array of [`CmdUuid`](#cmduuid) | no |  | The library copies (copy IDs) the project holds in another version that the paste uses as the project holds them instead of refusing (WP-S2.07 D22, FT-396's "Use the project's copy"); each must name a copy of `fragment.copies` that the project holds with another hash, and the change from the pasted version to the held one must not be major (`classify_update`). Empty by default, and then left out of the parameters. |
 | `at` | [`CmdPt2`](#cmdpt2) | yes |  | The new position of the fragment's anchor, a grid point of the page. |
 | `fragment` | [`Fragment`](#fragment) | yes |  | The fragment. |
 | `page` | [`CmdUuid`](#cmduuid) | yes |  | The target page. |
