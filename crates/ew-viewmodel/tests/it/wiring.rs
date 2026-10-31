@@ -300,10 +300,7 @@ fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
     let tmp = Tmp::new("kinds");
     let mut s = shell(&tmp, "3");
     assert_eq!(refused(&mut s, "tool.wire", json!({})), "reason-no-wire-kind");
-    assert!(
-        s.describe()
-            .contains("item tool.wire \"Connection\" [W] disabled: ")
-    );
+    assert!(s.describe().contains("item tool.wire \"Wire\" [W] disabled: "));
     done(&mut s, "page.goto", json!({"folio": "201"}));
     assert_eq!(s.wire_kind(), Ok(Some("overview")));
     done(&mut s, "tool.wire", json!({}));

@@ -61,7 +61,7 @@ The keys of the two keymap presets, EW and KiCad-like (Help ▸ Keyboard shortcu
 | Paste | `edit.paste_clip` | canvas | `Ctrl+V` | `Ctrl+V` |
 | Duplicate | `edit.duplicate` | canvas | `Ctrl+D` | `Ctrl+D` |
 | Finish | `tool.finish` | canvas | `Shift+Enter` | `Shift+Enter` |
-| Connection | `tool.wire` | canvas | `W` | `W` |
+| Wire | `tool.wire` | canvas | `W` | `W` |
 | Click with Alt at the grid cursor | `canvas.activate_alt` | canvas | `Ctrl+Enter` | `Ctrl+Enter` |
 | Next autoconnect proposal | `tool.next_proposal` | canvas | `Tab` | `Tab` |
 | Connect while moving | `tool.connect_on_move` | canvas | `C` | `C` |

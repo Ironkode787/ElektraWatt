@@ -794,7 +794,7 @@
         ]
       },
       "context": "canvas",
-      "label": "Connection",
+      "label": "Wire",
       "label_key": "action-tool-wire"
     },
     {

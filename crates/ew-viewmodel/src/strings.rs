@@ -178,7 +178,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "picker-title-black-box" => "Insert black box",
         "picker-strip-row" => "{0}  next terminal {1}",
         "picker-strip-next" => "next terminal {0}",
-        "action-tool-wire" => "Connection",
+        "action-tool-wire" => "Wire",
         "action-canvas-activate-alt" => "Click with Alt at the grid cursor",
         "action-tool-next-proposal" => "Next autoconnect proposal",
         "action-tool-connect-on-move" => "Connect while moving",

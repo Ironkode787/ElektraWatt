@@ -144,7 +144,7 @@ fn km3_the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {
         h.query_by_label("Search actions or keys").is_some()
             || h.query_by_label_contains("Preset: EW").is_some()
     );
-    dispatch(&mut h, "keymap.search", json!({ "text": "connection" }));
+    dispatch(&mut h, "keymap.search", json!({ "text": "wire" }));
     settle(&mut h);
     let first = h.state().shell().keymap_rows()[0].action;
     h.get_all_by_label("Record")

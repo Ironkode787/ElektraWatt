@@ -105,7 +105,7 @@ clipboard.text View "Set the clipboard text" menu none shortcut none context glo
 rep.exchange Command "Change symbol…" menu "Draw" shortcut none context canvas params "symbol?:text"
 tool.finish View "Finish" menu none shortcut "Shift+Enter" context canvas hidden params ""
 text.input View "Type into the tool" menu none shortcut none context canvas hidden params "text:text"
-tool.wire Command "Connection" menu "Draw" shortcut "W" context canvas params ""
+tool.wire Command "Wire" menu "Draw" shortcut "W" context canvas params ""
 canvas.activate_alt View "Click with Alt at the grid cursor" menu none shortcut "Ctrl+Enter" context canvas hidden params ""
 tool.next_proposal View "Next autoconnect proposal" menu none shortcut "Tab" context canvas hidden params ""
 tool.connect_on_move Command "Connect while moving" menu none shortcut "C" context canvas hidden params ""

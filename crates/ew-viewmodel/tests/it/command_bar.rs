@@ -230,6 +230,26 @@ fn mockup_draw() -> (Vec<MockupCommand>, String, Vec<String>, String) {
 /// `command_bar` for Draw, a mockup command whose action is not in the registry listed by name in `PENDING` and
 /// skipped; the next step reads "Check project"; the six tab labels equal the mockup's; the app button is named
 /// "ElektraWatt" and its accessible name is "Menu".
+/// W42b (doc 16a P7, one name per thing): the Wire tool is "Wire" on its button, in its tooltip ("Wire (W)", the
+/// registry label, which the menus and the palette carry too, and the key from the keymap).
+#[test]
+fn w42b_the_wire_tool_is_called_wire_on_its_button_and_in_its_tooltip() {
+    let tmp = Tmp::new("w42b-wire");
+    let s = shell(&tmp);
+    let bar = command_bar_of(&s, Tab::Draw);
+    let wire = bar
+        .groups
+        .iter()
+        .flat_map(|g| g.buttons.iter())
+        .find(|b| b.id == "tool.wire")
+        .expect("the Wire button");
+    let key = ew_viewmodel::keymap::display(&s.shortcut_text(actions::find("tool.wire").unwrap()));
+    assert_eq!(
+        (wire.bar_label.as_str(), format!("{} ({key})", wire.label)),
+        ("Wire", format!("Wire ({key})"))
+    );
+}
+
 #[test]
 fn cb8_the_draw_tab_equals_the_mockups_command_row() {
     let (mockup, next, tabs, app) = mockup_draw();
