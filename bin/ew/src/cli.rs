@@ -2388,14 +2388,36 @@ fn open_editing(
 }
 
 /// The refusal of every writer (`apply`, `fmt`, `recover`, `import parts`, the human-only subcommands) whose open went
-/// read-only, `ew apply`'s text as built (ruling 2 of cycle 41: `ew recover` refuses a held lock with it). The reason
-/// prints as its debug form; a text in words is a follow-up, since changing an existing subcommand's text needs a
-/// ruling (WP-S1.22 §10.2 rule 3).
+/// read-only (ruling 2 of cycle 41: `ew recover` refuses a held lock with `ew apply`'s text). The reason is in words,
+/// those the window uses, with no session ID, process ID or `@` (FT-877; the ruling WP-S1.22 §10.2 rule 3 needs for a
+/// changed text is ruling 1 of the cycle-42 FT batch).
 fn read_only_refusal(dir: &Path, reason: &ew_api::ReadOnlyReason) -> String {
     format!(
-        "error: {}: the project opens read-only ({reason:?})",
-        dir.display()
+        "error: {}: the project opens read-only: {}; nothing was written",
+        dir.display(),
+        read_only_words(reason)
     )
+}
+
+/// A read-only reason in words. Text from the lock file and the system passes through [`printable`].
+fn read_only_words(reason: &ew_api::ReadOnlyReason) -> String {
+    use ew_api::ReadOnlyReason as R;
+    match reason {
+        R::Requested => "it was opened read-only on request".to_owned(),
+        R::LockedBy(info) => match &info.record {
+            Some(r) => format!(
+                "another session holds the project ({} on {}, since {})",
+                printable(&r.user),
+                printable(&r.host),
+                printable(&r.started_at)
+            ),
+            None => "another session holds the project".to_owned(),
+        },
+        R::NotWritable(message) => format!("the project folder cannot be written ({})", printable(message)),
+        R::Integrity => "it has integrity findings; `ew check` lists them".to_owned(),
+        R::Format(_) => "it was written by a newer format".to_owned(),
+        R::LockLost(_) => "the lock was taken over".to_owned(),
+    }
 }
 
 /// The refusal of every writer (`apply`, `fmt`, `import parts`, the human-only subcommands) while a crashed session's
@@ -2443,7 +2465,8 @@ fn run_checks_set(a: &ChecksSetArgs) -> i32 {
     //    section 2.3, FR-EXT-030); the project is not opened, so nothing is locked or journalled.
     if !(std::io::stdin().is_terminal() && std::io::stdout().is_terminal()) {
         eprintln!(
-            "error: HumanOnly: needs an interactive terminal (`project checks set` is confirmed by typing the              scheme name); nothing was changed"
+            "error: HumanOnly: needs an interactive terminal (`project checks set` is confirmed by typing the \
+             scheme name); nothing was changed"
         );
         return 2;
     }
@@ -4349,6 +4372,41 @@ fn write_report(path: &Path, text: &str) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    /// FT-877, ruling 1 of the cycle-42 FT batch: "error: <dir>: the project opens read-only: <reason>; nothing was
+    /// written", each reason in the window's words; text from the system is printed escaped. The held lock is
+    /// `tests/cli.rs`'s `recover_and_apply_refuse_a_held_lock_with_the_same_text`.
+    #[test]
+    fn a_read_only_refusal_words_each_reason() {
+        use ew_api::ReadOnlyReason as R;
+        let dir = std::path::Path::new("p");
+        for (reason, text) in [
+            (
+                R::Requested,
+                "error: p: the project opens read-only: it was opened read-only on request; nothing was written",
+            ),
+            (
+                R::NotWritable("Access is denied.\u{1b}[2J".into()),
+                "error: p: the project opens read-only: the project folder cannot be written (Access is \
+                 denied.\\u{1b}[2J); nothing was written",
+            ),
+            (
+                R::Integrity,
+                "error: p: the project opens read-only: it has integrity findings; `ew check` lists them; nothing \
+                 was written",
+            ),
+            (
+                R::Format("format 9"),
+                "error: p: the project opens read-only: it was written by a newer format; nothing was written",
+            ),
+            (
+                R::LockLost(None),
+                "error: p: the project opens read-only: the lock was taken over; nothing was written",
+            ),
+        ] {
+            assert_eq!(super::read_only_refusal(dir, &reason), text);
+        }
+    }
+
     #[test]
     fn index_warning_prints_the_index_error_only_when_there_is_one() {
         let mut w = ew_api::library::WriteReport::default();

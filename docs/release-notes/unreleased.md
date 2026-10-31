@@ -26,3 +26,7 @@ SPDX-License-Identifier: CC-BY-4.0
   an unterminated quoted field names the column too: "table refused: line 2, column 3: stray quote"; FT-880)
 - text-change: reports parts_summary, parts_list, part_data, enclosure_legend (a manufacturer whose copy is missing
   and whose reference keeps no key prints "manufacturer missing" instead of the item's UUID; FT-876)
+- text-change: cli ew apply, fmt, recover, import parts and the human-only subcommands (a project that opens read-only
+  is refused in words: "error: <dir>: the project opens read-only: <reason>; nothing was written", the held lock as
+  "another session holds the project (<user> on <host>, since <time>)"; no session or process ID; FT-877)
+- text-change: cli ew project checks set (the off-terminal refusal loses its run of embedded spaces; FT-878)

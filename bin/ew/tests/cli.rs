@@ -1337,10 +1337,10 @@ fn project_checks_set_needs_an_interactive_terminal() {
     };
     let o = set(&["--active", "drafting", "--release", "full"]);
     assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
-    assert!(
-        stderr(&o).contains("HumanOnly: needs an interactive terminal"),
-        "{}",
-        stderr(&o)
+    assert_eq!(
+        stderr(&o),
+        "error: HumanOnly: needs an interactive terminal (`project checks set` is confirmed by typing the scheme \
+         name); nothing was changed\n"
     );
     // The answer on a pipe does not count: a pipe is no terminal.
     let mut child = Command::new(bin_exe())
@@ -2566,8 +2566,11 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
         (
             Some(2),
             String::new(),
+            // FT-877, ruling 1 of the cycle-42 FT batch: "error: <dir>: the project opens read-only: <reason>; nothing
+            // was written", with "it has integrity findings; `ew check` lists them".
             format!(
-                "error: {}: the project opens read-only (Integrity)\n",
+                "error: {}: the project opens read-only: it has integrity findings; `ew check` lists them; nothing \
+                 was written\n",
                 broken.display()
             )
         )
@@ -2763,7 +2766,7 @@ fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
         ew_api::Recovery::Keep,
     )
     .unwrap();
-    let ew_api::Access::ReadOnly(reason @ ew_api::ReadOnlyReason::LockedBy(info)) = &seen.access else {
+    let ew_api::Access::ReadOnly(ew_api::ReadOnlyReason::LockedBy(info)) = &seen.access else {
         panic!("the second open is read-only by the lock: {:?}", seen.access);
     };
     assert!(
@@ -2772,9 +2775,21 @@ fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
             .is_some_and(|r| !r.user.is_empty() && !r.host.is_empty()),
         "the reason names the holder: {info:?}"
     );
+    // FT-877, ruling 1 of the cycle-42 FT batch: "another session holds the project" plus " (<user> on <host>, since
+    // <time>)" when the lock record is readable (no `@`, no session or process ID).
+    let holder_record = info.record.as_ref().unwrap();
     let expected = format!(
-        "error: {}: the project opens read-only ({reason:?})\n",
-        project.display()
+        "error: {}: the project opens read-only: another session holds the project ({} on {}, since {}); nothing was \
+         written\n",
+        project.display(),
+        holder_record.user,
+        holder_record.host,
+        holder_record.started_at
+    );
+    let words = expected.split_once("read-only: ").unwrap().1;
+    assert!(
+        !words.contains(&holder_record.session) && !words.contains('@'),
+        "{words}"
     );
     reader.close();
     let before = tree(&project);
