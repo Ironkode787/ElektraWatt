@@ -2133,6 +2133,8 @@ are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of do
 | Acceptance | AC-37 |
 | Owner role | Output and migration developer |
 
+*Status (2026-10-31, cycle 42).* **Specified** ([closed specification](specs/WP-S3.07-svg-export-and-printing.md); decision log ID-?): the SVG writer is built (cycle 14, `ew_export::svg`; `ew export svg` since cycle 15; AC-14) and traced; FR-OUT-013's one gap, the embedded fonts, moves here with FT-233. Four parts remain, 3.0 pw plus 0.3 pw reserve: part 1 the SVG fonts embedded as subsets that keep glyph IDs and `cmap` (an own subsetter in `ew-export`, no new crate; a golden change of AC-14's SVG digest and a new AC-37 entry) (0.6, Opus `high`), part 2 the print set built in `ew-api` (page, section and folio ranges, paper, scale-to-fit stamped "scaled 71 %" on the print set only, one geometry with the export) and `ew print` with the `lp` and system-viewer adapters in `ew-print` (0.9, `medium`), part 3 Output ▸ Print… (Ctrl+P) with the pre-dialog and preview and the Linux portal through ashpd (0.8, `medium`), part 4 the Windows adapter (the native dialog and GDI bands of `ew-render-cpu`, the product's first confined `unsafe` with the allowlist lint of doc 18 §11.2; the de-scope candidate, Windows then prints through the viewer) (0.7, `xhigh`, after the owner's word). The golden print set is section 1 fitted to A5. Proposed PERT for the remaining scope 3.3 pw (O 2.3 · L 3.2 · P 4.8).
+
 #### WP-S3.08 Table exports and Excel round trip
 
 | Field | Value |
