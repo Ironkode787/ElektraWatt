@@ -33,6 +33,7 @@ mod golden_connectivity;
 mod golden_csv;
 mod golden_fixture;
 mod golden_layout;
+mod golden_layout_assembly;
 mod golden_layout_bom;
 mod golden_rail_snap;
 mod golden_xref;

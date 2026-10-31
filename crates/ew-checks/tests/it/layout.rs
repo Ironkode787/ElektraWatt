@@ -340,12 +340,33 @@ fn lc2_removing_the_other_part_changes_nothing_removing_the_placed_one_is_report
         found[0].page.is_none(),
         "no panel page shows the plate in this fixture"
     );
+    // WP-S4.02 D7: no quick fix when the device has no primary part (its one part mounts on its parent).
+    assert!(found[0].fix.is_none());
     assert_eq!(
         dutch(&m, "EW-LAY-003"),
         [
             "de plaatsing van +J-E-2416-U201 gebruikt artikel 195740, dat het apparaat niet meer heeft; plaats het \
           apparaat met een van zijn artikelen, of geef het het artikel terug"
         ]
+    );
+}
+
+/// WP-S4.02 D7 (AS-8): when the device has a primary part, EW-LAY-003 offers "Realise the primary part":
+/// `layout.move` of the placement at its own pose with the primary part's copy (`ew-api`'s
+/// `golden_layout_assembly.rs` runs it and the finding clears).
+#[test]
+fn lc2_the_quick_fix_realises_the_primary_part() {
+    let mut fx = plate();
+    fx.with_parts(U1, &[P_MOD]);
+    let m = fx.build();
+    let found = findings_of(&m, "EW-LAY-003");
+    assert_eq!(found.len(), 1, "{found:#?}");
+    let fix = found[0].fix.as_ref().expect("the quick fix");
+    assert_eq!(fix.label, "Realise the primary part");
+    assert_eq!(fix.command, "layout.move");
+    assert_eq!(
+        fix.params,
+        json!({"placement": us(PL_U1), "pose": rail_pose(45.0), "part": us(P_MOD)})
     );
 }
 
