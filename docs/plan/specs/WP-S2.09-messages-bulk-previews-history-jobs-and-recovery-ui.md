@@ -1,6 +1,6 @@
 # WP-S2.09: messages, bulk previews, history, jobs and recovery UI (closed specification)
 
-**Status:** amended 2026-10-30, cycle-38 design pass, part 3: §7.6's `messages.show` toggles without `on` (decision log ID-889) · specified in cycle 30 (documents only) for three parts after the delivered first slice (FT-410, cycle 27,
+**Status:** amended 2026-10-31, cycle-39 design pass, part 2: §8.1's as-built Preview tab, a tab a card opened closes with its last card (decision log ID-916) · amended 2026-10-30, cycle-38 design pass, part 3: §7.6's `messages.show` toggles without `on` (decision log ID-889) · specified in cycle 30 (documents only) for three parts after the delivered first slice (FT-410, cycle 27,
 ID-651): part 1 (jobs, the PDF export as a job with progress and cancel, the notifications log, the journal recovery
 dialog, 1.15 pw, D5), part 2 (the message panel on WP-S2.06's navigator framework with pending completeness findings and
 quick fixes, 0.85 pw, D3), part 3 (the bulk preview tab, the renumber dialogs, the history panel with context restore and
@@ -652,7 +652,7 @@ tip, ID-741). Built as §8 says, with these points:
   cursor, bytes, max_bytes, max_steps}`, `Session::history_view` and, beyond §4.2's list, `Session::history_entities`
   for Show changes.
 - **The Preview tab (§8.1).** `PaneKind::Preview` and `PaneKind::History` share the bottom dock with Find, Jobs and
-  Messages. When its card ends the tab stays open and prints `preview none` ("No preview is open"); a new card brings
+  Messages. When its card ends, a tab the user opened by hand stays open and prints `preview none` ("No preview is open"), and a tab the card chain opened closes when its last card is applied or cancelled (cycle 39, ID-916: `PreviewPane::opened_by_card`; a paste choice's update card keeps who opened it); a new card brings
   it forward and leaves the focus where it was; a card is identified by (base rev, command, params, origin), and a
   stale card's rebuild counts as a new card. `preview.apply` and `preview.cancel` stay in the properties context and
   accept an open Preview tab. The quick-fix card and the table card open it too; the table card keeps its inline card

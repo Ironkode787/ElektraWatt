@@ -579,7 +579,8 @@ The follow-ups FT-527 to FT-541 of parts 2 to 5 were built in cycle 33 by lanes 
   **Deviation:** list rows are one `LayoutJob` (verb, kind, name, detail in their colours), not the 64-px change
   column. At 1280 px the strip in the Properties pane cuts its line to "Previ…" (ellipsis, full line in the tooltip);
   Apply, Cancel and Show stay whole.
-- **Empty states and outcomes.** Built for the Jobs pane ("No jobs yet"), the Preview tab ("No preview is open") and
+- **Empty states and outcomes.** Built for the Jobs pane ("No jobs yet"), the Preview tab ("No preview is open"; since cycle 39 only for a tab opened by hand, as one a card opened closes
+  with its last card, ID-916) and
   the notifications log; Jobs rows carry Done, Cancelled or Failed badges (FT-510). **Not built:** the empty states
   of Messages, Find, History and the navigators: their files are part 3's (same cycle, other lane); the strings exist
   (`empty-find-*`, `empty-messages*`, `empty-history-text`) for that lane or a follow-up. *(Later in cycle 32: K32
