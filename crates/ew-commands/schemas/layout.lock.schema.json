@@ -1,0 +1,30 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.lock` (`LockPlacement`, D6): locks or unlocks a placement (a locked one is excluded from push, swap and\nauto-fill, doc 12 §2.3). Rejected: a placement that does not exist (`/placement`). Interactive. Outcome: the\nplacement.",
+  "properties": {
+    "locked": {
+      "description": "Whether it is locked.",
+      "type": "boolean"
+    },
+    "placement": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The placement."
+    }
+  },
+  "required": [
+    "placement",
+    "locked"
+  ],
+  "title": "layout.lock",
+  "type": "object"
+}

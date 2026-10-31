@@ -1,0 +1,25 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.enclosure.delete` (`DeleteEnclosure`, D6): deletes an enclosure with its surfaces and carriers (the cascades\nof D4); the enclosure device stays. Refused while a placement sits in it (the forbid policy of `placement.carrier`).\nInteractive; `Bulk` above 200 placements. Outcome: none.",
+  "properties": {
+    "enclosure": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The enclosure."
+    }
+  },
+  "required": [
+    "enclosure"
+  ],
+  "title": "layout.enclosure.delete",
+  "type": "object"
+}

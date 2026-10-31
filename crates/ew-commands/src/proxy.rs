@@ -206,3 +206,58 @@ proxy!(
         "description": "The IEC 81346 aspect of a structure tree (doc 03 §5)."
     }
 );
+
+proxy!(
+    /// `Pt2` in a mounting surface's frame (WP-S4.01): `[u, v]` in nanometres, `v` upwards.
+    SurfacePt2S,
+    "CmdSurfacePt2",
+    {
+        "type": "array",
+        "prefixItems": [
+            {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER},
+            {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER}
+        ],
+        "items": false,
+        "minItems": 2,
+        "maxItems": 2,
+        "description": "A point [u, v] in a mounting surface's frame in nanometres, u to the right and v upwards (doc 12 §2.1)."
+    }
+);
+
+proxy!(
+    /// `Pose3`: `{"t": [x, y, z], "q": [w, x, y, z]}`, a translation in nanometres and a sign-normalised unit
+    /// quaternion in 10⁻⁹.
+    Pose3S,
+    "CmdPose3",
+    {
+        "type": "object",
+        "properties": {
+            "t": {
+                "type": "array",
+                "prefixItems": [
+                    {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER},
+                    {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER},
+                    {"type": "integer", "minimum": -MAX_SAFE_INTEGER, "maximum": MAX_SAFE_INTEGER}
+                ],
+                "items": false,
+                "minItems": 3,
+                "maxItems": 3
+            },
+            "q": {
+                "type": "array",
+                "prefixItems": [
+                    {"type": "integer", "minimum": -2000000000, "maximum": 2000000000},
+                    {"type": "integer", "minimum": -2000000000, "maximum": 2000000000},
+                    {"type": "integer", "minimum": -2000000000, "maximum": 2000000000},
+                    {"type": "integer", "minimum": -2000000000, "maximum": 2000000000}
+                ],
+                "items": false,
+                "minItems": 4,
+                "maxItems": 4
+            }
+        },
+        "required": ["t", "q"],
+        "additionalProperties": false,
+        "description": "A pose: the translation t = [x, y, z] in nanometres and the rotation q = [w, x, y, z], a sign-normalised unit quaternion in 10^-9 (doc 05 §3.2)."
+    }
+);

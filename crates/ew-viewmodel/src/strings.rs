@@ -2280,6 +2280,17 @@ const COMMAND_TITLES: &[(&str, &str)] = &[
     ("terminal.move", "Move terminal"),
     ("valve.add", "Add valve"),
     ("part.edit_copy", "Edit part"),
+    ("layout.space.create", "Create layout space"),
+    ("layout.space.delete", "Delete layout space"),
+    ("layout.enclosure.create", "Place enclosure"),
+    ("layout.enclosure.delete", "Delete enclosure"),
+    ("layout.carrier.add", "Add carrier"),
+    ("layout.carrier.edit", "Edit carrier"),
+    ("layout.carrier.delete", "Delete carrier"),
+    ("layout.place", "Place in layout"),
+    ("layout.move", "Move placement"),
+    ("layout.remove", "Remove placement"),
+    ("layout.lock", "Lock placement"),
 ];
 
 /// The human title of the command `name` ("Place device" for `device.place`); the ID itself for a command without

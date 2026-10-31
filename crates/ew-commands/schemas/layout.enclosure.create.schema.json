@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "CmdPose3": {
+      "additionalProperties": false,
+      "description": "A pose: the translation t = [x, y, z] in nanometres and the rotation q = [w, x, y, z], a sign-normalised unit quaternion in 10^-9 (doc 05 §3.2).",
+      "properties": {
+        "q": {
+          "items": false,
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        },
+        "t": {
+          "items": false,
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        }
+      },
+      "required": [
+        "t",
+        "q"
+      ],
+      "type": "object"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.enclosure.create` (`CreateEnclosure`, D6, FR-LAY-002): places an enclosure device in a layout space and\ncreates its mounting plate.\n\nThe device's first part use whose part carries an enclosure section gives the outer `W × H`; the section's `plate`\nnames the plate part. The `plate` surface's `device` is the first child of the enclosure device (in ID order) that\nuses the plate part, if any; its frame centres the plate in the enclosure and its usable polygon is the plate\nrectangle (D5: `ew_derive::layout::plate_frame`; the plate size from its mounting-plate section, else its `mech`).\n`pose` defaults to the identity, `pe_bond` (the plate's) to false.\n\nRejected: a space or device that does not exist (`/space`, `/device`); a space that already has an enclosure (one\nper space at the MVP, D3); a device whose parts carry no enclosure section (\"the device has no enclosure part\").\nInteractive. Outcome: the new enclosure.",
+  "properties": {
+    "device": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The enclosure device (-UC1), which carries the enclosure part."
+    },
+    "pe_bond": {
+      "description": "Whether the plate is bonded to protective earth; default false.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "pose": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdPose3"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The enclosure's pose in the space; default the identity."
+    },
+    "space": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The layout space."
+    }
+  },
+  "required": [
+    "space",
+    "device"
+  ],
+  "title": "layout.enclosure.create",
+  "type": "object"
+}

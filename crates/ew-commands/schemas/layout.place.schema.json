@@ -1,0 +1,150 @@
+{
+  "$defs": {
+    "CmdPose3": {
+      "additionalProperties": false,
+      "description": "A pose: the translation t = [x, y, z] in nanometres and the rotation q = [w, x, y, z], a sign-normalised unit quaternion in 10^-9 (doc 05 §3.2).",
+      "properties": {
+        "q": {
+          "items": false,
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        },
+        "t": {
+          "items": false,
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        }
+      },
+      "required": [
+        "t",
+        "q"
+      ],
+      "type": "object"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "PlaceOnParam": {
+      "description": "What a placement sits on (D3): `{\"carrier\": id}` (a rail) or `{\"surface\": id}` (the plate itself).",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A rail (a duct carries no placements).",
+          "properties": {
+            "carrier": {
+              "$ref": "#/$defs/CmdUuid"
+            }
+          },
+          "required": [
+            "carrier"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The mounting surface itself.",
+          "properties": {
+            "surface": {
+              "$ref": "#/$defs/CmdUuid"
+            }
+          },
+          "required": [
+            "surface"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.place` (`PlaceDevice`, D6, doc 12 §3.3): places a device on a rail or on a mounting surface at an explicit\npose (no snapping; WP-S4.02 adds the `mode`).\n\nThe placement always records the part use it realises: the given `part` (a copy the device uses; its use's\nreference is copied, variant included), else the device's primary mountable part at this moment (the first part\nuse whose part mounts, else the first without a mount kind; D8); a strip with terminals and a device without a part\nrecord none. `function` places one function of the device separately.\n\nRejected: a device, carrier or surface that does not exist (`/device`, `/carrier`); a function that does not exist\nor is not the device's (`/function`); a part the device does not use (`/part`); a second placement of one (device,\npart, function); a part whose mount kind does not fit the rail's profile (the table of `ew_derive::layout`); a pose\noutside the carrier kind's degrees of freedom (a rail: `t = (s, 0, 0)` turned 0° or 180°; a surface: `t = (u, v,\n0)` turned `k · 90°`; a duct carries none) or off the rail (`s ∉ [0, L]`). Interactive. Outcome: the placement.",
+  "properties": {
+    "carrier": {
+      "$ref": "#/$defs/PlaceOnParam",
+      "description": "The rail or surface."
+    },
+    "device": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The device."
+    },
+    "function": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "One function of the device placed separately."
+    },
+    "part": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The part copy of the part use to realise; default the primary mountable part."
+    },
+    "pose": {
+      "$ref": "#/$defs/CmdPose3",
+      "description": "The pose relative to the carrier."
+    }
+  },
+  "required": [
+    "device",
+    "carrier",
+    "pose"
+  ],
+  "title": "layout.place",
+  "type": "object"
+}

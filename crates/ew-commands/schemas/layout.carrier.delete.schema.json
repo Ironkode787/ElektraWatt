@@ -1,0 +1,51 @@
+{
+  "$defs": {
+    "CarrierThen": {
+      "description": "What `layout.carrier.delete` does with the carrier's placements (doc 12 §3.6).",
+      "oneOf": [
+        {
+          "const": "remove_placements",
+          "description": "The placements are removed with the carrier.",
+          "type": "string"
+        },
+        {
+          "const": "rehome_to_surface",
+          "description": "Each placement moves to the carrier's surface at the equivalent surface pose.",
+          "type": "string"
+        }
+      ]
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.carrier.delete` (`DeleteCarrier`, D6, doc 12 §3.6): deletes a carrier; the only way to delete an occupied\none.\n\n`then` says what happens to its placements: `remove_placements` removes them; `rehome_to_surface` moves each to the\ncarrier's surface at the equivalent surface pose (the part keeps its place and turn, `ew_derive::layout::rehome_pose`;\nEW-LAY-010 then reports a rail device off a rail). An empty carrier needs no `then`. Rejected: a carrier that does\nnot exist (`/carrier`); an occupied carrier without `then`; `rehome_to_surface` for a carrier that is not a valid\nrail or a placement whose pose is off it. Interactive; `Bulk` above 200 placements. Outcome: none.",
+  "properties": {
+    "carrier": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The carrier."
+    },
+    "then": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CarrierThen"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "What happens to its placements: `remove_placements` or `rehome_to_surface`; needed when it has any."
+    }
+  },
+  "required": [
+    "carrier"
+  ],
+  "title": "layout.carrier.delete",
+  "type": "object"
+}

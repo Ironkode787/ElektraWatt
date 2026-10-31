@@ -1,0 +1,225 @@
+{
+  "$defs": {
+    "CarrierKindParam": {
+      "description": "The kind of a new carrier (D3).",
+      "oneOf": [
+        {
+          "const": "rail",
+          "description": "A mounting (DIN) rail.",
+          "type": "string"
+        },
+        {
+          "const": "duct",
+          "description": "A wiring duct.",
+          "type": "string"
+        }
+      ]
+    },
+    "CarrierParamsParam": {
+      "description": "A carrier's parameters (D3, doc 12 §2.4), tagged by its kind as stored: `{\"rail\": {\"profile\": …}}` or\n`{\"duct\": {\"width\": …, \"height\": …}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A rail.",
+          "properties": {
+            "rail": {
+              "additionalProperties": false,
+              "properties": {
+                "profile": {
+                  "$ref": "#/$defs/MountKind",
+                  "description": "The rail profile: `ts35x7_5`, `ts35x15`, `ts32` or `ts15`."
+                }
+              },
+              "required": [
+                "profile"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "rail"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A duct.",
+          "properties": {
+            "duct": {
+              "additionalProperties": false,
+              "properties": {
+                "cover": {
+                  "description": "Whether the duct has a cover.",
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "height": {
+                  "$ref": "#/$defs/CmdNm",
+                  "description": "The height out of the surface, in nanometres."
+                },
+                "slot_pitch": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/CmdNm"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The slot pitch, in nanometres."
+                },
+                "width": {
+                  "$ref": "#/$defs/CmdNm",
+                  "description": "The width in the surface plane, in nanometres."
+                }
+              },
+              "required": [
+                "width",
+                "height"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "duct"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "CmdNm": {
+      "description": "A length in nanometres (doc 05 §3.2).",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
+    "CmdSurfacePt2": {
+      "description": "A point [u, v] in a mounting surface's frame in nanometres, u to the right and v upwards (doc 12 §2.1).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "MountKind": {
+      "description": "How a part mounts (doc 12 §2.5); also the profile of a rail section.",
+      "oneOf": [
+        {
+          "const": "ts35x7_5",
+          "description": "Top-hat rail 35 × 7.5 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts35x15",
+          "description": "Top-hat rail 35 × 15 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts32",
+          "description": "G rail 32 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts15",
+          "description": "Miniature top-hat rail 15 mm.",
+          "type": "string"
+        },
+        {
+          "const": "screw",
+          "description": "Screwed to the mounting surface.",
+          "type": "string"
+        },
+        {
+          "const": "busbar_adapter",
+          "description": "On a busbar adapter.",
+          "type": "string"
+        },
+        {
+          "const": "door_cutout",
+          "description": "In a door cut-out.",
+          "type": "string"
+        },
+        {
+          "const": "on_parent",
+          "description": "On its parent device.",
+          "type": "string"
+        },
+        {
+          "const": "none",
+          "description": "Not mounted.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.carrier.add` (`AddCarrier`, D6): adds a rail or a duct to a mounting surface.\n\nThe path is in the surface frame (`u` right, `v` up) and axis-parallel (D5): a rail two points on one horizontal or\nvertical line, a duct an orthogonal polyline. A rail's profile comes from its part's rail section when it has one\n(a different `profile` is refused). Rejected: a surface or part copy that does not exist (`/surface`, `/part`);\nparameters of the other kind (`/params`); a profile that is not a rail profile, a duct length ≤ 0 (`/params/…`); a\npath of the wrong number of points, a segment without length or at another angle (`/path`). Interactive. Outcome:\nthe new carrier.",
+  "properties": {
+    "kind": {
+      "$ref": "#/$defs/CarrierKindParam",
+      "description": "`rail` or `duct`."
+    },
+    "params": {
+      "$ref": "#/$defs/CarrierParamsParam",
+      "description": "The parameters of the kind."
+    },
+    "part": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The carrier's part copy (counted in the BOM by part 4)."
+    },
+    "path": {
+      "description": "The path in the surface frame.",
+      "items": {
+        "$ref": "#/$defs/CmdSurfacePt2"
+      },
+      "type": "array"
+    },
+    "pe_bond": {
+      "description": "Whether the carrier is bonded to protective earth; default false.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "surface": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The mounting surface."
+    }
+  },
+  "required": [
+    "surface",
+    "kind",
+    "path",
+    "params"
+  ],
+  "title": "layout.carrier.add",
+  "type": "object"
+}

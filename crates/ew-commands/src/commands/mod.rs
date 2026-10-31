@@ -79,6 +79,17 @@
 //! | `bus.logical_net.create` | [`CreateLogicalNet`] | Interactive |
 //! | `bus.physical_net.create` | [`CreatePhysicalNet`] | Interactive |
 //! | `part.edit_copy` | [`EditPartCopy`] | Bulk |
+//! | `layout.space.create` | [`CreateLayoutSpace`] | Interactive |
+//! | `layout.space.delete` | [`DeleteLayoutSpace`] | Interactive; Bulk above 200 placements |
+//! | `layout.enclosure.create` | [`CreateEnclosure`] | Interactive |
+//! | `layout.enclosure.delete` | [`DeleteEnclosure`] | Interactive; Bulk above 200 placements |
+//! | `layout.carrier.add` | [`AddCarrier`] | Interactive |
+//! | `layout.carrier.edit` | [`EditCarrier`] | Interactive |
+//! | `layout.carrier.delete` | [`DeleteCarrier`] | Interactive; Bulk above 200 placements |
+//! | `layout.place` | [`PlaceDevice`] | Interactive |
+//! | `layout.move` | [`MovePlacement`] | Interactive |
+//! | `layout.remove` | [`RemovePlacement`] | Interactive |
+//! | `layout.lock` | [`LockPlacement`] | Interactive |
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380), and `revision.release`,
@@ -108,6 +119,8 @@ mod frames;
 pub(crate) mod items;
 mod join;
 mod languages;
+// WP-S4.01 part 1
+mod layout;
 pub(crate) mod library;
 mod library_update;
 // WP-S1.19 part 5
@@ -156,6 +169,11 @@ pub use items::{
 };
 pub use join::JoinDevice;
 pub use languages::SetProjectLanguages;
+pub use layout::{
+    AddCarrier, CarrierKindParam, CarrierParamsParam, CarrierThen, CreateEnclosure, CreateLayoutSpace,
+    DeleteCarrier, DeleteEnclosure, DeleteLayoutSpace, EditCarrier, LAYOUT_BULK_ABOVE, LockPlacement,
+    MovePlacement, PlaceDevice, PlaceOnParam, RemovePlacement,
+};
 pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use library_update::{
     ChangeClass, CopyDiff, CpMapParam, FieldChange, UpdateLibraryCopies, classify_update,
@@ -280,4 +298,16 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<JoinDevice>();
     // WP-S2.07 part 4a (D20, FT-394)
     r.register::<EditPartCopy>();
+    // WP-S4.01 part 1 (D6)
+    r.register::<CreateLayoutSpace>();
+    r.register::<DeleteLayoutSpace>();
+    r.register::<CreateEnclosure>();
+    r.register::<DeleteEnclosure>();
+    r.register::<AddCarrier>();
+    r.register::<EditCarrier>();
+    r.register::<DeleteCarrier>();
+    r.register::<PlaceDevice>();
+    r.register::<MovePlacement>();
+    r.register::<RemovePlacement>();
+    r.register::<LockPlacement>();
 }

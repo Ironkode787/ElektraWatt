@@ -1,0 +1,134 @@
+{
+  "$defs": {
+    "CmdPose3": {
+      "additionalProperties": false,
+      "description": "A pose: the translation t = [x, y, z] in nanometres and the rotation q = [w, x, y, z], a sign-normalised unit quaternion in 10^-9 (doc 05 §3.2).",
+      "properties": {
+        "q": {
+          "items": false,
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            },
+            {
+              "maximum": 2000000000,
+              "minimum": -2000000000,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        },
+        "t": {
+          "items": false,
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        }
+      },
+      "required": [
+        "t",
+        "q"
+      ],
+      "type": "object"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "PlaceOnParam": {
+      "description": "What a placement sits on (D3): `{\"carrier\": id}` (a rail) or `{\"surface\": id}` (the plate itself).",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A rail (a duct carries no placements).",
+          "properties": {
+            "carrier": {
+              "$ref": "#/$defs/CmdUuid"
+            }
+          },
+          "required": [
+            "carrier"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The mounting surface itself.",
+          "properties": {
+            "surface": {
+              "$ref": "#/$defs/CmdUuid"
+            }
+          },
+          "required": [
+            "surface"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.move` (`MovePlacement`, D6): gives a placement another pose, optionally on another rail or surface.\n\nThe pose is checked as `layout.place` checks it; the fit of the part to a rail's profile only when the carrier\nchanges. A locked placement moves too (the lock excludes it from push, swap and auto-fill, doc 12 §2.3). Rejected: a\nplacement, carrier or surface that does not exist (`/placement`, `/carrier`); an unfit part; a pose outside the\ncarrier kind's degrees of freedom or off the rail. Interactive. Outcome: the placement.",
+  "properties": {
+    "carrier": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlaceOnParam"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Another rail or surface; default the current one."
+    },
+    "placement": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The placement."
+    },
+    "pose": {
+      "$ref": "#/$defs/CmdPose3",
+      "description": "The new pose relative to the carrier."
+    }
+  },
+  "required": [
+    "placement",
+    "pose"
+  ],
+  "title": "layout.move",
+  "type": "object"
+}

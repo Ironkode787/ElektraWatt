@@ -371,6 +371,52 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"copy": PART_MCB.to_string(), "part": {"description": "MCB"}, "fork": DEV_T3.to_string(),
                 "copies": [{"$k": "manufacturer"}]}),
         ),
+        // WP-S4.01 part 1 (D6); the layout IDs are placeholders (resolving never reads the model)
+        (
+            "layout.space.create",
+            json!({"location": LOC.to_string(), "name": "Cabinet 1"}),
+        ),
+        ("layout.space.delete", json!({"space": DEV_T1.to_string()})),
+        (
+            "layout.enclosure.create",
+            json!({"space": DEV_T1.to_string(), "device": DEV_102G1.to_string(),
+                "pose": {"t": [0, 0, 0], "q": [1_000_000_000, 0, 0, 0]}, "pe_bond": true}),
+        ),
+        (
+            "layout.enclosure.delete",
+            json!({"enclosure": DEV_T1.to_string()}),
+        ),
+        (
+            "layout.carrier.add",
+            json!({"surface": DEV_T1.to_string(), "kind": "rail", "part": PART_MCB.to_string(),
+                "path": [[20_000_000, 800_000_000], [620_000_000, 800_000_000]],
+                "params": {"rail": {"profile": "ts35x7_5"}}, "pe_bond": true}),
+        ),
+        (
+            "layout.carrier.edit",
+            json!({"carrier": DEV_T1.to_string(), "part": null,
+                "params": {"duct": {"width": 40_000_000, "height": 60_000_000, "cover": true}}}),
+        ),
+        (
+            "layout.carrier.delete",
+            json!({"carrier": DEV_T1.to_string(), "then": "rehome_to_surface"}),
+        ),
+        (
+            "layout.place",
+            json!({"device": DEV_101F1.to_string(), "part": PART_MCB.to_string(),
+                "carrier": {"carrier": DEV_T1.to_string()},
+                "pose": {"t": [96_000_000, 0, 0], "q": [1_000_000_000, 0, 0, 0]}}),
+        ),
+        (
+            "layout.move",
+            json!({"placement": DEV_T1.to_string(), "carrier": {"surface": DEV_T2.to_string()},
+                "pose": {"t": [10_000_000, 20_000_000, 0], "q": [0, 0, 0, 1_000_000_000]}}),
+        ),
+        ("layout.remove", json!({"placement": DEV_T1.to_string()})),
+        (
+            "layout.lock",
+            json!({"placement": DEV_T1.to_string(), "locked": true}),
+        ),
     ]
 }
 

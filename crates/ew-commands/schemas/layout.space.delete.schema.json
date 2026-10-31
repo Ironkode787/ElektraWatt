@@ -1,0 +1,25 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.space.delete` (`DeleteLayoutSpace`, D6): deletes a layout space with its enclosure, surfaces and carriers\n(the cascades of D4). Refused while a placement sits in it (the forbid policy of `placement.carrier`: empty its\ncarriers with `layout.carrier.delete` first). Interactive; `Bulk` above 200 placements. Outcome: none.",
+  "properties": {
+    "space": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The layout space."
+    }
+  },
+  "required": [
+    "space"
+  ],
+  "title": "layout.space.delete",
+  "type": "object"
+}

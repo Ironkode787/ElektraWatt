@@ -1,0 +1,224 @@
+{
+  "$defs": {
+    "CarrierParamsParam": {
+      "description": "A carrier's parameters (D3, doc 12 §2.4), tagged by its kind as stored: `{\"rail\": {\"profile\": …}}` or\n`{\"duct\": {\"width\": …, \"height\": …}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A rail.",
+          "properties": {
+            "rail": {
+              "additionalProperties": false,
+              "properties": {
+                "profile": {
+                  "$ref": "#/$defs/MountKind",
+                  "description": "The rail profile: `ts35x7_5`, `ts35x15`, `ts32` or `ts15`."
+                }
+              },
+              "required": [
+                "profile"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "rail"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A duct.",
+          "properties": {
+            "duct": {
+              "additionalProperties": false,
+              "properties": {
+                "cover": {
+                  "description": "Whether the duct has a cover.",
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "height": {
+                  "$ref": "#/$defs/CmdNm",
+                  "description": "The height out of the surface, in nanometres."
+                },
+                "slot_pitch": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/CmdNm"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The slot pitch, in nanometres."
+                },
+                "width": {
+                  "$ref": "#/$defs/CmdNm",
+                  "description": "The width in the surface plane, in nanometres."
+                }
+              },
+              "required": [
+                "width",
+                "height"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "duct"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "CmdNm": {
+      "description": "A length in nanometres (doc 05 §3.2).",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
+    "CmdSurfacePt2": {
+      "description": "A point [u, v] in a mounting surface's frame in nanometres, u to the right and v upwards (doc 12 §2.1).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "MountKind": {
+      "description": "How a part mounts (doc 12 §2.5); also the profile of a rail section.",
+      "oneOf": [
+        {
+          "const": "ts35x7_5",
+          "description": "Top-hat rail 35 × 7.5 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts35x15",
+          "description": "Top-hat rail 35 × 15 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts32",
+          "description": "G rail 32 mm.",
+          "type": "string"
+        },
+        {
+          "const": "ts15",
+          "description": "Miniature top-hat rail 15 mm.",
+          "type": "string"
+        },
+        {
+          "const": "screw",
+          "description": "Screwed to the mounting surface.",
+          "type": "string"
+        },
+        {
+          "const": "busbar_adapter",
+          "description": "On a busbar adapter.",
+          "type": "string"
+        },
+        {
+          "const": "door_cutout",
+          "description": "In a door cut-out.",
+          "type": "string"
+        },
+        {
+          "const": "on_parent",
+          "description": "On its parent device.",
+          "type": "string"
+        },
+        {
+          "const": "none",
+          "description": "Not mounted.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`layout.carrier.edit` (`EditCarrier`, D6): changes a carrier's surface, part, path, parameters or PE bond.\n\nMoving it to another surface moves its placements with it (their poses are relative to it), into the other space's\nlayout file when the surface belongs to another space. `part: null` removes the part. The path and parameters are\nchecked as `layout.carrier.add` checks them, against the carrier's kind (which never changes). A placement that a\nshorter rail or another profile leaves off its rail or unfit is kept and reported by EW-LAY-010. Rejected: a carrier,\nsurface or part copy that does not exist (`/carrier`, `/surface`, `/part`); no member given (at the root); the\npath or parameters of `layout.carrier.add`. Interactive. Outcome: the carrier.",
+  "properties": {
+    "carrier": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The carrier."
+    },
+    "params": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CarrierParamsParam"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Other parameters, of the carrier's kind."
+    },
+    "part": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Another part copy; `null` removes the part."
+    },
+    "path": {
+      "description": "Another path.",
+      "items": {
+        "$ref": "#/$defs/CmdSurfacePt2"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "pe_bond": {
+      "description": "Whether the carrier is bonded to protective earth.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "surface": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Another mounting surface."
+    }
+  },
+  "required": [
+    "carrier"
+  ],
+  "title": "layout.carrier.edit",
+  "type": "object"
+}

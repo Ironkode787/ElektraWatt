@@ -50,7 +50,8 @@ const UNITS: [&str; 3] = ["piece", "m", "set"];
 ///   the original's version and `meta.source` = `{"fork_of": {"library", "item", "version"}}`; every reference to the
 ///   original copy that the link table (`ew_model::LINKS`) lists as a part-copy link (the part uses, a strip
 ///   accessory's part, an assembly configuration's part, a connection's `overrides.wire_part`, a potential
-///   definition's `props.wire_part`) names the fork afterwards. The original copy stays, unused, until purged. The
+///   definition's `props.wire_part`, a carrier's part) names the fork afterwards, and so does a placement's `part` (the
+///   part use it realises, WP-S4.01 D4 and D7). The original copy stays, unused, until purged. The
 ///   caller mints `fork` (the session's `next_fork_item`), so a replay reproduces it.
 ///
 /// `part` is the edited part item (its members, without the copy metadata). Only `manufacturer`, `part_number`,
@@ -188,17 +189,12 @@ fn repoint_at(v: &mut Value, path: &[&str], from: &str, to: &str) -> bool {
     }
 }
 
-/// Re-points one link's references from `from` to `to` on every record of the link's kind `T`.
-fn repoint_kind<T>(
-    tx: &mut TxBuilder<'_>,
-    link: &LinkDecl,
-    from: Id<Part>,
-    to: Id<Part>,
-) -> Result<(), CmdError>
+/// Re-points the references at the dotted `field` (a link's field) from `from` to `to` on every record of kind `T`.
+fn repoint_kind<T>(tx: &mut TxBuilder<'_>, field: &str, from: Id<Part>, to: Id<Part>) -> Result<(), CmdError>
 where
     T: ew_model::Entity + Serialize + DeserializeOwned,
 {
-    let path: Vec<&str> = link.field.split('.').collect();
+    let path: Vec<&str> = field.split('.').collect();
     let (from, to) = (from.to_string(), to.to_string());
     for row in tx.iter::<T>() {
         let mut v = serde_json::to_value(&*row).map_err(|e| CmdError::internal(e.to_string()))?;
@@ -214,7 +210,10 @@ where
 /// called with in `run`. A link from another kind fails `part_copy_links_are_all_repointed` (R7).
 #[cfg(test)]
 fn repointed_link(link: &LinkDecl) -> bool {
-    matches!(link.from, Kind::Device | Kind::Connection | Kind::PotentialDef)
+    matches!(
+        link.from,
+        Kind::Device | Kind::Connection | Kind::PotentialDef | Kind::Carrier
+    )
 }
 
 impl Command for EditPartCopy {
@@ -315,9 +314,10 @@ impl Command for EditPartCopy {
                 tx.insert(copy)?;
                 for link in LINKS.iter().filter(|l| l.to == Kind::Part && !l.lib_ref) {
                     match link.from {
-                        Kind::Device => repoint_kind::<Device>(tx, link, self.copy, id)?,
-                        Kind::Connection => repoint_kind::<Connection>(tx, link, self.copy, id)?,
-                        Kind::PotentialDef => repoint_kind::<PotentialDef>(tx, link, self.copy, id)?,
+                        Kind::Device => repoint_kind::<Device>(tx, link.field, self.copy, id)?,
+                        Kind::Connection => repoint_kind::<Connection>(tx, link.field, self.copy, id)?,
+                        Kind::PotentialDef => repoint_kind::<PotentialDef>(tx, link.field, self.copy, id)?,
+                        Kind::Carrier => repoint_kind::<ew_schema::Carrier>(tx, link.field, self.copy, id)?,
                         other => {
                             return Err(CmdError::internal(format!(
                                 "part.edit_copy does not re-point the part-copy link {other}.{}",
@@ -326,6 +326,9 @@ impl Command for EditPartCopy {
                         }
                     }
                 }
+                // A placement names the part use it realises by its copy (not a link: WP-S4.01 D4); it follows the
+                // use to the fork, as a replaced part follows in `part.assign` (D7).
+                repoint_kind::<ew_schema::Placement>(tx, "part.copy", self.copy, id)?;
                 id
             }
         };
