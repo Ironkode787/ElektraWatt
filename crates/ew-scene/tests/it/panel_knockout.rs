@@ -161,11 +161,23 @@ fn the_carriers_are_cut_around_a_horizontal_and_a_turned_label() {
     let boxes = [wide.knockout, narrow.knockout];
     // The rail on the page: (10, 49.5)–(30, 50.5) mm; each box is taller than the rail and inside its length.
     for b in boxes {
-        assert!(b.min().y < mm(0.0, 49.5).y && b.max().y > mm(0.0, 50.5).y, "{b:?} crosses the rail");
-        assert!(b.min().x > mm(10.0, 0.0).x && b.max().x < mm(30.0, 0.0).x, "{b:?} on the rail");
+        assert!(
+            b.min().y < mm(0.0, 49.5).y && b.max().y > mm(0.0, 50.5).y,
+            "{b:?} crosses the rail"
+        );
+        assert!(
+            b.min().x > mm(10.0, 0.0).x && b.max().x < mm(30.0, 0.0).x,
+            "{b:?} on the rail"
+        );
     }
-    assert!(narrow.knockout.height() > narrow.knockout.width(), "the turned box is upright");
-    assert!(wide.knockout.width() > wide.knockout.height(), "the horizontal box lies flat");
+    assert!(
+        narrow.knockout.height() > narrow.knockout.width(),
+        "the turned box is upright"
+    );
+    assert!(
+        wide.knockout.width() > wide.knockout.height(),
+        "the horizontal box lies flat"
+    );
 
     let carriers = layer(&v, Layer::Carriers);
     let rail = EntityRef(Uuid::from_u128(RAIL));
@@ -179,7 +191,12 @@ fn the_carriers_are_cut_around_a_horizontal_and_a_turned_label() {
         // The axis: three runs between two gaps. The outline: two gaps in each long edge leave four runs, two of
         // them around the rail's ends.
         let dashed = p.stroke.as_ref().is_some_and(|s| s.dash.is_some());
-        let moves = p.path.els.iter().filter(|e| matches!(e, PathEl::MoveTo(_))).count();
+        let moves = p
+            .path
+            .els
+            .iter()
+            .filter(|e| matches!(e, PathEl::MoveTo(_)))
+            .count();
         assert_eq!(moves, if dashed { 3 } else { 4 }, "{:?}", p.path.els);
         for (a, b) in segments(&p.path) {
             for r in boxes {
@@ -245,7 +262,15 @@ fn a_carrier_without_labels_on_it_is_drawn_whole() {
             other => panic!("a carrier draws paths: {other:?}"),
         })
         .collect();
-    let outline = p.rect(Rect::from_points(mm(0.0, -5.0), mm(200.0, 5.0))).expect("in range");
-    let axis = (p.point(mm(0.0, 0.0)).expect("in range"), p.point(mm(200.0, 0.0)).expect("in range"));
-    assert_eq!(paths, vec![Path::rect(outline).els, Path::line(axis.0, axis.1).els]);
+    let outline = p
+        .rect(Rect::from_points(mm(0.0, -5.0), mm(200.0, 5.0)))
+        .expect("in range");
+    let axis = (
+        p.point(mm(0.0, 0.0)).expect("in range"),
+        p.point(mm(200.0, 0.0)).expect("in range"),
+    );
+    assert_eq!(
+        paths,
+        vec![Path::rect(outline).els, Path::line(axis.0, axis.1).els]
+    );
 }

@@ -380,7 +380,11 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
     // … 75.0 × 100.0 mm printed from the datum (34.45, 174.50) mm printed, to the nanometre rounding.
     let tol = Nm(1_000);
     assert!(
-        near(printed(enclosure), mm_rect((29.447, 79.499), (104.447, 179.499)), tol),
+        near(
+            printed(enclosure),
+            mm_rect((29.447, 79.499), (104.447, 179.499)),
+            tol
+        ),
         "{:?}",
         printed(enclosure)
     );
@@ -391,7 +395,10 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
     );
     // Two roundings (the projection's and the sheet map's) leave at most a nanometre each way.
     let span = |r: Rect, w: i64, h: i64| (r.width().0 - w).abs() <= 1 && (r.height().0 - h).abs() <= 1;
-    assert!(span(printed(enclosure), 75_000_000, 100_000_000), "75 × 100 mm printed");
+    assert!(
+        span(printed(enclosure), 75_000_000, 100_000_000),
+        "75 × 100 mm printed"
+    );
     assert!(span(printed(plate), 65_000_000, 90_000_000), "65 × 90 mm printed");
     // The fit (ruling 1's stop rule): the outline stays clear of 902's PART DATA box (16.31–71.11 × 16.31–52.85 mm
     // printed), of the legend's rect (108.00–278.00 × 19.50–167.50, D17) and of the frame's drawing area, whose bottom
@@ -440,7 +447,8 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
                     .expect("in range");
                 // Cut around the labels on it, the axis stays on its line within its ends.
                 assert!(
-                    axes.iter().any(|a| contains(axis, a.min()) && contains(axis, a.max())),
+                    axes.iter()
+                        .any(|a| contains(axis, a.min()) && contains(axis, a.max())),
                     "rail {id}: its axis line {axis:?} in {axes:?}"
                 );
             }
@@ -582,12 +590,21 @@ fn the_carriers_are_cut_around_the_labels_of_902() {
     let mut cut = 0;
     for item in &carriers.items {
         let ItemKind::Path(p) = &item.kind else { continue };
-        if p.path.els.iter().filter(|e| matches!(e, PathEl::MoveTo(_))).count() > 1 {
+        if p.path
+            .els
+            .iter()
+            .filter(|e| matches!(e, PathEl::MoveTo(_)))
+            .count()
+            > 1
+        {
             cut += 1;
         }
         for (a, b) in segments(&p.path.els) {
             for (tag, r) in &boxes {
-                assert!(!enters(a, b, *r), "{a:?}–{b:?} runs through {tag}'s label box {r:?}");
+                assert!(
+                    !enters(a, b, *r),
+                    "{a:?}–{b:?} runs through {tag}'s label box {r:?}"
+                );
             }
         }
     }
@@ -649,7 +666,11 @@ fn lp3_labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
         .expect("-101F1's label");
     assert_eq!(f1.text, "-101F1");
     let fp = footprint_902(&q, "-101F1");
-    assert_eq!(fp.max().x.0 - fp.min().x.0, 1_825_035, "1.825 mm wide on the page");
+    assert_eq!(
+        fp.max().x.0 - fp.min().x.0,
+        1_825_035,
+        "1.825 mm wide on the page"
+    );
     assert!(
         (printed(fp).width().0 - 1_800_000).abs() <= 1,
         "1.8 mm wide on paper"

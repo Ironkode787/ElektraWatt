@@ -131,7 +131,11 @@ impl Projection {
         let one = i128::from(crate::forms::PPB_ONE);
         let (num, den) = match scale {
             Scale::OneTo(n) if *n > 0 => {
-                let ppb = if sheet_ppb == 0 { one } else { i128::from(sheet_ppb) };
+                let ppb = if sheet_ppb == 0 {
+                    one
+                } else {
+                    i128::from(sheet_ppb)
+                };
                 (one, i128::from(*n) * ppb)
             }
             _ => (1, 1),
@@ -330,7 +334,11 @@ pub fn place_label(
     match fit(w, h, fp.width(), fp.height()) {
         Some(f @ (LabelFit::Horizontal | LabelFit::Turned)) => {
             let at = centre(fp);
-            let angle = if f == LabelFit::Turned { Angle2(90_000) } else { Angle2::ZERO };
+            let angle = if f == LabelFit::Turned {
+                Angle2(90_000)
+            } else {
+                Angle2::ZERO
+            };
             PlacedLabel {
                 fit: f,
                 at,
@@ -347,9 +355,21 @@ pub fn place_label(
             let below = bounds.is_some_and(|b| above_top < b.min().y);
             let (fit, edge, end, align, valign) = if below {
                 let bottom = fp.max().y;
-                (LabelFit::Below, bottom, Nm(bottom.0 + LEADER_GAP.0), Align::TopCentre, -1)
+                (
+                    LabelFit::Below,
+                    bottom,
+                    Nm(bottom.0 + LEADER_GAP.0),
+                    Align::TopCentre,
+                    -1,
+                )
             } else {
-                (LabelFit::Above, top, Nm(top.0 - LEADER_GAP.0), Align::BottomCentre, 1)
+                (
+                    LabelFit::Above,
+                    top,
+                    Nm(top.0 - LEADER_GAP.0),
+                    Align::BottomCentre,
+                    1,
+                )
             };
             let at = Pt2::new(cx, end);
             PlacedLabel {
@@ -373,12 +393,15 @@ fn cut_segment(a: Pt2, b: Pt2, boxes: &[Rect]) -> Vec<(Pt2, Pt2)> {
         return vec![(a, b)];
     }
     // The coordinate along the segment and the one across it.
-    let (along, across): (fn(Pt2) -> i64, fn(Pt2) -> i64) = if horizontal {
-        (|p| p.x.0, |p| p.y.0)
-    } else {
-        (|p| p.y.0, |p| p.x.0)
+    let along = |p: Pt2| if horizontal { p.x.0 } else { p.y.0 };
+    let across = |p: Pt2| if horizontal { p.y.0 } else { p.x.0 };
+    let at = |t: i64| {
+        if horizontal {
+            Pt2::new(Nm(t), a.y)
+        } else {
+            Pt2::new(a.x, Nm(t))
+        }
     };
-    let at = |t: i64| if horizontal { Pt2::new(Nm(t), a.y) } else { Pt2::new(a.x, Nm(t)) };
     let (s, e) = (along(a), along(b));
     let (lo, hi) = (s.min(e), s.max(e));
     let c = across(a);
@@ -649,7 +672,9 @@ impl Builder<'_> {
         let Some(panel) = &view.panel else { return };
         for (text, l, entity, style, shaped) in self.placed_labels(panel, true) {
             if let Some((a, b)) = l.leader {
-                self.push(Item::path(Path::line(a, b), Some(Stroke::pen(Pen::P013)), None).with_entity(entity));
+                self.push(
+                    Item::path(Path::line(a, b), Some(Stroke::pen(Pen::P013)), None).with_entity(entity),
+                );
             }
             self.text_shaped(
                 &TextSpec {
