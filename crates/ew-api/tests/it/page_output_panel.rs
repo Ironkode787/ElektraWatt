@@ -7,18 +7,21 @@
 //!   place (one view, its ID kept) and the edit survives a save and a reopen of a fixture copy; a view on a schematic
 //!   page and a surface that does not exist are refused; a view with members this build does not know reads and writes
 //!   back unchanged.
-//! - `lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints`: the enclosure (20, 72)–(95, 172) mm and the
-//!   plate (25, 77)–(90, 167) mm at ±0.2 mm, the rails with their axis lines, the ducts with "40×60", every placement's
-//!   footprint; a part with a `front_2d` drawing draws it instead.
+//! - `lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints`: the enclosure and the plate at 1:10 on
+//!   paper (printed 75.0 × 100.0 mm and 65.0 × 90.0 mm from the datum (34.45, 174.50) mm printed), the rails with their
+//!   axis lines, the ducts with "40×60", every placement's footprint; a part with a `front_2d` drawing draws it
+//!   instead.
+//! - `the_carriers_are_cut_around_the_labels_of_902`: no carrier stroke runs through a label's knockout box, and the
+//!   footprints and the labels stay whole (cycle 41's window check W41a).
 //! - `lp3_labels_print_in_the_device_style_turn_inside_or_take_a_leader`: the labels in `xref.device` at 1.83 mm em,
 //!   none scaled; -101F1 turned inside its 1.8 mm footprint; the full mode; a 6 mm part takes a leader.
 //! - `lp4_the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record`: "Cabinet Layout · Scale 1:10", the
 //!   TOC row unchanged; 1:5 changes no layout record and keeps the label height.
-//! - `lp5_a_move_rebuilds_only_the_placements_and_labels_of_902_and_a_footprint_picks_its_placement`: the memo counts
-//!   and the pick.
+//! - `lp5_a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement`: the memo
+//!   counts and the pick.
 //!
-//! All page coordinates (the spec's millimetres are page coordinates; the sheet map of 902's frame scales them by
-//! 0.986 on paper, so the printed scale is about 1:10.14).
+//! The display lists are in page coordinates; 902's frame maps the page to paper at 0.986282578 (offset 9.79 mm), and
+//! the projection divides by that factor, so the stated 1:10 holds on paper (`printed` maps a page rectangle).
 
 // LP-1 copies the fixture into a clock-named scratch directory (`ew-testdir`).
 #![allow(clippy::disallowed_methods)]
@@ -38,9 +41,10 @@ use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::PlacementGeometry;
 use ew_derive::{PageOrder, PageRef, Q, Query};
-use ew_dl::{DisplayList, EntityRef, Item, ItemKind, Layer, ShapedRun};
+use ew_dl::{DisplayList, EntityRef, Item, ItemKind, Layer, PathEl, ShapedRun};
 use ew_import_tables::ids::record_id;
-use ew_scene::panel::{LabelFit, Projection, label_fit};
+use ew_scene::forms::SheetMap;
+use ew_scene::panel::{LabelFit, Projection, label_fit, place_label};
 use ew_schema::{
     Carrier, CarrierKind, Device, Enclosure, LayoutSpace, LibCopy, LibDocument, MountingSurface, Page,
     PageItem, PageItemKind, Part, Placement, Record, Scale, Sha256, SurfaceLabelMode,
@@ -173,9 +177,21 @@ fn contains(r: Rect, p: Pt2) -> bool {
     r.min().x <= p.x && p.x <= r.max().x && r.min().y <= p.y && p.y <= r.max().y
 }
 
-/// The projection of 902's view: the plate's origin at (25, 167) mm, scale 1:10.
+/// The page-to-sheet factor of Golden A's frames (`page_to_sheet.scale_ppb`).
+const SHEET_PPB: u32 = 986_282_578;
+
+/// The projection of 902's view: the plate's origin at (25, 167) mm on the page, scale 1:10 on paper.
 fn projection_902() -> Projection {
-    Projection::of(mm(25.0, 167.0), &Scale::OneTo(10))
+    Projection::on_sheet(mm(25.0, 167.0), &Scale::OneTo(10), SHEET_PPB)
+}
+
+/// A page rectangle of 902 on paper (its frame's sheet map).
+fn printed(r: Rect) -> Rect {
+    SheetMap {
+        scale_ppb: SHEET_PPB,
+        offset: mm(9.79, 9.79),
+    }
+    .apply_rect(r)
 }
 
 /// A placement's footprint on 902.
@@ -346,17 +362,44 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     let q = s.query();
-    let tol = Nm(200_000);
 
     let surface_list = layer(&q, "902", Layer::Surface);
     let rects: Vec<Rect> = surface_list.items.iter().filter_map(item_bounds).collect();
-    let enclosure = mm_rect((20.0, 72.0), (95.0, 172.0));
-    let plate = mm_rect((25.0, 77.0), (90.0, 167.0));
-    assert!(
-        rects.iter().any(|r| near(*r, enclosure, tol)),
-        "the enclosure: {rects:?}"
+    // The enclosure (-50, -50)–(700, 950) mm and the plate (0, 0)–(650, 900) mm of the plate frame at 1:10 on paper:
+    // 76.043 × 101.391 mm on the page from the datum (25, 167) mm …
+    let enclosure = Rect::from_points(
+        Pt2::new(Nm(19_930_459), Nm(70_678_720)),
+        Pt2::new(Nm(95_973_574), Nm(172_069_541)),
     );
-    assert!(rects.iter().any(|r| near(*r, plate, tol)), "the plate: {rects:?}");
+    let plate = Rect::from_points(
+        Pt2::new(Nm(25_000_000), Nm(75_748_261)),
+        Pt2::new(Nm(90_904_033), Nm(167_000_000)),
+    );
+    assert!(rects.contains(&enclosure), "the enclosure: {rects:?}");
+    assert!(rects.contains(&plate), "the plate: {rects:?}");
+    // … 75.0 × 100.0 mm printed from the datum (34.45, 174.50) mm printed, to the nanometre rounding.
+    let tol = Nm(1_000);
+    assert!(
+        near(printed(enclosure), mm_rect((29.447, 79.499), (104.447, 179.499)), tol),
+        "{:?}",
+        printed(enclosure)
+    );
+    assert!(
+        near(printed(plate), mm_rect((34.447, 84.499), (99.447, 174.499)), tol),
+        "{:?}",
+        printed(plate)
+    );
+    // Two roundings (the projection's and the sheet map's) leave at most a nanometre each way.
+    let span = |r: Rect, w: i64, h: i64| (r.width().0 - w).abs() <= 1 && (r.height().0 - h).abs() <= 1;
+    assert!(span(printed(enclosure), 75_000_000, 100_000_000), "75 × 100 mm printed");
+    assert!(span(printed(plate), 65_000_000, 90_000_000), "65 × 90 mm printed");
+    // The fit (ruling 1's stop rule): the outline stays clear of 902's PART DATA box (16.31–71.11 × 16.31–52.85 mm
+    // printed), of the legend's rect (108.00–278.00 × 19.50–167.50, D17) and of the frame's drawing area, whose bottom
+    // edge is at 182.02 mm printed.
+    let outline = printed(enclosure);
+    assert!(outline.min().y > mm(0.0, 52.85).y, "below PART DATA");
+    assert!(outline.max().x < mm(108.0, 0.0).x, "left of the legend");
+    assert!(outline.max().y < mm(0.0, 182.02).y, "above the frame's edge");
     assert!(
         surface_list.items.iter().all(|i| i.entity.is_none()),
         "the outlines carry no entity"
@@ -395,8 +438,9 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
                 let axis = projection_902()
                     .rect(Rect::from_points(path[0], path[path.len() - 1]))
                     .expect("in range");
+                // Cut around the labels on it, the axis stays on its line within its ends.
                 assert!(
-                    axes.contains(&axis),
+                    axes.iter().any(|a| contains(axis, a.min()) && contains(axis, a.max())),
                     "rail {id}: its axis line {axis:?} in {axes:?}"
                 );
             }
@@ -425,8 +469,14 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
             .collect();
         assert_eq!(drawn, vec![expected], "placement {id}: its footprint");
     }
-    // -102G1: the footprint (101, 675)–(171, 805) mm of the plate frame at 1:10 from (25, 167) mm.
-    assert_eq!(footprint_902(&q, "-102G1"), mm_rect((35.1, 86.5), (42.1, 99.5)));
+    // -102G1: the footprint (101, 675)–(171, 805) mm of the plate frame at 1:10 on paper from (25, 167) mm.
+    assert_eq!(
+        footprint_902(&q, "-102G1"),
+        Rect::from_points(
+            Pt2::new(Nm(35_240_473), Nm(85_380_389)),
+            Pt2::new(Nm(42_337_830), Nm(98_561_196))
+        )
+    );
     drop(q);
 
     // A part with a `front_2d` drawing (a rectangle inset 2 mm) draws it instead of the footprint.
@@ -453,6 +503,119 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
         .collect();
     assert_eq!(drawn, vec![expected], "the front_2d outline");
     assert_ne!(expected, footprint_902(&q, "-102F1"), "not the footprint");
+}
+
+/// Whether the axis-parallel segment `a`–`b` runs through the open interior of `r`.
+fn enters(a: Pt2, b: Pt2, r: Rect) -> bool {
+    let open = |lo: i64, hi: i64, p: i64, q: i64| p.min(q) < hi && p.max(q) > lo;
+    let inside = |lo: i64, hi: i64, v: i64| lo < v && v < hi;
+    if a.y == b.y {
+        inside(r.min().y.0, r.max().y.0, a.y.0) && open(r.min().x.0, r.max().x.0, a.x.0, b.x.0)
+    } else {
+        inside(r.min().x.0, r.max().x.0, a.x.0) && open(r.min().y.0, r.max().y.0, a.y.0, b.y.0)
+    }
+}
+
+/// The straight segments of a path of moves and lines (a closing element closes the subpath).
+fn segments(els: &[PathEl]) -> Vec<(Pt2, Pt2)> {
+    let mut out = Vec::new();
+    let (mut at, mut start) = (None, None);
+    for el in els {
+        match *el {
+            PathEl::MoveTo(a) => (at, start) = (Some(a), Some(a)),
+            PathEl::LineTo(b) => {
+                out.extend(at.map(|a| (a, b)));
+                at = Some(b);
+            }
+            PathEl::ClosePath => {
+                out.extend(at.zip(start));
+                at = start;
+            }
+            _ => panic!("a carrier draws straight lines: {el:?}"),
+        }
+    }
+    out
+}
+
+/// Cycle 41's window check W41a (ruling 2): on 902 no carrier stroke runs through a label's knockout box; the turned
+/// labels of -101F1 and -102F1 cut their rail; the footprints stay whole rectangles.
+#[test]
+fn the_carriers_are_cut_around_the_labels_of_902() {
+    let batch = golden_common::batch();
+    let s = golden_common::session(&batch);
+    let q = s.query();
+    let style = text_style_table(&q)
+        .resolve("xref.device")
+        .expect("the device style");
+    let labels = layer(&q, "902", Layer::Labels);
+    let mut boxes: Vec<(String, Rect)> = Vec::new();
+    for (id, _) in q.table::<Placement>().iter() {
+        let Some((_, run)) = runs(&labels).into_iter().find(|(e, _)| *e == Some(entity(id))) else {
+            continue;
+        };
+        let g = q.get::<PlacementGeometry>(id);
+        let fp = projection_902()
+            .rect(g.as_ref().as_ref().expect("a geometry").footprint)
+            .expect("in range");
+        let shaped = ew_text::bundled().shape(&run.text, &style, None);
+        let placed = place_label(ew_text::bundled(), &style, &run.text, &shaped, fp, None);
+        assert!(
+            matches!(placed.fit, LabelFit::Horizontal | LabelFit::Turned),
+            "{}: inside its footprint",
+            run.text
+        );
+        boxes.push((run.text.clone(), placed.knockout));
+    }
+    let box_of = |tag: &str| {
+        boxes
+            .iter()
+            .find(|(t, _)| t == tag)
+            .map(|(_, b)| *b)
+            .unwrap_or_else(|| panic!("{tag}'s label"))
+    };
+    for tag in ["-101F1", "-102F1"] {
+        let b = box_of(tag);
+        assert!(b.height() > b.width(), "{tag} is turned");
+    }
+
+    let carriers = layer(&q, "902", Layer::Carriers);
+    let mut cut = 0;
+    for item in &carriers.items {
+        let ItemKind::Path(p) = &item.kind else { continue };
+        if p.path.els.iter().filter(|e| matches!(e, PathEl::MoveTo(_))).count() > 1 {
+            cut += 1;
+        }
+        for (a, b) in segments(&p.path.els) {
+            for (tag, r) in &boxes {
+                assert!(!enters(a, b, *r), "{a:?}–{b:?} runs through {tag}'s label box {r:?}");
+            }
+        }
+    }
+    assert!(cut > 0, "a carrier is cut");
+    // -101F1's and -102F1's boxes cross a rail's outline: some carrier item ends a run on each box's edge.
+    let ends: Vec<Pt2> = carriers
+        .items
+        .iter()
+        .filter_map(|i| match &i.kind {
+            ItemKind::Path(p) => Some(segments(&p.path.els)),
+            _ => None,
+        })
+        .flatten()
+        .flat_map(|(a, b)| [a, b])
+        .collect();
+    for tag in ["-101F1", "-102F1"] {
+        let b = box_of(tag);
+        assert!(
+            ends.iter().any(|p| p.x == b.min().x || p.x == b.max().x),
+            "a carrier is cut at {tag}'s label"
+        );
+    }
+
+    let placements = layer(&q, "902", Layer::Placements);
+    for item in &placements.items {
+        let ItemKind::Path(p) = &item.kind else { continue };
+        assert_eq!(p.path.els.len(), 5, "a whole footprint rectangle");
+    }
 }
 
 /// LP-3. The labels of 902 (orchestrator ruling 5: "the ink box uses ew-text's existing API: Shaped::advance() along
@@ -486,7 +649,11 @@ fn lp3_labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
         .expect("-101F1's label");
     assert_eq!(f1.text, "-101F1");
     let fp = footprint_902(&q, "-101F1");
-    assert_eq!(fp.max().x.0 - fp.min().x.0, 1_800_000, "1.8 mm wide on the page");
+    assert_eq!(fp.max().x.0 - fp.min().x.0, 1_825_035, "1.825 mm wide on the page");
+    assert!(
+        (printed(fp).width().0 - 1_800_000).abs() <= 1,
+        "1.8 mm wide on paper"
+    );
     assert!(turned(f1), "turned");
     assert!(contains(fp, run_centre(f1)), "inside its footprint");
     let shaped = ew_text::bundled().shape("-101F1", &style, None);
@@ -519,11 +686,11 @@ fn lp3_labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
         json!({"page": id_json(page("902")), "surface": id_json(surface()), "datum_at": [25 * MM, 167 * MM]}),
     );
 
-    // A 6 mm part: 0.6 mm on the page takes the label neither way; it goes outside with a leader.
+    // A 6 mm part: 0.6 mm on paper takes the label neither way; it goes outside with a leader.
     assign_test_part(&mut s, "-102F1", "LP3-6MM", 6, &[]);
     let q = s.query();
     let fp = footprint_902(&q, "-102F1");
-    assert_eq!(fp.max().x.0 - fp.min().x.0, 600_000);
+    assert_eq!(fp.max().x.0 - fp.min().x.0, 608_345);
     let labels = layer(&q, "902", Layer::Labels);
     let mine: Vec<&Item> = labels
         .items
@@ -609,17 +776,20 @@ fn lp4_the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record()
         texts(&layer(&q, "902", Layer::Frame)).contains(&"Cabinet Layout · Scale 1:5".to_owned()),
         "the title block follows"
     );
-    // The plate is twice as large: 130 mm wide from x = 25 mm.
+    // The plate is twice as large: 130 mm wide on paper (131.808 mm on the page) from x = 25 mm.
     let rects: Vec<Rect> = layer(&q, "902", Layer::Surface)
         .items
         .iter()
         .filter_map(item_bounds)
         .collect();
+    let plate = Rect::from_points(
+        Pt2::new(Nm(25_000_000), Nm(-15_503_477)),
+        Pt2::new(Nm(156_808_067), Nm(167_000_000)),
+    );
+    assert!(rects.contains(&plate), "the plate at 1:5: {rects:?}");
     assert!(
-        rects
-            .iter()
-            .any(|r| near(*r, mm_rect((25.0, -13.0), (155.0, 167.0)), Nm(200_000))),
-        "the plate at 1:5: {rects:?}"
+        (printed(plate).width().0 - 130_000_000).abs() <= 1,
+        "130 mm printed"
     );
 }
 
@@ -657,10 +827,11 @@ fn pick(entities: &[(EntityRef, Rect)], at: Pt2) -> Option<EntityRef> {
     best.map(|(_, e)| e)
 }
 
-/// LP-5. A `layout.move` of -102G1 runs only 902's placements and labels layers again, and the second export equals
-/// the cold one; a press at a footprint's centre picks its placement.
+/// LP-5. A `layout.move` of -102G1 runs only 902's placements, labels and carriers layers again (the carriers are cut
+/// around the labels, so they read the labels' fit), and the second export equals the cold one; a press at a
+/// footprint's centre picks its placement.
 #[test]
-fn lp5_a_move_rebuilds_only_the_placements_and_labels_of_902_and_a_footprint_picks_its_placement() {
+fn lp5_a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     // The pick, as Golden A places them (the moved -102G1 below overlaps its neighbours).
@@ -700,7 +871,7 @@ fn lp5_a_move_rebuilds_only_the_placements_and_labels_of_902_and_a_footprint_pic
         (LabelsLayer::FAMILY, 1),
         (TablesLayer::FAMILY, 0),
         (SurfaceLayer::FAMILY, 0),
-        (CarriersLayer::FAMILY, 0),
+        (CarriersLayer::FAMILY, 1),
         (PlacementsLayer::FAMILY, 1),
     ]);
     assert_eq!(runs, expected);

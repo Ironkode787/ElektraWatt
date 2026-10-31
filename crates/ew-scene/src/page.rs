@@ -1489,6 +1489,14 @@ impl Builder<'_> {
         })
     }
 
+    /// [`style`](Builder::style) without the report: the style of `key`, else the default style.
+    pub(crate) fn style_quiet(&self, key: &str) -> TextStyle {
+        self.styles
+            .resolve(key)
+            .or_else(|| self.styles.resolve(DEFAULT_STYLE_KEY))
+            .unwrap_or(TextStyle::regular(Nm(3_175_000)))
+    }
+
     /// Shapes `spec.text` and places it at `spec.at` with its alignment and angle, as form graphics do.
     pub(crate) fn text(&mut self, spec: &TextSpec<'_>) {
         self.text_placed(spec, false);
@@ -1571,11 +1579,7 @@ impl Builder<'_> {
         if spec.text.is_empty() {
             return None;
         }
-        let style = self
-            .styles
-            .resolve(spec.style_key)
-            .or_else(|| self.styles.resolve(DEFAULT_STYLE_KEY))
-            .unwrap_or(TextStyle::regular(Nm(3_175_000)));
+        let style = self.style_quiet(spec.style_key);
         let shaped = self.fonts.shape(spec.text, &style, None);
         let lines = self.lay_out(spec, &style, &shaped, first_line);
         let mut out: Option<Rect> = None;

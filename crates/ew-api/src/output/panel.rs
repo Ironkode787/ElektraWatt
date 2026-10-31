@@ -7,21 +7,23 @@
 //!
 //! | Part | Layer | Reads |
 //! |---|---|---|
-//! | [`PageSurfaceView`] | every panel layer | the page row (kind, scale) and its page items |
+//! | [`PageSurfaceView`] | every panel layer | the page row (kind, scale), its page items and its frame's page-to-sheet map |
 //! | the surface outlines | `surface` | the surface, its enclosure, the enclosure's and the plate's devices and their part copies (the enclosure and mounting-plate sections) |
 //! | the carriers | `carriers` | `carriers_of_surface`, `carrier_geometry`, the carriers' `params` |
 //! | the placements | `placements` | the placements on the surface's carriers and on the surface, `placement_geometry` |
-//! | the labels | `labels` | the same placements, `layout_label`, [`ShapedText`] in the label style, the surface's usable polygon |
+//! | the labels | `labels` and `carriers` | the same placements, `layout_label`, [`ShapedText`] in the label style, the surface's usable polygon |
 //!
-//! So a `layout.move` rebuilds the `placements` and `labels` families of its page only, never `surface`,
-//! `carriers`, `frame` or `tables` (LP-5).
+//! The carriers layer reads the labels for their knockout boxes (the carriers are cut around the labels, cycle 41's
+//! window check W41a). So a `layout.move` rebuilds the `placements`, `labels` and `carriers` families of its page
+//! only, never `surface`, `frame` or `tables` (LP-5 as built).
 
 use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::{CarrierGeometry, LabelMode, LayoutLabel, PlacementGeometry};
-use ew_derive::{Policy, Q, Query};
+use ew_derive::{PageRef, Policy, Q, Query};
+use ew_scene::forms::SheetMap;
 use ew_scene::panel::{
     CarrierDraw, LAYOUT_LABEL_STYLE, PanelLabel, PanelView, PlacementDraw, Projection, SurfaceOutline,
 };
@@ -32,6 +34,7 @@ use ew_schema::{
 use ew_text::{Shaped, TextStyle};
 
 use super::layers::text_style_table;
+use super::view::PageFrameOf;
 
 /// `shaped_text((text, style))`: a text shaped in a style by the bundled fonts (ADR-0015's memoised `shaped_text`; the
 /// fit test of a panel page's labels reads it, D10). A pure function of its key and the process's font set, so it
@@ -64,8 +67,9 @@ pub struct SurfaceViewOf {
 }
 
 /// `page_surface_view(page)`: the surface view of a panel-layout page (D9): its first `surface_view` item by ID (a page
-/// holds at most one; a file with more draws the first), projected at the page's scale. `None` for a missing page, a
-/// page of another kind or a page without a view.
+/// holds at most one; a file with more draws the first), projected at the page's scale on paper: divided by the
+/// frame's page-to-sheet factor as well ([`Projection::on_sheet`]). `None` for a missing page, a page of another kind
+/// or a page without a view.
 #[derive(Debug)]
 pub struct PageSurfaceView;
 
@@ -82,6 +86,14 @@ impl Query for PageSurfaceView {
         if page.kind != PageType::PanelLayout {
             return Arc::new(None);
         }
+        // The frame's page-to-sheet factor, so that the page's stated scale holds on paper (cycle 41, review part 1,
+        // finding 5); a page without a frame, or a frame without the map, prints at 1.
+        let sheet_ppb = q
+            .get::<PageFrameOf>(PageRef::Drawn(*key))
+            .as_ref()
+            .as_ref()
+            .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form))
+            .scale_ppb;
         let items = q.page_items();
         let mut ids: Vec<Id<PageItem>> = q.idx().page_items_by_page(*key).collect();
         ids.sort();
@@ -97,7 +109,7 @@ impl Query for PageSurfaceView {
                     SurfaceLabelMode::Full => LabelMode::Full,
                     SurfaceLabelMode::Abbreviated | SurfaceLabelMode::Unknown(_) => LabelMode::Abbreviated,
                 },
-                projection: Projection::of(v.datum_at, &page.scale),
+                projection: Projection::on_sheet(v.datum_at, &page.scale, sheet_ppb),
             })
         });
         Arc::new(view)

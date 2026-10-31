@@ -13,7 +13,7 @@
 //! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption, FT-734), `page_frame`, the page items with texts and the structure boxes with captions; on a panel-layout page also the placement labels (`panel.rs`) |
 //! | [`TablesLayer`] | [`Layer::Tables`] | `page_frame` (the sheet map), `page_table` or `page_embedded` |
 //! | [`SurfaceLayer`] | [`Layer::Surface`] | the surface outlines of the page's surface view (`panel.rs`) |
-//! | [`CarriersLayer`] | [`Layer::Carriers`] | the carriers of the page's surface view (`panel.rs`) |
+//! | [`CarriersLayer`] | [`Layer::Carriers`] | the carriers of the page's surface view and its placement labels, which the carriers are cut around (`panel.rs`) |
 //! | [`PlacementsLayer`] | [`Layer::Placements`] | the placements of the page's surface view (`panel.rs`) |
 //!
 //! The other layers (revision marks, highlights, features, dimensions) are drawn by no rule of `ew-scene` yet and are
@@ -174,7 +174,8 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
                 surface: layer == Layer::Surface,
                 carriers: layer == Layer::Carriers,
                 placements: layer == Layer::Placements,
-                labels: false,
+                // The carriers are cut around the labels' knockout boxes.
+                labels: layer == Layer::Carriers,
             };
             v.panel = Some(panel_view(q, drawn?, parts)?);
         }

@@ -16,6 +16,7 @@ mod frame_geometry;
 mod items;
 mod lowering;
 mod page_scene;
+mod panel_knockout;
 mod pin_texts;
 mod properties;
 mod route;
