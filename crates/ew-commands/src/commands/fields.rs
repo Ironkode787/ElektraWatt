@@ -817,7 +817,10 @@ fn refuse_no_port(tx: &TxBuilder<'_>, target: AnyId, path: &str) -> Result<(), C
         return Err(CmdError::invalid_params(
             SetFields::NAME,
             "/path",
-            format!("function {target} has no bus port; set `bus_port` first"),
+            format!(
+                "function {} has no bus port; set `bus_port` first",
+                crate::words::function(tx, target.cast())
+            ),
         ));
     }
     Ok(())

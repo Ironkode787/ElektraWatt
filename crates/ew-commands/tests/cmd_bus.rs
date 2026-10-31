@@ -90,9 +90,20 @@ fn the_create_commands_insert_the_nets_in_one_step_each() {
 
 #[test]
 fn the_create_commands_refuse_a_duplicate_name_a_zero_rate_and_a_newer_bus() {
-    let (mut e, _, _) = with_nets();
-    assert!(rejected(e.execute(&lnet("DP", BusSystem::Profinet, None))).contains("names are unique"));
-    assert!(rejected(e.execute(&pnet("DP"))).contains("names are unique"));
+    let (mut e, l, p) = with_nets();
+    // FT-756: the net by its name, never its ID.
+    let message = rejected(e.execute(&lnet("DP", BusSystem::Profinet, None)));
+    assert_eq!(message, "logical net DP exists already; names are unique");
+    assert!(
+        !message.contains(&l.to_string()) && !message.contains('@'),
+        "{message}"
+    );
+    let message = rejected(e.execute(&pnet("DP")));
+    assert_eq!(message, "physical net DP exists already; names are unique");
+    assert!(
+        !message.contains(&p.to_string()) && !message.contains('@'),
+        "{message}"
+    );
     let (path, message) = invalid(e.execute(&lnet("DP2", BusSystem::ProfibusDp, Some(0))));
     assert_eq!(path, "/rate");
     assert!(message.contains("a data rate of 0 bit/s"), "{message}");
@@ -114,8 +125,14 @@ fn fields_set_writes_a_bus_port_and_refuses_what_it_cannot_write() {
         json!("on"),
     )));
     assert_eq!(path, "/path");
+    // FT-756: the function by its device's tag, never its ID.
+    assert!(message.starts_with("function -"), "a tag: {message}");
     assert!(
-        message.contains("has no bus port; set `bus_port` first"),
+        message.ends_with(" has no bus port; set `bus_port` first"),
+        "{message}"
+    );
+    assert!(
+        !message.contains(&f.to_string()) && !message.contains('@'),
         "{message}"
     );
 

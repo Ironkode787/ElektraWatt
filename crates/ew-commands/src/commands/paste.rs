@@ -859,7 +859,8 @@ impl Insertion<'_> {
                             return Err(self.invalid(
                                 format!("/adapt/{index}"),
                                 format!(
-                                    "the project's version of {kind} {} differs from the pasted one in a major way                                      ({}); update instead",
+                                    "the project's version of {kind} {} differs from the pasted one in a major way \
+                                     ({}); update instead",
                                     lib_title(value),
                                     diff.major_reasons.join(", ")
                                 ),

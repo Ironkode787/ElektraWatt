@@ -138,15 +138,12 @@ pub(crate) fn refuse_duplicate_logical_name(
     except: Option<Id<LogicalNet>>,
     name: &Ident,
 ) -> Result<(), CmdError> {
-    if let Some(other) = tx
+    if tx
         .iter::<LogicalNet>()
         .into_iter()
-        .find(|n| Some(n.id) != except && n.name == *name)
+        .any(|n| Some(n.id) != except && n.name == *name)
     {
-        return tx.reject(format!(
-            "logical net {name} exists ({}); names are unique",
-            other.id
-        ));
+        return tx.reject(format!("logical net {name} exists already; names are unique"));
     }
     Ok(())
 }
@@ -157,15 +154,12 @@ pub(crate) fn refuse_duplicate_physical_name(
     except: Option<Id<PhysicalNet>>,
     name: &Ident,
 ) -> Result<(), CmdError> {
-    if let Some(other) = tx
+    if tx
         .iter::<PhysicalNet>()
         .into_iter()
-        .find(|n| Some(n.id) != except && n.name == *name)
+        .any(|n| Some(n.id) != except && n.name == *name)
     {
-        return tx.reject(format!(
-            "physical net {name} exists ({}); names are unique",
-            other.id
-        ));
+        return tx.reject(format!("physical net {name} exists already; names are unique"));
     }
     Ok(())
 }
