@@ -376,6 +376,19 @@ fn strip_full_tag(q: &Q, strip: Id<Device>) -> String {
         .unwrap_or_default()
 }
 
+/// How the notices name a terminal diagram block: by its first folio, or in words when it has none.
+fn block_label(first_folio: Option<u32>) -> String {
+    first_folio.map_or_else(
+        || "a terminal diagram block without a folio".to_owned(),
+        |n| format!("the block on folio {n}"),
+    )
+}
+
+/// The notice for a strip a later block lists again: its rows there are left out.
+fn repeat_notice(tag: &str, later: &str, from: &str) -> String {
+    format!("{tag} is also in {later}; its rows come from {from}.")
+}
+
 /// The terminal rows of `chosen`'s blocks: one strip (`--strip`) or every strip after its heading row.
 fn terminals(
     q: &Q,
@@ -386,7 +399,7 @@ fn terminals(
 ) -> Result<RowsCsv, RowsError> {
     let mut sets: Vec<(String, RowSet)> = Vec::with_capacity(chosen.len());
     for (id, b) in chosen {
-        let label = b.first_folio.map_or_else(|| id.to_string(), |n| n.to_string());
+        let label = block_label(b.first_folio);
         sets.push((label, derived((*rows_of(q, *id)).clone(), kind)?));
     }
     let Some((_, template)) = sets.first() else {
@@ -406,9 +419,7 @@ fn terminals(
             .filter(|(s, _)| only.is_none_or(|o| o == *s))
             .filter_map(|(s, later)| {
                 let (_, tag, from, _) = strips.iter().find(|(t, _, _, _)| t == s)?;
-                Some(format!(
-                    "{tag} is also in the block on folio {later}; its rows come from folio {from}."
-                ))
+                Some(repeat_notice(tag, later, from))
             })
             .collect()
     };
@@ -546,6 +557,19 @@ mod tests {
         assert_eq!(
             e.to_string(),
             "more than one terminal strip has the tag `-X1` (=A+L1-X1, =A+L2-X1); name it by its full tag"
+        );
+    }
+
+    /// A block without a folio is named in words in the notices; a block with one by its folio.
+    #[test]
+    fn a_repeated_strip_is_named_in_words() {
+        assert_eq!(
+            repeat_notice("-X1031", &block_label(Some(912)), &block_label(Some(910))),
+            "-X1031 is also in the block on folio 912; its rows come from the block on folio 910."
+        );
+        assert_eq!(
+            repeat_notice("-X1031", &block_label(None), &block_label(Some(910))),
+            "-X1031 is also in a terminal diagram block without a folio; its rows come from the block on folio 910."
         );
     }
 }

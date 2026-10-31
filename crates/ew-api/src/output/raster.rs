@@ -37,7 +37,8 @@ pub const DPI_RANGE: RangeInclusive<u32> = 72..=600;
 /// The largest raster of one page, in pixels (about 600 MB of RGBA): A2 at 600 dpi fits, A1 at 600 dpi does not.
 pub const MAX_PAGE_PIXELS: u64 = 150_000_000;
 
-/// The most raster pixels `export png` holds at once over all its threads (at least one page at a time).
+/// The most raster pixels `export png` holds at once over all its threads (at least one page at a time). It counts
+/// the rasters only: each page's PNG encoder buffers and encoded bytes come on top.
 pub const MAX_PIXELS_IN_FLIGHT: u64 = 600_000_000;
 
 /// The pixel size of a sheet at `dpi`, and whether it may be rasterised (at most [`MAX_PAGE_PIXELS`] and no side
