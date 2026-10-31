@@ -12,7 +12,8 @@ and technical data of a part copy the project holds, in one undo step. Always pr
   the original's version and `meta.source` = `{"fork_of": {"library", "item", "version"}}`; every reference to the
   original copy that the link table (`ew_model::LINKS`) lists as a part-copy link (the part uses, a strip
   accessory's part, an assembly configuration's part, a connection's `overrides.wire_part`, a potential
-  definition's `props.wire_part`) names the fork afterwards. The original copy stays, unused, until purged. The
+  definition's `props.wire_part`, a carrier's part) names the fork afterwards, and so does a placement's `part` (the
+  part use it realises, WP-S4.01 D4 and D7). The original copy stays, unused, until purged. The
   caller mints `fork` (the session's `next_fork_item`), so a replay reproduces it.
 
 `part` is the edited part item (its members, without the copy metadata). Only `manufacturer`, `part_number`,
