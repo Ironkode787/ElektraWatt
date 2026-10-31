@@ -102,3 +102,33 @@ fn a_name_typed_with_the_ip_tool_names_the_point_its_click_places() {
     done(&mut s, "canvas.activate", json!({}));
     assert_eq!(new_ip_names(&before, &s), vec!["0V".to_owned()]);
 }
+
+/// The cycle-41 review (finding 3): `ip.name` with an empty or blank text cancels the typed name, across a switch of
+/// tools too, so the point the next click places takes its automatic name; a missing `text` still fails.
+#[test]
+fn an_empty_or_blank_name_cancels_the_typed_name() {
+    for erased in ["", "  "] {
+        let tmp = Tmp::new("typed-erased");
+        let mut s = shell(&tmp, "102");
+        done(&mut s, "tool.ip", json!({}));
+        done(&mut s, "ip.name", json!({"text": "0V"}));
+        done(&mut s, "ip.name", json!({ "text": erased }));
+        done(&mut s, "tool.wire", json!({}));
+        done(&mut s, "tool.ip", json!({}));
+        let before = tables(&s);
+        let p = grid_point(&s, (40, 40));
+        cursor(&mut s, p);
+        done(&mut s, "canvas.activate", json!({}));
+        assert_eq!(new_ip_names(&before, &s), vec!["IP".to_owned()], "{erased:?}");
+    }
+    let tmp = Tmp::new("typed-missing");
+    let mut s = shell(&tmp, "102");
+    done(&mut s, "tool.ip", json!({}));
+    assert!(
+        matches!(
+            s.dispatch("ip.name", &json!({})),
+            ew_viewmodel::shell::Outcome::Failed { .. }
+        ),
+        "a missing text fails"
+    );
+}

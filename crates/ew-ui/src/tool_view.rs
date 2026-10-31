@@ -217,9 +217,10 @@ pub(crate) fn ip_fields(
     edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
     // Every change reaches the tool at once, so the name is the next point's however the field is left: by Enter, or
     // by a click on the canvas, whose press the window dispatches before this card's events and before the field
-    // reports the lost focus (the play-test of cycle 40). The field empties when it loses the focus: the tool holds
-    // the name (its ghost shows it) until a point takes it.
-    if edit.changed() && !name.trim().is_empty() {
+    // reports the lost focus (the play-test of cycle 40). Erasing the field sends the empty text, which cancels the
+    // typed name (cycle 41 review). The field empties when it loses the focus without sending anything: the tool
+    // holds the name (its ghost shows it) until a point takes it.
+    if edit.changed() {
         events.push(crate::app::Event::Action(
             "ip.name",
             serde_json::json!({ "text": name.trim() }),

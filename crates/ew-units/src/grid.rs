@@ -224,6 +224,32 @@ impl Grid {
         i64::try_from(k).unwrap_or(if k < 0 { i64::MIN } else { i64::MAX })
     }
 
+    /// The grid index of a position given in whole **grid half-steps** (`half_steps / 2`, an index or the middle
+    /// of two): exact when `half_steps` is even, else the tie between its two neighbours goes up (toward +∞) when
+    /// `tie_up`, down (toward −∞) otherwise. Unlike [`snap`](Grid::snap) and [`snap_half`](Grid::snap_half) the tie
+    /// does not depend on the sign, so a caller that alternates the direction (a black box turned by quarter turns,
+    /// up toward an odd number of quarter turns and down toward an even one) cancels its ties wherever the position
+    /// lies. Never overflows.
+    ///
+    /// ```
+    /// use ew_units::Grid;
+    ///
+    /// assert_eq!(Grid::index_of_half_steps(8, true), 4);
+    /// assert_eq!(Grid::index_of_half_steps(7, true), 4);
+    /// assert_eq!(Grid::index_of_half_steps(7, false), 3);
+    /// assert_eq!(Grid::index_of_half_steps(-7, true), -3);
+    /// assert_eq!(Grid::index_of_half_steps(-7, false), -4);
+    /// ```
+    pub const fn index_of_half_steps(half_steps: i64, tie_up: bool) -> i64 {
+        // `div_euclid` floors for the positive divisor 2; the remainder is 0 or 1.
+        let floor = half_steps.div_euclid(2);
+        if tie_up && half_steps.rem_euclid(2) == 1 {
+            floor + 1
+        } else {
+            floor
+        }
+    }
+
     /// The index of the grid cell containing `x`, for cells of width `num / den` starting at `origin`:
     /// `floor((x − origin) × den / num)` by exact Euclidean division in `i128` (FR-PAG-020).
     ///
@@ -399,6 +425,20 @@ mod tests {
                 prop_assert!(dist(k) != dist(k - 1) || k.abs() <= (k - 1).abs());
                 prop_assert!(dist(k) != dist(k + 1) || k.abs() <= (k + 1).abs());
             }
+        }
+
+        /// `index_of_half_steps`: a whole position exactly, a tie to the upper neighbour when `tie_up`, else to the
+        /// lower, whatever the sign; an up tie and a down tie of the same value sum to the value.
+        #[test]
+        fn index_of_half_steps_ties_by_direction(h in i64::MIN..i64::MAX) {
+            let (up, down) = (Grid::index_of_half_steps(h, true), Grid::index_of_half_steps(h, false));
+            let (h, up, down) = (i128::from(h), i128::from(up), i128::from(down));
+            if h % 2 == 0 {
+                prop_assert_eq!((up, down), (h / 2, h / 2));
+            } else {
+                prop_assert_eq!((2 * up - 1, 2 * down + 1), (h, h));
+            }
+            prop_assert_eq!(up + down, h);
         }
 
         #[test]

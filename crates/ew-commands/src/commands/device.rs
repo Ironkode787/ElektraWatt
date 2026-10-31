@@ -1038,9 +1038,12 @@ impl Command for MoveReps {
 ///
 /// **The pivot.** A symbol turns about its insertion point (`pos` stays). A black box (a representation with a
 /// `box`) turns about the centre of its bounding box (the outline's, else its CPs'), whose insertion point is a
-/// corner with no meaning to the user: `pos` becomes the grid point nearest to the one that keeps that centre
-/// (`Grid::snap_half`), so a mirror and a half turn keep the bounding box (to the 1 nm of a rational grid's
-/// rounding) and a quarter turn turns it about its centre, snapped to the grid. The stored outline and CPs are not
+/// corner with no meaning to the user: `pos` becomes the grid point that keeps that centre, computed in whole grid
+/// half-steps, so a mirror and a half turn keep the bounding box (to the 1 nm of a rational grid's rounding) and a
+/// quarter turn turns it about its centre; when the centre falls between two grid points (a box whose width plus
+/// height is an odd number of steps) the tie goes up toward an odd number of quarter turns and down toward an even
+/// one (`Grid::index_of_half_steps`), so four quarter turns, or a turn and its reverse, bring the box back exactly
+/// and two quarter turns land where a half turn does, wherever the box lies. The stored outline and CPs are not
 /// rewritten. A black box whose orientation does not change keeps its `pos`.
 ///
 /// Routes follow: each attached connection's route end at a CP drawn by a transformed representation (a symbol's
@@ -1163,10 +1166,16 @@ impl Command for TransformReps {
 }
 
 /// The insertion point at which a black box of box `b` at `pos` keeps the centre of its bounding box when its
-/// orientation changes from `from` to `to` (see [`TransformReps`]): the grid point nearest to
-/// `pos + (centre of from(b)) − (centre of to(b))`, computed in half nanometres. The bounding box is the outline's,
-/// else the CPs'; `Ok(None)` when the box has neither (the insertion point stays). [`OutOfRange`] when a point of
-/// the box or the result leaves ±[`MAX_COORD`](crate::geometry::MAX_COORD).
+/// orientation changes from `from` to `to` (see [`TransformReps`]), computed in whole grid half-steps (cycle 41
+/// review): `pos` and every point of the box under `from` and under `to` are snapped to grid indices first (a
+/// stored point lies within 1 nm of its grid point, a step is far longer), so the centre's offset is an exact
+/// number of half-steps on every grid, the rational QET grid included. A whole result is exact; a half one (a
+/// quarter turn of a box whose width plus height is odd) goes up toward an odd number of quarter turns of `to`
+/// and down toward an even one ([`Grid::index_of_half_steps`]), so every two quarter turns cancel: four turns
+/// bring the box back, a turn and its reverse too, two land where one half turn does, and the offset is the same
+/// wherever the box lies. The bounding box is the outline's, else the CPs'; `Ok(None)` when the box has neither
+/// (the insertion point stays). [`OutOfRange`] when a point of the box or the result leaves
+/// ±[`MAX_COORD`](crate::geometry::MAX_COORD).
 fn box_pivot(
     grid: Grid,
     pos: Pt2,
@@ -1185,26 +1194,36 @@ fn box_pivot(
     if !local.iter().all(|p| crate::geometry::point_in_range(*p)) || !crate::geometry::point_in_range(pos) {
         return Err(OutOfRange);
     }
-    // min + max of each axis of the points under `o`: twice the bounding box's centre, in nm.
+    // min + max of each axis of the points' grid indices under `o`: twice the bounding box's centre relative to
+    // `pos`, in half-steps. `Orient2::apply` only negates and swaps, and `Grid::snap` is odd, so snapping the turned
+    // offset is turning the snapped one.
     let twice_centre = |o: Orient2| -> (i64, i64) {
-        let pts: Vec<Pt2> = local.iter().map(|p| o.apply(*p)).collect();
-        let span = |axis: fn(&Pt2) -> i64| {
+        let pts: Vec<(i64, i64)> = local
+            .iter()
+            .map(|p| o.apply(*p))
+            .map(|p| (grid.snap(p.x), grid.snap(p.y)))
+            .collect();
+        let span = |axis: fn(&(i64, i64)) -> i64| {
             let lo = pts.iter().map(axis).min().unwrap_or(0);
             let hi = pts.iter().map(axis).max().unwrap_or(0);
             lo + hi
         };
-        (span(|p| p.x.0), span(|p| p.y.0))
+        (span(|p| p.0), span(|p| p.1))
     };
     let (cf, ct) = (twice_centre(from), twice_centre(to));
-    // Every term lies within ±2^54, so the sums stay far inside i64.
-    let half = |p: Nm, f: i64, t: i64| 2 * p.0 + f - t;
-    let x = grid.at(grid.snap_half(half(pos.x, cf.0, ct.0)));
-    let y = grid.at(grid.snap_half(half(pos.y, cf.1, ct.1)));
+    let tie_up = to.quarter_turns() % 2 == 1;
+    // Every index lies within ±2^54 (a step is at least 1 nm), so the sums stay far inside i64.
+    let index = |p: Nm, f: i64, t: i64| Grid::index_of_half_steps(2 * grid.snap(p) + f - t, tie_up);
+    let x = grid.at(index(pos.x, cf.0, ct.0));
+    let y = grid.at(index(pos.y, cf.1, ct.1));
     match (x, y) {
         (Some(x), Some(y)) if crate::geometry::point_in_range(Pt2::new(x, y)) => Ok(Some(Pt2::new(x, y))),
         _ => Err(OutOfRange),
     }
 }
+
+#[cfg(test)]
+mod box_pivot_tests;
 
 /// `rep.set_anchor_policy`: sets the cross-reference anchor policy of representations (FR-SYM-010; the
 /// quick fix of MF-13, doc 07 §3.6).

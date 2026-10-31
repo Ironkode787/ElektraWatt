@@ -11,9 +11,12 @@ replaces the stored variant.
 
 **The pivot.** A symbol turns about its insertion point (`pos` stays). A black box (a representation with a
 `box`) turns about the centre of its bounding box (the outline's, else its CPs'), whose insertion point is a
-corner with no meaning to the user: `pos` becomes the grid point nearest to the one that keeps that centre
-(`Grid::snap_half`), so a mirror and a half turn keep the bounding box (to the 1 nm of a rational grid's
-rounding) and a quarter turn turns it about its centre, snapped to the grid. The stored outline and CPs are not
+corner with no meaning to the user: `pos` becomes the grid point that keeps that centre, computed in whole grid
+half-steps, so a mirror and a half turn keep the bounding box (to the 1 nm of a rational grid's rounding) and a
+quarter turn turns it about its centre; when the centre falls between two grid points (a box whose width plus
+height is an odd number of steps) the tie goes up toward an odd number of quarter turns and down toward an even
+one (`Grid::index_of_half_steps`), so four quarter turns, or a turn and its reverse, bring the box back exactly
+and two quarter turns land where a half turn does, wherever the box lies. The stored outline and CPs are not
 rewritten. A black box whose orientation does not change keeps its `pos`.
 
 Routes follow: each attached connection's route end at a CP drawn by a transformed representation (a symbol's

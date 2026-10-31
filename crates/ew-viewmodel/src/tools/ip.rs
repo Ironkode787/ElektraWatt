@@ -593,8 +593,10 @@ impl Tool for IpTool {
                 }
                 ToolOutput::Transient(self.refresh(cx))
             }
-            CanvasEvent::Text(text) if !text.trim().is_empty() => {
-                self.typed = Some(text.trim().to_owned());
+            CanvasEvent::Text(text) => {
+                // An empty or blank text cancels the typed name: the next point takes its automatic name.
+                let text = text.trim();
+                self.typed = (!text.is_empty()).then(|| text.to_owned());
                 self.memory.typed = self.typed.clone();
                 ToolOutput::Transient(self.refresh(cx))
             }

@@ -477,6 +477,41 @@ fn a_quarter_turn_snaps_the_centre_to_the_grid_and_four_turns_bring_the_box_back
     assert_eq!(row(&e, rep).orient, Orient2::R0);
 }
 
+/// The cycle-41 review (finding 1): a box whose width plus height is an odd number of steps (its centre falls between
+/// grid points on every quarter turn) comes back to the nanometre after four `rep.transform` quarter turns either way,
+/// and after a turn and its reverse; the review's cases, 5 by 4 and 3 by 2 steps at (31, 46), crept toward the origin.
+#[test]
+fn a_box_with_an_odd_width_plus_height_comes_back_after_four_quarter_turns() {
+    for (k1, tops, bottoms) in [
+        ((36, 50), &[1, 2, 3, 4][..], &[1, 3][..]),
+        ((34, 48), &[1, 2][..], &[1, 2][..]),
+    ] {
+        for rotate in [1, 3] {
+            let mut e = engine(golden_model());
+            let (pos, spec) = tool_box((31, 46), k1, tops, bottoms);
+            let (rep, _) = place_box(&mut e, pos, spec);
+            for _ in 0..4 {
+                e.execute(&transform(rep, rotate, false)).expect("a quarter turn");
+            }
+            let after = row(&e, rep);
+            assert_eq!(
+                (after.pos, after.orient),
+                (pos, Orient2::R0),
+                "to {k1:?}, rotate {rotate}"
+            );
+            e.execute(&transform(rep, rotate, false)).expect("a quarter turn");
+            e.execute(&transform(rep, 4 - rotate, false))
+                .expect("the reverse");
+            let back = row(&e, rep);
+            assert_eq!(
+                (back.pos, back.orient),
+                (pos, Orient2::R0),
+                "to {k1:?}, rotate {rotate} and back"
+            );
+        }
+    }
+}
+
 #[test]
 fn a_symbol_keeps_its_insertion_point_pivot() {
     let mut e = engine(golden_model());

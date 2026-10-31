@@ -115,25 +115,55 @@ fn name_field_text(h: &Harness<'_, App>) -> Option<String> {
         .map(|v| v.to_string())
 }
 
+/// Clicks the IP name field (it takes the focus) and types `text` into it.
+fn type_in_name_field(h: &mut Harness<'_, App>, text: &str) {
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
+        .expect("the IP name field")
+        .click();
+    settle(h);
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
+        .expect("the IP name field")
+        .type_text(text);
+    settle(h);
+}
+
 /// The play-test of cycle 40 (finding 5): a name typed in Tool options and left by a click on the canvas, without
-/// Enter, names the point that click places; the field empties and the next point is proposed again.
+/// Enter, names the point that click places; the field empties (its own clear on the lost focus cancels nothing).
 #[test]
 fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
     press(&mut h, Key::P);
     assert_eq!(h.state().shell().tool().name(), "ip");
-    h.get_all_by_role(egui::Role::TextInput)
-        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
-        .expect("the IP name field")
-        .click();
-    settle(&mut h);
-    h.get_all_by_role(egui::Role::TextInput)
-        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
-        .expect("the IP name field")
-        .type_text("0V");
-    settle(&mut h);
-    // A click on the canvas, in its middle: no Enter.
+    type_in_name_field(&mut h, "0V");
+    assert_eq!(click_canvas_centre(&mut h), vec!["0V".to_owned()]);
+    // The field emptied when it lost the focus.
+    assert_eq!(name_field_text(&h).unwrap_or_default(), "");
+}
+
+/// The cycle-41 review (finding 3): a name typed and then erased is cancelled, so the point the next click places
+/// takes its automatic name, not the last text the field sent ("0").
+#[test]
+fn a_typed_name_erased_from_the_field_is_cancelled() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    press(&mut h, Key::P);
+    assert_eq!(h.state().shell().tool().name(), "ip");
+    type_in_name_field(&mut h, "0V");
+    press(&mut h, Key::Backspace);
+    press(&mut h, Key::Backspace);
+    assert_eq!(name_field_text(&h).unwrap_or_default(), "");
+    match ghost(&h) {
+        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { name, .. }) => assert_eq!(name, "IP"),
+        other => panic!("not the IP tool's ghost: {other:?}"),
+    }
+    assert_eq!(click_canvas_centre(&mut h), vec!["IP".to_owned()]);
+}
+
+/// A click in the middle of the canvas (no Enter before it); returns the names of the interruption points it placed.
+fn click_canvas_centre(h: &mut Harness<'_, App>) -> Vec<String> {
     let bounds = h
         .get_all_by_role(egui::Role::Canvas)
         .next()
@@ -145,9 +175,9 @@ fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
         ((bounds.x0 + bounds.x1) / 2.0) as f32,
         ((bounds.y0 + bounds.y1) / 2.0) as f32,
     );
-    let before = ips(&h);
+    let before = ips(h);
     h.event(egui::Event::PointerMoved(at));
-    settle(&mut h);
+    settle(h);
     for pressed in [true, false] {
         h.event(egui::Event::PointerButton {
             pos: at,
@@ -156,13 +186,10 @@ fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
             modifiers: egui::Modifiers::NONE,
         });
     }
-    settle(&mut h);
-    let placed: Vec<String> = ips(&h)
+    settle(h);
+    ips(h)
         .into_iter()
         .filter(|ip| !before.contains(ip))
         .map(|(_, name)| name)
-        .collect();
-    assert_eq!(placed, vec!["0V".to_owned()]);
-    // The field emptied when it lost the focus.
-    assert_eq!(name_field_text(&h).unwrap_or_default(), "");
+        .collect()
 }

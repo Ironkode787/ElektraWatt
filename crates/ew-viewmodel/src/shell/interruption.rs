@@ -361,7 +361,8 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `ip.name {text}`: the IP tool's name field.
+    /// `ip.name {text}`: the IP tool's name field. An empty or blank `text` (the field erased) cancels the typed name,
+    /// so the next point takes its automatic name (cycle 41 review); a missing `text` is `error-missing-param`.
     pub(super) fn act_ip_name(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.ip_tool().is_none() {
             return Outcome::Refused {
@@ -369,12 +370,13 @@ impl ShellModel {
             };
         }
         match string_param(p, "text") {
-            Ok(Some(t)) if !t.trim().is_empty() => {
+            Ok(Some(t)) => {
                 // The host keeps the typed name across tools (the Wire tool's P takes it too).
-                self.tools.ip_memory.typed = Some(t.trim().to_owned());
+                let t = t.trim();
+                self.tools.ip_memory.typed = (!t.is_empty()).then(|| t.to_owned());
                 self.send_tool(&CanvasEvent::Text(t.to_owned()))
             }
-            Ok(_) => failed("error-missing-param", &["text"]),
+            Ok(None) => failed("error-missing-param", &["text"]),
             Err(e) => e,
         }
     }
