@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew export png --json` ([`EXPORT_PNG`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.export-png-result/1",
+      "description": "The name of this schema."
+    },
+    "dpi": {
+      "description": "The resolution in dots per inch.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "files": {
+      "description": "The files written, one `<folio>.png` per page, in page order.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "findings": {
+      "description": "The page findings.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "out": {
+      "description": "The directory written.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$schema",
+    "out",
+    "dpi",
+    "files",
+    "findings"
+  ],
+  "title": "ew.export-png-result/1",
+  "type": "object"
+}

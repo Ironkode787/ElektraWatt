@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew export terminals --json` ([`EXPORT_TERMINALS`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.export-terminals-result/1",
+      "description": "The name of this schema."
+    },
+    "csv": {
+      "description": "The CSV text when there is no `--out`; `null` with one.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "out": {
+      "description": "The file the CSV was written to (`--out`); `null` without one.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rows": {
+      "description": "The rows (data and heading rows, a strip's heading row included; the header line excluded).",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "strips": {
+      "description": "The printed tags of the strips written, in output order.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "$schema",
+    "rows",
+    "strips"
+  ],
+  "title": "ew.export-terminals-result/1",
+  "type": "object"
+}

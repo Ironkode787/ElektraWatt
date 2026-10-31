@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew export report --json` ([`EXPORT_REPORT`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.export-report-result/1",
+      "description": "The name of this schema."
+    },
+    "block": {
+      "description": "The report block's ID.",
+      "type": "string"
+    },
+    "csv": {
+      "description": "The CSV text when it goes to stdout; else `null`.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "folios": {
+      "description": "For PDF: the folio labels of the block's pages written, in page order; `null` for CSV.",
+      "items": {
+        "type": "string"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "format": {
+      "description": "`csv` or `pdf`.",
+      "type": "string"
+    },
+    "kind": {
+      "description": "The block's report kind (`plc_overview`, ...).",
+      "type": "string"
+    },
+    "out": {
+      "description": "The file written (`--out`); `null` for CSV on stdout.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rows": {
+      "description": "For CSV: the rows (data and heading rows, the header line excluded); `null` for PDF.",
+      "format": "uint",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "$schema",
+    "block",
+    "kind",
+    "format"
+  ],
+  "title": "ew.export-report-result/1",
+  "type": "object"
+}

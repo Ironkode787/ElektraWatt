@@ -31,9 +31,29 @@
       "schema": "ew.export-pdf-result-1.schema.json"
     },
     {
+      "command": "export png",
+      "name": "ew.export-png-result/1",
+      "schema": "ew.export-png-result-1.schema.json"
+    },
+    {
+      "command": "export report",
+      "name": "ew.export-report-result/1",
+      "schema": "ew.export-report-result-1.schema.json"
+    },
+    {
       "command": "export svg",
       "name": "ew.export-svg-result/1",
       "schema": "ew.export-svg-result-1.schema.json"
+    },
+    {
+      "command": "export terminals",
+      "name": "ew.export-terminals-result/1",
+      "schema": "ew.export-terminals-result-1.schema.json"
+    },
+    {
+      "command": "export wires",
+      "name": "ew.export-wires-result/1",
+      "schema": "ew.export-wires-result-1.schema.json"
     },
     {
       "command": "import parts",
@@ -69,6 +89,11 @@
       "command": "lib search",
       "name": "ew.lib-search-result/1",
       "schema": "ew.lib-search-result-1.schema.json"
+    },
+    {
+      "command": "render",
+      "name": "ew.render-result/1",
+      "schema": "ew.render-result-1.schema.json"
     },
     {
       "command": "sql dump",

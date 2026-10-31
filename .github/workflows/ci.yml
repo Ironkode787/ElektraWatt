@@ -528,9 +528,10 @@ jobs:
   # CI-PR-05 (FT-295, evidence for G-M1-01, NFR-PLAT-04, NFR-REL-11): the shipped `ew export pdf` over
   # golden/J-E-2416.ew inside a bare Linux container (ci/headless-export.sh checks inside it that there is no
   # display, no GPU, no font file and no user directory content), on one thread and on four, with no network. The PDF
-  # of each run must be byte for byte the committed digest of golden/J-E-2416/expected/pdf/sha256.txt. The PNG export
-  # (`ew render --page 103 --png`, FT-254) joins the job when that command exists. Why a container and what it does
-  # not cover: ci/README.md.
+  # of each run must be byte for byte the committed digest of golden/J-E-2416/expected/pdf/sha256.txt. NFR-PLAT-04
+  # (WP-S1.22 OU-5): `ew render --page 103 --png` runs in the same container, and its PNG must have the digest of the
+  # committed golden/J-E-2416/expected/png/103.png, computed here (no digest file is committed). Why a container and
+  # what it does not cover: ci/README.md.
   headless:
     name: headless
     runs-on: ubuntu-24.04
@@ -566,7 +567,7 @@ jobs:
       # the three that the script needs: it runs its checks as root (DAC_READ_SEARCH, so that the font search reads
       # every directory) and drops to the runner's uid and gid (SETUID, SETGID; EW_UID, EW_GID) for the export. The
       # three mounts are listed in ci/headless-export.sh.
-      - name: export the golden PDF in the container
+      - name: export the golden PDF and render folio 103 in the container
         shell: bash
         run: |
           set -euo pipefail
@@ -590,6 +591,14 @@ jobs:
             echo "$threads thread(s): $got (committed: $want)"
             test "$got" = "$want" || { echo "::error::the PDF of the headless container ($threads thread(s)) is not the committed digest of golden/J-E-2416/expected/pdf/sha256.txt"; exit 1; }
           done
+      - name: the PNG of folio 103 is the committed one
+        shell: bash
+        run: |
+          set -euo pipefail
+          want="$(sha256sum golden/J-E-2416/expected/png/103.png | cut -d' ' -f1)"
+          got="$(sha256sum "$RUNNER_TEMP/headless/103.png" | cut -d' ' -f1)"
+          echo "103.png: $got (committed: $want)"
+          test "$got" = "$want" || { echo "::error::the PNG of folio 103 rendered in the headless container is not golden/J-E-2416/expected/png/103.png"; exit 1; }
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

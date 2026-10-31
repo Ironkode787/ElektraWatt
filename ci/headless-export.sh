@@ -5,8 +5,9 @@
 # Runs INSIDE the headless container of CI-PR-05 (FT-295, ci/README.md): the container is a bare Linux image with no
 # display, no GPU, no system fonts and no user directories of its own. The script first proves that the container is
 # bare (a check that fails the job when the image or the run flags change under it), then runs the shipped
-# `ew export pdf` over the golden project on one thread and on four, with every user directory pointing at an empty
-# directory and with the environment cleared. The host compares the two PDFs with `expected/pdf/sha256.txt`.
+# `ew export pdf` over the golden project on one thread and on four, and `ew render --page 103 --png` (NFR-PLAT-04),
+# with every user directory pointing at an empty directory and with the environment cleared. The host compares the
+# two PDFs with `expected/pdf/sha256.txt` and the PNG with the digest of `expected/png/103.png`.
 #
 # The checks run as ROOT with CAP_DAC_READ_SEARCH (the job adds that capability and nothing else but the two it
 # needs to drop privileges), so that the font search can read every directory of the image; the export then
@@ -63,11 +64,16 @@ setpriv --reuid "$EW_UID" --regid "$EW_GID" --clear-groups /ew --version
 
 # The export runs as the runner's user, not as root. `env -i` clears everything else: no EW_CONTENT_DIR, no
 # SOURCE_DATE_EPOCH, no locale.
-for threads in 1 4; do
+run_ew() {
     setpriv --reuid "$EW_UID" --regid "$EW_GID" --clear-groups \
         env -i PATH=/usr/bin:/bin HOME="$home/home" USERPROFILE="$home/home" APPDATA="$home/appdata" \
         LOCALAPPDATA="$home/appdata" XDG_STATE_HOME="$home/state" XDG_DATA_HOME="$home/data" \
         XDG_CONFIG_HOME="$home/config" \
-        /ew export pdf /project --out "/out/golden-$threads.pdf" --threads "$threads"
+        /ew "$@"
+}
+for threads in 1 4; do
+    run_ew export pdf /project --out "/out/golden-$threads.pdf" --threads "$threads"
 done
+# NFR-PLAT-04: one page as PNG on the CPU with the bundled fonts, at the golden PNGs' 150 dpi.
+run_ew render /project --page 103 --png --out /out/103.png
 ls -l /out

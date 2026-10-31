@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ew render --json` ([`RENDER`]).",
+  "properties": {
+    "$schema": {
+      "const": "ew.render-result/1",
+      "description": "The name of this schema."
+    },
+    "dpi": {
+      "description": "The resolution in dots per inch.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "findings": {
+      "description": "The page findings.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "height": {
+      "description": "The height in pixels.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "out": {
+      "description": "The PNG file written.",
+      "type": "string"
+    },
+    "page": {
+      "description": "The folio label of the page.",
+      "type": "string"
+    },
+    "width": {
+      "description": "The width in pixels.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "$schema",
+    "page",
+    "out",
+    "dpi",
+    "width",
+    "height",
+    "findings"
+  ],
+  "title": "ew.render-result/1",
+  "type": "object"
+}

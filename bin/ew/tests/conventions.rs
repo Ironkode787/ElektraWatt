@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S1.22 part 1 through the `ew` binary: the conventions of doc 17 §3.1 (`--project`, `--json`) and the published
-//! result schemas (CL-1 to CL-5, CL-7; CL-6 is in `tests/cli.rs`).
+//! result schemas (CL-1 to CL-5, CL-7; CL-6 is in `tests/cli.rs`), with part 2's subcommands under the same rules
+//! (OU-6; their outputs are checked in `tests/outputs.rs`).
 //!
 //! The result schemas under `bin/ew/schemas/` are an equality snapshot of `ew_api::cli_results::schema_files()`;
 //! `EW_CLI_BLESS=1 cargo nextest run -p ew --test conventions` rewrites the directory. Every `--json` output is
@@ -296,6 +297,9 @@ fn project_flag_equals_the_positional_directory() {
     let sqlite = t.0.join("p.sqlite");
     let pdf = t.0.join("p.pdf");
     let svg = t.0.join("svg");
+    let png_dir = t.0.join("png");
+    let png = t.0.join("103.png");
+    let report_pdf = t.0.join("908.pdf");
     let parts = t.0.join("parts.csv");
     std::fs::copy(GOLDEN_PARTS, &parts).unwrap();
     // (the words before the project, the words after it, the project)
@@ -317,6 +321,28 @@ fn project_flag_equals_the_positional_directory() {
         (
             vec!["export", "svg"],
             args([&"--out", &svg, &"--pages", &"101"]),
+            &p,
+        ),
+        (vec!["export", "wires"], vec![], &p),
+        (vec!["export", "terminals"], args([&"--strip", &"-X1031"]), &p),
+        (
+            vec!["export", "report"],
+            args([&"--block", &"908", &"--json"]),
+            &p,
+        ),
+        (
+            vec!["export", "report"],
+            args([&"--block", &"908", &"--format", &"pdf", &"--out", &report_pdf]),
+            &p,
+        ),
+        (
+            vec!["export", "png"],
+            args([&"--out", &png_dir, &"--pages", &"103"]),
+            &p,
+        ),
+        (
+            vec!["render"],
+            args([&"--page", &"103", &"--png", &"--out", &png]),
             &p,
         ),
         (vec!["verify-derived"], args([&"--json"]), &tiny),
@@ -480,6 +506,76 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         0,
     );
     assert_eq!(r.files, ["101.svg", "102.svg"]);
+    // Part 2 (OU-6).
+    let wires: results::ExportRowsResult = json_twice(
+        &t,
+        &args([&"export", &"wires", &p, &"--json"]),
+        results::EXPORT_WIRES,
+        0,
+    );
+    assert!(wires.csv.is_some() && wires.rows > 0);
+    let terminals: results::ExportTerminalsResult = json_twice(
+        &t,
+        &args([&"export", &"terminals", &p, &"--json"]),
+        results::EXPORT_TERMINALS,
+        0,
+    );
+    assert_eq!(terminals.strips, ["1X1", "-X1031", "-X1032"]);
+    let report: results::ExportReportResult = json_twice(
+        &t,
+        &args([&"export", &"report", &p, &"--block", &"908", &"--json"]),
+        results::EXPORT_REPORT,
+        0,
+    );
+    assert_eq!(
+        (report.kind.as_str(), report.format.as_str()),
+        ("plc_overview", "csv")
+    );
+    let report_pdf = t.0.join("908.pdf");
+    let report: results::ExportReportResult = json_twice(
+        &t,
+        &args([
+            &"export",
+            &"report",
+            &p,
+            &"--block",
+            &"908",
+            &"--format",
+            &"pdf",
+            &"--out",
+            &report_pdf,
+            &"--json",
+        ]),
+        results::EXPORT_REPORT,
+        0,
+    );
+    assert_eq!(
+        report.folios.as_deref(),
+        Some(&["908".to_owned(), "908.1".to_owned(), "908.2".to_owned()][..])
+    );
+    let png_dir = t.0.join("png");
+    let r: results::ExportPngResult = json_twice(
+        &t,
+        &args([
+            &"export", &"png", &p, &"--out", &png_dir, &"--pages", &"101-102", &"--dpi", &"72", &"--json",
+        ]),
+        results::EXPORT_PNG,
+        0,
+    );
+    assert_eq!(
+        (r.files.as_slice(), r.dpi),
+        (&["101.png".to_owned(), "102.png".to_owned()][..], 72)
+    );
+    let png = t.0.join("103.png");
+    let r: results::RenderResult = json_twice(
+        &t,
+        &args([
+            &"render", &p, &"--page", &"103", &"--png", &"--out", &png, &"--json",
+        ]),
+        results::RENDER,
+        0,
+    );
+    assert_eq!((r.page.as_str(), r.dpi), ("103", 150));
     let log = Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
     let preview: results::ApplyResult = json_twice(
         &t,

@@ -10,7 +10,7 @@ use ew_api::cli_results as results;
 use ew_api::import::Severity;
 use ew_api::import::migration::ReportFormat;
 use ew_api::import::{StarterLibrary, import_qet};
-use ew_api::output::{ExportOptions, PageSelection, Parallelism, date_from_epoch};
+use ew_api::output::{ExportOptions, PageSelection, Parallelism, RowExport, date_from_epoch};
 use ew_api::{BomMode, CmdLog, Export};
 
 /// The usage text.
@@ -28,10 +28,18 @@ pub const USAGE: &str = "usage:
       [--out <file>]
   ew sql dump [<project-dir>] <out.sqlite> [--project <dir>] [--json]
   ew sql schema
-  ew export cables [<project-dir>] [--project <dir>] [--format csv] [--out <file>] [--json]
-  ew export bom [<project-dir>] [--project <dir>] [--mode parts|assembly] [--format csv] [--out <file>] [--json]
+  ew export cables [<project-dir>] [--project <dir>] [--block <block>] [--format csv] [--out <file>] [--json]
+  ew export bom [<project-dir>] [--project <dir>] [--block <block>] [--mode parts|assembly] [--format csv]
+      [--out <file>] [--json]
+  ew export wires [<project-dir>] [--project <dir>] [--block <block>] [--format csv] [--out <file>] [--json]
+  ew export terminals [<project-dir>] [--project <dir>] [--block <block>] [--strip <tag>] [--format csv]
+      [--out <file>] [--json]
+  ew export report [<project-dir>] [--project <dir>] --block <block> [--format csv|pdf] [--out <file>] [--json]
   ew export pdf [<project-dir>] [--project <dir>] --out <file.pdf> [--pages <folios>] [--threads <n>] [--json]
   ew export svg [<project-dir>] [--project <dir>] --out <dir> [--pages <folios>] [--threads <n>] [--json]
+  ew export png [<project-dir>] [--project <dir>] --out <dir> [--pages <folios>] [--dpi <n>] [--threads <n>]
+      [--json]
+  ew render [<project-dir>] [--project <dir>] --page <folio> --png [--dpi <n>] [--out <file.png>] [--json]
   ew apply [<project-dir>] <file.ewcmd> [--project <dir>] [--preview] [--one-step] [--json]
   ew project checks set [<project-dir>] [--project <dir>] [--active <scheme>] [--release <scheme>]
   ew project assets purge [<project-dir>] [--project <dir>] [--preview]
@@ -86,16 +94,28 @@ JSON on stdout, the row count on stderr; with `--out` it goes to a file. `--time
 `--project <dir>` may replace the positional project directory. `sql dump` writes the projection as a SQLite
 database file. `sql` exits 0 on success and 2 on everything else (usage, open and SQL errors, denials, limits).
 
-`export cables` writes the cable list and `export bom` the bill of materials as CSV (the rows of the project's cable
-overview and parts summary blocks, the golden dialect), to stdout or to `--out`. `--mode parts` (alias `component`,
+`export cables` writes the cable list, `export bom` the bill of materials, `export wires` the wire list and
+`export terminals` the terminal diagrams as CSV (the rows of the project's cable overview, parts summary, wire list
+and terminal diagram blocks, the golden dialect), to stdout or to `--out`. `--mode parts` (alias `component`,
 the default) lists every component part; `--mode assembly` replaces the parts a configured product covers by its
-row. `export` exits 0 on success and 2 on everything else (usage, open errors, a project without the block).
+row. `--block` names the report block by its ID or its first folio (`908`); without it the block is the project's
+block of the kind with the lowest first folio (for `terminals`: every terminal diagram block); a block of another
+kind is refused. `export terminals --strip <tag>` writes the rows of one strip (`-X1031`); without it every strip,
+each strip's rows after a heading row `heading,<tag>`. `export report --block <block>` writes the rows of any block
+as CSV, or with `--format pdf` the block's pages as a PDF to `--out` (as `export pdf --pages`). XLSX waits for the
+writer of FT-61. `export` exits 0 on success and 2 on everything else (usage, open errors, a project without the
+block, an unknown or wrong block or strip).
 
 `export pdf` writes the project's pages as one PDF/A-2b (outline, page labels, links) and `export svg` one
 `<folio>.svg` per page into the directory `--out` (replaced as a whole; it may hold SVG files only), through
 the session's export job with the bundled fonts only.
 `--pages` selects folio labels and ranges in page order (`101-106,901`); `--threads` changes the speed, never the
 bytes. The date is `SOURCE_DATE_EPOCH` when set, else the model's. Exit 0 on success, 2 on everything else.
+
+`export png` writes one `<folio>.png` per page into the directory `--out` (replaced as a whole; it may hold PNG files
+only) and `render --page <folio> --png` one page to `--out` (default: `<folio>.png` in the current directory, never
+stdout), both rendered on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150, the golden PNGs'
+resolution). Exit 0 on success, 2 on everything else (usage, open errors, an unknown folio, write errors).
 
 `apply` replays a command log (`.ewcmd`, doc 17 section 3.5) on the project, each line one transaction, and saves.
 `--preview` replays it on a copy in memory, prints the changed records, tags and cross-references, and saves
@@ -190,8 +210,10 @@ pub enum Command {
     Export(ExportArgs),
     /// Compare the memoised derived data with a cold recomputation.
     VerifyDerived(VerifyArgs),
-    /// Write the pages as PDF or SVG.
+    /// Write the pages as PDF, SVG or PNG.
     ExportPages(ExportPagesArgs),
+    /// `ew render --page <folio> --png`: one page as PNG (WP-S1.22 D7).
+    Render(RenderArgs),
     /// Replay a command log.
     Apply(ApplyArgs),
     /// Name the project's check schemes (`project checks set`, a human-only command).
@@ -322,28 +344,47 @@ pub struct ChecksSetArgs {
     pub release: Option<String>,
 }
 
-/// The page format of `ew export pdf|svg`.
+/// The page format of `ew export pdf|svg|png`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PageFormat {
     /// One PDF file (`export pdf`).
     Pdf,
     /// One SVG file per page in a directory (`export svg`).
     Svg,
+    /// One PNG file per page in a directory (`export png`).
+    Png,
 }
 
-/// The arguments of `ew export pdf|svg`.
+/// The arguments of `ew render`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RenderArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The folio label (`--page`).
+    pub page: String,
+    /// The resolution (`--dpi`, default 150).
+    pub dpi: u32,
+    /// The PNG file (`--out`); `None`: `<folio>.png` in the current directory.
+    pub out: Option<PathBuf>,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
+/// The arguments of `ew export pdf|svg|png`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ExportPagesArgs {
     /// PDF or SVG.
     pub format: PageFormat,
     /// The project directory; `None`: found from the current directory.
     pub project: Option<PathBuf>,
-    /// The PDF file or the SVG directory (`--out`).
+    /// The PDF file or the SVG or PNG directory (`--out`).
     pub out: PathBuf,
     /// The page selection (`--pages`).
     pub pages: PageSelection,
     /// The threads of the page phase (`--threads`); `None`: the machine's parallelism.
     pub threads: Option<usize>,
+    /// The resolution of `export png` (`--dpi`, default 150); unused for PDF and SVG.
+    pub dpi: u32,
     /// Print the result as JSON (`--json`).
     pub json: bool,
 }
@@ -364,19 +405,30 @@ pub struct ApplyArgs {
 }
 
 /// What `ew export` writes.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ExportKind {
     /// The cable list (`export cables`).
     Cables,
     /// The bill of materials in a mode (`export bom --mode`).
     Bom(BomMode),
+    /// The wire list (`export wires`).
+    Wires,
+    /// The terminal diagrams (`export terminals`), one strip (`--strip`) or every strip.
+    Terminals(Option<String>),
+    /// The rows of a block (`export report --format csv`), or its pages (`--format pdf`).
+    Report {
+        /// `--format pdf`.
+        pdf: bool,
+    },
 }
 
-/// The arguments of `ew export`.
+/// The arguments of `ew export cables|bom|wires|terminals|report`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ExportArgs {
     /// What to write.
     pub kind: ExportKind,
+    /// The report block (`--block`, its ID or first folio); `None`: the default block of the kind.
+    pub block: Option<String>,
     /// The project directory; `None`: found from the current directory.
     pub project: Option<PathBuf>,
     /// The output file (`--out`); `None`: stdout.
@@ -522,6 +574,7 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
         "check" => parse_check(it),
         "sql" => parse_sql(it),
         "export" => parse_export(it),
+        "render" => parse_render(it),
         "apply" => parse_apply(it),
         "project" => match (it.next().as_deref(), it.next().as_deref()) {
             (Some("checks"), Some("set")) => parse_checks_set(it),
@@ -716,26 +769,41 @@ fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> 
 }
 
 fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    const SUBJECTS: &str = "cables, bom, wires, terminals, report, pdf, svg, png";
     let what = match it.next().as_deref() {
-        Some(w @ ("cables" | "bom")) => w.to_owned(),
+        Some(w @ ("cables" | "bom" | "wires" | "terminals" | "report")) => w.to_owned(),
         Some("pdf") => return parse_export_pages(PageFormat::Pdf, it),
         Some("svg") => return parse_export_pages(PageFormat::Svg, it),
-        Some(other) => return Err(format!("unknown export `{other}` (cables, bom, pdf, svg)")),
-        None => return Err("`export` needs a subject (cables, bom, pdf, svg)".to_owned()),
+        Some("png") => return parse_export_pages(PageFormat::Png, it),
+        Some(other) => return Err(format!("unknown export `{other}` ({SUBJECTS})")),
+        None => return Err(format!("`export` needs a subject ({SUBJECTS})")),
     };
+    let report = what == "report";
     let mut project = None;
     let mut project_opt = None;
     let mut out = None;
     let mut mode = BomMode::Component;
+    let mut block = None;
+    let mut strip = None;
+    let mut pdf = false;
     let mut json = false;
     while let Some(a) = it.next() {
         match a.as_str() {
             "--project" => project_flag(&mut project_opt, &mut it)?,
             "--json" => json = true,
             "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
+            "--block" => block = Some(value(&mut it, "--block")?),
             "--format" => match value(&mut it, "--format")?.as_str() {
-                "csv" => {}
-                other @ ("xlsx" | "pdf") => return Err(format!("`--format {other}` is not built yet (csv)")),
+                "csv" => pdf = false,
+                "pdf" if report => pdf = true,
+                "xlsx" => {
+                    let formats = if report { "csv, pdf" } else { "csv" };
+                    return Err(format!(
+                        "`--format xlsx` is not built yet ({formats}; XLSX waits for the writer of FT-61)"
+                    ));
+                }
+                "pdf" => return Err("`--format pdf` is not built yet (csv)".to_owned()),
+                other if report => return Err(format!("unknown format `{other}` (csv, pdf)")),
                 other => return Err(format!("unknown format `{other}` (csv)")),
             },
             "--mode" if what == "bom" => {
@@ -745,6 +813,7 @@ fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String>
                     other => return Err(format!("unknown mode `{other}` (parts, assembly)")),
                 };
             }
+            "--strip" if what == "terminals" => strip = Some(value(&mut it, "--strip")?),
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
             _ => {
                 if project.replace(PathBuf::from(&a)).is_some() {
@@ -753,15 +822,74 @@ fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String>
             }
         }
     }
-    let kind = if what == "cables" {
-        ExportKind::Cables
-    } else {
-        ExportKind::Bom(mode)
+    let kind = match what.as_str() {
+        "cables" => ExportKind::Cables,
+        "bom" => ExportKind::Bom(mode),
+        "wires" => ExportKind::Wires,
+        "terminals" => ExportKind::Terminals(strip),
+        _ => ExportKind::Report { pdf },
     };
+    if report && block.is_none() {
+        return Err("`export report` needs `--block <block>` (its ID or first folio)".to_owned());
+    }
+    if pdf && out.is_none() {
+        return Err("`export report --format pdf` needs `--out <file.pdf>`".to_owned());
+    }
     let project = one_project(project_opt, project)?;
     Ok(Command::Export(ExportArgs {
         kind,
+        block,
         project,
+        out,
+        json,
+    }))
+}
+
+/// A `--dpi` value: 72 to 600 (WP-S1.22 D7).
+fn dpi(v: &str) -> Result<u32, String> {
+    match v.parse::<u32>() {
+        Ok(n) if ew_api::output::DPI_RANGE.contains(&n) => Ok(n),
+        _ => Err(format!(
+            "`--dpi` needs a number from {} to {}, got `{v}`",
+            ew_api::output::DPI_RANGE.start(),
+            ew_api::output::DPI_RANGE.end()
+        )),
+    }
+}
+
+fn parse_render(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut project = None;
+    let mut project_opt = None;
+    let mut page = None;
+    let mut png = false;
+    let mut resolution = ew_api::output::DEFAULT_DPI;
+    let mut out = None;
+    let mut json = false;
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--project" => project_flag(&mut project_opt, &mut it)?,
+            "--json" => json = true,
+            "--page" => page = Some(value(&mut it, "--page")?),
+            "--png" => png = true,
+            "--dpi" => resolution = dpi(&value(&mut it, "--dpi")?)?,
+            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => {
+                if project.replace(PathBuf::from(&a)).is_some() {
+                    return Err(format!("unexpected argument `{a}`"));
+                }
+            }
+        }
+    }
+    let page = page.ok_or("`render` needs `--page <folio>`")?;
+    if !png {
+        return Err("`render` needs `--png` (the page format; PNG is the only one)".to_owned());
+    }
+    let project = one_project(project_opt, project)?;
+    Ok(Command::Render(RenderArgs {
+        project,
+        page,
+        dpi: resolution,
         out,
         json,
     }))
@@ -774,11 +902,13 @@ fn parse_export_pages(format: PageFormat, mut it: impl Iterator<Item = String>) 
     let mut threads = None;
     let mut project_opt = None;
     let mut json = false;
+    let mut resolution = ew_api::output::DEFAULT_DPI;
     while let Some(a) = it.next() {
         match a.as_str() {
             "--project" => project_flag(&mut project_opt, &mut it)?,
             "--json" => json = true,
             "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
+            "--dpi" if format == PageFormat::Png => resolution = dpi(&value(&mut it, "--dpi")?)?,
             "--pages" => {
                 pages = PageSelection::parse(&value(&mut it, "--pages")?).map_err(|e| e.to_string())?;
             }
@@ -803,6 +933,7 @@ fn parse_export_pages(format: PageFormat, mut it: impl Iterator<Item = String>) 
     let what = match format {
         PageFormat::Pdf => "export pdf` needs `--out <file.pdf>",
         PageFormat::Svg => "export svg` needs `--out <dir>",
+        PageFormat::Png => "export png` needs `--out <dir>",
     };
     let out = out.ok_or_else(|| format!("`{what}`"))?;
     let project = one_project(project_opt, project)?;
@@ -812,6 +943,7 @@ fn parse_export_pages(format: PageFormat, mut it: impl Iterator<Item = String>) 
         out,
         pages,
         threads,
+        dpi: resolution,
         json,
     }))
 }
@@ -1245,6 +1377,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::Export(a) => run_export(&a),
         Command::VerifyDerived(a) => run_verify_derived(&a),
         Command::ExportPages(a) => run_export_pages(&a),
+        Command::Render(a) => run_render(&a),
         Command::Apply(a) => run_apply(&a),
         Command::ChecksSet(a) => run_checks_set(&a),
         Command::AssetsPurge(a) => run_assets_purge(&a),
@@ -1381,19 +1514,80 @@ fn run_export(a: &ExportArgs) -> i32 {
             return 2;
         }
     };
-    let what = match a.kind {
-        ExportKind::Cables => Export::Cables,
-        ExportKind::Bom(mode) => Export::Bom(mode),
-    };
-    let exported = match session.export(what) {
-        Ok(e) => e,
-        Err(e) => {
-            eprintln!("error: {}", export_refusal(what, &e));
-            return 2;
+    let rows = match (&a.kind, &a.block) {
+        // The default blocks of `cables` and `bom`: the report layer's export, as before `--block`.
+        (ExportKind::Cables, None) | (ExportKind::Bom(_), None) => {
+            let what = match a.kind {
+                ExportKind::Bom(mode) => Export::Bom(mode),
+                _ => Export::Cables,
+            };
+            match session.export(what) {
+                Ok(e) => (e.csv, e.rows, Vec::new()),
+                Err(e) => {
+                    eprintln!("error: {}", export_refusal(what, &e));
+                    return 2;
+                }
+            }
+        }
+        (ExportKind::Report { pdf: true }, Some(block)) => return run_export_report_pdf(a, &session, block),
+        (kind, block) => {
+            let what = match kind {
+                ExportKind::Cables => RowExport::Cables,
+                ExportKind::Bom(mode) => RowExport::Bom(*mode),
+                ExportKind::Wires => RowExport::Wires,
+                ExportKind::Terminals(strip) => RowExport::Terminals { strip: strip.clone() },
+                ExportKind::Report { .. } => RowExport::Report,
+            };
+            match ew_api::output::row_export(&session.query(), &what, block.as_deref()) {
+                Ok(r) => {
+                    if let ExportKind::Report { .. } = kind {
+                        return finish_export_report_csv(a, &r);
+                    }
+                    (r.csv, r.rows, r.strips)
+                }
+                Err(e) => {
+                    eprintln!("error: {}", rows_refusal(&e));
+                    return 2;
+                }
+            }
         }
     };
+    let (csv, count, strips) = rows;
+    if write_rows(a, &csv, count) != 0 {
+        return 2;
+    }
+    if a.json {
+        let out = a.out.as_ref().map(|p| p.display().to_string());
+        let csv = a.out.is_none().then_some(csv);
+        let text = match &a.kind {
+            ExportKind::Terminals(_) => results::to_text(&results::ExportTerminalsResult {
+                schema: results::EXPORT_TERMINALS.to_owned(),
+                rows: count,
+                strips,
+                out,
+                csv,
+            }),
+            kind => results::to_text(&results::ExportRowsResult {
+                schema: match kind {
+                    ExportKind::Cables => results::EXPORT_CABLES,
+                    ExportKind::Bom(_) => results::EXPORT_BOM,
+                    _ => results::EXPORT_WIRES,
+                }
+                .to_owned(),
+                rows: count,
+                out,
+                csv,
+            }),
+        };
+        print!("{text}");
+    }
+    0
+}
+
+/// Writes the CSV of a row export to `--out` or stdout (nothing on stdout with `--json`): 0, or 2 on a write error.
+fn write_rows(a: &ExportArgs, csv: &str, rows: usize) -> i32 {
     match &a.out {
-        Some(path) => match write_report(path, &exported.csv) {
+        Some(path) => match write_report(path, csv) {
             Ok(()) if a.json => {}
             Ok(()) => println!("export written to {}", path.display()),
             Err(e) => {
@@ -1403,23 +1597,124 @@ fn run_export(a: &ExportArgs) -> i32 {
         },
         None if a.json => {}
         None => {
-            print!("{}", exported.csv);
-            eprintln!("{} rows", exported.rows);
+            print!("{csv}");
+            eprintln!("{rows} rows");
         }
     }
+    0
+}
+
+/// The message of a refused row export of a chosen block (WP-S1.22 D8): as [`export_refusal`] for a project without
+/// the block of the kind, else the report layer's own text.
+fn rows_refusal(e: &ew_api::output::RowsError) -> String {
+    match e {
+        ew_api::output::RowsError::NoBlock(kind) => {
+            let export = match *kind {
+                "wire_list" => "the wire list",
+                "terminal_diagram" => "the terminal diagram",
+                "cable_overview_diagrams" => "the cable list",
+                "parts_summary" => "the bill of materials",
+                _ => "the export",
+            };
+            format!(
+                "the project has no report block of kind `{kind}`: {export} is the rows of that block (a project from the built-in template has none), so there is nothing to export"
+            )
+        }
+        other => other.to_string(),
+    }
+}
+
+/// `ew export report --format csv`: the rows of the block, then the `--json` result.
+fn finish_export_report_csv(a: &ExportArgs, r: &ew_api::output::RowsCsv) -> i32 {
+    if write_rows(a, &r.csv, r.rows) != 0 {
+        return 2;
+    }
     if a.json {
-        let schema = match a.kind {
-            ExportKind::Cables => results::EXPORT_CABLES,
-            ExportKind::Bom(_) => results::EXPORT_BOM,
-        };
         print!(
             "{}",
-            results::to_text(&results::ExportRowsResult {
-                schema: schema.to_owned(),
-                rows: exported.rows,
+            results::to_text(&results::ExportReportResult {
+                schema: results::EXPORT_REPORT.to_owned(),
+                block: r.blocks.first().cloned().unwrap_or_default(),
+                kind: r.kind.clone(),
+                format: "csv".to_owned(),
+                rows: Some(r.rows),
+                folios: None,
                 out: a.out.as_ref().map(|p| p.display().to_string()),
-                csv: a.out.is_none().then(|| exported.csv.clone()),
+                csv: a.out.is_none().then(|| r.csv.clone()),
             })
+        );
+    }
+    0
+}
+
+/// `ew export report --format pdf`: the page export restricted to the block's folios (WP-S1.22 D8).
+fn run_export_report_pdf(a: &ExportArgs, session: &ew_api::Session, block: &str) -> i32 {
+    let Some(out) = &a.out else {
+        eprintln!("error: `export report --format pdf` needs `--out <file.pdf>`");
+        return 2;
+    };
+    let q = session.query();
+    let found = ew_api::output::find_block(&q, block)
+        .and_then(|(id, b)| ew_api::output::report_folios(&q, block).map(|f| (id, b, f)));
+    let (id, b, folios) = match found {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let date = match source_date() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let options = ExportOptions {
+        pages: PageSelection::Folios(folios.clone()),
+        parallelism: Parallelism::threads(
+            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get),
+        ),
+        monochrome: false,
+        date,
+    };
+    let pdf = match session.export_pdf(&options) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    if let Err(e) = write_atomically(out, &pdf.bytes) {
+        eprintln!("error: {}: {e}", out.display());
+        return 2;
+    }
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::ExportReportResult {
+                schema: results::EXPORT_REPORT.to_owned(),
+                block: id.to_string(),
+                kind: ew_api::output::block_kind(&b).to_owned(),
+                format: "pdf".to_owned(),
+                rows: None,
+                folios: Some(folios),
+                out: Some(out.display().to_string()),
+                csv: None,
+            })
+        );
+    } else {
+        println!(
+            "PDF written to {}: {} pages ({})",
+            out.display(),
+            pdf.pages,
+            folios.join(", ")
+        );
+    }
+    if !pdf.findings.is_empty() {
+        eprintln!(
+            "{} page findings (unresolved wire ends, unknown styles, overflowing table texts)",
+            pdf.findings.len()
         );
     }
     0
@@ -1472,19 +1767,29 @@ fn write_synced(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     f.sync_all()
 }
 
-/// Writes an SVG set into the directory `out` as a whole: the files go to a fresh sibling directory first, which
-/// then replaces `out`, so `out` holds exactly this export (no stale page of an earlier export) and a failure
-/// leaves the earlier set as it was. A directory that holds anything but `.svg` files is refused, so no other file
-/// is ever removed.
+/// Writes an SVG set into the directory `out` as a whole ([`write_file_set`]).
 fn write_svg_set(out: &Path, files: &[ew_api::output::SvgFile]) -> Result<(), String> {
+    let files: Vec<(&str, &[u8])> = files
+        .iter()
+        .map(|f| (f.name.as_str(), f.text.as_bytes()))
+        .collect();
+    write_file_set(out, "svg", "an SVG", &files)
+}
+
+/// Writes a set of files with the extension `ext` (`svg`, `png`; `a_file` names one: `an SVG`) into the directory
+/// `out` as a whole: the files go to a fresh sibling directory first, which then replaces `out`, so `out` holds exactly
+/// this export (no stale page of an earlier export) and a failure leaves the earlier set as it was. A directory that
+/// holds anything but `.<ext>` files is refused, so no other file is ever removed (`ew export svg`, `ew export png`).
+fn write_file_set(out: &Path, ext: &str, a_file: &str, files: &[(&str, &[u8])]) -> Result<(), String> {
+    let label = a_file.rsplit(' ').next().unwrap_or(a_file);
     let at = |p: &Path, e: std::io::Error| format!("{}: {e}", p.display());
     if out.exists() {
         let entries = std::fs::read_dir(out).map_err(|e| at(out, e))?;
         for e in entries {
             let path = e.map_err(|e| at(out, e))?.path();
-            if !path.is_file() || path.extension().is_none_or(|x| x != "svg") {
+            if !path.is_file() || path.extension().is_none_or(|x| x != ext) {
                 return Err(format!(
-                    "{}: the directory holds {}, which is not an SVG file; choose an empty or SVG-only directory",
+                    "{}: the directory holds {}, which is not {a_file} file; choose an empty or {label}-only directory",
                     out.display(),
                     path.file_name()
                         .map_or_else(String::new, |n| n.to_string_lossy().into_owned())
@@ -1497,9 +1802,9 @@ fn write_svg_set(out: &Path, files: &[ew_api::output::SvgFile]) -> Result<(), St
     let written = std::fs::create_dir_all(&tmp)
         .map_err(|e| at(&tmp, e))
         .and_then(|()| {
-            files.iter().try_for_each(|f| {
-                let path = tmp.join(&f.name);
-                write_synced(&path, f.text.as_bytes()).map_err(|e| at(&path, e))
+            files.iter().try_for_each(|(name, bytes)| {
+                let path = tmp.join(name);
+                write_synced(&path, bytes).map_err(|e| at(&path, e))
             })
         });
     if let Err(e) = written {
@@ -1614,12 +1919,112 @@ fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 svg.findings.len(),
             )
         }
+        PageFormat::Png => {
+            let png = match session.export_png(&options, a.dpi) {
+                Ok(p) => p,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return 2;
+                }
+            };
+            let files: Vec<(&str, &[u8])> = png
+                .files
+                .iter()
+                .map(|f| (f.name.as_str(), f.bytes.as_slice()))
+                .collect();
+            if let Err(e) = write_file_set(&a.out, "png", "a PNG", &files) {
+                eprintln!("error: {e}");
+                return 2;
+            }
+            if a.json {
+                print!(
+                    "{}",
+                    results::to_text(&results::ExportPngResult {
+                        schema: results::EXPORT_PNG.to_owned(),
+                        out: a.out.display().to_string(),
+                        dpi: a.dpi,
+                        files: png.files.iter().map(|f| f.name.clone()).collect(),
+                        findings: png.findings.len(),
+                    })
+                );
+            }
+            (
+                format!(
+                    "PNG written to {}: {} files at {} dpi",
+                    a.out.display(),
+                    png.files.len(),
+                    a.dpi
+                ),
+                png.findings.len(),
+            )
+        }
     };
     if !a.json {
         println!("{written}");
     }
     if findings > 0 {
         eprintln!("{findings} page findings (unresolved wire ends, unknown styles, overflowing table texts)");
+    }
+    0
+}
+
+/// `ew render --page <folio> --png` (WP-S1.22 D7, FR-EXT-004): one page as PNG, to `--out` or `<folio>.png` in the
+/// current directory, never to stdout.
+fn run_render(a: &RenderArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "render") {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    let png = match session.render_png(&a.page, a.dpi) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let Some(file) = png.files.first() else {
+        eprintln!("error: the page order has no folio `{}`", a.page);
+        return 2;
+    };
+    let out = a.out.clone().unwrap_or_else(|| PathBuf::from(&file.name));
+    if let Err(e) = write_atomically(&out, &file.bytes) {
+        eprintln!("error: {}: {e}", out.display());
+        return 2;
+    }
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::RenderResult {
+                schema: results::RENDER.to_owned(),
+                page: file.folio.clone(),
+                out: out.display().to_string(),
+                dpi: a.dpi,
+                width: file.width,
+                height: file.height,
+                findings: png.findings.len(),
+            })
+        );
+    } else {
+        println!(
+            "PNG written to {}: folio {}, {} x {} pixels at {} dpi",
+            out.display(),
+            file.folio,
+            file.width,
+            file.height,
+            a.dpi
+        );
+    }
+    if !png.findings.is_empty() {
+        eprintln!(
+            "{} page findings (unresolved wire ends, unknown styles, overflowing table texts)",
+            png.findings.len()
+        );
     }
     0
 }
@@ -4033,7 +4438,7 @@ SELECT 1"
     #[test]
     fn export_errors() {
         assert!(p(&["export"]).is_err());
-        assert!(p(&["export", "wires"]).is_err());
+        assert!(p(&["export", "nets"]).is_err());
         assert!(p(&["export", "cables", "a", "b"]).is_err());
         assert!(p(&["export", "cables", "--bogus"]).is_err());
         assert!(p(&["export", "cables", "--out"]).is_err());
@@ -4044,6 +4449,104 @@ SELECT 1"
         assert!(p(&["export", "bom", "--format", "xlsx"]).is_err());
         assert!(p(&["export", "bom", "--format", "pdf"]).is_err());
         assert!(p(&["export", "bom", "--format", "tsv"]).is_err());
+        // `--strip` belongs to `terminals`, `--block` needs a value, `report` needs a block and PDF a file.
+        assert!(p(&["export", "wires", "--strip", "-X1"]).is_err());
+        assert!(p(&["export", "wires", "--block"]).is_err());
+        assert!(p(&["export", "report"]).is_err());
+        assert!(p(&["export", "report", "--block", "908", "--format", "pdf"]).is_err());
+        assert!(p(&["export", "report", "--block", "908", "--format", "svg"]).is_err());
+        for args in [
+            &["export", "wires", "--format", "xlsx"][..],
+            &["export", "report", "--block", "908", "--format", "xlsx"][..],
+        ] {
+            let e = p(args).unwrap_err();
+            assert!(e.contains("FT-61"), "{args:?}: {e}");
+        }
+    }
+
+    /// D8: `wires`, `terminals [--strip]`, `report --block … --format csv|pdf` and `--block` on the row exports.
+    #[test]
+    fn row_export_forms() {
+        let Ok(Command::Export(a)) = p(&["export", "wires", "proj", "--block", "907"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(
+            (a.kind, a.block, a.project),
+            (
+                ExportKind::Wires,
+                Some("907".to_owned()),
+                Some(PathBuf::from("proj"))
+            )
+        );
+        let Ok(Command::Export(t)) = p(&["export", "terminals", "--strip", "-X1031"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(t.kind, ExportKind::Terminals(Some("-X1031".to_owned())));
+        let Ok(Command::Export(t)) = p(&["export", "terminals"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!((t.kind, t.block), (ExportKind::Terminals(None), None));
+        let Ok(Command::Export(b)) = p(&["export", "bom", "--block", "x", "--mode", "assembly"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(
+            (b.kind, b.block),
+            (ExportKind::Bom(BomMode::Assembly), Some("x".to_owned()))
+        );
+        let Ok(Command::Export(r)) = p(&["export", "report", "--block", "908"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(r.kind, ExportKind::Report { pdf: false });
+        let Ok(Command::Export(r)) = p(&[
+            "export", "report", "--block", "908", "--format", "pdf", "--out", "r.pdf",
+        ]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(
+            (r.kind, r.out),
+            (ExportKind::Report { pdf: true }, Some(PathBuf::from("r.pdf")))
+        );
+    }
+
+    /// D7: `render --page <folio> --png [--dpi] [--out]` and `export png --dpi`.
+    #[test]
+    fn render_and_png_forms() {
+        assert_eq!(
+            p(&["render", "proj", "--page", "103", "--png"]),
+            Ok(Command::Render(RenderArgs {
+                project: Some(PathBuf::from("proj")),
+                page: "103".to_owned(),
+                dpi: 150,
+                out: None,
+                json: false,
+            }))
+        );
+        let Ok(Command::Render(r)) = p(&[
+            "render", "--page", "2.1", "--png", "--dpi", "300", "--out", "x.png", "--json",
+        ]) else {
+            panic!("parse failed");
+        };
+        assert_eq!((r.dpi, r.out, r.json), (300, Some(PathBuf::from("x.png")), true));
+        assert!(p(&["render", "--page", "103"]).is_err(), "--png is required");
+        assert!(p(&["render", "--png"]).is_err(), "--page is required");
+        for bad in ["71", "601", "x", "0"] {
+            assert!(
+                p(&["render", "--page", "1", "--png", "--dpi", bad]).is_err(),
+                "{bad}"
+            );
+        }
+        assert!(p(&["render", "--page", "1", "--png", "--dpi", "72"]).is_ok());
+        assert!(p(&["render", "--page", "1", "--png", "--dpi", "600"]).is_ok());
+        let Ok(Command::ExportPages(e)) =
+            p(&["export", "png", "--out", "o", "--dpi", "300", "--threads", "4"])
+        else {
+            panic!("parse failed");
+        };
+        assert_eq!((e.format, e.dpi, e.threads), (PageFormat::Png, 300, Some(4)));
+        assert!(p(&["export", "png"]).is_err(), "--out is required");
+        // `--dpi` is the raster's: PDF and SVG refuse it.
+        assert!(p(&["export", "svg", "--out", "o", "--dpi", "300"]).is_err());
+        assert!(p(&["export", "pdf", "--out", "o", "--dpi", "300"]).is_err());
     }
 
     #[test]
@@ -4086,7 +4589,7 @@ SELECT 1"
         assert!(p(&["export", "pdf", "--out", "o", "--threads", "x"]).is_err());
         assert!(p(&["export", "pdf", "--out", "o", "--lang", "de"]).is_err());
         assert!(p(&["export", "pdf", "--out", "o", "a", "b"]).is_err());
-        assert!(p(&["export", "png", "--out", "o"]).is_err());
+        assert!(p(&["export", "png", "--out", "o", "--dpi", "1000"]).is_err());
     }
 
     #[test]

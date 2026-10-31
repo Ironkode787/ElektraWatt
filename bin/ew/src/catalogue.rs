@@ -83,8 +83,14 @@ const PROJECT: Flag = valued("--project");
 const JSON: Flag = flag("--json");
 const COMPANY: Flag = repeated("--company");
 
+const BLOCK: Flag = valued("--block");
+
 const OK: Exit = exit(0, "success");
 const USAGE_ETC: Exit = exit(2, "usage, open, I/O and every other error");
+const ROW_EXPORT_ERRORS: Exit = exit(
+    2,
+    "usage and open errors, a project without the block, an unknown or wrong block",
+);
 const HUMAN_EXITS: &[Exit] = &[
     exit(0, "confirmed, done and saved"),
     exit(1, "refused or not confirmed"),
@@ -169,8 +175,8 @@ pub const CATALOGUE: &[Entry] = &[
     },
     Entry {
         path: &["export", "cables"],
-        flags: &[PROJECT, valued("--format"), valued("--out"), JSON],
-        exits: &[OK, exit(2, "usage and open errors, a project without the block")],
+        flags: &[PROJECT, BLOCK, valued("--format"), valued("--out"), JSON],
+        exits: &[OK, ROW_EXPORT_ERRORS],
         result: Some(ew_api::cli_results::EXPORT_CABLES),
         stability: Stability::Preview,
     },
@@ -178,13 +184,54 @@ pub const CATALOGUE: &[Entry] = &[
         path: &["export", "bom"],
         flags: &[
             PROJECT,
+            BLOCK,
             valued("--mode"),
             valued("--format"),
             valued("--out"),
             JSON,
         ],
-        exits: &[OK, exit(2, "usage and open errors, a project without the block")],
+        exits: &[OK, ROW_EXPORT_ERRORS],
         result: Some(ew_api::cli_results::EXPORT_BOM),
+        stability: Stability::Preview,
+    },
+    Entry {
+        path: &["export", "wires"],
+        flags: &[PROJECT, BLOCK, valued("--format"), valued("--out"), JSON],
+        exits: &[OK, ROW_EXPORT_ERRORS],
+        result: Some(ew_api::cli_results::EXPORT_WIRES),
+        stability: Stability::Preview,
+    },
+    Entry {
+        path: &["export", "terminals"],
+        flags: &[
+            PROJECT,
+            BLOCK,
+            valued("--strip"),
+            valued("--format"),
+            valued("--out"),
+            JSON,
+        ],
+        exits: &[
+            OK,
+            exit(
+                2,
+                "usage and open errors, a project without the block, an unknown or wrong block, an unknown strip",
+            ),
+        ],
+        result: Some(ew_api::cli_results::EXPORT_TERMINALS),
+        stability: Stability::Preview,
+    },
+    Entry {
+        path: &["export", "report"],
+        flags: &[PROJECT, BLOCK, valued("--format"), valued("--out"), JSON],
+        exits: &[
+            OK,
+            exit(
+                2,
+                "usage, open, I/O and writer errors, an unknown block, a block without rows or pages",
+            ),
+        ],
+        result: Some(ew_api::cli_results::EXPORT_REPORT),
         stability: Stability::Preview,
     },
     Entry {
@@ -211,6 +258,37 @@ pub const CATALOGUE: &[Entry] = &[
         ],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::EXPORT_SVG),
+        stability: Stability::Preview,
+    },
+    Entry {
+        path: &["export", "png"],
+        flags: &[
+            PROJECT,
+            valued("--out"),
+            valued("--pages"),
+            valued("--dpi"),
+            valued("--threads"),
+            JSON,
+        ],
+        exits: &[OK, USAGE_ETC],
+        result: Some(ew_api::cli_results::EXPORT_PNG),
+        stability: Stability::Preview,
+    },
+    Entry {
+        path: &["render"],
+        flags: &[
+            PROJECT,
+            valued("--page"),
+            flag("--png"),
+            valued("--dpi"),
+            valued("--out"),
+            JSON,
+        ],
+        exits: &[
+            OK,
+            exit(2, "usage, open, I/O and writer errors, an unknown folio"),
+        ],
+        result: Some(ew_api::cli_results::RENDER),
         stability: Stability::Preview,
     },
     Entry {
