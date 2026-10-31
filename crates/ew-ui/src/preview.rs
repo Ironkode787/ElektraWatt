@@ -291,6 +291,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             return;
         };
         let status = components::card_status(shell);
+        let choice = matches!(card.origin, CardOrigin::PasteVersions(_));
 
         let pad = t.space_4;
         // The header row: title, revision and badge at the left; Apply and Cancel at the right.
@@ -326,9 +327,11 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 CardStatus::Stale => {
                     components::status_badge(ui, components::Badge::Stale);
                 }
-                CardStatus::Failed(_) => {
+                // WP-S2.07 D22: the paste choice card asks; it has not failed, so it wears no Failed badge.
+                CardStatus::Failed(_) if !choice => {
                     components::status_badge(ui, components::Badge::Failed);
                 }
+                CardStatus::Failed(_) => {}
                 CardStatus::Fresh => {}
             }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -355,7 +358,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             let text = lead
                 .as_ref()
                 .map_or_else(|| strings::format("card-failed", &[m]), |l| l.text.clone());
-            inset(ui, &mut |ui| components::live_line(ui, &text, true));
+            inset(ui, &mut |ui| components::live_line(ui, &text, !choice));
             if let Some(rule) = lead.and_then(|l| l.rule) {
                 inset(ui, &mut |ui| {
                     ui.label(
