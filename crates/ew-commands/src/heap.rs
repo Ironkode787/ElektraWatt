@@ -739,6 +739,18 @@ impl HeapSize for ew_schema::BusPort {
     }
 }
 
+impl HeapSize for ew_schema::BusSection {
+    fn heap_size(&self) -> usize {
+        self.ports.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::PartBusPort {
+    fn heap_size(&self) -> usize {
+        self.interface.heap_size() + self.port_label.heap_size() + self.extra.heap_size()
+    }
+}
+
 impl HeapSize for ew_schema::LogicalNet {
     fn heap_size(&self) -> usize {
         self.name.heap_size() + self.source_ref.heap_size() + self.extra.heap_size()
@@ -1150,6 +1162,7 @@ impl HeapSize for PartSections {
             + self.duct.heap_size()
             + self.rail.heap_size()
             + self.mounting_plate.heap_size()
+            + self.bus.heap_size()
             + self.extra.heap_size()
     }
 }

@@ -157,6 +157,47 @@ pub enum OnOff {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// The part-level bus section (WP-S1.21 D15, doc 10 §2.6)
+
+/// The bus section of a part (`sections.bus`, doc 10 §2.6; WP-S1.21 D15): the part's bus interfaces. A part port
+/// is carried by a function of the device whose function definition has contact kind `bus_port`; normaliser N5
+/// gives a port-less such function the part's port once and never rewrites it (D16). The station address and the
+/// nets belong to the drawn port ([`BusPort`]), not to the part.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct BusSection {
+    /// The part's bus interfaces, in the part's order. The schema enforces no uniqueness: every reader takes the
+    /// first port of an (`interface`, `port_label`) pair and ignores later ones.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ports: Vec<PartBusPort>,
+    /// Unknown members: the device-description facts of 1.0 (rates, ident number), kept verbatim.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`]. No address, net,
+/// connector, signal map or address range is typed; those stay in `extra` (1.0).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PartBusPort {
+    /// The interface name ("DP", "X1").
+    #[schemars(with = "IdentS")]
+    pub interface: Ident,
+    /// The port label of a multi-port interface ("P1R").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub port_label: Option<Ident>,
+    /// The bus system.
+    pub bus: BusSystem,
+    /// The role a port made from this interface takes.
+    pub role: PortRole,
+    /// Present: the interface has a termination switch, in this state; absent: it has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub termination: Option<OnOff>,
+    /// Unknown members (connector, signals, address range: 1.0), kept verbatim.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // Logical and physical nets
 
 /// A logical bus network (doc 10 §2.7, rank 12, `project.jsonl`; FR-BUS-002): the scope of address uniqueness, with

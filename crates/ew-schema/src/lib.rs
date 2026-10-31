@@ -109,7 +109,8 @@ pub use asset::{
     svg_hazard, svg_path_segment_bound, svg_segment_bound,
 };
 pub use bus::{
-    AddrValue, BusMedium, BusPort, BusRate, BusSystem, LogicalNet, NetAddress, OnOff, PhysicalNet, PortRole,
+    AddrValue, BusMedium, BusPort, BusRate, BusSection, BusSystem, LogicalNet, NetAddress, OnOff, PartBusPort,
+    PhysicalNet, PortRole,
 };
 pub use connect::{
     AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass,

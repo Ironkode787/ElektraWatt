@@ -1508,6 +1508,9 @@ pub struct PartSections {
     /// The mounting-plate section: its dimensions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mounting_plate: Option<PlateSection>,
+    /// The bus section: the part's bus interfaces (doc 10 §2.6, WP-S1.21 D15).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bus: Option<crate::BusSection>,
     /// Unknown members (other sections).
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

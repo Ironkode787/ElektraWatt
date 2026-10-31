@@ -39,6 +39,65 @@
       ],
       "type": "object"
     },
+    "BusSection": {
+      "additionalProperties": true,
+      "description": "The bus section of a part (`sections.bus`, doc 10 §2.6; WP-S1.21 D15): the part's bus interfaces. A part port\nis carried by a function of the device whose function definition has contact kind `bus_port`; normaliser N5\ngives a port-less such function the part's port once and never rewrites it (D16). The station address and the\nnets belong to the drawn port ([`BusPort`]), not to the part.",
+      "properties": {
+        "ports": {
+          "description": "The part's bus interfaces, in the part's order. The schema enforces no uniqueness: every reader takes the\nfirst port of an (`interface`, `port_label`) pair and ignores later ones.",
+          "items": {
+            "$ref": "#/$defs/PartBusPort"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "BusSystem": {
+      "description": "A bus system (doc 10 §2.7).",
+      "oneOf": [
+        {
+          "const": "profibus_dp",
+          "description": "PROFIBUS DP.",
+          "type": "string"
+        },
+        {
+          "const": "profinet",
+          "description": "PROFINET IO.",
+          "type": "string"
+        },
+        {
+          "const": "ethercat",
+          "description": "EtherCAT.",
+          "type": "string"
+        },
+        {
+          "const": "ethernet_ip",
+          "description": "EtherNet/IP.",
+          "type": "string"
+        },
+        {
+          "const": "io_link",
+          "description": "IO-Link.",
+          "type": "string"
+        },
+        {
+          "const": "asi",
+          "description": "AS-Interface.",
+          "type": "string"
+        },
+        {
+          "const": "canopen",
+          "description": "CANopen.",
+          "type": "string"
+        },
+        {
+          "const": "modbus_tcp",
+          "description": "Modbus TCP.",
+          "type": "string"
+        }
+      ]
+    },
     "CableCore": {
       "additionalProperties": true,
       "description": "One core of a cable part.",
@@ -1153,6 +1212,21 @@
       "minimum": -9007199254740991,
       "type": "integer"
     },
+    "OnOff": {
+      "description": "A two-state switch (doc 10 §2.7: the termination of a connector, FR-BUS-004).",
+      "oneOf": [
+        {
+          "const": "on",
+          "description": "On.",
+          "type": "string"
+        },
+        {
+          "const": "off",
+          "description": "Off.",
+          "type": "string"
+        }
+      ]
+    },
     "OrderUnit": {
       "description": "Order unit of a part (FR-PRT-026).",
       "oneOf": [
@@ -1172,6 +1246,52 @@
           "type": "string"
         }
       ]
+    },
+    "PartBusPort": {
+      "additionalProperties": true,
+      "description": "One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`]. No address, net,\nconnector, signal map or address range is typed; those stay in `extra` (1.0).",
+      "properties": {
+        "bus": {
+          "$ref": "#/$defs/BusSystem",
+          "description": "The bus system."
+        },
+        "interface": {
+          "$ref": "#/$defs/Ident",
+          "description": "The interface name (\"DP\", \"X1\")."
+        },
+        "port_label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The port label of a multi-port interface (\"P1R\")."
+        },
+        "role": {
+          "$ref": "#/$defs/PortRole",
+          "description": "The role a port made from this interface takes."
+        },
+        "termination": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OnOff"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Present: the interface has a termination switch, in this state; absent: it has none."
+        }
+      },
+      "required": [
+        "interface",
+        "bus",
+        "role"
+      ],
+      "type": "object"
     },
     "PartKind": {
       "description": "Part kinds (doc 07 §2.5).",
@@ -1257,6 +1377,17 @@
       "additionalProperties": true,
       "description": "Domain sections of a part (FR-PRT-010). Typed: the cable cores, the PLC section and the carrier sections of\nFR-PRT-024 (enclosure, duct, rail, mounting plate); the other sections stay in `extra`.",
       "properties": {
+        "bus": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BusSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The bus section: the part's bus interfaces (doc 10 §2.6, WP-S1.21 D15)."
+        },
         "cable_cores": {
           "description": "Cores of a cable part, from which conductors are generated (FR-CBL-004).",
           "items": {
@@ -1467,6 +1598,36 @@
         "role"
       ],
       "type": "object"
+    },
+    "PortRole": {
+      "description": "The role of a bus port (doc 10 §2.7).",
+      "oneOf": [
+        {
+          "const": "master",
+          "description": "A bus master (PROFIBUS DP master).",
+          "type": "string"
+        },
+        {
+          "const": "slave",
+          "description": "A slave.",
+          "type": "string"
+        },
+        {
+          "const": "controller",
+          "description": "A controller (PROFINET IO controller).",
+          "type": "string"
+        },
+        {
+          "const": "device",
+          "description": "A device (PROFINET IO device).",
+          "type": "string"
+        },
+        {
+          "const": "passive",
+          "description": "A passive element without an address: a bus connector.",
+          "type": "string"
+        }
+      ]
     },
     "PositionMap": {
       "additionalProperties": true,
