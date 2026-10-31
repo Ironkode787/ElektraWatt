@@ -193,7 +193,13 @@ impl Dock {
         // FX38d: the page view (the canvas and its tab bar) keeps at least half the window's client height (the
         // default 1536 × 994 included); ID-743's 300-point least height gives way to it in a short window.
         let floor = ui.ctx().content_rect().height() / 2.0;
-        let (clamps, guessed) = self.keep_bottom_min(height, tokens.size_dock_bottom_min, floor);
+        let (mut clamps, guessed) = self.keep_bottom_min(height, tokens.size_dock_bottom_min, floor);
+        // C40 (FT-798): the left column keeps its floor width and grows with a wide window while it has its default
+        // share; display only, like the bottom clamp.
+        let window = ui.ctx().content_rect().width();
+        if window > FLOOR_WIDTH {
+            clamps.extend(self.keep_left_wide(ui.available_width(), left_default_width(&tokens, window)));
+        }
         if guessed {
             // R3-4: a split without a last shown height was clamped against the guess; the next frame uses its
             // real height.
@@ -375,7 +381,54 @@ impl Dock {
         (clamps, guessed)
     }
 
-    /// Puts back the user's shares of every split [`Dock::keep_bottom_min`] changed for the frame, unless the user
+    // C40 (FT-798)
+    /// Shows the left column (the child of a horizontal root split that holds the navigator group but not the page
+    /// view) at least `want` points of the root's width (its last shown width, `fallback` before the first frame)
+    /// while its share is the Schematic workspace's default ([`default_left_share`]): the default grows with the
+    /// window. A share the user dragged is shown as it is. Display only, like [`Dock::keep_bottom_min`]:
+    /// [`Dock::restore`] puts the shares back after the frame, and a drag during the frame keeps the dragged shares
+    /// (from then on the share is the user's, not the default).
+    fn keep_left_wide(&mut self, fallback: f32, want: f32) -> Option<Clamp> {
+        let root = self.tree.root()?;
+        let width = self.tree.tiles.rect(root).map_or(fallback, |r| r.width());
+        let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get(root) else {
+            return None;
+        };
+        if linear.dir != LinearDir::Horizontal || width <= 0.0 {
+            return None;
+        }
+        let children = linear.children.clone();
+        let tiles = &self.tree.tiles;
+        let left = children
+            .iter()
+            .copied()
+            .find(|c| holds(tiles, *c, &is_rail_pane) && !holds(tiles, *c, &|p| *p == PaneKind::PageView))?;
+        if !tiles.is_visible(left) {
+            return None;
+        }
+        let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get_mut(root) else {
+            return None;
+        };
+        let total: f32 = children.iter().map(|c| linear.shares[*c].max(0.0)).sum();
+        let own = linear.shares[left].max(0.0);
+        let want = (want / width).min(0.5);
+        if total <= 0.0 || (own / total - default_left_share()).abs() > 5e-4 || own / total >= want {
+            return None;
+        }
+        let user: Vec<(TileId, f32)> = children.iter().map(|c| (*c, linear.shares[*c])).collect();
+        // The others keep their ratios; the left column's share grows to `want` of the total.
+        let others = total - own;
+        linear.shares.set_share(left, want / (1.0 - want) * others);
+        let shown: Vec<(TileId, f32)> = children.iter().map(|c| (*c, linear.shares[*c])).collect();
+        Some(Clamp {
+            split: root,
+            user,
+            shown,
+        })
+    }
+
+    /// Puts back the user's shares of every split [`Dock::keep_bottom_min`] or [`Dock::keep_left_wide`] changed for the
+    /// frame, unless the user
     /// moved one of its splitters during the frame (then the shares on show are the user's new ones).
     fn restore(&mut self, clamps: &[Clamp]) {
         for clamp in clamps {
@@ -419,7 +472,36 @@ impl Dock {
     }
 }
 
-/// The shares of one split before and after [`Dock::keep_bottom_min`] raised its bottom child for a frame.
+/// The window width at the floor every default layout serves (doc 16a §2: 1280 × 800 at 100 %).
+const FLOOR_WIDTH: f32 = 1280.0;
+
+/// The share of every point a window is wider than the floor that the left column takes while it has its default
+/// share (C40, FT-798): `size.panel.left` at 1280, `size.panel.left_max` from about 1850.
+pub(crate) const LEFT_GROW: f32 = 0.35;
+
+/// The left column's least width on show in a window `window` wide while it has its default share (C40, FT-798; doc
+/// 16a §2: a floor width never caps one that should grow): `size.panel.left` at the floor and below, plus
+/// [`LEFT_GROW`] of every point beyond, never wider than `size.panel.left_max`.
+pub(crate) fn left_default_width(t: &crate::theme::Tokens, window: f32) -> f32 {
+    (t.size_panel_left + LEFT_GROW * (window - FLOOR_WIDTH).max(0.0))
+        .min(t.size_panel_left_max.max(t.size_panel_left))
+}
+
+/// The left column's share of the root split in the Schematic workspace ([`Layout::schematic`]).
+fn default_left_share() -> f32 {
+    match Layout::schematic().root {
+        LayoutNode::Split { children, .. } => {
+            let total: u64 = children.iter().map(|(s, _)| u64::from(*s)).sum();
+            children
+                .first()
+                .map_or(0.0, |(s, _)| *s as f32 / total.max(1) as f32)
+        }
+        _ => 0.0,
+    }
+}
+
+/// The shares of one split before and after [`Dock::keep_bottom_min`] or [`Dock::keep_left_wide`] raised a child for
+/// a frame.
 struct Clamp {
     split: TileId,
     /// The user's shares (the layout).
@@ -1193,5 +1275,68 @@ mod tests {
             "Messages {messages} keeps its own share"
         );
         assert_eq!(dock.layout().as_ref(), Some(&layout));
+    }
+
+    /// The width `pane` was shown with on the last frame.
+    fn shown_width(dock: &Dock, pane: PaneKind) -> f32 {
+        let id = dock.tree.tiles.find_pane(&pane).unwrap();
+        dock.tree.tiles.rect(id).unwrap().width()
+    }
+
+    /// C40 (FT-798): the Schematic workspace's left column keeps its share at the floor (`size.panel.left` and more)
+    /// and is shown wider at 1920, display only (the layout stays the user's); a share the user dragged is shown as
+    /// it is, at 1920 too.
+    #[test]
+    fn the_default_left_column_grows_with_the_window_and_a_dragged_one_keeps_its_share() {
+        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
+        let layout = Layout::schematic();
+        let share = default_left_share();
+        let ctx = egui::Context::default();
+        let mut dock = Dock::new(&layout, 0);
+        for _ in 0..2 {
+            frame(&ctx, &mut dock, 1280.0, 800.0);
+        }
+        let floor = shown_width(&dock, PaneKind::Pages);
+        assert!(
+            (floor - share * 1280.0).abs() < 8.0 && floor >= t.size_panel_left,
+            "the floor keeps its share: {floor}"
+        );
+        for _ in 0..2 {
+            frame(&ctx, &mut dock, 1920.0, 1080.0);
+        }
+        let wide = shown_width(&dock, PaneKind::Pages);
+        assert!(
+            wide > share * 1920.0 + 8.0 && wide >= left_default_width(&t, 1920.0) - 8.0,
+            "1920 grows past its share: {wide}"
+        );
+        assert_eq!(dock.layout().as_ref(), Some(&layout), "the layout is the user's");
+        // A dragged share (200 : 800) is not widened.
+        let dragged = Layout {
+            root: LayoutNode::Split {
+                dir: SplitDir::Horizontal,
+                children: vec![
+                    (200, LayoutNode::Pane(PaneKind::Pages)),
+                    (800, LayoutNode::Pane(PaneKind::PageView)),
+                ],
+            },
+        };
+        let mut dock = Dock::new(&dragged, 0);
+        for _ in 0..2 {
+            frame(&ctx, &mut dock, 1920.0, 1080.0);
+        }
+        let shown = shown_width(&dock, PaneKind::Pages);
+        assert!((shown - 0.2 * 1920.0).abs() < 8.0, "the dragged share: {shown}");
+    }
+
+    /// C40 (FT-798): the left column's least width is `size.panel.left` at the floor and below, grows with the
+    /// window and stops at `size.panel.left_max`.
+    #[test]
+    fn the_left_default_width_runs_between_its_tokens() {
+        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
+        assert_eq!(left_default_width(&t, 1024.0), t.size_panel_left);
+        assert_eq!(left_default_width(&t, 1280.0), t.size_panel_left);
+        let mid = left_default_width(&t, 1600.0);
+        assert!(mid > t.size_panel_left && mid < t.size_panel_left_max, "{mid}");
+        assert_eq!(left_default_width(&t, 2560.0), t.size_panel_left_max);
     }
 }

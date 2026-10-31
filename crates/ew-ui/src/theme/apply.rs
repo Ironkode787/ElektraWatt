@@ -94,8 +94,8 @@ pub fn style_of(t: &Tokens) -> Style {
     s.button_padding = Vec2::new(t.space_4, t.space_2);
     s.interact_size.y = t.size_control;
     s.indent = t.size_tree_indent;
-    s.menu_margin = Margin::same(t.space_2 as i8);
-    s.window_margin = Margin::same(t.space_5 as i8);
+    s.menu_margin = Margin::same(crate::theme::margin_px(t.space_2));
+    s.window_margin = Margin::same(crate::theme::margin_px(t.space_5));
     s.icon_width = t.icon_sm;
     s.icon_spacing = t.space_icon;
     s.tooltip_width = t.size_tooltip_max;

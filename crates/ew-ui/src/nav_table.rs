@@ -66,6 +66,8 @@ pub(crate) struct TableUi {
     chooser_for: Option<String>,
     /// The chooser list's active row.
     chooser_active: usize,
+    /// The grid's width last frame (C40, FT-816: a resize re-fills the capped columns).
+    pane_width: Option<f32>,
 }
 
 /// How far the grid's focus ring is inset into the pane (doc 16a §6.21: 1 px).
@@ -163,12 +165,20 @@ impl TableUi {
                 .map(|i| (i, nav.descending)),
             SortBy::Label | SortBy::Order => None,
         };
+        let area = ui.available_rect_before_wrap();
+        // C40 (FT-816): a resize of the grid re-sizes the capped columns (the Pages Title, the Libraries Name) to the
+        // new room, and a column's range scales with the grid: `size.table_column.max` or the grid's width.
+        let resized = self.pane_width.is_some_and(|w| (w - area.width()).abs() > 0.5);
+        self.pane_width = Some(area.width());
+        let max = column_max(&tokens, area.width());
         let columns: Vec<Column> = shown
             .iter()
             .map(|c| {
+                let key = &table.columns[*c].key;
                 Column::new(tokens.size_table_column)
-                    .range(tokens.size_table_column_min..=tokens.size_table_column_max)
-                    .id(column_id(&table.columns[*c].key))
+                    .range(tokens.size_table_column_min..=max)
+                    .id(column_id(key))
+                    .auto_size_this_frame(resized && capped(kind, key))
             })
             .collect();
         let mut t = Table::new()
@@ -183,7 +193,6 @@ impl TableUi {
         // The grid has the keyboard: the cursor cell's ring is 2 px, 1 px otherwise (doc 16a §6.21).
         // The shell's focus decides in the frame it moves (egui's follows a frame later).
         let focused = ours && ui.memory(|m| m.has_focus(table_id));
-        let area = ui.available_rect_before_wrap();
         let mut delegate = Delegate {
             tokens: tokens.clone(),
             focused,
@@ -335,7 +344,7 @@ impl TableUi {
                     .fill(t.surface_raised.color32())
                     .corner_radius(theme::radius(t.radius_md))
                     .shadow(theme::shadow(&t.elevation_1))
-                    .inner_margin(egui::Margin::same(t.space_2 as i8))
+                    .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
                     .show(ui, |ui| {
                         let inner = width - 2.0 * (t.space_2 + t.border_width);
                         ui.set_width(inner);
@@ -717,6 +726,18 @@ fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
 /// Whether a column fills the room the others leave: the Pages table's Title ([`fill_cap`]).
 fn fills(kind: NavKind, key: &str) -> bool {
     kind == NavKind::Pages && key == "title"
+}
+
+/// Whether a column has a cap that depends on the grid's width (the Pages Title, [`fill_cap`]; the Libraries Name,
+/// [`libraries_name_cap`]): a resize re-sizes it (C40, FT-816).
+fn capped(kind: NavKind, key: &str) -> bool {
+    fills(kind, key) || (kind == NavKind::Libraries && key == "name")
+}
+
+/// The widest a column may be sized or dragged in a grid `pane` wide: `size.table_column.max`, or the grid's width
+/// when that is wider (C40, FT-816: the cap scales with the pane, it is no width chosen for the floor).
+pub(crate) fn column_max(t: &Tokens, pane: f32) -> f32 {
+    t.size_table_column_max.max(pane)
 }
 
 /// The Libraries table's Name cap in a grid `pane` wide: half the grid, never under `size.table_column` (M39). Its
@@ -1184,5 +1205,13 @@ mod cap_tests {
         assert_eq!(super::fill_cap(&t, 300.0, 250.0), t.size_table_column);
         assert_eq!(super::fill_cap(&t, 600.0, 250.0), 350.0);
         assert!(super::fill_cap(&t, 900.0, 250.0) > super::fill_cap(&t, 600.0, 250.0));
+    }
+
+    /// C40 (FT-816): a column's range keeps `size.table_column.max` in a narrow grid and scales with a wide one.
+    #[test]
+    fn the_column_range_scales_with_the_pane() {
+        let t = tokens(Theme::Light, Density::Comfortable);
+        assert_eq!(super::column_max(&t, 300.0), t.size_table_column_max);
+        assert_eq!(super::column_max(&t, 1500.0), 1500.0);
     }
 }

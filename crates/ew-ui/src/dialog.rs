@@ -19,6 +19,21 @@ use crate::theme;
 /// the UI grows with the space it has, never a width chosen for the floor).
 pub(crate) const FORM_SHARE: f32 = 0.45;
 
+/// The share of the window a small dialog that holds a list (the Show changes popup, the parts card) takes once that
+/// is wider than `size.dialog.small` (C40, FT-816).
+pub(crate) const SMALL_SHARE: f32 = 0.3;
+
+/// A form dialog's width in a window `window` wide: `size.dialog.form`, growing with the window ([`FORM_SHARE`]).
+pub(crate) fn form_width(t: &crate::theme::Tokens, window: f32) -> f32 {
+    grown(t.size_dialog_form, FORM_SHARE, window)
+}
+
+/// The width of a small dialog that holds a list in a window `window` wide: `size.dialog.small`, growing with the
+/// window ([`SMALL_SHARE`]).
+pub(crate) fn small_width(t: &crate::theme::Tokens, window: f32) -> f32 {
+    grown(t.size_dialog_small, SMALL_SHARE, window)
+}
+
 /// A width that grows with the window: `share` of `window`, never under `base` (today's layout at the floor) and
 /// never wider than the window.
 pub(crate) fn grown(base: f32, share: f32, window: f32) -> f32 {
@@ -39,7 +54,7 @@ pub(crate) fn show(
     let t = theme::current(ctx);
     // C39 (doc 16a §2, ID-908): a form grows with the window, its fields and lists take the gain.
     let width = if spec.form {
-        grown(t.size_dialog_form, FORM_SHARE, ctx.content_rect().width())
+        form_width(&t, ctx.content_rect().width())
     } else {
         t.size_dialog_small
     };
@@ -48,7 +63,7 @@ pub(crate) fn show(
         .stroke(theme::stroke(t.border_raised_width, t.border_default))
         .corner_radius(theme::radius(t.radius_lg))
         .shadow(theme::shadow(&t.elevation_2))
-        .inner_margin(egui::Margin::same(t.space_5 as i8));
+        .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_5)));
     let mut clicked = None;
     egui::Modal::new(Id::unique("ew-dialog"))
         .backdrop_color(t.backdrop.color32())
@@ -197,6 +212,26 @@ mod tests {
     fn a_lone_primary_is_the_whole_group_everywhere() {
         for p in [Platform::Windows, Platform::MacOs, Platform::Linux] {
             assert_eq!(footer_order(p, 0), [Slot::Primary]);
+        }
+    }
+
+    /// C40 (FT-816): a form and a small list dialog keep their token width at the floor, are wider at 1920 and stay
+    /// inside a window narrower than their token.
+    #[test]
+    fn grown_dialogs_are_wider_at_1920_than_at_the_floor() {
+        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
+        for (name, f, base) in [
+            (
+                "form",
+                super::form_width as fn(&crate::theme::Tokens, f32) -> f32,
+                t.size_dialog_form,
+            ),
+            ("small", super::small_width, t.size_dialog_small),
+        ] {
+            let (floor, typical) = (f(&t, 1280.0), f(&t, 1920.0));
+            assert_eq!(floor, base, "{name} at the floor");
+            assert!(typical > floor && typical <= 1920.0, "{name}: {typical} at 1920");
+            assert_eq!(f(&t, 400.0), 400.0, "{name} within a narrow window");
         }
     }
 }

@@ -348,6 +348,8 @@ pub struct Tokens {
     pub size_quick_access_width: f32,
     pub size_quick_access_height: f32,
     pub size_search_width: f32,
+    /// C40 (FT-798): the command search grows with the window (a share of the tab row) up to this width.
+    pub size_search_max_width: f32,
     pub size_search_height: f32,
     pub size_panel_header: f32,
     pub size_dock_tab_bar: f32,
@@ -355,8 +357,10 @@ pub struct Tokens {
     pub size_rail_button: f32,
     pub size_status: f32,
     pub size_status_field: f32,
+    /// The left column's width at the 1280-point floor (the Schematic workspace's default share there).
     pub size_panel_left: f32,
-    pub size_panel_right: f32,
+    /// C40 (FT-798): the widest the left column grows to with the window while it keeps its default share.
+    pub size_panel_left_max: f32,
     pub size_dock_bottom: f32,
     /// The bottom dock is never shown lower than this (W31-1: at least three Messages rows and a detail block).
     pub size_dock_bottom_min: f32,
@@ -375,6 +379,9 @@ pub struct Tokens {
     pub size_palette_row: f32,
     pub size_toast: f32,
     pub size_tooltip_max: f32,
+    /// C40 (FT-816): the line length of running text on a full-window page (the first-run screen), a reading
+    /// measure kept fixed on purpose: it does not grow with the window.
+    pub size_text_measure: f32,
     // Component tokens of the built widgets (doc 16a v1.1 §4.15).
     pub size_table_column: f32,
     pub size_table_column_min: f32,
@@ -654,6 +661,7 @@ impl Tokens {
             ("size.quick_access.width", Px(self.size_quick_access_width)),
             ("size.quick_access.height", Px(self.size_quick_access_height)),
             ("size.search.width", Px(self.size_search_width)),
+            ("size.search.max_width", Px(self.size_search_max_width)),
             ("size.search.height", Px(self.size_search_height)),
             ("size.panel_header", Px(self.size_panel_header)),
             ("size.dock_tab_bar", Px(self.size_dock_tab_bar)),
@@ -662,7 +670,7 @@ impl Tokens {
             ("size.status", Px(self.size_status)),
             ("size.status_field", Px(self.size_status_field)),
             ("size.panel.left", Px(self.size_panel_left)),
-            ("size.panel.right", Px(self.size_panel_right)),
+            ("size.panel.left_max", Px(self.size_panel_left_max)),
             ("size.dock.bottom", Px(self.size_dock_bottom)),
             ("size.dock.bottom_min", Px(self.size_dock_bottom_min)),
             ("size.property_label", Px(self.size_property_label)),
@@ -678,6 +686,7 @@ impl Tokens {
             ("size.palette.row", Px(self.size_palette_row)),
             ("size.toast", Px(self.size_toast)),
             ("size.tooltip.max", Px(self.size_tooltip_max)),
+            ("size.text_measure", Px(self.size_text_measure)),
             ("size.table_column", Px(self.size_table_column)),
             ("size.table_column.min", Px(self.size_table_column_min)),
             ("size.table_column.max", Px(self.size_table_column_max)),
@@ -1047,6 +1056,7 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         size_quick_access_width: 28.0,
         size_quick_access_height: 24.0,
         size_search_width: 280.0,
+        size_search_max_width: 400.0,
         size_search_height: 24.0,
         size_panel_header: 32.0,
         size_dock_tab_bar: 32.0,
@@ -1055,7 +1065,7 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         size_status: 26.0,
         size_status_field: 22.0,
         size_panel_left: 280.0,
-        size_panel_right: 280.0,
+        size_panel_left_max: 480.0,
         size_dock_bottom: 184.0,
         size_dock_bottom_min: 300.0,
         size_property_label: 96.0,
@@ -1071,6 +1081,7 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         size_palette_row: 32.0,
         size_toast: 300.0,
         size_tooltip_max: 320.0,
+        size_text_measure: 520.0,
         size_table_column: 110.0,
         size_table_column_min: 40.0,
         size_table_column_max: 480.0,

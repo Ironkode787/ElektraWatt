@@ -82,6 +82,17 @@ pub(crate) fn bar_height(t: &Tokens, collapsed: bool) -> f32 {
 }
 
 /// The width of `text` in `font`.
+/// The share of the tab row the command search takes once that is wider than `size.search.width` (C40, FT-798).
+pub(crate) const SEARCH_SHARE: f32 = 0.2;
+
+/// The command search's width in a tab row `row` wide: `size.search.width` at the floor, growing with the row
+/// ([`SEARCH_SHARE`]) to `size.search.max_width` (C40, FT-798; doc 16a §2: a floor width never caps one that should
+/// grow).
+pub(crate) fn search_width(t: &Tokens, row: f32) -> f32 {
+    crate::dialog::grown(t.size_search_width, SEARCH_SHARE, row)
+        .min(t.size_search_max_width.max(t.size_search_width))
+}
+
 fn text_width(ui: &Ui, text: &str, font: egui::FontId) -> f32 {
     ui.painter()
         .layout_no_wrap(text.to_owned(), font, theme::NONE)
@@ -815,13 +826,15 @@ impl CommandBarHost {
                 }
             },
         );
-        // The command search at the right end: a field that opens the palette anchored under it.
+        // The command search at the right end: a field that opens the palette anchored under it. C40 (FT-798): it grows
+        // with the window, a share of the tab row, from `size.search.width` at the floor to `size.search.max_width`.
+        let search_width = search_width(t, row.width());
         let search = Rect::from_min_size(
             pos2(
-                row.right() - t.space_3 - t.size_search_width,
+                row.right() - t.space_3 - search_width,
                 cy - t.size_search_height / 2.0,
             ),
-            vec2(t.size_search_width, t.size_search_height),
+            vec2(search_width, t.size_search_height),
         );
         self.search = Some(search);
         let placeholder = strings::text("commandbar-search").to_owned();
@@ -1046,5 +1059,19 @@ mod tests {
         assert_eq!(bar_height(&c, false), 85.0);
         assert_eq!(bar_height(&k, false), 69.0);
         assert_eq!(bar_height(&c, true), 33.0);
+    }
+
+    /// C40 (FT-798): the search keeps `size.search.width` at the floor, grows with the row and stops at
+    /// `size.search.max_width`.
+    #[test]
+    fn the_search_grows_with_the_row_between_its_tokens() {
+        let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
+        assert_eq!(search_width(&t, 1280.0), t.size_search_width);
+        let wide = search_width(&t, 1920.0);
+        assert!(
+            wide > t.size_search_width && wide <= t.size_search_max_width,
+            "{wide}"
+        );
+        assert_eq!(search_width(&t, 4000.0), t.size_search_max_width);
     }
 }

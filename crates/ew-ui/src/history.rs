@@ -420,13 +420,35 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
         .stroke(theme::stroke(t.border_raised_width, t.border_default))
         .corner_radius(theme::radius(t.radius_lg))
         .shadow(theme::shadow(&t.elevation_2))
-        .inner_margin(egui::Margin::same(t.space_5 as i8));
+        .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_5)));
+    let lines: Vec<String> = records
+        .iter()
+        .take(MAX_CHANGES)
+        .map(|e| {
+            let mut line = format!("{} {} {}", e.change, e.kind, e.label);
+            if !e.fields.is_empty() {
+                line.push_str(&format!(" ({})", e.fields.join(", ")));
+            }
+            line
+        })
+        .collect();
+    // C40 (FT-816): the popup is as wide as its longest line, from `size.dialog.small` up to a share of the window
+    // (`dialog::small_width`); past that a line elides. A short list keeps the small width, nothing is stretched.
+    let font = theme::font(&t.type_body);
+    let longest = lines
+        .iter()
+        .map(|l| ctx.fonts_mut(|f| f.layout_no_wrap(l.clone(), font.clone(), theme::NONE).size().x))
+        .fold(0.0_f32, f32::max);
+    let grown = crate::dialog::small_width(&t, ctx.content_rect().width());
+    let width = (longest + 2.0 * t.space_5 + t.space_3).clamp(t.size_dialog_small.min(grown), grown)
+        - 2.0 * t.space_5;
     egui::Window::new(&title)
+        .id(egui::Id::unique("history-changes"))
         .title_bar(false)
         .frame(frame)
         .collapsible(false)
         .resizable(false)
-        .fixed_size(Vec2::new(t.size_dialog_small - 2.0 * t.space_5, 0.0))
+        .fixed_size(Vec2::new(width, 0.0))
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ctx, |ui| {
             ui.spacing_mut().item_spacing.y = t.space_3;
@@ -443,11 +465,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
                 .auto_shrink([false, true])
                 .show(ui, |ui| {
                     ui.spacing_mut().item_spacing.y = 0.0;
-                    for e in records.iter().take(MAX_CHANGES) {
-                        let mut line = format!("{} {} {}", e.change, e.kind, e.label);
-                        if !e.fields.is_empty() {
-                            line.push_str(&format!(" ({})", e.fields.join(", ")));
-                        }
+                    for line in lines {
                         ui.horizontal(|ui| {
                             ui.set_min_height(t.size_row);
                             ui.add(

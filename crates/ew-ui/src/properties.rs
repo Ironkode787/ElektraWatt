@@ -438,7 +438,7 @@ impl PropertiesPane {
         // C39: the header keeps the pane's `space.4` gutter on both sides, as the filter field and the row labels, so
         // a chip at the right end is never clipped by the pane's edge.
         egui::Frame::new()
-            .inner_margin(egui::Margin::symmetric(t.space_4 as i8, 0))
+            .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_4), 0))
             .show(ui, |ui| Self::header_lines(ui, sheet, &groups, compact, events));
         ui.separator();
     }
@@ -968,7 +968,7 @@ impl PropertiesPane {
                     .fill(t.surface_raised.color32())
                     .corner_radius(crate::theme::radius(t.radius_md))
                     .shadow(crate::theme::shadow(&t.elevation_1))
-                    .inner_margin(egui::Margin::same(t.space_2 as i8))
+                    .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
                     .show(ui, |ui| {
                         ui.set_width(width - 2.0 * pad);
                         let list_rect = egui::Rect::from_min_size(
@@ -1078,7 +1078,7 @@ impl PropertiesPane {
             TextEdit::singleline(&mut self.buffer)
                 .id(field_id)
                 .frame(egui::Frame::NONE)
-                .margin(egui::Margin::symmetric(t.space_icon as i8, 0))
+                .margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_icon), 0))
                 .desired_width(f32::INFINITY)
                 .hint_text(label),
         );

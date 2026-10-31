@@ -195,6 +195,12 @@ pub fn radius(radius: f32) -> egui::CornerRadius {
     egui::CornerRadius::same(radius.clamp(0.0, 255.0).round() as u8)
 }
 
+/// One side of an egui margin of `px` points: rounded and clamped to egui's `i8` range (FT-816: a token cast with
+/// `as` would silently saturate).
+pub fn margin_px(px: f32) -> i8 {
+    px.round().clamp(f32::from(i8::MIN), f32::from(i8::MAX)) as i8
+}
+
 /// An egui shadow from an elevation's key layer.
 pub fn shadow(elevation: &Elevation) -> egui::Shadow {
     let l = elevation.layers[0];

@@ -289,8 +289,10 @@ impl NavigatorPane {
             // never so tall that fewer than three rows fit), then the footer, which is always on show.
             let row = row_height(ui.ctx());
             // X32b: the footer and the detail block keep the pane's `space.4` gutter.
-            let frame =
-                egui::Frame::new().inner_margin(egui::Margin::symmetric(t.space_4 as i8, t.space_1 as i8));
+            let frame = egui::Frame::new().inner_margin(egui::Margin::symmetric(
+                crate::theme::margin_px(t.space_4),
+                crate::theme::margin_px(t.space_1),
+            ));
             egui::Panel::bottom(ui.scope_id().with("messages-footer"))
                 .resizable(false)
                 .frame(frame)
@@ -334,7 +336,7 @@ impl NavigatorPane {
                                 let gutter = ui.spacing().scroll.bar_width + t.space_2;
                                 egui::Frame::new()
                                     .inner_margin(egui::Margin {
-                                        right: gutter as i8,
+                                        right: crate::theme::margin_px(gutter),
                                         ..egui::Margin::ZERO
                                     })
                                     .show(ui, |ui| crate::messages::detail(ui, shell, events));

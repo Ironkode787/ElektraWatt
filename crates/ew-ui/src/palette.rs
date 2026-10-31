@@ -204,7 +204,7 @@ pub fn show(
             .stroke(theme::stroke(t.border_raised_width, t.border_default))
             .corner_radius(theme::radius(t.radius_lg))
             .shadow(theme::shadow(&t.elevation_2))
-            .inner_margin(egui::Margin::same(t.space_2 as i8))
+            .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
             .show(ui, |ui| {
                 // C39 (doc 16a §2, ID-908): the palette grows with the window (never narrower than at the floor).
                 let width = crate::dialog::grown(t.size_palette, PALETTE_SHARE, ctx.content_rect().width());

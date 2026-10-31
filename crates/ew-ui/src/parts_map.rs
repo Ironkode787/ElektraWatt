@@ -35,7 +35,17 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
         )
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
-            ui.set_width(t.size_dialog_form.max(t.size_dialog_small));
+            // C40 (FT-816): a form that grows with the window when its samples need the room: as wide as the column
+            // table, from `size.dialog.form` up to the grown form width (`dialog::form_width`); nothing is stretched.
+            let (names, samples, combo) = column_widths(ui, map);
+            let need = names
+                + samples
+                + combo
+                + 2.0 * t.space_4
+                + ui.spacing().scroll.bar_width
+                + 2.0 * (t.space_4 + t.border_width);
+            let grown = crate::dialog::form_width(&t, ctx.content_rect().width());
+            ui.set_width(need.max(t.size_dialog_form.min(grown)).min(grown));
             egui::Frame::new()
                 .shadow(crate::theme::shadow(&t.elevation_1))
                 .corner_radius(crate::theme::radius(t.radius_md))
@@ -109,6 +119,30 @@ fn source_row(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
     });
 }
 
+/// The widths of the column table's columns (C40, FT-816): the widest Column name (`type.body`), the widest sample
+/// (`type.small`), each at least `size.dialog.label` × 0.6, and the drop-downs' (`size.dialog.label` × 1.4).
+fn column_widths(ui: &egui::Ui, map: &PartsMap) -> (f32, f32, f32) {
+    let t = crate::components::tokens(ui);
+    let narrow = t.size_dialog_label * 0.6;
+    let widest = |font: egui::FontId, text: &dyn Fn(usize) -> String| {
+        (0..map.columns.len())
+            .map(|i| {
+                ui.painter()
+                    .layout_no_wrap(text(i), font.clone(), t.text_primary.color32())
+                    .size()
+                    .x
+            })
+            .fold(narrow, f32::max)
+    };
+    let names = widest(crate::theme::font(&t.type_body), &|i| {
+        map.columns[i].header.clone()
+    });
+    let samples = widest(crate::theme::font(&t.type_small), &|i| {
+        map.columns[i].sample.clone()
+    });
+    (names, samples, t.size_dialog_label * 1.4)
+}
+
 /// The column table: header, sample and the member drop-down per column.
 fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
     let t = crate::components::tokens(ui);
@@ -126,6 +160,12 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                 t.text_tertiary.color32()
             })
     };
+    // C40 (FT-816): the Sample column takes the room the Column names and the drop-downs leave in the (grown) card, so
+    // a long sample is shown whole where the window has room and elides past that.
+    let (names, _, combo) = column_widths(ui, map);
+    let narrow = t.size_dialog_label * 0.6;
+    let sample =
+        (ui.available_width() - names - combo - 2.0 * t.space_4 - ui.spacing().scroll.bar_width).max(narrow);
     egui::ScrollArea::vertical()
         .id_salt("parts-map-columns")
         .max_height(t.size_control * 9.0)
@@ -146,7 +186,14 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                                 .font(crate::theme::font(&t.type_body))
                                 .color(t.text_primary.color32()),
                         );
-                        ui.add(egui::Label::new(small(&c.sample, false)).truncate());
+                        ui.allocate_ui_with_layout(
+                            Vec2::new(sample, t.size_control),
+                            Layout::left_to_right(Align::Center),
+                            |ui| {
+                                ui.set_width(sample);
+                                ui.add(egui::Label::new(small(&c.sample, false)).truncate());
+                            },
+                        );
                         let mut choices = PartsMap::choices(&c.header);
                         if let Some(m) = &c.member
                             && !choices.contains(m)
@@ -161,7 +208,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                             .map_or_else(|| none.to_owned(), |m| PartsMap::member_text(m, &c.header));
                         let combo = egui::ComboBox::from_id_salt(("parts-map-member", i))
                             .selected_text(shown)
-                            .width(t.size_dialog_label * 1.4)
+                            .width(combo)
                             .icon(crate::components::combo_chevron)
                             .show_ui(ui, |ui| {
                                 if ui.selectable_label(c.member.is_none(), none).clicked() {

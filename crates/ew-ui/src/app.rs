@@ -670,8 +670,8 @@ impl App {
             let frame = egui::Frame::NONE
                 .fill(tokens.warning_subtle.color32())
                 .inner_margin(egui::Margin::symmetric(
-                    tokens.space_4 as i8,
-                    tokens.space_2 as i8,
+                    crate::theme::margin_px(tokens.space_4),
+                    crate::theme::margin_px(tokens.space_2),
                 ));
             Panel::top("banner").frame(frame).show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {

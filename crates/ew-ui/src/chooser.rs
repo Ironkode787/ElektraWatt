@@ -135,7 +135,7 @@ pub(crate) fn show(
                 .fill(t.surface_raised.color32())
                 .corner_radius(theme::radius(t.radius_md))
                 .shadow(theme::shadow(&t.elevation_1))
-                .inner_margin(egui::Margin::same(t.space_2 as i8))
+                .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
                 .show(ui, |ui| {
                     let inner = width - 2.0 * (t.space_2 + t.border_width);
                     ui.set_width(inner);

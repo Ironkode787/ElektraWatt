@@ -36,8 +36,10 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut 
             update_bar(ui, shell, events);
             if let Some(detail) = shell.library_copy_detail() {
                 let t = components::tokens(ui);
-                let frame = egui::Frame::new()
-                    .inner_margin(egui::Margin::symmetric(t.space_4 as i8, t.space_2 as i8));
+                let frame = egui::Frame::new().inner_margin(egui::Margin::symmetric(
+                    crate::theme::margin_px(t.space_4),
+                    crate::theme::margin_px(t.space_2),
+                ));
                 egui::Panel::bottom(ui.scope_id().with("copy-detail"))
                     .resizable(false)
                     .frame(frame)
@@ -48,8 +50,10 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut 
             if let Some(detail) = shell.macro_detail() {
                 let room = ui.available_height();
                 let t = components::tokens(ui);
-                let frame = egui::Frame::new()
-                    .inner_margin(egui::Margin::symmetric(t.space_4 as i8, t.space_2 as i8));
+                let frame = egui::Frame::new().inner_margin(egui::Margin::symmetric(
+                    crate::theme::margin_px(t.space_4),
+                    crate::theme::margin_px(t.space_2),
+                ));
                 egui::Panel::bottom(ui.scope_id().with("macro-detail"))
                     .resizable(false)
                     .frame(frame)

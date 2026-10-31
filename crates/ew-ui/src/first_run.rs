@@ -45,7 +45,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ));
         ui.add_space(12.0);
         ui.scope(|ui| {
-            ui.set_max_width(520.0);
+            // C40 (FT-816): the reading measure, kept fixed on purpose (running text gets no easier to read wider).
+            ui.set_max_width(crate::theme::current(ui.ctx()).size_text_measure);
             match run.step {
                 FirstRunStep::Language => {
                     ui.label(strings::text("firstrun-text-language"));

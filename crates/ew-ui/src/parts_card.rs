@@ -47,6 +47,8 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
         )
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
+            // C40 (FT-816): kept at `size.dialog.small` on purpose: one summary line ("parts.csv: 29 created, …") and
+            // two buttons, which a wider window would only pad with empty space.
             ui.set_width(t.size_dialog_small);
             egui::Frame::new()
                 .shadow(crate::theme::shadow(&t.elevation_1))

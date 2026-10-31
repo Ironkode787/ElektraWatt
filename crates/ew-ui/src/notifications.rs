@@ -85,7 +85,7 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
         .stroke(theme::stroke(t.border_raised_width, t.border_default))
         .corner_radius(theme::radius(t.radius_lg))
         .shadow(theme::shadow(&t.elevation_2))
-        .inner_margin(egui::Margin::same(t.space_4 as i8))
+        .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_4)))
         .show(ui, |ui| {
             let inner = t.size_toast - 2.0 * t.space_4;
             ui.set_width(inner);
@@ -207,7 +207,7 @@ pub(crate) fn show_log(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event
                 .stroke(theme::stroke(t.border_raised_width, t.border_default))
                 .corner_radius(theme::radius(t.radius_md))
                 .shadow(theme::shadow(&t.elevation_1))
-                .inner_margin(egui::Margin::same(t.space_2 as i8))
+                .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
                 .show(ui, |ui| {
                     let width = t.size_toast + t.size_dialog_small / 4.0;
                     ui.set_width(width);

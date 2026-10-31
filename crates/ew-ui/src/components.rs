@@ -74,7 +74,10 @@ pub(crate) fn show_tip(ctx: &egui::Context, tooltip: egui::containers::Tooltip<'
     let frame = egui::Frame::new()
         .fill(t.surface_inverse.color32())
         .corner_radius(theme::radius(t.radius_md))
-        .inner_margin(egui::Margin::symmetric(t.space_3 as i8, t.space_2 as i8))
+        .inner_margin(egui::Margin::symmetric(
+            crate::theme::margin_px(t.space_3),
+            crate::theme::margin_px(t.space_2),
+        ))
         .shadow(theme::shadow(&t.elevation_1));
     tooltip.popup = tooltip.popup.frame(frame);
     tooltip.show(|ui| {
@@ -270,10 +273,10 @@ pub(crate) fn filter_field(ui: &mut Ui, text: &mut String, hint: &str) -> Respon
         egui::TextEdit::singleline(text)
             .hint_text(hint)
             .margin(egui::Margin {
-                left: lead as i8,
-                right: trail as i8,
-                top: t.space_1 as i8,
-                bottom: t.space_1 as i8,
+                left: crate::theme::margin_px(lead),
+                right: crate::theme::margin_px(trail),
+                top: crate::theme::margin_px(t.space_1),
+                bottom: crate::theme::margin_px(t.space_1),
             })
             .align(egui::Align2::LEFT_CENTER)
             .min_size(Vec2::new(0.0, t.size_control))
@@ -731,7 +734,7 @@ pub(crate) fn card_frame(t: &Tokens) -> egui::Frame {
         .fill(t.surface_panel.color32())
         .stroke(theme::stroke(t.border_width, t.border_default))
         .corner_radius(theme::radius(t.radius_md))
-        .inner_margin(egui::Margin::same(t.space_4 as i8))
+        .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_4)))
 }
 
 /// The status of a card: as of its revision, stale, or failed with its sentence.
@@ -964,7 +967,10 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
     egui::Frame::new()
         .fill(t.card_strip.color32())
         .corner_radius(theme::radius(t.radius_md))
-        .inner_margin(egui::Margin::symmetric(t.space_3 as i8, t.space_1 as i8))
+        .inner_margin(egui::Margin::symmetric(
+            crate::theme::margin_px(t.space_3),
+            crate::theme::margin_px(t.space_1),
+        ))
         .show(ui, |ui| {
             ui.set_min_height(t.size_card_strip - 2.0 * t.space_1);
             let small_font = |accent: bool| {
