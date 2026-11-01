@@ -7,5 +7,5 @@
 #[path = "../../../ew-render-cpu/tests/common/jpeg.rs"]
 mod jpeg;
 
-mod pdf;
-mod svg;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

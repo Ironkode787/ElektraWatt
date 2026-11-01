@@ -75,8 +75,8 @@ No performance tests and no timing assertions (owner's rule).
 ## Shared lists (kept by hand until the redesign removes them)
 
 The code map lists these with "where a new X goes", once it exists:
-- **A new integration-test file:** `tests/it/<name>.rs`, plus a `mod` line in `tests/it/main.rs`. Only the binaries in
-  `SEPARATE` in `xtask/src/test_layout.rs` stay separate.
+- **A new integration-test file:** `tests/it/<name>.rs`; `automod::dir!` declares it. Touch `tests/it/main.rs` once so
+  cargo rebuilds the binary. Only the binaries in `SEPARATE` in `xtask/src/test_layout.rs` stay separate.
 - **A new command:** its title in `COMMAND_TITLES` in `crates/ew-viewmodel/src/strings.rs`. Then run
   `-p ew-viewmodel --test blind_reference`.
 - **A new describe word:** its list in `crates/ew-viewmodel/src/describe.rs`.

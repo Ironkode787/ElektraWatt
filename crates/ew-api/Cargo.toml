@@ -66,6 +66,7 @@ ew-mltext = { path = "../ew-mltext" }
 regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-case", "unicode-perl"] }
 
 [dev-dependencies]
+automod.workspace = true
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
 # `tests/golden_csv.rs` compares the derived anchor cells, CPs and tags of the loaded golden model with its tables.
 ew-model = { path = "../ew-model", features = ["raw-read"] }

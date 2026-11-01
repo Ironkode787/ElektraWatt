@@ -51,6 +51,7 @@ skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 sha2 = { workspace = true }
 
 [dev-dependencies]
+automod.workspace = true
 # Interaction tests and the accessible-name walker, without rendering (no snapshot or wgpu feature: WP-S2.17 D7 would
 # bring packages beyond the spec's, see the part 1 report; the chrome snapshots use `tests/offscreen`).
 egui_kittest = { version = "=0.37.0", default-features = false }

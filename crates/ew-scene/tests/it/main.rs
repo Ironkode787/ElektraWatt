@@ -6,23 +6,5 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-mod canvas_texts;
-mod embedded;
-mod forms_content;
-mod forms_lowering;
-mod forms_overflow;
-mod forms_robustness;
-mod frame_geometry;
-mod items;
-mod lowering;
-mod page_scene;
-mod panel_knockout;
-mod pin_texts;
-mod properties;
-mod route;
-mod slot_collisions;
-mod snapshot;
-mod starter_symbols;
-mod symbol_text_variants;
-mod tables;
-mod text_styles;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

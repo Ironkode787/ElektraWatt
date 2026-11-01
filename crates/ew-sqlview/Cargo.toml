@@ -29,5 +29,6 @@ schemars = "1.2.3"
 serde_json = "1.0.154"
 
 [dev-dependencies]
+automod.workspace = true
 # The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }

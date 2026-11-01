@@ -3,5 +3,5 @@
 
 //! The integration tests of `ew-library`, one test binary: each module is a former test file.
 
-mod registry;
-mod starter_parts;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

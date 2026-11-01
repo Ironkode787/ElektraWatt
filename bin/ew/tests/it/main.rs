@@ -3,6 +3,5 @@
 
 //! The integration tests of `ew`, one test binary: each module is a former test file.
 
-mod conventions;
-mod outputs;
-mod query;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

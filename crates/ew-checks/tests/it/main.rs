@@ -6,18 +6,5 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-mod bus;
-mod confidence;
-mod core;
-mod core_part3;
-mod core_part4;
-mod layout;
-mod messages;
-mod num;
-mod open_items;
-mod plc;
-mod pot;
-mod pot_pack;
-mod rds;
-mod rel;
-mod term;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

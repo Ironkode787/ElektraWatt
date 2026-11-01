@@ -3,7 +3,5 @@
 
 //! The integration tests of `ew-testkit`, one test binary: each module is a former test file.
 
-mod assign_update;
-mod place_arrange;
-mod synth;
-mod terminal_insert_move;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

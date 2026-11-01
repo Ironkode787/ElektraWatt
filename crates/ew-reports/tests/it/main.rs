@@ -3,8 +3,5 @@
 
 //! The integration tests of `ew-reports`, one test binary: each module is a former test file.
 
-mod arrange;
-mod enclosure_legend;
-mod layout;
-mod paginate;
-mod row_id;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

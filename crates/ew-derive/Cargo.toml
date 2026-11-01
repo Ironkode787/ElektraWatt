@@ -40,6 +40,7 @@ serde_json = "1.0.154"
 toml.workspace = true
 
 [dev-dependencies]
+automod.workspace = true
 # Agreement tests: the main representation and the counters of the command layer (tests/agreement.rs).
 ew-commands = { path = "../ew-commands" }
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

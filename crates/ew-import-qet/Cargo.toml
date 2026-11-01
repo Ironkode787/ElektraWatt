@@ -29,3 +29,6 @@ serde.workspace = true
 serde_json = "1.0.154"
 # The element identity: SHA-256 of the canonical definition XML (doc 14 §4.3), and the library item hash.
 sha2.workspace = true
+
+[dev-dependencies]
+automod.workspace = true

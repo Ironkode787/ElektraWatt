@@ -6,19 +6,5 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-mod bus_records;
-mod exporters;
-mod layout_records;
-mod part1_members;
-mod part_bus_section;
-mod plc_supply_groups;
-mod props;
-mod records;
-mod registry;
-mod rejections;
-mod revision_labels;
-mod schema_validation;
-mod schemas;
-mod structured;
-mod text_styles;
-mod unknown_members;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

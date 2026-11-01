@@ -144,6 +144,11 @@ criteria = "safe-to-deploy"
 version = "1.5.1"
 criteria = "safe-to-deploy"
 
+[[exemptions.automod]]
+version = "1.0.17"
+criteria = "safe-to-run"
+notes = "Cycle 43 (R8): a dev-dependency of the tests/it binaries only (automod::dir!), so safe-to-run; NOT audited line by line. No allowed import covers this version."
+
 [[exemptions.bitflags]]
 version = "2.13.2"
 criteria = "safe-to-deploy"

@@ -28,6 +28,7 @@ zune-jpeg = { version = "=0.5.15", default-features = false, features = ["std"] 
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 
 [dev-dependencies]
+automod.workspace = true
 # Test pages shape their text with the bundled fonts.
 ew-text = { path = "../ew-text" }
 ew-units = { path = "../ew-units" }

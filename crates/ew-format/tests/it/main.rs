@@ -3,11 +3,5 @@
 
 //! The integration tests of `ew-format`, one test binary: each module is a former test file.
 
-mod hostile;
-mod layout_files;
-mod manifest;
-mod part1;
-mod part_bus_section;
-mod plc_supply_groups;
-mod read;
-mod roundtrip;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

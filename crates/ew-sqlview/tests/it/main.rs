@@ -3,4 +3,5 @@
 
 //! The integration tests of `ew-sqlview`, one test binary.
 
-mod api_v1;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

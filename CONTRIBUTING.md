@@ -32,8 +32,9 @@ your change reaches (schemas, keymaps, the book's generated pages, the fuzz tabl
 An agent lane runs its hand-back checks with `cargo xtask lane-check --base <rev>`, which picks fmt, clippy, doc,
 one bounded nextest run, `settle --check` and the policy checks from the diff (`--plan` prints them).
 
-A new integration test goes into its crate's one test binary: `tests/it/<name>.rs`, declared with `mod <name>;` in
-`tests/it/main.rs` (`cargo xtask check-test-layout` names any other top-level file under `tests/`).
+A new integration test goes into its crate's one test binary: `tests/it/<name>.rs`, which `automod::dir!` in
+`tests/it/main.rs` declares. Touch `tests/it/main.rs` once after adding the file: cargo does not notice a new file in
+that directory until `main.rs` changes.
 
 The golden-project commands (`ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf`, and the acceptance runner
 `ew-testkit accept`) follow with M1.

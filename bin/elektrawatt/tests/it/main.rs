@@ -6,7 +6,5 @@
 #[path = "../support/mod.rs"]
 mod support;
 
-mod create;
-mod gpp_demo;
-mod image;
-mod strip_editor;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

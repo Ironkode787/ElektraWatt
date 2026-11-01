@@ -8,9 +8,9 @@
 //! A top-level `.rs` file under a package's `tests/` is allowed only when it is one of the separate binaries
 //! in [`SEPARATE`] (a workflow, xtask, nextest, a bless command or a data-file header names it), or when it is
 //! the package's only loose test file and the package has no `tests/it/`. Subdirectories (helpers such as
-//! `tests/common/`, data, a directory binary with its own `main.rs`) are not checked. Inside `tests/it/`, every file
-//! other than `main.rs` and every subdirectory with Rust files must be declared by a `mod` line of `main.rs`, or it
-//! compiles in no binary (FT-886).
+//! `tests/common/`, data, a directory binary with its own `main.rs`) are not checked. Inside `tests/it/`, the line
+//! `automod::dir!("tests/it");` of `main.rs` declares every file other than `mod.rs` and `lib.rs`; every subdirectory
+//! with Rust files needs a `mod` line of `main.rs`. A file that no line declares compiles in no binary (FT-886).
 //!
 //! The check also reads every `--test <name>` in the repository's text files (code, Markdown, TOML, YAML,
 //! JSON, scripts): `<name>` must be a test binary of the package that the command names with `-p`, or of any
@@ -104,9 +104,9 @@ pub fn check(root: &Path) -> Vec<String> {
         for name in others {
             v.push(format!(
                 "{package}/tests/{name}.rs: an integration test belongs in the package's one test binary; move \
-                 it to {package}/tests/it/{name}.rs and declare it with `mod {name};` in \
-                 {package}/tests/it/main.rs (a separate binary is only for a test that a workflow, xtask or \
-                 nextest names: add it to the list in xtask/src/test_layout.rs)"
+                 it to {package}/tests/it/{name}.rs, where `automod::dir!` in {package}/tests/it/main.rs declares \
+                 it (a separate binary is only for a test that a workflow, xtask or nextest names: add it to the \
+                 list in xtask/src/test_layout.rs)"
             ));
         }
         v.extend(undeclared_it_modules(package, &tests.join("it")));
@@ -114,16 +114,20 @@ pub fn check(root: &Path) -> Vec<String> {
     v
 }
 
+/// The line of `main.rs` that declares every file of `tests/it/` by automod (except `mod.rs` and `lib.rs`).
+const AUTOMOD_LINE: &str = "automod::dir!(\"tests/it\");";
+
 /// The files and subdirectories of a package's `tests/it/` that its `main.rs` does not declare (FT-886): such a file
-/// compiles in no test binary, so its tests never run. Every `tests/it/*.rs` other than `main.rs`, and every
-/// subdirectory that holds a `.rs` file, needs a `mod <name>;` line in `main.rs`; a module with a `#[path]`
-/// attribute declares the attribute's target instead of its own name. A subdirectory without Rust files (data) is
-/// not a module and is not checked.
+/// compiles in no test binary, so its tests never run. With the [`AUTOMOD_LINE`] in `main.rs`, every `tests/it/*.rs`
+/// other than `mod.rs` and `lib.rs` is declared by it. Otherwise each such file needs a `mod <name>;` line, and so does
+/// each subdirectory that holds a `.rs` file; a module with a `#[path]` attribute declares the attribute's target
+/// instead of its own name. A subdirectory without Rust files (data) is not a module and is not checked.
 fn undeclared_it_modules(package: &str, it: &Path) -> Vec<String> {
     let Ok(main) = std::fs::read_to_string(it.join("main.rs")) else {
         return Vec::new();
     };
     let declared = declared_it_entries(&main);
+    let automod = main.lines().any(|l| l.trim() == AUTOMOD_LINE);
     let mut entries: Vec<(String, bool)> = std::fs::read_dir(it)
         .into_iter()
         .flatten()
@@ -142,17 +146,27 @@ fn undeclared_it_modules(package: &str, it: &Path) -> Vec<String> {
     entries.sort();
     entries
         .into_iter()
-        .filter(|(name, _)| !declared.contains(name))
+        .filter(|(name, dir)| {
+            let by_automod = automod && !dir && !matches!(name.as_str(), "mod" | "lib");
+            !by_automod && !declared.contains(name)
+        })
         .map(|(name, dir)| {
-            let (shown, what) = if dir {
-                (format!("{name}/"), "a directory of test files")
+            if dir {
+                format!(
+                    "{package}/tests/it/{name}/: a directory of test files that {package}/tests/it/main.rs does not \
+                     declare compiles in no test binary; add `mod {name};` to {package}/tests/it/main.rs"
+                )
+            } else if matches!(name.as_str(), "mod" | "lib") {
+                format!(
+                    "{package}/tests/it/{name}.rs: a test file that {package}/tests/it/main.rs does not declare \
+                     compiles in no test binary; automod::dir! skips a file named mod.rs or lib.rs, so rename it"
+                )
             } else {
-                (format!("{name}.rs"), "a test file")
-            };
-            format!(
-                "{package}/tests/it/{shown}: {what} that {package}/tests/it/main.rs does not declare compiles in no \
-                 test binary; add `mod {name};` to {package}/tests/it/main.rs"
-            )
+                format!(
+                    "{package}/tests/it/{name}.rs: a test file that {package}/tests/it/main.rs does not declare \
+                     compiles in no test binary; add `automod::dir!(\"tests/it\");` to {package}/tests/it/main.rs"
+                )
+            }
         })
         .collect()
 }
@@ -473,9 +487,9 @@ mod tests {
             v,
             [
                 "crates/ew-format/tests/limits.rs: an integration test belongs in the package's one test binary; \
-                 move it to crates/ew-format/tests/it/limits.rs and declare it with `mod limits;` in \
-                 crates/ew-format/tests/it/main.rs (a separate binary is only for a test that a workflow, xtask \
-                 or nextest names: add it to the list in xtask/src/test_layout.rs)"
+                 move it to crates/ew-format/tests/it/limits.rs, where `automod::dir!` in \
+                 crates/ew-format/tests/it/main.rs declares it (a separate binary is only for a test that a \
+                 workflow, xtask or nextest names: add it to the list in xtask/src/test_layout.rs)"
             ]
         );
     }
@@ -507,9 +521,9 @@ mod tests {
             .map(|n| {
                 format!(
                     "crates/ew-dl/tests/{n}.rs: an integration test belongs in the package's one test binary; \
-                     move it to crates/ew-dl/tests/it/{n}.rs and declare it with `mod {n};` in \
-                     crates/ew-dl/tests/it/main.rs (a separate binary is only for a test that a workflow, xtask \
-                     or nextest names: add it to the list in xtask/src/test_layout.rs)"
+                     move it to crates/ew-dl/tests/it/{n}.rs, where `automod::dir!` in crates/ew-dl/tests/it/main.rs \
+                     declares it (a separate binary is only for a test that a workflow, xtask or nextest names: add \
+                     it to the list in xtask/src/test_layout.rs)"
                 )
             })
             .chain(std::iter::once(
@@ -551,20 +565,61 @@ mod tests {
         touch(&dir, "crates/ew-dl/tests/it/common.rs");
         let v = check(&dir);
         std::fs::remove_dir_all(&dir).unwrap();
-        let expected: Vec<String> = [
-            ("common.rs", "a test file", "common"),
-            ("forgotten.rs", "a test file", "forgotten"),
-            ("lost/", "a directory of test files", "lost"),
-        ]
-        .iter()
-        .map(|(shown, what, name)| {
-            format!(
-                "crates/ew-dl/tests/it/{shown}: {what} that crates/ew-dl/tests/it/main.rs does not declare compiles \
-                 in no test binary; add `mod {name};` to crates/ew-dl/tests/it/main.rs"
-            )
-        })
-        .collect();
-        assert_eq!(v, expected);
+        assert_eq!(
+            v,
+            [
+                "crates/ew-dl/tests/it/common.rs: a test file that crates/ew-dl/tests/it/main.rs does not declare \
+                 compiles in no test binary; add `automod::dir!(\"tests/it\");` to crates/ew-dl/tests/it/main.rs",
+                "crates/ew-dl/tests/it/forgotten.rs: a test file that crates/ew-dl/tests/it/main.rs does not declare \
+                 compiles in no test binary; add `automod::dir!(\"tests/it\");` to crates/ew-dl/tests/it/main.rs",
+                "crates/ew-dl/tests/it/lost/: a directory of test files that crates/ew-dl/tests/it/main.rs does not \
+                 declare compiles in no test binary; add `mod lost;` to crates/ew-dl/tests/it/main.rs",
+            ]
+        );
+    }
+
+    /// The automod line declares every file of `tests/it/`; only a subdirectory needs its own `mod` line.
+    #[test]
+    fn automod_line_declares_every_file() {
+        let dir = fresh("automod");
+        write(&dir, "crates/ew-dl/tests/it/main.rs", "automod::dir!(\"tests/it\");\n");
+        touch(&dir, "crates/ew-dl/tests/it/a.rs");
+        touch(&dir, "crates/ew-dl/tests/it/b.rs");
+        touch(&dir, "crates/ew-dl/tests/it/deep/x.rs");
+        let v = check(&dir);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(
+            v,
+            [
+                "crates/ew-dl/tests/it/deep/: a directory of test files that crates/ew-dl/tests/it/main.rs does not \
+                 declare compiles in no test binary; add `mod deep;` to crates/ew-dl/tests/it/main.rs",
+            ]
+        );
+    }
+
+    /// `automod::dir!` skips `mod.rs` and `lib.rs`: a file of either name is reported, with the text to rename it.
+    #[test]
+    fn automod_skips_mod_and_lib() {
+        let dir = fresh("automod-skips");
+        write(&dir, "crates/ew-dl/tests/it/main.rs", "automod::dir!(\"tests/it\");\n");
+        touch(&dir, "crates/ew-dl/tests/it/a.rs");
+        touch(&dir, "crates/ew-dl/tests/it/b.rs");
+        touch(&dir, "crates/ew-dl/tests/it/deep/x.rs");
+        touch(&dir, "crates/ew-dl/tests/it/mod.rs");
+        touch(&dir, "crates/ew-dl/tests/it/lib.rs");
+        let v = check(&dir);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(
+            v,
+            [
+                "crates/ew-dl/tests/it/deep/: a directory of test files that crates/ew-dl/tests/it/main.rs does not \
+                 declare compiles in no test binary; add `mod deep;` to crates/ew-dl/tests/it/main.rs",
+                "crates/ew-dl/tests/it/lib.rs: a test file that crates/ew-dl/tests/it/main.rs does not declare compiles \
+                 in no test binary; automod::dir! skips a file named mod.rs or lib.rs, so rename it",
+                "crates/ew-dl/tests/it/mod.rs: a test file that crates/ew-dl/tests/it/main.rs does not declare compiles \
+                 in no test binary; automod::dir! skips a file named mod.rs or lib.rs, so rename it",
+            ]
+        );
     }
 
     /// FT-886: a package whose `tests/it/` files are all declared passes.

@@ -6,16 +6,5 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-mod assembly;
-mod bus;
-mod colour_modes;
-mod connect;
-mod golden;
-mod hostile;
-mod hostile_shapes;
-mod layout;
-mod memory;
-mod negative;
-mod parts;
-mod system_library;
-mod tables;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

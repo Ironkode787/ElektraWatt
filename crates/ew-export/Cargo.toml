@@ -25,6 +25,7 @@ ew-render-cpu = { path = "../ew-render-cpu" }
 krilla = { version = "0.8.2", default-features = false, features = ["raster-images"] }
 
 [dev-dependencies]
+automod.workspace = true
 ew-text = { path = "../ew-text" }
 ew-units = { path = "../ew-units" }
 sha2 = { workspace = true }

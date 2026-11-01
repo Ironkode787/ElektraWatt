@@ -8,10 +8,5 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-mod assets;
-mod integrity;
-mod layout_incremental;
-mod lock;
-mod migration;
-mod part1_migration;
-mod recovery;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

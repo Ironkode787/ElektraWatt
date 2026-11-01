@@ -10,32 +10,5 @@ mod common;
 #[path = "../common/golden.rs"]
 mod golden_fixture;
 
-mod agreement;
-mod api;
-mod bom;
-mod bus;
-mod cells;
-mod connectivity;
-mod connectivity_notes;
-mod cps;
-mod cycles;
-mod golden;
-mod items;
-mod layout;
-mod layout_bom;
-mod memo;
-mod part_text;
-mod plc;
-mod plc_address_text;
-mod plc_positions;
-mod potential_conflicts;
-mod structure;
-mod supply_names;
-mod supply_roles;
-mod tags;
-mod title_block;
-mod unwind;
-mod value_bytes;
-mod wire_chain;
-mod wire_numbers;
-mod xref;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");

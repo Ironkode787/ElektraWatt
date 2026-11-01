@@ -30,6 +30,7 @@ sha2 = { workspace = true }
 miniz_oxide.workspace = true
 
 [dev-dependencies]
+automod.workspace = true
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }
 # The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }

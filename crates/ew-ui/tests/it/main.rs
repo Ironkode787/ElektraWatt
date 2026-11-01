@@ -6,44 +6,5 @@
 #[path = "../support/mod.rs"]
 mod support;
 
-mod clipboard;
-mod command_surface;
-mod create;
-mod data_grid;
-mod docks;
-mod find;
-mod grows_with_window;
-mod icons;
-mod jobs;
-mod keymaps;
-mod layout_window;
-mod macro_values;
-mod macros;
-mod messages;
-mod navigators;
-mod navigators_part2;
-mod overlays;
-mod page_describe;
-mod pane_layout;
-mod part2;
-mod part3;
-mod part4_cards;
-mod part4b;
-mod part_dialog;
-mod parts_import;
-mod place;
-mod potential_define;
-mod preview_history;
-mod properties;
-mod rows_and_empty_states;
-mod shell;
-mod switch;
-mod table_mode;
-mod table_widget;
-mod theme;
-mod tools;
-mod viewer;
-mod visual;
-mod wheel;
-mod window_check_w33;
-mod wiring;
+// Every other file of tests/it is a module (automod 1.0, sorted by name).
+automod::dir!("tests/it");
