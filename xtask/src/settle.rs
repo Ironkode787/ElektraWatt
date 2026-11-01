@@ -9,10 +9,11 @@
 //! rewrite.
 //!
 //! - **Triggers.** The files changed since the merge base of `--base` (default `main`) and `HEAD`, uncommitted and
-//!   untracked ones included (`affected`'s change detection), plus every file an earlier step rewrote in this run. A
-//!   step is triggered by a changed file that matches one of its globs, or that lies in one of its `deps_of`
-//!   packages or in a workspace package one of them depends on directly (a normal or build edge; a change of the
-//!   root `Cargo.toml`, `Cargo.lock` or `rust-toolchain.toml` counts too). `--all` runs every step.
+//!   untracked ones included (`affected`'s change detection), plus every file an earlier step rewrote in this run
+//!   inside its outputs. A step is triggered by a changed file that matches one of its globs, or that lies in one
+//!   of its `deps_of` packages or in a workspace package one of them depends on directly (a normal or build edge;
+//!   a change of the root `Cargo.toml`, `Cargo.lock` or `rust-toolchain.toml` counts too). `--all` runs every
+//!   step.
 //! - **The safety net of the direct triggers.** A change two or more edges below a `deps_of` package does not
 //!   trigger its step here. The merge point's affected verify runs every bless test in compare mode for every
 //!   package the change reaches, so a derived file such a change alters fails there and is settled then.
@@ -27,7 +28,9 @@
 //! - **Outputs.** Before and after each step (each bless call) the changed files of the working tree (against
 //!   `HEAD`) are hashed; a step that changes a file outside its listed outputs fails. A bless call's changed files
 //!   must match the union of its steps' outputs, and each is reported under the step whose outputs it matches; a
-//!   file outside them fails every step of the call. Settle writes only derived reference files that are a pure
+//!   file outside them fails every step of the call. Such a stray write is not undone: it stays in the tree (the
+//!   failed line says so; `git status` shows it) and triggers nothing, since only the changed files inside a step's
+//!   outputs join the triggers. Settle writes only derived reference files that are a pure
 //!   function of the code: never golden outputs, UI snapshots, page output, acceptance or fixture files or the
 //!   describe-text expectations, which are decisions a change makes and lists.
 //! - **`--check`** writes nothing (a step that writes in this mode fails) and exits 1 when a step would rewrite a
@@ -46,7 +49,9 @@
 //!   copy's `--manifest-path`, so the committed `Cargo.lock` is never touched. None of these run without `--merge`.
 //! - **Output.** One line per step, `<step>: unchanged | rewrote <files> | would rewrite <what> | FAILED <reason> |
 //!   skipped (no trigger)`, repeated as one block at the end; the exit code is 0 when nothing failed (and, with
-//!   `--check`, nothing would change).
+//!   `--check`, nothing would change). A bless step's `<what>` is the files its call's output names that match its
+//!   outputs, or, when it names none, its output globs with "(the test names no file; run settle without --check
+//!   to see them)"; the call's failure lines follow.
 //!
 //! The outputs that a regeneration step rewrites entirely from its sources carry `merge=regen` in `.gitattributes`
 //! (a test keeps the two equal): with the driver configured (`git config merge.regen.driver true`, which keeps one
@@ -958,11 +963,15 @@ fn hakari(root: &Path, check: bool) -> Result<Outcome> {
 
 /// The last lines of a command's output, for a failure's line.
 fn tail(output: &std::process::Output) -> String {
-    let text = format!(
+    text_tail(&format!(
         "{}{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
-    );
+    ))
+}
+
+/// The last twelve non-blank lines of `text`, indented for a failure's line.
+fn text_tail(text: &str) -> String {
     let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
     lines[lines.len().saturating_sub(12)..].join("\n    ")
 }
@@ -1258,31 +1267,137 @@ fn list_matches(root: &Path, args: &[String], filterset: &str) -> Result<Result<
     matched_binaries(&String::from_utf8_lossy(&output.stdout)).map(Ok)
 }
 
-/// The steps of `group` whose term would run no test: from the binaries the group's list matched, and for a binary
-/// that two steps of the group share, from a list of the step's own term.
-fn steps_without_tests<'s>(
-    root: &Path,
-    group: &[&'s Step],
-    args: &[String],
-    matched: &BTreeSet<String>,
-) -> Result<Result<BTreeSet<&'s str>, String>> {
+/// The steps of `group` whose binary another step of the group shares: each needs a list of its own term.
+fn shared_binary_steps<'s>(group: &[&'s Step]) -> Vec<&'s Step> {
     let id = |s: &Step| bless_parts(s).map(|(_, id, _, _)| id).unwrap_or_default();
+    group
+        .iter()
+        .filter(|s| group.iter().filter(|t| id(t) == id(s)).count() > 1)
+        .copied()
+        .collect()
+}
+
+/// The steps of `group` whose term would run no test: from the binaries the group's list matched (`matched`), and
+/// for a binary that two steps of the group share, from the binaries of the step's own list (`own`, by step name;
+/// a missing list counts as empty).
+fn steps_without_tests<'s>(
+    group: &[&'s Step],
+    matched: &BTreeSet<String>,
+    own: &BTreeMap<&str, BTreeSet<String>>,
+) -> BTreeSet<&'s str> {
+    let shared: Vec<&str> = shared_binary_steps(group).iter().map(|s| s.name).collect();
+    group
+        .iter()
+        .filter(|s| {
+            let Some((_, id, _, _)) = bless_parts(s) else {
+                return true;
+            };
+            let found = if shared.contains(&s.name) {
+                own.get(s.name).is_some_and(|m| m.contains(&id))
+            } else {
+                matched.contains(&id)
+            };
+            !found
+        })
+        .map(|s| s.name)
+        .collect()
+}
+
+/// The files a failing bless step names in its call's output (`text`) that match its outputs: each word, stripped
+/// of quotes, brackets, a final `.` and trailing `:<line>` parts, with `\` (and a debug-escaped `\\`) read as `/` and the root
+/// (`root`, `/`-separated) and a leading `./` removed; each once, sorted.
+fn named_outputs(outputs: &[&str], root: &str, text: &str) -> Vec<String> {
+    let root = root.trim_end_matches('/');
     let mut out = BTreeSet::new();
-    for s in group {
-        let shared = group.iter().filter(|t| id(t) == id(s)).count() > 1;
-        let found = if shared {
-            match list_matches(root, args, &term(s))? {
-                Ok(m) => m.contains(&id(s)),
-                Err(e) => return Ok(Err(e)),
+    for word in text.split_whitespace() {
+        let mut w = word.replace("\\\\", "/").replace('\\', "/");
+        loop {
+            let trimmed = w
+                .trim_matches(|c: char| "\"'`()[]{}<>,;".contains(c))
+                .trim_end_matches('.');
+            let trimmed = match trimmed.rsplit_once(':') {
+                Some((head, tail)) if tail.bytes().all(|b| b.is_ascii_digit()) => head,
+                _ => trimmed,
+            };
+            if trimmed.len() == w.len() {
+                break;
             }
+            w = trimmed.to_owned();
+        }
+        let lower = w.to_ascii_lowercase();
+        let prefix = format!("{}/", root.to_ascii_lowercase());
+        let rel = if !root.is_empty() && lower.starts_with(&prefix) {
+            &w[prefix.len()..]
         } else {
-            matched.contains(&id(s))
+            w.as_str()
         };
-        if !found {
-            out.insert(s.name);
+        let rel = rel.trim_start_matches("./");
+        if outputs.iter().any(|o| glob_match(o, rel)) {
+            out.insert(rel.to_owned());
         }
     }
-    Ok(Ok(out))
+    out.into_iter().collect()
+}
+
+/// What a failing bless step would rewrite in `--check`, for its line: the files [`named_outputs`] finds, or, when
+/// the output names none, the step's output globs and how to see the files.
+fn would_rewrite(step: &Step, root: &str, text: &str) -> String {
+    let files = named_outputs(step.outputs, root, text);
+    if files.is_empty() {
+        format!(
+            "{} (the test names no file; run settle without --check to see them)",
+            step.outputs.join(", ")
+        )
+    } else {
+        files.join(", ")
+    }
+}
+
+/// The finished call of a bless group, as [`group_outcomes`] reads it.
+struct GroupRun<'a> {
+    /// The command line as printed.
+    shown: &'a str,
+    /// Whether the call passed.
+    success: bool,
+    /// Its output, stdout then stderr.
+    text: &'a str,
+    /// The root, `/`-separated.
+    root: &'a str,
+    /// Whether settle runs with `--check`.
+    check: bool,
+}
+
+/// The outcome of each step of `group`, in its order: a step in `empty` (its term matches no test) fails whatever
+/// the call did; otherwise a passed call passes every step, a failure line names its step(s), and a failure that
+/// names no step (a build error) fails every step with the output's tail. In `--check` a failed step's detail
+/// starts with what it would rewrite ([`would_rewrite`]).
+fn group_outcomes(group: &[&Step], empty: &BTreeSet<&str>, run: &GroupRun) -> Vec<Result<Outcome>> {
+    let named = failed_steps(group, run.text);
+    let failed = |s: &Step, lines: String| {
+        let what = if run.check {
+            format!("{}\n    ", would_rewrite(s, run.root, run.text))
+        } else {
+            String::new()
+        };
+        Outcome {
+            ok: false,
+            detail: format!("{what}{} failed:\n    {lines}", run.shown),
+        }
+    };
+    group
+        .iter()
+        .map(|s| {
+            if empty.contains(s.name) {
+                bail!("its filter `{}` matches no test", term(s));
+            }
+            Ok(match named.get(s.name) {
+                _ if run.success => Outcome::of(true, ""),
+                Some(lines) => failed(s, lines.join("\n    ")),
+                None if named.is_empty() => failed(s, text_tail(run.text)),
+                None => Outcome::of(true, ""),
+            })
+        })
+        .collect()
 }
 
 /// Runs a group of bless steps as one nested call; the outcome of each step, in the group's order. A list of the
@@ -1305,10 +1420,14 @@ fn bless_group(root: &Path, group: &[&Step], check: bool) -> Result<Vec<Result<O
         Ok(m) => m,
         Err(e) => return Ok(failed_build(e)),
     };
-    let empty = match steps_without_tests(root, group, &args, &matched)? {
-        Ok(e) => e,
-        Err(e) => return Ok(failed_build(e)),
-    };
+    let mut own = BTreeMap::new();
+    for s in shared_binary_steps(group) {
+        match list_matches(root, &args, &term(s))? {
+            Ok(m) => own.insert(s.name, m),
+            Err(e) => return Ok(failed_build(e)),
+        };
+    }
+    let empty = steps_without_tests(group, &matched, &own);
     let mut c = Command::new(crate::cargo());
     c.args(&args).current_dir(root);
     for e in &envs {
@@ -1320,27 +1439,15 @@ fn bless_group(root: &Path, group: &[&Step], check: bool) -> Result<Vec<Result<O
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
-    let named = failed_steps(group, &text);
-    Ok(group
-        .iter()
-        .map(|s| {
-            if empty.contains(s.name) {
-                bail!("its filter `{}` matches no test", term(s));
-            }
-            Ok(match named.get(s.name) {
-                _ if output.status.success() => Outcome::of(true, ""),
-                Some(lines) => Outcome {
-                    ok: false,
-                    detail: format!("{shown} failed:\n    {}", lines.join("\n    ")),
-                },
-                None if named.is_empty() => Outcome {
-                    ok: false,
-                    detail: format!("{shown} failed:\n    {}", tail(&output)),
-                },
-                None => Outcome::of(true, ""),
-            })
-        })
-        .collect())
+    let root = root.to_string_lossy().replace('\\', "/");
+    let run = GroupRun {
+        shown: &shown,
+        success: output.status.success(),
+        text: &text,
+        root: &root,
+        check,
+    };
+    Ok(group_outcomes(group, &empty, &run))
 }
 
 /// A group's changed files by step (a file under each step whose outputs match it) and the files no step's
@@ -1364,6 +1471,12 @@ fn attribute<'s>(group: &[&'s Step], changed: &[String]) -> (BTreeMap<&'s str, V
     (mine, outside)
 }
 
+/// The changed files of a step (a bless call) that join the trigger set: those inside its outputs. A stray write
+/// (`outside`, from [`attribute`]) fails the step, stays in the tree and triggers nothing.
+fn triggering(changed: &[String], outside: &[String]) -> Vec<String> {
+    changed.iter().filter(|f| !outside.contains(f)).cloned().collect()
+}
+
 /// A step's summary line from its outcome, the files it changed (`mine`) and the files outside its outputs.
 fn step_line(
     step: &Step,
@@ -1378,7 +1491,7 @@ fn step_line(
             format!("{}: FAILED wrote {} in --check", step.name, changed.join(", "))
         }
         _ if !outside.is_empty() => format!(
-            "{}: FAILED rewrote files outside its outputs: {}",
+            "{}: FAILED rewrote files outside its outputs: {}; left as written (see git status)",
             step.name,
             outside.join(", ")
         ),
@@ -1624,7 +1737,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
             &mut lines,
             &mut ok,
         );
-        files.extend(changed);
+        files.extend(triggering(&changed, &outside));
     }
     println!("\nsettle{}:", if a.check { " --check" } else { "" });
     for line in &lines {
@@ -1711,6 +1824,7 @@ fn bless_block(
             lines.insert(s.name, step_line(s, a.check, o, &m, &outside));
             done.insert(s.name, rounds.len());
         }
+        let changed = triggering(&changed, &outside);
         files.extend(changed.iter().cloned());
         rounds.push(changed);
     }
@@ -2363,11 +2477,133 @@ mod tests {
         );
         assert_eq!(
             step_line(s, false, Ok(Outcome::of(true, "")), &changed[1..2], &outside),
-            "keymaps: FAILED rewrote files outside its outputs: README.md"
+            "keymaps: FAILED rewrote files outside its outputs: README.md; left as written (see git status)"
         );
         assert_eq!(
             step_line(s, true, Ok(Outcome::of(false, "x failed")), &[], &[]),
             "keymaps: would rewrite x failed"
+        );
+        // FT-944: a stray write stays out of the triggers; a file inside the outputs joins them.
+        assert_eq!(triggering(&changed, &outside), changed[..2]);
+        assert_eq!(triggering(&changed, &[]), changed);
+    }
+
+    /// FT-918: a failing bless step's `--check` line names the files of its outputs that the call's output names
+    /// (absolute, `\`-separated, debug-escaped or relative, each once), or its globs when the output names none.
+    #[test]
+    fn a_check_names_the_files_a_bless_would_rewrite() {
+        let root = "C:/work/ew";
+        let output = "    Starting 1 test across 1 binary\n\
+            \x20       FAIL [   0.012s] ( 1/1) ew-viewmodel::keymaps the_keymaps_are_current\n\
+            --- STDERR: ew-viewmodel::keymaps the_keymaps_are_current ---\n\
+            thread 'the_keymaps_are_current' panicked at crates/ew-viewmodel/tests/keymaps.rs:41:5:\n\
+            C:\\work\\ew\\crates\\ew-viewmodel\\keymaps\\ew.toml is stale (see README.md)\n\
+            left: \"C:\\\\work\\\\ew\\\\crates\\\\ew-viewmodel\\\\keymaps\\\\ew.toml\"\n\
+            `crates/ew-viewmodel/keymaps/sheet.json:3`: differs\n";
+        let s = step("keymaps");
+        assert_eq!(
+            named_outputs(s.outputs, root, output),
+            [
+                "crates/ew-viewmodel/keymaps/ew.toml",
+                "crates/ew-viewmodel/keymaps/sheet.json"
+            ]
+        );
+        let shown = "cargo nextest run --profile lane --all-features -p ew-viewmodel -E 'binary_id(ew-viewmodel::keymaps)'";
+        let run = GroupRun {
+            shown,
+            success: false,
+            text: output,
+            root,
+            check: true,
+        };
+        let o = group_outcomes(&[s], &BTreeSet::new(), &run).pop().unwrap();
+        assert_eq!(
+            step_line(s, true, o, &[], &[]),
+            format!(
+                "keymaps: would rewrite crates/ew-viewmodel/keymaps/ew.toml, crates/ew-viewmodel/keymaps/sheet.json\n    \
+                 {shown} failed:\n    FAIL [   0.012s] ( 1/1) ew-viewmodel::keymaps the_keymaps_are_current"
+            )
+        );
+
+        let none = "        FAIL [   0.012s] ( 1/1) ew-viewmodel::keymaps the_keymaps_are_current\n\
+            the keymaps differ from the registry\n";
+        assert!(named_outputs(s.outputs, root, none).is_empty());
+        let run = GroupRun { text: none, ..run };
+        let o = group_outcomes(&[s], &BTreeSet::new(), &run).pop().unwrap();
+        assert_eq!(
+            step_line(s, true, o, &[], &[]),
+            format!(
+                "keymaps: would rewrite crates/ew-viewmodel/keymaps/ew.toml, crates/ew-viewmodel/keymaps/kicad.toml, \
+                 crates/ew-viewmodel/keymaps/sheet.json (the test names no file; run settle without --check to see \
+                 them)\n    {shown} failed:\n    FAIL [   0.012s] ( 1/1) ew-viewmodel::keymaps the_keymaps_are_current"
+            )
+        );
+        // Without --check the line is as before: the failure, no files.
+        let run = GroupRun { check: false, ..run };
+        let o = group_outcomes(&[s], &BTreeSet::new(), &run).pop().unwrap();
+        assert_eq!(
+            step_line(s, false, o, &[], &[]),
+            format!(
+                "keymaps: FAILED {shown} failed:\n    FAIL [   0.012s] ( 1/1) ew-viewmodel::keymaps the_keymaps_are_current"
+            )
+        );
+    }
+
+    /// FT-1005: the group's choice of the steps that run no test reads the group's list for a binary one step owns
+    /// and the step's own list for a shared binary; such a step fails even when the call passes.
+    #[test]
+    fn a_step_whose_own_list_is_empty_fails() {
+        let a = step("query-snapshot");
+        let b = Step {
+            name: "query-other",
+            action: Action::BlessTest {
+                package: "ew-api",
+                test: "it",
+                filter: Some("test(other)"),
+                env: "EW_BLESS",
+            },
+            ..*a
+        };
+        let k = step("keymaps");
+        let group = [a, &b, k];
+        assert_eq!(
+            shared_binary_steps(&group)
+                .iter()
+                .map(|s| s.name)
+                .collect::<Vec<_>>(),
+            ["query-snapshot", "query-other"]
+        );
+        let matched = set(&["ew-api::it", "ew-viewmodel::keymaps"]);
+        let own = BTreeMap::from([
+            ("query-snapshot", set(&["ew-api::it"])),
+            ("query-other", BTreeSet::new()),
+        ]);
+        let empty = steps_without_tests(&group, &matched, &own);
+        assert_eq!(empty, BTreeSet::from(["query-other"]));
+        // A missing own list counts as empty; a binary the group's list did not match is empty too.
+        assert_eq!(
+            steps_without_tests(&group, &set(&["ew-api::it"]), &BTreeMap::new()),
+            BTreeSet::from(["query-snapshot", "query-other", "keymaps"])
+        );
+        let run = GroupRun {
+            shown: "cargo nextest run",
+            success: true,
+            text: "",
+            root: "C:/work/ew",
+            check: true,
+        };
+        let lines: Vec<String> = group
+            .iter()
+            .zip(group_outcomes(&group, &empty, &run))
+            .map(|(s, o)| step_line(s, true, o, &[], &[]))
+            .collect();
+        assert_eq!(
+            lines,
+            [
+                "query-snapshot: unchanged",
+                "query-other: FAILED its filter `(binary_id(ew-api::it) & test(other))` matches no test",
+                "keymaps: unchanged",
+            ]
         );
     }
 

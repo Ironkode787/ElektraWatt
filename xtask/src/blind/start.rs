@@ -472,6 +472,16 @@ fn has_offscreen_adapter(run: &Run) -> bool {
     ok
 }
 
+/// The refusal of the `blind start` subcommand when the user guide is not built (FT-936).
+pub const NO_BOOK: &str =
+    "the user guide is not built: run `mdbook build docs/book` first, or pass --no-book to start without it";
+
+/// The `blind start` subcommand's refusal of a run without the built user guide (`target/book/index.html`), unless
+/// `--no-book` (`no_book`) asks for today's empty book folder. [`start`] and the self-tests do not ask.
+pub fn book_refusal(root: &Path, no_book: bool) -> Option<&'static str> {
+    (!no_book && !root.join("target/book/index.html").is_file()).then_some(NO_BOOK)
+}
+
 /// `start`: for a brief, the proof that the current build can complete it (`check-brief`); then the folder, and, unless
 /// `--stateless`, the keeper. A visual run needs an offscreen adapter.
 ///
@@ -599,6 +609,47 @@ mod tests {
                 assert!(!text.contains(word), "{rel}: {word}");
             }
         }
+    }
+
+    /// FT-936: the `blind start` subcommand refuses a run without the built user guide; `--no-book` starts it with
+    /// an empty book folder; a built guide is copied.
+    #[test]
+    fn the_start_subcommand_needs_the_built_guide_or_no_book() {
+        let tmp = Tmp::new("start-book");
+        let root = fake_repo(&tmp);
+        let out = tmp.0.join("runs");
+        let argv: Vec<String> = [
+            "start",
+            "--kind",
+            "free",
+            "--task",
+            "selftest",
+            "--run",
+            "b1",
+            "--out",
+            out.to_str().unwrap(),
+            "--stateless",
+        ]
+        .map(str::to_owned)
+        .to_vec();
+        let err = super::super::run(&argv, &root).unwrap_err();
+        assert_eq!(
+            format!("error: {err:#}"),
+            "error: the user guide is not built: run `mdbook build docs/book` first, or pass --no-book to start \
+             without it"
+        );
+        assert!(!out.join("b1").exists(), "a refused start writes no run folder");
+
+        assert_eq!(book_refusal(&root, true), None);
+        let run = prepare(&root, &args(&tmp, "b2"), &|_| Ok("0".to_owned())).unwrap();
+        assert!(std::fs::read_dir(run.path("book")).unwrap().next().is_none());
+
+        let index = root.join("target/book/index.html");
+        std::fs::create_dir_all(index.parent().unwrap()).unwrap();
+        std::fs::write(&index, "<html></html>\n").unwrap();
+        assert_eq!(book_refusal(&root, false), None);
+        let run = prepare(&root, &args(&tmp, "b3"), &|_| Ok("0".to_owned())).unwrap();
+        assert!(run.path("book/index.html").is_file());
     }
 
     #[test]

@@ -254,6 +254,8 @@ crate = "egui"
 feature = "inspection"
 allowed_kinds = []
 
+# `ew` declares no `test-confirm` feature: doc 18 §3.15's test-build confirmation hook is an injected terminal. The
+# ban stays as the guard doc 18 names for it, and CI-R-09's release assertions check it (ID-1082).
 [[banned_features]]
 crate = "ew"
 feature = "test-confirm"

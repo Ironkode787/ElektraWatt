@@ -275,6 +275,19 @@ pub fn check_shipping(
     v
 }
 
+/// The arguments of [`shipping_graph`]'s `cargo tree` call over `packages`: every target (`--target all`), normal
+/// and build edges, one `<package>|<features>` line per package.
+fn shipping_graph_args(packages: &[&str]) -> Vec<String> {
+    let mut args: Vec<String> = ["tree", "--locked", "--target", "all"]
+        .map(str::to_owned)
+        .to_vec();
+    for p in packages {
+        args.extend(["-p".to_owned(), (*p).to_owned()]);
+    }
+    args.extend(["-e", "normal,build", "--prefix", "none", "--format", "{p}|{f}"].map(str::to_owned));
+    args
+}
+
 /// The resolved graph of the shipped binaries for every target (`cargo tree --target all -e normal,build` over
 /// `packages`, C43-p2#7: a platform-gated dependency counts too), as a map
 /// of package name to its enabled features.
@@ -283,12 +296,7 @@ pub fn shipping_graph(
     packages: &[&str],
 ) -> anyhow::Result<BTreeMap<String, std::collections::BTreeSet<String>>> {
     let mut cmd = std::process::Command::new(crate::cargo());
-    cmd.current_dir(root)
-        .args(["tree", "--locked", "--target", "all"]);
-    for p in packages {
-        cmd.args(["-p", p]);
-    }
-    cmd.args(["-e", "normal,build", "--prefix", "none", "--format", "{p}|{f}"]);
+    cmd.current_dir(root).args(shipping_graph_args(packages));
     let output = cmd
         .output()
         .map_err(|e| anyhow::anyhow!("running `cargo tree`: {e}"))?;
@@ -1161,6 +1169,30 @@ mod tests {
                 "uniform test feature: the test build of `ew-ui` reaches `ew-commands` without its feature \
               `testkit`; add `ew-commands = { path = \"../ew-commands\", features = [\"testkit\"] }` under \
               `[dev-dependencies]` in crates/ew-ui/Cargo.toml"
+            ]
+        );
+    }
+
+    /// FT-1011: the shipping graph's `cargo tree` covers every target (`--target all`) and no dev edge.
+    #[test]
+    fn the_shipping_graph_command_covers_every_target() {
+        assert_eq!(
+            shipping_graph_args(&["elektrawatt", "ew"]),
+            [
+                "tree",
+                "--locked",
+                "--target",
+                "all",
+                "-p",
+                "elektrawatt",
+                "-p",
+                "ew",
+                "-e",
+                "normal,build",
+                "--prefix",
+                "none",
+                "--format",
+                "{p}|{f}",
             ]
         );
     }

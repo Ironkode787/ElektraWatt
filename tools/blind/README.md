@@ -37,7 +37,8 @@ navigator, pointing (`canvas.pointer`, `canvas.dwell`), the grid cursor, `tool.s
    `gap` "not in this run") starts a run in `<temp>/ew-blind/gpp-r1/` (outside the repository; `--out` names another folder) with copies of the
    harness, the product binaries, the guide and the starter content, an empty sample folder, and a keeper (a loopback
    process of the copied harness; `--stateless` for agent shells that block loopback or kill detached processes). It
-   prints the path of `prompt.md` and of the agent's command.
+   prints the path of `prompt.md` and of the agent's command. Without the built guide (`target/book/index.html`) it
+   refuses; `--no-book` starts the run with an empty book folder.
 3. Start one agent (Sonnet) with `<run>/prompt.md` as its whole instruction and its working directory at `<run>/`.
    Permission rules **allow** only running `<run>/bin/xtask blind ...` and reading `<run>/prompt.md` and `<run>/book/**`,
    and **deny** everything else: the repository, `<run>/.harness/`, `<run>/work/`, `<run>/config/`, other runs, file
