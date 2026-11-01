@@ -827,6 +827,20 @@ fn lp4_the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record()
         (printed(plate).width().0 - 130_000_000).abs() <= 1,
         "130 mm printed"
     );
+    drop(q);
+    // FT-881: a stored scale of 0 draws at 1:1 and prints the plain title, with neither the suffix nor the scale.
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "page", "path": "scale", "targets": [id_json(page("902"))], "value": {"one_to": 0}}),
+    );
+    let q = s.query();
+    let frame = texts(&layer(&q, "902", Layer::Frame));
+    assert!(frame.contains(&"Cabinet Layout".to_owned()), "{frame:?}");
+    assert!(
+        !frame.iter().any(|t| t.contains("Scale") || t.contains("1:0")),
+        "{frame:?}"
+    );
 }
 
 /// The re-executions of the layer families in the statistics of the last commit.

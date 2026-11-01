@@ -198,21 +198,26 @@ fn project_scope(out: &mut Out, q: &Q, project: &Project) {
     }
 }
 
-/// The title-block title of a page drawn to scale 1:n (WP-S4.01 D9): `"<title> · Scale 1:n"` in every language of the
-/// title, `"Scale 1:n"` for an empty title.
+/// The title-block title of a page drawn to scale 1:n (WP-S4.01 D9): `"<title> · <Scale> 1:n"` in every language of
+/// the title, `"<Scale> 1:n"` for an empty title. The word follows each language entry's primary subtag: "Schaal" for
+/// `nl`, else "Scale" (a neutral title too; FT-881, ID-1080).
 fn scaled_title(title: &MlText, n: u32) -> MlText {
-    let suffix = format!("Scale 1:{n}");
-    let with = |t: &str| {
-        if t.is_empty() {
-            suffix.clone()
+    let with = |lang: &str, t: &str| {
+        let word = if lang.eq_ignore_ascii_case("nl") {
+            "Schaal"
         } else {
-            format!("{t} · {suffix}")
+            "Scale"
+        };
+        if t.is_empty() {
+            format!("{word} 1:{n}")
+        } else {
+            format!("{t} · {word} 1:{n}")
         }
     };
     match title.view() {
-        ew_mltext::MlTextView::Neutral(t) => MlText::neutral(&with(t)),
+        ew_mltext::MlTextView::Neutral(t) => MlText::neutral(&with("", t)),
         ew_mltext::MlTextView::Langs(m) => {
-            MlText::from_langs(m.iter().map(|(tag, t)| (tag.clone(), with(t))))
+            MlText::from_langs(m.iter().map(|(tag, t)| (tag.clone(), with(tag.language(), t))))
         }
     }
 }
@@ -288,11 +293,16 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
         PageRef::Divider(_) | PageRef::Generated { .. } => None,
     };
     // WP-S4.01 D9 (FR-LAY-010): a page drawn to a scale 1:n prints "<title> · Scale 1:n" in its title block; the
-    // TOC keeps the plain title (it reads `PageTitle`), and a not-to-scale page is unchanged.
+    // TOC keeps the plain title (it reads `PageTitle`), and a not-to-scale page is unchanged. A stored scale of 0 draws
+    // at 1:1, so it prints neither the suffix nor `page.scale` (FT-881).
     let title = q.get::<PageTitle>(page);
-    match drawn.map(|p| &p.scale) {
-        Some(Scale::OneTo(n)) => out.ml("page.title", &scaled_title(&title, *n)),
-        _ => out.ml("page.title", &title),
+    let scale = match drawn.map(|p| &p.scale) {
+        Some(Scale::OneTo(n)) if *n > 0 => Some(*n),
+        _ => None,
+    };
+    match scale {
+        Some(n) => out.ml("page.title", &scaled_title(&title, n)),
+        None => out.ml("page.title", &title),
     }
 
     // The description: the page's override, else the project description (doc 09 §2.7).
@@ -300,7 +310,7 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
         Some(o) if !o.is_empty() => out.ml("page.description", o),
         _ => out.ml("page.description", &project.master.description),
     }
-    if let Some(Scale::OneTo(n)) = drawn.map(|p| &p.scale) {
+    if let Some(n) = scale {
         out.text("page.scale", &format!("1:{n}"));
     }
 
@@ -519,6 +529,17 @@ mod tests {
         let title = MlText::from_langs([(en.clone(), "Cabinet Layout"), (nl.clone(), "Kastindeling")]);
         let scaled = scaled_title(&title, 10);
         assert_eq!(scaled.get(&en), Some("Cabinet Layout · Scale 1:10"));
-        assert_eq!(scaled.get(&nl), Some("Kastindeling · Scale 1:10"));
+        assert_eq!(scaled.get(&nl), Some("Kastindeling · Schaal 1:10"));
+    }
+
+    /// FT-881: the word follows each entry's primary subtag ("Schaal" for `nl`, else "Scale").
+    #[test]
+    fn the_scale_word_follows_each_language() {
+        let nl: LangTag = "nl".parse().expect("a tag");
+        let de: LangTag = "de-DE".parse().expect("a tag");
+        let title = MlText::from_langs([(nl.clone(), "Kastindeling"), (de.clone(), "Schaltschrank")]);
+        let scaled = scaled_title(&title, 10);
+        assert_eq!(scaled.get(&nl), Some("Kastindeling · Schaal 1:10"));
+        assert_eq!(scaled.get(&de), Some("Schaltschrank · Scale 1:10"));
     }
 }

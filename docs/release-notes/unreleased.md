@@ -62,3 +62,11 @@ SPDX-License-Identifier: CC-BY-4.0
   "901 Partlist 1"; P-1)
 - text-change: window Export PDF of the same file again (the toast says "Exported out.pdf again: 36 pages, … KiB";
   P-2)
+- text-change: cli the read-only refusal of a project in another format (prints the reason it carries: "it was
+  written by a newer major format" or "it was written by a development build with an unreleased format", for "it was
+  written by a newer format"; a lock record's text prints the Unicode bidirectional controls escaped as `\u{202e}`;
+  FT-943)
+- text-change: window read-only reason of a project in another format ("a file format this version does not write",
+  for "a newer file format"; FT-943)
+- text-change: title block of a page drawn to scale (a Dutch title prints "Schaal", such as "Kastindeling · Schaal
+  1:10", every other language "Scale"; a stored scale of 0 prints the plain title and no scale; FT-881)

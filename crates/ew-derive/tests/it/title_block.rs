@@ -175,6 +175,16 @@ fn scale_prints_one_to_n() {
     fx.record(PAGE103)["scale"] = json!({"one_to": 10});
     let tb = block(&fx, PageRef::Drawn(id(PAGE103)));
     assert_eq!(tb.get("page.scale"), Some(&text("1:10")));
+    let scaled = tb.get("page.title").cloned();
+
+    // FT-881: a stored scale of 0 draws at 1:1: no `page.scale`, and the plain title.
+    fx.record(PAGE103)["scale"] = json!({"one_to": 0});
+    let tb = block(&fx, PageRef::Drawn(id(PAGE103)));
+    assert_eq!(tb.get("page.scale"), None);
+    fx.record(PAGE103).as_object_mut().unwrap().remove("scale");
+    let plain = block(&fx, PageRef::Drawn(id(PAGE103)));
+    assert_eq!(tb.get("page.title"), plain.get("page.title"));
+    assert_ne!(tb.get("page.title").cloned(), scaled);
 }
 
 #[test]
