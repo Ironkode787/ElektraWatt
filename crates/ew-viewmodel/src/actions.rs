@@ -1012,7 +1012,7 @@ fn selection_editable(m: &ShellModel) -> Result<(), &'static str> {
 
 use ActionKind::{Command, View};
 
-// map: actions: a new action is one ACTIONS entry naming its handler; its label is the text key action-<id, . and _ as ->.
+// map: actions: a new action goes in ACTIONS as one entry naming its handler; its label key is action-<id, . and _ as ->.
 /// The registry: the part-1 actions of the spec, section 5.2, in menu order, then the headless-only ones.
 pub static ACTIONS: &[ActionMeta] = &[
     with_params(
