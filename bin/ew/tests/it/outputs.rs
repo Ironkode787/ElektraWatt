@@ -441,8 +441,9 @@ fn report_refuses_xlsx_and_an_unknown_block() {
 // WP-S3.06 part 1: `ew export report --kind <kind>` (D4), the revision overview's changed pages (D11), the block
 // parameters on save (D9)
 
-/// The kinds with a golden CSV written by the export by kind (`crates/ew-api/tests/it/report_kinds.rs` blesses them):
-/// the registered kinds with a file `expected/csv/<kind>.csv`, read as that test reads them.
+/// The kinds with a golden CSV written by the export by kind: the registered kinds with a file
+/// `expected/csv/<kind>.csv`. `crates/ew-api/tests/it/report_kinds.rs` blesses them and fails when a kind the export
+/// derives has no file and is not pending, so a deleted file fails there rather than shrinking this set unseen.
 fn kind_csvs() -> Vec<&'static str> {
     let dir = Path::new(EXPECTED).join("csv");
     let kinds: Vec<&'static str> = ew_api::output::report_kinds()

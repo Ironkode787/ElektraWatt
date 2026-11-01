@@ -218,18 +218,21 @@ pub(crate) struct Diff {
 /// and the shipped content.
 pub(crate) const GUARDED_ROOTS: [&str; 3] = ["golden/", "schemas/0.1/", "content/"];
 
-/// Whether `text` names the repository root `root` (`golden/`) as a path: `"golden/`, `/golden/`, `"golden"` or
-/// `/golden"`.
+/// Whether `text` names the repository root `root` as a path: a literal that starts with it or holds it after a `/`
+/// (`"golden/x`, `"../../golden/x`, `"../../golden"`, `"schemas/0.1"`), or a path join of its first directory:
+/// `join("golden")` for a one-directory root, `"../../schemas")` (a parent-relative join, then the rest of the path) for a deeper one, so
+/// that a crate's own `join("schemas")` does not count. A bare word in a string (`Fixed("golden")`) is no path.
 fn names_root(text: &str, root: &str) -> bool {
     let bare = root.trim_end_matches('/');
-    [
-        format!("\"{bare}/"),
-        format!("/{bare}/"),
-        format!("\"{bare}\""),
-        format!("/{bare}\""),
-    ]
-    .iter()
-    .any(|p| text.contains(p.as_str()))
+    let mut patterns = vec![format!("\"{bare}/"), format!("/{bare}/"), format!("/{bare}\"")];
+    match bare.split_once('/') {
+        None => patterns.push(format!("join(\"{bare}\")")),
+        Some((first, _)) => {
+            patterns.push(format!("\"{bare}\""));
+            patterns.push(format!("/{first}\")"));
+        }
+    }
+    patterns.iter().any(|p| text.contains(p.as_str()))
 }
 
 /// For each of `roots`, the members whose tracked `.rs` files (`files`, with their text from `read`) name it; `xtask`
@@ -1484,6 +1487,20 @@ mod tests {
                 r#"concat!(env!("CARGO_MANIFEST_DIR"), "/../../schemas/0.1/x")"#,
             ),
             ("bin/ew/tests/it/b.rs", r#"root.join("content").join("x")"#),
+            // ew-schema's form: a parent-relative join, then the format version as a constant.
+            (
+                "crates/ew-leaf/tests/it/schemas.rs",
+                r#"dir.join("../../schemas").join(FORMAT)"#,
+            ),
+            // A word in a string literal and a crate's own `schemas` directory are no repository roots.
+            (
+                "crates/ew-model/src/lib.rs",
+                r#"Fixed("golden"); overrides_with = "content""#,
+            ),
+            (
+                "crates/ew-commands/tests/schemas.rs",
+                r#"PathBuf::from(dir).join("schemas")"#,
+            ),
             ("xtask/src/lane_check.rs", r#""golden/""#),
         ]
         .into_iter()
@@ -1495,7 +1512,7 @@ mod tests {
             found,
             [
                 ("golden/", set(&["ew-api"])),
-                ("schemas/0.1/", set(&["ew-format"])),
+                ("schemas/0.1/", set(&["ew-format", "ew-leaf"])),
                 ("content/", set(&["ew"])),
             ]
             .into_iter()

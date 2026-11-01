@@ -297,13 +297,12 @@ pub fn row_export(q: &Q, what: &RowExport, block: Option<&str>) -> Result<RowsCs
     }
 }
 
-/// The whole-project rows of the registered kind `name` (WP-S3.06 D4).
-/// The registered report kinds of this build, in name order: the names [`RowExport::Kind`] takes (the golden kind
-/// CSVs of the tests are those of these kinds that have a file).
+/// The registered report kinds of this build, in name order: the names [`RowExport::Kind`] takes.
 pub fn report_kinds() -> Vec<&'static str> {
     Registry::builtin().names().collect()
 }
 
+/// The whole-project rows of the registered kind `name` (WP-S3.06 D4).
 fn kind_rows(q: &Q, name: &str) -> Result<RowsCsv, RowsError> {
     let registry = Registry::builtin();
     let Some(def) = registry.by_name(name) else {

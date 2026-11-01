@@ -1495,6 +1495,13 @@ fn format_kind_page(entry: &Value, schema: &Value) -> String {
 fn crate_table(text: &str) -> Result<String> {
     let policy = crate::deps::Policy::parse(text).with_context(|| format!("parsing {DEP_RULES}"))?;
     let order = crate::deps::crate_table_order(text);
+    // The row order comes from the header lines: a table written another way would drop its row unseen.
+    if let Some(name) = policy.crates.keys().find(|k| !order.contains(k)) {
+        bail!(
+            "{DEP_RULES}: the [crates] table of `{name}` needs the header line [crates.\"{name}\"] alone (the row order \
+             is read from those lines)"
+        );
+    }
     let layers = &policy.layers;
     let mut out = format!(
         "{}\n| Crate | Layer | Responsibility | Key dependencies |\n|---|---|---|---|\n",
@@ -1507,10 +1514,30 @@ fn crate_table(text: &str) -> Result<String> {
         let at = format!("{DEP_RULES}: [crates.\"{name}\"]");
         if let Some(head) = &row.row {
             let joins = policy.crates.get(head).is_some_and(|h| h.row.is_none());
-            if !joins || row.responsibility.is_some() || row.key_deps.is_some() || row.crate_note.is_some() {
+            let cells = row.responsibility.is_some()
+                || row.key_deps.is_some()
+                || row.crate_note.is_some()
+                || row.layer_note.is_some();
+            if !joins || cells {
                 bail!(
                     "{at} shares the row of `{head}`: that crate needs a row of its own, and this table no cells"
                 );
+            }
+            // The row's Layer cell is the head's: a joined crate must sit in the same layer.
+            let layer_of = |n: &str, r: &crate::deps::CrateRow| {
+                r.planned_layer.clone().or_else(|| {
+                    if layers.permissive.iter().any(|l| l == n) {
+                        Some("P".to_owned())
+                    } else if layers.gpl.iter().any(|l| l == n) {
+                        Some("GPL".to_owned())
+                    } else {
+                        None
+                    }
+                })
+            };
+            let planned = |n: &str| layers.planned.iter().any(|p| p == n);
+            if layer_of(name, row) != layer_of(head, &policy.crates[head]) || planned(name) != planned(head) {
+                bail!("{at} shares the row of `{head}` but not its layer");
             }
             continue;
         }
@@ -2273,6 +2300,27 @@ row = "g-worker"
             "ci/dep-rules.toml: [crates.\"g-helper\"] shares the row of `g-viewer`: that crate needs a row of its own, \
              and this table no cells"
         );
+        assert_eq!(
+            refusal("row = \"g-worker\"", "row = \"g-worker\"\nplanned_layer = \"P\""),
+            "ci/dep-rules.toml: [crates.\"g-helper\"] shares the row of `g-worker` but not its layer"
+        );
+        assert_eq!(
+            refusal("row = \"g-worker\"", "row = \"g-worker\"\nlayer_note = \"(x)\""),
+            "ci/dep-rules.toml: [crates.\"g-helper\"] shares the row of `g-worker`: that crate needs a row of its own, \
+             and this table no cells"
+        );
+        for header in [
+            "[crates.g-helper]",
+            "[crates.'g-helper']",
+            "[crates.\"g-helper\"] # shares a row",
+        ] {
+            assert_eq!(
+                refusal("[crates.\"g-helper\"]", header),
+                "ci/dep-rules.toml: the [crates] table of `g-helper` needs the header line [crates.\"g-helper\"] \
+                 alone (the row order is read from those lines)",
+                "{header}"
+            );
+        }
         assert_eq!(
             refusal("key_deps = \"serde\"\n", ""),
             "ci/dep-rules.toml: [crates.\"p-units\"] needs responsibility and key_deps"
