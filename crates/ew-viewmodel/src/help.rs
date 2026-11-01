@@ -11,7 +11,9 @@
 //! `help.documentation`).
 //!
 //! The anchors are checked against the book by the tests of this module: the page exists, it is in `SUMMARY.md`
-//! and has a heading whose id is the fragment (NFR-DOC-01).
+//! and has a heading whose id is the fragment (NFR-DOC-01). The reference pages are built, not committed, so an
+//! anchor into them is checked against the contract file the page is built from (the command index, the rule
+//! catalogue), with the page and anchor rule of `cargo xtask docs-gen`.
 
 use crate::shell::{Dialog, ShellModel};
 
@@ -176,6 +178,7 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
 }
 
 // WP-S2.09 part 2
+// map: reference-rules-anchor: a new rule page or anchor rule goes here, as docs_gen.rs gives it.
 /// The page and heading of a shipped rule in the book (§7.3): `reference/rules/<pack in lower case>.md` and the rule ID
 /// in lower case (`reference/rules/ew-core.md`, `ew-core-033`); `None` for a rule this build does not ship.
 pub fn rule_page(rule: &str) -> Option<(String, String)> {
@@ -211,6 +214,39 @@ mod tests {
     use super::*;
 
     const BOOK_SRC: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/book/src");
+    /// The command index that the built command pages render.
+    const COMMAND_INDEX: &str = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../crates/ew-commands/schemas/index.json"
+    );
+    /// The rule catalogue that the built rule pages render.
+    const RULE_CATALOGUE: &str = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../crates/ew-checks/catalogue/rules.json"
+    );
+    /// The built directory of the command pages.
+    const COMMANDS_DIR: &str = "reference/commands/";
+
+    // map: reference-commands-page: a new command page rule goes here, as docs_gen.rs gives it.
+    /// The built page of a command, below `docs/book/src`.
+    fn command_page(name: &str) -> String {
+        format!("{COMMANDS_DIR}{name}.md")
+    }
+
+    fn read_json(path: &str) -> serde_json::Value {
+        let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{path}: {e}"));
+        serde_json::from_str(&text).unwrap_or_else(|e| panic!("{path}: {e}"))
+    }
+
+    /// The names of the commands of the command index.
+    fn command_names() -> Vec<String> {
+        let index = read_json(COMMAND_INDEX);
+        let commands = index["commands"].as_array().expect("a `commands` list");
+        commands
+            .iter()
+            .map(|c| c["name"].as_str().expect("a command name").to_owned())
+            .collect()
+    }
 
     /// The mdBook id of a heading line: lower case, words joined by `-`, punctuation dropped.
     fn heading_id(text: &str) -> String {
@@ -235,12 +271,26 @@ mod tests {
     #[test]
     fn every_anchor_resolves_in_the_book() {
         let summary = std::fs::read_to_string(Path::new(BOOK_SRC).join("SUMMARY.md")).expect("SUMMARY.md");
+        let commands = command_names();
+        assert!(!commands.is_empty());
         for a in ANCHORS {
-            let path = Path::new(BOOK_SRC).join(a.page);
-            let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", a.page));
             if a.page != "introduction.md" {
                 assert!(summary.contains(a.page), "{} is not in SUMMARY.md", a.page);
             }
+            // A built command page: the index always, a command's page when the index lists the command; neither
+            // has a heading an anchor names.
+            if a.page.starts_with(COMMANDS_DIR) {
+                let index = format!("{COMMANDS_DIR}index.md");
+                assert!(
+                    a.page == index || commands.iter().any(|c| command_page(c) == a.page),
+                    "{}: no command of the index has this page",
+                    a.page
+                );
+                assert_eq!(a.fragment, "", "{}", a.page);
+                continue;
+            }
+            let path = Path::new(BOOK_SRC).join(a.page);
+            let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", a.page));
             if !a.fragment.is_empty() {
                 let found = text
                     .lines()
@@ -261,24 +311,24 @@ mod tests {
         }
     }
 
-    /// WP-S2.09 MS4: every shipped rule has its page in `SUMMARY.md` and a heading with its ID on that page.
+    /// WP-S2.09 MS4: every shipped rule has its page in `SUMMARY.md`, and the rule catalogue that the built rule
+    /// pages render holds the rule in the same pack, so its page has a heading with its ID (docs-gen's rule).
     #[test]
     fn every_shipped_rule_has_its_anchor_in_the_book() {
         let summary = std::fs::read_to_string(Path::new(BOOK_SRC).join("SUMMARY.md")).expect("SUMMARY.md");
+        let catalogue = read_json(RULE_CATALOGUE);
+        let entries = catalogue["rules"].as_array().expect("a `rules` list");
         let rules = ew_api::checks::rules();
         assert!(!rules.is_empty());
         for r in rules {
-            let id = r.meta().id;
-            let (page, fragment) = rule_page(id).expect("a shipped rule");
+            let meta = r.meta();
+            let (page, _) = rule_page(meta.id).expect("a shipped rule");
             assert!(summary.contains(&page), "{page} is not in SUMMARY.md");
-            let text = std::fs::read_to_string(Path::new(BOOK_SRC).join(&page))
-                .unwrap_or_else(|e| panic!("{page}: {e}"));
-            let found = text
-                .lines()
-                .filter_map(|l| l.strip_prefix('#'))
-                .map(|l| heading_id(l.trim_start_matches('#')))
-                .any(|h| h == fragment);
-            assert!(found, "{page}: no heading with the id `{fragment}`");
+            let entry = entries
+                .iter()
+                .find(|e| e["id"].as_str() == Some(meta.id))
+                .unwrap_or_else(|| panic!("{}: not in the rule catalogue", meta.id));
+            assert_eq!(entry["pack"].as_str(), Some(meta.pack), "{}", meta.id);
         }
         assert_eq!(
             rule_page("EW-CORE-033"),

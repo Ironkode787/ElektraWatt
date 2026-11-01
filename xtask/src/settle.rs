@@ -176,16 +176,6 @@ const BLIND_REFERENCE: &str = "tools/blind/reference/**";
 const CLI_SNAPSHOT: &str = "bin/ew/api/cli.json";
 const API_V1_SNAPSHOT: &str = "crates/ew-sqlview/api/api_v1.json";
 const QUERY_SNAPSHOT: &str = "crates/ew-api/api/queries.json";
-const BOOK_PAGES: [&str; 8] = [
-    "docs/book/src/reference/commands/**",
-    "docs/book/src/reference/rules/**",
-    "docs/book/src/reference/glossary.md",
-    "docs/book/src/reference/keymaps.md",
-    "docs/book/src/reference/cli/**",
-    "docs/book/src/reference/queries.md",
-    "docs/book/src/reference/api-v1.md",
-    "docs/book/src/reference/format/**",
-];
 const BOOK_SUMMARY: &str = "docs/book/src/SUMMARY.md";
 /// The architecture document whose crate table docs-gen writes from `ci/dep-rules.toml` (RD43 R18a).
 const ARCHITECTURE: &str = "docs/design/04-architecture.md";
@@ -370,18 +360,9 @@ pub(crate) const STEPS: &[Step] = &[
             ARCHITECTURE,
         ],
         deps_of: &[],
-        outputs: &[
-            BOOK_PAGES[0],
-            BOOK_PAGES[1],
-            BOOK_PAGES[2],
-            BOOK_PAGES[3],
-            BOOK_PAGES[4],
-            BOOK_PAGES[5],
-            BOOK_PAGES[6],
-            BOOK_PAGES[7],
-            BOOK_SUMMARY,
-            ARCHITECTURE,
-        ],
+        // The reference pages it writes are built, not committed (the root `.gitignore`): only `SUMMARY.md` and
+        // doc 04's crate table are outputs.
+        outputs: &[BOOK_SUMMARY, ARCHITECTURE],
         partial: &[BOOK_SUMMARY, ARCHITECTURE],
         reads: &[],
         action: Action::Xtask(crate::docs_gen::run),

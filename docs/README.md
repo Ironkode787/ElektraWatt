@@ -127,9 +127,10 @@ The full list is in [glossary §3](design/glossary.md#3-identifier-schemes). The
 - **Decisions** go into ADRs ([how to add one](adr/README.md#how-to-add-an-adr)); open questions stay in the "Open
   questions" sections and in [decision log](plan/06-decision-log.md) Part B. After the first binary release, larger
   changes go through RFCs ([governance](design/19-open-source-governance.md) §3.4).
-- **Generated book pages** (`book/src/reference/commands/`, `book/src/reference/rules/` and their `SUMMARY.md`
-  entries) are written by `cargo xtask docs-gen` and checked with `--check` in `cargo xtask ci` and the `docs-book`
-  job ([18](design/18-quality-security-release.md) §5.5).
+- **Generated book pages** (`book/src/reference/commands/`, `rules/`, `cli/`, `format/` and the glossary, keymap,
+  query and `api_v1` pages) are built, not committed: run `cargo xtask docs-gen`, then `mdbook build docs/book`. Their
+  `SUMMARY.md` entries are committed and checked with `docs-gen --check` in `cargo xtask ci` and the `docs-book` job
+  ([18](design/18-quality-security-release.md) §5.5).
 - **Generated plan files** are written by scripts and checked in CI with `--check`; never edit text between
   `<!-- generated:NAME -->` markers by hand. See [plan/README](plan/README.md).
 - **Mechanical checks:** `python3 -I docs/plan/tools/doccheck.py` verifies links and anchors, table columns, WP IDs and gate IDs.

@@ -24,8 +24,11 @@ belongs there.
 The book builds offline: it uses no plugin, and nothing is fetched at build time. CI builds it with mdBook 0.5.4 (the
 version and the checksum of the release archive are pinned in `.github/workflows/docs.yml`, job `docs-book`).
 
+Run `cargo xtask docs-gen`, then `mdbook build docs/book`: the reference pages are built, not committed, so the
+book does not build without them.
+
 ```console
-$ cargo xtask docs-gen --check                  # the generated pages are current
+$ cargo xtask docs-gen                          # builds the reference pages and updates src/SUMMARY.md
 $ mdbook build docs/book                        # writes target/book
 $ python3 -I ci/check-book-links.py target/book  # every link of the built pages resolves
 ```
@@ -36,8 +39,10 @@ $ python3 -I ci/check-book-links.py target/book  # every link of the built pages
 
 `cargo xtask docs-gen` writes `src/reference/commands/` (one page per command, from the parameter schemas in
 `crates/ew-commands/schemas/`) and `src/reference/rules/` (one page per rule pack, from the rule catalogue snapshot
-`crates/ew-checks/catalogue/rules.json`), and regenerates the matching entries of `src/SUMMARY.md`. The pages are
-committed. `cargo xtask docs-gen --check` fails when one differs from its source; it also runs in `cargo xtask ci`.
+`crates/ew-checks/catalogue/rules.json`), the CLI, query, `api_v1`, format, glossary and keymap references, and
+regenerates the matching entries of `src/SUMMARY.md`. The pages are built, not committed: the root `.gitignore` names
+them, and the contract files they render stay committed. `SUMMARY.md` is committed; `cargo xtask docs-gen --check`
+fails when it differs from the sources, and it also runs in `cargo xtask ci`.
 
 When a command or a rule changes, regenerate the sources first, then the pages:
 

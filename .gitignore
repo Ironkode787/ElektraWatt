@@ -11,6 +11,18 @@
 **/*.rs.bk
 .DS_Store
 
+# The book's generated reference pages: built, not committed. `cargo xtask docs-gen` writes them from the committed
+# contract files (command and result schemas, rule catalogue, keymap sheet, glossary, CLI, query and api_v1 snapshots,
+# format schemas); a test of xtask keeps this block equal to the generated directories and pages of docs_gen.rs.
+/docs/book/src/reference/commands/
+/docs/book/src/reference/rules/
+/docs/book/src/reference/cli/
+/docs/book/src/reference/format/
+/docs/book/src/reference/glossary.md
+/docs/book/src/reference/keymaps.md
+/docs/book/src/reference/queries.md
+/docs/book/src/reference/api-v1.md
+
 # Claude Code agent worktrees (local only)
 .claude/worktrees/
 

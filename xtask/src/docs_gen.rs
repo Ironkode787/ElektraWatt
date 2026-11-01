@@ -21,11 +21,12 @@
 //! - the `[crates]` tables of `ci/dep-rules.toml` give the crate table of `docs/design/04-architecture.md` §3, written
 //!   between its `<!-- generated:crate-table -->` markers (RD43 R18a), the one generated part outside the book.
 //!
-//! The generated pages are committed. `docs-gen --check` changes nothing and fails when a committed page
-//! differs, is missing or is stale, like `symbols-qet10 --check`. The four lists of generated entries in
-//! `docs/book/src/SUMMARY.md` are rewritten too: every line that links into `reference/commands/`,
-//! `reference/rules/`, `reference/cli/` or `reference/format/` (the index pages excepted) is regenerated below the line
-//! that links the index page.
+//! The generated pages are built, not committed: the root `.gitignore` names them (a test keeps its block equal to
+//! [`GENERATED_DIRS`] and [`GENERATED_PAGES`]), and the contract files they render stay committed. `docs-gen` writes
+//! them and removes a stale one. The four lists of generated entries in `docs/book/src/SUMMARY.md` are rewritten
+//! too: every line that links into `reference/commands/`, `reference/rules/`, `reference/cli/` or
+//! `reference/format/` (the index pages excepted) is regenerated below the line that links the index page.
+//! `SUMMARY.md` stays committed, so `docs-gen --check` changes nothing and fails only when it differs.
 //!
 //! The pages hold what the sources hold: a command's description, registry entry and parameter types; a rule's
 //! ID, code, title, pack, kind, modes, severities, scope, supersessions and scheme membership. Message templates,
@@ -85,6 +86,8 @@ const CRATE_TABLE_END: &str = "<!-- /generated:crate-table -->";
 /// The directories whose pages are all generated: a page no source gives is stale, and `SUMMARY.md` lists their pages
 /// below the line that links their index page.
 const GENERATED_DIRS: [&str; 4] = [COMMANDS_DIR, RULES_DIR, CLI_DIR, FORMAT_DIR];
+/// The generated single pages outside [`GENERATED_DIRS`].
+const GENERATED_PAGES: [&str; 4] = [GLOSSARY_PAGE, KEYMAPS_PAGE, QUERIES_PAGE, API_V1_PAGE];
 /// The book's table of contents, relative to [`BOOK_SRC`].
 const SUMMARY: &str = "SUMMARY.md";
 /// Where repository files are linked from the book (not relative: the built book holds no design documents).
@@ -136,9 +139,9 @@ impl Generated {
 struct Plan {
     /// Page path relative to [`BOOK_SRC`] to its wanted text, `SUMMARY.md` included.
     wanted: BTreeMap<String, String>,
-    /// The pages whose committed text differs or is missing.
+    /// The pages whose text on disk differs or is missing.
     differing: Vec<String>,
-    /// The committed pages in the generated directories that no source gives.
+    /// The pages on disk in the generated directories that no source gives.
     stale: Vec<String>,
     /// The documents outside the book with a generated part (relative to the root) whose text differs, with their
     /// wanted text.
@@ -154,26 +157,7 @@ fn plan(root: &Path) -> Result<Plan> {
     let summary =
         read_lf(&summary_path)?.with_context(|| format!("{} is missing", summary_path.display()))?;
     wanted.insert(SUMMARY.to_owned(), rewrite_summary(&summary, &generated.lists())?);
-
-    let mut differing = Vec::new();
-    for (rel, text) in &wanted {
-        if read_lf(&root.join(BOOK_SRC).join(rel))?.as_deref() != Some(text.as_str()) {
-            differing.push(rel.clone());
-        }
-    }
-    let mut stale = Vec::new();
-    for dir in GENERATED_DIRS {
-        let Ok(entries) = std::fs::read_dir(root.join(BOOK_SRC).join(dir)) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            let rel = format!("{dir}/{}", entry.file_name().to_string_lossy());
-            if !wanted.contains_key(&rel) {
-                stale.push(rel);
-            }
-        }
-    }
-    stale.sort();
+    let (differing, stale) = compare(root, &wanted)?;
     let mut partial = Vec::new();
     let doc = read_lf(&root.join(ARCHITECTURE))?.with_context(|| format!("{ARCHITECTURE} is missing"))?;
     let policy = read_lf(&root.join(DEP_RULES))?.with_context(|| format!("{DEP_RULES} is missing"))?;
@@ -193,18 +177,53 @@ fn plan(root: &Path) -> Result<Plan> {
     })
 }
 
-/// The violations of `docs-gen --check` (NFR-DOC-06): one per page that differs, is missing or is stale.
-fn violations_of(plan: &Plan) -> Vec<String> {
-    let differing = plan
-        .differing
+/// The wanted pages whose text on disk under `root` differs or is missing, and the pages on disk in the generated
+/// directories that `wanted` does not hold.
+fn compare(root: &Path, wanted: &BTreeMap<String, String>) -> Result<(Vec<String>, Vec<String>)> {
+    let mut differing = Vec::new();
+    for (rel, text) in wanted {
+        if read_lf(&root.join(BOOK_SRC).join(rel))?.as_deref() != Some(text.as_str()) {
+            differing.push(rel.clone());
+        }
+    }
+    let mut stale = Vec::new();
+    for dir in GENERATED_DIRS {
+        let Ok(entries) = std::fs::read_dir(root.join(BOOK_SRC).join(dir)) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let rel = format!("{dir}/{}", entry.file_name().to_string_lossy());
+            if !wanted.contains_key(&rel) {
+                stale.push(rel);
+            }
+        }
+    }
+    stale.sort();
+    Ok((differing, stale))
+}
+
+/// Whether a page (relative to [`BOOK_SRC`]) is built, not committed: in a generated directory, or a generated
+/// single page.
+fn is_built(rel: &str) -> bool {
+    GENERATED_PAGES.contains(&rel)
+        || GENERATED_DIRS
+            .iter()
+            .any(|dir| rel.strip_prefix(dir).is_some_and(|rest| rest.starts_with('/')))
+}
+
+/// The violations of `docs-gen --check` (NFR-DOC-06): one per committed page (`SUMMARY.md`) that differs or is
+/// missing, per committed page in a generated directory that no source gives, and per document outside the book
+/// whose generated part differs. The built pages are not committed, so an absent or old one is no violation.
+fn violations_of(differing: &[String], stale: &[String], partial: &[(String, String)]) -> Vec<String> {
+    let differing = differing
         .iter()
+        .filter(|rel| !is_built(rel))
         .map(|rel| format!("{BOOK_SRC}/{rel} differs; run `cargo xtask docs-gen`"));
-    let stale = plan
-        .stale
+    let stale = stale
         .iter()
+        .filter(|rel| !is_built(rel))
         .map(|rel| format!("{BOOK_SRC}/{rel} is stale (no source); run `cargo xtask docs-gen`"));
-    let partial = plan
-        .partial
+    let partial = partial
         .iter()
         .map(|(rel, _)| format!("{rel}: its generated part differs; run `cargo xtask docs-gen`"));
     differing.chain(stale).chain(partial).collect()
@@ -213,7 +232,8 @@ fn violations_of(plan: &Plan) -> Vec<String> {
 /// The violations of `docs-gen --check` for the repository at `root`: the generated pages, and the work-package
 /// counts that the plan states by hand (`plan_counts.rs`).
 pub(crate) fn violations(root: &Path) -> Result<Vec<String>> {
-    let mut found = violations_of(&plan(root)?);
+    let plan = plan(root)?;
+    let mut found = violations_of(&plan.differing, &plan.stale, &plan.partial);
     found.extend(crate::plan_counts::violations(root)?);
     Ok(found)
 }
@@ -224,7 +244,7 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     // The plan's hand-written WP counts: checked in both modes, never rewritten (they are prose).
     let counts = crate::plan_counts::violations(root)?;
     if check {
-        let mut violations = violations_of(&plan);
+        let mut violations = violations_of(&plan.differing, &plan.stale, &plan.partial);
         violations.extend(counts);
         if violations.is_empty() {
             println!(
@@ -411,6 +431,21 @@ fn anchor(name: &str) -> String {
         .replace(' ', "-")
 }
 
+// map: reference-anchors: a new page or anchor rule of the references goes in these fns; help.rs copies it.
+/// The page of a command, relative to [`BOOK_SRC`]: `reference/commands/<name>.md`.
+fn command_page_path(name: &str) -> String {
+    format!("{COMMANDS_DIR}/{name}.md")
+}
+
+/// The page and heading anchor of a rule, the page relative to [`BOOK_SRC`]: `reference/rules/<pack in lower
+/// case>.md` and the rule ID in lower case (`reference/rules/ew-core.md`, `ew-core-033`).
+fn rule_anchor(pack: &str, id: &str) -> (String, String) {
+    (
+        format!("{RULES_DIR}/{}.md", pack.to_lowercase()),
+        id.to_lowercase(),
+    )
+}
+
 fn str_of<'a>(v: &'a Value, key: &str) -> &'a str {
     v.get(key).and_then(Value::as_str).unwrap_or("")
 }
@@ -483,8 +518,8 @@ fn command_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<Su
             str_of(entry, "exposure"),
             str_of(entry, "stability"),
         );
-        files.insert(format!("{COMMANDS_DIR}/{name}.md"), page);
-        items.push((format!("`{name}`"), format!("{COMMANDS_DIR}/{name}.md")));
+        files.insert(command_page_path(name), page);
+        items.push((format!("`{name}`"), command_page_path(name)));
     }
 
     let mut page = String::new();
@@ -1612,16 +1647,20 @@ fn rule_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<Summa
     let mut items = SummaryItems::new();
     let mut rows = String::new();
     for (pack, rules) in &packs {
-        let file = format!("{}.md", pack.to_lowercase());
-        files.insert(format!("{RULES_DIR}/{file}"), pack_page(pack, rules));
-        items.push(((*pack).to_owned(), format!("{RULES_DIR}/{file}")));
+        let page = rule_anchor(pack, "").0;
+        let file = page
+            .strip_prefix(&format!("{RULES_DIR}/"))
+            .unwrap_or(&page)
+            .to_owned();
+        files.insert(page.clone(), pack_page(pack, rules));
+        items.push(((*pack).to_owned(), page));
         let _ = writeln!(
             rows,
             "| [`{pack}`]({file}) | {} | {} |",
             rules.len(),
             rules
                 .iter()
-                .map(|r| format!("[`{}`]({file}#{})", r.id, r.id.to_lowercase()))
+                .map(|r| format!("[`{}`]({file}#{})", r.id, rule_anchor(pack, &r.id).1))
                 .collect::<Vec<_>>()
                 .join(", ")
         );
@@ -1685,7 +1724,7 @@ fn pack_page(pack: &str, rules: &[&Rule]) -> String {
             out,
             "| [`{}`](#{}) | {} | {} | {} | {} | {} | {} |",
             r.id,
-            r.id.to_lowercase(),
+            rule_anchor(pack, &r.id).1,
             cell(&r.title),
             r.kind,
             r.severity,
@@ -2274,9 +2313,156 @@ row = "g-worker"
         );
     }
 
+    /// A fresh empty directory under the system temporary directory.
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "ew-xtask-docs-gen-{name}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// `docs-gen --check` compares only the committed `SUMMARY.md`: an absent or old built page and a stray file in a
+    /// generated directory are no violation, a stale `SUMMARY.md` is. The repository's `SUMMARY.md` is current.
     #[test]
-    fn the_committed_pages_are_current() {
-        // The committed reference pages equal what the committed sources generate (`docs-gen --check`).
+    fn check_ignores_the_built_pages_and_fails_on_a_stale_summary() {
+        let root = temp_dir("check");
+        let src = root.join(BOOK_SRC);
+        std::fs::create_dir_all(src.join(CLI_DIR)).unwrap();
+        std::fs::write(
+            src.join(SUMMARY),
+            "# Summary
+",
+        )
+        .unwrap();
+        std::fs::write(
+            src.join(GLOSSARY_PAGE),
+            "old
+",
+        )
+        .unwrap();
+        std::fs::write(
+            src.join(CLI_DIR).join("gone.md"),
+            "gone
+",
+        )
+        .unwrap();
+        let wanted: BTreeMap<String, String> = [
+            (
+                SUMMARY,
+                "# Summary
+",
+            ),
+            (
+                GLOSSARY_PAGE,
+                "new
+",
+            ),
+            (
+                "reference/commands/a.b.md",
+                "page
+",
+            ),
+            (
+                QUERIES_PAGE,
+                "queries
+",
+            ),
+        ]
+        .into_iter()
+        .map(|(rel, text)| (rel.to_owned(), text.to_owned()))
+        .collect();
+        let (differing, stale) = compare(&root, &wanted).unwrap();
+        assert_eq!(
+            differing,
+            ["reference/commands/a.b.md", GLOSSARY_PAGE, QUERIES_PAGE]
+        );
+        assert_eq!(stale, ["reference/cli/gone.md"]);
+        assert_eq!(violations_of(&differing, &stale, &[]), Vec::<String>::new());
+
+        std::fs::write(
+            src.join(SUMMARY),
+            "# Old summary
+",
+        )
+        .unwrap();
+        let (differing, stale) = compare(&root, &wanted).unwrap();
+        assert_eq!(
+            violations_of(&differing, &stale, &[]),
+            ["docs/book/src/SUMMARY.md differs; run `cargo xtask docs-gen`"]
+        );
+        std::fs::remove_dir_all(&root).unwrap();
+
         assert!(run(&crate::workspace_root(), true).unwrap());
+    }
+
+    /// The root `.gitignore` names exactly the built pages: one block of the generated directories, then the
+    /// generated single pages.
+    #[test]
+    fn the_gitignore_names_the_built_pages() {
+        let text = std::fs::read_to_string(crate::workspace_root().join(".gitignore")).unwrap();
+        let listed: Vec<&str> = text
+            .lines()
+            .filter(|l| l.starts_with(&format!("/{BOOK_SRC}/")))
+            .collect();
+        let wanted: Vec<String> = GENERATED_DIRS
+            .iter()
+            .map(|dir| format!("/{BOOK_SRC}/{dir}/"))
+            .chain(GENERATED_PAGES.iter().map(|page| format!("/{BOOK_SRC}/{page}")))
+            .collect();
+        assert_eq!(listed, wanted);
+        let block = wanted.join(
+            "
+",
+        );
+        assert!(
+            text.contains(&block),
+            "the lines are not one block:
+{text}"
+        );
+    }
+
+    /// The command and rule pages that the repository's sources give emit exactly the anchor rule that F1 help and
+    /// its tests copy ([`command_page_path`], [`rule_anchor`]): a page per command, and per pack a page whose rule
+    /// headings are exactly the anchors of its rules.
+    #[test]
+    fn the_pages_emit_the_anchor_rule() {
+        let root = crate::workspace_root();
+        let generated = generate(&root).unwrap();
+        let index = read_json(&root, &format!("{SCHEMA_DIR}/index.json")).unwrap();
+        for entry in index["commands"].as_array().unwrap() {
+            let page = command_page_path(str_of(entry, "name"));
+            assert!(generated.files.contains_key(&page), "{page}");
+        }
+        assert_eq!(
+            command_page_path("device.add"),
+            "reference/commands/device.add.md"
+        );
+
+        let text = read_lf(&root.join(CATALOGUE)).unwrap().unwrap();
+        let catalogue: Catalogue = serde_json::from_str(&text).unwrap();
+        let mut wanted: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        for r in &catalogue.rules {
+            let (page, fragment) = rule_anchor(&r.pack, &r.id);
+            wanted.entry(page).or_default().insert(fragment);
+        }
+        assert!(!wanted.is_empty());
+        for (page, fragments) in &wanted {
+            let headings: BTreeSet<String> = generated.files[page]
+                .lines()
+                .filter_map(|l| l.strip_prefix("## "))
+                .map(anchor)
+                .collect();
+            assert_eq!(&headings, fragments, "{page}");
+        }
+        assert_eq!(
+            rule_anchor("EW-CORE", "EW-CORE-033"),
+            ("reference/rules/ew-core.md".to_owned(), "ew-core-033".to_owned())
+        );
     }
 }

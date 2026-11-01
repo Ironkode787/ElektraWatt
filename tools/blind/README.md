@@ -30,7 +30,8 @@ navigator, pointing (`canvas.pointer`, `canvas.dwell`), the grid cursor, `tool.s
 
 ## The orchestrator's procedure (outside CI, never by an agent)
 
-1. Build: `cargo build -p xtask -p elektrawatt -p ew` and `mdbook build docs/book` (the guide, `target/book`).
+1. Build: `cargo build -p xtask -p elektrawatt -p ew`, then run `cargo xtask docs-gen`, then `mdbook build docs/book`
+   (the guide, `target/book`; its reference pages are built, not committed).
 2. `cargo xtask blind start --kind gate --task gpp-101-103 --persona qet-veteran --run gpp-r1` (`--folios 101` for
    the dry run on one folio: the sheet's blocks of the other folios are left out of the prompt, and their checks score
    `gap` "not in this run") starts a run in `<temp>/ew-blind/gpp-r1/` (outside the repository; `--out` names another folder) with copies of the

@@ -63,6 +63,7 @@ jobs:
           python3 -I docs/plan/tools/totals.py --check
           python3 -I docs/plan/tools/schedule.py --check
           python3 -I docs/plan/tools/trace.py --check
+          python3 -I docs/plan/tools/doccheck.py --test  # its unit test first: the ignored link targets
           python3 -I docs/plan/tools/doccheck.py
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
@@ -132,9 +133,9 @@ jobs:
 
   # CI-PR-10, book part (WP-S0.06, NFR-DOC-01, NFR-DOC-06, NFR-MAINT-08). Doc 18 §5.2 lists the mdBook build and the
   # generated-reference check with legal-docs; they run here as a job of their own. The job covers the user
-  # documentation book (docs/book, an mdBook in the Diátaxis structure): the generated reference pages must be
-  # current, the book must build with no network (the build runs in an empty network namespace, so a plugin or
-  # theme that fetches fails the job), every link of the built pages must resolve (ci/check-book-links.py: stdlib
+  # documentation book (docs/book, an mdBook in the Diátaxis structure): the committed SUMMARY.md must be current
+  # with the generated reference pages, which are built here (they are not committed), the book must build with no
+  # network (the build runs in an empty network namespace, so a plugin or theme that fetches fails the job), every link of the built pages must resolve (ci/check-book-links.py: stdlib
   # only, no network, no plugin to pin), and the built book is uploaded as an artifact (the bundle that the
   # installers will take offline, NFR-DOC-01).
   docs-book:
@@ -149,11 +150,13 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      - name: generated reference pages are current
+      - name: the book's table of contents is current
         run: cargo xtask docs-gen --check
       # WP-S2.17 part 6 (D9): the icon table of ew-ui is current with the vendored and the project's SVGs.
       - name: generated icon table is current
         run: cargo xtask gen-icons --check
+      - name: build the reference pages (not committed)
+        run: cargo xtask docs-gen
       - name: install mdBook (pinned release, checksum verified)
         run: |
           archive="mdbook-v${DOCS_MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
