@@ -43,8 +43,10 @@ how every lane works.
 
 ## Hand-back checks (once, after the code is final)
 
-Run `cargo xtask lane-check --base <base> -p <A> -p <B>` with your package set **once, as your last test run**, and
-quote its summary.
+First run `cargo xtask lane-check --base <base> -p <A> -p <B> --only fmt` and `cargo xtask settle --base <base>`,
+and commit what they rewrite. Then run `cargo xtask lane-check --base <base> -p <A> -p <B>` with your package set
+**once, as your last test run**, and quote its summary. On a clean worktree it skips a step that passed on the same
+tree with the same commands (`ok (from memory; …)`); commit before you run it. `--fresh` runs every step.
 - After a failure, fix it and re-run only the failed step (`--only <step>`).
 - When `fmt` reports `rewrote <files>`, commit them before you hand back. After an amend that only formats, run
   `--only fmt`, not the whole check.
@@ -55,7 +57,8 @@ It runs these steps, each only when the diff selects it, and `--plan` prints the
 1. `fmt`: `cargo fmt` over the changed crates and your set, then rustfmt per file over the diff's `.rs` files, which
    reaches the `automod` test modules that `cargo fmt` does not see. This formats the code; it is not a check.
 2. `clippy`: the changed crates and your set, `--all-targets --all-features -- -D warnings`.
-3. `doc`: `cargo doc --no-deps` over the changed crates and your set, with `RUSTDOCFLAGS="-D warnings"`.
+3. `doc`: `cargo doc --no-deps` over the changed crates and your set, with `RUSTDOCFLAGS="-D warnings"`, then
+   `cargo test --doc` over those with a library.
 4. `nextest`: one run over the changed crates, their direct dependants, your set and these additions:
    - **the scene, rendered output, the shell, `ew-ui`, commands, checks or the CLI:** `elektrawatt` and `ew`;
    - **commands or check rules:** `ew-testkit`'s `command_fuzz` and `golden_dsl`;
@@ -65,8 +68,9 @@ It runs these steps, each only when the diff selects it, and `--plan` prints the
    A changed file outside every crate (`golden/`, `content/`, `schemas/`, `assets/`, `Cargo.lock`, ...) fails this
    step unless you name the packages it reaches with `-p`.
 5. `settle`: `settle --check --base <base>`. It covers rustfmt and the generated files.
-6. `policy`: the policy checks the diff touches (dependencies, new files, `.rs` files, tests). An exemption for
-   `cargo deny` or `cargo vet` needs a ruling: stop.
+6. `policy`: the policy checks the diff touches (dependencies, new files, `.rs` files, tests), and `api-guard --base
+   <base>` when `bin/ew/api/cli.json` or `crates/ew-sqlview/api/api_v1.json` changed (a breaking change is a stop).
+   An exemption for `cargo deny` or `cargo vet` needs a ruling: stop.
 7. `fuzz`: the fuzz workspace's `cargo check`, when `command_fuzz`, `fuzz/` or a fuzzed crate's `Cargo.toml` changed.
 
 A failed step's log is printed whole and kept in `target/lane-check/<step>.log`. At the start of a lane,
@@ -74,8 +78,6 @@ A failed step's log is printed whole and kept in `target/lane-check/<step>.log`.
 background.
 
 **Beside lane-check:**
-- A change to `bin/ew/api/cli.json` or `crates/ew-sqlview/api/api_v1.json` runs `cargo xtask api-guard --base
-  <base>`. A breaking change is a stop.
 - A new crate gets its row in `ci/dep-rules.toml`; doc 04's crate table and `ew-hack` follow it through `settle`.
 
 **Not in lanes.** The orchestrator runs these at the merge point:
@@ -142,7 +144,8 @@ Report each item as "checked: `<place>`" or "not applicable".
 - Public repository: nothing you commit may hold personal names, addresses, project or drawing numbers, local paths
   or agent IDs.
 - Commit subjects follow the repository's conventional style. End every message with
-  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`, plus the trailers your brief asks for.
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`, plus the trailers your brief asks for. Before you hand
+  back, check that every trailer line of your brief's "Expected" is in `git log --format=%B <base>..HEAD`.
 
 ## Hand-off note
 
