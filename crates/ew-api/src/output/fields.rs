@@ -164,6 +164,8 @@ pub enum Category {
     Structure,
     /// Page placement and geometry.
     Placement,
+    /// A panel page's surface view: its surface, label mode and datum (W44.4 F-d).
+    SurfaceView,
     /// The terminal and strip aspects.
     Terminal,
     /// The cable aspect.
@@ -180,7 +182,7 @@ pub enum Category {
 
 impl Category {
     /// Every category in display order.
-    pub const ALL: [Category; 13] = [
+    pub const ALL: [Category; 14] = [
         Category::Identity,
         Category::Part,
         Category::Electrical,
@@ -188,6 +190,7 @@ impl Category {
         Category::Texts,
         Category::Structure,
         Category::Placement,
+        Category::SurfaceView,
         Category::Terminal,
         Category::Cable,
         Category::Plc,
@@ -206,6 +209,7 @@ impl Category {
             Category::Texts => "texts",
             Category::Structure => "structure",
             Category::Placement => "placement",
+            Category::SurfaceView => "surface_view",
             Category::Terminal => "terminal",
             Category::Cable => "cable",
             Category::Plc => "plc",

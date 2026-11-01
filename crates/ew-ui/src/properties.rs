@@ -45,8 +45,9 @@ const MAX_SHOWN: usize = 48;
 pub struct PropertiesPane {
     /// The editor's text (the shell's buffer is set from it).
     buffer: String,
-    /// The row the editor was opened for.
-    editing: Option<String>,
+    /// The edit session the editor was opened for: the targets of the row's section and the row's key (W44.4 F-h: the
+    /// same row of another selection is another session, whose buffer the editor takes afresh).
+    editing: Option<(Vec<ew_viewmodel::ew_api::output::Uuid>, String)>,
     /// The multi-language popup's texts by language (`None`: neutral).
     mltext: Vec<(Option<String>, String)>,
     /// The options list box of the row being edited and where it was drawn in the last frame: a pointer press on it
@@ -86,6 +87,11 @@ impl PropertiesPane {
     /// Paints the grid of `shell` into `ui`.
     pub(crate) fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let props = shell.properties();
+        // An ended edit (committed, cancelled, or dropped by a selection change) ends the editor's session: the next
+        // editor takes the shell's buffer afresh (W44.4 F-h).
+        if props.edit().is_none() {
+            self.editing = None;
+        }
         // The pane's own focusable node: the grid's keys while it has the shell's focus.
         let rect = ui.available_rect_before_wrap();
         let pane_id = ui.scope_id().with("property-grid");
@@ -1044,10 +1050,17 @@ impl PropertiesPane {
         let Some(edit) = shell.properties().edit() else {
             return;
         };
-        let fresh = self.editing.as_deref() != Some(row.key.as_str());
+        let targets = shell
+            .properties()
+            .sheet()
+            .and_then(|sheet| ew_viewmodel::properties::find_row(sheet, &row.key))
+            .map(|(section, _)| section.targets.clone())
+            .unwrap_or_default();
+        let session = (targets, row.key.clone());
+        let fresh = self.editing.as_ref() != Some(&session);
         if fresh || (!ui.ctx().text_edit_focused() && self.buffer != edit.buffer) {
             self.buffer.clone_from(&edit.buffer);
-            self.editing = Some(row.key.clone());
+            self.editing = Some(session);
         }
         let shift_enter = ui.input(|i| i.modifiers.shift && i.key_pressed(Key::Enter));
         let escape = ui.input(|i| i.key_pressed(Key::Escape));
@@ -1080,8 +1093,11 @@ impl PropertiesPane {
             Vec2::new(ui.available_width(), t.size_control_inline),
             TextEdit::singleline(&mut self.buffer)
                 .id(field_id)
-                .frame(egui::Frame::NONE)
-                .margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_icon), 0))
+                // The padding is the frame's inner margin: egui drops `margin` when a frame is given (W44.4 F-f).
+                .frame(
+                    egui::Frame::NONE
+                        .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_icon), 0)),
+                )
                 .desired_width(f32::INFINITY)
                 .hint_text(label),
         );
@@ -1105,6 +1121,9 @@ impl PropertiesPane {
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
         if fresh {
             response.request_focus();
+            // An editor opened on a row out of view (F2, `props.edit`) brings its row into view first, so the field
+            // and its choice list show by the row (W44.4 F-e).
+            response.scroll_to_me(None);
         }
         if response.gained_focus() && edit.initial.as_deref() == Some(self.buffer.as_str()) {
             let mut state = egui::text_edit::TextEditState::load(ui.ctx(), field_id).unwrap_or_default();

@@ -14,7 +14,7 @@
 //! Every row is `derived.<name>` of its kind; an editable one carries [`EditRoute::Command`] with its command's name.
 //! Lengths are millimetres as the project prints them (its decimal separator, FT-366), the unit as a suffix.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_rds::Aspect;
@@ -190,7 +190,8 @@ fn tag(q: &Q, d: Id<Device>) -> String {
 
 /// A surface in words, as the Surface row lists it (C44-p2#4): "<enclosure tag> plate" ("-UC1 plate") by the short
 /// tag; when two surfaces would read the same, each of them reads "<the enclosure's full designation> plate"
-/// ("=P01+J-E-2416-UC1 plate"). An enclosure without a tag gives "plate".
+/// ("=P01+J-E-2416-UC1 plate"). An enclosure without a tag gives "plate". When the full words collide too, each of the
+/// alike surfaces gains its ordinal, " (1)", " (2)", in page order (C44-p4#6, [`surface_words`]).
 pub(crate) fn surface_name(q: &Q, s: &MountingSurface) -> String {
     surface_words(q)
         .into_iter()
@@ -198,7 +199,11 @@ pub(crate) fn surface_name(q: &Q, s: &MountingSurface) -> String {
         .map_or_else(|| "plate".to_owned(), |(_, w)| w)
 }
 
-/// The words of every mounting surface of the project ([`surface_name`]), in table order.
+/// The words of every mounting surface of the project ([`surface_name`]), in table order. The alike words are counted
+/// once per call (C44-p4#1): O(S log S) for S surfaces.
+///
+/// Words alike after the full designation are told apart by an ordinal from 1 (C44-p4#6), in page order: by the first
+/// panel page that shows the surface, in drawn page order; the surfaces no page shows follow; then by ID.
 fn surface_words(q: &Q) -> Vec<(Id<MountingSurface>, String)> {
     let named = |t: String| {
         if t.is_empty() {
@@ -219,12 +224,66 @@ fn surface_words(q: &Q) -> Vec<(Id<MountingSurface>, String)> {
             (id, named(short), named(full))
         })
         .collect();
-    tags.iter()
+    let mut shorts: BTreeMap<&str, usize> = BTreeMap::new();
+    for (_, short, _) in &tags {
+        *shorts.entry(short.as_str()).or_default() += 1;
+    }
+    let mut words: Vec<(Id<MountingSurface>, String)> = tags
+        .iter()
         .map(|(id, short, full)| {
-            let alike = tags.iter().filter(|(_, s, _)| s == short).count() > 1;
+            let alike = shorts.get(short.as_str()).copied().unwrap_or(0) > 1;
             (*id, if alike { full.clone() } else { short.clone() })
         })
-        .collect()
+        .collect();
+    if !has_alike(&words) {
+        return words;
+    }
+    // The first page, in drawn page order, that shows each surface.
+    let order = q.get::<DrawnPageOrder>(());
+    let mut first_page: BTreeMap<Id<MountingSurface>, usize> = BTreeMap::new();
+    for (page, pg) in q.pages().iter() {
+        if pg.kind != PageType::PanelLayout {
+            continue;
+        }
+        if let Some(v) = q.get::<PageSurfaceView>(page).as_ref() {
+            let at = order.position(PageRef::Drawn(page)).unwrap_or(usize::MAX);
+            first_page
+                .entry(v.surface)
+                .and_modify(|e| *e = (*e).min(at))
+                .or_insert(at);
+        }
+    }
+    number_alike(&mut words, |id| first_page.get(&id).copied());
+    words
+}
+
+/// Whether two of `words` read the same.
+fn has_alike(words: &[(Id<MountingSurface>, String)]) -> bool {
+    let mut seen = BTreeSet::new();
+    !words.iter().all(|(_, w)| seen.insert(w.as_str()))
+}
+
+/// Tells alike words apart (C44-p4#6): each entry whose words another entry shares gains " (n)", n from 1 in page
+/// order, `page(id)` being the position of the first page that shows the surface; the surfaces no page shows follow,
+/// then by ID. O(S log S).
+fn number_alike(
+    words: &mut [(Id<MountingSurface>, String)],
+    page: impl Fn(Id<MountingSurface>) -> Option<usize>,
+) {
+    let mut alike: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+    for (i, (_, w)) in words.iter().enumerate() {
+        alike.entry(w.clone()).or_default().push(i);
+    }
+    for at in alike.values_mut().filter(|at| at.len() > 1) {
+        at.sort_by_key(|&i| {
+            let id = words[i].0;
+            (page(id).map_or((1, 0), |pos| (0, pos)), id)
+        });
+        for (n, &i) in at.iter().enumerate() {
+            let w = &mut words[i].1;
+            *w = format!("{w} ({})", n + 1);
+        }
+    }
 }
 
 /// The part number of a part copy, empty when the project holds none.
@@ -534,9 +593,11 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
     Some(rows)
 }
 
-/// The part copies of the device's part uses that `layout.move {part}` takes for a placement on `on` (D12, C44-p2#3):
-/// those whose part mounts (a mount kind other than `none` and `on_parent`) or has no mount kind (an unknown
-/// footprint), and on a rail only those whose mount kind the rail's profile does not refuse.
+/// The part copies of the device's part uses that the Realised part row offers for a placement on `on`: D12's
+/// mountable uses (C44-p2#3), those whose part mounts (a mount kind other than `none` and `on_parent`) or has no mount
+/// kind (an unknown footprint), and on a rail only those whose mount kind the rail's profile does not refuse.
+/// `layout.move {part}` is looser (C44-p4#5): on a surface it also takes a `none` or `on_parent` part use, since its
+/// fit judges only a rail's profile.
 fn mountable_uses(q: &Q, device: &Device, on: &CarrierRef) -> Vec<Id<Part>> {
     let profile = match on {
         CarrierRef::Carrier(c) => q.table::<Carrier>().get(*c).and_then(|c| match &c.params {
@@ -756,6 +817,10 @@ pub(crate) fn surface_view_rows(q: &Q, page: Id<Page>) -> Vec<PropRow> {
             Provenance::Authored,
             Some("page.surface_view.set"),
         ));
+    }
+    // The rows sit under their own heading, Surface view, not Placement (W44.4 F-d).
+    for r in &mut rows {
+        r.category = Category::SurfaceView;
     }
     rows
 }
@@ -1079,6 +1144,11 @@ impl Session {
                             .collect();
                         let id = match (by_id, by_words.as_slice()) {
                             (Some((id, _)), _) | (None, [(id, _)]) => *id,
+                            // A surface ID that names no surface (a deleted one, or a stale list): no ID in
+                            // the words (C44-p4#3).
+                            (None, []) if Uuid::parse_str(text.trim()).is_ok() => {
+                                return invalid("That surface no longer exists; choose one of the list.");
+                            }
                             (None, []) => {
                                 return Err(LayoutEditError::Invalid(format!(
                                     "The project has no surface {text}; choose one of the list."
@@ -1265,5 +1335,29 @@ mod tests {
         assert_eq!(parse_bool("Yes"), Some(true));
         assert_eq!(parse_bool("off"), Some(false));
         assert_eq!(parse_bool("maybe"), None);
+    }
+
+    /// C44-p4#6: two untagged enclosures both read "plate"; the one a page shows first is "plate (1)", the other, which
+    /// no page shows, "plate (2)", though its ID sorts first; a lone word stays as it is.
+    #[test]
+    fn alike_words_gain_their_ordinal_in_page_order() {
+        let id = |n| Id::<MountingSurface>::from_uuid(Uuid::from_u128(n));
+        let (a, b, c) = (id(1), id(2), id(3));
+        let mut words = vec![
+            (a, "plate".to_owned()),
+            (b, "plate".to_owned()),
+            (c, "-UC1 plate".to_owned()),
+        ];
+        assert!(has_alike(&words));
+        number_alike(&mut words, |id| (id == b).then_some(4));
+        assert_eq!(
+            words,
+            [
+                (a, "plate (2)".to_owned()),
+                (b, "plate (1)".to_owned()),
+                (c, "-UC1 plate".to_owned()),
+            ]
+        );
+        assert!(!has_alike(&words));
     }
 }

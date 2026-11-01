@@ -603,6 +603,11 @@ fn enclosure_is_disabled_without_a_location_and_create_without_a_part() {
             Some("Type or choose a part number")
         )
     );
+    // C44-p4#2: the description names the reason whole.
+    assert_eq!(
+        create_line(&s),
+        "  button \"Create\" disabled: Type or choose a part number"
+    );
     let rev = s.revision();
     let Outcome::Failed { message } = s.submit_form() else {
         panic!("refused")
@@ -615,12 +620,22 @@ fn enclosure_is_disabled_without_a_location_and_create_without_a_part() {
     s.set_form_field("location", "");
     let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
     assert_eq!(spec.primary.disabled.as_deref(), Some("Choose a location"));
+    assert_eq!(create_line(&s), "  button \"Create\" disabled: Choose a location");
     let Outcome::Failed { message } = s.submit_form() else {
         panic!("refused")
     };
     assert_eq!(message, "Choose a location");
     assert_eq!(s.revision(), rev, "no command");
     s.shutdown();
+}
+
+/// The description's line of the dialog's Create button.
+fn create_line(s: &ShellModel) -> String {
+    s.describe()
+        .lines()
+        .find(|l| l.trim_start().starts_with("button \"Create\""))
+        .expect("the Create button's line")
+        .to_owned()
 }
 
 /// C44-p2#1: on 902 at a scale of 1:4 000 000 000 with its datum 10⁹ mm away, every click lies far beyond the `i64`
@@ -730,15 +745,21 @@ fn the_draw_tools_texts_read_whole() {
     );
     let p = sheet_mm(&s, 300.0, 100.0);
     done(&mut s, "canvas.pointer", at(p, json!({"shift": true})));
-    let (w, h) = s.draw_card().and_then(|c| c.size).map_or_else(
-        || {
-            let t = panel(&s);
-            let d1 = carrier(&t, "Duct 1");
-            (d1.width.unwrap() / MM, d1.height.unwrap() / MM)
-        },
-        |_| (40, 60),
+    // Golden A's duct part gives no size: the card asks for it, 40 × 60 mm (C44-p4#3: the numbers written out).
+    assert_eq!(
+        s.draw_card().and_then(|c| c.size),
+        Some(("40".to_owned(), "60".to_owned()))
     );
-    assert_eq!(overlay_labels(&s), [format!("{w} \u{d7} {h} mm")]);
+    // The card's texts (`tool_view.rs`), whole.
+    assert_eq!(
+        [
+            ew_viewmodel::strings::text(key!("draw-options-no-part")),
+            ew_viewmodel::strings::text(key!("draw-options-width")),
+            ew_viewmodel::strings::text(key!("draw-options-height")),
+        ],
+        ["No part", "Width (mm)", "Height (mm)"]
+    );
+    assert_eq!(overlay_labels(&s), [DUCT_CHIP]);
     // 256 points in a staircase; the 257th is refused.
     for i in 1..256 {
         let (u, v) = (
@@ -774,6 +795,9 @@ fn the_draw_tools_texts_read_whole() {
     );
     s.shutdown();
 }
+
+/// The size chip of Draw duct with Golden A's duct part, which gives no size: the card's default 40 × 60 mm.
+const DUCT_CHIP: &str = "40 \u{d7} 60 mm";
 
 /// C44-p2#5: Auto-fill rail with one marked device: the dialog's line for one device and the toast without notices;
 /// a rail that is not on the page is refused in words.
@@ -829,5 +853,67 @@ fn the_draw_tools_part_offers_are_kept_between_frames() {
     assert_eq!(calls(&s), before + 2, "the options changed");
     s.draw_card();
     assert_eq!(calls(&s), before + 2);
+    // A new revision (an edit, here a page's title) computes them once more, once.
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [{"ref": "folio:101"}],
+            "path": "title", "value": "Offers"}}),
+    );
+    s.draw_card();
+    assert_eq!(calls(&s), before + 3, "a new revision");
+    s.draw_card();
+    assert_eq!(calls(&s), before + 3);
     s.shutdown();
 }
+
+/// C44-p4#3: the Surface row's choices are the surfaces by their IDs (the shell's choose-by-ID arm): each item is a
+/// surface's words with its ID as the value, and choosing one commits `page.surface_view.set` with that ID.
+#[test]
+fn the_surface_row_chooses_a_surface_by_its_id() {
+    let tmp = Tmp::new("surface-choice");
+    let mut s = tmp.shell_in(Mode::Gui, true, "902");
+    done(&mut s, "layout.enclosure_new", json!({}));
+    let Some(Dialog::Form(form)) = s.dialog().cloned() else {
+        panic!("{:?}", s.dialog())
+    };
+    let part = form
+        .fields
+        .iter()
+        .find(|f| f.name == "part")
+        .unwrap()
+        .value
+        .clone();
+    done(&mut s, "ui.dismiss", json!({}));
+    done(
+        &mut s,
+        "structure.new",
+        json!({"kind": "location", "designation": "J-E-999"}),
+    );
+    done(
+        &mut s,
+        "layout.enclosure_new",
+        json!({"location": "+J-E-999", "part": part}),
+    );
+    done(&mut s, "page.goto", json!({"folio": "902"}));
+    done(&mut s, "select.set", json!({"ids": []}));
+    done(&mut s, "props.edit", json!({"row": "page/derived.surface"}));
+    let items = s.properties().choices().expect("the surfaces").items.clone();
+    let words: Vec<&str> = items.iter().map(|(w, _)| w.as_str()).collect();
+    assert_eq!(words, SURFACE_WORDS);
+    for (_, v) in &items {
+        let id = v.as_str().expect("an ID");
+        assert!(Uuid::parse_str(id).is_ok(), "{id}");
+    }
+    let i = items.iter().position(|(w, _)| w != "-UC1 plate").unwrap();
+    let chosen = items[i].1.clone();
+    done(&mut s, "props.choose", json!({"index": i}));
+    let step = s.recorded_commands().last().unwrap();
+    assert_eq!(step.cmd, "page.surface_view.set");
+    assert_eq!(step.params["surface"], chosen);
+    assert_eq!(row_text(&s, "page/derived.surface"), items[i].0);
+    s.shutdown();
+}
+
+/// The Surface row's choices on Golden A with the enclosure of +J-E-999 added.
+const SURFACE_WORDS: [&str; 2] = ["-UC1 plate", "-UC2 plate"];

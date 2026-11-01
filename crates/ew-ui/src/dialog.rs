@@ -12,7 +12,7 @@
 use egui::{Align, Id, Layout, RichText, Ui};
 use ew_viewmodel::dialogs::{DialogAnswer, DialogButton, DialogSpec};
 
-use crate::components::{self, Kind};
+use crate::components::{self, Kind, Tip};
 use crate::theme;
 
 /// The share of the window a form dialog takes once that is wider than `size.dialog.form` (C39; owner 2026-10-31:
@@ -141,7 +141,7 @@ fn footer(ui: &mut Ui, spec: &DialogSpec, focus_primary: bool) -> Clicked {
         // A disabled button says why on hover (W44.2 F1: Create enclosure's Create without a location or a part).
         let r = components::button(ui, kind, &b.label, b.disabled.is_none(), t.size_button_min_width);
         let r = match &b.disabled {
-            Some(reason) => r.on_disabled_hover_text(reason),
+            Some(reason) => r.disabled_tip(reason.as_str()),
             None => r,
         };
         if focus && b.disabled.is_none() {

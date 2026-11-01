@@ -3534,6 +3534,8 @@ pub const TEXTS: &[(&str, &str)] = &[
     // Cycle 44, FIX44b (W44.2 F1): why the Create enclosure dialog's Create is disabled.
     ("reason-enclosure-location", "Choose a location"),
     ("reason-enclosure-part", "Type or choose a part number"),
+    // Cycle 44, FIX44d (W44.4 F-d): the heading of a panel page's Surface, Label mode and Datum rows.
+    ("category-surface_view", "Surface view"),
 ];
 
 /// The exact English labels of the property grid's rows (WP-S2.05 §6.1.2): the rows the pilot edits on folios 101 to

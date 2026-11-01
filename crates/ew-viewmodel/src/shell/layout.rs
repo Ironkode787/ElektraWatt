@@ -591,7 +591,6 @@ fn fill_orders() -> Vec<(String, String)> {
     ]
 }
 
-/// The draw tool's carrier kind (`rail`, `duct`) of the tool name `name`.
 /// The registry's label of Structure node… (`structure.new`), as the texts that name it print it.
 fn structure_new_label() -> String {
     crate::actions::find("structure.new")
@@ -599,6 +598,7 @@ fn structure_new_label() -> String {
         .unwrap_or_default()
 }
 
+/// The draw tool's carrier kind (`rail`, `duct`) of the tool name `name`.
 fn draw_kind(name: &str) -> Option<&'static str> {
     match name {
         "rail_draw" => Some("rail"),
