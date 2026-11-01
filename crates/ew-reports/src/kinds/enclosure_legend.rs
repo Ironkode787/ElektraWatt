@@ -10,11 +10,13 @@ use ew_derive::layout::{LegendItem, layout_legend, page_surface};
 
 use super::parts::{manufacturer_cell, part_number_cell, qty_cell, unit_symbol};
 use crate::kind::{EmbeddedLayout, ReportKindDef};
-use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowSet};
+use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowKey, RowSet};
 
 /// The enclosure legend: the rows of `ew_derive::layout::layout_legend` for the surface of the block's embedded page
 /// (the surface its `surface_view` shows): the enclosure, the plate, one row per carrier (rails, then ducts, the
-/// designation empty, the length in metres as the quantity), then the placements by designation; positions 1 … n.
+/// designation empty, the length in metres as the quantity), then the placements by designation, then one row per
+/// end-bracket part (WP-S4.02 D13: the designation empty, the number of derived brackets as the quantity; row ID
+/// `entity(surface)` then the part copy and its variant, source the part copy); positions 1 … n.
 ///
 /// A block that is not embedded, or embedded on a page without a surface view, has no rows.
 ///
@@ -62,6 +64,13 @@ impl ReportKindDef for EnclosureLegend {
                 LegendItem::Surface(s) => (RowId::entity(s), s.cast()),
                 LegendItem::Carrier(c) => (RowId::entity(c), c.cast()),
                 LegendItem::Placement(p) => (RowId::entity(p), p.cast()),
+                LegendItem::Bracket(ref part) => {
+                    let mut id = RowId::entity(surface).with(RowKey::Entity(part.copy.as_uuid()));
+                    if let Some(v) = &part.variant {
+                        id = id.with(RowKey::Name(v.as_str().to_owned()));
+                    }
+                    (id, part.copy.cast())
+                }
             };
             let carrier = matches!(row.item, LegendItem::Carrier(_));
             let copy = row.part.as_ref().and_then(|p| q.parts().get(p.copy));

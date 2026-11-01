@@ -52,7 +52,9 @@ mod queries;
 // WP-S4.02 part 1: the rail model and the mode resolution (D3 to D5)
 mod snap;
 
-pub use accessories::{Bracket, GroupAccessories, bracket_part, rail_items};
+pub use accessories::{
+    Bracket, GroupAccessories, StripBrackets, bracket_part, bracket_use, rail_items, strip_brackets,
+};
 pub use assembly::{member_order, member_slot};
 pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface, mount_label};

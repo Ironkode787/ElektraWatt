@@ -475,7 +475,22 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
             .filter(|i| i.entity == Some(entity(id)))
             .filter_map(item_bounds)
             .collect();
-        assert_eq!(drawn, vec![expected], "placement {id}: its footprint");
+        // A strip's end brackets follow the footprints with its placement's entity (WP-S4.02 D13; their positions are
+        // `golden_end_brackets::eb2_…`).
+        let brackets = ["R1", "R2", "R3"]
+            .iter()
+            .map(|k| {
+                q.get::<ew_derive::layout::GroupAccessories>(record_id("carriers", k))
+                    .iter()
+                    .filter(|b| b.placement == id)
+                    .count()
+            })
+            .sum::<usize>();
+        assert_eq!(
+            (drawn.first(), drawn.len()),
+            (Some(&expected), 1 + brackets),
+            "placement {id}: its footprint"
+        );
     }
     // -102G1: the footprint (101, 675)–(171, 805) mm of the plate frame at 1:10 on paper from (25, 167) mm.
     assert_eq!(

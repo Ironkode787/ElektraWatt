@@ -9,13 +9,15 @@
 //!   on the boxes' edges, the footprints are whole rectangles and both labels print.
 //! - `a_carrier_without_labels_on_it_is_drawn_whole`: without labels the outline is one closed rectangle and the axis
 //!   one line, as before.
+//! - `end_brackets_draw_after_the_footprints_in_their_pen`: WP-S4.02 D13's brackets are rectangles in the footprints'
+//!   pen after the footprints, each with its strip's placement as its entity.
 
-use ew_dl::{DisplayList, EntityRef, ItemKind, Layer, Path, PathEl};
+use ew_dl::{DisplayList, EntityRef, ItemKind, Layer, Path, PathEl, Pen, Stroke};
 use ew_ids::{Id, Uuid};
 use ew_scene::page::{PageKind, PageView, page_display_list};
 use ew_scene::panel::{
-    CarrierDraw, LAYOUT_LABEL_STYLE, LabelFit, PanelLabel, PanelView, PlacedLabel, PlacementDraw, Projection,
-    place_label,
+    BracketDraw, CarrierDraw, LAYOUT_LABEL_STYLE, LabelFit, PanelLabel, PanelView, PlacedLabel,
+    PlacementDraw, Projection, place_label,
 };
 use ew_schema::Scale;
 use ew_text::{builtin, bundled};
@@ -85,6 +87,7 @@ fn view(labels: bool) -> PageView {
                     outline: Vec::new(),
                 })
                 .collect(),
+            brackets: Vec::new(),
             labels: if labels {
                 vec![label(WIDE, "-X1", wide), label(NARROW, "-101F1", narrow)]
             } else {
@@ -272,5 +275,55 @@ fn a_carrier_without_labels_on_it_is_drawn_whole() {
     assert_eq!(
         paths,
         vec![Path::rect(outline).els, Path::line(axis.0, axis.1).els]
+    );
+}
+
+#[test]
+fn end_brackets_draw_after_the_footprints_in_their_pen() {
+    let mut v = view(false);
+    let brackets = [
+        Rect::from_points(mm(70.0, -40.0), mm(80.0, 40.0)),
+        Rect::from_points(mm(10.0, -40.0), mm(20.0, 40.0)),
+    ];
+    if let Some(panel) = v.panel.as_mut() {
+        panel.brackets = brackets
+            .iter()
+            .map(|r| BracketDraw {
+                placement: Id::from_uuid(Uuid::from_u128(WIDE)),
+                rect: *r,
+            })
+            .collect();
+    }
+    let p = projection();
+    let list = layer(&v, Layer::Placements);
+    let drawn: Vec<(Vec<PathEl>, Option<Stroke>, Option<EntityRef>)> = list
+        .items
+        .iter()
+        .map(|i| match &i.kind {
+            ItemKind::Path(path) => (path.path.els.clone(), path.stroke.clone(), i.entity),
+            other => panic!("the placements layer draws paths: {other:?}"),
+        })
+        .collect();
+    let rect = |r: Rect| Path::rect(p.rect(r).expect("in range")).els;
+    let wide = Some(EntityRef(Uuid::from_u128(WIDE)));
+    let narrow = Some(EntityRef(Uuid::from_u128(NARROW)));
+    let pen = Some(Stroke::pen(Pen::P026));
+    assert_eq!(
+        drawn,
+        vec![
+            (
+                rect(Rect::from_points(mm(20.0, -40.0), mm(70.0, 40.0))),
+                pen.clone(),
+                wide
+            ),
+            (
+                rect(Rect::from_points(mm(120.0, -45.0), mm(138.0, 45.0))),
+                pen.clone(),
+                narrow
+            ),
+            // the brackets after the footprints, by placement then position
+            (rect(brackets[1]), pen.clone(), wide),
+            (rect(brackets[0]), pen, wide),
+        ]
     );
 }

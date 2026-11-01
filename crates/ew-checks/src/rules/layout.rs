@@ -17,6 +17,8 @@
 //! Devices print by their full designation; parts by their part number; a carrier by its kind and its path's first and
 //! last points in millimetres with one decimal (`the rail at (40.0, 740.0)–(610.0, 740.0) mm`: carriers have no
 //! designation member, WP-S4.01 FP-5); a location by its `+` designation. IDs enter only targets and fingerprints.
+//! EW-LAY-010's end-bracket cases (WP-S4.02 part 5, ruling 5) name a rail by its derived label in a sentence ("rail 2",
+//! WP-S4.02 D8) and print a length in millimetres without a trailing ".0" ("by 10 mm").
 //! Every finding carries its message arguments; the en-GB patterns of `messages/en-GB/rules.ftl` render the messages
 //! byte for byte.
 //!
@@ -41,8 +43,9 @@ use ew_derive::ew_schema::{
 };
 use ew_derive::ew_units::{Pt2, Rect};
 use ew_derive::layout::{
-    CarrierGeometry, Fit, PlacementGeometry, PoseError, PoseOn, Profile, RailAxis, RailOccupancy, Unplaced,
-    check_pose, fits_rail, fits_surface, member_order, primary_part, surface_pages,
+    Bracket, CarrierGeometry, Fit, GroupAccessories, PlacementGeometry, PoseError, PoseOn, Profile, RailAxis,
+    RailOccupancy, Unplaced, carrier_label, check_pose, fits_rail, fits_surface, member_order, primary_part,
+    surface_pages,
 };
 use ew_derive::part_confidence;
 
@@ -893,10 +896,16 @@ pub const CARRIER_INCOMPATIBLE: RuleMeta = RuleMeta {
 ///   polygon (`outside`);
 /// - D3's MVP limits: a second layout space of one location (`spaces`), a second enclosure in one layout space
 ///   (`enclosures`), a second plate surface of one enclosure (`plates`); the record with the smallest ID is the one
-///   the layout uses, every other is reported.
+///   the layout uses, every other is reported;
+/// - per derived end bracket of a rail (`group_accessories`, WP-S4.02 D13 and part 5's ruling 5): one that overlaps
+///   another placement's footprint or a later bracket (`bracket_overlap`, naming the first of them in rail order; a
+///   touch is no overlap), and one that leaves `[0, L]` (`bracket_outside`, its start before 0 first). Each targets
+///   the strip it is attributed to and the strip's placement, its subject the strip, its discriminator the form and
+///   the bracket's start on the rail in nanometres (`bracket_overlap:58600000`), so that two brackets of one strip
+///   stay apart.
 ///
-/// Placement findings target the device and the placement; carrier findings the carrier; limit findings the extra
-/// layout space, enclosure or surface.
+/// Placement and bracket findings target the device and the placement; carrier findings the carrier; limit findings
+/// the extra layout space, enclosure or surface.
 #[derive(Clone, Copy, Debug)]
 pub struct CarrierIncompatible;
 
@@ -915,6 +924,7 @@ impl Rule for CarrierIncompatible {
         }
         for (id, c) in q.table::<Carrier>().iter() {
             carrier_cases(q, id, c, &mut out);
+            bracket_cases(q, id, c, &mut out);
         }
         limit_cases(q, &mut out);
         out
@@ -1114,6 +1124,131 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
             "outside",
             format!("{name} lies outside the usable area of the mounting plate; move it inside"),
         ));
+    }
+}
+
+/// A length in millimetres as a bracket case prints it: to a tenth, without a trailing ".0" (`10`, `2.5`).
+fn mm_short(nm: i128) -> String {
+    let text = mm1(nm);
+    match text.strip_suffix(".0") {
+        Some(whole) => whole.to_owned(),
+        None => text,
+    }
+}
+
+/// What a bracket overlaps first (EW-LAY-010's `bracket_overlap`).
+enum Overlapped<'b> {
+    /// Another placement's footprint.
+    Placement(Id<Placement>),
+    /// A later bracket.
+    Bracket(&'b Bracket),
+}
+
+/// The end-bracket cases of EW-LAY-010 on one rail (WP-S4.02 part 5, ruling 5): a bracket that overlaps another
+/// placement's footprint or a later bracket, a bracket outside `[0, L]`. A rail without a valid axis has no brackets.
+fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
+    if c.kind != CarrierKind::Rail {
+        return;
+    }
+    let Some(axis) = RailAxis::of(&c.path) else {
+        return;
+    };
+    let brackets = q.get::<GroupAccessories>(id);
+    if brackets.is_empty() {
+        return;
+    }
+    let occupancy = q.get::<RailOccupancy>(id);
+    let placements = q.table::<Placement>();
+    let rail =
+        carrier_label(q, id).map_or_else(|| format!("the rail at {}", carrier_at(c)), |l| l.in_sentence());
+    // A bracket is "before" its strip when it starts before the strip's footprint does (the run-start bracket).
+    let side = |b: &Bracket| {
+        let before = occupancy
+            .iter()
+            .find(|o| o.placement == b.placement)
+            .is_some_and(|o| b.s0 < o.s0);
+        if before { "before" } else { "after" }
+    };
+    let overlaps = |s0: i128, s1: i128, b: &Bracket| s0 < b.s1 && b.s0 < s1;
+    for (i, b) in brackets.iter().enumerate() {
+        let Some(pl) = placements.get(b.placement) else {
+            continue;
+        };
+        let name = device_name(q, b.strip);
+        let this = format!("The end bracket {} {name}", side(b));
+        let finding = |form: &'static str, message: String| {
+            let f = Finding::new(
+                &CARRIER_INCOMPATIBLE,
+                placement_targets(pl),
+                format!("{form}:{}", b.s0),
+                name.clone(),
+                message,
+            )
+            .arg("form", form)
+            .arg("device", name.clone())
+            .arg("side", side(b))
+            .arg("rail", rail.clone());
+            shown(f, q, Some(c.surface))
+        };
+        // The first placement (other than its strip's) or later bracket it overlaps, in rail order.
+        let placement = occupancy
+            .iter()
+            .find(|o| o.placement != b.placement && overlaps(o.s0, o.s1, b))
+            .map(|o| ((o.s0, o.s1), Overlapped::Placement(o.placement)));
+        let bracket = brackets
+            .iter()
+            .skip(i + 1)
+            .find(|x| overlaps(x.s0, x.s1, b))
+            .map(|x| ((x.s0, x.s1), Overlapped::Bracket(x)));
+        let first = match (placement, bracket) {
+            (Some(p), Some(x)) => Some(if x.0 < p.0 { x.1 } else { p.1 }),
+            (p, x) => p.or(x).map(|o| o.1),
+        };
+        match first {
+            Some(Overlapped::Bracket(x)) => {
+                let other = device_name(q, x.strip);
+                let other_side = side(x);
+                out.push(
+                    finding(
+                        "bracket_overlap",
+                        format!("{this} overlaps the end bracket {other_side} {other} on {rail}."),
+                    )
+                    .arg("other_kind", "bracket")
+                    .arg("other_side", other_side)
+                    .arg("other", other),
+                );
+            }
+            Some(Overlapped::Placement(p)) => {
+                let other = placements
+                    .get(p)
+                    .map_or_else(|| "a placement".to_owned(), |o| device_name(q, o.device));
+                out.push(
+                    finding("bracket_overlap", format!("{this} overlaps {other} on {rail}."))
+                        .arg("other_kind", "placement")
+                        .arg("other_side", "after")
+                        .arg("other", other),
+                );
+            }
+            None => {}
+        }
+        let outside = if b.s0 < 0 {
+            Some(("start", 0i128.saturating_sub(b.s0)))
+        } else if b.s1 > axis.length {
+            Some(("end", b.s1.saturating_sub(axis.length)))
+        } else {
+            None
+        };
+        if let Some((edge, by)) = outside {
+            let by = mm_short(by);
+            out.push(
+                finding(
+                    "bracket_outside",
+                    format!("{this} passes the {edge} of {rail} by {by} mm."),
+                )
+                .arg("edge", edge)
+                .arg("by", by),
+            );
+        }
     }
 }
 

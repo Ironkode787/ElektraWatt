@@ -25,10 +25,11 @@
 //! |---|---|
 //! | [`Layer::Surface`](ew_dl::Layer::Surface) | the enclosure outline ([`Pen::P052`]), the plate outline ([`Pen::P026`]), the usable polygon thin dashed ([`Pen::P013`], 4:2) |
 //! | [`Layer::Carriers`](ew_dl::Layer::Carriers) | per carrier by ID: its outline rectangles ([`Pen::P026`]); a rail's axis as a chain line ([`Pen::P013`], dash-dot); a duct's "W×H" label in mm, in the layout-label style, centred on its longest segment and turned to read bottom to top on a vertical one. The outlines and the axis are cut around every placement label's knockout box (see below) |
-//! | [`Layer::Placements`](ew_dl::Layer::Placements) | per placement by ID: its `front_2d` outline (FR-LAY-011), else its footprint rectangle ([`Pen::P026`]; an unknown footprint 4:2 dashed) |
+//! | [`Layer::Placements`](ew_dl::Layer::Placements) | per placement by ID: its `front_2d` outline (FR-LAY-011), else its footprint rectangle ([`Pen::P026`]; an unknown footprint 4:2 dashed); then each derived end bracket ([`BracketDraw`], WP-S4.02 D13) as a rectangle in the footprints' pen ([`Pen::P026`]), by its strip's placement, then its rectangle |
 //! | [`Layer::Labels`](ew_dl::Layer::Labels) | per placement by ID: its label (see below), after the page items' texts |
 //!
-//! Carrier outlines and duct labels carry the carrier's entity, placement and label items the placement's, so that
+//! Carrier outlines and duct labels carry the carrier's entity, placement and label items the placement's (an end
+//! bracket the placement of the strip it is attributed to: a bracket is derived, not a record), so that
 //! hit-testing on the page returns placements and carriers (FR-UI-007). The surface outlines and a rail's axis carry
 //! none: the axis runs through the middle of every footprint on the rail, and its zero-area rectangle would win the
 //! canvas's smallest-rectangle pick over the footprint a press lands on.
@@ -189,6 +190,9 @@ pub struct PanelView {
     pub carriers: Vec<CarrierDraw>,
     /// The placements on the surface ([`Layer::Placements`](ew_dl::Layer::Placements)).
     pub placements: Vec<PlacementDraw>,
+    /// The derived end brackets on the surface's rails ([`Layer::Placements`](ew_dl::Layer::Placements), WP-S4.02
+    /// D13).
+    pub brackets: Vec<BracketDraw>,
     /// The placements' labels ([`Layer::Labels`](ew_dl::Layer::Labels), and the knockout of
     /// [`Layer::Carriers`](ew_dl::Layer::Carriers)).
     pub labels: Vec<PanelLabel>,
@@ -231,6 +235,16 @@ pub struct PlacementDraw {
     pub unknown: bool,
     /// The `front_2d` outline placed in the surface's frame; empty draws the footprint (FR-LAY-011).
     pub outline: Vec<Vec<Pt2>>,
+}
+
+/// One derived end bracket (`group_accessories`, WP-S4.02 D13): a rectangle of the bracket's width along the rail by
+/// the largest footprint height across the rail of its run's strips, centred on the rail axis.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct BracketDraw {
+    /// The placement of the strip the bracket is attributed to (its entity).
+    pub placement: Id<Placement>,
+    /// The rectangle in the surface's frame.
+    pub rect: Rect,
 }
 
 /// One placement's label.
@@ -664,6 +678,23 @@ impl Builder<'_> {
                     self.push(Item::path(Path::rect(r), Some(stroke), None).with_entity(entity));
                 }
             }
+        }
+        let mut brackets: Vec<&BracketDraw> = panel.brackets.iter().collect();
+        brackets.sort_by_key(|b| {
+            (
+                b.placement,
+                b.rect.min().x,
+                b.rect.min().y,
+                b.rect.max().x,
+                b.rect.max().y,
+            )
+        });
+        for b in brackets {
+            let Some(r) = p.rect(b.rect) else { continue };
+            self.push(
+                Item::path(Path::rect(r), Some(Stroke::pen(Pen::P026)), None)
+                    .with_entity(EntityRef(b.placement.as_uuid())),
+            );
         }
     }
 

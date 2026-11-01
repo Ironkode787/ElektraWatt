@@ -64,6 +64,23 @@ rule-ew-lay-010 = { $form ->
         [surface] { $device } (artikel { $part }) wordt niet op de plaat zelf gemonteerd; plaats het op een rail
         [overflow] { $device } beslaat { $from } tot { $to } mm op de rail bij { $rail }, voorbij 0.0 tot { $length } mm; maak het korter of verplaats het
         [outside] { $device } ligt buiten het bruikbare vlak van de montageplaat; verplaats het naar binnen
+        [bracket_overlap] De eindsteun { $side ->
+            [before] vóór
+           *[after] na
+        } { $device } overlapt { $other_kind ->
+            [bracket] de eindsteun { $other_side ->
+                [before] vóór
+               *[after] na
+            } { $other }
+           *[placement] { $other }
+        } op { $rail }.
+        [bracket_outside] De eindsteun { $side ->
+            [before] vóór
+           *[after] na
+        } { $device } steekt { $by } mm voorbij { $edge ->
+            [start] het begin
+           *[end] het einde
+        } van { $rail }.
         [path] het pad van de { $carrier ->
             [rail] rail bij { $at } is geen twee punten op één horizontale of verticale lijn
             [duct] goot bij { $at } is geen lijn van horizontale en verticale stukken

@@ -807,15 +807,13 @@ fn ac06_tags(c: &Ctx) -> Outcome {
 /// The differences between the printed parts list and the table of doc 20 §14.1 that are accepted, as
 /// `(position, column, doc 20 prints, the parts list prints, why)`. Every other cell must be equal.
 ///
-/// - Row 26, folio column: §14.1 gives folio 902 (the layout page the brackets are placed on). The end brackets
-///   are part uses of the strips until WP-S4.02 derives them (FT-204), so row 26 lists the folios of the strips that
-///   carry them. Rows 22 to 25 print 902 since WP-S4.01 part 4 (the layout objects' panel page).
 /// - Row 26, tags: §14.1 lists "1X1, -X1031, -X1032"; the parts list sorts the tags in the order of the ID-9
-///   sign order, "-X1031, -X1032, 1X1" (ruling).
-const AC07_ACCEPTED: [(&str, &str, &str, &str); 2] = [
-    ("26", "Folios", "902", "101, 103"),
-    ("26", "Tags", "1X1, -X1031, -X1032", "-X1031, -X1032, 1X1"),
-];
+///   sign order, "-X1031, -X1032, 1X1" (ruling; ID-1018).
+///
+/// Row 26's folio is §14.1's 902 since WP-S4.02 part 5 derives the end brackets from R2's strips (FT-204; ID-1081,
+/// ruling 1).
+const AC07_ACCEPTED: [(&str, &str, &str, &str); 1] =
+    [("26", "Tags", "1X1, -X1031, -X1032", "-X1031, -X1032, 1X1")];
 
 /// Folio 901 equals the 27 rows of doc 20 §14.1 (`expected/parts_list_14_1.csv`, generated from the doc by
 /// `tables_from_doc20.py`) over 901 and 901.1, cell by cell, but for the accepted differences.
@@ -868,8 +866,9 @@ fn compare_14_1(got_rows: &[Vec<String>], what: &str) -> Outcome {
         }
     }
     if wrong.is_empty() {
+        let plural = if accepted == 1 { "" } else { "s" };
         pass(format!(
-            "{what} in every cell but {accepted} accepted differences (row 26: folio 902, the end brackets are not placed until WP-S4.02, and its tags in the ID-9 sign order)"
+            "{what} in every cell but {accepted} accepted difference{plural} (row 26: its tags in the ID-9 sign order)"
         ))
     } else {
         fail(format!(

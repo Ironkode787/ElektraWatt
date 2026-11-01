@@ -4,10 +4,11 @@
 //! WP-S4.01 part 4 over Golden A (doc 20 §13, §14.1; the orchestrator's rulings 4 to 7 of cycle 41):
 //!
 //! - `lb1_rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902`: -UC1 carries no rail or duct part use;
-//!   its carrier lines give rows 24 and 25 at 1.71 m and 3.17 m; rows 22 to 25 print folio 902; 27 rows.
-//! - `lb2_the_legend_of_the_plate_lists_30_rows_and_renumbers`: `enclosure_legend` (registered) over a block embedded
-//!   on 902: -UC1, -UC1-plate, R1 … R3, D1 … D5, the twenty placements by DT; placing F55 on R1 adds its row and
-//!   renumbers the rows after it.
+//!   its carrier lines give rows 24 and 25 at 1.71 m and 3.17 m; rows 22 to 25 print folio 902, and row 26 (the end
+//!   brackets, WP-S4.02 part 5) too; 27 rows.
+//! - `lb2_the_legend_of_the_plate_lists_31_rows_and_renumbers`: `enclosure_legend` (registered) over a block embedded
+//!   on 902: -UC1, -UC1-plate, R1 … R3, D1 … D5, the twenty placements by DT, then the end brackets (WP-S4.02 EB-3:
+//!   quantity 4, no DT); placing F55 on R1 adds its row and renumbers the rows after it.
 //! - `lb4_a_free_graphic_on_902_is_counted_nowhere`: neither the BOM nor the legend nor `unplaced` (FR-LAY-008).
 //! - `the_carrier_lines_memoise_as_they_run_cold`: memo against cold (and the engine's oracle) over a carrier edit.
 
@@ -162,8 +163,13 @@ fn lb1_rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902() {
             ),
         ]
     );
+    // Row 26, the end brackets of R2's strips (WP-S4.02 EB-1, ruling 2): 902 alone.
+    assert_eq!(
+        (rows[25].pos, rows[25].qty, rows[25].pages.clone()),
+        (26, m("4"), vec![PageRef::Drawn(page("902"))])
+    );
     // Placed devices keep their representation folios: no other row prints 902.
-    for r in rows.iter().filter(|r| !(22..=25).contains(&r.pos)) {
+    for r in rows.iter().filter(|r| !(22..=26).contains(&r.pos)) {
         assert!(!r.pages.contains(&PageRef::Drawn(page("902"))), "row {}", r.pos);
     }
 }
@@ -222,14 +228,14 @@ fn qty(set: &RowSet, i: usize) -> String {
 /// at the query"; "the `enclosure_legend` report kind registered in `ew-reports` with rows from that query, tested at
 /// the row level and placed on no page").
 #[test]
-fn lb2_the_legend_of_the_plate_lists_30_rows_and_renumbers() {
+fn lb2_the_legend_of_the_plate_lists_31_rows_and_renumbers() {
     let mut s = session(MemoMode::Off);
     let q = s.query();
     let set = legend(&q);
     let rows = summary(&set);
-    assert_eq!(rows.len(), 30);
+    assert_eq!(rows.len(), 31);
     let positions: Vec<String> = rows.iter().map(|r| r.0.clone()).collect();
-    assert_eq!(positions, (1..=30).map(|n| n.to_string()).collect::<Vec<_>>());
+    assert_eq!(positions, (1..=31).map(|n| n.to_string()).collect::<Vec<_>>());
     assert_eq!(rows[0].1, Some(dev("-UC1")));
     assert_eq!(rows[1].1, Some(dev("-UC1-plate")));
     let carriers: Vec<(Option<Id<Device>>, String)> =
@@ -254,8 +260,28 @@ fn lb2_the_legend_of_the_plate_lists_30_rows_and_renumbers() {
         (0..4).map(part_number).collect::<Vec<_>>(),
         ["NSYPLA1074G", "NSYPMM107", "TBD", "TBD"]
     );
+    // The end brackets last (WP-S4.02 EB-3): no DT, the TBD end bracket, quantity 4, keyed by the plate's surface.
+    let surface = q
+        .table::<ew_schema::MountingSurface>()
+        .iter()
+        .find(|(_, s)| s.device == Some(dev("-UC1-plate")))
+        .map(|(id, _)| id)
+        .expect("the plate surface");
+    assert_eq!(
+        (rows[30].1, rows[30].2.clone(), qty(&set, 30), part_number(30)),
+        (
+            None,
+            surface.as_uuid().to_string(),
+            "4".to_owned(),
+            "TBD".to_owned()
+        )
+    );
+    assert_eq!(
+        set.rows[30].sources,
+        vec![part_of(&q, "TBD end bracket").cast::<()>()]
+    );
     // The twenty placements, by DT in natural order.
-    let placed: Vec<Id<Device>> = rows[10..].iter().map(|r| r.1.expect("a DT")).collect();
+    let placed: Vec<Id<Device>> = rows[10..30].iter().map(|r| r.1.expect("a DT")).collect();
     let full = |d: Id<Device>| {
         let t = q.get::<DeviceTag>(d);
         ew_derive::ew_mltext::natural_key(t.as_ref().as_ref().map_or("", |t| t.full.as_str()))
@@ -273,7 +299,7 @@ fn lb2_the_legend_of_the_plate_lists_30_rows_and_renumbers() {
     );
     let q = s.query();
     let after = summary(&legend(&q));
-    assert_eq!(after.len(), 31);
+    assert_eq!(after.len(), 32);
     let k = after
         .iter()
         .position(|r| r.1 == Some(dev("F55")))

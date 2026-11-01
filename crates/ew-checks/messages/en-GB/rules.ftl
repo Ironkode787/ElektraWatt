@@ -164,6 +164,23 @@ rule-ew-lay-010 = { $form ->
         [surface] { $device } (part { $part }) does not mount on the plate itself; place it on a rail
         [overflow] { $device } occupies { $from } to { $to } mm on the rail at { $rail }, beyond its 0.0 to { $length } mm; shorten it or move it
         [outside] { $device } lies outside the usable area of the mounting plate; move it inside
+        [bracket_overlap] The end bracket { $side ->
+            [before] before
+           *[after] after
+        } { $device } overlaps { $other_kind ->
+            [bracket] the end bracket { $other_side ->
+                [before] before
+               *[after] after
+            } { $other }
+           *[placement] { $other }
+        } on { $rail }.
+        [bracket_outside] The end bracket { $side ->
+            [before] before
+           *[after] after
+        } { $device } passes the { $edge ->
+            [start] start
+           *[end] end
+        } of { $rail } by { $by } mm.
         [path] the path of the { $carrier ->
             [rail] rail at { $at } is not two points on one horizontal or vertical line
             [duct] duct at { $at } is not a line of horizontal and vertical segments

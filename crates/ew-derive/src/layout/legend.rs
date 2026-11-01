@@ -19,6 +19,7 @@ use ew_schema::{
 };
 use ew_units::Dec3;
 
+use super::accessories::GroupAccessories;
 use super::queries::{CarrierGeometry, primary_part};
 use crate::Q;
 use crate::tag::DeviceTag;
@@ -205,6 +206,9 @@ pub enum LegendItem {
     Carrier(Id<Carrier>),
     /// A placement on one of the surface's carriers or on the surface itself.
     Placement(Id<Placement>),
+    /// The derived end brackets of one bracket part on the surface's rails (WP-S4.02 D13, doc 12 §5.4's layout-only
+    /// accessories): one row per part (and variant), quantity the number of brackets.
+    Bracket(PartRef),
 }
 
 /// One row of [`layout_legend`].
@@ -215,13 +219,14 @@ pub struct LegendRow {
     /// What the row lists.
     pub item: LegendItem,
     /// The device whose designation the DT cell prints; `None` for a carrier (carriers have no designation member,
-    /// FP-5) and for a surface without a device.
+    /// FP-5), for a bracket row and for a surface without a device.
     pub device: Option<Id<Device>>,
     /// The part: the enclosure part of the enclosure device, the plate part of the surface, the carrier's part, the
-    /// part use a placement realises (its `part`, else the device's primary part; `None` for a strip).
+    /// part use a placement realises (its `part`, else the device's primary part; `None` for a strip), the bracket
+    /// part.
     pub part: Option<PartRef>,
     /// The quantity: a carrier's path length in metres exact to the millimetre (`None` without a derivable length),
-    /// one for every other row.
+    /// a bracket row's number of brackets, one for every other row.
     pub qty: Option<Dec3>,
 }
 
@@ -244,10 +249,12 @@ fn part_use_where(q: &Q, device: &Device, pred: impl Fn(&Part) -> bool) -> Optio
 /// 3. one row per carrier, in legend order ([`carrier_order`]: rails, then ducts, each top to bottom then left to right
 ///    by `path[0]`), the DT empty, the path length in metres as the quantity (none without a derivable length);
 /// 4. the placements on the surface's carriers and on the surface itself, by the device's full designation in natural
-///    order (then the device ID and the placement ID), each with the part use it realises.
+///    order (then the device ID and the placement ID), each with the part use it realises;
+/// 5. the layout-only accessories (doc 12 §5.4's last group; WP-S4.02 D13): one row per end-bracket part (and variant)
+///    of the brackets `group_accessories` derives on the surface's rails, the DT empty, the number of brackets as the
+///    quantity, by part number in natural order (then the part copy's ID and the variant).
 ///
-/// Positions are 1 … n. Layout-only accessories (end brackets, doc 12 §5.4's last group) are WP-S4.02's. Free graphics
-/// are never read (FR-LAY-008). Empty for a missing surface.
+/// Positions are 1 … n. Free graphics are never read (FR-LAY-008). Empty for a missing surface.
 pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
     let Some(s) = q.table::<MountingSurface>().get(surface).cloned() else {
         return Vec::new();
@@ -335,6 +342,26 @@ pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
     keyed.dedup_by_key(|k| k.2);
     for (_, device, p, part) in keyed {
         push(LegendItem::Placement(p), Some(device), part, Some(Dec3::ONE));
+    }
+
+    // 5. The end brackets, one row per part.
+    let mut brackets: Vec<(PartRef, usize)> = Vec::new();
+    for c in &order {
+        for b in q.get::<GroupAccessories>(*c).iter() {
+            match brackets
+                .iter_mut()
+                .find(|(p, _)| p.copy == b.part.copy && p.variant == b.part.variant)
+            {
+                Some((_, n)) => *n = n.saturating_add(1),
+                None => brackets.push((b.part.clone(), 1)),
+            }
+        }
+    }
+    let number = |p: &PartRef| natural_key(parts.get(p.copy).map_or("", |c| c.item.part_number.as_str()));
+    brackets.sort_by_cached_key(|(p, _)| (number(p), p.copy, p.variant.clone()));
+    for (part, n) in brackets {
+        let qty = Dec3::from_int(i64::try_from(n).unwrap_or(i64::MAX)).unwrap_or(Dec3(i64::MAX));
+        push(LegendItem::Bracket(part.clone()), None, Some(part), Some(qty));
     }
 
     for (i, row) in rows.iter_mut().enumerate() {

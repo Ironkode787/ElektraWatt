@@ -202,7 +202,8 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
     );
     let placed = |i: usize| matches!(&rows.rows[i].cells[7], Cell::Folios(f) if !f.is_empty());
     assert!((0..25).all(placed));
-    // The accessories keep the folios of their strips: the brackets 101 and 103, the bridges 103.
+    // The bridges keep the folios of their strips, 103; the end brackets, derived from R2's strips, print the panel page
+    // that shows R2 (WP-S4.02 EB-1, ruling 2).
     let folios_of = |i: usize| -> Vec<String> {
         let Cell::Folios(folios) = &rows.rows[i].cells[7] else {
             panic!("folios column")
@@ -217,7 +218,7 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
     for i in 21..25 {
         assert_eq!(folios_of(i), ["902"], "row {}", i + 1);
     }
-    assert_eq!(folios_of(25), ["101", "103"]);
+    assert_eq!(folios_of(25), ["902"]);
     assert_eq!(folios_of(26), ["103"]);
     // Quantities: 1.71 m of rail and 3.17 m of duct, the carrier part lines of -UC1 (R1 … R3, D1 … D5; WP-S4.01 part 4,
     // FT-205), 4 brackets, 6 bridges.
@@ -568,10 +569,10 @@ fn embedded_blocks_have_no_page_and_derive_part_data() {
     assert!(r902.is_derived());
     assert_eq!(part_numbers(&r902), ["NSYPLA1074G", "NSYPMM107"]);
 
-    // The legend on 902 (D17) derives its 30 rows.
+    // The legend on 902 (D17) derives its 31 rows, the end brackets last (WP-S4.02 EB-3).
     let legend = q.get::<BlockRows>(block("legend-902"));
     assert!(legend.is_derived());
-    assert_eq!(legend.rows.len(), 30);
+    assert_eq!(legend.rows.len(), 31);
 }
 
 #[test]

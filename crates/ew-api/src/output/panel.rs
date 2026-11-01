@@ -10,7 +10,7 @@
 //! | [`PageSurfaceView`] | every panel layer | the page row (kind, scale), its page items and its frame's page-to-sheet map |
 //! | the surface outlines | `surface` | the surface, its enclosure, the enclosure's and the plate's devices and their part copies (the enclosure and mounting-plate sections) |
 //! | the carriers | `carriers` | `carriers_of_surface`, `carrier_geometry`, the carriers' `params` |
-//! | the placements | `placements` | the placements on the surface's carriers and on the surface, `placement_geometry` |
+//! | the placements | `placements` | the placements on the surface's carriers and on the surface, `placement_geometry`; the end brackets of the surface's rails (`group_accessories`, `rail_occupancy` through `rail_items`, WP-S4.02 D13) |
 //! | the labels | `labels` and `carriers` | the same placements, `layout_label`, [`ShapedText`] in the label style, the surface's usable polygon |
 //!
 //! The carriers layer reads the labels for their knockout boxes (the carriers are cut around the labels, cycle 41's
@@ -24,12 +24,13 @@ use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::{
     CarrierGeometry, GroupAccessories, LabelMode, LayoutLabel, PlacementGeometry, Profile, Quarter, RailAxis,
     RailExtent, RailItem, Unplaced, bracket_part, brackets, carrier_labels, free_length, member_order,
-    member_slot, mount_label, primary_part, rail_extent, rail_items,
+    member_slot, mount_label, primary_part, rail_extent, rail_items, runs,
 };
 use ew_derive::{DeviceTag, PageRef, Policy, Q, Query, StructurePath, Tag};
 use ew_scene::forms::SheetMap;
 use ew_scene::panel::{
-    CarrierDraw, LAYOUT_LABEL_STYLE, PanelLabel, PanelView, PlacementDraw, Projection, SurfaceOutline,
+    BracketDraw, CarrierDraw, LAYOUT_LABEL_STYLE, PanelLabel, PanelView, PlacementDraw, Projection,
+    SurfaceOutline,
 };
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, LayoutSpace, LibCopy, MountKind,
@@ -254,6 +255,71 @@ fn placements(q: &Q, ids: &[Id<Placement>]) -> Vec<PlacementDraw> {
         .collect()
 }
 
+/// The derived end brackets of a surface's rails (WP-S4.02 D13), carrier by ID then in `group_accessories`' order: each
+/// a rectangle of the bracket's width along the rail by the largest footprint extent across the rail of the strips of
+/// its run (the terminals' height), centred on the rail axis. A rail without a valid axis draws none.
+fn bracket_draws(q: &Q, surface: Id<MountingSurface>) -> Vec<BracketDraw> {
+    let table = q.table::<Carrier>();
+    let mut ids: Vec<Id<Carrier>> = q.idx().carriers_of_surface(surface).collect();
+    ids.sort();
+    let mut out = Vec::new();
+    for c in ids {
+        let Some(axis) = table
+            .get(c)
+            .filter(|rec| rec.kind == CarrierKind::Rail)
+            .and_then(|rec| RailAxis::of(&rec.path))
+        else {
+            continue;
+        };
+        let accessories = q.get::<GroupAccessories>(c);
+        if accessories.is_empty() {
+            continue;
+        }
+        let (du, dv) = axis.dir.rotate((1, 0));
+        let across = |r: Rect| {
+            if du == 0 {
+                i128::from(r.width().0)
+            } else {
+                i128::from(r.height().0)
+            }
+        };
+        // The height of each strip's run: the largest footprint extent across the rail among its strips.
+        let items = rail_items(q, c);
+        let mut height: std::collections::BTreeMap<Id<Placement>, i128> = std::collections::BTreeMap::new();
+        for run in runs(&items) {
+            let placed: Vec<Id<Placement>> = run.iter().filter_map(|k| items.get(*k)?.placement).collect();
+            let h = placed
+                .iter()
+                .filter_map(|p| {
+                    q.get::<PlacementGeometry>(*p)
+                        .as_ref()
+                        .as_ref()
+                        .map(|g| across(g.footprint))
+                })
+                .max()
+                .unwrap_or(0);
+            height.extend(placed.into_iter().map(|p| (p, h)));
+        }
+        let (su, sv) = (i128::from(axis.start.x.0), i128::from(axis.start.y.0));
+        let at = |s: i128, off: i128| -> Option<Pt2> {
+            let u = su + s * du - off * dv;
+            let v = sv + s * dv + off * du;
+            Some(Pt2::new(Nm(i64::try_from(u).ok()?), Nm(i64::try_from(v).ok()?)))
+        };
+        for b in accessories.iter() {
+            let h = height.get(&b.placement).copied().unwrap_or(0);
+            let below = h / 2;
+            if let (Some(a), Some(z)) = (at(b.s0, -below), at(b.s1, h - below)) {
+                out.push(BracketDraw {
+                    placement: b.placement,
+                    rect: Rect::from_points(a, z),
+                });
+            }
+        }
+    }
+    out
+}
+
 /// The label style of the project's text-style table ([`LAYOUT_LABEL_STYLE`]).
 fn label_style(q: &Q) -> TextStyle {
     let table = text_style_table(q);
@@ -325,6 +391,11 @@ pub(crate) fn panel_view(q: &Q, page: Id<Page>, parts: Parts) -> Option<PanelVie
         },
         placements: if parts.placements {
             placements(q, &ids)
+        } else {
+            Vec::new()
+        },
+        brackets: if parts.placements {
+            bracket_draws(q, surface.id)
         } else {
             Vec::new()
         },

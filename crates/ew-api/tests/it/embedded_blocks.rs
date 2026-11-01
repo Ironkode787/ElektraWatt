@@ -6,7 +6,8 @@
 //! - `lb3_part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title`
 //! - `lb6_a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold`,
 //!   `lb6_a_block_whose_rows_do_not_derive_draws_its_reason`, `lb6_the_tables_layer_does_not_depend_on_record_order`
-//! - `lb7_the_legend_on_902_draws_20_plus_10_rows_and_20_plus_11_with_f55_placed`
+//! - `lb7_the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed` (WP-S4.02 EB-3: the end-bracket row
+//!   is row 31; the block holds 2 × 20 rows, asserted first)
 //! - `lb8_the_legend_exports_through_the_named_block_path_and_no_default_export_changes`
 //! - `lb9_part_data_on_201_and_202_draws_both_order_codes_with_no_overflow`
 //!
@@ -23,8 +24,10 @@ use ew_derive::{PageOrder, PageRef, Q};
 use ew_dl::{DisplayList, ItemKind, Layer};
 use ew_import_tables::ids::record_id;
 use ew_reports::BlockRows;
+use ew_scene::embedded::{EmbeddedTable, boxed_capacity};
 use ew_scene::forms::SheetMap;
 use ew_scene::page::PageFinding;
+use ew_scene::table::TableColumn;
 use ew_scene::table::TableFinding;
 use ew_schema::{Bounds, Carrier, Device, Page, Record, ReportBlock, ReportKind, ReportSource};
 use serde_json::{Value, json};
@@ -149,16 +152,42 @@ fn numbers(range: std::ops::RangeInclusive<usize>) -> Vec<String> {
 }
 
 /// LB-7: the legend block on 902 draws D17's rect with the title "LEGEND", two flow columns each with its header, and
-/// Golden A's 30 rows as 20 + 10; placing F55 on R1 draws 31 as 20 + 11 and renumbers; no text reports an overflow.
+/// Golden A's 31 rows as 20 + 11 (WP-S4.02 EB-3: the end brackets are row 31; ruling 7: the block's capacity is
+/// asserted first, at least 31); placing F55 on R1 draws 32 as 20 + 12 and renumbers; no text reports an overflow.
 #[test]
-fn lb7_the_legend_on_902_draws_20_plus_10_rows_and_20_plus_11_with_f55_placed() {
+fn lb7_the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed() {
+    let legend = block("legend-902");
+    let rect = legend.embedded.as_ref().expect("embedded on 902").rect.0;
+    let table = EmbeddedTable {
+        title: "LEGEND".to_owned(),
+        columns: ["Pos", "DT", "Qty", "Part number"]
+            .iter()
+            .zip([10, 22, 16, 35])
+            .map(|(h, weight)| TableColumn {
+                header: (*h).to_owned(),
+                weight,
+            })
+            .collect(),
+        headers: true,
+        flow_columns: 2,
+        rows: Vec::new(),
+        note: None,
+    };
+    let (flows, rows) = boxed_capacity(rect, &table, SHEET);
+    assert_eq!((flows, rows), (2, 20));
+    assert!(flows * rows >= 31, "EB-3: the legend block holds the 31 rows");
+
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     let q = s.query();
     let l = page_layer(&q, drawn(&q, "902"), Layer::Tables);
     assert!(l.findings.is_empty(), "{:?}", l.findings);
     let (first, second) = legend_positions(&l.list);
-    assert_eq!((first, second), (numbers(1..=20), numbers(21..=30)));
+    assert_eq!((first, second), (numbers(1..=20), numbers(21..=31)));
+    // Row 31: the end brackets, no DT, quantity 4, the TBD part.
+    let all = texts(&l.list);
+    let k = all.iter().position(|t| t == "31").expect("row 31");
+    assert_eq!(all[k..k + 3], ["31", "4", "TBD"]);
     // The header of each flow column, in D17's order and sentence case.
     let all = texts(&l.list);
     let k = all.iter().position(|t| t == "LEGEND").expect("the title");
@@ -183,10 +212,10 @@ fn lb7_the_legend_on_902_draws_20_plus_10_rows_and_20_plus_11_with_f55_placed() 
     let l = page_layer(&q, drawn(&q, "902"), Layer::Tables);
     assert!(l.findings.is_empty(), "{:?}", l.findings);
     let (first, second) = legend_positions(&l.list);
-    assert_eq!((first, second), (numbers(1..=20), numbers(21..=31)));
+    assert_eq!((first, second), (numbers(1..=20), numbers(21..=32)));
 }
 
-/// LB-8: `ew export report --block <legend-902's ID> --format csv` writes a header and 30 rows with every column of the
+/// LB-8: `ew export report --block <legend-902's ID> --format csv` writes a header and 31 rows with every column of the
 /// kind, the description included (D18: the named-block path); the default blocks of `bom`, `cables`, `wires` and
 /// `terminals` are not embedded blocks, so those exports are unchanged (their bytes: `golden_csv`).
 #[test]
@@ -195,12 +224,15 @@ fn lb8_the_legend_exports_through_the_named_block_path_and_no_default_export_cha
     let q = s.query();
     let legend = block("legend-902");
     let out = row_export(&q, &RowExport::Report, Some(&legend.id.to_string())).expect("the legend's rows");
-    assert_eq!(out.rows, 30);
+    assert_eq!(out.rows, 31);
     assert_eq!(out.kind, "enclosure_legend");
     assert_eq!(out.blocks, [legend.id.to_string()]);
     let header = out.csv.lines().next().expect("a header");
     assert_eq!(header, "row,Pos,DT,Manufacturer,Part number,Description,Qty,Unit");
-    assert_eq!(out.csv.lines().count(), 31);
+    assert_eq!(out.csv.lines().count(), 32);
+    // The last row: the end brackets (WP-S4.02 EB-3), the DT empty, quantity 4 pieces.
+    let last = out.csv.lines().last().expect("a row");
+    assert_eq!(last, "data,31,,TBD,TBD,End bracket,4,pc");
     let embedded: Vec<String> = [
         "legend-902",
         "part-data-201",

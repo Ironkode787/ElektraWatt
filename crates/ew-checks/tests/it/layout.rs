@@ -715,3 +715,131 @@ fn lc6_swapping_two_modules_and_a_device_between_members() {
     );
     others_silent(&m, &["EW-LAY-016"]);
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// EB-4 (WP-S4.02 part 5, ruling 5): EW-LAY-010's end-bracket cases
+
+const P_EB: u128 = 0x609; // an end bracket, 10 mm wide
+const STRIP2: u128 = 0xea; // -X1032, two 6.2 mm terminals (12.4 mm)
+const T2: u128 = 0xb1; // its terminals
+const PL_STRIP2: u128 = 0xf10a;
+const K9: u128 = 0xeb;
+const PL_K9: u128 = 0xf10b;
+
+/// The plate with -X1031 and -X1032 each declaring the end bracket (D3), -X1031 moved to `s1031` and -X1032 placed on
+/// R2 with its left end at `s`.
+fn bracketed(s1031: f64, s: f64) -> Fx {
+    let mut fx = plate();
+    fx.part(
+        P_EB,
+        "EB 10",
+        &json!({"kind": "end_bracket", "mech": {"width": mm(10.0)}}),
+    );
+    fx.with_parts(STRIP, &[P_EB]);
+    fx.device(STRIP2, "X", Some(1032)).with("strip", json!({}));
+    located(&mut fx, STRIP2, "X", 1032, LOC);
+    fx.with_parts(STRIP2, &[P_EB]);
+    for i in 0..2u32 {
+        let n = T2 + u128::from(i);
+        fx.device(n, "X", None).with(
+            "terminal",
+            json!({"strip": us(STRIP2), "seq": i + 1, "designation": (i + 1).to_string()}),
+        );
+        fx.with("structure", json!({"location": us(LOC)}));
+        fx.with_parts(n, &[P_TERM]);
+    }
+    rec(&mut fx, PL_STRIP)["pose"] = rail_pose(s1031);
+    place(&mut fx, PL_STRIP2, STRIP2, None, on(R2), rail_pose(s));
+    fx
+}
+
+#[test]
+fn eb4_a_bracket_overlapping_a_strip_in_its_run_and_a_placement() {
+    // -X1031 [58.6, 77.2], -X1032 5 mm after it [82.2, 94.6]: one run, the bracket after -X1031 [77.2, 87.2] overlaps
+    // -X1032. K9 [40, 58] under the run-start bracket [48.6, 58.6].
+    let mut fx = bracketed(58.6, 82.2);
+    device(&mut fx, K9, "K", 9, LOC, &[P_MCB]);
+    place(&mut fx, PL_K9, K9, Some(P_MCB), on(R2), rail_pose(49.0));
+    let m = fx.build();
+    assert_eq!(
+        messages(&m, "EW-LAY-010"),
+        [
+            "The end bracket after +J-E-2416-X1031 overlaps +J-E-2416-X1032 on rail 2.",
+            "The end bracket before +J-E-2416-X1031 overlaps +J-E-2416-K9 on rail 2.",
+        ]
+    );
+    assert_eq!(
+        dutch(&m, "EW-LAY-010"),
+        [
+            "De eindsteun na +J-E-2416-X1031 overlapt +J-E-2416-X1032 op rail 2.",
+            "De eindsteun vóór +J-E-2416-X1031 overlapt +J-E-2416-K9 op rail 2.",
+        ]
+    );
+    // Each targets the strip and its placement; the bracket's start tells the two apart.
+    let mut found: Vec<(String, Vec<String>)> = findings_of(&m, "EW-LAY-010")
+        .into_iter()
+        .map(|f| {
+            (
+                f.discriminator,
+                f.targets.iter().map(|t| t.id.as_uuid().to_string()).collect(),
+            )
+        })
+        .collect();
+    found.sort();
+    let mut targets = vec![us(STRIP), us(PL_STRIP)];
+    targets.sort();
+    assert_eq!(
+        found,
+        [
+            ("bracket_overlap:48600000".to_owned(), targets.clone()),
+            ("bracket_overlap:77200000".to_owned(), targets),
+        ]
+    );
+}
+
+#[test]
+fn eb4_a_bracket_overlapping_another_bracket_and_brackets_past_the_rail_ends() {
+    // K9 [88.2, 106.2] between the strips makes two runs: the bracket after -X1031 [77.2, 87.2] overlaps the one before
+    // -X1032 [82, 92], which overlaps K9, as does the one after -X1032 [104.4, 114.4].
+    let mut fx = bracketed(58.6, 92.0);
+    device(&mut fx, K9, "K", 9, LOC, &[P_MCB]);
+    place(&mut fx, PL_K9, K9, Some(P_MCB), on(R2), rail_pose(97.2));
+    let m = fx.build();
+    assert_eq!(
+        messages(&m, "EW-LAY-010"),
+        [
+            "The end bracket after +J-E-2416-X1031 overlaps the end bracket before +J-E-2416-X1032 on rail 2.",
+            "The end bracket after +J-E-2416-X1032 overlaps +J-E-2416-K9 on rail 2.",
+            "The end bracket before +J-E-2416-X1032 overlaps +J-E-2416-K9 on rail 2.",
+        ]
+    );
+    assert_eq!(
+        dutch(&m, "EW-LAY-010")[0],
+        "De eindsteun na +J-E-2416-X1031 overlapt de eindsteun vóór +J-E-2416-X1032 op rail 2."
+    );
+
+    // -X1031 at s = 4 mm and -X1032 ending at R2's end (570 mm, no overflow of its own): the bracket before -X1031
+    // [-6, 4] and the one after -X1032 [570, 580] leave the rail.
+    let m = bracketed(4.0, 557.6).build();
+    assert_eq!(
+        messages(&m, "EW-LAY-010"),
+        [
+            "The end bracket after +J-E-2416-X1032 passes the end of rail 2 by 10 mm.",
+            "The end bracket before +J-E-2416-X1031 passes the start of rail 2 by 6 mm.",
+        ]
+    );
+    assert_eq!(
+        dutch(&m, "EW-LAY-010"),
+        [
+            "De eindsteun na +J-E-2416-X1032 steekt 10 mm voorbij het einde van rail 2.",
+            "De eindsteun vóór +J-E-2416-X1031 steekt 6 mm voorbij het begin van rail 2.",
+        ]
+    );
+}
+
+#[test]
+fn eb4_brackets_with_room_give_no_finding() {
+    // -X1032 10 mm after -X1031: one bracket between, nothing overlaps, nothing leaves the rail.
+    let m = bracketed(58.6, 87.2).build();
+    assert_eq!(messages(&m, "EW-LAY-010"), Vec::<String>::new());
+}

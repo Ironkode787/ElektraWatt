@@ -22,8 +22,9 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowSet};
 ///
 /// - `tag`: the full designation (`=P01+J-E-2416-101F1`).
 /// - `function_text`: the device's function text, empty when none.
-/// - `parts`: the part numbers of the device's own part uses (`LineSource::Device` lines only, no strip accessory,
-///   bridge, configuration or carrier line), each once, in line order, joined by ", ".
+/// - `parts`: the part numbers of the device's own part uses (`LineSource::Device` lines and a placed strip's end-bracket
+///   line, `LineSource::GroupAccessory`, which is one of its part uses; no strip accessory, bridge, configuration or
+///   carrier line), each once, in line order, joined by ", ".
 /// - `tech_data`: the technical-data text (`ew_derive::tech_data_text`).
 /// - `location`: the location designation, as `structure_overview` prints it.
 /// - `main_rep`: the frame cell of the device's main representation (`MainRep`, `RepAnchorCell`), empty when the
@@ -101,14 +102,15 @@ impl ReportKindDef for DeviceList {
     }
 }
 
-/// The part numbers of the device's own part uses (`LineSource::Device`), each once, in line order, joined by ", ".
+/// The part numbers of the device's own part uses (`LineSource::Device` and `LineSource::GroupAccessory`, WP-S4.02
+/// ruling 4), each once, in line order, joined by ", ".
 fn parts_text(q: &Q, device: Id<Device>) -> String {
     let parts = q.parts();
     let mut numbers: Vec<String> = Vec::new();
     for line in q
         .get::<DevicePartLines>(device)
         .iter()
-        .filter(|l| l.source == LineSource::Device)
+        .filter(|l| matches!(l.source, LineSource::Device | LineSource::GroupAccessory))
     {
         let Some(copy) = parts.get(line.part) else {
             continue;

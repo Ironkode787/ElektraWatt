@@ -185,8 +185,9 @@ pub fn free_length(length: i128, items: &[RailItem], brackets: &[BracketSpan]) -
 
 /// Next-fit (WP-S4.02 D6, `layout.auto_fill`): the smallest left edge `s ≥ floor` at which `item` (its width, strip
 /// flag, bracket width and pads; its `s0`, `s1` are not read as a position) fits on a rail of length `length` holding
-/// `items` (any order), with every minimum gap to its consecutive neighbours and the rail ends held and overlapping no
-/// footprint, as free mode judges a fit. `None` when no such place exists. Nothing moves: this is the placement
+/// `items` (any order), as free mode judges a fit: the minimum gap to the item before it in rail order (by `s0`) and to
+/// the item after it and the rail ends' gaps are held; an earlier item that ends later than the one before it is only
+/// cleared by its bare end (no pad, no bracket; FT-942). `None` when no such place exists. Nothing moves: this is the placement
 /// rule of a fill, not a mode ([`resolve`] stays the one resolver of a drop).
 pub fn next_fit(items: &[RailItem], length: i128, item: &RailItem, floor: i128) -> Option<i128> {
     let mut sorted: Vec<RailItem> = items.to_vec();
@@ -266,9 +267,10 @@ pub enum SnapError {
 /// gives the item's width (`s1 − s0`), strip flag, bracket width, pads, lock and placement; its `s0`, `s1` are not read
 /// as a position. The rules:
 ///
-/// - **Free:** if the item fits at `s_left` with every minimum gap to its consecutive neighbours and the rail ends held
-///   (and overlapping no footprint), it stays; else it goes to the position in the gap closest to `s_left` where it
-///   fits, ties to the smaller `s`; no gap fits: [`SnapError::NoGap`].
+/// - **Free:** if the item fits at `s_left`, it stays; else it goes to the position in the gap closest to `s_left`
+///   where it fits, ties to the smaller `s`; no gap fits: [`SnapError::NoGap`]. It fits when the minimum gap to the item
+///   before it in rail order (by `s0`) and to the item after it and the rail ends' gaps are held; an earlier item that
+///   ends later than the one before it is only cleared by its bare end, without its pad or bracket (FT-942).
 /// - **Push:** the occupants whose centre is left of the item's centre stay (one centred exactly on it counts as
 ///   right); the item starts at `max(s_left, the left neighbour's end + minimum gap)` (no left neighbour: the rail
 ///   start's gap); each occupant to the right moves right only as far as its minimum gap to its new left neighbour

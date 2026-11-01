@@ -17,7 +17,7 @@ use ew_units::Dec3;
 
 use crate::Q;
 use crate::cell::RepAnchorCell;
-use crate::layout::{carrier_length, carriers_in_order, metres_of_nm, page_surface};
+use crate::layout::{carrier_length, carriers_in_order, metres_of_nm, page_surface, strip_brackets};
 use crate::pages::{DrawnPageOrder, PageOrderV, PageRef};
 use crate::query::{Policy, Query};
 use crate::strip_bridges::StripBridges;
@@ -49,6 +49,10 @@ pub enum LineSource {
     /// The carriers (rails, ducts) with one part copy on the surfaces of an enclosure whose device owns the line,
     /// by their summed path length in metres (WP-S4.01 D11, FR-LAY-004, FR-LAY-005, FR-LAY-008).
     Carrier,
+    /// The end brackets of a placed strip (WP-S4.02 D13, FR-LAY-060): the line of the part use the strip declares its
+    /// brackets by, with the number of brackets the rails attribute to it ([`crate::layout::strip_brackets`]) instead
+    /// of the authored quantity.
+    GroupAccessory,
 }
 
 /// One part line of one device.
@@ -71,7 +75,9 @@ pub struct PartLine {
 /// `device_part_lines(dev)`: the part lines of one device, in model order.
 ///
 /// A missing device and a device that is not fitted have no lines. Otherwise one line per part use of the
-/// device (`Device.parts` order), then, for a strip device, one line of quantity 1 per strip accessory
+/// device (`Device.parts` order; for a strip placed on a rail, the part use that declares its end brackets gives a
+/// [`LineSource::GroupAccessory`] line whose quantity is the number of brackets attributed to the strip, WP-S4.02
+/// D13; a strip without a bracket on any rail keeps the authored quantity), then, for a strip device, one line of quantity 1 per strip accessory
 /// (mounting order), then one line of quantity 1 per bridge group of the strip that has a part
 /// ([`StripBridges`], group order; WP-S2.07 D6), then, for the device of an enclosure, one **carrier line**
 /// per part ([`LineSource::Carrier`], WP-S4.01 D11 as amended by the orchestrator's ruling 5 of cycle 41): the
@@ -113,8 +119,16 @@ impl Query for DevicePartLines {
                 });
             }
         };
-        for u in &dev.parts {
-            push(&u.part, u.qty, LineSource::Device);
+        let brackets = strip_brackets(q, *key);
+        for (i, u) in dev.parts.iter().enumerate() {
+            match &brackets {
+                Some(b) if b.part_use == i => {
+                    let n = i64::try_from(b.count).unwrap_or(i64::MAX);
+                    let qty = Dec3::from_int(n).unwrap_or(Dec3(i64::MAX));
+                    push(&u.part, qty, LineSource::GroupAccessory);
+                }
+                _ => push(&u.part, u.qty, LineSource::Device),
+            }
         }
         if let Some(strip) = &dev.aspects.strip {
             for a in &strip.accessories {
@@ -191,10 +205,16 @@ fn carrier_groups(q: &Q, device: Id<Device>) -> Vec<CarrierGroup> {
     groups
 }
 
-/// The surfaces a part line of a layout object shows (WP-S4.01 D11, FT-204): a carrier line's carriers' surfaces; any
-/// other line of the device of an enclosure, its enclosures' surfaces; a line of the device of a surface (the plate),
-/// that surface. Empty for every other line.
+/// The surfaces a part line of a layout object shows (WP-S4.01 D11, FT-204): a carrier line's carriers' surfaces; an
+/// end-bracket line, the surfaces of the rails holding its brackets (WP-S4.02 D13); any other line of the device of an
+/// enclosure, its enclosures' surfaces; a line of the device of a surface (the plate), that surface. Empty for every
+/// other line.
 fn line_surfaces(q: &Q, line: &PartLine) -> BTreeSet<Id<MountingSurface>> {
+    if line.source == LineSource::GroupAccessory {
+        return strip_brackets(q, line.device)
+            .map(|b| b.surfaces)
+            .unwrap_or_default();
+    }
     if line.source == LineSource::Carrier {
         return carrier_groups(q, line.device)
             .into_iter()
@@ -264,9 +284,10 @@ pub struct BomRow {
     pub description: MlText,
     /// The devices with this part, in tag natural order.
     pub devices: Vec<Id<Device>>,
-    /// The pages of those devices' main representations and, for a part line of a layout object (the device of an
-    /// enclosure or of a surface, a carrier line), the panel-layout pages whose surface view shows its surface
-    /// (WP-S4.01 D11, FT-204), in page order, without repeats.
+    /// The pages of the main representations of the devices with a line other than an end-bracket line and, for a part
+    /// line of a layout object (the device of an enclosure or of a surface, a carrier line, an end-bracket line), the
+    /// panel-layout pages whose surface view shows its surface (WP-S4.01 D11, FT-204; WP-S4.02 D13), in page order,
+    /// without repeats.
     pub pages: Vec<PageRef>,
 }
 
@@ -286,10 +307,12 @@ pub struct BomRow {
 ///    replaces it. Other lines, configured part uses included, stay.
 /// 3. **Aggregation** by [`BomRowKey`] and the configured flag: quantities add up (an overflowing sum
 ///    saturates at the `Dec3` limit); part data comes from the part copy; the devices are sorted by their
-///    short tag, full tag and ID (natural order); the pages are those of the devices' main
-///    representations together with, for a line of a layout object (the device of an enclosure or of a
-///    mounting surface, a carrier line), the panel-layout pages whose surface view shows its surface (WP-S4.01
-///    D11, FT-204: -UC1's rows print folio 902), in page order. That is the Folios cell only: the order below
+///    short tag, full tag and ID (natural order); the pages are those of the main representations of the devices
+///    with a line other than an end-bracket line ([`LineSource::GroupAccessory`]) together with, for a line of a
+///    layout object (the device of an enclosure or of a mounting surface, a carrier line, an end-bracket line), the
+///    panel-layout pages whose surface view shows its surface (WP-S4.01 D11, FT-204: -UC1's rows print folio 902;
+///    WP-S4.02 D13: an end-bracket line prints the panel pages of its rails and none of its strip's representation
+///    pages, so row 26 prints 902), in page order. That is the Folios cell only: the order below
 ///    reads the representations alone. The covers of a configured row are the union of its configs' covers.
 /// 4. **Order:** rows with a placed device first, by the least (page-order position, column, row) of their
 ///    devices' main representations (a terminal without one takes its strip's first segment; a missing
@@ -299,7 +322,7 @@ pub struct BomRow {
 ///    layout-only accessory ([`PartKind::EndBracket`], [`PartKind::Accessory`]) is always in the second
 ///    group, whatever the placement of its devices: the accessories of a strip belong to the layout legend
 ///    (doc 12 §5.4, doc 20 §14.1 rows 26 and 27), not to the schematic position of the strip. Its pages
-///    are still those of its devices. The key breaks every remaining tie. The *head rank* is 0 for every row that is not a configured product. Configured
+///    are those of step 3. The key breaks every remaining tie. The *head rank* is 0 for every row that is not a configured product. Configured
 ///    products of one head device tie on the cell, and the head's own order of its configured parts breaks
 ///    that tie before the part number does (doc 20 §14.2: order code 1 is A1, order code 2 is A2): the head
 ///    of a configured row is the device of the row whose main representation gives the row's least
@@ -335,6 +358,9 @@ impl Query for BomRows {
             let e = acc.entry((l.line.configured, k)).or_default();
             e.qty = Dec3(e.qty.0.saturating_add(l.line.qty.0));
             e.devices.insert(l.line.device);
+            if l.line.source != LineSource::GroupAccessory {
+                e.drawn.insert(l.line.device);
+            }
             e.covers.extend(l.covers.iter().copied());
             if !views.is_empty() {
                 e.surfaces.extend(line_surfaces(q, &l.line));
@@ -347,6 +373,7 @@ impl Query for BomRows {
             Acc {
                 qty,
                 devices,
+                drawn,
                 covers,
                 surfaces,
             },
@@ -360,7 +387,11 @@ impl Query for BomRows {
                 .iter()
                 .filter_map(|d| placement(q, &order, *d).map(|p| (*d, p)))
                 .collect();
-            let mut pages: Vec<PageRef> = placements.iter().map(|(_, p)| p.page).collect();
+            let mut pages: Vec<PageRef> = placements
+                .iter()
+                .filter(|(d, _)| drawn.contains(d))
+                .map(|(_, p)| p.page)
+                .collect();
             pages.extend(surfaces.iter().filter_map(|s| views.get(s)).flatten().copied());
             pages.sort_by_key(|p| (order.position(*p).unwrap_or(usize::MAX), *p));
             pages.dedup();
@@ -425,6 +456,8 @@ impl Query for BomRows {
 struct Acc {
     qty: Dec3,
     devices: BTreeSet<Id<Device>>,
+    /// The devices with a line other than an end-bracket line: their representations' pages print in the Folios cell.
+    drawn: BTreeSet<Id<Device>>,
     covers: BTreeSet<Id<Device>>,
     /// The surfaces the row's layout-object lines show (their panel pages print in the Folios cell).
     surfaces: BTreeSet<Id<MountingSurface>>,

@@ -5,11 +5,14 @@
 //! `rail_occupancy` into the rail model's items (the strips with their declared bracket widths), and the memo query
 //! [`GroupAccessories`] (`group_accessories(carrier)`) lists the end brackets the strips need. Nothing is stored: a
 //! bracket is derived from the strips' positions each time, so moving a strip away from its run adds two.
+//! [`strip_brackets`] counts the brackets attributed to one strip over its rails: the BOM's line of the strip's
+//! declaring part use reads it (part 5, D13).
 
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_schema::{Carrier, Device, LibCopy, Part, PartKind, PartRef, Placement};
+use ew_schema::{Carrier, CarrierRef, Device, LibCopy, MountingSurface, Part, PartKind, PartRef, Placement};
 
 use super::queries::{RailOccupancy, places_strip};
 use super::snap::{RailItem, brackets};
@@ -31,6 +34,67 @@ pub fn bracket_part(q: &Q, device: &Device) -> Option<(PartRef, i128)> {
                 .map_or(0, |w| i128::from(w.0).max(0));
             (u.part.clone(), w)
         })
+    })
+}
+
+/// The index in `Device.parts` of the part use a strip declares its end brackets by (D3): the first whose part copy
+/// has kind `end_bracket`, as [`bracket_part`] finds it.
+pub fn bracket_use(q: &Q, device: &Device) -> Option<usize> {
+    let parts = q.table::<LibCopy<Part>>();
+    device.parts.iter().position(|u| {
+        parts
+            .get(u.part.copy)
+            .is_some_and(|c| c.item.kind == PartKind::EndBracket)
+    })
+}
+
+/// The end brackets attributed to one placed strip (WP-S4.02 D13, part 5).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct StripBrackets {
+    /// The index in `Device.parts` of the declaring part use ([`bracket_use`]).
+    pub part_use: usize,
+    /// How many brackets [`GroupAccessories`] attributes to the strip, over every rail it is placed on.
+    pub count: usize,
+    /// The mounting surfaces of the rails holding them.
+    pub surfaces: BTreeSet<Id<MountingSurface>>,
+}
+
+/// The end brackets attributed to `device` over the rails its placements are on (D13): the BOM's line of the declaring
+/// part use takes its quantity and its panel folios from them. `None` for a missing device, a device that declares no
+/// bracket part and a strip none of whose placements holds a bracket (not placed, or placed on a surface or a duct):
+/// such a strip keeps its authored quantity and folios (doc 12 §3.4).
+pub fn strip_brackets(q: &Q, device: Id<Device>) -> Option<StripBrackets> {
+    let dev = q.devices().get(device)?;
+    let part_use = bracket_use(q, dev)?;
+    let placements = q.table::<Placement>();
+    let carriers: BTreeSet<Id<Carrier>> = q
+        .idx()
+        .placements_of_device(device)
+        .filter_map(|p| match placements.get(p)?.carrier {
+            CarrierRef::Carrier(c) => Some(c),
+            _ => None,
+        })
+        .collect();
+    let table = q.table::<Carrier>();
+    let mut count = 0usize;
+    let mut surfaces = BTreeSet::new();
+    for c in carriers {
+        let n = q
+            .get::<GroupAccessories>(c)
+            .iter()
+            .filter(|b| b.strip == device)
+            .count();
+        if n > 0 {
+            count = count.saturating_add(n);
+            if let Some(rec) = table.get(c) {
+                surfaces.insert(rec.surface);
+            }
+        }
+    }
+    (count > 0).then_some(StripBrackets {
+        part_use,
+        count,
+        surfaces,
     })
 }
 
