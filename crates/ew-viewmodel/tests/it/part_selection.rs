@@ -495,7 +495,11 @@ fn the_device_dialog_never_offers_a_layout_part() {
         );
     }
     done(&mut s, "part.search", json!({ "text": "EW-GEN-VLV-1" }));
-    assert!(results(&s).iter().any(|r| r == "EW-GEN-VLV-1"), "{:?}", results(&s));
+    assert!(
+        results(&s).iter().any(|r| r == "EW-GEN-VLV-1"),
+        "{:?}",
+        results(&s)
+    );
     s.shutdown();
 }
 
