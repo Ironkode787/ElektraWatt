@@ -343,3 +343,26 @@ fn math_face_identity() {
         bundled().face_for(&style("text.normal")).metrics.units_per_em
     );
 }
+
+/// Every glyph carries the byte offset of the cluster it belongs to (C44-p5#1): one per character in plain text, a
+/// ligature's glyph and a combining sequence's glyphs at their first character, each line's clusters in its own text,
+/// and a right-to-left run's in visual order (so decreasing).
+#[test]
+fn every_glyph_carries_its_cluster() {
+    let normal = style("text.normal");
+    let s = bundled().shape("LT, 7", &normal, None);
+    assert_eq!(s.clusters, [0, 1, 2, 3, 4]);
+    let s = bundled().shape("e\u{301}x", &normal, None);
+    assert_eq!(s.clusters.len(), s.run.glyphs.len());
+    assert!(s.clusters.iter().all(|&c| c == 0 || c == 3), "{:?}", s.clusters);
+    assert_eq!(s.clusters.last(), Some(&3));
+    let s = bundled().shape("afi", &normal, None);
+    assert_eq!(s.clusters.len(), s.run.glyphs.len());
+    assert_eq!(s.clusters[0], 0);
+    assert!(s.clusters.windows(2).all(|w| w[0] < w[1]), "{:?}", s.clusters);
+    let s = bundled().shape("ab\ncd", &normal, None);
+    let lines: Vec<&[usize]> = s.lines.iter().map(|l| &s.clusters[l.glyphs.clone()]).collect();
+    assert_eq!(lines, [&[0, 1][..], &[3, 4][..]]);
+    let s = bundled().shape("\u{5d0}\u{5d1}", &normal, None);
+    assert_eq!(s.clusters, [2, 0]);
+}

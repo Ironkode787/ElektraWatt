@@ -1631,17 +1631,15 @@ impl Builder<'_> {
     }
 }
 
-/// The boxes of the glyph spans `ranges` of `text` as placed (ADR-0015 amendment 9), one per range in their order: from
-/// the pen travel of the text up to the span's start to the travel up to its end (trailing spaces included), from the
-/// ascent to the descent of `style`, mapped to the parent through the placed line item that holds the span (so it turns
-/// with the text). `shaped` is `text` shaped in `style` and `lines` its placed line items, one per shaped line. `None`
-/// for a range that no line holds whole or whose line is not placed. The cross-reference texts' item links and the
-/// report tables' item links (WP-S3.06 ruling 3) both take their boxes from here.
+/// The boxes of the glyph spans `ranges` of `text` as placed (ADR-0015 amendment 9), one per range in their order: over
+/// the span's glyphs where they are drawn, from the ascent to the descent of `style`, mapped to the parent through the
+/// placed line item that holds the span (so it turns with the text). `shaped` is `text` shaped in `style` and `lines`
+/// its placed line items, one per shaped line. `None` for a range that no line holds whole, whose line is not placed,
+/// or that holds no glyph of a right-to-left line. The cross-reference texts' item links and the report tables' item
+/// links (WP-S3.06 ruling 3) both take their boxes from here.
 ///
-/// The pen travel up to a span end is the advance of the line's text up to it, shaped alone. Each line is shaped once
-/// (C44-p3#1): the travel to the line's end is that shaping's advance, and to a character inside it that character's
-/// glyph position, where the line's glyphs map one to one onto its characters in a left-to-right script without
-/// combining marks. Any other end is shaped up to it, so every box is the one a shaping per end gives.
+/// Each line's text, without its trailing line breaks, is shaped once (C44-p3#1, C44-p5#2), never once per span end;
+/// the boxes come from that shaping's glyph positions and clusters ([`LinePens`]).
 pub(crate) fn span_quads(
     fonts: &FontSet,
     style: &TextStyle,
@@ -1664,15 +1662,7 @@ pub(crate) fn span_quads(
             let p = pens
                 .get_mut(k)?
                 .get_or_insert_with(|| LinePens::new(fonts, style, line_text));
-            // The span ends are the pen travel of the text up to them, trailing spaces included.
-            let travel = |end: usize| {
-                let at = end.checked_sub(line.text.start)?;
-                p.at(at).or_else(|| {
-                    let prefix = line_text.get(..at)?;
-                    Some(fonts.shape(prefix, style, None).advance())
-                })
-            };
-            let (x0, x1) = (travel(range.start)?, travel(range.end)?);
+            let (x0, x1) = p.extent(range.start - line.text.start, range.end - line.text.start)?;
             let to_parent = |q: Pt2| match &lines.get(k)?.kind {
                 ItemKind::Glyphs(run) => Some(run.to_parent(q)),
                 ItemKind::Group(g) => Some(g.transform.unwrap_or(Transform::IDENTITY).apply(q)),
@@ -1689,69 +1679,97 @@ pub(crate) fn span_quads(
         .collect()
 }
 
-/// The pen travel of one line's text up to its character boundaries, from one shaping of the line's text without its
-/// trailing line breaks ([`span_quads`]).
+#[cfg(test)]
+thread_local! {
+    /// How many line shapings [`LinePens::new`] made on this thread (the tests count them; never a time).
+    static LINE_SHAPINGS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// How many line shapings the span boxes made on this thread so far.
+#[cfg(test)]
+pub(crate) fn line_shapings() -> usize {
+    LINE_SHAPINGS.with(std::cell::Cell::get)
+}
+
+/// One line's text, without its trailing line breaks, shaped once: where its glyphs are drawn and which cluster each
+/// belongs to ([`span_quads`]).
+///
+/// In a left-to-right line (the clusters do not decrease along it) a span runs from the travel up to its start to the
+/// travel up to its end. The travel up to a byte is the x of the first glyph of the cluster that starts there, kerning
+/// included: 0 at the line's start, the line's advance at its end (or past it). A span's start inside a cluster (a
+/// ligature, a combining or joiner sequence) takes that cluster's start and its end the next cluster's start, so the box
+/// covers whole glyphs. In a line with a right-to-left run the box spans the extent of the glyphs whose clusters the
+/// span covers (each glyph reaching to the next one's x, the last to the advance).
 #[derive(Clone)]
 struct LinePens {
     /// The byte length of the line's text without its trailing line breaks.
     len: usize,
-    /// The advance of that text shaped alone: the travel up to its end.
+    /// The advance of that text shaped alone.
     advance: Nm,
-    /// The glyph position of each character, by its byte offset in the line, ascending; empty when the glyphs do not
-    /// map one to one onto the characters.
-    starts: Vec<(usize, Nm)>,
+    /// Each glyph's x, in the order drawn.
+    xs: Vec<Nm>,
+    /// Each glyph's cluster start, in bytes of the line, in the order drawn.
+    clusters: Vec<usize>,
+    /// Whether the clusters do not decrease along the line (a left-to-right line).
+    ltr: bool,
+    /// `(cluster start, glyph index)` of every glyph, ascending (the right-to-left extent's index).
+    by_cluster: Vec<(usize, usize)>,
 }
 
 impl LinePens {
     fn new(fonts: &FontSet, style: &TextStyle, line_text: &str) -> LinePens {
+        #[cfg(test)]
+        LINE_SHAPINGS.with(|n| n.set(n.get() + 1));
         let body = line_text.trim_end_matches(is_line_break);
         let shaped = fonts.shape(body, style, None);
-        let starts = if shaped.lines.len() == 1 && body.chars().all(maps_one_to_one) {
-            char_starts(body, &shaped).unwrap_or_default()
-        } else {
-            Vec::new()
-        };
+        let xs: Vec<Nm> = shaped.run.glyphs.iter().map(|g| g.x).collect();
+        let clusters = shaped.clusters.clone();
+        let ltr = clusters.windows(2).all(|w| w[0] <= w[1]);
+        let mut by_cluster: Vec<(usize, usize)> = clusters.iter().copied().zip(0..).collect();
+        by_cluster.sort_unstable();
         LinePens {
             len: body.len(),
             advance: shaped.advance(),
-            starts,
+            xs,
+            clusters,
+            ltr,
+            by_cluster,
         }
     }
 
-    /// The pen travel up to byte `at` of the line, when this shaping gives it: 0 at the start, the advance at the end,
-    /// a character's glyph position inside.
-    fn at(&self, at: usize) -> Option<Nm> {
-        if at == 0 {
-            return Some(Nm::ZERO);
-        }
-        if at == self.len {
-            return Some(self.advance);
-        }
-        let i = self.starts.binary_search_by_key(&at, |&(b, _)| b).ok()?;
-        self.starts.get(i).map(|&(_, x)| x)
+    /// The start of the cluster that holds byte `b`: the largest cluster start not after it (`b` before every cluster).
+    fn cluster_of(&self, b: usize) -> usize {
+        let i = self.by_cluster.partition_point(|&(c, _)| c <= b);
+        i.checked_sub(1).map_or(b, |i| self.by_cluster[i].0)
     }
-}
 
-/// How many characters of `line_text` take their pen travel from the line's one shaping ([`LinePens`]).
-#[cfg(test)]
-pub(crate) fn pens_mapped(fonts: &FontSet, style: &TextStyle, line_text: &str) -> usize {
-    LinePens::new(fonts, style, line_text).starts.len()
-}
-
-/// The glyph position of each character of `body` (shaped alone as `shaped`), by byte offset; `None` when a face span's
-/// glyphs are not one per character.
-fn char_starts(body: &str, shaped: &Shaped) -> Option<Vec<(usize, Nm)>> {
-    let mut out = Vec::with_capacity(shaped.run.glyphs.len());
-    for span in &shaped.faces {
-        let chars = body.get(span.text.clone())?.char_indices();
-        let glyphs = shaped.run.glyphs.get(span.glyphs.clone())?;
-        if chars.clone().count() != glyphs.len() {
-            return None;
-        }
-        out.extend(chars.zip(glyphs).map(|((b, _), g)| (span.text.start + b, g.x)));
+    /// The x of the first glyph whose cluster starts at or after `b`; the advance when none does.
+    fn x_from(&self, b: usize) -> Nm {
+        let g = self.clusters.partition_point(|&c| c < b);
+        self.xs.get(g).copied().unwrap_or(self.advance)
     }
-    out.sort_by_key(|&(b, _)| b);
-    Some(out)
+
+    /// The x range of the span `[start, end)` of the line (see the type's documentation).
+    fn extent(&self, start: usize, end: usize) -> Option<(Nm, Nm)> {
+        let travel = |b: usize, x: &dyn Fn(usize) -> Nm| match b {
+            0 => Nm::ZERO,
+            b if b >= self.len => self.advance,
+            b => x(b),
+        };
+        if self.ltr {
+            let x0 = travel(start, &|b| self.x_from(self.cluster_of(b)));
+            let x1 = travel(end, &|b| self.x_from(b));
+            return Some((x0, x1));
+        }
+        let lo = self.cluster_of(start);
+        let from = self.by_cluster.partition_point(|&(c, _)| c < lo);
+        let to = self.by_cluster.partition_point(|&(c, _)| c < end);
+        let glyphs = self.by_cluster.get(from..to)?;
+        let right = |g: usize| self.xs.get(g + 1).copied().unwrap_or(self.advance);
+        let x0 = glyphs.iter().map(|&(_, g)| self.xs[g]).min()?;
+        let x1 = glyphs.iter().map(|&(_, g)| right(g)).max()?;
+        Some((x0, x1))
+    }
 }
 
 /// A character that ends a line (a mandatory break).
@@ -1759,27 +1777,6 @@ fn is_line_break(c: char) -> bool {
     matches!(
         c,
         '\n' | '\r' | '\u{0B}' | '\u{0C}' | '\u{85}' | '\u{2028}' | '\u{2029}'
-    )
-}
-
-/// A character whose glyph position [`LinePens`] may take as the pen travel up to it: a left-to-right letter, digit,
-/// sign or punctuation of the Latin, Greek and Cyrillic blocks and of the general punctuation, symbol and arrow blocks;
-/// never a combining mark, a format control or a character of a right-to-left or complex script.
-fn maps_one_to_one(c: char) -> bool {
-    matches!(
-        u32::from(c),
-        0x20..=0x7E
-            | 0xA0..=0xAC
-            | 0xAE..=0x2FF
-            | 0x370..=0x3FF
-            | 0x400..=0x482
-            | 0x48A..=0x52F
-            | 0x1E00..=0x1FFF
-            | 0x2000..=0x200A
-            | 0x2010..=0x2027
-            | 0x2030..=0x205F
-            | 0x2070..=0x20CF
-            | 0x2100..=0x2BFF
     )
 }
 

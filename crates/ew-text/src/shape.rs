@@ -92,6 +92,11 @@ pub struct Shaped {
     /// first-occurrence order, each once (FR-OUT-027). They are drawn as the selected face's `.notdef`
     /// glyph.
     pub missing: Vec<char>,
+    /// For each glyph of [`ShapedRun::glyphs`], in the same order, the byte offset in the source text where the
+    /// cluster it belongs to starts (the shaper's grapheme cluster: a ligature's glyph belongs to its first character,
+    /// a combining sequence's glyphs to its base). In a left-to-right line the offsets do not decrease along the line;
+    /// in a right-to-left run they decrease. A text span's glyphs are those whose cluster starts inside it.
+    pub clusters: Vec<usize>,
 }
 
 impl Shaped {
@@ -144,6 +149,7 @@ impl FontSet {
         layout.align(Alignment::Start, AlignmentOptions::default());
 
         let mut glyphs = Vec::new();
+        let mut clusters: Vec<usize> = Vec::new();
         let mut spans: Vec<FaceSpan> = Vec::new();
         let mut lines = Vec::new();
         let mut first_baseline: Option<f32> = None;
@@ -184,6 +190,20 @@ impl FontSet {
                     }
                 }
             }
+            // The cluster of each glyph: the line's runs and each run's clusters in visual order give the glyphs in
+            // the order the items placed them (a cluster's glyphs belong to its first character).
+            let line_end = line.text_range().end;
+            let owners = line.runs().flat_map(|r| {
+                r.visual_clusters().flat_map(|c| {
+                    let at = c.text_range().start;
+                    c.glyphs().map(move |_| at)
+                })
+            });
+            clusters.extend(
+                owners
+                    .chain(std::iter::repeat(line_end))
+                    .take(glyphs.len() - start),
+            );
             lines.push(LineSpan {
                 glyphs: start..glyphs.len(),
                 text: line.text_range(),
@@ -221,6 +241,7 @@ impl FontSet {
             lines,
             faces: spans,
             missing,
+            clusters,
         }
     }
 

@@ -247,21 +247,24 @@ fn bl3_a_parts_list_links_each_device_to_its_main_representation() {
     let q = s.query();
     let rows = block_rows(&q, "915");
     assert!(!rows.is_empty());
+    // C44-p5#4: each row links exactly its device's main representation, whole, in the Device column.
+    let devices: BTreeMap<String, Id<ew_schema::Device>> = golden_common::tags(&s)
+        .into_iter()
+        .map(|(id, tag)| (tag, id))
+        .collect();
     let mut unlinked: Vec<&str> = Vec::new();
     for r in &rows {
+        let device = *devices
+            .get(&r.cells[0])
+            .unwrap_or_else(|| panic!("no device {}", r.cells[0]));
+        let want: Vec<TableLink> = (*q.get::<MainRep>(device))
+            .map(|rep| TableLink::whole(0, Destination::Representation(rep.as_uuid())))
+            .into_iter()
+            .collect();
+        assert_eq!(r.links, want, "{}", r.cells[0]);
         if r.links.is_empty() {
             unlinked.push(r.cells[0].as_str());
-            continue;
         }
-        let links = links_of(r, 0);
-        assert_eq!(links.len(), r.links.len(), "{}", r.cells[0]);
-        assert_eq!(links.len(), 1, "{}", r.cells[0]);
-        assert_eq!(links[0].span, None, "{}", r.cells[0]);
-        assert!(
-            matches!(links[0].dest, Destination::Representation(_)),
-            "{}",
-            r.cells[0]
-        );
     }
     unlinked.dedup();
     // -UC1 and its plate have no representation, and a terminal has none of its own (its strip draws it).

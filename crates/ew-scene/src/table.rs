@@ -518,48 +518,103 @@ mod tests {
         Rect::from_points(Pt2::new(n(x0), n(y0)), Pt2::new(n(x1), n(y1)))
     }
 
-    /// C44-p3#1: the spans of a 300-folio cell take their ends from one shaping of the line, and every box equals the
-    /// one a shaping per span end gives, in a cell that shrinks it and in one wide enough for it.
+    /// The x extent of a box (the tests' cells are not turned).
+    fn xs(q: &Option<[Pt2; 4]>) -> (Nm, Nm) {
+        let q = q.expect("a box");
+        (q[0].x, q[2].x)
+    }
+
+    /// C44-p3#1: the spans of a 300-folio cell come from one shaping of the line, and in digits (no kerning, one glyph
+    /// per character) every box equals the one a shaping per span end gives, in a cell that shrinks it and in one wide
+    /// enough for it.
     #[test]
     fn the_spans_of_a_300_folio_cell_equal_a_shaping_per_span_end() {
         let (text, spans) = folios_300();
         assert!(text.contains("100, 102, 104, 106, 108–111, 113"), "{text}");
-        // Every character takes its pen travel from the line's one shaping: no span end shapes again.
-        let style = ew_text::builtin()
-            .resolve(DEFAULT_STYLE_KEY)
-            .expect("the default style");
-        assert_eq!(
-            crate::page::pens_mapped(bundled(), &style, &text),
-            text.chars().count()
-        );
         for rect in [mm(0, 0, 30, 6), mm(0, 0, 20_000, 6)] {
+            let before = crate::page::line_shapings();
             let (new, old) = both(&text, &spans, rect, 1);
+            assert_eq!(crate::page::line_shapings() - before, 1);
             assert!(new.iter().all(Option::is_some));
             assert_eq!(new, old);
         }
     }
 
-    /// C44-p3#1: a text of several lines and spans the shaping cannot map one to one (a combining mark, a ligature-prone
-    /// pair, a right-to-left word) keep the boxes of a shaping per span end; a span across a line break has none.
+    /// C44-p5#1: a span's box is where its glyphs are drawn, kerning included. In "LT, Y, r, 7" the box of "L" ends at
+    /// the x of the "T" kerned towards it, the box of "Y" at the "," kerned towards it, and the box of "r" at its ","
+    /// likewise; each ends before the advance of its text shaped alone up to the span's end.
     #[test]
-    fn spans_over_several_lines_and_unmapped_text_equal_a_shaping_per_span_end() {
-        let text = "1.2 /3.4\nfi e\u{301}f\n\u{5d0}\u{5d1} 7";
-        let spans = [
-            0..3,
-            4..8,
-            5..8,
-            9..11,
-            12..15,
-            15..16,
-            6..12,
-            17..19,
-            19..21,
-            22..23,
-        ];
-        let (new, old) = both(text, &spans, mm(0, 0, 500, 40), 3);
+    fn a_kerned_pair_ends_the_box_at_the_next_glyph() {
+        let text = "LT, Y, r, 7";
+        let spans = [0..1, 4..5, 7..8];
+        let (new, old) = both(text, &spans, mm(0, 0, 500, 6), 1);
+        let style = ew_text::builtin()
+            .resolve(DEFAULT_STYLE_KEY)
+            .expect("the default style");
+        let line = bundled().shape(text, &style, None);
+        let widths: Vec<Nm> = new.iter().map(|q| Nm(xs(q).1.0 - xs(q).0.0)).collect();
+        let drawn: Vec<Nm> = spans
+            .iter()
+            .map(|r| Nm(line.run.glyphs[r.end].x.0 - line.run.glyphs[r.start].x.0))
+            .collect();
+        assert_eq!(widths, drawn);
+        assert_eq!(widths, [Nm(1_600_200), Nm(1_606_550), Nm(803_275)]);
+        let alone: Vec<Nm> = old.iter().map(|q| Nm(xs(q).1.0 - xs(q).0.0)).collect();
+        assert_eq!(alone, [Nm(1_663_700), Nm(1_797_050), Nm(1_311_275)]);
+    }
+
+    /// C44-p5#1 and #2: a span gives the same box whatever else its line holds: a "fi" ligature, a CJK character or a
+    /// combining mark later in the line change nothing, and the line is still shaped once.
+    #[test]
+    fn a_span_keeps_its_box_next_to_a_ligature_or_a_cjk_character() {
+        let spans = [0..1, 4..5, 7..8, 10..11];
+        let (plain, _) = both("LT, Y, r, 7", &spans, mm(0, 0, 500, 6), 1);
+        for text in [
+            "LT, Y, r, 7, fi",
+            "LT, Y, r, 7, \u{4e2d}",
+            "LT, Y, r, 7, e\u{301}",
+        ] {
+            let before = crate::page::line_shapings();
+            let (new, _) = both(text, &spans, mm(0, 0, 500, 6), 1);
+            assert_eq!(crate::page::line_shapings() - before, 1, "{text:?}");
+            assert_eq!(new, plain, "{text:?}");
+        }
+    }
+
+    /// C44-p5#2: a 300-folio line with a CJK folio label among its digits is shaped once, never once per span end; every
+    /// span has its box, the boxes follow each other along the line, and the digit labels' boxes are those a shaping
+    /// per end gives (no kerning between digits).
+    #[test]
+    fn a_folio_line_with_a_cjk_label_is_shaped_once() {
+        let (digits, spans) = folios_300();
+        let label = "\u{4e2d}7";
+        let text = format!("{label}, {digits}");
+        let shift = label.len() + 2;
+        let spans: Vec<Range<usize>> = std::iter::once(0..label.len())
+            .chain(spans.iter().map(|r| r.start + shift..r.end + shift))
+            .collect();
+        let before = crate::page::line_shapings();
+        let (new, old) = both(&text, &spans, mm(0, 0, 20_000, 6), 1);
+        assert_eq!(crate::page::line_shapings() - before, 1);
+        assert!(new.iter().all(Option::is_some));
+        assert!(new.windows(2).all(|w| xs(&w[0]).1 <= xs(&w[1]).0));
+        assert_eq!(new[1..], old[1..]);
+    }
+
+    /// A span inside a cluster covers the whole cluster: "f" of a "fi" ligature the ligature's glyph, "e" of "é" written
+    /// with a combining mark the base and its mark; a span across a line break has no box; each line of several is
+    /// shaped once.
+    #[test]
+    fn a_span_inside_a_cluster_covers_the_whole_cluster() {
+        let text = "1.2 /3.4\nfi e\u{301}f";
+        let spans = [0..3, 9..10, 9..11, 12..13, 12..15, 15..16, 6..12];
+        let before = crate::page::line_shapings();
+        let (new, _) = both(text, &spans, mm(0, 0, 500, 40), 3);
+        assert_eq!(crate::page::line_shapings() - before, 2);
         assert!(new[..6].iter().all(Option::is_some));
+        assert_eq!(new[1], new[2]);
+        assert_eq!(new[3], new[4]);
         assert_eq!(new[6], None);
-        assert_eq!(new, old);
     }
 
     fn cols(weights: &[u32]) -> Vec<TableColumn> {
