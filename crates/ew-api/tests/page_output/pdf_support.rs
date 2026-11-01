@@ -169,3 +169,37 @@ pub fn xref_counts(pages: &[GoldenPage]) -> (usize, usize, usize) {
     }
     (linked, targets, external)
 }
+
+/// The report row links the generated pages draw other than the PLC overview's connection-point links (WP-S3.06
+/// D10, ruling 5), per folio in page order: every link of a drawn data row whose cell prints a text. Each is one link
+/// annotation of the PDF, so the PDF's links are the cross-reference items, the PLC overview rows and these.
+pub fn report_row_links(pages: &[GoldenPage]) -> Vec<(String, usize)> {
+    pages
+        .iter()
+        .filter_map(|g| {
+            let t = g.view.table.as_ref()?;
+            let n: usize = t
+                .rows
+                .iter()
+                .take(ew_scene::table::MAX_ROWS)
+                .filter(|r| r.kind == ew_scene::table::TableRowKind::Data)
+                .map(|r| {
+                    r.links
+                        .iter()
+                        .filter(|l| !matches!(l.dest, ew_dl::Destination::Cp(_)))
+                        .filter(|l| {
+                            t.columns.get(l.column).is_some_and(|c| c.weight > 0)
+                                && r.cells.get(l.column).is_some_and(|s| !s.is_empty())
+                        })
+                        .count()
+                })
+                .sum();
+            (n > 0).then(|| (g.entry.folio.clone(), n))
+        })
+        .collect()
+}
+
+/// The sum of [`report_row_links`].
+pub fn report_row_link_count(pages: &[GoldenPage]) -> usize {
+    report_row_links(pages).iter().map(|(_, n)| n).sum()
+}

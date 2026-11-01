@@ -601,8 +601,10 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   channel), not byte for byte.
 - `pdf/structure.json`: the writer's PDF structure of the whole page order (page count, `/PageLabels`, outline
   tree, link, plain-text-link, dropped-`.notdef`-glyph and destination counts, embedded fonts), compared exactly
-  (§3.3 "PDF structure"; 92 links: one per listed cross-reference item (64) and one per bound channel row of
-  the PLC overview to its coil (28, doc 10 §5)); `pdf/sha256.txt` holds the SHA-256 of the whole PDF, which
+  (§3.3 "PDF structure"; 246 links: one per listed cross-reference item (64), one per bound channel row of
+  the PLC overview to its coil (28, doc 10 §5) and 154 report row links (WP-S3.06 part 3: the TOC's 36 page links,
+  the parts list's 52 and the device tag overview's 66; the count is computed from the page views by
+  `tests/page_output.rs`)); `pdf/sha256.txt` holds the SHA-256 of the whole PDF, which
   `ew export pdf golden/J-E-2416.ew --out <file>` writes byte for byte (G-M1-01; `bin/ew/tests/cli.rs` runs it on
   one and four threads with no display, no starter content and empty user directories). Re-blessed in cycle 15: the
   PDF's document ID is the export job's, the hash of `ew-pdf/1 <project id> <profile> <date> all ew <version>
@@ -627,7 +629,7 @@ the provisional router's). Still open:
   report table of doc 20 §16 (x 16.31 to 277.27 mm, rows of 6.52 mm, header #C0C0C0, 8.88 pt), column widths by
   the columns' weights (no data area in the golden report forms, so the widths are the kinds' choice: only the TOC's
   follow the reference). A page of a block that is not derived prints its reason in one row. Row links
-  (FR-REP-042) are not drawn yet. The dividers 100, 200 and 900 show frame and title block only.
+  (FR-REP-042) are drawn (WP-S3.06 part 3; `pdf/structure.json`). The dividers 100, 200 and 900 show frame and title block only.
 - **Page count.** The page order has the 36 pages of doc 20 §5: 901 paginates into 901 and 901.1, 907 into 907,
   907.1 and 907.2, and 908 into 908, 908.1 and 908.2 (FT-111).
 - **PLC overview (908).** The 56 channels of -201U1 (doc 20 §11.3) on three pages of 23, 23 and 10 rows, derived by
@@ -639,15 +641,16 @@ the provisional router's). Still open:
   internal coil 14; 28 bound rows, doc 10 §5). The columns are those of doc 10 §5 (module, part, address, channel,
   designation, kind, symbol, function text, process tag, target, state, page); doc 20 §11.3 names a subset.
   Symbols are empty (Golden A; templates are 1.0). The station address "TBD" is not printed (no `BusPort` record
-  yet). The TOC's and the parts list's row links are not drawn yet (FR-REP-042).
+  yet). The TOC's, the parts list's and the device tag overview's row links are drawn (FR-REP-042, WP-S3.06 part 3;
+  see `pdf/structure.json`).
 - **Parts list.** 901 holds the 27 rows of doc 20 §14.1 (23 on 901, the 4 TBD rows on 901.1). Rows 24 to 27 come
   from four TBD test parts (the part number TBD, U-27): the rail (1.71 m) and the duct (3.17 m) are -UC1's carrier
   part lines, the summed lengths of the carriers R1 … R3 and D1 … D5 of §13's test geometry (WP-S4.01 part 4,
   FT-205; -UC1 carries no rail or duct part use), and the strips carry the 4 end brackets and the 6 bridges of §8.3.
   The rows after the legend rows of the enclosure and the plate follow the layout order (rail, duct, then the
   layout-only accessories). Rows 22 to 25 print folio 902, the panel page whose surface view shows the plate
-  (FT-204); the folio column of the accessory rows lists the folios of their strips (101, 103 and 103), not 902 as
-  doc 20 does: the layout placements of the brackets and bridges are WP-S4.02's.
+  (FT-204); row 26, the end brackets, prints 902 too, the panel page of their rails (WP-S4.02 part 5), and row 27,
+  the plug-in bridges, prints 103, the folio of their strips, as doc 20 does.
 - **TOC pages.** The title blocks of 2 and 2.1 print `=P01` and `+J-E-2416`: a generated page of a block outside
   every section takes the structure all drawn pages share (`page_ref_structure`, FT-160).
 - **Folio 1.** The embedded `profile_tables` block draws the colour table (the standards text of the profile,

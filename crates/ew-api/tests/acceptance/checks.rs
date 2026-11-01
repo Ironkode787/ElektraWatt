@@ -30,7 +30,9 @@ use super::report::{Outcome, Status, fail, na, not_built, pass};
 use super::runner::{Ctx, Runner};
 use crate::golden_common::{self, all_props, repo, rows_csv, rows_of, run_log, tags, texts, xrefs};
 use crate::golden_files::{decode_rgba, differing_percent, frame_figure_errors, frame_json, page_png};
-use crate::pdf_support::{pdf_options, pdf_pages, structure_text, svg_options, svg_sha256, xref_counts};
+use crate::pdf_support::{
+    pdf_options, pdf_pages, report_row_link_count, structure_text, svg_options, svg_sha256, xref_counts,
+};
 use crate::view::golden_session;
 
 /// The folios of doc 20 §5 in page order (36 pages): the stored pages, the dividers and the generated report
@@ -193,7 +195,7 @@ pub fn all(r: &mut Runner) {
     r.entry("AC-12", "the colour change is one commit", ac12_one_commit);
     r.entry(
         "AC-13",
-        "PDF structure equals expected/pdf (outline, 92 links, page labels, fonts, SHA-256)",
+        "PDF structure equals expected/pdf (outline, links, page labels, fonts, SHA-256)",
         ac13_structure,
     );
     r.entry(
@@ -1478,10 +1480,13 @@ fn ac13_structure(c: &Ctx) -> Outcome {
         wrong.push(e);
     }
     let r = &c.pdf.report;
-    // 64 cross-reference items (doc 20 §15) and 28 PLC overview rows linked to their coils (doc 10 §5).
-    if r.links != 64 + 28 || r.plain_text_links != 0 {
+    // 64 cross-reference items (doc 20 §15), 28 PLC overview rows linked to their coils (doc 10 §5) and the report
+    // row links the generated pages draw, counted from the page views (WP-S3.06 D10, ruling 5).
+    let rows = report_row_link_count(&c.pages);
+    let want = 64 + 28 + rows;
+    if r.links != want || r.plain_text_links != 0 {
         wrong.push(format!(
-            "{} links and {} plain-text links, expected 92 and 0",
+            "{} links and {} plain-text links, expected {want} and 0",
             r.links, r.plain_text_links
         ));
     }
@@ -1502,7 +1507,7 @@ fn ac13_structure(c: &Ctx) -> Outcome {
     }
     if wrong.is_empty() {
         pass(format!(
-            "{0} pages: outline, 92 links (64 cross-reference items, 28 PLC overview rows), page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count of AC-03 is a separate entry)",
+            "{0} pages: outline, {want} links (64 cross-reference items, 28 PLC overview rows, {rows} report row links), page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count of AC-03 is a separate entry)",
             c.pdf_pages.len()
         ))
     } else {
@@ -1818,7 +1823,7 @@ fn defects(r: &mut Runner) {
         "outline, 64 cross-reference links and page labels",
         (
             "AC-13",
-            "PDF structure equals expected/pdf (outline, 92 links, page labels, fonts, SHA-256)",
+            "PDF structure equals expected/pdf (outline, links, page labels, fonts, SHA-256)",
         ),
         "",
     );

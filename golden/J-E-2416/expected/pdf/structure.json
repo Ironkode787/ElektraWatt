@@ -238,10 +238,10 @@
       ]
     }
   ],
-  "links": 92,
+  "links": 246,
   "plain_text_links": 0,
   "dropped_notdef_glyphs": 0,
-  "destinations": 127,
+  "destinations": 185,
   "fonts": [
     "Noto Sans Math Regular",
     "Noto Sans Regular"

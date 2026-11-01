@@ -907,6 +907,10 @@ fn export_pdf_of_golden_a_is_the_committed_pdf() {
     let project = golden_copy(&t);
     let before = tree(&project);
     let want = expected("pdf/sha256.txt");
+    // The committed link count: 64 cross-reference items, 28 PLC overview rows and the report row links, a sum that
+    // `ew-api`'s page-output test counts from the page views (WP-S3.06 D10, ruling 5).
+    let structure: serde_json::Value = serde_json::from_str(&expected("pdf/structure.json")).unwrap();
+    let links = structure["links"].as_u64().expect("the committed link count");
     for threads in ["1", "4"] {
         let out = t.0.join(format!("J-E-2416-{threads}.pdf"));
         let o = ew_isolated(
@@ -922,7 +926,11 @@ fn export_pdf_of_golden_a_is_the_committed_pdf() {
             ],
         );
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        assert!(stdout(&o).contains(": 36 pages, 92 links"), "{}", stdout(&o));
+        assert!(
+            stdout(&o).contains(&format!(": 36 pages, {links} links")),
+            "{}",
+            stdout(&o)
+        );
         let bytes = std::fs::read(&out).unwrap();
         assert_eq!(
             format!("{:x}\n", Sha256::digest(&bytes)),

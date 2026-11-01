@@ -32,7 +32,8 @@ use golden_files::{
     frame_json, page_png, text_csv,
 };
 use pdf_support::{
-    EXPECTED_DROPPED_NOTDEF_GLYPHS, pdf_options, pdf_pages, pdf_sha256, structure_text, xref_counts,
+    EXPECTED_DROPPED_NOTDEF_GLYPHS, pdf_options, pdf_pages, pdf_sha256, report_row_link_count, report_row_links,
+    structure_text, xref_counts,
 };
 use view::{GoldenPage, builtin_symbol, destination, fonts, golden_pages, golden_session};
 
@@ -168,11 +169,16 @@ const EXTERNAL_XREF_TEXTS: usize = 4;
 /// 8 used and the 20 spare valves' coils.
 const PLC_ROW_LINKS: usize = 8 + 20;
 
+/// The PDF's links are the cross-reference items, the PLC overview rows and the report row links the generated pages
+/// draw (WP-S3.06 D10, ruling 5): the last are counted from the page views, never written by hand.
 #[test]
 fn the_golden_pdf_has_one_link_per_cross_reference_item() {
     let s = golden_session(None);
     let q = s.query();
-    let (linked, targets, external) = xref_counts(&golden_pages(&q));
+    let pages = golden_pages(&q);
+    let (linked, targets, external) = xref_counts(&pages);
+    let rows = report_row_link_count(&pages);
+    eprintln!("report row links: {:?} = {rows}", report_row_links(&pages));
     assert_eq!(linked, LINKED_XREF_TEXTS);
     assert_eq!(targets, XREF_LINK_TARGETS);
     assert_eq!(external, EXTERNAL_XREF_TEXTS);
@@ -183,8 +189,8 @@ fn the_golden_pdf_has_one_link_per_cross_reference_item() {
         None,
     )
     .expect("the golden PDF is written");
-    assert_eq!(out.report.links, 64 + 28, "{:?}", out.report);
-    assert_eq!(out.report.links, targets + PLC_ROW_LINKS, "{:?}", out.report);
+    assert_eq!(out.report.links, 64 + 28 + rows, "{:?}", out.report);
+    assert_eq!(out.report.links, targets + PLC_ROW_LINKS + rows, "{:?}", out.report);
     assert_eq!(out.report.plain_text_links, 0, "{:?}", out.report);
 }
 
