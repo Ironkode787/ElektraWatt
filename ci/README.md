@@ -218,10 +218,14 @@ afterwards; the committed lockfile is never touched), with the crate list derive
 The outputs that a step rewrites whole carry `merge=regen` in `.gitattributes`.
 
 `cargo xtask lane-check --base <rev> -p <pkg>...` (`xtask/src/lane_check.rs`) is an agent lane's hand-back sequence:
-from the diff against `<rev>` and the lane's declared package set it runs fmt, clippy and doc of the changed crates, one nextest run over them, their direct dependants and
-the additions of `.claude/agents/lane.md`, `settle --check`, the triggered policy checks and the fuzz workspace check,
-prints only failures and a summary, and writes `target/lane-check.json`. It is bounded to direct dependants; the
-transitive closure is `cargo xtask affected`, at the merge point.
+from the diff against `<rev>` and the lane's declared package set it runs fmt, clippy, doc and the doctests of the
+changed crates, one nextest run over them, their direct dependants and the additions of `.claude/agents/lane.md`,
+`settle --check`, the triggered policy checks (`api-guard --base <rev>` when `bin/ew/api/cli.json` or
+`crates/ew-sqlview/api/api_v1.json` changed) and the fuzz workspace check, prints only failures and a summary, and
+writes `target/lane-check.json`. It is bounded to direct dependants; the transitive closure is `cargo xtask affected`,
+at the merge point. It remembers what passed (ID-1077): on a clean worktree a step whose record in
+`target/lane-check.json` matches (the same commands, merge base, tree and outside inputs) is skipped as `ok (from
+memory; ...)`; a dirty worktree records and skips nothing, and `--fresh` runs every step.
 
 The licence-boundary check that 18 §5.2 lists under CI-PR-09 is part of `check-licence-map` and therefore runs in
 `legal-docs`, next to the licence map it shares its policy file with; the dependency-rule part of the same

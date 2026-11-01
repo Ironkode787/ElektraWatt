@@ -157,6 +157,10 @@ jobs:
         run: cargo xtask gen-icons --check
       - name: build the reference pages (not committed)
         run: cargo xtask docs-gen
+      # C43-p7#1: with the built pages present, a link from outside the book into one (design, plan, ADR, README) is
+      # checked, its anchor included; before docs-gen such a target is missing and git-ignored, so doccheck skips it.
+      - name: document links into the built pages
+        run: python3 -I docs/plan/tools/doccheck.py
       - name: install mdBook (pinned release, checksum verified)
         run: |
           archive="mdbook-v${DOCS_MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz"

@@ -137,16 +137,19 @@ commands:
                        check-ordered-collections --bless, printing each list's change per crate and the sites
                        added, and records --write (docs/plan/records.md and the status block of doc 01 §3.8).
                        One line per step: unchanged | rewrote <files> | would rewrite | FAILED | skipped
-  lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm]
+  lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm] [--fresh]
                        a lane's hand-back checks (.claude/agents/lane.md), chosen from the diff against the
-                       merge base of <rev> and the lane's declared package set (-p): fmt, clippy and doc of the
-                       changed and declared crates, one nextest run over them, their direct dependants and
-                       lane.md's triggers, settle --check, the policy checks and the fuzz workspace check, each by
-                       its trigger. Workspace-wide files without -p fail the nextest step. Prints the failed
-                       steps' logs whole and one line per step (ok | rewrote <files> | FAILED | skipped (<why>));
-                       logs in target/lane-check/, a summary in target/lane-check.json. --plan prints the
-                       commands and runs nothing; --only runs one step; --warm builds exactly the nextest step's
-                       packages' test binaries (cargo test --no-run)
+                       merge base of <rev> and the lane's declared package set (-p): fmt, clippy, doc and the
+                       doctests of the changed and declared crates, one nextest run over them, their direct
+                       dependants and lane.md's triggers, settle --check, the policy checks (api-guard when an
+                       API snapshot changed) and the fuzz workspace check, each by its trigger. Workspace-wide
+                       files without -p fail the nextest step. Prints the failed steps' logs whole and one line
+                       per step (ok | ok (from memory; ...) | rewrote <files> | FAILED | skipped (<why>)); logs
+                       in target/lane-check/, a summary and the records of the passed steps in
+                       target/lane-check.json. On a clean worktree a step that passed on the same tree with the
+                       same commands is skipped; --fresh runs every step. --plan prints the commands (and the
+                       steps it would skip) and runs nothing; --only runs one step; --warm builds exactly the
+                       nextest step's packages' test binaries (cargo test --no-run)
   map --crates <a,b,...> [--depth <n>] | map --check
                        the code map a lane reads before its first edit (.claude/agents/lane.md): per crate its
                        direct workspace dependencies and dependants, its features, its test binaries, its modules

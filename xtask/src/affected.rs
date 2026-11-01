@@ -49,6 +49,8 @@ pub(crate) struct Member {
     pub dev_deps: BTreeSet<String>,
     /// The `required-features` of its test and binary targets.
     pub test_features: BTreeSet<String>,
+    /// Whether it has a library target whose doctests run (`cargo test --doc` takes it).
+    pub doctests: bool,
 }
 
 /// The workspace members by package name.
@@ -196,9 +198,14 @@ pub(crate) fn members_of(metadata: &cargo_metadata::Metadata) -> Result<Members>
             .filter(|t| t.is_test() || t.is_bin())
             .flat_map(|t| t.required_features.iter().cloned())
             .collect();
+        let doctests = package
+            .targets
+            .iter()
+            .any(|t| t.doctest && (t.is_lib() || t.is_rlib() || t.is_proc_macro()));
         let mut member = Member {
             dir,
             test_features,
+            doctests,
             ..Member::default()
         };
         let node = resolve
@@ -345,6 +352,7 @@ mod tests {
             deps: set(deps),
             dev_deps: set(dev),
             test_features: set(features),
+            doctests: true,
         };
         [
             ("ew-model", m("crates/ew-model", &[], &[], &[])),

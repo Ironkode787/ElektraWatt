@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm]`: a lane's hand-back checks
+//! `lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm] [--fresh]`: a lane's hand-back checks
 //! (`.claude/agents/lane.md`, "Hand-back checks"), run once and chosen from the diff against `<rev>` and the lane's
 //! declared package set (`-p`, its edit-loop set).
 //!
@@ -19,12 +19,15 @@
 //! - **The steps,** in this order:
 //!   1. `fmt`: `cargo fmt`, then settle's per-file rustfmt over the diff's `.rs` files (`settle::rust_files`: never a
 //!      module under `#[rustfmt::skip]`), which reaches the test modules `automod::dir!` includes and `cargo fmt`
-//!      does not see. It writes; it is not a check. When it changed a file of the diff, it reports
-//!      `rewrote <files> (commit them)` (not a failure).
+//!      does not see. It writes; it is not a check. Its snapshot holds every `.rs` file it can rewrite (FT-1013): the
+//!      formatted crates' files, in the diff or not, and every file below the directory of a per-file target (the
+//!      child modules rustfmt reaches). When it changed one, it reports `rewrote <files> (commit them)` (not a
+//!      failure).
 //!   2. `clippy`: the changed crates, `--all-targets --all-features -- -D warnings`. An unresolvable
 //!      `disallowed-methods` path in clippy's output fails the step as in `cargo xtask ci`.
 //!   3. `doc`: `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features` over the changed crates, in one call.
-//!      `--all-features`, as every cargo command of a lane, so the dependencies' check builds are clippy's.
+//!      `--all-features`, as every cargo command of a lane, so the dependencies' check builds are clippy's. Then
+//!      `cargo test --doc --all-features` over those of them that have a library target with doctests (FT-1006).
 //!   4. `nextest`: one run of the `lane` profile with `--all-features` over the nextest set (below), with the
 //!      `required-features` of each package's test targets named as `affected::commands` names them (redundant
 //!      beside `--all-features`, and harmless).
@@ -34,7 +37,8 @@
 //!      checks `check-raw-read` and `check-disallowed-methods` run on any changed `.rs` file, since an allow attribute
 //!      or a raw-model read is not visible in a path; `check-test-layout` runs on any changed path under a `tests/`
 //!      directory and on any changed file that mentions `--test`; `map --check` (the shared-list markers) on any
-//!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`.
+//!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`; `api-guard --base <rev>` when one of
+//!      [`API_SNAPSHOTS`] changed (FT-1007).
 //!   7. `fuzz`: `cargo check` of the fuzz workspace, when `crates/ew-testkit/tests/command_fuzz/**`, `fuzz/**` or the
 //!      `Cargo.toml` of a crate in a fuzz target's closure (`ci/fuzz-smoke-targets.toml`) changed.
 //! - **The nextest set, and its bound.** The changed crates, plus their **direct** reverse dependencies through
@@ -47,13 +51,24 @@
 //!   reads its modules with `automod::dir!` is not rebuilt for a new file alone, because cargo does not track that
 //!   directory read.
 //! - **Output.** A step's output goes whole to `target/lane-check/<step>.log`; a failed step's log is printed whole,
-//!   never cut. Then one summary line per step: `lane-check: <step>: ok | FAILED | skipped (<why>)`, and
-//!   `target/lane-check.json` with each step's name, status, commands, seconds and log path. The durations are
-//!   reported, never asserted (owner's rule). The exit code is 0 only when no step failed.
-//! - **`--plan`** prints the selection and the exact commands and runs nothing. **`--only <step>`** runs one step with
-//!   the same selection. **`--warm`** builds exactly the nextest step's packages (the derived set and the declared
-//!   one; at a lane's start the derived part is empty) with `cargo test --no-run` and the same features, so the
-//!   later nextest runs reuse the test binaries.
+//!   never cut. Then the memory's line and one summary line per step: `lane-check: <step>: ok | FAILED | skipped
+//!   (<why>)`, and `target/lane-check.json` (written all or nothing) with each step's name, status, commands, seconds
+//!   and log path, and the records of the memory. The durations are reported, never asserted (owner's rule). The exit
+//!   code is 0 only when no step failed.
+//! - **The memory** (ID-1077). A step that passed is recorded in `target/lane-check.json`: its name, its exact commands
+//!   (program, arguments, environment), the merge base's hash, the tree it ran on (`HEAD^{tree}`) and the inputs
+//!   outside the tree that can change its outcome: the environment variables of [`INPUT_ENV_PREFIXES`] (`EW_BLESS`,
+//!   `RUSTFLAGS`, ...), a digest of each cargo configuration file outside the tree, and the version of `cargo nextest`
+//!   or `cargo vet` when the step runs it. A run on a clean worktree (no tracked change, no untracked file outside
+//!   `.gitignore`) skips a step whose record matches and prints it as `ok (from memory; --fresh runs it again)`. A
+//!   dirty worktree records nothing and skips nothing; once a step changed the worktree (fmt's rewrite, say), no later
+//!   step is skipped or recorded. A failure forgets the step's record. A step that runs `cargo deny` is never
+//!   recorded: the advisory database comes from the network. `--fresh` runs every step and records anew.
+//! - **`--plan`** prints the selection, the memory's line and the exact commands (a step it would skip as
+//!   `<step>: from memory: <command>`) and runs nothing. **`--only <step>`** runs one step with the same selection.
+//!   **`--warm`** builds exactly the nextest step's packages (the derived set and the declared one; at a lane's start
+//!   the derived part is empty) with `cargo test --no-run` and the same features, so the later nextest runs reuse the
+//!   test binaries; it neither reads nor writes the memory.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -68,7 +83,7 @@ use anyhow::{Context, Result, bail};
 use crate::affected::{self, Members};
 
 const USAGE: &str =
-    "usage: cargo xtask lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm]";
+    "usage: cargo xtask lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm] [--fresh]";
 
 /// The steps, in their order.
 pub(crate) const STEPS: [&str; 7] = ["fmt", "clippy", "doc", "nextest", "settle", "policy", "fuzz"];
@@ -220,19 +235,39 @@ pub(crate) const GUARDED_ROOTS: [&str; 3] = ["golden/", "schemas/0.1/", "content
 
 /// Whether `text` names the repository root `root` as a path: a literal that starts with it or holds it after a `/`
 /// (`"golden/x`, `"../../golden/x`, `"../../golden"`, `"schemas/0.1"`), or a path join of its first directory:
-/// `join("golden")` for a one-directory root, `"../../schemas")` (a parent-relative join, then the rest of the path) for a deeper one, so
-/// that a crate's own `join("schemas")` does not count. A bare word in a string (`Fixed("golden")`) is no path.
+/// `join("golden")` for a one-directory root; for a deeper one, a parent-relative join of the root itself
+/// (`"../../schemas")` or `"/../../schemas")`, the rest of the path joined after it), so that neither a crate's own
+/// `join("schemas")` nor another directory of that name (`"../../crates/ew-commands/schemas")`) counts (C43-p7#6). A
+/// bare word in a string (`Fixed("golden")`) is no path.
 fn names_root(text: &str, root: &str) -> bool {
     let bare = root.trim_end_matches('/');
     let mut patterns = vec![format!("\"{bare}/"), format!("/{bare}/"), format!("/{bare}\"")];
-    match bare.split_once('/') {
-        None => patterns.push(format!("join(\"{bare}\")")),
+    let first = match bare.split_once('/') {
+        None => {
+            patterns.push(format!("join(\"{bare}\")"));
+            None
+        }
         Some((first, _)) => {
             patterns.push(format!("\"{bare}\""));
-            patterns.push(format!("/{first}\")"));
+            Some(first)
         }
-    }
-    patterns.iter().any(|p| text.contains(p.as_str()))
+    };
+    patterns.iter().any(|p| text.contains(p.as_str())) || first.is_some_and(|f| parent_relative_join(text, f))
+}
+
+/// Whether `text` holds `"../{dir}")`, `"/../{dir}")` or the like with any number of `../` (at least one) and
+/// nothing else between the quote and `dir`.
+fn parent_relative_join(text: &str, dir: &str) -> bool {
+    let needle = format!("/{dir}\")");
+    text.match_indices(needle.as_str()).any(|(i, _)| {
+        let mut before = &text[..=i];
+        let mut ups = 0;
+        while let Some(rest) = before.strip_suffix("../") {
+            before = rest;
+            ups += 1;
+        }
+        ups > 0 && (before.ends_with('"') || before.ends_with("\"/"))
+    })
 }
 
 /// For each of `roots`, the members whose tracked `.rs` files (`files`, with their text from `read`) name it; `xtask`
@@ -301,12 +336,22 @@ pub(crate) struct Plan {
 }
 
 impl Plan {
-    /// One line per step: `<step>: <command>` per command (the nextest step's touched files first, as
-    /// `nextest: touch <file>`), `<step>: skipped (<why>)` or `<step>: FAILED (<why>)`.
+    /// The plan's lines with nothing remembered.
+    #[cfg(test)]
     pub(crate) fn lines(&self) -> Vec<String> {
+        self.lines_remembering(&BTreeSet::new())
+    }
+
+    /// One line per step: `<step>: <command>` per command (the nextest step's touched files first, as
+    /// `nextest: touch <file>`), `<step>: from memory: <command>` per command of a step in `remembered` (one that a
+    /// run would skip, ID-1077), `<step>: skipped (<why>)` or `<step>: FAILED (<why>)`.
+    pub(crate) fn lines_remembering(&self, remembered: &BTreeSet<&str>) -> Vec<String> {
         let mut out = Vec::new();
         for s in &self.steps {
             match &s.run {
+                StepRun::Run(cmds) if remembered.contains(s.name) => {
+                    out.extend(cmds.iter().map(|c| format!("{}: from memory: {c}", s.name)));
+                }
                 StepRun::Run(cmds) => {
                     if s.name == "nextest" {
                         out.extend(self.touch.iter().map(|t| format!("nextest: touch {t}")));
@@ -406,8 +451,12 @@ pub(crate) fn warm_command(set: &BTreeSet<String>, members: &Members) -> Cmd {
     cmd
 }
 
-/// The policy checks of lane.md step 6 that the diff triggers, in lane.md's order.
-pub(crate) fn policy_commands(diff: &Diff) -> Vec<Cmd> {
+/// The published-surface snapshots whose change runs `api-guard` (FT-1007).
+pub(crate) const API_SNAPSHOTS: [&str; 2] = ["bin/ew/api/cli.json", "crates/ew-sqlview/api/api_v1.json"];
+
+/// The policy checks of lane.md step 6 that the diff triggers, in lane.md's order, then `api-guard --base <base>`
+/// when the diff holds one of [`API_SNAPSHOTS`] (FT-1007), then the dependency checks.
+pub(crate) fn policy_commands(diff: &Diff, base: &str) -> Vec<Cmd> {
     let any = |pred: &dyn Fn(&str) -> bool| diff.files.iter().any(|f| pred(f));
     let manifest = |f: &str| f == "Cargo.toml" || f.ends_with("/Cargo.toml");
     let cargo_toml = any(&|f| manifest(f) || f == "ci/dep-rules.toml");
@@ -435,6 +484,9 @@ pub(crate) fn policy_commands(diff: &Diff) -> Vec<Cmd> {
     }
     if markers {
         cmds.push(Cmd::xtask(&["map", "--check"]));
+    }
+    if any(&|f| API_SNAPSHOTS.contains(&f)) {
+        cmds.push(Cmd::xtask(&["api-guard", "--base", base]));
     }
     if dependency {
         cmds.push(Cmd::cargo(&["deny", "--locked", "check"]));
@@ -547,7 +599,21 @@ pub(crate) fn plan(
         .packages(&crates)
         .arg("--all-features");
     doc.env = Some(("RUSTDOCFLAGS", "-D warnings"));
-    let policy = policy_commands(diff);
+    // FT-1006: the doctests of the documented crates that have a library target.
+    let doctested: BTreeSet<String> = crates
+        .iter()
+        .filter(|p| members.get(*p).is_some_and(|m| m.doctests))
+        .cloned()
+        .collect();
+    let mut docs = vec![doc];
+    if !doctested.is_empty() {
+        docs.push(
+            Cmd::cargo(&["test", "--doc"])
+                .packages(&doctested)
+                .arg("--all-features"),
+        );
+    }
+    let policy = policy_commands(diff, base);
 
     let mut fmt = vec![Cmd::cargo(&["fmt"]).packages(&crates)];
     fmt.extend(
@@ -574,7 +640,7 @@ pub(crate) fn plan(
         },
         StepPlan {
             name: "doc",
-            run: cargo_step(vec![doc]),
+            run: cargo_step(docs),
         },
         StepPlan {
             name: "nextest",
@@ -631,6 +697,7 @@ struct Args {
     only: Option<&'static str>,
     plan: bool,
     warm: bool,
+    fresh: bool,
     packages: BTreeSet<String>,
 }
 
@@ -661,6 +728,7 @@ fn parse(args: &[String]) -> Result<Args> {
             }
             "--plan" => out.plan = true,
             "--warm" => out.warm = true,
+            "--fresh" => out.fresh = true,
             "-p" => {
                 out.packages.insert(
                     it.next()
@@ -744,13 +812,254 @@ fn touch(root: &Path, files: &[String]) -> Result<()> {
     Ok(())
 }
 
-/// The contents of the changed `.rs` files that exist: what `fmt` may rewrite.
+/// The `.rs` files the fmt step can rewrite (FT-1013), out of `all` (the tracked and untracked `.rs` files): every
+/// file of a formatted crate (`cargo fmt -p` reaches the whole crate, not only the diff), the files of the per-file
+/// pass, and every file below the directory of one of those (the child modules rustfmt reaches from it).
+fn fmt_scope(
+    all: &[String],
+    crates: &BTreeSet<String>,
+    members: &Members,
+    rustfmt: &[String],
+) -> Vec<String> {
+    let dirs: Vec<&str> = rustfmt
+        .iter()
+        .filter_map(|f| f.rfind('/').map(|i| &f[..=i]))
+        .collect();
+    all.iter()
+        .filter(|f| {
+            rustfmt.contains(f)
+                || dirs.iter().any(|d| f.starts_with(d))
+                || affected::owner(f, members).is_ok_and(|o| o.is_some_and(|o| crates.contains(o)))
+        })
+        .cloned()
+        .collect()
+}
+
+/// The contents of the files that exist, out of `files`: the fmt step's snapshot.
 fn rust_snapshot(root: &Path, files: &[String]) -> BTreeMap<String, Vec<u8>> {
     files
         .iter()
-        .filter(|f| f.ends_with(".rs"))
         .filter_map(|f| std::fs::read(root.join(f)).ok().map(|b| (f.clone(), b)))
         .collect()
+}
+
+/// One command as a record holds it: the program, the arguments and the environment it sets.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+struct RecordedCmd {
+    program: String,
+    args: Vec<String>,
+    env: BTreeMap<String, String>,
+}
+
+impl From<&Cmd> for RecordedCmd {
+    fn from(cmd: &Cmd) -> Self {
+        Self {
+            program: match cmd.program {
+                Program::Cargo => "cargo",
+                Program::Xtask => "cargo xtask",
+                Program::Rustfmt => "rustfmt",
+            }
+            .to_owned(),
+            args: cmd.args.clone(),
+            env: cmd
+                .env
+                .iter()
+                .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+                .collect(),
+        }
+    }
+}
+
+/// The memory of a step that passed (ID-1077): its exact commands, the merge base and the tree it ran on, and the
+/// inputs outside the tree that can change its outcome ([`outside_inputs`]).
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+struct Record {
+    step: String,
+    commands: Vec<RecordedCmd>,
+    merge_base: String,
+    tree: String,
+    inputs: BTreeMap<String, String>,
+}
+
+/// What a run on a clean worktree compares a record with; `None` on a dirty worktree.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct MemoryKey {
+    merge_base: String,
+    tree: String,
+    /// The inputs outside the tree that every step shares ([`outside_inputs`]).
+    inputs: BTreeMap<String, String>,
+}
+
+/// The environment variables whose names start with one of these are a record's inputs: the project's own switches
+/// (`EW_BLESS`, ...), the toolchain's (`RUSTFLAGS`, `RUSTDOCFLAGS`, `RUSTUP_TOOLCHAIN`, ...), cargo's build settings
+/// and nextest's.
+const INPUT_ENV_PREFIXES: [&str; 7] = [
+    "EW_",
+    "RUST",
+    "CARGO_BUILD_",
+    "CARGO_PROFILE_",
+    "CARGO_TARGET_",
+    "CARGO_ENCODED_",
+    "NEXTEST_",
+];
+
+/// The largest `target/lane-check.json` that is read for its records; a larger one holds none.
+const MAX_MEMORY_BYTES: u64 = 4 << 20;
+
+/// The inputs outside the tree that every step shares: the environment variables of [`INPUT_ENV_PREFIXES`] (as
+/// `env <NAME>`), and a SHA-256 digest of each cargo configuration file that cargo reads (`.cargo/config.toml` or
+/// `.cargo/config` in `root` or an ancestor of it, and in `CARGO_HOME`, else the home directory's `.cargo`), as
+/// `cargo config <path>`; the one in `root` is in the tree too, which costs nothing.
+fn outside_inputs(root: &Path, env: &[(String, String)]) -> BTreeMap<String, String> {
+    use sha2::Digest as _;
+    let mut out: BTreeMap<String, String> = env
+        .iter()
+        .filter(|(k, _)| INPUT_ENV_PREFIXES.iter().any(|p| k.starts_with(p)))
+        .map(|(k, v)| (format!("env {k}"), v.clone()))
+        .collect();
+    let mut dirs: Vec<std::path::PathBuf> = root.ancestors().map(|d| d.join(".cargo")).collect();
+    let home = env
+        .iter()
+        .find(|(k, _)| k == "CARGO_HOME")
+        .map(|(_, v)| std::path::PathBuf::from(v))
+        .or_else(|| {
+            env.iter()
+                .find(|(k, _)| k == "USERPROFILE" || k == "HOME")
+                .map(|(_, v)| Path::new(v).join(".cargo"))
+        });
+    dirs.extend(home);
+    for dir in dirs {
+        for name in ["config.toml", "config"] {
+            let path = dir.join(name);
+            if let Ok(bytes) = std::fs::read(&path) {
+                let digest: String = sha2::Sha256::digest(&bytes)
+                    .iter()
+                    .map(|b| format!("{b:02x}"))
+                    .collect();
+                out.insert(format!("cargo config {}", path.display()), digest);
+            }
+        }
+    }
+    out
+}
+
+/// The external cargo tools whose version is an input of a step that runs them.
+const VERSIONED_TOOLS: [&str; 2] = ["nextest", "vet"];
+
+/// Whether a step may be remembered: `cargo deny` reads the advisory database from the network, an input no record
+/// holds, so a step that runs it always runs.
+fn rememberable(cmds: &[Cmd]) -> bool {
+    !cmds
+        .iter()
+        .any(|c| c.program == Program::Cargo && c.args.first().is_some_and(|a| a == "deny"))
+}
+
+/// The record that a pass of `name` with `cmds` under `key` makes, with the versions of the tools it runs
+/// (`tool_version`, `None` when the tool cannot report one).
+fn record_of(
+    name: &str,
+    cmds: &[Cmd],
+    key: &MemoryKey,
+    tool_version: &mut dyn FnMut(&str) -> Option<String>,
+) -> Record {
+    let mut inputs = key.inputs.clone();
+    for cmd in cmds.iter().filter(|c| c.program == Program::Cargo) {
+        if let Some(tool) = cmd.args.first().filter(|a| VERSIONED_TOOLS.contains(&a.as_str())) {
+            let version = tool_version(tool).unwrap_or_else(|| "unknown".to_owned());
+            inputs.insert(format!("cargo {tool} --version"), version);
+        }
+    }
+    Record {
+        step: name.to_owned(),
+        commands: cmds.iter().map(RecordedCmd::from).collect(),
+        merge_base: key.merge_base.clone(),
+        tree: key.tree.clone(),
+        inputs,
+    }
+}
+
+/// The records of `target/lane-check.json` by step; none when the file is missing, too large or unreadable.
+fn load_records(root: &Path) -> BTreeMap<String, Record> {
+    let path = root.join("target/lane-check.json");
+    let Ok(meta) = std::fs::metadata(&path) else {
+        return BTreeMap::new();
+    };
+    if meta.len() > MAX_MEMORY_BYTES {
+        return BTreeMap::new();
+    }
+    records_of_json(&std::fs::read_to_string(&path).unwrap_or_default())
+}
+
+/// The records of a `target/lane-check.json` text by step: its `records` array, each element that reads as a
+/// [`Record`].
+fn records_of_json(text: &str) -> BTreeMap<String, Record> {
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(text) else {
+        return BTreeMap::new();
+    };
+    json.get("records")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|r| serde_json::from_value::<Record>(r.clone()).ok())
+        .map(|r| (r.step.clone(), r))
+        .collect()
+}
+
+/// Whether the worktree is clean: no tracked change and no untracked file outside `.gitignore`.
+fn worktree_clean(root: &Path) -> Result<bool> {
+    Ok(affected::git_output(root, &["status", "--porcelain", "-z", "--untracked-files=normal"])?.is_empty())
+}
+
+/// The memory key of the worktree at `root`: `None` when it is dirty.
+fn memory_key(root: &Path, merge_base: &str) -> Result<Option<MemoryKey>> {
+    if !worktree_clean(root)? {
+        return Ok(None);
+    }
+    let tree = String::from_utf8_lossy(&affected::git_output(root, &["rev-parse", "HEAD^{tree}"])?)
+        .trim()
+        .to_owned();
+    let env: Vec<(String, String)> = std::env::vars_os()
+        .map(|(k, v)| (k.to_string_lossy().into_owned(), v.to_string_lossy().into_owned()))
+        .collect();
+    Ok(Some(MemoryKey {
+        merge_base: merge_base.to_owned(),
+        tree,
+        inputs: outside_inputs(root, &env),
+    }))
+}
+
+/// The line that says what the memory does in this run.
+fn memory_line(key: Option<&MemoryKey>, fresh: bool) -> String {
+    match (key, fresh) {
+        (None, _) => {
+            "lane-check: memory: the worktree has changes, so no step is skipped or recorded".to_owned()
+        }
+        (Some(_), true) => {
+            "lane-check: memory: --fresh, so every step runs and a pass is recorded anew".to_owned()
+        }
+        (Some(k), false) => format!(
+            "lane-check: memory: the worktree is clean (tree {}), so a step that passed on it with the same commands \
+             is skipped",
+            &k.tree[..k.tree.len().min(12)]
+        ),
+    }
+}
+
+/// The `--version` output of `cargo <tool>`, cached per tool.
+fn tool_version_in(root: &Path, cache: &mut BTreeMap<String, Option<String>>, tool: &str) -> Option<String> {
+    cache
+        .entry(tool.to_owned())
+        .or_insert_with(|| {
+            Command::new(crate::cargo())
+                .args([tool, "--version"])
+                .current_dir(root)
+                .stdin(Stdio::null())
+                .output()
+                .ok()
+                .filter(|o| o.status.success())
+                .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
+        })
+        .clone()
 }
 
 /// The outcome of one executed step.
@@ -855,31 +1164,48 @@ fn rewrote_files(before: &BTreeMap<String, Vec<u8>>, after: &BTreeMap<String, Ve
         .collect()
 }
 
-/// Prints the summary block and writes `target/lane-check.json`.
-fn summarise(root: &Path, base: &str, outcomes: &[Outcome], write_json: bool) -> Result<bool> {
+/// The text of `target/lane-check.json`: the base, each step's outcome, and the records of the steps that passed.
+fn json_text(base: &str, outcomes: &[Outcome], records: &BTreeMap<String, Record>) -> Result<String> {
+    let steps: Vec<serde_json::Value> = outcomes
+        .iter()
+        .map(|o| {
+            serde_json::json!({
+                "name": o.name,
+                "status": o.status,
+                "why": o.why,
+                "command": o.commands,
+                "seconds": o.seconds,
+                "log": o.log,
+            })
+        })
+        .collect();
+    let records: Vec<&Record> = records.values().collect();
+    let json = serde_json::json!({ "base": base, "steps": steps, "records": records });
+    Ok(format!("{}\n", serde_json::to_string_pretty(&json)?))
+}
+
+/// Prints the summary block (the memory line first, when there is one) and, with `records`, writes
+/// `target/lane-check.json` all or nothing.
+fn summarise(
+    root: &Path,
+    base: &str,
+    memory: Option<&str>,
+    outcomes: &[Outcome],
+    records: Option<&BTreeMap<String, Record>>,
+) -> Result<bool> {
     println!();
+    if let Some(line) = memory {
+        println!("{line}");
+    }
     for o in outcomes {
         println!("{}", summary_line(o));
     }
-    if write_json {
-        let steps: Vec<serde_json::Value> = outcomes
-            .iter()
-            .map(|o| {
-                serde_json::json!({
-                    "name": o.name,
-                    "status": o.status,
-                    "why": o.why,
-                    "command": o.commands,
-                    "seconds": o.seconds,
-                    "log": o.log,
-                })
-            })
-            .collect();
-        let json = serde_json::json!({ "base": base, "steps": steps });
-        let path = root.join("target/lane-check.json");
+    if let Some(records) = records {
         std::fs::create_dir_all(root.join("target"))?;
-        std::fs::write(&path, format!("{}\n", serde_json::to_string_pretty(&json)?))
-            .with_context(|| format!("writing {}", path.display()))?;
+        crate::settle::write_atomic(
+            &root.join("target/lane-check.json"),
+            &json_text(base, outcomes, records)?,
+        )?;
     }
     Ok(outcomes.iter().all(|o| o.status != "FAILED"))
 }
@@ -935,10 +1261,28 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         if outcome.status == "FAILED" {
             print_failure(root, &outcome);
         }
-        return summarise(root, &a.base, &[outcome], false);
+        return summarise(root, &a.base, None, &[outcome], None);
     }
 
+    // ID-1077: the memory of the steps that passed.
+    let mut records = load_records(root);
+    let mut key = memory_key(root, &merge_base)?;
+    let mut versions = BTreeMap::new();
+    let mut tool_version = |tool: &str| tool_version_in(root, &mut versions, tool);
+    let mut memory = vec![memory_line(key.as_ref(), a.fresh)];
+
     if a.plan {
+        let remembered: BTreeSet<&str> = plan
+            .steps
+            .iter()
+            .filter(|s| match &s.run {
+                StepRun::Run(cmds) => {
+                    remembered(&records, s.name, cmds, key.as_ref(), a.fresh, &mut tool_version)
+                }
+                _ => false,
+            })
+            .map(|s| s.name)
+            .collect();
         let short = &merge_base[..merge_base.len().min(12)];
         println!(
             "lane-check: {} changed file(s) since {} (merge base {short})",
@@ -967,7 +1311,8 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         {
             println!("lane-check: lane.md trigger: {}", t.what);
         }
-        for line in plan.lines() {
+        println!("{}", memory[0]);
+        for line in plan.lines_remembering(&remembered) {
             let step = line.split(':').next().unwrap_or_default();
             if a.only.is_none_or(|o| o == step) {
                 println!("{line}");
@@ -992,14 +1337,31 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         let outcome = match &s.run {
             StepRun::Skip(why) => not_run("skipped", why),
             StepRun::Fail(why) => not_run("FAILED", why),
+            StepRun::Run(cmds)
+                if remembered(&records, s.name, cmds, key.as_ref(), a.fresh, &mut tool_version) =>
+            {
+                Outcome {
+                    commands: cmds.iter().map(ToString::to_string).collect(),
+                    ..not_run("ok", &FROM_MEMORY.to_owned())
+                }
+            }
             StepRun::Run(cmds) => {
                 if s.name == "nextest" {
                     touch(root, &plan.touch)?;
                 }
-                let before = (s.name == "fmt").then(|| rust_snapshot(root, &diff.files));
+                let scope = if s.name == "fmt" {
+                    let all = affected::nul_paths(&affected::git_output(
+                        root,
+                        &["ls-files", "-co", "--exclude-standard", "-z", "--", "*.rs"],
+                    )?);
+                    fmt_scope(&all, &plan.crates, &members, &diff.rustfmt)
+                } else {
+                    Vec::new()
+                };
+                let before = (s.name == "fmt").then(|| rust_snapshot(root, &scope));
                 let mut outcome = execute(root, s.name, cmds)?;
                 if let Some(before) = before {
-                    let rewrote = rewrote_files(&before, &rust_snapshot(root, &diff.files));
+                    let rewrote = rewrote_files(&before, &rust_snapshot(root, &scope));
                     if outcome.status == "ok" && !rewrote.is_empty() {
                         outcome.status = "rewrote";
                         outcome.why = Some(rewrote.join(", "));
@@ -1008,12 +1370,74 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
                 if outcome.status == "FAILED" {
                     print_failure(root, &outcome);
                 }
+                // A rewrite by fmt, or any other change of the worktree, ends the memory for the later steps.
+                if key.is_some() && (outcome.status == "rewrote" || !worktree_clean(root)?) {
+                    key = None;
+                    memory.push(changed_worktree_line(s.name));
+                }
+                update_memory(
+                    &mut records,
+                    s.name,
+                    cmds,
+                    outcome.status,
+                    key.as_ref(),
+                    &mut tool_version,
+                );
                 outcome
             }
         };
         outcomes.push(outcome);
     }
-    summarise(root, &a.base, &outcomes, true)
+    summarise(root, &a.base, Some(&memory.join("\n")), &outcomes, Some(&records))
+}
+
+/// The reason of a step skipped from memory.
+const FROM_MEMORY: &str = "from memory; --fresh runs it again";
+
+/// The memory line of a step that changed the worktree.
+fn changed_worktree_line(step: &str) -> String {
+    format!("lane-check: memory: {step} changed the worktree, so no later step is skipped or recorded")
+}
+
+/// Whether a run skips the step `name` with `cmds`: not with `--fresh` or on a dirty worktree (`key` is `None`), never
+/// a step that is not [`rememberable`], else when its record matches what a pass now would record.
+fn remembered(
+    records: &BTreeMap<String, Record>,
+    name: &str,
+    cmds: &[Cmd],
+    key: Option<&MemoryKey>,
+    fresh: bool,
+    tool_version: &mut dyn FnMut(&str) -> Option<String>,
+) -> bool {
+    let Some(key) = key else { return false };
+    if fresh || !rememberable(cmds) {
+        return false;
+    }
+    let Some(record) = records.get(name) else {
+        return false;
+    };
+    *record == record_of(name, cmds, key, tool_version)
+}
+
+/// After the step `name` ran: a pass is recorded while `key` holds (a clean worktree, no fmt rewrite before) and the
+/// step is [`rememberable`]; a failure forgets the step's record.
+fn update_memory(
+    records: &mut BTreeMap<String, Record>,
+    name: &str,
+    cmds: &[Cmd],
+    status: &str,
+    key: Option<&MemoryKey>,
+    tool_version: &mut dyn FnMut(&str) -> Option<String>,
+) {
+    match (status, key) {
+        ("FAILED", _) => {
+            records.remove(name);
+        }
+        ("ok", Some(key)) if rememberable(cmds) => {
+            records.insert(name.to_owned(), record_of(name, cmds, key, tool_version));
+        }
+        _ => {}
+    }
 }
 
 fn join_or_none(names: &BTreeSet<String>) -> String {
@@ -1045,6 +1469,7 @@ mod tests {
             deps: set(deps),
             dev_deps: set(dev),
             test_features: set(features),
+            doctests: matches!(dir, "crates/ew-api" | "crates/ew-format"),
         };
         [
             ("ew-model", m("crates/ew-model", &[], &[], &[])),
@@ -1302,11 +1727,12 @@ mod tests {
              with -p)"
         );
         assert_eq!(
-            &lines_with(&diff(&["golden/J-E-2416/x.csv"], &[]), &["ew-api"])[..4],
+            &lines_with(&diff(&["golden/J-E-2416/x.csv"], &[]), &["ew-api"])[..5],
             [
                 "fmt: cargo fmt -p ew-api",
                 "clippy: cargo clippy -p ew-api --all-targets --all-features -- -D warnings",
                 "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-api --all-features",
+                "doc: cargo test --doc -p ew-api --all-features",
                 "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-api --all-features",
             ]
         );
@@ -1350,7 +1776,7 @@ mod tests {
     fn a_file_mentioning_test_runs_the_layout_check() {
         let mut d = diff(&["docs/x.md"], &[]);
         d.mentions_test = set(&["docs/x.md"]);
-        assert_eq!(policy_commands(&d), [Cmd::xtask(&["check-test-layout"])]);
+        assert_eq!(policy_commands(&d, BASE), [Cmd::xtask(&["check-test-layout"])]);
     }
 
     #[test]
@@ -1371,7 +1797,10 @@ mod tests {
             &["crates/ew-leaf/Cargo.toml"],
             &["ci/dep-rules.toml"],
         ] {
-            assert!(policy_commands(&diff(files, &[])).contains(&map), "{files:?}");
+            assert!(
+                policy_commands(&diff(files, &[]), BASE).contains(&map),
+                "{files:?}"
+            );
         }
         assert_eq!(
             lines(&diff(&["docs/design/04-architecture.md"], &[]))[5],
@@ -1464,12 +1893,12 @@ mod tests {
         .into_iter()
         .collect();
         assert_eq!(
-            lines_with(&d, &["ew-api"])[3],
+            lines_with(&d, &["ew-api"])[4],
             "nextest: FAILED (golden/ changed and ew, ew-testkit name it; content/ changed and ew-ui name it; add \
              them with -p)"
         );
         assert_eq!(
-            lines_with(&d, &["ew-api", "ew-testkit", "ew", "ew-ui"])[3],
+            lines_with(&d, &["ew-api", "ew-testkit", "ew", "ew-ui"])[4],
             "nextest: cargo nextest run --profile lane --cargo-quiet -p ew -p ew-api -p ew-leaf -p ew-testkit -p ew-ui \
              --all-features"
         );
@@ -1502,6 +1931,11 @@ mod tests {
                 r#"PathBuf::from(dir).join("schemas")"#,
             ),
             ("xtask/src/lane_check.rs", r#""golden/""#),
+            // C43-p7#6: another crate's `schemas` directory is not the root.
+            (
+                "bin/ew/tests/it/conventions.rs",
+                r#"Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/ew-commands/schemas")"#,
+            ),
         ]
         .into_iter()
         .collect();
@@ -1547,6 +1981,373 @@ mod tests {
                 packages: set(&["ew", "ew-ui"]),
                 ..Args::default()
             }
+        );
+        assert_eq!(
+            parse(&s(&["--base", "main", "--fresh"])).unwrap(),
+            Args {
+                base: "main".to_owned(),
+                fresh: true,
+                ..Args::default()
+            }
+        );
+        assert_eq!(
+            USAGE,
+            "usage: cargo xtask lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm] [--fresh]"
+        );
+    }
+
+    /// C43-p7#6, on the repository itself: ew-schema's `join("../../schemas")` reads the format schemas, `ew`'s join
+    /// of `ew-commands`' own `schemas` directory does not.
+    #[test]
+    fn the_schema_readers_of_the_repository() {
+        let root = crate::workspace_root();
+        let members = affected::members_of(&crate::metadata_all_features(&root).unwrap()).unwrap();
+        let tracked =
+            affected::nul_paths(&affected::git_output(&root, &["ls-files", "-z", "--", "*.rs"]).unwrap());
+        let read = |f: &str| std::fs::read_to_string(root.join(f)).ok();
+        let found = root_readers(&["schemas/0.1/"], &tracked, &members, &read);
+        assert!(found["schemas/0.1/"].contains("ew-schema"), "{found:?}");
+        assert!(!found["schemas/0.1/"].contains("ew"), "{found:?}");
+        assert!(names_root(
+            r#"concat!(env!("CARGO_MANIFEST_DIR"), "/../../schemas")"#,
+            "schemas/0.1/"
+        ));
+        assert!(!names_root(r#"join("schemas")"#, "schemas/0.1/"));
+        assert!(!names_root(r#"join("x/../schemas")"#, "schemas/0.1/"));
+    }
+
+    /// FT-1007: a change of a published-surface snapshot runs `api-guard` against the base, in the policy step.
+    #[test]
+    fn an_api_snapshot_change_runs_the_api_guard() {
+        let guard = Cmd::xtask(&["api-guard", "--base", BASE]);
+        for file in API_SNAPSHOTS {
+            assert_eq!(
+                policy_commands(&diff(&[file], &[]), BASE),
+                std::slice::from_ref(&guard),
+                "{file}"
+            );
+        }
+        assert_eq!(
+            lines(&diff(&["bin/ew/api/cli.json"], &[]))[5],
+            "policy: cargo xtask api-guard --base 4762316c"
+        );
+        assert!(!policy_commands(&diff(&["crates/ew-api/api/queries.json"], &[]), BASE).contains(&guard));
+    }
+
+    /// FT-1006: the doc step runs the doctests of the documented crates that have a library target, and only those.
+    #[test]
+    fn the_doc_step_runs_the_doctests_of_the_library_crates() {
+        let l = lines_with(&diff(&["crates/ew-api/src/lib.rs"], &[]), &["ew", "ew-format"]);
+        assert_eq!(
+            &l[2..4],
+            [
+                "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew -p ew-api -p ew-format --all-features",
+                "doc: cargo test --doc -p ew-api -p ew-format --all-features",
+            ]
+        );
+        // No crate with a library target: no doctest command.
+        assert_eq!(
+            &lines(&diff(&["crates/ew-leaf/src/lib.rs"], &[]))[2..4],
+            [
+                "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-leaf --all-features",
+                "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-leaf --all-features",
+            ]
+        );
+    }
+
+    /// FT-1013: the fmt snapshot covers every file of a formatted crate (in the diff or not) and every file below the
+    /// directory of a per-file rustfmt target (its child modules), not other crates or directories.
+    #[test]
+    fn the_fmt_snapshot_covers_every_file_the_step_can_rewrite() {
+        let all: Vec<String> = [
+            "crates/ew-api/src/lib.rs",
+            "crates/ew-api/tests/it/outside_the_diff.rs",
+            "crates/ew-leaf/src/lib.rs",
+            "fuzz/fuzz_targets/a.rs",
+            "fuzz/fuzz_targets/a/child.rs",
+            "fuzz/other/c.rs",
+        ]
+        .iter()
+        .map(|f| (*f).to_owned())
+        .collect();
+        assert_eq!(
+            fmt_scope(
+                &all,
+                &set(&["ew-api"]),
+                &members(),
+                &["fuzz/fuzz_targets/a.rs".to_owned()]
+            ),
+            [
+                "crates/ew-api/src/lib.rs",
+                "crates/ew-api/tests/it/outside_the_diff.rs",
+                "fuzz/fuzz_targets/a.rs",
+                "fuzz/fuzz_targets/a/child.rs",
+            ]
+        );
+    }
+
+    fn key(tree: &str) -> MemoryKey {
+        MemoryKey {
+            merge_base: "0123abcd".to_owned(),
+            tree: tree.to_owned(),
+            inputs: [("env EW_BLESS".to_owned(), "0".to_owned())]
+                .into_iter()
+                .collect(),
+        }
+    }
+
+    /// ID-1077: a pass on a clean worktree is recorded, and a later run skips the step while its commands, merge base,
+    /// tree and outside inputs (the tool versions included) are the same; `--fresh`, a dirty worktree, a failure and
+    /// `cargo deny` defeat it.
+    #[test]
+    fn a_step_that_passed_on_a_clean_tree_is_remembered() {
+        let clippy = vec![Cmd::cargo(&["clippy", "-p", "ew-leaf"])];
+        let nextest = vec![Cmd::cargo(&["nextest", "run", "-p", "ew-leaf"])];
+        let deny = vec![Cmd::cargo(&["deny", "--locked", "check"])];
+        let k = key("feedbeef");
+        let mut version = "cargo-nextest 0.9.100".to_owned();
+        let mut records = BTreeMap::new();
+        {
+            let mut tool = |_: &str| Some(version.clone());
+            assert!(!remembered(
+                &records,
+                "clippy",
+                &clippy,
+                Some(&k),
+                false,
+                &mut tool
+            ));
+            // A dirty worktree records nothing.
+            update_memory(&mut records, "clippy", &clippy, "ok", None, &mut tool);
+            assert!(records.is_empty());
+            // fmt's rewrite is no pass.
+            update_memory(&mut records, "fmt", &clippy, "rewrote", Some(&k), &mut tool);
+            assert!(records.is_empty());
+            update_memory(&mut records, "clippy", &clippy, "ok", Some(&k), &mut tool);
+            update_memory(&mut records, "nextest", &nextest, "ok", Some(&k), &mut tool);
+            update_memory(&mut records, "policy", &deny, "ok", Some(&k), &mut tool);
+            assert_eq!(records.keys().collect::<Vec<_>>(), ["clippy", "nextest"]);
+            assert_eq!(
+                records["nextest"].inputs["cargo nextest --version"],
+                "cargo-nextest 0.9.100"
+            );
+
+            assert!(remembered(
+                &records,
+                "clippy",
+                &clippy,
+                Some(&k),
+                false,
+                &mut tool
+            ));
+            assert!(remembered(
+                &records,
+                "nextest",
+                &nextest,
+                Some(&k),
+                false,
+                &mut tool
+            ));
+            assert!(!remembered(
+                &records,
+                "clippy",
+                &clippy,
+                Some(&k),
+                true,
+                &mut tool
+            ));
+            assert!(!remembered(&records, "clippy", &clippy, None, false, &mut tool));
+            assert!(!remembered(
+                &records,
+                "clippy",
+                &clippy,
+                Some(&key("other")),
+                false,
+                &mut tool
+            ));
+            let mut other_env = k.clone();
+            other_env.inputs.insert("env EW_BLESS".to_owned(), "1".to_owned());
+            assert!(!remembered(
+                &records,
+                "clippy",
+                &clippy,
+                Some(&other_env),
+                false,
+                &mut tool
+            ));
+            let other_cmds = vec![Cmd::cargo(&["clippy", "-p", "ew-api"])];
+            assert!(!remembered(
+                &records,
+                "clippy",
+                &other_cmds,
+                Some(&k),
+                false,
+                &mut tool
+            ));
+        }
+        version = "cargo-nextest 0.9.101".to_owned();
+        let mut tool = |_: &str| Some(version.clone());
+        assert!(!remembered(
+            &records,
+            "nextest",
+            &nextest,
+            Some(&k),
+            false,
+            &mut tool
+        ));
+        // A failure forgets the step, also on a dirty worktree.
+        update_memory(&mut records, "clippy", &clippy, "FAILED", None, &mut tool);
+        assert_eq!(records.keys().collect::<Vec<_>>(), ["nextest"]);
+    }
+
+    /// The memory's lines and a remembered step's summary and plan lines, whole.
+    #[test]
+    fn the_memory_lines() {
+        let k = key("feedbeef0123456789");
+        assert_eq!(
+            memory_line(Some(&k), false),
+            "lane-check: memory: the worktree is clean (tree feedbeef0123), so a step that passed on it with the same \
+             commands is skipped"
+        );
+        assert_eq!(
+            memory_line(Some(&k), true),
+            "lane-check: memory: --fresh, so every step runs and a pass is recorded anew"
+        );
+        assert_eq!(
+            memory_line(None, false),
+            "lane-check: memory: the worktree has changes, so no step is skipped or recorded"
+        );
+        assert_eq!(
+            changed_worktree_line("fmt"),
+            "lane-check: memory: fmt changed the worktree, so no later step is skipped or recorded"
+        );
+        let outcome = Outcome {
+            name: "clippy",
+            status: "ok",
+            why: Some(FROM_MEMORY.to_owned()),
+            commands: Vec::new(),
+            seconds: 0.0,
+            log: None,
+        };
+        assert_eq!(
+            summary_line(&outcome),
+            "lane-check: clippy: ok (from memory; --fresh runs it again)"
+        );
+        let p = plan(
+            &diff(&["crates/ew-leaf/src/lib.rs"], &[]),
+            &members(),
+            &BTreeSet::new(),
+            BASE,
+            &BTreeSet::new(),
+        );
+        assert_eq!(
+            &p.lines_remembering(&["clippy"].into_iter().collect())[..3],
+            [
+                "fmt: cargo fmt -p ew-leaf",
+                "clippy: from memory: cargo clippy -p ew-leaf --all-targets --all-features -- -D warnings",
+                "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-leaf --all-features",
+            ]
+        );
+    }
+
+    /// `target/lane-check.json` keeps its fields and adds the records, which a later run reads back; a text that is
+    /// no JSON, or a record of another shape, holds no record.
+    #[test]
+    fn the_json_holds_the_steps_and_the_records() {
+        let mut tool = |_: &str| None;
+        let cmds = vec![Cmd {
+            env: Some(("RUSTDOCFLAGS", "-D warnings")),
+            ..Cmd::cargo(&["doc", "--no-deps"])
+        }];
+        let records: BTreeMap<String, Record> = [(
+            "doc".to_owned(),
+            record_of("doc", &cmds, &key("feedbeef"), &mut tool),
+        )]
+        .into_iter()
+        .collect();
+        let outcome = Outcome {
+            name: "doc",
+            status: "ok",
+            why: None,
+            commands: vec![cmds[0].to_string()],
+            seconds: 1.5,
+            log: Some("target/lane-check/doc.log".to_owned()),
+        };
+        let text = json_text("main", &[outcome], &records).unwrap();
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&text).unwrap(),
+            serde_json::json!({
+                "base": "main",
+                "steps": [{
+                    "name": "doc",
+                    "status": "ok",
+                    "why": null,
+                    "command": ["RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps"],
+                    "seconds": 1.5,
+                    "log": "target/lane-check/doc.log",
+                }],
+                "records": [{
+                    "step": "doc",
+                    "commands": [{
+                        "program": "cargo",
+                        "args": ["doc", "--no-deps"],
+                        "env": { "RUSTDOCFLAGS": "-D warnings" },
+                    }],
+                    "merge_base": "0123abcd",
+                    "tree": "feedbeef",
+                    "inputs": { "env EW_BLESS": "0" },
+                }],
+            })
+        );
+        assert_eq!(records_of_json(&text), records);
+        assert!(records_of_json("not json").is_empty());
+        assert!(records_of_json(r#"{"records": [{"step": "doc"}]}"#).is_empty());
+    }
+
+    /// The outside inputs: the environment variables that can change an outcome, not the others, and a digest of a
+    /// cargo configuration file in `CARGO_HOME`.
+    #[test]
+    fn the_outside_inputs_are_the_outcome_variables_and_the_cargo_configs() {
+        let dir = std::env::temp_dir().join(format!(
+            "ew-xtask-lane-check-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let home = dir.join("cargo-home");
+        std::fs::create_dir_all(&home).unwrap();
+        std::fs::write(home.join("config.toml"), "abc").unwrap();
+        let env: Vec<(String, String)> = [
+            ("EW_BLESS", "1"),
+            ("RUSTFLAGS", "-C debuginfo=1"),
+            ("CARGO_PROFILE_DEV_DEBUG", "line-tables-only"),
+            ("PATH", "/bin"),
+            ("TMP", "/tmp"),
+            ("CARGO_HOME", home.to_str().unwrap()),
+        ]
+        .iter()
+        .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+        .collect();
+        let inputs = outside_inputs(&dir, &env);
+        std::fs::remove_dir_all(&dir).unwrap();
+        let vars: Vec<(&str, &str)> = inputs
+            .iter()
+            .filter(|(k, _)| k.starts_with("env "))
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
+        assert_eq!(
+            vars,
+            [
+                ("env CARGO_PROFILE_DEV_DEBUG", "line-tables-only"),
+                ("env EW_BLESS", "1"),
+                ("env RUSTFLAGS", "-C debuginfo=1"),
+            ]
+        );
+        assert_eq!(
+            inputs[&format!("cargo config {}", home.join("config.toml").display())],
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
     }
 }

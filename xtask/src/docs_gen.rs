@@ -23,7 +23,7 @@
 //!
 //! The generated pages are built, not committed: the root `.gitignore` names them (a test keeps its block equal to
 //! [`GENERATED_DIRS`] and [`GENERATED_PAGES`]), and the contract files they render stay committed. `docs-gen` writes
-//! them and removes a stale one. The four lists of generated entries in `docs/book/src/SUMMARY.md` are rewritten
+//! them and removes a stale one; `--check` fails on a built page that git tracks. The four lists of generated entries in `docs/book/src/SUMMARY.md` are rewritten
 //! too: every line that links into `reference/commands/`, `reference/rules/`, `reference/cli/` or
 //! `reference/format/` (the index pages excepted) is regenerated below the line that links the index page.
 //! `SUMMARY.md` stays committed, so `docs-gen --check` changes nothing and fails only when it differs.
@@ -212,28 +212,45 @@ fn is_built(rel: &str) -> bool {
 }
 
 /// The violations of `docs-gen --check` (NFR-DOC-06): one per committed page (`SUMMARY.md`) that differs or is
-/// missing, per committed page in a generated directory that no source gives, and per document outside the book
-/// whose generated part differs. The built pages are not committed, so an absent or old one is no violation.
-fn violations_of(differing: &[String], stale: &[String], partial: &[(String, String)]) -> Vec<String> {
+/// missing, per built page that git tracks (`tracked`, from [`tracked_built`]: a file under [`GENERATED_DIRS`] or one
+/// of [`GENERATED_PAGES`], added with `git add -f`, say), and per document outside the book whose generated part
+/// differs. The built pages are not committed, so an absent, old or stray untracked one is no violation.
+fn violations_of(differing: &[String], tracked: &[String], partial: &[(String, String)]) -> Vec<String> {
     let differing = differing
         .iter()
         .filter(|rel| !is_built(rel))
         .map(|rel| format!("{BOOK_SRC}/{rel} differs; run `cargo xtask docs-gen`"));
-    let stale = stale
-        .iter()
-        .filter(|rel| !is_built(rel))
-        .map(|rel| format!("{BOOK_SRC}/{rel} is stale (no source); run `cargo xtask docs-gen`"));
+    let tracked = tracked.iter().map(|rel| {
+        format!("{BOOK_SRC}/{rel} is a built page, but git tracks it; run `git rm --cached {BOOK_SRC}/{rel}`")
+    });
     let partial = partial
         .iter()
         .map(|(rel, _)| format!("{rel}: its generated part differs; run `cargo xtask docs-gen`"));
-    differing.chain(stale).chain(partial).collect()
+    differing.chain(tracked).chain(partial).collect()
+}
+
+/// The built pages that git tracks, relative to [`BOOK_SRC`] (`git ls-files`): the tracked files under
+/// [`GENERATED_DIRS`] and the tracked [`GENERATED_PAGES`].
+fn tracked_built(root: &Path) -> Result<Vec<String>> {
+    let mut args = vec!["ls-files".to_owned(), "-z".to_owned(), "--".to_owned()];
+    args.extend(GENERATED_DIRS.iter().map(|dir| format!("{BOOK_SRC}/{dir}/")));
+    args.extend(GENERATED_PAGES.iter().map(|page| format!("{BOOK_SRC}/{page}")));
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    let prefix = format!("{BOOK_SRC}/");
+    Ok(
+        crate::affected::nul_paths(&crate::affected::git_output(root, &args)?)
+            .into_iter()
+            .filter_map(|f| f.strip_prefix(&prefix).map(str::to_owned))
+            .filter(|rel| is_built(rel))
+            .collect(),
+    )
 }
 
 /// The violations of `docs-gen --check` for the repository at `root`: the generated pages, and the work-package
 /// counts that the plan states by hand (`plan_counts.rs`).
 pub(crate) fn violations(root: &Path) -> Result<Vec<String>> {
     let plan = plan(root)?;
-    let mut found = violations_of(&plan.differing, &plan.stale, &plan.partial);
+    let mut found = violations_of(&plan.differing, &tracked_built(root)?, &plan.partial);
     found.extend(crate::plan_counts::violations(root)?);
     Ok(found)
 }
@@ -244,7 +261,7 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     // The plan's hand-written WP counts: checked in both modes, never rewritten (they are prose).
     let counts = crate::plan_counts::violations(root)?;
     if check {
-        let mut violations = violations_of(&plan.differing, &plan.stale, &plan.partial);
+        let mut violations = violations_of(&plan.differing, &tracked_built(root)?, &plan.partial);
         violations.extend(counts);
         if violations.is_empty() {
             println!(
@@ -2431,7 +2448,8 @@ row = "g-worker"
             ["reference/commands/a.b.md", GLOSSARY_PAGE, QUERIES_PAGE]
         );
         assert_eq!(stale, ["reference/cli/gone.md"]);
-        assert_eq!(violations_of(&differing, &stale, &[]), Vec::<String>::new());
+        // The stray page is not tracked: no violation.
+        assert_eq!(violations_of(&differing, &[], &[]), Vec::<String>::new());
 
         std::fs::write(
             src.join(SUMMARY),
@@ -2439,14 +2457,38 @@ row = "g-worker"
 ",
         )
         .unwrap();
-        let (differing, stale) = compare(&root, &wanted).unwrap();
+        let (differing, _) = compare(&root, &wanted).unwrap();
         assert_eq!(
-            violations_of(&differing, &stale, &[]),
+            violations_of(&differing, &[], &[]),
             ["docs/book/src/SUMMARY.md differs; run `cargo xtask docs-gen`"]
         );
         std::fs::remove_dir_all(&root).unwrap();
 
         assert!(run(&crate::workspace_root(), true).unwrap());
+    }
+
+    /// C43-p7#2, p7#3: a built page that git tracks is a violation, whether or not a source gives it, and so is a
+    /// document outside the book whose generated part differs (doc 04's crate table).
+    #[test]
+    fn check_fails_on_a_tracked_built_page_and_a_differing_generated_part() {
+        let tracked = ["reference/cli/gone.md".to_owned(), GLOSSARY_PAGE.to_owned()];
+        let partial = [(ARCHITECTURE.to_owned(), "the wanted text\n".to_owned())];
+        assert_eq!(
+            violations_of(&[SUMMARY.to_owned()], &tracked, &partial),
+            [
+                "docs/book/src/SUMMARY.md differs; run `cargo xtask docs-gen`",
+                "docs/book/src/reference/cli/gone.md is a built page, but git tracks it; run `git rm --cached \
+                 docs/book/src/reference/cli/gone.md`",
+                "docs/book/src/reference/glossary.md is a built page, but git tracks it; run `git rm --cached \
+                 docs/book/src/reference/glossary.md`",
+                "docs/design/04-architecture.md: its generated part differs; run `cargo xtask docs-gen`",
+            ]
+        );
+        // The repository tracks no built page.
+        assert_eq!(
+            tracked_built(&crate::workspace_root()).unwrap(),
+            Vec::<String>::new()
+        );
     }
 
     /// The root `.gitignore` names exactly the built pages: one block of the generated directories, then the

@@ -33,7 +33,9 @@ adds the allow-list gates, `check-brief` and the MSRV check.
 The book's reference pages are built, not committed: `cargo xtask docs-gen` writes them from the committed contract
 files, and `mdbook build docs/book` needs them.
 An agent lane runs its hand-back checks with `cargo xtask lane-check --base <rev> -p <pkg>...`, which picks fmt,
-clippy, doc, one bounded nextest run, `settle --check` and the policy checks from the diff (`--plan` prints them).
+clippy, doc with the doctests, one bounded nextest run, `settle --check` and the policy checks (with `api-guard` when
+an API snapshot changed) from the diff (`--plan` prints them). On a clean worktree it skips a step that passed before
+on the same tree with the same commands; `--fresh` runs every step.
 
 A new integration test goes into its crate's one test binary: `tests/it/<name>.rs`, which `automod::dir!` in
 `tests/it/main.rs` declares. Touch `tests/it/main.rs` once after adding the file: cargo does not notice a new file in
