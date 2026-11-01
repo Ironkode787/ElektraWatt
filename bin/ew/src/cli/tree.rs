@@ -6,8 +6,9 @@
 //!
 //! The grammar (doc 17 §3.1, WP-S1.22 D3): a valued flag takes the next word as its value even when it starts with
 //! `-`; a second `--project` is an error, `--company` and `lib search --kind` accumulate, every other flag is
-//! last-wins; the positional project directory and `--project` exclude each other. A rule the relations cannot say
-//! is one check in the lowering that returns a usage error.
+//! last-wins; the positional project directory and `--project` exclude each other; a positional that takes hyphen
+//! values refuses a word starting with `--` as a mistyped option. A rule the relations cannot say is one check in the
+//! lowering that returns a usage error.
 
 use std::path::PathBuf;
 
@@ -515,7 +516,8 @@ struct TerminalsCli {
 
 /// `ew export report`.
 #[derive(Args, Debug)]
-#[command(group(ArgGroup::new("rows").args(["block", "kind"]).required(true)))]
+// The group allows both so that the lowering refuses the pair in WP-S3.06 D4's words.
+#[command(group(ArgGroup::new("rows").args(["block", "kind"]).required(true).multiple(true)))]
 struct ReportCli {
     /// The project directory.
     #[arg(value_name = "project-dir")]
@@ -597,7 +599,7 @@ struct PagesCli {
     #[arg(long, overrides_with = "json")]
     json: bool,
     /// Not built yet: refused.
-    #[arg(long, hide = true, num_args = 0..=1, allow_hyphen_values = true, overrides_with = "lang")]
+    #[arg(long, hide = true, num_args = 0..=1, overrides_with = "lang")]
     lang: Option<Option<String>>,
     /// Not built yet: refused.
     #[arg(long, hide = true, overrides_with = "omit_personal_data")]
@@ -634,7 +636,7 @@ struct PngCli {
     #[arg(long, overrides_with = "json")]
     json: bool,
     /// Not built yet: refused.
-    #[arg(long, hide = true, num_args = 0..=1, allow_hyphen_values = true, overrides_with = "lang")]
+    #[arg(long, hide = true, num_args = 0..=1, overrides_with = "lang")]
     lang: Option<Option<String>>,
     /// Not built yet: refused.
     #[arg(long, hide = true, overrides_with = "omit_personal_data")]
@@ -748,7 +750,7 @@ struct RecoverCli {
     #[arg(long, overrides_with = "discard")]
     discard: bool,
     /// Print the result as JSON (not with `--discard`, which prints a dialogue).
-    #[arg(long, overrides_with = "json", conflicts_with = "discard")]
+    #[arg(long, overrides_with = "json")]
     json: bool,
 }
 
@@ -979,13 +981,13 @@ struct ProjectJsonCli {
 #[derive(Args, Debug)]
 struct QueryCli {
     /// The query's name, or with three positionals the project directory.
-    #[arg(value_name = "project-dir|name", allow_hyphen_values = true)]
+    #[arg(value_name = "project-dir|name", allow_hyphen_values = true, value_parser = word)]
     first: String,
     /// The key, or with three positionals the query's name.
-    #[arg(value_name = "name|key", allow_hyphen_values = true)]
+    #[arg(value_name = "name|key", allow_hyphen_values = true, value_parser = word)]
     second: String,
     /// The key, after the project directory and the name.
-    #[arg(value_name = "key", allow_hyphen_values = true)]
+    #[arg(value_name = "key", allow_hyphen_values = true, value_parser = word)]
     third: Option<String>,
     /// The project directory (instead of the positional one).
     #[arg(long, value_name = "dir", allow_hyphen_values = true)]
@@ -1058,7 +1060,7 @@ enum LibSub {
 #[derive(Args, Debug)]
 struct SearchCli {
     /// The text to search for.
-    #[arg(value_name = "text", allow_hyphen_values = true)]
+    #[arg(value_name = "text", allow_hyphen_values = true, value_parser = word)]
     text: String,
     /// The kind of item (repeatable; default: part).
     #[arg(long, value_name = "kind", allow_hyphen_values = true, value_parser = item_kind)]
@@ -1083,7 +1085,7 @@ struct IndexCli {
 #[derive(Args, Debug)]
 struct CreateCli {
     /// The new library's directory (absent or empty).
-    #[arg(value_name = "dir", allow_hyphen_values = true)]
+    #[arg(value_name = "dir", allow_hyphen_values = true, value_parser = path_word)]
     dir: PathBuf,
     /// The library's key.
     #[arg(long, value_name = "key", allow_hyphen_values = true, overrides_with = "key")]
@@ -1124,10 +1126,10 @@ enum LibImportCli {
 #[derive(Args, Debug)]
 struct LibImportPartsCli {
     /// The target library, by its key or ID.
-    #[arg(value_name = "library", allow_hyphen_values = true)]
+    #[arg(value_name = "library", allow_hyphen_values = true, value_parser = word)]
     library: String,
     /// The parts table (CSV or XLSX).
-    #[arg(value_name = "table", allow_hyphen_values = true)]
+    #[arg(value_name = "table", allow_hyphen_values = true, value_parser = path_word)]
     file: PathBuf,
     /// The column map (a TOML file).
     #[arg(
@@ -1226,6 +1228,22 @@ fn sql_word(v: &str) -> Result<String, String> {
     } else {
         Ok(v.to_owned())
     }
+}
+
+/// A positional that takes hyphen values (`query`, `lib search`, `lib create`, `lib import parts`): a word starting
+/// with one `-` is a value (a bare tag `-X1031:5`, or `-` for a query without a key), but one starting with `--` is a
+/// mistyped option, as the old parser refused it.
+fn word(v: &str) -> Result<String, String> {
+    if v.starts_with("--") {
+        Err(format!("unknown option `{v}`"))
+    } else {
+        Ok(v.to_owned())
+    }
+}
+
+/// [`word`] for a path positional.
+fn path_word(v: &str) -> Result<PathBuf, String> {
+    word(v).map(PathBuf::from)
 }
 
 /// An `sql --format`.
@@ -1354,6 +1372,8 @@ fn counted_project(
     }
 }
 
+// Every `*Cli` is destructured whole, with no `..`: a field the lowering forgets is E0027, and a binding it does not
+// use is `unused_variables` (C43-p4#3).
 impl Cli {
     /// The command a parsed line names.
     ///
@@ -1373,193 +1393,295 @@ impl Cli {
             }
             Top::Import(Import::Parts(a)) => Command::ImportParts(a),
             Top::Import(Import::Csv(a)) => Command::ImportCsv(a),
-            Top::Check(a) => {
-                let format_name = a.format.map(|f| match f {
+            Top::Check(CheckCli {
+                project_dir,
+                project: flag,
+                scheme,
+                mode,
+                format,
+                json,
+                lang,
+                out,
+            }) => {
+                let format_name = format.map(|f| match f {
                     CheckFormat::Text => "text",
                     CheckFormat::Markdown => "md",
                     CheckFormat::Json => "json",
                 });
-                json_alias(&["check"], a.json, format_name)?;
+                json_alias(&["check"], json, format_name)?;
                 Command::Check(CheckArgs {
-                    project: project(a.project, a.project_dir),
-                    scheme: a.scheme,
-                    mode: match a.mode {
+                    project: project(flag, project_dir),
+                    scheme,
+                    mode: match mode {
                         ModeArg::Release => CheckMode::Release,
                         ModeArg::Online => CheckMode::Online,
                     },
-                    format: if a.json {
+                    format: if json {
                         CheckFormat::Json
                     } else {
-                        a.format.unwrap_or(CheckFormat::Text)
+                        format.unwrap_or(CheckFormat::Text)
                     },
-                    out: a.out,
-                    lang: a.lang,
+                    out,
+                    lang,
                 })
             }
             Top::Sql(a) => sql(a)?,
             Top::Export(e) => export(e)?,
-            Top::Render(a) => Command::Render(RenderArgs {
-                project: project(a.project, a.project_dir),
-                page: a.page,
-                dpi: a.dpi,
-                out: a.out,
-                json: a.json,
+            Top::Render(RenderCli {
+                project_dir,
+                project: flag,
+                page,
+                // `--png` is required: PNG is the only page format.
+                png: _required,
+                dpi,
+                out,
+                json,
+            }) => Command::Render(RenderArgs {
+                project: project(flag, project_dir),
+                page,
+                dpi,
+                out,
+                json,
             }),
-            Top::Apply(a) => {
-                let (dir, log) = match a.second {
-                    Some(log) => (Some(a.first), log),
-                    None => (None, a.first),
+            Top::Apply(ApplyCli {
+                first,
+                second,
+                project: flag,
+                preview,
+                one_step,
+                json,
+            }) => {
+                let (dir, log) = match second {
+                    Some(log) => (Some(first), log),
+                    None => (None, first),
                 };
                 Command::Apply(ApplyArgs {
-                    project: counted_project(&["apply"], a.project, dir)?,
+                    project: counted_project(&["apply"], flag, dir)?,
                     log,
-                    preview: a.preview,
-                    one_step: a.one_step,
-                    json: a.json,
+                    preview,
+                    one_step,
+                    json,
                 })
             }
-            Top::Fmt(a) => Command::Fmt(FmtArgs {
-                project: project(a.project, a.project_dir),
-                check: a.check,
-                json: a.json,
+            Top::Fmt(FmtCli {
+                project_dir,
+                project: flag,
+                check,
+                json,
+            }) => Command::Fmt(FmtArgs {
+                project: project(flag, project_dir),
+                check,
+                json,
             }),
-            Top::Recover(a) => Command::Recover(RecoverArgs {
-                project: project(a.project, a.project_dir),
-                action: match (a.replay, a.discard) {
+            Top::Recover(RecoverCli {
+                project_dir,
+                project: flag,
+                replay,
+                discard,
+                json,
+            }) => {
+                let action = match (replay, discard) {
                     (true, _) => RecoverAction::Replay,
                     (false, true) => RecoverAction::Discard,
                     (false, false) => RecoverAction::Summary,
-                },
-                json: a.json,
+                };
+                if action == RecoverAction::Discard && json {
+                    return Err(usage_error(
+                        &["recover"],
+                        "`--discard` asks for a typed word on a terminal and prints no result: it takes no `--json`",
+                    ));
+                }
+                Command::Recover(RecoverArgs {
+                    project: project(flag, project_dir),
+                    action,
+                    json,
+                })
+            }
+            Top::Project(ProjectCli::Checks(ChecksCli::Set(ChecksSetCli {
+                project_dir,
+                project: flag,
+                active,
+                release,
+            }))) => Command::ChecksSet(ChecksSetArgs {
+                project: project(flag, project_dir),
+                active,
+                release,
             }),
-            Top::Project(ProjectCli::Checks(ChecksCli::Set(a))) => Command::ChecksSet(ChecksSetArgs {
-                project: project(a.project, a.project_dir),
-                active: a.active,
-                release: a.release,
-            }),
-            Top::Project(ProjectCli::Assets(AssetsCli::Purge(a))) => Command::AssetsPurge(AssetsPurgeArgs {
-                project: project(a.project, a.project_dir),
-                preview: a.preview,
+            Top::Project(ProjectCli::Assets(AssetsCli::Purge(AssetsPurgeCli {
+                project_dir,
+                project: flag,
+                preview,
+            }))) => Command::AssetsPurge(AssetsPurgeArgs {
+                project: project(flag, project_dir),
+                preview,
             }),
             Top::Revision(r) => {
                 let (action, dir, flag) = match r {
-                    RevisionCli::Approve(a) => {
-                        (RevisionAction::Approve { role: a.role }, a.project_dir, a.project)
-                    }
-                    RevisionCli::Release(a) => (
-                        RevisionAction::Release {
-                            label: a.label,
-                            archive_dir: a.archive_dir,
-                        },
-                        a.project_dir,
-                        a.project,
-                    ),
-                    RevisionCli::Withdraw(a) => (
-                        RevisionAction::Withdraw {
-                            label: a.label,
-                            reason: a.reason,
-                        },
-                        a.project_dir,
-                        a.project,
-                    ),
+                    RevisionCli::Approve(ApproveCli {
+                        project_dir,
+                        project: flag,
+                        role,
+                    }) => (RevisionAction::Approve { role }, project_dir, flag),
+                    RevisionCli::Release(ReleaseCli {
+                        label,
+                        project_dir,
+                        project: flag,
+                        archive_dir,
+                    }) => (RevisionAction::Release { label, archive_dir }, project_dir, flag),
+                    RevisionCli::Withdraw(WithdrawCli {
+                        label,
+                        project_dir,
+                        reason,
+                        project: flag,
+                    }) => (RevisionAction::Withdraw { label, reason }, project_dir, flag),
                 };
                 Command::Revision(RevisionArgs {
                     action,
                     project: project(flag, dir),
                 })
             }
-            Top::VerifyDerived(a) => Command::VerifyDerived(VerifyArgs {
-                project: project(a.project, a.project_dir),
-                json: a.json,
+            Top::VerifyDerived(ProjectJsonCli {
+                project_dir,
+                project: flag,
+                json,
+            }) => Command::VerifyDerived(VerifyArgs {
+                project: project(flag, project_dir),
+                json,
             }),
-            Top::Query(a) => {
-                let (dir, name, key) = match a.third {
-                    Some(key) => (Some(PathBuf::from(a.first)), a.second, key),
-                    None => (None, a.first, a.second),
+            Top::Query(QueryCli {
+                first,
+                second,
+                third,
+                project: flag,
+                explain,
+                json,
+            }) => {
+                let (dir, name, key) = match third {
+                    Some(key) => (Some(PathBuf::from(first)), second, key),
+                    None => (None, first, second),
                 };
                 Command::Query(QueryArgs {
-                    project: counted_project(&["query"], a.project, dir)?,
+                    project: counted_project(&["query"], flag, dir)?,
                     name,
                     key,
-                    explain: a.explain,
-                    json: a.json,
+                    explain,
+                    json,
                 })
             }
-            Top::Queries(a) => Command::Queries { json: a.json },
-            Top::Lib(a) => Command::Lib(LibArgs {
-                action: match a.action {
+            Top::Queries(JsonCli { json }) => Command::Queries { json },
+            Top::Lib(LibCli {
+                action,
+                company,
+                json,
+            }) => Command::Lib(LibArgs {
+                action: match action {
                     LibSub::List => LibAction::List,
-                    LibSub::Search(s) => LibAction::Search {
-                        text: s.text,
-                        kinds: s.kind,
-                        all: s.all,
-                        limit: s.limit,
+                    LibSub::Search(SearchCli {
+                        text,
+                        kind,
+                        all,
+                        limit,
+                    }) => LibAction::Search {
+                        text,
+                        kinds: kind,
+                        all,
+                        limit,
                     },
-                    LibSub::Index(_) => LibAction::IndexRebuild,
-                    LibSub::Create(c) => LibAction::Create {
-                        dir: c.dir,
-                        key: c.key,
-                        name: c.name,
-                        licence: c.licence,
+                    // `--rebuild` is required, so it is always set: the old parser refused `lib index` without it,
+                    // and `LibAction::IndexRebuild` carries nothing.
+                    LibSub::Index(IndexCli { rebuild: _required }) => LibAction::IndexRebuild,
+                    LibSub::Create(CreateCli {
+                        dir,
+                        key,
+                        name,
+                        licence,
+                    }) => LibAction::Create {
+                        dir,
+                        key,
+                        name,
+                        licence,
                     },
-                    LibSub::Import(LibImportCli::Parts(i)) => LibAction::ImportParts {
-                        library: i.library,
-                        file: i.file,
-                        map: i.map,
-                        as_of: i.as_of,
-                        bump: i.bump,
-                        take_over: i.take_over,
+                    LibSub::Import(LibImportCli::Parts(LibImportPartsCli {
+                        library,
+                        file,
+                        map,
+                        as_of,
+                        bump,
+                        take_over,
+                    })) => LibAction::ImportParts {
+                        library,
+                        file,
+                        map,
+                        as_of,
+                        bump,
+                        take_over,
                     },
                 },
-                company: a.company,
-                json: a.json,
+                company,
+                json,
             }),
-            Top::Commands(a) => Command::Commands { json: a.json },
-            Top::Schema(a) => Command::Schema(a.name),
+            Top::Commands(JsonCli { json }) => Command::Commands { json },
+            Top::Schema(SchemaCli { name }) => Command::Schema(name),
         })
     }
 }
 
 /// `ew sql` and its subcommands.
 fn sql(a: SqlCli) -> Result<Command, clap::Error> {
-    match a.sub {
+    let SqlCli {
+        sub,
+        first,
+        second,
+        project: flag,
+        file,
+        format,
+        json,
+        timeout,
+        out,
+    } = a;
+    match sub {
         Some(SqlSub::Schema) => return Ok(Command::SqlSchema),
-        Some(SqlSub::Dump(d)) => {
-            let (dir, out) = match d.second {
-                Some(out) => (Some(PathBuf::from(d.first)), out),
-                None => (None, d.first),
+        Some(SqlSub::Dump(SqlDumpCli {
+            first,
+            second,
+            project: flag,
+            json,
+        })) => {
+            let (dir, out) = match second {
+                Some(out) => (Some(PathBuf::from(first)), out),
+                None => (None, first),
             };
             return Ok(Command::SqlDump(SqlDumpArgs {
-                project: counted_project(&["sql", "dump"], d.project, dir)?,
+                project: counted_project(&["sql", "dump"], flag, dir)?,
                 out: PathBuf::from(out),
-                json: d.json,
+                json,
             }));
         }
         None => {}
     }
-    let (dir, query) = match (a.file, a.first, a.second) {
+    let (dir, query) = match (file, first, second) {
         (Some(file), dir, _) => (dir.map(PathBuf::from), SqlSource::File(file)),
         (None, Some(dir), Some(q)) => (Some(PathBuf::from(dir)), SqlSource::Text(q)),
         (None, Some(q), None) => (None, SqlSource::Text(q)),
         // `required_unless_present = "file"` gives the query.
         (None, None, _) => return Err(usage_error(&["sql"], "`sql` needs a query (or `--file`)")),
     };
-    let format_name = a.format.map(|f| match f {
+    let format_name = format.map(|f| match f {
         SqlFormat::Csv => "csv",
         SqlFormat::Json => "json",
     });
-    let project = counted_project(&["sql"], a.project, dir)?;
-    json_alias(&["sql"], a.json, format_name)?;
+    let project = counted_project(&["sql"], flag, dir)?;
+    json_alias(&["sql"], json, format_name)?;
     Ok(Command::Sql(SqlArgs {
         project,
         query,
-        format: if a.json {
+        format: if json {
             SqlFormat::Json
         } else {
-            a.format.unwrap_or(SqlFormat::Csv)
+            format.unwrap_or(SqlFormat::Csv)
         },
-        timeout: a.timeout,
-        out: a.out,
+        timeout,
+        out,
     }))
 }
 
@@ -1575,59 +1697,76 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
         })
     };
     Ok(match e {
-        ExportCli::Cables(a) => {
-            csv_only("cables", a.format)?;
-            rows(
-                ExportKind::Cables,
-                a.block,
-                a.project,
-                a.project_dir,
-                a.out,
-                a.json,
-            )
+        ExportCli::Cables(RowsCli {
+            project_dir,
+            project: flag,
+            block,
+            format,
+            out,
+            json,
+        }) => {
+            csv_only("cables", format)?;
+            rows(ExportKind::Cables, block, flag, project_dir, out, json)
         }
-        ExportCli::Wires(a) => {
-            csv_only("wires", a.format)?;
-            rows(
-                ExportKind::Wires,
-                a.block,
-                a.project,
-                a.project_dir,
-                a.out,
-                a.json,
-            )
+        ExportCli::Wires(RowsCli {
+            project_dir,
+            project: flag,
+            block,
+            format,
+            out,
+            json,
+        }) => {
+            csv_only("wires", format)?;
+            rows(ExportKind::Wires, block, flag, project_dir, out, json)
         }
-        ExportCli::Bom(a) => {
-            csv_only("bom", a.format)?;
-            rows(
-                ExportKind::Bom(match a.mode {
-                    BomArg::Parts => BomMode::Component,
-                    BomArg::Assembly => BomMode::Assembly,
-                }),
-                a.block,
-                a.project,
-                a.project_dir,
-                a.out,
-                a.json,
-            )
+        ExportCli::Bom(BomCli {
+            project_dir,
+            project: flag,
+            block,
+            mode,
+            format,
+            out,
+            json,
+        }) => {
+            csv_only("bom", format)?;
+            let mode = match mode {
+                BomArg::Parts => BomMode::Component,
+                BomArg::Assembly => BomMode::Assembly,
+            };
+            rows(ExportKind::Bom(mode), block, flag, project_dir, out, json)
         }
-        ExportCli::Terminals(a) => {
-            csv_only("terminals", a.format)?;
-            rows(
-                ExportKind::Terminals(a.strip),
-                a.block,
-                a.project,
-                a.project_dir,
-                a.out,
-                a.json,
-            )
+        ExportCli::Terminals(TerminalsCli {
+            project_dir,
+            project: flag,
+            block,
+            strip,
+            format,
+            out,
+            json,
+        }) => {
+            csv_only("terminals", format)?;
+            rows(ExportKind::Terminals(strip), block, flag, project_dir, out, json)
         }
-        ExportCli::Report(a) => {
-            let pdf = a.format == Some(ReportPages::Pdf);
-            let kind = match a.kind {
+        ExportCli::Report(ReportCli {
+            project_dir,
+            project: flag,
+            block,
+            kind,
+            format,
+            out,
+            json,
+        }) => {
+            let pdf = format == Some(ReportPages::Pdf);
+            let kind = match kind {
                 Some(name) => {
+                    // WP-S3.06 D4: the refusals are the report layer's texts, the pair first.
+                    if block.is_some() {
+                        return Err(usage_error(
+                            &["export", "report"],
+                            ew_api::output::RowsError::KindAndBlock,
+                        ));
+                    }
                     if pdf {
-                        // WP-S3.06 D4: the refusal is the report layer's text.
                         return Err(usage_error(
                             &["export", "report"],
                             ew_api::output::RowsError::KindPages,
@@ -1637,20 +1776,30 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                 }
                 None => ExportKind::Report { pdf },
             };
-            rows(kind, a.block, a.project, a.project_dir, a.out, a.json)
+            rows(kind, block, flag, project_dir, out, json)
         }
         ExportCli::Pdf(a) => pages_command(PageFormat::Pdf, a)?,
         ExportCli::Svg(a) => pages_command(PageFormat::Svg, a)?,
-        ExportCli::Png(a) => {
-            not_built(&["export", "png"], a.lang.is_some(), a.omit_personal_data)?;
+        ExportCli::Png(PngCli {
+            project_dir,
+            project: flag,
+            out,
+            pages,
+            dpi,
+            threads,
+            json,
+            lang,
+            omit_personal_data,
+        }) => {
+            not_built(&["export", "png"], lang.is_some(), omit_personal_data)?;
             Command::ExportPages(ExportPagesArgs {
                 format: PageFormat::Png,
-                project: project(a.project, a.project_dir),
-                out: a.out,
-                pages: a.pages.unwrap_or(PageSelection::All),
-                threads: a.threads,
-                dpi: a.dpi,
-                json: a.json,
+                project: project(flag, project_dir),
+                out,
+                pages: pages.unwrap_or(PageSelection::All),
+                threads,
+                dpi,
+                json,
             })
         }
     })
@@ -1658,18 +1807,28 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
 
 /// `ew export pdf|svg`.
 fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error> {
+    let PagesCli {
+        project_dir,
+        project: flag,
+        out,
+        pages,
+        threads,
+        json,
+        lang,
+        omit_personal_data,
+    } = a;
     let path: &[&str] = match format {
         PageFormat::Pdf => &["export", "pdf"],
         PageFormat::Svg | PageFormat::Png => &["export", "svg"],
     };
-    not_built(path, a.lang.is_some(), a.omit_personal_data)?;
+    not_built(path, lang.is_some(), omit_personal_data)?;
     Ok(Command::ExportPages(ExportPagesArgs {
         format,
-        project: project(a.project, a.project_dir),
-        out: a.out,
-        pages: a.pages.unwrap_or(PageSelection::All),
-        threads: a.threads,
+        project: project(flag, project_dir),
+        out,
+        pages: pages.unwrap_or(PageSelection::All),
+        threads,
         dpi: ew_api::output::DEFAULT_DPI,
-        json: a.json,
+        json,
     }))
 }

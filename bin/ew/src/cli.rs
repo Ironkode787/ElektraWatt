@@ -197,9 +197,7 @@ pub struct RecoverArgs {
 }
 
 /// The arguments of `ew import csv`.
-// `--strict` names the default: accepted and ignored, hidden from the help (cycle 43, ruling 3).
 #[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
-#[command(arg = clap::Arg::new("strict").long("strict").action(clap::ArgAction::SetTrue).hide(true).overrides_with("strict"))]
 pub struct ImportCsvArgs {
     /// The directory of the tables.
     #[arg(value_name = "tables-dir")]
@@ -215,8 +213,11 @@ pub struct ImportCsvArgs {
         overrides_with = "content"
     )]
     pub content: Option<PathBuf>,
+    /// Write nothing when the import makes error findings (the default; not with `--lenient`).
+    #[arg(long, overrides_with = "strict", conflicts_with = "lenient")]
+    pub strict: bool,
     /// Keep foreign colour codes with a warning and write the project with its findings (else strict).
-    #[arg(long, overrides_with = "lenient", conflicts_with = "strict")]
+    #[arg(long, overrides_with = "lenient")]
     pub lenient: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
@@ -3433,6 +3434,67 @@ mod tests {
         );
     }
 
+    /// C43-p4#2: a positional that takes hyphen values (`query`, `lib search`, `lib create`, `lib import parts`) takes
+    /// a word starting with one `-`, but refuses one starting with `--` as a mistyped option (exit 2), as the old
+    /// parser did.
+    #[test]
+    fn a_double_dash_word_in_a_hyphen_positional_is_a_mistyped_option() {
+        let e = |args: &[&str]| parse(args.iter().map(|s| (*s).to_owned())).unwrap_err();
+        for (args, value, positional) in [
+            (&["lib", "search", "--alll"][..], "--alll", "<text>"),
+            (
+                &["query", "device_tag", "tag:-101F1", "--explian"],
+                "--explian",
+                "[key]",
+            ),
+            (&["query", "n", "k", "--bogus"], "--bogus", "[key]"),
+            (
+                &[
+                    "lib",
+                    "create",
+                    "--frob",
+                    "--key",
+                    "k",
+                    "--name",
+                    "n",
+                    "--licence",
+                    "MIT",
+                ],
+                "--frob",
+                "<dir>",
+            ),
+            (
+                &[
+                    "lib",
+                    "import",
+                    "parts",
+                    "--lib",
+                    "t.csv",
+                    "--map",
+                    "m.toml",
+                    "--as-of",
+                    "2026-01-01",
+                ],
+                "--lib",
+                "<library>",
+            ),
+        ] {
+            assert_eq!(
+                p(args),
+                invalid(value, positional, &format!("unknown option `{value}`")),
+                "{args:?}"
+            );
+            assert_eq!(e(args).exit_code(), 2, "{args:?}");
+        }
+        let Ok(Command::Lib(l)) = p(&["lib", "search", "-X1"]) else {
+            panic!("a search text starting with one `-`");
+        };
+        let LibAction::Search { text, .. } = l.action else {
+            panic!("`lib search`");
+        };
+        assert_eq!(text, "-X1");
+    }
+
     /// Cycle 43, ruling 3: a valued flag takes the next word even when it starts with `-`; a second `--project` is an
     /// error, `--company` accumulates, another flag is last-wins; a bare `--` ends the options.
     #[test]
@@ -3471,25 +3533,43 @@ mod tests {
             panic!("a search text starting with `-`");
         };
         assert_eq!(l.company, [PathBuf::from("a"), PathBuf::from("b")]);
-        // `import csv --strict` names the default: accepted and ignored.
+        let Ok(Command::Query(q)) = p(&["query", "proj", "device_tag", "-"]) else {
+            panic!("`-` for a query without a key");
+        };
+        assert_eq!((q.project, q.key.as_str()), (Some(PathBuf::from("proj")), "-"));
+        // `import csv --strict` names the default: the run reads only `lenient`.
+        let Ok(Command::ImportCsv(strict)) = p(&["import", "csv", "t", "--out", "o", "--strict"]) else {
+            panic!("`--strict` is the explicit default");
+        };
+        assert_eq!((strict.strict, strict.lenient), (true, false));
         assert_eq!(
-            p(&["import", "csv", "t", "--out", "o", "--strict"]),
+            Ok(Command::ImportCsv(ImportCsvArgs {
+                strict: false,
+                ..strict
+            })),
             p(&["import", "csv", "t", "--out", "o"])
         );
         assert_eq!(
             p(&["import", "csv", "t", "--out", "o", "--strict", "--lenient"]),
             usage_error(
                 "the argument '--strict' cannot be used with '--lenient'",
-                "ew import csv --out <dir> <tables-dir>"
+                "ew import csv --out <dir> --strict <tables-dir>"
             )
         );
-        assert_eq!(
-            p(&["export", "pdf", "--out", "o", "--lang", "de"]),
-            usage_error(
-                "`--lang` is not built yet",
-                "ew export pdf [OPTIONS] --out <path> [project-dir]"
-            )
-        );
+        // The refused `--lang` takes no flag as its value: `--lang --out o` is still the `--lang` refusal (C43-p4#5).
+        for args in [
+            &["export", "pdf", "--out", "o", "--lang", "de"][..],
+            &["export", "pdf", "--lang", "--out", "o"],
+        ] {
+            assert_eq!(
+                p(args),
+                usage_error(
+                    "`--lang` is not built yet",
+                    "ew export pdf [OPTIONS] --out <path> [project-dir]"
+                ),
+                "{args:?}"
+            );
+        }
         assert_eq!(
             p(&["export", "png", "--out", "o", "--omit-personal-data"]),
             usage_error(
@@ -4155,13 +4235,31 @@ SELECT 1"
             )
         );
         let report = "ew export report <--block <block>|--kind <kind>> [project-dir]";
-        assert_eq!(
-            p(&["export", "report", "--kind", "device_list", "--block", "910"]),
-            usage_error(
-                "the argument '--kind <kind>' cannot be used with '--block <block>'",
-                report
-            )
-        );
+        // WP-S3.06 D4's refusal, before the pages refusal (C43-p4#4).
+        for args in [
+            &["export", "report", "--kind", "device_list", "--block", "910"][..],
+            &[
+                "export",
+                "report",
+                "--block",
+                "910",
+                "--kind",
+                "device_list",
+                "--format",
+                "pdf",
+                "--out",
+                "r.pdf",
+            ],
+        ] {
+            assert_eq!(
+                p(args),
+                usage_error(
+                    "give `--block` or `--kind`, not both",
+                    "ew export report [OPTIONS] <--block <block>|--kind <kind>> [project-dir]"
+                ),
+                "{args:?}"
+            );
+        }
         assert_eq!(
             p(&[
                 "export",

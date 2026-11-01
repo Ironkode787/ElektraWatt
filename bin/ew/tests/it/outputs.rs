@@ -498,8 +498,8 @@ fn report_kind_refusals_and_every_listed_kind_exports() {
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
         stderr(&o),
-        "error: the argument '--kind <kind>' cannot be used with '--block <block>'\n\nUsage: ew export report \
-         <--block <block>|--kind <kind>> <project-dir>\n\nFor more information, try '--help'.\n"
+        "error: give `--block` or `--kind`, not both\n\nUsage: ew export report [OPTIONS] <--block <block>|--kind \
+         <kind>> [project-dir]\n\nFor more information, try '--help'.\n"
     );
     let pdf = t.0.join("k.pdf");
     let o = t.ew(&args([

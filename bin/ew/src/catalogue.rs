@@ -107,7 +107,7 @@ pub const TABLE: &[Row] = &[
             exit(0, "written, with its findings"),
             exit(
                 1,
-                "nothing written: the strict default refused error findings, or the records do not make a project",
+                "nothing written: `--strict` refused error findings, or the records do not make a project",
             ),
             exit(
                 2,
@@ -363,7 +363,16 @@ fn walk(cmd: &clap::Command, path: &mut Vec<String>, out: &mut Vec<(Vec<String>,
         let flags = cmd
             .get_arguments()
             .filter(|a| !a.is_positional() && !a.is_hide_set())
-            .filter(|a| !matches!(a.get_id().as_str(), "help" | "version"))
+            // clap's injected help and version, by their action: a user flag may be called `--version`.
+            .filter(|a| {
+                !matches!(
+                    a.get_action(),
+                    clap::ArgAction::Help
+                        | clap::ArgAction::HelpShort
+                        | clap::ArgAction::HelpLong
+                        | clap::ArgAction::Version
+                )
+            })
             .filter_map(|a| {
                 a.get_long().map(|long| Flag {
                     name: format!("--{long}"),
@@ -480,11 +489,33 @@ mod tests {
             [
                 f("--out", true, false),
                 f("--content", true, false),
+                f("--strict", false, false),
                 f("--lenient", false, false),
                 f("--json", false, false),
             ]
         );
         assert_eq!(flags("schema"), []);
+    }
+
+    /// C43-p4#8b: the walk skips clap's help and version by their action, so a user flag with the id `version` and a
+    /// `SetTrue` action stays in it, and clap's own `--help` and `--version` do not.
+    #[test]
+    fn the_walk_keeps_a_user_flag_named_version() {
+        let mut cmd = clap::Command::new("t").version("1").subcommand(
+            clap::Command::new("create").arg(
+                clap::Arg::new("version")
+                    .long("version")
+                    .action(clap::ArgAction::SetTrue),
+            ),
+        );
+        cmd.build();
+        let mut walked = Vec::new();
+        walk(&cmd, &mut Vec::new(), &mut walked);
+        let names: Vec<(Vec<String>, Vec<String>)> = walked
+            .into_iter()
+            .map(|(path, flags)| (path, flags.into_iter().map(|f| f.name).collect()))
+            .collect();
+        assert_eq!(names, [(vec!["create".to_owned()], vec!["--version".to_owned()])]);
     }
 
     /// Every result-printing entry takes `--json` and names a published schema whose subcommand is the entry's path;

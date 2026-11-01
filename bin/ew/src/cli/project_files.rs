@@ -494,8 +494,8 @@ mod tests {
         );
         assert_eq!(
             parse(&["recover", "--discard", "--json"]),
-            Err("error: the argument '--discard' cannot be used with '--json'\n\nUsage: ew recover --discard \
-                 [project-dir]\n\nFor more information, try '--help'.\n"
+            Err("error: `--discard` asks for a typed word on a terminal and prints no result: it takes no \
+                 `--json`\n\nUsage: ew recover [OPTIONS] [project-dir]\n\nFor more information, try '--help'.\n"
                 .to_owned())
         );
         assert_eq!(
