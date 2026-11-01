@@ -16,6 +16,9 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
 - **ID-1083** (cycle 44): WP-S4.02 part 5's rulings after the cycle's first review part (project owner (delegated)), written into the spec's §9 as rulings 11 to 13 at `32877363`: EW-LAY-010's bracket cases and `strip_brackets` do O((P + B) log (P + B)) work per rail or better, inside the existing `GroupAccessories` family (no memo family added), with no cap on the bracket findings (at most two per bracket); a bracket case's discriminator is its form, side and start, and a zero-length bracket overlaps nothing; ruling 5's texts print full designations, as built. ID-1081.
+  - `c9d0cb6b3b` test(api,scene): cover the report back-link paths left untested
+  - `3730537e1c` fix(derive,checks): carry an end bracket's role into EW-LAY-010's side
+  - `6811ab76cc` fix(scene,reports): bound the span boxes and folio links of a long Folios cell
   - `6c58847531` fix(layout): bound EW-LAY-010's bracket cases and close part 5's review items
   - `5c61080e0b` docs(plan): rulings after review part 1 for WP-S4.02 part 5
 - **ID-1082** (cycle 44): Amends ID-1080 for FT-1002 (project owner (delegated)): the `ew/test-confirm` ban in `ci/dep-rules.toml` stays, as the guard for the feature doc 18 §3.15 designs and the release assertions CI-R-09 check (`docs/design/18-quality-security-release.md:96`); a comment above the entry says so, and `check-features` gains no refusal of a banned feature that no crate declares. FT-1002; ID-1080.
@@ -26,6 +29,9 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
   - `23d5b99ca0` chore(commands): settle the fields.set schemas
   - `72c92cde33` fix(xtask): settle names a bless step's files, keeps stray writes out of the triggers; blind start needs the guide
 - **ID-1079** (cycle 44): WP-S3.06 part 3's rulings (project owner (delegated)), written into the spec's §7 at the base `d9f50aa5`: `LinkRef.item` indexes a Folios cell's pages and `ew_reports::render::folios_spans` gives the printed text and each printed page's byte span, so a page inside a run gets no link; `parts_summary`'s Folios links resolve to the first source device's representation on each page, else the page; one `ew-scene` function draws both the cross-reference and the cell spans; no dead link is drawn; AC-13, D-07, the page-output test and the CLI test compute the link count instead of pinning it; the part runs after WP-S4.02 part 5 and re-blesses from its bytes. WP-S3.06 §7; ADR-0015.
+  - `c9d0cb6b3b` test(api,scene): cover the report back-link paths left untested
+  - `3730537e1c` fix(derive,checks): carry an end bracket's role into EW-LAY-010's side
+  - `6811ab76cc` fix(scene,reports): bound the span boxes and folio links of a long Folios cell
   - `0b8dd9cabf` chore(plan): WP-S3.06 part 3's records
   - `c8f7b4a26b` test(golden): re-bless the PDF for the drawn report back-links
 - **ID-1078** (cycle 44): WP-S4.02 part 4's rulings (project owner (delegated)), written into the spec's §8 at the base `d9f50aa5`: Draw's new group is `Group::PanelLayout` labelled "Layout" beside View's; CB8 stays strict and the mockup's Draw row gains the group; a layout record's property row commits through `EditRoute::Command` and `Session::layout_edit`, which compiles its text into one D5 to D7 command; the rail ghost is a new `Ghost::Line`; the draw tools snap within D4's 15 px; PS-1 runs on fixtures until part 6 builds the starter enclosure; and the files beyond §11.1 are named per item. WP-S4.02 §8; ID-317.
