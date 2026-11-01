@@ -11,7 +11,7 @@ use ew_model::Entity;
 use ew_schema::{
     AddrSpec, AddrValue, AnyId, BusMedium, BusSystem, Channel, ChannelState, Conductor, Connection, Device,
     DeviceLink, DeviceLinkKind, Endpoint, ExternalRef, Function, FunctionKind, IpDirection, Kind, LogicalNet,
-    NetAddress, OnOff, Page, PageItem, PhysicalNet, PlcArea, PlcConfigProject, PlcSize, PortRole,
+    NetAddress, OnOff, Page, PageItem, PageItemKind, PageType, PhysicalNet, PlcArea, PlcConfigProject, PlcSize, PortRole,
     PotentialDef, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
 };
 use schemars::JsonSchema;
@@ -248,7 +248,8 @@ pub const ASPECTS: &[&str] = &[
 /// must exist and be distinct; there is at least one. Invariants and prevent rules apply at the end of the
 /// transaction, so a swap of two terminal designations over two commands is not possible here, but one
 /// `fields.set` that leaves a duplicate is caught later by prevent rules (ADR-0009). Outcome: none.
-/// Coalesce typing in one cell with a key (FR-UI-009).
+/// Coalesce typing in one cell with a key (FR-UI-009). A page whose kind moves away from `panel_layout` loses its
+/// surface views in the same transaction (FT-869; `fields.set_many` judges the page's final kind).
 ///
 /// `copies` (WP-S2.07 D16, as `device.place` since FT-656): library documents (`lib/` JSON form) that the value names
 /// and the project lacks (a catalogue part chosen for a strip's bridge or accessory), embedded first, in the same
@@ -282,8 +283,39 @@ impl Command for SetFields {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         crate::commands::assign::embed_closure(Self::NAME, tx, &self.copies)?;
         self.apply(tx)?;
+        if self.kind == KindName::Page {
+            drop_left_surface_views(tx, &self.targets)?;
+        }
         Ok(Outcome::default())
     }
+}
+
+/// FT-869 (ID-1080): a page of `targets` whose kind this command moves away from `panel_layout` (judged on the
+/// page's kind at the end of the command against the base) loses its surface views in the same transaction, so the
+/// preview lists them and one undo restores them. A page without a view, or one that ends as a panel layout, keeps
+/// everything.
+fn drop_left_surface_views(tx: &mut TxBuilder<'_>, targets: &[AnyId]) -> Result<(), CmdError> {
+    let mut views = Vec::new();
+    for t in targets {
+        let page: ew_ids::Id<Page> = t.cast();
+        let was_layout = tx
+            .base_row(&(Kind::Page, *t))
+            .and_then(|r| r.get::<Page>().map(|p| p.kind == PageType::PanelLayout))
+            .unwrap_or(false);
+        let is_layout = tx.get::<Page>(page).is_some_and(|p| p.kind == PageType::PanelLayout);
+        if !was_layout || is_layout {
+            continue;
+        }
+        for id in tx.page_items_on_page(page) {
+            if tx
+                .get::<PageItem>(id)
+                .is_some_and(|i| matches!(i.kind, PageItemKind::SurfaceView(_)))
+            {
+                views.push((Kind::PageItem, id.cast()));
+            }
+        }
+    }
+    tx.delete_many(&views)
 }
 
 impl SetFields {
@@ -720,6 +752,14 @@ impl Command for SetManyFields {
                 other => other,
             })?;
         }
+        // FT-869: judged on each page's final kind, so a batch that sets the kind away and back keeps the view.
+        let pages: BTreeSet<AnyId> = self
+            .edits
+            .iter()
+            .filter(|e| e.kind == KindName::Page)
+            .flat_map(|e| e.targets.iter().copied())
+            .collect();
+        drop_left_surface_views(tx, &pages.into_iter().collect::<Vec<_>>())?;
         Ok(Outcome::default())
     }
 }

@@ -1,0 +1,272 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! FT-869 (ID-1080): a page whose kind `fields.set` or `fields.set_many` moves away from `panel_layout` loses its
+//! surface view in the same transaction (listed in the preview, undone in one step); every other item stays, a batch
+//! that sets the kind away and back keeps the view, and a page without a view loses nothing.
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
+
+use crate::common;
+
+use common::fixture::*;
+use common::*;
+use ew_commands::commands::{
+    CreateEnclosure, CreateLayoutSpace, KindName, LabelModeParam, SetFields, SetManyFields, SetSurfaceView,
+};
+use ew_commands::{AnyCommand, CommandRegistry, Engine, Origin};
+use ew_ids::{Id, v5};
+use ew_model::{AnyKey, Model};
+use ew_schema::{
+    Device, EnclosureSection, Kind, LibCopy, LibDocument, MountingSurface, Page, PageItem, PageItemKind,
+    PageType, Part, PartRef, PartUse, PlateSection, Record,
+};
+use ew_units::{Dec3, Nm, Pt2};
+use serde_json::{Value, json};
+
+const MM: i64 = 1_000_000;
+const LIB_V: u128 = 0xe100;
+const ITEM_ENCL: u128 = 0xe101;
+const ITEM_PLATE: u128 = 0xe102;
+const DEV_UC1: Id<Device> = id(0xb00);
+const DEV_PLATE: Id<Device> = id(0xb01);
+/// The panel-layout page, folio 902 (as Golden A's).
+const PAGE_902: Id<Page> = id(0xb10);
+
+fn copy_id(item: u128) -> Id<Part> {
+    v5::lib_copy_id(uuid(LIB_V), uuid(item))
+}
+
+fn copy(item: u128, number: &str) -> LibCopy<Part> {
+    let mut c = part(copy_id(item), number);
+    c.library_id = Id::from_uuid(uuid(LIB_V));
+    c.item_id = Id::from_uuid(uuid(item));
+    c
+}
+
+fn uses(item: u128) -> Vec<PartUse> {
+    vec![PartUse {
+        part: PartRef::new(copy_id(item)),
+        qty: Dec3::ONE,
+        extra: Default::default(),
+    }]
+}
+
+fn model() -> Model {
+    let (p, mut records, _) = mini_golden_parts();
+    let mut uc1 = device(DEV_UC1, "UC", 1);
+    uc1.parts = uses(ITEM_ENCL);
+    let mut plate = device(DEV_PLATE, "UC", 2);
+    plate.parent = Some(DEV_UC1);
+    plate.parts = uses(ITEM_PLATE);
+    records.extend([uc1, plate].map(Record::Device));
+    let mut panel = page(PAGE_902, None, 902, "Panel layout");
+    panel.kind = PageType::PanelLayout;
+    records.push(Record::Page(panel));
+    let mut encl = copy(ITEM_ENCL, "ENCL");
+    encl.item.sections.enclosure = Some(EnclosureSection {
+        width: Some(Nm(750 * MM)),
+        height: Some(Nm(1000 * MM)),
+        depth: Some(Nm(420 * MM)),
+        plate: Some(lib_ref_to(uuid(LIB_V), uuid(ITEM_PLATE))),
+        ..EnclosureSection::default()
+    });
+    let mut plate_copy = copy(ITEM_PLATE, "PLATE");
+    plate_copy.item.sections.mounting_plate = Some(PlateSection {
+        width: Some(Nm(650 * MM)),
+        height: Some(Nm(900 * MM)),
+        ..PlateSection::default()
+    });
+    let mut lib = library();
+    lib.extend([encl, plate_copy].map(LibDocument::Part));
+    Model::from_records(p, records, lib).expect("valid")
+}
+
+fn run(e: &mut Engine, name: &str, params: Value) {
+    let cmd = CommandRegistry::builtin()
+        .resolve(&AnyCommand {
+            name: name.into(),
+            params,
+        })
+        .expect("resolves");
+    e.execute(&*cmd).expect("commits");
+}
+
+/// The fixture: 902 with its surface view and two free texts, and page 101 with a free text.
+fn fx() -> (Engine, AnyKey) {
+    let mut e = engine(model());
+    let space = e
+        .execute(&CreateLayoutSpace {
+            location: LOC,
+            name: None,
+        })
+        .unwrap()
+        .outcome
+        .primary
+        .expect("the space")
+        .1
+        .cast();
+    e.execute(&CreateEnclosure {
+        space,
+        device: DEV_UC1,
+        pose: None,
+        pe_bond: None,
+    })
+    .unwrap();
+    let surface: Id<MountingSurface> = e
+        .model()
+        .table::<MountingSurface>()
+        .iter()
+        .map(|(id, _)| *id)
+        .next()
+        .expect("the plate surface");
+    let view = e
+        .execute(&SetSurfaceView {
+            page: PAGE_902,
+            surface,
+            datum_at: Pt2::new(Nm(25 * MM), Nm(167 * MM)),
+            label_mode: LabelModeParam::Abbreviated,
+        })
+        .unwrap()
+        .outcome
+        .primary
+        .expect("the view");
+    for (page, text) in [(PAGE_902, "Front"), (PAGE_902, "Mounting plate"), (PAGE_101, "Main")] {
+        run(
+            &mut e,
+            "item.place",
+            json!({"page": page.to_string(),
+                "kind": {"free_text": {"text": text, "at": [50_800_000, 30_480_000], "angle": 0,
+                    "style": "text.normal", "align": "centre"}}}),
+        );
+    }
+    (e, view)
+}
+
+fn set_kind(page: Id<Page>, kind: &str) -> SetFields {
+    SetFields {
+        kind: KindName::Page,
+        targets: vec![page.cast()],
+        path: "kind".into(),
+        value: json!(kind),
+        copies: Vec::new(),
+    }
+}
+
+/// The surface views of `page`.
+fn views(m: &Model, page: Id<Page>) -> Vec<Id<PageItem>> {
+    m.table::<PageItem>()
+        .iter()
+        .filter(|(_, i)| i.page == page && matches!(i.kind, PageItemKind::SurfaceView(_)))
+        .map(|(id, _)| *id)
+        .collect()
+}
+
+fn page_key(page: Id<Page>) -> AnyKey {
+    (Kind::Page, page.cast())
+}
+
+/// `fields.set` of 902's kind to `multi_line`: the preview puts the page and deletes its view, nothing else; the
+/// commit keeps every other record byte-equal; one undo restores the view and the page byte-equal.
+#[test]
+fn a_panel_page_set_to_multi_line_loses_its_view_and_keeps_every_other_item() {
+    let (mut e, view) = fx();
+    let before = lines(e.model());
+    let cmd = set_kind(PAGE_902, "multi_line");
+    let preview = e.preview(&cmd).unwrap();
+    let mut touched: Vec<(AnyKey, bool)> = preview
+        .ops()
+        .iter()
+        .map(|op| match op {
+            ew_model::Op::Put { key, after, .. } => (*key, after.is_some()),
+        })
+        .collect();
+    touched.sort();
+    let mut expected = vec![(page_key(PAGE_902), true), (view, false)];
+    expected.sort();
+    assert_eq!(touched, expected, "the preview lists the page and the view's delete");
+    e.commit(preview).unwrap();
+    assert_eq!(views(e.model(), PAGE_902), Vec::new());
+    assert_eq!(
+        e.model().table::<Page>().get(&PAGE_902).unwrap().kind,
+        PageType::MultiLine
+    );
+    let after = lines(e.model());
+    let unchanged = |l: &Vec<(AnyKey, String)>| -> Vec<(AnyKey, String)> {
+        l.iter()
+            .filter(|(k, _)| *k != view && *k != page_key(PAGE_902))
+            .cloned()
+            .collect()
+    };
+    assert_eq!(unchanged(&after), unchanged(&before), "every other record is kept");
+    assert_eq!(after.len() + 1, before.len(), "only the view is gone");
+    e.undo(&Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before, "one undo restores the view byte-equal");
+}
+
+fn set_title(page: Id<Page>) -> SetFields {
+    SetFields {
+        path: "title".into(),
+        value: json!("Panel"),
+        ..set_kind(page, "")
+    }
+}
+
+/// `fields.set_many` judges the page's final kind: a batch that moves 902 away drops the view in its one step; a
+/// batch that sets the kind away and back is refused by the one-(target, path) rule before anything is applied, so
+/// the view stays; a batch that ends at `panel_layout` keeps it.
+#[test]
+fn a_batch_judges_the_final_kind() {
+    let (mut e, view) = fx();
+    let before = lines(e.model());
+    let many = |edits| SetManyFields {
+        edits,
+        copies: Vec::new(),
+    };
+    e.execute(&many(vec![set_title(PAGE_902), set_kind(PAGE_902, "multi_line")]))
+        .unwrap();
+    assert_eq!(views(e.model(), PAGE_902), Vec::new(), "away in a batch drops the view");
+    e.undo(&Origin::Gui).unwrap();
+    assert_eq!(lines(e.model()), before, "one undo restores it");
+
+    let refused = e
+        .execute(&many(vec![
+            set_kind(PAGE_902, "multi_line"),
+            set_kind(PAGE_902, "panel_layout"),
+        ]))
+        .unwrap_err();
+    assert_eq!(
+        refused.to_string(),
+        "fields.set_many: invalid parameters at `/edits/1/targets/0`: an earlier entry already sets `kind` on this \
+         target; give each (target, path) once"
+    );
+    assert_eq!(lines(e.model()), before, "away and back keeps the view");
+
+    e.execute(&many(vec![set_kind(PAGE_902, "panel_layout"), set_title(PAGE_902)]))
+        .unwrap();
+    let id: Id<PageItem> = view.1.cast();
+    assert_eq!(views(e.model(), PAGE_902), vec![id], "a batch that ends at panel_layout keeps it");
+}
+
+/// A page without a view (101, a multi-line page set to `panel_layout` and back) deletes nothing.
+#[test]
+fn a_page_without_a_view_deletes_nothing() {
+    let (mut e, _) = fx();
+    let count = |m: &Model| m.table::<PageItem>().iter().count();
+    let items = count(e.model());
+    e.execute(&set_kind(PAGE_101, "panel_layout")).unwrap();
+    let preview = e.preview(&set_kind(PAGE_101, "multi_line")).unwrap();
+    assert_eq!(
+        preview
+            .ops()
+            .iter()
+            .map(|op| match op {
+                ew_model::Op::Put { key, .. } => *key,
+            })
+            .collect::<Vec<_>>(),
+        vec![page_key(PAGE_101)],
+        "only the page changes"
+    );
+    e.commit(preview).unwrap();
+    assert_eq!(count(e.model()), items);
+}
