@@ -12,10 +12,12 @@ use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::command_bar::{Tab, command_bar_of};
+use ew_viewmodel::ew_api::library::{LibManifest, LibraryTiers, STARTER_PARTS_KEY, starter_parts_library};
 use ew_viewmodel::ew_api::output::{PanelCarrier, PanelTables, Uuid};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
+use ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
+use std::path::Path;
 
 const MM: i128 = 1_000_000;
 
@@ -542,7 +544,12 @@ fn row_text(s: &ShellModel, key: &str) -> String {
 
 /// A new project from the built-in template (no location, no enclosure part).
 fn new_project(tmp: &Tmp) -> ShellModel {
-    let config = ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
+    new_project_with(tmp, None)
+}
+
+/// A new project's shell with the library tiers `libraries` (the compiled-in starter when `None`).
+fn new_project_with(tmp: &Tmp, libraries: Option<LibraryTiers>) -> ShellModel {
+    let config = ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test").with_libraries(libraries);
     let mut s = ShellModel::new(Mode::Gui, config);
     done(
         &mut s,
@@ -564,13 +571,34 @@ fn enclosure_entry(s: &ShellModel) -> (bool, Option<String>) {
     (b.enabled, b.reason.clone())
 }
 
+/// Library tiers in which the compiled-in starter parts are replaced by an empty library of their ID, so that no
+/// enclosure part is installed: a directory of the starter's ID replaces the compiled-in library (D6, ID-1109).
+fn tiers_without_starter_parts(root: &Path) -> LibraryTiers {
+    let dir = root.join("company").join("ew-starter-parts.ewlib");
+    std::fs::create_dir_all(&dir).unwrap();
+    let manifest = LibManifest::new(
+        starter_parts_library(),
+        STARTER_PARTS_KEY,
+        "ElektraWatt starter parts",
+        "CC0-1.0",
+    );
+    std::fs::write(dir.join("library.json"), manifest.to_text()).unwrap();
+    LibraryTiers {
+        system: Vec::new(),
+        community: root.join("data").join("packs"),
+        company: vec![root.join("company")],
+        user: root.join("data").join("libraries"),
+        cache: root.join("cache"),
+    }
+}
+
 /// W44.2 F1: on a new project without a location, Project ▸ Enclosure… is disabled with its reason, and the action
 /// refuses with it; with a location the dialog opens, and Create is disabled while the part (or the location) is
-/// empty, each with its reason; Create then sends nothing.
+/// empty, each with its reason; Create then sends nothing. No enclosure part is installed here (ID-1109).
 #[test]
 fn enclosure_is_disabled_without_a_location_and_create_without_a_part() {
     let tmp = Tmp::new("ps1-new");
-    let mut s = new_project(&tmp);
+    let mut s = new_project_with(&tmp, Some(tiers_without_starter_parts(&tmp.0)));
     let no_location = "The project has no location yet; add one with Structure node… first.";
     assert_eq!(enclosure_entry(&s), (false, Some(no_location.to_owned())));
     assert_eq!(
@@ -626,6 +654,31 @@ fn enclosure_is_disabled_without_a_location_and_create_without_a_part() {
     };
     assert_eq!(message, "Choose a location");
     assert_eq!(s.revision(), rev, "no command");
+    s.shutdown();
+}
+
+/// ID-1109 (WP-S4.02 D14): with the compiled-in starter parts, the Create enclosure dialog offers the starter's
+/// enclosure: its body names no refusal, and Create is enabled.
+#[test]
+fn the_starter_enclosure_is_offered_by_the_create_dialog() {
+    let tmp = Tmp::new("ps1-starter");
+    let mut s = new_project(&tmp);
+    done(
+        &mut s,
+        "structure.new",
+        json!({"kind": "location", "designation": "CAB1"}),
+    );
+    done(&mut s, "layout.enclosure_new", json!({}));
+    let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
+    assert_eq!(
+        (
+            spec.title.as_str(),
+            spec.body.clone(),
+            spec.primary.label.as_str(),
+            spec.primary.disabled.as_deref()
+        ),
+        ("Create enclosure", Vec::<String>::new(), "Create", None)
+    );
     s.shutdown();
 }
 

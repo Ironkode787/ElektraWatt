@@ -34,6 +34,9 @@ use crate::strings::Key;
 /// The result list shows this many rows at a time (WP-S2.06 D15's window).
 pub const PART_ROWS: usize = 50;
 
+/// The part kinds of the layout tools (WP-S4.02 D14): a device's part dialog never offers them (ID-1109).
+const LAYOUT_KIND_WORDS: [&str; 5] = ["enclosure", "mounting_plate", "rail", "duct", "end_bracket"];
+
 /// The part selection dialog's state (D19).
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartChooser {
@@ -405,6 +408,10 @@ impl ShellModel {
             c.query.favourites = favourites;
             c.query.recent = recent;
             c.offers = project.session.part_offers(&c.query);
+            // ID-1109 (WP-S4.02 D14): a device's part dialog never offers a layout part; the layout tools offer them.
+            if matches!(c.target, PartTarget::Devices { .. }) {
+                c.offers.retain(|o| !LAYOUT_KIND_WORDS.contains(&o.kind.as_str()));
+            }
             c.cursor = c.cursor.min(c.offers.len().saturating_sub(1));
         }
     }

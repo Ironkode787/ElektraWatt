@@ -732,10 +732,11 @@ fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure(
         .iter()
         .map(|o| (o.number.as_str(), o.copies.len()))
         .collect();
+    // The library's enclosure by its part number (the starter's enclosure is offered too, below, ID-1109).
     let library = offers
         .iter()
-        .find(|o| !o.copies.is_empty())
-        .unwrap_or_else(|| panic!("a library offer: {numbers:?}"))
+        .find(|o| o.number == "NSYPLA1074G")
+        .unwrap_or_else(|| panic!("the library's enclosure: {numbers:?}"))
         .clone();
     assert_eq!(library.number, "NSYPLA1074G");
     let embedded: Vec<String> = library
@@ -744,6 +745,21 @@ fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure(
         .filter_map(|c| c["part_number"].as_str().map(str::to_owned))
         .collect();
     assert_eq!(embedded, ["NSYPLA1074G", "NSYPMM107"], "the part and its plate");
+    // ID-1109 (WP-S4.02 D14): the starter's enclosure is offered too, with its plate EW-GEN-PLT-1.
+    let starter = offers
+        .iter()
+        .find(|o| o.number == "EW-GEN-ENC-1")
+        .unwrap_or_else(|| panic!("the starter's enclosure: {numbers:?}"));
+    let starter_embedded: Vec<String> = starter
+        .copies
+        .iter()
+        .filter_map(|c| c["part_number"].as_str().map(str::to_owned))
+        .collect();
+    assert_eq!(
+        starter_embedded,
+        ["EW-GEN-ENC-1", "EW-GEN-PLT-1"],
+        "the starter's enclosure and its plate"
+    );
     let field = uuid::<ew_schema::StructureNode>("structure", "+FIELD");
     let before = s.query().table::<MountingSurface>().iter().count();
     let cmd = AnyCommand {

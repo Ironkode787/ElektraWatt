@@ -85,6 +85,27 @@ fn select(s: &mut ShellModel, tag: &str) {
     done(s, "select.set", json!({ "refs": [format!("tag:{tag}")] }));
 }
 
+/// The version of starter part `number` in the shipped library `content/libraries/ew-starter-parts.ewlib`, from which
+/// the starter is compiled in: a test reads the version there, so a version bump changes no assertion (ID-1109).
+fn starter_version(number: &str) -> String {
+    let dir = std::path::Path::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../content/libraries/ew-starter-parts.ewlib/parts"
+    ));
+    let mut found = Vec::new();
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let text = std::fs::read_to_string(entry.unwrap().path()).unwrap();
+        for line in text.lines().filter(|l| !l.trim().is_empty()) {
+            let rec: Value = serde_json::from_str(line).unwrap();
+            if rec["part_number"] == number {
+                found.push(rec["version"].as_str().unwrap().to_owned());
+            }
+        }
+    }
+    assert_eq!(found.len(), 1, "{number} is in the shipped library once");
+    found.remove(0)
+}
+
 /// PS1 in the shell: F55's dialog lists the starter's 1P+N MCB (`same-fndef`), then its 1P MCB (`same-category`),
 /// then every other offer, held copies before library parts; the detail names the template's function; Only parts
 /// that fit keeps the first two; the view In this project lists held copies only.
@@ -122,11 +143,12 @@ fn ps1_f55_offers_the_same_function_first() {
             "{held}"
         );
     }
+    let version = starter_version("EW-GEN-MCB-2");
     assert_eq!(
         lines(&s, "detail "),
-        [
-            "detail \"ElektraWatt starter parts (system) · version 0.1.0 · released · functions ew.fn.mcb-1pn\""
-        ]
+        [format!(
+            "detail \"ElektraWatt starter parts (system) · version {version} · released · functions ew.fn.mcb-1pn\""
+        )]
     );
     // Only parts that fit.
     done(&mut s, "part.search", json!({ "fits": true }));
@@ -449,6 +471,34 @@ fn ps6_an_edit_in_place_is_previewed() {
     s.shutdown();
 }
 
+/// ID-1109 (WP-S4.02 D14): a part dialog opened for a device never offers a layout part (enclosure, mounting plate,
+/// rail, duct, end bracket), which the layout tools offer. The typed search asks for each layout part by its part
+/// number and finds none; the same search finds a device's part (the control).
+#[test]
+fn the_device_dialog_never_offers_a_layout_part() {
+    let tmp = Tmp::new("part-sel-layout");
+    let mut s = golden(&tmp);
+    select(&mut s, "F55");
+    done(&mut s, "part.choose", json!({ "use": 0 }));
+    for number in [
+        "EW-GEN-ENC-1",
+        "EW-GEN-PLT-1",
+        "EW-GEN-RAIL-1",
+        "EW-GEN-DUCT-1",
+        "EW-GEN-EB-1",
+    ] {
+        done(&mut s, "part.search", json!({ "text": number }));
+        assert!(
+            !results(&s).iter().any(|r| r == number),
+            "{number} is offered: {:?}",
+            results(&s)
+        );
+    }
+    done(&mut s, "part.search", json!({ "text": "EW-GEN-VLV-1" }));
+    assert!(results(&s).iter().any(|r| r == "EW-GEN-VLV-1"), "{:?}", results(&s));
+    s.shutdown();
+}
+
 /// PS7 in the shell: a copy from a library forks: the card carries the fork note, Apply re-points F55 to the fork, and
 /// a second edit of the fork is in place.
 #[test]
@@ -459,9 +509,12 @@ fn ps7_a_library_copy_forks() {
     done(&mut s, "part.choose", json!({ "use": 0 }));
     done(&mut s, "part.pick", json!({ "part": "EW-GEN-MCB-2" }));
     done(&mut s, "part.edit", json!({}));
+    let version = starter_version("EW-GEN-MCB-2");
     assert_eq!(
         lines(&s, "source "),
-        ["source library \"ElektraWatt starter parts\" version \"0.1.0\" fork on"]
+        [format!(
+            "source library \"ElektraWatt starter parts\" version \"{version}\" fork on"
+        )]
     );
     done(
         &mut s,
