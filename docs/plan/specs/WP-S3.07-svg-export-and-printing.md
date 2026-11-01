@@ -78,9 +78,9 @@ The lanes rely on exactly these items. If one differs, the lane stops and report
 |---|---|---|
 | `svg(pages: &[PdfPage], &SvgOptions { monochrome, faces: BTreeMap<FontKey, SvgFace { family, weight, italic }> }, geometry, parallelism) -> SvgOutput { files, report }`; text as `<text>` with per-character `x`; `id`s for link targets, `<a href>` sources; numbers from integer nm; fonts **named, not embedded** (module note "As built (cycle 14)") | `crates/ew-export/src/svg.rs:1-200` | Part 1 adds the embedded subsets |
 | The SVG faces of an export from `ew_text::bundled()` | `crates/ew-api/src/output/mod.rs:366-395` | Part 1 hands the font bytes too |
-| Bundled fonts: Noto Sans Regular, Bold, SemiBold and Noto Sans Math, all TrueType (`glyf`, no `CFF `, no `fvar`), compiled in with `include_bytes!` | `assets/fonts/`; `crates/ew-text/src/fonts.rs:497-501` | D3's subsetter handles `glyf` only |
+| Bundled fonts: Noto Sans Regular, Bold and Noto Sans Math Regular, all TrueType (`glyf`, no `CFF `, no `fvar`), compiled in with `include_bytes!` (`assets/fonts/` also holds Noto Sans SemiBold, which is not bundled; corrected in cycle 45) | `assets/fonts/`; `crates/ew-text/src/fonts.rs:497-506` | D3's subsetter handles `glyf` only |
 | `ew export svg [<project>] --out <dir> [--pages <folios>] [--threads <n>] [--json]`; the directory replaced as a whole, SVG files only | `bin/ew/src/cli.rs:43, 1047-1095`; doc 09 §4.4 (ID-370) | Unchanged surface |
-| AC-14's SVG entry pins the SHA-256 of the 36 SVG files (`fa2d79d4…`), 3935 glyph runs as `<text>`, 92 links; no runner entry for AC-37. *At cycle 44's end* (after WP-S4.02 part 5 and WP-S3.06 part 3, decision log ID-1089, ID-1091) the entry reads 3938 glyph runs, 246 links (64 cross-reference items, 28 PLC overview rows, 154 report row links) and the SHA-256 `2bc2304c…`: a lane re-reads it at its base | `golden/J-E-2416/expected/acceptance_headless.md:49-50` | Part 1's golden change |
+| AC-14's SVG entry pins the SHA-256 of the 36 SVG files (`fa2d79d4…`), 3935 glyph runs as `<text>`, 92 links; no runner entry for AC-37. *At cycle 44's end* (after WP-S4.02 part 5 and WP-S3.06 part 3, decision log ID-1089, ID-1091) the entry reads 3938 glyph runs, 246 links (64 cross-reference items, 28 PLC overview rows, 154 report row links) and the SHA-256 `2bc2304c…`: a lane re-reads it at its base. *After part 1* (cycle 45, ID-1105): the same runs and links, the SHA-256 `d6515093…`, and AC-37's SVG runner entry | `golden/J-E-2416/expected/acceptance_headless.md:49-50` | Part 1's golden change |
 | `PageSelection::{All, Folios(Vec<String>)}` (a range `<first>-<last>` is every page between them in page order); `ExportOptions { pages, parallelism, monochrome, date }` | `crates/ew-api/src/output/mod.rs:210-286` | Part 2 adds sections and the print options |
 | `ew_export::pdf(pages, options, fonts, geometry)` (krilla 0.8.2, PDF/A-2b); `PdfPage { label, width, height, list, … }` | `crates/ew-export/src/pdf.rs` | The print set is written by the same writer |
 | The export job on a snapshot (`Session::export_job`, `ExportJob::run(ctl)`, `ew-jobs`) | `crates/ew-api/src/output/job.rs` | Part 3's print job |
@@ -158,8 +158,9 @@ that pins the SVG digest. The PDF, PNG, text, rows and CSV files do not change; 
 - **SV-2** A subset keeps the face's glyph IDs: a glyph used on the page has the same outline bytes as in the bundled
   font; an unused glyph is empty; `head`'s checksum adjustment is valid; the dropped tables are absent. A composite glyph
   brings its components. A hostile font (a `loca` past `glyf`, a composite cycle) is refused with an error.
-- **SV-3** AC-37's runner entry passes: every page keeps its text as `<text>` (3935 runs as in AC-14) and embeds what it
-  names. AC-14's SVG entry passes with the new digest; serial and parallel exports stay byte-identical.
+- **SV-3** AC-37's runner entry passes: every page keeps its text as `<text>` (3938 runs as in AC-14 at cycle 45,
+  ID-1105) and embeds what it names. AC-14's SVG entry passes with the new digest; serial and parallel exports stay
+  byte-identical.
 - **SV-4** No PDF, PNG or CSV byte changes; twice-run determinism; targeted checks for `ew-export`, `ew-api`, `ew`.
   Manual (G-M2 checklist): folio 103's SVG in a browser without Noto Sans installed looks like the PDF page.
 
@@ -266,7 +267,7 @@ A lane stops and reports instead of choosing when:
 2. an existing exported byte of Golden A changes outside part 1's list;
 3. `unsafe` would appear outside `crates/ew-print/src/windows.rs`;
 4. a print page would draw anything besides the export page's list and the stamp;
-5. a golden fact here (section 1's five pages, "scaled 71 %", 36 SVG files, 3935 runs) is contradicted by the data;
+5. a golden fact here (section 1's five pages, "scaled 71 %", 36 SVG files, 3938 runs) is contradicted by the data;
 6. the work of a neighbour (§9) is reached.
 
 The lane decides freely: private names, module layout inside the owned files, the stamp's position and size of D6
