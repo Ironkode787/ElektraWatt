@@ -3,8 +3,8 @@
   "id": "80fef4ca-490a-5daa-939f-2e09199e5781",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "cc9c4627-d3e3-563d-8b0f-91c49ad3e722",
-  "version": "0.1.0",
-  "sha256": "sha256:d27cbd5c9da05d4f48dbc2f81b1b95ad6a7dce6773e08e44b94407fffdc4beb9",
+  "version": "0.1.1",
+  "sha256": "sha256:4cb11b4f586c93bd83de8ac010c0f095eb0173f7726c4293fa7071bb62ac14fe",
   "meta": {"key": "EW-GEN-MCB-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -27,5 +27,6 @@
       "main": true,
       "cps": [0, 1]
     }
-  ]
+  ],
+  "mech": {"width": 18000000, "height": 85000000, "depth": 70000000, "mount_kind": "ts35x7_5"}
 }
