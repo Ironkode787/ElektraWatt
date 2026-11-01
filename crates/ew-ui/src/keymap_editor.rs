@@ -139,7 +139,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     // A refused edit: what was tried and each error (D8).
     if let Some(refusal) = &state.refusal {
         let label = ew_viewmodel::actions::find(refusal.action)
-            .map_or(refusal.action, |m| strings::text(m.label_key));
+            .map_or(refusal.action, |m| strings::text(&m.label_key()));
         let what = if refusal.chord.is_empty() {
             label.to_owned()
         } else {

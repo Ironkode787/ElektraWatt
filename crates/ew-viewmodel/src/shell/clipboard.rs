@@ -125,7 +125,7 @@ impl ShellModel {
     }
 
     /// `edit.copy` (Ctrl+C): the selection's fragment to the clipboard.
-    pub(super) fn act_copy(&mut self) -> Outcome {
+    pub(crate) fn act_copy(&mut self) -> Outcome {
         let copied = match self.copy_selection() {
             Ok(c) => c,
             Err(out) => return out,
@@ -150,7 +150,7 @@ impl ShellModel {
 
     /// `edit.cut` (Ctrl+X): copy, then `edit.delete` of the selection through `edit.delete_selection`'s path (one undo
     /// step); the clipboard keeps the fragment.
-    pub(super) fn act_cut(&mut self) -> Outcome {
+    pub(crate) fn act_cut(&mut self) -> Outcome {
         let copied = match self.copy_selection() {
             Ok(c) => c,
             Err(out) => return out,
@@ -172,7 +172,7 @@ impl ShellModel {
     }
 
     /// `edit.copy_tags` (Edit ▸ Copy tag list): the tags of the selected devices as text (FR-UI-040).
-    pub(super) fn act_copy_tags(&mut self) -> Outcome {
+    pub(crate) fn act_copy_tags(&mut self) -> Outcome {
         let ids: Vec<_> = self.tools.selection.items.iter().map(|e| e.0).collect();
         if ids.is_empty() {
             return Outcome::Refused {
@@ -196,7 +196,7 @@ impl ShellModel {
     }
 
     /// `clipboard.text {text}` (headless): sets the clipboard as an external copy would.
-    pub(super) fn act_clipboard_text(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_clipboard_text(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "text") {
             Ok(Some(t)) => {
                 self.clip.set(t.to_owned(), None, 0, false);
@@ -210,7 +210,7 @@ impl ShellModel {
     /// `edit.paste_clip {text?}` (Ctrl+V): the window passes its paste event's text, which becomes the clipboard's;
     /// headless the clipboard is read. One `parse_fragment`; a fragment arms the paste tool, plain text is refused
     /// (`reason-not-a-fragment`), any other error shows in the banner.
-    pub(super) fn act_paste_clip(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_paste_clip(&mut self, p: &Map<String, Value>) -> Outcome {
         // A page whose kind takes no paste says so before the clipboard is read and no paste tool starts (window
         // check, item 3).
         if let Some(reason) = self.paste_page_reason() {
@@ -393,7 +393,7 @@ impl ShellModel {
     /// `update` (Update the project's copy) opens the `library.update` card built from the fragment's documents
     /// (`Session::paste_update`), after whose Apply the shell arms the paste again (two commands, two undo steps). A
     /// disabled choice is refused with its reason.
-    pub(super) fn act_paste_resolve(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_paste_resolve(&mut self, p: &Map<String, Value>) -> Outcome {
         let choice = match string_param(p, "choice") {
             Ok(Some(c)) => c.to_owned(),
             Ok(None) => return failed("error-missing-param", &["choice"]),
@@ -469,7 +469,7 @@ impl ShellModel {
 
     /// `edit.duplicate` (Ctrl+D): the selection's fragment without touching the clipboard, floating in the paste tool
     /// two grid steps right and down of its anchor.
-    pub(super) fn act_duplicate(&mut self) -> Outcome {
+    pub(crate) fn act_duplicate(&mut self) -> Outcome {
         let copied = match self.copy_selection() {
             Ok(c) => c,
             Err(out) => return out,

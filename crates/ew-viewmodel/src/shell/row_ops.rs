@@ -138,7 +138,7 @@ impl ShellModel {
     }
 
     /// `cable.swap_cores`: the two marked core rows of one cable swap their connections (§7, FR-CBL-016).
-    pub(super) fn act_cable_swap_cores(&mut self) -> Outcome {
+    pub(crate) fn act_cable_swap_cores(&mut self) -> Outcome {
         if let Err(reason_key) = self.cables_shown() {
             return Outcome::Refused { reason_key };
         }
@@ -193,7 +193,7 @@ impl ShellModel {
     }
 
     /// `navigator.delete {kind?}` (FT-490): one `edit.delete` of the acted rows' records, on the host card.
-    pub(super) fn act_navigator_delete(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_delete(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -234,7 +234,7 @@ impl ShellModel {
 
     /// `navigator.rename {kind?, text?, cancel?}` (FT-490): opens the cursor row's label editor, commits `text` to the
     /// row's route, or (`cancel`) closes the editor.
-    pub(super) fn act_navigator_rename(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_rename(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,

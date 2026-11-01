@@ -84,13 +84,13 @@ impl ShellModel {
     // The Text tool and text edit (§10.5)
 
     /// `tool.text` (T): the Text tool, armed.
-    pub(super) fn act_tool_text(&mut self) -> Outcome {
+    pub(crate) fn act_tool_text(&mut self) -> Outcome {
         self.activate_tool(Box::new(TextTool::new()));
         Outcome::Done
     }
 
     /// `text.bind {bind}`: the Text tool's binding; `""` or `null` clears it, a name of [`BINDABLE`] sets it.
-    pub(super) fn act_text_bind(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_text_bind(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "text" {
             return Outcome::Refused {
                 reason_key: "reason-text-tool-only",
@@ -124,7 +124,7 @@ impl ShellModel {
     }
 
     /// `text.edit` (F2): text edit on exactly one selected unbound free text.
-    pub(super) fn act_text_edit(&mut self) -> Outcome {
+    pub(crate) fn act_text_edit(&mut self) -> Outcome {
         // The same guard as `text.edit`'s enabled predicate (`one_free_text`): the double-click path reaches here
         // without it, and a read-only project or a page without symbols has no text to edit.
         if let Err(reason_key) = crate::actions::editable_page(self) {
@@ -157,7 +157,7 @@ impl ShellModel {
     // The Graphic tool (§10.5)
 
     /// `tool.graphic {shape?}` (L, Insert ▸ Graphic): the Graphic tool, `line` without a shape.
-    pub(super) fn act_tool_graphic(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_tool_graphic(&mut self, p: &Map<String, Value>) -> Outcome {
         let shape = match string_param(p, "shape") {
             Ok(None) => GraphicShape::Line,
             Ok(Some(w)) => match GraphicShape::of_word(w) {
@@ -174,14 +174,14 @@ impl ShellModel {
     // The Wire marker tool (§10.5, §10.7)
 
     /// `tool.marker` (Shift+W): the Wire marker tool, armed.
-    pub(super) fn act_tool_marker(&mut self) -> Outcome {
+    pub(crate) fn act_tool_marker(&mut self) -> Outcome {
         self.activate_tool(Box::new(MarkerTool::new()));
         Outcome::Done
     }
 
     /// `marker.fields {csa?, colours?}`: the Wire marker tool's fields; `""` clears one. `colours` is split on ASCII
     /// whitespace into one entry per connection and each entry on `+` into one or two codes.
-    pub(super) fn act_marker_fields(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_marker_fields(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "marker" {
             return Outcome::Refused {
                 reason_key: "reason-marker-tool-only",
@@ -237,14 +237,14 @@ impl ShellModel {
     // The Structure box tool (§10.5, §10.7)
 
     /// `tool.structure_box` (Shift+B): the Structure box tool, armed.
-    pub(super) fn act_tool_structure_box(&mut self) -> Outcome {
+    pub(crate) fn act_tool_structure_box(&mut self) -> Outcome {
         self.activate_tool(Box::new(StructureBoxTool::new()));
         Outcome::Done
     }
 
     /// `structure_box.fields {style?, caption?, location?, external?}`: the Structure box tool's fields; `""` clears
     /// a text, `null` or `""` clears the external reference. Every given member is checked before any is applied.
-    pub(super) fn act_structure_box_fields(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_structure_box_fields(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "structure_box" {
             return Outcome::Refused {
                 reason_key: "reason-structure-box-tool-only",
@@ -324,7 +324,7 @@ impl ShellModel {
     ///
     /// In the window it also raises the native file dialog (`Prompt::OpenImage`), whose answer is `image.file`;
     /// headless the tool waits for `image.pick`.
-    pub(super) fn act_tool_image(&mut self) -> Outcome {
+    pub(crate) fn act_tool_image(&mut self) -> Outcome {
         self.activate_tool(Box::new(ImageTool::new()));
         match self.mode {
             Mode::Gui => self.need_path("image.file", Prompt::OpenImage, "path", &Map::new()),
@@ -338,7 +338,7 @@ impl ShellModel {
     /// size, the limits, the SVG rejecter) and hashed. A project that holds the hash arms the tool with it, as
     /// `image.pick` does; otherwise the tool keeps the bytes as pending `data` for the commit. A file the store does
     /// not accept fails with the store's text and changes nothing.
-    pub(super) fn act_image_file(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_image_file(&mut self, p: &Map<String, Value>) -> Outcome {
         let path = match string_param(p, "path") {
             Err(e) => return e,
             Ok(Some(path)) => std::path::PathBuf::from(path),
@@ -403,7 +403,7 @@ impl ShellModel {
 
     /// `image.pick {asset}`: the Image tool's asset, a hash (`sha256:<64 hex>`) the project already holds; the tool
     /// is armed with it and its intrinsic size. A hash the project does not hold fails and changes nothing.
-    pub(super) fn act_image_pick(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_image_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "image" {
             return Outcome::Refused {
                 reason_key: "reason-image-tool-only",
@@ -455,7 +455,7 @@ impl ShellModel {
 
     /// `project.marker_mode {mode}` (Tools ▸ Wire markers): commits `project.drawing.set` with the mode, or `null`
     /// for `per_wire`; a mode the project already has commits nothing.
-    pub(super) fn act_marker_mode(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_marker_mode(&mut self, p: &Map<String, Value>) -> Outcome {
         let mode = match p.get("mode") {
             None => return failed("error-missing-param", &["mode"]),
             Some(Value::String(s))

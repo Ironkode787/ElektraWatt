@@ -104,7 +104,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_workspace_load(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_workspace_load(&mut self, p: &Map<String, Value>) -> Outcome {
         let name = match string_param(p, "name") {
             Err(e) => return e,
             Ok(Some(name)) => name.to_owned(),
@@ -131,7 +131,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_workspace_save(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_workspace_save(&mut self, p: &Map<String, Value>) -> Outcome {
         let name = match string_param(p, "name") {
             Err(e) => return e,
             Ok(Some(name)) => name.to_owned(),
@@ -163,7 +163,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    pub(super) fn act_workspace_reset(&mut self) -> Outcome {
+    pub(crate) fn act_workspace_reset(&mut self) -> Outcome {
         self.layout = Layout::schematic();
         self.layout_version += 1;
         // The reset layout is the active workspace's from now on: it is written like any change.

@@ -86,7 +86,7 @@ impl ShellModel {
 
     /// `view.command_tab { tab }`: shows the tab's groups in the command bar; an unknown tab is refused with
     /// `error-bad-param`.
-    pub(super) fn act_command_tab(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_command_tab(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "tab") {
             Err(e) => e,
             Ok(None) => failed("error-missing-param", &["tab"]),
@@ -102,7 +102,7 @@ impl ShellModel {
 
     /// `view.command_bar { collapsed? }`: collapses the command bar to its tab row or restores it; without the
     /// parameter it toggles (Ctrl+F1, a double-click on a tab).
-    pub(super) fn act_command_bar(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_command_bar(&mut self, p: &Map<String, Value>) -> Outcome {
         self.command_bar_collapsed = match p.get("collapsed") {
             None => !self.command_bar_collapsed,
             Some(Value::Bool(b)) => *b,
@@ -113,7 +113,7 @@ impl ShellModel {
 
     /// `view.theme { value }` and `view.density { value }` (WP-S2.17 part 1): the setting `key` from the `value`
     /// parameter; an unknown value is refused with `error-bad-param`.
-    pub(super) fn act_view_setting(&mut self, key: &str, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_view_setting(&mut self, key: &str, p: &Map<String, Value>) -> Outcome {
         let Some(value) = p.get("value") else {
             return failed("error-missing-param", &["value"]);
         };
@@ -123,7 +123,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_settings_set(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_settings_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match string_param(p, "key") {
             Err(e) => return e,
             Ok(Some(k)) => k.to_owned(),
@@ -159,7 +159,7 @@ impl ShellModel {
         self.doc_request = Some(DocRequest { target, url });
     }
 
-    pub(super) fn act_documentation(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_documentation(&mut self, p: &Map<String, Value>) -> Outcome {
         let topic = match string_param(p, "topic") {
             Err(e) => return e,
             Ok(Some(t)) if help::anchor(t).is_some() => t.to_owned(),
@@ -190,7 +190,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_first_run_open(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_first_run_open(&mut self, p: &Map<String, Value>) -> Outcome {
         let step = match string_param(p, "step") {
             Err(e) => return e,
             Ok(None) => FirstRunStep::Language,
@@ -209,7 +209,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    pub(super) fn act_first_run_set(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_first_run_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let field = match string_param(p, "field") {
             Err(e) => return e,
             Ok(Some(f)) => f.to_owned(),
@@ -232,7 +232,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    pub(super) fn act_first_run_step(&mut self, delta: isize) -> Outcome {
+    pub(crate) fn act_first_run_step(&mut self, delta: isize) -> Outcome {
         if let Some(run) = &mut self.first_run {
             let index = run.step.index().saturating_add_signed(delta);
             run.step = FirstRunStep::from_index(index).unwrap_or(run.step);
@@ -240,7 +240,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    pub(super) fn act_first_run_finish(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_first_run_finish(&mut self, p: &Map<String, Value>) -> Outcome {
         let start = match string_param(p, "start") {
             Err(e) => return e,
             Ok(None) => "none",
@@ -316,7 +316,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_wizard_open(&mut self) -> Outcome {
+    pub(crate) fn act_wizard_open(&mut self) -> Outcome {
         self.palette = None;
         self.dialog = None;
         let saved = self
@@ -334,7 +334,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    pub(super) fn act_wizard_set(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_wizard_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let field = match string_param(p, "field") {
             Err(e) => return e,
             Ok(Some(f)) => f.to_owned(),
@@ -386,7 +386,7 @@ impl ShellModel {
         self.persist_draft();
     }
 
-    pub(super) fn act_wizard_step(&mut self, delta: isize) -> Outcome {
+    pub(crate) fn act_wizard_step(&mut self, delta: isize) -> Outcome {
         if let Some(w) = &self.wizard {
             let index = w.step.index().saturating_add_signed(delta);
             let step = Step::from_index(index).unwrap_or(w.step);
@@ -395,7 +395,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    pub(super) fn act_wizard_goto(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_wizard_goto(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(index) = p.get("step").and_then(Value::as_u64) else {
             return failed("error-missing-param", &["step"]);
         };
@@ -408,7 +408,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_wizard_reset(&mut self) -> Outcome {
+    pub(crate) fn act_wizard_reset(&mut self) -> Outcome {
         if let Some(w) = &mut self.wizard {
             *w = Wizard::new(Draft::default(), Step::Company);
         }
@@ -420,13 +420,13 @@ impl ShellModel {
     }
 
     /// Closes the wizard; the draft stays for the next time.
-    pub(super) fn act_wizard_cancel(&mut self) -> Outcome {
+    pub(crate) fn act_wizard_cancel(&mut self) -> Outcome {
         self.persist_draft();
         self.wizard = None;
         Outcome::Done
     }
 
-    pub(super) fn act_wizard_finish(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_wizard_finish(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(draft) = self.wizard.as_ref().map(|w| w.draft.clone()) else {
             return Outcome::Refused {
                 reason_key: "reason-no-wizard",
@@ -478,7 +478,7 @@ impl ShellModel {
     /// Applies the draft's check scheme to the finished basic project (FT-336): `project.checks.set` is `HumanOnly`
     /// (ADR-0008 amendment 3, it decides check outcomes), so only a person in the window applies it, after a
     /// confirmation that names the scheme. The headless mode refuses it (the human-only reason in the transcript).
-    pub(super) fn act_wizard_apply_check_scheme(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_wizard_apply_check_scheme(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some((dir, scheme)) = self.wizard.as_ref().and_then(|w| {
             let dir = w.finished.clone()?;
             Some((dir, w.draft.get(CHECK_SCHEME_FIELD).to_owned()))

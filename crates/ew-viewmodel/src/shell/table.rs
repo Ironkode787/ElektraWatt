@@ -764,7 +764,7 @@ impl ShellModel {
 
     /// `navigator.table {kind, on?}`: switches a navigator between its tree (or flat list) and its table; without
     /// `on` it toggles.
-    pub(super) fn act_navigator_table(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_table(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -800,7 +800,7 @@ impl ShellModel {
     /// `table.columns {kind, show?, hide?, order?}`: the column chooser. `show` adds columns at the end, `hide`
     /// removes them (the key column stays), `order` puts the listed columns first, in that order (showing them), the
     /// other shown ones after them.
-    pub(super) fn act_table_columns(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_columns(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -934,7 +934,7 @@ impl ShellModel {
     }
 
     /// `table.cell {kind?, row?, column?, step?, across?}`: moves the cell cursor (arrows, Tab, Home, End).
-    pub(super) fn act_table_cell(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_cell(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -979,7 +979,7 @@ impl ShellModel {
 
     /// `table.edit {kind?, row?, column?}` (F2): edits the cursor cell (or the given one), the buffer starting with the
     /// cell's text.
-    pub(super) fn act_table_edit(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_edit(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -994,7 +994,7 @@ impl ShellModel {
 
     /// `table.input {text}`: the whole buffer of the edited cell (typing a character starts editing the cursor cell
     /// with it), or the pattern dialog's pattern while that is open.
-    pub(super) fn act_table_input(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_input(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1022,7 +1022,7 @@ impl ShellModel {
 
     /// `table.commit {all?}` (Enter, Ctrl+Enter while editing): the buffer for the cursor row, or (`all`) for every
     /// marked row; with the pattern dialog open, the pattern fill.
-    pub(super) fn act_table_commit(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_commit(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1077,7 +1077,7 @@ impl ShellModel {
 
     /// `table.set {kind, column, value, rows?, all?}`: sets a column's cells to a typed text: the listed rows, the
     /// marked rows (`all`), else the cursor row.
-    pub(super) fn act_table_set(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1135,7 +1135,7 @@ impl ShellModel {
     }
 
     /// `table.fill_down` (Ctrl+D): the first marked row's cell of the cursor column into every marked row (§8.4).
-    pub(super) fn act_table_fill_down(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_fill_down(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1163,7 +1163,7 @@ impl ShellModel {
 
     /// `table.pattern_fill {pattern?}` (Ctrl+Shift+D): without a pattern it opens the dialog; with one it fills the
     /// cursor column of the marked rows (§8.5).
-    pub(super) fn act_table_pattern_fill(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_pattern_fill(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1234,7 +1234,7 @@ impl ShellModel {
     /// `table.paste {text?}` (Ctrl+V): the tab-separated text (else the clipboard's) from the cursor cell (§8.6). A
     /// first row naming at least half of the columns on show is a header and maps the columns by label; otherwise
     /// they map by position from the cursor column. A cell whose text equals the cell's own is unchanged and left out.
-    pub(super) fn act_table_paste(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_paste(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1356,7 +1356,7 @@ impl ShellModel {
 
     /// `table.copy` (Ctrl+C): the marked rows' cells on show (else the cursor row's) as tab-separated text with a
     /// header row of the column labels, onto the clipboard (§8.6).
-    pub(super) fn act_table_copy(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_copy(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1390,7 +1390,7 @@ impl ShellModel {
     }
 
     /// `table.clear` (Delete): the cursor column of the marked rows (else the cursor row) cleared (§8.3).
-    pub(super) fn act_table_clear(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_clear(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.table_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1443,7 +1443,7 @@ impl ShellModel {
 
     /// `table.resolve {cell, choice}`: picks reading `choice` (from 1) of the card's ambiguous cell `cell` (from 1)
     /// and rebuilds the command and its preview.
-    pub(super) fn act_table_resolve(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_resolve(&mut self, p: &Map<String, Value>) -> Outcome {
         let (cell, choice) = match (index_param(p, "cell"), index_param(p, "choice")) {
             (Ok(c), Ok(x)) => (c, x),
             (Err(e), _) | (_, Err(e)) => return e,
@@ -1473,7 +1473,7 @@ impl ShellModel {
 
     /// `table.drop {cell}`: removes the card's cell `cell` (from 1) from the gesture and rebuilds the command and its
     /// preview.
-    pub(super) fn act_table_drop(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_table_drop(&mut self, p: &Map<String, Value>) -> Outcome {
         let cell = match index_param(p, "cell") {
             Ok(c) => c,
             Err(e) => return e,

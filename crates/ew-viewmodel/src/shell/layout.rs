@@ -184,7 +184,7 @@ impl ShellModel {
 
     /// `tool.place_layout {device}` (Place device, Enter on an Unplaced devices row, a drop of the row): arms the
     /// layout place tool with the device on the focused panel page; refused without one ("Open a panel layout page").
-    pub(super) fn act_place_layout(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_place_layout(&mut self, p: &Map<String, Value>) -> Outcome {
         let device = match string_param(p, "device") {
             Ok(Some(d)) => d.trim().trim_start_matches("id:").to_owned(),
             Ok(None) => return failed("error-missing-param", &["device"]),
@@ -281,7 +281,7 @@ impl ShellModel {
 
     /// `layout.next` (Tab on a panel page) and `layout.previous` (Shift+Tab, ruling 5): the next or previous placement
     /// of the focused rail (the selected placement's rail, else Rail 1) in carrier order (by `s0`), wrapping.
-    pub(super) fn act_layout_step(&mut self, step: i64) -> Outcome {
+    pub(crate) fn act_layout_step(&mut self, step: i64) -> Outcome {
         let Some(panel) = self.panel_tables() else {
             return Outcome::Refused {
                 reason_key: "reason-no-panel-page",
@@ -326,7 +326,7 @@ impl ShellModel {
     /// `layout.nudge {dx, dy}` (the arrow keys with a placement selected): one grid step in the sticky mode. On a rail
     /// the arrow along the rail moves it; free stops where it would touch a neighbour at its minimum gap ("Blocked by
     /// -102F2") or the rail end, push pushes. On the plate it moves by the step in the arrow's direction.
-    pub(super) fn act_layout_nudge(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_layout_nudge(&mut self, p: &Map<String, Value>) -> Outcome {
         let dir = |name: &str| p.get(name).and_then(Value::as_i64).unwrap_or(0).signum();
         let (dx, dy) = (dir("dx"), dir("dy"));
         if self.tools.tool.layout_gesture().is_some() {
@@ -406,7 +406,7 @@ impl ShellModel {
     /// `layout.rotate` (R) and `layout.flip` (X) on a panel page: to a floating ghost, its turn; to the selected
     /// placement, R turns it 90° on the plate and X turns it 180° on a rail (`layout.move`); R on a rail and X on the
     /// plate are refused in words with the keys of the keymap (ruling 7).
-    pub(super) fn act_layout_turn(&mut self, key: ToolKey) -> Outcome {
+    pub(crate) fn act_layout_turn(&mut self, key: ToolKey) -> Outcome {
         if matches!(self.tools.tool.ghost(), Some(crate::tools::Ghost::Layout { .. })) {
             return self.send_tool(&CanvasEvent::Key(key));
         }
@@ -449,7 +449,7 @@ impl ShellModel {
 
     /// `layout.lock_selection` and `layout.unlock_selection` (Lock and Unlock in the canvas context menu over a
     /// placement): `layout.lock {placement, locked}` of the selected placement.
-    pub(super) fn act_layout_lock(&mut self, locked: bool) -> Outcome {
+    pub(crate) fn act_layout_lock(&mut self, locked: bool) -> Outcome {
         let Some((_, row)) = self.selected_placement() else {
             return Outcome::Refused {
                 reason_key: "reason-no-placement",
@@ -463,7 +463,7 @@ impl ShellModel {
 
     /// `layout.options {mode?, grid?}` (the tool options card's segmented controls): the sticky mode (`free`, `push`,
     /// `swap`) and the grid step (`5`, `1` mm).
-    pub(super) fn act_layout_options(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_layout_options(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut options = self.tools.layout_options;
         match p.get("mode").and_then(Value::as_str) {
             None => {}

@@ -127,7 +127,7 @@ impl ShellModel {
     }
 
     /// `keymap.search {text}`: the editor's search text.
-    pub(super) fn act_keymap_search(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_keymap_search(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "text") {
             Err(e) => e,
             Ok(text) => {
@@ -147,7 +147,7 @@ impl ShellModel {
 
     /// `keymap.record_start {action?}`: the window records the next chord for `action`; without it the recording
     /// ends.
-    pub(super) fn act_keymap_record_start(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_keymap_record_start(&mut self, p: &Map<String, Value>) -> Outcome {
         if !p.contains_key("action") {
             self.keymap_editor.recording = None;
             return Outcome::Done;
@@ -164,7 +164,7 @@ impl ShellModel {
 
     /// `keymap.record {action, keys}`: `keys` becomes the action's one binding in the user's keymap, in the action's
     /// context. Refused (and listed in the editor) when the result has an error of D8.
-    pub(super) fn act_keymap_record(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_keymap_record(&mut self, p: &Map<String, Value>) -> Outcome {
         let meta = match Self::keymap_action(p) {
             Err(e) => return e,
             Ok(m) => m,
@@ -202,7 +202,7 @@ impl ShellModel {
     }
 
     /// `keymap.reset {action}`: the action's bindings return to the preset's.
-    pub(super) fn act_keymap_reset(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_keymap_reset(&mut self, p: &Map<String, Value>) -> Outcome {
         let meta = match Self::keymap_action(p) {
             Err(e) => return e,
             Ok(m) => m,
@@ -252,7 +252,7 @@ impl ShellModel {
 
     /// `keymap.import {path?}`: the keymap file at `path` becomes the user's keymap, when it parses and has no error
     /// of D8 over the active preset; without `path` the window asks for the file.
-    pub(super) fn act_keymap_import(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_keymap_import(&mut self, p: &Map<String, Value>) -> Outcome {
         let path = match string_param(p, "path") {
             Err(e) => return e,
             Ok(None) => return self.need_path("keymap.import", Prompt::OpenKeymap, "path", p),
@@ -282,7 +282,7 @@ impl ShellModel {
 
     /// `keymap.export {path?}`: writes the effective bindings as a self-contained keymap file at `path` (the user's
     /// unused binds included), which imports back equal; without `path` the window asks for the file name.
-    pub(super) fn act_keymap_export(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_keymap_export(&mut self, p: &Map<String, Value>) -> Outcome {
         let path = match string_param(p, "path") {
             Err(e) => return e,
             Ok(None) => return self.need_path("keymap.export", Prompt::SaveKeymap, "path", p),

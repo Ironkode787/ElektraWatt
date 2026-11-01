@@ -39,7 +39,7 @@ use ew_api::output::ew_dl::EntityRef;
 
 /// A connection-point step of the keyboard (§7.7).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(super) enum CpStep {
+pub(crate) enum CpStep {
     /// `cp.next`.
     Next,
     /// `cp.previous`.
@@ -843,7 +843,7 @@ impl ShellModel {
     // Actions
 
     /// `tool.select`, `tool.measure`.
-    pub(super) fn act_tool(&mut self, name: &str) -> Outcome {
+    pub(crate) fn act_tool(&mut self, name: &str) -> Outcome {
         match tool_named(name) {
             Some(tool) => {
                 self.activate_tool(tool);
@@ -857,7 +857,7 @@ impl ShellModel {
     /// `shift`, `ctrl`, `alt` and `group`. A press in the other group focuses it first; the middle button reaches
     /// no tool (it pans). A primary release after the tool's context changed under its press is dropped: no focus,
     /// pointer, tool or selection change (FT-392).
-    pub(super) fn act_press(&mut self, p: &Map<String, Value>, release: bool) -> Outcome {
+    pub(crate) fn act_press(&mut self, p: &Map<String, Value>, release: bool) -> Outcome {
         let at = match point_mm(p) {
             Ok(Some(at)) => at,
             Ok(None) => return failed("error-missing-param", &["x_mm"]),
@@ -934,7 +934,7 @@ impl ShellModel {
 
     /// `canvas.dwell` (§7.8, D11): `ms`, a positive integer. At 300 ms and more with a hovered link (while the tool
     /// wants hover) the link preview shows its target; the tool gets `Dwell` either way.
-    pub(super) fn act_dwell(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_dwell(&mut self, p: &Map<String, Value>) -> Outcome {
         let ms = match p.get("ms") {
             None => return failed("error-missing-param", &["ms"]),
             Some(v) => match v.as_u64().and_then(|m| u32::try_from(m).ok()).filter(|m| *m > 0) {
@@ -969,7 +969,7 @@ impl ShellModel {
     /// selected, the junction sequence editor opens instead (WP-S2.04 §8.5). With `alt` (headless; WP-S2.04 part 2) it
     /// is a click with Alt held at the grid cursor (a press and a release): the keyboard's way to place a symbol without
     /// its autoconnect proposals (FR-CON-003) or to fix a wire's bend without object snaps.
-    pub(super) fn act_activate_with(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_activate_with(&mut self, p: &Map<String, Value>) -> Outcome {
         if !flag(p, "alt") {
             return self.act_activate();
         }
@@ -1024,14 +1024,14 @@ impl ShellModel {
     }
 
     /// `tool.back` (Backspace): `Back` to the tool.
-    pub(super) fn act_tool_back(&mut self) -> Outcome {
+    pub(crate) fn act_tool_back(&mut self) -> Outcome {
         self.send_tool(&CanvasEvent::Back)
     }
 
     /// `cp.next`, `cp.previous`, `cp.next_unconnected` (§7.7): the grid cursor goes to the next or previous
     /// connection point of the page in reading order after the cursor (from the view centre without one), wrapping;
     /// `cp.next_unconnected` only to a connection point no connection ends at.
-    pub(super) fn act_cp_step(&mut self, p: &Map<String, Value>, step: CpStep) -> Outcome {
+    pub(crate) fn act_cp_step(&mut self, p: &Map<String, Value>, step: CpStep) -> Outcome {
         let g = match self.group_param(p) {
             Ok(g) => g,
             Err(e) => return e,

@@ -139,7 +139,7 @@ impl ShellModel {
     }
 
     /// `tool.wire` (W, §8.7): arms the Wire tool with the page type's connection kind.
-    pub(super) fn act_tool_wire(&mut self) -> Outcome {
+    pub(crate) fn act_tool_wire(&mut self) -> Outcome {
         match self.wire_kind() {
             Ok(kind) => {
                 self.activate_tool(Box::new(WireTool::new().with_kind(kind)));
@@ -150,7 +150,7 @@ impl ShellModel {
     }
 
     /// `tool.route_edit` (§8.4): the keyboard route editor of exactly one selected connection.
-    pub(super) fn act_route_edit(&mut self) -> Outcome {
+    pub(crate) fn act_route_edit(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
                 reason_key: "reason-no-page",
@@ -243,7 +243,7 @@ impl ShellModel {
 
     /// `junction.open` (§8.5): the editor of exactly one selected junction (the registry disables it otherwise, naming
     /// what to select). A script selects the junction first (`select.set` with its ID).
-    pub(super) fn act_junction_open(&mut self) -> Outcome {
+    pub(crate) fn act_junction_open(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
                 reason_key: "reason-no-page",
@@ -294,7 +294,7 @@ impl ShellModel {
     }
 
     /// `junction.member {from, to}` (Alt+Up, Alt+Down in the popup): moves a member of the sequence.
-    pub(super) fn act_junction_member(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_junction_member(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(editor) = &self.tools.junction_editor else {
             return Outcome::Refused {
                 reason_key: "reason-no-junction-editor",
@@ -318,7 +318,7 @@ impl ShellModel {
     }
 
     /// `junction.style {style, orient?}`: `dot` or `bevel` with its orientation (0 to 7).
-    pub(super) fn act_junction_style(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_junction_style(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(editor) = &self.tools.junction_editor else {
             return Outcome::Refused {
                 reason_key: "reason-no-junction-editor",
@@ -344,7 +344,7 @@ impl ShellModel {
     }
 
     /// `junction.wiring {wiring}`: `star`, `chain` or `style_default`.
-    pub(super) fn act_junction_wiring(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_junction_wiring(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(editor) = &self.tools.junction_editor else {
             return Outcome::Refused {
                 reason_key: "reason-no-junction-editor",
@@ -385,7 +385,7 @@ impl ShellModel {
 
     /// `project.crossings {on?}` (§8.6): commits `project.drawing.set` with `crossings: hops`, or with `null` (the
     /// member removed: plain, as a project without the setting) to turn it off; without `on` it toggles.
-    pub(super) fn act_crossings(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_crossings(&mut self, p: &Map<String, Value>) -> Outcome {
         let on = if p.contains_key("on") {
             flag(p, "on")
         } else {
@@ -412,7 +412,7 @@ impl ShellModel {
     /// names; **neither** is refused before the commit with `reason-bind-off-card` and a toast that says what to do
     /// (FX38d). A bind that unbinds another channel (FR-PLC-005) names it in the toast by its address and the pin
     /// (FT-757).
-    pub(super) fn act_navigator_bind(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_bind(&mut self, p: &Map<String, Value>) -> Outcome {
         let channel = match string_param(p, "channel") {
             Ok(Some(c)) => c.trim().trim_start_matches("id:").to_owned(),
             Ok(None) => return failed("error-missing-param", &["channel"]),
@@ -595,7 +595,7 @@ impl ShellModel {
     }
 
     /// Sends a tool key that only some tools take (Tab): the active tool answers.
-    pub(super) fn send_proposal_key(&mut self) -> Outcome {
+    pub(crate) fn send_proposal_key(&mut self) -> Outcome {
         self.send_tool(&CanvasEvent::Key(crate::tools::ToolKey::NextProposal))
     }
 }

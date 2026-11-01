@@ -212,7 +212,7 @@ impl ShellModel {
 
     /// `place.join` (J): opens the Join chooser of the active Place tool: "New device", then the devices the symbol
     /// can join. The active row is the current target's.
-    pub(super) fn act_place_join(&mut self) -> Outcome {
+    pub(crate) fn act_place_join(&mut self) -> Outcome {
         if !self.place_joinable() {
             return Outcome::Refused {
                 reason_key: "reason-join-not-auxiliary",
@@ -276,7 +276,7 @@ impl ShellModel {
     }
 
     /// `chooser.row {step | to}`: Up and Down (`step` −1, 1, wrapping), Home (`to` 0), End (`to` −1).
-    pub(super) fn act_chooser_row(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_chooser_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let step = p.get("step").and_then(Value::as_i64);
         let to = p.get("to").and_then(Value::as_i64);
         if step.is_none() && to.is_none() {
@@ -292,7 +292,7 @@ impl ShellModel {
     }
 
     /// `chooser.type {text}`: type-ahead on the rows' names (doc 16a §6.22).
-    pub(super) fn act_chooser_type(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_chooser_type(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match super::string_param(p, "text") {
             Ok(Some(t)) => t.to_owned(),
             Ok(None) => return failed("error-missing-param", &["text"]),
@@ -309,7 +309,7 @@ impl ShellModel {
 
     /// `chooser.choose {row?}`: picks the active row (or row `row`) and closes the chooser. A device row arms the join
     /// (D2): the ghost label reads `join -K1`; "New device" restores the target before the join.
-    pub(super) fn act_chooser_choose(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_chooser_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(c) = &self.tools.chooser else {
             return Outcome::Refused {
                 reason_key: "reason-no-chooser",

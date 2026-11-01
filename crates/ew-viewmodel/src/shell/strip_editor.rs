@@ -174,7 +174,7 @@ impl ShellModel {
     /// `strip.edit {strip?}` (Edit ▸ Strip editor, §6.1): the strip given (a printed tag), else the selected strip,
     /// else the strip of the selected terminal, else the strip of the navigator's cursor row; shows the Terminal strips
     /// navigator focused in table mode, filtered to the strip, its cursor on the strip's first row.
-    pub(super) fn act_strip_edit(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_strip_edit(&mut self, p: &Map<String, Value>) -> Outcome {
         if !self.has_project() {
             return Outcome::Refused {
                 reason_key: "reason-no-project",
@@ -266,7 +266,7 @@ impl ShellModel {
     /// `strip.insert {count?, designation?}` (Insert, §6.4): `count` terminals before the cursor terminal row (on an
     /// accessory row or the strip row, before the next terminal; with none after the cursor, at the end), copying the
     /// reference terminal (D14); one `terminal.insert`, the toast, the cursor on the first new row.
-    pub(super) fn act_strip_insert(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_strip_insert(&mut self, p: &Map<String, Value>) -> Outcome {
         let rows = match self.strip_rows() {
             Ok(r) => r,
             Err(e) => return e,
@@ -405,7 +405,7 @@ impl ShellModel {
 
     /// `strip.delete_rows` (Ctrl+Delete, §6.4, D12): terminal rows are one `edit.delete` of their devices, always the
     /// card; accessory rows one `fields.set` per strip, committed with the toast; a mix is refused.
-    pub(super) fn act_strip_delete_rows(&mut self) -> Outcome {
+    pub(crate) fn act_strip_delete_rows(&mut self) -> Outcome {
         let rows = match self.strip_rows() {
             Ok(r) => r,
             Err(e) => return e,
@@ -502,7 +502,7 @@ impl ShellModel {
     /// `strip.move {step?, before?}` (Alt+Up, Alt+Down, §6.4, D4): the marked terminal rows of one strip (else the
     /// cursor row) one terminal up (`step` −1) or down (+1), or before the terminal `before` (a printed designation of
     /// the same strip, or `end`); one `terminal.move` with the toast; the marks and the cursor follow the rows.
-    pub(super) fn act_strip_move(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_strip_move(&mut self, p: &Map<String, Value>) -> Outcome {
         let rows = match self.strip_rows() {
             Ok(r) => r,
             Err(e) => return e,
@@ -585,7 +585,7 @@ impl ShellModel {
     /// with `before` directly before the cursor terminal row (FT-600), its
     /// part parsed by D7 or the one project copy of the kind's part kinds; several: the chooser list in the window, the
     /// error listing them headless.
-    pub(super) fn act_strip_add_accessory(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_strip_add_accessory(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Err(reason_key) = self.strip_editor_shown() {
             return Outcome::Refused { reason_key };
         }

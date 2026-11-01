@@ -184,7 +184,7 @@ impl ShellModel {
     }
 
     /// `props.show_advanced {on?}`: shows or hides the Advanced rows (else it toggles), remembered in the settings file.
-    pub(super) fn act_props_show_advanced(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_show_advanced(&mut self, p: &Map<String, Value>) -> Outcome {
         let on = match p.get("on") {
             None => !self.settings.properties_show_advanced,
             Some(v) => match v.as_bool() {
@@ -223,7 +223,7 @@ impl ShellModel {
 
     /// `props.filter {text}`: sets the text of the grid's filter field (FT-541); the rows on show are those whose label
     /// or value contains it, case-folded, while the field is on show.
-    pub(super) fn act_props_filter(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_filter(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match string_param(p, "text") {
             Err(e) => return e,
             Ok(None) => return failed("error-missing-param", &["text"]),
@@ -414,7 +414,7 @@ impl ShellModel {
     // View actions
 
     /// `props.show` (View ▸ Properties): toggles the pane, or sets it with `on`.
-    pub(super) fn act_props_show(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.layout.panes().contains(&crate::layout::PaneKind::Properties);
         let want = p.get("on").and_then(Value::as_bool).unwrap_or(!shown);
         if want != shown {
@@ -432,7 +432,7 @@ impl ShellModel {
     }
 
     /// `props.focus` (E, Alt+Enter on the canvas): the pane gets the focus (shown first when closed).
-    pub(super) fn act_props_focus(&mut self) -> Outcome {
+    pub(crate) fn act_props_focus(&mut self) -> Outcome {
         if !self.layout.panes().contains(&crate::layout::PaneKind::Properties) {
             let _ = self.act_props_show(&Map::new());
         }
@@ -441,14 +441,14 @@ impl ShellModel {
     }
 
     /// `props.project` (Project properties): the project record until the selection changes.
-    pub(super) fn act_props_project(&mut self) -> Outcome {
+    pub(crate) fn act_props_project(&mut self) -> Outcome {
         self.props.project_mode = Some(self.tools.selection.generation);
         self.act_props_focus()
     }
 
     /// `select.set`: `ids` (UUID texts) or `refs` (command-log references); an empty list clears; one unresolvable
     /// entry refuses the whole action with the resolver's message.
-    pub(super) fn act_select_set(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_select_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(project) = &self.project else {
             return Outcome::Refused {
                 reason_key: "reason-no-project",
@@ -525,7 +525,7 @@ impl ShellModel {
     }
 
     /// `props.row`: `step` (±n, clamped) or `to` (a row key, `first`, `last`).
-    pub(super) fn act_props_row(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sheet) = self.props.sheet.clone() else {
             return Outcome::Refused {
                 reason_key: "reason-no-sheet",
@@ -572,7 +572,7 @@ impl ShellModel {
 
     /// `props.category`: `category` (its word, of the focused row's section; else the focused row's) and `expanded`
     /// (else it toggles). Collapse states persist per (kind, category) in the settings file.
-    pub(super) fn act_props_category(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_category(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sheet) = self.props.sheet.clone() else {
             return Outcome::Refused {
                 reason_key: "reason-no-sheet",
@@ -618,7 +618,7 @@ impl ShellModel {
     }
 
     /// `props.edit`: opens the editor of `row` (else the focused row) with its value's text.
-    pub(super) fn act_props_edit(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_edit(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match self.props_row_param(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -762,7 +762,7 @@ impl ShellModel {
     }
 
     /// `props.input`: the whole buffer; on a focused editable row that is not editing it starts the edit.
-    pub(super) fn act_props_input(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_input(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match string_param(p, "text") {
             Err(e) => return e,
             Ok(Some(t)) => t.to_owned(),
@@ -801,7 +801,7 @@ impl ShellModel {
     }
 
     /// `props.cancel` (Escape in the field): the stored value comes back.
-    pub(super) fn act_props_cancel(&mut self) -> Outcome {
+    pub(crate) fn act_props_cancel(&mut self) -> Outcome {
         self.props.edit = None;
         self.props.error = None;
         self.props.tag_proposal = None;
@@ -811,7 +811,7 @@ impl ShellModel {
     }
 
     /// `props.commit` (Enter, Tab, focus loss): the buffer is parsed and committed.
-    pub(super) fn act_props_commit(&mut self) -> Outcome {
+    pub(crate) fn act_props_commit(&mut self) -> Outcome {
         let Some(edit) = self.props.edit.clone() else {
             return Outcome::Refused {
                 reason_key: "reason-not-editing",
@@ -825,7 +825,7 @@ impl ShellModel {
     }
 
     /// `props.set`: `row`, `value` (the text as typed), optional `choice` (an index for an ambiguous value).
-    pub(super) fn act_props_set(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match self.props_row_param(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1389,7 +1389,7 @@ impl ShellModel {
 
     /// `props.accept_tag_proposal` (the "Use -102F2" button under a refused tag-letter edit): commits the proposal
     /// in one undo step; the tag stays unfrozen and the toast names the new tag and its counter.
-    pub(super) fn act_props_accept_tag_proposal(&mut self) -> Outcome {
+    pub(crate) fn act_props_accept_tag_proposal(&mut self) -> Outcome {
         let Some(proposal) = self.props.tag_proposal.take() else {
             return Outcome::Refused {
                 reason_key: "reason-no-tag-proposal",
@@ -1569,7 +1569,7 @@ impl ShellModel {
     /// `props.choose`: `index` of the choices under a field (an ambiguous reading, the multi-language switch, a choice
     /// editor's options) or of the row's actions popup commits it; `step` (±1) moves the choices' highlight (Up,
     /// Down); with neither the highlighted choice is committed, else the buffer (Enter in a choice editor).
-    pub(super) fn act_props_choose(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(step) = p.get("step") {
             let Some(step) = step.as_i64() else {
                 return failed("error-bad-param", &["step"]);
@@ -1680,7 +1680,7 @@ impl ShellModel {
 
     /// `props.row_menu` (Shift+F10, the Menu key): the focused row's actions as a popup list; with the list open,
     /// `step` (±1) moves its highlight (Up, Down) and Enter is `props.choose` with the highlighted index.
-    pub(super) fn act_props_row_menu(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_row_menu(&mut self, p: &Map<String, Value>) -> Outcome {
         if let (Some(step), Some(Popup::Actions { row, index })) = (p.get("step"), self.props.popup.clone()) {
             let Some(step) = step.as_i64() else {
                 return failed("error-bad-param", &["step"]);
@@ -1707,7 +1707,7 @@ impl ShellModel {
 
     /// `props.action`: `action` (`edit`, `clear`, `override`, `reset`, `freeze`, `unfreeze`) on `row` (else the
     /// focused row).
-    pub(super) fn act_props_action(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_action(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match self.props_row_param(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1840,7 +1840,7 @@ impl ShellModel {
     }
 
     /// `props.list`: `row` and `op` (`add` on a list row; `remove`, `up`, `down` on an item row).
-    pub(super) fn act_props_list(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_list(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match self.props_row_param(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1897,7 +1897,7 @@ impl ShellModel {
 
     /// `props.mltext`: without `text` it opens the multi-language popup of the focused row; with it, `text` becomes
     /// the neutral text (no `lang`) or the text of `lang`. Switching between the forms asks first (FR-I18N-001).
-    pub(super) fn act_props_mltext(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_mltext(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match self.props_row_param(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -2004,7 +2004,7 @@ impl ShellModel {
     }
 
     /// `preview.apply` (the card's Apply, Ctrl+Enter): a fresh card commits; a stale one is checked and rebuilt.
-    pub(super) fn act_preview_apply(&mut self) -> Outcome {
+    pub(crate) fn act_preview_apply(&mut self) -> Outcome {
         let Some(card) = self.props.card.take() else {
             return Outcome::Refused {
                 reason_key: "reason-no-card",
@@ -2112,7 +2112,7 @@ impl ShellModel {
     }
 
     /// `preview.cancel` (the card's Cancel, Escape): the preview is dropped.
-    pub(super) fn act_preview_cancel(&mut self) -> Outcome {
+    pub(crate) fn act_preview_cancel(&mut self) -> Outcome {
         if self.props.card.take().is_none() {
             return Outcome::Refused {
                 reason_key: "reason-no-card",

@@ -620,7 +620,7 @@ impl ShellModel {
     /// result on the saved project (refused while any error other than EW-REL-001 is open, and without an author), the
     /// safety waivers the sign-off acknowledges, the checker's role and the label typed to confirm; the approval is
     /// saved, as `ew revision approve` saves it.
-    pub(super) fn act_revision_approve(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_revision_approve(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(out) = self.revision_start(APPROVE, p) {
             return out;
         }
@@ -764,7 +764,7 @@ impl ShellModel {
     /// only closes), or the six steps with the archive and the git tag; the label is typed to confirm, and in a git
     /// repository the commit and the tag are agreed to. Cancel is the Primary; Release is the destructive button. An
     /// incomplete release of the label is offered first ([`ShellModel::act_revision_incomplete`]).
-    pub(super) fn act_revision_release(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_revision_release(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(out) = self.revision_start(RELEASE, p) {
             return out;
         }
@@ -962,7 +962,7 @@ impl ShellModel {
     /// opens its confirmation: completing shows the git consent toggle when the project folder is in a git repository
     /// (off, as the Release form's), discarding says what it deletes; each confirms with its danger button, Cancel is
     /// the Primary. The consent passed is the toggle's value, never a constant.
-    pub(super) fn act_revision_incomplete(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_revision_incomplete(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(out) = self.revision_start(INCOMPLETE, p) {
             return out;
         }
@@ -1167,7 +1167,7 @@ impl ShellModel {
     /// `revision.withdraw {revision?, reason?, confirm?, cancel?}` (Check ▸ Revision ▸ Withdraw revision…): a withdrawal
     /// record after a released revision (`revision.withdraw`, doc 15 §5.10); the revision (by its label, the last
     /// released one by default) and the reason are required. Undoable as one step; not saved.
-    pub(super) fn act_revision_withdraw(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_revision_withdraw(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(out) = self.revision_start(WITHDRAW, p) {
             return out;
         }
@@ -1242,7 +1242,7 @@ impl ShellModel {
     /// `revision.set_author {role?, confirm?, cancel?}` (Check ▸ Revision ▸ Set revision author…): the author of the
     /// open revision as a party role (`revision.set_author`, WP-S1.18 D4); never the checker's. Undoable as one step;
     /// not saved.
-    pub(super) fn act_revision_set_author(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_revision_set_author(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(out) = self.revision_start(SET_AUTHOR, p) {
             return out;
         }

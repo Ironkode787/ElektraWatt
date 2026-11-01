@@ -2382,8 +2382,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-layout-nudge" => "Nudge placement",
         "action-layout-rotate" => "Turn placement",
         "action-layout-flip" => "Flip placement",
-        "action-layout-lock" => "Lock",
-        "action-layout-unlock" => "Unlock",
+        "action-layout-lock-selection" => "Lock",
+        "action-layout-unlock-selection" => "Unlock",
         "action-layout-options" => "Placing options",
         _ => return None,
     })

@@ -400,7 +400,7 @@ impl ShellModel {
     }
 
     /// `part.choose {target?, use?, add?}` (§9.4): opens the part dialog for its target.
-    pub(super) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         let want = match string_param(p, "target") {
             Ok(v) => v,
             Err(e) => return e,
@@ -468,7 +468,7 @@ impl ShellModel {
     }
 
     /// `part.search {text?, kind?, category?, fits?, view?, inactive?}`: changes the query of the open dialog.
-    pub(super) fn act_part_search(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_part_search(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = |name: &str| string_param(p, name).map(|v| v.map(str::to_owned));
         let (t, kind, category, view) = match (text("text"), text("kind"), text("category"), text("view")) {
             (Ok(a), Ok(b), Ok(c), Ok(d)) => (a, b, c, d),
@@ -555,7 +555,7 @@ impl ShellModel {
     }
 
     /// `part.pick {index?, part?}` (Enter): commits the choice (D16) and records a library part as recently used (D18).
-    pub(super) fn act_part_pick(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_part_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         let offer = match self.part_offer_param(p) {
             Ok(o) => o,
             Err(e) => return e,
@@ -582,7 +582,7 @@ impl ShellModel {
     }
 
     /// `part.favourite {index?}`: toggles a library part among the favourites (D18).
-    pub(super) fn act_part_favourite(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_part_favourite(&mut self, p: &Map<String, Value>) -> Outcome {
         let offer = match self.part_offer_param(p) {
             Ok(o) => o,
             Err(e) => return e,
@@ -662,7 +662,7 @@ impl ShellModel {
     }
 
     /// `part.edit {part?}` (§9.4): opens the part editor with the draft of a held part copy.
-    pub(super) fn act_part_edit(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_part_edit(&mut self, p: &Map<String, Value>) -> Outcome {
         let copy = match self.part_edit_copy(p) {
             Ok(Some(c)) => c,
             Ok(None) => {
@@ -691,7 +691,7 @@ impl ShellModel {
     }
 
     /// `part.field {field, value}`: sets one field of the draft; a message shows under the field (D21).
-    pub(super) fn act_part_field(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_part_field(&mut self, p: &Map<String, Value>) -> Outcome {
         let (field, value) = match (string_param(p, "field"), string_param(p, "value")) {
             (Ok(Some(f)), Ok(Some(v))) => (f.to_owned(), v.to_owned()),
             (Ok(None), _) => return failed("error-missing-param", &["field"]),
@@ -714,7 +714,7 @@ impl ShellModel {
     }
 
     /// `part.save` (Enter): opens the `part` card of `part.edit_copy` (D20); a field that does not parse refuses.
-    pub(super) fn act_part_save(&mut self) -> Outcome {
+    pub(crate) fn act_part_save(&mut self) -> Outcome {
         let Some(project) = &self.project else {
             return Outcome::Done;
         };

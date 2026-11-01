@@ -548,7 +548,7 @@ impl ShellModel {
     }
 
     /// A walk (Page Up, Page Down, first, last): the focused tab moves to page `index` without a history entry.
-    pub(super) fn walk(&mut self, index: usize) -> Outcome {
+    pub(crate) fn walk(&mut self, index: usize) -> Outcome {
         let Some(row) = self
             .page_rows()
             .get(index.min(self.page_count().saturating_sub(1)))
@@ -726,19 +726,19 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_tab_new(&mut self) -> Outcome {
+    pub(crate) fn act_tab_new(&mut self) -> Outcome {
         self.area_op(CanvasArea::new_tab, "")
     }
 
-    pub(super) fn act_tab_close(&mut self) -> Outcome {
+    pub(crate) fn act_tab_close(&mut self) -> Outcome {
         self.area_op(CanvasArea::close_tab, "")
     }
 
-    pub(super) fn act_tab_cycle(&mut self, step: isize) -> Outcome {
+    pub(crate) fn act_tab_cycle(&mut self, step: isize) -> Outcome {
         self.area_op(|a| a.cycle(step), "")
     }
 
-    pub(super) fn act_focus_other(&mut self) -> Outcome {
+    pub(crate) fn act_focus_other(&mut self) -> Outcome {
         let out = self.area_op(CanvasArea::focus_other, "");
         if out == Outcome::Done {
             self.focus = self.area.as_ref().map(|a| Focus::Canvas(a.focused));
@@ -746,7 +746,7 @@ impl ShellModel {
         out
     }
 
-    pub(super) fn act_tab_activate(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_tab_activate(&mut self, p: &Map<String, Value>) -> Outcome {
         let groups = self.area.as_ref().map_or(0, |a| a.groups.len());
         let g = match index_param(p, "group", groups) {
             Ok(g) => g,
@@ -764,7 +764,7 @@ impl ShellModel {
         out
     }
 
-    pub(super) fn act_tab_move(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_tab_move(&mut self, p: &Map<String, Value>) -> Outcome {
         let groups = self.area.as_ref().map_or(0, |a| a.groups.len());
         let (g, to_g) = match (
             index_param(p, "group", groups),
@@ -785,7 +785,7 @@ impl ShellModel {
         self.area_op(|a| a.move_tab(g, i, to_g, to_i), "index")
     }
 
-    pub(super) fn act_tab_open(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_tab_open(&mut self, p: &Map<String, Value>) -> Outcome {
         let folio = match string_param(p, "folio") {
             Err(e) => return e,
             Ok(Some(f)) => f.to_owned(),
@@ -806,7 +806,7 @@ impl ShellModel {
         out
     }
 
-    pub(super) fn act_side_by_side(&mut self) -> Outcome {
+    pub(crate) fn act_side_by_side(&mut self) -> Outcome {
         let Some(area) = &self.area else {
             return Outcome::Refused {
                 reason_key: "reason-no-pages",
@@ -836,7 +836,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Jumps, history, links and Go to (§6.3 to §6.5)
 
-    pub(super) fn act_history(&mut self, back: bool) -> Outcome {
+    pub(crate) fn act_history(&mut self, back: bool) -> Outcome {
         let Some(g) = self.area.as_ref().map(|a| a.focused) else {
             return Outcome::Refused {
                 reason_key: "reason-history-empty",
@@ -868,7 +868,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    pub(super) fn act_follow(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_follow(&mut self, p: &Map<String, Value>) -> Outcome {
         let point = match point_mm(p) {
             Ok(point) => point,
             Err(e) => return e,
@@ -914,7 +914,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    pub(super) fn act_link_step(&mut self, p: &Map<String, Value>, forward: bool) -> Outcome {
+    pub(crate) fn act_link_step(&mut self, p: &Map<String, Value>, forward: bool) -> Outcome {
         let g = match self.group_param(p) {
             Ok(g) => g,
             Err(e) => return e,
@@ -947,7 +947,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    pub(super) fn act_nav_goto(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_nav_goto(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match string_param(p, "text") {
             Err(e) => return e,
             Ok(Some(t)) => t.to_owned(),
@@ -1027,7 +1027,7 @@ impl ShellModel {
     }
 
     /// `lists.parts` (FT-717): opens the first page of the parts list in the focused group, as `page.goto` does.
-    pub(super) fn act_lists_parts(&mut self) -> Outcome {
+    pub(crate) fn act_lists_parts(&mut self) -> Outcome {
         match self.parts_list_folio() {
             Some(folio) => {
                 let mut p = Map::new();
@@ -1040,7 +1040,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_page_goto(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_page_goto(&mut self, p: &Map<String, Value>) -> Outcome {
         let folio = match string_param(p, "folio") {
             Err(e) => return e,
             Ok(Some(folio)) => folio.to_owned(),
@@ -1064,7 +1064,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The grid cursor (§6.6)
 
-    pub(super) fn act_cursor(&mut self, p: &Map<String, Value>, dx: i64, dy: i64, cell: bool) -> Outcome {
+    pub(crate) fn act_cursor(&mut self, p: &Map<String, Value>, dx: i64, dy: i64, cell: bool) -> Outcome {
         let g = match self.group_param(p) {
             Ok(g) => g,
             Err(e) => return e,
@@ -1085,7 +1085,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_cursor_set(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_cursor_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let point = match point_mm(p) {
             Ok(point) => point,
             Err(e) => return e,
@@ -1112,7 +1112,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The page navigator (§6.1)
 
-    pub(super) fn act_pages_mode(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_pages_mode(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "mode") {
             Err(e) => e,
             Ok(None) => failed("error-missing-param", &["mode"]),
@@ -1132,7 +1132,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_pages_sort(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_pages_sort(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "by") {
             Err(e) => e,
             Ok(None) => failed("error-missing-param", &["by"]),
@@ -1146,7 +1146,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_pages_filter(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_pages_filter(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "text") {
             Err(e) => e,
             Ok(None) => failed("error-missing-param", &["text"]),
@@ -1170,7 +1170,7 @@ impl ShellModel {
             .ok_or_else(|| failed("error-bad-param", &["key"]))
     }
 
-    pub(super) fn act_pages_toggle(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_pages_toggle(&mut self, p: &Map<String, Value>) -> Outcome {
         match self.row_param(p) {
             Err(e) => e,
             Ok(row) if matches!(row.kind, RowKind::Node { .. }) => {
@@ -1182,7 +1182,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_pages_row(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_pages_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let rows = self.navigator_rows();
         if rows.is_empty() {
             return Outcome::Done;
@@ -1215,7 +1215,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    pub(super) fn act_pages_open(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_pages_open(&mut self, p: &Map<String, Value>) -> Outcome {
         let index = if p.contains_key("key") {
             match self.row_param(p) {
                 Err(e) => return e,
@@ -1255,7 +1255,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The focus (§6.6)
 
-    pub(super) fn act_focus(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_focus(&mut self, p: &Map<String, Value>) -> Outcome {
         let area = match string_param(p, "area") {
             Err(e) => return e,
             Ok(None) => return failed("error-missing-param", &["area"]),
@@ -1312,7 +1312,7 @@ impl ShellModel {
     /// F6 (`step` 1) and Shift+F6 (`step` −1): the command bar (WP-S2.17 part 2), navigator, canvas group 1, canvas
     /// group 2, then the property grid and the find pane while their panes are in the layout, cyclic. Without a focus
     /// the cycle starts from the navigator, as before the command bar.
-    pub(super) fn act_focus_cycle(&mut self, step: isize) -> Outcome {
+    pub(crate) fn act_focus_cycle(&mut self, step: isize) -> Outcome {
         let groups = self.area.as_ref().map_or(0, |a| a.groups.len());
         // WP-S2.17 part 2 (doc 16a §5.9): the command bar first.
         let ring: Vec<Focus> = std::iter::once(Focus::CommandBar)

@@ -97,7 +97,7 @@ impl ShellModel {
     }
 
     /// `history.show {on?}` (Edit, History): opens or closes the panel in the bottom dock.
-    pub(super) fn act_history_show(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_history_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.history_shown();
         let want = match super::jobs::bool_param(p, "on", !shown) {
             Ok(w) => w,
@@ -121,7 +121,7 @@ impl ShellModel {
 
     /// `view.bottom_dock {on?}` (doc 16a §5.7, Ctrl+J; a toggle without `on`): closing closes every bottom pane
     /// through its own action and remembers them; opening reopens the remembered panes, or Messages.
-    pub(super) fn act_bottom_dock(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_bottom_dock(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.bottom_dock_shown();
         let want = match super::jobs::bool_param(p, "on", !shown) {
             Ok(w) => w,
@@ -176,7 +176,7 @@ impl ShellModel {
 
     /// `history.row {step?, to?}`: moves the row cursor `step` rows down the list (to older entries; negative: up), or
     /// to the `first` (newest) or `last` (oldest) entry, clamped. Without a cursor a step starts at the `now` entry.
-    pub(super) fn act_history_row(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_history_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let len = self.history_len();
         if len == 0 {
             return Outcome::Refused {
@@ -225,7 +225,7 @@ impl ShellModel {
     /// `history.undo_to {entry?}` (Undo to here; Enter on a row): undoes while the history's cursor is above the
     /// entry's number, or redoes while it is below; stops at the first refusal (a barrier, a `HumanOnly` step from a
     /// script) with its reason. Only the last step crossed restores its context.
-    pub(super) fn act_history_undo_to(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_history_undo_to(&mut self, p: &Map<String, Value>) -> Outcome {
         let index = match self.history_entry(p) {
             Ok(i) => i,
             Err(e) => return e,
@@ -254,7 +254,7 @@ impl ShellModel {
 
     /// `history.changes {entry?}` (Show changes): the entry's records with their labels and changed members, in a
     /// popup that Escape closes.
-    pub(super) fn act_history_changes(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_history_changes(&mut self, p: &Map<String, Value>) -> Outcome {
         let index = match self.history_entry(p) {
             Ok(i) => i,
             Err(e) => return e,

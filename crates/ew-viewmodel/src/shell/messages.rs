@@ -274,7 +274,7 @@ impl ShellModel {
 
     /// `messages.show {on?}` (View ▸ Messages): `navigator.show` with the kind `messages` (the pane in the bottom
     /// dock, focused), or `on: false` to close it.
-    pub(super) fn act_messages_show(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_messages_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let pane = PaneKind::Navigator(NavKind::Messages);
         // FX38d (doc 16a §5.7): the command that opens the pane closes it again; `on` sets it. FT-916: only a pane in
         // front closes; one behind another tab of its group (History) is brought to front.
@@ -304,7 +304,7 @@ impl ShellModel {
     /// `messages.next` (F8) and `messages.previous` (Shift+F8): the cursor to the next or previous finding row in the
     /// pane's order (its view, sort and filter, the collapsed groups included and then expanded), wrapping, and opens
     /// it; the pane is docked first when it is closed (the focus stays).
-    pub(super) fn act_messages_walk(&mut self, forward: bool) -> Outcome {
+    pub(crate) fn act_messages_walk(&mut self, forward: bool) -> Outcome {
         if !self.navs.contains_key(&NavKind::Messages) {
             self.open_messages();
         } else {
@@ -356,7 +356,7 @@ impl ShellModel {
     }
 
     /// `messages.check` (Tools ▸ Run checks): ends the pending state and fetches the pane's table again.
-    pub(super) fn act_messages_check(&mut self) -> Outcome {
+    pub(crate) fn act_messages_check(&mut self) -> Outcome {
         self.messages.editing_page = None;
         if let Some(n) = self.navs.get_mut(&NavKind::Messages) {
             n.table = None;
@@ -466,7 +466,7 @@ impl ShellModel {
     /// the date the window passed (`YYYY-MM-DD`: the window reads the clock, the shell never does). A short reason,
     /// an empty author or a missing date stays in the prompt and commits nothing; a commit saves the author back to
     /// the preference. `check.waive` is `HumanOnly`: headless the action refuses.
-    pub(super) fn act_messages_waive(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_messages_waive(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::Refused {
                 reason_key: "reason-human-only",
@@ -555,7 +555,7 @@ impl ShellModel {
     /// `messages.unwaive {key?}` (Unwaive in the Messages detail, FT-674): on a waived finding row (default the cursor
     /// row) commits one `check.unwaive` of its waiver, after which the finding is open again. Headless it refuses
     /// (`HumanOnly`).
-    pub(super) fn act_messages_unwaive(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_messages_unwaive(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::Refused {
                 reason_key: "reason-human-only",
@@ -585,7 +585,7 @@ impl ShellModel {
 
     /// `messages.fix {key?}`: previews the quick fix of a finding row (default the cursor row) and opens its card in the
     /// Messages pane, whatever FR-UI-044's policy would say; a finding without one refuses `reason-no-fix`.
-    pub(super) fn act_messages_fix(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_messages_fix(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match string_param(p, "key") {
             Err(e) => return e,
             Ok(Some(k)) => k.to_owned(),

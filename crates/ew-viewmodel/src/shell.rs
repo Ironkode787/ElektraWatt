@@ -72,7 +72,7 @@ mod palette;
 mod parts;
 mod projects;
 mod properties;
-mod tools;
+pub(crate) mod tools;
 // WP-S2.09 part 3: the history panel and context restore.
 mod undo_panel;
 // WP-S2.04 part 2: the wiring tools' host duties.
@@ -1466,7 +1466,7 @@ impl ShellModel {
         let before = self.epoch_rev();
         // WP-S2.09 §8.5: the context before the action is kept for the history entries it commits.
         let context = self.take_context();
-        let outcome = self.run_action(meta.id, p);
+        let outcome = (meta.handler)(self, p);
         self.keep_contexts(context);
         // The canvases follow the pages and the revision the action left (WP-S2.02 section 6.1, WP-S2.03 §6.2), and a
         // busy tool is escaped when its canvas changed (WP-S2.03 §7.2); the property grid fetches its sheet when its
@@ -1496,391 +1496,75 @@ impl ShellModel {
         outcome
     }
 
-    // map: action-arms: a new action goes in this match as one arm, beside its row in `actions::ACTIONS`.
-    /// The body of [`ShellModel::dispatch`] for an enabled action.
-    fn run_action(&mut self, id: &'static str, p: &Map<String, Value>) -> Outcome {
-        match id {
-            "file.new" => self.act_new(p),
-            "file.open_sample" => self.act_open_sample(p),
-            "file.import_qet" => self.act_import_qet(p),
-            "parts.import" => self.act_parts_import(p),
-            "parts.map" => self.act_parts_map(p),
-            "parts.map_import" => self.act_parts_map_import(),
-            "file.discard_journal" => self.act_discard_journal(p),
-            "view.workspace_load" => self.act_workspace_load(p),
-            "view.workspace_save" => self.act_workspace_save(p),
-            "view.workspace_reset" => self.act_workspace_reset(),
-            "settings.set" => self.act_settings_set(p),
-            "help.documentation" => self.act_documentation(p),
-            "help.tutorials" => self.act_tutorials(p),
-            "help.first_run" => self.act_first_run_open(p),
-            "help.notices" => self.open_dialog(Dialog::Notices),
-            "wizard.apply_check_scheme" => self.act_wizard_apply_check_scheme(p),
-            "first_run.set" => self.act_first_run_set(p),
-            "first_run.next" => self.act_first_run_step(1),
-            "first_run.back" => self.act_first_run_step(-1),
-            "first_run.finish" => self.act_first_run_finish(p),
-            "tools.company_standard" => self.act_wizard_open(),
-            "wizard.set" => self.act_wizard_set(p),
-            "wizard.next" => self.act_wizard_step(1),
-            "wizard.back" => self.act_wizard_step(-1),
-            "wizard.goto" => self.act_wizard_goto(p),
-            "wizard.reset" => self.act_wizard_reset(),
-            "wizard.cancel" => self.act_wizard_cancel(),
-            "wizard.finish" => self.act_wizard_finish(p),
-            "file.open" => self.act_open(p),
-            "file.open_recent" => self.act_open_recent(p),
-            "file.save" => self.act_save(),
-            "file.save_as" => self.act_save_as(p),
-            "file.export_pdf" => self.act_export_pdf(p),
-            "file.close" => self.act_close(p),
-            "app.quit" => self.act_quit(p),
-            "edit.undo" => self.act_undo(),
-            "edit.redo" => self.act_redo(),
-            // WP-S2.09 part 3
-            "preview.show" => self.act_preview_show(p),
-            "history.show" => self.act_history_show(p),
-            "view.bottom_dock" => self.act_bottom_dock(p),
-            "history.row" => self.act_history_row(p),
-            "history.undo_to" => self.act_history_undo_to(p),
-            "history.changes" => self.act_history_changes(p),
-            "pages.renumber" => self.act_pages_renumber(p),
-            "devices.renumber" => self.act_devices_renumber(p),
-            "project.purge_assets" => self.act_purge_assets(p),
-            // WP-S1.18 part 5: the revision dialogs of Check ▸ Revision.
-            "revision.approve" => self.act_revision_approve(p),
-            "revision.release" => self.act_revision_release(p),
-            "revision.withdraw" => self.act_revision_withdraw(p),
-            "revision.set_author" => self.act_revision_set_author(p),
-            "revision.incomplete" => self.act_revision_incomplete(p),
-            "page.next" => self.walk(self.page_index() + 1),
-            "page.previous" => self.walk(self.page_index().saturating_sub(1)),
-            "page.first" => self.walk(0),
-            "page.last" => self.walk(self.page_count().saturating_sub(1)),
-            "page.goto" => self.act_page_goto(p),
-            "lists.parts" => self.act_lists_parts(),
-            "nav.goto" => self.act_nav_goto(p),
-            "nav.back" => self.act_history(true),
-            "nav.forward" => self.act_history(false),
-            "nav.follow" => self.act_follow(p),
-            "nav.next_link" => self.act_link_step(p, true),
-            "nav.previous_link" => self.act_link_step(p, false),
-            "tab.new" => self.act_tab_new(),
-            "tab.close" => self.act_tab_close(),
-            "tab.next" => self.act_tab_cycle(1),
-            "tab.previous" => self.act_tab_cycle(-1),
-            "tab.focus_other" => self.act_focus_other(),
-            "tab.activate" => self.act_tab_activate(p),
-            "tab.move" => self.act_tab_move(p),
-            "tab.open" => self.act_tab_open(p),
-            "view.side_by_side" => self.act_side_by_side(),
-            "cursor.left" => self.act_cursor(p, -1, 0, false),
-            "cursor.right" => self.act_cursor(p, 1, 0, false),
-            "cursor.up" => self.act_cursor(p, 0, -1, false),
-            "cursor.down" => self.act_cursor(p, 0, 1, false),
-            "cursor.cell_left" => self.act_cursor(p, -1, 0, true),
-            "cursor.cell_right" => self.act_cursor(p, 1, 0, true),
-            "cursor.cell_up" => self.act_cursor(p, 0, -1, true),
-            "cursor.cell_down" => self.act_cursor(p, 0, 1, true),
-            "cursor.set" => self.act_cursor_set(p),
-            "pages.mode" => self.act_pages_mode(p),
-            "pages.sort" => self.act_pages_sort(p),
-            "pages.filter" => self.act_pages_filter(p),
-            "pages.toggle" => self.act_pages_toggle(p),
-            "pages.row" => self.act_pages_row(p),
-            "pages.open" => self.act_pages_open(p),
-            // WP-S2.06 part 1
-            "navigator.show" => self.act_navigator_show(p),
-            // WP-S2.17 part 3
-            "rail.show" => self.act_rail_show(p),
-            "props.show_advanced" => self.act_props_show_advanced(p),
-            "navigator.view" => self.act_navigator_view(p),
-            "navigator.sort" => self.act_navigator_sort(p),
-            "navigator.filter" => self.act_navigator_filter(p),
-            "navigator.toggle" => self.act_navigator_toggle(p),
-            "navigator.row" => self.act_navigator_row(p),
-            "navigator.open" => self.act_navigator_open(p),
-            "navigator.select" => self.act_navigator_select(p),
-            "navigator.mark" => self.act_navigator_mark(p),
-            "navigator.jump" => self.act_navigator_jump(p),
-            "navigator.apply" => self.act_navigator_apply(),
-            "pages.reorder" => self.act_pages_reorder(p),
-            "pages.move_up" => self.act_pages_move(true),
-            "pages.move_down" => self.act_pages_move(false),
-            // WP-S2.06 part 2
-            "navigator.highlight" => self.act_navigator_highlight(p),
-            "view.clear_highlights" => self.act_clear_highlights(),
-            // WP-S2.09 part 2: the message panel (§7.6).
-            "messages.show" => self.act_messages_show(p),
-            "messages.next" => self.act_messages_walk(true),
-            "messages.previous" => self.act_messages_walk(false),
-            "messages.fix" => self.act_messages_fix(p),
-            "messages.waive" => self.act_messages_waive(p),
-            "messages.unwaive" => self.act_messages_unwaive(p),
-            "messages.check" => self.act_messages_check(),
-            // WP-S2.06 part 3
-            "navigator.table" => self.act_navigator_table(p),
-            "table.columns" => self.act_table_columns(p),
-            "table.cell" => self.act_table_cell(p),
-            "table.edit" => self.act_table_edit(p),
-            "table.input" => self.act_table_input(p),
-            "table.commit" => self.act_table_commit(p),
-            "table.set" => self.act_table_set(p),
-            "table.fill_down" => self.act_table_fill_down(p),
-            "table.pattern_fill" => self.act_table_pattern_fill(p),
-            "table.paste" => self.act_table_paste(p),
-            "table.copy" => self.act_table_copy(p),
-            "table.clear" => self.act_table_clear(p),
-            "table.resolve" => self.act_table_resolve(p),
-            "table.drop" => self.act_table_drop(p),
-            "ui.focus" => self.act_focus(p),
-            "ui.focus_next" => self.act_focus_cycle(1),
-            "ui.focus_previous" => self.act_focus_cycle(-1),
-            "view.fit_page" => self.act_fit_page(p),
-            "view.zoom_in" => self.act_zoom_in(p),
-            "view.zoom_out" => self.act_zoom_out(p),
-            "view.zoom_actual" => self.act_zoom_actual(p),
-            "view.pan_left" => self.act_pan_step(p, -1.0, 0.0),
-            "view.pan_right" => self.act_pan_step(p, 1.0, 0.0),
-            "view.pan_up" => self.act_pan_step(p, 0.0, -1.0),
-            "view.pan_down" => self.act_pan_step(p, 0.0, 1.0),
-            "view.grid" => self.act_grid(),
-            "view.frame_stats" => self.act_frame_stats(),
-            "view.cpu_canvas" => self.act_cpu_canvas(),
-            "view.zoom_to" => self.act_zoom_to(p),
-            "view.pan" => self.act_pan(p),
-            "view.canvas_resize" => self.act_canvas_resize(p),
-            "canvas.pointer" => self.act_pointer(p),
-            "canvas.snapshot" | "canvas.preview_snapshot" => failed("message-no-snapshot", &[]),
-            "canvas.press" => self.act_press(p, false),
-            "canvas.release" => self.act_press(p, true),
-            "canvas.dwell" => self.act_dwell(p),
-            "canvas.activate" => self.act_activate_with(p),
-            "tool.back" => self.act_tool_back(),
-            "tool.select" => self.act_tool("select"),
-            "tool.measure" => self.act_tool("measure"),
-            "cp.next" => self.act_cp_step(p, tools::CpStep::Next),
-            "cp.previous" => self.act_cp_step(p, tools::CpStep::Previous),
-            "cp.next_unconnected" => self.act_cp_step(p, tools::CpStep::NextUnconnected),
-            "tool.place" => self.act_open_picker(crate::tools::PickerMode::Place),
-            "tool.place_part" => self.act_open_picker(crate::tools::PickerMode::Parts),
-            "place.pick" => self.act_place_pick(p),
-            "navigator.bind" => self.act_navigator_bind(p),
-            // WP-S1.19 part 6
-            "macros.insert" => self.act_macros_insert(p),
-            "macros.place" => self.act_macros_place(p),
-            "macros.value_set" => self.act_macros_value_set(p),
-            "macros.value" => self.act_macros_value(p),
-            "macros.save" => self.act_macros_save(p),
-            "libraries.update" => self.act_libraries_update(p),
-            // WP-S2.07 part 4a (§9.4)
-            "part.choose" => self.act_part_choose(p),
-            "part.search" => self.act_part_search(p),
-            "part.pick" => self.act_part_pick(p),
-            "part.favourite" => self.act_part_favourite(p),
-            "part.edit" => self.act_part_edit(p),
-            "part.field" => self.act_part_field(p),
-            "part.save" => self.act_part_save(),
-            "props.make_variable" => self.act_props_make_variable(p),
-            "picker.filter" => self.act_picker_filter(p),
-            "picker.row" => self.act_picker_row(p),
-            "picker.choose" => self.act_picker_choose(p),
-            "place.join" => self.act_place_join(),
-            "chooser.row" => self.act_chooser_row(p),
-            "chooser.type" => self.act_chooser_type(p),
-            "chooser.choose" => self.act_chooser_choose(p),
-            "strip.new" => self.act_strip_new(p),
-            "tool.rotate_cw" => self.act_tool_key(crate::tools::ToolKey::RotateCw),
-            "tool.rotate_ccw" => self.act_tool_key(crate::tools::ToolKey::RotateCcw),
-            "tool.mirror_x" => self.act_tool_key(crate::tools::ToolKey::MirrorX),
-            "tool.mirror_y" => self.act_tool_key(crate::tools::ToolKey::MirrorY),
-            "tool.next_variant" => self.act_tool_key(crate::tools::ToolKey::NextVariant),
-            "tool.next_rep_type" => self.act_tool_key(crate::tools::ToolKey::NextRepType),
-            "tool.move" => self.act_tool_move(),
-            // Shift+Enter or a double click: a selected free text opens text edit instead (WP-S2.04 §7.3, §10.5).
-            "tool.finish" => {
-                if self.tools.tool.name() == "select"
-                    && self.tools.tool.state() == "idle"
-                    && self.text_edit_target().is_ok()
-                {
-                    self.act_text_edit()
-                } else {
-                    self.send_tool(&crate::tools::CanvasEvent::Key(crate::tools::ToolKey::Finish))
-                }
-            }
-            "text.input" => match string_param(p, "text") {
-                Ok(Some(t)) => self.send_tool(&crate::tools::CanvasEvent::Text(t.to_owned())),
-                Ok(None) => failed("error-missing-param", &["text"]),
-                Err(e) => e,
-            },
-            "edit.delete_selection" => self.act_delete_selection(),
-            "rep.exchange" => self.act_rep_exchange(p),
-            // WP-S4.02 part 3 (D4, D10): placing on a panel page.
-            "tool.place_layout" => self.act_place_layout(p),
-            "layout.next" => self.act_layout_step(1),
-            "layout.previous" => self.act_layout_step(-1),
-            "layout.nudge" => self.act_layout_nudge(p),
-            "layout.rotate" => self.act_layout_turn(crate::tools::ToolKey::RotateCw),
-            "layout.flip" => self.act_layout_turn(crate::tools::ToolKey::MirrorX),
-            "layout.lock_selection" => self.act_layout_lock(true),
-            "layout.unlock_selection" => self.act_layout_lock(false),
-            "layout.options" => self.act_layout_options(p),
-            // WP-S2.04 part 2 (wiring, §8.7). Begin.
-            "tool.wire" => self.act_tool_wire(),
-            "canvas.activate_alt" => {
-                let mut alt = p.clone();
-                alt.insert("alt".into(), Value::Bool(true));
-                self.act_activate_with(&alt)
-            }
-            "tool.next_proposal" => self.send_proposal_key(),
-            "tool.connect_on_move" => {
-                // Refused in this package (§8.3); the status bar says why, the window has no other trace of a key.
-                self.tools.notice = Some(strings::text("reason-connect-on-place").to_owned());
-                self.tools.notice_sticky = false;
-                Outcome::Refused {
-                    reason_key: "reason-connect-on-place",
-                }
-            }
-            "tool.route_edit" => self.act_route_edit(),
-            "junction.open" => self.act_junction_open(),
-            "junction.member" => self.act_junction_member(p),
-            "junction.style" => self.act_junction_style(p),
-            "junction.wiring" => self.act_junction_wiring(p),
-            "project.crossings" => self.act_crossings(p),
-            // WP-S2.04 part 2. End.
-            // WP-S2.04 part 3 (interruption points and black boxes, §9.6). Begin.
-            "tool.ip" => self.act_tool_ip(),
-            "tool.ip_direction" => self.act_ip_direction(p),
-            "tool.star_source" => self.act_ip_key(crate::tools::ToolKey::ToggleStar),
-            "ip.name" => self.act_ip_name(p),
-            "ip.external" => self.act_ip_external(p),
-            "ip.continue_on" => self.act_ip_continue_on(p),
-            "ip.arrange_selected" => self.act_ip_arrange(p),
-            "tool.black_box" => self.act_tool_black_box(p),
-            "box.grip" => self.act_box_grip(p),
-            "box.add_cp" => self.act_box_add_cp(),
-            // WP-S2.04 part 3. End.
-            // WP-S2.04 part 4b (text and graphic tools, §10.7). Begin.
-            "tool.text" => self.act_tool_text(),
-            "tool.graphic" => self.act_tool_graphic(p),
-            "text.bind" => self.act_text_bind(p),
-            "text.edit" => self.act_text_edit(),
-            // FT-411: Edit ▸ Bridge terminals.
-            "strip.bridge" => self.act_strip_bridge(),
-            // WP-S2.07 part 1: the strip editor (§6.9).
-            "strip.edit" => self.act_strip_edit(p),
-            "strip.insert" => self.act_strip_insert(p),
-            "strip.delete_rows" => self.act_strip_delete_rows(),
-            "strip.move" => self.act_strip_move(p),
-            "strip.add_accessory" => self.act_strip_add_accessory(p),
-            "strip.unbridge" => self.act_strip_unbridge(),
-            // WP-S2.07 part 2 (§7, FT-490).
-            "cable.swap_cores" => self.act_cable_swap_cores(),
-            "navigator.delete" => self.act_navigator_delete(p),
-            "navigator.rename" => self.act_navigator_rename(p),
-            // G-PP triage row 7: Draw ▸ Bond.
-            "bond.draw" => self.act_bond_draw(p),
-            // WP-S2.04 part 4b (marker and structure box, §10.5 to §10.7).
-            "tool.marker" => self.act_tool_marker(),
-            "marker.fields" => self.act_marker_fields(p),
-            "tool.structure_box" => self.act_tool_structure_box(),
-            "structure_box.fields" => self.act_structure_box_fields(p),
-            "project.marker_mode" => self.act_marker_mode(p),
-            // WP-S2.04 part 4b. End.
-            // WP-S2.04 part 5 (images, §11).
-            "tool.image" => self.act_tool_image(),
-            "image.pick" => self.act_image_pick(p),
-            "image.file" => self.act_image_file(p),
-            "props.show" => self.act_props_show(p),
-            "props.focus" => self.act_props_focus(),
-            "props.project" => self.act_props_project(),
-            "select.set" => self.act_select_set(p),
-            "props.row" => self.act_props_row(p),
-            "props.category" => self.act_props_category(p),
-            "props.edit" => self.act_props_edit(p),
-            "props.input" => self.act_props_input(p),
-            "props.commit" => self.act_props_commit(),
-            "props.cancel" => self.act_props_cancel(),
-            "props.set" => self.act_props_set(p),
-            "props.accept_tag_proposal" => self.act_props_accept_tag_proposal(),
-            "props.choose" => self.act_props_choose(p),
-            "props.row_menu" => self.act_props_row_menu(p),
-            "props.filter" => self.act_props_filter(p),
-            "props.action" => self.act_props_action(p),
-            "props.list" => self.act_props_list(p),
-            "props.mltext" => self.act_props_mltext(p),
-            "preview.apply" => self.act_preview_apply(),
-            "preview.cancel" => self.act_preview_cancel(),
-            "toast.undo" => self.act_toast_undo(),
-            "toast.dismiss" => self.act_toast_dismiss(),
-            // WP-S2.09 part 1
-            "jobs.show" => self.act_jobs_show(p),
-            "jobs.cancel" => self.act_jobs_cancel(p),
-            "jobs.wait" => self.act_jobs_wait(p),
-            "jobs.open_result" => self.act_jobs_open_result(p),
-            "notifications.show" => self.act_notifications_show(p),
-            "notifications.run" => self.act_notifications_run(p),
-            "journal.recover" => self.act_journal_recover(),
-            "journal.keep" => self.act_journal_keep(),
-            // WP-S2.05 part 2
-            "find.open" => self.act_find_open(false),
-            "find.open_replace" => self.act_find_open(true),
-            "find.close" => self.act_find_close(),
-            "find.text" => self.act_find_text(p, false),
-            "find.replacement" => self.act_find_text(p, true),
-            "find.option" => self.act_find_option(p),
-            "find.fields" => self.act_find_fields(p),
-            "find.folios" => self.act_find_folios(p),
-            "find.run" => self.act_find_run(),
-            "find.row" => self.act_find_row(p),
-            "find.jump" => self.act_find_jump(),
-            "find.replace_all" => self.act_find_replace_all(),
-            // WP-S2.05 part 3
-            "edit.copy" => self.act_copy(),
-            "edit.cut" => self.act_cut(),
-            "edit.paste_clip" => self.act_paste_clip(p),
-            "paste.resolve" => self.act_paste_resolve(p),
-            "edit.duplicate" => self.act_duplicate(),
-            "edit.copy_tags" => self.act_copy_tags(),
-            "clipboard.text" => self.act_clipboard_text(p),
-            "ui.describe" => Outcome::Done,
-            // WP-S6.13 part 1
-            "page.describe" => self.act_page_describe(p),
-            // FT-408 and FT-409
-            "page.new" => self.act_page_new(p),
-            "structure.new" => self.act_structure_new(p),
-            "external_ref.new" => self.act_external_ref_new(p),
-            "view.ui_scale" => self.act_ui_scale(p),
-            // WP-S2.17 part 1
-            "view.theme" => self.act_view_setting("theme", p),
-            "view.density" => self.act_view_setting("density", p),
-            // WP-S2.17 part 2
-            "view.command_tab" => self.act_command_tab(p),
-            "view.command_bar" => self.act_command_bar(p),
-            "tools.palette" => self.act_palette(p),
-            "help.shortcuts" => {
-                // WP-S2.08 D8: the editor opens with an empty search and nothing recording.
-                self.keymap_editor = crate::keymap::EditorState::default();
-                self.open_dialog(Dialog::Shortcuts)
-            }
-            "keymap.search" => self.act_keymap_search(p),
-            "keymap.record_start" => self.act_keymap_record_start(p),
-            "keymap.record" => self.act_keymap_record(p),
-            "keymap.reset" => self.act_keymap_reset(p),
-            "keymap.import" => self.act_keymap_import(p),
-            "keymap.export" => self.act_keymap_export(p),
-            "help.about" => self.open_dialog(Dialog::About),
-            "command.run" => self.act_command_run(p),
-            "view.snapshot" => failed("message-no-snapshot", &[]),
-            "ui.dismiss" => self.act_dismiss(),
-            other => failed("error-unknown-action", &[other]),
+    /// `tool.finish`: Shift+Enter or a double click; a selected free text opens text edit instead (WP-S2.04 §7.3,
+    /// §10.5).
+    pub(crate) fn act_tool_finish(&mut self, _p: &Map<String, Value>) -> Outcome {
+        if self.tools.tool.name() == "select"
+            && self.tools.tool.state() == "idle"
+            && self.text_edit_target().is_ok()
+        {
+            self.act_text_edit()
+        } else {
+            self.send_tool(&crate::tools::CanvasEvent::Key(crate::tools::ToolKey::Finish))
         }
+    }
+
+    /// `text.input {text}`: the text typed into the tool.
+    pub(crate) fn act_text_input(&mut self, p: &Map<String, Value>) -> Outcome {
+        match string_param(p, "text") {
+            Ok(Some(t)) => self.send_tool(&crate::tools::CanvasEvent::Text(t.to_owned())),
+            Ok(None) => failed("error-missing-param", &["text"]),
+            Err(e) => e,
+        }
+    }
+
+    /// `canvas.activate_alt`: `canvas.activate` with `alt` forced.
+    pub(crate) fn act_canvas_activate_alt(&mut self, p: &Map<String, Value>) -> Outcome {
+        let mut alt = p.clone();
+        alt.insert("alt".into(), Value::Bool(true));
+        self.act_activate_with(&alt)
+    }
+
+    /// `tool.connect_on_move`: refused in this package (WP-S2.04 §8.3); the status bar says why, the window has no other
+    /// trace of a key.
+    pub(crate) fn act_tool_connect_on_move(&mut self, _p: &Map<String, Value>) -> Outcome {
+        self.tools.notice = Some(strings::text("reason-connect-on-place").to_owned());
+        self.tools.notice_sticky = false;
+        Outcome::Refused {
+            reason_key: "reason-connect-on-place",
+        }
+    }
+
+    /// `help.shortcuts`: the keymap editor opens with an empty search and nothing recording (WP-S2.08 D8).
+    pub(crate) fn act_help_shortcuts(&mut self, _p: &Map<String, Value>) -> Outcome {
+        self.keymap_editor = crate::keymap::EditorState::default();
+        self.open_dialog(Dialog::Shortcuts)
+    }
+
+    /// `canvas.snapshot` and `canvas.preview_snapshot`: only the window and the script runner take a snapshot.
+    pub(crate) fn act_canvas_snapshot(&mut self, _p: &Map<String, Value>) -> Outcome {
+        failed("message-no-snapshot", &[])
+    }
+
+    /// `view.snapshot`: only the window and the script runner take a snapshot.
+    pub(crate) fn act_view_snapshot(&mut self, _p: &Map<String, Value>) -> Outcome {
+        failed("message-no-snapshot", &[])
+    }
+
+    /// `ui.describe`: the description is read by the caller after the dispatch.
+    pub(crate) fn act_ui_describe(&mut self, _p: &Map<String, Value>) -> Outcome {
+        Outcome::Done
+    }
+
+    /// `script.expect_refused`: the script runner runs it before the dispatch; a direct dispatch does not know it.
+    pub(crate) fn act_script_expect_refused(&mut self, _p: &Map<String, Value>) -> Outcome {
+        failed("error-unknown-action", &["script.expect_refused"])
     }
 
     /// `page.describe {folio?}` (WP-S6.13 §5.5.3): the content of the page `folio` (default the page on show) as text, read
     /// from the page-content cache (one `page_tables` call when the (revision, folio) is not in it, none when it is);
     /// the script runner takes the text with [`ShellModel::take_page_text`]. Changes no state.
-    fn act_page_describe(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_page_describe(&mut self, p: &Map<String, Value>) -> Outcome {
         let folio = match string_param(p, "folio") {
             Err(e) => return e,
             Ok(Some(f)) => f.to_owned(),
@@ -1934,7 +1618,7 @@ impl ShellModel {
         self.page_text.take()
     }
 
-    fn open_dialog(&mut self, dialog: Dialog) -> Outcome {
+    pub(crate) fn open_dialog(&mut self, dialog: Dialog) -> Outcome {
         self.palette = None;
         self.dialog = Some(dialog);
         Outcome::Done
@@ -1983,7 +1667,7 @@ impl ShellModel {
         }
     }
 
-    fn act_open(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_open(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.has_project()
             && let Some(outcome) = self.guard_unsaved("file.open", p)
         {
@@ -1997,7 +1681,7 @@ impl ShellModel {
         self.open_dir(&dir, flag(p, "read_only"))
     }
 
-    fn act_open_recent(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_open_recent(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(index) = p.get("index").and_then(Value::as_u64) else {
             return failed("error-missing-param", &["index"]);
         };
@@ -2263,7 +1947,7 @@ impl ShellModel {
         self.refresh_rows();
     }
 
-    fn act_save(&mut self) -> Outcome {
+    pub(crate) fn act_save(&mut self) -> Outcome {
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: "reason-no-project",
@@ -2288,7 +1972,7 @@ impl ShellModel {
         }
     }
 
-    fn act_save_as(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_save_as(&mut self, p: &Map<String, Value>) -> Outcome {
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
             Ok(Some(dir)) => PathBuf::from(dir),
@@ -2322,7 +2006,7 @@ impl ShellModel {
         }
     }
 
-    fn act_close(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_close(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(outcome) = self.guard_unsaved("file.close", p) {
             return outcome;
         }
@@ -2330,7 +2014,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    fn act_quit(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_quit(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(outcome) = self.guard_unsaved("app.quit", p) {
             return outcome;
         }
@@ -2339,7 +2023,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    fn act_undo(&mut self) -> Outcome {
+    pub(crate) fn act_undo(&mut self) -> Outcome {
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: "reason-no-project",
@@ -2374,7 +2058,7 @@ impl ShellModel {
         }
     }
 
-    fn act_redo(&mut self) -> Outcome {
+    pub(crate) fn act_redo(&mut self) -> Outcome {
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
                 reason_key: "reason-no-project",
@@ -2409,7 +2093,7 @@ impl ShellModel {
         }
     }
 
-    fn act_ui_scale(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_ui_scale(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(scale) = p.get("scale").and_then(Value::as_f64) else {
             return failed("error-missing-param", &["scale"]);
         };
@@ -2423,7 +2107,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    fn act_palette(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_palette(&mut self, p: &Map<String, Value>) -> Outcome {
         let query = match string_param(p, "query") {
             Err(e) => return e,
             Ok(q) => q,
@@ -2445,7 +2129,7 @@ impl ShellModel {
     /// link preview); with none open it sends `Escape` to the active tool, and when the tool was in its first state
     /// a tool other than Select is replaced by Select and Select's selection is cleared. A banner has a button of its
     /// own, [`ShellModel::dismiss_banner`].
-    fn act_dismiss(&mut self) -> Outcome {
+    pub(crate) fn act_dismiss(&mut self) -> Outcome {
         // WP-S2.09 §6.6: Escape in the confirmation that Discard… opened returns to the recovery dialog.
         if matches!(self.dialog, Some(Dialog::ConfirmJournalDiscard))
             && let Some(stashed) = self.recovery_stash.take()
@@ -2553,7 +2237,7 @@ impl ShellModel {
         }
     }
 
-    fn act_command_run(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_command_run(&mut self, p: &Map<String, Value>) -> Outcome {
         let cmd = match string_param(p, "cmd") {
             Err(e) => return e,
             Ok(Some(cmd)) => cmd.to_owned(),

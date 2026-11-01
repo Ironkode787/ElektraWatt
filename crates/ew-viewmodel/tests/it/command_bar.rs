@@ -100,7 +100,7 @@ fn cb1_the_registry_places_every_command_once_and_the_app_menu_holds_every_actio
         assert_eq!(p.group.tab(), p.tab, "{}: the group's tab", a.id);
         let icon = a.icon.unwrap_or_else(|| panic!("{} has no icon key", a.id));
         assert!(!icon.is_empty(), "{}", a.id);
-        assert!(strings::lookup(a.label_key).is_some(), "{} has no label", a.id);
+        assert!(strings::lookup(&a.label_key()).is_some(), "{} has no label", a.id);
         if let Some(key) = p.bar_label {
             assert!(strings::lookup(key).is_some(), "{}: bar label {key}", a.id);
         }

@@ -600,7 +600,7 @@ pub fn refusal_text(finding: &Finding, recorded: &str) -> String {
         } if actions.contains(&recorded) => {
             let label = |id: &str| {
                 crate::actions::find(id)
-                    .map_or_else(|| id.to_owned(), |m| strings::text(m.label_key).to_owned())
+                    .map_or_else(|| id.to_owned(), |m| strings::text(&m.label_key()).to_owned())
             };
             let others: Vec<String> = actions
                 .iter()
@@ -996,7 +996,8 @@ impl Finding {
     /// The English text the editor and the banner show.
     pub fn text(&self) -> String {
         let label = |id: &str| {
-            crate::actions::find(id).map_or_else(|| id.to_owned(), |m| strings::text(m.label_key).to_owned())
+            crate::actions::find(id)
+                .map_or_else(|| id.to_owned(), |m| strings::text(&m.label_key()).to_owned())
         };
         match self {
             Finding::Conflict {
@@ -1164,8 +1165,8 @@ pub fn sheet_json() -> String {
         }
         actions.push(serde_json::json!({
             "action": meta.id,
-            "label_key": meta.label_key,
-            "label": strings::text(meta.label_key),
+            "label_key": meta.label_key(),
+            "label": strings::text(&meta.label_key()),
             "context": context_word(meta.context),
             "bindings": bindings,
         }));
@@ -1247,7 +1248,7 @@ pub fn editor_rows(preset: Preset, user: Option<&Keymap>, query: &str) -> Vec<Ed
             let chords = chords_of(preset, user, meta);
             let row = EditorRow {
                 action: meta.id,
-                label: strings::text(meta.label_key).to_owned(),
+                label: strings::text(&meta.label_key()).to_owned(),
                 context: chords.first().map_or(meta.context, |(_, c)| *c),
                 chords: chords.iter().map(|(c, _)| c.text()).collect(),
                 custom: is_changed(preset, user, meta),
@@ -1513,8 +1514,8 @@ mod tests {
             context: Context::Canvas,
             actions: vec!["tool.move", "tool.wire"],
         };
-        let wire = strings::text(crate::actions::find("tool.wire").unwrap().label_key);
-        let r#move = strings::text(crate::actions::find("tool.move").unwrap().label_key);
+        let wire = strings::text(&crate::actions::find("tool.wire").unwrap().label_key());
+        let r#move = strings::text(&crate::actions::find("tool.move").unwrap().label_key());
         assert_eq!(
             refusal_text(&conflict, "tool.wire"),
             format!("M is already {move} in the canvas.")

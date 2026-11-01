@@ -861,7 +861,7 @@ impl ShellModel {
 
     /// `navigator.show {kind, on?}`: shows a navigator as a tab beside the Pages pane and focuses it, or (`on: false`)
     /// closes it.
-    pub(super) fn act_navigator_show(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.kind_param(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -905,7 +905,7 @@ impl ShellModel {
     /// (opening its navigator beside the Pages pane first, as `navigator.show` does) and expands the column; on the entry
     /// already shown with the column expanded, collapses the column. `project` is the Pages pane, `devices` the Devices
     /// navigator. The right rail's palettes are not panes yet: refused with the reason.
-    pub(super) fn act_rail_show(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_rail_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let side = match string_param(p, "side") {
             Err(e) => return e,
             Ok(None) => crate::rail::Side::Left,
@@ -958,7 +958,7 @@ impl ShellModel {
     }
 
     /// `navigator.view {kind, view}`: Pages takes its modes (`pages.mode`), the others `tree` or `flat`.
-    pub(super) fn act_navigator_view(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_view(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -983,7 +983,7 @@ impl ShellModel {
     }
 
     /// `navigator.sort {kind, by, descending?}`: Pages takes `folio` or `type`, the others `label` or a column key.
-    pub(super) fn act_navigator_sort(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_sort(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1028,7 +1028,7 @@ impl ShellModel {
     }
 
     /// `navigator.filter {kind, text}`.
-    pub(super) fn act_navigator_filter(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_filter(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1049,7 +1049,7 @@ impl ShellModel {
     }
 
     /// `navigator.toggle {kind, key}`: expands or collapses a node with children.
-    pub(super) fn act_navigator_toggle(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_toggle(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1102,7 +1102,7 @@ impl ShellModel {
     /// `navigator.row {kind, key?, step?, to?, extend?}`: moves the cursor (a `key` under a collapsed node expands its
     /// path, FT-528); `extend` marks the range from the anchor to the new cursor in visible order (Shift+Up,
     /// Shift+Down, Shift+click).
-    pub(super) fn act_navigator_row(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1174,7 +1174,7 @@ impl ShellModel {
 
     /// `navigator.open {kind, key?, new_tab?}`: opens a row's target in the focused tab as a jump (a page row its page;
     /// a device row the page of its first drawable with its drawables there selected); a node without a target toggles.
-    pub(super) fn act_navigator_open(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_open(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1286,7 +1286,7 @@ impl ShellModel {
     }
 
     /// `navigator.select {kind, keys, add?}`: marks the rows (`add`: to the marked ones) and synchronises the selection.
-    pub(super) fn act_navigator_select(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_select(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1319,7 +1319,7 @@ impl ShellModel {
     }
 
     /// `navigator.mark {kind?, key?}` (Space): toggles the mark of a row (default the cursor row).
-    pub(super) fn act_navigator_mark(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_mark(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1348,7 +1348,7 @@ impl ShellModel {
 
     /// `navigator.jump {kind, prefix}`: moves the cursor to the next visible row (after the cursor, wrapping) whose label
     /// starts with `prefix`, case-folded (type-ahead without a clock).
-    pub(super) fn act_navigator_jump(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_jump(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1391,7 +1391,7 @@ impl ShellModel {
 
     /// `navigator.apply` (Ctrl+Enter with a card in the pane): applies the reorder card, (WP-S2.09 part 2) the
     /// quick-fix card or (WP-S2.06 part 3) a table card.
-    pub(super) fn act_navigator_apply(&mut self) -> Outcome {
+    pub(crate) fn act_navigator_apply(&mut self) -> Outcome {
         if !self.props.card().is_some_and(|c| {
             matches!(
                 c.origin,
@@ -1449,7 +1449,7 @@ impl ShellModel {
 
     /// `pages.reorder {pages?, before?, end?}`: builds `page.reorder` from folios (default the marked page records) and
     /// shows its card in the Pages pane.
-    pub(super) fn act_pages_reorder(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_pages_reorder(&mut self, p: &Map<String, Value>) -> Outcome {
         let pages: Vec<PageRow> = match p.get("pages") {
             None => match self.marked_pages() {
                 Ok(v) => v,
@@ -1588,7 +1588,7 @@ impl ShellModel {
 
     /// `pages.move_up` (Alt+Up) and `pages.move_down` (Alt+Down): the marked page records (else the cursor row's page)
     /// one position up or down within their section.
-    pub(super) fn act_pages_move(&mut self, up: bool) -> Outcome {
+    pub(crate) fn act_pages_move(&mut self, up: bool) -> Outcome {
         let moved = match self.marked_pages() {
             Ok(v) => v,
             Err(e) => return e,
@@ -1714,7 +1714,7 @@ impl ShellModel {
     /// `navigator.highlight {kind?, key?, off?}` (Ctrl+Shift+H): highlights the potential or the net of a row (default
     /// the cursor row), or removes its highlight when it is shown (always with `off: true`). A fifth highlight replaces
     /// the oldest. View state: no command, no undo entry.
-    pub(super) fn act_navigator_highlight(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_navigator_highlight(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match self.open_kind(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -1749,7 +1749,7 @@ impl ShellModel {
     }
 
     /// `view.clear_highlights`: removes every highlight.
-    pub(super) fn act_clear_highlights(&mut self) -> Outcome {
+    pub(crate) fn act_clear_highlights(&mut self) -> Outcome {
         self.highlights.clear();
         Outcome::Done
     }

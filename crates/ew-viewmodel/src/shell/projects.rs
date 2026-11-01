@@ -118,7 +118,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_new(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_new(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.has_project()
             && let Some(outcome) = self.guard_unsaved("file.new", p)
         {
@@ -151,7 +151,7 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_open_sample(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_open_sample(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sample) = self.config.resources.sample_dir.clone().filter(|d| d.is_dir()) else {
             return failed("error-no-sample", &[]);
         };
@@ -175,7 +175,7 @@ impl ShellModel {
         outcome
     }
 
-    pub(super) fn act_tutorials(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_tutorials(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sample) = self.config.resources.sample_dir.clone().filter(|d| d.is_dir()) else {
             // Without the sample the tutorials page still opens.
             self.request_doc("tutorials");
@@ -220,7 +220,7 @@ impl ShellModel {
         outcome
     }
 
-    pub(super) fn act_import_qet(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_import_qet(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.has_project()
             && let Some(outcome) = self.guard_unsaved("file.import_qet", p)
         {
@@ -299,7 +299,7 @@ impl ShellModel {
         self.create_and_install(session, &dir, "error-import-write", Some(banner))
     }
 
-    pub(super) fn act_discard_journal(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_discard_journal(&mut self, p: &Map<String, Value>) -> Outcome {
         if !flag(p, "confirm") {
             return match self.mode {
                 Mode::Headless => failed("error-confirm-needed", &[]),

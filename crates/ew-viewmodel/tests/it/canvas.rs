@@ -108,7 +108,7 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
         "canvas.snapshot",
     ] {
         let meta = actions::find(id).unwrap_or_else(|| panic!("{id} is registered"));
-        assert!(ew_viewmodel::strings::lookup(meta.label_key).is_some(), "{id}");
+        assert!(ew_viewmodel::strings::lookup(&meta.label_key()).is_some(), "{id}");
         let hidden = matches!(
             id,
             "view.zoom_to" | "view.pan" | "view.canvas_resize" | "canvas.pointer"

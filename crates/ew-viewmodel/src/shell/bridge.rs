@@ -230,7 +230,7 @@ impl ShellModel {
 
     /// `strip.bridge` (Edit ▸ Bridge terminals, FT-411, cycle 33): the page-less bridges between the selected
     /// terminals, consecutive in the strip's order, one undo step.
-    pub(super) fn act_strip_bridge(&mut self) -> Outcome {
+    pub(crate) fn act_strip_bridge(&mut self) -> Outcome {
         match self.bridge_command() {
             Ok(cmd) => {
                 // FT-549: the bridges and the terminals they join, counted from the command.
@@ -337,7 +337,7 @@ impl ShellModel {
     }
 
     /// `strip.unbridge` (the strip editor's row menu, D11): one `edit.delete`, the toast.
-    pub(super) fn act_strip_unbridge(&mut self) -> Outcome {
+    pub(crate) fn act_strip_unbridge(&mut self) -> Outcome {
         match self.unbridge_command() {
             Ok(cmd) => {
                 let n = cmd.params["targets"].as_array().map_or(0, Vec::len);

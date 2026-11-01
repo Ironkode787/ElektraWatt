@@ -180,31 +180,31 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn act_zoom_in(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_zoom_in(&mut self, p: &Map<String, Value>) -> Outcome {
         self.with_canvas(p, CanvasModel::zoom_in)
     }
 
-    pub(super) fn act_zoom_out(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_zoom_out(&mut self, p: &Map<String, Value>) -> Outcome {
         self.with_canvas(p, CanvasModel::zoom_out)
     }
 
-    pub(super) fn act_zoom_actual(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_zoom_actual(&mut self, p: &Map<String, Value>) -> Outcome {
         self.with_canvas(p, |c| c.zoom_about(1.0, c.centre()))
     }
 
-    pub(super) fn act_fit_page(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_fit_page(&mut self, p: &Map<String, Value>) -> Outcome {
         self.with_canvas(p, CanvasModel::fit)
     }
 
     /// One eighth of the pane in the direction `(sx, sy)` of the view (the content moves the other way).
-    pub(super) fn act_pan_step(&mut self, p: &Map<String, Value>, sx: f64, sy: f64) -> Outcome {
+    pub(crate) fn act_pan_step(&mut self, p: &Map<String, Value>, sx: f64, sy: f64) -> Outcome {
         self.with_canvas(p, |c| {
             let (w, h) = c.pane();
             c.pan_points(-sx * w / 8.0, -sy * h / 8.0);
         })
     }
 
-    pub(super) fn act_zoom_to(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_zoom_to(&mut self, p: &Map<String, Value>) -> Outcome {
         let percent = match positive(p, "percent") {
             Ok(v) => v,
             Err(e) => return e,
@@ -219,7 +219,7 @@ impl ShellModel {
         })
     }
 
-    pub(super) fn act_pan(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_pan(&mut self, p: &Map<String, Value>) -> Outcome {
         let (dx, dy) = match (number(p, "dx"), number(p, "dy")) {
             (Ok(dx), Ok(dy)) => (dx, dy),
             (Err(e), _) | (_, Err(e)) => return e,
@@ -230,7 +230,7 @@ impl ShellModel {
     /// `view.canvas_resize`: the pane of a group (the optional `group`, default the focused one); every canvas of
     /// the group follows: on the group's first size a fitted page fits again, after it the zoom and the centre stay
     /// (FX38d). The first group's size is also the pane a new project's first group gets.
-    pub(super) fn act_canvas_resize(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_canvas_resize(&mut self, p: &Map<String, Value>) -> Outcome {
         let (width, height) = match (positive(p, "width"), positive(p, "height")) {
             (Ok(w), Ok(h)) => (w, h),
             (Err(e), _) | (_, Err(e)) => return e,
@@ -277,7 +277,7 @@ impl ShellModel {
     /// `canvas.pointer` on a group (default the focused one); the other group's pointer is cleared. With a point on
     /// the focused group the active tool gets `PointerMove` with the optional `shift`, `ctrl` and `alt` (WP-S2.03
     /// §7.9).
-    pub(super) fn act_pointer(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_pointer(&mut self, p: &Map<String, Value>) -> Outcome {
         let out = self.set_pointer_of(p);
         if out != Outcome::Done {
             return out;
@@ -324,12 +324,12 @@ impl ShellModel {
         out
     }
 
-    pub(super) fn act_grid(&mut self) -> Outcome {
+    pub(crate) fn act_grid(&mut self) -> Outcome {
         self.grid_on = !self.grid_on;
         Outcome::Done
     }
 
-    pub(super) fn act_frame_stats(&mut self) -> Outcome {
+    pub(crate) fn act_frame_stats(&mut self) -> Outcome {
         self.frame_stats = !self.frame_stats;
         Outcome::Done
     }
@@ -337,7 +337,7 @@ impl ShellModel {
     /// View, Use the CPU renderer for the canvas: flips the `canvas_backend` setting between `auto` and `cpu` and
     /// saves it. The host applies it in the next frame (the switch rule's row 2, WP-S2.02 section 7.2); in the
     /// headless mode the canvas is the CPU canvas either way.
-    pub(super) fn act_cpu_canvas(&mut self) -> Outcome {
+    pub(crate) fn act_cpu_canvas(&mut self) -> Outcome {
         let next = if self.cpu_canvas_setting() {
             CANVAS_BACKENDS[0]
         } else {

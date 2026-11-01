@@ -234,7 +234,7 @@ impl ShellModel {
     }
 
     /// `preview.show {on?}`: shows or closes the Preview tab; closing it with a card pending cancels the card.
-    pub(super) fn act_preview_show(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_preview_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.preview_shown();
         let want = match super::jobs::bool_param(p, "on", !shown) {
             Ok(w) => w,
@@ -415,7 +415,7 @@ impl ShellModel {
     /// `pages.renumber {section?, start?, step?, keep_gaps?}` (Page, Renumber pages…): `page.renumber` of a section's
     /// pages (`front`: the pages of no section) from `start`, opening the `bulk` card. Without `start` the window opens
     /// the dialog (Section, Start, Step, Keep gaps); headless the step fails.
-    pub(super) fn act_pages_renumber(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_pages_renumber(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "pages.renumber";
         let section = match string_param(p, "section") {
             Err(e) => return e,
@@ -553,7 +553,7 @@ impl ShellModel {
     /// `numbering.renumber` of the project, the current page or the selected devices, opening the `bulk` card. Without
     /// `scheme` the window opens the dialog (Scope, Scheme, Include frozen tags, Only non-conforming); headless the step
     /// fails.
-    pub(super) fn act_devices_renumber(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_devices_renumber(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "devices.renumber";
         let scope = match string_param(p, "scope") {
             Err(e) => return e,
@@ -658,7 +658,7 @@ impl ShellModel {
     /// `Session::purge_preview`'s image files; with it `project.assets.purge` of exactly those files is committed from
     /// the GUI origin (its own marker line enters the history), and without an open confirmation it refuses. An empty
     /// plan refuses; headless the action refuses (`HumanOnly`).
-    pub(super) fn act_purge_assets(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_purge_assets(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::Refused {
                 reason_key: "reason-human-only",

@@ -118,7 +118,7 @@ impl ShellModel {
             .iter()
             .filter(|a| !a.headless_only && !a.hidden && keep(a))
         {
-            let label = strings::text(meta.label_key);
+            let label = strings::text(&meta.label_key());
             let aliases = glossary::aliases_of(meta.id);
             let state = match form_plan(meta) {
                 FormPlan::Disabled(reason) => Err(reason),

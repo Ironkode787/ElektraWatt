@@ -671,7 +671,7 @@ impl ShellModel {
     // Actions
 
     /// `tool.place` and `tool.place_part` (§7.6): opens the picker of the focused page.
-    pub(super) fn act_open_picker(&mut self, mode: PickerMode) -> Outcome {
+    pub(crate) fn act_open_picker(&mut self, mode: PickerMode) -> Outcome {
         let Some(cat) = self.catalogue() else {
             return Outcome::Refused {
                 reason_key: "reason-no-catalogue",
@@ -685,7 +685,7 @@ impl ShellModel {
     }
 
     /// `picker.filter {text}`.
-    pub(super) fn act_picker_filter(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_picker_filter(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match string_param(p, "text") {
             Ok(Some(t)) => t.to_owned(),
             Ok(None) => return failed("error-missing-param", &["text"]),
@@ -699,7 +699,7 @@ impl ShellModel {
 
     /// `picker.row {step | to}`: Up, Down (`step` −1, 1), Home (`to` `first` or 0), End (`to` `last`, −1 or a large
     /// number). Either parameter alone is enough (the signature lists both as optional).
-    pub(super) fn act_picker_row(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_picker_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let step = p.get("step").and_then(Value::as_i64);
         let to = match p.get("to") {
             None => None,
@@ -724,7 +724,7 @@ impl ShellModel {
     }
 
     /// `picker.choose`: the current row (§7.1).
-    pub(super) fn act_picker_choose(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_picker_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(picker) = &self.tools.picker else {
             return Outcome::Refused {
                 reason_key: "reason-no-picker",
@@ -790,7 +790,7 @@ impl ShellModel {
     /// `template` (0-based), `function` (ID, with `symbol`); optional `letter`; for a terminal `strip` (tag or ID)
     /// and `designation`. WP-S2.18 D4: `device=<tag>` (with `symbol`) joins an existing device, and `function` also
     /// takes `<tag>:<slot>` or `<tag>` (with `symbol`): see [`super::join`].
-    pub(super) fn act_place_pick(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_place_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(cat) = self.catalogue() else {
             return Outcome::Refused {
                 reason_key: "reason-no-catalogue",
@@ -897,7 +897,7 @@ impl ShellModel {
 
     /// `strip.new {letter}` (§7.6): a host commit of `device.create` with the strip aspect. While the picker's strip
     /// chooser is open it lists the new strip, which becomes its current row (FT-421).
-    pub(super) fn act_strip_new(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_strip_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let letter = match string_param(p, "letter") {
             Ok(v) => v.unwrap_or("X").to_owned(),
             Err(e) => return e,
@@ -941,7 +941,7 @@ impl ShellModel {
     /// The transform keys (§7.4, §7.2): `Key(k)` to the active tool; with Select, V on several representations is
     /// refused `reason-one-rep` and Shift+V `reason-place-only`; with Place, Shift+V is the host's (the next
     /// catalogue symbol drawing the same function definition).
-    pub(super) fn act_tool_key(&mut self, key: ToolKey) -> Outcome {
+    pub(crate) fn act_tool_key(&mut self, key: ToolKey) -> Outcome {
         if matches!(key, ToolKey::NextProposal | ToolKey::ConnectOnMove) {
             return self.send_tool(&CanvasEvent::Key(key));
         }
@@ -1055,7 +1055,7 @@ impl ShellModel {
     /// and structure boxes); the grid cursor goes to the primary entity's anchor when it is not shown, else the first
     /// movable entity's (a representation's insertion point, an item's top-left bounds corner, a structure box's
     /// first outline vertex).
-    pub(super) fn act_tool_move(&mut self) -> Outcome {
+    pub(crate) fn act_tool_move(&mut self) -> Outcome {
         if self.tools.tool.name() != "select"
             && let Some(select) = crate::tools::tool_named("select")
         {
@@ -1133,7 +1133,7 @@ impl ShellModel {
 
     /// `edit.delete_selection` (Delete, §7.4): `edit.delete` with every entity of the selection the page tables
     /// resolve.
-    pub(super) fn act_delete_selection(&mut self) -> Outcome {
+    pub(crate) fn act_delete_selection(&mut self) -> Outcome {
         self.cancel_pending_move();
         // FT-485 items 9 and 10: a device or a function selected by reference (`select.set` with `tag:…`) is deleted as
         // the representations the page shown draws of it, as Cut takes it; a device that no page draws (an empty strip,
@@ -1397,7 +1397,7 @@ impl ShellModel {
 
     /// `rep.exchange {symbol?}` (§7.5): on exactly one selected representation that draws no interruption point;
     /// without `symbol` the picker opens in exchange mode, with one the tool is armed at once.
-    pub(super) fn act_rep_exchange(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_rep_exchange(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
                 reason_key: "reason-no-page",

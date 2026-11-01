@@ -572,7 +572,7 @@ impl ShellModel {
 
     /// `page.new {folio, type?, title?, section?}` (FT-408): one `page.create` with the explicit folio, then the new page
     /// is shown.
-    pub(super) fn act_page_new(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_page_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
         for f in PAGE_NEW.fields {
             match text_param(p, f.name) {
@@ -674,7 +674,7 @@ impl ShellModel {
     }
 
     /// `structure.new {kind, designation, parent?}` (FT-409): one `structure.create_node`.
-    pub(super) fn act_structure_new(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_structure_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
         for f in STRUCTURE_NEW.fields {
             match text_param(p, f.name) {
@@ -733,7 +733,7 @@ impl ShellModel {
 
     /// `external_ref.new {location, device, connection?, project?}` (FT-409): one `external_ref.create` at a location
     /// node.
-    pub(super) fn act_external_ref_new(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_external_ref_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
         for f in EXTERNAL_REF_NEW.fields {
             match text_param(p, f.name) {

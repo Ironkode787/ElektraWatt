@@ -55,7 +55,7 @@ fn cp_by_label(t: &PageTables, label: &str) -> Result<TableEnd, Outcome> {
 impl ShellModel {
     /// `bond.draw` (Draw ▸ Bond): previews `bond.create` on the selected connection or on the CPs `a` and `b`, with
     /// `kind` (default `pelv_0v_pe`), and shows its card.
-    pub(super) fn act_bond_draw(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_bond_draw(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = match string_param(p, "kind") {
             Err(e) => return e,
             Ok(None) => BOND_KINDS[0],

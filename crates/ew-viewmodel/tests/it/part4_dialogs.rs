@@ -300,7 +300,7 @@ fn cp3_the_wording_lint() {
     let (mut shell, dialogs) = every_dialog(&tmp);
     let mut texts: Vec<(String, String)> = Vec::new();
     for meta in ACTIONS {
-        texts.push((meta.id.to_owned(), strings::text(meta.label_key).to_owned()));
+        texts.push((meta.id.to_owned(), strings::text(&meta.label_key()).to_owned()));
     }
     for d in &dialogs {
         let s = spec(d, &shell);
@@ -333,7 +333,7 @@ fn cp3_the_wording_lint() {
     // The ellipsis ends exactly the labels of the actions that ask for more input first.
     let with: BTreeSet<&str> = ACTIONS
         .iter()
-        .filter(|m| strings::text(m.label_key).ends_with('…'))
+        .filter(|m| strings::text(&m.label_key()).ends_with('…'))
         .map(|m| m.id)
         .collect();
     let expected: BTreeSet<&str> = OPENS_INPUT

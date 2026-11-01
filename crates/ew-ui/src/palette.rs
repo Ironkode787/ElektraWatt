@@ -277,7 +277,8 @@ pub fn show(
 /// field (a check box for a `bool`, a list for an enumeration, a text field otherwise), then the last error. Enter
 /// runs the form (the palette's Enter); Escape returns to the list (`ui.dismiss`).
 fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, events: &mut Vec<Event>) {
-    let title = ew_viewmodel::actions::find(form.action).map_or(form.action, |m| strings::text(m.label_key));
+    let title =
+        ew_viewmodel::actions::find(form.action).map_or(form.action, |m| strings::text(&m.label_key()));
     ui.add_space(t.space_2);
     ui.horizontal(|ui| {
         ui.add_space(t.space_3);

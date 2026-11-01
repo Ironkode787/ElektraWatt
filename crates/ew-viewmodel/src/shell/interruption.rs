@@ -223,7 +223,7 @@ impl ShellModel {
 
     /// `tool.ip` (P): while the Wire tool routes, the wire ends in an interruption point (§9.2); otherwise the IP tool
     /// is armed with the IP symbol of the page's grid family.
-    pub(super) fn act_tool_ip(&mut self) -> Outcome {
+    pub(crate) fn act_tool_ip(&mut self) -> Outcome {
         if self.tools.tool.name() == "wire" && self.tools.tool.state() == "routing" {
             return self.wire_end_in_ip();
         }
@@ -306,7 +306,7 @@ impl ShellModel {
 
     /// `tool.ip_direction` (D) and `tool.star_source`: the IP tool's direction and star toggles; the star of an
     /// external connection point is refused (it never pairs).
-    pub(super) fn act_ip_key(&mut self, key: ToolKey) -> Outcome {
+    pub(crate) fn act_ip_key(&mut self, key: ToolKey) -> Outcome {
         let external = match self.ip_tool() {
             Some(t) => t.external().is_some(),
             None => {
@@ -328,7 +328,7 @@ impl ShellModel {
     /// `tool.ip_direction {direction?}`: D cycles the direction; the headless `direction` (`source`, `target`,
     /// `undirected`) sets it, so a script needs no knowledge of the default. While the Graphic tool draws an arc, D
     /// toggles the arc's sweep direction (WP-S2.04 §10.5) and a `direction` is refused.
-    pub(super) fn act_ip_direction(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_ip_direction(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() == "graphic" {
             if p.contains_key("direction") {
                 return failed("error-bad-param", &["direction"]);
@@ -363,7 +363,7 @@ impl ShellModel {
 
     /// `ip.name {text}`: the IP tool's name field. An empty or blank `text` (the field erased) cancels the typed name,
     /// so the next point takes its automatic name (cycle 41 review); a missing `text` is `error-missing-param`.
-    pub(super) fn act_ip_name(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_ip_name(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.ip_tool().is_none() {
             return Outcome::Refused {
                 reason_key: "reason-ip-tool-only",
@@ -452,7 +452,7 @@ impl ShellModel {
     /// `ip.external {external}`: the IP tool's external-reference field: an external reference by its ID (or alias,
     /// `id:<uuid>`) or its printed text (`JE-N1000-03:L`); an empty text clears it (the parameter is `external:text`;
     /// `null` is accepted too). While set, the ghost and the commit use the external arrow of the page's grid family.
-    pub(super) fn act_ip_external(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_ip_external(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.ip_tool().is_none() {
             return Outcome::Refused {
                 reason_key: "reason-ip-tool-only",
@@ -611,7 +611,7 @@ impl ShellModel {
     /// interruption point onto the page `folio`. Without a point: the same y (on the target's grid), and x the leftmost
     /// grid point inside the target's drawing area when the original lies in the right half of its page's drawing
     /// area, else the rightmost. With `x_mm`, `y_mm` (sheet mm of the target page): that point, snapped to its grid.
-    pub(super) fn act_ip_continue_on(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_ip_continue_on(&mut self, p: &Map<String, Value>) -> Outcome {
         let folio = match string_param(p, "folio") {
             Ok(Some(f)) => f.to_owned(),
             // Without a folio (the menu entry in the window): the next drawn page in page order.
@@ -709,7 +709,7 @@ impl ShellModel {
     /// of the page (at least two) sorted by the natural order of their names (`by: name`, the default) or of their
     /// derived potential names, then their names (`by: potential`; one without a potential last), ties by position (y, x), then ID,
     /// committed as `ip.arrange {ips, set_sort: chain_order}` (D12).
-    pub(super) fn act_ip_arrange(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_ip_arrange(&mut self, p: &Map<String, Value>) -> Outcome {
         let by_potential = match string_param(p, "by") {
             Ok(None | Some("name")) => false,
             Ok(Some("potential")) => true,
@@ -780,7 +780,7 @@ impl ShellModel {
 
     /// `tool.black_box` (B): without parameters the picker on the black-box rows; with `place.pick`'s parameters the
     /// black box tool is armed at once (a row that is no black box is refused).
-    pub(super) fn act_tool_black_box(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_tool_black_box(&mut self, p: &Map<String, Value>) -> Outcome {
         if !p.contains_key("symbol") && !p.contains_key("part") {
             return self.act_open_picker(PickerMode::BlackBox);
         }
@@ -812,7 +812,7 @@ impl ShellModel {
 
     /// `box.grip {grip}`: the keyboard form of a grip drag: grip `grip` of the one selected black box goes to the grid
     /// cursor, committed as `box.reshape` without `cps` (the CPs re-projected).
-    pub(super) fn act_box_grip(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_box_grip(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(grip) = p
             .get("grip")
             .and_then(Value::as_u64)
@@ -844,7 +844,7 @@ impl ShellModel {
     /// `box.add_cp` (Edit ▸ Add connection point): a CP of the one selected black box at the grid cursor, which must lie
     /// on its outline, with the smallest function CP index the box does not use, leaving along the edge's outward
     /// normal; committed as `box.reshape` with `cps`.
-    pub(super) fn act_box_add_cp(&mut self) -> Outcome {
+    pub(crate) fn act_box_add_cp(&mut self) -> Outcome {
         let (rep, at) = match self.box_and_cursor() {
             Ok(v) => v,
             Err(e) => return e,
@@ -941,7 +941,7 @@ impl ShellModel {
 fn second_source_text(name: &str, folio: &str, key: &str) -> String {
     if key.is_empty() {
         let title = crate::actions::find("tool.ip_direction")
-            .map_or("tool.ip_direction", |m| strings::text(m.label_key));
+            .map_or("tool.ip_direction", |m| strings::text(&m.label_key()));
         strings::format("notice-ip-second-source-unbound", &[name, folio, title])
     } else {
         strings::format("notice-ip-second-source", &[name, folio, key])

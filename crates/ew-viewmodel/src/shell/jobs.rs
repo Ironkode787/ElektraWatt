@@ -197,7 +197,7 @@ impl ShellModel {
     }
 
     /// `notifications.show {on?}` (View ▸ Notifications, the status bar's field): the log popup.
-    pub(super) fn act_notifications_show(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_notifications_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let want = match bool_param(p, "on", !self.notes.popup) {
             Ok(w) => w,
             Err(e) => return e,
@@ -207,7 +207,7 @@ impl ShellModel {
     }
 
     /// `notifications.run {entry, action}`: a log entry's action while it is valid.
-    pub(super) fn act_notifications_run(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_notifications_run(&mut self, p: &Map<String, Value>) -> Outcome {
         let serial = match uint_param(p, "entry") {
             Err(e) => return e,
             Ok(Some(n)) => n,
@@ -265,7 +265,7 @@ impl ShellModel {
     }
 
     /// `toast.undo`: the newest visible toast's Undo (the registry's undo); the toast goes.
-    pub(super) fn act_toast_undo(&mut self) -> Outcome {
+    pub(crate) fn act_toast_undo(&mut self) -> Outcome {
         let Some(toast) = self.notes.newest_visible().cloned() else {
             return Outcome::Refused {
                 reason_key: "reason-no-toast",
@@ -280,7 +280,7 @@ impl ShellModel {
     }
 
     /// `toast.dismiss`: the newest visible toast goes (the log keeps it).
-    pub(super) fn act_toast_dismiss(&mut self) -> Outcome {
+    pub(crate) fn act_toast_dismiss(&mut self) -> Outcome {
         if let Some(serial) = self.notes.newest_visible().map(|n| n.serial) {
             self.notes.dismiss(serial);
         }
@@ -291,7 +291,7 @@ impl ShellModel {
     // The PDF export (§6.3)
 
     /// `file.export_pdf {path?, replace?, wait?}`: the export as a job writing `path` through its hidden sibling.
-    pub(super) fn act_export_pdf(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_export_pdf(&mut self, p: &Map<String, Value>) -> Outcome {
         let path = match string_param(p, "path") {
             Err(e) => return e,
             Ok(Some(path)) => absolute_target(PathBuf::from(path)),
@@ -524,7 +524,7 @@ impl ShellModel {
     }
 
     /// `jobs.show {on?}` (View ▸ Jobs, the status bar's job field): the Jobs pane in the bottom dock (D14).
-    pub(super) fn act_jobs_show(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_jobs_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.jobs_shown();
         let want = match bool_param(p, "on", !shown) {
             Ok(w) => w,
@@ -542,7 +542,7 @@ impl ShellModel {
     }
 
     /// `jobs.cancel {job?}`: sets the cancel flag of a running job (the newest by default); its end arrives later.
-    pub(super) fn act_jobs_cancel(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_jobs_cancel(&mut self, p: &Map<String, Value>) -> Outcome {
         let number = match self.job_number(
             p,
             |j| j.newest_running().map(|e| e.number),
@@ -565,7 +565,7 @@ impl ShellModel {
     /// `jobs.wait {job?}` (headless only): waits for a job and takes its end; by default the newest job no step has
     /// waited for, whether it still runs or a poll already took its end, so neither the choice nor the outcome depends
     /// on which poll took an end (R1-2 and R2-1 of cycle 31). Done at once when there is none.
-    pub(super) fn act_jobs_wait(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_jobs_wait(&mut self, p: &Map<String, Value>) -> Outcome {
         let unseen = |j: &JobsState| j.entries().filter(|e| !e.waited).last().map(|e| e.number);
         let number = match self.job_number(p, unseen, "reason-no-running-job") {
             Ok(n) => n,
@@ -580,7 +580,7 @@ impl ShellModel {
 
     /// `jobs.open_result {job?}`: the written file of a finished export (the newest by default) in the system's viewer;
     /// headless there is no opener.
-    pub(super) fn act_jobs_open_result(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_jobs_open_result(&mut self, p: &Map<String, Value>) -> Outcome {
         let newest_done = |j: &JobsState| {
             j.entries()
                 .filter(|e| matches!(e.status, JobStatus::Done { .. }))
@@ -614,7 +614,7 @@ impl ShellModel {
     // The recovery dialog (§6.6)
 
     /// `journal.keep` (Open read-only, Escape): the dialog closes; the project stays read-only and the journal stays.
-    pub(super) fn act_journal_keep(&mut self) -> Outcome {
+    pub(crate) fn act_journal_keep(&mut self) -> Outcome {
         if matches!(self.dialog, Some(Dialog::Recovery { .. })) {
             self.dialog = None;
         }
@@ -626,7 +626,7 @@ impl ShellModel {
     /// session closes again (the leftover stays), the project re-opens read-only and the dialog shows the reason with
     /// Open read-only and Discard… only. Otherwise the project is open for editing and dirty, with a notification
     /// and a history marker.
-    pub(super) fn act_journal_recover(&mut self) -> Outcome {
+    pub(crate) fn act_journal_recover(&mut self) -> Outcome {
         let Some(Dialog::Recovery {
             name,
             transactions,

@@ -14,11 +14,11 @@
 //! action with a [`Placement`] is a command of the bar ([`crate::command_bar`]) and sits in its tab's menu under its
 //! group; a group of more than three commands is a submenu, a smaller one a separated block.
 
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 use crate::command_bar::{CommandSize, Group, Placement, Tab, place};
 use crate::settings::{DENSITIES, THEMES, UI_SCALES};
-use crate::shell::ShellModel;
+use crate::shell::{Outcome, ShellModel};
 use crate::strings;
 use crate::tools::{Ghost, GraphicShape};
 
@@ -179,6 +179,10 @@ pub struct MenuSlot {
     pub separator_before: bool,
 }
 
+/// What an action does when it runs: one call into the shell with the action's parameters, after the dispatch checked
+/// that it is enabled and resolved its aliases.
+pub type Handler = fn(&mut ShellModel, &Map<String, Value>) -> Outcome;
+
 /// One action of the registry.
 #[derive(Clone, Copy)]
 pub struct ActionMeta {
@@ -186,8 +190,6 @@ pub struct ActionMeta {
     pub id: &'static str,
     /// View or command.
     pub kind: ActionKind,
-    /// The key of the label in [`crate::strings`].
-    pub label_key: &'static str,
     /// The menu the palette groups the action under (also the menu it lives in, when it has a slot).
     pub category: Menu,
     /// The default shortcuts (`Ctrl+Shift+Z`); `Ctrl` reads `Cmd` on macOS. The first is shown in menus.
@@ -212,6 +214,19 @@ pub struct ActionMeta {
     pub placement: Option<Placement>,
     /// The icon key (`ew-ui` maps it to its icon table; doc 16a §4.11); required for a placed action.
     pub icon: Option<&'static str>,
+    /// The action reads no parameter although it is hidden, headless-only or marked `needs_parameters` (WP-S6.13 BD2):
+    /// its signature stays empty on purpose.
+    pub parameterless: bool,
+    /// What the action does (run by [`ShellModel::dispatch`] once the action is enabled).
+    pub handler: Handler,
+}
+
+impl ActionMeta {
+    /// The key of the label in [`crate::strings`]: `action-` and the ID with `.` and `_` as `-`
+    /// (`file.open_recent` reads `action-file-open-recent`).
+    pub fn label_key(&self) -> String {
+        format!("action-{}", self.id.replace(['.', '_'], "-"))
+    }
 }
 
 impl std::fmt::Debug for ActionMeta {
@@ -773,16 +788,15 @@ const fn with_icon(icon: &'static str, mut a: ActionMeta) -> ActionMeta {
 const fn act(
     id: &'static str,
     kind: ActionKind,
-    label_key: &'static str,
     category: Menu,
     shortcut: &'static [&'static str],
     enabled: fn(&ShellModel) -> Result<(), &'static str>,
     menu: Option<MenuSlot>,
+    handler: Handler,
 ) -> ActionMeta {
     ActionMeta {
         id,
         kind,
-        label_key,
         category,
         shortcut,
         enabled,
@@ -794,6 +808,8 @@ const fn act(
         params: "",
         placement: None,
         icon: None,
+        parameterless: false,
+        handler,
     }
 }
 
@@ -805,6 +821,12 @@ const fn with_params(params: &'static str, mut a: ActionMeta) -> ActionMeta {
 
 const fn needs_parameters(mut a: ActionMeta) -> ActionMeta {
     a.needs_parameters = true;
+    a
+}
+
+/// Marks a hidden, headless-only or `needs_parameters` action that reads no parameter, so its empty signature is meant.
+const fn parameterless(mut a: ActionMeta) -> ActionMeta {
+    a.parameterless = true;
     a
 }
 
@@ -990,7 +1012,7 @@ fn selection_editable(m: &ShellModel) -> Result<(), &'static str> {
 
 use ActionKind::{Command, View};
 
-// map: actions: a new action goes in this table, in menu order, with its arm in `ShellModel::run_action`.
+// map: actions: a new action is one ACTIONS entry naming its handler; its label is the text key action-<id, . and _ as ->.
 /// The registry: the part-1 actions of the spec, section 5.2, in menu order, then the headless-only ones.
 pub static ACTIONS: &[ActionMeta] = &[
     with_params(
@@ -998,11 +1020,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "file.new",
             Command,
-            "action-file-new",
             Menu::File,
             &["Ctrl+N"],
             always,
             slot(Menu::File),
+            |s, p| s.act_new(p),
         ),
     ),
     with_params(
@@ -1010,11 +1032,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "file.open",
             Command,
-            "action-file-open",
             Menu::File,
             &["Ctrl+O"],
             always,
             slot(Menu::File),
+            |s, p| s.act_open(p),
         ),
     ),
     with_params(
@@ -1022,11 +1044,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         needs_parameters(act(
             "file.open_recent",
             Command,
-            "action-file-open-recent",
             Menu::File,
             &[],
             has_recent,
             sub(Menu::File, Submenu::OpenRecent, false),
+            |s, p| s.act_open_recent(p),
         )),
     ),
     with_params(
@@ -1034,11 +1056,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "file.open_sample",
             Command,
-            "action-file-open-sample",
             Menu::File,
             &[],
             always,
             slot(Menu::File),
+            |s, p| s.act_open_sample(p),
         ),
     ),
     with_params(
@@ -1049,12 +1071,12 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "file.import_qet",
                 Command,
-                "action-file-import-qet",
                 Menu::Project,
                 &[],
                 always,
                 // FT-466 moved it to File, Import; WP-S2.17 part 2 places it in Project, Import (its ID unchanged).
                 None,
+                |s, p| s.act_import_qet(p),
             ),
         ),
     ),
@@ -1068,11 +1090,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "parts.import",
                 Command,
-                "action-parts-import",
                 Menu::Project,
                 &[],
                 writable,
                 None,
+                |s, p| s.act_parts_import(p),
             ),
         ),
     ),
@@ -1082,32 +1104,32 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "parts.map",
             Command,
-            "action-parts-map",
             Menu::Project,
             &[],
             parts_map_open,
             None,
+            |s, p| s.act_parts_map(p),
         )),
     ),
-    hidden(act(
+    hidden(parameterless(act(
         "parts.map_import",
         Command,
-        "action-parts-map-import",
         Menu::Project,
         &[],
         parts_map_open,
         None,
-    )),
+        |s, _| s.act_parts_map_import(),
+    ))),
     with_icon(
         "device-floppy",
         act(
             "file.save",
             Command,
-            "action-file-save",
             Menu::File,
             &["Ctrl+S"],
             writable,
             slot_sep(Menu::File),
+            |s, _| s.act_save(),
         ),
     ),
     with_params(
@@ -1115,11 +1137,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "file.save_as",
             Command,
-            "action-file-save-as",
             Menu::File,
             &["Ctrl+Shift+S"],
             project_open,
             slot(Menu::File),
+            |s, p| s.act_save_as(p),
         ),
     ),
     with_params(
@@ -1127,11 +1149,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "file.discard_journal",
             Command,
-            "action-file-discard-journal",
             Menu::File,
             &[],
             can_discard_journal,
             slot(Menu::File),
+            |s, p| s.act_discard_journal(p),
         ),
     ),
     // WP-S2.09 part 1: the export runs as a job (§6.3); `replace` confirms an existing file, `wait` (headless) returns at
@@ -1144,11 +1166,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "file.export_pdf",
                 Command,
-                "action-file-export-pdf",
                 Menu::Output,
                 &["Ctrl+Shift+E"],
                 has_pages,
                 None,
+                |s, p| s.act_export_pdf(p),
             ),
         ),
     ),
@@ -1157,11 +1179,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "file.close",
             Command,
-            "action-file-close",
             Menu::File,
             &["Ctrl+Shift+W"],
             project_open,
             slot_sep(Menu::File),
+            |s, p| s.act_close(p),
         ),
     ),
     with_params(
@@ -1169,11 +1191,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "app.quit",
             Command,
-            "action-app-quit",
             Menu::File,
             &["Ctrl+Q"],
             always,
             slot(Menu::File),
+            |s, p| s.act_quit(p),
         ),
     ),
     with_icon(
@@ -1181,11 +1203,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "edit.undo",
             Command,
-            "action-edit-undo",
             Menu::Edit,
             &["Ctrl+Z"],
             can_undo,
             slot(Menu::Edit),
+            |s, _| s.act_undo(),
         ),
     ),
     with_icon(
@@ -1193,11 +1215,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "edit.redo",
             Command,
-            "action-edit-redo",
             Menu::Edit,
             &["Ctrl+Shift+Z", "Ctrl+Y"],
             can_redo,
             slot(Menu::Edit),
+            |s, _| s.act_redo(),
         ),
     ),
     // WP-S2.09 part 3 (§8.4): Edit, History.
@@ -1209,11 +1231,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "history.show",
                 View,
-                "action-history-show",
                 Menu::View,
                 &[],
                 project_open,
                 None,
+                |s, p| s.act_history_show(p),
             ),
         ),
     ),
@@ -1223,11 +1245,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "view.bottom_dock",
             View,
-            "action-view-bottom-dock",
             Menu::View,
             &["Ctrl+J"],
             project_open,
             grp(Group::Panels),
+            |s, p| s.act_bottom_dock(p),
         ),
     ),
     // Edit, Properties of selection (E and Alt+Enter on the canvas) and Project properties: the shell has no Project
@@ -1235,11 +1257,11 @@ pub static ACTIONS: &[ActionMeta] = &[
     in_canvas(act(
         "props.focus",
         View,
-        "action-props-focus",
         Menu::Edit,
         &["E", "Alt+Enter"],
         project_open,
         slot_sep(Menu::Edit),
+        |s, _| s.act_props_focus(),
     )),
     placed(
         place(Group::Project, 1, CommandSize::Large, Some("bar-properties")),
@@ -1247,11 +1269,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "props.project",
             View,
-            "action-props-project",
             Menu::Project,
             &[],
             project_open,
             None,
+            |s, _| s.act_props_project(),
         ),
     ),
     // WP-S2.05 part 2: Edit, Find…, Find and replace… and Replace all (§7.6). macOS's ⌥⌘F (doc 16 §4.4) needs a
@@ -1259,29 +1281,29 @@ pub static ACTIONS: &[ActionMeta] = &[
     act(
         "find.open",
         View,
-        "action-find-open",
         Menu::Edit,
         &["Ctrl+F"],
         project_open,
         slot_sep(Menu::Edit),
+        |s, _| s.act_find_open(false),
     ),
     act(
         "find.open_replace",
         View,
-        "action-find-open-replace",
         Menu::Edit,
         &["Ctrl+H"],
         project_open,
         slot(Menu::Edit),
+        |s, _| s.act_find_open(true),
     ),
     in_find(act(
         "find.replace_all",
         Command,
-        "action-find-replace-all",
         Menu::Edit,
         &["Ctrl+Enter"],
         find_writable,
         slot(Menu::Edit),
+        |s, _| s.act_find_replace_all(),
     )),
     // FT-408: Page, New page.
     with_params(
@@ -1289,15 +1311,9 @@ pub static ACTIONS: &[ActionMeta] = &[
         placed(
             place(Group::Pages, 1, CommandSize::Large, None),
             "file-plus",
-            act(
-                "page.new",
-                Command,
-                "action-page-new",
-                Menu::Page,
-                &[],
-                writable,
-                None,
-            ),
+            act("page.new", Command, Menu::Page, &[], writable, None, |s, p| {
+                s.act_page_new(p)
+            }),
         ),
     ),
     // WP-S2.09 part 3 (§8.3): Page, Renumber pages…
@@ -1309,49 +1325,49 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "pages.renumber",
                 Command,
-                "action-pages-renumber",
                 Menu::Page,
                 &[],
                 writable,
                 None,
+                |s, p| s.act_pages_renumber(p),
             ),
         ),
     ),
     act(
         "page.next",
         View,
-        "action-page-next",
         Menu::Page,
         &["Page Down"],
         has_next,
         grp(Group::Go),
+        |s, _| s.walk(s.page_index() + 1),
     ),
     act(
         "page.previous",
         View,
-        "action-page-previous",
         Menu::Page,
         &["Page Up"],
         has_previous,
         grp(Group::Go),
+        |s, _| s.walk(s.page_index().saturating_sub(1)),
     ),
     act(
         "page.first",
         View,
-        "action-page-first",
         Menu::Page,
         &[],
         has_pages,
         grp(Group::Go),
+        |s, _| s.walk(0),
     ),
     act(
         "page.last",
         View,
-        "action-page-last",
         Menu::Page,
         &[],
         has_pages,
         grp(Group::Go),
+        |s, _| s.walk(s.page_count().saturating_sub(1)),
     ),
     with_params(
         "text?:text",
@@ -1361,11 +1377,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "nav.goto",
                 View,
-                "action-nav-goto",
                 Menu::Page,
                 &["Ctrl+G"],
                 has_pages,
                 None,
+                |s, p| s.act_nav_goto(p),
             ),
         ),
     ),
@@ -1375,11 +1391,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "nav.back",
             View,
-            "action-nav-back",
             Menu::Page,
             &["Alt+Arrow Left"],
             can_go_back,
             None,
+            |s, _| s.act_history(true),
         ),
     ),
     placed(
@@ -1388,11 +1404,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "nav.forward",
             View,
-            "action-nav-forward",
             Menu::Page,
             &["Alt+Arrow Right"],
             can_go_forward,
             None,
+            |s, _| s.act_history(false),
         ),
     ),
     with_params(
@@ -1400,15 +1416,9 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(placed(
             place(Group::Go, 4, CommandSize::Small, Some("bar-follow-reference")),
             "link",
-            act(
-                "nav.follow",
-                View,
-                "action-nav-follow",
-                Menu::Page,
-                &["F"],
-                has_pages,
-                None,
-            ),
+            act("nav.follow", View, Menu::Page, &["F"], has_pages, None, |s, p| {
+                s.act_follow(p)
+            }),
         )),
     ),
     with_params(
@@ -1416,11 +1426,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "nav.next_link",
             View,
-            "action-nav-next-link",
             Menu::Page,
             &["Shift+F"],
             has_pages,
             grp(Group::Go),
+            |s, p| s.act_link_step(p, true),
         )),
     ),
     with_params(
@@ -1428,11 +1438,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "nav.previous_link",
             View,
-            "action-nav-previous-link",
             Menu::Page,
             &["Ctrl+Shift+F"],
             has_pages,
             grp(Group::Go),
+            |s, p| s.act_link_step(p, false),
         )),
     ),
     // Keyboard tool input (WP-S2.03 §7.7): the connection points in reading order; `[` and `]` are matched as the
@@ -1442,11 +1452,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "cp.next",
             View,
-            "action-cp-next",
             Menu::Page,
             &["]", "Alt+N"],
             has_pages,
             grp(Group::Go),
+            |s, p| s.act_cp_step(p, crate::shell::tools::CpStep::Next),
         )),
     ),
     with_params(
@@ -1454,11 +1464,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "cp.previous",
             View,
-            "action-cp-previous",
             Menu::Page,
             &["[", "Alt+Shift+N"],
             has_pages,
             grp(Group::Go),
+            |s, p| s.act_cp_step(p, crate::shell::tools::CpStep::Previous),
         )),
     ),
     with_params(
@@ -1466,11 +1476,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "cp.next_unconnected",
             View,
-            "action-cp-next-unconnected",
             Menu::Page,
             &["N"],
             has_pages,
             grp(Group::Go),
+            |s, p| s.act_cp_step(p, crate::shell::tools::CpStep::NextUnconnected),
         )),
     ),
     with_params(
@@ -1478,21 +1488,21 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "canvas.activate",
             View,
-            "action-canvas-activate",
             Menu::Page,
             &["Enter"],
             has_pages,
             None,
+            |s, p| s.act_activate_with(p),
         )),
     ),
     in_canvas(act(
         "tool.back",
         View,
-        "action-tool-back",
         Menu::Page,
         &["Backspace"],
         has_pages,
         None,
+        |s, _| s.act_tool_back(),
     )),
     with_params(
         "group?:uint",
@@ -1502,11 +1512,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "view.zoom_in",
                 View,
-                "action-view-zoom-in",
                 Menu::View,
                 &["Ctrl+Plus", "Ctrl+Equals"],
                 can_zoom_in,
                 None,
+                |s, p| s.act_zoom_in(p),
             ),
         ),
     ),
@@ -1518,11 +1528,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "view.zoom_out",
                 View,
-                "action-view-zoom-out",
                 Menu::View,
                 &["Ctrl+Minus"],
                 can_zoom_out,
                 None,
+                |s, p| s.act_zoom_out(p),
             ),
         ),
     ),
@@ -1534,11 +1544,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "view.zoom_actual",
                 View,
-                "action-view-zoom-actual",
                 Menu::View,
                 &["Ctrl+phys:Digit0"],
                 has_pages,
                 None,
+                |s, p| s.act_zoom_actual(p),
             ),
         ),
     ),
@@ -1550,11 +1560,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "view.fit_page",
                 View,
-                "action-view-fit-page",
                 Menu::View,
                 &["Home"],
                 has_pages,
                 None,
+                |s, p| s.act_fit_page(p),
             ),
         ),
     ),
@@ -1563,11 +1573,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "view.pan_left",
             View,
-            "action-view-pan-left",
             Menu::View,
             &["Ctrl+Arrow Left"],
             has_pages,
             grp_sub(Group::Zoom, Submenu::Pan),
+            |s, p| s.act_pan_step(p, -1.0, 0.0),
         ),
     ),
     with_params(
@@ -1575,11 +1585,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "view.pan_right",
             View,
-            "action-view-pan-right",
             Menu::View,
             &["Ctrl+Arrow Right"],
             has_pages,
             grp_sub(Group::Zoom, Submenu::Pan),
+            |s, p| s.act_pan_step(p, 1.0, 0.0),
         ),
     ),
     with_params(
@@ -1587,11 +1597,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "view.pan_up",
             View,
-            "action-view-pan-up",
             Menu::View,
             &["Ctrl+Arrow Up"],
             has_pages,
             grp_sub(Group::Zoom, Submenu::Pan),
+            |s, p| s.act_pan_step(p, 0.0, -1.0),
         ),
     ),
     with_params(
@@ -1599,11 +1609,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "view.pan_down",
             View,
-            "action-view-pan-down",
             Menu::View,
             &["Ctrl+Arrow Down"],
             has_pages,
             grp_sub(Group::Zoom, Submenu::Pan),
+            |s, p| s.act_pan_step(p, 0.0, 1.0),
         ),
     ),
     placed(
@@ -1612,11 +1622,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "view.side_by_side",
             View,
-            "action-view-side-by-side",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, _| s.act_side_by_side(),
         ),
     ),
     with_params(
@@ -1624,11 +1634,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         needs_parameters(act(
             "pages.mode",
             View,
-            "action-pages-mode",
             Menu::View,
             &[],
             has_pages,
             grp_sub(Group::Panels, Submenu::PageNavigator),
+            |s, p| s.act_pages_mode(p),
         )),
     ),
     with_params(
@@ -1636,47 +1646,35 @@ pub static ACTIONS: &[ActionMeta] = &[
         needs_parameters(act(
             "pages.sort",
             View,
-            "action-pages-sort",
             Menu::View,
             &[],
             has_pages,
             grp_sub(Group::Panels, Submenu::PageNavigator),
+            |s, p| s.act_pages_sort(p),
         )),
     ),
     placed(
         place(Group::Show, 1, CommandSize::Small, None),
         "grid-dots",
-        act(
-            "view.grid",
-            View,
-            "action-view-grid",
-            Menu::View,
-            &[],
-            has_pages,
-            None,
-        ),
+        act("view.grid", View, Menu::View, &[], has_pages, None, |s, _| {
+            s.act_grid()
+        }),
     ),
     placed(
         place(Group::Show, 3, CommandSize::Small, None),
         "chart-line",
-        act(
-            "view.frame_stats",
-            View,
-            "action-view-frame-stats",
-            Menu::View,
-            &[],
-            always,
-            None,
-        ),
+        act("view.frame_stats", View, Menu::View, &[], always, None, |s, _| {
+            s.act_frame_stats()
+        }),
     ),
     act(
         "view.cpu_canvas",
         View,
-        "action-view-cpu-canvas",
         Menu::View,
         &[],
         always,
         grp(Group::Show),
+        |s, _| s.act_cpu_canvas(),
     ),
     // The property grid (WP-S2.05 part 1, spec §6.10).
     with_params(
@@ -1684,15 +1682,9 @@ pub static ACTIONS: &[ActionMeta] = &[
         placed(
             place(Group::Panels, 2, CommandSize::Small, None),
             "list-details",
-            act(
-                "props.show",
-                View,
-                "action-props-show",
-                Menu::View,
-                &[],
-                project_open,
-                None,
-            ),
+            act("props.show", View, Menu::View, &[], project_open, None, |s, p| {
+                s.act_props_show(p)
+            }),
         ),
     ),
     // WP-S2.17 part 3 (§4.3, D11, D15): the Advanced rows of the property grid, and the rails' own control.
@@ -1701,11 +1693,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "props.show_advanced",
             View,
-            "action-props-show-advanced",
             Menu::View,
             &[],
             always,
             grp(Group::Panels),
+            |s, p| s.act_props_show_advanced(p),
         ),
     ),
     with_params(
@@ -1713,11 +1705,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "rail.show",
             View,
-            "action-rail-show",
             Menu::View,
             &[],
             project_open,
             None,
+            |s, p| s.act_rail_show(p),
         )),
     ),
     // WP-S2.09 part 1 (§6.8): View ▸ Jobs and View ▸ Notifications.
@@ -1729,11 +1721,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "jobs.show",
                 View,
-                "action-jobs-show",
                 Menu::Output,
                 &[],
                 project_open,
                 None,
+                |s, p| s.act_jobs_show(p),
             ),
         ),
     ),
@@ -1745,11 +1737,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "lists.parts",
             View,
-            "action-lists-parts",
             Menu::Output,
             &[],
             has_parts_list,
             None,
+            |s, _| s.act_lists_parts(),
         ),
     ),
     with_params(
@@ -1760,11 +1752,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "notifications.show",
                 View,
-                "action-notifications-show",
                 Menu::View,
                 &[],
                 always,
                 None,
+                |s, p| s.act_notifications_show(p),
             ),
         ),
     ),
@@ -1777,11 +1769,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "messages.show",
                 View,
-                "action-messages-show",
                 Menu::Check,
                 &[],
                 project_open,
                 None,
+                |s, p| s.act_messages_show(p),
             ),
         ),
     ),
@@ -1791,11 +1783,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "messages.next",
             View,
-            "action-messages-next",
             Menu::Check,
             &["F8"],
             project_open,
             None,
+            |s, _| s.act_messages_walk(true),
         ),
     ),
     placed(
@@ -1804,11 +1796,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "messages.previous",
             View,
-            "action-messages-previous",
             Menu::Check,
             &["Shift+F8"],
             project_open,
             None,
+            |s, _| s.act_messages_walk(false),
         ),
     ),
     with_params(
@@ -1816,11 +1808,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "messages.fix",
             Command,
-            "action-messages-fix",
             Menu::Check,
             &[],
             writable,
             None,
+            |s, p| s.act_messages_fix(p),
         ))),
     ),
     // FT-674: Waive… and Unwaive in the Messages detail (`check.waive`, `check.unwaive`; window only).
@@ -1829,11 +1821,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "messages.waive",
             Command,
-            "action-messages-waive",
             Menu::Check,
             &[],
             writable,
             None,
+            |s, p| s.act_messages_waive(p),
         ))),
     ),
     with_params(
@@ -1841,11 +1833,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "messages.unwaive",
             Command,
-            "action-messages-unwaive",
             Menu::Check,
             &[],
             writable,
             None,
+            |s, p| s.act_messages_unwaive(p),
         ))),
     ),
     with_params(
@@ -1856,11 +1848,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "view.ui_scale",
                 View,
-                "action-view-ui-scale",
                 Menu::View,
                 &[],
                 always,
                 sub(Menu::View, Submenu::UiScale, false),
+                |s, p| s.act_ui_scale(p),
             ),
         )),
     ),
@@ -1874,11 +1866,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "view.theme",
                 View,
-                "action-view-theme",
                 Menu::View,
                 &[],
                 always,
                 sub(Menu::View, Submenu::Theme, false),
+                |s, p| s.act_view_setting("theme", p),
             ),
         )),
     ),
@@ -1890,11 +1882,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "view.density",
                 View,
-                "action-view-density",
                 Menu::View,
                 &[],
                 always,
                 sub(Menu::View, Submenu::Density, false),
+                |s, p| s.act_view_setting("density", p),
             ),
         )),
     ),
@@ -1904,11 +1896,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         needs_parameters(act(
             "view.command_tab",
             View,
-            "action-view-command-tab",
             Menu::View,
             &[],
             always,
             grp_sub(Group::Layout, Submenu::CommandTab),
+            |s, p| s.act_command_tab(p),
         )),
     ),
     with_params(
@@ -1916,11 +1908,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "view.command_bar",
             View,
-            "action-view-command-bar",
             Menu::View,
             &["Ctrl+F1"],
             always,
             grp(Group::Layout),
+            |s, p| s.act_command_bar(p),
         ),
     ),
     with_params(
@@ -1931,11 +1923,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "view.workspace_load",
                 View,
-                "action-view-workspace-load",
                 Menu::View,
                 &[],
                 always,
                 sub(Menu::View, Submenu::Workspace, false),
+                |s, p| s.act_workspace_load(p),
             ),
         )),
     ),
@@ -1944,11 +1936,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "view.workspace_save",
             View,
-            "action-view-workspace-save",
             Menu::View,
             &[],
             always,
             grp_sub(Group::Layout, Submenu::Workspace),
+            |s, p| s.act_workspace_save(p),
         ),
     ),
     placed(
@@ -1957,11 +1949,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "view.workspace_reset",
             View,
-            "action-view-workspace-reset",
             Menu::View,
             &[],
             always,
             None,
+            |s, _| s.act_workspace_reset(),
         ),
     ),
     with_params(
@@ -1971,39 +1963,27 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "tools.palette",
                 View,
-                "action-tools-palette",
                 Menu::View,
                 &["Ctrl+K", "Ctrl+Shift+P"],
                 always,
                 grp(Group::Panels),
+                |s, p| s.act_palette(p),
             ),
         ),
     ),
     placed(
         place(Group::Select, 1, CommandSize::Large, None),
         "pointer",
-        act(
-            "tool.select",
-            View,
-            "action-tool-select",
-            Menu::Draw,
-            &[],
-            has_pages,
-            None,
-        ),
+        act("tool.select", View, Menu::Draw, &[], has_pages, None, |s, _| {
+            s.act_tool("select")
+        }),
     ),
     placed(
         place(Group::Annotate, 2, CommandSize::Small, None),
         "ruler-measure",
-        act(
-            "tool.measure",
-            View,
-            "action-tool-measure",
-            Menu::Draw,
-            &[],
-            has_pages,
-            None,
-        ),
+        act("tool.measure", View, Menu::Draw, &[], has_pages, None, |s, _| {
+            s.act_tool("measure")
+        }),
     ),
     // Place and arrange (WP-S2.04 part 1, §7.6): the Insert menu, the transform keys, Move, Delete, Change symbol.
     in_canvas(placed(
@@ -2012,11 +1992,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tool.place",
             Command,
-            "action-tool-place",
             Menu::Draw,
             &["I"],
             editable_page,
             None,
+            |s, _| s.act_open_picker(crate::tools::PickerMode::Place),
         ),
     )),
     in_canvas(placed(
@@ -2025,11 +2005,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tool.place_part",
             Command,
-            "action-tool-place-part",
             Menu::Draw,
             &["Shift+I"],
             editable_page,
             None,
+            |s, _| s.act_open_picker(crate::tools::PickerMode::Parts),
         ),
     )),
     with_params(
@@ -2037,11 +2017,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "strip.new",
             Command,
-            "action-strip-new",
             Menu::Draw,
             &[],
             editable_page,
             grp(Group::Place),
+            |s, p| s.act_strip_new(p),
         ),
     ),
     // FT-409: the structure node and the external reference, one previewed command each.
@@ -2053,11 +2033,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "structure.new",
                 Command,
-                "action-structure-new",
                 Menu::Project,
                 &[],
                 writable,
                 None,
+                |s, p| s.act_structure_new(p),
             ),
         ),
     ),
@@ -2066,11 +2046,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "external_ref.new",
             Command,
-            "action-external-ref-new",
             Menu::Project,
             &[],
             writable,
             grp(Group::Project),
+            |s, p| s.act_external_ref_new(p),
         ),
     ),
     with_params(
@@ -2078,11 +2058,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "place.pick",
             Command,
-            "action-place-pick",
             Menu::Draw,
             &[],
             editable_page,
             None,
+            |s, p| s.act_place_pick(p),
         ))),
     ),
     with_params(
@@ -2090,11 +2070,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "picker.filter",
             View,
-            "action-picker-filter",
             Menu::Draw,
             &[],
             picker_open,
             None,
+            |s, p| s.act_picker_filter(p),
         )),
     ),
     with_params(
@@ -2102,11 +2082,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "picker.row",
             View,
-            "action-picker-row",
             Menu::Draw,
             &[],
             picker_open,
             None,
+            |s, p| s.act_picker_row(p),
         )),
     ),
     hidden(with_params(
@@ -2116,34 +2096,34 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "picker.choose",
             Command,
-            "action-picker-choose",
             Menu::Draw,
             &[],
             picker_open,
             None,
+            |s, p| s.act_picker_choose(p),
         ),
     )),
     // WP-S2.18 part 1 (D2): J opens the Place tool's Join chooser (doc 16a §6.22) while the armed symbol can be an
     // auxiliary function; the chooser's own keys are its actions.
-    hidden(in_canvas(act(
+    hidden(in_canvas(parameterless(act(
         "place.join",
         Command,
-        "action-place-join",
         Menu::Draw,
         &["J"],
         place_joinable,
         None,
-    ))),
+        |s, _| s.act_place_join(),
+    )))),
     with_params(
         "step?:int, to?:enum(first|last)",
         hidden(act(
             "chooser.row",
             View,
-            "action-chooser-row",
             Menu::Draw,
             &[],
             chooser_open,
             None,
+            |s, p| s.act_chooser_row(p),
         )),
     ),
     with_params(
@@ -2151,11 +2131,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "chooser.type",
             View,
-            "action-chooser-type",
             Menu::Draw,
             &[],
             chooser_open,
             None,
+            |s, p| s.act_chooser_type(p),
         )),
     ),
     with_params(
@@ -2163,11 +2143,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "chooser.choose",
             Command,
-            "action-chooser-choose",
             Menu::Draw,
             &[],
             chooser_open,
             None,
+            |s, p| s.act_chooser_choose(p),
         )),
     ),
     in_canvas(placed(
@@ -2176,21 +2156,21 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tool.rotate_cw",
             Command,
-            "action-tool-rotate-cw",
             Menu::Draw,
             &["R"],
             editable_page,
             None,
+            |s, _| s.act_tool_key(crate::tools::ToolKey::RotateCw),
         ),
     )),
     in_canvas(act(
         "tool.rotate_ccw",
         Command,
-        "action-tool-rotate-ccw",
         Menu::Draw,
         &["Shift+R"],
         editable_page,
         grp(Group::Arrange),
+        |s, _| s.act_tool_key(crate::tools::ToolKey::RotateCcw),
     )),
     in_canvas(placed(
         place(Group::Arrange, 2, CommandSize::Small, Some("bar-mirror")),
@@ -2198,77 +2178,77 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tool.mirror_x",
             Command,
-            "action-tool-mirror-x",
             Menu::Draw,
             &["X"],
             editable_page,
             None,
+            |s, _| s.act_tool_key(crate::tools::ToolKey::MirrorX),
         ),
     )),
     in_canvas(act(
         "tool.mirror_y",
         Command,
-        "action-tool-mirror-y",
         Menu::Draw,
         &["Y"],
         editable_page,
         grp(Group::Arrange),
+        |s, _| s.act_tool_key(crate::tools::ToolKey::MirrorY),
     )),
     in_canvas(act(
         "tool.next_variant",
         Command,
-        "action-tool-next-variant",
         Menu::Draw,
         &["V"],
         editable_page,
         grp(Group::Arrange),
+        |s, _| s.act_tool_key(crate::tools::ToolKey::NextVariant),
     )),
     in_canvas(act(
         "tool.next_rep_type",
         View,
-        "action-tool-next-rep-type",
         Menu::Draw,
         &["Shift+V"],
         editable_page,
         grp(Group::Arrange),
+        |s, _| s.act_tool_key(crate::tools::ToolKey::NextRepType),
     )),
     in_canvas(act(
         "tool.move",
         Command,
-        "action-tool-move",
         Menu::Draw,
         &["M"],
         editable_page,
         grp(Group::Arrange),
+        |s, _| s.act_tool_move(),
     )),
     in_canvas(act(
         "edit.delete_selection",
         Command,
-        "action-edit-delete-selection",
         Menu::Edit,
         &["Delete"],
         editable_selection,
         slot_sep(Menu::Edit),
+        |s, _| s.act_delete_selection(),
     )),
     // WP-S2.05 part 3: the clipboard (§8.8). The chords are the canvas's: a text field of the property grid or the find
     // pane keeps egui's own copy and paste, and the window routes no chord while a text field has the keyboard.
     in_canvas(act(
         "edit.cut",
         Command,
-        "action-edit-cut",
         Menu::Edit,
         &["Ctrl+X"],
         selection_editable,
         slot(Menu::Edit),
+        |s, _| s.act_cut(),
     )),
     in_canvas(act(
         "edit.copy",
         View,
-        "action-edit-copy",
         Menu::Edit,
         &["Ctrl+C"],
         selection_shown,
         slot(Menu::Edit),
+        |s, _| s.act_copy(),
     )),
     with_params(
         "text?:text",
@@ -2277,42 +2257,42 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "edit.paste_clip",
                 Command,
-                "action-edit-paste-clip",
                 Menu::Edit,
                 &["Ctrl+V"],
                 paste_page,
                 slot(Menu::Edit),
+                |s, p| s.act_paste_clip(p),
             ),
         )),
     ),
     in_canvas(act(
         "edit.duplicate",
         Command,
-        "action-edit-duplicate",
         Menu::Edit,
         &["Ctrl+D"],
         selection_editable,
         slot(Menu::Edit),
+        |s, _| s.act_duplicate(),
     )),
     in_canvas(act(
         "edit.copy_tags",
         View,
-        "action-edit-copy-tags",
         Menu::Edit,
         &[],
         selection_shown,
         slot(Menu::Edit),
+        |s, _| s.act_copy_tags(),
     )),
     with_params(
         "text:text",
         headless(act(
             "clipboard.text",
             View,
-            "action-clipboard-text",
             Menu::Edit,
             &[],
             always,
             None,
+            |s, p| s.act_clipboard_text(p),
         )),
     ),
     with_params(
@@ -2322,33 +2302,33 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "rep.exchange",
                 Command,
-                "action-rep-exchange",
                 Menu::Draw,
                 &[],
                 editable_page,
                 grp(Group::Arrange),
+                |s, p| s.act_rep_exchange(p),
             ),
         )),
     ),
-    hidden(in_canvas(act(
+    hidden(in_canvas(parameterless(act(
         "tool.finish",
         View,
-        "action-tool-finish",
         Menu::Edit,
         &["Shift+Enter"],
         has_pages,
         None,
-    ))),
+        |s, p| s.act_tool_finish(p),
+    )))),
     with_params(
         "text:text",
         hidden(in_canvas(act(
             "text.input",
             View,
-            "action-text-input",
             Menu::Edit,
             &[],
             has_pages,
             None,
+            |s, p| s.act_text_input(p),
         ))),
     ),
     // WP-S2.04 part 2 (wiring, §8.7): the Wire tool, the proposals' Tab, route edit, the junction sequence editor and
@@ -2359,33 +2339,33 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tool.wire",
             Command,
-            "action-tool-wire",
             Menu::Draw,
             &["W"],
             wire_page,
             None,
+            |s, _| s.act_tool_wire(),
         ),
     )),
     // Ctrl+Enter: a click with Alt held at the grid cursor (a placement without its autoconnect proposals, a bend
     // without object snaps), the keyboard's twin of `canvas.activate {alt}` (fix round; per-context chords, ID-628).
-    hidden(in_canvas(act(
+    hidden(in_canvas(parameterless(act(
         "canvas.activate_alt",
         View,
-        "action-canvas-activate-alt",
         Menu::Page,
         &["Ctrl+Enter"],
         has_pages,
         None,
-    ))),
-    hidden(in_canvas(act(
+        |s, p| s.act_canvas_activate_alt(p),
+    )))),
+    hidden(in_canvas(parameterless(act(
         "tool.next_proposal",
         View,
-        "action-tool-next-proposal",
         Menu::Edit,
         &["Tab"],
         editable_page,
         None,
-    ))),
+        |s, _| s.send_proposal_key(),
+    )))),
     // WP-S4.02 part 3 (D4, D10; doc 12 §12.4): placing on a panel page. Tab, R, X and the arrows keep their bindings:
     // on a panel page the shell maps them to these hidden actions (`ShellModel::shortcut_action`, ID-628); Shift+Tab is
     // `layout.previous`'s own canvas binding (ruling 5).
@@ -2394,132 +2374,132 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "tool.place_layout",
             Command,
-            "action-tool-place-layout",
             Menu::Draw,
             &[],
             panel_page,
             None,
+            |s, p| s.act_place_layout(p),
         )),
     ),
-    hidden(in_canvas(act(
+    hidden(in_canvas(parameterless(act(
         "layout.next",
         View,
-        "action-layout-next",
         Menu::Edit,
         &[],
         panel_page,
         None,
-    ))),
-    hidden(in_canvas(act(
+        |s, _| s.act_layout_step(1),
+    )))),
+    hidden(in_canvas(parameterless(act(
         "layout.previous",
         View,
-        "action-layout-previous",
         Menu::Edit,
         &["Shift+Tab"],
         panel_page,
         None,
-    ))),
+        |s, _| s.act_layout_step(-1),
+    )))),
     with_params(
         "dx?:int, dy?:int",
         hidden(in_canvas(act(
             "layout.nudge",
             Command,
-            "action-layout-nudge",
             Menu::Edit,
             &[],
             // A selected placement, or a floating layout ghost (the shell refuses without either).
             panel_page,
             None,
+            |s, p| s.act_layout_nudge(p),
         ))),
     ),
-    hidden(in_canvas(act(
+    hidden(in_canvas(parameterless(act(
         "layout.rotate",
         Command,
-        "action-layout-rotate",
         Menu::Edit,
         &[],
         panel_page,
         None,
-    ))),
-    hidden(in_canvas(act(
+        |s, _| s.act_layout_turn(crate::tools::ToolKey::RotateCw),
+    )))),
+    hidden(in_canvas(parameterless(act(
         "layout.flip",
         Command,
-        "action-layout-flip",
         Menu::Edit,
         &[],
         panel_page,
         None,
-    ))),
-    hidden(in_canvas(act(
+        |s, _| s.act_layout_turn(crate::tools::ToolKey::MirrorX),
+    )))),
+    hidden(in_canvas(parameterless(act(
         "layout.lock_selection",
         Command,
-        "action-layout-lock",
         Menu::Edit,
         &[],
         panel_selection,
         None,
-    ))),
-    hidden(in_canvas(act(
+        |s, _| s.act_layout_lock(true),
+    )))),
+    hidden(in_canvas(parameterless(act(
         "layout.unlock_selection",
         Command,
-        "action-layout-unlock",
         Menu::Edit,
         &[],
         panel_selection,
         None,
-    ))),
+        |s, _| s.act_layout_lock(false),
+    )))),
     with_params(
         "mode?:enum(free|push|swap), grid?:uint",
         hidden(in_canvas(act(
             "layout.options",
             View,
-            "action-layout-options",
             Menu::Edit,
             &[],
             panel_page,
             None,
+            |s, p| s.act_layout_options(p),
         ))),
     ),
-    hidden(in_canvas(act(
+    hidden(in_canvas(parameterless(act(
         "tool.connect_on_move",
         Command,
-        "action-tool-connect-on-move",
         Menu::Edit,
         &["C"],
         editable_page,
         None,
-    ))),
+        |s, p| s.act_tool_connect_on_move(p),
+    )))),
     in_canvas(with_icon(
         "route-2",
         act(
             "tool.route_edit",
             Command,
-            "action-tool-route-edit",
             Menu::Draw,
             &[],
             one_connection,
             grp(Group::Connect),
+            |s, _| s.act_route_edit(),
         ),
     )),
     in_canvas(act(
         "junction.open",
         View,
-        "action-junction-open",
         Menu::Draw,
         &[],
         one_junction,
         grp(Group::Connect),
+        |s, _| s.act_junction_open(),
     )),
     with_params(
         "from:uint, to:uint",
         hidden(act(
             "junction.member",
             Command,
-            "action-junction-member",
             Menu::Edit,
             &[],
             junction_editor_open,
             None,
+            |s, p| s.act_junction_member(p),
         )),
     ),
     with_params(
@@ -2527,11 +2507,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "junction.style",
             Command,
-            "action-junction-style",
             Menu::Edit,
             &[],
             junction_editor_open,
             None,
+            |s, p| s.act_junction_style(p),
         )),
     ),
     with_params(
@@ -2539,11 +2519,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "junction.wiring",
             Command,
-            "action-junction-wiring",
             Menu::Edit,
             &[],
             junction_editor_open,
             None,
+            |s, p| s.act_junction_wiring(p),
         )),
     ),
     with_params(
@@ -2551,11 +2531,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "project.crossings",
             Command,
-            "action-project-crossings",
             Menu::Draw,
             &[],
             writable,
             grp(Group::Connect),
+            |s, p| s.act_crossings(p),
         ),
     ),
     // WP-S2.04 part 2. End.
@@ -2566,11 +2546,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tool.ip",
             Command,
-            "action-tool-ip",
             Menu::Draw,
             &["P"],
             editable_page,
             None,
+            |s, _| s.act_tool_ip(),
         ),
     )),
     with_params(
@@ -2581,11 +2561,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "tool.black_box",
                 Command,
-                "action-tool-black-box",
                 Menu::Draw,
                 &["B"],
                 editable_page,
                 None,
+                |s, p| s.act_tool_black_box(p),
             ),
         )),
     ),
@@ -2594,32 +2574,32 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "tool.ip_direction",
             View,
-            "action-tool-ip-direction",
             Menu::Draw,
             &["D"],
             editable_page,
             grp(Group::Connect),
+            |s, p| s.act_ip_direction(p),
         )),
     ),
     in_canvas(act(
         "tool.star_source",
         View,
-        "action-tool-star-source",
         Menu::Draw,
         &[],
         editable_page,
         grp(Group::Connect),
+        |s, _| s.act_ip_key(crate::tools::ToolKey::ToggleStar),
     )),
     with_params(
         "text:text",
         hidden(in_canvas(act(
             "ip.name",
             View,
-            "action-ip-name",
             Menu::Edit,
             &[],
             editable_page,
             None,
+            |s, p| s.act_ip_name(p),
         ))),
     ),
     // `external`: an external reference's ID, alias or printed text (`JE-N1000-03:L`); empty clears it.
@@ -2628,11 +2608,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "ip.external",
             View,
-            "action-ip-external",
             Menu::Edit,
             &[],
             editable_page,
             None,
+            |s, p| s.act_ip_external(p),
         ))),
     ),
     with_params(
@@ -2640,11 +2620,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "ip.continue_on",
             Command,
-            "action-ip-continue-on",
             Menu::Draw,
             &[],
             one_ip,
             grp(Group::Connect),
+            |s, p| s.act_ip_continue_on(p),
         )),
     ),
     with_params(
@@ -2652,11 +2632,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "ip.arrange_selected",
             Command,
-            "action-ip-arrange-selected",
             Menu::Draw,
             &[],
             two_ips,
             grp(Group::Connect),
+            |s, p| s.act_ip_arrange(p),
         )),
     ),
     with_params(
@@ -2664,21 +2644,21 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "box.grip",
             Command,
-            "action-box-grip",
             Menu::Edit,
             &[],
             one_box,
             None,
+            |s, p| s.act_box_grip(p),
         ))),
     ),
     in_canvas(act(
         "box.add_cp",
         Command,
-        "action-box-add-cp",
         Menu::Draw,
         &[],
         one_box,
         grp(Group::Place),
+        |s, _| s.act_box_add_cp(),
     )),
     // WP-S2.04 part 3. End.
     // WP-S2.04 part 4b (text and graphic tools, §10.7). Begin.
@@ -2688,11 +2668,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tool.text",
             Command,
-            "action-tool-text",
             Menu::Draw,
             &["T"],
             editable_page,
             None,
+            |s, _| s.act_tool_text(),
         ),
     )),
     with_params(
@@ -2702,11 +2682,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "tool.graphic",
                 Command,
-                "action-tool-graphic",
                 Menu::Draw,
                 &["L"],
                 editable_page,
                 grp_sub(Group::Annotate, Submenu::Graphic),
+                |s, p| s.act_tool_graphic(p),
             ),
         )),
     ),
@@ -2715,11 +2695,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "text.bind",
             View,
-            "action-text-bind",
             Menu::Edit,
             &[],
             editable_page,
             None,
+            |s, p| s.act_text_bind(p),
         ))),
     ),
     in_canvas(with_icon(
@@ -2727,22 +2707,22 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "text.edit",
             Command,
-            "action-text-edit",
             Menu::Draw,
             &["F2"],
             one_free_text,
             grp(Group::Annotate),
+            |s, _| s.act_text_edit(),
         ),
     )),
     // FT-411: Edit ▸ Bridge terminals.
     in_canvas(act(
         "strip.bridge",
         Command,
-        "action-strip-bridge",
         Menu::Draw,
         &[],
         two_strip_terminals,
         grp(Group::Connect),
+        |s, _| s.act_strip_bridge(),
     )),
     // WP-S2.07 part 1: the strip editor (§6.9; 262 → 268).
     with_params(
@@ -2750,11 +2730,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "strip.edit",
             View,
-            "action-strip-edit",
             Menu::Edit,
             &[],
             project_open,
             slot(Menu::Edit),
+            |s, p| s.act_strip_edit(p),
         ),
     ),
     with_params(
@@ -2762,21 +2742,21 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_navigator(act(
             "strip.insert",
             Command,
-            "action-strip-insert",
             Menu::Edit,
             &["Insert"],
             strips_editor,
             None,
+            |s, p| s.act_strip_insert(p),
         )),
     ),
     in_navigator(act(
         "strip.delete_rows",
         Command,
-        "action-strip-delete-rows",
         Menu::Edit,
         &["Ctrl+Delete"],
         strips_editor,
         None,
+        |s, _| s.act_strip_delete_rows(),
     )),
     // Alt+Arrow Up and Alt+Arrow Down stay bound to `pages.move_up` and `pages.move_down` (the keymap test forbids a
     // second binding); while the Terminal strips navigator has the focus they run this action with `step` -1 or 1
@@ -2786,11 +2766,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_navigator(act(
             "strip.move",
             Command,
-            "action-strip-move",
             Menu::Edit,
             &[],
             strips_editor,
             None,
+            |s, p| s.act_strip_move(p),
         )),
     ),
     with_params(
@@ -2798,32 +2778,32 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_navigator(act(
             "strip.add_accessory",
             Command,
-            "action-strip-add-accessory",
             Menu::Edit,
             &[],
             strips_editor,
             slot(Menu::Edit),
+            |s, p| s.act_strip_add_accessory(p),
         )),
     ),
     in_navigator(act(
         "strip.unbridge",
         Command,
-        "action-strip-unbridge",
         Menu::Edit,
         &[],
         strips_editor,
         None,
+        |s, _| s.act_strip_unbridge(),
     )),
     // WP-S2.07 part 2 (§7, FR-CBL-016): swap two cores of one cable. The navigators have no row menu yet, so it sits
     // in the Edit menu with the strip editor's gestures.
     in_navigator(act(
         "cable.swap_cores",
         Command,
-        "action-cable-swap-cores",
         Menu::Edit,
         &[],
         cables_editor,
         slot(Menu::Edit),
+        |s, _| s.act_cable_swap_cores(),
     )),
     // FT-490's generic half: Delete and F2 in a navigator tree (`table.clear` and `table.edit` in tree mode run these,
     // `ShellModel::shortcut_action`).
@@ -2832,11 +2812,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "navigator.delete",
             Command,
-            "action-navigator-delete",
             Menu::Edit,
             &[],
             writable,
             None,
+            |s, p| s.act_navigator_delete(p),
         ))),
     ),
     with_params(
@@ -2844,11 +2824,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "navigator.rename",
             Command,
-            "action-navigator-rename",
             Menu::Edit,
             &[],
             writable,
             None,
+            |s, p| s.act_navigator_rename(p),
         ))),
     ),
     // G-PP triage row 7: Draw ▸ Bond, `bond.create` on the selected connection or two named CPs, previewed.
@@ -2857,11 +2837,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "bond.draw",
             Command,
-            "action-bond-draw",
             Menu::Draw,
             &[],
             bond_ends,
             grp_sub(Group::Connect, Submenu::Bond),
+            |s, p| s.act_bond_draw(p),
         )),
     ),
     // WP-S2.04 part 4b: the Wire marker and Structure box tools, their fields and the marker mode.
@@ -2870,11 +2850,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tool.marker",
             Command,
-            "action-tool-marker",
             Menu::Draw,
             &["Shift+W"],
             editable_page,
             grp(Group::Connect),
+            |s, _| s.act_tool_marker(),
         ),
     )),
     with_params(
@@ -2882,11 +2862,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "marker.fields",
             View,
-            "action-marker-fields",
             Menu::Draw,
             &[],
             editable_page,
             None,
+            |s, p| s.act_marker_fields(p),
         ))),
     ),
     in_canvas(with_icon(
@@ -2894,11 +2874,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tool.structure_box",
             Command,
-            "action-tool-structure-box",
             Menu::Draw,
             &["Shift+B"],
             editable_page,
             grp(Group::Annotate),
+            |s, _| s.act_tool_structure_box(),
         ),
     )),
     with_params(
@@ -2906,11 +2886,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "structure_box.fields",
             View,
-            "action-structure-box-fields",
             Menu::Draw,
             &[],
             editable_page,
             None,
+            |s, p| s.act_structure_box_fields(p),
         ))),
     ),
     with_params(
@@ -2918,11 +2898,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "project.marker_mode",
             Command,
-            "action-project-marker-mode",
             Menu::Draw,
             &[],
             writable,
             grp_sub(Group::Connect, Submenu::WireMarkers),
+            |s, p| s.act_marker_mode(p),
         ),
     ),
     // WP-S2.04 part 4b. End.
@@ -2932,11 +2912,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tool.image",
             Command,
-            "action-tool-image",
             Menu::Draw,
             &[],
             editable_page,
             grp(Group::Annotate),
+            |s, _| s.act_tool_image(),
         ),
     )),
     with_params(
@@ -2944,11 +2924,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "image.pick",
             View,
-            "action-image-pick",
             Menu::Draw,
             &[],
             editable_page,
             None,
+            |s, p| s.act_image_pick(p),
         ))),
     ),
     with_params(
@@ -2956,11 +2936,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "image.file",
             View,
-            "action-image-file",
             Menu::Draw,
             &[],
             editable_page,
             None,
+            |s, p| s.act_image_file(p),
         ))),
     ),
     placed(
@@ -2974,11 +2954,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "tools.company_standard",
             Command,
-            "action-tools-company-standard",
             Menu::Project,
             &[],
             always,
             None,
+            |s, _| s.act_wizard_open(),
         ),
     ),
     // WP-S2.09 part 2 (§7.6): Tools ▸ Run checks.
@@ -2988,11 +2968,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "messages.check",
             Command,
-            "action-messages-check",
             Menu::Check,
             &["F7"],
             project_open,
             None,
+            |s, _| s.act_messages_check(),
         ),
     ),
     // WP-S2.09 part 3 (§8.3, §8.6): Tools, Renumber devices… and Purge unused images…
@@ -3005,11 +2985,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "devices.renumber",
                 Command,
-                "action-devices-renumber",
                 Menu::Draw,
                 &["Ctrl+Shift+N"],
                 writable,
                 None,
+                |s, p| s.act_devices_renumber(p),
             ),
         ),
     ),
@@ -3018,11 +2998,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "project.purge_assets",
             Command,
-            "action-project-purge-assets",
             Menu::Project,
             &[],
             writable,
             slot_sep(Menu::Project),
+            |s, p| s.act_purge_assets(p),
         ),
     ),
     // WP-S1.18 part 5 (§9): Check ▸ Revision, the revision dialogs; each answered by its own action with parameters
@@ -3033,11 +3013,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "revision.set_author",
             Command,
-            "action-revision-set-author",
             Menu::Check,
             &[],
             open_revision,
             sub(Menu::Check, Submenu::Revision, true),
+            |s, p| s.act_revision_set_author(p),
         ),
     ),
     with_params(
@@ -3045,11 +3025,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "revision.approve",
             Command,
-            "action-revision-approve",
             Menu::Check,
             &[],
             open_revision,
             sub(Menu::Check, Submenu::Revision, true),
+            |s, p| s.act_revision_approve(p),
         ),
     ),
     with_params(
@@ -3057,11 +3037,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "revision.release",
             Command,
-            "action-revision-release",
             Menu::Check,
             &[],
             open_revision,
             sub(Menu::Check, Submenu::Revision, true),
+            |s, p| s.act_revision_release(p),
         ),
     ),
     with_params(
@@ -3069,11 +3049,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "revision.withdraw",
             Command,
-            "action-revision-withdraw",
             Menu::Check,
             &[],
             released_revision,
             sub(Menu::Check, Submenu::Revision, true),
+            |s, p| s.act_revision_withdraw(p),
         ),
     ),
     with_params(
@@ -3081,68 +3061,68 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "revision.incomplete",
             Command,
-            "action-revision-incomplete",
             Menu::Check,
             &[],
             incomplete_release,
             sub(Menu::Check, Submenu::Revision, true),
+            |s, p| s.act_revision_incomplete(p),
         ),
     ),
     act(
         "tab.new",
         View,
-        "action-tab-new",
         Menu::Window,
         &["Ctrl+T"],
         can_add_tab,
         slot(Menu::Window),
+        |s, _| s.act_tab_new(),
     ),
     act(
         "tab.close",
         View,
-        "action-tab-close",
         Menu::Window,
         &["Ctrl+W"],
         can_close_tab,
         slot(Menu::Window),
+        |s, _| s.act_tab_close(),
     ),
     act(
         "tab.next",
         View,
-        "action-tab-next",
         Menu::Window,
         &["Ctrl+Tab"],
         can_cycle_tabs,
         slot(Menu::Window),
+        |s, _| s.act_tab_cycle(1),
     ),
     act(
         "tab.previous",
         View,
-        "action-tab-previous",
         Menu::Window,
         &["Ctrl+Shift+Tab"],
         can_cycle_tabs,
         slot(Menu::Window),
+        |s, _| s.act_tab_cycle(-1),
     ),
     act(
         "tab.focus_other",
         View,
-        "action-tab-focus-other",
         Menu::Window,
         &["Ctrl+F6"],
         two_groups,
         slot(Menu::Window),
+        |s, _| s.act_focus_other(),
     ),
     with_params(
         "topic?:text",
         act(
             "help.documentation",
             View,
-            "action-help-documentation",
             Menu::Help,
             &["F1"],
             always,
             slot(Menu::Help),
+            |s, p| s.act_documentation(p),
         ),
     ),
     with_params(
@@ -3150,11 +3130,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "help.tutorials",
             Command,
-            "action-help-tutorials",
             Menu::Help,
             &[],
             always,
             slot(Menu::Help),
+            |s, p| s.act_tutorials(p),
         ),
     ),
     with_params(
@@ -3162,50 +3142,50 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "help.first_run",
             View,
-            "action-help-first-run",
             Menu::Help,
             &[],
             always,
             slot_sep(Menu::Help),
+            |s, p| s.act_first_run_open(p),
         ),
     ),
     act(
         "help.shortcuts",
         View,
-        "action-help-shortcuts",
         Menu::Help,
         &[],
         always,
         slot(Menu::Help),
+        |s, p| s.act_help_shortcuts(p),
     ),
     act(
         "help.notices",
         View,
-        "action-help-notices",
         Menu::Help,
         &[],
         always,
         slot(Menu::Help),
+        |s, _| s.open_dialog(crate::shell::Dialog::Notices),
     ),
     act(
         "help.about",
         View,
-        "action-help-about",
         Menu::Help,
         &[],
         always,
         slot(Menu::Help),
+        |s, _| s.open_dialog(crate::shell::Dialog::About),
     ),
     with_params(
         "cmd:text, params?:json",
         needs_parameters(act(
             "command.run",
             Command,
-            "action-command-run",
             Menu::View,
             &[],
             writable,
             None,
+            |s, p| s.act_command_run(p),
         )),
     ),
     with_params(
@@ -3213,11 +3193,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         headless(act(
             "view.snapshot",
             View,
-            "action-view-snapshot",
             Menu::View,
             &[],
             page_shown,
             None,
+            |s, p| s.act_view_snapshot(p),
         )),
     ),
     with_params(
@@ -3225,11 +3205,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         headless(act(
             "canvas.snapshot",
             View,
-            "action-canvas-snapshot",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_canvas_snapshot(p),
         )),
     ),
     with_params(
@@ -3237,35 +3217,29 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "view.zoom_to",
             View,
-            "action-view-zoom-to",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_zoom_to(p),
         )),
     ),
     with_params(
         "dx:json, dy:json, group?:uint",
-        hidden(act(
-            "view.pan",
-            View,
-            "action-view-pan",
-            Menu::View,
-            &[],
-            has_pages,
-            None,
-        )),
+        hidden(act("view.pan", View, Menu::View, &[], has_pages, None, |s, p| {
+            s.act_pan(p)
+        })),
     ),
     with_params(
         "width:json, height:json, ppp?:json, group?:uint",
         hidden(act(
             "view.canvas_resize",
             View,
-            "action-view-canvas-resize",
             Menu::View,
             &[],
             always,
             None,
+            |s, p| s.act_canvas_resize(p),
         )),
     ),
     with_params(
@@ -3273,11 +3247,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "canvas.pointer",
             View,
-            "action-canvas-pointer",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_pointer(p),
         )),
     ),
     with_params(
@@ -3285,11 +3259,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         headless(act(
             "canvas.preview_snapshot",
             View,
-            "action-canvas-preview-snapshot",
             Menu::View,
             &[],
             has_link_preview,
             None,
+            |s, p| s.act_canvas_snapshot(p),
         )),
     ),
     with_params(
@@ -3297,11 +3271,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "canvas.press",
             View,
-            "action-canvas-press",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_press(p, false),
         ))),
     ),
     with_params(
@@ -3309,11 +3283,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "canvas.release",
             View,
-            "action-canvas-release",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_press(p, true),
         ))),
     ),
     with_params(
@@ -3321,11 +3295,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "canvas.dwell",
             View,
-            "action-canvas-dwell",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_dwell(p),
         ))),
     ),
     // FT-720: a script step that expects its inner step to be refused, so a refusal's window state can be framed.
@@ -3334,32 +3308,32 @@ pub static ACTIONS: &[ActionMeta] = &[
         headless(act(
             "script.expect_refused",
             View,
-            "action-script-expect-refused",
             Menu::View,
             &[],
             always,
             None,
+            |s, p| s.act_script_expect_refused(p),
         )),
     ),
-    headless(act(
+    headless(parameterless(act(
         "ui.describe",
         View,
-        "action-ui-describe",
         Menu::View,
         &[],
         always,
         None,
-    )),
+        |s, p| s.act_ui_describe(p),
+    ))),
     with_params(
         "folio:text",
         hidden(act(
             "page.goto",
             View,
-            "action-page-goto",
             Menu::Page,
             &[],
             has_pages,
             None,
+            |s, p| s.act_page_goto(p),
         )),
     ),
     with_params(
@@ -3367,11 +3341,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "tab.activate",
             View,
-            "action-tab-activate",
             Menu::Window,
             &[],
             has_pages,
             None,
+            |s, p| s.act_tab_activate(p),
         )),
     ),
     with_params(
@@ -3379,11 +3353,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "tab.move",
             View,
-            "action-tab-move",
             Menu::Window,
             &[],
             has_pages,
             None,
+            |s, p| s.act_tab_move(p),
         )),
     ),
     with_params(
@@ -3391,11 +3365,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "tab.open",
             View,
-            "action-tab-open",
             Menu::Window,
             &[],
             has_pages,
             None,
+            |s, p| s.act_tab_open(p),
         )),
     ),
     with_params(
@@ -3403,11 +3377,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "cursor.left",
             View,
-            "action-cursor-left",
             Menu::Page,
             &["Arrow Left"],
             has_pages,
             None,
+            |s, p| s.act_cursor(p, -1, 0, false),
         ))),
     ),
     with_params(
@@ -3415,11 +3389,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "cursor.right",
             View,
-            "action-cursor-right",
             Menu::Page,
             &["Arrow Right"],
             has_pages,
             None,
+            |s, p| s.act_cursor(p, 1, 0, false),
         ))),
     ),
     with_params(
@@ -3427,11 +3401,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "cursor.up",
             View,
-            "action-cursor-up",
             Menu::Page,
             &["Arrow Up"],
             has_pages,
             None,
+            |s, p| s.act_cursor(p, 0, -1, false),
         ))),
     ),
     with_params(
@@ -3439,11 +3413,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "cursor.down",
             View,
-            "action-cursor-down",
             Menu::Page,
             &["Arrow Down"],
             has_pages,
             None,
+            |s, p| s.act_cursor(p, 0, 1, false),
         ))),
     ),
     with_params(
@@ -3451,11 +3425,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "cursor.cell_left",
             View,
-            "action-cursor-cell-left",
             Menu::Page,
             &["Shift+Arrow Left"],
             has_pages,
             None,
+            |s, p| s.act_cursor(p, -1, 0, true),
         ))),
     ),
     with_params(
@@ -3463,11 +3437,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "cursor.cell_right",
             View,
-            "action-cursor-cell-right",
             Menu::Page,
             &["Shift+Arrow Right"],
             has_pages,
             None,
+            |s, p| s.act_cursor(p, 1, 0, true),
         ))),
     ),
     with_params(
@@ -3475,11 +3449,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "cursor.cell_up",
             View,
-            "action-cursor-cell-up",
             Menu::Page,
             &["Shift+Arrow Up"],
             has_pages,
             None,
+            |s, p| s.act_cursor(p, 0, -1, true),
         ))),
     ),
     with_params(
@@ -3487,11 +3461,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "cursor.cell_down",
             View,
-            "action-cursor-cell-down",
             Menu::Page,
             &["Shift+Arrow Down"],
             has_pages,
             None,
+            |s, p| s.act_cursor(p, 0, 1, true),
         ))),
     ),
     with_params(
@@ -3499,11 +3473,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "cursor.set",
             View,
-            "action-cursor-set",
             Menu::Page,
             &[],
             has_pages,
             None,
+            |s, p| s.act_cursor_set(p),
         ))),
     ),
     with_params(
@@ -3511,11 +3485,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "pages.filter",
             View,
-            "action-pages-filter",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_pages_filter(p),
         )),
     ),
     with_params(
@@ -3523,11 +3497,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "pages.toggle",
             View,
-            "action-pages-toggle",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_pages_toggle(p),
         ))),
     ),
     with_params(
@@ -3535,11 +3509,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "pages.row",
             View,
-            "action-pages-row",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_pages_row(p),
         ))),
     ),
     with_params(
@@ -3547,11 +3521,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "pages.open",
             View,
-            "action-pages-open",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_pages_open(p),
         ))),
     ),
     // WP-S2.06 part 1: the navigator framework (§6.9).
@@ -3563,11 +3537,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "navigator.show",
                 View,
-                "action-navigator-show",
                 Menu::View,
                 &[],
                 has_pages,
                 sub(Menu::View, Submenu::Navigators, false),
+                |s, p| s.act_navigator_show(p),
             ),
         )),
     ),
@@ -3576,11 +3550,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "navigator.view",
             View,
-            "action-navigator-view",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_navigator_view(p),
         )),
     ),
     with_params(
@@ -3588,11 +3562,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "navigator.sort",
             View,
-            "action-navigator-sort",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_navigator_sort(p),
         )),
     ),
     with_params(
@@ -3600,11 +3574,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "navigator.filter",
             View,
-            "action-navigator-filter",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_navigator_filter(p),
         )),
     ),
     with_params(
@@ -3612,11 +3586,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "navigator.toggle",
             View,
-            "action-navigator-toggle",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_navigator_toggle(p),
         ))),
     ),
     with_params(
@@ -3624,11 +3598,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "navigator.row",
             View,
-            "action-navigator-row",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_navigator_row(p),
         ))),
     ),
     with_params(
@@ -3636,11 +3610,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "navigator.open",
             View,
-            "action-navigator-open",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_navigator_open(p),
         ))),
     ),
     // WP-S1.19 part 6 (§11): Draw ▸ Insert macro… with the place tools; a macro row dropped on the canvas; the macro
@@ -3650,11 +3624,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "macros.insert",
             Command,
-            "action-macros-insert",
             Menu::Draw,
             &[],
             editable_page,
             grp(Group::Place),
+            |s, p| s.act_macros_insert(p),
         )),
     ),
     with_params(
@@ -3662,11 +3636,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "macros.place",
             Command,
-            "action-macros-place",
             Menu::Draw,
             &[],
             editable_page,
             None,
+            |s, p| s.act_macros_place(p),
         ))),
     ),
     with_params(
@@ -3674,11 +3648,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "macros.value_set",
             Command,
-            "action-macros-value-set",
             Menu::Draw,
             &[],
             writable,
             None,
+            |s, p| s.act_macros_value_set(p),
         )),
     ),
     // FT-785: an ad-hoc value of the macro card's variable `name` (empty or absent `value`: none).
@@ -3687,11 +3661,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "macros.value",
             Command,
-            "action-macros-value",
             Menu::Draw,
             &[],
             writable,
             None,
+            |s, p| s.act_macros_value(p),
         )),
     ),
     with_params(
@@ -3700,11 +3674,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_canvas(act(
             "macros.save",
             Command,
-            "action-macros-save",
             Menu::Edit,
             &[],
             macro_scope_shown,
             slot(Menu::Edit),
+            |s, p| s.act_macros_save(p),
         )),
     ),
     with_params(
@@ -3712,11 +3686,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_navigator(act(
             "libraries.update",
             Command,
-            "action-libraries-update",
             Menu::Project,
             &[],
             writable,
             slot(Menu::Project),
+            |s, p| s.act_libraries_update(p),
         )),
     ),
     with_params(
@@ -3724,11 +3698,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_properties(act(
             "props.make_variable",
             View,
-            "action-props-make-variable",
             Menu::Edit,
             &[],
             grid_shown,
             None,
+            |s, p| s.act_props_make_variable(p),
         ))),
     ),
     // WP-S2.07 §8 (FR-PLC-020): a channel row dropped on the canvas binds the channel to the connection point under
@@ -3738,11 +3712,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_canvas(act(
             "navigator.bind",
             Command,
-            "action-navigator-bind",
             Menu::Edit,
             &[],
             editable_page,
             None,
+            |s, p| s.act_navigator_bind(p),
         ))),
     ),
     with_params(
@@ -3750,11 +3724,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "navigator.select",
             View,
-            "action-navigator-select",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_navigator_select(p),
         )),
     ),
     with_params(
@@ -3762,11 +3736,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "navigator.mark",
             View,
-            "action-navigator-mark",
             Menu::View,
             &["Space"],
             has_pages,
             None,
+            |s, p| s.act_navigator_mark(p),
         ))),
     ),
     with_params(
@@ -3774,59 +3748,59 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "navigator.jump",
             View,
-            "action-navigator-jump",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_navigator_jump(p),
         ))),
     ),
-    hidden(in_navigator(act(
+    hidden(in_navigator(parameterless(act(
         "navigator.apply",
         Command,
-        "action-navigator-apply",
         Menu::Edit,
         &[],
         reorder_card,
         None,
-    ))),
+        |s, _| s.act_navigator_apply(),
+    )))),
     with_params(
         "pages?:list(text), before?:text, end?:bool",
         hidden(in_navigator(act(
             "pages.reorder",
             Command,
-            "action-pages-reorder",
             Menu::Page,
             &[],
             pages_writable,
             None,
+            |s, p| s.act_pages_reorder(p),
         ))),
     ),
     in_navigator(placed(
         place(Group::Order, 2, CommandSize::Small, Some("bar-move-up")),
         "arrow-up",
-        act(
+        parameterless(act(
             "pages.move_up",
             Command,
-            "action-pages-move-up",
             Menu::Page,
             &["Alt+Arrow Up"],
             pages_writable,
             None,
-        ),
+            |s, _| s.act_pages_move(true),
+        )),
     )),
     in_navigator(placed(
         place(Group::Order, 3, CommandSize::Small, Some("bar-move-down")),
         "arrow-down",
-        act(
+        parameterless(act(
             "pages.move_down",
             Command,
-            "action-pages-move-down",
             Menu::Page,
             &["Alt+Arrow Down"],
             pages_writable,
             None,
-        ),
+            |s, _| s.act_pages_move(false),
+        )),
     )),
     // WP-S2.06 part 2: potential and net highlighting (§7.4).
     with_params(
@@ -3837,11 +3811,11 @@ pub static ACTIONS: &[ActionMeta] = &[
             act(
                 "navigator.highlight",
                 View,
-                "action-navigator-highlight",
                 Menu::Check,
                 &["Ctrl+Shift+H"],
                 has_pages,
                 None,
+                |s, p| s.act_navigator_highlight(p),
             ),
         )),
     ),
@@ -3851,11 +3825,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "view.clear_highlights",
             View,
-            "action-view-clear-highlights",
             Menu::Check,
             &[],
             has_highlights,
             None,
+            |s, _| s.act_clear_highlights(),
         ),
     ),
     // WP-S2.06 part 3: table mode (§8.8).
@@ -3864,11 +3838,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "navigator.table",
             View,
-            "action-navigator-table",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_navigator_table(p),
         )),
     ),
     with_params(
@@ -3876,11 +3850,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "table.columns",
             View,
-            "action-table-columns",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_table_columns(p),
         )),
     ),
     with_params(
@@ -3888,11 +3862,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "table.cell",
             View,
-            "action-table-cell",
             Menu::View,
             &[],
             has_pages,
             None,
+            |s, p| s.act_table_cell(p),
         ))),
     ),
     with_params(
@@ -3900,11 +3874,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "table.edit",
             View,
-            "action-table-edit",
             Menu::Edit,
             &["F2"],
             pages_writable,
             None,
+            |s, p| s.act_table_edit(p),
         ))),
     ),
     with_params(
@@ -3912,11 +3886,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "table.input",
             View,
-            "action-table-input",
             Menu::Edit,
             &[],
             pages_writable,
             None,
+            |s, p| s.act_table_input(p),
         ))),
     ),
     with_params(
@@ -3924,11 +3898,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "table.commit",
             Command,
-            "action-table-commit",
             Menu::Edit,
             &[],
             pages_writable,
             None,
+            |s, p| s.act_table_commit(p),
         ))),
     ),
     with_params(
@@ -3936,11 +3910,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "table.set",
             Command,
-            "action-table-set",
             Menu::Edit,
             &[],
             pages_writable,
             None,
+            |s, p| s.act_table_set(p),
         )),
     ),
     with_params(
@@ -3948,11 +3922,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_navigator(act(
             "table.fill_down",
             Command,
-            "action-table-fill-down",
             Menu::Edit,
             &["Ctrl+D"],
             pages_writable,
             None,
+            |s, p| s.act_table_fill_down(p),
         )),
     ),
     with_params(
@@ -3960,11 +3934,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_navigator(act(
             "table.pattern_fill",
             Command,
-            "action-table-pattern-fill",
             Menu::Edit,
             &["Ctrl+Shift+D"],
             pages_writable,
             None,
+            |s, p| s.act_table_pattern_fill(p),
         )),
     ),
     with_params(
@@ -3972,11 +3946,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_navigator(act(
             "table.paste",
             Command,
-            "action-table-paste",
             Menu::Edit,
             &["Ctrl+V"],
             pages_writable,
             None,
+            |s, p| s.act_table_paste(p),
         )),
     ),
     with_params(
@@ -3984,11 +3958,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_navigator(act(
             "table.copy",
             View,
-            "action-table-copy",
             Menu::Edit,
             &["Ctrl+C"],
             has_pages,
             None,
+            |s, p| s.act_table_copy(p),
         )),
     ),
     with_params(
@@ -3996,11 +3970,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         in_navigator(act(
             "table.clear",
             Command,
-            "action-table-clear",
             Menu::Edit,
             &["Delete"],
             pages_writable,
             None,
+            |s, p| s.act_table_clear(p),
         )),
     ),
     with_params(
@@ -4008,11 +3982,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "table.resolve",
             Command,
-            "action-table-resolve",
             Menu::Edit,
             &[],
             table_card,
             None,
+            |s, p| s.act_table_resolve(p),
         ))),
     ),
     with_params(
@@ -4020,11 +3994,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_navigator(act(
             "table.drop",
             Command,
-            "action-table-drop",
             Menu::Edit,
             &[],
             table_card,
             None,
+            |s, p| s.act_table_drop(p),
         ))),
     ),
     with_params(
@@ -4032,50 +4006,50 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "ui.focus",
             View,
-            "action-ui-focus",
             Menu::Window,
             &[],
             project_open,
             None,
+            |s, p| s.act_focus(p),
         )),
     ),
-    hidden(act(
+    hidden(parameterless(act(
         "ui.focus_next",
         View,
-        "action-ui-focus-next",
         Menu::Window,
         &["F6"],
         project_open,
         None,
-    )),
-    hidden(act(
+        |s, _| s.act_focus_cycle(1),
+    ))),
+    hidden(parameterless(act(
         "ui.focus_previous",
         View,
-        "action-ui-focus-previous",
         Menu::Window,
         &["Shift+F6"],
         project_open,
         None,
-    )),
-    hidden(act(
+        |s, _| s.act_focus_cycle(-1),
+    ))),
+    hidden(parameterless(act(
         "ui.dismiss",
         View,
-        "action-ui-dismiss",
         Menu::View,
         &["Escape"],
         always,
         None,
-    )),
+        |s, _| s.act_dismiss(),
+    ))),
     with_params(
         "key:text, value:json",
         hidden(act(
             "settings.set",
             Command,
-            "action-settings-set",
             Menu::View,
             &[],
             always,
             None,
+            |s, p| s.act_settings_set(p),
         )),
     ),
     with_params(
@@ -4083,41 +4057,41 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "first_run.set",
             View,
-            "action-first-run-set",
             Menu::Help,
             &[],
             first_run_open,
             None,
+            |s, p| s.act_first_run_set(p),
         )),
     ),
-    hidden(act(
+    hidden(parameterless(act(
         "first_run.next",
         View,
-        "action-first-run-next",
         Menu::Help,
         &[],
         first_run_open,
         None,
-    )),
-    hidden(act(
+        |s, _| s.act_first_run_step(1),
+    ))),
+    hidden(parameterless(act(
         "first_run.back",
         View,
-        "action-first-run-back",
         Menu::Help,
         &[],
         first_run_open,
         None,
-    )),
+        |s, _| s.act_first_run_step(-1),
+    ))),
     with_params(
         "start?:enum(wizard|sample|qet|new|none)",
         hidden(act(
             "first_run.finish",
             Command,
-            "action-first-run-finish",
             Menu::Help,
             &[],
             first_run_open,
             None,
+            |s, p| s.act_first_run_finish(p),
         )),
     ),
     with_params(
@@ -4125,71 +4099,71 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "wizard.set",
             View,
-            "action-wizard-set",
             Menu::Project,
             &[],
             wizard_open,
             None,
+            |s, p| s.act_wizard_set(p),
         )),
     ),
-    hidden(act(
+    hidden(parameterless(act(
         "wizard.next",
         View,
-        "action-wizard-next",
         Menu::Project,
         &[],
         wizard_open,
         None,
-    )),
-    hidden(act(
+        |s, _| s.act_wizard_step(1),
+    ))),
+    hidden(parameterless(act(
         "wizard.back",
         View,
-        "action-wizard-back",
         Menu::Project,
         &[],
         wizard_open,
         None,
-    )),
+        |s, _| s.act_wizard_step(-1),
+    ))),
     with_params(
         "step:uint",
         hidden(act(
             "wizard.goto",
             View,
-            "action-wizard-goto",
             Menu::Project,
             &[],
             wizard_open,
             None,
+            |s, p| s.act_wizard_goto(p),
         )),
     ),
-    hidden(act(
+    hidden(parameterless(act(
         "wizard.reset",
         View,
-        "action-wizard-reset",
         Menu::Project,
         &[],
         wizard_open,
         None,
-    )),
-    hidden(act(
+        |s, _| s.act_wizard_reset(),
+    ))),
+    hidden(parameterless(act(
         "wizard.cancel",
         View,
-        "action-wizard-cancel",
         Menu::Project,
         &[],
         wizard_open,
         None,
-    )),
+        |s, _| s.act_wizard_cancel(),
+    ))),
     with_params(
         "dir?:path",
         hidden(act(
             "wizard.finish",
             Command,
-            "action-wizard-finish",
             Menu::Project,
             &[],
             wizard_open,
             None,
+            |s, p| s.act_wizard_finish(p),
         )),
     ),
     with_params(
@@ -4197,11 +4171,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "wizard.apply_check_scheme",
             Command,
-            "action-wizard-apply-check-scheme",
             Menu::Project,
             &[],
             wizard_open,
             None,
+            |s, p| s.act_wizard_apply_check_scheme(p),
         )),
     ),
     // The property grid's own controls (WP-S2.05 part 1, spec §6.10): the window and the headless mode dispatch them.
@@ -4210,11 +4184,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "select.set",
             View,
-            "action-select-set",
             Menu::Edit,
             &[],
             project_open,
             None,
+            |s, p| s.act_select_set(p),
         )),
     ),
     with_params(
@@ -4222,11 +4196,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_properties(act(
             "props.row",
             View,
-            "action-props-row",
             Menu::Edit,
             &[],
             grid_shown,
             None,
+            |s, p| s.act_props_row(p),
         ))),
     ),
     // FT-541 (doc 16a §6.8): the filter field of a grid whose open categories hold more than twelve rows.
@@ -4235,11 +4209,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_properties(act(
             "props.filter",
             View,
-            "action-props-filter",
             Menu::Edit,
             &[],
             grid_shown,
             None,
+            |s, p| s.act_props_filter(p),
         ))),
     ),
     with_params(
@@ -4247,11 +4221,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_properties(act(
             "props.category",
             View,
-            "action-props-category",
             Menu::Edit,
             &[],
             grid_shown,
             None,
+            |s, p| s.act_props_category(p),
         ))),
     ),
     with_params(
@@ -4259,12 +4233,12 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_properties(act(
             "props.edit",
             View,
-            "action-props-edit",
             Menu::Edit,
             // Enter is the canvas's `canvas.activate`: the grid's own Enter is the pane's key (§6.9).
             &["F2"],
             grid_shown,
             None,
+            |s, p| s.act_props_edit(p),
         ))),
     ),
     with_params(
@@ -4272,62 +4246,62 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_properties(act(
             "props.input",
             View,
-            "action-props-input",
             Menu::Edit,
             &[],
             grid_shown,
             None,
+            |s, p| s.act_props_input(p),
         ))),
     ),
-    hidden(in_properties(act(
+    hidden(in_properties(parameterless(act(
         "props.commit",
         Command,
-        "action-props-commit",
         Menu::Edit,
         &[],
         grid_writable,
         None,
-    ))),
-    hidden(in_properties(act(
+        |s, _| s.act_props_commit(),
+    )))),
+    hidden(in_properties(parameterless(act(
         "props.cancel",
         View,
-        "action-props-cancel",
         Menu::Edit,
         &[],
         grid_shown,
         None,
-    ))),
+        |s, _| s.act_props_cancel(),
+    )))),
     with_params(
         "row?:text, value?:text, choice?:uint",
         hidden(act(
             "props.set",
             Command,
-            "action-props-set",
             Menu::Edit,
             &[],
             grid_writable,
             None,
+            |s, p| s.act_props_set(p),
         )),
     ),
-    hidden(act(
+    hidden(parameterless(act(
         "props.accept_tag_proposal",
         Command,
-        "action-props-accept-tag-proposal",
         Menu::Edit,
         &[],
         grid_writable,
         None,
-    )),
+        |s, _| s.act_props_accept_tag_proposal(),
+    ))),
     with_params(
         "index?:uint, step?:int",
         hidden(in_properties(act(
             "props.choose",
             Command,
-            "action-props-choose",
             Menu::Edit,
             &[],
             grid_shown,
             None,
+            |s, p| s.act_props_choose(p),
         ))),
     ),
     with_params(
@@ -4335,11 +4309,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_properties(act(
             "props.row_menu",
             View,
-            "action-props-row-menu",
             Menu::Edit,
             &["Shift+F10"],
             grid_shown,
             None,
+            |s, p| s.act_props_row_menu(p),
         ))),
     ),
     with_params(
@@ -4347,11 +4321,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_properties(act(
             "props.action",
             Command,
-            "action-props-action",
             Menu::Edit,
             &[],
             grid_shown,
             None,
+            |s, p| s.act_props_action(p),
         ))),
     ),
     with_params(
@@ -4359,11 +4333,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_properties(act(
             "props.list",
             Command,
-            "action-props-list",
             Menu::Edit,
             &[],
             grid_writable,
             None,
+            |s, p| s.act_props_list(p),
         ))),
     ),
     with_params(
@@ -4371,42 +4345,42 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_properties(act(
             "props.mltext",
             Command,
-            "action-props-mltext",
             Menu::Edit,
             &["Shift+Enter"],
             grid_shown,
             None,
+            |s, p| s.act_props_mltext(p),
         ))),
     ),
-    hidden(in_properties(act(
+    hidden(in_properties(parameterless(act(
         "preview.apply",
         Command,
-        "action-preview-apply",
         Menu::Edit,
         &["Ctrl+Enter"],
         card_writable,
         None,
-    ))),
-    hidden(in_properties(act(
+        |s, _| s.act_preview_apply(),
+    )))),
+    hidden(in_properties(parameterless(act(
         "preview.cancel",
         View,
-        "action-preview-cancel",
         Menu::Edit,
         &[],
         card_shown,
         None,
-    ))),
+        |s, _| s.act_preview_cancel(),
+    )))),
     // WP-S2.09 part 3 (§8.1, §8.4): the Preview tab and the history panel's own moves.
     with_params(
         "on?:bool",
         hidden(act(
             "preview.show",
             View,
-            "action-preview-show",
             Menu::View,
             &[],
             project_open,
             None,
+            |s, p| s.act_preview_show(p),
         )),
     ),
     with_params(
@@ -4414,11 +4388,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "history.row",
             View,
-            "action-history-row",
             Menu::Edit,
             &[],
             history_open,
             None,
+            |s, p| s.act_history_row(p),
         )),
     ),
     with_params(
@@ -4426,11 +4400,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "history.undo_to",
             Command,
-            "action-history-undo-to",
             Menu::Edit,
             &[],
             history_writable,
             None,
+            |s, p| s.act_history_undo_to(p),
         )),
     ),
     with_params(
@@ -4438,42 +4412,42 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "history.changes",
             View,
-            "action-history-changes",
             Menu::Edit,
             &[],
             history_open,
             None,
+            |s, p| s.act_history_changes(p),
         )),
     ),
-    hidden(act(
+    hidden(parameterless(act(
         "toast.undo",
         Command,
-        "action-toast-undo",
         Menu::Edit,
         &[],
         writable,
         None,
-    )),
-    hidden(act(
+        |s, _| s.act_toast_undo(),
+    ))),
+    hidden(parameterless(act(
         "toast.dismiss",
         View,
-        "action-toast-dismiss",
         Menu::Edit,
         &[],
         project_open,
         None,
-    )),
+        |s, _| s.act_toast_dismiss(),
+    ))),
     // WP-S2.09 part 1 (§6.8): the jobs' and the notifications' own controls, and the recovery dialog's answers.
     with_params(
         "job?:uint",
         hidden(act(
             "jobs.cancel",
             Command,
-            "action-jobs-cancel",
             Menu::View,
             &[],
             always,
             None,
+            |s, p| s.act_jobs_cancel(p),
         )),
     ),
     with_params(
@@ -4481,11 +4455,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         headless(hidden(act(
             "jobs.wait",
             View,
-            "action-jobs-wait",
             Menu::View,
             &[],
             always,
             None,
+            |s, p| s.act_jobs_wait(p),
         ))),
     ),
     with_params(
@@ -4493,11 +4467,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "jobs.open_result",
             View,
-            "action-jobs-open-result",
             Menu::View,
             &[],
             always,
             None,
+            |s, p| s.act_jobs_open_result(p),
         )),
     ),
     with_params(
@@ -4505,51 +4479,51 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "notifications.run",
             Command,
-            "action-notifications-run",
             Menu::View,
             &[],
             always,
             None,
+            |s, p| s.act_notifications_run(p),
         )),
     ),
-    hidden(act(
+    hidden(parameterless(act(
         "journal.recover",
         Command,
-        "action-journal-recover",
         Menu::File,
         &[],
         recovery_open,
         None,
-    )),
-    hidden(act(
+        |s, _| s.act_journal_recover(),
+    ))),
+    hidden(parameterless(act(
         "journal.keep",
         View,
-        "action-journal-keep",
         Menu::File,
         &[],
         recovery_open,
         None,
-    )),
+        |s, _| s.act_journal_keep(),
+    ))),
     // WP-S2.05 part 2: the find pane's own controls (§7.6); the pane handles Enter, Up and Down itself.
-    hidden(in_find(act(
+    hidden(in_find(parameterless(act(
         "find.close",
         View,
-        "action-find-close",
         Menu::Edit,
         &[],
         find_shown,
         None,
-    ))),
+        |s, _| s.act_find_close(),
+    )))),
     with_params(
         "text:text",
         hidden(in_find(act(
             "find.text",
             View,
-            "action-find-text",
             Menu::Edit,
             &[],
             find_shown,
             None,
+            |s, p| s.act_find_text(p, false),
         ))),
     ),
     with_params(
@@ -4557,11 +4531,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_find(act(
             "find.replacement",
             View,
-            "action-find-replacement",
             Menu::Edit,
             &[],
             find_shown,
             None,
+            |s, p| s.act_find_text(p, true),
         ))),
     ),
     with_params(
@@ -4569,11 +4543,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_find(act(
             "find.option",
             View,
-            "action-find-option",
             Menu::Edit,
             &[],
             find_shown,
             None,
+            |s, p| s.act_find_option(p),
         ))),
     ),
     with_params(
@@ -4581,11 +4555,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_find(act(
             "find.fields",
             View,
-            "action-find-fields",
             Menu::Edit,
             &[],
             find_shown,
             None,
+            |s, p| s.act_find_fields(p),
         ))),
     ),
     with_params(
@@ -4593,54 +4567,54 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(in_find(act(
             "find.folios",
             View,
-            "action-find-folios",
             Menu::Edit,
             &[],
             find_shown,
             None,
+            |s, p| s.act_find_folios(p),
         ))),
     ),
-    hidden(in_find(act(
+    hidden(in_find(parameterless(act(
         "find.run",
         View,
-        "action-find-run",
         Menu::Edit,
         &[],
         find_shown,
         None,
-    ))),
+        |s, _| s.act_find_run(),
+    )))),
     with_params(
         "step?:int, to?:uint",
         hidden(in_find(act(
             "find.row",
             View,
-            "action-find-row",
             Menu::Edit,
             &[],
             find_shown,
             None,
+            |s, p| s.act_find_row(p),
         ))),
     ),
-    hidden(in_find(act(
+    hidden(in_find(parameterless(act(
         "find.jump",
         View,
-        "action-find-jump",
         Menu::Edit,
         &[],
         find_shown,
         None,
-    ))),
+        |s, _| s.act_find_jump(),
+    )))),
     // WP-S6.13 part 1: the page's content as text (FR-UI-046's headless v0).
     with_params(
         "folio?:text",
         headless(act(
             "page.describe",
             View,
-            "action-page-describe",
             Menu::Page,
             &[],
             page_describable,
             None,
+            |s, p| s.act_page_describe(p),
         )),
     ),
     // WP-S2.07 part 4a (§9.4): the part selection dialog and the part editor.
@@ -4649,11 +4623,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "part.choose",
             View,
-            "action-part-choose",
             Menu::Edit,
             &[],
             writable,
             slot(Menu::Edit),
+            |s, p| s.act_part_choose(p),
         ),
     ),
     with_params(
@@ -4661,11 +4635,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "part.search",
             View,
-            "action-part-search",
             Menu::Edit,
             &[],
             part_dialog_open,
             None,
+            |s, p| s.act_part_search(p),
         )),
     ),
     with_params(
@@ -4673,11 +4647,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "part.pick",
             Command,
-            "action-part-pick",
             Menu::Edit,
             &[],
             part_dialog_open,
             None,
+            |s, p| s.act_part_pick(p),
         )),
     ),
     with_params(
@@ -4685,11 +4659,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "part.favourite",
             View,
-            "action-part-favourite",
             Menu::Edit,
             &[],
             part_dialog_open,
             None,
+            |s, p| s.act_part_favourite(p),
         )),
     ),
     with_params(
@@ -4697,11 +4671,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         act(
             "part.edit",
             View,
-            "action-part-edit",
             Menu::Edit,
             &[],
             writable,
             slot(Menu::Edit),
+            |s, p| s.act_part_edit(p),
         ),
     ),
     with_params(
@@ -4709,33 +4683,33 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "part.field",
             View,
-            "action-part-field",
             Menu::Edit,
             &[],
             part_editor_open,
             None,
+            |s, p| s.act_part_field(p),
         )),
     ),
-    hidden(act(
+    hidden(parameterless(act(
         "part.save",
         Command,
-        "action-part-save",
         Menu::Edit,
         &[],
         part_editor_open,
         None,
-    )),
+        |s, _| s.act_part_save(),
+    ))),
     // WP-S2.07 part 4b (§9.4)
     with_params(
         "choice:enum(adapt|update)",
         hidden(act(
             "paste.resolve",
             Command,
-            "action-paste-resolve",
             Menu::Edit,
             &[],
             paste_choice_open,
             None,
+            |s, p| s.act_paste_resolve(p),
         )),
     ),
     // WP-S2.08 part 2 (D8): the keymap editor's own controls (Help ▸ Keyboard shortcuts); the window dispatches them.
@@ -4744,11 +4718,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "keymap.search",
             View,
-            "action-keymap-search",
             Menu::Help,
             &[],
             keymap_editor_open,
             None,
+            |s, p| s.act_keymap_search(p),
         )),
     ),
     with_params(
@@ -4756,11 +4730,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "keymap.record_start",
             View,
-            "action-keymap-record-start",
             Menu::Help,
             &[],
             keymap_editor_open,
             None,
+            |s, p| s.act_keymap_record_start(p),
         )),
     ),
     with_params(
@@ -4768,11 +4742,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "keymap.record",
             View,
-            "action-keymap-record",
             Menu::Help,
             &[],
             keymap_editor_open,
             None,
+            |s, p| s.act_keymap_record(p),
         )),
     ),
     with_params(
@@ -4780,11 +4754,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "keymap.reset",
             View,
-            "action-keymap-reset",
             Menu::Help,
             &[],
             keymap_editor_open,
             None,
+            |s, p| s.act_keymap_reset(p),
         )),
     ),
     with_params(
@@ -4792,11 +4766,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "keymap.import",
             View,
-            "action-keymap-import",
             Menu::Help,
             &[],
             keymap_editor_open,
             None,
+            |s, p| s.act_keymap_import(p),
         )),
     ),
     with_params(
@@ -4804,11 +4778,11 @@ pub static ACTIONS: &[ActionMeta] = &[
         hidden(act(
             "keymap.export",
             View,
-            "action-keymap-export",
             Menu::Help,
             &[],
             keymap_editor_open,
             None,
+            |s, p| s.act_keymap_export(p),
         )),
     ),
 ];
@@ -5054,7 +5028,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
     ActionItem {
         id: meta.id,
         params: Value::Object(serde_json::Map::new()),
-        label: strings::text(meta.label_key).to_owned(),
+        label: strings::text(&meta.label_key()).to_owned(),
         shortcut: model.shortcut_text(meta),
         enabled,
         reason: paste_reason.or_else(|| state.err().map(|k| strings::text(k).to_owned())),
@@ -5488,7 +5462,12 @@ mod tests {
     #[test]
     fn every_entry_has_an_english_label() {
         for a in ACTIONS {
-            assert!(strings::lookup(a.label_key).is_some(), "label of {}", a.id);
+            let key = a.label_key();
+            assert!(
+                strings::lookup(&key).is_some(),
+                "{} has no English label: strings has no text for {key}",
+                a.id
+            );
         }
         for m in Menu::ALL {
             assert!(strings::lookup(m.label_key()).is_some());
@@ -5591,57 +5570,6 @@ mod tests {
         }
     }
 
-    /// The actions that read no parameter although they are hidden, headless-only or marked `needs_parameters`
-    /// (WP-S6.13 BD2): a new such action either has a signature or is added here with a reason.
-    const PARAMETERLESS: &[&str] = &[
-        // Screen controls and keys that read nothing.
-        "first_run.next",
-        "place.join",
-        "props.accept_tag_proposal",
-        "parts.map_import",
-        "first_run.back",
-        "wizard.next",
-        "wizard.back",
-        "wizard.reset",
-        "wizard.cancel",
-        "ui.focus_next",
-        "ui.focus_previous",
-        "ui.dismiss",
-        "ui.describe",
-        // WP-S2.06 part 1: the reorder card's Apply and the page moves read the navigator's state.
-        "navigator.apply",
-        "pages.move_up",
-        "pages.move_down",
-        // The picker, the tools and the proposals.
-        "tool.finish",
-        "tool.next_proposal",
-        "tool.connect_on_move",
-        // `canvas.activate` with `alt` forced.
-        "canvas.activate_alt",
-        // The property grid, the card, the toast and the find pane.
-        "props.commit",
-        "props.cancel",
-        "preview.apply",
-        "preview.cancel",
-        "toast.undo",
-        "toast.dismiss",
-        "find.close",
-        "find.run",
-        "find.jump",
-        // WP-S2.09 part 1: the recovery dialog's answers.
-        "journal.recover",
-        "journal.keep",
-        // WP-S2.07 part 4a: the part editor's Save.
-        "part.save",
-        // WP-S4.02 part 3: the panel page's keys and the context menu read the selection and the floating ghost.
-        "layout.next",
-        "layout.previous",
-        "layout.rotate",
-        "layout.flip",
-        "layout.lock_selection",
-        "layout.unlock_selection",
-    ];
-
     #[test]
     fn every_signature_parses_with_the_grammar() {
         for a in ACTIONS {
@@ -5664,6 +5592,8 @@ mod tests {
         assert!(parse_signature("a:list(enum(x|y))").is_ok());
     }
 
+    /// WP-S6.13 BD2: a hidden, headless-only or `needs_parameters` action has a signature or is marked
+    /// `parameterless`, and a parameterless action has no signature.
     #[test]
     fn every_action_that_reads_parameters_has_a_signature() {
         for a in ACTIONS
@@ -5671,14 +5601,18 @@ mod tests {
             .filter(|a| a.needs_parameters || a.headless_only || a.hidden)
         {
             assert!(
-                !a.params.is_empty() || PARAMETERLESS.contains(&a.id),
-                "{} has no signature and is not in PARAMETERLESS",
+                !a.params.is_empty() || a.parameterless,
+                "{} reads parameters but has no signature and is not marked parameterless",
                 a.id
             );
         }
-        for id in PARAMETERLESS {
-            let a = find(id).unwrap_or_else(|| panic!("{id} is not an action"));
-            assert!(a.params.is_empty(), "{id} is listed as parameterless");
+        for a in ACTIONS.iter().filter(|a| a.parameterless) {
+            assert!(
+                a.params.is_empty(),
+                "{} is marked parameterless but has the signature {}",
+                a.id,
+                a.params
+            );
         }
     }
 

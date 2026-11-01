@@ -62,7 +62,7 @@ fn menu_text(a: &ew_viewmodel::actions::ActionMeta) -> String {
 fn actions_text() -> String {
     let mut out = String::new();
     for a in ACTIONS {
-        let label = strings::text(a.label_key);
+        let label = strings::text(&a.label_key());
         assert!(
             !label.contains('"') && !label.contains('\n'),
             "the label of {}",

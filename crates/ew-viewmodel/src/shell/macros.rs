@@ -338,7 +338,7 @@ impl ShellModel {
 
     /// `macros.insert {key?}` (Draw ▸ Insert macro…): arms the macro tool with the macro of row `key`, else of the
     /// Macros navigator's cursor row; without either shows the Macros navigator.
-    pub(super) fn act_macros_insert(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_macros_insert(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match string_param(p, "key") {
             Err(e) => return e,
             Ok(Some(k)) if !k.trim().is_empty() => Some(k.trim().to_owned()),
@@ -392,7 +392,7 @@ impl ShellModel {
 
     /// `macros.place {key, x_mm, y_mm, value_set?}` (a macro row dropped on the canvas; the macro tool's click): the
     /// macro's card at the grid point nearest the sheet point.
-    pub(super) fn act_macros_place(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_macros_place(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match string_param(p, "key") {
             Ok(Some(k)) if !k.trim().is_empty() => k.trim().to_owned(),
             Ok(_) => return failed("error-missing-param", &["key"]),
@@ -589,7 +589,7 @@ impl ShellModel {
 
     /// `macros.value_set {name?}`: previews the open macro card again with the value set `name` (absent or empty: the
     /// defaults); the typed values stay.
-    pub(super) fn act_macros_value_set(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_macros_value_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let name = match string_param(p, "name") {
             Ok(v) => v.filter(|v| !v.is_empty()).map(str::to_owned),
             Err(e) => return e,
@@ -606,7 +606,7 @@ impl ShellModel {
     /// `macros.value {name, value?}` (FT-785): previews the open macro card again with `value` typed for its variable
     /// `name` (absent or blank: none, the value set's or the default's value applies); the value set and the other
     /// typed values stay.
-    pub(super) fn act_macros_value(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_macros_value(&mut self, p: &Map<String, Value>) -> Outcome {
         let name = match string_param(p, "name") {
             Ok(Some(n)) if !n.trim().is_empty() => n.trim().to_owned(),
             Ok(_) => return failed("error-missing-param", &["name"]),
@@ -671,7 +671,7 @@ impl ShellModel {
     /// `libraries.update {keys?}` (the Libraries navigator's Update…): previews `library.update` of the copies of rows
     /// `keys`, else of the marked copy rows, else of the copy row under the cursor, else of every copy with an update,
     /// and opens the bulk card.
-    pub(super) fn act_libraries_update(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_libraries_update(&mut self, p: &Map<String, Value>) -> Outcome {
         let keys = match super::table::list_param(p, "keys") {
             Ok(k) => k,
             Err(e) => return e,
@@ -747,7 +747,7 @@ impl ShellModel {
 
     /// `props.make_variable {row?, name?}` (the property row's Make variable): remembers the row's field of the one
     /// record it shows as a variable of the next Save as macro… (`name` default: the field's last member).
-    pub(super) fn act_props_make_variable(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_props_make_variable(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match self.props_row_param(p) {
             Ok(k) => k,
             Err(e) => return e,
@@ -846,7 +846,7 @@ impl ShellModel {
     /// `name` or `confirm` the window opens the dialog (name, key, description, library, kind, insertion point), which
     /// is the confirmation (the write is not undoable, D12); headless the action refuses (a library write is a
     /// front-end operation, §13.2 item 7).
-    pub(super) fn act_macros_save(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_macros_save(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::Refused {
                 reason_key: "reason-library-write-window",

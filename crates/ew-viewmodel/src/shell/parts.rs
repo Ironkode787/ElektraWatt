@@ -234,7 +234,7 @@ impl ShellModel {
     /// `parts.import {path}` (FT-649): reads the table's header row and opens the column mapping step on it,
     /// pre-filled from the map saved for the file's source key, else from the golden dialect's headers when the file
     /// has exactly those. A table that cannot be read shows its problem in the banner and opens nothing.
-    pub(super) fn act_parts_import(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_parts_import(&mut self, p: &Map<String, Value>) -> Outcome {
         let path = match string_param(p, "path") {
             Err(e) => return e,
             Ok(Some(path)) => std::path::PathBuf::from(path),
@@ -298,7 +298,7 @@ impl ShellModel {
 
     /// `parts.map {source?, column?, member?}` (FT-649): sets the source key (a map saved for it fills the members)
     /// and the member the column with header `column` imports as (`member` empty or absent: not imported).
-    pub(super) fn act_parts_map(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_parts_map(&mut self, p: &Map<String, Value>) -> Outcome {
         let (source, column, member) = match (
             string_param(p, "source"),
             string_param(p, "column"),
@@ -356,7 +356,7 @@ impl ShellModel {
     /// to the toast. A golden-dialect table whose pre-filled map is unchanged is read by the golden reader with its
     /// sibling tables, as before the mapping step. Refused while the importer refuses the map (its message under the
     /// table).
-    pub(super) fn act_parts_map_import(&mut self) -> Outcome {
+    pub(crate) fn act_parts_map_import(&mut self) -> Outcome {
         let Some(map) = self.parts_map.clone() else {
             return Outcome::Refused {
                 reason_key: "reason-no-parts-map",

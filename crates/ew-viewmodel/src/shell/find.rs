@@ -99,7 +99,7 @@ impl ShellModel {
     }
 
     /// `find.open` (Ctrl+F) and `find.open_replace` (Ctrl+H): the pane below the page view, with the focus.
-    pub(super) fn act_find_open(&mut self, replace: bool) -> Outcome {
+    pub(crate) fn act_find_open(&mut self, replace: bool) -> Outcome {
         if !self.layout.panes().contains(&PaneKind::Find) {
             let layout = self.layout.with_find();
             self.replace_layout(layout);
@@ -111,7 +111,7 @@ impl ShellModel {
 
     /// `find.close`: the pane leaves the layout; its focus goes back to the canvas. A replace card made by the pane
     /// goes with it, since no pane would draw it and Ctrl+Enter in the property grid would apply it unseen.
-    pub(super) fn act_find_close(&mut self) -> Outcome {
+    pub(crate) fn act_find_close(&mut self) -> Outcome {
         let layout = self.layout.without(PaneKind::Find);
         self.replace_layout(layout);
         if self.focus == Some(Focus::Find) {
@@ -121,7 +121,7 @@ impl ShellModel {
     }
 
     /// `find.text` and `find.replacement`: the whole text of the field; no search (§9 item 4).
-    pub(super) fn act_find_text(&mut self, p: &Map<String, Value>, replacement: bool) -> Outcome {
+    pub(crate) fn act_find_text(&mut self, p: &Map<String, Value>, replacement: bool) -> Outcome {
         let text = match string_param(p, "text") {
             Err(e) => return e,
             Ok(Some(t)) => t.to_owned(),
@@ -136,7 +136,7 @@ impl ShellModel {
     }
 
     /// `find.option`: `option` (`regex`, `match_case`, `whole_word`, `in_selection`) and `on` (else it toggles).
-    pub(super) fn act_find_option(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_find_option(&mut self, p: &Map<String, Value>) -> Outcome {
         let option = match string_param(p, "option") {
             Err(e) => return e,
             Ok(Some(o)) => o.to_owned(),
@@ -154,7 +154,7 @@ impl ShellModel {
     }
 
     /// `find.fields`: `fields`, a list of field words; an empty list checks every field.
-    pub(super) fn act_find_fields(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_find_fields(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(Value::Array(words)) = p.get("fields") else {
             return failed("error-missing-param", &["fields"]);
         };
@@ -177,7 +177,7 @@ impl ShellModel {
     }
 
     /// `find.folios`: `folios`, a list of printed folio labels (the pane's filter splits its text at commas).
-    pub(super) fn act_find_folios(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_find_folios(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(Value::Array(labels)) = p.get("folios") else {
             return failed("error-missing-param", &["folios"]);
         };
@@ -194,7 +194,7 @@ impl ShellModel {
     }
 
     /// `find.run` (Enter in the text): exactly one `Session::find` call. An error of the query shows in the pane.
-    pub(super) fn act_find_run(&mut self) -> Outcome {
+    pub(crate) fn act_find_run(&mut self) -> Outcome {
         if self.find.in_selection && self.tools.selection.is_empty() {
             return Outcome::Refused {
                 reason_key: "reason-find-no-selection",
@@ -207,7 +207,7 @@ impl ShellModel {
     }
 
     /// `find.row`: `step` (±n, clamped) or `to` (1-based).
-    pub(super) fn act_find_row(&mut self, p: &Map<String, Value>) -> Outcome {
+    pub(crate) fn act_find_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let n = self.find.results().map_or(0, |r| r.hits.len());
         if n == 0 {
             return Outcome::Refused {
@@ -234,7 +234,7 @@ impl ShellModel {
 
     /// `find.jump` (Enter on a result, a double click): the hit's record becomes the selection and its page is shown
     /// with the grid cursor on its cell (`nav.goto`); the pane stays open with the focus.
-    pub(super) fn act_find_jump(&mut self) -> Outcome {
+    pub(crate) fn act_find_jump(&mut self) -> Outcome {
         let Some(hit) = self
             .find
             .row()
@@ -268,7 +268,7 @@ impl ShellModel {
 
     /// `find.replace_all` (Ctrl+Enter in the pane, Edit ▸ Replace all): the results' `fields.set_many`, previewed,
     /// always through the card (§7.4). Stale results, or results of another query, are searched again first.
-    pub(super) fn act_find_replace_all(&mut self) -> Outcome {
+    pub(crate) fn act_find_replace_all(&mut self) -> Outcome {
         if !self.find.replace_mode {
             return Outcome::Refused {
                 reason_key: "reason-find-no-replace",
