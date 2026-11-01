@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S3.06 part 2 over Golden A: the open-items list (`open_items`, D7, D8). The golden CSV
-//! `golden/J-E-2416/expected/csv/open_items.csv` is one of `report_kinds.rs`' `KIND_CSVS`.
+//! `golden/J-E-2416/expected/csv/open_items.csv` is one of `report_kinds.rs`' `kind_csvs()`.
 //!
 //! The orchestrator's rulings of cycle 42 these tests rely on, quoted:
 //! - Ruling 2: "`open_items` calls `run_rules` ... and keeps the findings that are `FindingState::Open` and

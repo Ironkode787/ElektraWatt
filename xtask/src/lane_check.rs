@@ -12,9 +12,14 @@
 //! - **Workspace-wide files** (any changed file outside the members that `affected` does not call inert:
 //!   `Cargo.lock`, `golden/`, `content/`, `schemas/`, `assets/`, `clippy.toml`, ...) reach crates that no path names.
 //!   Without a declared set the nextest step fails closed: `FAILED (workspace-wide files changed: <files>; name the
-//!   packages they reach with -p)`. With `-p`, the declared set is the lane's answer and the steps run over it.
+//!   packages they reach with -p)`. With `-p`, the declared set is the lane's answer and the steps run over it, except
+//!   for the roots of [`GUARDED_ROOTS`]: a package whose `.rs` files name a changed root (a scan of the tracked files,
+//!   [`root_readers`]; `xtask`, which names them as policy, aside) must be in the set, or the nextest step fails
+//!   closed naming the missing ones (C43-p2#6).
 //! - **The steps,** in this order:
-//!   1. `fmt`: `cargo fmt`. It writes; it is not a check. When it changed a file of the diff, it reports
+//!   1. `fmt`: `cargo fmt`, then settle's per-file rustfmt over the diff's `.rs` files (`settle::rust_files`: never a
+//!      module under `#[rustfmt::skip]`), which reaches the test modules `automod::dir!` includes and `cargo fmt`
+//!      does not see. It writes; it is not a check. When it changed a file of the diff, it reports
 //!      `rewrote <files> (commit them)` (not a failure).
 //!   2. `clippy`: the changed crates, `--all-targets --all-features -- -D warnings`. An unresolvable
 //!      `disallowed-methods` path in clippy's output fails the step as in `cargo xtask ci`.
@@ -28,7 +33,8 @@
 //!   6. `policy`: the checks of lane.md step 6, each by its trigger (see [`policy_commands`]). The cheap static
 //!      checks `check-raw-read` and `check-disallowed-methods` run on any changed `.rs` file, since an allow attribute
 //!      or a raw-model read is not visible in a path; `check-test-layout` runs on any changed path under a `tests/`
-//!      directory and on any changed file that mentions `--test`.
+//!      directory and on any changed file that mentions `--test`; `map --check` (the shared-list markers) on any
+//!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`.
 //!   7. `fuzz`: `cargo check` of the fuzz workspace, when `crates/ew-testkit/tests/command_fuzz/**`, `fuzz/**` or the
 //!      `Cargo.toml` of a crate in a fuzz target's closure (`ci/fuzz-smoke-targets.toml`) changed.
 //! - **The nextest set, and its bound.** The changed crates, plus their **direct** reverse dependencies through
@@ -121,6 +127,8 @@ enum Program {
     Cargo,
     /// This executable (shown as `cargo xtask`).
     Xtask,
+    /// rustfmt on the files of the arguments, as settle runs it.
+    Rustfmt,
 }
 
 /// One command of a step.
@@ -147,6 +155,14 @@ impl Cmd {
         }
     }
 
+    fn rustfmt(files: &[String]) -> Self {
+        Self {
+            env: None,
+            program: Program::Rustfmt,
+            args: files.to_vec(),
+        }
+    }
+
     fn packages(mut self, packages: &BTreeSet<String>) -> Self {
         for p in packages {
             self.args.push("-p".to_owned());
@@ -170,6 +186,7 @@ impl fmt::Display for Cmd {
         f.write_str(match self.program {
             Program::Cargo => "cargo",
             Program::Xtask => "cargo xtask",
+            Program::Rustfmt => "rustfmt",
         })?;
         for a in &self.args {
             if a.is_empty() || a.contains([' ', '\'', '"', '(', ')', '|', '&']) {
@@ -191,6 +208,58 @@ pub(crate) struct Diff {
     pub added: BTreeSet<String>,
     /// The changed files whose text mentions `--test`.
     pub mentions_test: BTreeSet<String>,
+    /// The changed `.rs` files rustfmt takes (`settle::rust_files`): the fmt step's per-file pass.
+    pub rustfmt: Vec<String>,
+    /// For each root of [`GUARDED_ROOTS`] the diff touches, the packages whose `.rs` files name it ([`root_readers`]).
+    pub readers: BTreeMap<&'static str, BTreeSet<String>>,
+}
+
+/// The workspace-wide roots whose readers must be in a declared set (C43-p2#6): the golden files, the format schemas
+/// and the shipped content.
+pub(crate) const GUARDED_ROOTS: [&str; 3] = ["golden/", "schemas/0.1/", "content/"];
+
+/// Whether `text` names the repository root `root` (`golden/`) as a path: `"golden/`, `/golden/`, `"golden"` or
+/// `/golden"`.
+fn names_root(text: &str, root: &str) -> bool {
+    let bare = root.trim_end_matches('/');
+    [
+        format!("\"{bare}/"),
+        format!("/{bare}/"),
+        format!("\"{bare}\""),
+        format!("/{bare}\""),
+    ]
+    .iter()
+    .any(|p| text.contains(p.as_str()))
+}
+
+/// For each of `roots`, the members whose tracked `.rs` files (`files`, with their text from `read`) name it; `xtask`
+/// names the roots as policy, not as data, and stays out.
+pub(crate) fn root_readers(
+    roots: &[&'static str],
+    files: &[String],
+    members: &Members,
+    read: &dyn Fn(&str) -> Option<String>,
+) -> BTreeMap<&'static str, BTreeSet<String>> {
+    let mut out: BTreeMap<&'static str, BTreeSet<String>> =
+        roots.iter().map(|r| (*r, BTreeSet::new())).collect();
+    if roots.is_empty() {
+        return out;
+    }
+    for file in files.iter().filter(|f| f.ends_with(".rs")) {
+        let Ok(Some(owner)) = affected::owner(file, members) else {
+            continue;
+        };
+        if owner == "xtask" || roots.iter().all(|r| out[r].contains(owner)) {
+            continue;
+        }
+        let Some(text) = read(file) else { continue };
+        for r in roots {
+            if names_root(&text, r) {
+                out.get_mut(r).map(|s| s.insert(owner.to_owned()));
+            }
+        }
+    }
+    out
 }
 
 /// What one step of the plan does.
@@ -345,6 +414,7 @@ pub(crate) fn policy_commands(diff: &Diff) -> Vec<Cmd> {
         || any(&|f| f.starts_with("tests/") || f.contains("/tests/") || f == "xtask/src/test_layout.rs");
     let dependency =
         any(&|f| manifest(f) || f == "Cargo.lock" || f == "deny.toml" || f.starts_with("supply-chain/"));
+    let markers = any(&|f| f.ends_with(".rs") || manifest(f) || f == "ci/dep-rules.toml");
     let mut cmds = Vec::new();
     if cargo_toml {
         cmds.push(Cmd::xtask(&["check-deps"]));
@@ -359,6 +429,9 @@ pub(crate) fn policy_commands(diff: &Diff) -> Vec<Cmd> {
     }
     if tests {
         cmds.push(Cmd::xtask(&["check-test-layout"]));
+    }
+    if markers {
+        cmds.push(Cmd::xtask(&["map", "--check"]));
     }
     if dependency {
         cmds.push(Cmd::cargo(&["deny", "--locked", "check"]));
@@ -415,12 +488,32 @@ pub(crate) fn plan(
         None
     };
     // Workspace-wide files with no declared set: the lane must name the packages they reach (fails closed).
-    let wide_without_set = (!workspace_wide.is_empty() && declared.is_empty()).then(|| {
-        format!(
+    let wide_without_set = if workspace_wide.is_empty() {
+        None
+    } else if declared.is_empty() {
+        Some(format!(
             "workspace-wide files changed: {}; name the packages they reach with -p",
             some_files(&workspace_wide)
-        )
-    });
+        ))
+    } else {
+        // C43-p2#6: the declared set must hold every package that names a changed guarded root.
+        let missing: Vec<String> = GUARDED_ROOTS
+            .iter()
+            .filter(|r| workspace_wide.iter().any(|f| f.starts_with(**r)))
+            .filter_map(|r| {
+                let absent: Vec<&str> = diff
+                    .readers
+                    .get(r)
+                    .into_iter()
+                    .flatten()
+                    .filter(|p| !declared.contains(*p))
+                    .map(String::as_str)
+                    .collect();
+                (!absent.is_empty()).then(|| format!("{r} changed and {} name it", absent.join(", ")))
+            })
+            .collect();
+        (!missing.is_empty()).then(|| format!("{}; add them with -p", missing.join("; ")))
+    };
     let cargo_step = |cmds: Vec<Cmd>| match &skip {
         Some(why) => StepRun::Skip(why.clone()),
         None => StepRun::Run(cmds),
@@ -453,10 +546,16 @@ pub(crate) fn plan(
     doc.env = Some(("RUSTDOCFLAGS", "-D warnings"));
     let policy = policy_commands(diff);
 
+    let mut fmt = vec![Cmd::cargo(&["fmt"]).packages(&crates)];
+    fmt.extend(
+        diff.rustfmt
+            .chunks(crate::settle::RUSTFMT_CHUNK)
+            .map(Cmd::rustfmt),
+    );
     let steps = vec![
         StepPlan {
             name: "fmt",
-            run: cargo_step(vec![Cmd::cargo(&["fmt"]).packages(&crates)]),
+            run: cargo_step(fmt),
         },
         StepPlan {
             name: "clippy",
@@ -677,6 +776,7 @@ fn execute(root: &Path, name: &'static str, cmds: &[Cmd]) -> Result<Outcome> {
         let mut command = match cmd.program {
             Program::Cargo => Command::new(crate::cargo()),
             Program::Xtask => Command::new(std::env::current_exe().context("locating the xtask executable")?),
+            Program::Rustfmt => Command::new("rustfmt"),
         };
         command
             .args(&cmd.args)
@@ -734,15 +834,29 @@ fn print_failure(root: &Path, outcome: &Outcome) {
     }
 }
 
+/// The summary line of one step: `lane-check: <step>: <status>`, with the reason or the rewritten files.
+fn summary_line(o: &Outcome) -> String {
+    match (o.status, &o.why) {
+        ("rewrote", Some(files)) => format!("lane-check: {}: rewrote {files} (commit them)", o.name),
+        (status, Some(why)) => format!("lane-check: {}: {status} ({why})", o.name),
+        (status, None) => format!("lane-check: {}: {status}", o.name),
+    }
+}
+
+/// The files whose bytes differ between the snapshots before and after the fmt step.
+fn rewrote_files(before: &BTreeMap<String, Vec<u8>>, after: &BTreeMap<String, Vec<u8>>) -> Vec<String> {
+    after
+        .iter()
+        .filter(|(f, bytes)| before.get(*f) != Some(*bytes))
+        .map(|(f, _)| f.clone())
+        .collect()
+}
+
 /// Prints the summary block and writes `target/lane-check.json`.
 fn summarise(root: &Path, base: &str, outcomes: &[Outcome], write_json: bool) -> Result<bool> {
     println!();
     for o in outcomes {
-        match (o.status, &o.why) {
-            ("rewrote", Some(files)) => println!("lane-check: {}: rewrote {files} (commit them)", o.name),
-            (status, Some(why)) => println!("lane-check: {}: {status} ({why})", o.name),
-            (status, None) => println!("lane-check: {}: {status}", o.name),
-        }
+        println!("{}", summary_line(o));
     }
     if write_json {
         let steps: Vec<serde_json::Value> = outcomes
@@ -772,12 +886,25 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
     let a = parse(args)?;
     let merge_base = affected::merge_base(root, &a.base)?;
     let files = affected::changed_files(root, &merge_base)?;
+    let members = affected::members_of(&crate::metadata_all_features(root)?)?;
+    let touched: Vec<&'static str> = GUARDED_ROOTS
+        .iter()
+        .copied()
+        .filter(|r| files.iter().any(|f| f.starts_with(r)))
+        .collect();
+    let tracked = if touched.is_empty() {
+        Vec::new()
+    } else {
+        affected::nul_paths(&affected::git_output(root, &["ls-files", "-z", "--", "*.rs"])?)
+    };
+    let read = |f: &str| std::fs::read_to_string(root.join(f)).ok();
     let diff = Diff {
         mentions_test: mentioning_test(root, &files),
         added: added_files(root, &merge_base)?,
+        rustfmt: crate::settle::rust_files(root, &files.iter().cloned().collect(), false)?,
+        readers: root_readers(&touched, &tracked, &members, &read),
         files,
     };
-    let members = affected::members_of(&crate::metadata_all_features(root)?)?;
     for p in &a.packages {
         if !members.contains_key(p) {
             bail!("`{p}` is not a workspace member");
@@ -869,12 +996,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
                 let before = (s.name == "fmt").then(|| rust_snapshot(root, &diff.files));
                 let mut outcome = execute(root, s.name, cmds)?;
                 if let Some(before) = before {
-                    let after = rust_snapshot(root, &diff.files);
-                    let rewrote: Vec<&str> = after
-                        .iter()
-                        .filter(|(f, bytes)| before.get(*f) != Some(*bytes))
-                        .map(|(f, _)| f.as_str())
-                        .collect();
+                    let rewrote = rewrote_files(&before, &rust_snapshot(root, &diff.files));
                     if outcome.status == "ok" && !rewrote.is_empty() {
                         outcome.status = "rewrote";
                         outcome.why = Some(rewrote.join(", "));
@@ -961,7 +1083,7 @@ mod tests {
         Diff {
             files: files.iter().map(|s| (*s).to_owned()).collect(),
             added: set(added),
-            mentions_test: BTreeSet::new(),
+            ..Diff::default()
         }
     }
 
@@ -1009,6 +1131,7 @@ mod tests {
                 "settle: cargo xtask settle --check --base 4762316c",
                 "policy: cargo xtask check-raw-read",
                 "policy: cargo xtask check-disallowed-methods",
+                "policy: cargo xtask map --check",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -1067,6 +1190,7 @@ mod tests {
                 "settle: cargo xtask settle --check --base 4762316c",
                 "policy: cargo xtask check-deps",
                 "policy: cargo xtask check-features",
+                "policy: cargo xtask map --check",
                 "policy: cargo deny --locked check",
                 "policy: cargo vet --locked",
                 "fuzz: skipped (no trigger)",
@@ -1098,6 +1222,7 @@ mod tests {
                 "policy: cargo xtask check-raw-read",
                 "policy: cargo xtask check-disallowed-methods",
                 "policy: cargo xtask check-test-layout",
+                "policy: cargo xtask map --check",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -1124,6 +1249,7 @@ mod tests {
                 "policy: cargo xtask check-raw-read",
                 "policy: cargo xtask check-disallowed-methods",
                 "policy: cargo xtask check-test-layout",
+                "policy: cargo xtask map --check",
                 "fuzz: cargo check --manifest-path fuzz/Cargo.toml --all-targets --locked",
             ]
         );
@@ -1229,6 +1355,151 @@ mod tests {
         assert_eq!(
             warm_command(&set(&["ew-ui", "ew-viewmodel"]), &members()).to_string(),
             "cargo test --no-run -p ew-ui -p ew-viewmodel --all-features --features ew-viewmodel/testkit"
+        );
+    }
+
+    /// Ruling 4 (RD43 R18a): `map --check` runs when the diff has a Rust file, a `Cargo.toml` or the dependency
+    /// rules, and not for documents alone.
+    #[test]
+    fn the_marker_check_runs_with_rust_files_or_a_manifest() {
+        let map = Cmd::xtask(&["map", "--check"]);
+        for files in [
+            &["crates/ew-leaf/src/lib.rs"][..],
+            &["crates/ew-leaf/Cargo.toml"],
+            &["ci/dep-rules.toml"],
+        ] {
+            assert!(policy_commands(&diff(files, &[])).contains(&map), "{files:?}");
+        }
+        assert_eq!(
+            lines(&diff(&["docs/design/04-architecture.md"], &[]))[5],
+            "policy: skipped (no trigger)"
+        );
+    }
+
+    /// Ruling 5: the fmt step runs settle's per-file rustfmt over the diff's `.rs` files, which reaches a test module
+    /// that `automod::dir!` includes (no `mod` line names it, so `cargo fmt` does not see it), and never a module under
+    /// `#[rustfmt::skip]`.
+    #[test]
+    fn the_fmt_step_formats_the_automod_modules_of_the_diff() {
+        let root = crate::workspace_root();
+        let automod = "crates/ew-api/tests/it/report_kinds.rs";
+        let skipped = "crates/ew-ui/src/icons/generated.rs";
+        let files: BTreeSet<String> = set(&[automod, skipped, "crates/ew-api/src/gone.rs"]);
+        let rustfmt = crate::settle::rust_files(&root, &files, false).unwrap();
+        assert_eq!(rustfmt, [automod]);
+        let mut d = diff(&[automod, skipped], &[]);
+        d.rustfmt = rustfmt;
+        let p = plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new());
+        assert_eq!(
+            p.steps[0],
+            StepPlan {
+                name: "fmt",
+                run: StepRun::Run(vec![
+                    Cmd::cargo(&["fmt", "-p", "ew-api", "-p", "ew-ui"]),
+                    Cmd::rustfmt(&[automod.to_owned()]),
+                ]),
+            }
+        );
+        assert_eq!(
+            p.lines()[1],
+            "fmt: rustfmt crates/ew-api/tests/it/report_kinds.rs"
+        );
+    }
+
+    /// C43-p1#5: the fmt step reports the files it rewrote, whole, and is not a failure.
+    #[test]
+    fn the_fmt_step_reports_the_files_it_rewrote() {
+        let snapshot = |pairs: &[(&str, &str)]| -> BTreeMap<String, Vec<u8>> {
+            pairs
+                .iter()
+                .map(|(f, b)| ((*f).to_owned(), b.as_bytes().to_vec()))
+                .collect()
+        };
+        let before = snapshot(&[
+            ("a.rs", "fn a(){}"),
+            ("b.rs", "fn b() {}\n"),
+            ("c.rs", "fn c(){}"),
+        ]);
+        let after = snapshot(&[
+            ("a.rs", "fn a() {}\n"),
+            ("b.rs", "fn b() {}\n"),
+            ("c.rs", "fn c() {}\n"),
+        ]);
+        let rewrote = rewrote_files(&before, &after);
+        assert_eq!(rewrote, ["a.rs", "c.rs"]);
+        let outcome = Outcome {
+            name: "fmt",
+            status: "rewrote",
+            why: Some(rewrote.join(", ")),
+            commands: Vec::new(),
+            seconds: 0.0,
+            log: None,
+        };
+        assert_eq!(
+            summary_line(&outcome),
+            "lane-check: fmt: rewrote a.rs, c.rs (commit them)"
+        );
+        assert!(rewrote_files(&before, &before).is_empty());
+    }
+
+    /// C43-p2#6: with `-p`, a changed golden, schema or content file needs every package that names its root in the
+    /// set; the nextest step fails closed naming the missing ones, root by root.
+    #[test]
+    fn a_guarded_root_needs_its_readers_in_the_declared_set() {
+        let mut d = diff(
+            &[
+                "golden/J-E-2416/x.csv",
+                "content/l/b.toml",
+                "crates/ew-leaf/src/lib.rs",
+            ],
+            &[],
+        );
+        d.readers = [
+            ("golden/", set(&["ew-api", "ew-testkit", "ew"])),
+            ("content/", set(&["ew-api", "ew-ui"])),
+        ]
+        .into_iter()
+        .collect();
+        assert_eq!(
+            lines_with(&d, &["ew-api"])[3],
+            "nextest: FAILED (golden/ changed and ew, ew-testkit name it; content/ changed and ew-ui name it; add \
+             them with -p)"
+        );
+        assert_eq!(
+            lines_with(&d, &["ew-api", "ew-testkit", "ew", "ew-ui"])[3],
+            "nextest: cargo nextest run --profile lane --cargo-quiet -p ew -p ew-api -p ew-leaf -p ew-testkit -p ew-ui \
+             --all-features"
+        );
+    }
+
+    /// The readers of a root come from a scan of the members' `.rs` files: a path literal names the root, a word in
+    /// prose does not, and `xtask` stays out.
+    #[test]
+    fn the_readers_of_a_root_are_found_by_a_scan() {
+        let texts: BTreeMap<&str, &str> = [
+            ("crates/ew-api/tests/it/a.rs", r#"repo().join("golden/J-E-2416")"#),
+            ("crates/ew-checks/src/lib.rs", "// the golden rule: content first"),
+            (
+                "crates/ew-format/src/lib.rs",
+                r#"concat!(env!("CARGO_MANIFEST_DIR"), "/../../schemas/0.1/x")"#,
+            ),
+            ("bin/ew/tests/it/b.rs", r#"root.join("content").join("x")"#),
+            ("xtask/src/lane_check.rs", r#""golden/""#),
+        ]
+        .into_iter()
+        .collect();
+        let files: Vec<String> = texts.keys().map(|f| (*f).to_owned()).collect();
+        let read = |f: &str| texts.get(f).map(|t| (*t).to_owned());
+        let found = root_readers(&GUARDED_ROOTS, &files, &members(), &read);
+        assert_eq!(
+            found,
+            [
+                ("golden/", set(&["ew-api"])),
+                ("schemas/0.1/", set(&["ew-format"])),
+                ("content/", set(&["ew"])),
+            ]
+            .into_iter()
+            .collect::<BTreeMap<_, _>>()
         );
     }
 

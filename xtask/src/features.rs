@@ -275,14 +275,16 @@ pub fn check_shipping(
     v
 }
 
-/// The resolved graph of the shipped binaries for the host: `cargo tree -e normal,build` over `packages`, as a map
+/// The resolved graph of the shipped binaries for every target (`cargo tree --target all -e normal,build` over
+/// `packages`, C43-p2#7: a platform-gated dependency counts too), as a map
 /// of package name to its enabled features.
 pub fn shipping_graph(
     root: &std::path::Path,
     packages: &[&str],
 ) -> anyhow::Result<BTreeMap<String, std::collections::BTreeSet<String>>> {
     let mut cmd = std::process::Command::new(crate::cargo());
-    cmd.current_dir(root).args(["tree", "--locked"]);
+    cmd.current_dir(root)
+        .args(["tree", "--locked", "--target", "all"]);
     for p in packages {
         cmd.args(["-p", p]);
     }
@@ -1195,7 +1197,7 @@ mod tests {
         );
     }
 
-    /// The shipped binaries' graph (host target, no dev edges) holds no test-only crate or feature of the policy.
+    /// The shipped binaries' graph (every target, no dev edges) holds no test-only crate or feature of the policy.
     #[test]
     fn the_shipped_binaries_hold_no_test_only_crate_or_feature() {
         let root = crate::workspace_root();

@@ -17,7 +17,9 @@
 //!   registry snapshot of `ew-api` (`crates/ew-api/api/queries.json`) gives `reference/queries.md`; the `api_v1`
 //!   snapshot of `ew-sqlview` (`crates/ew-sqlview/api/api_v1.json`) gives `reference/api-v1.md`;
 //! - the JSON Schemas of the project format (`schemas/0.1/`, written by `ew-schema`) give one page per record kind
-//!   that has a schema under `reference/format/`, and its index of every kind.
+//!   that has a schema under `reference/format/`, and its index of every kind;
+//! - the `[crates]` tables of `ci/dep-rules.toml` give the crate table of `docs/design/04-architecture.md` §3, written
+//!   between its `<!-- generated:crate-table -->` markers (RD43 R18a), the one generated part outside the book.
 //!
 //! The generated pages are committed. `docs-gen --check` changes nothing and fails when a committed page
 //! differs, is missing or is stale, like `symbols-qet10 --check`. The four lists of generated entries in
@@ -74,6 +76,12 @@ const QUERIES_PAGE: &str = "reference/queries.md";
 const API_V1_PAGE: &str = "reference/api-v1.md";
 /// Generated format pages, relative to [`BOOK_SRC`].
 const FORMAT_DIR: &str = "reference/format";
+/// The crate-dependency rules whose `[crates]` tables give the crate table of [`ARCHITECTURE`].
+const DEP_RULES: &str = "ci/dep-rules.toml";
+/// The architecture document that holds the generated crate table (relative to the root, outside the book).
+const ARCHITECTURE: &str = "docs/design/04-architecture.md";
+const CRATE_TABLE_BEGIN: &str = "<!-- generated:crate-table -->";
+const CRATE_TABLE_END: &str = "<!-- /generated:crate-table -->";
 /// The directories whose pages are all generated: a page no source gives is stale, and `SUMMARY.md` lists their pages
 /// below the line that links their index page.
 const GENERATED_DIRS: [&str; 4] = [COMMANDS_DIR, RULES_DIR, CLI_DIR, FORMAT_DIR];
@@ -132,6 +140,9 @@ struct Plan {
     differing: Vec<String>,
     /// The committed pages in the generated directories that no source gives.
     stale: Vec<String>,
+    /// The documents outside the book with a generated part (relative to the root) whose text differs, with their
+    /// wanted text.
+    partial: Vec<(String, String)>,
     commands: usize,
     packs: usize,
 }
@@ -163,10 +174,20 @@ fn plan(root: &Path) -> Result<Plan> {
         }
     }
     stale.sort();
+    let mut partial = Vec::new();
+    let doc = read_lf(&root.join(ARCHITECTURE))?.with_context(|| format!("{ARCHITECTURE} is missing"))?;
+    let policy = read_lf(&root.join(DEP_RULES))?.with_context(|| format!("{DEP_RULES} is missing"))?;
+    let table = crate_table(&policy)?;
+    let wanted_doc =
+        crate::records::replace_block(&doc, CRATE_TABLE_BEGIN, CRATE_TABLE_END, &table, ARCHITECTURE)?;
+    if wanted_doc != doc {
+        partial.push((ARCHITECTURE.to_owned(), wanted_doc));
+    }
     Ok(Plan {
         wanted,
         differing,
         stale,
+        partial,
         commands: generated.commands.len(),
         packs: generated.packs.len(),
     })
@@ -182,7 +203,11 @@ fn violations_of(plan: &Plan) -> Vec<String> {
         .stale
         .iter()
         .map(|rel| format!("{BOOK_SRC}/{rel} is stale (no source); run `cargo xtask docs-gen`"));
-    differing.chain(stale).collect()
+    let partial = plan
+        .partial
+        .iter()
+        .map(|(rel, _)| format!("{rel}: its generated part differs; run `cargo xtask docs-gen`"));
+    differing.chain(stale).chain(partial).collect()
 }
 
 /// The violations of `docs-gen --check` for the repository at `root`: the generated pages, and the work-package
@@ -226,11 +251,15 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
         let path = root.join(BOOK_SRC).join(rel);
         std::fs::remove_file(&path).with_context(|| format!("removing {}", path.display()))?;
     }
+    for (rel, text) in &plan.partial {
+        crate::records::write_atomic(&root.join(rel), text)?;
+    }
     println!(
-        "docs-gen: {} page(s) written, {} removed, {} unchanged",
+        "docs-gen: {} page(s) written, {} removed, {} unchanged; {} generated part(s) outside the book written",
         plan.differing.len(),
         plan.stale.len(),
-        plan.wanted.len() - plan.differing.len()
+        plan.wanted.len() - plan.differing.len(),
+        plan.partial.len()
     );
     if !counts.is_empty() {
         eprintln!(
@@ -1422,15 +1451,91 @@ fn format_kind_page(entry: &Value, schema: &Value) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// The crate table of 04-architecture §3
+
+/// The crate table of doc 04 §3 from the policy text of `ci/dep-rules.toml`, with its header comment, ending in a
+/// newline: one row per `[crates]` table without a `row`, in the order of the headers. Refused: a table whose `row`
+/// names no row of its own, a row with no responsibility or key dependencies, a crate whose layer the table cannot
+/// tell, a cell with a `|` or a line break.
+fn crate_table(text: &str) -> Result<String> {
+    let policy = crate::deps::Policy::parse(text).with_context(|| format!("parsing {DEP_RULES}"))?;
+    let order = crate::deps::crate_table_order(text);
+    let layers = &policy.layers;
+    let mut out = format!(
+        "{}\n| Crate | Layer | Responsibility | Key dependencies |\n|---|---|---|---|\n",
+        header(&format!("the `[crates]` tables of `{DEP_RULES}`"))
+    );
+    for name in &order {
+        let Some(row) = policy.crates.get(name) else {
+            continue;
+        };
+        let at = format!("{DEP_RULES}: [crates.\"{name}\"]");
+        if let Some(head) = &row.row {
+            let joins = policy.crates.get(head).is_some_and(|h| h.row.is_none());
+            if !joins || row.responsibility.is_some() || row.key_deps.is_some() || row.crate_note.is_some() {
+                bail!(
+                    "{at} shares the row of `{head}`: that crate needs a row of its own, and this table no cells"
+                );
+            }
+            continue;
+        }
+        let mut names = vec![format!("`{name}`")];
+        names.extend(
+            order
+                .iter()
+                .filter(|n| {
+                    policy
+                        .crates
+                        .get(*n)
+                        .is_some_and(|r| r.row.as_deref() == Some(name))
+                })
+                .map(|n| format!("`{n}`")),
+        );
+        let mut crate_cell = names.join(", ");
+        let in_layer = |list: &[String]| list.iter().any(|l| l == name);
+        let planned = in_layer(&layers.planned);
+        let mut layer = match row.planned_layer.as_deref() {
+            None if !planned && in_layer(&layers.permissive) => "P".to_owned(),
+            None if !planned && in_layer(&layers.gpl) => "GPL".to_owned(),
+            Some(l @ ("P" | "GPL")) if planned => format!("{l} (planned)"),
+            _ => bail!(
+                "{at}: a permissive or GPL crate of [layers] takes its layer from there; a planned crate names it \
+                 with planned_layer = \"P\" or \"GPL\""
+            ),
+        };
+        let (Some(responsibility), Some(key_deps)) = (&row.responsibility, &row.key_deps) else {
+            bail!("{at} needs responsibility and key_deps");
+        };
+        if let Some(note) = &row.crate_note {
+            crate_cell = format!("{crate_cell} {note}");
+        }
+        if let Some(note) = &row.layer_note {
+            layer = format!("{layer} {note}");
+        }
+        let cells = [crate_cell, layer, responsibility.clone(), key_deps.clone()];
+        if cells.iter().any(|c| c.contains(['|', '\n'])) {
+            bail!("{at}: a cell holds a `|` or a line break");
+        }
+        let _ = writeln!(out, "| {} |", cells.join(" | "));
+    }
+    Ok(out)
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Rules
 
+/// The rule catalogue snapshot: a mirror of the JSON that `crates/ew-checks/tests/catalogue.rs` writes (the licence
+/// boundary keeps the real types out). Every struct denies unknown fields, so a new catalogue field fails docs-gen
+/// until it is mirrored here.
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Catalogue {
     rules: Vec<Rule>,
     schemes: Vec<SchemeInfo>,
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct SchemeInfo {
     name: String,
     purpose: String,
@@ -1438,6 +1543,7 @@ struct SchemeInfo {
 }
 
 #[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Rule {
     id: String,
     code: String,
@@ -1459,6 +1565,7 @@ struct Rule {
 
 /// The `open_item` member of a catalogue rule (WP-S3.06 D8).
 #[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct OpenItem {
     category: String,
     discriminator: Option<String>,
@@ -1482,15 +1589,22 @@ impl OpenItem {
 }
 
 #[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct RuleScheme {
     name: String,
     online: bool,
     release: bool,
 }
 
+// map: rules-json-mirror: a new catalogue field goes in `crates/ew-checks/tests/catalogue.rs` (generated) and in the structs above, together.
+/// The rule catalogue snapshot; a field the mirror does not know is refused.
+fn parse_catalogue(text: &str) -> Result<Catalogue> {
+    serde_json::from_str(text).with_context(|| format!("parsing {CATALOGUE}"))
+}
+
 fn rule_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<SummaryItems> {
     let text = read_lf(&root.join(CATALOGUE))?.with_context(|| format!("{CATALOGUE} is missing"))?;
-    let catalogue: Catalogue = serde_json::from_str(&text).with_context(|| format!("parsing {CATALOGUE}"))?;
+    let catalogue = parse_catalogue(&text)?;
     let mut packs: BTreeMap<&str, Vec<&Rule>> = BTreeMap::new();
     for rule in &catalogue.rules {
         packs.entry(rule.pack.as_str()).or_default().push(rule);
@@ -2058,6 +2172,105 @@ mod tests {
              | Name | Type | Required | Default | Description |\n|---|---|---|---|---|\n\
              | `rule` | [`RuleId`](#ruleid) | yes |  | A rule ID. |\n\n\
              ## Types\n\n### RuleId\n\nA rule ID.\n\nType: string\n\n"
+        );
+    }
+
+    /// A policy of the shape of `ci/dep-rules.toml` with a permissive crate, a GPL crate with notes and a crate that
+    /// shares its row, and a planned crate.
+    const CRATE_POLICY: &str = r#"
+[layers]
+permissive = ["p-units"]
+gpl = ["g-worker", "g-helper"]
+tools = ["xtask"]
+planned = ["g-viewer"]
+
+[allowed_edges]
+
+[importers]
+pattern = "g-import-*"
+
+[crates."p-units"]
+responsibility = "`Nm(i64)` and friends"
+key_deps = "serde"
+
+[crates."g-worker"]
+crate_note = "(bin)"
+layer_note = "(links LGPL OCCT)"
+responsibility = "STEP reading"
+key_deps = "occt-sys"
+
+[crates."g-viewer"]
+crate_note = "(1.0)"
+planned_layer = "GPL"
+responsibility = "The read-only viewer"
+key_deps = "g-worker"
+
+[crates."g-helper"]
+row = "g-worker"
+"#;
+
+    /// RD43 R18a: the crate table of doc 04 §3, whole, from the `[crates]` tables in their order.
+    #[test]
+    fn the_crate_table_is_written_from_the_crate_tables() {
+        assert_eq!(
+            crate_table(CRATE_POLICY).unwrap(),
+            "<!-- Generated by `cargo xtask docs-gen` from the `[crates]` tables of `ci/dep-rules.toml`. Do not edit: \
+             change the source and regenerate. -->\n\
+             | Crate | Layer | Responsibility | Key dependencies |\n\
+             |---|---|---|---|\n\
+             | `p-units` | P | `Nm(i64)` and friends | serde |\n\
+             | `g-worker`, `g-helper` (bin) | GPL (links LGPL OCCT) | STEP reading | occt-sys |\n\
+             | `g-viewer` (1.0) | GPL (planned) | The read-only viewer | g-worker |\n"
+        );
+        let refusal =
+            |from: &str, to: &str| format!("{:#}", crate_table(&CRATE_POLICY.replace(from, to)).unwrap_err());
+        assert_eq!(
+            refusal("planned_layer = \"GPL\"\n", ""),
+            "ci/dep-rules.toml: [crates.\"g-viewer\"]: a permissive or GPL crate of [layers] takes its layer from \
+             there; a planned crate names it with planned_layer = \"P\" or \"GPL\""
+        );
+        assert_eq!(
+            refusal("row = \"g-worker\"", "row = \"g-viewer\"\nkey_deps = \"x\""),
+            "ci/dep-rules.toml: [crates.\"g-helper\"] shares the row of `g-viewer`: that crate needs a row of its own, \
+             and this table no cells"
+        );
+        assert_eq!(
+            refusal("key_deps = \"serde\"\n", ""),
+            "ci/dep-rules.toml: [crates.\"p-units\"] needs responsibility and key_deps"
+        );
+        assert_eq!(
+            refusal("key_deps = \"serde\"", "key_deps = \"a | b\""),
+            "ci/dep-rules.toml: [crates.\"p-units\"]: a cell holds a `|` or a line break"
+        );
+    }
+
+    /// RD43 R18a: the generated crate table replaces the lines between the markers of doc 04, and the rest stays.
+    #[test]
+    fn the_crate_table_goes_between_the_markers() {
+        let doc = format!("# 4\n\nText.\n\n{CRATE_TABLE_BEGIN}\n| old |\n{CRATE_TABLE_END}\n\nAfter.\n");
+        let table = crate_table(CRATE_POLICY).unwrap();
+        assert_eq!(
+            crate::records::replace_block(&doc, CRATE_TABLE_BEGIN, CRATE_TABLE_END, &table, ARCHITECTURE)
+                .unwrap(),
+            format!("# 4\n\nText.\n\n{CRATE_TABLE_BEGIN}\n{table}{CRATE_TABLE_END}\n\nAfter.\n")
+        );
+    }
+
+    /// RD43 R18a: a catalogue field the mirror structs do not know fails docs-gen, at every level.
+    #[test]
+    fn an_unknown_catalogue_field_is_refused() {
+        let refusal = |text: &str| format!("{:#}", parse_catalogue(text).err().expect("refused"));
+        assert_eq!(
+            refusal(r#"{"rules": [], "schemes": [], "notes": 1}"#),
+            "parsing crates/ew-checks/catalogue/rules.json: unknown field `notes`, expected `rules` or `schemes` at \
+             line 1 column 36"
+        );
+        assert_eq!(
+            refusal(
+                r#"{"rules": [], "schemes": [{"name": "a", "purpose": "b", "lenient": false, "colour": "red"}]}"#
+            ),
+            "parsing crates/ew-checks/catalogue/rules.json: unknown field `colour`, expected one of `name`, `purpose`, \
+             `lenient` at line 1 column 82"
         );
     }
 

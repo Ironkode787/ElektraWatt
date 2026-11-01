@@ -67,7 +67,7 @@ pub(crate) struct Selection {
 
 /// The member a changed file belongs to, `Some("")`-free: `Ok(Some(name))`, `Ok(None)` for an inert file, and
 /// `Err(())` for a file that selects the whole workspace.
-fn owner<'m>(file: &str, members: &'m Members) -> Result<Option<&'m str>, ()> {
+pub(crate) fn owner<'m>(file: &str, members: &'m Members) -> Result<Option<&'m str>, ()> {
     let deepest = members
         .iter()
         .filter(|(_, m)| {

@@ -47,6 +47,47 @@ pub struct Policy {
     /// The source-level guard for a gated feature's readers (`cargo xtask check-raw-read`).
     #[serde(default)]
     pub raw_read: Option<crate::raw_read::RawReadPolicy>,
+    /// The crate table of 04-architecture §3, one entry per permissive, GPL and planned crate (`cargo xtask
+    /// docs-gen` writes the table; the row order is the order of the headers, [`crate_table_order`]).
+    #[serde(default)]
+    pub crates: BTreeMap<String, CrateRow>,
+}
+
+/// One crate of the crate table of 04-architecture §3 (`[crates."<name>"]`).
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CrateRow {
+    /// The crate whose row this crate shares (its name joins that row's Crate cell); the row's cells are that crate's.
+    #[serde(default)]
+    pub row: Option<String>,
+    /// The text after the crate names in the Crate cell, such as `(bin)`.
+    #[serde(default)]
+    pub crate_note: Option<String>,
+    /// The layer of a planned crate, `P` or `GPL` (a layered crate's comes from `[layers]`).
+    #[serde(default)]
+    pub planned_layer: Option<String>,
+    /// The text after the layer in the Layer cell, such as `(links LGPL OCCT)`.
+    #[serde(default)]
+    pub layer_note: Option<String>,
+    /// The Responsibility cell (Markdown, one line).
+    #[serde(default)]
+    pub responsibility: Option<String>,
+    /// The Key dependencies cell (Markdown, one line).
+    #[serde(default)]
+    pub key_deps: Option<String>,
+}
+
+/// The crate names of the `[crates."<name>"]` headers of the policy text, in their order: the row order of the crate
+/// table (the TOML parser keeps no order).
+pub fn crate_table_order(text: &str) -> Vec<String> {
+    text.lines()
+        .filter_map(|l| {
+            l.trim()
+                .strip_prefix("[crates.\"")?
+                .strip_suffix("\"]")
+                .map(str::to_owned)
+        })
+        .collect()
 }
 
 /// Layer membership of the workspace packages.
@@ -293,6 +334,7 @@ fn check_policy_consistency(policy: &Policy, graph: &Graph, v: &mut Vec<String>)
             known_or_planned(owner, "[[external_owner]] owners", v);
         }
     }
+    check_crate_table(policy, &planned, v);
     for rule in &policy.confined {
         unknown(&rule.krate, "[[confined]] crate", v);
         for name in &rule.only_direct_dependents {
@@ -302,6 +344,26 @@ fn check_policy_consistency(policy: &Policy, graph: &Graph, v: &mut Vec<String>)
             if name != "@permissive" {
                 unknown(name, "[[confined]] never_reached_from", v);
             }
+        }
+    }
+}
+
+/// The crate table: every permissive and GPL crate of `[layers]` has a `[crates]` table, and every `[crates]` table
+/// names such a crate or a planned one.
+fn check_crate_table(policy: &Policy, planned: &BTreeSet<&str>, v: &mut Vec<String>) {
+    let layered = || policy.layers.permissive.iter().chain(&policy.layers.gpl);
+    for name in layered() {
+        if !policy.crates.contains_key(name) {
+            v.push(format!(
+                "policy: `{name}` of [layers] has no [crates.\"{name}\"] table (its row of the 04-architecture §3 crate table)"
+            ));
+        }
+    }
+    for name in policy.crates.keys() {
+        if !planned.contains(name.as_str()) && !layered().any(|l| l == name) {
+            v.push(format!(
+                "policy: [crates.\"{name}\"] names no permissive, GPL or planned crate of [layers]"
+            ));
         }
     }
 }
@@ -474,6 +536,19 @@ mod tests {
         only_direct_dependents = ["g-top"]
         never_reached_from = ["g-host", "@permissive"]
         reason = "ADR-0024 decision 4"
+
+        [crates."p-units"]
+        [crates."p-schema"]
+        [crates."p-api"]
+        [crates."g-model"]
+        [crates."g-sql"]
+        [crates."g-ui"]
+        [crates."g-host"]
+        [crates."g-import-qet"]
+        [crates."g-import-x"]
+        [crates."g-top"]
+        [crates."app"]
+        [crates."g-viewer"]
     "#;
 
     fn policy() -> Policy {
@@ -733,6 +808,35 @@ mod tests {
             &v,
             "names `g-nowhere`, which is neither a workspace package nor planned",
         );
+    }
+
+    /// RD43 R18a: the crate table of 04-architecture §3 covers every permissive and GPL crate, and names no other.
+    #[test]
+    fn the_crate_table_names_exactly_the_layered_and_planned_crates() {
+        let text = POLICY
+            .replace(
+                "        [crates.\"g-sql\"]
+",
+                "",
+            )
+            .replace(
+                "        [crates.\"g-viewer\"]
+",
+                "        [crates.\"g-viewer\"]
+        [crates.\"xtask\"]
+        [crates.\"g-gone\"]
+",
+            );
+        let p = Policy::parse(&text).unwrap();
+        assert_eq!(
+            check(&p, &graph(&clean_edges())),
+            [
+                "policy: [crates.\"g-gone\"] names no permissive, GPL or planned crate of [layers]",
+                "policy: [crates.\"xtask\"] names no permissive, GPL or planned crate of [layers]",
+                "policy: `g-sql` of [layers] has no [crates.\"g-sql\"] table (its row of the 04-architecture §3 crate table)",
+            ]
+        );
+        assert_eq!(crate_table_order(&text)[..3], ["p-units", "p-schema", "p-api"]);
     }
 
     #[test]

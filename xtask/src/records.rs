@@ -453,7 +453,7 @@ fn status(r: &Records) -> String {
 }
 
 /// `text` with the lines between the `begin` and `end` markers replaced by `body`.
-fn replace_block(text: &str, begin: &str, end: &str, body: &str, path: &str) -> Result<String> {
+pub(crate) fn replace_block(text: &str, begin: &str, end: &str, body: &str, path: &str) -> Result<String> {
     let (Some(b), Some(e)) = (text.find(begin), text.find(end)) else {
         bail!("{path} lacks the markers {begin} and {end}");
     };
@@ -465,7 +465,7 @@ fn replace_block(text: &str, begin: &str, end: &str, body: &str, path: &str) -> 
 
 /// Writes `text` to `path` through a temporary file in the same folder, renamed over it; on failure the old file
 /// stays and the temporary file is removed.
-fn write_atomic(path: &Path, text: &str) -> Result<()> {
+pub(crate) fn write_atomic(path: &Path, text: &str) -> Result<()> {
     let tmp = path.with_extension("md.records-tmp");
     let result = std::fs::write(&tmp, text).and_then(|()| std::fs::rename(&tmp, path));
     if result.is_err() {

@@ -4,7 +4,7 @@
 //! WP-S3.06 part 1 over Golden A: the list kinds `device_list` (D5) and `terminal_overview` (D6), the export by kind
 //! (D4), the block parameters (D9) and the revision overview's changed pages in the CSV (D11).
 //!
-//! The kind CSVs `golden/J-E-2416/expected/csv/<kind>.csv` of [`KIND_CSVS`] are written by the export by kind
+//! The kind CSVs `golden/J-E-2416/expected/csv/<kind>.csv` of [`kind_csvs`] are written by the export by kind
 //! (`row_export(q, &RowExport::Kind(kind), None)`, what `ew export report --kind <kind> --format csv` prints);
 //! `EW_BLESS=1 cargo nextest run -p ew-api --all-features --test it -E 'test(/^report_kinds::/)'` rewrites them.
 //!
@@ -24,7 +24,7 @@ use std::path::PathBuf;
 
 use crate::{common, golden_common};
 
-use ew_api::output::{RowExport, RowsError, page_layer, row_export};
+use ew_api::output::{RowExport, RowsError, page_layer, report_kinds, row_export};
 use ew_api::{AnyCommand, CmdError, Session};
 use ew_derive::ew_ids::Id;
 use ew_derive::{DeriveNote, PageOrder, PageRef, Q};
@@ -36,8 +36,17 @@ use ew_scene::table::TableFinding;
 use ew_schema::{Record, ReportBlock};
 use serde_json::{Value, json};
 
-/// The kinds with a golden CSV of Golden A's rows (WP-S3.06 D4), each written by the export by kind.
-const KIND_CSVS: &[&str] = &["device_list", "terminal_overview", "io_list", "open_items"];
+/// The kinds with a golden CSV of Golden A's rows (WP-S3.06 D4), each written by the export by kind: the registered
+/// kinds (`ew_api::output::report_kinds`) with a file `expected/csv/<kind>.csv`. `bin/ew`'s `outputs` test reads the
+/// same set the same way.
+fn kind_csvs() -> Vec<&'static str> {
+    let kinds: Vec<&'static str> = report_kinds()
+        .into_iter()
+        .filter(|k| expected_csv(k).is_file())
+        .collect();
+    assert!(!kinds.is_empty(), "no registered kind has a golden CSV");
+    kinds
+}
 
 fn expected_csv(kind: &str) -> PathBuf {
     golden_common::repo()
@@ -91,7 +100,7 @@ fn data(csv: &str) -> Vec<Vec<String>> {
 fn the_kind_csvs_equal_the_export_by_kind() {
     let s = common::golden_session();
     let q = s.query();
-    for kind in KIND_CSVS {
+    for kind in kind_csvs() {
         let out = export(&q, kind);
         assert_eq!(export(&q, kind).csv, out.csv, "{kind}: twice-run equal");
         let path = expected_csv(kind);

@@ -441,8 +441,17 @@ fn report_refuses_xlsx_and_an_unknown_block() {
 // WP-S3.06 part 1: `ew export report --kind <kind>` (D4), the revision overview's changed pages (D11), the block
 // parameters on save (D9)
 
-/// The kinds with a golden CSV written by the export by kind (`crates/ew-api/tests/it/report_kinds.rs` blesses them).
-const KIND_CSVS: &[&str] = &["device_list", "terminal_overview", "io_list", "open_items"];
+/// The kinds with a golden CSV written by the export by kind (`crates/ew-api/tests/it/report_kinds.rs` blesses them):
+/// the registered kinds with a file `expected/csv/<kind>.csv`, read as that test reads them.
+fn kind_csvs() -> Vec<&'static str> {
+    let dir = Path::new(EXPECTED).join("csv");
+    let kinds: Vec<&'static str> = ew_api::output::report_kinds()
+        .into_iter()
+        .filter(|k| dir.join(format!("{k}.csv")).is_file())
+        .collect();
+    assert!(!kinds.is_empty(), "no registered kind has a golden CSV");
+    kinds
+}
 
 /// RK-1, RK-2, RK-7 and the orchestrator's ruling 10 (cycle 42): `ew export report --kind <kind> --format csv` writes
 /// `expected/csv/<kind>.csv` byte for byte, twice the same.
@@ -450,13 +459,13 @@ const KIND_CSVS: &[&str] = &["device_list", "terminal_overview", "io_list", "ope
 fn report_kind_writes_the_golden_kind_csvs() {
     let t = Tmp::new();
     let p = t.golden();
-    for kind in KIND_CSVS {
+    for kind in kind_csvs() {
         let o = t.ew(&args([
             &"export",
             &"report",
             &p,
             &"--kind",
-            kind,
+            &kind,
             &"--format",
             &"csv",
         ]));
@@ -466,7 +475,7 @@ fn report_kind_writes_the_golden_kind_csvs() {
             "{kind}: {}",
             stdout(&o)
         );
-        let again = t.ew(&args([&"export", &"report", &p, &"--kind", kind]));
+        let again = t.ew(&args([&"export", &"report", &p, &"--kind", &kind]));
         assert!(again.stdout == o.stdout, "{kind}: twice-run equal");
     }
 }

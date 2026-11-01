@@ -75,7 +75,7 @@ const BRIEF_DIR: &str = "tools/blind/tasks";
 /// The licence of the permissive crates, whose MSRV the merge point checks.
 const PERMISSIVE: &str = "MIT OR Apache-2.0";
 /// The files rustfmt takes per call (relative paths: a long worktree path must not reach the command line limit).
-const RUSTFMT_CHUNK: usize = 32;
+pub(crate) const RUSTFMT_CHUNK: usize = 32;
 
 /// When a step runs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -187,6 +187,8 @@ const BOOK_PAGES: [&str; 8] = [
     "docs/book/src/reference/format/**",
 ];
 const BOOK_SUMMARY: &str = "docs/book/src/SUMMARY.md";
+/// The architecture document whose crate table docs-gen writes from `ci/dep-rules.toml` (RD43 R18a).
+const ARCHITECTURE: &str = "docs/design/04-architecture.md";
 const ICONS: &str = "crates/ew-ui/src/icons/generated.rs";
 const CLIPPY_TOML: &str = "clippy.toml";
 const FUZZ_TABLE: &str = crate::workflows::FUZZ_TABLE;
@@ -364,6 +366,8 @@ pub(crate) const STEPS: &[Step] = &[
             "docs/plan/03-*.md",
             "xtask/src/docs_gen.rs",
             "xtask/src/plan_counts.rs",
+            "ci/dep-rules.toml",
+            ARCHITECTURE,
         ],
         deps_of: &[],
         outputs: &[
@@ -376,8 +380,9 @@ pub(crate) const STEPS: &[Step] = &[
             BOOK_PAGES[6],
             BOOK_PAGES[7],
             BOOK_SUMMARY,
+            ARCHITECTURE,
         ],
-        partial: &[BOOK_SUMMARY],
+        partial: &[BOOK_SUMMARY, ARCHITECTURE],
         reads: &[],
         action: Action::Xtask(crate::docs_gen::run),
     },
@@ -997,7 +1002,7 @@ fn captured(mut command: Command, what: &str) -> Result<Outcome> {
 /// The `.rs` files rustfmt takes: the existing changed ones, or every tracked and untracked one with `all`; never a
 /// module its parent declares under `#[rustfmt::skip]` (rustfmt given the file itself would not see the attribute,
 /// and `cargo fmt` leaves such a module alone).
-fn rust_files(root: &Path, files: &BTreeSet<String>, all: bool) -> Result<Vec<String>> {
+pub(crate) fn rust_files(root: &Path, files: &BTreeSet<String>, all: bool) -> Result<Vec<String>> {
     let tracked = git_ls_rs(root)?;
     let candidates: Vec<String> = if all {
         affected::changed_files(root, "HEAD")?
