@@ -77,6 +77,18 @@ pub const GUTTER: Nm = Nm(4_000_000);
 /// The most flow columns a boxed table draws; a larger count is drawn as this many.
 pub const MAX_FLOW_COLUMNS: u32 = 16;
 
+/// The largest coordinate magnitude of a block's page rectangle that [`lower_embedded`] and [`boxed_capacity`] take:
+/// 2⁵³ − 1 nm, the bound a record can hold (`ew_commands::geometry::MAX_COORD`, ADR-0005). A rectangle read from a
+/// hostile file is clamped to it, so the arithmetic on it stays inside `i64`.
+const MAX_COORD: i64 = (1 << 53) - 1;
+
+/// `rect` with each coordinate clamped to ±[`MAX_COORD`].
+fn bounded(rect: Rect) -> Rect {
+    let c = |n: Nm| Nm(n.0.clamp(-MAX_COORD, MAX_COORD));
+    let (a, b) = (rect.min(), rect.max());
+    Rect::from_points(Pt2::new(c(a.x), c(a.y)), Pt2::new(c(b.x), c(b.y)))
+}
+
 /// One table of an embedded block.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct RegionTable {
@@ -146,16 +158,17 @@ pub fn lower_embedded(
     fonts: &FontSet,
     styles: &TextStyleTable,
 ) -> LoweredTable {
+    let rect = bounded(view.rect);
     match &view.content {
-        EmbeddedContent::Cover(cover) => lower_cover(view.rect, cover, sheet, fonts, styles),
-        EmbeddedContent::Table(table) => lower_boxed(view.rect, table, sheet, fonts, styles),
+        EmbeddedContent::Cover(cover) => lower_cover(rect, cover, sheet, fonts, styles),
+        EmbeddedContent::Table(table) => lower_boxed(rect, table, sheet, fonts, styles),
     }
 }
 
 /// The capacity of a boxed table in `rect` (page coordinates) under the map `sheet`, as [`lower_embedded`] draws it:
-/// `(flow columns, data rows per flow column)`.
+/// `(flow columns, data rows per flow column)`. The rectangle is clamped to ±(2⁵³ − 1) nm first.
 pub fn boxed_capacity(rect: Rect, table: &EmbeddedTable, sheet: SheetMap) -> (usize, usize) {
-    let r = sheet.apply_rect(rect);
+    let r = sheet.apply_rect(bounded(rect));
     let top = r.min().y.0 + title_band(table).0;
     let slots = usize::try_from((r.max().y.0 - top).max(0) / ROW_HEIGHT.0).unwrap_or(0);
     let flows = table.flow_columns.clamp(1, MAX_FLOW_COLUMNS) as usize;
@@ -260,8 +273,9 @@ fn lower_boxed(
             continue;
         }
         let k_i = i64::try_from(k).unwrap_or(0);
-        let left = Nm(x0.0 + k_i * (width + GUTTER.0));
-        let right = if k + 1 == flows { x1 } else { Nm(left.0 + width) };
+        // A box narrower than its gutters: no column starts right of the box, none ends left of its start.
+        let left = Nm((x0.0 + k_i * (width + GUTTER.0)).min(x1.0));
+        let right = if k + 1 == flows { x1 } else { Nm((left.0 + width).min(x1.0)) };
         let edges = column_edges_in(&t.columns, left, right);
         if draws_header(t) {
             // Whether row `i` of this flow column (0 the header) spans every column.
@@ -564,5 +578,95 @@ mod tests {
         };
         let out = lower_embedded(&v, SheetMap::IDENTITY, ew_text::bundled(), ew_text::builtin());
         assert!(out.items.is_empty() && out.findings.is_empty());
+    }
+
+    fn boxed(flow_columns: u32, rows: usize) -> EmbeddedTable {
+        let column = |h: &str| TableColumn {
+            header: h.to_owned(),
+            weight: 1,
+        };
+        EmbeddedTable {
+            title: "PART DATA".to_owned(),
+            columns: vec![column("Item"), column("Value")],
+            headers: true,
+            flow_columns,
+            rows: (0..rows)
+                .map(|i| TableRow {
+                    kind: TableRowKind::Data,
+                    cells: vec![format!("r{i}"), "v".to_owned()],
+                    links: Vec::new(),
+                })
+                .collect(),
+            note: None,
+        }
+    }
+
+    /// FT-940: a rectangle read from a hostile file at the `i64` extremes lowers without a panic (the arithmetic
+    /// stays inside `i64`), for both contents, and its capacity is computed on the clamped rectangle.
+    #[test]
+    fn a_block_at_the_i64_extremes_lowers_without_a_panic() {
+        let rects = [
+            Rect::from_points(Pt2::new(Nm(i64::MIN), Nm(i64::MIN)), Pt2::new(Nm(i64::MAX), Nm(i64::MAX))),
+            Rect::from_points(Pt2::new(Nm(i64::MAX), Nm(i64::MAX)), Pt2::new(Nm(i64::MAX), Nm(i64::MAX))),
+            Rect::from_points(Pt2::new(Nm(i64::MIN), Nm(i64::MIN)), Pt2::new(Nm(i64::MIN), Nm(i64::MIN))),
+        ];
+        let sheets = [
+            SheetMap::IDENTITY,
+            SheetMap {
+                scale_ppb: u32::MAX,
+                offset: Pt2::new(Nm(9_790_000), Nm(9_790_000)),
+            },
+        ];
+        for rect in rects {
+            for sheet in sheets {
+                for content in [EmbeddedContent::Cover(Box::new(cover())), EmbeddedContent::Table(boxed(3, 4))] {
+                    let v = EmbeddedView { rect, content };
+                    let _ = lower_embedded(&v, sheet, ew_text::bundled(), ew_text::builtin());
+                }
+                let _ = boxed_capacity(rect, &boxed(3, 4), sheet);
+            }
+        }
+        let whole = rects[0];
+        assert_eq!(
+            boxed_capacity(whole, &boxed(1, 0), SheetMap::IDENTITY),
+            boxed_capacity(bounded(whole), &boxed(1, 0), SheetMap::IDENTITY)
+        );
+        assert_eq!(
+            bounded(whole),
+            Rect::from_points(
+                Pt2::new(Nm(-MAX_COORD), Nm(-MAX_COORD)),
+                Pt2::new(Nm(MAX_COORD), Nm(MAX_COORD))
+            )
+        );
+    }
+
+    /// FT-940: a 3-flow table in a box 5 mm wide (narrower than its two gutters) draws every flow column inside
+    /// the box: no column's left lies right of the box, so none has `right < left`.
+    #[test]
+    fn flow_columns_in_a_box_narrower_than_the_gutters_stay_inside_it() {
+        let (x0, x1) = (Nm(100_000_000), Nm(105_000_000));
+        let rect = Rect::from_points(Pt2::new(x0, Nm(50_000_000)), Pt2::new(x1, Nm(80_000_000)));
+        let t = boxed(3, 0);
+        let (flows, per_flow) = boxed_capacity(rect, &t, SheetMap::IDENTITY);
+        assert_eq!(flows, 3);
+        let v = EmbeddedView {
+            rect,
+            content: EmbeddedContent::Table(boxed(3, 3 * per_flow)),
+        };
+        let out = lower_embedded(&v, SheetMap::IDENTITY, ew_text::bundled(), ew_text::builtin());
+        let headers: Vec<(Nm, Nm)> = out
+            .items
+            .iter()
+            .filter_map(|i| match &i.kind {
+                ew_dl::ItemKind::Path(p) if p.fill == Some(Brush::Solid(HEADER_FILL)) => {
+                    p.path.bounds().map(|b| (b.min().x, b.max().x))
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            headers,
+            vec![(x0, x0), (Nm(104_000_000), Nm(104_000_000)), (x1, x1)]
+        );
     }
 }
