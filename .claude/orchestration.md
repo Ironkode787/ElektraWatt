@@ -35,6 +35,9 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
    - `high`: reviews and hard work.
    - `xhigh`/`max`: only where a mistake is very costly (file format, data loss, concurrency, security, the licence
      boundary).
+   - Before the first release the format may change freely (owner, 2026-10-31): no migrations or compatibility
+     readers. Re-bless Golden A and the fixtures. Format work routes at `high`; data loss inside a session still at
+     `xhigh`.
 3. **Ambiguity goes up a class, not up in effort:** Opus at `medium` rather than Haiku at `high`. Effort buys depth,
    not judgment.
 4. **Do not underestimate Haiku 5.5:** lookups, mechanical edits, fixtures, regeneration, well-specified small code.
@@ -116,6 +119,8 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - It gets the code, not the orchestrator's conclusions. It reports ranked findings with `path:line` and evidence,
       and a verdict per part.
     - Its cargo runs count as a builder: while all three slots are busy it only reads.
+    - The independent reviewer is the second maintainer wherever a requirement or ADR asks for one (owner,
+      2026-10-31). Its brief names each `unsafe` block in the range.
     - The cycle is accepted when every part is.
 12. **Triage.**
     - Fixed in the cycle: majors, and minors that touch data, the file format or what users see.

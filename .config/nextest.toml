@@ -39,6 +39,8 @@ status-level = "fail"
 final-status-level = "fail"
 failure-output = "final"
 success-output = "never"
+# As in local-dev: no performance measurements during development (ID-664).
+default-filter = 'not binary(perf) and not test(/(^|::)perf_/)'
 
 # Used by the CI test jobs: same behaviour, plus a JUnit report at target/nextest/ci/junit.xml.
 [profile.ci]
