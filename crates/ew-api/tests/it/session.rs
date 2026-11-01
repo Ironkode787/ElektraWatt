@@ -8,7 +8,7 @@ use ew_api::{AnyCommand, CmdError, Origin, Session, SessionOptions, Submit};
 fn model_lines(m: &ew_model::Model) -> Vec<(ew_model::AnyKey, String)> {
     ew_commands::rows::model_lines(m).expect("every record has a JSON form")
 }
-use ew_commands::testkit::seeded_ids;
+use ew_testids::seeded_ids;
 
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 

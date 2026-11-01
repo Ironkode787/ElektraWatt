@@ -297,6 +297,11 @@ allowed = ["MIT OR Apache-2.0"]
 crate = true
 
 [[path]]
+glob = "crates/ew-testids/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
 glob = "crates/ew-caex/**"
 allowed = ["MIT OR Apache-2.0"]
 crate = true

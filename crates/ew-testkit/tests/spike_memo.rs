@@ -13,11 +13,11 @@
 
 use ew_api::{MemoMode, Session, SessionOptions};
 use ew_commands::commands::{Connect, EndpointParam, KindName, MoveReps, SetFields};
-use ew_commands::testkit::seeded_ids;
 use ew_derive::{Counters, MemoStore, Oracle, PageLocalNets, PotentialPartition, Q, WirePropsOf};
 use ew_ids::Id;
 use ew_model::{AnyKey, Model};
 use ew_schema::{Page, Record};
+use ew_testids::seeded_ids;
 use ew_testkit::synth::{self, Handles, SizeClass};
 use ew_units::Pt2;
 

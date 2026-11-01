@@ -14,7 +14,6 @@
 use crate::golden_common;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
-use ew_commands::testkit::seeded_ids;
 use ew_derive::ew_ids::Id;
 use ew_derive::{BomMode, BomRows, DevicePartLines, DeviceTag, LineSource, PageRef, Q};
 use ew_import_tables::ids::record_id;
@@ -22,6 +21,7 @@ use ew_reports::{Cell, Registry, RowKey, RowSet};
 use ew_schema::{
     Carrier, Device, LayoutSpace, Page, Part, Placement, Record, ReportBlock, ReportKind, ReportSource,
 };
+use ew_testids::seeded_ids;
 use ew_units::Dec3;
 use serde_json::{Value, json};
 

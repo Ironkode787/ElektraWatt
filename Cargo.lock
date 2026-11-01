@@ -1085,6 +1085,7 @@ version = "0.0.0"
 dependencies = [
  "automod",
  "eframe",
+ "ew-commands",
  "ew-print",
  "ew-ui",
  "ew-viewmodel",
@@ -1228,6 +1229,7 @@ dependencies = [
  "automod",
  "boon",
  "ew-api",
+ "ew-commands",
  "ew-print",
  "serde",
  "serde_json",
@@ -1266,6 +1268,7 @@ dependencies = [
  "ew-sqlview",
  "ew-store",
  "ew-testdir",
+ "ew-testids",
  "ew-testkit",
  "ew-text",
  "ew-units",
@@ -1312,6 +1315,7 @@ dependencies = [
  "ew-model",
  "ew-rds",
  "ew-schema",
+ "ew-testids",
  "ew-units",
  "proptest",
  "schemars",
@@ -1393,10 +1397,8 @@ dependencies = [
 name = "ew-ids"
 version = "0.0.0"
 dependencies = [
- "chacha20",
  "getrandom 0.4.3",
  "proptest",
- "rand_core 0.10.1",
  "serde",
  "serde_json",
  "uuid",
@@ -1503,6 +1505,7 @@ dependencies = [
 name = "ew-mfg"
 version = "0.0.0"
 dependencies = [
+ "ew-commands",
  "ew-ewpp",
  "ew-panel",
  "ew-reports",
@@ -1619,6 +1622,7 @@ dependencies = [
 name = "ew-render3d"
 version = "0.0.0"
 dependencies = [
+ "ew-commands",
  "ew-panel",
 ]
 
@@ -1730,6 +1734,15 @@ name = "ew-testdir"
 version = "0.0.0"
 
 [[package]]
+name = "ew-testids"
+version = "0.0.0"
+dependencies = [
+ "chacha20",
+ "ew-ids",
+ "rand_core 0.10.1",
+]
+
+[[package]]
 name = "ew-testkit"
 version = "0.0.0"
 dependencies = [
@@ -1744,6 +1757,7 @@ dependencies = [
  "ew-rds",
  "ew-schema",
  "ew-testdir",
+ "ew-testids",
  "ew-units",
  "serde",
  "serde_json",
@@ -1772,6 +1786,7 @@ dependencies = [
  "egui_kittest",
  "egui_table",
  "egui_tiles",
+ "ew-commands",
  "ew-render-cpu",
  "ew-render2d",
  "ew-render3d",
@@ -1799,7 +1814,9 @@ version = "0.0.0"
 dependencies = [
  "automod",
  "ew-api",
+ "ew-commands",
  "ew-testdir",
+ "ew-viewmodel",
  "serde_json",
  "toml",
 ]

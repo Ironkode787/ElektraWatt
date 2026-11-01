@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "ew-testids"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "The seeded, reproducible UUIDv7 source of the tests (dev-only; doc 18 section 2.2)."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+# Dev-only: every edge to this crate is a dev-dependency (`banned_crates` in ci/dep-rules.toml), so it changes no
+# feature of ew-ids and the seeded source never reaches a shipped build.
+[dependencies]
+ew-ids = { path = "../ew-ids" }
+# The same lines proptest uses (rand 0.10), so the graph holds one getrandom and one rand_core.
+chacha20 = { version = "0.10.2", default-features = false, features = ["rng"] }
+rand_core = { version = "0.10.1", default-features = false }

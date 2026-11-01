@@ -17,9 +17,9 @@ use ew_api::output::{CopyError, FragmentError, parse_fragment};
 use ew_api::{
     AnyCommand, CmdError, NewProjectKind, Origin, ProjectTemplate, Receipt, Session, SessionOptions,
 };
-use ew_commands::testkit::seeded_ids;
 use ew_ids::{Id, Uuid};
 use ew_schema::{Connection, Device, Kind, Page, PageItem, PageItemKind, Slot, StructureBox, TagScheme};
+use ew_testids::seeded_ids;
 use ew_units::{Grid, Nm};
 use serde_json::{Value, json};
 

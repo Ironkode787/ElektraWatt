@@ -27,13 +27,13 @@ use ew_api::{
     NewProjectKind, Origin, ProjectTemplate, Recovery, ReleaseContext, ReleaseError, ReleaseOptions,
     Released, Session, SessionOptions, Submit, TroubleKind, checks,
 };
-use ew_commands::testkit::seeded_ids;
 use ew_derive::ew_ids::Id;
 use ew_schema::{Date, Party, PartyRole, ReleaseRecord, Revision, RevisionState};
 use ew_store::ew_format::{self, FilePath, Limits, Manifest};
 use ew_store::lock::{Identity, new_session_id};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{ManualClock, StoreOptions, Vfs};
+use ew_testids::seeded_ids;
 
 // ---------------------------------------------------------------------------------------------------------------
 // The fixture

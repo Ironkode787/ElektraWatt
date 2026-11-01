@@ -17,7 +17,7 @@ use serde_json::{Value, json};
 
 fn fresh(seed: u64) -> Session {
     let options = SessionOptions {
-        ids: Some(ew_commands::testkit::seeded_ids(seed)),
+        ids: Some(ew_testids::seeded_ids(seed)),
         ..SessionOptions::default()
     };
     Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options).unwrap()

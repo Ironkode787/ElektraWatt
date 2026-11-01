@@ -19,19 +19,24 @@
 # banned feature must not be requested on a dependency edge whose kind is not in allowed_kinds (unless the
 # package is in the rule's allowed_packages), a banned crate may only be a dev-dependency, no workspace package's
 # own `default` feature may reach a banned feature, and with a non-empty allowed_packages no package outside it
-# may forward the feature (`dep/feature`) from any of its own features.
+# may forward the feature (`dep/feature`) from any of its own features. It also reads [[uniform_test_features]]:
+# every workspace package whose test build reaches the crate requests the feature on a dev edge. And the shipped
+# binaries' resolved graph (`cargo tree -e normal,build`) holds no banned crate and no feature banned outside dev
+# edges (18 CI-R-09).
 #
 # Changing an edge here is an architecture change: it needs the matching change in 04-architecture.md §3
 # (and an ADR where the rules themselves change).
 
 # Crates that may appear as dev-dependencies only (18 §5.2 CI-PR-09: egui_mcp in any non-test target).
-banned_crates = ["egui_mcp"]
+# ew-testids, the seeded ID source of the tests (doc 18 §2.2), likewise.
+banned_crates = ["egui_mcp", "ew-testids"]
 
 [layers]
 # MIT OR Apache-2.0; closed under dependencies (ADR-0024 decision 2).
 permissive = [
   "ew-units", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-format", "ew-interop-api", "ew-dl",
   "ew-step-proto", "ew-memo", "ew-plcaddr", "ew-caex", "ew-devdesc", "ew-ewpp", "ew-testdir",
+  "ew-testids",
 ]
 # GPL-3.0-or-later application layer, including the binaries.
 gpl = [
@@ -66,6 +71,8 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-ewpp" = []
 # The fresh temporary directory of the tests (FT-569, FT-586): dev-only, no dependencies.
 "ew-testdir" = []
+# The seeded UUIDv7 source of the tests (doc 18 §2.2, RD43 T1): dev-only, on the ID crate alone.
+"ew-testids" = ["ew-ids"]
 "ew-model" = ["ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
 "ew-rhai" = []
 "ew-derive" = ["ew-model", "ew-memo", "ew-rhai", "ew-plcaddr", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
@@ -118,15 +125,16 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 
 # Additional edges allowed for dev-dependencies only (for example a test helper crate).
 [allowed_dev_edges]
-# The G-PP wiring regression reverses new IDs through the viewmodel's test-only source hook.
-"elektrawatt" = ["ew-viewmodel"]
+# The G-PP wiring regression reverses new IDs through the viewmodel's test-only source hook; the ew-commands edge
+# only carries its `testkit` ([[uniform_test_features]]).
+"elektrawatt" = ["ew-viewmodel", "ew-commands"]
 # ew-commands' own integration tests enable its `testkit` feature (row dumps, `Preview::ops`, history ops),
-# which is crate-private otherwise (ARCH §3 rule 1).
-"ew-commands" = ["ew-commands"]
+# which is crate-private otherwise (ARCH §3 rule 1); the seeded IDs come from ew-testids.
+"ew-commands" = ["ew-commands", "ew-testids"]
 # ew-testkit's tests and benches load generated projects through the Session facade and run commands
 # (WP-S1.05 benchmark harness); the G-SP spike bench measures the ew-derive queries cold and through its memo
 # backend `MemoStore` (WP-S1.05, WP-S1.07, `benches/spike.rs`).
-"ew-testkit" = ["ew-api", "ew-commands", "ew-derive", "ew-testdir"]
+"ew-testkit" = ["ew-api", "ew-commands", "ew-derive", "ew-testdir", "ew-testids"]
 
 # ew-derive's agreement tests compare its main-representation and tag rules with the numbering of ew-commands.
 "ew-derive" = ["ew-commands"]
@@ -134,7 +142,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # tables (the importer may not depend on the model, so the test lives in ew-api). Its page-output test (WP-S3.04)
 # renders the PNGs of the golden folios (ew-text and ew-dl are normal edges since the export job, FT-59). The
 # acceptance runner builds AC-15's path (b) with the golden builder DSL of ew-testkit (WP-S6.01).
-"ew-api" = ["ew-derive", "ew-render-cpu", "ew-ids", "ew-testkit", "ew-testdir"]
+"ew-api" = ["ew-derive", "ew-render-cpu", "ew-ids", "ew-testkit", "ew-testdir", "ew-testids"]
 # The renderer's and the PDF writer's tests shape their text with the bundled fonts (WP-S3.04).
 "ew-render-cpu" = ["ew-text", "ew-units"]
 "ew-export" = ["ew-text", "ew-units"]
@@ -146,10 +154,19 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-store" = ["ew-testdir"]
 "ew-library" = ["ew-testdir"]
 "ew-sqlview" = ["ew-testdir"]
-"ew-viewmodel" = ["ew-testdir"]
-"ew-ui" = ["ew-testdir"]
 # ew-checks' unit tests build small model snapshots to evaluate rules over a `Q` (no `raw-read`).
 "ew-checks" = ["ew-model"]
+
+# [[uniform_test_features]] (RD43 T1): every package whose test build reaches ew-commands requests its `testkit` on a
+# dev edge, and every package whose test build reaches ew-viewmodel requests its `testkit` (ew-viewmodel itself too:
+# its `probe`, `replay_order` and `jobs` tests use the hooks), so neither crate compiles twice between package sets.
+# The `ew-commands` and self entries below are such edges: the package has no normal edge to the crate. (ew-viewmodel
+# and ew-ui also take ew-testdir, FT-586.)
+"ew-viewmodel" = ["ew-testdir", "ew-commands", "ew-viewmodel"]
+"ew-ui" = ["ew-testdir", "ew-commands"]
+"ew-mfg" = ["ew-commands"]
+"ew-render3d" = ["ew-commands"]
+"ew" = ["ew-commands"]
 
 # ARCH §3 Rule 2: only ew-sqlview and ew-library link rusqlite.
 [[external_owner]]
@@ -194,11 +211,7 @@ crate = "wayland-sys"
 feature = "dlopen"
 reason = "without it the build script probes pkg-config and the binary links libwayland (a system package on the CI image)"
 
-[[banned_features]]
-crate = "ew-ids"
-feature = "testkit"
-allowed_kinds = ["dev"]
-
+# The row dumps, `Preview::ops` and the history's ops of ew-commands (ARCH §3 rule 1, F9) are for tests only.
 [[banned_features]]
 crate = "ew-commands"
 feature = "testkit"
@@ -210,6 +223,18 @@ allowed_kinds = ["dev"]
 crate = "ew-viewmodel"
 feature = "testkit"
 allowed_kinds = ["dev"]
+
+# RD43 T1: the two test-only features above are on in every test build, so no package set compiles their crates (and
+# everything above them) a second way. `cargo xtask check-features` fails when a package whose test build reaches the
+# crate does not request the feature on a dev edge, and names the line to add. The seeded ID source needs no rule:
+# it is the dev-only crate ew-testids (banned_crates), which changes no feature of ew-ids.
+[[uniform_test_features]]
+crate = "ew-commands"
+feature = "testkit"
+
+[[uniform_test_features]]
+crate = "ew-viewmodel"
+feature = "testkit"
 
 [[banned_features]]
 crate = "rhai"
@@ -236,7 +261,7 @@ feature = "preserve_order"
 allowed_kinds = []
 
 # Doc 18 §3.5, FT-317: identifier and random generators outside the one ID generator (ew-ids, `getrandom` and the
-# seeded `testkit` source). These `uuid` and `rand` features compile `Uuid::new_v4`, `Uuid::now_v7` and an
+# seeded source of ew-testids). These `uuid` and `rand` features compile `Uuid::new_v4`, `Uuid::now_v7` and an
 # OS-seeded thread generator, whose paths the generated clippy.toml bans with `allow-invalid` (so it only bites
 # once they exist): enabling one is a design change, so it is allowed on dev edges only.
 [[banned_features]]

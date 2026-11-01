@@ -49,7 +49,7 @@ fn golden(tiers: Option<LibraryTiers>) -> Session {
     }
     let options = SessionOptions {
         libraries: tiers,
-        ids: Some(ew_commands::testkit::seeded_ids(38)),
+        ids: Some(ew_testids::seeded_ids(38)),
         ..SessionOptions::default()
     };
     Session::from_records(project.unwrap(), records, batch.lib.clone(), options).unwrap()

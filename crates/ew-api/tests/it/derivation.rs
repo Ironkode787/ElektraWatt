@@ -6,7 +6,7 @@
 //! frames.
 
 use ew_api::{AnyCommand, DeriveNote, NoteSeverity, Session, SessionOptions};
-use ew_commands::testkit::seeded_ids;
+use ew_testids::seeded_ids;
 
 fn session(project: &str) -> Session {
     let project = serde_json::from_str(project).unwrap();

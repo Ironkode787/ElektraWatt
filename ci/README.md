@@ -17,7 +17,7 @@ The job names are the GitHub status-check names to mark as required.
 | ID | Workflow / job | Content | Reproduce locally |
 |---|---|---|---|
 | CI-PR-01 | `ci.yml` / `lint` (ubuntu-24.04) | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`, and again with `--all-features` (the generated `clippy.toml` also bans the std hash containers, FT-271, and the wall clock, environment and randomness, FT-317, below); `cargo xtask check-ordered-collections` and `cargo xtask check-disallowed-methods` | `cargo fmt --all --check`, both clippy runs, `cargo xtask check-ordered-collections` and `check-disallowed-methods` |
-| CI-PR-02 | `ci.yml` / `test-linux` and `test-linux-default` (ubuntu-24.04), split by feature set since FT-353 (ID-527): `test-linux` runs the all-features part and both doctest runs, `test-linux-default` the filtered default-features run, in parallel; each builds first, after installing Mesa's lavapipe (`mesa-vulkan-drivers`; `apt-get` with `Acquire::Retries=3` and 20-second connection timeouts since FT-479) so that the GPU canvas's parity test runs instead of skipping (WP-S2.02 part 2) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, and again with `--all-features` and no filter (feature-gated tests such as `ew-ids/testkit`; the headless acceptance tests, about 2 min, and the command fuzzer's `fuzz_smoke`, 15 to 19 s, run once per job, in this second run: FT-268, FT-306); `cargo test --doc --workspace --locked`, and again with `--all-features` (nextest does not run doctests) | `cargo build --workspace --locked`, `cargo nextest run --workspace --locked -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, `cargo nextest run --workspace --all-features --locked` and `cargo test --doc --workspace [--all-features] --locked` |
+| CI-PR-02 | `ci.yml` / `test-linux` and `test-linux-default` (ubuntu-24.04), split by feature set since FT-353 (ID-527): `test-linux` runs the all-features part and both doctest runs, `test-linux-default` the filtered default-features run, in parallel; each builds first, after installing Mesa's lavapipe (`mesa-vulkan-drivers`; `apt-get` with `Acquire::Retries=3` and 20-second connection timeouts since FT-479) so that the GPU canvas's parity test runs instead of skipping (WP-S2.02 part 2) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, and again with `--all-features` and no filter (feature-gated tests such as those of `ew-ui`'s `snapshots`; the headless acceptance tests, about 2 min, and the command fuzzer's `fuzz_smoke`, 15 to 19 s, run once per job, in this second run: FT-268, FT-306); `cargo test --doc --workspace --locked`, and again with `--all-features` (nextest does not run doctests) | `cargo build --workspace --locked`, `cargo nextest run --workspace --locked -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, `cargo nextest run --workspace --all-features --locked` and `cargo test --doc --workspace [--all-features] --locked` |
 | CI-PR-03 | `ci.yml` / `test-windows-build`, `test-windows-1`, `test-windows-2`, `test-windows-3` (windows-2025) | all-features run only (FT-330, ID-482), split since FT-353 (ID-527), in three run jobs since FT-387 (the cycle-24 delivery run's chain was 20:01 + 10:00 = 30:01, ID-582's reading; the cycle-25 run's 16:20 + 14:54 = 31:14, which balanced the parts by time instead of by test count): `test-windows-build` runs `cargo nextest archive --workspace --all-features --locked --archive-file "$RUNNER_TEMP/nextest-archive.tar.zst"` (the archive lives outside the checkout, which the licence-map walk would otherwise flag), saves the rust-cache and uploads the archive (`actions/upload-artifact`); `test-windows-1`, `test-windows-2` and `test-windows-3` download it (`actions/download-artifact`, no cache save) and run `cargo nextest run --archive-file "$RUNNER_TEMP/nextest-archive/nextest-archive.tar.zst" --workspace-remap .` with `--profile ci` and these filters: part 1 `-E 'binary_id(=elektrawatt::canvas) or binary_id(=ew-api::acceptance) or binary_id(=ew-derive::incremental_partition) or binary_id(=ew-import-qet::hostile_input) or binary_id(=ew-store::incremental) or binary_id(=ew-store::purge) or binary_id(=ew-testkit::command_fuzz) or binary_id(=ew::cli)'`, part 2 `-E 'binary_id(=elektrawatt::headless) or binary_id(=elektrawatt::part2) or binary_id(=ew-api::checks) or binary_id(=ew-api::memo_oracle) or binary_id(=ew-api::page_output) or binary_id(=ew-store::fault_injection) or binary_id(=ew-testkit::golden_dsl) or binary_id(=ew-testkit::spike_memo) or binary_id(=ew-ui::canvas) or binary_id(=ew-viewmodel::part2)'`, part 3 `-E 'not (` both lists `)'` (eight heavy binaries in part 1, ten in part 2, every other binary in part 3: a complete, disjoint cover; re-balanced in cycle 27, see the Windows chain section; the split was `count:1/2` and `count:2/2` of the complement of six binaries before). The acceptance tests and the command fuzzer are in part 1, so they run once in total. No default-features build or nextest run, no doctest run (doctests run in `test-linux` and `cargo xtask ci`) | `cargo nextest run --workspace --all-features --locked` (the three parts together) |
 | CI-PR-04 | removed (ID-880) | The macOS jobs `test-macos` and `test-macos-all-features` were removed when macOS stopped being a supported platform (decision log ID-880); everything they ran (the filtered default-features nextest run, the unfiltered all-features run, both doctest runs) also runs in `test-linux` and `test-linux-default` (CI-PR-02) | none |
 | CI-PR-05 | `ci.yml` / `headless` (ubuntu-24.04) | `cargo build -p ew --locked`; `ew export pdf golden/J-E-2416.ew` inside a bare `ubuntu:24.04` container (image pinned by digest; no network, no display, no GPU, no font file, empty user directories), on one thread and on four; both PDFs must be the committed digest of `golden/J-E-2416/expected/pdf/sha256.txt` (FT-295, G-M1-01); the PDFs uploaded as the artifact `headless-pdf`. Details: [Headless container job](#headless-container-job-ci-pr-05) | `cargo build -p ew --locked` and `docker run` as in the job (Linux and docker), or `cargo nextest run -p ew --test cli -E 'test(export_pdf_of_golden_a)'` for the same check without the container |
@@ -232,7 +232,8 @@ the job (18 §6.2), so the committed application lockfile can move ahead of the 
 ```sh
 CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS=fallback cargo +1.85.0 generate-lockfile
 cargo +1.85.0 check --locked -p ew-units -p ew-ids -p ew-mltext -p ew-rds -p ew-schema -p ew-format \
-  -p ew-interop-api -p ew-dl -p ew-step-proto -p ew-memo -p ew-plcaddr -p ew-caex -p ew-devdesc -p ew-ewpp -p ew-testdir
+  -p ew-interop-api -p ew-dl -p ew-step-proto -p ew-memo -p ew-plcaddr -p ew-caex -p ew-devdesc -p ew-ewpp -p ew-testdir \
+  -p ew-testids
 git checkout Cargo.lock   # locally: restore the committed lockfile afterwards
 ```
 
@@ -637,12 +638,12 @@ duration is not known (the timeout is 150 minutes).
 ## Feature bans (`cargo xtask check-features`)
 
 CI-PR-09 requires that test-only and unsafe features never reach a non-test target. `[[banned_features]]` in
-[`dep-rules.toml`](dep-rules.toml) lists `{ crate, feature, allowed_kinds }` (`ew-ids/testkit` and
-`ew/test-confirm` on dev edges only; rhai `unchecked` and egui `inspection` nowhere) and `banned_crates` lists
-crates that may only be dev-dependencies (`egui_mcp`). The check reads the declared dependencies of every
+[`dep-rules.toml`](dep-rules.toml) lists `{ crate, feature, allowed_kinds }` (`ew-commands/testkit`,
+`ew-viewmodel/testkit` and `ew/test-confirm` on dev edges only; rhai `unchecked` and egui `inspection` nowhere) and
+`banned_crates` lists crates that may only be dev-dependencies (`egui_mcp`, and `ew-testids`, the seeded ID source). The check reads the declared dependencies of every
 workspace package from `cargo metadata` and fails when a banned feature is requested on an edge whose kind
 (`normal`, `dev`, `build`) is not allowed, when a banned crate is a non-dev dependency, or when a package's own
-`default` feature forwards a banned feature (`default = ["ew-ids/testkit"]`, also through other local
+`default` feature forwards a banned feature (`default = ["ew-commands/testkit"]`, also through other local
 features). Forwarding is followed transitively through the workspace features (`dep/feature`, `dep?/feature`
 and local features): the edge rule also applies to a feature that reaches a banned one (a normal edge that
 requests `ew-derive/raw` fails when `raw = ["ew-model/raw-read"]`). The message names the package, dependency,
@@ -654,6 +655,21 @@ feature on a dependency edge of any kind and may forward it from any of their ow
 package with a `[features]` entry (not only `default`) that reaches it, directly or through other workspace
 features, is reported as a back door. The untracked read API of `ew-model` (`raw-read`, ARCH §3 rule 1) is
 banned this way: dev edges anywhere, normal edges only in `ew-derive`, `ew-commands` and `ew-store`.
+
+`[[uniform_test_features]]` (`{ crate, feature }`; RD43 T1, 18 §2.2) is the other half for a test-only feature:
+every workspace package whose test build reaches the crate (its own dependencies of every kind, then their normal
+and build dependencies; the crate itself included) requests the feature on a dev edge. Then every package set
+compiles the crate the same way, and a change rebuilds the crates above it once, not once per package set. A
+missing request fails with the manifest and the line to write, for example
+`add ew-commands = { path = "../ew-commands", features = ["testkit"] } under [dev-dependencies] in crates/ew-ui/Cargo.toml`.
+`ew-commands/testkit` and `ew-viewmodel/testkit` are listed. A build without dev-dependencies (`cargo build -p
+elektrawatt`, clippy without `--all-targets`) still compiles them without the feature: build the headless binary
+through a test build (`cargo nextest run -p elektrawatt` builds `target/debug/elektrawatt` with the test features)
+to share that build.
+
+Last, the check reads the host graph of every shipped binary (`cargo tree -e normal,build` over the workspace
+packages with a binary target, `xtask` aside) and fails on a banned crate or on a feature banned outside dev edges
+that a third-party crate enabled there (18 CI-R-09, the graph half).
 
 ## Ordered collections (`cargo xtask check-ordered-collections [--bless]`)
 

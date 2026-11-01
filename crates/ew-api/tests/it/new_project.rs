@@ -8,7 +8,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use ew_api::{NewProjectKind, ProjectTemplate, Recovery, Session, SessionOptions, StoreOptions};
-use ew_commands::testkit::seeded_ids;
+use ew_testids::seeded_ids;
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 

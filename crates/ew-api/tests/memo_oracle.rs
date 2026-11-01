@@ -41,13 +41,13 @@ use std::num::NonZeroU32;
 use std::rc::Rc;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
-use ew_commands::testkit::seeded_ids;
 use ew_derive::ew_ids::Id;
 use ew_derive::{
     FunctionCps, Oracle, PotentialId, PotentialNameOf, PotentialPartition, Q, RecordingTracker, XrefTextOf,
 };
 use ew_model::{AnyRow, EndpointKey, Model, Op};
 use ew_schema::{Kind, Page, Record};
+use ew_testids::seeded_ids;
 use serde_json::{Value, json};
 
 // The families this test reads: the memoised families of the three `FAMILIES` lists (`ew_api::verify`): the

@@ -67,7 +67,10 @@ regex = { version = "1.13.1", default-features = false, features = ["std", "unic
 
 [dev-dependencies]
 automod.workspace = true
+# The row dumps of the tests (feature `testkit`, a uniform test feature: ci/dep-rules.toml).
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
+# The seeded, reproducible ID source of the tests (doc 18 §2.2; dev-only crate).
+ew-testids = { path = "../ew-testids" }
 # `tests/golden_csv.rs` compares the derived anchor cells, CPs and tags of the loaded golden model with its tables.
 ew-model = { path = "../ew-model", features = ["raw-read"] }
 # tests/page_output.rs: page display lists, PNG and PDF of the golden folios (WP-S3.04).

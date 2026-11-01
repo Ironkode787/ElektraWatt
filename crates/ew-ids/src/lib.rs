@@ -31,9 +31,8 @@
 //!
 //! # Features
 //!
-//! - `testkit`: `v7::SeededSource`, a reproducible UUIDv7 source for tests and snapshots
-//!   (doc 18 §2.2). **Test-only by policy:** the release pipeline asserts that the feature is absent
-//!   (CI-R-09).
+//! None. The seeded, reproducible UUIDv7 source of the tests is the dev-only crate `ew-testids` (doc 18
+//! §2.2), so no package set compiles this crate a second way.
 //!
 //! # Example
 //!

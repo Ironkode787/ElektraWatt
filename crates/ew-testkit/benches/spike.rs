@@ -89,7 +89,6 @@ use ew_api::{MemoMode, MemoStore, Session, SessionOptions};
 use ew_commands::commands::{
     Connect, EndpointParam, KindName, MoveReps, PageScope, RenumberPages, SetFields,
 };
-use ew_commands::testkit::seeded_ids;
 use ew_derive::{
     DeriveNote, DeviceTag, FamilyMemory, FlowBfs, FunctionCps, LocalNets, Oracle, PageLocalNets, PageOrder,
     Partition, PhysicalWiresOf, PotentialId, PotentialNameOf, PotentialNames, PotentialPartition, Q,
@@ -98,6 +97,7 @@ use ew_derive::{
 use ew_ids::Id;
 use ew_model::{AnyKey, AnyRow, Model, Op, Rev};
 use ew_schema::{Device, Kind, LibDocument, Page, Project, Record, Representation};
+use ew_testids::seeded_ids;
 use ew_testkit::bench::{
     Mode, Row, WARMUP_RUNS, WARMUP_SAMPLES, budget, class_from_env, latency_samples, markdown_table, measure,
     measure_adaptive, model_bytes, summarize, time,

@@ -69,7 +69,7 @@ impl std::error::Error for EntropyError {}
 
 /// The clock and the entropy behind a [`V7Generator`].
 ///
-/// [`SystemSource`] is the production source; the `testkit` feature adds a seeded one, and tests can
+/// [`SystemSource`] is the production source; the dev-only crate `ew-testids` has a seeded one, and tests can
 /// supply their own (for example a frozen clock).
 pub trait IdSource {
     /// The current time.
@@ -91,8 +91,8 @@ pub trait IdSource {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct SystemSource;
 
-// The one place that reads the wall clock and the OS entropy for identity (doc 18 §3.5); the `testkit` feature
-// swaps in a seeded source, and everything else takes an `IdSource` as an argument.
+// The one place that reads the wall clock and the OS entropy for identity (doc 18 §3.5); the tests
+// swap in a seeded source (`ew-testids`), and everything else takes an `IdSource` as an argument.
 #[allow(clippy::disallowed_methods)]
 impl IdSource for SystemSource {
     fn now(&mut self) -> UnixTime {
@@ -212,69 +212,6 @@ impl<T> Id<T> {
     /// [`EntropyError`] if the OS random number generator fails.
     pub fn try_new_v7() -> Result<Id<T>, EntropyError> {
         V7Generator::new(SystemSource).try_next()
-    }
-}
-
-#[cfg(feature = "testkit")]
-pub use testkit::SeededSource;
-
-#[cfg(feature = "testkit")]
-mod testkit {
-    use chacha20::ChaCha20Rng;
-    use rand_core::{Rng, SeedableRng};
-
-    use super::{EntropyError, IdSource, UnixTime};
-
-    /// A reproducible [`IdSource`] for tests and snapshots (doc 18 §2.2; feature `testkit`).
-    ///
-    /// The clock is a counter: the first call reads [`START_MILLIS`](SeededSource::START_MILLIS)
-    /// (2026-01-01T00:00:00Z) and every further call one millisecond later, with a zero sub-millisecond
-    /// fraction. The random bytes come from a ChaCha20 stream seeded with `seed`, so the same seed yields
-    /// the same IDs on every platform.
-    ///
-    /// **Test-only by policy:** the release pipeline asserts that the `testkit` feature is absent (CI-R-09).
-    ///
-    /// ```
-    /// use ew_ids::{Id, V7Generator, v7::SeededSource};
-    ///
-    /// struct Device;
-    /// let a: Id<Device> = V7Generator::new(SeededSource::new(7)).next();
-    /// let b: Id<Device> = V7Generator::new(SeededSource::new(7)).next();
-    /// assert_eq!(a, b);
-    /// ```
-    #[derive(Debug)]
-    pub struct SeededSource {
-        rng: ChaCha20Rng,
-        next_millis: u64,
-    }
-
-    impl SeededSource {
-        /// The first timestamp, 2026-01-01T00:00:00Z in Unix milliseconds.
-        pub const START_MILLIS: u64 = 1_767_225_600_000;
-
-        /// A source whose random stream is seeded with `seed`.
-        pub fn new(seed: u64) -> SeededSource {
-            SeededSource {
-                rng: ChaCha20Rng::seed_from_u64(seed),
-                next_millis: SeededSource::START_MILLIS,
-            }
-        }
-    }
-
-    impl IdSource for SeededSource {
-        fn now(&mut self) -> UnixTime {
-            let t = UnixTime {
-                millis: self.next_millis,
-                sub_ms_nanos: 0,
-            };
-            self.next_millis += 1;
-            t
-        }
-
-        fn fill(&mut self, buf: &mut [u8]) -> Result<(), EntropyError> {
-            self.rng.fill_bytes(buf);
-            Ok(())
-        }
     }
 }
 
@@ -519,64 +456,5 @@ mod tests {
         assert!(e.to_string().starts_with("random number generator failed"));
         let panicked = std::panic::catch_unwind(move || g.next::<Rec>()).is_err();
         assert!(panicked);
-    }
-
-    #[cfg(feature = "testkit")]
-    #[test]
-    fn seeded_source_is_reproducible() {
-        let mut g = V7Generator::new(SeededSource::new(42));
-        let ids: Vec<Id<Rec>> = (0..3).map(|_| g.next()).collect();
-        let again: Vec<Id<Rec>> = {
-            let mut g = V7Generator::new(SeededSource::new(42));
-            (0..3).map(|_| g.next()).collect()
-        };
-        assert_eq!(ids, again);
-        // The clock advances one millisecond per ID from the fixed start.
-        for (i, id) in ids.iter().enumerate() {
-            let b = id.as_uuid().into_bytes();
-            let ms = u64::from_be_bytes([0, 0, b[0], b[1], b[2], b[3], b[4], b[5]]);
-            assert_eq!(ms, SeededSource::START_MILLIS + i as u64);
-        }
-        let other: Id<Rec> = V7Generator::new(SeededSource::new(43)).next();
-        assert_ne!(ids[0], other);
-    }
-
-    /// Fixed vectors: a change here means snapshots built on the seeded source change too.
-    #[cfg(feature = "testkit")]
-    #[test]
-    fn seeded_source_fixed_vectors() {
-        let mut g = V7Generator::new(SeededSource::new(0));
-        let ids: Vec<String> = (0..2).map(|_| g.next::<Rec>().to_string()).collect();
-        assert_eq!(ids, SEEDED_VECTORS);
-    }
-
-    #[cfg(feature = "testkit")]
-    const SEEDED_VECTORS: [&str; 2] = [
-        "019b76da-a800-7000-b2f7-f581d6de3c06",
-        "019b76da-a801-7000-a822-fd6e7e8265fb",
-    ];
-
-    /// The same distribution test with the seeded ChaCha source and a frozen clock.
-    #[cfg(feature = "testkit")]
-    #[test]
-    fn seeded_entropy_spreads_over_shards() {
-        struct FrozenSeeded(SeededSource);
-        impl IdSource for FrozenSeeded {
-            fn now(&mut self) -> UnixTime {
-                UnixTime {
-                    millis: SeededSource::START_MILLIS,
-                    sub_ms_nanos: 0,
-                }
-            }
-            fn fill(&mut self, buf: &mut [u8]) -> Result<(), EntropyError> {
-                self.0.fill(buf)
-            }
-        }
-        let mut g = V7Generator::new(FrozenSeeded(SeededSource::new(1)));
-        let mut shards = [0u32; 256];
-        for _ in 0..10_000 {
-            shards[usize::from(g.next::<Rec>().shard())] += 1;
-        }
-        assert!(shards.iter().all(|c| (10..=80).contains(c)), "{shards:?}");
     }
 }

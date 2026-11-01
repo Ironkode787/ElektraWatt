@@ -18,3 +18,7 @@ workspace = true
 ew-commands = { path = "../ew-commands" }
 ew-sqlview = { path = "../ew-sqlview" }
 ew-checks = { path = "../ew-checks" }
+
+[dev-dependencies]
+# Only carries the test-only feature to every test build (ci/dep-rules.toml, `[[uniform_test_features]]`).
+ew-commands = { path = "../ew-commands", features = ["testkit"] }

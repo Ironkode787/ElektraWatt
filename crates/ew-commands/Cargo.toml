@@ -15,9 +15,11 @@ publish = false
 workspace = true
 
 [features]
-# A seeded, reproducible ID source for the tests of dependent crates (`ew_commands::testkit`). Test-only by
-# policy: `cargo xtask check-features` allows it on dev-dependency edges only (ci/dep-rules.toml).
-testkit = ["ew-ids/testkit"]
+# The row dumps (`rows`), `Preview::ops` and `HistoryEntry::transaction` for tests (ARCH §3 rule 1, F9). Test-only
+# by policy: `cargo xtask check-features` allows it on dev-dependency edges only, and every package whose test build
+# reaches this crate requests it on one, so every test build compiles the crate the same way (ci/dep-rules.toml,
+# `[[uniform_test_features]]`).
+testkit = []
 
 [dependencies]
 # The tracked read layer; no query is used yet (previews and prevent rules read through it from WP-S1.05 on).
@@ -44,5 +46,6 @@ automod.workspace = true
 # The crate's own integration tests read records through `testkit` (`rows`, `Preview::ops`, history ops;
 # F9: without the feature those untracked row dumps are crate-private).
 ew-commands = { path = ".", features = ["testkit"] }
-ew-ids = { path = "../ew-ids", features = ["testkit"] }
+# The seeded, reproducible ID source of the tests (doc 18 §2.2; dev-only crate).
+ew-testids = { path = "../ew-testids" }
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

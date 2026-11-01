@@ -55,7 +55,9 @@ commands:
                        supply-chain/imports.lock carries no auditor identity (no who, notes or user-name key, no
                        name in a user-id comment, no e-mail address); --bless (or --write) scrubs the file, runs
                        `cargo vet fmt` and then checks
-  check-features       banned features and crates only on dev edges (ci/dep-rules.toml: banned_features)
+  check-features       banned features and crates only on dev edges and absent from the shipped binaries' graph;
+                       uniform test features requested by every test build of their crate (ci/dep-rules.toml:
+                       banned_features, banned_crates, uniform_test_features)
   check-raw-read [--bless]
                        no raw read of ew-model outside its readers (ci/dep-rules.toml: raw_read): the generated
                        clippy.toml and the lexical rules; --bless (or --write) regenerates clippy.toml first
@@ -416,11 +418,23 @@ fn check_features() -> Result<Violations> {
         crates: &policy.banned_crates,
     };
     let metadata = metadata()?;
-    let mut violations = features::check(&rules, &features::from_metadata(&metadata));
+    let packages = features::from_metadata(&metadata);
+    let mut violations = features::check(&rules, &packages);
+    violations.extend(features::check_uniform(&policy.uniform_test_features, &packages));
     violations.extend(features::check_required(
         &policy.required_features,
         &features::resolved_from_metadata(&metadata),
     ));
+    // The shipped binaries: every workspace package with a binary target, the development tools aside.
+    let shipped: Vec<&str> = metadata
+        .workspace_packages()
+        .iter()
+        .filter(|p| !policy.layers.tools.iter().any(|t| *t == p.name.as_str()))
+        .filter(|p| p.targets.iter().any(|t| t.is_bin()))
+        .map(|p| p.name.as_str())
+        .collect();
+    let graph = features::shipping_graph(&root, &shipped)?;
+    violations.extend(features::check_shipping(&rules, &graph, &shipped.join(", ")));
     Ok(violations)
 }
 

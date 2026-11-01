@@ -19,3 +19,7 @@ ew-commands = { path = "../ew-commands" }
 ew-plcaddr = { path = "../ew-plcaddr" }
 ew-caex = { path = "../ew-caex" }
 ew-devdesc = { path = "../ew-devdesc" }
+
+[dev-dependencies]
+# Only carries the test-only feature to every test build (ci/dep-rules.toml, `[[uniform_test_features]]`).
+ew-commands = { path = "../ew-commands", features = ["testkit"] }

@@ -18,8 +18,10 @@
 //!   changed member through normal or build edges, transitively (their code changed with it), and then the
 //!   members with a dev edge to any of those (their tests changed). A dev edge does not carry on: a crate that
 //!   depends on a dev-dependent crate is not affected.
-//! - **Features.** A test or binary target with `required-features` (ew-viewmodel's `jobs` tests need
-//!   `testkit`) is skipped by nextest without them, so the nextest command enables them per package.
+//! - **Features.** A test or binary target with `required-features` is skipped by nextest without them, so the
+//!   nextest command enables them per package. No workspace target has one today: the test-only features are
+//!   uniform test features, requested on a dev edge by every test build that reaches their crate
+//!   (`[[uniform_test_features]]` in `ci/dep-rules.toml`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -479,10 +481,12 @@ mod tests {
     }
 
     #[test]
-    fn the_workspace_metadata_gives_the_viewmodel_test_features() {
+    fn the_workspace_metadata_gives_the_viewmodel_members() {
         let metadata = crate::metadata_all_features(&crate::workspace_root()).unwrap();
         let members = members_of(&metadata).unwrap();
-        assert_eq!(members["ew-viewmodel"].test_features, set(&["testkit"]));
+        // The hook tests of ew-viewmodel take `testkit` from the crate's own dev edge (a uniform test feature), so
+        // none of its targets requires a feature and none is skipped without `--features`.
+        assert_eq!(members["ew-viewmodel"].test_features, set(&[]));
         assert_eq!(members["ew-viewmodel"].dir, "crates/ew-viewmodel");
         assert!(
             members["ew-api"].deps.contains("ew-model"),

@@ -12,10 +12,10 @@ use std::time::{Duration, UNIX_EPOCH};
 
 use ew_api::fmt::{self, FmtError, Rewrite};
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions};
-use ew_commands::testkit::seeded_ids;
 use ew_store::lock::Identity;
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{Access, ManualClock, ProcessProbe, ProcessState, ReadOnlyReason, Store, StoreOptions, Vfs};
+use ew_testids::seeded_ids;
 
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 

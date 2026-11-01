@@ -3,10 +3,9 @@
 
 //! The seeded identifier source of the generator.
 //!
-//! `ew_ids::v7::SeededSource` lives behind the `testkit` feature of `ew-ids`; enabling it on the normal
-//! dependency edge of this crate would put a test-only feature into every consumer, so `ci/dep-rules.toml`
-//! would need an exception. The generator therefore brings its own tiny source: SplitMix64 for the random
-//! bytes and the same counter clock as `SeededSource`.
+//! `ew_testids::SeededSource` is in a dev-only crate; a normal dependency edge of this crate on it would need an
+//! exception in `ci/dep-rules.toml` (`banned_crates`). The generator therefore brings its own tiny source:
+//! SplitMix64 for the random bytes and the same counter clock as `SeededSource`.
 
 use ew_ids::{EntropyError, IdSource, UnixTime};
 

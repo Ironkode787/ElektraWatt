@@ -17,9 +17,9 @@ use ew_commands::commands::{
 };
 use ew_commands::{CmdError, CommandRegistry, Engine, EngineOptions};
 use ew_ids::Id;
-use ew_ids::v7::SeededSource;
 use ew_model::{Entity, Model, PreventHook, PreventViolation};
 use ew_schema::{Connection, Junction, Kind, NumberSpec, Page, PageType, Record, RepType, Representation};
+use ew_testids::SeededSource;
 use ew_units::Orient2;
 
 fn row<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> std::sync::Arc<T> {

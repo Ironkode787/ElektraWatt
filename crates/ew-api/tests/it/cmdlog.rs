@@ -6,8 +6,8 @@
 use crate::golden_common;
 
 use ew_api::{CmdError, CmdLog, CmdLogError, Session, SessionOptions};
-use ew_commands::testkit::seeded_ids;
 use ew_derive::DeviceTag;
+use ew_testids::seeded_ids;
 
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 const HEADER: &str = r#"{"$schema":"ew.cmdlog/1","label":"test log"}"#;

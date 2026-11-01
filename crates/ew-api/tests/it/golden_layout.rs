@@ -23,7 +23,6 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Recovery, Session, SessionOptions};
-use ew_commands::testkit::seeded_ids;
 use ew_derive::Q;
 use ew_derive::ew_ids::Id;
 use ew_derive::layout::{
@@ -36,6 +35,7 @@ use ew_schema::{
     Placement, Record, Sha256, StructureNode,
 };
 use ew_store::StoreOptions;
+use ew_testids::seeded_ids;
 use ew_units::{Nm, Pt2, Rect};
 use serde_json::{Value, json};
 

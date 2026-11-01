@@ -82,8 +82,6 @@ pub mod rows;
 #[cfg(not(feature = "testkit"))]
 #[allow(dead_code)] // the dumps serve the tests (feature `testkit`); the crate uses a part of them
 mod rows;
-#[cfg(feature = "testkit")]
-pub mod testkit;
 mod transaction;
 mod tx;
 mod words;

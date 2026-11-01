@@ -109,7 +109,7 @@ fn open_copy(work: &Work, seed: u64) -> Session {
     let mut store = StoreOptions::new("ElektraWatt test");
     store.state_dir = Some(work.0.join("state"));
     let options = SessionOptions {
-        ids: Some(ew_commands::testkit::seeded_ids(seed)),
+        ids: Some(ew_testids::seeded_ids(seed)),
         ..SessionOptions::default()
     };
     Session::open(&dir, store, options, Recovery::Keep)

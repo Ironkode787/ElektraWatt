@@ -4,8 +4,9 @@
 //! `check-features`: the feature bans of 18 §5.2 CI-PR-09, driven by `[[banned_features]]` and
 //! `banned_crates` in `ci/dep-rules.toml`.
 //!
-//! Test-only and unsafe features (`ew-ids/testkit`, `ew/test-confirm`, egui `inspection`, rhai `unchecked`)
-//! and the `egui_mcp` crate must never be enabled on a non-test dependency edge. The check reads the
+//! Test-only and unsafe features (`ew-commands/testkit`, `ew-viewmodel/testkit`, `ew/test-confirm`, egui
+//! `inspection`, rhai `unchecked`) and the `egui_mcp` and `ew-testids` crates must never be enabled on a non-test
+//! dependency edge. The check reads the
 //! declared dependencies of every workspace package (`cargo metadata`: the features requested on each edge
 //! and its kind) and fails when
 //!
@@ -20,6 +21,14 @@
 //!
 //! "Reaches" is followed transitively over the workspace feature graph whose nodes are `(package, feature)`
 //! pairs; a violation prints the chain of hops down to the banned feature.
+//!
+//! `[[uniform_test_features]]` keeps a test-only feature the same in every test build: each workspace package whose
+//! test build reaches the crate requests the feature on a dev edge, so no package set builds the crate a second way
+//! (RD43 T1). A missing request fails and names the manifest line to write.
+//!
+//! The shipped binaries' resolved graph (`cargo tree -e normal,build` over every workspace package with a binary
+//! target) must hold no banned crate and no feature that is banned outside dev edges (doc 18 CI-R-09, the graph
+//! half): a third-party crate could otherwise enable one where no workspace edge does.
 //!
 //! `[[required_features]]` is the opposite rule over the resolved graph: a feature that must stay enabled when
 //! its crate is in the build (`wgpu-hal/gles`, which gives `wayland-sys` its `dlopen`), so that no build script
@@ -113,6 +122,205 @@ pub fn check_required(required: &[RequiredFeature], resolved: &[Resolved]) -> Ve
     v
 }
 
+/// A test-only feature that every test build compiles the same way (RD43 T1; doc 18 §2.2).
+///
+/// Cargo keeps one build of a crate per feature set. A test-only feature that only some packages request on their
+/// dev edges is on in one package set and off in the next, so after an edit the crate and every crate above it
+/// compile twice. The rule: every workspace package whose test build reaches the crate (the crate itself included)
+/// requests the feature on a dev-dependency edge. The feature stays banned outside dev edges by its
+/// `[[banned_features]]` rule, so no shipped build has it.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UniformTestFeature {
+    /// The crate that owns the feature.
+    #[serde(rename = "crate")]
+    pub krate: String,
+    /// The test-only feature.
+    pub feature: String,
+}
+
+/// The violations of the uniform test features: a package whose test build reaches the crate without requesting
+/// the feature on a dev edge. Each names the manifest and the line to write.
+pub fn check_uniform(rules: &[UniformTestFeature], packages: &[Package]) -> Vec<String> {
+    let by_name: BTreeMap<&str, &Package> = packages.iter().map(|p| (p.name.as_str(), p)).collect();
+    let mut v = Vec::new();
+    for rule in rules {
+        let Some(target) = by_name.get(rule.krate.as_str()) else {
+            v.push(format!(
+                "uniform test feature: `{}` is not a workspace package; remove its rule from ci/dep-rules.toml",
+                rule.krate
+            ));
+            continue;
+        };
+        if !target.features.contains_key(&rule.feature) {
+            v.push(format!(
+                "uniform test feature: `{}` has no feature `{}`; remove its rule from ci/dep-rules.toml",
+                rule.krate, rule.feature
+            ));
+            continue;
+        }
+        for p in packages {
+            if !test_build_reaches(p, &rule.krate, &by_name) {
+                continue;
+            }
+            let dev: Vec<&Dep> = p
+                .deps
+                .iter()
+                .filter(|d| d.kind == Kind::Dev && d.name == rule.krate)
+                .collect();
+            if dev.iter().any(|d| d.features.contains(&rule.feature)) {
+                continue;
+            }
+            let line = format!(
+                "{} = {{ path = \"{}\", features = [\"{}\"] }}",
+                rule.krate,
+                relative_dir(&p.dir, &target.dir),
+                rule.feature
+            );
+            let manifest = if p.dir.is_empty() {
+                "Cargo.toml".to_owned()
+            } else {
+                format!("{}/Cargo.toml", p.dir)
+            };
+            if dev.is_empty() {
+                v.push(format!(
+                    "uniform test feature: the test build of `{}` reaches `{}` without its feature `{}`; add `{line}` \
+                     under `[dev-dependencies]` in {manifest}",
+                    p.name, rule.krate, rule.feature
+                ));
+            } else {
+                v.push(format!(
+                    "uniform test feature: the dev-dependency `{}` of `{}` does not request its feature `{}`; make it \
+                     `{line}` in {manifest}",
+                    rule.krate, p.name, rule.feature
+                ));
+            }
+        }
+    }
+    v.sort();
+    v.dedup();
+    v
+}
+
+/// Whether the test build of `p` (its own dependencies of every kind, then the normal and build dependencies of
+/// those, transitively) compiles the workspace package `krate`. A package's test build always compiles itself.
+fn test_build_reaches(p: &Package, krate: &str, by_name: &BTreeMap<&str, &Package>) -> bool {
+    if p.name == krate {
+        return true;
+    }
+    let mut seen: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
+    let mut stack: Vec<&str> = p.deps.iter().map(|d| d.name.as_str()).collect();
+    while let Some(name) = stack.pop() {
+        if name == krate {
+            return true;
+        }
+        if !seen.insert(name) {
+            continue;
+        }
+        if let Some(q) = by_name.get(name) {
+            stack.extend(
+                q.deps
+                    .iter()
+                    .filter(|d| d.kind != Kind::Dev)
+                    .map(|d| d.name.as_str()),
+            );
+        }
+    }
+    false
+}
+
+/// The path from the workspace directory `from` to `to` (both `/`-separated and relative to the root), as a
+/// manifest's `path = "…"` writes it.
+fn relative_dir(from: &str, to: &str) -> String {
+    let from: Vec<&str> = from.split('/').filter(|c| !c.is_empty()).collect();
+    let to: Vec<&str> = to.split('/').filter(|c| !c.is_empty()).collect();
+    let common = from.iter().zip(&to).take_while(|(a, b)| a == b).count();
+    let mut parts: Vec<&str> = vec![".."; from.len() - common];
+    parts.extend(&to[common..]);
+    if parts.is_empty() {
+        ".".to_owned()
+    } else {
+        parts.join("/")
+    }
+}
+
+/// The violations of the shipping graph (doc 18 CI-R-09, the graph half): a banned crate, or a feature banned
+/// outside dev edges, in the resolved graph of the shipped binaries (`cargo tree -e normal,build`), where a third
+/// party could still enable it. `graph` maps each package name to its enabled features. Rules with
+/// `allowed_packages` (`ew-model/raw-read`) and rules that allow normal edges are not test-only and are skipped.
+pub fn check_shipping(
+    rules: &Rules<'_>,
+    graph: &BTreeMap<String, std::collections::BTreeSet<String>>,
+    roots: &str,
+) -> Vec<String> {
+    let mut v = Vec::new();
+    for krate in rules.crates.iter().filter(|c| graph.contains_key(*c)) {
+        v.push(format!(
+            "shipping graph: `{krate}` is in the build of {roots}; it may only be a dev-dependency (18 CI-R-09)"
+        ));
+    }
+    for ban in rules
+        .features
+        .iter()
+        .filter(|b| b.allowed_packages.is_empty() && !b.allowed_kinds.contains(&Kind::Normal))
+    {
+        if graph.get(&ban.krate).is_some_and(|fs| fs.contains(&ban.feature)) {
+            v.push(format!(
+                "shipping graph: `{}/{}` is enabled in the build of {roots}; it is test-only (18 CI-R-09)",
+                ban.krate, ban.feature
+            ));
+        }
+    }
+    v.sort();
+    v
+}
+
+/// The resolved graph of the shipped binaries for the host: `cargo tree -e normal,build` over `packages`, as a map
+/// of package name to its enabled features.
+pub fn shipping_graph(
+    root: &std::path::Path,
+    packages: &[&str],
+) -> anyhow::Result<BTreeMap<String, std::collections::BTreeSet<String>>> {
+    let mut cmd = std::process::Command::new(crate::cargo());
+    cmd.current_dir(root).args(["tree", "--locked"]);
+    for p in packages {
+        cmd.args(["-p", p]);
+    }
+    cmd.args(["-e", "normal,build", "--prefix", "none", "--format", "{p}|{f}"]);
+    let output = cmd
+        .output()
+        .map_err(|e| anyhow::anyhow!("running `cargo tree`: {e}"))?;
+    if !output.status.success() {
+        anyhow::bail!(
+            "`cargo tree` failed ({}):\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(parse_tree(&String::from_utf8_lossy(&output.stdout)))
+}
+
+/// Parses `cargo tree --prefix none --format "{p}|{f}"` lines into package name → enabled features.
+fn parse_tree(stdout: &str) -> BTreeMap<String, std::collections::BTreeSet<String>> {
+    let mut graph = BTreeMap::<String, std::collections::BTreeSet<String>>::new();
+    for line in stdout.lines() {
+        let Some((package, features)) = line.split_once('|') else {
+            continue;
+        };
+        let Some(name) = package.split_whitespace().next() else {
+            continue;
+        };
+        graph.entry(name.to_owned()).or_default().extend(
+            features
+                .split(',')
+                .map(str::trim)
+                .filter(|f| !f.is_empty())
+                .map(str::to_owned),
+        );
+    }
+    graph
+}
+
 /// The policy of the check, borrowed from `ci/dep-rules.toml`.
 pub struct Rules<'a> {
     /// Banned features.
@@ -139,6 +347,8 @@ pub struct Dep {
 pub struct Package {
     /// Package name.
     pub name: String,
+    /// Its directory relative to the workspace root, `/`-separated (`crates/ew-ui`; empty for the root).
+    pub dir: String,
     /// Declared direct dependencies.
     pub deps: Vec<Dep>,
     /// The package's `[features]` table.
@@ -152,6 +362,12 @@ pub fn from_metadata(metadata: &cargo_metadata::Metadata) -> Vec<Package> {
         .iter()
         .map(|p| Package {
             name: p.name.to_string(),
+            dir: p
+                .manifest_path
+                .parent()
+                .and_then(|d| d.strip_prefix(&metadata.workspace_root).ok())
+                .map(|d| d.as_str().replace('\\', "/"))
+                .unwrap_or_default(),
             deps: p
                 .dependencies
                 .iter()
@@ -435,6 +651,7 @@ mod tests {
     fn package(name: &str, deps: Vec<Dep>, features: &[(&str, &[&str])]) -> Package {
         Package {
             name: name.into(),
+            dir: format!("crates/{name}"),
             deps,
             features: features
                 .iter()
@@ -718,7 +935,8 @@ mod tests {
         assert_eq!(run(&[p]), Vec::<String>::new());
     }
 
-    /// The real workspace satisfies the real feature bans, and a seeded `ew-ids/testkit` normal edge fails.
+    /// The real workspace satisfies the real feature bans, and a seeded `ew-commands/testkit` normal edge or a normal
+    /// edge to `ew-testids` fails.
     #[test]
     fn real_workspace_passes_and_seeded_violation_fails() {
         let root = crate::workspace_root();
@@ -735,10 +953,263 @@ mod tests {
         assert_eq!(check(&rules, &packages), Vec::<String>::new());
         packages.push(package(
             "seeded",
-            vec![dep("ew-ids", Kind::Normal, &["testkit"])],
+            vec![dep("ew-commands", Kind::Normal, &["testkit"])],
             &[],
         ));
-        assert_eq!(check(&rules, &packages).len(), 1);
+        assert_eq!(
+            check(&rules, &packages),
+            [
+                "feature ban: `seeded` enables `ew-commands/testkit` on a dependency; allowed on: dev-dependency \
+              (18 §5.2 CI-PR-09)"
+            ]
+        );
+        // The seeded ID source is a crate of its own: a dev-dependency only.
+        packages.pop();
+        packages.push(package("seeded", vec![dep("ew-testids", Kind::Normal, &[])], &[]));
+        assert_eq!(
+            check(&rules, &packages),
+            [
+                "feature ban: `seeded` has `ew-testids` as a dependency; the crate may only be a dev-dependency \
+              (18 §5.2 CI-PR-09)"
+            ]
+        );
+    }
+
+    fn uniform(krate: &str, feature: &str) -> UniformTestFeature {
+        UniformTestFeature {
+            krate: krate.to_owned(),
+            feature: feature.to_owned(),
+        }
+    }
+
+    /// commands <- api <- ui (normal edges); commands requests its own `testkit`, api and ui request it on a dev edge.
+    fn uniform_graph() -> Vec<Package> {
+        vec![
+            package(
+                "ew-commands",
+                vec![dep("ew-commands", Kind::Dev, &["testkit"])],
+                &[("testkit", &[])],
+            ),
+            package(
+                "ew-api",
+                vec![
+                    dep("ew-commands", Kind::Normal, &[]),
+                    dep("ew-commands", Kind::Dev, &["testkit"]),
+                ],
+                &[],
+            ),
+            package(
+                "ew-ui",
+                vec![
+                    dep("ew-api", Kind::Normal, &[]),
+                    dep("ew-commands", Kind::Dev, &["testkit"]),
+                ],
+                &[],
+            ),
+            package("ew-units", vec![], &[]),
+        ]
+    }
+
+    #[test]
+    fn uniform_test_feature_clean_graph_passes() {
+        assert_eq!(
+            check_uniform(&[uniform("ew-commands", "testkit")], &uniform_graph()),
+            Vec::<String>::new()
+        );
+    }
+
+    #[test]
+    fn uniform_test_feature_missing_dev_edge_names_the_line() {
+        let mut packages = uniform_graph();
+        packages[2].deps.pop();
+        let mut app = package("elektrawatt", vec![dep("ew-ui", Kind::Normal, &[])], &[]);
+        app.dir = "bin/elektrawatt".to_owned();
+        packages.push(app);
+        assert_eq!(
+            check_uniform(&[uniform("ew-commands", "testkit")], &packages),
+            [
+                "uniform test feature: the test build of `elektrawatt` reaches `ew-commands` without its feature \
+                 `testkit`; add `ew-commands = { path = \"../../crates/ew-commands\", features = [\"testkit\"] }` \
+                 under `[dev-dependencies]` in bin/elektrawatt/Cargo.toml",
+                "uniform test feature: the test build of `ew-ui` reaches `ew-commands` without its feature \
+                 `testkit`; add `ew-commands = { path = \"../ew-commands\", features = [\"testkit\"] }` under \
+                 `[dev-dependencies]` in crates/ew-ui/Cargo.toml",
+            ]
+        );
+    }
+
+    #[test]
+    fn uniform_test_feature_on_a_dev_edge_without_it_fails() {
+        let mut packages = uniform_graph();
+        packages[1].deps[1].features.clear();
+        assert_eq!(
+            check_uniform(&[uniform("ew-commands", "testkit")], &packages),
+            [
+                "uniform test feature: the dev-dependency `ew-commands` of `ew-api` does not request its feature \
+              `testkit`; make it `ew-commands = { path = \"../ew-commands\", features = [\"testkit\"] }` in \
+              crates/ew-api/Cargo.toml"
+            ]
+        );
+    }
+
+    #[test]
+    fn uniform_test_feature_needs_the_crates_own_dev_edge() {
+        let mut packages = uniform_graph();
+        packages[0].deps.clear();
+        assert_eq!(
+            check_uniform(&[uniform("ew-commands", "testkit")], &packages),
+            [
+                "uniform test feature: the test build of `ew-commands` reaches `ew-commands` without its feature \
+              `testkit`; add `ew-commands = { path = \".\", features = [\"testkit\"] }` under \
+              `[dev-dependencies]` in crates/ew-commands/Cargo.toml"
+            ]
+        );
+    }
+
+    #[test]
+    fn uniform_test_feature_follows_dev_edges_one_step_only() {
+        // A dev-dependency's normal edges are in the test build; a dev-dependency's dev edges are not.
+        let packages = vec![
+            package(
+                "ew-commands",
+                vec![dep("ew-commands", Kind::Dev, &["testkit"])],
+                &[("testkit", &[])],
+            ),
+            package(
+                "ew-derive",
+                vec![dep("ew-commands", Kind::Dev, &["testkit"])],
+                &[],
+            ),
+            package("ew-reports", vec![dep("ew-derive", Kind::Normal, &[])], &[]),
+            package("ew-scene", vec![dep("ew-reports", Kind::Dev, &[])], &[]),
+            package("ew-mfg", vec![dep("ew-script", Kind::Dev, &[])], &[]),
+            package("ew-script", vec![dep("ew-commands", Kind::Normal, &[])], &[]),
+        ];
+        assert_eq!(
+            check_uniform(&[uniform("ew-commands", "testkit")], &packages),
+            [
+                "uniform test feature: the test build of `ew-mfg` reaches `ew-commands` without its feature \
+                 `testkit`; add `ew-commands = { path = \"../ew-commands\", features = [\"testkit\"] }` under \
+                 `[dev-dependencies]` in crates/ew-mfg/Cargo.toml",
+                "uniform test feature: the test build of `ew-script` reaches `ew-commands` without its feature \
+                 `testkit`; add `ew-commands = { path = \"../ew-commands\", features = [\"testkit\"] }` under \
+                 `[dev-dependencies]` in crates/ew-script/Cargo.toml",
+            ]
+        );
+    }
+
+    #[test]
+    fn uniform_test_feature_rule_for_a_missing_crate_or_feature_fails() {
+        assert_eq!(
+            check_uniform(&[uniform("ew-gone", "testkit")], &uniform_graph()),
+            [
+                "uniform test feature: `ew-gone` is not a workspace package; remove its rule from ci/dep-rules.toml"
+            ]
+        );
+        assert_eq!(
+            check_uniform(&[uniform("ew-units", "testkit")], &uniform_graph()),
+            [
+                "uniform test feature: `ew-units` has no feature `testkit`; remove its rule from ci/dep-rules.toml"
+            ]
+        );
+    }
+
+    #[test]
+    fn relative_dirs_as_a_manifest_writes_them() {
+        assert_eq!(
+            relative_dir("crates/ew-ui", "crates/ew-commands"),
+            "../ew-commands"
+        );
+        assert_eq!(
+            relative_dir("bin/ew", "crates/ew-commands"),
+            "../../crates/ew-commands"
+        );
+        assert_eq!(relative_dir("crates/ew-commands", "crates/ew-commands"), ".");
+    }
+
+    /// The real workspace requests every uniform test feature on the dev edges it needs, and a dev edge that loses
+    /// the feature fails, naming the line.
+    #[test]
+    fn real_workspace_requests_the_uniform_test_features() {
+        let root = crate::workspace_root();
+        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
+        for (krate, feature) in [("ew-commands", "testkit"), ("ew-viewmodel", "testkit")] {
+            assert!(
+                policy
+                    .uniform_test_features
+                    .iter()
+                    .any(|u| u.krate == krate && u.feature == feature),
+                "{krate}/{feature} is a uniform test feature"
+            );
+        }
+        let mut packages = from_metadata(&crate::metadata().expect("cargo metadata runs"));
+        assert_eq!(
+            check_uniform(&policy.uniform_test_features, &packages),
+            Vec::<String>::new()
+        );
+        let ui = packages
+            .iter_mut()
+            .find(|p| p.name == "ew-ui")
+            .expect("ew-ui is a workspace package");
+        ui.deps
+            .retain(|d| !(d.kind == Kind::Dev && d.name == "ew-commands"));
+        assert_eq!(
+            check_uniform(&policy.uniform_test_features, &packages),
+            [
+                "uniform test feature: the test build of `ew-ui` reaches `ew-commands` without its feature \
+              `testkit`; add `ew-commands = { path = \"../ew-commands\", features = [\"testkit\"] }` under \
+              `[dev-dependencies]` in crates/ew-ui/Cargo.toml"
+            ]
+        );
+    }
+
+    #[test]
+    fn shipping_graph_with_a_test_only_crate_or_feature_fails() {
+        let bans = vec![
+            ban("ew-commands", "testkit", &[Kind::Dev]),
+            ban("rhai", "unchecked", &[]),
+            raw_read_ban(),
+            ban("regex", "std", &[Kind::Normal, Kind::Dev]),
+        ];
+        let crates = vec!["ew-testids".to_owned()];
+        let rules = Rules {
+            features: &bans,
+            crates: &crates,
+        };
+        let graph = parse_tree(
+            "ew-commands v0.1.0 (/w/crates/ew-commands)|\n\
+             ew-model v0.1.0 (/w/crates/ew-model)|raw-read\n\
+             regex v1.13.1|std\n",
+        );
+        assert_eq!(check_shipping(&rules, &graph, "app"), Vec::<String>::new());
+        let graph = parse_tree(
+            "ew-commands v0.1.0 (/w/crates/ew-commands)|default,testkit\n\
+             ew-testids v0.1.0 (/w/crates/ew-testids)|\n",
+        );
+        assert_eq!(
+            check_shipping(&rules, &graph, "app"),
+            [
+                "shipping graph: `ew-commands/testkit` is enabled in the build of app; it is test-only (18 CI-R-09)",
+                "shipping graph: `ew-testids` is in the build of app; it may only be a dev-dependency (18 CI-R-09)",
+            ]
+        );
+    }
+
+    /// The shipped binaries' graph (host target, no dev edges) holds no test-only crate or feature of the policy.
+    #[test]
+    fn the_shipped_binaries_hold_no_test_only_crate_or_feature() {
+        let root = crate::workspace_root();
+        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
+        let rules = Rules {
+            features: &policy.banned_features,
+            crates: &policy.banned_crates,
+        };
+        let graph = shipping_graph(&root, &["elektrawatt", "ew"]).expect("cargo tree runs");
+        assert!(graph.contains_key("ew-commands") && graph.contains_key("ew-viewmodel"));
+        assert_eq!(
+            check_shipping(&rules, &graph, "elektrawatt, ew"),
+            Vec::<String>::new()
+        );
     }
 
     /// The generator features of `uuid` and `rand` (FT-317) are banned outside dev edges by the real policy.

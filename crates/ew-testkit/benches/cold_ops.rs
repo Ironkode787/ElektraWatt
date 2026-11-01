@@ -48,10 +48,10 @@ use ew_commands::commands::{
     Connect, DeviceScope, EndpointParam, MoveReps, NumberingScheme, PageScope, RenumberDevices,
     RenumberOptions, RenumberPages,
 };
-use ew_commands::testkit::seeded_ids;
 use ew_ids::Id;
 use ew_model::Model;
 use ew_schema::{Function, Page, Record, Representation};
+use ew_testids::seeded_ids;
 use ew_testkit::bench::{
     Mode, Summary, WARMUP_RUNS, WARMUP_SAMPLES, class_from_env, measure, model_bytes, summarize, time,
 };

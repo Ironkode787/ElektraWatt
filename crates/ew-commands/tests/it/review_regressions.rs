@@ -217,7 +217,7 @@ fn engine_with_human_only(origin: Origin) -> Engine {
         golden_model(),
         EngineOptions {
             registry: Some(registry),
-            ids: Some(ew_commands::testkit::seeded_ids(SEED)),
+            ids: Some(ew_testids::seeded_ids(SEED)),
             origin,
             ..EngineOptions::default()
         },

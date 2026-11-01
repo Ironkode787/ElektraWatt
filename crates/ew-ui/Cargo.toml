@@ -58,6 +58,8 @@ egui_kittest = { version = "=0.37.0", default-features = false }
 # WP-S2.09 part 1: the window's running export is held at a gate (`ShellModel::set_job_gate_for_tests`, feature
 # `testkit`, dev-only by `ci/dep-rules.toml`); the normal edge above is the same package.
 ew-viewmodel = { path = "../ew-viewmodel", features = ["testkit"] }
+# Only carries the test-only feature to every test build (ci/dep-rules.toml, `[[uniform_test_features]]`).
+ew-commands = { path = "../ew-commands", features = ["testkit"] }
 # WP-S2.17 DL6: the snapshot gate reads its blessed PNG files (the version ew-render-cpu writes them with).
 png = "0.18.1"
 # The fresh temporary directory of the tests (FT-586; dev-only edge, `[allowed_dev_edges]`).

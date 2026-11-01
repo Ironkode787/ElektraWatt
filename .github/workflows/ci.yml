@@ -200,7 +200,7 @@ jobs:
       # The headless acceptance tests (about 2 min) and the command fuzzer's `fuzz_smoke` (15 to 19 s) run once per
       # job, here, in the all-features run: the filter that the other jobs use is the rule of .config/nextest.toml
       # and is kept equal to xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
-      # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
+      # Feature-gated code (for example ew-ui/snapshots) is only compiled and tested with its feature on.
       # The cycle-39 delivery run 41169864175 passed the usual 18 to 20 minutes of the nextest step and was cancelled at
       # the job timeout, with no log (the job log needs admin rights to read). So the tests are compiled in a step of
       # their own (`cargo test --no-run` builds what nextest runs; the step timings are public and tell a slow build
@@ -1023,4 +1023,5 @@ jobs:
           cargo +"$RUST_MSRV" generate-lockfile
           cargo +"$RUST_MSRV" check --locked \
             -p ew-units -p ew-ids -p ew-mltext -p ew-rds -p ew-schema -p ew-format -p ew-interop-api \
-            -p ew-dl -p ew-step-proto -p ew-memo -p ew-plcaddr -p ew-caex -p ew-devdesc -p ew-ewpp -p ew-testdir
+            -p ew-dl -p ew-step-proto -p ew-memo -p ew-plcaddr -p ew-caex -p ew-devdesc -p ew-ewpp -p ew-testdir \
+            -p ew-testids

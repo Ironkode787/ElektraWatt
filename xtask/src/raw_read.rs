@@ -2262,6 +2262,7 @@ disallowed-types = [
     fn manifest(name: &str, deps: Vec<features::Dep>, feats: &[(&str, &[&str])]) -> features::Package {
         features::Package {
             name: name.into(),
+            dir: format!("crates/{name}"),
             deps,
             features: feats
                 .iter()

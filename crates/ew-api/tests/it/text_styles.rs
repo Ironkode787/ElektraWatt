@@ -13,7 +13,7 @@ use ew_api::output::ew_dl::{Item, ItemKind};
 use ew_api::{
     AnyCommand, CmdError, NewProjectKind, Origin, ProjectTemplate, Recovery, Session, SessionOptions,
 };
-use ew_commands::testkit::seeded_ids;
+use ew_testids::seeded_ids;
 use serde_json::{Value, json};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");

@@ -14,10 +14,10 @@ use std::sync::Arc;
 use std::time::SystemTime;
 
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions};
-use ew_commands::testkit::seeded_ids;
 use ew_store::lock::{Identity, new_session_id};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{Access, ManualClock, ReadOnlyReason, SaveError, StoreOptions, Vfs};
+use ew_testids::seeded_ids;
 
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 
