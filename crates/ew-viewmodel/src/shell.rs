@@ -649,253 +649,6 @@ fn save_error_key(e: &SaveError) -> Key<'static> {
     }
 }
 
-/// Whether dispatching `id` clears the banner: popups, dialogs, help and the describe text leave it standing.
-fn clears_banner(id: &str) -> bool {
-    !matches!(
-        id,
-        "ui.describe"
-            | "ui.dismiss"
-            | "tools.palette"
-            | "help.about"
-            | "help.shortcuts"
-            | "help.notices"
-            | "help.documentation"
-            | "file.discard_journal"
-            | "view.snapshot"
-            // The canvas's view actions leave a banner standing: moving the pointer or resizing the window must not
-            // dismiss what the banner says (WP-S2.02 lead ruling).
-            | "view.fit_page"
-            | "view.zoom_in"
-            | "view.zoom_out"
-            | "view.zoom_actual"
-            | "view.pan_left"
-            | "view.pan_right"
-            | "view.pan_up"
-            | "view.pan_down"
-            | "view.grid"
-            | "view.frame_stats"
-            | "view.zoom_to"
-            | "view.pan"
-            | "view.canvas_resize"
-            | "canvas.pointer"
-            | "canvas.snapshot"
-            // The viewer's navigation leaves a banner standing (WP-S2.03 §6.7); nav.goto, page.goto and tab.open,
-            // which can fail with a message, clear it.
-            | "tab.new"
-            | "tab.close"
-            | "tab.next"
-            | "tab.previous"
-            | "tab.focus_other"
-            | "tab.activate"
-            | "tab.move"
-            | "view.side_by_side"
-            // WP-S2.17 part 2: switching or collapsing the command bar leaves a banner standing.
-            | "view.command_tab"
-            | "view.command_bar"
-            | "nav.back"
-            | "nav.forward"
-            | "nav.follow"
-            | "nav.next_link"
-            | "nav.previous_link"
-            | "cursor.left"
-            | "cursor.right"
-            | "cursor.up"
-            | "cursor.down"
-            | "cursor.cell_left"
-            | "cursor.cell_right"
-            | "cursor.cell_up"
-            | "cursor.cell_down"
-            | "cursor.set"
-            | "pages.mode"
-            | "pages.sort"
-            | "pages.filter"
-            | "pages.toggle"
-            | "pages.row"
-            | "pages.open"
-            | "navigator.show"
-            | "navigator.view"
-            | "navigator.sort"
-            | "navigator.filter"
-            | "navigator.toggle"
-            | "navigator.row"
-            | "navigator.open"
-            | "navigator.select"
-            | "navigator.mark"
-            | "navigator.jump"
-            | "navigator.highlight"
-            | "view.clear_highlights"
-            | "navigator.table"
-            | "table.columns"
-            | "table.cell"
-            | "table.edit"
-            | "table.input"
-            | "table.copy"
-            | "ui.focus"
-            | "ui.focus_next"
-            | "ui.focus_previous"
-            // The tool framework's input leaves a banner standing too (WP-S2.03 part 2): a pointer, a press, a rest or
-            // a key of the canvas must not dismiss what the banner says (a failed commit, for one).
-            | "canvas.press"
-            | "canvas.release"
-            | "canvas.dwell"
-            | "canvas.activate"
-            | "canvas.preview_snapshot"
-            | "tool.select"
-            | "tool.measure"
-            | "tool.back"
-            | "cp.next"
-            | "cp.previous"
-            | "cp.next_unconnected"
-            // The place-and-arrange actions (WP-S2.04 §7.6) leave it standing too.
-            | "tool.place"
-            | "tool.place_part"
-            | "place.pick"
-            | "picker.filter"
-            | "picker.row"
-            | "picker.choose"
-            // WP-S2.18 part 1: the Join chooser.
-            | "place.join"
-            | "chooser.row"
-            | "chooser.type"
-            | "chooser.choose"
-            | "strip.new"
-            | "tool.rotate_cw"
-            | "tool.rotate_ccw"
-            | "tool.mirror_x"
-            | "tool.mirror_y"
-            | "tool.next_variant"
-            | "tool.next_rep_type"
-            | "tool.move"
-            | "tool.finish"
-            | "text.input"
-            | "edit.delete_selection"
-            | "rep.exchange"
-            // WP-S2.04 part 2 (wiring, §8.7) leaves it standing too. Begin.
-            | "tool.wire"
-            | "canvas.activate_alt"
-            | "tool.next_proposal"
-            | "tool.connect_on_move"
-            | "tool.route_edit"
-            | "junction.open"
-            | "junction.member"
-            | "junction.style"
-            | "junction.wiring"
-            | "project.crossings"
-            // WP-S2.04 part 2. End.
-            // WP-S2.04 part 3 (interruption points and black boxes, §9.6) leaves it standing too.
-            | "tool.ip"
-            | "tool.ip_direction"
-            | "tool.star_source"
-            | "ip.name"
-            | "ip.external"
-            | "ip.continue_on"
-            | "ip.arrange_selected"
-            | "tool.black_box"
-            | "box.grip"
-            | "box.add_cp"
-            // WP-S2.04 part 4b (text and graphic tools, §10.7) leaves it standing too.
-            | "tool.text"
-            | "tool.graphic"
-            | "text.bind"
-            | "text.edit"
-            | "strip.bridge"
-            | "bond.draw"
-            | "tool.marker"
-            | "marker.fields"
-            | "tool.structure_box"
-            | "structure_box.fields"
-            | "project.marker_mode"
-            // WP-S2.04 part 5 (images, §11).
-            | "tool.image"
-            | "image.pick"
-            | "image.file"
-            // The property grid's actions (WP-S2.05 §6.10): a failed edit shows under its field, not in the banner.
-            | "props.show"
-            | "props.focus"
-            | "props.project"
-            | "select.set"
-            | "props.row"
-            | "props.category"
-            | "props.edit"
-            | "props.input"
-            | "props.commit"
-            | "props.cancel"
-            | "props.set"
-            | "props.accept_tag_proposal"
-            | "props.choose"
-            | "props.row_menu"
-            | "props.filter"
-            | "props.action"
-            | "props.list"
-            | "props.mltext"
-            | "preview.apply"
-            | "preview.cancel"
-            | "toast.undo"
-            | "toast.dismiss"
-            // The find pane's actions (WP-S2.05 §7.6): an error shows in the pane.
-            | "find.open"
-            | "find.open_replace"
-            | "find.close"
-            | "find.text"
-            | "find.replacement"
-            | "find.option"
-            | "find.fields"
-            | "find.folios"
-            | "find.run"
-            | "find.row"
-            | "find.jump"
-            | "find.replace_all"
-            // WP-S2.09 part 1: the jobs, the notifications and Open read-only leave it standing (the recovery banner
-            // stays with the read-only access, §6.6).
-            | "jobs.show"
-            | "jobs.cancel"
-            | "jobs.wait"
-            | "jobs.open_result"
-            | "notifications.show"
-            | "notifications.run"
-            | "journal.keep"
-            // WP-S2.09 part 3: the Preview tab and the history panel's own moves.
-            | "preview.show"
-            | "history.show"
-            | "view.bottom_dock"
-            | "history.row"
-            | "history.changes"
-    )
-}
-
-/// The actions that go while the recovery dialog is open (WP-S2.09 §6.6): its answers, Escape, what only observes (the
-/// describe text, F1) or ends the run (Quit closes the read-only project; the journal stays), and the window's own
-/// canvas geometry (`view.canvas_resize`, which the frame sends until the shell has the pane's size: refused, it would
-/// be sent again every frame). Any other action refuses `reason-dialog-open`.
-fn answers_recovery(id: &str) -> bool {
-    matches!(
-        id,
-        "journal.recover"
-            | "journal.keep"
-            | "file.discard_journal"
-            | "ui.dismiss"
-            | "ui.describe"
-            | "help.documentation"
-            | "app.quit"
-            | "view.canvas_resize"
-    )
-}
-
-/// Whether dispatching `id` leaves the link hover preview standing: the rest that shows it, the describe text, the
-/// snapshots and Escape (which closes it as the topmost popup); every other action (a pointer move, a cursor move, a
-/// view action) clears it (WP-S2.03 §7.8).
-fn keeps_link_preview(id: &str) -> bool {
-    matches!(
-        id,
-        "canvas.dwell"
-            | "ui.describe"
-            | "ui.dismiss"
-            | "canvas.preview_snapshot"
-            | "canvas.snapshot"
-            | "view.snapshot"
-    )
-}
-
 /// A new, empty directory `<temp>/<stem>-<pid>-<n>` for the unit tests of this crate: [`ew_testdir::fresh_dir`]
 /// (FT-524, FT-538, FT-586).
 #[cfg(test)]
@@ -1439,12 +1192,12 @@ impl ShellModel {
         // WP-S2.09 §6.6: while the recovery dialog is open only its answers (and what observes or ends the run) go; the
         // others refuse (with their own reason when they are disabled anyway, as the script runner's check gives it),
         // and the recovery banner stays.
-        if matches!(self.dialog, Some(Dialog::Recovery { .. })) && !answers_recovery(meta.id) {
+        if matches!(self.dialog, Some(Dialog::Recovery { .. })) && !meta.answers_recovery {
             return Outcome::Refused {
                 reason_key: (meta.enabled)(self).err().unwrap_or(key!("reason-dialog-open")),
             };
         }
-        if clears_banner(meta.id) {
+        if !meta.keeps_banner {
             self.banner = None;
         }
         if let Err(reason_key) = actions::enabled_with(meta, self, p) {
@@ -1456,7 +1209,7 @@ impl ShellModel {
             Err(alias) => return failed(key!("error-unknown-alias"), &[&alias]),
         };
         let p = resolved.as_ref().unwrap_or(p);
-        if !keeps_link_preview(meta.id) {
+        if !meta.keeps_link_preview {
             self.tools.link_preview = None;
         }
         // WP-S2.09 D6: a toast stays until it is dismissed, replaced by a toast of its key or pushed out by a fourth

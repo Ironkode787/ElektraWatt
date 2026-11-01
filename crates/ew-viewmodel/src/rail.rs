@@ -82,85 +82,41 @@ pub struct RailModel {
 
 /// The left rail's entries (doc 16a §5.4, with Unplaced devices, Macros and Libraries after Report blocks, FT-486,
 /// FT-754 (g)): the word, the
-/// title key, the icon and the entry's pane. Project shows the Pages pane and, through its segmented control, the
-/// Devices navigator.
-pub const LEFT: [(&str, Key<'static>, &str, PaneKind); 13] = [
-    ("project", key!("rail-project"), "files", PaneKind::Pages),
+/// icon and the entry's pane, whose [`PaneKind::title_key`] is the entry's label ([`left_label`]). Project shows the
+/// Pages pane and, through its segmented control, the Devices navigator, so its label is its own.
+pub const LEFT: [(&str, &str, PaneKind); 13] = [
+    ("project", "files", PaneKind::Pages),
     (
         "strips",
-        key!("nav-title-strips"),
         "ew-terminal-strip",
         PaneKind::Navigator(NavKind::Strips),
     ),
-    (
-        "cables",
-        key!("nav-title-cables"),
-        "ew-cable",
-        PaneKind::Navigator(NavKind::Cables),
-    ),
+    ("cables", "ew-cable", PaneKind::Navigator(NavKind::Cables)),
     (
         "potentials",
-        key!("nav-title-potentials"),
         "ew-potential",
         PaneKind::Navigator(NavKind::Potentials),
     ),
-    (
-        "structure",
-        key!("nav-title-structure"),
-        "sitemap",
-        PaneKind::Navigator(NavKind::Structure),
-    ),
+    ("structure", "sitemap", PaneKind::Navigator(NavKind::Structure)),
     (
         "connections",
-        key!("nav-title-connections"),
         "plug-connected",
         PaneKind::Navigator(NavKind::Connections),
     ),
-    (
-        "plc",
-        key!("nav-title-plc"),
-        "cpu",
-        PaneKind::Navigator(NavKind::Plc),
-    ),
-    (
-        "ips",
-        key!("nav-title-ips"),
-        "ew-interruption-point",
-        PaneKind::Navigator(NavKind::Ips),
-    ),
-    (
-        "parts",
-        key!("nav-title-parts"),
-        "packages",
-        PaneKind::Navigator(NavKind::Parts),
-    ),
-    (
-        "blocks",
-        key!("nav-title-blocks"),
-        "report",
-        PaneKind::Navigator(NavKind::Blocks),
-    ),
+    ("plc", "cpu", PaneKind::Navigator(NavKind::Plc)),
+    ("ips", "ew-interruption-point", PaneKind::Navigator(NavKind::Ips)),
+    ("parts", "packages", PaneKind::Navigator(NavKind::Parts)),
+    ("blocks", "report", PaneKind::Navigator(NavKind::Blocks)),
     // WP-S4.02 part 3 (FT-486, doc 16 §5.2's row): the devices a layout space has not placed yet, the panel tools'
     // source, after Report blocks and without a Ctrl+<n> key.
     (
         "unplaced",
-        key!("nav-title-unplaced"),
         "layout-dashboard",
         PaneKind::Navigator(NavKind::Unplaced),
     ),
     // WP-S1.19 part 6 (FT-754 (g)): after Report blocks, without a Ctrl+<n> key (the ninth is the last).
-    (
-        "macros",
-        key!("nav-title-macros"),
-        "package",
-        PaneKind::Navigator(NavKind::Macros),
-    ),
-    (
-        "libraries",
-        key!("nav-title-libraries"),
-        "books",
-        PaneKind::Navigator(NavKind::Libraries),
-    ),
+    ("macros", "package", PaneKind::Navigator(NavKind::Macros)),
+    ("libraries", "books", PaneKind::Navigator(NavKind::Libraries)),
 ];
 
 /// The right rail's palettes (doc 16a §5.6): until the palette panes are built (§7.1 of the WP-S2.17 specification),
@@ -183,6 +139,16 @@ pub fn left_pane(word: &str) -> Option<PaneKind> {
     LEFT.iter().find(|(w, ..)| *w == word).map(|(.., p)| *p)
 }
 
+/// The label key of the left rail's entry `word` for `pane`: the pane's title, `rail-project` for Project (which fronts
+/// both [`PROJECT_PANES`]).
+pub fn left_label(word: &str, pane: PaneKind) -> Key<'static> {
+    if word == "project" {
+        key!("rail-project")
+    } else {
+        pane.title_key()
+    }
+}
+
 /// The pane shown in the navigator group: the active tab of the group that holds the Pages pane, else of the group
 /// that holds the first open rail navigator; `None` when no rail pane is in the layout.
 pub fn shown_pane(model: &ShellModel) -> Option<PaneKind> {
@@ -199,7 +165,7 @@ pub fn rail(model: &ShellModel) -> RailModel {
     let left = LEFT
         .iter()
         .enumerate()
-        .map(|(i, (word, key, icon, pane))| {
+        .map(|(i, (word, icon, pane))| {
             let active = match shown {
                 Some(s) if *word == "project" => PROJECT_PANES.contains(&s),
                 Some(s) => s == *pane,
@@ -207,7 +173,7 @@ pub fn rail(model: &ShellModel) -> RailModel {
             };
             RailButton {
                 word,
-                label: strings::text(*key).to_owned(),
+                label: strings::text(left_label(word, *pane)).to_owned(),
                 icon,
                 target: RailTarget::Pane(*pane),
                 shortcut: if i < 9 {

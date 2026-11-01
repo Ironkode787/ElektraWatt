@@ -710,6 +710,25 @@ fn escape_leaves_the_banner_alone() {
     assert_eq!(shell.banner(), None);
 }
 
+/// The banner flag of the registry entry decides: an action marked `keeps_banner` (help.about) leaves the banner
+/// standing, an action without it (settings.set) clears it.
+#[test]
+fn the_registry_flag_decides_whether_an_action_clears_the_banner() {
+    use ew_viewmodel::actions::find;
+    let tmp = Tmp::new();
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    assert!(find("help.about").unwrap().keeps_banner);
+    assert!(!find("settings.set").unwrap().keeps_banner);
+    shell.show_banner("note");
+    assert_eq!(shell.dispatch("help.about", &Value::Null), Outcome::Done);
+    assert_eq!(shell.banner(), Some("note"));
+    assert_eq!(
+        shell.dispatch("settings.set", &json!({"key": "theme", "value": "dark"})),
+        Outcome::Done
+    );
+    assert_eq!(shell.banner(), None);
+}
+
 /// R1-5 (FT-348, doc 16 "the same project twice"): two window instances on one settings file. B starts, then A starts,
 /// changes the theme and opens a project (written at once); A exits, then B exits with its window geometry. B merges
 /// only `[window]` into the file on disk, so A's theme and recent project stay; an exit with the geometry the file

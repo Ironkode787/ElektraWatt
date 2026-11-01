@@ -549,4 +549,23 @@ mod tests {
             assert_eq!(resolve_params(&t, action, &obj(json!({ name: 2 }))), Ok(None));
         }
     }
+
+    /// Each row of [`ALIAS_PARAMS`] names an action of the registry and a parameter of its signature (the form is not
+    /// derivable from the signature type: `list(ref)` reads as a list or a reference list, `text` as a whole, an
+    /// embedded or an `id:` reference, and most `text` parameters take no alias).
+    #[test]
+    fn every_alias_parameter_is_a_parameter_of_its_action() {
+        let mut wrong: Vec<String> = Vec::new();
+        for (action, name, _) in ALIAS_PARAMS {
+            let Some(meta) = crate::actions::find(action) else {
+                wrong.push(format!("{action} is no action of the registry"));
+                continue;
+            };
+            let params = crate::actions::parse_signature(meta.params).unwrap_or_default();
+            if !params.iter().any(|p| p.name == *name) {
+                wrong.push(format!("{action} has no parameter {name}"));
+            }
+        }
+        assert_eq!(wrong, Vec::<String>::new());
+    }
 }

@@ -186,6 +186,13 @@ pub struct MenuSlot {
 pub(crate) type Handler = fn(&mut ShellModel, &Map<String, Value>) -> Outcome;
 
 /// One action of the registry.
+///
+/// A dependant reads an action's facts but cannot reach its handler: an action runs only through
+/// [`ShellModel::dispatch`], after the enabled check and the alias resolution. The intent is checked at compile time:
+///
+/// ```compile_fail
+/// let _handler = ew_viewmodel::actions::ACTIONS[0].handler;
+/// ```
 #[derive(Clone, Copy)]
 pub struct ActionMeta {
     /// The stable ID (`file.open`).
@@ -219,6 +226,18 @@ pub struct ActionMeta {
     /// The action reads no parameter although it is hidden, headless-only or marked `needs_parameters` (WP-S6.13 BD2):
     /// its signature stays empty on purpose.
     pub parameterless: bool,
+    /// Dispatching the action leaves the banner standing (popups, dialogs, help, the describe text, the canvas's view
+    /// and tool input, the panes' own moves); every other action clears it.
+    pub keeps_banner: bool,
+    /// The action goes while the recovery dialog is open (WP-S2.09 §6.6): its answers, Escape, what only observes (the
+    /// describe text, F1) or ends the run (Quit closes the read-only project; the journal stays), and the window's own
+    /// canvas geometry (`view.canvas_resize`, which the frame sends until the shell has the pane's size: refused, it
+    /// would be sent again every frame). Any other action refuses `reason-dialog-open`.
+    pub answers_recovery: bool,
+    /// Dispatching the action leaves the link hover preview standing: the rest that shows it, the describe text, the
+    /// snapshots and Escape (which closes it as the topmost popup); every other action (a pointer move, a cursor move,
+    /// a view action) clears it (WP-S2.03 §7.8).
+    pub keeps_link_preview: bool,
     /// What the action does (run by [`ShellModel::dispatch`] once the action is enabled).
     pub(crate) handler: Handler,
 }
@@ -811,6 +830,9 @@ const fn act(
         placement: None,
         icon: None,
         parameterless: false,
+        keeps_banner: false,
+        answers_recovery: false,
+        keeps_link_preview: false,
         handler,
     }
 }
@@ -829,6 +851,25 @@ const fn needs_parameters(mut a: ActionMeta) -> ActionMeta {
 /// Marks a hidden, headless-only or `needs_parameters` action that reads no parameter, so its empty signature is meant.
 const fn parameterless(mut a: ActionMeta) -> ActionMeta {
     a.parameterless = true;
+    a
+}
+
+// map: action-flags: a new banner, recovery or link-preview exception goes on its ACTIONS entry as a keeps_banner, answers_recovery or keeps_link_preview wrapper.
+/// Marks an action whose dispatch leaves the banner standing.
+const fn keeps_banner(mut a: ActionMeta) -> ActionMeta {
+    a.keeps_banner = true;
+    a
+}
+
+/// Marks an action that goes while the recovery dialog is open.
+const fn answers_recovery(mut a: ActionMeta) -> ActionMeta {
+    a.answers_recovery = true;
+    a
+}
+
+/// Marks an action whose dispatch leaves the link hover preview standing.
+const fn keeps_link_preview(mut a: ActionMeta) -> ActionMeta {
+    a.keeps_link_preview = true;
     a
 }
 
@@ -1151,7 +1192,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_save_as(p),
         ),
     ),
-    with_params(
+    answers_recovery(keeps_banner(with_params(
         "confirm?:bool",
         act(
             "file.discard_journal",
@@ -1162,7 +1203,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             slot(Menu::File),
             |s, p| s.act_discard_journal(p),
         ),
-    ),
+    ))),
     // WP-S2.09 part 1: the export runs as a job (§6.3); `replace` confirms an existing file, `wait` (headless) returns at
     // once.
     with_params(
@@ -1193,7 +1234,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_close(p),
         ),
     ),
-    with_params(
+    answers_recovery(with_params(
         "discard?:bool",
         act(
             "app.quit",
@@ -1204,7 +1245,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             slot(Menu::File),
             |s, p| s.act_quit(p),
         ),
-    ),
+    )),
     with_icon(
         "arrow-back-up",
         act(
@@ -1230,7 +1271,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // WP-S2.09 part 3 (§8.4): Edit, History.
-    with_params(
+    keeps_banner(with_params(
         "on?:bool",
         placed(
             place(Group::Panels, 4, CommandSize::Small, None),
@@ -1245,9 +1286,9 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_history_show(p),
             ),
         ),
-    ),
+    )),
     // Doc 16a §5.7: View ▸ Bottom dock (Ctrl+J) closes the bottom dock and opens it again with the panes it had.
-    with_params(
+    keeps_banner(with_params(
         "on?:bool",
         act(
             "view.bottom_dock",
@@ -1258,10 +1299,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Panels),
             |s, p| s.act_bottom_dock(p),
         ),
-    ),
+    )),
     // Edit, Properties of selection (E and Alt+Enter on the canvas) and Project properties: the shell has no Project
     // menu yet, so the project's properties sit beside the selection's (WP-S2.05 §6.10, lane ruling).
-    in_canvas(act(
+    keeps_banner(in_canvas(act(
         "props.focus",
         View,
         Menu::Edit,
@@ -1269,8 +1310,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         slot_sep(Menu::Edit),
         |s, _| s.act_props_focus(),
-    )),
-    placed(
+    ))),
+    keeps_banner(placed(
         place(
             Group::Project,
             1,
@@ -1287,10 +1328,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_props_project(),
         ),
-    ),
+    )),
     // WP-S2.05 part 2: Edit, Find…, Find and replace… and Replace all (§7.6). macOS's ⌥⌘F (doc 16 §4.4) needs a
     // per-platform binding: `Ctrl+Alt+F` would be a Ctrl+Alt+letter chord, which NFR-I18N-06 forbids.
-    act(
+    keeps_banner(act(
         "find.open",
         View,
         Menu::Edit,
@@ -1298,8 +1339,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         slot_sep(Menu::Edit),
         |s, _| s.act_find_open(false),
-    ),
-    act(
+    )),
+    keeps_banner(act(
         "find.open_replace",
         View,
         Menu::Edit,
@@ -1307,8 +1348,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         slot(Menu::Edit),
         |s, _| s.act_find_open(true),
-    ),
-    in_find(act(
+    )),
+    keeps_banner(in_find(act(
         "find.replace_all",
         Command,
         Menu::Edit,
@@ -1316,7 +1357,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         find_writable,
         slot(Menu::Edit),
         |s, _| s.act_find_replace_all(),
-    )),
+    ))),
     // FT-408: Page, New page.
     with_params(
         "folio:text, type?:enum(title_page|table_of_contents|section_divider|graphic|single_line|multi_line|overview|bus_topology|fluid|assembly_overview|panel_layout|model_view|external_document), title?:text, section?:text",
@@ -1397,7 +1438,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    placed(
+    keeps_banner(placed(
         place(Group::Go, 2, CommandSize::Small, None),
         "arrow-left",
         act(
@@ -1409,8 +1450,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_history(true),
         ),
-    ),
-    placed(
+    )),
+    keeps_banner(placed(
         place(Group::Go, 3, CommandSize::Small, None),
         "arrow-right",
         act(
@@ -1422,8 +1463,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_history(false),
         ),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "x_mm?:mm, y_mm?:mm, group?:uint",
         in_canvas(placed(
             place(
@@ -1437,8 +1478,8 @@ pub static ACTIONS: &[ActionMeta] = &[
                 s.act_follow(p)
             }),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         in_canvas(act(
             "nav.next_link",
@@ -1449,8 +1490,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Go),
             |s, p| s.act_link_step(p, true),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         in_canvas(act(
             "nav.previous_link",
@@ -1461,10 +1502,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Go),
             |s, p| s.act_link_step(p, false),
         )),
-    ),
+    )),
     // Keyboard tool input (WP-S2.03 §7.7): the connection points in reading order; `[` and `]` are matched as the
     // physical keys by the window, so they need no AltGr on QWERTZ and AZERTY (doc 16 §4.4).
-    with_params(
+    keeps_banner(with_params(
         "group?:uint",
         in_canvas(act(
             "cp.next",
@@ -1475,8 +1516,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Go),
             |s, p| s.act_cp_step(p, crate::shell::tools::CpStep::Next),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         in_canvas(act(
             "cp.previous",
@@ -1487,8 +1528,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Go),
             |s, p| s.act_cp_step(p, crate::shell::tools::CpStep::Previous),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         in_canvas(act(
             "cp.next_unconnected",
@@ -1499,8 +1540,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Go),
             |s, p| s.act_cp_step(p, crate::shell::tools::CpStep::NextUnconnected),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "alt?:bool",
         in_canvas(act(
             "canvas.activate",
@@ -1511,8 +1552,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_activate_with(p),
         )),
-    ),
-    in_canvas(act(
+    )),
+    keeps_banner(in_canvas(act(
         "tool.back",
         View,
         Menu::Page,
@@ -1520,8 +1561,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         None,
         |s, _| s.act_tool_back(),
-    )),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "group?:uint",
         placed(
             place(Group::Zoom, 2, CommandSize::Small, None),
@@ -1536,8 +1577,8 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_zoom_in(p),
             ),
         ),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         placed(
             place(Group::Zoom, 3, CommandSize::Small, None),
@@ -1552,8 +1593,8 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_zoom_out(p),
             ),
         ),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         placed(
             place(Group::Zoom, 4, CommandSize::Small, None),
@@ -1568,8 +1609,8 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_zoom_actual(p),
             ),
         ),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         placed(
             place(Group::Zoom, 1, CommandSize::Large, None),
@@ -1584,8 +1625,8 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_fit_page(p),
             ),
         ),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         act(
             "view.pan_left",
@@ -1596,8 +1637,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp_sub(Group::Zoom, Submenu::Pan),
             |s, p| s.act_pan_step(p, -1.0, 0.0),
         ),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         act(
             "view.pan_right",
@@ -1608,8 +1649,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp_sub(Group::Zoom, Submenu::Pan),
             |s, p| s.act_pan_step(p, 1.0, 0.0),
         ),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         act(
             "view.pan_up",
@@ -1620,8 +1661,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp_sub(Group::Zoom, Submenu::Pan),
             |s, p| s.act_pan_step(p, 0.0, -1.0),
         ),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         act(
             "view.pan_down",
@@ -1632,8 +1673,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp_sub(Group::Zoom, Submenu::Pan),
             |s, p| s.act_pan_step(p, 0.0, 1.0),
         ),
-    ),
-    placed(
+    )),
+    keeps_banner(placed(
         place(Group::Layout, 1, CommandSize::Small, None),
         "layout-columns",
         act(
@@ -1645,8 +1686,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_side_by_side(),
         ),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "mode:enum(flat|section|structure)",
         needs_parameters(act(
             "pages.mode",
@@ -1657,8 +1698,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp_sub(Group::Panels, Submenu::PageNavigator),
             |s, p| s.act_pages_mode(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "by:enum(folio|type)",
         needs_parameters(act(
             "pages.sort",
@@ -1669,21 +1710,21 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp_sub(Group::Panels, Submenu::PageNavigator),
             |s, p| s.act_pages_sort(p),
         )),
-    ),
-    placed(
+    )),
+    keeps_banner(placed(
         place(Group::Show, 1, CommandSize::Small, None),
         "grid-dots",
         act("view.grid", View, Menu::View, &[], has_pages, None, |s, _| {
             s.act_grid()
         }),
-    ),
-    placed(
+    )),
+    keeps_banner(placed(
         place(Group::Show, 3, CommandSize::Small, None),
         "chart-line",
         act("view.frame_stats", View, Menu::View, &[], always, None, |s, _| {
             s.act_frame_stats()
         }),
-    ),
+    )),
     act(
         "view.cpu_canvas",
         View,
@@ -1694,7 +1735,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         |s, _| s.act_cpu_canvas(),
     ),
     // The property grid (WP-S2.05 part 1, spec §6.10).
-    with_params(
+    keeps_banner(with_params(
         "on?:bool",
         placed(
             place(Group::Panels, 2, CommandSize::Small, None),
@@ -1703,7 +1744,7 @@ pub static ACTIONS: &[ActionMeta] = &[
                 s.act_props_show(p)
             }),
         ),
-    ),
+    )),
     // WP-S2.17 part 3 (§4.3, D11, D15): the Advanced rows of the property grid, and the rails' own control.
     with_params(
         "on?:bool",
@@ -1730,7 +1771,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // WP-S2.09 part 1 (§6.8): View ▸ Jobs and View ▸ Notifications.
-    with_params(
+    keeps_banner(with_params(
         "on?:bool",
         placed(
             place(Group::Jobs, 1, CommandSize::Small, None),
@@ -1745,7 +1786,7 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_jobs_show(p),
             ),
         ),
-    ),
+    )),
     // FT-717: Output ▸ Parts list opens the first page of the project's parts list (the first `parts_summary` block,
     // else the first `parts_list` block, in page order).
     placed(
@@ -1761,7 +1802,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_lists_parts(),
         ),
     ),
-    with_params(
+    keeps_banner(with_params(
         "on?:bool",
         placed(
             place(Group::Panels, 5, CommandSize::Small, None),
@@ -1776,7 +1817,7 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_notifications_show(p),
             ),
         ),
-    ),
+    )),
     // WP-S2.09 part 2 (§7.6): View ▸ Messages, F8 and Shift+F8, the quick fix of a finding row.
     with_params(
         "on?:bool",
@@ -1908,7 +1949,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // WP-S2.17 part 2 (§4.3): the command bar's tab and its collapse (Ctrl+F1, a tab's double click), view actions.
-    with_params(
+    keeps_banner(with_params(
         "tab:enum(project|page|draw|check|output|view)",
         needs_parameters(act(
             "view.command_tab",
@@ -1919,8 +1960,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp_sub(Group::Layout, Submenu::CommandTab),
             |s, p| s.act_command_tab(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "collapsed?:bool",
         act(
             "view.command_bar",
@@ -1931,7 +1972,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Layout),
             |s, p| s.act_command_bar(p),
         ),
-    ),
+    )),
     with_params(
         "name:text",
         needs_parameters(placed(
@@ -1973,7 +2014,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_workspace_reset(),
         ),
     ),
-    with_params(
+    keeps_banner(with_params(
         "query?:text",
         with_icon(
             "search",
@@ -1987,23 +2028,23 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_palette(p),
             ),
         ),
-    ),
-    placed(
+    )),
+    keeps_banner(placed(
         place(Group::Select, 1, CommandSize::Large, None),
         "pointer",
         act("tool.select", View, Menu::Draw, &[], has_pages, None, |s, _| {
             s.act_tool("select")
         }),
-    ),
-    placed(
+    )),
+    keeps_banner(placed(
         place(Group::Annotate, 2, CommandSize::Small, None),
         "ruler-measure",
         act("tool.measure", View, Menu::Draw, &[], has_pages, None, |s, _| {
             s.act_tool("measure")
         }),
-    ),
+    )),
     // Place and arrange (WP-S2.04 part 1, §7.6): the Insert menu, the transform keys, Move, Delete, Change symbol.
-    in_canvas(placed(
+    keeps_banner(in_canvas(placed(
         place(Group::Place, 1, CommandSize::Large, None),
         "circuit-switch-open",
         act(
@@ -2015,8 +2056,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_open_picker(crate::tools::PickerMode::Place),
         ),
-    )),
-    in_canvas(placed(
+    ))),
+    keeps_banner(in_canvas(placed(
         place(Group::Place, 2, CommandSize::Large, Some(key!("bar-device"))),
         "package",
         act(
@@ -2028,8 +2069,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_open_picker(crate::tools::PickerMode::Parts),
         ),
-    )),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "letter?:text",
         act(
             "strip.new",
@@ -2040,7 +2081,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Place),
             |s, p| s.act_strip_new(p),
         ),
-    ),
+    )),
     // FT-409: the structure node and the external reference, one previewed command each.
     with_params(
         "kind:enum(functional_assignment|function|installation_site|location|document_kind|user_defined|type), designation:text, parent?:text",
@@ -2070,7 +2111,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_external_ref_new(p),
         ),
     ),
-    with_params(
+    keeps_banner(with_params(
         "symbol?:text, part?:text, function?:ref, device?:ref, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text",
         hidden(in_canvas(act(
             "place.pick",
@@ -2081,8 +2122,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_place_pick(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "text:text",
         hidden(act(
             "picker.filter",
@@ -2093,8 +2134,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_picker_filter(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "step?:int, to?:enum(first|last)",
         hidden(act(
             "picker.row",
@@ -2105,8 +2146,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_picker_row(p),
         )),
-    ),
-    hidden(with_params(
+    )),
+    keeps_banner(hidden(with_params(
         // `arm` reads the optional device letter and, for a terminal, the strip and its designation
         // (`terminal_designation`; FT-543 keeps `designation` as its old name).
         "letter?:text, strip?:text, terminal_designation?:text, designation?:text",
@@ -2119,10 +2160,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_picker_choose(p),
         ),
-    )),
+    ))),
     // WP-S2.18 part 1 (D2): J opens the Place tool's Join chooser (doc 16a §6.22) while the armed symbol can be an
     // auxiliary function; the chooser's own keys are its actions.
-    hidden(in_canvas(parameterless(act(
+    keeps_banner(hidden(in_canvas(parameterless(act(
         "place.join",
         Command,
         Menu::Draw,
@@ -2130,8 +2171,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         place_joinable,
         None,
         |s, _| s.act_place_join(),
-    )))),
-    with_params(
+    ))))),
+    keeps_banner(with_params(
         "step?:int, to?:enum(first|last)",
         hidden(act(
             "chooser.row",
@@ -2142,8 +2183,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_chooser_row(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "text:text",
         hidden(act(
             "chooser.type",
@@ -2154,8 +2195,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_chooser_type(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "row?:uint",
         hidden(act(
             "chooser.choose",
@@ -2166,8 +2207,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_chooser_choose(p),
         )),
-    ),
-    in_canvas(placed(
+    )),
+    keeps_banner(in_canvas(placed(
         place(Group::Arrange, 1, CommandSize::Small, Some(key!("bar-rotate"))),
         "rotate-clockwise",
         act(
@@ -2179,8 +2220,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_tool_key(crate::tools::ToolKey::RotateCw),
         ),
-    )),
-    in_canvas(act(
+    ))),
+    keeps_banner(in_canvas(act(
         "tool.rotate_ccw",
         Command,
         Menu::Draw,
@@ -2188,8 +2229,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         grp(Group::Arrange),
         |s, _| s.act_tool_key(crate::tools::ToolKey::RotateCcw),
-    )),
-    in_canvas(placed(
+    ))),
+    keeps_banner(in_canvas(placed(
         place(Group::Arrange, 2, CommandSize::Small, Some(key!("bar-mirror"))),
         "flip-vertical",
         act(
@@ -2201,8 +2242,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_tool_key(crate::tools::ToolKey::MirrorX),
         ),
-    )),
-    in_canvas(act(
+    ))),
+    keeps_banner(in_canvas(act(
         "tool.mirror_y",
         Command,
         Menu::Draw,
@@ -2210,8 +2251,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         grp(Group::Arrange),
         |s, _| s.act_tool_key(crate::tools::ToolKey::MirrorY),
-    )),
-    in_canvas(act(
+    ))),
+    keeps_banner(in_canvas(act(
         "tool.next_variant",
         Command,
         Menu::Draw,
@@ -2219,8 +2260,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         grp(Group::Arrange),
         |s, _| s.act_tool_key(crate::tools::ToolKey::NextVariant),
-    )),
-    in_canvas(act(
+    ))),
+    keeps_banner(in_canvas(act(
         "tool.next_rep_type",
         View,
         Menu::Draw,
@@ -2228,8 +2269,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         grp(Group::Arrange),
         |s, _| s.act_tool_key(crate::tools::ToolKey::NextRepType),
-    )),
-    in_canvas(act(
+    ))),
+    keeps_banner(in_canvas(act(
         "tool.move",
         Command,
         Menu::Draw,
@@ -2237,8 +2278,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         grp(Group::Arrange),
         |s, _| s.act_tool_move(),
-    )),
-    in_canvas(act(
+    ))),
+    keeps_banner(in_canvas(act(
         "edit.delete_selection",
         Command,
         Menu::Edit,
@@ -2246,7 +2287,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_selection,
         slot_sep(Menu::Edit),
         |s, _| s.act_delete_selection(),
-    )),
+    ))),
     // WP-S2.05 part 3: the clipboard (§8.8). The chords are the canvas's: a text field of the property grid or the find
     // pane keeps egui's own copy and paste, and the window routes no chord while a text field has the keyboard.
     in_canvas(act(
@@ -2312,7 +2353,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_clipboard_text(p),
         )),
     ),
-    with_params(
+    keeps_banner(with_params(
         "symbol?:text",
         in_canvas(with_icon(
             "circuit-switch-open",
@@ -2326,8 +2367,8 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_rep_exchange(p),
             ),
         )),
-    ),
-    hidden(in_canvas(parameterless(act(
+    )),
+    keeps_banner(hidden(in_canvas(parameterless(act(
         "tool.finish",
         View,
         Menu::Edit,
@@ -2335,8 +2376,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         None,
         |s, p| s.act_tool_finish(p),
-    )))),
-    with_params(
+    ))))),
+    keeps_banner(with_params(
         "text:text",
         hidden(in_canvas(act(
             "text.input",
@@ -2347,10 +2388,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_text_input(p),
         ))),
-    ),
+    )),
     // WP-S2.04 part 2 (wiring, §8.7): the Wire tool, the proposals' Tab, route edit, the junction sequence editor and
     // the crossings setting. Begin.
-    in_canvas(placed(
+    keeps_banner(in_canvas(placed(
         place(Group::Connect, 1, CommandSize::Large, Some(key!("bar-wire"))),
         "route-2",
         act(
@@ -2362,10 +2403,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_tool_wire(),
         ),
-    )),
+    ))),
     // Ctrl+Enter: a click with Alt held at the grid cursor (a placement without its autoconnect proposals, a bend
     // without object snaps), the keyboard's twin of `canvas.activate {alt}` (fix round; per-context chords, ID-628).
-    hidden(in_canvas(parameterless(act(
+    keeps_banner(hidden(in_canvas(parameterless(act(
         "canvas.activate_alt",
         View,
         Menu::Page,
@@ -2373,8 +2414,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         None,
         |s, p| s.act_canvas_activate_alt(p),
-    )))),
-    hidden(in_canvas(parameterless(act(
+    ))))),
+    keeps_banner(hidden(in_canvas(parameterless(act(
         "tool.next_proposal",
         View,
         Menu::Edit,
@@ -2382,7 +2423,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         None,
         |s, _| s.send_proposal_key(),
-    )))),
+    ))))),
     // WP-S4.02 part 3 (D4, D10; doc 12 §12.4): placing on a panel page. Tab, R, X and the arrows keep their bindings:
     // on a panel page the shell maps them to these hidden actions (`ShellModel::shortcut_action`, ID-628); Shift+Tab is
     // `layout.previous`'s own canvas binding (ruling 5).
@@ -2477,7 +2518,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_layout_options(p),
         ))),
     ),
-    hidden(in_canvas(parameterless(act(
+    keeps_banner(hidden(in_canvas(parameterless(act(
         "tool.connect_on_move",
         Command,
         Menu::Edit,
@@ -2485,8 +2526,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         None,
         |s, p| s.act_tool_connect_on_move(p),
-    )))),
-    in_canvas(with_icon(
+    ))))),
+    keeps_banner(in_canvas(with_icon(
         "route-2",
         act(
             "tool.route_edit",
@@ -2497,8 +2538,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Connect),
             |s, _| s.act_route_edit(),
         ),
-    )),
-    in_canvas(act(
+    ))),
+    keeps_banner(in_canvas(act(
         "junction.open",
         View,
         Menu::Draw,
@@ -2506,8 +2547,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         one_junction,
         grp(Group::Connect),
         |s, _| s.act_junction_open(),
-    )),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "from:uint, to:uint",
         hidden(act(
             "junction.member",
@@ -2518,8 +2559,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_junction_member(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "style:enum(dot|bevel), orient?:uint",
         hidden(act(
             "junction.style",
@@ -2530,8 +2571,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_junction_style(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "wiring:enum(star|chain|style_default)",
         hidden(act(
             "junction.wiring",
@@ -2542,8 +2583,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_junction_wiring(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "on?:bool",
         act(
             "project.crossings",
@@ -2554,10 +2595,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Connect),
             |s, p| s.act_crossings(p),
         ),
-    ),
+    )),
     // WP-S2.04 part 2. End.
     // WP-S2.04 part 3 (interruption points and black boxes, §9.6). Begin.
-    in_canvas(placed(
+    keeps_banner(in_canvas(placed(
         place(
             Group::Connect,
             3,
@@ -2574,8 +2615,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_tool_ip(),
         ),
-    )),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "symbol?:text, part?:text, template?:uint, letter?:text",
         in_canvas(placed(
             place(Group::Place, 4, CommandSize::Small, None),
@@ -2590,8 +2631,8 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_tool_black_box(p),
             ),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "direction?:enum(source|target|undirected)",
         in_canvas(act(
             "tool.ip_direction",
@@ -2602,8 +2643,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Connect),
             |s, p| s.act_ip_direction(p),
         )),
-    ),
-    in_canvas(act(
+    )),
+    keeps_banner(in_canvas(act(
         "tool.star_source",
         View,
         Menu::Draw,
@@ -2611,8 +2652,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         editable_page,
         grp(Group::Connect),
         |s, _| s.act_ip_key(crate::tools::ToolKey::ToggleStar),
-    )),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "text:text",
         hidden(in_canvas(act(
             "ip.name",
@@ -2623,9 +2664,9 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_ip_name(p),
         ))),
-    ),
+    )),
     // `external`: an external reference's ID, alias or printed text (`JE-N1000-03:L`); empty clears it.
-    with_params(
+    keeps_banner(with_params(
         "external:text",
         hidden(in_canvas(act(
             "ip.external",
@@ -2636,8 +2677,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_ip_external(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "folio?:text, x_mm?:mm, y_mm?:mm",
         in_canvas(act(
             "ip.continue_on",
@@ -2648,8 +2689,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Connect),
             |s, p| s.act_ip_continue_on(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "by?:enum(name|potential), chain_order?:bool",
         in_canvas(act(
             "ip.arrange_selected",
@@ -2660,8 +2701,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Connect),
             |s, p| s.act_ip_arrange(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "grip:uint",
         hidden(in_canvas(act(
             "box.grip",
@@ -2672,8 +2713,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_box_grip(p),
         ))),
-    ),
-    in_canvas(act(
+    )),
+    keeps_banner(in_canvas(act(
         "box.add_cp",
         Command,
         Menu::Draw,
@@ -2681,10 +2722,10 @@ pub static ACTIONS: &[ActionMeta] = &[
         one_box,
         grp(Group::Place),
         |s, _| s.act_box_add_cp(),
-    )),
+    ))),
     // WP-S2.04 part 3. End.
     // WP-S2.04 part 4b (text and graphic tools, §10.7). Begin.
-    in_canvas(placed(
+    keeps_banner(in_canvas(placed(
         place(Group::Annotate, 1, CommandSize::Large, None),
         "typography",
         act(
@@ -2696,8 +2737,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_tool_text(),
         ),
-    )),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "shape?:enum(line|polyline|rect|circle|arc|polygon)",
         in_canvas(with_icon(
             "pencil",
@@ -2711,8 +2752,8 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_tool_graphic(p),
             ),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "bind:text",
         hidden(in_canvas(act(
             "text.bind",
@@ -2723,8 +2764,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_text_bind(p),
         ))),
-    ),
-    in_canvas(with_icon(
+    )),
+    keeps_banner(in_canvas(with_icon(
         "pencil",
         act(
             "text.edit",
@@ -2735,9 +2776,9 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Annotate),
             |s, _| s.act_text_edit(),
         ),
-    )),
+    ))),
     // FT-411: Edit ▸ Bridge terminals.
-    in_canvas(act(
+    keeps_banner(in_canvas(act(
         "strip.bridge",
         Command,
         Menu::Draw,
@@ -2745,7 +2786,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         two_strip_terminals,
         grp(Group::Connect),
         |s, _| s.act_strip_bridge(),
-    )),
+    ))),
     // WP-S2.07 part 1: the strip editor (§6.9; 262 → 268).
     with_params(
         "strip?:text",
@@ -2854,7 +2895,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ))),
     ),
     // G-PP triage row 7: Draw ▸ Bond, `bond.create` on the selected connection or two named CPs, previewed.
-    with_params(
+    keeps_banner(with_params(
         "kind?:enum(pelv_0v_pe|fe_pe|equipotential|shield), a?:text, b?:text",
         in_canvas(act(
             "bond.draw",
@@ -2865,9 +2906,9 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp_sub(Group::Connect, Submenu::Bond),
             |s, p| s.act_bond_draw(p),
         )),
-    ),
+    )),
     // WP-S2.04 part 4b: the Wire marker and Structure box tools, their fields and the marker mode.
-    in_canvas(with_icon(
+    keeps_banner(in_canvas(with_icon(
         "ew-cable",
         act(
             "tool.marker",
@@ -2878,8 +2919,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Connect),
             |s, _| s.act_tool_marker(),
         ),
-    )),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "csa?:text, colours?:text",
         hidden(in_canvas(act(
             "marker.fields",
@@ -2890,8 +2931,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_marker_fields(p),
         ))),
-    ),
-    in_canvas(with_icon(
+    )),
+    keeps_banner(in_canvas(with_icon(
         "ew-structure-box",
         act(
             "tool.structure_box",
@@ -2902,8 +2943,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Annotate),
             |s, _| s.act_tool_structure_box(),
         ),
-    )),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "style?:enum(dotted|dash_dot), caption?:text, location?:text, external?:text",
         hidden(in_canvas(act(
             "structure_box.fields",
@@ -2914,8 +2955,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_structure_box_fields(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "mode:enum(per_wire|all|deviations|explicit|none)",
         act(
             "project.marker_mode",
@@ -2926,10 +2967,10 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp_sub(Group::Connect, Submenu::WireMarkers),
             |s, p| s.act_marker_mode(p),
         ),
-    ),
+    )),
     // WP-S2.04 part 4b. End.
     // WP-S2.04 part 5 (images, §11).
-    in_canvas(with_icon(
+    keeps_banner(in_canvas(with_icon(
         "file",
         act(
             "tool.image",
@@ -2940,8 +2981,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             grp(Group::Annotate),
             |s, _| s.act_tool_image(),
         ),
-    )),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "asset:text",
         hidden(in_canvas(act(
             "image.pick",
@@ -2952,8 +2993,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_image_pick(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "path:path",
         hidden(in_canvas(act(
             "image.file",
@@ -2964,7 +3005,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_image_file(p),
         ))),
-    ),
+    )),
     placed(
         place(
             Group::Standards,
@@ -3090,7 +3131,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_revision_incomplete(p),
         ),
     ),
-    act(
+    keeps_banner(act(
         "tab.new",
         View,
         Menu::Window,
@@ -3098,8 +3139,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         can_add_tab,
         slot(Menu::Window),
         |s, _| s.act_tab_new(),
-    ),
-    act(
+    )),
+    keeps_banner(act(
         "tab.close",
         View,
         Menu::Window,
@@ -3107,8 +3148,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         can_close_tab,
         slot(Menu::Window),
         |s, _| s.act_tab_close(),
-    ),
-    act(
+    )),
+    keeps_banner(act(
         "tab.next",
         View,
         Menu::Window,
@@ -3116,8 +3157,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         can_cycle_tabs,
         slot(Menu::Window),
         |s, _| s.act_tab_cycle(1),
-    ),
-    act(
+    )),
+    keeps_banner(act(
         "tab.previous",
         View,
         Menu::Window,
@@ -3125,8 +3166,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         can_cycle_tabs,
         slot(Menu::Window),
         |s, _| s.act_tab_cycle(-1),
-    ),
-    act(
+    )),
+    keeps_banner(act(
         "tab.focus_other",
         View,
         Menu::Window,
@@ -3134,8 +3175,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         two_groups,
         slot(Menu::Window),
         |s, _| s.act_focus_other(),
-    ),
-    with_params(
+    )),
+    answers_recovery(keeps_banner(with_params(
         "topic?:text",
         act(
             "help.documentation",
@@ -3146,7 +3187,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             slot(Menu::Help),
             |s, p| s.act_documentation(p),
         ),
-    ),
+    ))),
     with_params(
         "dir?:path, discard?:bool",
         act(
@@ -3171,7 +3212,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_first_run_open(p),
         ),
     ),
-    act(
+    keeps_banner(act(
         "help.shortcuts",
         View,
         Menu::Help,
@@ -3179,8 +3220,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         slot(Menu::Help),
         |s, p| s.act_help_shortcuts(p),
-    ),
-    act(
+    )),
+    keeps_banner(act(
         "help.notices",
         View,
         Menu::Help,
@@ -3188,8 +3229,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         slot(Menu::Help),
         |s, _| s.open_dialog(crate::shell::Dialog::Notices),
-    ),
-    act(
+    )),
+    keeps_banner(act(
         "help.about",
         View,
         Menu::Help,
@@ -3197,7 +3238,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         slot(Menu::Help),
         |s, _| s.open_dialog(crate::shell::Dialog::About),
-    ),
+    )),
     with_params(
         "cmd:text, params?:json",
         needs_parameters(act(
@@ -3210,7 +3251,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_command_run(p),
         )),
     ),
-    with_params(
+    keeps_link_preview(keeps_banner(with_params(
         "path:path, dpi?:uint",
         headless(act(
             "view.snapshot",
@@ -3221,8 +3262,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_view_snapshot(p),
         )),
-    ),
-    with_params(
+    ))),
+    keeps_link_preview(keeps_banner(with_params(
         "path:path, group?:uint",
         headless(act(
             "canvas.snapshot",
@@ -3233,8 +3274,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_canvas_snapshot(p),
         )),
-    ),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "percent:json, x_mm?:mm, y_mm?:mm, group?:uint",
         hidden(act(
             "view.zoom_to",
@@ -3245,14 +3286,14 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_zoom_to(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "dx:json, dy:json, group?:uint",
         hidden(act("view.pan", View, Menu::View, &[], has_pages, None, |s, p| {
             s.act_pan(p)
         })),
-    ),
-    with_params(
+    )),
+    answers_recovery(keeps_banner(with_params(
         "width:json, height:json, ppp?:json, group?:uint",
         hidden(act(
             "view.canvas_resize",
@@ -3263,8 +3304,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_canvas_resize(p),
         )),
-    ),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "x_mm?:mm, y_mm?:mm, group?:uint, shift?:bool, ctrl?:bool, alt?:bool",
         hidden(act(
             "canvas.pointer",
@@ -3275,8 +3316,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_pointer(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_link_preview(keeps_banner(with_params(
         "path:path",
         headless(act(
             "canvas.preview_snapshot",
@@ -3287,8 +3328,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_canvas_snapshot(p),
         )),
-    ),
-    with_params(
+    ))),
+    keeps_banner(with_params(
         "x_mm:mm, y_mm:mm, button?:enum(primary|middle), shift?:bool, ctrl?:bool, alt?:bool, group?:uint",
         hidden(in_canvas(act(
             "canvas.press",
@@ -3299,8 +3340,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_press(p, false),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "x_mm:mm, y_mm:mm, button?:enum(primary|middle), shift?:bool, ctrl?:bool, alt?:bool, group?:uint",
         hidden(in_canvas(act(
             "canvas.release",
@@ -3311,8 +3352,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_press(p, true),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_link_preview(keeps_banner(with_params(
         "ms:uint",
         hidden(in_canvas(act(
             "canvas.dwell",
@@ -3323,7 +3364,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_dwell(p),
         ))),
-    ),
+    ))),
     // FT-720: a script step that expects its inner step to be refused, so a refusal's window state can be framed.
     with_params(
         "action:text, params?:json",
@@ -3337,7 +3378,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_script_expect_refused(p),
         )),
     ),
-    headless(parameterless(act(
+    keeps_link_preview(answers_recovery(keeps_banner(headless(parameterless(act(
         "ui.describe",
         View,
         Menu::View,
@@ -3345,7 +3386,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         None,
         |s, p| s.act_ui_describe(p),
-    ))),
+    )))))),
     with_params(
         "folio:text",
         hidden(act(
@@ -3358,7 +3399,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_page_goto(p),
         )),
     ),
-    with_params(
+    keeps_banner(with_params(
         "group:uint, index:uint",
         hidden(act(
             "tab.activate",
@@ -3369,8 +3410,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_tab_activate(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group:uint, index:uint, to_group:uint, to_index:uint",
         hidden(act(
             "tab.move",
@@ -3381,7 +3422,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_tab_move(p),
         )),
-    ),
+    )),
     with_params(
         "folio:text, group?:uint",
         hidden(act(
@@ -3394,7 +3435,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_tab_open(p),
         )),
     ),
-    with_params(
+    keeps_banner(with_params(
         "group?:uint",
         hidden(in_canvas(act(
             "cursor.left",
@@ -3405,8 +3446,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_cursor(p, -1, 0, false),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         hidden(in_canvas(act(
             "cursor.right",
@@ -3417,8 +3458,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_cursor(p, 1, 0, false),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         hidden(in_canvas(act(
             "cursor.up",
@@ -3429,8 +3470,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_cursor(p, 0, -1, false),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         hidden(in_canvas(act(
             "cursor.down",
@@ -3441,8 +3482,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_cursor(p, 0, 1, false),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         hidden(in_canvas(act(
             "cursor.cell_left",
@@ -3453,8 +3494,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_cursor(p, -1, 0, true),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         hidden(in_canvas(act(
             "cursor.cell_right",
@@ -3465,8 +3506,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_cursor(p, 1, 0, true),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         hidden(in_canvas(act(
             "cursor.cell_up",
@@ -3477,8 +3518,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_cursor(p, 0, -1, true),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "group?:uint",
         hidden(in_canvas(act(
             "cursor.cell_down",
@@ -3489,8 +3530,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_cursor(p, 0, 1, true),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "x_mm?:mm, y_mm?:mm, group?:uint",
         hidden(in_canvas(act(
             "cursor.set",
@@ -3501,8 +3542,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_cursor_set(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "text:text",
         hidden(act(
             "pages.filter",
@@ -3513,8 +3554,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_pages_filter(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "key:text",
         hidden(in_navigator(act(
             "pages.toggle",
@@ -3525,8 +3566,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_pages_toggle(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "key?:text, step?:int, to?:enum(first|last)",
         hidden(in_navigator(act(
             "pages.row",
@@ -3537,8 +3578,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_pages_row(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "key?:text, folio?:text, new_tab?:bool",
         hidden(in_navigator(act(
             "pages.open",
@@ -3549,9 +3590,9 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_pages_open(p),
         ))),
-    ),
+    )),
     // WP-S2.06 part 1: the navigator framework (§6.9).
-    with_params(
+    keeps_banner(with_params(
         "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|unplaced|macros|libraries|messages), on?:bool",
         needs_parameters(placed(
             place(Group::Panels, 1, CommandSize::Small, Some(key!("bar-navigators"))),
@@ -3566,8 +3607,8 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_navigator_show(p),
             ),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind:text, view:text",
         hidden(act(
             "navigator.view",
@@ -3578,8 +3619,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_navigator_view(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind:text, by:text, descending?:bool",
         hidden(act(
             "navigator.sort",
@@ -3590,8 +3631,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_navigator_sort(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind:text, text:text",
         hidden(act(
             "navigator.filter",
@@ -3602,8 +3643,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_navigator_filter(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind:text, key:text",
         hidden(in_navigator(act(
             "navigator.toggle",
@@ -3614,8 +3655,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_navigator_toggle(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind:text, key?:text, step?:int, to?:enum(first|last), extend?:bool",
         hidden(in_navigator(act(
             "navigator.row",
@@ -3626,8 +3667,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_navigator_row(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind:text, key?:text, new_tab?:bool",
         hidden(in_navigator(act(
             "navigator.open",
@@ -3638,7 +3679,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_navigator_open(p),
         ))),
-    ),
+    )),
     // WP-S1.19 part 6 (§11): Draw ▸ Insert macro… with the place tools; a macro row dropped on the canvas; the macro
     // card's value set; Edit ▸ Save as macro…; the Libraries navigator's Update…; a property row's Make variable.
     with_params(
@@ -3741,7 +3782,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_navigator_bind(p),
         ))),
     ),
-    with_params(
+    keeps_banner(with_params(
         "kind:text, keys:list(text), add?:bool",
         hidden(act(
             "navigator.select",
@@ -3752,8 +3793,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_navigator_select(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind?:text, key?:text",
         hidden(in_navigator(act(
             "navigator.mark",
@@ -3764,8 +3805,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_navigator_mark(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind:text, prefix:text",
         hidden(in_navigator(act(
             "navigator.jump",
@@ -3776,7 +3817,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_navigator_jump(p),
         ))),
-    ),
+    )),
     hidden(in_navigator(parameterless(act(
         "navigator.apply",
         Command,
@@ -3825,7 +3866,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     )),
     // WP-S2.06 part 2: potential and net highlighting (§7.4).
-    with_params(
+    keeps_banner(with_params(
         "kind?:text, key?:text, off?:bool",
         in_navigator(placed(
             place(Group::Trace, 1, CommandSize::Small, None),
@@ -3840,8 +3881,8 @@ pub static ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_navigator_highlight(p),
             ),
         )),
-    ),
-    placed(
+    )),
+    keeps_banner(placed(
         place(Group::Trace, 2, CommandSize::Small, None),
         "highlight-off",
         act(
@@ -3853,9 +3894,9 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_clear_highlights(),
         ),
-    ),
+    )),
     // WP-S2.06 part 3: table mode (§8.8).
-    with_params(
+    keeps_banner(with_params(
         "kind:text, on?:bool",
         hidden(act(
             "navigator.table",
@@ -3866,8 +3907,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_navigator_table(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind:text, show?:list(text), hide?:list(text), order?:list(text)",
         hidden(act(
             "table.columns",
@@ -3878,8 +3919,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_table_columns(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind?:text, row?:text, column?:text, step?:int, across?:int",
         hidden(in_navigator(act(
             "table.cell",
@@ -3890,8 +3931,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_table_cell(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind?:text, row?:text, column?:text",
         hidden(in_navigator(act(
             "table.edit",
@@ -3902,8 +3943,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_table_edit(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "kind?:text, text:text",
         hidden(in_navigator(act(
             "table.input",
@@ -3914,7 +3955,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_table_input(p),
         ))),
-    ),
+    )),
     with_params(
         "kind?:text, all?:bool",
         hidden(in_navigator(act(
@@ -3975,7 +4016,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_table_paste(p),
         )),
     ),
-    with_params(
+    keeps_banner(with_params(
         "kind?:text",
         in_navigator(act(
             "table.copy",
@@ -3986,7 +4027,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_table_copy(p),
         )),
-    ),
+    )),
     with_params(
         "kind?:text",
         in_navigator(act(
@@ -4023,7 +4064,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_table_drop(p),
         ))),
     ),
-    with_params(
+    keeps_banner(with_params(
         "area:enum(navigator|canvas|properties|find|commandbar|history), group?:uint, kind?:text",
         hidden(act(
             "ui.focus",
@@ -4034,8 +4075,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_focus(p),
         )),
-    ),
-    hidden(parameterless(act(
+    )),
+    keeps_banner(hidden(parameterless(act(
         "ui.focus_next",
         View,
         Menu::Window,
@@ -4043,8 +4084,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
         |s, _| s.act_focus_cycle(1),
-    ))),
-    hidden(parameterless(act(
+    )))),
+    keeps_banner(hidden(parameterless(act(
         "ui.focus_previous",
         View,
         Menu::Window,
@@ -4052,8 +4093,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
         |s, _| s.act_focus_cycle(-1),
-    ))),
-    hidden(parameterless(act(
+    )))),
+    keeps_link_preview(answers_recovery(keeps_banner(hidden(parameterless(act(
         "ui.dismiss",
         View,
         Menu::View,
@@ -4061,7 +4102,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         None,
         |s, _| s.act_dismiss(),
-    ))),
+    )))))),
     with_params(
         "key:text, value:json",
         hidden(act(
@@ -4201,7 +4242,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // The property grid's own controls (WP-S2.05 part 1, spec §6.10): the window and the headless mode dispatch them.
-    with_params(
+    keeps_banner(with_params(
         "ids?:list(ref), refs?:list(ref)",
         hidden(act(
             "select.set",
@@ -4212,8 +4253,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_select_set(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "step?:int, to?:enum(first|last)",
         hidden(in_properties(act(
             "props.row",
@@ -4224,9 +4265,9 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_row(p),
         ))),
-    ),
+    )),
     // FT-541 (doc 16a §6.8): the filter field of a grid whose open categories hold more than twelve rows.
-    with_params(
+    keeps_banner(with_params(
         "text:text",
         hidden(in_properties(act(
             "props.filter",
@@ -4237,8 +4278,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_filter(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "category:text, expanded?:bool",
         hidden(in_properties(act(
             "props.category",
@@ -4249,8 +4290,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_category(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "row?:text",
         hidden(in_properties(act(
             "props.edit",
@@ -4262,8 +4303,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_edit(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "text:text",
         hidden(in_properties(act(
             "props.input",
@@ -4274,8 +4315,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_input(p),
         ))),
-    ),
-    hidden(in_properties(parameterless(act(
+    )),
+    keeps_banner(hidden(in_properties(parameterless(act(
         "props.commit",
         Command,
         Menu::Edit,
@@ -4283,8 +4324,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         grid_writable,
         None,
         |s, _| s.act_props_commit(),
-    )))),
-    hidden(in_properties(parameterless(act(
+    ))))),
+    keeps_banner(hidden(in_properties(parameterless(act(
         "props.cancel",
         View,
         Menu::Edit,
@@ -4292,8 +4333,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         grid_shown,
         None,
         |s, _| s.act_props_cancel(),
-    )))),
-    with_params(
+    ))))),
+    keeps_banner(with_params(
         "row?:text, value?:text, choice?:uint",
         hidden(act(
             "props.set",
@@ -4304,8 +4345,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_set(p),
         )),
-    ),
-    hidden(parameterless(act(
+    )),
+    keeps_banner(hidden(parameterless(act(
         "props.accept_tag_proposal",
         Command,
         Menu::Edit,
@@ -4313,8 +4354,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         grid_writable,
         None,
         |s, _| s.act_props_accept_tag_proposal(),
-    ))),
-    with_params(
+    )))),
+    keeps_banner(with_params(
         "index?:uint, step?:int",
         hidden(in_properties(act(
             "props.choose",
@@ -4325,8 +4366,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_choose(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "step?:int",
         hidden(in_properties(act(
             "props.row_menu",
@@ -4337,8 +4378,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_row_menu(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "row?:text, action:enum(edit|clear|override|reset|freeze|unfreeze)",
         hidden(in_properties(act(
             "props.action",
@@ -4349,8 +4390,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_action(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "row?:text, op:enum(add|remove|up|down)",
         hidden(in_properties(act(
             "props.list",
@@ -4361,8 +4402,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_list(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "row?:text, lang?:text, text?:text",
         hidden(in_properties(act(
             "props.mltext",
@@ -4373,8 +4414,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_props_mltext(p),
         ))),
-    ),
-    hidden(in_properties(parameterless(act(
+    )),
+    keeps_banner(hidden(in_properties(parameterless(act(
         "preview.apply",
         Command,
         Menu::Edit,
@@ -4382,8 +4423,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         card_writable,
         None,
         |s, _| s.act_preview_apply(),
-    )))),
-    hidden(in_properties(parameterless(act(
+    ))))),
+    keeps_banner(hidden(in_properties(parameterless(act(
         "preview.cancel",
         View,
         Menu::Edit,
@@ -4391,9 +4432,9 @@ pub static ACTIONS: &[ActionMeta] = &[
         card_shown,
         None,
         |s, _| s.act_preview_cancel(),
-    )))),
+    ))))),
     // WP-S2.09 part 3 (§8.1, §8.4): the Preview tab and the history panel's own moves.
-    with_params(
+    keeps_banner(with_params(
         "on?:bool",
         hidden(act(
             "preview.show",
@@ -4404,8 +4445,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_preview_show(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "step?:int, to?:enum(first|last)",
         hidden(act(
             "history.row",
@@ -4416,7 +4457,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_history_row(p),
         )),
-    ),
+    )),
     with_params(
         "entry?:uint",
         hidden(act(
@@ -4429,7 +4470,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_history_undo_to(p),
         )),
     ),
-    with_params(
+    keeps_banner(with_params(
         "entry?:uint",
         hidden(act(
             "history.changes",
@@ -4440,8 +4481,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_history_changes(p),
         )),
-    ),
-    hidden(parameterless(act(
+    )),
+    keeps_banner(hidden(parameterless(act(
         "toast.undo",
         Command,
         Menu::Edit,
@@ -4449,8 +4490,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         writable,
         None,
         |s, _| s.act_toast_undo(),
-    ))),
-    hidden(parameterless(act(
+    )))),
+    keeps_banner(hidden(parameterless(act(
         "toast.dismiss",
         View,
         Menu::Edit,
@@ -4458,9 +4499,9 @@ pub static ACTIONS: &[ActionMeta] = &[
         project_open,
         None,
         |s, _| s.act_toast_dismiss(),
-    ))),
+    )))),
     // WP-S2.09 part 1 (§6.8): the jobs' and the notifications' own controls, and the recovery dialog's answers.
-    with_params(
+    keeps_banner(with_params(
         "job?:uint",
         hidden(act(
             "jobs.cancel",
@@ -4471,8 +4512,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_jobs_cancel(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "job?:uint",
         headless(hidden(act(
             "jobs.wait",
@@ -4483,8 +4524,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_jobs_wait(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "job?:uint",
         hidden(act(
             "jobs.open_result",
@@ -4495,8 +4536,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_jobs_open_result(p),
         )),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "entry:uint, action:text",
         hidden(act(
             "notifications.run",
@@ -4507,8 +4548,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_notifications_run(p),
         )),
-    ),
-    hidden(parameterless(act(
+    )),
+    answers_recovery(hidden(parameterless(act(
         "journal.recover",
         Command,
         Menu::File,
@@ -4516,8 +4557,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         recovery_open,
         None,
         |s, _| s.act_journal_recover(),
-    ))),
-    hidden(parameterless(act(
+    )))),
+    answers_recovery(keeps_banner(hidden(parameterless(act(
         "journal.keep",
         View,
         Menu::File,
@@ -4525,9 +4566,9 @@ pub static ACTIONS: &[ActionMeta] = &[
         recovery_open,
         None,
         |s, _| s.act_journal_keep(),
-    ))),
+    ))))),
     // WP-S2.05 part 2: the find pane's own controls (§7.6); the pane handles Enter, Up and Down itself.
-    hidden(in_find(parameterless(act(
+    keeps_banner(hidden(in_find(parameterless(act(
         "find.close",
         View,
         Menu::Edit,
@@ -4535,8 +4576,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         find_shown,
         None,
         |s, _| s.act_find_close(),
-    )))),
-    with_params(
+    ))))),
+    keeps_banner(with_params(
         "text:text",
         hidden(in_find(act(
             "find.text",
@@ -4547,8 +4588,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_find_text(p, false),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "text:text",
         hidden(in_find(act(
             "find.replacement",
@@ -4559,8 +4600,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_find_text(p, true),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "option:enum(regex|match_case|whole_word|in_selection), on?:bool",
         hidden(in_find(act(
             "find.option",
@@ -4571,8 +4612,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_find_option(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "fields:list(text)",
         hidden(in_find(act(
             "find.fields",
@@ -4583,8 +4624,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_find_fields(p),
         ))),
-    ),
-    with_params(
+    )),
+    keeps_banner(with_params(
         "folios:list(text)",
         hidden(in_find(act(
             "find.folios",
@@ -4595,8 +4636,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_find_folios(p),
         ))),
-    ),
-    hidden(in_find(parameterless(act(
+    )),
+    keeps_banner(hidden(in_find(parameterless(act(
         "find.run",
         View,
         Menu::Edit,
@@ -4604,8 +4645,8 @@ pub static ACTIONS: &[ActionMeta] = &[
         find_shown,
         None,
         |s, _| s.act_find_run(),
-    )))),
-    with_params(
+    ))))),
+    keeps_banner(with_params(
         "step?:int, to?:uint",
         hidden(in_find(act(
             "find.row",
@@ -4616,8 +4657,8 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_find_row(p),
         ))),
-    ),
-    hidden(in_find(parameterless(act(
+    )),
+    keeps_banner(hidden(in_find(parameterless(act(
         "find.jump",
         View,
         Menu::Edit,
@@ -4625,7 +4666,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         find_shown,
         None,
         |s, _| s.act_find_jump(),
-    )))),
+    ))))),
     // WP-S6.13 part 1: the page's content as text (FR-UI-046's headless v0).
     with_params(
         "folio?:text",

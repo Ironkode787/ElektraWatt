@@ -142,6 +142,23 @@ fn jb7_a_leftover_journal_opens_read_only_with_the_dialog_and_nothing_is_written
     s.shutdown();
 }
 
+/// The recovery flag of the registry entry decides: while the dialog is open an action marked `answers_recovery`
+/// (ui.describe) goes and one without it (help.about) refuses.
+#[test]
+fn jb7_the_registry_flag_decides_what_goes_while_the_dialog_is_open() {
+    use ew_viewmodel::actions::find;
+    let tmp = Tmp::new("jb7-flag");
+    let dir = crashed(&tmp);
+    let mut s = shell(&tmp, Mode::Headless);
+    open(&mut s, &dir);
+    assert!(find("ui.describe").unwrap().answers_recovery);
+    assert!(!find("help.about").unwrap().answers_recovery);
+    done(&mut s, "ui.describe", json!({}));
+    assert_eq!(refused(&mut s, "help.about", json!({})), "reason-dialog-open");
+    assert!(s.dialog().is_some(), "the dialog stays open");
+    s.shutdown();
+}
+
 #[test]
 fn jb7_recover_opens_the_project_editable_and_dirty_with_the_edits() {
     let tmp = Tmp::new("jb7-recover");

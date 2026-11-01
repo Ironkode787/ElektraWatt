@@ -417,6 +417,38 @@ fn t6_enter_selects_and_measure_from_the_keyboard_alone() {
     shell.shutdown();
 }
 
+/// The link-preview flag of the registry entry decides: an action marked `keeps_link_preview` (ui.describe) leaves the
+/// preview standing, an action without it (view.grid) clears it.
+#[test]
+fn t8_the_registry_flag_decides_whether_an_action_clears_the_link_preview() {
+    use ew_viewmodel::actions::find;
+    assert!(find("ui.describe").unwrap().keeps_link_preview);
+    assert!(!find("view.grid").unwrap().keeps_link_preview);
+    let tmp = Tmp::new("tools-t8-flag");
+    let mut shell = tmp.shell("101");
+    let c = shell.canvas().unwrap();
+    let link = c
+        .page()
+        .links
+        .iter()
+        .find(|l| {
+            l.target
+                .as_ref()
+                .is_some_and(|t| t.folio != "101" && t.at_nm.is_some())
+        })
+        .unwrap()
+        .clone();
+    let p = ew_viewmodel::canvas::rect_centre(link.rect);
+    done(&mut shell, "canvas.pointer", at(p, json!({})));
+    done(&mut shell, "canvas.dwell", json!({"ms": 300}));
+    assert!(shell.link_preview().is_some());
+    done(&mut shell, "ui.describe", json!({}));
+    assert!(shell.link_preview().is_some(), "ui.describe keeps it");
+    done(&mut shell, "view.grid", json!({}));
+    assert!(shell.link_preview().is_none(), "view.grid clears it");
+    shell.shutdown();
+}
+
 #[test]
 fn t8_the_link_hover_preview() {
     let tmp = Tmp::new("tools-t8");
