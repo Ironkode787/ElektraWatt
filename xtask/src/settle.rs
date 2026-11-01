@@ -20,7 +20,10 @@
 //!   `cargo nextest run --profile lane --all-features -p … -E '<union of their binaries and filters>'`, with every
 //!   triggered step's bless variable set (none with `--check`). A failure is named by its test binary's id and
 //!   given to the step(s) of that binary; a failure without one (a build error) is given to every step of the call.
-//!   If the call's rewrites trigger a further bless step, that step runs in a second call.
+//!   A `cargo nextest list` of the same call comes first: a step whose term matches no test fails. A step whose
+//!   `reads` name another triggered step's outputs (cli-schemas reads the command schemas) waits for a later call,
+//!   and runs again when they change after it ran; a call whose rewrites trigger a further bless step is followed
+//!   by another call.
 //! - **Outputs.** Before and after each step (each bless call) the changed files of the working tree (against
 //!   `HEAD`) are hashed; a step that changes a file outside its listed outputs fails. A bless call's changed files
 //!   must match the union of its steps' outputs, and each is reported under the step whose outputs it matches; a
@@ -34,10 +37,11 @@
 //!   each printing its allow list's change per crate and the sites added or removed, and the two merge-point checks:
 //!   `check-brief` for each open design brief (`tools/blind/tasks/brief-*`; every one on a self-test trigger, else
 //!   the briefs whose files changed), on a fresh `cargo build -p elektrawatt -p ew`; and the MSRV check of the
-//!   permissive crates (on `Cargo.lock` or a changed `rust-version`). The MSRV check runs as CI's job does: in a
-//!   copy of the workspace under `target/settle-msrv`, removed afterwards, the MSRV-aware resolver writes a lockfile
-//!   and `cargo +<msrv> check --locked` builds the members whose licence is `MIT OR Apache-2.0` (xtask aside); the
-//!   committed `Cargo.lock` is never touched. None of these run without `--merge`.
+//!   permissive crates (on `Cargo.lock`, a changed `rust-version`, or a changed `.rs` file or manifest of a
+//!   permissive crate). The MSRV check runs as CI's job does: in a copy of the workspace under
+//!   `target/settle-msrv`, removed afterwards, the MSRV-aware resolver writes a lockfile and `cargo +<msrv> check
+//!   --locked` builds the members whose licence is `MIT OR Apache-2.0` (xtask aside); both cargo calls take the
+//!   copy's `--manifest-path`, so the committed `Cargo.lock` is never touched. None of these run without `--merge`.
 //! - **Output.** One line per step, `<step>: unchanged | rewrote <files> | would rewrite <what> | FAILED <reason> |
 //!   skipped (no trigger)`, repeated as one block at the end; the exit code is 0 when nothing failed (and, with
 //!   `--check`, nothing would change).
@@ -145,6 +149,9 @@ pub(crate) struct Step {
         allow(dead_code, reason = "the table's data for the .gitattributes test")
     )]
     pub partial: &'static [&'static str],
+    /// Output globs of other steps that its action reads at run time, written as those steps write them (a bless
+    /// step reading another bless step's outputs runs in a later nested call, and again when they change after it).
+    pub reads: &'static [&'static str],
     /// What it does.
     pub action: Action,
 }
@@ -190,6 +197,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &["**/*.rs"],
         partial: &["**/*.rs"],
+        reads: &[],
         action: Action::Rustfmt,
     },
     Step {
@@ -199,6 +207,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &["ew-commands"],
         outputs: &[COMMAND_SCHEMAS],
         partial: &[],
+        reads: &[],
         action: Action::BlessTest {
             package: "ew-commands",
             test: "schemas",
@@ -213,6 +222,8 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &["ew"],
         outputs: &[CLI_SCHEMAS],
         partial: &[],
+        // `registry_subcommands_print_the_committed_files` reads the command schemas that command-schemas rewrites.
+        reads: &[COMMAND_SCHEMAS],
         action: Action::BlessTest {
             package: "ew",
             test: "it",
@@ -227,6 +238,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &["ew-checks"],
         outputs: &[CATALOGUE],
         partial: &[],
+        reads: &[],
         action: Action::BlessTest {
             package: "ew-checks",
             test: "catalogue",
@@ -241,6 +253,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &["ew-viewmodel"],
         outputs: &KEYMAPS,
         partial: &[],
+        reads: &[],
         action: Action::BlessTest {
             package: "ew-viewmodel",
             test: "keymaps",
@@ -255,6 +268,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &["ew-viewmodel"],
         outputs: &[BLIND_REFERENCE],
         partial: &[],
+        reads: &[],
         action: Action::BlessTest {
             package: "ew-viewmodel",
             test: "blind_reference",
@@ -271,6 +285,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &["ew"],
         outputs: &[CLI_SNAPSHOT],
         partial: &[],
+        reads: &[],
         action: Action::BlessBin {
             package: "ew",
             bin: "ew",
@@ -285,6 +300,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &["ew-sqlview"],
         outputs: &[API_V1_SNAPSHOT],
         partial: &[],
+        reads: &[],
         action: Action::BlessTest {
             package: "ew-sqlview",
             test: "it",
@@ -299,6 +315,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &["ew-api"],
         outputs: &[QUERY_SNAPSHOT],
         partial: &[],
+        reads: &[],
         action: Action::BlessTest {
             package: "ew-api",
             test: "it",
@@ -339,6 +356,7 @@ pub(crate) const STEPS: &[Step] = &[
             BOOK_SUMMARY,
         ],
         partial: &[BOOK_SUMMARY],
+        reads: &[],
         action: Action::Xtask(crate::docs_gen::run),
     },
     Step {
@@ -348,6 +366,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &[ICONS],
         partial: &[],
+        reads: &[],
         action: Action::Xtask(crate::icons::run),
     },
     Step {
@@ -363,6 +382,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &[CLIPPY_TOML],
         partial: &[],
+        reads: &[],
         action: Action::RawRead,
     },
     Step {
@@ -378,6 +398,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &[FUZZ_TABLE],
         partial: &[FUZZ_TABLE],
+        reads: &[],
         action: Action::FuzzTable,
     },
     Step {
@@ -393,6 +414,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &[GOLDEN_LIST],
         partial: &[GOLDEN_LIST],
+        reads: &[],
         action: Action::GoldenChanges,
     },
     Step {
@@ -408,6 +430,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &[SELFTEST_RECORDING],
         partial: &[],
+        reads: &[],
         action: Action::Selftest { visual: false },
     },
     Step {
@@ -423,6 +446,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &[SELFTEST_VISUAL_RECORDING],
         partial: &[],
+        reads: &[],
         action: Action::Selftest { visual: true },
     },
     Step {
@@ -432,6 +456,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &[],
         partial: &[],
+        reads: &[],
         action: Action::Symbols,
     },
     Step {
@@ -446,6 +471,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &[],
         partial: &[],
+        reads: &[],
         action: Action::FuzzBuild,
     },
     Step {
@@ -460,6 +486,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &["ci/disallowed-methods-allow.toml"],
         partial: &[],
+        reads: &[],
         action: Action::AllowList(&ordered::METHODS),
     },
     Step {
@@ -469,6 +496,7 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &["ci/ordered-collections-allow.toml"],
         partial: &[],
+        reads: &[],
         action: Action::AllowList(&ordered::TYPES),
     },
     // The checks that left the lanes (cycle 43): the merge point runs them.
@@ -490,16 +518,18 @@ pub(crate) const STEPS: &[Step] = &[
         deps_of: &[],
         outputs: &[],
         partial: &[],
+        reads: &[],
         action: Action::CheckBrief,
     },
     Step {
         name: "msrv",
         phase: Phase::MergeOnly,
-        // And a changed `rust-version` line of a manifest (`changes_rust_version`).
+        // And a changed `rust-version` line, or a permissive crate's source or manifest (`msrv_triggered`).
         triggers: &["Cargo.lock"],
         deps_of: &[],
         outputs: &[],
         partial: &[],
+        reads: &[],
         action: Action::Msrv,
     },
 ];
@@ -622,6 +652,28 @@ fn rust_version_changed(root: &Path, merge_base: &str, files: &BTreeSet<String>)
         }
     }
     Ok(false)
+}
+
+/// The MSRV check's triggers beyond `Cargo.lock`: a changed source or manifest of a permissive crate, or a changed
+/// `rust-version` line since `merge_base`.
+fn msrv_triggered(root: &Path, merge_base: Option<&str>, files: &BTreeSet<String>) -> Result<bool> {
+    let metadata = crate::metadata_all_features(root)?;
+    let members = affected::members_of(&metadata)?;
+    if permissive_source_changed(files, &members, &msrv_plan(&metadata)?.packages) {
+        return Ok(true);
+    }
+    match merge_base {
+        Some(mb) => rust_version_changed(root, mb, files),
+        None => Ok(false),
+    }
+}
+
+/// Whether one of `files` is a `.rs` file or a manifest of a permissive crate (`permissive`, by package name).
+fn permissive_source_changed(files: &BTreeSet<String>, members: &Members, permissive: &[String]) -> bool {
+    files.iter().any(|f| {
+        (f.ends_with(".rs") || f.ends_with("/Cargo.toml"))
+            && owner(f, members).is_some_and(|o| permissive.iter().any(|p| p == o))
+    })
 }
 
 /// The open design briefs (`<BRIEF_DIR>/brief-*`), by folder name.
@@ -766,10 +818,17 @@ fn msrv_in(root: &Path, copy: &Path, target: &Path, plan: &MsrvPlan) -> Result<O
     }
     // The rustup proxy, with the toolchain named on the command line: none of the variables `cargo xtask` inherited
     // from the pinned toolchain may reach it.
+    // Cargo is pointed at the copy's manifest: it never walks up to the workspace and its committed lockfile.
+    let manifest = copy.join("Cargo.toml");
+    if !manifest.is_file() {
+        bail!("the copy of the workspace has no {}", manifest.display());
+    }
     let cargo = |args: &[&str]| {
         let mut c = Command::new("cargo");
         c.arg(format!("+{}", plan.toolchain))
             .args(args)
+            .arg("--manifest-path")
+            .arg(&manifest)
             .current_dir(copy)
             .env("CARGO_TARGET_DIR", target)
             .env("CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS", "fallback");
@@ -1037,19 +1096,52 @@ fn bless_parts(step: &Step) -> Option<(&'static str, String, Option<&'static str
     }
 }
 
+/// A bless step's filterset term: its binary, and its filter when it has one.
+fn term(step: &Step) -> String {
+    match bless_parts(step) {
+        Some((_, id, Some(f), _)) => format!("(binary_id({id}) & {f})"),
+        Some((_, id, None, _)) => format!("binary_id({id})"),
+        None => String::new(),
+    }
+}
+
+/// The binary ids with at least one test that matches the filter and is not ignored, from the JSON of
+/// `cargo nextest list --message-format json`.
+fn matched_binaries(json: &str) -> Result<BTreeSet<String>> {
+    let v: serde_json::Value = serde_json::from_str(json).context("reading nextest's test list")?;
+    let suites = v
+        .get("rust-suites")
+        .and_then(serde_json::Value::as_object)
+        .context("nextest's test list has no `rust-suites`")?;
+    Ok(suites
+        .iter()
+        .filter(|(_, suite)| {
+            suite
+                .get("testcases")
+                .and_then(serde_json::Value::as_object)
+                .is_some_and(|cases| {
+                    cases
+                        .values()
+                        .any(|c| c["filter-match"]["status"] == "matches" && c["ignored"] != true)
+                })
+        })
+        .map(|(id, _)| id.clone())
+        .collect())
+}
+
 /// The nested nextest call of a group of bless steps: its arguments after `cargo`, the bless variables it sets
 /// (none when `check`) and the command line as printed.
 fn group_command(group: &[&Step], check: bool) -> (Vec<String>, Vec<&'static str>, String) {
     let mut packages = BTreeSet::new();
     let mut envs = BTreeSet::new();
     let mut terms = Vec::new();
-    for (package, id, filter, env) in group.iter().filter_map(|s| bless_parts(s)) {
+    for s in group {
+        let Some((package, _, _, env)) = bless_parts(s) else {
+            continue;
+        };
         packages.insert(package);
         envs.insert(env);
-        terms.push(match filter {
-            Some(f) => format!("(binary_id({id}) & {f})"),
-            None => format!("binary_id({id})"),
-        });
+        terms.push(term(s));
     }
     let filterset = terms.join(" | ");
     let mut args: Vec<String> = ["nextest", "run", "--profile", "lane", "--all-features"]
@@ -1099,18 +1191,86 @@ fn failed_steps<'s>(group: &[&'s Step], output: &str) -> BTreeMap<&'s str, Vec<S
     out
 }
 
-/// Runs a group of bless steps as one nested call; the outcome of each step, in the group's order.
-fn bless_group(root: &Path, group: &[&Step], check: bool) -> Result<Vec<Outcome>> {
+/// `cargo nextest list` with the arguments of a `run` call and `filterset`: the binaries with a matching test, or
+/// the failed command's output.
+fn list_matches(root: &Path, args: &[String], filterset: &str) -> Result<Result<BTreeSet<String>, String>> {
+    let mut list: Vec<String> = args.to_vec();
+    list[1] = "list".to_owned();
+    let e = list
+        .iter()
+        .position(|a| a == "-E")
+        .context("a run call has a filterset")?;
+    list.truncate(e);
+    list.extend(["-E".to_owned(), filterset.to_owned()]);
+    list.extend(["--message-format".to_owned(), "json".to_owned()]);
+    let output = Command::new(crate::cargo())
+        .args(&list)
+        .current_dir(root)
+        .output()
+        .context("running cargo nextest list")?;
+    if !output.status.success() {
+        return Ok(Err(tail(&output)));
+    }
+    matched_binaries(&String::from_utf8_lossy(&output.stdout)).map(Ok)
+}
+
+/// The steps of `group` whose term would run no test: from the binaries the group's list matched, and for a binary
+/// that two steps of the group share, from a list of the step's own term.
+fn steps_without_tests<'s>(
+    root: &Path,
+    group: &[&'s Step],
+    args: &[String],
+    matched: &BTreeSet<String>,
+) -> Result<Result<BTreeSet<&'s str>, String>> {
+    let id = |s: &Step| bless_parts(s).map(|(_, id, _, _)| id).unwrap_or_default();
+    let mut out = BTreeSet::new();
+    for s in group {
+        let shared = group.iter().filter(|t| id(t) == id(s)).count() > 1;
+        let found = if shared {
+            match list_matches(root, args, &term(s))? {
+                Ok(m) => m.contains(&id(s)),
+                Err(e) => return Ok(Err(e)),
+            }
+        } else {
+            matched.contains(&id(s))
+        };
+        if !found {
+            out.insert(s.name);
+        }
+    }
+    Ok(Ok(out))
+}
+
+/// Runs a group of bless steps as one nested call; the outcome of each step, in the group's order. A list of the
+/// group's tests comes first: a step whose term matches no test fails (it would otherwise pass unseen).
+fn bless_group(root: &Path, group: &[&Step], check: bool) -> Result<Vec<Result<Outcome>>> {
     let (args, envs, shown) = group_command(group, check);
+    let filterset = args.last().cloned().unwrap_or_default();
+    let failed_build = |detail: String| -> Vec<Result<Outcome>> {
+        group
+            .iter()
+            .map(|_| {
+                Ok(Outcome {
+                    ok: false,
+                    detail: format!("{shown} failed:\n    {detail}"),
+                })
+            })
+            .collect()
+    };
+    let matched = match list_matches(root, &args, &filterset)? {
+        Ok(m) => m,
+        Err(e) => return Ok(failed_build(e)),
+    };
+    let empty = match steps_without_tests(root, group, &args, &matched)? {
+        Ok(e) => e,
+        Err(e) => return Ok(failed_build(e)),
+    };
     let mut c = Command::new(crate::cargo());
     c.args(&args).current_dir(root);
     for e in &envs {
         c.env(e, "1");
     }
     let output = c.output().with_context(|| format!("running {shown}"))?;
-    if output.status.success() {
-        return Ok(group.iter().map(|_| Outcome::of(true, "")).collect());
-    }
     let text = format!(
         "{}{}",
         String::from_utf8_lossy(&output.stdout),
@@ -1119,16 +1279,22 @@ fn bless_group(root: &Path, group: &[&Step], check: bool) -> Result<Vec<Outcome>
     let named = failed_steps(group, &text);
     Ok(group
         .iter()
-        .map(|s| match named.get(s.name) {
-            Some(lines) => Outcome {
-                ok: false,
-                detail: format!("{shown} failed:\n    {}", lines.join("\n    ")),
-            },
-            None if named.is_empty() => Outcome {
-                ok: false,
-                detail: format!("{shown} failed:\n    {}", tail(&output)),
-            },
-            None => Outcome::of(true, ""),
+        .map(|s| {
+            if empty.contains(s.name) {
+                bail!("its filter `{}` matches no test", term(s));
+            }
+            Ok(match named.get(s.name) {
+                _ if output.status.success() => Outcome::of(true, ""),
+                Some(lines) => Outcome {
+                    ok: false,
+                    detail: format!("{shown} failed:\n    {}", lines.join("\n    ")),
+                },
+                None if named.is_empty() => Outcome {
+                    ok: false,
+                    detail: format!("{shown} failed:\n    {}", tail(&output)),
+                },
+                None => Outcome::of(true, ""),
+            })
         })
         .collect())
 }
@@ -1188,7 +1354,7 @@ fn execute(step: &Step, root: &Path, check: bool, files: &BTreeSet<String>, all:
         Action::Rustfmt => rustfmt(root, &rust_files(root, files, all)?, check),
         Action::BlessTest { .. } | Action::BlessBin { .. } => bless_group(root, &[step], check)?
             .pop()
-            .context("a group of one has one outcome"),
+            .context("a group of one has one outcome")?,
         Action::Xtask(run) => Ok(Outcome::of(run(root, check)?, "see its report above")),
         Action::RawRead => Ok(Outcome::of(
             crate::raw_read::run(root, !check)?,
@@ -1388,11 +1554,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         if !a.all {
             let fired = triggered(step, &files, members.as_ref())
                 || (matches!(step.action, Action::Msrv)
-                    && merge_base
-                        .as_deref()
-                        .map(|mb| rust_version_changed(root, mb, &files))
-                        .transpose()?
-                        .unwrap_or(false));
+                    && msrv_triggered(root, merge_base.as_deref(), &files)?);
             if !fired {
                 emit(
                     format!("{}: skipped (no trigger)", step.name),
@@ -1422,24 +1584,45 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
     Ok(ok)
 }
 
-/// The bless steps of the next nested call, in table order: those this mode runs, not yet run (`done`) and
-/// triggered by `files` (every one with `--all`).
-fn next_group<V>(
+/// The bless steps of the next nested call, in table order. A candidate is a step this mode runs that has not run
+/// and is triggered by `files` (every one with `--all`), or that ran in round `r` (`done`) and reads a file changed
+/// in round `r` or later (`rounds`). A candidate that reads an output of another candidate waits for a later call,
+/// unless every candidate waits (a cycle of reads: then all run).
+fn next_group(
     a: &Args,
     files: &BTreeSet<String>,
     members: Option<&Members>,
-    done: &BTreeMap<&str, V>,
+    done: &BTreeMap<&str, usize>,
+    rounds: &[Vec<String>],
 ) -> Vec<&'static Step> {
-    STEPS
+    let candidates: Vec<&'static Step> = STEPS
         .iter()
         .filter(|s| is_bless(s) && gate(s, a) == Gate::Run)
-        .filter(|s| !done.contains_key(s.name) && (a.all || triggered(s, files, members)))
-        .collect()
+        .filter(|s| match done.get(s.name) {
+            None => a.all || triggered(s, files, members),
+            Some(&r) => rounds
+                .iter()
+                .skip(r)
+                .flatten()
+                .any(|f| s.reads.iter().any(|g| glob_match(g, f))),
+        })
+        .collect();
+    let ready: Vec<&'static Step> = candidates
+        .iter()
+        .filter(|c| {
+            !candidates
+                .iter()
+                .any(|p| p.name != c.name && p.outputs.iter().any(|o| c.reads.contains(o)))
+        })
+        .copied()
+        .collect();
+    if ready.is_empty() { candidates } else { ready }
 }
 
-/// The bless steps in rounds: each round runs the triggered steps not yet run as one nested call (a later round
-/// only when a call's rewrites trigger a further step). Returns their lines in table order; `files` gains every
-/// file a call changed.
+/// The bless steps in rounds: each round runs [`next_group`] as one nested call (a later round when a step waits
+/// for another's outputs, or when a call's rewrites trigger a further step or change what a step that ran reads).
+/// Returns their lines in table order (a step that ran twice: its last line); `files` gains every file a call
+/// changed.
 fn bless_block(
     root: &Path,
     a: &Args,
@@ -1450,9 +1633,12 @@ fn bless_block(
         .iter()
         .filter(|s| is_bless(s) && gate(s, a) == Gate::Run)
         .collect();
-    let mut done: BTreeMap<&str, String> = BTreeMap::new();
-    loop {
-        let group = next_group(a, files, members, &done);
+    let mut done: BTreeMap<&str, usize> = BTreeMap::new();
+    let mut lines: BTreeMap<&str, String> = BTreeMap::new();
+    let mut rounds: Vec<Vec<String>> = Vec::new();
+    // A bound on the rounds whatever the reads (a cycle of reads would otherwise repeat).
+    while rounds.len() < 2 * block.len() {
+        let group = next_group(a, files, members, &done, &rounds);
         if group.is_empty() {
             break;
         }
@@ -1464,30 +1650,26 @@ fn bless_block(
         let outcomes = bless_group(root, &group, a.check);
         let changed = snapshot_diff(&before, &snapshot(root)?);
         let (mine, outside) = attribute(&group, &changed);
-        match outcomes {
-            Ok(outcomes) => {
-                for (s, o) in group.iter().zip(outcomes) {
-                    let m = mine.get(s.name).cloned().unwrap_or_default();
-                    done.insert(s.name, step_line(s, a.check, Ok(o), &m, &outside));
-                }
-            }
+        let outcomes: Vec<Result<Outcome>> = match outcomes {
+            Ok(o) => o,
             Err(e) => {
                 let e = format!("{e:#}");
-                for s in &group {
-                    let m = mine.get(s.name).cloned().unwrap_or_default();
-                    done.insert(
-                        s.name,
-                        step_line(s, a.check, Err(anyhow::anyhow!("{e}")), &m, &outside),
-                    );
-                }
+                group.iter().map(|_| Err(anyhow::anyhow!("{e}"))).collect()
             }
+        };
+        for (s, o) in group.iter().zip(outcomes) {
+            let m = mine.get(s.name).cloned().unwrap_or_default();
+            lines.insert(s.name, step_line(s, a.check, o, &m, &outside));
+            done.insert(s.name, rounds.len());
         }
-        files.extend(changed);
+        files.extend(changed.iter().cloned());
+        rounds.push(changed);
     }
     Ok(block
         .iter()
         .map(|s| {
-            done.remove(s.name)
+            lines
+                .remove(s.name)
                 .unwrap_or_else(|| format!("{}: skipped (no trigger)", s.name))
         })
         .collect())
@@ -1879,46 +2061,40 @@ mod tests {
         .into_iter()
         .map(|(n, m)| (n.to_owned(), m))
         .collect();
-        let none: BTreeMap<&str, ()> = BTreeMap::new();
+        let none: BTreeMap<&str, usize> = BTreeMap::new();
         let lane = args(true, false);
         let files = set(&["crates/ew-viewmodel/src/strings.rs"]);
         assert_eq!(
-            names(&next_group(&lane, &files, Some(&members), &none)),
+            names(&next_group(&lane, &files, Some(&members), &none, &[])),
             ["keymaps", "blind-reference"]
         );
         let files = set(&[
             "crates/ew-commands/src/lib.rs",
             "crates/ew-viewmodel/src/strings.rs",
         ]);
+        // cli-schemas reads command-schemas' outputs: it waits for the next call.
         assert_eq!(
-            names(&next_group(&lane, &files, Some(&members), &none)),
-            [
-                "command-schemas",
-                "cli-schemas",
-                "keymaps",
-                "blind-reference",
-                "cli-snapshot"
-            ]
+            names(&next_group(&lane, &files, Some(&members), &none, &[])),
+            ["command-schemas", "keymaps", "blind-reference", "cli-snapshot"]
         );
         // A transitive change triggers none.
         let files = set(&["crates/ew-units/src/lib.rs"]);
-        assert!(next_group(&lane, &files, Some(&members), &none).is_empty());
+        assert!(next_group(&lane, &files, Some(&members), &none, &[]).is_empty());
         // The second round: only a step not yet run.
-        let done = BTreeMap::from([("keymaps", ()), ("blind-reference", ())]);
+        let done = BTreeMap::from([("keymaps", 0), ("blind-reference", 0)]);
         let files = set(&[
             "crates/ew-viewmodel/src/strings.rs",
             "tools/blind/reference/actions.txt",
         ]);
-        assert!(next_group(&lane, &files, Some(&members), &done).is_empty());
+        assert!(next_group(&lane, &files, Some(&members), &done, &[vec![]]).is_empty());
         let all = Args {
             all: true,
             ..Args::default()
         };
         assert_eq!(
-            names(&next_group(&all, &BTreeSet::new(), None, &none)),
+            names(&next_group(&all, &BTreeSet::new(), None, &none, &[])),
             [
                 "command-schemas",
-                "cli-schemas",
                 "rule-catalogue",
                 "keymaps",
                 "blind-reference",
@@ -1927,6 +2103,121 @@ mod tests {
                 "query-snapshot",
             ]
         );
+    }
+
+    /// command-schemas and cli-schemas both triggered: cli-schemas, which reads the command schemas, runs in the
+    /// call after command-schemas', never in the same one; and again when they change after it ran.
+    #[test]
+    fn a_step_that_reads_another_steps_outputs_runs_after_it() {
+        let lane = args(true, false);
+        let empty = Members::new();
+        let files = set(&[
+            "crates/ew-commands/schemas/index.json",
+            "bin/ew/schemas/index.json",
+        ]);
+        let mut done: BTreeMap<&str, usize> = BTreeMap::new();
+        assert_eq!(
+            names(&next_group(&lane, &files, Some(&empty), &done, &[])),
+            ["command-schemas"]
+        );
+        done.insert("command-schemas", 0);
+        let rounds = [vec![]];
+        assert_eq!(
+            names(&next_group(&lane, &files, Some(&empty), &done, &rounds)),
+            ["cli-schemas"]
+        );
+        done.insert("cli-schemas", 1);
+        let rounds = [vec![], vec![]];
+        assert!(next_group(&lane, &files, Some(&empty), &done, &rounds).is_empty());
+        // A rewrite of the command schemas after cli-schemas ran (round 1) runs it again; command-schemas does not
+        // read its own outputs.
+        let rounds = [vec![], vec!["crates/ew-commands/schemas/index.json".to_owned()]];
+        assert_eq!(
+            names(&next_group(&lane, &files, Some(&empty), &done, &rounds)),
+            ["cli-schemas"]
+        );
+        // A rewrite before it ran (round 0) does not.
+        let rounds = [vec!["crates/ew-commands/schemas/index.json".to_owned()], vec![]];
+        let done = BTreeMap::from([("command-schemas", 0), ("cli-schemas", 1)]);
+        assert!(next_group(&lane, &files, Some(&empty), &done, &rounds).is_empty());
+        // Every read is the output of another bless step, written as that step writes it.
+        for s in STEPS {
+            for r in s.reads {
+                assert!(
+                    STEPS
+                        .iter()
+                        .any(|o| o.name != s.name && is_bless(o) && o.outputs.contains(r)),
+                    "{}: {r}",
+                    s.name
+                );
+            }
+        }
+    }
+
+    /// The binaries with a matching, not ignored test, from nextest's JSON list; a step whose term matches none
+    /// fails with its filter named.
+    #[test]
+    fn a_term_that_matches_no_test_fails() {
+        let json = r#"{"rust-build-meta": {}, "test-count": 3, "rust-suites": {
+            "ew::it": {"status": "listed", "testcases": {
+                "conventions::a": {"kind": "test", "ignored": false, "filter-match": {"status": "matches"}},
+                "other::b": {"kind": "test", "ignored": false,
+                    "filter-match": {"status": "mismatch", "reason": "expression"}}}},
+            "ew-api::it": {"status": "listed", "testcases": {
+                "queries::q": {"kind": "test", "ignored": true, "filter-match": {"status": "matches"}}}},
+            "ew-api::perf": {"status": "skipped", "testcases": {}}}}"#;
+        assert_eq!(matched_binaries(json).unwrap(), set(&["ew::it"]));
+        assert_eq!(
+            matched_binaries("{}").unwrap_err().to_string(),
+            "nextest's test list has no `rust-suites`"
+        );
+        let s = step("query-snapshot");
+        assert_eq!(
+            step_line(
+                s,
+                true,
+                Err(anyhow::anyhow!("its filter `{}` matches no test", term(s))),
+                &[],
+                &[]
+            ),
+            "query-snapshot: FAILED its filter `(binary_id(ew-api::it) & \
+             test(the_query_snapshot_equals_the_registry))` matches no test"
+        );
+    }
+
+    /// The MSRV check also fires on a changed source or manifest of a permissive crate, not of another crate, and
+    /// not on another file of a permissive crate.
+    #[test]
+    fn the_msrv_check_fires_on_a_permissive_crates_source() {
+        let member = |dir: &str| Member {
+            dir: dir.to_owned(),
+            ..Member::default()
+        };
+        let members: Members = [
+            ("ew-units", member("crates/ew-units")),
+            ("ew-model", member("crates/ew-model")),
+        ]
+        .into_iter()
+        .map(|(n, m)| (n.to_owned(), m))
+        .collect();
+        let permissive = ["ew-units".to_owned()];
+        for f in ["crates/ew-units/src/lib.rs", "crates/ew-units/Cargo.toml"] {
+            assert!(
+                permissive_source_changed(&set(&[f]), &members, &permissive),
+                "{f}"
+            );
+        }
+        for f in [
+            "crates/ew-model/src/lib.rs",
+            "crates/ew-model/Cargo.toml",
+            "crates/ew-units/README.md",
+            "xtask/src/settle.rs",
+        ] {
+            assert!(
+                !permissive_source_changed(&set(&[f]), &members, &permissive),
+                "{f}"
+            );
+        }
     }
 
     /// The nested call's command line: the packages once each, the union of the binaries and filters, and the
