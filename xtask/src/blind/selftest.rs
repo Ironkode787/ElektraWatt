@@ -226,7 +226,7 @@ fn play(
     Ok(failures)
 }
 
-fn build(root: &Path) -> Result<()> {
+pub(crate) fn build(root: &Path) -> Result<()> {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
     // `xtask` itself is running and is not rebuilt here: the copied harness is this very program.
     let status = Command::new(cargo)

@@ -202,9 +202,18 @@ mirror of the Rust part of the PR set. `check-dco` needs a revision range and is
 `cargo xtask settle` is the mechanical upkeep of a change: one table of steps (`xtask/src/settle.rs`) runs rustfmt on the
 changed Rust files and every generator the change reaches (the command and CLI schemas, the rule catalogue, the keymaps,
 the blind reference, `docs-gen`, `gen-icons`, `check-raw-read --bless`, `fuzz-smoke-table`, `golden_changes.py --write`,
-the blind self-tests) in one order, and reports `symbols-qet10 --check` and the fuzz crate's `cargo check`. `--check`
-writes nothing and fails when a step would rewrite a file (the merged-tip verify runs it); `--merge` adds the allow-list
-review gates. The outputs that a step rewrites whole carry `merge=regen` in `.gitattributes`.
+the blind self-tests) in one order, and reports `symbols-qet10 --check` and the fuzz crate's `cargo check`. A step with
+`deps_of` packages fires on a change in one of them or in a workspace package they depend on directly (not
+transitively: the merge point's affected verify, which runs every bless test in compare mode for every package the
+change reaches, is the safety net). The triggered bless tests run as one nested `cargo nextest run --profile lane
+--all-features -p … -E '<union>'`, and each changed file and each failure is reported under its step. `--check` writes
+nothing and fails when a step would rewrite a file (the lane's mode, and the merged-tip verify's): it skips the
+self-tests, and without `--merge` also `check-brief` and the MSRV check, and says so. `--merge` adds the allow-list
+review gates and the two checks that left the lanes: `check-brief` for each `tools/blind/tasks/brief-*` brief the change
+reaches (after `cargo build -p elektrawatt -p ew`), and the MSRV check of the permissive crates on `Cargo.lock` or a
+changed `rust-version`, run as the job below does, in a copy of the workspace under `target/settle-msrv` (removed
+afterwards; the committed lockfile is never touched), with the crate list derived from the members' `license` field.
+The outputs that a step rewrites whole carry `merge=regen` in `.gitattributes`.
 
 `cargo xtask lane-check --base <rev>` (`xtask/src/lane_check.rs`) is an agent lane's hand-back sequence: from the diff
 against `<rev>` it runs fmt, clippy and doc of the changed crates, one nextest run over them, their direct dependants and

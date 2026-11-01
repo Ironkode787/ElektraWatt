@@ -10,17 +10,34 @@
 //!
 //! - **Triggers.** The files changed since the merge base of `--base` (default `main`) and `HEAD`, uncommitted and
 //!   untracked ones included (`affected`'s change detection), plus every file an earlier step rewrote in this run. A
-//!   step is triggered by a changed file that matches one of its globs, or that lies in a workspace package its
-//!   `deps_of` packages are built from (the package and its normal and build dependencies; a change of the root
-//!   `Cargo.toml`, `Cargo.lock` or `rust-toolchain.toml` counts too). `--all` runs every step.
-//! - **Outputs.** Before and after each step the changed files of the working tree (against `HEAD`) are hashed; a
-//!   step that changes a file outside its listed outputs fails. Settle writes only derived reference files that are
-//!   a pure function of the code: never golden outputs, UI snapshots, page output, acceptance or fixture files or the
+//!   step is triggered by a changed file that matches one of its globs, or that lies in one of its `deps_of`
+//!   packages or in a workspace package one of them depends on directly (a normal or build edge; a change of the
+//!   root `Cargo.toml`, `Cargo.lock` or `rust-toolchain.toml` counts too). `--all` runs every step.
+//! - **The safety net of the direct triggers.** A change two or more edges below a `deps_of` package does not
+//!   trigger its step here. The merge point's affected verify runs every bless test in compare mode for every
+//!   package the change reaches, so a derived file such a change alters fails there and is settled then.
+//! - **One nested nextest call.** The triggered bless steps (`BlessTest`, `BlessBin`) run together as one
+//!   `cargo nextest run --profile lane --all-features -p … -E '<union of their binaries and filters>'`, with every
+//!   triggered step's bless variable set (none with `--check`). A failure is named by its test binary's id and
+//!   given to the step(s) of that binary; a failure without one (a build error) is given to every step of the call.
+//!   If the call's rewrites trigger a further bless step, that step runs in a second call.
+//! - **Outputs.** Before and after each step (each bless call) the changed files of the working tree (against
+//!   `HEAD`) are hashed; a step that changes a file outside its listed outputs fails. A bless call's changed files
+//!   must match the union of its steps' outputs, and each is reported under the step whose outputs it matches; a
+//!   file outside them fails every step of the call. Settle writes only derived reference files that are a pure
+//!   function of the code: never golden outputs, UI snapshots, page output, acceptance or fixture files or the
 //!   describe-text expectations, which are decisions a change makes and lists.
 //! - **`--check`** writes nothing (a step that writes in this mode fails) and exits 1 when a step would rewrite a
-//!   file or fails. It runs no self-test: the verify replays them.
+//!   file or fails. It is the lane's mode: it runs no self-test (the verify replays them), and without `--merge` no
+//!   `check-brief` and no MSRV check (the merge point runs them); its summary says so.
 //! - **`--merge`** adds the review gates `check-disallowed-methods --bless` and `check-ordered-collections --bless`,
-//!   each printing its allow list's change per crate and the sites added or removed. They never run without it.
+//!   each printing its allow list's change per crate and the sites added or removed, and the two merge-point checks:
+//!   `check-brief` for each open design brief (`tools/blind/tasks/brief-*`; every one on a self-test trigger, else
+//!   the briefs whose files changed), on a fresh `cargo build -p elektrawatt -p ew`; and the MSRV check of the
+//!   permissive crates (on `Cargo.lock` or a changed `rust-version`). The MSRV check runs as CI's job does: in a
+//!   copy of the workspace under `target/settle-msrv`, removed afterwards, the MSRV-aware resolver writes a lockfile
+//!   and `cargo +<msrv> check --locked` builds the members whose licence is `MIT OR Apache-2.0` (xtask aside); the
+//!   committed `Cargo.lock` is never touched. None of these run without `--merge`.
 //! - **Output.** One line per step, `<step>: unchanged | rewrote <files> | would rewrite <what> | FAILED <reason> |
 //!   skipped (no trigger)`, repeated as one block at the end; the exit code is 0 when nothing failed (and, with
 //!   `--check`, nothing would change).
@@ -45,6 +62,12 @@ const DEFAULT_BASE: &str = "main";
 const BUILD_WIDE: &[&str] = &["Cargo.toml", "Cargo.lock", "rust-toolchain.toml"];
 /// The line `settle --check` prints for the self-tests.
 const SELFTESTS_NOT_CHECKED: &str = "selftests: not checked here (the verify replays them)";
+/// The line `settle --check` prints, without `--merge`, for the merge-point checks.
+const MERGE_CHECKS_NOT_CHECKED: &str = "check-brief, msrv: not checked here (settle --merge runs them)";
+/// The folder of the open design briefs: `<BRIEF_DIR>/brief-<name>/`.
+const BRIEF_DIR: &str = "tools/blind/tasks";
+/// The licence of the permissive crates, whose MSRV the merge point checks.
+const PERMISSIVE: &str = "MIT OR Apache-2.0";
 /// The files rustfmt takes per call (relative paths: a long worktree path must not reach the command line limit).
 const RUSTFMT_CHUNK: usize = 32;
 
@@ -96,6 +119,10 @@ pub(crate) enum Action {
     FuzzBuild,
     /// `check-ordered-collections --bless` or `check-disallowed-methods --bless` with the review print.
     AllowList(&'static Rule),
+    /// `blind check-brief` for each open design brief the change reaches, after `cargo build -p elektrawatt -p ew`.
+    CheckBrief,
+    /// The MSRV check of the permissive crates (see the module documentation).
+    Msrv,
 }
 
 /// One step of the table.
@@ -444,6 +471,37 @@ pub(crate) const STEPS: &[Step] = &[
         partial: &[],
         action: Action::AllowList(&ordered::TYPES),
     },
+    // The checks that left the lanes (cycle 43): the merge point runs them.
+    Step {
+        name: "check-brief",
+        phase: Phase::MergeOnly,
+        // The two self-test steps' triggers, and every brief's files (`briefs_to_check` picks the briefs).
+        triggers: &[
+            "tools/blind/HELP.md",
+            "tools/blind/tasks/selftest/**",
+            BLIND_REFERENCE,
+            SELFTEST_RECORDING,
+            "xtask/src/blind/**",
+            "tools/blind/HELP-VISUAL.md",
+            "tools/blind/tasks/selftest-visual/**",
+            SELFTEST_VISUAL_RECORDING,
+            "tools/blind/tasks/brief-*/**",
+        ],
+        deps_of: &[],
+        outputs: &[],
+        partial: &[],
+        action: Action::CheckBrief,
+    },
+    Step {
+        name: "msrv",
+        phase: Phase::MergeOnly,
+        // And a changed `rust-version` line of a manifest (`changes_rust_version`).
+        triggers: &["Cargo.lock"],
+        deps_of: &[],
+        outputs: &[],
+        partial: &[],
+        action: Action::Msrv,
+    },
 ];
 
 /// The outputs that the regeneration steps rewrite entirely from their sources, in table order: the files that
@@ -484,19 +542,17 @@ pub(crate) fn glob_match(pattern: &str, path: &str) -> bool {
     segments(&p, &s)
 }
 
-/// The packages `names` are built from: themselves and their normal and build dependencies, transitively.
-fn build_closure(names: &[&str], members: &Members) -> BTreeSet<String> {
-    let mut seen = BTreeSet::new();
-    let mut stack: Vec<String> = names.iter().map(|n| (*n).to_owned()).collect();
-    while let Some(name) = stack.pop() {
-        if !seen.insert(name.clone()) {
-            continue;
-        }
-        if let Some(m) = members.get(&name) {
-            stack.extend(m.deps.iter().cloned());
+/// The packages whose change triggers a step with `deps_of` `names`: themselves and the workspace packages they
+/// depend on directly (normal and build edges). Not transitive: the module documentation names the safety net.
+fn direct_inputs(names: &[&str], members: &Members) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    for name in names {
+        out.insert((*name).to_owned());
+        if let Some(m) = members.get(*name) {
+            out.extend(m.deps.iter().cloned());
         }
     }
-    seen
+    out
 }
 
 /// The member a file belongs to: the deepest member directory that holds it.
@@ -526,10 +582,214 @@ pub(crate) fn triggered(step: &Step, files: &BTreeSet<String>, members: Option<&
     let Some(members) = members else {
         return true;
     };
-    let closure = build_closure(step.deps_of, members);
+    let inputs = direct_inputs(step.deps_of, members);
     files
         .iter()
-        .any(|f| BUILD_WIDE.contains(&f.as_str()) || owner(f, members).is_some_and(|o| closure.contains(o)))
+        .any(|f| BUILD_WIDE.contains(&f.as_str()) || owner(f, members).is_some_and(|o| inputs.contains(o)))
+}
+
+/// Whether a manifest's `rust-version` lines differ between its `old` and `new` text (an absent file is empty).
+fn changes_rust_version(old: &str, new: &str) -> bool {
+    let lines = |text: &str| -> Vec<String> {
+        text.lines()
+            .map(str::trim)
+            .filter(|l| l.starts_with("rust-version"))
+            .map(|l| l.split_whitespace().collect::<String>())
+            .collect()
+    };
+    lines(old) != lines(new)
+}
+
+/// Whether one of the changed manifests among `files` changed a `rust-version` line since `merge_base`.
+fn rust_version_changed(root: &Path, merge_base: &str, files: &BTreeSet<String>) -> Result<bool> {
+    for f in files
+        .iter()
+        .filter(|f| *f == "Cargo.toml" || f.ends_with("/Cargo.toml"))
+    {
+        let old = Command::new("git")
+            .args(["show", &format!("{merge_base}:{f}")])
+            .current_dir(root)
+            .output()
+            .context("running git show")?;
+        let old = if old.status.success() {
+            String::from_utf8_lossy(&old.stdout).into_owned()
+        } else {
+            String::new()
+        };
+        let new = std::fs::read_to_string(root.join(f)).unwrap_or_default();
+        if changes_rust_version(&old, &new) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/// The open design briefs (`<BRIEF_DIR>/brief-*`), by folder name.
+fn brief_tasks(root: &Path) -> Result<Vec<String>> {
+    let dir = root.join(BRIEF_DIR);
+    let mut out = Vec::new();
+    for entry in std::fs::read_dir(&dir).with_context(|| format!("reading {}", dir.display()))? {
+        let entry = entry?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name.starts_with("brief-") && entry.path().is_dir() {
+            out.push(name);
+        }
+    }
+    out.sort();
+    Ok(out)
+}
+
+/// The briefs of `tasks` that `check-brief` proves: every one when a self-test step's trigger changed (or with
+/// `all`), else those with a changed file in their folder.
+fn briefs_to_check(tasks: &[String], files: &BTreeSet<String>, all: bool) -> Vec<String> {
+    let selftest_hit = all
+        || files.iter().any(|f| {
+            STEPS
+                .iter()
+                .filter(|s| matches!(s.action, Action::Selftest { .. }))
+                .any(|s| s.triggers.iter().any(|t| glob_match(t, f)))
+        });
+    tasks
+        .iter()
+        .filter(|t| selftest_hit || files.iter().any(|f| f.starts_with(&format!("{BRIEF_DIR}/{t}/"))))
+        .cloned()
+        .collect()
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// The MSRV check
+
+/// What the MSRV check builds: the permissive members, and the toolchain of their `rust-version`.
+#[derive(Debug, PartialEq, Eq)]
+struct MsrvPlan {
+    packages: Vec<String>,
+    toolchain: String,
+}
+
+/// The MSRV plan from the workspace's metadata: the members whose `license` is [`PERMISSIVE`], xtask aside (a
+/// development tool, built with the pinned toolchain), and the highest `rust-version` among them as `x.y.z`.
+///
+/// # Errors
+///
+/// No permissive member, or one without a `rust-version`.
+fn msrv_plan(metadata: &cargo_metadata::Metadata) -> Result<MsrvPlan> {
+    let members: BTreeSet<&cargo_metadata::PackageId> = metadata.workspace_members.iter().collect();
+    let mut packages = Vec::new();
+    let mut msrv: Option<cargo_metadata::semver::Version> = None;
+    for p in metadata.packages.iter().filter(|p| members.contains(&p.id)) {
+        if p.license.as_deref() != Some(PERMISSIVE) || p.name.as_str() == "xtask" {
+            continue;
+        }
+        let v = p
+            .rust_version
+            .clone()
+            .with_context(|| format!("the permissive crate {} has no rust-version", p.name))?;
+        if msrv.as_ref().is_none_or(|m| v > *m) {
+            msrv = Some(v);
+        }
+        packages.push(p.name.to_string());
+    }
+    packages.sort();
+    let msrv = msrv.context("the workspace has no permissive crate")?;
+    Ok(MsrvPlan {
+        packages,
+        toolchain: format!("{}.{}.{}", msrv.major, msrv.minor, msrv.patch),
+    })
+}
+
+/// The check's command line as printed.
+fn msrv_command(plan: &MsrvPlan) -> String {
+    format!(
+        "cargo +{} check --locked -p {}",
+        plan.toolchain,
+        plan.packages.join(" -p ")
+    )
+}
+
+/// The MSRV check in a copy of the workspace's manifests and sources under `target/settle-msrv/src`, removed
+/// afterwards whatever the result; the build directory `target/settle-msrv/target` stays warm.
+fn msrv(root: &Path) -> Result<Outcome> {
+    let plan = msrv_plan(&crate::metadata_all_features(root)?)?;
+    let base = root.join("target/settle-msrv");
+    let copy = base.join("src");
+    if copy.exists() {
+        std::fs::remove_dir_all(&copy).with_context(|| format!("removing {}", copy.display()))?;
+    }
+    let result = msrv_in(root, &copy, &base.join("target"), &plan);
+    let removed = if copy.exists() {
+        std::fs::remove_dir_all(&copy).with_context(|| format!("removing {}", copy.display()))
+    } else {
+        Ok(())
+    };
+    let outcome = result?;
+    removed?;
+    Ok(outcome)
+}
+
+fn msrv_in(root: &Path, copy: &Path, target: &Path, plan: &MsrvPlan) -> Result<Outcome> {
+    let listed = Command::new("git")
+        .args([
+            "ls-files",
+            "-z",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "--",
+            "Cargo.toml",
+            "Cargo.lock",
+            "rust-toolchain.toml",
+            "crates",
+            "bin",
+            "xtask",
+        ])
+        .current_dir(root)
+        .output()
+        .context("running git ls-files")?;
+    if !listed.status.success() {
+        bail!("git ls-files failed: {}", tail(&listed));
+    }
+    for rel in listed
+        .stdout
+        .split(|b| *b == 0)
+        .filter(|p| !p.is_empty())
+        .map(String::from_utf8_lossy)
+    {
+        let from = root.join(rel.as_ref());
+        if !from.is_file() {
+            continue; // removed in the working tree
+        }
+        let to = copy.join(rel.as_ref());
+        if let Some(parent) = to.parent() {
+            std::fs::create_dir_all(parent).with_context(|| format!("creating {}", parent.display()))?;
+        }
+        std::fs::copy(&from, &to).with_context(|| format!("copying {rel}"))?;
+    }
+    // The rustup proxy, with the toolchain named on the command line: none of the variables `cargo xtask` inherited
+    // from the pinned toolchain may reach it.
+    let cargo = |args: &[&str]| {
+        let mut c = Command::new("cargo");
+        c.arg(format!("+{}", plan.toolchain))
+            .args(args)
+            .current_dir(copy)
+            .env("CARGO_TARGET_DIR", target)
+            .env("CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS", "fallback");
+        for v in ["RUSTUP_TOOLCHAIN", "CARGO", "RUSTC", "RUSTDOC"] {
+            c.env_remove(v);
+        }
+        c
+    };
+    let lock = captured(
+        cargo(&["generate-lockfile"]),
+        &format!("cargo +{} generate-lockfile", plan.toolchain),
+    )?;
+    if !lock.ok {
+        return Ok(lock);
+    }
+    let mut args = vec!["check", "--locked"];
+    for p in &plan.packages {
+        args.extend(["-p", p.as_str()]);
+    }
+    captured(cargo(&args), &msrv_command(plan))
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -753,51 +1013,182 @@ fn python() -> &'static str {
     if cfg!(windows) { "python" } else { "python3" }
 }
 
-/// A bless test: `<env>=1 cargo nextest run -p <package> --all-features <target> [-E <filter>]`, or without the
-/// variable when `check`.
-fn bless_test(
-    root: &Path,
-    check: bool,
-    package: &str,
-    target: [&str; 2],
-    filter: Option<&str>,
-    env: &str,
-) -> Result<Outcome> {
-    let mut c = Command::new(crate::cargo());
-    c.args(["nextest", "run", "-p", package, "--all-features"])
-        .args(target)
-        .current_dir(root);
-    if let Some(f) = filter {
-        c.args(["-E", f]);
+/// Whether `step` is a bless step: one of the nested nextest call.
+fn is_bless(step: &Step) -> bool {
+    matches!(step.action, Action::BlessTest { .. } | Action::BlessBin { .. })
+}
+
+/// A bless step's package, nextest binary id, filter and bless variable.
+fn bless_parts(step: &Step) -> Option<(&'static str, String, Option<&'static str>, &'static str)> {
+    match step.action {
+        Action::BlessTest {
+            package,
+            test,
+            filter,
+            env,
+        } => Some((package, format!("{package}::{test}"), filter, env)),
+        Action::BlessBin {
+            package,
+            bin,
+            filter,
+            env,
+        } => Some((package, format!("{package}::bin/{bin}"), filter, env)),
+        _ => None,
     }
-    if !check {
-        c.env(env, "1");
+}
+
+/// The nested nextest call of a group of bless steps: its arguments after `cargo`, the bless variables it sets
+/// (none when `check`) and the command line as printed.
+fn group_command(group: &[&Step], check: bool) -> (Vec<String>, Vec<&'static str>, String) {
+    let mut packages = BTreeSet::new();
+    let mut envs = BTreeSet::new();
+    let mut terms = Vec::new();
+    for (package, id, filter, env) in group.iter().filter_map(|s| bless_parts(s)) {
+        packages.insert(package);
+        envs.insert(env);
+        terms.push(match filter {
+            Some(f) => format!("(binary_id({id}) & {f})"),
+            None => format!("binary_id({id})"),
+        });
     }
-    let what = format!(
-        "{}cargo nextest run -p {package} --all-features {}{}",
-        if check { String::new() } else { format!("{env}=1 ") },
-        target.join(" "),
-        filter.map(|f| format!(" -E '{f}'")).unwrap_or_default()
+    let filterset = terms.join(" | ");
+    let mut args: Vec<String> = ["nextest", "run", "--profile", "lane", "--all-features"]
+        .map(str::to_owned)
+        .to_vec();
+    for p in &packages {
+        args.extend(["-p".to_owned(), (*p).to_owned()]);
+    }
+    let envs: Vec<&'static str> = if check {
+        Vec::new()
+    } else {
+        envs.into_iter().collect()
+    };
+    let shown = format!(
+        "{}cargo {} -E '{filterset}'",
+        envs.iter().map(|e| format!("{e}=1 ")).collect::<String>(),
+        args.join(" ")
     );
-    captured(c, &what)
+    args.extend(["-E".to_owned(), filterset]);
+    (args, envs, shown)
+}
+
+/// The nextest statuses of a failed test (the first word of its line).
+const FAILED_STATUSES: [&str; 6] = ["FAIL", "SIGSEGV", "SIGABRT", "SIGKILL", "TIMEOUT", "ABORT"];
+
+/// The steps of `group` that a failed call's output names: a line that starts with a failure status and holds the
+/// step's binary id as a word. Each with its lines.
+fn failed_steps<'s>(group: &[&'s Step], output: &str) -> BTreeMap<&'s str, Vec<String>> {
+    let mut out: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+    for line in output.lines() {
+        let words: Vec<&str> = line.split_whitespace().collect();
+        if !words.first().is_some_and(|w| FAILED_STATUSES.contains(w)) {
+            continue;
+        }
+        for s in group {
+            let Some((_, id, _, _)) = bless_parts(s) else {
+                continue;
+            };
+            if words.contains(&id.as_str()) {
+                let lines = out.entry(s.name).or_default();
+                if !lines.iter().any(|l| l == line.trim()) {
+                    lines.push(line.trim().to_owned());
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Runs a group of bless steps as one nested call; the outcome of each step, in the group's order.
+fn bless_group(root: &Path, group: &[&Step], check: bool) -> Result<Vec<Outcome>> {
+    let (args, envs, shown) = group_command(group, check);
+    let mut c = Command::new(crate::cargo());
+    c.args(&args).current_dir(root);
+    for e in &envs {
+        c.env(e, "1");
+    }
+    let output = c.output().with_context(|| format!("running {shown}"))?;
+    if output.status.success() {
+        return Ok(group.iter().map(|_| Outcome::of(true, "")).collect());
+    }
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let named = failed_steps(group, &text);
+    Ok(group
+        .iter()
+        .map(|s| match named.get(s.name) {
+            Some(lines) => Outcome {
+                ok: false,
+                detail: format!("{shown} failed:\n    {}", lines.join("\n    ")),
+            },
+            None if named.is_empty() => Outcome {
+                ok: false,
+                detail: format!("{shown} failed:\n    {}", tail(&output)),
+            },
+            None => Outcome::of(true, ""),
+        })
+        .collect())
+}
+
+/// A group's changed files by step (a file under each step whose outputs match it) and the files no step's
+/// outputs match.
+fn attribute<'s>(group: &[&'s Step], changed: &[String]) -> (BTreeMap<&'s str, Vec<String>>, Vec<String>) {
+    let mut mine: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+    let mut outside = Vec::new();
+    for f in changed {
+        let owners: Vec<&str> = group
+            .iter()
+            .filter(|s| s.outputs.iter().any(|o| glob_match(o, f)))
+            .map(|s| s.name)
+            .collect();
+        if owners.is_empty() {
+            outside.push(f.clone());
+        }
+        for o in owners {
+            mine.entry(o).or_default().push(f.clone());
+        }
+    }
+    (mine, outside)
+}
+
+/// A step's summary line from its outcome, the files it changed (`mine`) and the files outside its outputs.
+fn step_line(
+    step: &Step,
+    check: bool,
+    outcome: Result<Outcome>,
+    mine: &[String],
+    outside: &[String],
+) -> String {
+    let changed: Vec<&str> = mine.iter().chain(outside).map(String::as_str).collect();
+    match outcome {
+        _ if check && !changed.is_empty() => {
+            format!("{}: FAILED wrote {} in --check", step.name, changed.join(", "))
+        }
+        _ if !outside.is_empty() => format!(
+            "{}: FAILED rewrote files outside its outputs: {}",
+            step.name,
+            outside.join(", ")
+        ),
+        Err(e) => format!("{}: FAILED {e:#}", step.name),
+        Ok(o) if o.ok && mine.is_empty() => format!("{}: unchanged", step.name),
+        Ok(o) if o.ok => format!("{}: rewrote {}", step.name, mine.join(", ")),
+        Ok(o) if check && step.phase == Phase::Regen => {
+            format!("{}: would rewrite {}", step.name, o.detail)
+        }
+        Ok(o) => format!("{}: FAILED {}", step.name, o.detail),
+    }
 }
 
 /// Runs the action of `step`.
 fn execute(step: &Step, root: &Path, check: bool, files: &BTreeSet<String>, all: bool) -> Result<Outcome> {
     match step.action {
         Action::Rustfmt => rustfmt(root, &rust_files(root, files, all)?, check),
-        Action::BlessTest {
-            package,
-            test,
-            filter,
-            env,
-        } => bless_test(root, check, package, ["--test", test], filter, env),
-        Action::BlessBin {
-            package,
-            bin,
-            filter,
-            env,
-        } => bless_test(root, check, package, ["--bin", bin], filter, env),
+        Action::BlessTest { .. } | Action::BlessBin { .. } => bless_group(root, &[step], check)?
+            .pop()
+            .context("a group of one has one outcome"),
         Action::Xtask(run) => Ok(Outcome::of(run(root, check)?, "see its report above")),
         Action::RawRead => Ok(Outcome::of(
             crate::raw_read::run(root, !check)?,
@@ -861,6 +1252,28 @@ fn execute(step: &Step, root: &Path, check: bool, files: &BTreeSet<String>, all:
             };
             Ok(Outcome::of(ok, "see its report above"))
         }
+        Action::CheckBrief => {
+            let tasks = briefs_to_check(&brief_tasks(root)?, files, all);
+            if tasks.is_empty() {
+                return Ok(Outcome::of(true, ""));
+            }
+            crate::blind::selftest::build(root)?;
+            let bin = root.join("target/debug");
+            let mut failed = Vec::new();
+            for task in &tasks {
+                println!("check-brief {task}:");
+                let c = crate::blind::brief::check_brief(root, task, &bin)?;
+                print!("{}", c.text(task));
+                if !c.runnable() {
+                    failed.push(task.as_str());
+                }
+            }
+            Ok(Outcome {
+                ok: failed.is_empty(),
+                detail: format!("not runnable: {} (see the report above)", failed.join(", ")),
+            })
+        }
+        Action::Msrv => msrv(root),
     }
 }
 
@@ -896,6 +1309,26 @@ fn parse(args: &[String]) -> Result<Args> {
     Ok(out)
 }
 
+/// Whether a step runs in this mode, and the line its skip prints (once per line).
+#[derive(Debug, PartialEq, Eq)]
+enum Gate {
+    Run,
+    Skip(Option<&'static str>),
+}
+
+/// The mode's gate of `step`: `--check` skips the self-tests; the review gates and merge-point checks need
+/// `--merge`, and in the lane's mode (`--check` without `--merge`) the merge-point checks say so.
+fn gate(step: &Step, a: &Args) -> Gate {
+    match step.action {
+        Action::Selftest { .. } if a.check => Gate::Skip(Some(SELFTESTS_NOT_CHECKED)),
+        Action::CheckBrief | Action::Msrv if !a.merge => {
+            Gate::Skip(a.check.then_some(MERGE_CHECKS_NOT_CHECKED))
+        }
+        _ if step.phase == Phase::MergeOnly && !a.merge => Gate::Skip(None),
+        _ => Gate::Run,
+    }
+}
+
 /// `cargo xtask settle [--check] [--merge] [--all] [--base <rev>]`.
 ///
 /// # Errors
@@ -903,43 +1336,69 @@ fn parse(args: &[String]) -> Result<Args> {
 /// Bad arguments, or a git or cargo metadata call that fails.
 pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
     let a = parse(args)?;
+    let mut merge_base: Option<String> = None;
     let mut files: BTreeSet<String> = if a.all {
         BTreeSet::new()
     } else {
         let base = a.base.as_deref().unwrap_or(DEFAULT_BASE);
-        let merge_base = affected::merge_base(root, base)?;
-        let files = affected::changed_files(root, &merge_base)?;
+        let mb = affected::merge_base(root, base)?;
+        let files = affected::changed_files(root, &mb)?;
         println!(
             "settle: {} changed file(s) since {base} (merge base {})",
             files.len(),
-            &merge_base[..merge_base.len().min(12)]
+            &mb[..mb.len().min(12)]
         );
+        merge_base = Some(mb);
         files.into_iter().collect()
     };
     let mut members: Option<Members> = None;
     let mut lines: Vec<String> = Vec::new();
     let mut ok = true;
-    let mut selftests_noted = false;
+    let mut noted: BTreeSet<&str> = BTreeSet::new();
+    let mut blessed = false;
+    let emit = |line: String, lines: &mut Vec<String>, ok: &mut bool| {
+        if line.contains(": FAILED ") || line.contains(": would rewrite ") {
+            *ok = false;
+        }
+        println!("{line}");
+        lines.push(line);
+    };
     for step in STEPS {
-        if step.phase == Phase::MergeOnly && !a.merge {
+        if let Gate::Skip(note) = gate(step, &a) {
+            if let Some(note) = note {
+                if noted.insert(note) {
+                    emit(note.to_owned(), &mut lines, &mut ok);
+                }
+            }
             continue;
         }
-        if a.check && matches!(step.action, Action::Selftest { .. }) {
-            if !selftests_noted {
-                lines.push(SELFTESTS_NOT_CHECKED.to_owned());
-                println!("{SELFTESTS_NOT_CHECKED}");
-                selftests_noted = true;
+        if !a.all && (is_bless(step) || !step.deps_of.is_empty()) && members.is_none() {
+            members = Some(affected::members_of(&crate::metadata_all_features(root)?)?);
+        }
+        if is_bless(step) {
+            // The whole bless block at the first bless step: one nested call per round.
+            if !blessed {
+                blessed = true;
+                for line in bless_block(root, &a, &mut files, members.as_ref())? {
+                    emit(line, &mut lines, &mut ok);
+                }
             }
             continue;
         }
         if !a.all {
-            if !step.deps_of.is_empty() && members.is_none() {
-                members = Some(affected::members_of(&crate::metadata_all_features(root)?)?);
-            }
-            if !triggered(step, &files, members.as_ref()) {
-                let line = format!("{}: skipped (no trigger)", step.name);
-                println!("{line}");
-                lines.push(line);
+            let fired = triggered(step, &files, members.as_ref())
+                || (matches!(step.action, Action::Msrv)
+                    && merge_base
+                        .as_deref()
+                        .map(|mb| rust_version_changed(root, mb, &files))
+                        .transpose()?
+                        .unwrap_or(false));
+            if !fired {
+                emit(
+                    format!("{}: skipped (no trigger)", step.name),
+                    &mut lines,
+                    &mut ok,
+                );
                 continue;
             }
         }
@@ -947,39 +1406,91 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         let before = snapshot(root)?;
         let outcome = execute(step, root, a.check, &files, a.all);
         let changed = snapshot_diff(&before, &snapshot(root)?);
-        let outside: Vec<&String> = changed
-            .iter()
-            .filter(|f| !step.outputs.iter().any(|o| glob_match(o, f)))
-            .collect();
-        let line = match outcome {
-            _ if a.check && !changed.is_empty() => {
-                format!("{}: FAILED wrote {} in --check", step.name, changed.join(", "))
-            }
-            _ if !outside.is_empty() => format!(
-                "{}: FAILED rewrote files outside its outputs: {}",
-                step.name,
-                outside.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
-            ),
-            Err(e) => format!("{}: FAILED {e:#}", step.name),
-            Ok(o) if o.ok && changed.is_empty() => format!("{}: unchanged", step.name),
-            Ok(o) if o.ok => format!("{}: rewrote {}", step.name, changed.join(", ")),
-            Ok(o) if a.check && step.phase == Phase::Regen => {
-                format!("{}: would rewrite {}", step.name, o.detail)
-            }
-            Ok(o) => format!("{}: FAILED {}", step.name, o.detail),
-        };
-        if line.contains(": FAILED ") || line.contains(": would rewrite ") {
-            ok = false;
-        }
+        let (mine, outside) = attribute(&[step], &changed);
+        let mine = mine.get(step.name).cloned().unwrap_or_default();
+        emit(
+            step_line(step, a.check, outcome, &mine, &outside),
+            &mut lines,
+            &mut ok,
+        );
         files.extend(changed);
-        println!("{line}");
-        lines.push(line);
     }
     println!("\nsettle{}:", if a.check { " --check" } else { "" });
     for line in &lines {
         println!("  {line}");
     }
     Ok(ok)
+}
+
+/// The bless steps of the next nested call, in table order: those this mode runs, not yet run (`done`) and
+/// triggered by `files` (every one with `--all`).
+fn next_group<V>(
+    a: &Args,
+    files: &BTreeSet<String>,
+    members: Option<&Members>,
+    done: &BTreeMap<&str, V>,
+) -> Vec<&'static Step> {
+    STEPS
+        .iter()
+        .filter(|s| is_bless(s) && gate(s, a) == Gate::Run)
+        .filter(|s| !done.contains_key(s.name) && (a.all || triggered(s, files, members)))
+        .collect()
+}
+
+/// The bless steps in rounds: each round runs the triggered steps not yet run as one nested call (a later round
+/// only when a call's rewrites trigger a further step). Returns their lines in table order; `files` gains every
+/// file a call changed.
+fn bless_block(
+    root: &Path,
+    a: &Args,
+    files: &mut BTreeSet<String>,
+    members: Option<&Members>,
+) -> Result<Vec<String>> {
+    let block: Vec<&Step> = STEPS
+        .iter()
+        .filter(|s| is_bless(s) && gate(s, a) == Gate::Run)
+        .collect();
+    let mut done: BTreeMap<&str, String> = BTreeMap::new();
+    loop {
+        let group = next_group(a, files, members, &done);
+        if group.is_empty() {
+            break;
+        }
+        println!(
+            "settle: {} ... (one nextest call)",
+            group.iter().map(|s| s.name).collect::<Vec<_>>().join(", ")
+        );
+        let before = snapshot(root)?;
+        let outcomes = bless_group(root, &group, a.check);
+        let changed = snapshot_diff(&before, &snapshot(root)?);
+        let (mine, outside) = attribute(&group, &changed);
+        match outcomes {
+            Ok(outcomes) => {
+                for (s, o) in group.iter().zip(outcomes) {
+                    let m = mine.get(s.name).cloned().unwrap_or_default();
+                    done.insert(s.name, step_line(s, a.check, Ok(o), &m, &outside));
+                }
+            }
+            Err(e) => {
+                let e = format!("{e:#}");
+                for s in &group {
+                    let m = mine.get(s.name).cloned().unwrap_or_default();
+                    done.insert(
+                        s.name,
+                        step_line(s, a.check, Err(anyhow::anyhow!("{e}")), &m, &outside),
+                    );
+                }
+            }
+        }
+        files.extend(changed);
+    }
+    Ok(block
+        .iter()
+        .map(|s| {
+            done.remove(s.name)
+                .unwrap_or_else(|| format!("{}: skipped (no trigger)", s.name))
+        })
+        .collect())
 }
 
 #[cfg(test)]
@@ -1023,6 +1534,8 @@ mod tests {
                 "fuzz-build",
                 "disallowed-methods",
                 "ordered-collections",
+                "check-brief",
+                "msrv",
             ]
         );
         let phases: Vec<Phase> = STEPS.iter().map(|s| s.phase).collect();
@@ -1034,9 +1547,19 @@ mod tests {
             };
             rank(w[0]) <= rank(w[1])
         }));
-        // A step that writes has outputs; a check has none.
+        // A step that writes has outputs; a check (the merge-point checks too) has none.
         for s in STEPS {
-            assert_eq!(s.phase == Phase::CheckOnly, s.outputs.is_empty(), "{}", s.name);
+            let writes = !matches!(
+                s.action,
+                Action::Symbols | Action::FuzzBuild | Action::CheckBrief | Action::Msrv
+            );
+            assert_eq!(writes, !s.outputs.is_empty(), "{}", s.name);
+            assert_eq!(
+                s.phase == Phase::Regen,
+                writes && s.phase != Phase::MergeOnly,
+                "{}",
+                s.name
+            );
             assert!(s.partial.iter().all(|p| s.outputs.contains(p)), "{}", s.name);
         }
     }
@@ -1094,6 +1617,10 @@ mod tests {
             ("fuzz-build", "crates/ew-testkit/tests/command_fuzz/live.rs"),
             ("disallowed-methods", "crates/ew-x/src/lib.rs"),
             ("ordered-collections", "ci/ordered-collections-allow.toml"),
+            ("check-brief", "tools/blind/tasks/brief-plc-io/task.md"),
+            ("check-brief", "tools/blind/tasks/selftest/agent.jsonl"),
+            ("check-brief", "tools/blind/HELP-VISUAL.md"),
+            ("msrv", "Cargo.lock"),
         ];
         let empty = Members::new();
         for (name, path) in cases {
@@ -1122,10 +1649,11 @@ mod tests {
         ));
     }
 
-    /// A `deps_of` step is triggered by its package, by a package it is built from and by the build-wide files, not
-    /// by a package that depends on it or by a dev-dependency.
+    /// A `deps_of` step is triggered by its package, by a package it depends on directly and by the build-wide
+    /// files; not by a package further down (the safety net is the merge point's verify), by a package that depends
+    /// on it or by a dev-dependency.
     #[test]
-    fn a_deps_of_step_follows_the_build_closure() {
+    fn a_deps_of_step_follows_its_direct_dependencies() {
         let member = |dir: &str, deps: &[&str], dev: &[&str]| Member {
             dir: dir.to_owned(),
             deps: deps.iter().map(|s| (*s).to_owned()).collect(),
@@ -1148,12 +1676,15 @@ mod tests {
         let schemas = step("command-schemas");
         for f in [
             "crates/ew-commands/src/lib.rs",
-            "crates/ew-units/src/lib.rs",
+            "crates/ew-model/src/lib.rs",
             "Cargo.lock",
+            "rust-toolchain.toml",
         ] {
             assert!(triggered(schemas, &set(&[f]), Some(&members)), "{f}");
         }
         for f in [
+            // Transitive: ew-commands -> ew-model -> ew-units.
+            "crates/ew-units/src/lib.rs",
             "crates/ew-api/src/lib.rs",
             "crates/ew-testkit/src/lib.rs",
             "golden/x",
@@ -1315,5 +1846,316 @@ mod tests {
         assert!(write_atomic(&dir.join("missing/t.toml"), "x").is_err());
         assert!(!dir.join("missing").exists());
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    fn args(check: bool, merge: bool) -> Args {
+        Args {
+            check,
+            merge,
+            ..Args::default()
+        }
+    }
+
+    fn names(steps: &[&Step]) -> Vec<&'static str> {
+        steps.iter().map(|s| s.name).collect()
+    }
+
+    /// The triggered bless steps join one call, in table order; a step already run does not join again; `--all`
+    /// takes every one.
+    #[test]
+    fn the_triggered_bless_steps_join_one_call() {
+        let member = |dir: &str, deps: &[&str]| Member {
+            dir: dir.to_owned(),
+            deps: deps.iter().map(|s| (*s).to_owned()).collect(),
+            ..Member::default()
+        };
+        let members: Members = [
+            ("ew-units", member("crates/ew-units", &[])),
+            ("ew-model", member("crates/ew-model", &["ew-units"])),
+            ("ew-commands", member("crates/ew-commands", &["ew-model"])),
+            ("ew-viewmodel", member("crates/ew-viewmodel", &["ew-commands"])),
+            ("ew", member("bin/ew", &["ew-commands"])),
+        ]
+        .into_iter()
+        .map(|(n, m)| (n.to_owned(), m))
+        .collect();
+        let none: BTreeMap<&str, ()> = BTreeMap::new();
+        let lane = args(true, false);
+        let files = set(&["crates/ew-viewmodel/src/strings.rs"]);
+        assert_eq!(
+            names(&next_group(&lane, &files, Some(&members), &none)),
+            ["keymaps", "blind-reference"]
+        );
+        let files = set(&[
+            "crates/ew-commands/src/lib.rs",
+            "crates/ew-viewmodel/src/strings.rs",
+        ]);
+        assert_eq!(
+            names(&next_group(&lane, &files, Some(&members), &none)),
+            [
+                "command-schemas",
+                "cli-schemas",
+                "keymaps",
+                "blind-reference",
+                "cli-snapshot"
+            ]
+        );
+        // A transitive change triggers none.
+        let files = set(&["crates/ew-units/src/lib.rs"]);
+        assert!(next_group(&lane, &files, Some(&members), &none).is_empty());
+        // The second round: only a step not yet run.
+        let done = BTreeMap::from([("keymaps", ()), ("blind-reference", ())]);
+        let files = set(&[
+            "crates/ew-viewmodel/src/strings.rs",
+            "tools/blind/reference/actions.txt",
+        ]);
+        assert!(next_group(&lane, &files, Some(&members), &done).is_empty());
+        let all = Args {
+            all: true,
+            ..Args::default()
+        };
+        assert_eq!(
+            names(&next_group(&all, &BTreeSet::new(), None, &none)),
+            [
+                "command-schemas",
+                "cli-schemas",
+                "rule-catalogue",
+                "keymaps",
+                "blind-reference",
+                "cli-snapshot",
+                "api-v1-snapshot",
+                "query-snapshot",
+            ]
+        );
+    }
+
+    /// The nested call's command line: the packages once each, the union of the binaries and filters, and the
+    /// bless variables only without `--check`.
+    #[test]
+    fn a_bless_group_runs_as_one_nextest_call() {
+        let group = [step("command-schemas"), step("keymaps"), step("blind-reference")];
+        let (args, envs, shown) = group_command(&group, false);
+        assert_eq!(
+            shown,
+            "EW_BLESS=1 EW_COMMANDS_BLESS=1 cargo nextest run --profile lane --all-features -p ew-commands \
+             -p ew-viewmodel -E 'binary_id(ew-commands::schemas) | binary_id(ew-viewmodel::keymaps) | \
+             binary_id(ew-viewmodel::blind_reference)'"
+        );
+        assert_eq!(envs, ["EW_BLESS", "EW_COMMANDS_BLESS"]);
+        assert_eq!(
+            args,
+            [
+                "nextest",
+                "run",
+                "--profile",
+                "lane",
+                "--all-features",
+                "-p",
+                "ew-commands",
+                "-p",
+                "ew-viewmodel",
+                "-E",
+                "binary_id(ew-commands::schemas) | binary_id(ew-viewmodel::keymaps) | \
+                 binary_id(ew-viewmodel::blind_reference)",
+            ]
+        );
+        let group = [step("cli-schemas"), step("cli-snapshot"), step("query-snapshot")];
+        let (_, envs, shown) = group_command(&group, true);
+        assert!(envs.is_empty());
+        assert_eq!(
+            shown,
+            "cargo nextest run --profile lane --all-features -p ew -p ew-api -E '(binary_id(ew::it) & \
+             test(/^conventions::/)) | (binary_id(ew::bin/ew) & test(/^catalogue::/)) | (binary_id(ew-api::it) & \
+             test(the_query_snapshot_equals_the_registry))'"
+        );
+    }
+
+    /// A failure is given to the step(s) of its binary id; changed files to the step whose outputs match them.
+    #[test]
+    fn a_group_names_its_failed_steps_and_their_files() {
+        let group = [step("command-schemas"), step("keymaps"), step("cli-snapshot")];
+        let output = "    Starting 4 tests across 3 binaries\n\
+            \x20       FAIL [   0.012s] ( 1/4) ew-viewmodel::keymaps the_keymaps_are_current\n\
+            --- STDOUT: ew-commands::schemas x ---\n\
+            \x20       SIGABRT [   0.100s] ew::bin/ew catalogue::the_snapshot_is_current\n\
+            \x20       FAIL [   0.012s] ( 1/4) ew-viewmodel::keymaps the_keymaps_are_current\n\
+            \x20    Summary [   1.000s] 4 tests run: 2 passed, 2 failed\n";
+        let named = failed_steps(&group, output);
+        assert_eq!(
+            named,
+            BTreeMap::from([
+                (
+                    "cli-snapshot",
+                    vec!["SIGABRT [   0.100s] ew::bin/ew catalogue::the_snapshot_is_current".to_owned()]
+                ),
+                (
+                    "keymaps",
+                    vec!["FAIL [   0.012s] ( 1/4) ew-viewmodel::keymaps the_keymaps_are_current".to_owned()]
+                ),
+            ])
+        );
+        assert!(failed_steps(&group, "error[E0425]: cannot find value `x`\n").is_empty());
+
+        let changed = [
+            "crates/ew-commands/schemas/index.json".to_owned(),
+            "crates/ew-viewmodel/keymaps/ew.toml".to_owned(),
+            "README.md".to_owned(),
+        ];
+        let (mine, outside) = attribute(&group, &changed);
+        assert_eq!(
+            mine,
+            BTreeMap::from([
+                ("command-schemas", vec![changed[0].clone()]),
+                ("keymaps", vec![changed[1].clone()]),
+            ])
+        );
+        assert_eq!(outside, ["README.md"]);
+        let s = step("keymaps");
+        assert_eq!(
+            step_line(s, false, Ok(Outcome::of(true, "")), &changed[1..2], &[]),
+            "keymaps: rewrote crates/ew-viewmodel/keymaps/ew.toml"
+        );
+        assert_eq!(
+            step_line(s, false, Ok(Outcome::of(true, "")), &changed[1..2], &outside),
+            "keymaps: FAILED rewrote files outside its outputs: README.md"
+        );
+        assert_eq!(
+            step_line(s, true, Ok(Outcome::of(false, "x failed")), &[], &[]),
+            "keymaps: would rewrite x failed"
+        );
+    }
+
+    /// The lane's mode skips the self-tests and the merge-point checks, each with its line; `--merge` runs them.
+    #[test]
+    fn check_skips_check_brief_and_msrv() {
+        assert_eq!(
+            MERGE_CHECKS_NOT_CHECKED,
+            "check-brief, msrv: not checked here (settle --merge runs them)"
+        );
+        let lane = args(true, false);
+        for name in ["check-brief", "msrv"] {
+            assert_eq!(
+                gate(step(name), &lane),
+                Gate::Skip(Some(MERGE_CHECKS_NOT_CHECKED)),
+                "{name}"
+            );
+            assert_eq!(gate(step(name), &args(false, false)), Gate::Skip(None), "{name}");
+            assert_eq!(gate(step(name), &args(false, true)), Gate::Run, "{name}");
+            assert_eq!(gate(step(name), &args(true, true)), Gate::Run, "{name}");
+        }
+        assert_eq!(
+            gate(step("selftest"), &lane),
+            Gate::Skip(Some(SELFTESTS_NOT_CHECKED))
+        );
+        assert_eq!(gate(step("disallowed-methods"), &lane), Gate::Skip(None));
+        assert_eq!(gate(step("keymaps"), &lane), Gate::Run);
+    }
+
+    /// The MSRV check fires on `Cargo.lock` and on a changed `rust-version` line, not on another manifest change.
+    #[test]
+    fn the_msrv_check_fires_on_the_lockfile_and_rust_version() {
+        let msrv = step("msrv");
+        let empty = Members::new();
+        assert!(triggered(msrv, &set(&["Cargo.lock"]), Some(&empty)));
+        assert!(!triggered(
+            msrv,
+            &set(&["crates/ew-units/Cargo.toml"]),
+            Some(&empty)
+        ));
+        let old = "[package]\nname = \"a\"\nversion = \"0.1.0\"\nrust-version.workspace = true\n";
+        assert!(changes_rust_version(
+            old,
+            &old.replace("rust-version.workspace = true", "rust-version = \"1.92\"")
+        ));
+        assert!(changes_rust_version(
+            "rust-version = \"1.85\"\n",
+            "rust-version = \"1.86\"\n"
+        ));
+        assert!(changes_rust_version("", old), "a new manifest");
+        assert!(!changes_rust_version(old, &old.replace("0.1.0", "0.2.0")));
+        assert!(!changes_rust_version(old, &format!("{old}\n# a comment\n")));
+    }
+
+    /// The permissive list is derived from the members' licences (xtask aside, non-members ignored), and the
+    /// toolchain from their highest `rust-version`.
+    #[test]
+    fn the_permissive_crates_come_from_the_licences() {
+        let package = |name: &str, license: Option<&str>, rust: Option<&str>| {
+            serde_json::json!({
+                "name": name,
+                "version": "0.0.0",
+                "id": format!("path+file:///w/{name}#0.0.0"),
+                "source": null,
+                "dependencies": [],
+                "license": license,
+                "targets": [],
+                "features": {},
+                "manifest_path": format!("/w/{name}/Cargo.toml"),
+                "rust_version": rust,
+            })
+        };
+        let metadata: cargo_metadata::Metadata = serde_json::from_value(serde_json::json!({
+            "packages": [
+                package("ew-units", Some(PERMISSIVE), Some("1.85")),
+                package("ew-model", Some("GPL-3.0-or-later"), Some("1.85")),
+                package("xtask", Some(PERMISSIVE), Some("1.85")),
+                package("ew-dl", Some(PERMISSIVE), Some("1.85.1")),
+                package("serde", Some(PERMISSIVE), Some("1.31")),
+                package("ew-mltext", None, None),
+            ],
+            "workspace_members": [
+                "path+file:///w/ew-units#0.0.0",
+                "path+file:///w/ew-model#0.0.0",
+                "path+file:///w/xtask#0.0.0",
+                "path+file:///w/ew-dl#0.0.0",
+                "path+file:///w/ew-mltext#0.0.0",
+            ],
+            "resolve": null,
+            "workspace_root": "/w",
+            "target_directory": "/w/target",
+            "version": 1,
+        }))
+        .unwrap();
+        let plan = msrv_plan(&metadata).unwrap();
+        assert_eq!(
+            plan,
+            MsrvPlan {
+                packages: vec!["ew-dl".to_owned(), "ew-units".to_owned()],
+                toolchain: "1.85.1".to_owned(),
+            }
+        );
+        assert_eq!(
+            msrv_command(&plan),
+            "cargo +1.85.1 check --locked -p ew-dl -p ew-units"
+        );
+    }
+
+    /// Every brief on a self-test trigger; else the briefs whose files changed.
+    #[test]
+    fn check_brief_proves_the_briefs_a_change_reaches() {
+        let tasks = ["brief-a".to_owned(), "brief-b".to_owned()];
+        assert_eq!(
+            briefs_to_check(&tasks, &set(&["tools/blind/tasks/brief-b/task.md"]), false),
+            ["brief-b"]
+        );
+        assert_eq!(
+            briefs_to_check(&tasks, &set(&["xtask/src/blind/run.rs"]), false),
+            ["brief-a", "brief-b"]
+        );
+        assert_eq!(
+            briefs_to_check(&tasks, &BTreeSet::new(), true),
+            ["brief-a", "brief-b"]
+        );
+        assert!(briefs_to_check(&tasks, &set(&["tools/blind/tasks/brief-c/task.md"]), false).is_empty());
+        // Every self-test trigger is a trigger of the step.
+        let ours = step("check-brief").triggers;
+        for s in STEPS
+            .iter()
+            .filter(|s| matches!(s.action, Action::Selftest { .. }))
+        {
+            for t in s.triggers {
+                assert!(ours.contains(t), "{t}");
+            }
+        }
     }
 }
