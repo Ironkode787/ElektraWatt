@@ -1072,7 +1072,7 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("readonly-locked", "another session holds the project"),
     ("readonly-not-writable", "the project cannot be written"),
     ("readonly-integrity", "integrity findings"),
-    ("readonly-format", "a newer file format"),
+    ("readonly-format", "a file format this version does not write"),
     ("readonly-lock-lost", "the lock was taken over"),
     ("readonly-recovery", "unsaved changes from an earlier session"),
     // Banners and messages.

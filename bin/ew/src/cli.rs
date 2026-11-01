@@ -1353,7 +1353,7 @@ fn read_only_words(reason: &ew_api::ReadOnlyReason) -> String {
         },
         R::NotWritable(message) => format!("the project folder cannot be written ({})", printable(message)),
         R::Integrity => "it has integrity findings; `ew check` lists them".to_owned(),
-        R::Format(_) => "it was written by a newer format".to_owned(),
+        R::Format(why) => format!("it was {why}"),
         R::LockLost(_) => "the lock was taken over".to_owned(),
     }
 }
@@ -1369,18 +1369,30 @@ fn journal_refusal(dir: &Path) -> String {
     )
 }
 
-/// `text` with its control characters escaped: text from a project or state file (a journal's command name, a finding
-/// about a file's content) never reaches the terminal as a control sequence.
+/// `text` with its control characters and the Unicode bidirectional controls escaped: text from a project or state
+/// file (a journal's command name, a finding about a file's content, a lock record's user) never reaches the terminal
+/// as a control sequence, nor reorders the line it prints in (U+061C, U+200E, U+200F, U+202A to U+202E and U+2066 to
+/// U+2069 print as `\u{…}`).
 fn printable(text: &str) -> String {
     text.chars()
         .map(|c| {
             if c.is_control() {
                 c.escape_default().to_string()
+            } else if is_bidi_control(c) {
+                c.escape_unicode().to_string()
             } else {
                 c.to_string()
             }
         })
         .collect()
+}
+
+/// Whether `c` is a Unicode bidirectional control (the Bidi_Control property).
+fn is_bidi_control(c: char) -> bool {
+    matches!(
+        c,
+        '\u{061C}' | '\u{200E}' | '\u{200F}' | '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}'
+    )
 }
 
 /// `ew project checks set`: `project.checks.set` from a confirmed CLI subcommand, the human origin the command's
@@ -3333,8 +3345,13 @@ mod tests {
                  was written",
             ),
             (
-                R::Format("format 9"),
-                "error: p: the project opens read-only: it was written by a newer format; nothing was written",
+                R::Format("written by a newer major format"),
+                "error: p: the project opens read-only: it was written by a newer major format; nothing was written",
+            ),
+            (
+                R::Format("written by a development build with an unreleased format"),
+                "error: p: the project opens read-only: it was written by a development build with an unreleased \
+                 format; nothing was written",
             ),
             (
                 R::LockLost(None),
@@ -3343,6 +3360,17 @@ mod tests {
         ] {
             assert_eq!(super::read_only_refusal(dir, &reason), text);
         }
+    }
+
+    /// FT-943: the Unicode bidirectional controls print escaped, like the control characters; other text is kept.
+    #[test]
+    fn printable_escapes_the_bidirectional_controls() {
+        assert_eq!(super::printable("a\u{202E}b"), "a\\u{202e}b");
+        assert_eq!(
+            super::printable("\u{061C}\u{200E}\u{200F}\u{202A}\u{2066}\u{2069}x"),
+            "\\u{61c}\\u{200e}\\u{200f}\\u{202a}\\u{2066}\\u{2069}x"
+        );
+        assert_eq!(super::printable("Jürgen \u{1b}"), "Jürgen \\u{1b}");
     }
 
     #[test]

@@ -2738,7 +2738,8 @@ fn recover_refuses_a_replay_that_collides_with_a_later_save() {
 /// Ruling 2 of cycle 41: "`ew recover` checks that it got edit access ... Then it refuses with exit 2 and the same
 /// text `ew apply` uses for a held lock; it never acts read-only." While this test process holds the project's lock,
 /// `ew recover` and `ew apply` exit 2 with the same text, `ew apply`'s as built: the read-only reason a second open
-/// sees, with the lock's holder (FR-COL-006); the crashed session's journal stays.
+/// sees, with the lock's holder (FR-COL-006); the crashed session's journal stays. FT-943: the holder's user name
+/// holds a right-to-left override (U+202E), which the refusal prints escaped.
 #[test]
 fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
     let t = Tmp::new();
@@ -2748,6 +2749,7 @@ fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
     let journals = journal_files(&home);
     let mut store = ew_api::StoreOptions::new("test");
     store.state_dir = None;
+    store.identity.user = "ops\u{202E}fdp.exe".to_owned();
     let (holder, opened) = ew_api::Session::open(
         &project,
         store,
@@ -2778,11 +2780,11 @@ fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {
     // FT-877, ruling 1 of the cycle-42 FT batch: "another session holds the project" plus " (<user> on <host>, since
     // <time>)" when the lock record is readable (no `@`, no session or process ID).
     let holder_record = info.record.as_ref().unwrap();
+    assert_eq!(holder_record.user, "ops\u{202E}fdp.exe");
     let expected = format!(
-        "error: {}: the project opens read-only: another session holds the project ({} on {}, since {}); nothing was \
-         written\n",
+        "error: {}: the project opens read-only: another session holds the project (ops\\u{{202e}}fdp.exe on {}, since \
+         {}); nothing was written\n",
         project.display(),
-        holder_record.user,
         holder_record.host,
         holder_record.started_at
     );
