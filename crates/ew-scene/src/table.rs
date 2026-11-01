@@ -244,19 +244,26 @@ pub(crate) fn push_cell(
     }
     // The style at the size the text was laid out in (shrink-to-fit may have made it smaller).
     let final_style = style.with_size(laid.shaped.run.size);
-    // One call for all the cell's spans: the line is shaped once, never once per span end (C44-p3#1).
+    // One call for all the cell's spans: the boxes come from the drawn shaping, which `span_quads` cannot redo (it takes
+    // no fonts; C44-p3#1, C44-p6#2).
     let spanned: Vec<(&Range<usize>, Destination)> = links
         .iter()
         .filter_map(|l| Some((l.span.as_ref()?, l.dest)))
         .collect();
     let ranges: Vec<&Range<usize>> = spanned.iter().map(|(r, _)| *r).collect();
-    let carriers: Vec<Item> = span_quads(fonts, &final_style, s, &laid.shaped, &laid.items, &ranges)
-        .into_iter()
-        .zip(&spanned)
-        .filter_map(|(quad, (_, dest))| {
-            Some(Item::path(Path::polygon(&quad?), None, None).with_link(Link::Source(*dest)))
-        })
-        .collect();
+    let carriers: Vec<Item> = span_quads(
+        fonts.vertical_metrics(&final_style),
+        s,
+        &laid.shaped,
+        &laid.items,
+        &ranges,
+    )
+    .into_iter()
+    .zip(&spanned)
+    .filter_map(|(quad, (_, dest))| {
+        Some(Item::path(Path::polygon(&quad?), None, None).with_link(Link::Source(*dest)))
+    })
+    .collect();
     match links.iter().find(|l| l.span.is_none()) {
         Some(l) => out
             .items
@@ -483,9 +490,8 @@ mod tests {
     /// One box per span, `None` where a span has none.
     type Quads = Vec<Option<[Pt2; 4]>>;
 
-    /// The span boxes of `text` laid into `rect` (as `push_cell` lays a cell) by `span_quads` and by the oracle.
-    fn both(text: &str, spans: &[Range<usize>], rect: Rect, max_lines: usize) -> (Quads, Quads) {
-        let fonts = bundled();
+    /// `text` laid into `rect` as `push_cell` lays a cell (left-aligned), with the style at the size it was laid out in.
+    fn lay(text: &str, rect: Rect, max_lines: usize) -> (Vec<Item>, Shaped, TextStyle) {
         let style = ew_text::builtin()
             .resolve(DEFAULT_STYLE_KEY)
             .expect("the default style");
@@ -502,15 +508,60 @@ mod tests {
             max_lines,
             sheet: SheetMap::IDENTITY,
         };
-        let laid = lay_out(fonts, text, &style, &spec);
+        let laid = lay_out(bundled(), text, &style, &spec);
         let style = style.with_size(laid.shaped.run.size);
+        (laid.items, laid.shaped, style)
+    }
+
+    /// The span boxes of `text` laid into `rect` (as `push_cell` lays a cell) by `span_quads` and by the oracle.
+    fn both(text: &str, spans: &[Range<usize>], rect: Rect, max_lines: usize) -> (Quads, Quads) {
+        let fonts = bundled();
+        let (items, shaped, style) = lay(text, rect, max_lines);
         let ranges: Vec<&Range<usize>> = spans.iter().collect();
-        let new = span_quads(fonts, &style, text, &laid.shaped, &laid.items, &ranges);
+        let new = span_quads(fonts.vertical_metrics(&style), text, &shaped, &items, &ranges);
         let old = spans
             .iter()
-            .map(|r| span_quad_per_end(fonts, &style, text, &laid.shaped, &laid.items, r))
+            .map(|r| span_quad_per_end(fonts, &style, text, &shaped, &items, r))
             .collect();
         (new, old)
+    }
+
+    /// The drawn extent of the glyphs of `span` in `text` laid into `rect`, through its line item, read from the drawn
+    /// shaping alone: the glyphs of the span's line whose clusters start from the span's own cluster up to its end, each
+    /// reaching to the next glyph's x (the last to the line's advance). `None` when the span covers no glyph.
+    fn drawn_extent((items, shaped): (&[Item], &Shaped), span: &Range<usize>) -> Option<(Nm, Nm)> {
+        let (k, line) = shaped
+            .lines
+            .iter()
+            .enumerate()
+            .find(|(_, l)| l.text.start <= span.start && span.end <= l.text.end)?;
+        let ids: Vec<usize> = line.glyphs.clone().collect();
+        let lo = ids
+            .iter()
+            .map(|&g| shaped.clusters[g])
+            .filter(|&c| c <= span.start)
+            .max()
+            .unwrap_or(span.start);
+        let inside: Vec<usize> = ids
+            .iter()
+            .copied()
+            .filter(|&g| (lo..span.end).contains(&shaped.clusters[g]))
+            .collect();
+        let x = |g: usize| shaped.run.glyphs[g].x;
+        let right = |g: usize| {
+            if g + 1 < line.glyphs.end {
+                x(g + 1)
+            } else {
+                line.advance
+            }
+        };
+        let x0 = inside.iter().map(|&g| x(g)).min()?;
+        let x1 = inside.iter().map(|&g| right(g)).max()?;
+        let ItemKind::Glyphs(run) = &items[k].kind else {
+            panic!("one face per line");
+        };
+        let at = |x: Nm| run.to_parent(Pt2::new(x, Nm::ZERO)).x;
+        Some((at(x0), at(x1)))
     }
 
     fn mm(x0: i64, y0: i64, x1: i64, y1: i64) -> Rect {
@@ -524,17 +575,14 @@ mod tests {
         (q[0].x, q[2].x)
     }
 
-    /// C44-p3#1: the spans of a 300-folio cell come from one shaping of the line, and in digits (no kerning, one glyph
-    /// per character) every box equals the one a shaping per span end gives, in a cell that shrinks it and in one wide
-    /// enough for it.
+    /// C44-p3#1: in digits (no kerning, one glyph per character) every box of a 300-folio cell equals the one a
+    /// shaping per span end gives, in a cell that shrinks it and in one wide enough for it.
     #[test]
     fn the_spans_of_a_300_folio_cell_equal_a_shaping_per_span_end() {
         let (text, spans) = folios_300();
         assert!(text.contains("100, 102, 104, 106, 108–111, 113"), "{text}");
         for rect in [mm(0, 0, 30, 6), mm(0, 0, 20_000, 6)] {
-            let before = crate::page::line_shapings();
             let (new, old) = both(&text, &spans, rect, 1);
-            assert_eq!(crate::page::line_shapings() - before, 1);
             assert!(new.iter().all(Option::is_some));
             assert_eq!(new, old);
         }
@@ -564,7 +612,7 @@ mod tests {
     }
 
     /// C44-p5#1 and #2: a span gives the same box whatever else its line holds: a "fi" ligature, a CJK character or a
-    /// combining mark later in the line change nothing, and the line is still shaped once.
+    /// combining mark later in the line change nothing.
     #[test]
     fn a_span_keeps_its_box_next_to_a_ligature_or_a_cjk_character() {
         let spans = [0..1, 4..5, 7..8, 10..11];
@@ -574,18 +622,16 @@ mod tests {
             "LT, Y, r, 7, \u{4e2d}",
             "LT, Y, r, 7, e\u{301}",
         ] {
-            let before = crate::page::line_shapings();
             let (new, _) = both(text, &spans, mm(0, 0, 500, 6), 1);
-            assert_eq!(crate::page::line_shapings() - before, 1, "{text:?}");
             assert_eq!(new, plain, "{text:?}");
         }
     }
 
-    /// C44-p5#2: a 300-folio line with a CJK folio label among its digits is shaped once, never once per span end; every
-    /// span has its box, the boxes follow each other along the line, and the digit labels' boxes are those a shaping
-    /// per end gives (no kerning between digits).
+    /// C44-p5#2: a 300-folio line with a CJK folio label among its digits: every span has its box at its glyphs' drawn
+    /// extent, the boxes follow each other along the line, and the digit labels' boxes are those a shaping per end gives
+    /// (no kerning between digits). `span_quads` takes no fonts, so it cannot shape per span end (C44-p6#2).
     #[test]
-    fn a_folio_line_with_a_cjk_label_is_shaped_once() {
+    fn a_folio_line_with_a_cjk_label_takes_its_boxes_from_the_drawn_glyphs() {
         let (digits, spans) = folios_300();
         let label = "\u{4e2d}7";
         let text = format!("{label}, {digits}");
@@ -593,28 +639,54 @@ mod tests {
         let spans: Vec<Range<usize>> = std::iter::once(0..label.len())
             .chain(spans.iter().map(|r| r.start + shift..r.end + shift))
             .collect();
-        let before = crate::page::line_shapings();
         let (new, old) = both(&text, &spans, mm(0, 0, 20_000, 6), 1);
-        assert_eq!(crate::page::line_shapings() - before, 1);
-        assert!(new.iter().all(Option::is_some));
+        let (items, shaped, _) = lay(&text, mm(0, 0, 20_000, 6), 1);
+        let drawn: Vec<Option<(Nm, Nm)>> = spans.iter().map(|s| drawn_extent((&items, &shaped), s)).collect();
+        assert_eq!(new.iter().map(|q| Some(xs(q))).collect::<Vec<_>>(), drawn);
         assert!(new.windows(2).all(|w| xs(&w[0]).1 <= xs(&w[1]).0));
         assert_eq!(new[1..], old[1..]);
     }
 
     /// A span inside a cluster covers the whole cluster: "f" of a "fi" ligature the ligature's glyph, "e" of "é" written
-    /// with a combining mark the base and its mark; a span across a line break has no box; each line of several is
-    /// shaped once.
+    /// with a combining mark the base and its mark; a span across a line break has no box.
     #[test]
     fn a_span_inside_a_cluster_covers_the_whole_cluster() {
         let text = "1.2 /3.4\nfi e\u{301}f";
         let spans = [0..3, 9..10, 9..11, 12..13, 12..15, 15..16, 6..12];
-        let before = crate::page::line_shapings();
         let (new, _) = both(text, &spans, mm(0, 0, 500, 40), 3);
-        assert_eq!(crate::page::line_shapings() - before, 2);
         assert!(new[..6].iter().all(Option::is_some));
         assert_eq!(new[1], new[2]);
         assert_eq!(new[3], new[4]);
         assert_eq!(new[6], None);
+    }
+
+    /// C44-p6#1: a cross-reference-like text of two lines that starts right-to-left is drawn with one base direction:
+    /// its first line right-aligned in the run, its second reordered ("90" drawn first). Every span's box is its glyphs'
+    /// drawn extent, not where its line would lie shaped alone.
+    #[test]
+    fn a_right_to_left_first_text_boxes_its_spans_where_they_are_drawn() {
+        let text = "\u{5d0}\u{5d1} 1\n12345678 90";
+        let spans = [0..2, 2..4, 0..4, 5..6, 7..15, 16..18];
+        let (new, _) = both(text, &spans, mm(0, 0, 500, 40), 2);
+        let (items, shaped, _) = lay(text, mm(0, 0, 500, 40), 2);
+        let drawn: Vec<Option<(Nm, Nm)>> = spans.iter().map(|s| drawn_extent((&items, &shaped), s)).collect();
+        assert!(drawn.iter().all(Option::is_some));
+        assert_eq!(new.iter().map(|q| Some(xs(q))).collect::<Vec<_>>(), drawn);
+        // The second line is reordered: "90" is drawn left of "12345678".
+        assert!(xs(&new[5]).1 <= xs(&new[4]).0);
+    }
+
+    /// C44-p6#3: in a right-to-left line a span's box covers its glyphs' extent ("\u{5d0}" is drawn right of
+    /// "\u{5d1}"), the two letters' boxes together make the word's, and a span that holds no glyph has no box.
+    #[test]
+    fn a_right_to_left_span_covers_its_glyphs_and_an_empty_span_has_no_box() {
+        let text = "\u{5d0}\u{5d1} 7";
+        let spans = [0..2, 2..4, 0..4, 2..2];
+        let (new, _) = both(text, &spans, mm(0, 0, 500, 6), 1);
+        let (alef, bet, word) = (xs(&new[0]), xs(&new[1]), xs(&new[2]));
+        assert!(bet.1 <= alef.0, "{alef:?} {bet:?}");
+        assert_eq!(word, (bet.0, alef.1));
+        assert_eq!(new[3], None);
     }
 
     fn cols(weights: &[u32]) -> Vec<TableColumn> {

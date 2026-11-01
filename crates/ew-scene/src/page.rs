@@ -136,7 +136,7 @@ use ew_schema::{
     Align, Connection, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, Page, Representation,
     SlotKind, SymbolDef,
 };
-use ew_text::{DEFAULT_STYLE_KEY, FontSet, Shaped, TextStyle, TextStyleTable};
+use ew_text::{DEFAULT_STYLE_KEY, FontSet, LineSpan, Shaped, TextStyle, TextStyleTable, VerticalMetrics};
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
 
 use crate::embedded::{EmbeddedView, lower_embedded};
@@ -1617,38 +1617,42 @@ impl Builder<'_> {
         lines: &[Item],
     ) -> Vec<Item> {
         let ranges: Vec<&Range<usize>> = spec.items.iter().map(|link| &link.range).collect();
-        span_quads(self.fonts, style, spec.text, shaped, lines, &ranges)
-            .into_iter()
-            .zip(spec.items)
-            .filter_map(|(quad, link)| {
-                Some(
-                    Item::path(Path::polygon(&quad?), None, None)
-                        .with_entity(spec.entity)
-                        .with_link(Link::Source(link.dest)),
-                )
-            })
-            .collect()
+        span_quads(
+            self.fonts.vertical_metrics(style),
+            spec.text,
+            shaped,
+            lines,
+            &ranges,
+        )
+        .into_iter()
+        .zip(spec.items)
+        .filter_map(|(quad, link)| {
+            Some(
+                Item::path(Path::polygon(&quad?), None, None)
+                    .with_entity(spec.entity)
+                    .with_link(Link::Source(link.dest)),
+            )
+        })
+        .collect()
     }
 }
 
 /// The boxes of the glyph spans `ranges` of `text` as placed (ADR-0015 amendment 9), one per range in their order: over
-/// the span's glyphs where they are drawn, from the ascent to the descent of `style`, mapped to the parent through the
-/// placed line item that holds the span (so it turns with the text). `shaped` is `text` shaped in `style` and `lines`
-/// its placed line items, one per shaped line. `None` for a range that no line holds whole, whose line is not placed,
-/// or that holds no glyph of a right-to-left line. The cross-reference texts' item links and the report tables' item
-/// links (WP-S3.06 ruling 3) both take their boxes from here.
+/// the span's glyphs where they are drawn, from the ascent to the descent `m` of the text's style, mapped to the parent
+/// through the placed line item that holds the span (so it turns with the text). `shaped` is `text` shaped as drawn
+/// and `lines` its placed line items, one per shaped line. `None` for a range that no line holds whole, whose line is
+/// not placed, or that holds no glyph of a line with a right-to-left run. The cross-reference texts' item links and
+/// the report tables' item links (WP-S3.06 ruling 3) both take their boxes from here.
 ///
-/// Each line's text, without its trailing line breaks, is shaped once (C44-p3#1, C44-p5#2), never once per span end;
-/// the boxes come from that shaping's glyph positions and clusters ([`LinePens`]).
+/// It shapes nothing (C44-p3#1, C44-p5#2, C44-p6#1): the boxes come from the drawn shaping's glyph positions and
+/// clusters, line by line ([`LinePens`]), so they lie where the glyphs are drawn whatever the text's base direction.
 pub(crate) fn span_quads(
-    fonts: &FontSet,
-    style: &TextStyle,
+    m: VerticalMetrics,
     text: &str,
     shaped: &Shaped,
     lines: &[Item],
     ranges: &[&Range<usize>],
 ) -> Vec<Option<[Pt2; 4]>> {
-    let m = fonts.vertical_metrics(style);
     let mut pens: Vec<Option<LinePens>> = vec![None; shaped.lines.len()];
     ranges
         .iter()
@@ -1661,7 +1665,7 @@ pub(crate) fn span_quads(
             let line_text = text.get(line.text.clone())?;
             let p = pens
                 .get_mut(k)?
-                .get_or_insert_with(|| LinePens::new(fonts, style, line_text));
+                .get_or_insert_with(|| LinePens::new(shaped, line, line_text));
             let (x0, x1) = p.extent(range.start - line.text.start, range.end - line.text.start)?;
             let to_parent = |q: Pt2| match &lines.get(k)?.kind {
                 ItemKind::Glyphs(run) => Some(run.to_parent(q)),
@@ -1679,32 +1683,21 @@ pub(crate) fn span_quads(
         .collect()
 }
 
-#[cfg(test)]
-thread_local! {
-    /// How many line shapings [`LinePens::new`] made on this thread (the tests count them; never a time).
-    static LINE_SHAPINGS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
-}
-
-/// How many line shapings the span boxes made on this thread so far.
-#[cfg(test)]
-pub(crate) fn line_shapings() -> usize {
-    LINE_SHAPINGS.with(std::cell::Cell::get)
-}
-
-/// One line's text, without its trailing line breaks, shaped once: where its glyphs are drawn and which cluster each
-/// belongs to ([`span_quads`]).
+/// One drawn line's glyphs: where each is drawn and which cluster it belongs to, taken from the text's shaping as
+/// drawn ([`span_quads`]).
 ///
 /// In a left-to-right line (the clusters do not decrease along it) a span runs from the travel up to its start to the
 /// travel up to its end. The travel up to a byte is the x of the first glyph of the cluster that starts there, kerning
-/// included: 0 at the line's start, the line's advance at its end (or past it). A span's start inside a cluster (a
-/// ligature, a combining or joiner sequence) takes that cluster's start and its end the next cluster's start, so the box
-/// covers whole glyphs. In a line with a right-to-left run the box spans the extent of the glyphs whose clusters the
-/// span covers (each glyph reaching to the next one's x, the last to the advance).
+/// included: the line's first glyph's x at its start, the line's advance at its end (or past it). A span's start inside
+/// a cluster (a ligature, a combining or joiner sequence) takes that cluster's start and its end the next cluster's
+/// start, so the box covers whole glyphs. In a line with a right-to-left run the box spans the extent of the glyphs
+/// whose clusters the span covers (each glyph reaching to the next one's x, the last to the line's advance); a span
+/// that covers no glyph there has none.
 #[derive(Clone)]
 struct LinePens {
     /// The byte length of the line's text without its trailing line breaks.
     len: usize,
-    /// The advance of that text shaped alone.
+    /// The line's advance as drawn (where its last glyph ends).
     advance: Nm,
     /// Each glyph's x, in the order drawn.
     xs: Vec<Nm>,
@@ -1717,19 +1710,22 @@ struct LinePens {
 }
 
 impl LinePens {
-    fn new(fonts: &FontSet, style: &TextStyle, line_text: &str) -> LinePens {
-        #[cfg(test)]
-        LINE_SHAPINGS.with(|n| n.set(n.get() + 1));
-        let body = line_text.trim_end_matches(is_line_break);
-        let shaped = fonts.shape(body, style, None);
-        let xs: Vec<Nm> = shaped.run.glyphs.iter().map(|g| g.x).collect();
-        let clusters = shaped.clusters.clone();
+    fn new(shaped: &Shaped, line: &LineSpan, line_text: &str) -> LinePens {
+        let glyphs = shaped.run.glyphs.get(line.glyphs.clone()).unwrap_or_default();
+        let xs: Vec<Nm> = glyphs.iter().map(|g| g.x).collect();
+        let clusters: Vec<usize> = shaped
+            .clusters
+            .get(line.glyphs.clone())
+            .unwrap_or_default()
+            .iter()
+            .map(|c| c.saturating_sub(line.text.start))
+            .collect();
         let ltr = clusters.windows(2).all(|w| w[0] <= w[1]);
         let mut by_cluster: Vec<(usize, usize)> = clusters.iter().copied().zip(0..).collect();
         by_cluster.sort_unstable();
         LinePens {
-            len: body.len(),
-            advance: shaped.advance(),
+            len: line_text.trim_end_matches(is_line_break).len(),
+            advance: line.advance,
             xs,
             clusters,
             ltr,
@@ -1751,12 +1747,8 @@ impl LinePens {
 
     /// The x range of the span `[start, end)` of the line (see the type's documentation).
     fn extent(&self, start: usize, end: usize) -> Option<(Nm, Nm)> {
-        let travel = |b: usize, x: &dyn Fn(usize) -> Nm| match b {
-            0 => Nm::ZERO,
-            b if b >= self.len => self.advance,
-            b => x(b),
-        };
         if self.ltr {
+            let travel = |b: usize, x: &dyn Fn(usize) -> Nm| if b >= self.len { self.advance } else { x(b) };
             let x0 = travel(start, &|b| self.x_from(self.cluster_of(b)));
             let x1 = travel(end, &|b| self.x_from(b));
             return Some((x0, x1));
