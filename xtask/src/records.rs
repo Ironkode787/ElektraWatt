@@ -217,7 +217,9 @@ fn trailing_cycle(content: &str) -> Option<u32> {
     let t = content.trim_end().strip_suffix(')')?;
     let inner = &t[t.rfind('(')? + 1..];
     let last = inner.rsplit(',').next()?.trim();
-    let n = number_after(&last.to_ascii_lowercase(), "cycle ").filter(|(_, rest)| rest.is_empty())?.0;
+    let n = number_after(&last.to_ascii_lowercase(), "cycle ")
+        .filter(|(_, rest)| rest.is_empty())?
+        .0;
     Some(n)
 }
 
@@ -348,7 +350,10 @@ fn render(r: &Records) -> String {
         String::new(),
     ];
     let mut ids: BTreeSet<Ref> = r.cited.keys().copied().collect();
-    ids.extend(r.decisions.iter().map(|d| Ref { kind: Kind::Id, n: d.id }));
+    ids.extend(r.decisions.iter().map(|d| Ref {
+        kind: Kind::Id,
+        n: d.id,
+    }));
     if ids.is_empty() {
         out.push("None.".to_owned());
     }
@@ -434,7 +439,7 @@ fn status(r: &Records) -> String {
         String::new(),
     ];
     let mut last: Vec<&Decision> = r.decisions.iter().collect();
-    last.sort_by(|a, b| b.id.cmp(&a.id));
+    last.sort_by_key(|d| std::cmp::Reverse(d.id));
     if last.is_empty() {
         out.push("None.".to_owned());
     }
@@ -525,7 +530,10 @@ mod tests {
 
     #[test]
     fn cycles_and_cells() {
-        assert_eq!(cycles_in("Cycle 43 (polish lane), cycle 9; bicycle 3, cycle-42, cycles 4"), [43, 9]);
+        assert_eq!(
+            cycles_in("Cycle 43 (polish lane), cycle 9; bicycle 3, cycle-42, cycles 4"),
+            [43, 9]
+        );
         assert_eq!(trailing_cycle("Escape clears (W42c, cycle 42)"), Some(42));
         assert_eq!(trailing_cycle("Escape clears (cycle 42) now"), None);
         assert_eq!(trailing_cycle("Escape (W42c, Cycle 7)"), Some(7));
@@ -568,7 +576,10 @@ mod tests {
             &[("x.txt", "1\n")],
             "feat: decides\n\nDecision: ID-1, ID-3, ADR-0003\nFT-Closes: FT-04",
         );
-        let b = r.commit(&[("golden/t.csv", "1\n")], "fix(golden): row\n\nGolden: ID-3 a row\nDecision: ID-3");
+        let b = r.commit(
+            &[("golden/t.csv", "1\n")],
+            "fix(golden): row\n\nGolden: ID-3 a row\nDecision: ID-3",
+        );
         let (a, b) = (short(&a).to_owned(), short(&b).to_owned());
         assert!(!run(&r.dir, true).unwrap());
         assert!(run(&r.dir, false).unwrap());

@@ -317,7 +317,14 @@ fn check_commit(repo: &Path, c: &Commit) -> Result<Vec<String>> {
     if !golden {
         let changed = git(
             repo,
-            &["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", &c.sha],
+            &[
+                "diff-tree",
+                "--no-commit-id",
+                "--name-only",
+                "-r",
+                "--root",
+                &c.sha,
+            ],
         )?;
         if changed.lines().any(|p| p.starts_with("golden/")) {
             problems.push("changes golden/** without a `Golden:` trailer".to_owned());
@@ -417,28 +424,43 @@ pub(crate) mod tests {
             parse_value(DECISION, "ID-3, DEC-043,ADR-0028"),
             Some(Value::Decision(vec![
                 Ref { kind: Kind::Id, n: 3 },
-                Ref { kind: Kind::Dec, n: 43 },
-                Ref { kind: Kind::Adr, n: 28 },
+                Ref {
+                    kind: Kind::Dec,
+                    n: 43
+                },
+                Ref {
+                    kind: Kind::Adr,
+                    n: 28
+                },
             ]))
         );
         assert_eq!(parse_value(DECISION, "FT-3"), None);
         assert_eq!(parse_value(DECISION, ""), None);
         assert_eq!(parse_value(DECISION, "ID-?"), None);
-        assert_eq!(parse_value(FT_CLOSES, "FT-01, FT-998"), Some(Value::FtCloses(vec![
-            Ref { kind: Kind::Ft, n: 1 },
-            Ref { kind: Kind::Ft, n: 998 },
-        ])));
+        assert_eq!(
+            parse_value(FT_CLOSES, "FT-01, FT-998"),
+            Some(Value::FtCloses(vec![
+                Ref { kind: Kind::Ft, n: 1 },
+                Ref {
+                    kind: Kind::Ft,
+                    n: 998
+                },
+            ]))
+        );
         assert_eq!(parse_value(FT_OPENS, "ID-3"), None);
         assert_eq!(
             parse_value(GOLDEN, "ID-7 the strip order"),
-            Some(Value::Golden(Ref { kind: Kind::Id, n: 7 }, "the strip order".to_owned()))
+            Some(Value::Golden(
+                Ref { kind: Kind::Id, n: 7 },
+                "the strip order".to_owned()
+            ))
         );
         assert_eq!(parse_value(GOLDEN, "ID-7"), None);
         assert_eq!(parse_value(GOLDEN, "DEC-7 x"), None);
-        assert_eq!(parse_value(SPEC, "docs/a.md, docs/b"), Some(Value::Spec(vec![
-            "docs/a.md".to_owned(),
-            "docs/b".to_owned()
-        ])));
+        assert_eq!(
+            parse_value(SPEC, "docs/a.md, docs/b"),
+            Some(Value::Spec(vec!["docs/a.md".to_owned(), "docs/b".to_owned()]))
+        );
         assert_eq!(parse_value(SPEC, "docs/../x"), None);
         assert_eq!(parse_value(SPEC, "README.md"), None);
         assert_eq!(parse_ref("ID-1234567890"), None);
@@ -458,7 +480,10 @@ pub(crate) mod tests {
                 (records::DECISION_LOG, log),
                 (records::WORK_PACKAGES, wp),
                 (records::DECISIONS, "# Decisions\n\n- ID-2 (cycle 4): Two.\n"),
-                (records::FOLLOW_UPS, "# Follow-ups\n\n- FT-02 (cycle 4, Low, xtask; due: cycle 5): Two.\n"),
+                (
+                    records::FOLLOW_UPS,
+                    "# Follow-ups\n\n- FT-02 (cycle 4, Low, xtask; due: cycle 5): Two.\n",
+                ),
                 ("docs/adr/0003-three.md", "# ADR 3\n"),
                 ("docs/spec.md", "spec\n"),
             ],
@@ -482,7 +507,10 @@ pub(crate) mod tests {
         );
         let gold = r.commit(&[("golden/a.txt", "b\n")], "fix: golden without trailer");
         r.commit(
-            &[(records::DECISIONS, "# Decisions\n\n- ID-2 (cycle 4): Two.\n- ID-3 (cycle 5): Three.\n")],
+            &[(
+                records::DECISIONS,
+                "# Decisions\n\n- ID-2 (cycle 4): Two.\n- ID-3 (cycle 5): Three.\n",
+            )],
             "docs: ID-3\n\nDecision: ID-3",
         );
         let all = commits(&r.dir, &format!("{base}..HEAD")).unwrap();
@@ -492,11 +520,17 @@ pub(crate) mod tests {
         assert_eq!(
             check(&r.dir, &all).unwrap(),
             vec![
-                format!("{gold} fix: golden without trailer: changes golden/** without a `Golden:` trailer (at {gold})"),
-                format!("{absent} feat: absent: ID-9 is in neither the decision log nor docs/plan/decisions.md (at {absent})"),
+                format!(
+                    "{gold} fix: golden without trailer: changes golden/** without a `Golden:` trailer (at {gold})"
+                ),
+                format!(
+                    "{absent} feat: absent: ID-9 is in neither the decision log nor docs/plan/decisions.md (at {absent})"
+                ),
                 format!("{absent} feat: absent: DEC-007 is not in the decision log (at {absent})"),
                 format!("{absent} feat: absent: ADR-0008 has no file in docs/adr/ (at {absent})"),
-                format!("{absent} feat: absent: FT-01 (FT-Opens) is not in docs/plan/follow-ups.md (at {absent})"),
+                format!(
+                    "{absent} feat: absent: FT-01 (FT-Opens) is not in docs/plan/follow-ups.md (at {absent})"
+                ),
                 format!(
                     "{absent} feat: absent: FT-09 (FT-Closes) is in neither docs/plan/follow-ups.md nor Appendix B of \
                      docs/plan/02-work-packages.md (at {absent})"
@@ -506,20 +540,29 @@ pub(crate) mod tests {
                     "{bad} feat: malformed: malformed trailer `Decision: ID-?` (expected `Decision: ID-n[, …] (also \
                      DEC-n, ADR-n)`) (at {bad})"
                 ),
-                format!("{bad} feat: malformed: malformed trailer `FT-Opens: ID-2` (expected `FT-Opens: FT-n[, …]`) (at {bad})"),
+                format!(
+                    "{bad} feat: malformed: malformed trailer `FT-Opens: ID-2` (expected `FT-Opens: FT-n[, …]`) (at {bad})"
+                ),
                 format!(
                     "{bad} feat: malformed: malformed trailer `Golden: ID-2` (expected `Golden: ID-n <one-line reason>`) \
                      (at {bad})"
                 ),
-                format!("{bad} feat: malformed: malformed trailer `Spec: README.md` (expected `Spec: docs/<path>[, …]`) (at {bad})"),
+                format!(
+                    "{bad} feat: malformed: malformed trailer `Spec: README.md` (expected `Spec: docs/<path>[, …]`) (at {bad})"
+                ),
                 format!(
                     "{unknown} feat: unknown: unknown trailer key `Reviewed-by` (the known keys: Decision, FT-Opens, \
                      FT-Closes, Golden, Spec, Co-Authored-By, Signed-off-by) (at {unknown})"
                 ),
-                format!("{early} feat: early: ID-3 is in neither the decision log nor docs/plan/decisions.md (at {early})"),
+                format!(
+                    "{early} feat: early: ID-3 is in neither the decision log nor docs/plan/decisions.md (at {early})"
+                ),
             ]
         );
         // The good commit alone passes.
-        assert_eq!(check(&r.dir, &commits(&r.dir, &format!("{base}..{ok}")).unwrap()).unwrap(), Vec::<String>::new());
+        assert_eq!(
+            check(&r.dir, &commits(&r.dir, &format!("{base}..{ok}")).unwrap()).unwrap(),
+            Vec::<String>::new()
+        );
     }
 }
