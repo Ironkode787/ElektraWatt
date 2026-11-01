@@ -31,6 +31,102 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "scale-150" => "150 %",
         "scale-200" => "200 %",
 
+        // The human titles of the commands (cycle 35 play-test): what the window says for a command it previews
+        // ("Preview of Place device"), verb first, sentence case; the key is `command-<name>` with every `.` of the
+        // name as `-` (`command_title`). The parameters, the describe text and the scripts keep the command ID.
+        "command-assembly-attach" => "Attach assembly",
+        "command-bond-create" => "Bond potentials",
+        "command-bus-logical_net-create" => "Create logical bus network",
+        "command-bus-physical_net-create" => "Create physical bus network",
+        "command-box-black" => "Draw black box",
+        "command-box-reshape" => "Reshape box",
+        "command-box-structure" => "Draw structure box",
+        "command-cable-create" => "Create cable",
+        "command-check-unwaive" => "Remove waiver",
+        "command-check-waive" => "Waive finding",
+        "command-conductor-add" => "Add conductor",
+        "command-connection-delete" => "Delete wire",
+        "command-connection-draw" => "Draw wire",
+        "command-connection-draw_many" => "Draw wires",
+        "command-connection-draw_to_ip" => "Draw wire to interruption point",
+        "command-connection-route" => "Route wire",
+        "command-device-create" => "Create device",
+        "command-device-link" => "Link device",
+        "command-device-place" => "Place device",
+        "command-edit-delete" => "Delete",
+        "command-edit-paste" => "Paste",
+        "command-external_ref-create" => "Create external reference",
+        "command-fields-set" => "Set property",
+        "command-fields-set_many" => "Set properties",
+        "command-ip-arrange" => "Arrange interruption points",
+        "command-ip-continue" => "Continue interruption point",
+        "command-ip-place" => "Place interruption point",
+        "command-item-place" => "Place item",
+        "command-junction-edit" => "Edit junction",
+        "command-library-embed" => "Embed library item",
+        "command-library-update" => "Update library item",
+        "command-macro-insert" => "Insert macro",
+        "command-marker-place" => "Place wire marker",
+        "command-numbering-renumber" => "Renumber",
+        "command-page-create" => "Create page",
+        "command-page-delete" => "Delete page",
+        "command-page-renumber" => "Renumber pages",
+        "command-page-reorder" => "Reorder pages",
+        "command-part-assign" => "Assign part",
+        "command-parts-import" => "Import parts",
+        "command-plc-bind_channel" => "Bind PLC channel",
+        "command-plc-config_project-create" => "Create PLC configuration project",
+        "command-plc-set_module_part" => "Set PLC module part",
+        "command-plc-set_profile" => "Set PLC address profile",
+        "command-plc-set_start" => "Set PLC module start",
+        "command-potential-define" => "Define potential",
+        "command-project-assets-purge" => "Purge unused assets",
+        "command-project-checks-set" => "Set checks",
+        "command-project-company-set" => "Set company",
+        "command-project-drawing-set" => "Set drawing data",
+        "command-project-frames-set" => "Set frames",
+        "command-project-languages-set" => "Set languages",
+        "command-project-settings-set" => "Set project settings",
+        "command-project-supply-set" => "Set supply",
+        "command-rep-exchange_symbol" => "Exchange symbol",
+        "command-rep-join_device" => "Join device",
+        "command-rep-move" => "Move",
+        "command-rep-set_anchor_policy" => "Set anchor policy",
+        "command-rep-transform" => "Rotate or mirror",
+        "command-report_block-create" => "Create report block",
+        "command-revision-approve" => "Approve revision",
+        "command-revision-create" => "Create revision",
+        "command-revision-release" => "Release revision",
+        "command-revision-set_author" => "Set revision author",
+        "command-revision-withdraw" => "Withdraw revision",
+        "command-section-create" => "Create section",
+        "command-structure-create_node" => "Create structure node",
+        "command-terminal-add" => "Add terminal",
+        "command-terminal-designate" => "Designate terminal",
+        "command-terminal-insert" => "Insert terminal",
+        "command-terminal-move" => "Move terminal",
+        "command-valve-add" => "Add valve",
+        "command-part-edit_copy" => "Edit part",
+        "command-layout-space-create" => "Create layout space",
+        "command-layout-space-delete" => "Delete layout space",
+        "command-layout-enclosure-create" => "Place enclosure",
+        "command-layout-enclosure-delete" => "Delete enclosure",
+        "command-layout-carrier-add" => "Add carrier",
+        "command-layout-carrier-edit" => "Edit carrier",
+        "command-layout-carrier-delete" => "Delete carrier",
+        "command-layout-place" => "Place in layout",
+        "command-layout-move" => "Move placement",
+        "command-layout-remove" => "Remove placement",
+        "command-layout-lock" => "Lock placement",
+        // WP-S4.01 part 3 (D9)
+        "command-page-surface_view-set" => "Set panel view",
+        "command-layout-place_assembly" => "Place assembly",
+        "command-layout-auto_fill" => "Auto-fill rail",
+        "command-layout-enclosure-create_from_part" => "Create enclosure from part",
+        "command-layout-space-edit" => "Rename layout space",
+        "command-layout-enclosure-edit" => "Move enclosure",
+        "command-layout-surface-edit" => "Edit plate",
+
         // Actions.
         "action-file-open" => "Open…",
         // The canvas tools (WP-S2.03 part 2).
@@ -2559,111 +2655,15 @@ pub fn kind_plural(kind: &str) -> String {
     }
 }
 
-// map: command-titles: a new command goes here with its title; then run `-p ew-viewmodel --test blind_reference`.
-/// The human titles of the commands (cycle 35 play-test): what the window says for a command it previews ("Preview of
-/// Place device"), verb first, sentence case. The parameters, the describe text and the scripts keep the command ID.
-const COMMAND_TITLES: &[(&str, &str)] = &[
-    ("assembly.attach", "Attach assembly"),
-    ("bond.create", "Bond potentials"),
-    ("bus.logical_net.create", "Create logical bus network"),
-    ("bus.physical_net.create", "Create physical bus network"),
-    ("box.black", "Draw black box"),
-    ("box.reshape", "Reshape box"),
-    ("box.structure", "Draw structure box"),
-    ("cable.create", "Create cable"),
-    ("check.unwaive", "Remove waiver"),
-    ("check.waive", "Waive finding"),
-    ("conductor.add", "Add conductor"),
-    ("connection.delete", "Delete wire"),
-    ("connection.draw", "Draw wire"),
-    ("connection.draw_many", "Draw wires"),
-    ("connection.draw_to_ip", "Draw wire to interruption point"),
-    ("connection.route", "Route wire"),
-    ("device.create", "Create device"),
-    ("device.link", "Link device"),
-    ("device.place", "Place device"),
-    ("edit.delete", "Delete"),
-    ("edit.paste", "Paste"),
-    ("external_ref.create", "Create external reference"),
-    ("fields.set", "Set property"),
-    ("fields.set_many", "Set properties"),
-    ("ip.arrange", "Arrange interruption points"),
-    ("ip.continue", "Continue interruption point"),
-    ("ip.place", "Place interruption point"),
-    ("item.place", "Place item"),
-    ("junction.edit", "Edit junction"),
-    ("library.embed", "Embed library item"),
-    ("library.update", "Update library item"),
-    ("macro.insert", "Insert macro"),
-    ("marker.place", "Place wire marker"),
-    ("numbering.renumber", "Renumber"),
-    ("page.create", "Create page"),
-    ("page.delete", "Delete page"),
-    ("page.renumber", "Renumber pages"),
-    ("page.reorder", "Reorder pages"),
-    ("part.assign", "Assign part"),
-    ("parts.import", "Import parts"),
-    ("plc.bind_channel", "Bind PLC channel"),
-    ("plc.config_project.create", "Create PLC configuration project"),
-    ("plc.set_module_part", "Set PLC module part"),
-    ("plc.set_profile", "Set PLC address profile"),
-    ("plc.set_start", "Set PLC module start"),
-    ("potential.define", "Define potential"),
-    ("project.assets.purge", "Purge unused assets"),
-    ("project.checks.set", "Set checks"),
-    ("project.company.set", "Set company"),
-    ("project.drawing.set", "Set drawing data"),
-    ("project.frames.set", "Set frames"),
-    ("project.languages.set", "Set languages"),
-    ("project.settings.set", "Set project settings"),
-    ("project.supply.set", "Set supply"),
-    ("rep.exchange_symbol", "Exchange symbol"),
-    ("rep.join_device", "Join device"),
-    ("rep.move", "Move"),
-    ("rep.set_anchor_policy", "Set anchor policy"),
-    ("rep.transform", "Rotate or mirror"),
-    ("report_block.create", "Create report block"),
-    ("revision.approve", "Approve revision"),
-    ("revision.create", "Create revision"),
-    ("revision.release", "Release revision"),
-    ("revision.set_author", "Set revision author"),
-    ("revision.withdraw", "Withdraw revision"),
-    ("section.create", "Create section"),
-    ("structure.create_node", "Create structure node"),
-    ("terminal.add", "Add terminal"),
-    ("terminal.designate", "Designate terminal"),
-    ("terminal.insert", "Insert terminal"),
-    ("terminal.move", "Move terminal"),
-    ("valve.add", "Add valve"),
-    ("part.edit_copy", "Edit part"),
-    ("layout.space.create", "Create layout space"),
-    ("layout.space.delete", "Delete layout space"),
-    ("layout.enclosure.create", "Place enclosure"),
-    ("layout.enclosure.delete", "Delete enclosure"),
-    ("layout.carrier.add", "Add carrier"),
-    ("layout.carrier.edit", "Edit carrier"),
-    ("layout.carrier.delete", "Delete carrier"),
-    ("layout.place", "Place in layout"),
-    ("layout.move", "Move placement"),
-    ("layout.remove", "Remove placement"),
-    ("layout.lock", "Lock placement"),
-    // WP-S4.01 part 3 (D9)
-    ("page.surface_view.set", "Set panel view"),
-    ("layout.place_assembly", "Place assembly"),
-    ("layout.auto_fill", "Auto-fill rail"),
-    ("layout.enclosure.create_from_part", "Create enclosure from part"),
-    ("layout.space.edit", "Rename layout space"),
-    ("layout.enclosure.edit", "Move enclosure"),
-    ("layout.surface.edit", "Edit plate"),
-];
+/// The key of the title of the command `name`: `command-<name>` with every `.` as `-` (a Fluent identifier has no dot).
+fn command_key(name: &str) -> String {
+    format!("command-{}", name.replace('.', "-"))
+}
 
-/// The human title of the command `name` ("Place device" for `device.place`); the ID itself for a command without
-/// one.
+/// The human title of the command `name` ("Place device" for `device.place`), the text of its key `command-<name>`;
+/// the name itself for a command without one.
 pub fn command_title(name: &str) -> &str {
-    COMMAND_TITLES
-        .iter()
-        .find(|(n, _)| *n == name)
-        .map_or(name, |(_, title)| title)
+    lookup(&command_key(name)).unwrap_or(name)
 }
 
 /// The text of `key`; the key itself for a key without a text (a missing text is a bug a test catches).
@@ -2741,12 +2741,38 @@ mod tests {
         );
         // A command without a title keeps its ID.
         assert_eq!(command_title("plugin.custom"), "plugin.custom");
-        // Every built-in command has a title.
-        let untitled: Vec<&str> = ew_api::CommandRegistry::builtin()
+    }
+
+    /// RD43 §9 item 9: every built-in command has its title key, and every `command-` key of `lookup` (read from its
+    /// source: the texts are a `match`) names a built-in command.
+    #[test]
+    fn the_command_title_keys_are_the_builtin_commands() {
+        let keys: Vec<String> = ew_api::CommandRegistry::builtin()
             .names()
-            .filter(|n| command_title(n) == *n)
+            .map(command_key)
             .collect();
-        assert!(untitled.is_empty(), "commands without a title: {untitled:?}");
+        let missing: Vec<String> = keys
+            .iter()
+            .filter(|k| lookup(k).is_none())
+            .map(|k| format!("the key {k} has no text"))
+            .collect();
+        assert_eq!(missing, Vec::<String>::new());
+        let source = include_str!("strings.rs");
+        let body = source.split("pub fn lookup").nth(1).unwrap_or_default();
+        let body = body.split("_ => return None").next().unwrap_or_default();
+        let table: Vec<&str> = body
+            .lines()
+            .filter_map(|l| l.trim().strip_prefix('"'))
+            .filter(|l| l.starts_with("command-"))
+            .filter_map(|l| l.split('"').next())
+            .collect();
+        assert!(table.contains(&"command-device-place"), "{table:?}");
+        let stray: Vec<String> = table
+            .iter()
+            .filter(|k| !keys.iter().any(|n| n == *k))
+            .map(|k| format!("the key {k} names no built-in command"))
+            .collect();
+        assert_eq!(stray, Vec::<String>::new());
     }
 
     /// Cycle 35 play-test: the refusal of a page type without symbols names the remedy, as the paste refusal does.

@@ -4,99 +4,8 @@
 //! The v0 editor commands (doc 06 §3.1, within the v0 record set). Every command struct is its own
 //! parameter struct, with serde, a JSON Schema and `deny_unknown_fields`.
 //!
-//! | Name | Struct | Cost |
-//! |---|---|---|
-//! | `page.create` | [`CreatePage`] | Interactive |
-//! | `page.delete` | [`DeletePages`] | Bulk |
-//! | `page.renumber` | [`RenumberPages`] | Bulk |
-//! | `page.reorder` | [`ReorderPages`] | Bulk |
-//! | `structure.create_node` | [`CreateStructureNode`] | Interactive |
-//! | `section.create` | [`CreateSection`] | Interactive |
-//! | `report_block.create` | [`CreateReportBlock`] | Interactive |
-//! | `device.create` | [`CreateDevice`] | Interactive |
-//! | `device.place` | [`PlaceSymbol`] | Interactive |
-//! | `rep.move` | [`MoveReps`] | Interactive |
-//! | `rep.transform` | [`TransformReps`] | Interactive |
-//! | `rep.set_anchor_policy` | [`SetAnchorPolicy`] | Interactive |
-//! | `connection.draw` | [`Connect`] | Interactive |
-//! | `connection.route` | [`RouteConnection`] | Interactive |
-//! | `connection.delete` | [`DeleteConnections`] | Interactive |
-//! | `junction.edit` | [`EditJunction`] | Interactive |
-//! | `ip.place` | [`PlaceIp`] | Interactive |
-//! | `ip.continue` | [`ContinueIp`] | Interactive |
-//! | `potential.define` | [`DefinePotential`] | Interactive |
-//! | `terminal.add` | [`AddTerminals`] | Interactive |
-//! | `terminal.designate` | [`DesignateTerminals`] | Interactive |
-//! | `cable.create` | [`CreateCable`] | Interactive |
-//! | `conductor.add` | [`AddConductors`] | Interactive |
-//! | `fields.set` | [`SetFields`] | Interactive |
-//! | `edit.delete` | [`DeleteSelection`] | Interactive; Bulk above 500 targets |
-//! | `numbering.renumber` | [`RenumberDevices`] | Bulk |
-//! | `project.settings.set` | [`SetProjectSettings`] | Bulk |
-//! | `box.black` | [`PlaceBlackBox`] | Interactive |
-//! | `bond.create` | [`CreateBond`] | Interactive |
-//! | `external_ref.create` | [`CreateExternalRef`] | Interactive |
-//! | `assembly.attach` | [`AttachChildren`] | Interactive |
-//! | `valve.add` | [`AddValve`] | Interactive |
-//! | `device.link` | [`LinkDevices`] | Interactive |
-//! | `plc.config_project.create` | [`CreatePlcConfigProject`] | Interactive |
-//! | `plc.bind_channel` | [`BindChannel`] | Interactive |
-//! | `plc.set_module_part` | [`SetModulePart`] | Bulk |
-//! | `plc.set_start` | [`SetStart`] | Interactive |
-//! | `plc.set_profile` | [`SetProfile`] | Interactive |
-//! | `project.supply.set` | [`SetProjectSupply`] | Interactive |
-//! | `library.embed` | [`EmbedLibraryCopies`] | Interactive |
-//! | `revision.create` | [`CreateRevision`] | Interactive |
-//! | `revision.set_author` | [`SetRevisionAuthor`] | Interactive; exposure `HumanOnly` |
-//! | `revision.withdraw` | [`WithdrawRevision`] | Interactive; exposure `HumanOnly` |
-//! | `revision.approve` | [`ApproveRevision`] | Interactive; exposure `HumanOnly` |
-//! | `revision.release` | [`ReleaseRevision`] | Interactive; not undoable (a barrier), confirmation `Destructive`; exposure `HumanOnly` |
-//! | `project.company.set` | [`SetCompany`] | Bulk |
-//! | `project.frames.set` | [`SetFrameDefaults`] | Bulk |
-//! | `project.languages.set` | [`SetProjectLanguages`] | Bulk |
-//! | `project.checks.set` | [`SetCheckSchemes`] | Interactive; exposure `HumanOnly` |
-//! | `check.waive` | [`WaiveFinding`] | Interactive; exposure `HumanOnly` |
-//! | `check.unwaive` | [`UnwaiveFinding`] | Interactive; exposure `HumanOnly` |
-//! | `project.assets.purge` | [`PurgeAssets`] | Bulk; not undoable (a marker line), confirmation `Destructive`; exposure `HumanOnly` |
-//! | `rep.exchange_symbol` | [`ExchangeSymbol`] | Interactive |
-//! | `project.drawing.set` | [`SetDrawing`] | Interactive |
-//! | `fields.set_many` | [`SetManyFields`] | Interactive; Bulk above 500 targets |
-//! | `edit.paste` | [`PasteFragment`] | Interactive; Bulk above 500 records |
-//! | `connection.draw_to_ip` | [`DrawToIp`] | Interactive |
-//! | `ip.arrange` | [`ArrangeIps`] | Interactive |
-//! | `box.reshape` | [`ReshapeBox`] | Interactive |
-//! | `box.structure` | [`CreateStructureBox`] | Interactive |
-//! | `item.place` | [`PlaceItem`] | Interactive |
-//! | `marker.place` | [`PlaceMarker`] | Interactive |
-//! | `parts.import` | [`ImportParts`] | Bulk |
-//! | `connection.draw_many` | [`ConnectMany`] | Interactive; Bulk above 500 entries |
-//! | `terminal.insert` | [`InsertTerminals`] | Interactive |
-//! | `terminal.move` | [`MoveTerminals`] | Interactive |
-//! | `part.assign` | [`AssignPart`] | Interactive; Bulk from 50 devices |
-//! | `library.update` | [`UpdateLibraryCopies`] | Bulk |
-//! | `macro.insert` | [`InsertMacro`] | Interactive |
-//! | `rep.join_device` | [`JoinDevice`] | Interactive |
-//! | `bus.logical_net.create` | [`CreateLogicalNet`] | Interactive |
-//! | `bus.physical_net.create` | [`CreatePhysicalNet`] | Interactive |
-//! | `part.edit_copy` | [`EditPartCopy`] | Bulk |
-//! | `layout.space.create` | [`CreateLayoutSpace`] | Interactive |
-//! | `layout.space.delete` | [`DeleteLayoutSpace`] | Interactive; Bulk above 200 placements |
-//! | `layout.enclosure.create` | [`CreateEnclosure`] | Interactive |
-//! | `layout.enclosure.delete` | [`DeleteEnclosure`] | Interactive; Bulk above 200 placements |
-//! | `layout.carrier.add` | [`AddCarrier`] | Interactive |
-//! | `layout.carrier.edit` | [`EditCarrier`] | Interactive |
-//! | `layout.carrier.delete` | [`DeleteCarrier`] | Interactive; Bulk above 200 placements |
-//! | `layout.place` | [`PlaceDevice`] | Interactive |
-//! | `layout.move` | [`MovePlacement`] | Interactive |
-//! | `layout.remove` | [`RemovePlacement`] | Interactive |
-//! | `layout.lock` | [`LockPlacement`] | Interactive |
-//! | `page.surface_view.set` | [`SetSurfaceView`] | Interactive |
-//! | `layout.place_assembly` | [`PlaceAssembly`] | Interactive; Bulk above 200 placements |
-//! | `layout.auto_fill` | [`AutoFill`] | Interactive; Bulk above 200 devices |
-//! | `layout.enclosure.create_from_part` | [`CreateEnclosureFromPart`] | Interactive |
-//! | `layout.space.edit` | [`EditLayoutSpace`] | Interactive |
-//! | `layout.enclosure.edit` | [`EditEnclosure`] | Interactive |
-//! | `layout.surface.edit` | [`EditSurface`] | Interactive |
+//! The commands are listed once, in the `commands!` invocation below; [`CommandRegistry::builtin`] holds every one by
+//! name. The book's command table (`docs/book/src/reference/commands/index.md`) is generated from their schemas.
 //!
 //! Every command is of stability `Preview` and undoable except `project.assets.purge`, a marker line whose file side
 //! (deleting asset files nothing names) runs in the session (ADR-0008 amendment 1, FT-380), and `revision.release`,
@@ -147,187 +56,169 @@ pub(crate) mod structure_box;
 mod supply;
 mod terminal;
 
-pub use assembly::{AddValve, AttachChildren, ChildSpec, LinkDevices};
-pub use assets::PurgeAssets;
-pub use assign::{ASSIGN_BULK_FROM, AssignModeParam, AssignPart};
-pub use box_reshape::ReshapeBox;
-pub use checks::{
-    CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes, UnwaiveFinding, WAIVER_REASON_MIN_CHARS,
-    WaiveFinding,
-};
+pub use assembly::ChildSpec;
+pub use assign::{ASSIGN_BULK_FROM, AssignModeParam};
+pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, WAIVER_REASON_MIN_CHARS};
 pub use common::{EndpointParam, KindName, TargetRef};
-pub use company::{COMPANY_MEMBER, SetCompany};
-pub use connection::{
-    ArrangeIps, Connect, ConnectMany, ContinueIp, CreateBond, DefinePotential, DeleteConnections, DrawToIp,
-    EditJunction, IpAtEnd, PlaceIp, RouteConnection, WiringChoice,
-};
-pub use device::{
-    ConnectHint, CreateDevice, MoveReps, PlaceBlackBox, PlaceSymbol, PlaceTarget, SetAnchorPolicy,
-    TransformReps, allowed_rep_types,
-};
-pub use drawing::{Crossings, DRAWING_MEMBER, MarkerModeParam, SetDrawing};
-pub use edit::{BULK_ABOVE, DeleteSelection};
-pub use exchange::{ExchangePin, ExchangeSymbol, PinPairs, derive_pin_map};
-pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE, SetFields, SetManyFields};
-pub use frames::{FRAMES_MEMBER, FrameForPageType, SetFrameDefaults};
+pub use company::COMPANY_MEMBER;
+pub use connection::{IpAtEnd, WiringChoice};
+pub use device::{ConnectHint, PlaceTarget, allowed_rep_types};
+pub use drawing::{Crossings, DRAWING_MEMBER, MarkerModeParam};
+pub use edit::BULK_ABOVE;
+pub use exchange::{ExchangePin, PinPairs, derive_pin_map};
+pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE};
+pub use frames::{FRAMES_MEMBER, FrameForPageType};
 pub use items::{
-    AlignParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, PlaceItem, PlaceMarker,
-    ShapeParam, StrokeParam,
+    AlignParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, ShapeParam, StrokeParam,
 };
-pub use join::JoinDevice;
-pub use languages::SetProjectLanguages;
 pub use layout::{
-    AddCarrier, AutoFill, CarrierKindParam, CarrierParamsParam, CarrierThen, CreateEnclosure,
-    CreateEnclosureFromPart, CreateLayoutSpace, DeleteCarrier, DeleteEnclosure, DeleteLayoutSpace,
-    EditCarrier, EditEnclosure, EditLayoutSpace, EditSurface, FillOrder, LAYOUT_BULK_ABOVE, LockPlacement,
-    MovePlacement, PlaceAssembly, PlaceDevice, PlaceMode, PlaceOnParam, RemovePlacement,
+    CarrierKindParam, CarrierParamsParam, CarrierThen, FillOrder, LAYOUT_BULK_ABOVE, PlaceMode, PlaceOnParam,
 };
-pub use library::{EmbedLibraryCopies, library_copy_hash};
-pub use library_update::{
-    ChangeClass, CopyDiff, CpMapParam, FieldChange, UpdateLibraryCopies, classify_update,
-};
+pub use library::library_copy_hash;
+pub use library_update::{ChangeClass, CopyDiff, CpMapParam, FieldChange, classify_update};
 pub use macro_insert::{
-    InsertMacro, InstantiateError, Instantiated, MACRO_FIELDS, MACRO_KINDS, binding_field_ok, coerce_value,
-    instantiate, pick_variant,
+    InstantiateError, Instantiated, MACRO_FIELDS, MACRO_KINDS, binding_field_ok, coerce_value, instantiate,
+    pick_variant,
 };
-pub use page::{
-    CreatePage, DeletePages, LabelModeParam, PageScope, RenumberPages, ReorderPages, SetSurfaceView,
-};
-pub use part_edit::{EditPartCopy, PART_EDITABLE};
-// WP-S2.05 part 3
-pub use bus::{CreateLogicalNet, CreatePhysicalNet};
-pub use parts::{ImportParts, import_counts};
-pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS, PasteFragment};
-pub use plc::{
-    BindChannel, CreatePlcConfigProject, SetModulePart, SetProfile, SetStart, StartDir, is_on_module,
-};
-pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
-pub use revision::{
-    ApproveRevision, ApprovedPack, CreateRevision, LABEL_ORDER_RULE, NewRevisionState, ReleaseRevision,
-    ReleasedArchive, RevisionPageNote, SetRevisionAuthor, WithdrawRevision,
-};
-pub use settings::{SETTABLE_SETTINGS, SetProjectSettings, SettableSetting};
-pub use structure::{CreateExternalRef, CreateReportBlock, CreateSection, CreateStructureNode};
-pub use structure_box::{BoxStyleParam, CreateStructureBox};
-pub use supply::{SETTABLE_SUPPLY, SetProjectSupply};
-pub use terminal::{
-    AddConductors, AddTerminals, ConductorSpec, CreateCable, DesignateTerminals, InsertTerminals,
-    MoveTerminals, TerminalDesignation, TerminalSpec,
-};
+pub use page::{LabelModeParam, PageScope};
+pub use part_edit::PART_EDITABLE;
+pub use parts::import_counts;
+pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS};
+pub use plc::{StartDir, is_on_module};
+pub use renumber::{DeviceScope, NumberingScheme, RenumberOptions};
+pub use revision::{ApprovedPack, LABEL_ORDER_RULE, NewRevisionState, ReleasedArchive, RevisionPageNote};
+pub use settings::{SETTABLE_SETTINGS, SettableSetting};
+pub use structure_box::BoxStyleParam;
+pub use supply::SETTABLE_SUPPLY;
+pub use terminal::{ConductorSpec, TerminalDesignation, TerminalSpec};
 
 use crate::registry::CommandRegistry;
 
-// map: commands: a new command goes in this list as one `register` line, and its title in `COMMAND_TITLES`.
-/// Registers every built-in command: the single list of commands.
-pub fn register_all(r: &mut CommandRegistry) {
-    r.register::<CreatePage>();
-    r.register::<DeletePages>();
-    r.register::<RenumberPages>();
-    r.register::<ReorderPages>();
-    r.register::<CreateStructureNode>();
-    r.register::<CreateSection>();
-    r.register::<CreateReportBlock>();
-    r.register::<CreateDevice>();
-    r.register::<PlaceSymbol>();
-    r.register::<MoveReps>();
-    r.register::<TransformReps>();
-    r.register::<SetAnchorPolicy>();
-    r.register::<Connect>();
-    r.register::<RouteConnection>();
-    r.register::<DeleteConnections>();
-    r.register::<EditJunction>();
-    r.register::<PlaceIp>();
-    r.register::<ContinueIp>();
-    r.register::<DefinePotential>();
-    r.register::<AddTerminals>();
-    r.register::<DesignateTerminals>();
-    r.register::<CreateCable>();
-    r.register::<AddConductors>();
-    r.register::<SetFields>();
-    r.register::<DeleteSelection>();
-    r.register::<RenumberDevices>();
-    r.register::<SetProjectSettings>();
-    r.register::<PlaceBlackBox>();
-    r.register::<CreateBond>();
-    r.register::<CreateExternalRef>();
-    r.register::<AttachChildren>();
-    r.register::<AddValve>();
-    r.register::<LinkDevices>();
-    r.register::<CreatePlcConfigProject>();
-    // WP-S1.21 part 4 (D11)
-    r.register::<CreateLogicalNet>();
-    r.register::<CreatePhysicalNet>();
-    r.register::<BindChannel>();
-    r.register::<SetModulePart>();
-    // WP-S1.21 part 3 (D8)
-    r.register::<SetStart>();
-    r.register::<SetProfile>();
-    r.register::<SetProjectSupply>();
-    r.register::<EmbedLibraryCopies>();
-    r.register::<CreateRevision>();
-    r.register::<SetRevisionAuthor>();
-    r.register::<WithdrawRevision>();
-    // WP-S1.18 part 3: the sign-off (D9)
-    r.register::<ApproveRevision>();
-    // WP-S1.18 part 4: the release's stamp (D13)
-    r.register::<ReleaseRevision>();
-    r.register::<SetCompany>();
-    r.register::<SetFrameDefaults>();
-    r.register::<SetProjectLanguages>();
-    r.register::<SetCheckSchemes>();
-    r.register::<PurgeAssets>();
-    r.register::<ExchangeSymbol>();
-    r.register::<SetDrawing>();
-    // WP-S2.05 part 2
-    r.register::<SetManyFields>();
-    // WP-S2.05 part 3
-    r.register::<PasteFragment>();
-    // WP-S2.04 part 3
-    r.register::<DrawToIp>();
-    r.register::<ArrangeIps>();
-    r.register::<ReshapeBox>();
-    // WP-S2.04 part 4a
-    r.register::<CreateStructureBox>();
-    r.register::<PlaceItem>();
-    r.register::<PlaceMarker>();
-    // FT-410
-    r.register::<ImportParts>();
-    // Cycle 33: the chain of bridges of Edit ▸ Bridge terminals
-    r.register::<ConnectMany>();
-    // WP-S2.07 part 1: the strip editor's insert and move
-    r.register::<InsertTerminals>();
-    r.register::<MoveTerminals>();
-    // WP-S1.19 part 3
-    r.register::<AssignPart>();
-    r.register::<UpdateLibraryCopies>();
-    // WP-S1.19 part 5
-    r.register::<InsertMacro>();
-    // WP-S1.16 part 5: waiver recording (D7, FT-494)
-    r.register::<WaiveFinding>();
-    r.register::<UnwaiveFinding>();
-    // WP-S2.18 D3 (FT-628)
-    r.register::<JoinDevice>();
-    // WP-S2.07 part 4a (D20, FT-394)
-    r.register::<EditPartCopy>();
-    // WP-S4.01 part 1 (D6)
-    r.register::<CreateLayoutSpace>();
-    r.register::<DeleteLayoutSpace>();
-    r.register::<CreateEnclosure>();
-    r.register::<DeleteEnclosure>();
-    r.register::<AddCarrier>();
-    r.register::<EditCarrier>();
-    r.register::<DeleteCarrier>();
-    r.register::<PlaceDevice>();
-    r.register::<MovePlacement>();
-    r.register::<RemovePlacement>();
-    r.register::<LockPlacement>();
+// map: commands: a new command goes in commands! as module::Type; its title is the key command-<name, . as ->.
+/// Declares the built-in commands once: every `module::Type` entry becomes a `pub use` of the command type and one
+/// `register` call in [`register_all`].
+macro_rules! commands {
+    ($($module:ident::$ty:ident),* $(,)?) => {
+        $(pub use $module::$ty;)*
+
+        /// Registers every built-in command: the single list of commands.
+        pub fn register_all(r: &mut CommandRegistry) {
+            $(r.register::<$ty>();)*
+        }
+    };
+}
+
+commands! {
+    page::CreatePage,
+    page::DeletePages,
+    page::RenumberPages,
+    page::ReorderPages,
     // WP-S4.01 part 3 (D9)
-    r.register::<SetSurfaceView>();
+    page::SetSurfaceView,
+    structure::CreateStructureNode,
+    structure::CreateSection,
+    structure::CreateReportBlock,
+    structure::CreateExternalRef,
+    device::CreateDevice,
+    device::PlaceSymbol,
+    device::MoveReps,
+    device::TransformReps,
+    device::SetAnchorPolicy,
+    device::PlaceBlackBox,
+    connection::Connect,
+    connection::RouteConnection,
+    connection::DeleteConnections,
+    connection::EditJunction,
+    connection::PlaceIp,
+    connection::ContinueIp,
+    connection::DefinePotential,
+    connection::CreateBond,
+    // WP-S2.04 part 3
+    connection::DrawToIp,
+    connection::ArrangeIps,
+    // Cycle 33: the chain of bridges of Edit ▸ Bridge terminals
+    connection::ConnectMany,
+    terminal::AddTerminals,
+    terminal::DesignateTerminals,
+    terminal::CreateCable,
+    terminal::AddConductors,
+    // WP-S2.07 part 1: the strip editor's insert and move
+    terminal::InsertTerminals,
+    terminal::MoveTerminals,
+    fields::SetFields,
+    // WP-S2.05 part 2
+    fields::SetManyFields,
+    edit::DeleteSelection,
+    renumber::RenumberDevices,
+    settings::SetProjectSettings,
+    assembly::AttachChildren,
+    assembly::AddValve,
+    assembly::LinkDevices,
+    plc::CreatePlcConfigProject,
+    // WP-S1.21 part 4 (D11)
+    plc::BindChannel,
+    plc::SetModulePart,
+    // WP-S1.21 part 3 (D8)
+    plc::SetStart,
+    plc::SetProfile,
+    // WP-S1.21 part 4 (D11)
+    bus::CreateLogicalNet,
+    bus::CreatePhysicalNet,
+    supply::SetProjectSupply,
+    library::EmbedLibraryCopies,
+    revision::CreateRevision,
+    revision::SetRevisionAuthor,
+    revision::WithdrawRevision,
+    // WP-S1.18 part 3: the sign-off (D9)
+    revision::ApproveRevision,
+    // WP-S1.18 part 4: the release's stamp (D13)
+    revision::ReleaseRevision,
+    company::SetCompany,
+    frames::SetFrameDefaults,
+    languages::SetProjectLanguages,
+    checks::SetCheckSchemes,
+    // WP-S1.16 part 5: waiver recording (D7, FT-494)
+    checks::WaiveFinding,
+    checks::UnwaiveFinding,
+    assets::PurgeAssets,
+    exchange::ExchangeSymbol,
+    drawing::SetDrawing,
+    // WP-S2.05 part 3
+    paste::PasteFragment,
+    // WP-S2.04 part 3
+    box_reshape::ReshapeBox,
+    // WP-S2.04 part 4a
+    structure_box::CreateStructureBox,
+    items::PlaceItem,
+    items::PlaceMarker,
+    // FT-410
+    parts::ImportParts,
+    // WP-S1.19 part 3
+    assign::AssignPart,
+    library_update::UpdateLibraryCopies,
+    // WP-S1.19 part 5
+    macro_insert::InsertMacro,
+    // WP-S2.18 D3 (FT-628)
+    join::JoinDevice,
+    // WP-S2.07 part 4a (D20, FT-394)
+    part_edit::EditPartCopy,
+    // WP-S4.01 part 1 (D6)
+    layout::CreateLayoutSpace,
+    layout::DeleteLayoutSpace,
+    layout::CreateEnclosure,
+    layout::DeleteEnclosure,
+    layout::AddCarrier,
+    layout::EditCarrier,
+    layout::DeleteCarrier,
+    layout::PlaceDevice,
+    layout::MovePlacement,
+    layout::RemovePlacement,
+    layout::LockPlacement,
     // WP-S4.02 part 2 (D6, D7, FT-840)
-    r.register::<PlaceAssembly>();
-    r.register::<AutoFill>();
-    r.register::<CreateEnclosureFromPart>();
-    r.register::<EditLayoutSpace>();
-    r.register::<EditEnclosure>();
-    r.register::<EditSurface>();
+    layout::PlaceAssembly,
+    layout::AutoFill,
+    layout::CreateEnclosureFromPart,
+    layout::EditLayoutSpace,
+    layout::EditEnclosure,
+    layout::EditSurface,
 }
