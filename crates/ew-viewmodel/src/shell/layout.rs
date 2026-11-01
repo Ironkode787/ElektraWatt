@@ -21,13 +21,13 @@ use ew_api::output::{
 use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed, string_param};
-use crate::key;
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::layout::{mode_word, quarter_quat};
 use crate::tools::{
     CanvasEvent, EntityKind, LayoutOptions, LayoutPlaceTool, SelectionChange, ToolKey, page_entity_kind,
 };
+use crate::{count_key, key};
 
 /// Millimetres as the project prints them (FT-366): the shortest decimal with the project's separator.
 pub(crate) fn mm_text(nm: i128, comma: bool) -> String {
@@ -133,7 +133,7 @@ impl ShellModel {
                 let n = self.findings_of(&[row.id, row.device]);
                 let findings = match n {
                     0 => strings::text(key!("layout-findings-none")).to_owned(),
-                    n => strings::format_count(key!("layout-findings"), n),
+                    n => strings::format_count(count_key!("layout-findings"), n),
                 };
                 Some(strings::format(
                     key!("layout-live-rail"),

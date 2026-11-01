@@ -31,14 +31,6 @@ impl<'a> Key<'a> {
     }
 }
 
-impl Key<'static> {
-    /// The key of [`key!`](crate::key), after its compile-time check; not for other callers.
-    #[doc(hidden)]
-    pub const fn checked(key: &'static str) -> Self {
-        Self(key)
-    }
-}
-
 /// Whether `key` is a key of [`TEXTS`]: the compile-time check of [`key!`](crate::key) (lengths first, then bytes).
 pub const fn has_key(key: &str) -> bool {
     let wanted = key.as_bytes();
@@ -79,7 +71,37 @@ macro_rules! key {
                 $crate::strings::has_key($k),
                 concat!("unknown text key: ", $k)
             );
-            $crate::strings::Key::checked($k)
+            $crate::strings::Key::run_time($k)
+        }
+    };
+}
+
+/// The count text key `$k`, a string literal, for [`format_count`](crate::strings::format_count): checked at compile
+/// time for both `$k` (any count but one) and `$k-one` (exactly one).
+///
+/// ```
+/// use ew_viewmodel::{count_key, key, strings};
+/// assert_eq!(strings::format_count(count_key!("toast-recovered"), 1), strings::text(key!("toast-recovered-one")));
+/// ```
+///
+/// A key without its `-one` text fails the build:
+///
+/// ```compile_fail
+/// let _ = ew_viewmodel::count_key!("menu-file");
+/// ```
+#[macro_export]
+macro_rules! count_key {
+    ($k:literal) => {
+        const {
+            assert!(
+                $crate::strings::has_key($k),
+                concat!("unknown text key: ", $k)
+            );
+            assert!(
+                $crate::strings::has_key(concat!($k, "-one")),
+                concat!("unknown text key: ", $k, "-one")
+            );
+            $crate::strings::Key::run_time($k)
         }
     };
 }
@@ -3611,7 +3633,7 @@ pub fn command_title(name: &str) -> &str {
     lookup(&command_key(name)).unwrap_or(name)
 }
 
-/// The text of `key`; the key itself for a key without a text (a missing text is a bug a test catches).
+/// The text of `key`; `?` for a key without a text (a missing text is a bug a test catches).
 pub fn text(key: Key<'_>) -> &'static str {
     lookup(key.as_str()).unwrap_or("?")
 }
@@ -3638,7 +3660,8 @@ pub fn in_sentence(label: &str) -> String {
     }
 }
 
-/// A count-dependent string: `<key>-one` for exactly one, `<key>` with the count as `{0}` otherwise.
+/// A count-dependent string: `<key>-one` for exactly one, `<key>` with the count as `{0}` otherwise. A literal key is
+/// [`count_key!`](crate::count_key), which checks both texts at compile time.
 pub fn format_count(key: Key<'_>, count: usize) -> String {
     if count == 1 {
         text(Key::run_time(&format!("{}-one", key.as_str()))).to_owned()
@@ -3658,11 +3681,11 @@ pub fn elapsed_text(last_ms: u64, now_ms: u64) -> String {
     if span < MINUTE {
         text(key!("elapsed-just-now")).to_owned()
     } else if span < HOUR {
-        format_count(key!("elapsed-minutes"), count(MINUTE))
+        format_count(count_key!("elapsed-minutes"), count(MINUTE))
     } else if span < DAY {
-        format_count(key!("elapsed-hours"), count(HOUR))
+        format_count(count_key!("elapsed-hours"), count(HOUR))
     } else {
-        format_count(key!("elapsed-days"), count(DAY))
+        format_count(count_key!("elapsed-days"), count(DAY))
     }
 }
 
@@ -3716,6 +3739,19 @@ mod tests {
         assert_eq!(stray, Vec::<String>::new());
     }
 
+    /// RD43 §5: every text key that ew-api hands the shell (its refusal reasons, messages and labels, which reach
+    /// `Key::run_time` unchecked) has a text.
+    #[test]
+    fn every_ew_api_text_key_has_a_text() {
+        assert!(ew_api::TEXT_KEYS.contains(&"reason-part-unchanged"));
+        let missing: Vec<String> = ew_api::TEXT_KEYS
+            .iter()
+            .filter(|k| lookup(k).is_none())
+            .map(|k| format!("the ew-api key {k} has no text"))
+            .collect();
+        assert_eq!(missing, Vec::<String>::new());
+    }
+
     /// RD43 §5: every key of `TEXTS` is there once (`lookup` reads a map built from it, `key!` checks against it).
     #[test]
     fn the_text_keys_are_unique() {
@@ -3737,6 +3773,8 @@ mod tests {
         assert!(has_key("menu-file"));
         assert!(!has_key("menu-fil"));
         assert!(!has_key("menu-file-"));
+        assert!(!has_key("menu-fild"));
+        assert!(!has_key(""));
         assert_eq!(text(Key::run_time("no-such-key")), "?");
     }
 
@@ -3801,23 +3839,23 @@ mod tests {
     #[test]
     fn format_count_is_singular_for_one_and_plural_otherwise() {
         assert_eq!(
-            format_count(key!("toast-recovered"), 1),
+            format_count(count_key!("toast-recovered"), 1),
             "Recovered 1 change; save to keep it"
         );
         assert_eq!(
-            format_count(key!("toast-recovered"), 3),
+            format_count(count_key!("toast-recovered"), 3),
             "Recovered 3 changes; save to keep them"
         );
         assert_eq!(
-            format_count(key!("toast-recovered"), 0),
+            format_count(count_key!("toast-recovered"), 0),
             "Recovered 0 changes; save to keep them"
         );
         assert_eq!(
-            format_count(key!("marker-recovered"), 1),
+            format_count(count_key!("marker-recovered"), 1),
             "Recovered 1 change from the journal"
         );
         assert_eq!(
-            format_count(key!("marker-recovered"), 2),
+            format_count(count_key!("marker-recovered"), 2),
             "Recovered 2 changes from the journal"
         );
     }

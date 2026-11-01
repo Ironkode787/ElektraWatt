@@ -18,13 +18,13 @@ use ew_api::AnyCommand;
 use serde_json::{Map, Value, json};
 
 use super::{Mode, Outcome, Prompt, ShellModel, failed, string_param};
-use crate::key;
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::{
     BINDABLE, EntityKind, Ghost, GraphicShape, GraphicTool, ImageAsset, ImageTool, MarkerTool,
     StructureBoxTool, TextEditTool, TextTool, selection_kinds, tool_named,
 };
+use crate::{count_key, key};
 
 /// The text popup of the window (WP-S2.04 §10.5): the title's label key and the field's initial text.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -500,6 +500,6 @@ impl ShellModel {
     fn notify_marker_count(&mut self, undo: bool) {
         let Some(project) = &self.project else { return };
         let n = project.session.marker_wire_count();
-        self.notify(strings::format_count(key!("toast-marker-count"), n), undo);
+        self.notify(strings::format_count(count_key!("toast-marker-count"), n), undo);
     }
 }

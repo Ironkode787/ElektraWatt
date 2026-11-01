@@ -28,13 +28,13 @@ use serde_json::{Map, Value, json};
 use super::creation::{FormDialog, FormField};
 use super::navigation::bump;
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
-use crate::key;
 use crate::layout::PaneKind;
 use crate::preview::{PreviewPane, XrefChange, card_key};
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::PreviewState;
+use crate::{count_key, key};
 
 /// The words a boolean field of a renumber dialog offers.
 const BOOL_CHOICES: &[&str] = &["false", "true"];
@@ -116,8 +116,8 @@ impl ShellModel {
             return Some(strings::format(
                 key!("preview-import-summary"),
                 &[
-                    &strings::format_count(key!("preview-parts-new"), *created),
-                    &strings::format_count(key!("preview-parts-skipped"), *skipped),
+                    &strings::format_count(count_key!("preview-parts-new"), *created),
+                    &strings::format_count(count_key!("preview-parts-skipped"), *skipped),
                 ],
             ));
         }
@@ -126,10 +126,10 @@ impl ShellModel {
         Some(strings::format(
             key!("preview-summary"),
             &[
-                &strings::format_count(key!("preview-records"), records),
-                &strings::format_count(key!("preview-tags-count"), self.preview.tags().len()),
-                &strings::format_count(key!("preview-xrefs-count"), self.preview.xrefs().len()),
-                &strings::format_count(key!("preview-pages-count"), self.preview.pages().len()),
+                &strings::format_count(count_key!("preview-records"), records),
+                &strings::format_count(count_key!("preview-tags-count"), self.preview.tags().len()),
+                &strings::format_count(count_key!("preview-xrefs-count"), self.preview.xrefs().len()),
+                &strings::format_count(count_key!("preview-pages-count"), self.preview.pages().len()),
             ],
         ))
     }

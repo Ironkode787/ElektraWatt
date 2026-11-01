@@ -116,6 +116,42 @@ pub use macros::{
 };
 pub use part_editor::{DRAFT_FIELDS, DraftMessage, PART_KINDS, PartDraft, PartDraftError, PartEditPlan};
 pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
+
+// map: api-text-keys: a new text key that ew-api hands the shell (a refusal reason, a message or a label) goes in TEXT_KEYS.
+/// Every text key that ew-api hands a front-end, which shows its text: the reasons of
+/// [`output::StripEditError::Refused`] and [`PartDraftError::Refused`], the keys of a [`DraftMessage`], the refusals
+/// of [`Session::swap_cores`] and the field labels of a find hit. The shell's table has a text for each (its test).
+pub const TEXT_KEYS: &[&str] = &[
+    // StripEditError::Refused.
+    "reason-no-accessory-part",
+    "table-no-bridge",
+    "reason-no-terminal-def",
+    // PartDraftError::Refused.
+    "error-part-field",
+    "reason-part-unchanged",
+    "reason-part-edit-target",
+    // DraftMessage keys.
+    "error-part-value",
+    "reason-part-no-manufacturer",
+    "error-part-manufacturer",
+    "reason-part-no-number",
+    "error-part-kind",
+    "error-part-category",
+    "reason-part-unit",
+    "error-part-tech-value",
+    "error-part-tech-twice",
+    // Session::swap_cores.
+    "reason-swap-two-cores",
+    "reason-swap-cores-unwired",
+    // Find hit labels.
+    "find-field-function-text",
+    "find-field-tag",
+    "find-field-property",
+    "find-field-process-tag",
+    "find-field-part-number",
+    "find-field-title",
+    "find-field-description",
+];
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a
 /// front-end reads from a file the user picked or dropped before it asks `item.place` to store it (WP-S2.04 part 5).
 ///

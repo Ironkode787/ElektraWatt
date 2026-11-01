@@ -23,11 +23,11 @@ use super::{
     open_error_key, string_param,
 };
 use crate::jobs::{ExportDone, JobStatus, JobsState};
-use crate::key;
 use crate::layout::PaneKind;
 use crate::notifications::{NoteAction, NoteTone, Notification, NotificationLog, Validity};
 use crate::strings;
 use crate::strings::Key;
+use crate::{count_key, key};
 
 /// A `uint` parameter: `Ok(None)` when absent, `Err` when present with another type.
 fn uint_param(p: &Map<String, Value>, name: &str) -> Result<Option<u64>, Outcome> {
@@ -706,14 +706,14 @@ impl ShellModel {
         self.banner = None;
         let count = transactions;
         self.notify_with(
-            strings::format_count(key!("toast-recovered"), count),
+            strings::format_count(count_key!("toast-recovered"), count),
             "recovery",
             false,
         );
         if let Some(rev) = self.revision() {
             self.markers.push(HistoryMarker {
                 rev,
-                text: strings::format_count(key!("marker-recovered"), count),
+                text: strings::format_count(count_key!("marker-recovered"), count),
             });
         }
         Outcome::Done
