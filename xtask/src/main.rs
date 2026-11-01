@@ -105,9 +105,10 @@ commands:
                        one page per command (crates/ew-commands/schemas/) and per rule pack
                        (crates/ew-checks/catalogue/rules.json), the CLI, query, api_v1 and format references
                        (bin/ew/api/cli.json, bin/ew/schemas/, crates/ew-api/api/queries.json,
-                       crates/ew-sqlview/api/api_v1.json, schemas/0.1/), built and not committed, and the lists
-                       of docs/book/src/SUMMARY.md; --check changes nothing and fails when the committed
-                       SUMMARY.md differs; both modes fail when a WP count stated by hand in
+                       crates/ew-sqlview/api/api_v1.json, schemas/0.1/), built and not committed, the lists of
+                       docs/book/src/SUMMARY.md and the crate table of docs/design/04-architecture.md (from
+                       ci/dep-rules.toml); --check changes nothing and fails when the committed SUMMARY.md or
+                       crate table differs; both modes fail when a WP count stated by hand in
                        docs/plan/01-global-plan.md or docs/plan/03-*.md differs from docs/plan/work-packages.csv
   gen-icons [--check]  the icon table of ew-ui (crates/ew-ui/src/icons/generated.rs) from the vendored Tabler
                        Icons (assets/icons/tabler/) and the project's glyphs (assets/icons/ew/); --check changes
@@ -593,7 +594,7 @@ fn check_governance_files() -> Result<Violations> {
     Ok(governance::check(&workspace_root()))
 }
 
-/// `docs-gen --check` as an in-process check: the book's `SUMMARY.md` is current with the generated reference pages.
+/// `docs-gen --check` as an in-process check: the book's `SUMMARY.md` and doc 04's crate table are current.
 fn check_docs_gen() -> Result<Violations> {
     docs_gen::violations(&workspace_root())
 }
