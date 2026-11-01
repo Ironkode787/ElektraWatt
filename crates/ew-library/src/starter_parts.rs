@@ -20,8 +20,20 @@ pub(crate) const FILES: &[(&str, &str)] = &[
         include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/0f.2.jsonl"),
     ),
     (
+        "parts/12.2.jsonl",
+        include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/12.2.jsonl"),
+    ),
+    (
         "parts/19.2.jsonl",
         include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/19.2.jsonl"),
+    ),
+    (
+        "parts/1a.2.jsonl",
+        include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/1a.2.jsonl"),
+    ),
+    (
+        "parts/1c.2.jsonl",
+        include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/1c.2.jsonl"),
     ),
     (
         "parts/1d.2.jsonl",
@@ -38,6 +50,10 @@ pub(crate) const FILES: &[(&str, &str)] = &[
     (
         "parts/35.2.jsonl",
         include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/35.2.jsonl"),
+    ),
+    (
+        "parts/38.2.jsonl",
+        include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/38.2.jsonl"),
     ),
     (
         "parts/3b.2.jsonl",
@@ -86,5 +102,9 @@ pub(crate) const FILES: &[(&str, &str)] = &[
     (
         "parts/fa.2.jsonl",
         include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/fa.2.jsonl"),
+    ),
+    (
+        "parts/fd.2.jsonl",
+        include_str!("../../../content/libraries/ew-starter-parts.ewlib/parts/fd.2.jsonl"),
     ),
 ];
