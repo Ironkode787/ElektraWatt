@@ -20,8 +20,7 @@ use anyhow::Result;
 use crate::records::{self, short};
 use crate::repo::git;
 
-// map: trailer-keys: a new record trailer key goes in RECORD_KEYS, with its value in `parse_value`, its check in
-// `check_commit`, its use in records.rs and docs/plan/tools/golden_changes.py, and its row in CONTRIBUTING.md.
+// map: trailer-keys: a new record trailer key goes in RECORD_KEYS, checked here, with a CONTRIBUTING.md row.
 /// `Decision: ID-n[, …]` (also `DEC-n`, `ADR-n`): the decisions the commit implements or records.
 pub(crate) const DECISION: &str = "Decision";
 /// `FT-Opens: FT-n[, …]`: the follow-up tasks of `follow-ups.md` the commit opens.
