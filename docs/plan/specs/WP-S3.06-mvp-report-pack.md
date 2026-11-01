@@ -4,7 +4,7 @@
 export by kind (0.9 pw, D4 to D6, D9, D11), part 2 the open-items list (0.7 pw, D7, D8), part 3 the report back-links
 drawn (0.6 pw, D10); 0.3 pw reserve; in M2's order after WP-S1.21's remaining work (doc 01, ID-779); part 1 and
 part 2 in any order or side by side, part 3 after both and after WP-S4.01 part 4b · **Ruled in cycle 41** (decision log ID-950, project owner (delegated)): §12's O1 to O4 as proposed, except FP-2 (O4), which is not taken at MVP; the PERT in `work-packages.csv`; the FT annotations made · **Date:** 2026-10-31 ·
-**Work package:** [WP-S3.06](../02-work-packages.md#wp-s306-mvp-report-pack) · **Decision log:** ID-950; as built ID-1026, ID-1039, ID-1091 ·
+**Work package:** [WP-S3.06](../02-work-packages.md#wp-s306-mvp-report-pack) · **Decision log:** ID-950; as built ID-1026, ID-1039, ID-1091, ID-1097, ID-1101 ·
 **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** Most of WP-S3.06's scope was built ahead of the package by other packages: nine of its fourteen
@@ -325,11 +325,11 @@ change; if one does, the lane stops.
 
 *As built (cycle 44, lane C44, b206c802 with c8f7b4a2's golden change; decision log ID-1079, ID-1091).* **BL-1 to
 BL-6 met**; FT-231 closed; nothing de-scoped. Golden A's PDF holds 246 links (64 cross-reference items, 28 PLC overview
-rows, 154 report row links: the TOC's 36, the parts list's 52, the device tag overview's 66) and 185 named
+rows, 154 report row links: the TOC's 36, the BOM's (`parts_summary`) 52, the device tag overview's 66) and 185 named
 destinations; the count is computed from the page views, never pinned. C44's four proposals, accepted by the review's
 part 3: **embedded blocks** keep only whole-cell `Cp` links and draw no back-links (§1; FR-PLC-052's box links are as
 built); **a folio link skips contact images** when it picks the first source device's representation on a page, as
-`MainRep` does; **rows 13 and 14** of the parts list (terminal devices placed through their strip, with no
+`MainRep` does; **the BOM's (`parts_summary`) rows 13 and 14** (terminal devices placed through their strip, with no
 representation on 103) link the page (D10's "else the page"); **the CLI's export test** reads the committed count from
 `expected/pdf/structure.json`, which the PDF test ties to 92 plus the counted row links. Beyond ruling 8: the golden
 README's lines 629-630 (row links drawn), and `crates/ew-api/tests/it/new_project.rs` (its page-text reader reads an
@@ -337,6 +337,30 @@ escaped quote, so the copy comparison holds with drawn row links; 9bdf29b4). FT-
 the per-gate PNG sample unchanged (ae364f20). The review's part 3 rows on long Folios cells, untested branches,
 `LinkRef::item`'s saturation and a bracket's side went to the fixer FIX44c. Commit `0b8dd9ca`'s message names the
 feature commit by a pre-integration hash; it is `b206c802`.
+
+*As built after the review's parts 3 and 5 (cycle 44, lane FIX44c: 6811ab76, 3730537e, c9d0cb6b, and its round 2,
+61ef2a5b; decision log ID-1097).* **The span ends** (round 2's rule, which replaces the first round's one shaping per
+line with a shaping per end where the glyphs did not map one to one onto the characters): `ew-text`'s `Shaped` gains
+`clusters`, for each glyph the byte where its cluster starts, from the shaper's clusters in visual order (a ligature's
+glyph belongs to its first character, a combining sequence's glyphs to its base). `span_quads` shapes each line once
+through `LinePens`, whatever its characters. In a left-to-right line a span end lands on the x of the first glyph of
+the cluster at that byte, kerning included: 0 at the line's start, the line's advance at its end. A span's start inside
+a cluster takes the cluster's start and its end the next cluster's start, so a box covers whole glyphs. A line with a
+right-to-left run takes the extent of the span's glyphs from the same shaping; a span holding no glyph there gets no
+box. `maps_one_to_one` and the per-end prefix shaping are gone, the cross-reference texts take the same drawn
+positions, and Golden A does not move. Tested: the kerned pairs of "LT, Y, r, 7" (each box ends at the next glyph's
+x); the same box beside "fi", a CJK character or a combining "é"; one shaping for a 300-folio line with a "中7" label;
+a span inside a cluster covers the whole cluster. **The page map:** `folio_links` builds its page → representation map once per row (`rep_by_page`: for each page, the
+first of the row's devices in their order with a representation there that is not a contact image, its smallest
+representation), today's choice exactly. **Indices that do not fit `u16`:** `LinkRef::item` makes no link when the
+column or the item index does not fit `u16`, because a saturated index would draw over another item (`LinkRef::whole`
+still saturates its column; a kind's columns are a short fixed list). **A terminal's `parts_list` row links
+nothing:** the row's tag links `MainRep` (ruling 6), a terminal has no representation of its own (its strip draws it),
+and resolution draws no dead link (ruling 4); a test pins it, and the strip's page, which the BOM's (`parts_summary`)
+rows 13 and 14 link, is the alternative not taken; since round 2 each `parts_list` row's link is tested equal to
+`MainRep(device)`, or nothing (C44-p5#4). The untested paths of C44-p3#2 are tested, each link asserted whole: the
+`parts_list` tag, the embedded-block filter, a folio link skipping contact images, the BOM's rows 13 and 14 linking
+page 103, and the span boxes of a shrunk cell. No golden byte moved.
 
 ## 8. Neighbours and who owns what
 

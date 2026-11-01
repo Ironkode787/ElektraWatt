@@ -8,7 +8,7 @@ part 1 first; part 2 after part 1; part 3 after part 1 and WP-S4.01 part 3; part
 part 1 and WP-S4.01 parts 3 to 5; part 6 at any time. The parts sum to **5.2 pw plus 0.3 pw reserve** against a 3.1
 pw PERT that covered the five requirement rows only (D15, O1) · **Ruled in cycle 41** (decision log ID-948, project owner (delegated)): O1 accepted, `work-packages.csv` O 4 · L 5.5 · P 7 · PERT 5.5; O2: one rebase is accepted, but part 1 never runs beside WP-S4.01 part 5 (both edit `ew-derive/src/layout/queries.rs`) · **Date:** 2026-10-31 ·
 **Work package:** [WP-S4.02](../02-work-packages.md#wp-s402-2d-panel-editing-tools) ·
-**Decision log:** ID-948; as built ID-1004, ID-1023, ID-1042, ID-1089, ID-1090 · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-948; as built ID-1004, ID-1023, ID-1042, ID-1089, ID-1090, ID-1097, ID-1098 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S4.01 made the layout a model with outputs and checks and left every gesture to this package (its
 D1). WP-S4.02 is where a person lays out a panel: drag a device from the unplaced list onto a rail, let it snap,
@@ -390,6 +390,24 @@ one-enclosure text), `tools/blind/reference/actions.txt` (the new actions), and 
 Follow-ups: FT-1015 (placeholder icons for Rail, Duct, Auto-fill rail and Enclosure…), FT-1016 (a new panel page keeps
 1:1, so the plate overhangs the sheet), FT-1017; the review's part 4 rows (C44-p4#1 to #6) are open.
 
+*As built after the review's part 4 and the window check W44.4 (cycle 44, lane FIX44d, 827a99ea; decision log
+ID-1078, ID-1098).* **Surface words** (`surface_words`) count the alike short words once per call, O(S log S). Where
+the full designations collide too, each entry gains " (n)", n from 1 in page order: by the first panel page in drawn
+order that shows the surface, then the surfaces no page shows, then by ID; so an ordinal can change when a page's view
+changes. A surface ID that names no surface is refused "That surface no longer exists; choose one of the list.", with
+no ID printed; typed words keep "The project has no surface <words>; choose one of the list.". **The offers:**
+`mountable_uses`' doc names D12's mountable uses and says that `layout.move` on a surface also takes a `none` or
+`on_parent` part use, since its fit judges only a rail's profile; whether the command should refuse such a part use is
+FT-1031. **The Create enclosure dialog's** disabled reason uses the design's disabled tip (doc 16a §6.18). **The
+Properties editor** keys its session on its targets and row and ends it with the edit, so no value survives a
+selection change; a new editor scrolls its row into view; its text keeps the frame's inner margin (`space.icon`).
+**Surface view:** a panel page's Surface, Label mode and Datum rows sit under their own heading "Surface view"
+(`Category::SurfaceView`), not under Placement; its key is `category-surface_view`, accepted, because category words
+use underscores (the ruled `category-surface-view` would break that). The window check W44.5 found these right at both
+sizes. **F-g** (the Device row drawn as a link but inert) is not built: Properties has no link machinery (`nav.follow`
+and `hovered_link` act on canvas points only), so following a row needs an action, its key and a hover hint
+(FT-1030).
+
 ## 9. Part 5: end brackets in the outputs
 
 **Scope.** D13, FT-204's row 26, the rest of AC-33. **0.6 pw.**
@@ -466,6 +484,12 @@ every other exported byte equal. *Added in cycle 41 (the window check W41a, ID-9
     today `format!("{form}:{}", b.s0)`, `layout.rs:1183`), so two brackets of one strip at one start (a bracket part
     without a width) never share a fingerprint. A bracket of zero length overlaps nothing; it still counts in the BOM
     and in the overflow case.
+
+    *As built (cycle 44, FIX44c's 3730537e; decision log ID-1097):* the side reads the bracket's role. `BracketSpan`
+    and `Bracket` carry a `BracketRole` (`RunStart` or `After`) from the snap's `brackets`, and EW-LAY-010's side
+    reads it: the run-start bracket reads "before" in every case, zero-length ones included, and every other bracket
+    "after". This supersedes FIX44's geometric rule (6c588475: of a zero-width strip's two zero-length brackets at one
+    point, the first in rail order read "before" and the second "after"). The discriminator keeps its form.
 13. **Ruling 5's texts as built** name every device by its full designation, as the rule's other forms do
     (`layout.rs`'s module doc): "The end bracket after =P01+J-E-2416-X1031 overlaps =P01+J-E-2416-X1032 on rail 2."
     Ruling 5's examples read with that substitution.
