@@ -355,10 +355,27 @@ fn a_copy_derives_the_page_texts_of_the_original() {
     assert_eq!(a.pages.len(), b.pages.len());
     assert!(a.pages.len() > 30);
     // The page texts: every quoted text of a page's display list (tags, cross references, titles, report rows) as
-    // a sorted list, because the drawing order inside a page may follow record IDs.
+    // a sorted list, because the drawing order inside a page may follow record IDs. A quoted text ends at its first
+    // unescaped quote, so a text holding an escaped quote ("Connecting cable 7/8\"" on 901) does not turn the record
+    // IDs between the texts (a report row link's representation, WP-S3.06 part 3) into texts.
     let texts = |content: &dyn std::fmt::Debug| -> Vec<String> {
         let debug = format!("{content:?}");
-        let mut out: Vec<String> = debug.split('"').skip(1).step_by(2).map(str::to_owned).collect();
+        let mut out: Vec<String> = Vec::new();
+        let mut chars = debug.chars();
+        while let Some(c) = chars.next() {
+            if c != '"' {
+                continue;
+            }
+            let mut text = String::new();
+            while let Some(c) = chars.next() {
+                match c {
+                    '\\' => text.extend(chars.next()),
+                    '"' => break,
+                    c => text.push(c),
+                }
+            }
+            out.push(text);
+        }
         out.sort();
         out
     };
