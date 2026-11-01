@@ -344,6 +344,12 @@ fn cb6_the_command_tab_and_the_collapse_reach_the_describe_text() {
         "{next}"
     );
     assert!(text.contains("\nhud tool tool.select \"Select\" prompt \""));
+    // The command bar's section, its next step and the HUD reach the words of `Reach::CommandBar`.
+    let words: std::collections::BTreeSet<String> =
+        lines.iter().flat_map(|l| common::structural_tokens(l)).collect();
+    for w in ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::CommandBar) {
+        assert!(words.contains(w), "`{w}` is reached");
+    }
 
     done(&mut s, "view.command_tab", json!({"tab": "view"}));
     assert_eq!(s.command_tab(), Tab::View);
