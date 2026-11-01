@@ -16,7 +16,7 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
 - **ID-1051** (cycle 43): Records come from commit trailers and one line per new entry; the decision log and Appendix B are frozen at ID-1050 and FT-998. RD43 §9 item 6; CONTRIBUTING.md "Records: commit trailers".
-  - `61e079d175` feat(xtask): records from git: check-trailers and records (RD43 R11)
+  - `451525f604` feat(xtask): records from git: check-trailers and records (RD43 R11)
 
 ## Open follow-up tasks
 
