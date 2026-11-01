@@ -217,6 +217,17 @@ fn eb1_row_26_counts_the_derived_brackets_and_prints_902() {
     let (pos, qty, _, folios) = bracket_row(&q, BomMode::Component);
     // 1X1 × 2, -X1031 × 1, X33 × 2 derived, -X1032 × 1 authored.
     assert_eq!((pos, qty.as_str(), folios), (26, "6", owned(&["103", "902"])));
+    // C44-p1#8: assembly mode reads the same lines (ruling 3), and 902's legend counts the derived brackets only (R2's
+    // five: 1X1 × 2, -X1031 × 1, X33 × 2), its one bracket row after the 30 others (X33 placed, -X1032 removed).
+    let (pos, qty, _, folios) = bracket_row(&q, BomMode::Assembly);
+    assert_eq!((pos, qty.as_str(), folios), (20, "6", owned(&["103", "902"])));
+    let surface = q.table::<Carrier>().get(carrier("R2")).expect("R2").surface;
+    let bracket_rows: Vec<(u32, Option<String>)> = ew_derive::layout::layout_legend(&q, surface)
+        .iter()
+        .filter(|r| matches!(r.item, ew_derive::layout::LegendItem::Bracket(_)))
+        .map(|r| (r.pos, r.qty.map(|d| d.to_string())))
+        .collect();
+    assert_eq!(bracket_rows, [(31, Some("5".to_owned()))]);
 }
 
 /// EB-1, ruling 4: one truth for every reader of `device_part_lines`.

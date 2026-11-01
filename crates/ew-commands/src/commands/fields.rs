@@ -755,7 +755,8 @@ impl Command for SetManyFields {
                 other => other,
             })?;
         }
-        // FT-869: judged on each page's final kind, so a batch that sets the kind away and back keeps the view.
+        // FT-869: judged on each page's final kind; a batch that sets the kind away and back is refused (one entry per
+        // target and path), so the view stays.
         let pages: BTreeSet<AnyId> = self
             .edits
             .iter()

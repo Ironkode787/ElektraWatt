@@ -58,8 +58,10 @@
 //! - **The memory** (ID-1077). A step that passed is recorded in `target/lane-check.json`: its name, its exact commands
 //!   (program, arguments, environment), the merge base's hash, the tree it ran on (`HEAD^{tree}`) and the inputs
 //!   outside the tree that can change its outcome: the environment variables of [`INPUT_ENV_PREFIXES`] (`EW_BLESS`,
-//!   `RUSTFLAGS`, ...), a digest of each cargo configuration file outside the tree, and the version of `cargo nextest`
-//!   or `cargo vet` when the step runs it. A run on a clean worktree (no tracked change, no untracked file outside
+//!   `RUSTFLAGS`, `PROPTEST_CASES`, ...), a digest of each cargo configuration file outside the tree, the output of
+//!   `rustc -vV` and `cargo -V` (a `rustup override` changes them), and the version of `cargo nextest` or `cargo vet`
+//!   when the step runs it. Not held: the contents of folders named by variables, and git-ignored files; run `--fresh`
+//!   after changing them. A run on a clean worktree (no tracked change, no untracked file outside
 //!   `.gitignore`) skips a step whose record matches and prints it as `ok (from memory; --fresh runs it again)`. A
 //!   dirty worktree records nothing and skips nothing; once a step changed the worktree (fmt's rewrite, say), no later
 //!   step is skipped or recorded. A failure forgets the step's record. A step that runs `cargo deny` is never
@@ -892,8 +894,8 @@ struct MemoryKey {
 
 /// The environment variables whose names start with one of these are a record's inputs: the project's own switches
 /// (`EW_BLESS`, ...), the toolchain's (`RUSTFLAGS`, `RUSTDOCFLAGS`, `RUSTUP_TOOLCHAIN`, ...), cargo's build settings
-/// and nextest's.
-const INPUT_ENV_PREFIXES: [&str; 7] = [
+/// nextest's, and proptest's (`PROPTEST_CASES`, ..., which set its defaults).
+const INPUT_ENV_PREFIXES: [&str; 8] = [
     "EW_",
     "RUST",
     "CARGO_BUILD_",
@@ -901,7 +903,50 @@ const INPUT_ENV_PREFIXES: [&str; 7] = [
     "CARGO_TARGET_",
     "CARGO_ENCODED_",
     "NEXTEST_",
+    "PROPTEST_",
 ];
+
+/// The toolchain commands whose output is an input of every record: the compiler and cargo that the steps run, as
+/// `rustup` resolves them in the worktree (`rust-toolchain.toml`, a `rustup override`, `RUSTUP_TOOLCHAIN`).
+const TOOLCHAIN_INPUTS: [Toolchain; 2] = [Toolchain::Rustc, Toolchain::Cargo];
+
+/// One toolchain command of [`TOOLCHAIN_INPUTS`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Toolchain {
+    /// `rustc -vV` (`RUSTC` when set).
+    Rustc,
+    /// `cargo -V` (the cargo that runs the steps).
+    Cargo,
+}
+
+impl Toolchain {
+    /// The input's name in a record.
+    fn input(self) -> &'static str {
+        match self {
+            Toolchain::Rustc => "toolchain rustc -vV",
+            Toolchain::Cargo => "toolchain cargo -V",
+        }
+    }
+
+    /// The output of the command in `root`, trimmed; `None` when it cannot run or fails.
+    fn output_in(self, root: &Path) -> Option<String> {
+        let (program, arg) = match self {
+            Toolchain::Rustc => (
+                std::env::var("RUSTC").unwrap_or_else(|_| "rustc".to_owned()),
+                "-vV",
+            ),
+            Toolchain::Cargo => (crate::cargo(), "-V"),
+        };
+        Command::new(program)
+            .arg(arg)
+            .current_dir(root)
+            .stdin(Stdio::null())
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
+    }
+}
 
 /// The largest `target/lane-check.json` that is read for its records; a larger one holds none.
 const MAX_MEMORY_BYTES: u64 = 4 << 20;
@@ -909,14 +954,24 @@ const MAX_MEMORY_BYTES: u64 = 4 << 20;
 /// The inputs outside the tree that every step shares: the environment variables of [`INPUT_ENV_PREFIXES`] (as
 /// `env <NAME>`), and a SHA-256 digest of each cargo configuration file that cargo reads (`.cargo/config.toml` or
 /// `.cargo/config` in `root` or an ancestor of it, and in `CARGO_HOME`, else the home directory's `.cargo`), as
-/// `cargo config <path>`; the one in `root` is in the tree too, which costs nothing.
-fn outside_inputs(root: &Path, env: &[(String, String)]) -> BTreeMap<String, String> {
+/// `cargo config <path>`; the one in `root` is in the tree too, which costs nothing; and the output of each
+/// [`TOOLCHAIN_INPUTS`] command (`toolchain`; `unknown` when it cannot report one), as `toolchain rustc -vV` and
+/// `toolchain cargo -V`.
+fn outside_inputs(
+    root: &Path,
+    env: &[(String, String)],
+    toolchain: &mut dyn FnMut(Toolchain) -> Option<String>,
+) -> BTreeMap<String, String> {
     use sha2::Digest as _;
     let mut out: BTreeMap<String, String> = env
         .iter()
         .filter(|(k, _)| INPUT_ENV_PREFIXES.iter().any(|p| k.starts_with(p)))
         .map(|(k, v)| (format!("env {k}"), v.clone()))
         .collect();
+    for t in TOOLCHAIN_INPUTS {
+        let output = toolchain(t).unwrap_or_else(|| "unknown".to_owned());
+        out.insert(t.input().to_owned(), output);
+    }
     let mut dirs: Vec<std::path::PathBuf> = root.ancestors().map(|d| d.join(".cargo")).collect();
     let home = env
         .iter()
@@ -1024,7 +1079,7 @@ fn memory_key(root: &Path, merge_base: &str) -> Result<Option<MemoryKey>> {
     Ok(Some(MemoryKey {
         merge_base: merge_base.to_owned(),
         tree,
-        inputs: outside_inputs(root, &env),
+        inputs: outside_inputs(root, &env, &mut |t| t.output_in(root)),
     }))
 }
 
@@ -2330,7 +2385,7 @@ mod tests {
         .iter()
         .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
         .collect();
-        let inputs = outside_inputs(&dir, &env);
+        let inputs = outside_inputs(&dir, &env, &mut |_| None);
         std::fs::remove_dir_all(&dir).unwrap();
         let vars: Vec<(&str, &str)> = inputs
             .iter()
@@ -2349,5 +2404,66 @@ mod tests {
             inputs[&format!("cargo config {}", home.join("config.toml").display())],
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+
+    /// C44-p1#4: the output of `rustc -vV` and `cargo -V` and the `PROPTEST_` variables are inputs, so a changed
+    /// compiler (a `rustup override`, say) or `PROPTEST_CASES` makes a record stale.
+    #[test]
+    fn a_changed_rustc_or_proptest_setting_invalidates_a_record() {
+        let root = Path::new("/no/such/worktree");
+        let rustc_a = "rustc 1.99.0 (abc 2026-10-01)\nhost: x86_64-pc-windows-msvc";
+        let rustc_b = "rustc 1.100.0-nightly (def 2026-10-30)\nhost: x86_64-pc-windows-msvc";
+        let env = |cases: &str| -> Vec<(String, String)> {
+            vec![
+                ("PROPTEST_CASES".to_owned(), cases.to_owned()),
+                ("PATH".to_owned(), "/bin".to_owned()),
+            ]
+        };
+        let key_of = |rustc: &str, cases: &str| MemoryKey {
+            merge_base: "0123abcd".to_owned(),
+            tree: "feedbeef".to_owned(),
+            inputs: outside_inputs(root, &env(cases), &mut |t| {
+                Some(match t {
+                    Toolchain::Rustc => rustc.to_owned(),
+                    Toolchain::Cargo => "cargo 1.99.0 (abc 2026-09-30)".to_owned(),
+                })
+            }),
+        };
+        let base = key_of(rustc_a, "256");
+        let toolchain: Vec<(&str, &str)> = base
+            .inputs
+            .iter()
+            .filter(|(k, _)| !k.starts_with("cargo config "))
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
+        assert_eq!(
+            toolchain,
+            [
+                ("env PROPTEST_CASES", "256"),
+                ("toolchain cargo -V", "cargo 1.99.0 (abc 2026-09-30)"),
+                ("toolchain rustc -vV", rustc_a),
+            ]
+        );
+        let clippy = vec![Cmd::cargo(&["clippy", "-p", "ew-leaf"])];
+        let mut tool = |_: &str| None;
+        let records: BTreeMap<String, Record> = [(
+            "clippy".to_owned(),
+            record_of("clippy", &clippy, &base, &mut tool),
+        )]
+        .into_iter()
+        .collect();
+        let skips = |k: &MemoryKey, tool: &mut dyn FnMut(&str) -> Option<String>| {
+            remembered(&records, "clippy", &clippy, Some(k), false, tool)
+        };
+        assert!(skips(&key_of(rustc_a, "256"), &mut tool));
+        assert!(!skips(&key_of(rustc_b, "256"), &mut tool));
+        assert!(!skips(&key_of(rustc_a, "4096"), &mut tool));
+        // A toolchain that cannot report itself is an input too ("unknown"), never a match by default.
+        let unknown = MemoryKey {
+            inputs: outside_inputs(root, &env("256"), &mut |_| None),
+            ..base.clone()
+        };
+        assert_eq!(unknown.inputs["toolchain rustc -vV"], "unknown");
+        assert!(!skips(&unknown, &mut tool));
     }
 }

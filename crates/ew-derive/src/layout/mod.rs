@@ -28,7 +28,7 @@
 //! | [`RailItem`], [`min_gap`], [`runs`], [`brackets`], [`free_length`] | The rail model: items, minimum gaps, runs of strips and their end brackets (WP-S4.02 D3) |
 //! | [`resolve`], [`SnapMode`] | Where a dropped item lands in free, push or swap mode and which neighbours move (WP-S4.02 D4, D5) |
 //! | [`rail_items`], [`rail_extent`] | A rail's items from `rail_occupancy`; what a device takes along a rail |
-//! | [`GroupAccessories`] | `group_accessories(carrier)`: the derived end brackets of a rail (WP-S4.02 D3, FR-LAY-060) |
+//! | [`GroupAccessories`], [`RailBrackets`] | `group_accessories(carrier)`: the derived end brackets of a rail and their count per strip (WP-S4.02 D3, FR-LAY-060) |
 //! | [`member_order`], [`member_slot`] | The member order of an assembly, shared with EW-LAY-016, and where a member is pushed in (WP-S4.02 D6) |
 //! | [`mount_label`] | A mount kind in words, for every text that names one (WP-S4.02 part 3) |
 //! | [`next_fit`] | Where a fill places an item: the first fit at or after a floor (WP-S4.02 D6) |
@@ -53,7 +53,8 @@ mod queries;
 mod snap;
 
 pub use accessories::{
-    Bracket, GroupAccessories, StripBrackets, bracket_part, bracket_use, rail_items, strip_brackets,
+    Bracket, GroupAccessories, RailBrackets, StripBrackets, bracket_part, bracket_use, rail_items,
+    strip_brackets,
 };
 pub use assembly::{member_order, member_slot};
 pub use carrier::{PathError, RailAxis, check_path, path_length};

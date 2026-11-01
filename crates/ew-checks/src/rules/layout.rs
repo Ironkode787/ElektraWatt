@@ -1140,12 +1140,17 @@ fn mm_short(nm: i128) -> String {
 enum Overlapped<'b> {
     /// Another placement's footprint.
     Placement(Id<Placement>),
-    /// A later bracket.
-    Bracket(&'b Bracket),
+    /// A later bracket, with its index in the rail's list.
+    Bracket(usize, &'b Bracket),
 }
 
 /// The end-bracket cases of EW-LAY-010 on one rail (WP-S4.02 part 5, ruling 5): a bracket that overlaps another
 /// placement's footprint or a later bracket, a bracket outside `[0, L]`. A rail without a valid axis has no brackets.
+///
+/// The work is O((P + B) log P) per rail, P placements and B brackets (WP-S4.02 §9, ruling 11): both lists are in rail
+/// order, so one sweep drops the placements that end at or before a bracket's start and a binary search bounds those
+/// that start before its end; the later bracket it may overlap is the next one of non-zero length. A bracket of zero
+/// length overlaps nothing and still counts in the overflow case (ruling 12). No cap: at most two findings per bracket.
 fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     if c.kind != CarrierKind::Rail {
         return;
@@ -1161,53 +1166,97 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     let placements = q.table::<Placement>();
     let rail =
         carrier_label(q, id).map_or_else(|| format!("the rail at {}", carrier_at(c)), |l| l.in_sentence());
-    // A bracket is "before" its strip when it starts before the strip's footprint does (the run-start bracket).
-    let side = |b: &Bracket| {
-        let before = occupancy
-            .iter()
-            .find(|o| o.placement == b.placement)
-            .is_some_and(|o| b.s0 < o.s0);
+    // Where each placement's footprint starts, built once per rail (its first interval, as the scan found it before).
+    let mut starts: BTreeMap<Id<Placement>, i128> = BTreeMap::new();
+    for o in occupancy.iter() {
+        starts.entry(o.placement).or_insert(o.s0);
+    }
+    // A bracket is "before" its strip when it starts before the strip's footprint does (the run-start bracket). A
+    // zero-length strip with a zero-length bracket has two at one point; the first in rail order is its run-start
+    // bracket (`brackets` pushes it first and sorts stably), so the two read, and fingerprint, apart (ruling 12).
+    let side = |i: usize| {
+        let Some(b) = brackets.get(i) else {
+            return "after";
+        };
+        let before = starts.get(&b.placement).is_some_and(|&s0| {
+            b.s0 < s0
+                || (b.s0 == s0
+                    && b.s1 == b.s0
+                    && brackets
+                        .get(i.saturating_add(1))
+                        .is_some_and(|x| x.placement == b.placement && x.s0 == b.s0 && x.s1 == b.s1))
+        });
         if before { "before" } else { "after" }
     };
-    let overlaps = |s0: i128, s1: i128, b: &Bracket| s0 < b.s1 && b.s0 < s1;
+    // The next bracket of non-zero length after each, from one pass from the end.
+    let mut next_long: Vec<Option<usize>> = vec![None; brackets.len()];
+    let mut seen = None;
+    for (i, b) in brackets.iter().enumerate().rev() {
+        next_long[i] = seen;
+        if b.s1 > b.s0 {
+            seen = Some(i);
+        }
+    }
+    // The sweep over the occupancy: `alive` holds, in rail order, the placements that end after the current bracket's
+    // start; they leave in the order of their ends as the brackets' starts (non-decreasing) pass them.
+    let mut by_end: Vec<usize> = (0..occupancy.len()).collect();
+    by_end.sort_by_key(|&k| occupancy[k].s1);
+    let mut alive: BTreeSet<usize> = (0..occupancy.len()).collect();
+    let mut ended = by_end.iter().peekable();
     for (i, b) in brackets.iter().enumerate() {
+        while let Some(&&k) = ended.peek() {
+            if occupancy[k].s1 > b.s0 {
+                break;
+            }
+            alive.remove(&k);
+            ended.next();
+        }
         let Some(pl) = placements.get(b.placement) else {
             continue;
         };
         let name = device_name(q, b.strip);
-        let this = format!("The end bracket {} {name}", side(b));
+        let this = format!("The end bracket {} {name}", side(i));
         let finding = |form: &'static str, message: String| {
             let f = Finding::new(
                 &CARRIER_INCOMPATIBLE,
                 placement_targets(pl),
-                format!("{form}:{}", b.s0),
+                format!("{form}:{}:{}", side(i), b.s0),
                 name.clone(),
                 message,
             )
             .arg("form", form)
             .arg("device", name.clone())
-            .arg("side", side(b))
+            .arg("side", side(i))
             .arg("rail", rail.clone());
             shown(f, q, Some(c.surface))
         };
-        // The first placement (other than its strip's) or later bracket it overlaps, in rail order.
-        let placement = occupancy
-            .iter()
-            .find(|o| o.placement != b.placement && overlaps(o.s0, o.s1, b))
-            .map(|o| ((o.s0, o.s1), Overlapped::Placement(o.placement)));
-        let bracket = brackets
-            .iter()
-            .skip(i + 1)
-            .find(|x| overlaps(x.s0, x.s1, b))
-            .map(|x| ((x.s0, x.s1), Overlapped::Bracket(x)));
-        let first = match (placement, bracket) {
-            (Some(p), Some(x)) => Some(if x.0 < p.0 { x.1 } else { p.1 }),
-            (p, x) => p.or(x).map(|o| o.1),
+        // The first placement (other than its strip's) or later bracket it overlaps, in rail order; a bracket of zero
+        // length overlaps nothing.
+        let first = if b.s1 > b.s0 {
+            // A placement overlaps when it is alive (it ends after the bracket starts) and starts before it ends.
+            let starting = occupancy.partition_point(|o| o.s0 < b.s1);
+            let placement = alive
+                .range(..starting)
+                .map(|&k| &occupancy[k])
+                .find(|o| o.placement != b.placement)
+                .map(|o| ((o.s0, o.s1), Overlapped::Placement(o.placement)));
+            // A later bracket starts at or after this one's start: the next of non-zero length overlaps when it starts
+            // before this one ends, and when it does not, none after it does.
+            let bracket = next_long[i]
+                .and_then(|j| Some((j, brackets.get(j)?)))
+                .filter(|(_, x)| x.s0 < b.s1)
+                .map(|(j, x)| ((x.s0, x.s1), Overlapped::Bracket(j, x)));
+            match (placement, bracket) {
+                (Some(p), Some(x)) => Some(if x.0 < p.0 { x.1 } else { p.1 }),
+                (p, x) => p.or(x).map(|o| o.1),
+            }
+        } else {
+            None
         };
         match first {
-            Some(Overlapped::Bracket(x)) => {
+            Some(Overlapped::Bracket(j, x)) => {
                 let other = device_name(q, x.strip);
-                let other_side = side(x);
+                let other_side = side(j);
                 out.push(
                     finding(
                         "bracket_overlap",

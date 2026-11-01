@@ -775,7 +775,7 @@ fn eb4_a_bracket_overlapping_a_strip_in_its_run_and_a_placement() {
             "De eindsteun vóór +J-E-2416-X1031 overlapt +J-E-2416-K9 op rail 2.",
         ]
     );
-    // Each targets the strip and its placement; the bracket's start tells the two apart.
+    // Each targets the strip and its placement; the bracket's side and start tell the two apart (ruling 12).
     let mut found: Vec<(String, Vec<String>)> = findings_of(&m, "EW-LAY-010")
         .into_iter()
         .map(|f| {
@@ -791,8 +791,8 @@ fn eb4_a_bracket_overlapping_a_strip_in_its_run_and_a_placement() {
     assert_eq!(
         found,
         [
-            ("bracket_overlap:48600000".to_owned(), targets.clone()),
-            ("bracket_overlap:77200000".to_owned(), targets),
+            ("bracket_overlap:after:77200000".to_owned(), targets.clone()),
+            ("bracket_overlap:before:48600000".to_owned(), targets),
         ]
     );
 }
@@ -842,4 +842,143 @@ fn eb4_brackets_with_room_give_no_finding() {
     // -X1032 10 mm after -X1031: one bracket between, nothing overlaps, nothing leaves the rail.
     let m = bracketed(58.6, 87.2).build();
     assert_eq!(messages(&m, "EW-LAY-010"), Vec::<String>::new());
+}
+
+const P_EB0: u128 = 0x60a; // an end bracket without a width
+const P_TERM0: u128 = 0x60b; // a terminal without a width (TS 35, 0 × 47 mm)
+const STRIP0: u128 = 0xec; // -X1040, one terminal of no width
+const PL_STRIP0: u128 = 0xf10c;
+
+/// The plate with -X1040, a strip of no width declaring a bracket of no width, placed on R2 at `s`: its run-start
+/// bracket and the one after it are both `[s, s]`.
+fn zero_width_strip(s: f64) -> Fx {
+    let mut fx = plate();
+    fx.part(P_EB0, "EB 0", &json!({"kind": "end_bracket"}));
+    mech_part(
+        &mut fx,
+        P_TERM0,
+        "UK 0",
+        json!({"width": 0, "height": mm(47.0), "mount_kind": "ts35x7_5"}),
+    );
+    fx.device(STRIP0, "X", Some(1040)).with("strip", json!({}));
+    located(&mut fx, STRIP0, "X", 1040, LOC);
+    fx.with_parts(STRIP0, &[P_EB0]);
+    fx.device(0xed, "X", None).with(
+        "terminal",
+        json!({"strip": us(STRIP0), "seq": 1, "designation": "1"}),
+    );
+    fx.with("structure", json!({"location": us(LOC)}));
+    fx.with_parts(0xed, &[P_TERM0]);
+    place(&mut fx, PL_STRIP0, STRIP0, None, on(R2), rail_pose(s));
+    fx
+}
+
+/// Ruling 12 (C44-p1#5): a strip whose bracket part has no width gives two brackets at one start; their findings never
+/// share a fingerprint, and a zero-length bracket overlaps nothing.
+#[test]
+fn eb4_brackets_of_no_width_never_share_a_fingerprint_and_overlap_nothing() {
+    // Past R2's end (570 mm): both brackets [600, 600] leave the rail, the run-start one "before" its strip.
+    let m = zero_width_strip(600.0).build();
+    let mut found: Vec<(String, String)> = findings_of(&m, "EW-LAY-010")
+        .into_iter()
+        .map(|f| (f.discriminator, f.message))
+        .collect();
+    found.sort();
+    assert_eq!(
+        found,
+        [
+            (
+                "bracket_outside:after:600000000".to_owned(),
+                "The end bracket after +J-E-2416-X1040 passes the end of rail 2 by 30 mm.".to_owned()
+            ),
+            (
+                "bracket_outside:before:600000000".to_owned(),
+                "The end bracket before +J-E-2416-X1040 passes the end of rail 2 by 30 mm.".to_owned()
+            ),
+            (
+                "off_rail".to_owned(),
+                "+J-E-2416-X1040 is placed at 600.0 mm on the rail at (40.0, 480.0)–(610.0, 480.0) mm, outside its \
+                 0.0 to 570.0 mm; move it onto the rail"
+                    .to_owned()
+            ),
+        ]
+    );
+    // Inside -X1031's footprint [58.6, 77.2]: the two brackets at 67 mm have no length and overlap nothing.
+    let m = zero_width_strip(67.0).build();
+    assert_eq!(messages(&m, "EW-LAY-010"), Vec::<String>::new());
+}
+
+/// Ruling 11 (C44-p1#1): 200 strips stacked on one rail at s = 100 mm, each one 6.2 mm terminal declaring the 10 mm
+/// bracket. One run: its run-start bracket [90, 100] (the first strip's) and one bracket after each strip, all at
+/// [106.2, 116.2], each overlapping the next. EW-LAY-010 gives one finding per overlapping bracket (199, no cap), and
+/// each strip's bracket line counts its own brackets (the first 2, every other 1; the BOM row 201). The speed is not
+/// measured (owner's rule).
+#[test]
+fn eb4_a_rail_of_stacked_strips_gives_one_finding_per_bracket_and_its_bom_line() {
+    const N: u32 = 200;
+    let strip = |i: u32| 0x1000 + u128::from(i);
+    let mut fx = plate();
+    fx.part(
+        P_EB,
+        "EB 10",
+        &json!({"kind": "end_bracket", "mech": {"width": mm(10.0)}}),
+    );
+    for i in 0..N {
+        fx.device(strip(i), "X", Some(2000 + i)).with("strip", json!({}));
+        located(&mut fx, strip(i), "X", 2000 + i, LOC);
+        fx.with_parts(strip(i), &[P_EB]);
+        let t = 0x2000 + u128::from(i);
+        fx.device(t, "X", None).with(
+            "terminal",
+            json!({"strip": us(strip(i)), "seq": 1, "designation": "1"}),
+        );
+        fx.with("structure", json!({"location": us(LOC)}));
+        fx.with_parts(t, &[P_TERM]);
+        place(
+            &mut fx,
+            0x3000 + u128::from(i),
+            strip(i),
+            None,
+            on(R2),
+            rail_pose(100.0),
+        );
+    }
+    let m = fx.build();
+    let mut expected: Vec<String> = (0..N - 1)
+        .map(|i| {
+            format!(
+                "The end bracket after +J-E-2416-X{} overlaps the end bracket after +J-E-2416-X{} on rail 2.",
+                2000 + i,
+                2001 + i
+            )
+        })
+        .collect();
+    expected.sort();
+    assert_eq!(messages(&m, "EW-LAY-010"), expected);
+
+    let q = ew_derive::Q::new(&m);
+    for i in 0..N {
+        let lines: Vec<(String, ew_derive::LineSource)> = q
+            .get::<ew_derive::DevicePartLines>(ew_derive::ew_ids::Id::from_uuid(
+                ew_derive::ew_ids::Uuid::from_u128(strip(i)),
+            ))
+            .iter()
+            .filter(|l| l.source == ew_derive::LineSource::GroupAccessory)
+            .map(|l| (l.qty.to_string(), l.source))
+            .collect();
+        let qty = if i == 0 { "2" } else { "1" };
+        assert_eq!(
+            lines,
+            [(qty.to_owned(), ew_derive::LineSource::GroupAccessory)],
+            "X{}",
+            2000 + i
+        );
+    }
+    let rows: Vec<(String, String)> = q
+        .get::<ew_derive::BomRows>(ew_derive::BomMode::Component)
+        .iter()
+        .filter(|r| r.part_number == "EB 10")
+        .map(|r| (r.part_number.clone(), r.qty.to_string()))
+        .collect();
+    assert_eq!(rows, [("EB 10".to_owned(), "201".to_owned())]);
 }

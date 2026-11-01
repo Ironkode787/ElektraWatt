@@ -8,7 +8,7 @@
 //! [`strip_brackets`] counts the brackets attributed to one strip over its rails: the BOM's line of the strip's
 //! declaring part use reads it (part 5, D13).
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::Id;
@@ -79,11 +79,8 @@ pub fn strip_brackets(q: &Q, device: Id<Device>) -> Option<StripBrackets> {
     let mut count = 0usize;
     let mut surfaces = BTreeSet::new();
     for c in carriers {
-        let n = q
-            .get::<GroupAccessories>(c)
-            .iter()
-            .filter(|b| b.strip == device)
-            .count();
+        // counted once per rail inside the family (WP-S4.02 §9, ruling 11), not filtered here per strip
+        let n = q.get::<GroupAccessories>(c).count_of(device);
         if n > 0 {
             count = count.saturating_add(n);
             if let Some(rec) = table.get(c) {
@@ -144,20 +141,56 @@ pub struct Bracket {
     pub placement: Id<Placement>,
 }
 
+/// The end brackets of one rail, the value of [`GroupAccessories`]: the brackets in rail order (it dereferences to
+/// them) and how many each strip holds, counted once when the family runs (WP-S4.02 §9, ruling 11).
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct RailBrackets {
+    /// The brackets, sorted as [`GroupAccessories`] says.
+    pub list: Vec<Bracket>,
+    /// The number of brackets attributed to each strip.
+    pub per_strip: BTreeMap<Id<Device>, usize>,
+}
+
+impl RailBrackets {
+    /// The brackets in rail order, with each strip's count.
+    pub fn new(list: Vec<Bracket>) -> Self {
+        let mut per_strip: BTreeMap<Id<Device>, usize> = BTreeMap::new();
+        for b in &list {
+            let n = per_strip.entry(b.strip).or_default();
+            *n = n.saturating_add(1);
+        }
+        Self { list, per_strip }
+    }
+
+    /// How many of the rail's brackets are attributed to `strip` (0 when none).
+    pub fn count_of(&self, strip: Id<Device>) -> usize {
+        self.per_strip.get(&strip).copied().unwrap_or(0)
+    }
+}
+
+impl std::ops::Deref for RailBrackets {
+    type Target = [Bracket];
+
+    fn deref(&self) -> &[Bracket] {
+        &self.list
+    }
+}
+
 /// `group_accessories(carrier)`: the end brackets of a rail (D3, FR-LAY-060), sorted by `s0` (then `s1`, then the
 /// strip's place in the occupancy): per run of strips, one at the run's start attributed to its first strip and one
 /// after each strip attributed to it, from [`rail_items`] and each strip's declaring part use. Empty for a duct, a rail
-/// without a valid axis and a rail without strips. On Golden A's R2: four, attributed 1X1, 1X1, -X1031, -X1032.
+/// without a valid axis and a rail without strips. On Golden A's R2: four, attributed 1X1, 1X1, -X1031, -X1032. The
+/// value also counts the brackets per strip ([`RailBrackets::count_of`]).
 #[derive(Debug)]
 pub struct GroupAccessories;
 
 impl Query for GroupAccessories {
     type Key = Id<Carrier>;
-    type Value = Vec<Bracket>;
+    type Value = RailBrackets;
     const FAMILY: &'static str = "group_accessories";
     const POLICY: Policy = Policy::Memo;
 
-    fn run(q: &Q, key: &Self::Key) -> Arc<Vec<Bracket>> {
+    fn run(q: &Q, key: &Self::Key) -> Arc<RailBrackets> {
         let items = rail_items(q, *key);
         let placements = q.table::<Placement>();
         let devices = q.devices();
@@ -176,6 +209,6 @@ impl Query for GroupAccessories {
                 })
             })
             .collect();
-        Arc::new(out)
+        Arc::new(RailBrackets::new(out))
     }
 }

@@ -1303,14 +1303,15 @@ fn steps_without_tests<'s>(
         .collect()
 }
 
-/// The files a failing bless step names in its call's output (`text`) that match its outputs: each word, stripped
-/// of quotes, brackets, a final `.` and trailing `:<line>` parts, with `\` (and a debug-escaped `\\`) read as `/` and the root
-/// (`root`, `/`-separated) and a leading `./` removed; each once, sorted.
+/// The files a failing bless step names in its call's output (`text`) that match its outputs. In the whole text, `\`
+/// (and a debug-escaped `\\`) is read as `/` and the root (`root`, `/`-separated, ASCII case-insensitive) is removed
+/// first, so a root holding a space still names its files (C44-p1#6); then each word, stripped of quotes, brackets, a
+/// final `.` and trailing `:<line>` parts, and of a leading `./`; each once, sorted.
 fn named_outputs(outputs: &[&str], root: &str, text: &str) -> Vec<String> {
-    let root = root.trim_end_matches('/');
+    let text = without_root(&text.replace("\\\\", "/").replace('\\', "/"), root);
     let mut out = BTreeSet::new();
     for word in text.split_whitespace() {
-        let mut w = word.replace("\\\\", "/").replace('\\', "/");
+        let mut w = word.to_owned();
         loop {
             let trimmed = w
                 .trim_matches(|c: char| "\"'`()[]{}<>,;".contains(c))
@@ -1324,19 +1325,33 @@ fn named_outputs(outputs: &[&str], root: &str, text: &str) -> Vec<String> {
             }
             w = trimmed.to_owned();
         }
-        let lower = w.to_ascii_lowercase();
-        let prefix = format!("{}/", root.to_ascii_lowercase());
-        let rel = if !root.is_empty() && lower.starts_with(&prefix) {
-            &w[prefix.len()..]
-        } else {
-            w.as_str()
-        };
-        let rel = rel.trim_start_matches("./");
+        let rel = w.trim_start_matches("./");
         if outputs.iter().any(|o| glob_match(o, rel)) {
             out.insert(rel.to_owned());
         }
     }
     out.into_iter().collect()
+}
+
+/// `text` with every `<root>/` removed, the root (`/`-separated, `\` read as `/`) matched ASCII case-insensitively; the
+/// text whole when the root is empty.
+fn without_root(text: &str, root: &str) -> String {
+    let root = root.replace('\\', "/");
+    let root = root.trim_end_matches('/');
+    if root.is_empty() {
+        return text.to_owned();
+    }
+    let prefix = format!("{}/", root.to_ascii_lowercase());
+    // ASCII lowering keeps every byte offset and char boundary, so an offset in `lower` is one in `text`.
+    let lower = text.to_ascii_lowercase();
+    let mut out = String::with_capacity(text.len());
+    let mut at = 0;
+    while let Some(found) = lower[at..].find(&prefix) {
+        out.push_str(&text[at..at + found]);
+        at += found + prefix.len();
+    }
+    out.push_str(&text[at..]);
+    out
 }
 
 /// What a failing bless step would rewrite in `--check`, for its line: the files [`named_outputs`] finds, or, when
@@ -2523,6 +2538,19 @@ mod tests {
                 "keymaps: would rewrite crates/ew-viewmodel/keymaps/ew.toml, crates/ew-viewmodel/keymaps/sheet.json\n    \
                  {shown} failed:\n    FAIL [   0.012s] ( 1/1) ew-viewmodel::keymaps the_keymaps_are_current"
             )
+        );
+
+        // C44-p1#6: a root holding a space (and printed in another case) still names its files.
+        let spaced = "C:/Users/A B/ew";
+        let output_spaced = "panicked at crates/ew-viewmodel/tests/keymaps.rs:41:5:\n\
+            c:\\users\\a b\\ew\\crates\\ew-viewmodel\\keymaps\\ew.toml is stale\n\
+            left: \"C:\\\\Users\\\\A B\\\\ew\\\\crates\\\\ew-viewmodel\\\\keymaps\\\\sheet.json\"\n";
+        assert_eq!(
+            named_outputs(s.outputs, spaced, output_spaced),
+            [
+                "crates/ew-viewmodel/keymaps/ew.toml",
+                "crates/ew-viewmodel/keymaps/sheet.json"
+            ]
         );
 
         let none = "        FAIL [   0.012s] ( 1/1) ew-viewmodel::keymaps the_keymaps_are_current\n\
