@@ -11,6 +11,7 @@
 //! | [`PdfPage`] | one file `<label>.svg` (characters outside `[A-Za-z0-9._-]` become `_`); `width`/`height` in mm, `viewBox` in mm; the root `id` is the page's destination name in NCName form (`ew-p-<uuid>`); a `<title>` with the page's outline title |
 //! | `Path` | `<path d>` with fill (non-zero) and stroke: width, caps, joins, miter limit [`ew_dl::MITER_LIMIT`], dashes, opacity; a path with neither draws nothing unless it is a link source (then it is a transparent hit region, `pointer-events="all"`) |
 //! | `Glyphs` | `<text>` with the run's text **as text** (FR-OUT-013), one `x` (and `y` where a glyph is offset) per character when characters and glyphs pair one to one, else the start and the run's `textLength`; `font-family`, `font-weight`, `font-style` and `font-size` from [`SvgOptions::faces`]; spaces kept (`white-space: pre`); `.notdef` glyphs dropped as in the PDF |
+//! | the faces a page draws | one `@font-face` per face in the page's `<style>`, in [`FontKey`] order: the face's subset ([`subset_glyf`](crate::subset_glyf), glyph IDs kept) as `data:font/ttf;base64,…` |
 //! | `Group` | `<g transform>` with a `<clipPath>` rectangle when clipped |
 //! | `Instance` | the resolved geometry under the instance transform in a `<g>`; unresolved: skipped and counted |
 //! | `Image` | skipped and counted, as in the PDF |
@@ -26,12 +27,24 @@
 //! absolute path. The per-page phase runs under [`Parallelism`] and is assembled by page index, so serial
 //! and parallel exports are byte-identical.
 //!
-//! *As built (cycle 14):* the fonts are named, not embedded: `font-family` is the face's family with the
-//! generic `sans-serif` after it. Doc 09 §4.4 embeds the font subsets as `@font-face` data; that needs a
-//! subsetter that keeps the `cmap` (open ruling of the cycle-14 report).
+//! # Fonts
+//!
+//! Each page embeds the faces its `<text>` elements name (doc 09 §4.4; WP-S3.07 D3, FT-233): one subset per face
+//! per page holding the glyphs that face draws on that page (the runs' glyphs and the glyphs the face's `cmap`
+//! gives the characters written, so that a browser that maps the characters itself finds their outlines), so the
+//! pages stay independent of each other. The `<style>` at the top of the page declares
+//! `@font-face { font-family: "<family>"; font-weight: <w>; font-style: <s>; src: url(data:font/ttf;base64,…)
+//! format("truetype"); }` for each, and `font-family` on `<text>` is the face's family with the generic
+//! `sans-serif` after it. A face without bytes in [`SvgOptions::faces`], or whose bytes the subsetter refuses
+//! (a CFF face, a malformed file), is named only and counted in [`SvgReport::named_fonts`].
+//!
+//! *As built (cycle 45):* the fonts were named only from cycle 14 (krilla's subsetter drops the `cmap`); the
+//! embedded subsets come from this crate's own subsetter, which keeps the glyph IDs and the `cmap` (WP-S3.07
+//! part 1). The other rows are as built in cycle 14.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{self, Write as _};
+use std::sync::Arc;
 
 use ew_dl::ew_units::{Nm, Pt2};
 use ew_dl::{
@@ -41,9 +54,10 @@ use ew_dl::{
 use ew_render_cpu::{decode_image, monochrome};
 
 use crate::PdfPage;
+use crate::font_subset::subset_for_text;
 use crate::parallel::{Parallelism, par_map};
 
-/// How a font face is named in the SVG.
+/// How a font face is named in the SVG, and the bytes its subsets are made from.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SvgFace {
     /// The family name ("Noto Sans").
@@ -52,6 +66,8 @@ pub struct SvgFace {
     pub weight: u16,
     /// Italic.
     pub italic: bool,
+    /// The face's font file (a single TrueType face); `None` names the face without embedding it.
+    pub data: Option<Arc<[u8]>>,
 }
 
 /// SVG export settings.
@@ -83,6 +99,9 @@ pub struct SvgReport {
     pub plain_text_links: usize,
     /// Faces [`SvgOptions::faces`] did not name; their runs were not drawn. Sorted, unique.
     pub missing_fonts: Vec<FontKey>,
+    /// Faces drawn but named, not embedded, on at least one page: no bytes in [`SvgOptions::faces`], or bytes the
+    /// subsetter refuses (not TrueType `glyf`, or malformed). Sorted, unique.
+    pub named_fonts: Vec<FontKey>,
     /// `.notdef` glyphs dropped.
     pub dropped_notdef_glyphs: usize,
     /// Images written: PNG and JPEG as `<image>` elements with their bytes embedded (FT-384).
@@ -102,6 +121,9 @@ impl SvgReport {
         self.missing_fonts.extend(o.missing_fonts.iter().copied());
         self.missing_fonts.sort();
         self.missing_fonts.dedup();
+        self.named_fonts.extend(o.named_fonts.iter().copied());
+        self.named_fonts.sort();
+        self.named_fonts.dedup();
         self.dropped_notdef_glyphs += o.dropped_notdef_glyphs;
         self.images += o.images;
         self.skipped_images += o.skipped_images;
@@ -222,6 +244,7 @@ pub fn svg(
         faces: &options.faces,
         geometry,
         rasters: &rasters,
+        embed: false,
     };
     let drawn = par_map(pages, parallelism, |i, page| probe.page(i, page, contents[i]).2);
     // Where every destination is: pages by their own destination, link targets on the first page in page
@@ -242,6 +265,7 @@ pub fn svg(
         faces: &options.faces,
         geometry,
         rasters: &rasters,
+        embed: true,
     };
     let written = par_map(pages, parallelism, |i, page| ctx.page(i, page, contents[i]));
     let mut report = SvgReport::default();
@@ -260,6 +284,8 @@ struct Ctx<'a> {
     geometry: Option<&'a (dyn GeometryResolver + Sync)>,
     /// Whether the PNG or JPEG bytes of an asset decode ([`drawable_rasters`]).
     rasters: &'a BTreeMap<[u8; 32], bool>,
+    /// Whether the pages embed their font subsets (not in the probe pass, which keeps only the ids).
+    embed: bool,
 }
 
 /// Records for every PNG or JPEG image item of `items` (groups included) with bytes whether they decode with
@@ -292,17 +318,39 @@ impl Ctx<'_> {
             report: SvgReport::default(),
             clips: 0,
             ids: BTreeSet::new(),
+            used: BTreeMap::new(),
         };
+        w.items(&list.items, 0);
         let (wd, ht) = (mm(page.width), mm(page.height));
+        let mut out = String::with_capacity(w.out.len() + 256);
         let _ = write!(
-            w.out,
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"{}\" width=\"{wd}mm\" height=\"{ht}mm\" viewBox=\"0 0 {wd} {ht}\">\n<title>{}</title>\n<style>text{{white-space:pre}}</style>\n",
+            out,
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"{}\" width=\"{wd}mm\" height=\"{ht}mm\" viewBox=\"0 0 {wd} {ht}\">\n<title>{}</title>\n<style>",
             svg_id(&page.destination),
             escape(&page.title)
         );
-        w.items(&list.items, 0);
-        w.out.push_str("</svg>\n");
-        (w.out, w.report, w.ids)
+        if self.embed {
+            for (key, (glyphs, chars)) in &w.used {
+                let face = &self.faces[key];
+                match face.data.as_deref().map(|d| subset_for_text(d, glyphs, chars)) {
+                    Some(Ok(subset)) => {
+                        let _ = writeln!(
+                            out,
+                            "@font-face {{ font-family: {}; font-weight: {}; font-style: {}; src: url(data:font/ttf;base64,{}) format(\"truetype\"); }}",
+                            escape_text(&css_string(&face.family)),
+                            face.weight,
+                            if face.italic { "italic" } else { "normal" },
+                            base64(&subset)
+                        );
+                    }
+                    _ => w.report.named_fonts.push(*key),
+                }
+            }
+        }
+        out.push_str("text{white-space:pre}</style>\n");
+        out.push_str(&w.out);
+        out.push_str("</svg>\n");
+        (out, w.report, w.ids)
     }
 }
 
@@ -314,6 +362,9 @@ struct PageWriter<'a> {
     clips: usize,
     /// The link targets whose id this page wrote (an id is written once per page, on a drawn element).
     ids: BTreeSet<Destination>,
+    /// The faces the page's `<text>` elements name, each with the glyph IDs its runs drew and the characters
+    /// written: the content of the face's subset.
+    used: BTreeMap<FontKey, (BTreeSet<u16>, BTreeSet<char>)>,
 }
 
 impl PageWriter<'_> {
@@ -557,6 +608,14 @@ impl PageWriter<'_> {
         }
         let _ = writeln!(self.out, ">{}</text>", escape(&text));
         self.report.texts += 1;
+        let (glyphs, written) = self.used.entry(run.font).or_default();
+        // A TrueType glyph ID is 16 bits; a larger one is not in the face, so the subsetter refuses it (as
+        // `u16::MAX`, never a glyph of a face) and the face is named only.
+        glyphs.extend(
+            kept.iter()
+                .map(|&i| u16::try_from(run.glyphs[i].id).unwrap_or(u16::MAX)),
+        );
+        written.extend(text.chars());
         true
     }
 }
@@ -571,6 +630,29 @@ fn quote_family(family: &str) -> String {
     } else {
         format!("'{}'", family.replace('\'', "\\'"))
     }
+}
+
+/// A family name as a CSS string: in double quotes, with `"` and `\` escaped and control characters dropped.
+fn css_string(family: &str) -> String {
+    let mut out = String::with_capacity(family.len() + 2);
+    out.push('"');
+    for c in family.chars() {
+        match c {
+            '"' | '\\' => {
+                out.push('\\');
+                out.push(c);
+            }
+            c if c.is_control() => {}
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+/// XML character-data escaping (`&`, `<`, `>`): the content of `<style>`, where quotes stay as they are.
+fn escape_text(s: &str) -> String {
+    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
 /// `#rrggbb` and the opacity when it is not 1.
@@ -758,5 +840,8 @@ mod tests {
         assert_eq!(escape("x\u{1}y"), "x\u{FFFD}y");
         assert_eq!(quote_family("Noto Sans"), "Noto Sans");
         assert_eq!(quote_family("A'B"), "'A\\'B'");
+        assert_eq!(css_string("Noto Sans"), "\"Noto Sans\"");
+        assert_eq!(css_string("A\"B\\C\u{7}"), r#""A\"B\\C""#);
+        assert_eq!(escape_text("\"a\" & <b>"), "\"a\" &amp; &lt;b&gt;");
     }
 }

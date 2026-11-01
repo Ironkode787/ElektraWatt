@@ -34,3 +34,6 @@ sha2 = { workspace = true }
 png = "0.18.1"
 # Destination IDs of the test pages.
 uuid = { version = "1.26", default-features = false }
+# The SVG font tests read the embedded subsets back (WP-S3.07 D4): the version and features of ew-text's edge, already
+# in the graph. The subsetter itself uses the standard library only.
+skrifa = { version = "0.44.0", default-features = false, features = ["std"] }

@@ -18,7 +18,8 @@ use ew_text::{builtin, bundled};
 use ew_units::{Nm, Orient2, Pt2, Rect};
 use uuid::Uuid;
 
-fn faces() -> BTreeMap<FontKey, SvgFace> {
+/// The bundled faces with their font files, as the shipped export names and embeds them.
+pub(crate) fn faces() -> BTreeMap<FontKey, SvgFace> {
     bundled()
         .faces()
         .map(|f| {
@@ -28,6 +29,7 @@ fn faces() -> BTreeMap<FontKey, SvgFace> {
                     family: f.family_name.clone(),
                     weight: f.weight.value(),
                     italic: f.italic,
+                    data: bundled().face_data(f.key).map(Arc::from),
                 },
             )
         })

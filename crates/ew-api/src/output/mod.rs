@@ -397,8 +397,10 @@ pub fn font_bytes() -> &'static BTreeMap<FontKey, FontBytes> {
     })
 }
 
-/// The SVG options of an export: the bundled faces by family, weight and style.
+/// The SVG options of an export: the bundled faces by family, weight and style, each with its font file
+/// ([`font_bytes`]) so that every page embeds the subsets of the faces it draws (WP-S3.07 D3).
 pub fn svg_options(monochrome: bool) -> SvgOptions {
+    let bytes = font_bytes();
     SvgOptions {
         monochrome,
         faces: ew_text::bundled()
@@ -410,6 +412,11 @@ pub fn svg_options(monochrome: bool) -> SvgOptions {
                         family: f.family_name.clone(),
                         weight: f.weight.value(),
                         italic: f.italic,
+                        // A face of a collection file is named only: the subsetter takes single-face files.
+                        data: bytes
+                            .get(&f.key)
+                            .filter(|b| b.index == 0)
+                            .map(|b| Arc::clone(&b.data)),
                     },
                 )
             })
