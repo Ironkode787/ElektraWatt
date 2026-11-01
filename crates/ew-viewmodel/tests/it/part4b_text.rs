@@ -651,10 +651,6 @@ fn the_part_4b_ghost_lines_use_only_vocabulary_words() {
     scan(&s, &mut seen);
     assert!(seen.contains("graphic"), "{seen:?}");
     assert!(seen.contains("anticlockwise"), "{seen:?}");
-    let words = ew_viewmodel::describe::ITEM_WORDS;
-    for w in words {
-        assert!(ew_viewmodel::describe::VOCABULARY.contains(w));
-    }
 }
 
 #[test]

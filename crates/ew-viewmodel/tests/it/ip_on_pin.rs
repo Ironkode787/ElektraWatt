@@ -196,7 +196,7 @@ fn a_point_dropped_on_a_free_pin_connects_to_it() {
     let pin = cp(&s, "-102F2:14");
     arm_on(&mut s, "0V", pin.at);
     assert_eq!(ghost(&s)["connects"], "-102F2:14");
-    // The describe line ends with the pin, a word of `IP_PIN_WORDS`.
+    // The describe line ends with the pin, a word of `Reach::IpPin`.
     let line = s
         .describe()
         .lines()
@@ -204,9 +204,8 @@ fn a_point_dropped_on_a_free_pin_connects_to_it() {
         .unwrap()
         .to_owned();
     assert!(line.ends_with(" connects \"-102F2:14\""), "{line}");
-    for w in ew_viewmodel::describe::IP_PIN_WORDS {
-        assert!(ew_viewmodel::describe::VOCABULARY.contains(w));
-        assert!(line.split_whitespace().any(|t| t == *w), "{w}");
+    for w in ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::IpPin) {
+        assert!(line.split_whitespace().any(|t| t == w), "{w}");
     }
     assert_eq!(
         hud(&s),

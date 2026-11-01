@@ -472,9 +472,6 @@ fn fr6_describe_lines_and_the_fourteen_words() {
     ] {
         assert!(seen.contains(w), "{w}");
     }
-    for w in ew_viewmodel::describe::FIND_WORDS {
-        assert!(ew_viewmodel::describe::VOCABULARY.contains(w), "{w}");
-    }
     shell.shutdown();
 }
 

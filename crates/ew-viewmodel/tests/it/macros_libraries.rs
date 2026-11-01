@@ -141,7 +141,7 @@ fn ui1_the_macros_navigator_shows_the_psu_macro_and_its_detail() {
     let th = shell.macro_thumbnail().expect("a drawn thumbnail");
     assert!(th.region[0] < th.region[2] && th.region[1] < th.region[3]);
     assert!(d.devices.iter().any(|x| x.starts_with("-G")), "{:?}", d.devices);
-    // The describe text names the navigator and its rows' roles in words (`LIBRARY_WORDS`).
+    // The describe text names the navigator and its rows' roles in words (`Reach::Library`).
     let text = ew_viewmodel::describe::describe(&shell);
     for word in ["macros", "tier", "macro"] {
         assert!(

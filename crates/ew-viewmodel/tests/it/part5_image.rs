@@ -296,14 +296,6 @@ fn the_image_ghost_and_menu_use_the_vocabulary() {
             );
         }
     }
-    assert_eq!(ew_viewmodel::describe::IMAGE_WORDS, ["image"]);
-    assert_eq!(
-        ew_viewmodel::describe::VOCABULARY
-            .iter()
-            .filter(|w| **w == "image")
-            .count(),
-        1
-    );
     let text = s.describe();
     assert!(
         text.lines()

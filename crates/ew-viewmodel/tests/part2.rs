@@ -1950,119 +1950,14 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
                 && l.split_whitespace().any(ew_viewmodel::alias::is_alias)),
         "a selection line with an alias"
     );
-    // The states above reach most of the vocabulary: a word that nothing emits is a stale entry or a missed state.
-    let unused: Vec<&&str> = allowed.iter().filter(|w| !seen.contains(**w)).collect();
-    // (`disabled` without a reason cannot be reached through the registry today; `external`, a link to another
-    // project, needs a cross-reference whose target is outside the page order, which Golden A does not draw.)
-    // The 28 words of WP-S2.04 part 1 need a writable project: `tests/place.rs` reaches each of them.
-    let part1 = ew_viewmodel::describe::PLACE_WORDS;
-    // The 21 words of WP-S2.04 part 2 need wiring on a writable project: `tests/wiring.rs` reaches each of them.
-    let wiring = ew_viewmodel::describe::WIRE_WORDS;
-    // (The property grid's kind words of kinds this sequence does not select — a representation and its functions are
-    // selected by a canvas click in `tests/properties.rs` and the kittest flows — and a warning or error finding.)
-    assert!(
-        unused.iter().all(|w| matches!(
-            **w,
-            "disabled"
-                // WP-S2.17 part 4: the palette lists no model command (doc 16a §6.14).
-                | "command"
-                | "external"
-                | "stale"
-                | "failed"
-                | "tags"
-                | "xrefs"
-                | "junction"
-                | "warning"
-                | "error"
-                | "plc_config_project"
-                | "import_lineage"
-                | "potential_def"
-                | "structure_node"
-                | "external_ref"
-                | "conductor"
-                | "channel"
-                | "bond"
-                | "device_link"
-                | "report_block"
-                | "revision"
-                // WP-S1.16 part 5: no state of this sequence selects a waiver record.
-                | "waiver"
-                // WP-S1.21 part 4: no state of this sequence selects a bus net.
-                | "logical_net"
-                | "physical_net"
-                // WP-S4.01 part 1: no state of this sequence selects a layout record (Golden A holds none yet).
-                | "layout_space"
-                | "enclosure"
-                | "mounting_surface"
-                | "carrier"
-                | "placement"
-                | "page_item"
-                | "structure_box"
-                // WP-S1.19 part 1: no command creates a macro instance yet, so no state selects one.
-                | "macro_instance"
-                | "inherited"
-                | "frozen"
-                | "library"
-                | "derived"
-                | "missing"
-                | "representation"
-                | "function"
-                // WP-S1.21 part 2: a CP with a printed PLC address needs a bound channel; `tests/plc_hover.rs` reaches it.
-                | "address"
-        ) || part1.contains(*w)
-            // WP-S2.05 part 2: the find words need the find pane: `tests/find.rs` reaches them.
-            || ew_viewmodel::describe::FIND_WORDS.contains(*w)
-            // WP-S2.05 part 3: the clipboard's words need a copy: `tests/clipboard.rs` reaches them.
-            || ew_viewmodel::describe::CLIP_WORDS.contains(*w)
-            // FT-410: the parts import card's words: `tests/parts_import.rs` reaches them.
-            || ew_viewmodel::describe::IMPORT_WORDS.contains(*w)
-            // FT-649: the column mapping step's words need a parts table: `tests/parts_import.rs` reaches them.
-            || ew_viewmodel::describe::MAP_WORDS.contains(*w)
-            || wiring.contains(*w)
-            // WP-S6.13 part 1: the page text's words are `page.describe`'s: `tests/page_describe.rs` reaches them.
-            || ew_viewmodel::describe::PAGE_WORDS.contains(*w)
-            // FT-660: a generated page's `note` line: `tests/page_describe.rs` reaches the table lines.
-            || ew_viewmodel::describe::LIST_WORDS.contains(*w)
-            // WP-S2.04 part 3: the IP and black box words need the tools on a writable project: `tests/part3.rs`.
-            || ew_viewmodel::describe::IP_WORDS.contains(*w)
-            // FIXPT41: the IP ghost's `connects` needs a drop on a pin: `tests/it/ip_on_pin.rs` reaches it.
-            || ew_viewmodel::describe::IP_PIN_WORDS.contains(*w)
-            // WP-S2.04 part 4b: the item and box words need a writable project: `tests/part4b.rs` reaches `graphic`,
-            // `marker` and `boxes`; the drawing tools' words and `unknown` come with the later units of part 4b.
-            || ew_viewmodel::describe::ITEM_WORDS.contains(*w)
-            // WP-S2.04 part 5: `image` comes with the Image tool: `tests/part5_image.rs` reaches it.
-            || ew_viewmodel::describe::IMAGE_WORDS.contains(*w)
-            // WP-S2.06 part 1: the navigator words need open navigators: `tests/navigators.rs` reaches them.
-            || ew_viewmodel::describe::NAV_WORDS.contains(*w)
-            // WP-S2.06 part 2: the further navigators' and the highlights' words: `tests/navigators_part2.rs`.
-            || ew_viewmodel::describe::NAV2_WORDS.contains(*w)
-            // WP-S1.19 part 6: the Macros and Libraries navigators' words need a saved macro and a library:
-            // `tests/macros_libraries.rs` reaches them.
-            || ew_viewmodel::describe::LIBRARY_WORDS.contains(*w)
-            // WP-S2.09 part 1: the job, log and recovery words need a job, the log popup or a leftover journal:
-            // `tests/jobs.rs`, `tests/notifications.rs` and `tests/recovery.rs` reach them.
-            || ew_viewmodel::describe::JOB_WORDS.contains(*w)
-            // WP-S2.09 part 2: the message panel's words need its pane: `tests/messages.rs` reaches them.
-            || ew_viewmodel::describe::MSG_WORDS.contains(*w)
-            // WP-S2.09 part 3: the preview and history words need a card or the history panel: `tests/preview_history.rs`.
-            || ew_viewmodel::describe::PREVIEW_WORDS.contains(*w)
-            // WP-S2.06 part 3: the table words need a navigator in table mode: `tests/navigators_table.rs` (TB8).
-            || ew_viewmodel::describe::TABLE_WORDS.contains(*w)
-            // WP-S2.07 part 1: `accessory` needs an accessory row in the strip editor: `tests/strip_editor.rs` (SE14).
-            || ew_viewmodel::describe::STRIP_EDITOR_WORDS.contains(*w)
-            // WP-S2.18 part 1: `chooser` needs the Join chooser open on a writable project: `tests/join.rs`.
-            || **w == "chooser"
-            // WP-S2.07 part 4a: the part dialog's and the part editor's words need a writable project:
-            // `tests/part_selection.rs` reaches them.
-            || ew_viewmodel::describe::PART_WORDS.contains(*w)
-            // WP-S2.07 part 4b: the paste choice card's words need two versions of a library copy:
-            // `tests/paste_choice.rs` reaches them.
-            || ew_viewmodel::describe::PASTE_CHOICE_WORDS.contains(*w)
-            // WP-S4.02 part 3: the layout ghost's and the Unplaced devices navigator's words need a panel page on a
-            // writable project: `tests/it/layout_place.rs` reaches them.
-            || ew_viewmodel::describe::LAYOUT_WORDS.contains(*w)),
-        "words of the vocabulary no state used: {unused:?}"
-    );
+    // The states above reach most of the vocabulary: a word that nothing emits is a stale entry or a missed state. A
+    // word they do not reach carries the `Reach` of the tests whose own states reach it, in `WORDS` of describe.rs.
+    for w in allowed.iter().filter(|w| !seen.contains(**w)) {
+        assert!(
+            ew_viewmodel::describe::reach_of(w).is_some_and(|r| !r.is_empty()),
+            "`{w}` is reached by no state of this test and has no Reach in describe.rs"
+        );
+    }
 }
 
 #[test]

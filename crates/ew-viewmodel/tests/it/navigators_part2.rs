@@ -407,10 +407,7 @@ fn np5_new_structure_node_prefills_the_marked_parent() {
 /// and the registry has 217 actions with Ctrl+Shift+H in the navigator context.
 #[test]
 fn np6_the_six_words_and_the_two_actions() {
-    use ew_viewmodel::describe::{NAV2_WORDS, VOCABULARY};
-    for w in NAV2_WORDS {
-        assert!(VOCABULARY.contains(w), "{w}");
-    }
+    use ew_viewmodel::describe::{Reach, words as reach_words};
     let hl = ew_viewmodel::actions::ACTIONS
         .iter()
         .find(|a| a.id == "navigator.highlight")
@@ -442,7 +439,7 @@ fn np6_the_six_words_and_the_two_actions() {
             out
         })
         .collect();
-    for w in NAV2_WORDS {
+    for w in reach_words(Reach::Nav2) {
         assert!(words.contains(w), "`{w}` is reached");
     }
     shell.shutdown();

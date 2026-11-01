@@ -11,7 +11,7 @@ use crate::common;
 use std::path::PathBuf;
 
 use common::{Tmp, bless, done, refused, structural_tokens};
-use ew_viewmodel::describe::{FREE_TEXT_MARKERS, PAGE_WORDS, VOCABULARY};
+use ew_viewmodel::describe::{FREE_TEXT_MARKERS, Reach, VOCABULARY, words};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
@@ -97,15 +97,14 @@ fn no_record_id_reaches_the_text_and_every_token_is_a_vocabulary_word() {
     }
     // The three folios reach the words the page text adds, except the two states Golden A does not have: a stored
     // route (every connection of the fixture is drawn by its provisional route) and an undirected interruption point.
-    let missing: Vec<&&str> = PAGE_WORDS.iter().filter(|w| !seen.contains(**w)).collect();
+    let missing: Vec<&str> = words(Reach::Page)
+        .into_iter()
+        .filter(|w| !seen.contains(*w))
+        .collect();
     assert!(
-        missing.iter().all(|w| ["stored", "undirected"].contains(*w)),
+        missing.iter().all(|w| ["stored", "undirected"].contains(w)),
         "words no folio reaches: {missing:?}"
     );
-    // Each word of the list is in the vocabulary once, and the list holds only words the vocabulary had not before.
-    for w in PAGE_WORDS {
-        assert_eq!(VOCABULARY.iter().filter(|v| *v == w).count(), 1, "{w}");
-    }
     shell.shutdown();
 }
 

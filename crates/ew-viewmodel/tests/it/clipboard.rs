@@ -348,9 +348,8 @@ fn cb7_the_paste_tool_ghost_preview_and_escape() {
             seen.insert(word);
         }
     }
-    for w in ew_viewmodel::describe::CLIP_WORDS {
-        assert!(ew_viewmodel::describe::VOCABULARY.contains(w), "{w}");
-        assert!(seen.contains(*w), "{w} is reached");
+    for w in ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::Clip) {
+        assert!(seen.contains(w), "{w} is reached");
     }
     // Escape: the tool ends, nothing is committed.
     let rev = shell.revision();

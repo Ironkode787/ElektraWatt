@@ -9,7 +9,8 @@
 //! the first-run flow, the wizard, or the project view (the page navigator, the canvas tabs and the focus, the page
 //! view and its canvas lines, the workspace and its layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
 //! Directory names appear, paths never. The structural words are fixed English machine text (decision log ID-474):
-//! [`VOCABULARY`] lists every one of them, [`FREE_TEXT_MARKERS`] the markers after which the rest of a line is user
+//! the private table `WORDS` lists every one of them with the [`Reach`] of the tests that reach it ([`VOCABULARY`] and
+//! [`words`] are derived from it), [`FREE_TEXT_MARKERS`] the markers after which the rest of a line is user
 //! text, and a test checks that no line the describer writes uses a word that is in neither list. Quoted text is
 //! user text (a label, a name) and not part of the vocabulary. A record ID is printed as its alias `@n`, a value token
 //! like a number (decision log ID-630, FT-422; [`crate::alias`]): the hovered entity and the selection unquoted, an
@@ -28,752 +29,574 @@ use crate::shell::{Dialog, Focus, ShellModel};
 use crate::strings;
 use crate::wizard::{FieldKind, Step, fields_of};
 
+/// The part of the tests whose own describe states reach a structural word that `tests/part2.rs`'s sequence does not
+/// (a writable project, an open pane, a tool, a state Golden A does not draw). A word of `WORDS` carries the parts
+/// that reach it; [`words`] lists the words of one part.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Reach {
+    /// WP-S4.02 part 3: the layout ghost and the Unplaced devices navigator; `tests/it/layout_place.rs`.
+    Layout,
+    /// WP-S2.07 part 4b: the paste choice card (§9.6); `tests/it/paste_choice.rs`.
+    PasteChoice,
+    /// WP-S2.07 part 4a: the part dialog and the part editor (§9.6); `tests/it/part_selection.rs`.
+    Part,
+    /// WP-S1.19 part 6: the Macros and Libraries navigators (§11); `tests/it/macros_libraries.rs`.
+    Library,
+    /// FT-660: a generated page's `note` line; `tests/it/page_describe.rs`.
+    List,
+    /// WP-S2.07 part 1: the strip editor's accessory rows (§6.10); `tests/it/strip_editor.rs`.
+    StripEditor,
+    /// WP-S2.17 part 3: the rails and the Advanced rows (D15); `tests/it/docks.rs`.
+    Rail,
+    /// WP-S2.17 part 2: the command bar and the HUD (D15); `tests/it/command_bar.rs`.
+    CommandBar,
+    /// WP-S2.09 part 2: the message panel (§7.6); `tests/it/messages.rs`.
+    Msg,
+    /// WP-S2.09 part 3: the Preview tab and the history panel (§8.7); `tests/it/preview_history.rs`.
+    Preview,
+    /// WP-S2.06 part 3: table mode (§8.8); `tests/it/navigators_table.rs`.
+    Table,
+    /// WP-S2.09 part 1: jobs, the notifications log and recovery (§6.8); `tests/jobs.rs`, `tests/it/notifications.rs`.
+    Job,
+    /// WP-S2.06 part 2: the further navigators and highlighting (§7.4); `tests/it/navigators_part2.rs`.
+    Nav2,
+    /// WP-S2.06 part 1: the navigators (§6.10); `tests/it/navigators.rs`.
+    Nav,
+    /// WP-S2.04 part 3: interruption points and black boxes (§9.6); `tests/it/part3.rs`.
+    Ip,
+    /// FIXPT41: the IP ghost's pin; `tests/it/ip_on_pin.rs`.
+    IpPin,
+    /// WP-S2.05 part 3: the clipboard and the paste ghost (§8.8); `tests/it/clipboard.rs`.
+    Clip,
+    /// FT-410: the parts import card; `tests/it/parts_import.rs`.
+    Import,
+    /// FT-649: the parts import's column mapping step; `tests/it/parts_import.rs`.
+    Map,
+    /// WP-S2.04 part 4b: page items and structure boxes (§10.7); `tests/it/part4b.rs`, `tests/it/part4b_text.rs`.
+    Item,
+    /// WP-S2.04 part 5: the Image tool (§11); `tests/it/part5_image.rs`.
+    Image,
+    /// WP-S2.05 part 2: find and replace (§7.6); `tests/it/find.rs`.
+    Find,
+    /// WP-S2.04 part 2: wiring (§8.7); `tests/it/wiring.rs`.
+    Wire,
+    /// WP-S2.04 part 1: place and arrange (§7.7); `tests/it/place.rs`.
+    Place,
+    /// WP-S6.13 part 1: the page text of `page.describe` (§5.5.3); `tests/it/page_describe.rs`.
+    Page,
+    /// WP-S2.18 part 1: the Join chooser's line (doc 16a §6.22); `tests/it/join.rs`.
+    Join,
+    /// WP-S1.21 part 2: the printed PLC address of the hovered connection point (D7); `tests/it/plc_hover.rs`.
+    PlcHover,
+    /// The property grid's section kind of a record no test's describe state selects; the unit test
+    /// `every_kind_a_section_can_have_is_in_the_vocabulary` checks that every such kind is a word.
+    Kind,
+    /// No test's describe state reaches the word yet (a state Golden A does not draw, a line no command opens); the
+    /// row's comment in `WORDS` says why.
+    Unreached,
+}
+
 /// The structural words of the describe text: the tokens of a line once the quoted texts, the numbers, the ID aliases
 /// `@n` (value tokens like numbers, ID-630), the action IDs (they contain a dot), the shortcuts and the punctuation
-/// `( ) [ ] , | %` are taken out. A token with a colon
-/// keeps it. A change here is a reviewed transcript change (decision log ID-474).
-pub const VOCABULARY: &[&str] = &[
-    "title:",
-    "menu",
-    "submenu",
-    "item",
-    "enabled",
-    "disabled",
-    "disabled:",
-    "checked",
-    "banner:",
-    "page",
-    "selected",
-    "view:",
-    "workspace",
-    "layout:",
-    "split",
-    "tabs",
-    "horizontal",
-    "vertical",
-    "shown",
-    "status",
-    "bar:",
-    "start",
-    "button",
-    "label",
-    "recent",
-    "quick",
-    "options:",
-    "first",
-    "run",
-    "step",
-    "of",
-    "choice",
-    "on",
-    "off",
-    "wizard",
-    "field",
-    "review",
-    "written",
-    "kept",
-    "error:",
-    "preview",
-    "ready",
-    "unavailable",
-    "palette",
-    "query",
-    "action",
-    "command",
-    "dialog",
-    "pending",
-    "notices:",
-    "lines",
-    "help:",
+/// `( ) [ ] , | %` are taken out. A token with a colon keeps it. Each word carries the [`Reach`] of the tests whose own
+/// states reach it, where `tests/part2.rs`'s sequence does not. A change here is a reviewed transcript change
+/// (decision log ID-474).
+// map: describe-words: a new structural word goes in WORDS, with the Reach of the tests that reach it.
+const WORDS: &[(&str, &[Reach])] = &[
+    ("title:", &[]),
+    ("menu", &[]),
+    ("submenu", &[]),
+    ("item", &[]),
+    ("enabled", &[]),
+    ("disabled", &[]),
+    ("disabled:", &[]),
+    ("checked", &[]),
+    ("banner:", &[]),
+    ("page", &[]),
+    ("selected", &[]),
+    ("view:", &[]),
+    ("workspace", &[]),
+    ("layout:", &[]),
+    ("split", &[]),
+    ("tabs", &[]),
+    ("horizontal", &[]),
+    ("vertical", &[]),
+    ("shown", &[]),
+    ("status", &[]),
+    ("bar:", &[]),
+    ("start", &[]),
+    ("button", &[]),
+    ("label", &[]),
+    ("recent", &[]),
+    ("quick", &[]),
+    ("options:", &[]),
+    ("first", &[]),
+    ("run", &[]),
+    ("step", &[]),
+    ("of", &[]),
+    ("choice", &[]),
+    ("on", &[]),
+    ("off", &[]),
+    ("wizard", &[]),
+    ("field", &[]),
+    ("review", &[]),
+    ("written", &[]),
+    ("kept", &[]),
+    ("error:", &[]),
+    ("preview", &[]),
+    ("ready", &[]),
+    ("unavailable", &[]),
+    ("palette", &[]),
+    ("query", &[]),
+    ("action", &[]),
+    // WP-S2.17 part 4: the palette lists no model command (doc 16a §6.14), so no state prints `command`.
+    ("command", &[Reach::Unreached]),
+    ("dialog", &[]),
+    ("pending", &[]),
+    ("notices:", &[]),
+    ("lines", &[]),
+    ("help:", &[]),
     // The canvas lines (WP-S2.02 part 1, decision log ID-511): a reviewed vocabulary change.
-    "canvas",
-    "zoom",
-    "view",
-    "grid",
-    "pointer",
-    "hover",
-    "box",
-    "mm",
-    "none",
-    "backend",
-    "statistics",
+    ("canvas", &[]),
+    ("zoom", &[]),
+    ("view", &[]),
+    ("grid", &[]),
+    ("pointer", &[]),
+    ("hover", &[]),
+    ("box", &[]),
+    ("mm", &[]),
+    ("none", &[]),
+    ("backend", &[]),
+    ("statistics", &[]),
     // The canvas renderer setting (WP-S2.02 part 2): a reviewed vocabulary change.
-    "renderer",
-    "auto",
-    "cpu",
+    ("renderer", &[]),
+    ("auto", &[]),
+    ("cpu", &[]),
     // The viewer (WP-S2.03 part 1, decision log ID-537): 27 words, a reviewed vocabulary change.
-    "navigator",
-    "mode",
-    "flat",
-    "section",
-    "structure",
-    "sort",
-    "folio",
-    "type",
-    "filter",
-    "row",
-    "level",
-    "expanded",
-    "collapsed",
-    "current",
-    "generated",
-    "badge",
-    "cursor",
-    "tab",
-    "group",
-    "focused",
-    "history",
-    "back",
-    "forward",
-    "focus",
-    "cell",
-    "link",
-    "external",
+    ("navigator", &[]),
+    ("mode", &[]),
+    ("flat", &[]),
+    ("section", &[]),
+    ("structure", &[]),
+    ("sort", &[]),
+    ("folio", &[]),
+    ("type", &[]),
+    ("filter", &[]),
+    ("row", &[]),
+    ("level", &[]),
+    ("expanded", &[]),
+    ("collapsed", &[]),
+    ("current", &[]),
+    ("generated", &[]),
+    ("badge", &[]),
+    ("cursor", &[]),
+    ("tab", &[]),
+    ("group", &[]),
+    ("focused", &[]),
+    ("history", &[]),
+    ("back", &[]),
+    ("forward", &[]),
+    ("focus", &[]),
+    ("cell", &[]),
+    ("link", &[]),
+    // A link to another project needs a cross-reference whose target is outside the page order (not in Golden A).
+    ("external", &[Reach::Unreached]),
     // The tool framework (WP-S2.03 part 2, decision log ID-537): 18 words, a reviewed vocabulary change (§7.9's 17
     // and `junction`).
-    "tool",
-    "state",
-    "idle",
-    "pressed",
-    "rubber-band",
-    "armed",
-    "measuring",
-    "hint",
-    "snap",
-    "cp",
-    "at",
-    "selection",
-    "stale",
-    "failed",
-    "tags",
-    "xrefs",
-    "overlay",
+    ("tool", &[]),
+    ("state", &[]),
+    ("idle", &[]),
+    ("pressed", &[]),
+    ("rubber-band", &[]),
+    ("armed", &[]),
+    ("measuring", &[]),
+    ("hint", &[]),
+    ("snap", &[]),
+    ("cp", &[]),
+    ("at", &[]),
+    ("selection", &[]),
+    ("stale", &[]),
+    // A failed preview (`PreviewStatus::Failed`); `tests/part2.rs` checks the word, no state prints it.
+    ("failed", &[Reach::Unreached]),
+    ("tags", &[]),
+    ("xrefs", &[]),
+    ("overlay", &[]),
     // A snap marker's kind (`canvas snap junction …`), printed by `MarkerKind::word` (the review of part 2).
-    "junction",
+    // A junction snap marker (`MarkerKind::Junction`); `tests/part2.rs` checks the word, no state prints it.
+    ("junction", &[Reach::Unreached]),
     // Place and arrange (WP-S2.04 part 1, §7.7): 28 words, a reviewed vocabulary change (ID-474 extended).
-    "picker",
-    "rows",
-    "symbol",
-    "part",
-    "function",
-    "main",
-    "embedded",
-    "starter",
-    "ghost",
-    "place",
-    "variant",
-    "rep",
-    "target",
-    "new",
-    "join",
-    "existing",
-    "terminal",
-    "strip",
-    "letter",
-    "tag",
-    "move",
-    "steps",
-    "exchange",
-    "unmapped",
-    "floating",
-    "dragging",
-    "moving",
-    "readout",
+    ("picker", &[Reach::Place]),
+    ("rows", &[Reach::Place]),
+    ("symbol", &[Reach::Place]),
+    ("part", &[Reach::Place]),
+    ("function", &[Reach::Place]),
+    ("main", &[Reach::Place]),
+    ("embedded", &[Reach::Place]),
+    ("starter", &[Reach::Place]),
+    ("ghost", &[Reach::Place]),
+    ("place", &[Reach::Place]),
+    ("variant", &[Reach::Place]),
+    ("rep", &[Reach::Place]),
+    ("target", &[Reach::Place]),
+    ("new", &[Reach::Place]),
+    ("join", &[Reach::Place]),
+    ("existing", &[Reach::Place]),
+    ("terminal", &[Reach::Place]),
+    ("strip", &[Reach::Place]),
+    ("letter", &[Reach::Place]),
+    ("tag", &[Reach::Place]),
+    ("move", &[Reach::Place]),
+    ("steps", &[Reach::Place]),
+    ("exchange", &[Reach::Place]),
+    ("unmapped", &[Reach::Place]),
+    ("floating", &[Reach::Place]),
+    ("dragging", &[Reach::Place]),
+    ("moving", &[Reach::Place]),
+    ("readout", &[Reach::Place]),
     // The property grid (WP-S2.05 part 1, §6.11; ID-474 extended): 53 words, a reviewed vocabulary change
     // (`function` is WP-S2.04 part 1's word above).
-    "properties",
-    "items",
-    "kinds",
-    "subtitle",
-    "location",
-    "finding",
-    "info",
-    "warning",
-    "error",
-    "missing",
-    "targets",
-    "category",
-    "derived",
-    "authored",
-    "inherited",
-    "overridden",
-    "frozen",
-    "library",
-    "varies",
-    "read-only",
-    "actions",
-    "edit",
-    "clear",
-    "override",
-    "reset",
-    "freeze",
-    "unfreeze",
-    "editing",
-    "buffer",
-    "choices",
-    "popup",
-    "mltext",
-    "card",
-    "changes",
-    "toast",
-    "undo",
-    "device",
-    "representation",
-    "connection",
-    "project",
-    "plc_config_project",
-    "import_lineage",
-    "potential_def",
-    "structure_node",
-    "external_ref",
-    "conductor",
-    "channel",
-    "bond",
-    "device_link",
-    "report_block",
-    "revision",
-    "page_item",
-    "structure_box",
+    ("properties", &[]),
+    ("items", &[]),
+    ("kinds", &[]),
+    ("subtitle", &[]),
+    ("location", &[]),
+    ("finding", &[]),
+    ("info", &[]),
+    ("warning", &[]),
+    ("error", &[]),
+    ("missing", &[]),
+    ("targets", &[]),
+    ("category", &[]),
+    ("derived", &[]),
+    ("authored", &[]),
+    ("inherited", &[]),
+    ("overridden", &[]),
+    ("frozen", &[]),
+    ("library", &[]),
+    ("varies", &[]),
+    ("read-only", &[]),
+    ("actions", &[]),
+    ("edit", &[]),
+    ("clear", &[]),
+    ("override", &[]),
+    ("reset", &[]),
+    ("freeze", &[]),
+    ("unfreeze", &[]),
+    ("editing", &[]),
+    ("buffer", &[]),
+    ("choices", &[]),
+    ("popup", &[]),
+    ("mltext", &[]),
+    ("card", &[]),
+    ("changes", &[]),
+    ("toast", &[]),
+    ("undo", &[]),
+    ("device", &[]),
+    ("representation", &[Reach::Kind]),
+    ("connection", &[]),
+    ("project", &[]),
+    ("plc_config_project", &[Reach::Kind]),
+    ("import_lineage", &[Reach::Kind]),
+    ("potential_def", &[Reach::Kind]),
+    ("structure_node", &[Reach::Kind]),
+    ("external_ref", &[Reach::Kind]),
+    ("conductor", &[Reach::Kind]),
+    ("channel", &[Reach::Kind]),
+    ("bond", &[Reach::Kind]),
+    ("device_link", &[Reach::Kind]),
+    ("report_block", &[Reach::Kind]),
+    ("revision", &[Reach::Kind]),
+    ("page_item", &[Reach::Kind]),
+    ("structure_box", &[Reach::Kind]),
     // WP-S1.16 part 5: the typed waiver kind has a property sheet (read-only members); a reviewed vocabulary change.
-    "waiver",
+    ("waiver", &[Reach::Kind]),
     // WP-S1.21 part 4 (D11): the typed bus nets have property sheets; a reviewed vocabulary change.
-    "logical_net",
-    "physical_net",
+    ("logical_net", &[Reach::Kind]),
+    ("physical_net", &[Reach::Kind]),
     // WP-S4.01 part 1 (D3): the typed layout kinds have property sheets; a reviewed vocabulary change.
-    "layout_space",
-    "enclosure",
-    "mounting_surface",
-    "carrier",
-    "placement",
+    ("layout_space", &[Reach::Kind]),
+    ("enclosure", &[Reach::Kind]),
+    ("mounting_surface", &[Reach::Kind]),
+    ("carrier", &[Reach::Kind]),
+    ("placement", &[Reach::Kind]),
     // Find and replace (WP-S2.05 part 2, §7.6; ID-474 extended): 13 words and `text`, which no earlier part added,
     // so 14, a reviewed vocabulary change.
-    "find",
-    "replace",
-    "regex",
-    "case",
-    "word",
-    "scope",
-    "function_text",
-    "property",
-    "part_number",
-    "folios",
-    "results",
-    "result",
-    "truncated",
-    "text",
+    ("find", &[Reach::Find]),
+    ("replace", &[Reach::Find]),
+    ("regex", &[Reach::Find]),
+    ("case", &[Reach::Find]),
+    ("word", &[Reach::Find]),
+    ("scope", &[Reach::Find]),
+    ("function_text", &[Reach::Find]),
+    ("property", &[Reach::Find]),
+    ("part_number", &[Reach::Find]),
+    ("folios", &[Reach::Find]),
+    ("results", &[Reach::Find]),
+    ("result", &[Reach::Find]),
+    ("truncated", &[Reach::Find]),
+    ("text", &[Reach::Find]),
     // Wiring (WP-S2.04 part 2, §8.7; ID-474 extended): 21 words, a reviewed vocabulary change (`junction` is WP-S2.03
     // part 2's word above, ID-632).
-    "route",
-    "from",
-    "end",
-    "bends",
-    "points",
-    "proposals",
-    "->",
-    "style",
-    "wiring",
-    "sequence",
-    "wire",
-    "segment",
-    "routing",
-    "crossings",
-    "plain",
-    "hops",
-    "dot",
-    "bevel",
-    "star",
-    "chain",
-    "connect",
+    ("route", &[Reach::Wire]),
+    ("from", &[Reach::Wire]),
+    ("end", &[Reach::Wire]),
+    ("bends", &[Reach::Wire]),
+    ("points", &[Reach::Wire]),
+    ("proposals", &[Reach::Wire]),
+    ("->", &[Reach::Wire]),
+    ("style", &[Reach::Wire]),
+    ("wiring", &[Reach::Wire]),
+    ("sequence", &[Reach::Wire]),
+    ("wire", &[Reach::Wire]),
+    ("segment", &[Reach::Wire]),
+    ("routing", &[Reach::Wire]),
+    ("crossings", &[Reach::Wire]),
+    ("plain", &[Reach::Wire]),
+    ("hops", &[Reach::Wire]),
+    ("dot", &[Reach::Wire]),
+    ("bevel", &[Reach::Wire]),
+    ("star", &[Reach::Wire]),
+    ("chain", &[Reach::Wire]),
+    ("connect", &[Reach::Wire]),
     // FIXPT41: the IP tool's ghost names the pin a click connects the point to (`connects "-102F2:14"`).
-    "connects",
+    ("connects", &[Reach::IpPin]),
     // The page text of `page.describe` (WP-S6.13 part 1, §5.5.3; ID-474 extended): 11 words, a reviewed vocabulary
     // change (`wire`, `->`, `route`, `bends`, `style`, `dot`, `bevel`, `wiring`, `star`, `chain` and `sequence` are
     // WP-S2.04 part 2's words above).
-    "reps",
-    "connections",
-    "junctions",
-    "wires",
-    "stored",
-    "provisional",
-    "ip",
-    "direction",
-    "source",
-    "undirected",
-    "potential",
+    ("reps", &[Reach::Page]),
+    ("connections", &[Reach::Page]),
+    ("junctions", &[Reach::Page]),
+    ("wires", &[Reach::Page]),
+    ("stored", &[Reach::Page]),
+    ("provisional", &[Reach::Page]),
+    ("ip", &[Reach::Ip, Reach::Page]),
+    ("direction", &[Reach::Ip, Reach::Page]),
+    ("source", &[Reach::Ip, Reach::Page]),
+    ("undirected", &[Reach::Ip, Reach::Page]),
+    ("potential", &[Reach::Ip, Reach::Page]),
     // G-PP triage row 21: a terminal CP's side, `internal` (`field` is older), a reviewed vocabulary change.
-    "internal",
+    ("internal", &[Reach::Page]),
     // FT-621 (WP-S2.07 part 2): the page text's line of a strip's bridge, a reviewed vocabulary change.
-    "bridge",
-    // The clipboard (WP-S2.05 part 3, §8.8; ID-474 extended): the 6 words of `CLIP_WORDS`, a reviewed vocabulary change
+    ("bridge", &[Reach::Page]),
+    // The clipboard (WP-S2.05 part 3, §8.8; ID-474 extended): the 6 words of `Reach::Clip`, a reviewed vocabulary change
     // (`lines`, `none`, `at`, `mm`, `text` and `ghost` are older).
-    "clipboard",
-    "fragment",
-    "records",
-    "copies",
-    "paste",
-    "dropped",
+    ("clipboard", &[Reach::Clip]),
+    ("fragment", &[Reach::Clip]),
+    ("records", &[Reach::Clip]),
+    ("copies", &[Reach::Clip]),
+    ("paste", &[Reach::Clip]),
+    ("dropped", &[Reach::Clip]),
     // Interruption points and black boxes (WP-S2.04 part 3, §9.6; ID-474 extended): 5 words, a reviewed vocabulary
     // change (`ip`, `direction`, `source`, `undirected` and `potential` are WP-S6.13 part 1's words above).
-    "name",
-    "outline",
-    "cps",
-    "arrange",
-    "by",
+    ("name", &[Reach::Ip]),
+    ("outline", &[Reach::Ip]),
+    ("cps", &[Reach::Ip]),
+    ("arrange", &[Reach::Ip]),
+    ("by", &[Reach::Ip]),
     // The parts table import's card (FT-410): 3 words, a reviewed vocabulary change.
-    "created",
-    "skipped",
-    "errors",
+    ("created", &[Reach::Import]),
+    ("skipped", &[Reach::Import]),
+    ("errors", &[Reach::Import]),
     // The parts import's column mapping step (FT-649): 5 words, a reviewed vocabulary change.
-    "mapping",
-    "saved",
-    "column",
-    "sample",
-    "member",
+    ("mapping", &[Reach::Map]),
+    ("saved", &[Reach::Map]),
+    ("column", &[Reach::Map]),
+    ("sample", &[Reach::Map]),
+    ("member", &[Reach::Map]),
     // Page items and structure boxes (WP-S2.04 part 4b, §10.7; ID-474 extended): 14 words, a reviewed vocabulary
     // change.
-    "graphic",
-    "line",
-    "polyline",
-    "rect",
-    "circle",
-    "arc",
-    "polygon",
-    "marker",
-    "typing",
-    "drawing",
-    "crossing",
-    "anticlockwise",
-    "boxes",
-    "unknown",
+    ("graphic", &[Reach::Item]),
+    ("line", &[Reach::Item]),
+    ("polyline", &[Reach::Item]),
+    ("rect", &[Reach::Item]),
+    ("circle", &[Reach::Item]),
+    ("arc", &[Reach::Item]),
+    ("polygon", &[Reach::Item]),
+    ("marker", &[Reach::Item]),
+    ("typing", &[Reach::Item]),
+    ("drawing", &[Reach::Item]),
+    ("crossing", &[Reach::Item]),
+    ("anticlockwise", &[Reach::Item]),
+    ("boxes", &[Reach::Item]),
+    ("unknown", &[Reach::Item]),
     // The Image tool (WP-S2.04 part 5, §11; ID-474 extended): 1 word, a reviewed vocabulary change.
-    "image",
-    // The navigators (WP-S2.06 part 1, §6.10; ID-474 extended, ID-688): the 18 words of `NAV_WORDS`, a reviewed
+    ("image", &[Reach::Image]),
+    // The navigators (WP-S2.06 part 1, §6.10; ID-474 extended, ID-688): the 18 words of `Reach::Nav`, a reviewed
     // vocabulary change (`connections` and `structure` are older).
-    "kind",
-    "pages",
-    "devices",
-    "strips",
-    "cables",
-    "plc",
-    "potentials",
-    "ips",
-    "parts",
-    "blocks",
-    "tree",
-    "ascending",
-    "descending",
-    "showing",
-    "to",
-    "elsewhere",
-    "aux",
-    "reorder",
+    ("kind", &[Reach::Nav]),
+    ("pages", &[Reach::Nav]),
+    ("devices", &[Reach::Nav]),
+    ("strips", &[Reach::Nav]),
+    ("cables", &[Reach::Nav]),
+    ("plc", &[Reach::Nav]),
+    ("potentials", &[Reach::Nav]),
+    ("ips", &[Reach::Nav]),
+    ("parts", &[Reach::Nav]),
+    ("blocks", &[Reach::Nav]),
+    ("tree", &[Reach::Nav]),
+    ("ascending", &[Reach::Nav]),
+    ("descending", &[Reach::Nav]),
+    ("showing", &[Reach::Nav]),
+    ("to", &[Reach::Nav]),
+    ("elsewhere", &[Reach::Nav]),
+    ("aux", &[Reach::Nav]),
+    ("reorder", &[Reach::Nav]),
     // The further navigators and highlighting (WP-S2.06 part 2, §7.4; ID-474 extended, ID-688): the 6 words of
-    // `NAV2_WORDS`, a reviewed vocabulary change.
-    "cable",
-    "module",
-    "station",
-    "manufacturer",
-    "highlight",
-    "slot",
+    // `Reach::Nav2`, a reviewed vocabulary change.
+    ("cable", &[Reach::Nav2]),
+    ("module", &[Reach::Nav2]),
+    ("station", &[Reach::Nav2]),
+    ("manufacturer", &[Reach::Nav2]),
+    ("highlight", &[Reach::Nav2]),
+    ("slot", &[Reach::Nav2]),
     // The jobs, the notifications log and the recovery dialog (WP-S2.09 part 1, §6.8; ID-474 extended, ID-698): the 18
-    // words of `JOB_WORDS`, a reviewed vocabulary change (`pages` is WP-S2.06 part 1's, `failed`, `undo` and `toast` are
+    // words of `Reach::Job`, a reviewed vocabulary change (`pages` is WP-S2.06 part 1's, `failed`, `undo` and `toast` are
     // older).
-    "jobs",
-    "job",
-    "running",
-    "pdf",
-    "done",
-    "kib",
-    "rev",
-    "now",
-    "cancelled",
-    "notifications",
-    "notification",
-    "open",
-    "expired",
-    "recovery",
-    "transactions",
-    "base",
-    "matches",
-    "moved",
-    // The message panel (WP-S2.09 part 2, §7.6; ID-474 extended, ID-698): the 16 words of `MSG_WORDS`, a reviewed
+    ("jobs", &[Reach::Job]),
+    ("job", &[Reach::Job]),
+    ("running", &[Reach::Job]),
+    ("pdf", &[Reach::Job]),
+    ("done", &[Reach::Job]),
+    ("kib", &[Reach::Job]),
+    ("rev", &[Reach::Job]),
+    ("now", &[Reach::Job]),
+    ("cancelled", &[Reach::Job]),
+    ("notifications", &[Reach::Job]),
+    ("notification", &[Reach::Job]),
+    ("open", &[Reach::Job]),
+    ("expired", &[Reach::Job]),
+    ("recovery", &[Reach::Job]),
+    ("transactions", &[Reach::Job]),
+    ("base", &[Reach::Job]),
+    ("matches", &[Reach::Job]),
+    ("moved", &[Reach::Job]),
+    // The message panel (WP-S2.09 part 2, §7.6; ID-474 extended, ID-698): the 16 words of `Reach::Msg`, a reviewed
     // vocabulary change (`finding`, `error`, `warning`, `info`, `errors` and `pending` are older).
-    "messages",
-    "severity",
-    "rule",
-    "scheme",
-    "warnings",
-    "infos",
-    "waived",
-    "detail",
-    "title",
-    "message",
-    "fix",
-    "completeness",
-    "safety",
-    "conflict",
-    "hygiene",
-    "integrity",
-    // The Preview tab and the history panel (WP-S2.09 part 3, §8.7; ID-474 extended): the 13 words of `PREVIEW_WORDS`,
+    ("messages", &[Reach::Msg]),
+    ("severity", &[Reach::Msg]),
+    ("rule", &[Reach::Msg]),
+    ("scheme", &[Reach::Msg]),
+    ("warnings", &[Reach::Msg]),
+    ("infos", &[Reach::Msg]),
+    ("waived", &[Reach::Msg]),
+    ("detail", &[Reach::Msg]),
+    ("title", &[Reach::Msg]),
+    ("message", &[Reach::Msg]),
+    ("fix", &[Reach::Msg]),
+    ("completeness", &[Reach::Msg]),
+    ("safety", &[Reach::Msg]),
+    ("conflict", &[Reach::Msg]),
+    ("hygiene", &[Reach::Msg]),
+    ("integrity", &[Reach::Msg]),
+    // The Preview tab and the history panel (WP-S2.09 part 3, §8.7; ID-474 extended): the 13 words of `Reach::Preview`,
     // a reviewed vocabulary change (the specification's 14 less `saved`: a marker's text is quoted).
-    "summary",
-    "entity",
-    "added",
-    "changed",
-    "removed",
-    "fields",
-    "xref",
-    "more",
-    "entries",
-    "entry",
-    "origin",
-    "merged",
-    "redo",
-    // Table mode (WP-S2.06 part 3, §8.8; ID-474 extended): the 6 words of `TABLE_WORDS`, a reviewed vocabulary change.
-    "table",
-    "columns",
-    "invalid",
-    "ambiguous",
-    "pattern",
-    "values",
-    // The command bar and the HUD (WP-S2.17 part 2, D15; ID-474 extended): the 4 words of `COMMAND_BAR_WORDS`, a
+    ("summary", &[Reach::Preview]),
+    ("entity", &[Reach::Preview]),
+    ("added", &[Reach::Preview]),
+    ("changed", &[Reach::Preview]),
+    ("removed", &[Reach::Preview]),
+    ("fields", &[Reach::Preview]),
+    ("xref", &[Reach::Preview]),
+    ("more", &[Reach::Preview]),
+    ("entries", &[Reach::Preview]),
+    ("entry", &[Reach::Preview]),
+    ("origin", &[Reach::Preview]),
+    ("merged", &[Reach::Preview]),
+    ("redo", &[Reach::Preview]),
+    // Table mode (WP-S2.06 part 3, §8.8; ID-474 extended): the 6 words of `Reach::Table`, a reviewed vocabulary change.
+    ("table", &[Reach::Table]),
+    ("columns", &[Reach::Table]),
+    ("invalid", &[Reach::Table]),
+    ("ambiguous", &[Reach::Table]),
+    ("pattern", &[Reach::Table]),
+    ("values", &[Reach::Table]),
+    // The command bar and the HUD (WP-S2.17 part 2, D15; ID-474 extended): the 4 words of `Reach::CommandBar`, a
     // reviewed vocabulary change (`tab`, `collapsed`, `group`, `step`, `tool` and `target` are older).
-    "commandbar",
-    "next",
-    "hud",
-    "prompt",
-    // The rails and the Advanced rows (WP-S2.17 part 3, D15; ID-474 extended): the 6 words of `RAIL_WORDS`, a reviewed
+    ("commandbar", &[Reach::CommandBar]),
+    ("next", &[Reach::CommandBar]),
+    ("hud", &[Reach::CommandBar]),
+    ("prompt", &[Reach::CommandBar]),
+    // The rails and the Advanced rows (WP-S2.17 part 3, D15; ID-474 extended): the 6 words of `Reach::Rail`, a reviewed
     // vocabulary change (`shown`, `collapsed` and `history` are older).
-    "rail",
-    "left",
-    "right",
-    "foot",
-    "advanced",
-    "hidden",
+    ("rail", &[Reach::Rail]),
+    ("left", &[Reach::Rail]),
+    ("right", &[Reach::Rail]),
+    ("foot", &[Reach::Rail]),
+    ("advanced", &[Reach::Rail]),
+    ("hidden", &[Reach::Rail]),
     // WP-S2.07 part 1 (§6.10): the strip editor's accessory rows.
-    "accessory",
+    ("accessory", &[Reach::StripEditor]),
     // WP-S1.19 part 1: the kind `macro_instance` is implemented, so the property grid has a catalogue for it and a
     // section of it names the kind.
-    "macro_instance",
+    ("macro_instance", &[Reach::Kind]),
     // WP-S2.18 part 1 (D2): the Join chooser's line (doc 16a §6.22), a reviewed vocabulary change.
-    "chooser",
+    ("chooser", &[Reach::Join]),
     // FT-660: a generated page's table in `page.describe` (`table`, `columns`, `rows`, `row` and `group` are older).
-    "note",
+    ("note", &[Reach::List]),
     // WP-S1.21 part 2 (D7): the printed PLC address of the hovered connection point, a reviewed vocabulary change.
-    "address",
-    // WP-S1.19 part 6 (§11): the 6 words of `LIBRARY_WORDS`, a reviewed vocabulary change (`library` and `conflict` are
+    ("address", &[Reach::PlcHover]),
+    // WP-S1.19 part 6 (§11): the 6 words of `Reach::Library`, a reviewed vocabulary change (`library` and `conflict` are
     // older).
-    "macros",
-    "libraries",
-    "tier",
-    "project_copies",
-    "library_copy",
-    "macro",
-    // WP-S2.07 part 4a (§9.6): the 12 words of `PART_WORDS`, a reviewed vocabulary change.
-    "fits",
-    "all",
-    "inactive",
-    "compatible",
-    "same-fndef",
-    "same-category",
-    "other",
-    "favourite",
-    "favourites",
-    "tech",
-    "version",
-    "fork",
+    ("macros", &[Reach::Library]),
+    ("libraries", &[Reach::Library]),
+    ("tier", &[Reach::Library]),
+    ("project_copies", &[Reach::Library]),
+    ("library_copy", &[Reach::Library]),
+    ("macro", &[Reach::Library]),
+    // WP-S2.07 part 4a (§9.6): the 12 words of `Reach::Part`, a reviewed vocabulary change.
+    ("fits", &[Reach::Part]),
+    ("all", &[Reach::Part]),
+    ("inactive", &[Reach::Part]),
+    ("compatible", &[Reach::Part]),
+    ("same-fndef", &[Reach::Part]),
+    ("same-category", &[Reach::Part]),
+    ("other", &[Reach::Part]),
+    ("favourite", &[Reach::Part]),
+    ("favourites", &[Reach::Part]),
+    ("tech", &[Reach::Part]),
+    ("version", &[Reach::Part]),
+    ("fork", &[Reach::Part]),
     // WP-S2.07 part 4b (§9.6)
-    "adapt",
-    "update",
-    "patch",
-    "minor",
-    "major",
-    // WP-S4.02 part 3: the 3 words of `LAYOUT_WORDS`, a reviewed vocabulary change.
-    "unplaced",
-    "layout",
-    "refused",
+    ("adapt", &[Reach::PasteChoice]),
+    ("update", &[Reach::PasteChoice]),
+    ("patch", &[Reach::PasteChoice]),
+    ("minor", &[Reach::PasteChoice]),
+    ("major", &[Reach::PasteChoice]),
+    // WP-S4.02 part 3: the 3 words of `Reach::Layout`, a reviewed vocabulary change.
+    ("unplaced", &[Reach::Layout]),
+    ("layout", &[Reach::Layout]),
+    ("refused", &[Reach::Layout]),
 ];
 
-// WP-S4.02 part 3
-/// The 3 words WP-S4.02 part 3 adds to [`VOCABULARY`]: the navigator kind `unplaced` (FT-486) and the layout ghost's
-/// `canvas ghost layout … refused` (D4).
-pub const LAYOUT_WORDS: &[&str] = &["unplaced", "layout", "refused"];
+/// Every structural word of the describe text, in the order of `WORDS` (the blind reference's `vocabulary.txt`
+/// lists them in this order).
+pub const VOCABULARY: [&str; WORDS.len()] = {
+    let mut out = [""; WORDS.len()];
+    let mut i = 0;
+    while i < WORDS.len() {
+        out[i] = WORDS[i].0;
+        i += 1;
+    }
+    out
+};
 
-// WP-S2.07 part 4b
-/// The 5 words WP-S2.07 part 4b adds to [`VOCABULARY`] (§9.6): the paste choice card's `conflict` lines' classes
-/// (`patch`, `minor`, `major`) and its `choice` lines' words (`adapt`, `update`; `update` is also the origin word of
-/// the `library.update` card the second choice opens, in the transcript).
-pub const PASTE_CHOICE_WORDS: &[&str] = &["adapt", "update", "patch", "minor", "major"];
+/// The words of `WORDS` that `reach` reaches, in table order.
+pub fn words(reach: Reach) -> Vec<&'static str> {
+    WORDS
+        .iter()
+        .filter(|(_, r)| r.contains(&reach))
+        .map(|(w, _)| *w)
+        .collect()
+}
 
-// WP-S2.07 part 4a
-/// The 12 words WP-S2.07 part 4a adds to [`VOCABULARY`] (§9.6): the part dialog's `query` line (`fits`, `all`,
-/// `inactive`, the views `favourites` and `all`), its `result` lines (`compatible`, the fits `same-fndef`,
-/// `same-category` and `other`, the mark `favourite`) and the part editor's `tech`, `source … version … fork` lines.
-pub const PART_WORDS: &[&str] = &[
-    "fits",
-    "all",
-    "inactive",
-    "compatible",
-    "same-fndef",
-    "same-category",
-    "other",
-    "favourite",
-    "favourites",
-    "tech",
-    "version",
-    "fork",
-];
-
-// WP-S1.19 part 6
-/// The 6 words WP-S1.19 part 6 adds to [`VOCABULARY`] (§11): the navigator kinds `macros` and `libraries`, the row
-/// roles `tier`, `project_copies`, `library_copy` and `macro` (also the macro card's origin word).
-pub const LIBRARY_WORDS: &[&str] = &[
-    "macros",
-    "libraries",
-    "tier",
-    "project_copies",
-    "library_copy",
-    "macro",
-];
-
-/// The word FT-660 adds to [`VOCABULARY`]: the `note` line of a generated page whose table prints a note instead of
-/// rows (see [`page_table_lines`]).
-pub const LIST_WORDS: &[&str] = &["note"];
-
-// WP-S2.07 part 1
-/// The word WP-S2.07 part 1 adds to [`VOCABULARY`] (§6.10): an accessory row of the strip editor prints as `accessory`
-/// with its cells, where a terminal row prints `row`.
-pub const STRIP_EDITOR_WORDS: &[&str] = &["accessory"];
-
-// WP-S2.17 part 3
-/// The 6 words WP-S2.17 part 3 adds to [`VOCABULARY`] (D15): the `rail left` and `rail right` lines with the left rail's
-/// `foot`, and the property grid's `advanced <n> shown|hidden` line.
-pub const RAIL_WORDS: &[&str] = &["rail", "left", "right", "foot", "advanced", "hidden"];
-
-// WP-S2.17 part 2
-/// The 4 words WP-S2.17 part 2 adds to [`VOCABULARY`] (D15): the `commandbar` section's head word and its `next step`
-/// line, the `hud` line and its `prompt`.
-pub const COMMAND_BAR_WORDS: &[&str] = &["commandbar", "next", "hud", "prompt"];
-
-// WP-S2.09 part 2
-/// The 16 words WP-S2.09 part 2 adds to [`VOCABULARY`] (§7.6): the kind word `messages`, the role words `severity` and
-/// `rule`, the header line's `scheme`, `warnings`, `infos` and `waived`, the detail lines' `detail`, `title`, `message`
-/// and `fix` (also the quick-fix card's origin word), and the five rule kinds.
-pub const MSG_WORDS: &[&str] = &[
-    "messages",
-    "severity",
-    "rule",
-    "scheme",
-    "warnings",
-    "infos",
-    "waived",
-    "detail",
-    "title",
-    "message",
-    "fix",
-    "completeness",
-    "safety",
-    "conflict",
-    "hygiene",
-    "integrity",
-];
-
-// WP-S2.09 part 3
-/// The 13 words WP-S2.09 part 3 adds to [`VOCABULARY`] (§8.7): the `preview` and `history` sections' words (the
-/// specification's 14 less `saved`, which only a quoted marker text carries).
-pub const PREVIEW_WORDS: &[&str] = &[
-    "summary", "entity", "added", "changed", "removed", "fields", "xref", "more", "entries", "entry",
-    "origin", "merged", "redo",
-];
-
-// WP-S2.06 part 3
-/// The 6 words WP-S2.06 part 3 adds to [`VOCABULARY`] (§8.8): the header's `table`, the `columns` line, the table
-/// card's `invalid` and `ambiguous` cells, and the pattern dialog's `pattern` and `values`.
-pub const TABLE_WORDS: &[&str] = &["table", "columns", "invalid", "ambiguous", "pattern", "values"];
-
-// WP-S2.09 part 1
-/// The 18 words WP-S2.09 part 1 adds to [`VOCABULARY`] (§6.8): the `jobs` and `notifications` sections, the toast's
-/// action words and the recovery dialog's line (the specification's 19 tokens less `pages`, WP-S2.06 part 1's).
-pub const JOB_WORDS: &[&str] = &[
-    "jobs",
-    "job",
-    "running",
-    "pdf",
-    "done",
-    "kib",
-    "rev",
-    "now",
-    "cancelled",
-    "notifications",
-    "notification",
-    "open",
-    "expired",
-    "recovery",
-    "transactions",
-    "base",
-    "matches",
-    "moved",
-];
-
-// WP-S2.06 part 2
-/// The 6 words WP-S2.06 part 2 adds to [`VOCABULARY`] (§7.4): the role words `cable`, `module`, `station` and
-/// `manufacturer`, and the highlight lines' `highlight` and `slot`.
-pub const NAV2_WORDS: &[&str] = &["cable", "module", "station", "manufacturer", "highlight", "slot"];
-
-// WP-S2.06 part 1
-/// The 18 words WP-S2.06 part 1 adds to [`VOCABULARY`] (§6.10): the navigator kinds, the header's `kind`, `tree`,
-/// `ascending`, `descending`, `showing` and `to`, the canvas section's `elsewhere`, the badge word `aux` and the card's
-/// origin word `reorder`.
-pub const NAV_WORDS: &[&str] = &[
-    "kind",
-    "pages",
-    "devices",
-    "strips",
-    "cables",
-    "plc",
-    "potentials",
-    "ips",
-    "parts",
-    "blocks",
-    "tree",
-    "ascending",
-    "descending",
-    "showing",
-    "to",
-    "elsewhere",
-    "aux",
-    "reorder",
-];
+/// The [`Reach`] of `word` (empty where `tests/part2.rs`'s sequence reaches it), or `None` where it is no structural
+/// word.
+pub fn reach_of(word: &str) -> Option<&'static [Reach]> {
+    WORDS.iter().find(|(w, _)| *w == word).map(|(_, r)| *r)
+}
 
 /// The most rows a navigator prints in the describe text (§6.10): a window around the cursor.
 pub const NAV_WINDOW: usize = 50;
-
-/// The 10 words of WP-S2.04 §9.6, of which part 3 adds the last 5 to [`VOCABULARY`] (WP-S6.13 part 1 added the
-/// first 5): `arrange`, `by` and `potential` name the parameters of `ip.arrange_selected` (FT-314's harness help
-/// lists them); the canvas lines print the others.
-pub const IP_WORDS: &[&str] = &[
-    "ip",
-    "direction",
-    "source",
-    "undirected",
-    "potential",
-    "name",
-    "outline",
-    "cps",
-    "arrange",
-    "by",
-];
-
-/// The word FIXPT41 adds to [`VOCABULARY`]: the IP tool's ghost names the pin a click connects the point to
-/// (`connects "-102F2:14"`); `tests/it/ip_on_pin.rs` reaches it.
-pub const IP_PIN_WORDS: &[&str] = &["connects"];
-
-// WP-S2.05 part 3
-/// The 6 words WP-S2.05 part 3 adds to [`VOCABULARY`] (§8.8): the `clipboard` line and the paste ghost's line.
-pub const CLIP_WORDS: &[&str] = &["clipboard", "fragment", "records", "copies", "paste", "dropped"];
-
-/// The 3 words FT-410 adds to [`VOCABULARY`]: the import card's line `card ready "parts.import" created 29 skipped 0
-/// errors 0`.
-pub const IMPORT_WORDS: &[&str] = &["created", "skipped", "errors"];
-
-/// The 5 words FT-649 adds to [`VOCABULARY`]: the column mapping step's lines `card mapping "list.csv" source "list"
-/// saved` and `column "Artikel" sample "A9F74210" member "part_number"`.
-pub const MAP_WORDS: &[&str] = &["mapping", "saved", "column", "sample", "member"];
-
-/// The 14 words of WP-S2.04 part 4b (§10.7 as ruled in cycle 28): its 11 tool words (`text` is WP-S2.05 part 2's and
-/// `connections` WP-S6.13 part 1's), `anticlockwise` (an arc drawn anticlockwise) and `page.describe`'s `boxes` and
-/// `unknown` (WP-S6.13 §5.5.3).
-pub const ITEM_WORDS: &[&str] = &[
-    "graphic",
-    "line",
-    "polyline",
-    "rect",
-    "circle",
-    "arc",
-    "polygon",
-    "marker",
-    "typing",
-    "drawing",
-    "crossing",
-    "anticlockwise",
-    "boxes",
-    "unknown",
-];
-
-/// The word WP-S2.04 part 5 adds to [`VOCABULARY`] (§11): the Image tool's ghost line and `page.describe`'s image item.
-pub const IMAGE_WORDS: &[&str] = &["image"];
-
-/// The 14 words WP-S2.05 part 2 adds to [`VOCABULARY`] (§7.6).
-pub const FIND_WORDS: &[&str] = &[
-    "find",
-    "replace",
-    "regex",
-    "case",
-    "word",
-    "scope",
-    "function_text",
-    "property",
-    "part_number",
-    "folios",
-    "results",
-    "result",
-    "truncated",
-    "text",
-];
-
-/// The 21 words WP-S2.04 part 2 adds to [`VOCABULARY`] (§8.7, ID-632: `junction` is a word since WP-S2.03 part 2).
-pub const WIRE_WORDS: &[&str] = &[
-    "route",
-    "from",
-    "end",
-    "bends",
-    "points",
-    "proposals",
-    "->",
-    "style",
-    "wiring",
-    "sequence",
-    "wire",
-    "segment",
-    "routing",
-    "crossings",
-    "plain",
-    "hops",
-    "dot",
-    "bevel",
-    "star",
-    "chain",
-    "connect",
-];
-
-/// The 28 words WP-S2.04 part 1 adds to [`VOCABULARY`] (§7.7).
-pub const PLACE_WORDS: &[&str] = &[
-    "picker", "rows", "symbol", "part", "function", "main", "embedded", "starter", "ghost", "place",
-    "variant", "rep", "target", "new", "join", "existing", "terminal", "strip", "letter", "tag", "move",
-    "steps", "exchange", "unmapped", "floating", "dragging", "moving", "readout",
-];
-
-/// The 11 words `page.describe` adds to [`VOCABULARY`] (WP-S6.13 §5.5.3): its own `reps`, `junctions`, `wires`,
-/// `stored` and `provisional`, the interruption point's `ip`, `direction`, `source`, `undirected` and `potential` (WP-S2.04
-/// part 3's words, which Golden A prints) and `connections` (part 4b's). The other words of its lines (`page`, `rep`,
-/// `cell`, `symbol`, `variant`, `at`, `mm`, `cp`, `none`, `wire`, `->`, `route`, `bends`, `junction`, `style`, `dot`,
-/// `bevel`, `wiring`, `star`, `chain`, `sequence`) are older. The G-PP triage added a terminal CP's `internal` and
-/// FT-621 a strip's `bridge` line.
-pub const PAGE_WORDS: &[&str] = &[
-    "reps",
-    "connections",
-    "junctions",
-    "wires",
-    "stored",
-    "provisional",
-    "ip",
-    "direction",
-    "source",
-    "undirected",
-    "potential",
-    "internal",
-    "bridge",
-];
 
 /// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a
 /// status field, a menu's name), wherever they stand in the line.
@@ -3408,6 +3231,15 @@ mod tests {
         assert!(!sheet_kinds.is_empty(), "{sheet_kinds:?}");
         for k in sheet_kinds.iter().chain(&["page_item", "structure_box"]) {
             assert!(VOCABULARY.contains(k), "`{k}` is not in VOCABULARY");
+        }
+    }
+
+    /// A structural word stands in `WORDS` once.
+    #[test]
+    fn words_holds_no_word_twice() {
+        let mut seen = std::collections::BTreeSet::new();
+        for (w, _) in WORDS {
+            assert!(seen.insert(*w), "`{w}` stands in WORDS twice");
         }
     }
 }

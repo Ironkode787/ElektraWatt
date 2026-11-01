@@ -766,10 +766,6 @@ Strip\tPos\tTerminal\tFunction text\tGroup\tPart\tPotential\tSide 1 (clamp a)\tS
 /// to the table, moving the cell cursor and typing make no `navigator_table` call.
 #[test]
 fn tb8_describe_lines_words_and_counts() {
-    use ew_viewmodel::describe::{TABLE_WORDS, VOCABULARY};
-    for w in TABLE_WORDS {
-        assert!(VOCABULARY.contains(w), "{w}");
-    }
     for (id, keys) in [
         ("table.edit", &["F2"][..]),
         ("table.fill_down", &["Ctrl+D"]),

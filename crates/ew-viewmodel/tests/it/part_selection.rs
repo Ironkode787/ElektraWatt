@@ -511,9 +511,6 @@ fn ps9_the_actions_and_words_are_registered() {
     ] {
         assert!(ew_viewmodel::actions::ACTIONS.iter().any(|m| m.id == id), "{id}");
     }
-    for w in ew_viewmodel::describe::PART_WORDS {
-        assert!(ew_viewmodel::describe::VOCABULARY.contains(w), "{w}");
-    }
 }
 
 /// §9.4: the Parts row's actions menu lists Choose part…, Add part… and Edit part… after its row actions; each

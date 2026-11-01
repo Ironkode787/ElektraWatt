@@ -521,14 +521,6 @@ fn an_unmapped_part_number_refuses_with_the_importers_message() {
 }
 
 #[test]
-fn the_five_mapping_words_are_in_the_vocabulary_once() {
-    use ew_viewmodel::describe::{MAP_WORDS, VOCABULARY};
-    for w in MAP_WORDS {
-        assert_eq!(VOCABULARY.iter().filter(|v| *v == w).count(), 1, "{w}");
-    }
-}
-
-#[test]
 fn the_recorded_command_carries_the_parameters_of_the_read() {
     let tmp = Tmp::new("parts-record");
     let mut shell = headless(&tmp);
@@ -599,12 +591,4 @@ fn the_card_survives_selection_changes_and_goes_with_the_project() {
     done(&mut shell, "file.close", json!({"discard": true}));
     assert!(shell.properties().card().is_none());
     shell.shutdown();
-}
-
-#[test]
-fn the_three_words_are_in_the_vocabulary_once() {
-    use ew_viewmodel::describe::{IMPORT_WORDS, VOCABULARY};
-    for w in IMPORT_WORDS {
-        assert_eq!(VOCABULARY.iter().filter(|v| *v == w).count(), 1, "{w}");
-    }
 }

@@ -660,15 +660,12 @@ fn every_navigator_opens_and_the_navigator_words_are_reached() {
             out
         })
         .collect();
-    let missing: Vec<&&str> = ew_viewmodel::describe::NAV_WORDS
-        .iter()
+    let missing: Vec<&str> = ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::Nav)
+        .into_iter()
         // `aux` is printed quoted (a badge), and `pages` is the kind word the Pages header leaves out (D5).
-        .filter(|w| !words.contains(**w) && !matches!(**w, "aux" | "pages"))
+        .filter(|w| !words.contains(*w) && !matches!(*w, "aux" | "pages"))
         .collect();
     assert!(missing.is_empty(), "{missing:?}");
-    for w in ew_viewmodel::describe::NAV_WORDS {
-        assert!(ew_viewmodel::describe::VOCABULARY.contains(w), "{w}");
-    }
     shell.shutdown();
 }
 

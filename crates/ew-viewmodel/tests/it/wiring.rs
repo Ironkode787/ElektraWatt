@@ -890,8 +890,8 @@ fn wr9_every_part_2_word_is_reached_and_in_the_vocabulary() {
             }
         }
     }
-    let words = ew_viewmodel::describe::WIRE_WORDS;
-    let missing: Vec<&&str> = words.iter().filter(|w| !seen.contains(**w)).collect();
+    let words = ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::Wire);
+    let missing: Vec<&str> = words.into_iter().filter(|w| !seen.contains(*w)).collect();
     assert!(missing.is_empty(), "words no state reached: {missing:?}");
 }
 

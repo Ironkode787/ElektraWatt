@@ -737,10 +737,7 @@ fn ms4_f8_with_no_findings_on_show_refuses() {
 
 #[test]
 fn ms6_the_sixteen_words_the_five_actions_and_the_counts() {
-    use ew_viewmodel::describe::{MSG_WORDS, VOCABULARY};
-    for w in MSG_WORDS {
-        assert!(VOCABULARY.contains(w), "{w}");
-    }
+    use ew_viewmodel::describe::{Reach, words as reach_words};
     for id in [
         "messages.show",
         "messages.next",
@@ -793,7 +790,10 @@ fn ms6_the_sixteen_words_the_five_actions_and_the_counts() {
     // line of an EW-CORE-052 finding prints it); `safety` and `integrity` need findings of those kinds, which the
     // drafting run of Golden A has none of.
     let unreachable = ["safety", "conflict", "integrity"];
-    for w in MSG_WORDS.iter().filter(|w| !unreachable.contains(w)) {
+    for w in reach_words(Reach::Msg)
+        .iter()
+        .filter(|w| !unreachable.contains(w))
+    {
         assert!(words.contains(*w), "`{w}` is reached");
     }
     shell.shutdown();

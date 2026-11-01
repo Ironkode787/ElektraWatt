@@ -894,10 +894,7 @@ fn ib7_the_describe_lines_use_the_ten_words_and_the_tools_read_nothing_while_mov
     assert_eq!(after.page_tables, calls.page_tables);
     assert_eq!(after.symbol_shape, calls.symbol_shape);
     scan(&s, &mut seen);
-    let words = ew_viewmodel::describe::IP_WORDS;
-    for w in words {
-        assert!(ew_viewmodel::describe::VOCABULARY.contains(w));
-    }
+    let words = ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::Ip);
     // `arrange`, `by` and `potential` name the parameters of `ip.arrange_selected` (no canvas line prints them).
     let missing: Vec<&&str> = words
         .iter()

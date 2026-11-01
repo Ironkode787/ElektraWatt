@@ -735,9 +735,9 @@ fn every_part_1_word_of_the_describe_text_is_reached_and_in_the_vocabulary() {
             }
         }
     }
-    let missing: Vec<&&str> = ew_viewmodel::describe::PLACE_WORDS
-        .iter()
-        .filter(|w| !seen.contains(**w))
+    let missing: Vec<&str> = ew_viewmodel::describe::words(ew_viewmodel::describe::Reach::Place)
+        .into_iter()
+        .filter(|w| !seen.contains(*w))
         .collect();
     assert!(missing.is_empty(), "words no state reached: {missing:?}");
 }
