@@ -10,7 +10,9 @@ use ew_dl::{Brush, ItemKind, Layer};
 use ew_ids::{Id, Uuid};
 use ew_scene::forms::PageBindings;
 use ew_scene::page::{FrameView, PageFinding, PageKind, PageView, page_display_list, page_scene};
-use ew_scene::table::{HEADER_FILL, TableColumn, TableFinding, TableRow, TableRowKind, TableView};
+use ew_scene::table::{
+    HEADER_FILL, TableColumn, TableFinding, TableLink, TableRow, TableRowKind, TableView,
+};
 use ew_schema::{FormDef, LibCopy, LibDocument};
 use ew_text::{builtin, bundled};
 use ew_units::Nm;
@@ -241,7 +243,7 @@ fn a_note_takes_one_row_and_a_heading_spans_the_columns() {
 fn a_linked_cell_carries_a_link_source() {
     let mut t = table(&[&["1", "Title", "+J"]]);
     let d = ew_dl::Destination::Cp(Uuid::from_u128(0x77));
-    t.rows[0].links = vec![(1, d)];
+    t.rows[0].links = vec![TableLink::whole(1, d)];
     let l = page_display_list(&view(Some(t)), Layer::Tables, bundled(), builtin());
     let linked: Vec<&ew_dl::Item> = l
         .list
@@ -251,4 +253,60 @@ fn a_linked_cell_carries_a_link_source() {
         .collect();
     assert!(!linked.is_empty());
     assert!(linked.iter().all(|i| matches!(i.kind, ItemKind::Glyphs(_))));
+}
+
+/// WP-S3.06 ruling 1 and 3: a link with a span is drawn over that span's glyphs only, as an invisible path after the
+/// cell's text (the cross-reference item rule); the text itself carries no link. "101, 103" with a link per folio: the
+/// first box starts where the text starts, the second ends where it ends, and the two do not overlap.
+#[test]
+fn a_span_link_covers_its_item_only() {
+    let mut t = table(&[&["1", "101, 103", "+J"]]);
+    let (d1, d2) = (
+        ew_dl::Destination::Representation(Uuid::from_u128(0x101)),
+        ew_dl::Destination::Page(Uuid::from_u128(0x103)),
+    );
+    t.rows[0].links = vec![
+        TableLink {
+            column: 1,
+            span: Some(0..3),
+            dest: d1,
+        },
+        TableLink {
+            column: 1,
+            span: Some(5..8),
+            dest: d2,
+        },
+    ];
+    let l = page_display_list(&view(Some(t)), Layer::Tables, bundled(), builtin());
+    let items = &l.list.items;
+    let run = items
+        .iter()
+        .find(|i| matches!(&i.kind, ItemKind::Glyphs(r) if r.text == "101, 103"))
+        .expect("the cell's text");
+    assert_eq!(run.link, None);
+    let carrier = |d| {
+        let found: Vec<&ew_dl::Item> = items
+            .iter()
+            .filter(|i| i.link == Some(ew_dl::Link::Source(d)))
+            .collect();
+        assert_eq!(found.len(), 1);
+        match &found[0].kind {
+            ItemKind::Path(p) if p.stroke.is_none() && p.fill.is_none() => p.path.bounds().unwrap(),
+            _ => panic!("not an invisible path"),
+        }
+    };
+    let ItemKind::Glyphs(glyphs) = &run.kind else {
+        unreachable!()
+    };
+    let text = ew_units::Rect::from_points(
+        glyphs.to_parent(glyphs.layout_box.min()),
+        glyphs.to_parent(glyphs.layout_box.max()),
+    );
+    let (b1, b2) = (carrier(d1), carrier(d2));
+    assert_eq!(b1.min().x, text.min().x);
+    assert_eq!(b2.max().x, text.max().x);
+    assert!(b1.max().x < b2.min().x);
+    // The carriers come after the text items.
+    let pos = |pred: &dyn Fn(&ew_dl::Item) -> bool| items.iter().position(pred).unwrap();
+    assert!(pos(&|i| i.link == Some(ew_dl::Link::Source(d1))) > pos(&|i| std::ptr::eq(i, run)));
 }

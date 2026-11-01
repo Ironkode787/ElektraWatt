@@ -243,13 +243,13 @@ pub(super) fn page_cell(q: &Q, columns: &[ColumnDef], cells: &mut [Cell], r: &Pl
         if let (Some(cell), Some(page)) = (cell, q.reps().get(rep).map(|x| x.page)) {
             put(columns, cells, "page", Cell::CellRef(PageRef::Drawn(page), cell));
             if let (Some(col), Some(cp)) = (page_col, r.cp) {
-                links.push(LinkRef {
-                    column: u16::try_from(col).unwrap_or(u16::MAX),
-                    target: LinkTarget::Cp {
+                links.push(LinkRef::whole(
+                    col,
+                    LinkTarget::Cp {
                         function: cp.function,
                         idx: cp.idx,
                     },
-                });
+                ));
             }
         }
     }

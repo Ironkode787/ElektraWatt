@@ -68,10 +68,7 @@ impl ReportKindDef for Toc {
                     Cell::Ident(row.location.clone()),
                 ],
             );
-            r.links = vec![LinkRef {
-                column: 0,
-                target: LinkTarget::Page(row.page),
-            }];
+            r.links = vec![LinkRef::whole(0, LinkTarget::Page(row.page))];
             r.sources = vec![source];
             set.rows.push(r);
         }

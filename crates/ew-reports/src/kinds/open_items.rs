@@ -5,13 +5,13 @@
 
 use ew_checks::{Finding, OPEN_ITEM_RULES, open_item_of, open_items};
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::ReportBlock;
+use ew_derive::ew_schema::{Kind, ReportBlock};
 use ew_derive::{PageRef, Q};
 
 use super::conn::{put, text_cell};
 use crate::kind::ReportKindDef;
 use crate::queries::cycle_rows;
-use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
+use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowKey, RowSet};
 
 /// The open-items list: one row per open item of `ew_checks::open_items` (the open findings of the open-item rules in
 /// release mode of the project's release scheme, else `pre-delivery`), so a finding is listed exactly when `ew check
@@ -99,5 +99,18 @@ fn row_of(columns: &[ColumnDef], f: &Finding, category: &str) -> Row {
     let id = RowId(vec![RowKey::Name(format!("{}/{}", f.rule, f.fingerprint))]);
     let mut r = Row::data(id, cells);
     r.sources = f.targets.iter().map(|t| t.id).collect();
+    // The item links the finding's page, else the main representation of its first device target, else nothing
+    // (WP-S3.06 D10).
+    let target = match f.page {
+        Some(page) => Some(LinkTarget::Page(PageRef::Drawn(page))),
+        None => f
+            .targets
+            .iter()
+            .find(|t| t.kind == Kind::Device)
+            .map(|t| LinkTarget::MainRep(t.id.cast())),
+    };
+    if let (Some(target), Some(c)) = (target, columns.iter().position(|c| c.key == "item")) {
+        r.links = vec![LinkRef::whole(c, target)];
+    }
     r
 }

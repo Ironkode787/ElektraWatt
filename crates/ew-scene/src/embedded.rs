@@ -55,8 +55,8 @@ use ew_units::{Nm, Pt2, Rect};
 
 use crate::forms::SheetMap;
 use crate::table::{
-    HEADER_FILL, LINE_WIDTH, LoweredTable, ROW_HEIGHT, TableColumn, TableFinding, TableRow, TableRowKind,
-    column_edges_in, push_cell,
+    HEADER_FILL, LINE_WIDTH, LoweredTable, ROW_HEIGHT, TableColumn, TableFinding, TableLink, TableRow,
+    TableRowKind, column_edges_in, push_cell,
 };
 
 /// The grid line width, printed.
@@ -247,7 +247,7 @@ fn lower_boxed(
         cell,
         &t.title,
         (None, 0),
-        None,
+        &[],
     );
 
     // The flow columns.
@@ -338,7 +338,7 @@ fn lower_boxed(
                         cell,
                         &col.header,
                         (None, c),
-                        None,
+                        &[],
                     );
                 }
             }
@@ -346,7 +346,7 @@ fn lower_boxed(
         if let Some(note) = &t.note {
             if count > 0 {
                 let cell = page_rect(left, row_y(header), right, row_y(header + 1));
-                push_cell(&mut out, fonts, &text_style, sheet, cell, note, (None, 0), None);
+                push_cell(&mut out, fonts, &text_style, sheet, cell, note, (None, 0), &[]);
             }
             continue;
         }
@@ -357,7 +357,7 @@ fn lower_boxed(
                 TableRowKind::Heading => {
                     let s = row.cells.first().map_or("", String::as_str);
                     let cell = page_rect(left, ya, right, yb);
-                    push_cell(&mut out, fonts, &text_style, sheet, cell, s, (Some(at), 0), None);
+                    push_cell(&mut out, fonts, &text_style, sheet, cell, s, (Some(at), 0), &[]);
                 }
                 TableRowKind::Data => {
                     for (c, col) in t.columns.iter().enumerate() {
@@ -365,9 +365,9 @@ fn lower_boxed(
                             continue;
                         }
                         let s = row.cells.get(c).map_or("", String::as_str);
-                        let link = row.links.iter().find(|(n, _)| *n == c).map(|(_, d)| *d);
+                        let links: Vec<&TableLink> = row.links.iter().filter(|l| l.column == c).collect();
                         let cell = page_rect(edges[c], ya, edges[c + 1], yb);
-                        push_cell(&mut out, fonts, &text_style, sheet, cell, s, (Some(at), c), link);
+                        push_cell(&mut out, fonts, &text_style, sheet, cell, s, (Some(at), c), &links);
                     }
                 }
             }
@@ -522,7 +522,7 @@ impl Painter<'_> {
             .resolve(style_key)
             .unwrap_or(TextStyle::regular(Nm(3_175_000)));
         let rect = Rect::from_points(Pt2::new(x0, y0), Pt2::new(x1, y1));
-        push_cell(&mut self.out, self.fonts, &style, self.sheet, rect, s, at, None);
+        push_cell(&mut self.out, self.fonts, &style, self.sheet, rect, s, at, &[]);
     }
 }
 

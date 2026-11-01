@@ -6,10 +6,10 @@
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, LibRef, OrderUnit, Part, ReportBlock};
+use ew_derive::ew_schema::{Device, LibRef, OrderUnit, Page, Part, RepType, ReportBlock};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{
-    BomMode, BomRows, DevicePartLines, DeviceTag, PartLine, Q, manufacturer_copy, manufacturer_name,
+    BomMode, BomRows, DevicePartLines, DeviceTag, PageRef, PartLine, Q, manufacturer_copy, manufacturer_name,
 };
 
 use crate::kind::{ParamDef, ParamKind, ParamValue, ReportKindDef, kind_params};
@@ -126,15 +126,49 @@ impl PartsSummary {
             let mut r = Row::data(id, cells);
             r.sources = row.devices.iter().map(|d| d.cast()).collect();
             if let Some(d) = row.devices.first() {
-                r.links = vec![LinkRef {
-                    column: 6,
-                    target: LinkTarget::MainRep(*d),
-                }];
+                r.links = vec![LinkRef::whole(6, LinkTarget::MainRep(*d))];
             }
+            r.links.extend(folio_links(q, 7, &row.devices, &row.pages));
             set.rows.push(r);
         }
         set
     }
+}
+
+/// The links of a BOM row's Folios cell in `column` (WP-S3.06 D10, ruling 2): one per page of `pages`, to the
+/// smallest-ID representation on that page of the first of `devices` (in their order) that has one there, not a
+/// contact image, else to the page (a panel-layout page of a layout object). A cell with one page links whole; with
+/// several, each page links its own item. The representations are read from the model's tables, never from the page
+/// order (doc 09 §3.6).
+fn folio_links(q: &Q, column: usize, devices: &[Id<Device>], pages: &[PageRef]) -> Vec<LinkRef> {
+    let reps = q.reps();
+    let idx = q.idx();
+    let rep_on = |page: Id<Page>| {
+        devices.iter().find_map(|d| {
+            idx.functions_of_device(*d)
+                .flat_map(|f| idx.reps_of_function(f))
+                .filter(|r| {
+                    reps.get(*r)
+                        .is_some_and(|x| x.page == page && x.rep_type != RepType::ContactImage)
+                })
+                .min()
+        })
+    };
+    pages
+        .iter()
+        .enumerate()
+        .map(|(n, p)| {
+            let target = match p {
+                PageRef::Drawn(page) => rep_on(*page).map_or(LinkTarget::Page(*p), LinkTarget::Rep),
+                _ => LinkTarget::Page(*p),
+            };
+            if pages.len() == 1 {
+                LinkRef::whole(column, target)
+            } else {
+                LinkRef::item(column, n, target)
+            }
+        })
+        .collect()
 }
 
 /// The parts list, one row per device part line (EPLAN `.f01`).
@@ -179,6 +213,7 @@ impl ReportKindDef for PartsList {
                     ],
                 );
                 r.sources = vec![device.cast()];
+                r.links = vec![LinkRef::whole(0, LinkTarget::MainRep(device))];
                 keyed.push(((key.clone(), device, i), r));
             }
         }

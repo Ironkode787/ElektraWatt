@@ -12,7 +12,7 @@ use ew_derive::{
 use super::conn::{Wires, bridges, put, tag_short, terminal_state, terminal_wired, text_cell, wires_by_cp};
 use super::terminal_diagram::strips_of;
 use crate::kind::ReportKindDef;
-use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowSet};
+use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowSet};
 
 /// The terminal strip overview.
 ///
@@ -118,6 +118,10 @@ impl ReportKindDef for TerminalOverview {
             );
             let mut r = Row::data(RowId::entity(strip), cells);
             r.sources = vec![strip.cast()];
+            // The strip links its main representation (WP-S3.06 D10).
+            if let Some(c) = set_columns.iter().position(|c| c.key == "strip") {
+                r.links = vec![LinkRef::whole(c, LinkTarget::MainRep(strip))];
+            }
             set.rows.push(r);
         }
         set

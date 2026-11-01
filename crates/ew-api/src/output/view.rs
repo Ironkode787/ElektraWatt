@@ -35,9 +35,9 @@
 //! - **Bindings**: every `title_block(page)` value, the project's date format, no display language (neutral).
 //! - **Report tables** (FT-53): a generated page's rows are the `GeneratedPage::rows` range of
 //!   `report_rows(block)`, each cell printed by `ew_reports::render::render` for that page (neutral language,
-//!   displayed tags); a page with a `note` prints the note instead; the column widths are the columns' weights. A
-//!   row link to a connection point is drawn (FR-REP-042; the TOC's page links and the parts list's
-//!   representation links are not drawn yet).
+//!   displayed tags); a page with a `note` prints the note instead; the column widths are the columns' weights. Every
+//!   row link that resolves is drawn (FR-REP-042; WP-S3.06 D10): a connection point, a page, a device's main
+//!   representation or a representation, over the whole cell or over one listed folio of a `Folios` cell.
 //! - **Embedded blocks** (FR-REP-028; WP-S4.01 D16): every embedded block of a drawn page is drawn into its rectangle.
 //!   A `profile_tables` block draws the cover: the rows split by their `table` column into the colour table, the
 //!   control sizes and the mains sizes; a group-header row is the title of its table, a group-footer row of the
@@ -47,7 +47,8 @@
 //!   printed columns, title, header rows and flow columns are the kind's `ReportKindDef::embedded_layout` (a source
 //!   without a registered kind prints every column under a header row), the block's own non-empty `title` replaces the
 //!   kind's title, and a block whose rows do not derive prints the reason as its note (capitalised, as a generated
-//!   page's placeholder).
+//!   page's placeholder). An embedded block draws no back-links (WP-S3.06 §1): only a PLC overview box's
+//!   connection-point links.
 //! - **Slot texts** (ID-162, ID-166, ID-228, ID-315; FT-206): `tag` → `displayed_tag(device, page)`, except that a
 //!   terminal's own representation prints only the terminal's designation and an interruption point has no `tag`;
 //!   `cp_designation(i)` → the designation of the function CP that symbol CP `i` draws; `function_text` → the
@@ -89,12 +90,12 @@ use ew_derive::ew_ids::{self, Id, Uuid};
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
 use ew_derive::{
-    DisplayedTag, FunctionCps, GeneratedPage, PageOrder, PageRef, PlcAddressText, Policy, Q, Query, TbValue,
+    DisplayedTag, FunctionCps, GeneratedPage, MainRep, PageOrder, PageRef, PlcAddressText, Policy, Q, Query, TbValue,
     TitleBlockValues, XrefTextOf, box_caption, connection_marker, frame_form_of, free_text, group_marker,
     grouped_connections, main_part, manufacturer_name, order_code_part, order_code_text, tech_data_text,
 };
 use ew_dl::Destination;
-use ew_reports::render::{RenderOptions, render};
+use ew_reports::render::{RenderOptions, folios_printed, render};
 use ew_reports::{BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, RowKind, RowSetStatus};
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
@@ -102,7 +103,7 @@ use ew_scene::page::{
     BreakMarkView, BreakSide, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText, RepView,
     SegmentTerminal, SlotValue, SymbolRef,
 };
-use ew_scene::table::{TableColumn, TableRow, TableRowKind, TableView};
+use ew_scene::table::{TableColumn, TableLink, TableRow, TableRowKind, TableView};
 use ew_schema::{
     FnRole, FormDef, Function, FunctionKind, JunctionStyle, LibCopy, LibDocument, Page, PageType, RepType,
     ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef,
@@ -919,10 +920,15 @@ fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> EmbeddedTable {
                         .map(|&(i, _)| r.cells.get(i).map(|c| render(q, c, &opts)).unwrap_or_default())
                         .collect(),
                 };
-                // The links of the printed columns, renumbered to their printed position.
-                let links = row_links(r)
+                // An embedded block draws no back-links (WP-S3.06 §1, ruling 4): only the connection-point links
+                // of a PLC overview box as built (FR-PLC-052), whole-cell, renumbered to their printed position.
+                let links = row_links(q, r)
                     .into_iter()
-                    .filter_map(|(c, d)| printed.iter().position(|&(i, _)| i == c).map(|p| (p, d)))
+                    .filter(|l| matches!(l.dest, Destination::Cp(_)) && l.span.is_none())
+                    .filter_map(|l| {
+                        let p = printed.iter().position(|&(i, _)| i == l.column)?;
+                        Some(TableLink { column: p, ..l })
+                    })
                     .collect();
                 TableRow { kind, cells, links }
             })
@@ -947,17 +953,50 @@ fn capitalised(s: &str) -> String {
     }
 }
 
-/// The drawn row links of a report row (FR-REP-042): the links to a connection point, which the PLC overview
-/// sets to the coil of each bound channel (doc 10 §5).
-fn row_links(r: &Row) -> Vec<(usize, Destination)> {
+/// The drawn row links of a report row on a generated page (FR-REP-042; WP-S3.06 D10, rulings 1 and 4), in the
+/// row's link order:
+///
+/// - `Cp`: the connection point, which the PLC overview sets to the coil of each bound channel (doc 10 §5);
+/// - `Page(p)`: the page, when the page order holds it;
+/// - `MainRep(d)`: the device's main representation, when it has one;
+/// - `Rep(r)`: the representation, when it exists.
+///
+/// A link with an `item` covers that page's printed span of a `Folios` cell ([`folios_printed`], the function the
+/// printer uses); a page inside a printed run has no span and no link. A link that would not resolve is not drawn:
+/// never a dead link.
+fn row_links(q: &Q, r: &Row) -> Vec<TableLink> {
+    let order = q.get::<PageOrder>(());
+    let reps = q.reps();
+    let rep = |rid: Id<Representation>| {
+        reps.get(rid)
+            .filter(|x| order.position(PageRef::Drawn(x.page)).is_some())
+            .map(|_| Destination::Representation(rid.as_uuid()))
+    };
+    let mut spans: BTreeMap<usize, Vec<Option<std::ops::Range<usize>>>> = BTreeMap::new();
     r.links
         .iter()
-        .filter_map(|l| match l.target {
-            LinkTarget::Cp { function, idx } => {
-                let cp: Id<()> = ew_ids::v5::cp_id(function, u32::from(idx));
-                Some((usize::from(l.column), Destination::Cp(cp.as_uuid())))
-            }
-            _ => None,
+        .filter_map(|l| {
+            let column = usize::from(l.column);
+            let dest = match l.target {
+                LinkTarget::Cp { function, idx } => {
+                    let cp: Id<()> = ew_ids::v5::cp_id(function, u32::from(idx));
+                    Some(Destination::Cp(cp.as_uuid()))
+                }
+                LinkTarget::Page(p) => order.position(p).map(|_| page_destination(p)),
+                LinkTarget::MainRep(d) => (*q.get::<MainRep>(d)).and_then(rep),
+                LinkTarget::Rep(rid) => rep(rid),
+            }?;
+            let span = match l.item {
+                None => None,
+                Some(n) => {
+                    let items = spans.entry(column).or_insert_with(|| match r.cells.get(column) {
+                        Some(Cell::Folios(ps)) => folios_printed(q, ps).1,
+                        _ => Vec::new(),
+                    });
+                    Some(items.get(usize::from(n))?.clone()?)
+                }
+            };
+            Some(TableLink { column, span, dest })
         })
         .collect()
 }
@@ -1012,7 +1051,7 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
                     }
                 })
                 .collect(),
-            links: row_links(r),
+            links: row_links(q, r),
         })
         .collect();
     TableView {

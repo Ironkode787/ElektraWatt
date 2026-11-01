@@ -18,7 +18,7 @@ use std::ops::Range;
 
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{AnyId, ColourSpec, Date, Device, Function, OrderUnit, Unit};
+use ew_derive::ew_schema::{AnyId, ColourSpec, Date, Device, Function, OrderUnit, Representation, Unit};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{PageRef, Rev};
 
@@ -505,12 +505,38 @@ pub enum MissingReason {
 }
 
 /// The destination of one cell's link: the PDF turns it into a link annotation, the canvas into a jump.
+///
+/// A link covers the whole cell's text (`item: None`) or one listed item of it (`item: Some(n)`, the n-th page of a
+/// [`Cell::Folios`] list; WP-S3.06 D10, ruling 1): the item's link covers only that item's printed span, and a page
+/// inside a printed run ("203–206": 204, 205) has no span and draws no link.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct LinkRef {
     /// The column of the cell.
     pub column: u16,
+    /// The listed item the link covers (the n-th page of a `Folios` cell), or `None` for the whole cell.
+    pub item: Option<u16>,
     /// The destination.
     pub target: LinkTarget,
+}
+
+impl LinkRef {
+    /// A link over the whole cell of `column`.
+    pub fn whole(column: usize, target: LinkTarget) -> LinkRef {
+        LinkRef {
+            column: u16::try_from(column).unwrap_or(u16::MAX),
+            item: None,
+            target,
+        }
+    }
+
+    /// A link over the `item`-th listed item of the cell of `column`.
+    pub fn item(column: usize, item: usize, target: LinkTarget) -> LinkRef {
+        LinkRef {
+            column: u16::try_from(column).unwrap_or(u16::MAX),
+            item: Some(u16::try_from(item).unwrap_or(u16::MAX)),
+            target,
+        }
+    }
 }
 
 /// A link destination.
@@ -527,4 +553,6 @@ pub enum LinkTarget {
     },
     /// A page.
     Page(PageRef),
+    /// One representation (a device's placement on a given page; WP-S3.06 D10, ruling 2).
+    Rep(Id<Representation>),
 }

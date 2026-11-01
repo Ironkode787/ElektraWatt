@@ -13,6 +13,7 @@
 //!   grouping; thousands separators are not printed.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::ops::Range;
 use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
@@ -144,25 +145,60 @@ fn folio(q: &Q, p: PageRef) -> String {
 /// The doc's rows: "-201U1, -202U1" on "201, 202" (two pages: a list) and "-201U3-Q1 … -202U2-Q4" on
 /// "203–206" (four consecutive pages: a range).
 fn folios(q: &Q, ps: &[PageRef]) -> String {
+    folios_printed(q, ps).0
+}
+
+/// The printed text of a `Folios` cell of `ps` and the byte span of each page in it ([`folios_spans`]): the
+/// printer and the link boxes of the cell's pages read this one function (WP-S3.06 D10, ruling 1).
+///
+/// Reads `PageOrder`: draw or export time only, like [`render`].
+pub fn folios_printed(q: &Q, ps: &[PageRef]) -> (String, Vec<Option<Range<usize>>>) {
     let order = q.get::<PageOrder>(());
-    let mut out: Vec<String> = Vec::new();
+    let pages: Vec<(String, Option<usize>)> = ps.iter().map(|p| (folio(q, *p), order.position(*p))).collect();
+    folios_spans(&pages)
+}
+
+/// The printed Folios text of `pages`, each its folio label and its position in the page order (`None` when it
+/// has none), with the byte span of every page in that text, in the order of `pages`.
+///
+/// A run of at least three pages consecutive in the page order prints "first–last" (the en dash is 3 bytes): its two
+/// ends each get their own span, and a page inside the run has none (`None`: it is not printed). Every other page
+/// prints its label in a ", " list and spans it. Pure: the same input always gives the same text and spans.
+pub fn folios_spans(pages: &[(String, Option<usize>)]) -> (String, Vec<Option<Range<usize>>>) {
+    let mut text = String::new();
+    let mut spans: Vec<Option<Range<usize>>> = vec![None; pages.len()];
+    let mut push = |text: &mut String, k: usize| {
+        let start = text.len();
+        text.push_str(&pages[k].0);
+        spans[k] = Some(start..text.len());
+    };
     let mut i = 0;
-    while i < ps.len() {
+    while i < pages.len() {
         let mut j = i;
-        while j + 1 < ps.len() {
-            match (order.position(ps[j]), order.position(ps[j + 1])) {
+        while j + 1 < pages.len() {
+            match (pages[j].1, pages[j + 1].1) {
                 (Some(a), Some(b)) if b == a + 1 => j += 1,
                 _ => break,
             }
         }
+        if i > 0 {
+            text.push_str(", ");
+        }
         if j - i + 1 >= 3 {
-            out.push(format!("{}–{}", folio(q, ps[i]), folio(q, ps[j])));
+            push(&mut text, i);
+            text.push('–');
+            push(&mut text, j);
         } else {
-            out.extend(ps[i..=j].iter().map(|p| folio(q, *p)));
+            for k in i..=j {
+                if k > i {
+                    text.push_str(", ");
+                }
+                push(&mut text, k);
+            }
         }
         i = j + 1;
     }
-    out.join(", ")
+    (text, spans)
 }
 
 /// The typographic symbol of a unit; empty for a pure number.

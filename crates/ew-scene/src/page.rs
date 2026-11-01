@@ -1616,36 +1616,10 @@ impl Builder<'_> {
         shaped: &Shaped,
         lines: &[Item],
     ) -> Vec<Item> {
-        if spec.items.is_empty() {
-            return Vec::new();
-        }
-        let m = self.fonts.vertical_metrics(style);
         spec.items
             .iter()
             .filter_map(|link| {
-                let (k, line) = shaped
-                    .lines
-                    .iter()
-                    .enumerate()
-                    .find(|(_, l)| l.text.start <= link.range.start && link.range.end <= l.text.end)?;
-                // The span ends are the pen travel of the text up to them, trailing spaces included.
-                let travel = |end: usize| {
-                    let prefix = spec.text.get(line.text.start..end)?;
-                    Some(self.fonts.shape(prefix, style, None).advance())
-                };
-                let (x0, x1) = (travel(link.range.start)?, travel(link.range.end)?);
-                let to_parent = |q: Pt2| match &lines.get(k)?.kind {
-                    ItemKind::Glyphs(run) => Some(run.to_parent(q)),
-                    ItemKind::Group(g) => Some(g.transform.unwrap_or(Transform::IDENTITY).apply(q)),
-                    _ => None,
-                };
-                let corner = |x: Nm, y: Nm| to_parent(Pt2::new(x, y));
-                let quad = [
-                    corner(x0, Nm(-m.ascent.0))?,
-                    corner(x0, m.descent)?,
-                    corner(x1, m.descent)?,
-                    corner(x1, Nm(-m.ascent.0))?,
-                ];
+                let quad = span_quad(self.fonts, style, spec.text, shaped, lines, &link.range)?;
                 Some(
                     Item::path(Path::polygon(&quad), None, None)
                         .with_entity(spec.entity)
@@ -1654,6 +1628,46 @@ impl Builder<'_> {
             })
             .collect()
     }
+}
+
+/// The box of the glyph span `range` of `text` as placed (ADR-0015 amendment 9): from the pen travel of the text up to
+/// the span's start to the travel up to its end (trailing spaces included), from the ascent to the descent of `style`,
+/// mapped to the parent through the placed line item that holds the span (so it turns with the text). `shaped` is
+/// `text` shaped in `style` and `lines` its placed line items, one per shaped line. `None` when no line holds the whole
+/// span or the line is not placed. The cross-reference texts' item links and the report tables' item links
+/// (WP-S3.06 ruling 3) both take their boxes from here.
+pub(crate) fn span_quad(
+    fonts: &FontSet,
+    style: &TextStyle,
+    text: &str,
+    shaped: &Shaped,
+    lines: &[Item],
+    range: &Range<usize>,
+) -> Option<[Pt2; 4]> {
+    let m = fonts.vertical_metrics(style);
+    let (k, line) = shaped
+        .lines
+        .iter()
+        .enumerate()
+        .find(|(_, l)| l.text.start <= range.start && range.end <= l.text.end)?;
+    // The span ends are the pen travel of the text up to them, trailing spaces included.
+    let travel = |end: usize| {
+        let prefix = text.get(line.text.start..end)?;
+        Some(fonts.shape(prefix, style, None).advance())
+    };
+    let (x0, x1) = (travel(range.start)?, travel(range.end)?);
+    let to_parent = |q: Pt2| match &lines.get(k)?.kind {
+        ItemKind::Glyphs(run) => Some(run.to_parent(q)),
+        ItemKind::Group(g) => Some(g.transform.unwrap_or(Transform::IDENTITY).apply(q)),
+        _ => None,
+    };
+    let corner = |x: Nm, y: Nm| to_parent(Pt2::new(x, y));
+    Some([
+        corner(x0, Nm(-m.ascent.0))?,
+        corner(x0, m.descent)?,
+        corner(x1, m.descent)?,
+        corner(x1, Nm(-m.ascent.0))?,
+    ])
 }
 
 /// The distance of a black box's pin text from its pin, inward along the pin's normal (WP-S1.21 D7): 1 mm.

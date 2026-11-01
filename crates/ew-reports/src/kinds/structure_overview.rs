@@ -12,7 +12,7 @@ use ew_derive::{
 
 use super::conn::is_listed_device;
 use crate::kind::ReportKindDef;
-use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowSet};
+use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowSet};
 
 /// The structure-identifier and device-tag overview.
 ///
@@ -115,6 +115,8 @@ impl ReportKindDef for StructureOverview {
                 ],
             );
             r.sources = vec![id.cast()];
+            // The designation links the device's main representation (WP-S3.06 D10; none is drawn without one).
+            r.links = vec![LinkRef::whole(0, LinkTarget::MainRep(id))];
             devices.push(((natural_key(&full), id), r));
         }
         devices.sort_by(|a, b| a.0.cmp(&b.0));

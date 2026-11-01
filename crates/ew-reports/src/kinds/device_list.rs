@@ -12,7 +12,7 @@ use ew_derive::{
 
 use super::conn::{is_listed_device, put, text_cell};
 use crate::kind::ReportKindDef;
-use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowSet};
+use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowSet};
 
 /// The device list.
 ///
@@ -93,6 +93,12 @@ impl ReportKindDef for DeviceList {
             }
             let mut r = Row::data(RowId::entity(id), cells);
             r.sources = vec![id.cast()];
+            // The tag and the main representation link the main representation (WP-S3.06 D10).
+            r.links = ["tag", "main_rep"]
+                .iter()
+                .filter_map(|k| columns.iter().position(|c| c.key == *k))
+                .map(|c| LinkRef::whole(c, LinkTarget::MainRep(id)))
+                .collect();
             keyed.push(((natural_key(&full), id), r));
         }
         keyed.sort_by(|a, b| a.0.cmp(&b.0));

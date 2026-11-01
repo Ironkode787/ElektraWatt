@@ -32,9 +32,13 @@
 //!
 //! # Row links
 //!
-//! A data cell named by [`TableRow::links`] carries a [`Link::Source`] to its destination on its text, which
-//! the PDF writes as a link annotation over the text (FR-REP-042). Not drawn yet: group header and footer
-//! templates (a group row prints as a heading row).
+//! A [`TableLink`] of a data cell without a span carries a [`Link::Source`] to its destination on the cell's text,
+//! which the PDF writes as a link annotation over the text (FR-REP-042). A link with a span (one listed item of the
+//! cell, the "101" of "101, 103") is drawn as a cross-reference text's item link is (ADR-0015 amendment 9): one
+//! invisible path over the box of that span's glyphs, after the cell's text items, carrying the link; the text
+//! items then carry none. Not drawn yet: group header and footer templates (a group row prints as a heading row).
+
+use std::ops::Range;
 
 use ew_dl::{Brush, Color, Destination, Item, Link, Path, Stroke};
 use ew_schema::{Overflow, ShrinkSpec};
@@ -42,6 +46,7 @@ use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
 use ew_units::{Nm, Pt2, Rect};
 
 use crate::forms::{BoxSpec, CELL_PADDING, OverflowKind, SheetMap, lay_out};
+use crate::page::span_quad;
 
 /// The left edge of the table, printed.
 pub const LEFT: Nm = Nm(16_310_000);
@@ -86,8 +91,30 @@ pub struct TableRow {
     pub kind: TableRowKind,
     /// One text per column (a heading row uses the first).
     pub cells: Vec<String>,
-    /// The cells that link somewhere: `(column, destination)` (FR-REP-042).
-    pub links: Vec<(usize, Destination)>,
+    /// The links of the row's cells (FR-REP-042).
+    pub links: Vec<TableLink>,
+}
+
+/// One link of a table cell (FR-REP-042; WP-S3.06 D10).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TableLink {
+    /// The column of the cell.
+    pub column: usize,
+    /// The byte span of the linked item in the cell's text, or `None` for the whole text.
+    pub span: Option<Range<usize>>,
+    /// Where the link goes.
+    pub dest: Destination,
+}
+
+impl TableLink {
+    /// A link over the whole text of the cell in `column`.
+    pub fn whole(column: usize, dest: Destination) -> TableLink {
+        TableLink {
+            column,
+            span: None,
+            dest,
+        }
+    }
 }
 
 /// The table of one generated page.
@@ -171,7 +198,8 @@ pub fn column_edges_in(columns: &[TableColumn], left: Nm, right: Nm) -> Vec<Nm> 
 /// The house cell rule (shared with [`crate::embedded`]): `s` left aligned in `rect` (page coordinates), centred on its
 /// midline and inset by [`CELL_PADDING`], shrunk to the printed cap height [`MIN_CAP_HEIGHT`] when it does not fit and
 /// then reported ([`TableFinding::Overflow`] at `at`, `(row, column)`), never clipped; characters without a glyph are
-/// reported too. An empty text draws nothing. `link` is set on every item of the text.
+/// reported too. An empty text draws nothing. `links` are the cell's links: the first without a span is set on every
+/// item of the text; each with a span adds an invisible path over that span's glyphs ([`span_quad`]) carrying it.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn push_cell(
     out: &mut LoweredTable,
@@ -181,7 +209,7 @@ pub(crate) fn push_cell(
     rect: Rect,
     s: &str,
     at: (Option<usize>, usize),
-    link: Option<Destination>,
+    links: &[&TableLink],
 ) {
     if s.is_empty() {
         return;
@@ -214,12 +242,23 @@ pub(crate) fn push_cell(
             kind,
         });
     }
-    match link {
-        Some(d) => out
+    // The style at the size the text was laid out in (shrink-to-fit may have made it smaller).
+    let final_style = style.with_size(laid.shaped.run.size);
+    let carriers: Vec<Item> = links
+        .iter()
+        .filter_map(|l| {
+            let span = l.span.as_ref()?;
+            let quad = span_quad(fonts, &final_style, s, &laid.shaped, &laid.items, span)?;
+            Some(Item::path(Path::polygon(&quad), None, None).with_link(Link::Source(l.dest)))
+        })
+        .collect();
+    match links.iter().find(|l| l.span.is_none()) {
+        Some(l) => out
             .items
-            .extend(laid.items.into_iter().map(|i| i.with_link(Link::Source(d)))),
+            .extend(laid.items.into_iter().map(|i| i.with_link(Link::Source(l.dest)))),
         None => out.items.extend(laid.items),
     }
+    out.items.extend(carriers);
 }
 
 /// Lowers `view` (see the module documentation). `sheet` is the frame form's page-to-sheet map; the rows print in
@@ -319,9 +358,9 @@ pub fn lower_table(
                 x1: Nm,
                 y0: Nm,
                 at: (Option<usize>, usize),
-                link: Option<Destination>| {
+                links: &[&TableLink]| {
         let cell = rect(x0, y0, x1, Nm(y0.0 + ROW_HEIGHT.0));
-        push_cell(out, fonts, &style, sheet, cell, s, at, link);
+        push_cell(out, fonts, &style, sheet, cell, s, at, links);
     };
     for (c, col) in view.columns.iter().enumerate() {
         if col.weight > 0 {
@@ -332,19 +371,19 @@ pub fn lower_table(
                 edges[c + 1],
                 row_y(0),
                 (None, c),
-                None,
+                &[],
             );
         }
     }
     if let Some(note) = &view.note {
-        text(&mut out, note, LEFT, RIGHT, row_y(1), (None, 0), None);
+        text(&mut out, note, LEFT, RIGHT, row_y(1), (None, 0), &[]);
     } else {
         for (r, row) in view.rows.iter().take(row_count).enumerate() {
             let y = row_y(r + 1);
             match row.kind {
                 TableRowKind::Heading => {
                     let s = row.cells.first().map_or("", String::as_str);
-                    text(&mut out, s, LEFT, RIGHT, y, (Some(r), 0), None);
+                    text(&mut out, s, LEFT, RIGHT, y, (Some(r), 0), &[]);
                 }
                 TableRowKind::Data => {
                     for (c, col) in view.columns.iter().enumerate() {
@@ -352,8 +391,8 @@ pub fn lower_table(
                             continue;
                         }
                         let s = row.cells.get(c).map_or("", String::as_str);
-                        let link = row.links.iter().find(|(k, _)| *k == c).map(|(_, d)| *d);
-                        text(&mut out, s, edges[c], edges[c + 1], y, (Some(r), c), link);
+                        let links: Vec<&TableLink> = row.links.iter().filter(|l| l.column == c).collect();
+                        text(&mut out, s, edges[c], edges[c + 1], y, (Some(r), c), &links);
                     }
                 }
             }
