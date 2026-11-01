@@ -3208,6 +3208,8 @@ decision of the [decision log](06-decision-log.md) §2.4 that the code must foll
 Each task is well below 0.5 pw and is absorbed by its host WP's estimate or by the 20 % integration reserve, so the
 CSV and every total are unchanged. A task is closed by the commit that implements it; the decision row stays.
 
+**Frozen at FT-998 (ID-1051):** new follow-up tasks are one line each in [follow-ups.md](follow-ups.md), closed by commit trailers; the open tasks of both are listed in [records.md](records.md).
+
 | Task | Content | Host WP | Due | Source |
 |---|---|---|---|---|
 | FT-01 | `cargo xtask check-raw-read`: fail on `raw_read!`, the `raw-read` feature or a raw-read item in non-test source outside `ew-model`, `ew-derive`, `ew-commands` and `ew-store`; part of `cargo xtask ci` | WP-S1.05 | **Closed:** implemented in cycle 6 (call detection by type follows as FT-32) | ID-50, ID-77; [ADR-0001](../adr/0001-core-model-persistent-maps.md) amendment 2 |

@@ -29,10 +29,12 @@ mod ordered;
 mod perf;
 mod plan_counts;
 mod raw_read;
+mod records;
 mod repo;
 mod settle;
 mod symbols;
 mod test_layout;
+mod trailers;
 mod vet_imports;
 mod workflows;
 
@@ -85,6 +87,15 @@ commands:
   check-governance-files
                        the governance files of NFR-DOC-08 exist and are not empty
   check-dco <range>    every non-merge commit in the git range has a Signed-off-by trailer
+  check-trailers --range <a>..<b>
+                       the record trailers of every non-merge commit in the range (CONTRIBUTING.md, \"Records:
+                       commit trailers\"): no unknown key or malformed value; each cited ID, FT and Spec path
+                       exists at that commit; a commit that changes golden/** carries Golden:
+  records [--write|--check]
+                       docs/plan/records.md (the decision index and the open follow-up tasks) and the status block
+                       of doc 01 §3.8, from docs/plan/decisions.md, docs/plan/follow-ups.md, the frozen tables and
+                       the commit trailers; without a flag prints the lists; --check changes nothing and fails
+                       when an output is stale
   denylist-hash <phrase>
                        print the digests of the phrase's 1-, 2- and 3-grams for ci/denylist.sha256
   symbols-qet10 [--check]
@@ -122,7 +133,8 @@ commands:
                        --check writes nothing and fails when a step would rewrite a file (the self-tests are left
                        to the verify's replay); --merge adds check-disallowed-methods --bless and
                        check-ordered-collections --bless, printing each list's change per crate and the sites
-                       added. One line per step: unchanged | rewrote <files> | would rewrite | FAILED | skipped
+                       added, and records --write (docs/plan/records.md and the status block of doc 01 §3.8).
+                       One line per step: unchanged | rewrote <files> | would rewrite | FAILED | skipped
   lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm]
                        a lane's hand-back checks (.claude/agents/lane.md), chosen from the diff against the
                        merge base of <rev> and the lane's declared package set (-p): fmt, clippy and doc of the
@@ -167,9 +179,9 @@ commands:
                        replay | selftest | bless-oracle | check-task (`cargo xtask blind help` lists them with their
                        arguments)
   ci                   fmt, clippy and nextest (default and all features), doctests and the repository checks
-                       above (except check-dco), with a summary; the default-features nextest step is labelled
-                       'nextest (no acceptance, no fuzzer)' (the headless acceptance tests and the command fuzzer
-                       run in nextest-all-features)
+                       above (except check-dco, check-trailers and records), with a summary; the default-features
+                       nextest step is labelled 'nextest (no acceptance, no fuzzer)' (the headless acceptance tests
+                       and the command fuzzer run in nextest-all-features)
   help                 this text
 ";
 
@@ -255,6 +267,22 @@ fn main() -> ExitCode {
             Some(range) => check_dco(range),
             None => {
                 eprint!("check-dco needs a git revision range, e.g. `origin/main..HEAD`\n\n{USAGE}");
+                Ok(false)
+            }
+        },
+        "check-trailers" => match (args.get(1).map(String::as_str), args.get(2), args.len()) {
+            (Some("--range"), Some(range), 3) => trailers::run(&workspace_root(), range),
+            _ => {
+                eprint!("check-trailers needs `--range <a>..<b>`\n\n{USAGE}");
+                Ok(false)
+            }
+        },
+        "records" => match args.get(1).map(String::as_str) {
+            None => records::print(&workspace_root()),
+            Some("--write") => records::run(&workspace_root(), false),
+            Some("--check") => records::run(&workspace_root(), true),
+            Some(other) => {
+                eprint!("records: unknown argument `{other}`\n\n{USAGE}");
                 Ok(false)
             }
         },

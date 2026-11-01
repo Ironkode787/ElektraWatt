@@ -15,7 +15,10 @@ short hash and date (no author), its subject, the decision IDs it cites, and per
 first column; the changed columns for a changed row). Prose changes of doc 20 are not listed.
 
 Decision IDs of a commit (ID-n, FT-n, DEC-n, ADR-n):
-  1. cited in its message (trailer lines are ignored) or in the touched rows of doc 20;
+  0. when its trailer block has a `Decision:` or `Golden:` trailer (CONTRIBUTING.md, "Records: commit trailers"),
+     their IDs are the commit's IDs and rules 1 to 4 are not applied;
+  1. cited in its message (trailer lines, the sign-offs and the five record keys, are ignored) or in the touched rows
+     of doc 20;
   2. an FT-n cited in the message also pulls in the decision-log entries that cite that FT-n and a golden table;
   3. a range in the message (`ID-33…ID-63`, or open `ID-324..`, which ends before the next range start of the
      history) pulls in the entries of that range that cite doc 20 or a golden table and name a touched table: its
@@ -41,7 +44,11 @@ OUT = "docs/plan/gate-records/golden-change-list.md"
 BEGIN, END = "<!-- generated:golden-changes -->", "<!-- /generated:golden-changes -->"
 ID_RE = re.compile(r"\b(ID|FT|DEC|ADR)-(\d+)\b")
 RANGE_RE = re.compile(r"\b(ID|FT)-(\d+)(\s*(?:…|\.{2,3}|\s+to\s+)\s*(?:(?:ID|FT)-)?(\d+)?)")
-TRAILER_RE = re.compile(r"^(Co-Authored-By|Signed-off-by):.*$", re.I | re.M)
+# The trailers stripped before the message scan: the sign-offs and the five record keys (CONTRIBUTING.md, "Records:
+# commit trailers"; xtask/src/trailers.rs declares them).
+TRAILER_RE = re.compile(r"^(Co-Authored-By|Signed-off-by|Decision|FT-Opens|FT-Closes|Golden|Spec):.*$", re.I | re.M)
+# Rule 0: the IDs of a commit's `Decision:` trailers (ID-n, DEC-n, ADR-n) and of its `Golden: ID-n <reason>` trailers.
+RECORD_RE = re.compile(r"^(Decision|Golden):(.*)$", re.I | re.M)
 NO_ID = "no ID - review"
 PD15 = ("FT-29", "FT-40", "FT-63")
 CAP = 30  # row keys listed per category and table
@@ -200,7 +207,24 @@ def markers(changes):
     return res
 
 
+def trailer_ids(message):
+    """Rule 0: the IDs of the `Decision:` trailers (every ID-n, DEC-n and ADR-n of the value) and of the `Golden:`
+    trailers (the leading ID-n; the reason is not read)."""
+    ids = set()
+    for key, value in RECORD_RE.findall(message.strip().split("\n\n")[-1]):  # the trailer block only
+        if key.lower() == "golden":
+            m = re.match(r"\s*ID-(\d+)\b", value)
+            ids |= {"ID-%s" % m.group(1)} if m else set()
+        else:
+            ids |= {"%s-%s" % (k, n) for k, n in ID_RE.findall(value) if k != "FT"}
+    return ids
+
+
 def decision_ids(message, row_texts, log, range_starts, marks=(), commit=None):
+    order = {"ID": 0, "FT": 1, "DEC": 2, "ADR": 3}
+    named = trailer_ids(message)
+    if named:  # rule 0: a commit's record trailers name its IDs
+        return sorted(named, key=lambda s: (order[s.split("-")[0]], int(s.split("-")[1])))
     ids, ranges = message_ids(message)
     if commit:  # rule 4: an entry that names the commit's short hash as inline code
         named = re.compile(r"`%s`" % re.escape(commit))
@@ -410,6 +434,10 @@ def selftest():
                          .replace("| W | From | To |\n|---|---|---|", "| W | From | To |\n|---|---|---|")},
                         "docs: wires\n\nsomething")
             self.commit({t: "id,name,rating\nP1,fuse,16 A\nP3,relay,5 A\n"}, "docs(cycle 9): design pass ID-50..ID-70")
+            # Rule 0: the record trailers name the IDs; the message's own citation and FT-Closes are not read.
+            self.commit({t: "id,name,rating\nP1,fuse,16 A\nP3,relay,7 A\n"},
+                        "fix(golden): relay rating (ID-9)\n\nGolden: ID-56 the relay's rating (FT-29)\nDecision: ADR-3\n"
+                        "FT-Closes: FT-40\nCo-Authored-By: Some Person <person@example.org>")
             cur = (self.root / DOC20).read_text(encoding="utf-8")
             self.commit({DOC20: cur.replace("| W1 | A:1 | B:1 |", "| W1 | A:1 | B:9 |")}, "plain change without any reference")
             log = ("| ID-29 | **Fuse.** golden tables carry it (FT-29). | Core | x |\n"
@@ -424,13 +452,14 @@ def selftest():
 
         def test_list(self):
             es = collect(self.root)
-            self.assertEqual(len(es), 5)  # the unrelated and the prose-only commits are not listed
+            self.assertEqual(len(es), 6)  # the unrelated and the prose-only commits are not listed
             subjects = [e["subject"] for e in es]
             self.assertEqual(subjects[0], "plain change without any reference")
             by = {e["subject"].split(" (")[0]: e for e in es}
             self.assertEqual(by["plain change without any reference"]["ids"], [])
             self.assertEqual(by["fix(golden): fuse rating"]["ids"], ["ID-29", "FT-29"])  # FT in message pulls in ID-29
             self.assertEqual(by["docs: first"]["ids"], ["ID-5"])
+            self.assertEqual(by["fix(golden): relay rating"]["ids"], ["ID-56", "ADR-3"])  # rule 0
             self.assertEqual(by["docs: wires"]["ids"], ["ID-77"])  # cited by the touched row
             self.assertEqual(by["docs(cycle 9): design pass ID-50..ID-70"]["ids"], ["ID-55"])  # range, table-citing only
             ch = by["fix(golden): fuse rating"]["changes"][0]
@@ -441,7 +470,7 @@ def selftest():
 
         def test_render_is_clean(self):
             text = render(collect(self.root))
-            self.assertIn("**5 changes**", text)
+            self.assertIn("**6 changes**", text)
             self.assertIn("**1 without a decision ID**", text)
             for banned in ("Some Person", "example.org", "Co-Authored-By", "Signed-off-by", str(self.root)):
                 self.assertNotIn(banned, text)
@@ -479,6 +508,11 @@ def selftest():
         def test_message_ids(self):
             ids, ranges = message_ids("x ID-3, FT-4, ID-10…ID-20, ID-30.., FT-8.. DEC-2\n\nCo-Authored-By: n ID-99")
             self.assertEqual((ids, ranges), ({"ID-3", "FT-4", "DEC-2"}, [(10, 20), (30, None)]))
+            ids, _ = message_ids("x ID-3\n\nFT-Closes: FT-7\nSpec: docs/a.md ID-4\nfT-opens: FT-8\nGolden: ID-5 r\nDecision: ID-6")
+            self.assertEqual(ids, {"ID-3"})
+            self.assertEqual(trailer_ids("x ID-3\n\nGolden: ID-5 r (ID-9)\nDecision: ID-6, DEC-2, ADR-7"),
+                             {"ID-5", "ID-6", "DEC-2", "ADR-7"})
+            self.assertEqual(trailer_ids("Decision: ID-6 in a body paragraph\n\nCo-Authored-By: n"), set())
 
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(T)
     return 0 if unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful() else 1

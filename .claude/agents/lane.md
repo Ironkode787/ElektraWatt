@@ -119,6 +119,9 @@ Report each item as "checked: `<place>`" or "not applicable".
 
 - Where the spec leaves a choice open, choose, and report it as a proposed row.
 - Golden files: re-bless intended changes and list every re-blessed file. Never open `golden/J-E-2416.ew` for writing.
+- A commit that re-blesses `golden/**` carries a `Golden: ID-n <one-line reason>` trailer, with the ID your brief
+  gives; that ID's line in `docs/plan/decisions.md` lands in the same commit or earlier (`check-trailers`). Every
+  other ID you propose stays `ID-?` in your report.
 - A fit number that the fixture contradicts is a stop: column weights, rectangles, scales, capacities. Report the
   probe.
 - Stop and report only for:

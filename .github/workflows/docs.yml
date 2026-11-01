@@ -90,6 +90,13 @@ jobs:
         run: |
           git fetch --no-tags origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
           cargo xtask check-dco "origin/${BASE_REF}..HEAD"
+      - name: record trailers on every commit
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+          cargo xtask check-trailers --range "origin/${BASE_REF}..HEAD"
       - name: RFC reference for format-major, api-break and licence pull requests
         if: github.event_name == 'pull_request'
         run: |

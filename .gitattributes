@@ -6,7 +6,8 @@
 # Real exporter corpora: kept byte for byte as their exporters wrote them (CRLF included; FT-418, FT-436).
 crates/*/tests/fixtures/*-exporters/** -text
 
-# Generated files: every output that a regeneration step of `cargo xtask settle` rewrites entirely from its sources
+# Generated files: every output that a regeneration step (or the merge-point records step) of `cargo xtask settle`
+# rewrites entirely from its sources
 # (the step table in xtask/src/settle.rs; a test of xtask keeps this list equal to it, in its order). With the driver
 # configured (`git config merge.regen.driver true`, which keeps one side) a merge or cherry-pick never stops on them,
 # and `cargo xtask settle` then regenerates them. Without the driver git merges them as text.
@@ -32,3 +33,4 @@ crates/ew-ui/src/icons/generated.rs merge=regen
 /clippy.toml merge=regen
 tools/blind/recordings/selftest/** merge=regen
 tools/blind/recordings/selftest-visual/** merge=regen
+docs/plan/records.md merge=regen

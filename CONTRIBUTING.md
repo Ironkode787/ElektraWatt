@@ -85,6 +85,25 @@ The `Signed-off-by:` is always a human's.
 A CI check (`cargo xtask check-dco`) rejects pull requests with unsigned commits. To fix a branch, run
 `git commit --amend -s` for the last commit, or `git rebase --signoff main` for the whole branch.
 
+## Records: commit trailers
+
+Decisions, follow-up tasks and golden changes are recorded in commit trailers, beside the sign-off, and in one line
+per new entry of [`docs/plan/decisions.md`](docs/plan/decisions.md) and
+[`docs/plan/follow-ups.md`](docs/plan/follow-ups.md). A trailer, not an edit, follows an entry up or closes it.
+
+| Trailer | Meaning |
+|---|---|
+| `Decision: ID-n[, …]` (also `DEC-n`, `ADR-n`) | The decisions the commit implements or records |
+| `FT-Opens: FT-n[, …]` | The follow-up tasks of `follow-ups.md` it opens |
+| `FT-Closes: FT-n[, …]` | The follow-up tasks it closes (either list) |
+| `Golden: ID-n <one-line reason>` | The decision behind a change of `golden/**`; such a commit needs it |
+| `Spec: <docs path>[, …]` | The specification it follows |
+
+No trailer is required otherwise. `cargo xtask check-trailers --range <a>..<b>` refuses an unknown key, a malformed
+value, an ID or path that does not exist at that commit and a change of `golden/**` without `Golden:`; CI runs it on
+pull requests. `cargo xtask records` generates [`docs/plan/records.md`](docs/plan/records.md), the decision index and
+the open follow-up tasks, from the two files and the trailers.
+
 ## Licences: the licence of the path you touch
 
 Inbound licence equals outbound licence per path: your contribution is licensed under the licence of the path it

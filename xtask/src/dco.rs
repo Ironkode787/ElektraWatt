@@ -24,30 +24,43 @@ pub struct Commit {
 
 /// The non-merge commits of `range` (any `git log` revision range, e.g. `origin/main..HEAD`) in `repo`.
 pub fn commits(repo: &Path, range: &str) -> Result<Vec<Commit>> {
-    // Fields are separated by 0x1f, records by 0x1e; trailer values by newlines.
-    let format = "--format=%H%x1f%s%x1f%(trailers:key=Signed-off-by,valueonly)%x1e";
-    let out = git(repo, &["log", "--no-merges", format, range, "--"])?;
+    let fields = ["%H", "%s", "%(trailers:key=Signed-off-by,valueonly)"];
+    Ok(log_fields(repo, range, &fields)?
+        .into_iter()
+        .map(|mut f| Commit {
+            // Trailer values are separated by newlines.
+            signoffs: f
+                .pop()
+                .unwrap_or_default()
+                .lines()
+                .map(str::trim)
+                .filter(|l| !l.is_empty())
+                .map(str::to_owned)
+                .collect(),
+            subject: f.pop().unwrap_or_default(),
+            sha: f.pop().unwrap_or_default(),
+        })
+        .collect())
+}
+
+/// The trailer range reader, shared with `check-trailers` and `records`: one entry per non-merge commit of `range`,
+/// newest first, holding one string per `git log` placeholder of `fields`. The first field must be `%H`: it is
+/// trimmed, and a record without it is dropped. Fields are separated by 0x1f, records by 0x1e.
+pub(crate) fn log_fields(repo: &Path, range: &str, fields: &[&str]) -> Result<Vec<Vec<String>>> {
+    let format = format!("--format={}%x1e", fields.join("%x1f"));
+    let out = git(repo, &["log", "--no-merges", &format, range, "--"])?;
     Ok(out
         .split('\u{1e}')
         .filter_map(|record| {
             let record = record.trim_start_matches(['\n', '\r']);
-            let mut fields = record.split('\u{1f}');
-            let sha = fields.next()?.trim();
+            let mut parts: Vec<String> = record.split('\u{1f}').map(str::to_owned).collect();
+            let sha = parts.first()?.trim().to_owned();
             if sha.is_empty() {
                 return None;
             }
-            Some(Commit {
-                sha: sha.to_owned(),
-                subject: fields.next().unwrap_or_default().to_owned(),
-                signoffs: fields
-                    .next()
-                    .unwrap_or_default()
-                    .lines()
-                    .map(str::trim)
-                    .filter(|l| !l.is_empty())
-                    .map(str::to_owned)
-                    .collect(),
-            })
+            parts[0] = sha;
+            parts.resize(fields.len(), String::new());
+            Some(parts)
         })
         .collect())
 }

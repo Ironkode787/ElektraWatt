@@ -38,7 +38,9 @@
 //!   `check-brief` for each open design brief (`tools/blind/tasks/brief-*`; every one on a self-test trigger, else
 //!   the briefs whose files changed), on a fresh `cargo build -p elektrawatt -p ew`; and the MSRV check of the
 //!   permissive crates (on `Cargo.lock`, a changed `rust-version`, or a changed `.rs` file or manifest of a
-//!   permissive crate). The MSRV check runs as CI's job does: in a copy of the workspace under
+//!   permissive crate); and, on any change, `records --write` (the records follow the commit trailers, so they are
+//!   regenerated where the history is final; `records.md` is written whole). The MSRV check runs as CI's job does:
+//!   in a copy of the workspace under
 //!   `target/settle-msrv`, removed afterwards, the MSRV-aware resolver writes a lockfile and `cargo +<msrv> check
 //!   --locked` builds the members whose licence is `MIT OR Apache-2.0` (xtask aside); both cargo calls take the
 //!   copy's `--manifest-path`, so the committed `Cargo.lock` is never touched. None of these run without `--merge`.
@@ -127,6 +129,8 @@ pub(crate) enum Action {
     CheckBrief,
     /// The MSRV check of the permissive crates (see the module documentation).
     Msrv,
+    /// `records --write` (`--check`), in-process: `docs/plan/records.md` and the status block of doc 01 §3.8.
+    Records,
 }
 
 /// One step of the table.
@@ -185,6 +189,8 @@ const FUZZ_TABLE: &str = crate::workflows::FUZZ_TABLE;
 const GOLDEN_LIST: &str = "docs/plan/gate-records/golden-change-list.md";
 const SELFTEST_RECORDING: &str = "tools/blind/recordings/selftest/**";
 const SELFTEST_VISUAL_RECORDING: &str = "tools/blind/recordings/selftest-visual/**";
+const RECORDS: &str = crate::records::RECORDS;
+const GLOBAL_PLAN: &str = crate::records::GLOBAL_PLAN;
 
 // map: settle-steps: a new generated file or upkeep step goes in this table, in order, with triggers and outputs.
 /// The steps in their order: rustfmt, the command schemas, the CLI schemas, the rule catalogue, the keymaps, the
@@ -409,6 +415,7 @@ pub(crate) const STEPS: &[Step] = &[
             "golden/J-E-2416/tables/**",
             "docs/design/20-golden-project.md",
             "docs/plan/06-decision-log.md",
+            crate::records::DECISIONS,
             "docs/plan/tools/golden_changes.py",
             GOLDEN_LIST,
         ],
@@ -533,15 +540,27 @@ pub(crate) const STEPS: &[Step] = &[
         reads: &[],
         action: Action::Msrv,
     },
+    // RD43 R11 (ID-1051): the records come from the history (the commit trailers), so they are regenerated at the
+    // merge point, on any change. records.md is written whole (merge=regen); doc 01 only in its status block.
+    Step {
+        name: "records",
+        phase: Phase::MergeOnly,
+        triggers: &["**"],
+        deps_of: &[],
+        outputs: &[RECORDS, GLOBAL_PLAN],
+        partial: &[GLOBAL_PLAN],
+        reads: &[],
+        action: Action::Records,
+    },
 ];
 
-/// The outputs that the regeneration steps rewrite entirely from their sources, in table order: the files that
-/// `.gitattributes` gives `merge=regen`.
+/// The outputs that the regeneration steps (and the merge-only `records` step) rewrite entirely from their sources,
+/// in table order: the files that `.gitattributes` gives `merge=regen`.
 #[cfg(test)]
 pub(crate) fn whole_file_outputs() -> Vec<&'static str> {
     STEPS
         .iter()
-        .filter(|s| s.phase == Phase::Regen)
+        .filter(|s| s.phase == Phase::Regen || matches!(s.action, Action::Records))
         .flat_map(|s| s.outputs.iter().filter(|o| !s.partial.contains(o)).copied())
         .collect()
 }
@@ -1441,6 +1460,10 @@ fn execute(step: &Step, root: &Path, check: bool, files: &BTreeSet<String>, all:
             })
         }
         Action::Msrv => msrv(root),
+        Action::Records => Ok(Outcome::of(
+            crate::records::run(root, check)?,
+            "run `cargo xtask records --write`",
+        )),
     }
 }
 
@@ -1719,6 +1742,7 @@ mod tests {
                 "ordered-collections",
                 "check-brief",
                 "msrv",
+                "records",
             ]
         );
         let phases: Vec<Phase> = STEPS.iter().map(|s| s.phase).collect();
@@ -1804,6 +1828,10 @@ mod tests {
             ("check-brief", "tools/blind/tasks/selftest/agent.jsonl"),
             ("check-brief", "tools/blind/HELP-VISUAL.md"),
             ("msrv", "Cargo.lock"),
+            ("golden-change-list", "docs/plan/decisions.md"),
+            // Records follow the history: any change triggers them.
+            ("records", "README.md"),
+            ("records", "crates/ew-x/src/lib.rs"),
         ];
         let empty = Members::new();
         for (name, path) in cases {
@@ -1812,7 +1840,7 @@ mod tests {
                 "{name} by {path}"
             );
         }
-        for s in STEPS {
+        for s in STEPS.iter().filter(|s| s.name != "records") {
             assert!(
                 !triggered(s, &set(&["README.md", "docs/design/01-x.md"]), Some(&empty)),
                 "{} by an unrelated file",
@@ -1939,7 +1967,7 @@ mod tests {
             );
         }
         // The partial outputs stay out: hand-written lines must merge as text.
-        for o in [BOOK_SUMMARY, FUZZ_TABLE, GOLDEN_LIST] {
+        for o in [BOOK_SUMMARY, FUZZ_TABLE, GOLDEN_LIST, GLOBAL_PLAN] {
             assert!(!whole_file_outputs().contains(&o), "{o}");
         }
     }
