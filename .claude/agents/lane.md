@@ -27,7 +27,7 @@ how every lane works.
 
 - **One package set.** Choose it at the start: the crates you edit, plus the crates whose tests your brief names. Use
   the same `-p` list and `--all-features` in every cargo command of the lane, so all of them share one build. To
-  narrow a run, use `-E`; never change `-p` or the features.
+  narrow a run, use `-E`; never change `-p` or the features. Pass the same `-p` list to every `lane-check` call.
 - **Run tests with the lane profile.** It prints only failures and the summary:
   `cargo nextest run --profile lane --cargo-quiet -p <A> -p <B> --all-features -E '<filter>'`.
   For one module of a crate's integration binary: `--test it -E 'test(/^<module>::/)'`.
@@ -41,25 +41,29 @@ how every lane works.
 
 ## Hand-back checks (once, after the code is final)
 
-Run `cargo xtask lane-check --base <base>` and quote its summary. After a failure, fix it and re-run only the failed
-step (`--only <step>`).
+Run `cargo xtask lane-check --base <base> -p <A> -p <B>` with your package set, and quote its summary. After a
+failure, fix it and re-run only the failed step (`--only <step>`). When `fmt` reports `rewrote <files>`, commit them
+before you hand back.
 
 It runs these steps, each only when the diff selects it, and `--plan` prints the selection and the commands:
-1. `fmt`: `cargo fmt` over the changed crates. This formats the code; it is not a check.
-2. `clippy`: the changed crates, `--all-targets --all-features -- -D warnings`.
-3. `doc`: `cargo doc --no-deps` over the changed crates, with `RUSTDOCFLAGS="-D warnings"`.
-4. `nextest`: one run over the changed crates, their direct dependants and these additions:
+1. `fmt`: `cargo fmt` over the changed crates and your set. This formats the code; it is not a check.
+2. `clippy`: the changed crates and your set, `--all-targets --all-features -- -D warnings`.
+3. `doc`: `cargo doc --no-deps` over the changed crates and your set, with `RUSTDOCFLAGS="-D warnings"`.
+4. `nextest`: one run over the changed crates, their direct dependants, your set and these additions:
    - **the scene, rendered output, the shell, `ew-ui`, commands, checks or the CLI:** `elektrawatt` and `ew`;
    - **commands or check rules:** `ew-testkit`'s `command_fuzz` and `golden_dsl`;
    - **rendered output or Golden A's findings:** `ew-ui`'s `snapshots`. Inspect each `.diff.png` before you run
      with `EW_BLESS=1`.
+
+   A changed file outside every crate (`golden/`, `content/`, `schemas/`, `assets/`, `Cargo.lock`, ...) fails this
+   step unless you name the packages it reaches with `-p`.
 5. `settle`: `settle --check --base <base>`. It covers rustfmt and the generated files.
 6. `policy`: the policy checks the diff touches (dependencies, new files, `.rs` files, tests). An exemption for
    `cargo deny` or `cargo vet` needs a ruling: stop.
 7. `fuzz`: the fuzz workspace's `cargo check`, when `command_fuzz`, `fuzz/` or a fuzzed crate's `Cargo.toml` changed.
 
 A failed step's log is printed whole and kept in `target/lane-check/<step>.log`. At the start of a lane,
-`cargo xtask lane-check --base <base> --warm -p <A> -p <B>` builds your package set's test binaries in the
+`cargo xtask lane-check --base <base> -p <A> -p <B> --warm` builds the nextest step's test binaries in the
 background.
 
 **Not in lanes.** The orchestrator runs these at the merge point:

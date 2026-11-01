@@ -120,14 +120,16 @@ commands:
                        to the verify's replay); --merge adds check-disallowed-methods --bless and
                        check-ordered-collections --bless, printing each list's change per crate and the sites
                        added. One line per step: unchanged | rewrote <files> | would rewrite | FAILED | skipped
-  lane-check --base <rev> [--only <step>] [--plan] [--warm [-p <pkg>]...]
+  lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm]
                        a lane's hand-back checks (.claude/agents/lane.md), chosen from the diff against the
-                       merge base of <rev>: fmt, clippy and doc of the changed crates, one nextest run over them,
-                       their direct dependants and lane.md's triggers, settle --check, the policy checks and the
-                       fuzz workspace check, each by its trigger. Prints the failed steps' logs whole and one line
-                       per step (ok | FAILED | skipped (<why>)); logs in target/lane-check/, a summary in
-                       target/lane-check.json. --plan prints the commands and runs nothing; --only runs one step;
-                       --warm builds the nextest step's test binaries (cargo test --no-run), -p names the set
+                       merge base of <rev> and the lane's declared package set (-p): fmt, clippy and doc of the
+                       changed and declared crates, one nextest run over them, their direct dependants and
+                       lane.md's triggers, settle --check, the policy checks and the fuzz workspace check, each by
+                       its trigger. Workspace-wide files without -p fail the nextest step. Prints the failed
+                       steps' logs whole and one line per step (ok | rewrote <files> | FAILED | skipped (<why>));
+                       logs in target/lane-check/, a summary in target/lane-check.json. --plan prints the
+                       commands and runs nothing; --only runs one step; --warm builds exactly the nextest step's
+                       packages' test binaries (cargo test --no-run)
   api-guard [--base <rev>]
                        the API stability guard (NFR-MAINT-10, CI-PR-14, WP-S1.22 D14): compares the published-
                        surface snapshots (the command schemas, bin/ew/api/cli.json, the result schemas, the query

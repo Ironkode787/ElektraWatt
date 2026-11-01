@@ -1,16 +1,21 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `lane-check --base <rev> [--only <step>] [--plan] [--warm [-p <pkg>]...]`: a lane's hand-back checks
-//! (`.claude/agents/lane.md`, "Hand-back checks"), run once and chosen from the diff against `<rev>`.
+//! `lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm]`: a lane's hand-back checks
+//! (`.claude/agents/lane.md`, "Hand-back checks"), run once and chosen from the diff against `<rev>` and the lane's
+//! declared package set (`-p`, its edit-loop set).
 //!
 //! - **The diff.** The changed files are those of [`affected::changed_files`] since the merge base of `<rev>` and
 //!   `HEAD` (committed, uncommitted and untracked). A file belongs to the deepest member whose directory holds it;
-//!   `ci/` belongs to `xtask`. A diff with no crate (only `affected`'s inert paths, or only the workspace-wide files
-//!   such as `Cargo.lock`, `golden/` or the root `Cargo.toml`) skips the cargo steps: a workspace-wide file reaches
-//!   every crate, and the whole workspace is the merge point's verify, not a lane's.
+//!   `ci/` belongs to `xtask`. fmt, clippy and doc run over the changed crates and the declared set; with neither
+//!   (only `affected`'s inert paths changed, say) they are skipped.
+//! - **Workspace-wide files** (any changed file outside the members that `affected` does not call inert:
+//!   `Cargo.lock`, `golden/`, `content/`, `schemas/`, `assets/`, `clippy.toml`, ...) reach crates that no path names.
+//!   Without a declared set the nextest step fails closed: `FAILED (workspace-wide files changed: <files>; name the
+//!   packages they reach with -p)`. With `-p`, the declared set is the lane's answer and the steps run over it.
 //! - **The steps,** in this order:
-//!   1. `fmt`: `cargo fmt` over the changed crates. It writes; it is not a check.
+//!   1. `fmt`: `cargo fmt`. It writes; it is not a check. When it changed a file of the diff, it reports
+//!      `rewrote <files> (commit them)` (not a failure).
 //!   2. `clippy`: the changed crates, `--all-targets --all-features -- -D warnings`. An unresolvable
 //!      `disallowed-methods` path in clippy's output fails the step as in `cargo xtask ci`.
 //!   3. `doc`: `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features` over the changed crates, in one call.
@@ -28,9 +33,9 @@
 //!      `Cargo.toml` of a crate in a fuzz target's closure (`ci/fuzz-smoke-targets.toml`) changed.
 //! - **The nextest set, and its bound.** The changed crates, plus their **direct** reverse dependencies through
 //!   normal, build and dev edges (one step, never the transitive closure, never `--workspace`: the closure is the
-//!   merge point's `affected` run), plus the additions of lane.md's step-4 triggers ([`TRIGGERS`]). A package that
-//!   only a trigger adds and whose trigger names test binaries runs only those binaries (an `-E` filter); a changed
-//!   crate or a direct dependant runs whole.
+//!   merge point's `affected` run), plus the additions of lane.md's step-4 triggers ([`TRIGGERS`]), plus the declared
+//!   set. A package that only a trigger adds and whose trigger names test binaries runs only those binaries (an `-E`
+//!   filter); a changed crate, a direct dependant or a declared package runs whole.
 //! - **New `tests/it` files.** Before the nextest step (and `--warm`), for each package whose diff adds a file under
 //!   `tests/it/` (added or untracked), the modification time of its `tests/it/main.rs` is set to now: a binary that
 //!   reads its modules with `automod::dir!` is not rebuilt for a new file alone, because cargo does not track that
@@ -40,9 +45,9 @@
 //!   `target/lane-check.json` with each step's name, status, commands, seconds and log path. The durations are
 //!   reported, never asserted (owner's rule). The exit code is 0 only when no step failed.
 //! - **`--plan`** prints the selection and the exact commands and runs nothing. **`--only <step>`** runs one step with
-//!   the same selection. **`--warm`** builds the nextest set's test binaries with `cargo test --no-run` and the same
-//!   `-p` set and features, so the later nextest runs reuse them; `--warm -p A -p B` takes an explicit set (a lane's
-//!   start, when the diff is still empty).
+//!   the same selection. **`--warm`** builds exactly the nextest step's packages (the derived set and the declared
+//!   one; at a lane's start the derived part is empty) with `cargo test --no-run` and the same features, so the
+//!   later nextest runs reuse the test binaries.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -57,7 +62,7 @@ use anyhow::{Context, Result, bail};
 use crate::affected::{self, Members};
 
 const USAGE: &str =
-    "usage: cargo xtask lane-check --base <rev> [--only <step>] [--plan] [--warm [-p <pkg>]...]";
+    "usage: cargo xtask lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm]";
 
 /// The steps, in their order.
 pub(crate) const STEPS: [&str; 7] = ["fmt", "clippy", "doc", "nextest", "settle", "policy", "fuzz"];
@@ -188,11 +193,22 @@ pub(crate) struct Diff {
     pub mentions_test: BTreeSet<String>,
 }
 
-/// One step of the plan: its commands, or why it is skipped.
+/// What one step of the plan does.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum StepRun {
+    /// Runs these commands.
+    Run(Vec<Cmd>),
+    /// Is skipped, for this reason.
+    Skip(String),
+    /// Fails without running, for this reason (it fails closed).
+    Fail(String),
+}
+
+/// One step of the plan.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct StepPlan {
     pub name: &'static str,
-    pub run: Result<Vec<Cmd>, String>,
+    pub run: StepRun,
 }
 
 /// What the diff selects.
@@ -200,6 +216,8 @@ pub(crate) struct StepPlan {
 pub(crate) struct Plan {
     /// The members with a changed file.
     pub changed: BTreeSet<String>,
+    /// The packages of fmt, clippy and doc: the changed members and the declared set.
+    pub crates: BTreeSet<String>,
     /// Changed files outside every member that reach the whole workspace.
     pub workspace_wide: Vec<String>,
     /// The packages of the nextest step.
@@ -212,18 +230,19 @@ pub(crate) struct Plan {
 
 impl Plan {
     /// One line per step: `<step>: <command>` per command (the nextest step's touched files first, as
-    /// `nextest: touch <file>`), or `<step>: skipped (<why>)`.
+    /// `nextest: touch <file>`), `<step>: skipped (<why>)` or `<step>: FAILED (<why>)`.
     pub(crate) fn lines(&self) -> Vec<String> {
         let mut out = Vec::new();
         for s in &self.steps {
             match &s.run {
-                Ok(cmds) => {
+                StepRun::Run(cmds) => {
                     if s.name == "nextest" {
                         out.extend(self.touch.iter().map(|t| format!("nextest: touch {t}")));
                     }
                     out.extend(cmds.iter().map(|c| format!("{}: {c}", s.name)));
                 }
-                Err(why) => out.push(format!("{}: skipped ({why})", s.name)),
+                StepRun::Skip(why) => out.push(format!("{}: skipped ({why})", s.name)),
+                StepRun::Fail(why) => out.push(format!("{}: FAILED ({why})", s.name)),
             }
         }
         out
@@ -369,28 +388,42 @@ fn some_files(files: &[String]) -> String {
     s
 }
 
-/// The plan for `diff` against `base`.
-pub(crate) fn plan(diff: &Diff, members: &Members, fuzz_closure: &BTreeSet<String>, base: &str) -> Plan {
+/// The plan for `diff` against `base`, with the lane's declared package set (`-p`, the edit-loop set).
+pub(crate) fn plan(
+    diff: &Diff,
+    members: &Members,
+    fuzz_closure: &BTreeSet<String>,
+    base: &str,
+    declared: &BTreeSet<String>,
+) -> Plan {
     let selection = affected::select(&diff.files, members);
     let changed = selection.changed;
     let workspace_wide = selection.workspace_wide;
-    let (nextest_set, restricted) = nextest_set(&changed, members);
+    let (mut nextest_set, mut restricted) = nextest_set(&changed, members);
+    for p in declared {
+        restricted.remove(p);
+    }
+    nextest_set.extend(declared.iter().cloned());
+    let mut crates = changed.clone();
+    crates.extend(declared.iter().cloned());
 
-    let no_crate = if diff.files.is_empty() {
+    let skip = if crates.is_empty() && diff.files.is_empty() {
         Some("no changed file".to_owned())
-    } else if changed.is_empty() && workspace_wide.is_empty() {
+    } else if crates.is_empty() {
         Some("no crate in the diff".to_owned())
-    } else if changed.is_empty() {
-        Some(format!(
-            "no crate in the diff; the merge point verifies the workspace-wide {}",
-            some_files(&workspace_wide)
-        ))
     } else {
         None
     };
-    let cargo_step = |cmds: Vec<Cmd>| match &no_crate {
-        Some(why) => Err(why.clone()),
-        None => Ok(cmds),
+    // Workspace-wide files with no declared set: the lane must name the packages they reach (fails closed).
+    let wide_without_set = (!workspace_wide.is_empty() && declared.is_empty()).then(|| {
+        format!(
+            "workspace-wide files changed: {}; name the packages they reach with -p",
+            some_files(&workspace_wide)
+        )
+    });
+    let cargo_step = |cmds: Vec<Cmd>| match &skip {
+        Some(why) => StepRun::Skip(why.clone()),
+        None => StepRun::Run(cmds),
     };
 
     let mut touch: Vec<String> = Vec::new();
@@ -415,7 +448,7 @@ pub(crate) fn plan(diff: &Diff, members: &Members, fuzz_closure: &BTreeSet<Strin
         nextest = nextest.arg("-E").arg(filter);
     }
     let mut doc = Cmd::cargo(&["doc", "--no-deps"])
-        .packages(&changed)
+        .packages(&crates)
         .arg("--all-features");
     doc.env = Some(("RUSTDOCFLAGS", "-D warnings"));
     let policy = policy_commands(diff);
@@ -423,13 +456,13 @@ pub(crate) fn plan(diff: &Diff, members: &Members, fuzz_closure: &BTreeSet<Strin
     let steps = vec![
         StepPlan {
             name: "fmt",
-            run: cargo_step(vec![Cmd::cargo(&["fmt"]).packages(&changed)]),
+            run: cargo_step(vec![Cmd::cargo(&["fmt"]).packages(&crates)]),
         },
         StepPlan {
             name: "clippy",
             run: cargo_step(vec![
                 Cmd::cargo(&["clippy"])
-                    .packages(&changed)
+                    .packages(&crates)
                     .arg("--all-targets")
                     .arg("--all-features")
                     .arg("--")
@@ -443,28 +476,31 @@ pub(crate) fn plan(diff: &Diff, members: &Members, fuzz_closure: &BTreeSet<Strin
         },
         StepPlan {
             name: "nextest",
-            run: cargo_step(vec![nextest]),
+            run: match wide_without_set {
+                Some(why) => StepRun::Fail(why),
+                None => cargo_step(vec![nextest]),
+            },
         },
         StepPlan {
             name: "settle",
             run: if diff.files.is_empty() {
-                Err("no changed file".to_owned())
+                StepRun::Skip("no changed file".to_owned())
             } else {
-                Ok(vec![Cmd::xtask(&["settle", "--check", "--base", base])])
+                StepRun::Run(vec![Cmd::xtask(&["settle", "--check", "--base", base])])
             },
         },
         StepPlan {
             name: "policy",
             run: if policy.is_empty() {
-                Err("no trigger".to_owned())
+                StepRun::Skip("no trigger".to_owned())
             } else {
-                Ok(policy)
+                StepRun::Run(policy)
             },
         },
         StepPlan {
             name: "fuzz",
             run: if fuzz_triggered(diff, members, fuzz_closure) {
-                Ok(vec![Cmd::cargo(&[
+                StepRun::Run(vec![Cmd::cargo(&[
                     "check",
                     "--manifest-path",
                     "fuzz/Cargo.toml",
@@ -472,12 +508,13 @@ pub(crate) fn plan(diff: &Diff, members: &Members, fuzz_closure: &BTreeSet<Strin
                     "--locked",
                 ])])
             } else {
-                Err("no trigger".to_owned())
+                StepRun::Skip("no trigger".to_owned())
             },
         },
     ];
     Plan {
         changed,
+        crates,
         workspace_wide,
         nextest_set,
         touch,
@@ -533,9 +570,6 @@ fn parse(args: &[String]) -> Result<Args> {
         }
     }
     out.base = base.with_context(|| format!("--base is required\n{USAGE}"))?;
-    if !out.packages.is_empty() && !out.warm {
-        bail!("-p is for --warm only\n{USAGE}");
-    }
     if out.warm && out.only.is_some() {
         bail!("--warm and --only do not combine\n{USAGE}");
     }
@@ -608,10 +642,21 @@ fn touch(root: &Path, files: &[String]) -> Result<()> {
     Ok(())
 }
 
+/// The contents of the changed `.rs` files that exist: what `fmt` may rewrite.
+fn rust_snapshot(root: &Path, files: &[String]) -> BTreeMap<String, Vec<u8>> {
+    files
+        .iter()
+        .filter(|f| f.ends_with(".rs"))
+        .filter_map(|f| std::fs::read(root.join(f)).ok().map(|b| (f.clone(), b)))
+        .collect()
+}
+
 /// The outcome of one executed step.
 struct Outcome {
     name: &'static str,
+    /// `ok`, `FAILED`, `skipped` or `rewrote` (fmt changed files).
     status: &'static str,
+    /// Why it was skipped or failed without running, or the files fmt rewrote.
     why: Option<String>,
     commands: Vec<String>,
     seconds: f64,
@@ -693,9 +738,10 @@ fn print_failure(root: &Path, outcome: &Outcome) {
 fn summarise(root: &Path, base: &str, outcomes: &[Outcome], write_json: bool) -> Result<bool> {
     println!();
     for o in outcomes {
-        match &o.why {
-            Some(why) => println!("lane-check: {}: skipped ({why})", o.name),
-            None => println!("lane-check: {}: {}", o.name, o.status),
+        match (o.status, &o.why) {
+            ("rewrote", Some(files)) => println!("lane-check: {}: rewrote {files} (commit them)", o.name),
+            (status, Some(why)) => println!("lane-check: {}: {status} ({why})", o.name),
+            (status, None) => println!("lane-check: {}: {status}", o.name),
         }
     }
     if write_json {
@@ -704,7 +750,7 @@ fn summarise(root: &Path, base: &str, outcomes: &[Outcome], write_json: bool) ->
             .map(|o| {
                 serde_json::json!({
                     "name": o.name,
-                    "status": if o.why.is_some() { "skipped" } else { o.status },
+                    "status": o.status,
                     "why": o.why,
                     "command": o.commands,
                     "seconds": o.seconds,
@@ -737,14 +783,11 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
             bail!("`{p}` is not a workspace member");
         }
     }
-    let plan = plan(&diff, &members, &fuzz_closure(root)?, &a.base);
+    let plan = plan(&diff, &members, &fuzz_closure(root)?, &a.base, &a.packages);
 
     if a.warm {
-        let set = if a.packages.is_empty() {
-            &plan.nextest_set
-        } else {
-            &a.packages
-        };
+        // Exactly the nextest step's set: the derived set and the declared one.
+        let set = &plan.nextest_set;
         if set.is_empty() {
             println!("lane-check: warm: skipped (no package: name them with -p)");
             return Ok(true);
@@ -773,14 +816,19 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
             a.base
         );
         println!("lane-check: changed crates: {}", join_or_none(&plan.changed));
+        println!("lane-check: declared set (-p): {}", join_or_none(&a.packages));
+        println!(
+            "lane-check: fmt, clippy and doc over: {}",
+            join_or_none(&plan.crates)
+        );
         if !plan.workspace_wide.is_empty() {
             println!(
-                "lane-check: workspace-wide files (the merge point verifies them): {}",
+                "lane-check: workspace-wide files (nextest needs -p for them): {}",
                 plan.workspace_wide.join(", ")
             );
         }
         println!(
-            "lane-check: nextest set (changed crates, direct dependants, lane.md triggers): {}",
+            "lane-check: nextest set (changed crates, direct dependants, lane.md triggers, -p): {}",
             join_or_none(&plan.nextest_set)
         );
         for t in TRIGGERS
@@ -803,20 +851,35 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         if a.only.is_some_and(|o| o != s.name) {
             continue;
         }
+        let not_run = |status: &'static str, why: &String| Outcome {
+            name: s.name,
+            status,
+            why: Some(why.clone()),
+            commands: Vec::new(),
+            seconds: 0.0,
+            log: None,
+        };
         let outcome = match &s.run {
-            Err(why) => Outcome {
-                name: s.name,
-                status: "skipped",
-                why: Some(why.clone()),
-                commands: Vec::new(),
-                seconds: 0.0,
-                log: None,
-            },
-            Ok(cmds) => {
+            StepRun::Skip(why) => not_run("skipped", why),
+            StepRun::Fail(why) => not_run("FAILED", why),
+            StepRun::Run(cmds) => {
                 if s.name == "nextest" {
                     touch(root, &plan.touch)?;
                 }
-                let outcome = execute(root, s.name, cmds)?;
+                let before = (s.name == "fmt").then(|| rust_snapshot(root, &diff.files));
+                let mut outcome = execute(root, s.name, cmds)?;
+                if let Some(before) = before {
+                    let after = rust_snapshot(root, &diff.files);
+                    let rewrote: Vec<&str> = after
+                        .iter()
+                        .filter(|(f, bytes)| before.get(*f) != Some(*bytes))
+                        .map(|(f, _)| f.as_str())
+                        .collect();
+                    if outcome.status == "ok" && !rewrote.is_empty() {
+                        outcome.status = "rewrote";
+                        outcome.why = Some(rewrote.join(", "));
+                    }
+                }
                 if outcome.status == "FAILED" {
                     print_failure(root, &outcome);
                 }
@@ -903,7 +966,12 @@ mod tests {
     }
 
     fn lines(d: &Diff) -> Vec<String> {
-        plan(d, &members(), &set(&["ew-format"]), BASE).lines()
+        lines_with(d, &[])
+    }
+
+    /// The plan's lines with the declared set `-p <declared>`.
+    fn lines_with(d: &Diff, declared: &[&str]) -> Vec<String> {
+        plan(d, &members(), &set(&["ew-format"]), BASE, &set(declared)).lines()
     }
 
     #[test]
@@ -1018,7 +1086,7 @@ mod tests {
             &["crates/ew-leaf/tests/it/new_case.rs"],
             &["crates/ew-leaf/tests/it/new_case.rs"],
         );
-        let p = plan(&d, &members(), &BTreeSet::new(), BASE);
+        let p = plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new());
         assert_eq!(p.touch, ["crates/ew-leaf/tests/it/main.rs"]);
         assert_eq!(
             &p.lines()[3..],
@@ -1035,7 +1103,11 @@ mod tests {
         );
         // A changed (not added) file touches nothing.
         let d = diff(&["crates/ew-leaf/tests/it/new_case.rs"], &[]);
-        assert!(plan(&d, &members(), &BTreeSet::new(), BASE).touch.is_empty());
+        assert!(
+            plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new())
+                .touch
+                .is_empty()
+        );
     }
 
     #[test]
@@ -1058,19 +1130,90 @@ mod tests {
     }
 
     #[test]
-    fn a_cargo_lock_change_runs_the_supply_chain_checks_and_no_cargo_step() {
+    fn a_cargo_lock_change_without_a_declared_set_fails_closed() {
         assert_eq!(
             lines(&diff(&["Cargo.lock"], &[])),
             [
-                "fmt: skipped (no crate in the diff; the merge point verifies the workspace-wide Cargo.lock)",
-                "clippy: skipped (no crate in the diff; the merge point verifies the workspace-wide Cargo.lock)",
-                "doc: skipped (no crate in the diff; the merge point verifies the workspace-wide Cargo.lock)",
-                "nextest: skipped (no crate in the diff; the merge point verifies the workspace-wide Cargo.lock)",
+                "fmt: skipped (no crate in the diff)",
+                "clippy: skipped (no crate in the diff)",
+                "doc: skipped (no crate in the diff)",
+                "nextest: FAILED (workspace-wide files changed: Cargo.lock; name the packages they reach with -p)",
                 "settle: cargo xtask settle --check --base 4762316c",
                 "policy: cargo deny --locked check",
                 "policy: cargo vet --locked",
                 "fuzz: skipped (no trigger)",
             ]
+        );
+    }
+
+    /// C43-p1#2: a re-blessed golden file or a schema runs no test unless the lane names the packages; with a crate
+    /// in the diff as well, only nextest fails closed.
+    #[test]
+    fn workspace_wide_files_need_the_declared_set() {
+        let d = diff(
+            &[
+                "golden/J-E-2416/x.csv",
+                "schemas/0.1/a.json",
+                "content/l/b.toml",
+                "clippy.toml",
+            ],
+            &[],
+        );
+        assert_eq!(
+            lines(&d)[3],
+            "nextest: FAILED (workspace-wide files changed: golden/J-E-2416/x.csv, schemas/0.1/a.json, content/l/b.toml \
+             and 1 more; name the packages they reach with -p)"
+        );
+        let mixed = diff(&["crates/ew-leaf/src/lib.rs", "golden/J-E-2416/x.csv"], &[]);
+        let l = lines(&mixed);
+        assert_eq!(l[0], "fmt: cargo fmt -p ew-leaf");
+        assert_eq!(
+            l[3],
+            "nextest: FAILED (workspace-wide files changed: golden/J-E-2416/x.csv; name the packages they reach \
+             with -p)"
+        );
+        assert_eq!(
+            &lines_with(&diff(&["golden/J-E-2416/x.csv"], &[]), &["ew-api"])[..4],
+            [
+                "fmt: cargo fmt -p ew-api",
+                "clippy: cargo clippy -p ew-api --all-targets --all-features -- -D warnings",
+                "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-api --all-features",
+                "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-api --all-features",
+            ]
+        );
+    }
+
+    /// C43-p1#4: the declared set joins every cargo step, and a declared package runs whole even where a trigger
+    /// alone would restrict it to some binaries.
+    #[test]
+    fn the_declared_set_joins_the_derived_set() {
+        let l = lines_with(
+            &diff(&["crates/ew-commands/src/wire.rs"], &[]),
+            &["ew-testkit", "ew-leaf"],
+        );
+        assert_eq!(
+            &l[..4],
+            [
+                "fmt: cargo fmt -p ew-commands -p ew-leaf -p ew-testkit",
+                "clippy: cargo clippy -p ew-commands -p ew-leaf -p ew-testkit --all-targets --all-features -- -D \
+                 warnings",
+                "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-commands -p ew-leaf -p ew-testkit \
+                 --all-features",
+                "nextest: cargo nextest run --profile lane --cargo-quiet -p elektrawatt -p ew -p ew-api -p ew-commands \
+                 -p ew-leaf -p ew-testkit --all-features",
+            ]
+        );
+        // At a lane's start the diff is empty: the declared set alone.
+        let p = plan(
+            &diff(&[], &[]),
+            &members(),
+            &BTreeSet::new(),
+            BASE,
+            &set(&["ew-viewmodel"]),
+        );
+        assert_eq!(
+            warm_command(&p.nextest_set, &members()).to_string(),
+            "cargo test --no-run -p ew-viewmodel --all-features --features ew-viewmodel/testkit"
         );
     }
 
@@ -1105,10 +1248,8 @@ mod tests {
             )
         );
         assert_eq!(
-            parse(&s(&["--base", "main", "-p", "ew-ui"]))
-                .unwrap_err()
-                .to_string(),
-            format!("-p is for --warm only\n{USAGE}")
+            parse(&s(&["--base", "main", "-p"])).unwrap_err().to_string(),
+            format!("-p needs a package\n{USAGE}")
         );
         assert_eq!(
             parse(&s(&["--base", "main", "--warm", "-p", "ew-ui", "-p", "ew"])).unwrap(),

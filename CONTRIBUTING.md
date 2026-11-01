@@ -30,8 +30,8 @@ Run `cargo xtask settle` before you push: it formats the changed Rust files and 
 your change reaches (schemas, keymaps, the book's generated pages, the fuzz table, the self-test recordings, ...);
 `cargo xtask settle --check` is what a lane and the verify run; the merge point runs `cargo xtask settle --merge`, which
 adds the allow-list gates, `check-brief` and the MSRV check.
-An agent lane runs its hand-back checks with `cargo xtask lane-check --base <rev>`, which picks fmt, clippy, doc,
-one bounded nextest run, `settle --check` and the policy checks from the diff (`--plan` prints them).
+An agent lane runs its hand-back checks with `cargo xtask lane-check --base <rev> -p <pkg>...`, which picks fmt,
+clippy, doc, one bounded nextest run, `settle --check` and the policy checks from the diff (`--plan` prints them).
 
 A new integration test goes into its crate's one test binary: `tests/it/<name>.rs`, which `automod::dir!` in
 `tests/it/main.rs` declares. Touch `tests/it/main.rs` once after adding the file: cargo does not notice a new file in

@@ -215,8 +215,8 @@ changed `rust-version`, run as the job below does, in a copy of the workspace un
 afterwards; the committed lockfile is never touched), with the crate list derived from the members' `license` field.
 The outputs that a step rewrites whole carry `merge=regen` in `.gitattributes`.
 
-`cargo xtask lane-check --base <rev>` (`xtask/src/lane_check.rs`) is an agent lane's hand-back sequence: from the diff
-against `<rev>` it runs fmt, clippy and doc of the changed crates, one nextest run over them, their direct dependants and
+`cargo xtask lane-check --base <rev> -p <pkg>...` (`xtask/src/lane_check.rs`) is an agent lane's hand-back sequence:
+from the diff against `<rev>` and the lane's declared package set it runs fmt, clippy and doc of the changed crates, one nextest run over them, their direct dependants and
 the additions of `.claude/agents/lane.md`, `settle --check`, the triggered policy checks and the fuzz workspace check,
 prints only failures and a summary, and writes `target/lane-check.json`. It is bounded to direct dependants; the
 transitive closure is `cargo xtask affected`, at the merge point.
