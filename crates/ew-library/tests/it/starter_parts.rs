@@ -625,13 +625,18 @@ fn parts() -> Vec<LibDocument> {
                     LibDocument::Fndef(c) => serde_json::to_value(&c.item.category).unwrap(),
                     _ => unreachable!(),
                 };
-                v["function_template"] = json!(d.template.iter().map(|(key, main, cps)| {
-                    let mut t = json!({"fndef": fndef(key), "cps": cps});
-                    if *main {
-                        t["main"] = json!(true);
-                    }
-                    t
-                }).collect::<Vec<_>>());
+                v["function_template"] = json!(
+                    d.template
+                        .iter()
+                        .map(|(key, main, cps)| {
+                            let mut t = json!({"fndef": fndef(key), "cps": cps});
+                            if *main {
+                                t["main"] = json!(true);
+                            }
+                            t
+                        })
+                        .collect::<Vec<_>>()
+                );
             }
             if let Some(k) = d.kind {
                 v["kind"] = json!(k);
@@ -801,7 +806,11 @@ fn the_shipped_library_is_the_generated_one() {
 fn is_layout(kind: &PartKind) -> bool {
     matches!(
         kind,
-        PartKind::Enclosure | PartKind::MountingPlate | PartKind::Rail | PartKind::Duct | PartKind::EndBracket
+        PartKind::Enclosure
+            | PartKind::MountingPlate
+            | PartKind::Rail
+            | PartKind::Duct
+            | PartKind::EndBracket
     )
 }
 
@@ -815,7 +824,10 @@ fn shipped_parts() -> BTreeMap<String, Value> {
         for line in text.lines().filter(|l| !l.is_empty()) {
             let v: Value = serde_json::from_str(line).unwrap();
             let number = v["part_number"].as_str().unwrap().to_owned();
-            assert!(out.insert(number.clone(), v).is_none(), "{number} is in two files");
+            assert!(
+                out.insert(number.clone(), v).is_none(),
+                "{number} is in two files"
+            );
         }
     }
     out
@@ -948,7 +960,9 @@ fn the_layout_parts_read_back_from_the_shipped_files() {
         ),
     ];
     for (number, kind, unit, member, value) in layout {
-        let rec = shipped.get(number).unwrap_or_else(|| panic!("{number} is shipped"));
+        let rec = shipped
+            .get(number)
+            .unwrap_or_else(|| panic!("{number} is shipped"));
         assert_eq!(rec["kind"], kind, "{number}");
         assert_eq!(rec["version"], "0.1.0", "{number}");
         assert_eq!(rec.get("unit"), unit.map(|u| json!(u)).as_ref(), "{number}");
@@ -979,7 +993,9 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
         ("EW-GEN-TRM-2", "0.1.1", 5200000, 45000000, 40000000),
     ];
     for (number, version, width, height, depth) in dims {
-        let rec = shipped.get(number).unwrap_or_else(|| panic!("{number} is shipped"));
+        let rec = shipped
+            .get(number)
+            .unwrap_or_else(|| panic!("{number} is shipped"));
         assert_eq!(rec["version"], version, "{number}");
         assert_eq!(
             rec.get("mech"),
@@ -995,7 +1011,9 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
         "EW-GEN-MOT-1",
         "EW-GEN-VLV-1",
     ] {
-        let rec = shipped.get(number).unwrap_or_else(|| panic!("{number} is shipped"));
+        let rec = shipped
+            .get(number)
+            .unwrap_or_else(|| panic!("{number} is shipped"));
         assert!(rec.get("mech").is_none(), "{number}");
     }
 }
