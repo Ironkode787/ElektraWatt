@@ -60,7 +60,7 @@ zune-jpeg = { version = "0.5" }
 [build-dependencies]
 proc-macro2 = { version = "1" }
 quote = { version = "1" }
-syn-7b89eefb6aaa9bf3 = { package = "syn", version = "3", features = ["extra-traits", "fold", "visit"] }
+syn-7b89eefb6aaa9bf3 = { package = "syn", version = "3", features = ["extra-traits", "fold", "full", "visit"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
 num-traits = { version = "0.2" }
@@ -105,7 +105,7 @@ phf_shared = { version = "0.14", default-features = false, features = ["std"] }
 quick-xml = { version = "0.41" }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_core = { version = "1", features = ["alloc", "rc"] }
-syn-7b89eefb6aaa9bf3 = { package = "syn", version = "3", default-features = false, features = ["full", "visit-mut"] }
+syn-7b89eefb6aaa9bf3 = { package = "syn", version = "3", default-features = false, features = ["visit-mut"] }
 syn-f595c2ba2a3f28df = { package = "syn", version = "2", features = ["extra-traits", "fold", "full", "visit-mut"] }
 toml_datetime = { version = "1", features = ["serde"] }
 toml_parser = { version = "1" }

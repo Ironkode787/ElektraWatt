@@ -15,12 +15,16 @@ the `records` step of `cargo xtask settle --merge` runs it at the merge point.
 
 Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:` trailer cites, newest first, with the commits that cite it, newest first.
 
+- **ID-1053** (cycle 43): A cargo-hakari workspace hack, `ew-hack` (GPL), unifies third-party features for the GPL members; it lands because second builds of other package sets compile 36% and 80% fewer crates (narrow first builds compile more); the 16 permissive crates, xtask, the importers, the external-owner crates and naga stay out; CI and the settle step `hakari` run `generate --diff` and `manage-deps --dry-run` (verify fails by design with these excludes) and need cargo-hakari 0.9.39. RD43 §3.2–3.3; `ci/README.md` "Workspace hack".
+  - `8daf75562d` build: a cargo-hakari workspace hack, ew-hack (RD43 R17)
+- **ID-1052** (cycle 43): The `ew` CLI is one clap 4 derive tree lowered to the unchanged `Command`; its catalogue walks the tree for paths and flags; parse errors are clap's renderings (exit 2), a bare `--` ends options, `lib search` and `query` positionals take hyphen values, and `ew` or `ew lib` without a subcommand print help and exit 2. Supersedes the hand-written parser of WP-S1.22; doc 17 §3.1; RD43 §9 item 10.
+  - `f6b1c2cddb` refactor(ew): the CLI as one clap derive tree
 - **ID-1051** (cycle 43): Records come from commit trailers and one line per new entry; the decision log and Appendix B are frozen at ID-1050 and FT-998. RD43 §9 item 6; CONTRIBUTING.md "Records: commit trailers".
   - `451525f604` feat(xtask): records from git: check-trailers and records (RD43 R11)
 
 ## Open follow-up tasks
 
-569 open: 69 scheduled, 0 expired, 500 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
+571 open: 72 scheduled, 0 expired, 499 other. The entries of [follow-ups.md](follow-ups.md) and the open rows of the frozen [Appendix B](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles), minus every ID an `FT-Closes:` trailer names; by number.
 
 ### Scheduled (due in cycle 43 or later)
 
@@ -30,6 +34,7 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 - FT-921 (`ew-scene`; WP-S4.01; due: Cycle 43 (polish lane)): **Low (reports, legibility).** On 201 and 202 PART DATA's 35-character order code prints at the 1.8 mm floor with about 0.3 mm to spare; look at it at 1920 × 1080 with FT-920 (A42, cycle 42). Source: ID-1002
 - FT-922 (`ew-reports`; WP-S4.01; due: Cycle 43 (polish lane)): **Low (reports).** The legend's Qty column prints a carrier's length without its unit (m), by ruling 6; decide whether the header or the cell carries the unit (A42, cycle 42). Source: ID-1001
 - FT-923 (`ew-reports`, `ew-scene`; WP-S4.01; due: Cycle 43 (polish lane)): **Low (reports, cosmetic).** On 902 the PART DATA codes sit under an empty label column (the enclosure's part lines carry no label); look at it with FT-920 (A42, cycle 42). Source: ID-1001; FT-920
+- FT-924 (`ew-commands`, `ew-derive`; WP-S4.02; due: WP-S4.02 part 3 *Cycle 42 (ID-1042):* not taken by part 3 (a command and derivation matter outside the window); moves to cycle 43's FT batch): **Low (UI texts).** A device cloned without online numbering prints "-X?33" (B42, cycle 42). Source: ID-1004; ID-1042
 - FT-925 (`ew-import-tables`; WP-S6.02; due: Cycle 43 (FT batch)): **Low (tests).** The hostile test `mutated_golden_tables_never_panic` failed once under load and passed on re-run (a fixed seed); capture the panic message and the case the next time it fails (FT42, cycle 42). Source: ID-1007
 - FT-926 (`ew-viewmodel`, `ew-ui`; WP-S1.21; due: Cycle 43 (polish lane)): **Medium (UI, feedback).** A PLC card gets its addresses only once a CPU is placed, and nothing says so: the PLC panel reads "No PLC cards yet" with the card drawn and selected, and the card's properties offer no address field; say in the panel and on the card that a card needs a CPU, and how to add one (FT-823's area) (play-test rv-vis-5, cycle 41). Source: ID-1009; FT-823
 - FT-927 (`ew-viewmodel`, `ew-ui`; WP-S2.08; due: Cycle 43 (polish lane)): **Low (UI, discoverability).** The command search finds nothing for "PLC" (only fuzzy hits such as "Properties of selection"), and the PLC panel sits behind an unlabelled chip icon on the left rail (play-test rv-vis-5, cycle 41). Source: ID-1009
@@ -93,6 +98,8 @@ Every ID of [decisions.md](decisions.md) and every ID a `Decision:` or `Golden:`
 - FT-996 (`ew-viewmodel`; WP-S4.02; due: Cycle 43 (polish lane)): **Low (UI texts).** `hud-layout-selected` names "R rotates" on a rail placement, where R is refused; name only what the selection allows (W42c, cycle 42). Source: ID-1049
 - FT-997 (`ew-ui`, `ew-scene`, `ew-viewmodel`; WP-S4.02; due: Cycle 43 (polish lane)): **Low (UI).** Lock shows no lock icon (doc 12 §12.1) and the HUD keeps a stale "Blocked by T55" through Lock, Unlock and Enter (doc 16a §5.5) (W42c, cycle 42). Source: ID-1049
 - FT-998 (`ew-ui` (visual driver); WP-S6.13; due: Cycle 43 (FT batch)): **Low (tooling).** The uiscript transcript does not expose the live region's texts, so a window check cannot read them (W42c, cycle 42). Source: ID-1049
+- FT-999 (cycle 43, Low, WP-S1.22; due: cycle 44): `ew import csv --strict` is accepted, hidden and ignored; give it a meaning or remove it. Source: ID-1052
+- FT-1000 (cycle 43, Low, ew-hack; due: cycle 45): narrow GPL test builds now compile the hack's whole union (`windows`, harfrust, skrifa, regex): try excluding the platform crates and count the crates of a cold `-p ew-commands` build again. Source: ID-1053
 
 ### Expired (not scheduled, opened in cycle 39 or earlier)
 
@@ -595,7 +602,6 @@ None.
 - FT-913 (`ew-api`, `ew`; WP-S1.22; due: Cycle 42 (FT batch)): **Low (terminal output).** `ew query` and `ew check` refusals echo keys and page titles raw to the terminal, and a title from a shared project can carry control sequences; sanitise every read command's output with D41's `printable` in one sweep (the review's part-3 finding 4, cycle 41). Source: ID-993
 - FT-914 (`ew-api`, `ew-viewmodel`; WP-S1.18; due: When the window can name an archive root): **Nit (UI texts).** The `ArchiveRoot` refusal's reason, "…kept outside the project (ADR-0013)", reaches the window through `release-error-archive-root` as static English with an ADR number (`ew-api` `release_run.rs:611`); unreachable today, since the window always uses the default root; word it once the window can name an archive root (the review's part-4 nit, cycle 41). Source: ID-994
 - FT-917 (`ew-scene`; WP-S1.21; due: Cycle 42 (polish lane)): **Low (UI).** A black box's pin labels overlap each other already unturned, not only after a turn; with FT-699 (pin designations beside the channel addresses) and FT-825 (card pin labels tiny and turned) (W41b, cycle 41). Source: ID-995; FT-699; FT-825
-- FT-924 (`ew-commands`, `ew-derive`; WP-S4.02; due: WP-S4.02 part 3 *Cycle 42 (ID-1042):* not taken by part 3 (a command and derivation matter outside the window); moves to cycle 43's FT batch): **Low (UI texts).** A device cloned without online numbering prints "-X?33" (B42, cycle 42). Source: ID-1004; ID-1042
 - FT-957 (`ew-commands`; WP-S4.02; due: WP-S4.02 part 4): **Low (UI texts).** `layout.enclosure.create_from_part`'s refusal cannot name the plate part the project does not hold ("the enclosure part names a plate part that the project does not hold; add it to copies"); name it once the part copy is known (E42, cycle 42). Source: ID-1023
 - FT-974 (`ew-viewmodel`, `ew-api`; WP-S4.02; due: WP-S4.02 part 4): **Low (UI).** Properties shows "Object no longer exists" for a selected placement until part 4's Properties rows for layout records exist (F42, cycle 42). Source: ID-1042; ID-1049
 - FT-975 (`ew-ui`, `ew-viewmodel`; WP-S4.02; due: WP-S4.02 part 4): **Low (UI).** The Unplaced devices navigator's empty state "No panel layout yet" offers the action "Enclosure…", which part 4 builds; wire it then (F42, cycle 42). Source: ID-1042
