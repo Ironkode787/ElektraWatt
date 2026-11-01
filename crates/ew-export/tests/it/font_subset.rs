@@ -99,7 +99,12 @@ fn directory(font: &[u8]) -> Vec<([u8; 4], u32, usize, usize)> {
         .map(|i| {
             let r = &font[12 + 16 * i..28 + 16 * i];
             let word = |k: usize| u32::from_be_bytes([r[k], r[k + 1], r[k + 2], r[k + 3]]);
-            ([r[0], r[1], r[2], r[3]], word(4), word(8) as usize, word(12) as usize)
+            (
+                [r[0], r[1], r[2], r[3]],
+                word(4),
+                word(8) as usize,
+                word(12) as usize,
+            )
         })
         .collect()
 }
@@ -124,14 +129,20 @@ fn faces() -> Vec<(String, &'static [u8])> {
 fn a_subset_keeps_the_glyph_ids_and_the_used_outlines() {
     for (name, font) in faces() {
         // The bundled faces are TrueType (`glyf`) and carry every table D3 keeps (the brief's stop).
-        for tag in [b"glyf", b"loca", b"head", b"cmap", b"hhea", b"hmtx", b"maxp", b"OS/2", b"name", b"post"] {
+        for tag in [
+            b"glyf", b"loca", b"head", b"cmap", b"hhea", b"hmtx", b"maxp", b"OS/2", b"name", b"post",
+        ] {
             assert!(table(font, tag).is_some(), "{name} has no {tag:?}");
         }
         assert!(table(font, b"CFF ").is_none(), "{name}");
         let chars: BTreeSet<char> = "Ab9+=∑∞µ".chars().collect();
         let used: BTreeSet<u16> = chars.iter().filter_map(|&c| glyph_of(font, c)).collect();
         assert!(used.len() >= 4, "{name}: {used:?}");
-        assert_eq!(cmap_glyphs(font, &chars).unwrap(), used, "{name}: the cmap as skrifa reads it");
+        assert_eq!(
+            cmap_glyphs(font, &chars).unwrap(),
+            used,
+            "{name}: the cmap as skrifa reads it"
+        );
         let subset = subset_glyf(font, &used).unwrap();
         assert!(subset.len() < font.len(), "{name}");
         let (before, after) = (glyph_bytes(font), glyph_bytes(&subset));
@@ -151,7 +162,11 @@ fn a_subset_keeps_the_glyph_ids_and_the_used_outlines() {
             }
         }
         for c in &chars {
-            assert_eq!(glyph_of(&subset, *c), glyph_of(font, *c), "{name}: {c} keeps its glyph ID");
+            assert_eq!(
+                glyph_of(&subset, *c),
+                glyph_of(font, *c),
+                "{name}: {c} keeps its glyph ID"
+            );
         }
         for tag in [b"cmap", b"hhea", b"hmtx", b"maxp", b"OS/2", b"name"] {
             assert_eq!(table(&subset, tag), table(font, tag), "{name}: {tag:?} is kept");
@@ -181,7 +196,11 @@ fn a_subset_keeps_the_glyph_ids_and_the_used_outlines() {
             assert_eq!(checksum(&data), sum, "{name}: the checksum of {tag:?}");
         }
         assert_eq!(subset.len() % 4, 0, "{name}");
-        assert_eq!(checksum(&subset), 0xB1B0_AFBA, "{name}: head's checksum adjustment");
+        assert_eq!(
+            checksum(&subset),
+            0xB1B0_AFBA,
+            "{name}: head's checksum adjustment"
+        );
         // Deterministic.
         assert_eq!(subset_glyf(font, &used).unwrap(), subset, "{name}");
     }
@@ -214,7 +233,9 @@ fn components(record: &[u8]) -> Vec<u16> {
 /// and the composite draws in the subset as in the face.
 #[test]
 fn a_composite_glyph_brings_its_components() {
-    let font = bundled().face_data(bundled().faces().next().unwrap().key).unwrap();
+    let font = bundled()
+        .face_data(bundled().faces().next().unwrap().key)
+        .unwrap();
     let glyphs = glyph_bytes(font);
     let (c, g) = "ÄÅÉÖÜäåéöü"
         .chars()
@@ -227,7 +248,11 @@ fn a_composite_glyph_brings_its_components() {
     let kept = glyph_bytes(&subset);
     for p in &parts {
         assert!(!kept[usize::from(*p)].is_empty(), "{c}: component {p} is kept");
-        assert_eq!(kept[usize::from(*p)], glyphs[usize::from(*p)], "{c}: component {p}");
+        assert_eq!(
+            kept[usize::from(*p)],
+            glyphs[usize::from(*p)],
+            "{c}: component {p}"
+        );
     }
     assert!(outline_commands(&subset, g) > 0, "{c} draws");
     assert_eq!(outline_commands(&subset, g), outline_commands(font, g), "{c}");
@@ -429,7 +454,10 @@ fn a_face_over_16_mib_is_refused() {
 /// an unknown `loca` format, a glyph past the glyph count, a truncated composite.
 #[test]
 fn malformed_fonts_are_refused_in_words() {
-    assert_eq!(refusal(b"not a font", &[1]), "the data is not a TrueType or OpenType font");
+    assert_eq!(
+        refusal(b"not a font", &[1]),
+        "the data is not a TrueType or OpenType font"
+    );
     assert_eq!(
         refusal(b"ttcf\0\x01\0\0\0\0\0\0", &[1]),
         "the file is a font collection; only a single face is subset"
@@ -457,11 +485,17 @@ fn malformed_fonts_are_refused_in_words() {
         "the `head` table names the unknown `loca` format 7"
     );
     let font = sfnt(&tables(&[simple(), simple()]));
-    assert_eq!(refusal(&font, &[2]), "glyph 2 is not in the font, which has 2 glyphs");
+    assert_eq!(
+        refusal(&font, &[2]),
+        "glyph 2 is not in the font, which has 2 glyphs"
+    );
     let mut cut = composite(&[0]);
     cut.truncate(13);
     let font = sfnt(&tables(&[simple(), cut]));
     assert_eq!(refusal(&font, &[1]), "composite glyph 1 is truncated");
     let font = sfnt(&tables(&[simple(), composite(&[5])]));
-    assert_eq!(refusal(&font, &[1]), "glyph 5 is not in the font, which has 2 glyphs");
+    assert_eq!(
+        refusal(&font, &[1]),
+        "glyph 5 is not in the font, which has 2 glyphs"
+    );
 }

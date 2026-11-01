@@ -3846,7 +3846,11 @@ fn ac37_svg(c: &Ctx) -> Outcome {
         }
         for (key, subset) in &declared {
             let Some(face) = faces.get(key) else {
-                wrong.push(format!("{} declares {}, which is not a bundled face", f.name, face_name(key)));
+                wrong.push(format!(
+                    "{} declares {}, which is not a bundled face",
+                    f.name,
+                    face_name(key)
+                ));
                 continue;
             };
             let chars: BTreeSet<char> = named
@@ -3882,7 +3886,11 @@ fn face_name(k: &(String, u16, bool)) -> String {
 
 fn face_list<'a>(faces: impl Iterator<Item = &'a (String, u16, bool)>) -> String {
     let all: Vec<String> = faces.map(face_name).collect();
-    if all.is_empty() { "none".to_owned() } else { all.join(", ") }
+    if all.is_empty() {
+        "none".to_owned()
+    } else {
+        all.join(", ")
+    }
 }
 
 /// The `<text>` elements of an SVG page: the face each names (family without the generic fallback, weight, italic)
@@ -4006,7 +4014,11 @@ fn subset_draws(subset: &[u8], face: &[u8], family: &str, chars: &BTreeSet<char>
         return Err(format!("the subset's family is {}", info.family_name));
     }
     let text: String = chars.iter().collect();
-    let shaped = set.shape(&text, &ew_text::TextStyle::regular(ew_dl::ew_units::Nm::from_mm(3)), None);
+    let shaped = set.shape(
+        &text,
+        &ew_text::TextStyle::regular(ew_dl::ew_units::Nm::from_mm(3)),
+        None,
+    );
     if !shaped.missing.is_empty() {
         return Err(format!("no glyph for {:?}", shaped.missing));
     }

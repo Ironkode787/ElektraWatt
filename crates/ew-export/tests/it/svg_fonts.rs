@@ -156,8 +156,15 @@ fn check_page(doc: &str) -> BTreeSet<(String, u16, bool)> {
     let declared = declared(doc);
     let texts = texts(doc);
     let named: BTreeSet<(String, u16, bool)> = texts.iter().map(|t| (t.0.clone(), t.1, t.2)).collect();
-    let decl: Vec<(String, u16, bool)> = declared.iter().map(|d| (d.family.clone(), d.weight, d.italic)).collect();
-    assert_eq!(decl.iter().cloned().collect::<BTreeSet<_>>(), named, "exactly the named faces");
+    let decl: Vec<(String, u16, bool)> = declared
+        .iter()
+        .map(|d| (d.family.clone(), d.weight, d.italic))
+        .collect();
+    assert_eq!(
+        decl.iter().cloned().collect::<BTreeSet<_>>(),
+        named,
+        "exactly the named faces"
+    );
     assert_eq!(decl.len(), named.len(), "each face once");
     for (family, weight, italic, body) in &texts {
         let d = declared
@@ -169,7 +176,11 @@ fn check_page(doc: &str) -> BTreeSet<(String, u16, bool)> {
         for c in body.chars() {
             let g = glyph_of(&d.subset, c).unwrap_or_else(|| panic!("{c} maps in the subset"));
             assert_eq!(Some(g), glyph_of(face, c), "{c}: the face's glyph ID");
-            assert_eq!(ours[usize::from(g)], theirs[usize::from(g)], "{c}: the face's outline bytes");
+            assert_eq!(
+                ours[usize::from(g)],
+                theirs[usize::from(g)],
+                "{c}: the face's outline bytes"
+            );
             if !theirs[usize::from(g)].is_empty() {
                 assert!(outline_commands(&d.subset, g) > 0, "{c} draws");
             }
@@ -214,7 +225,10 @@ fn each_page_embeds_exactly_the_faces_its_texts_name() {
     // The pages are independent: page 2's subset holds its own glyphs only.
     let page2 = &declared(&out.files[1].text)[0].subset;
     let h = glyph_of(page2, 'H').unwrap();
-    assert!(glyph_bytes(page2)[usize::from(h)].is_empty(), "page 1's H is not on page 2");
+    assert!(
+        glyph_bytes(page2)[usize::from(h)].is_empty(),
+        "page 1's H is not on page 2"
+    );
     let x = glyph_of(page2, 'x').unwrap();
     assert!(!glyph_bytes(page2)[usize::from(x)].is_empty());
     // The thread count changes no byte.
@@ -228,7 +242,10 @@ fn each_page_embeds_exactly_the_faces_its_texts_name() {
 #[test]
 fn the_font_face_rule_is_written_in_the_form_of_d3() {
     let out = svg(
-        &[page(1, vec![text("A", &style(Family::Default, Weight::Bold), 20)])],
+        &[page(
+            1,
+            vec![text("A", &style(Family::Default, Weight::Bold), 20)],
+        )],
         &options(),
         None,
         Parallelism::Serial,
@@ -262,7 +279,11 @@ fn a_face_without_usable_bytes_is_named_and_reported() {
         assert_eq!(out.report.named_fonts, vec![key], "{data:?}");
         assert_eq!(out.report.texts, 2);
         for f in &out.files {
-            assert!(f.text.contains("<style>text{white-space:pre}</style>\n"), "{}", f.name);
+            assert!(
+                f.text.contains("<style>text{white-space:pre}</style>\n"),
+                "{}",
+                f.name
+            );
             assert!(f.text.contains("font-family=\"Noto Sans, sans-serif\""));
         }
     }

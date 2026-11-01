@@ -102,7 +102,13 @@ pub enum SubsetError {
 /// A table tag as text: its four bytes, a byte outside printable ASCII as `?`.
 fn tag_text(tag: [u8; 4]) -> String {
     tag.iter()
-        .map(|&b| if (0x20..0x7f).contains(&b) { char::from(b) } else { '?' })
+        .map(|&b| {
+            if (0x20..0x7f).contains(&b) {
+                char::from(b)
+            } else {
+                '?'
+            }
+        })
         .collect()
 }
 
@@ -110,10 +116,15 @@ impl fmt::Display for SubsetError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SubsetError::TooLarge { bytes } => {
-                write!(f, "the font file is {bytes} bytes, more than the 16 MiB a subset is made from")
+                write!(
+                    f,
+                    "the font file is {bytes} bytes, more than the 16 MiB a subset is made from"
+                )
             }
             SubsetError::NotAFont => write!(f, "the data is not a TrueType or OpenType font"),
-            SubsetError::Collection => write!(f, "the file is a font collection; only a single face is subset"),
+            SubsetError::Collection => {
+                write!(f, "the file is a font collection; only a single face is subset")
+            }
             SubsetError::TruncatedDirectory => {
                 write!(f, "the font's table directory runs past the end of the file")
             }
