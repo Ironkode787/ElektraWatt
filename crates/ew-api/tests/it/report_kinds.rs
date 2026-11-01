@@ -37,24 +37,11 @@ use ew_scene::table::TableFinding;
 use ew_schema::{Record, ReportBlock};
 use serde_json::{Value, json};
 
-/// The kinds the export by kind derives whose golden CSV no decision has written yet (WP-S3.06 D4 golds four kinds).
+/// The kinds the export by kind derives whose golden CSV no decision has written yet (WP-S3.06 D4 golds four kinds;
+/// ID-1106, FT-1012: "the 13 derived kinds without a golden CSV are blessed", so none is pending today).
 /// A new kind the export derives needs its file (`EW_BLESS=1` writes it) or an entry here; a kind here that gains a
 /// file or stops deriving fails [`the_kind_csvs_equal_the_export_by_kind`] until it leaves this list.
-const PENDING: &[&str] = &[
-    "cable_overview_diagrams",
-    "enclosure_legend",
-    "numbering_report",
-    "part_data",
-    "parts_list",
-    "parts_summary",
-    "plc_overview",
-    "potential_overview",
-    "profile_tables",
-    "revision_overview",
-    "structure_overview",
-    "toc",
-    "wire_list",
-];
+const PENDING: &[&str] = &[];
 
 /// The problems of the golden kind CSVs: each derived kind outside `pending` needs its file, each pending kind must
 /// still derive and have no file, and each registered kind with a file must still derive (a kind that starts refusing

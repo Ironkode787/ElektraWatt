@@ -1,0 +1,11 @@
+row,Item,Kind,Frozen,Rule value,Status
+data,1X1,tag,1X1,X101?,deviates
+data,E55,tag,E55,101E?,deviates
+data,E56,tag,E56,101E?,deviates
+data,F55,tag,F55,101F?,deviates
+data,S51,tag,S51,101S?,deviates
+data,S56,tag,S56,101S?,deviates
+data,T55,tag,T55,101T?,deviates
+data,-UC1,tag,UC1,?U1,deviates
+data,-UC1-plate,tag,UC1-plate,UC1-U?,deviates
+data,-XPE,tag,XPE,101X?,deviates
