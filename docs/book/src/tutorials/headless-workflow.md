@@ -88,7 +88,7 @@ cross-reference links:
 
 ```console
 $ ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf
-PDF written to out/J-E-2416.pdf: 36 pages, 92 links
+PDF written to out/J-E-2416.pdf: 36 pages, 246 links
 112 page findings (unresolved wire ends, unknown styles, overflowing table texts)
 ```
 

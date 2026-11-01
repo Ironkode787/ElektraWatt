@@ -8,7 +8,7 @@ part 1 first; part 2 after part 1; part 3 after part 1 and WP-S4.01 part 3; part
 part 1 and WP-S4.01 parts 3 to 5; part 6 at any time. The parts sum to **5.2 pw plus 0.3 pw reserve** against a 3.1
 pw PERT that covered the five requirement rows only (D15, O1) · **Ruled in cycle 41** (decision log ID-948, project owner (delegated)): O1 accepted, `work-packages.csv` O 4 · L 5.5 · P 7 · PERT 5.5; O2: one rebase is accepted, but part 1 never runs beside WP-S4.01 part 5 (both edit `ew-derive/src/layout/queries.rs`) · **Date:** 2026-10-31 ·
 **Work package:** [WP-S4.02](../02-work-packages.md#wp-s402-2d-panel-editing-tools) ·
-**Decision log:** ID-948; as built ID-1004, ID-1023, ID-1042 · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-948; as built ID-1004, ID-1023, ID-1042, ID-1089, ID-1090 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S4.01 made the layout a model with outputs and checks and left every gesture to this package (its
 D1). WP-S4.02 is where a person lays out a panel: drag a device from the unplaced list onto a rail, let it snap,
@@ -365,6 +365,31 @@ the Create enclosure dialog, the draw-duct tool mid-gesture, a placement's Prope
     mockup's Draw command row (2). While part 5 runs beside it, `crates/ew-api/src/output/panel.rs` is part 5's: part 4
     reads `panel_tables` and edits nothing there; a field appended to `PanelTables` is reported.
 
+*As built (cycle 44, lane B44, f951c9c0, and its fixer FIX44b, cf0ef4d4; decision log ID-1078, ID-1090).* **PS-1 to
+PS-9 met**, PS-1 on fixtures (ruling 8); FT-804 and FT-839 closed. B44's proposals, as built: **Enter on a duct's last
+vertex** finishes the duct (`tool.finish` or a double click do too); **Project ▸ Project** is a submenu of four entries;
+the draw tools are named **Rail** and **Duct** in the command row and the tool list; **placement findings** stay in the
+header chips. The review's part 2 (not accepted for a panic on a far point) and the window check
+W44.2 (Enclosure… enabled without a location) were fixed by FIX44b: every draw-tool point is saturated to the i64 range
+before JSON is built, and the far point is refused by the command in its words (FT-1017 words them for users); the
+draw tools' part offers are kept per session, revision and kind; Realised part offers the device's mountable part uses
+(D12), Device is a link row, and Label reads the first panel page that shows the placement's surface; a surface reads
+"<short tag> plate", or "<full designation> plate" when two would read alike, and the Surface row's choice resolves
+by the surface's ID; a surface typed in words that match several surfaces is refused "More than one surface reads
+{text}; choose one of the list."; Project ▸ Enclosure… is disabled without a location, its reason
+`enclosure-new-no-location`'s text, and the Create enclosure dialog's Create is disabled while its location or part is
+empty ("Choose a location" shows only from a script, because the location list has a value once a location exists);
+the one-enclosure refusal names the location with its sign ("location +J-E-2416 already has enclosure -UC1; …").
+**Files beyond §11.1 and ruling 10:** `crates/ew-api/src/cmdlog.rs` (`select.set` reaching the layout records, for
+scripted selection; C44-p2#10), `crates/ew-api/src/output/mod.rs` (the module line), `crates/ew-viewmodel/src/tools/host.rs`
+(the offers' cache), `crates/ew-commands/src/commands/layout.rs` with `tests/it/cmd_layout_assembly.rs` (the
+one-enclosure text), `tools/blind/reference/actions.txt` (the new actions), and the tests in
+`crates/ew-viewmodel/tests/it/` (`layout_setup.rs`, `creation.rs`, `part4_dialogs.rs`, `command_bar.rs`). Five
+`ew-ui` snapshot files outside the brief's list (`part4-dialog-toast-{dark,light}`, `part4-preview-{dark,light}`,
+`tooltip-save-light`) were re-blessed for the command row only, as W44.2 (item 6) and the review's part 2 checked.
+Follow-ups: FT-1015 (placeholder icons for Rail, Duct, Auto-fill rail and Enclosure…), FT-1016 (a new panel page keeps
+1:1, so the plate overhangs the sheet), FT-1017; the review's part 4 rows (C44-p4#1 to #6) are open.
+
 ## 9. Part 5: end brackets in the outputs
 
 **Scope.** D13, FT-204's row 26, the rest of AC-33. **0.6 pw.**
@@ -445,6 +470,18 @@ every other exported byte equal. *Added in cycle 41 (the window check W41a, ID-9
     (`layout.rs`'s module doc): "The end bracket after =P01+J-E-2416-X1031 overlaps =P01+J-E-2416-X1032 on rail 2."
     Ruling 5's examples read with that substitution.
 
+*As built (cycle 44, lane A44, 733c94dd, with FIX44's 6c588475 for rulings 11 and 12; decision log ID-1081, ID-1083,
+ID-1089).* **EB-1 to EB-6 met**; the golden change is ruling 8's list exactly. A44's proposals, as built: the bracket
+findings print **full designations** (ruling 13); a bracket case reports **only the first** placement or later bracket
+it overlaps, in rail order (one overlap finding per bracket at most, beside the overflow case); the legend's
+end-bracket rows follow the placements, one per bracket part, **by part number** in natural order (row 31 on 902);
+each bracket is **drawn as its own rectangle item** (`BracketDraw`, the run's largest footprint height, centred on the
+rail axis), whose entity is its strip's placement, because a bracket is derived, not a record. **A placed strip** is
+a strip device with a placement on a rail; a strip that is not placed, or is placed on a surface or a duct, holds no
+bracket and keeps its authored quantity and folios (`strip_brackets`). FT-942's comments are at `snap.rs:188-189` and
+`:269-271` (the row cites `:301-302`), so FT-942 is closed; FT-204 closed with 72651bf9 (A44's commit lacked the
+trailer).
+
 ## 10. Part 6: the starter library's layout parts
 
 **Scope.** D14, FT-805. **0.3 pw.** Haiku: every value is given; the shapes are those of Golden A's copies
@@ -490,7 +527,8 @@ changed to a relation, not a new total. **SP-4** `cargo nextest run -p ew-librar
 it (`ew-scene` or `ew-api`'s output families),
 `crates/ew-checks/src/rules/**` (EW-LAY-010), golden files only as EB-5 lists. **Part 6:**
 `crates/ew-library/tests/starter_parts.rs`, `crates/ew-library/src/starter_parts.rs`,
-`content/libraries/ew-starter-parts.ewlib/**`.
+`content/libraries/ew-starter-parts.ewlib/**`. *As built (cycle 44, ID-1090):* part 4 also changed the files its
+as-built note in §8 lists, `crates/ew-api/src/cmdlog.rs` among them (C44-p2#10).
 
 Shared append-only files (registry lists, the fuzzer arms, the strings table, generated command schemas and pages)
 may be touched by other lanes; the second to integrate rebases. Read-only for every lane: other crates, `golden/**`

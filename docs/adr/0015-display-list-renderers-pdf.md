@@ -149,7 +149,9 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
    backends are unchanged: `ew-export` writes one link annotation per link item over the axis-aligned box of the
    path's control points, exact at 0° and 90°; a free-angle text needs `QuadPoints` (follow-up task FT-122), and
    exact item ends from the shaped clusters replace the prefix re-shaping, which ignores kerning across the item
-   boundary (FT-123). The golden PDF has 64 cross-reference link annotations and 96 named destinations.
+   boundary (FT-123). The golden PDF has 64 cross-reference link annotations and 96 named destinations. *Since
+   cycle 44* (WP-S3.06 part 3, decision log ID-1091) it has 246 link annotations (64 cross-reference items, 28 PLC
+   overview rows, 154 report row links) and 185 named destinations (`golden/J-E-2416/expected/pdf/structure.json`).
 10. **The canvas's GPU path as built** (2026-10-22, cycle 22, lead ruling the owner may reverse, applied and accepted at
     the cycle-22 design pass; decision log ID-506, ID-507, ID-539 to ID-543;
     [WP-S2.02 specification](../plan/specs/WP-S2.02-canvas-renderer.md) §3, §7). This applies the amendment that was

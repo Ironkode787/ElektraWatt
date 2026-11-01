@@ -4,7 +4,7 @@
 export by kind (0.9 pw, D4 to D6, D9, D11), part 2 the open-items list (0.7 pw, D7, D8), part 3 the report back-links
 drawn (0.6 pw, D10); 0.3 pw reserve; in M2's order after WP-S1.21's remaining work (doc 01, ID-779); part 1 and
 part 2 in any order or side by side, part 3 after both and after WP-S4.01 part 4b · **Ruled in cycle 41** (decision log ID-950, project owner (delegated)): §12's O1 to O4 as proposed, except FP-2 (O4), which is not taken at MVP; the PERT in `work-packages.csv`; the FT annotations made · **Date:** 2026-10-31 ·
-**Work package:** [WP-S3.06](../02-work-packages.md#wp-s306-mvp-report-pack) · **Decision log:** ID-950; as built ID-1026, ID-1039 ·
+**Work package:** [WP-S3.06](../02-work-packages.md#wp-s306-mvp-report-pack) · **Decision log:** ID-950; as built ID-1026, ID-1039, ID-1091 ·
 **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** Most of WP-S3.06's scope was built ahead of the package by other packages: nine of its fourteen
@@ -94,7 +94,7 @@ The lanes rely on exactly these items. If one differs, the lane stops and report
 | `MainRep(device)`, `RepAnchorCell(rep)`, `tech_data_text(q, device)`, `DeviceTag`, `StructureOf` | `crates/ew-derive/src/tag.rs`, `cell.rs`, `part_text.rs`, `structure.rs` | `device_list` |
 | `Cell::CellRef(PageRef, GridCell)` renders "101-B8"; `Cell::Folios`; `Cell::Range` with `compress_range` (FR-REP-046) | `crates/ew-reports/src/rowset.rs`, `render.rs:293-302` | Cells |
 | `LinkRef { column, target }`, `LinkTarget::{MainRep, Cp, Page}`; `toc` sets `Page` on column 0, `parts_summary` `MainRep` on its Tags column, `plc_overview` `Cp` | `crates/ew-reports/src/rowset.rs:505-528`; `kinds/toc.rs`, `parts.rs:118-123`, `plc_overview.rs:175` | Part 3 |
-| Only `Cp` row links are drawn: `row_links` in `PageTableOf`; `TableRow.links: Vec<(usize, Destination)>`, one link over a whole cell's text | `crates/ew-api/src/output/view.rs:856-868`; `crates/ew-scene/src/table.rs:33-90` | Part 3 |
+| Only `Cp` row links are drawn: `row_links` in `PageTableOf`; `TableRow.links: Vec<(usize, Destination)>`, one link over a whole cell's text | `crates/ew-api/src/output/view.rs:856-868`; `crates/ew-scene/src/table.rs:33-90`. *As built (cycle 44, ID-1091):* at part 3's base `row_links` was at `view.rs:952` | Part 3 |
 | `Session::link_targets(&[Destination])` resolves page, representation and CP destinations; the canvas follows a display list's link sources (`PageLink`, `link_at`) | `crates/ew-api/src/output/navigation.rs:887-930`; `crates/ew-viewmodel/src/canvas.rs:70-90, 757` | Part 3's screen half needs no new view code |
 | `ew export report [<project>] --block <block> [--format csv\|pdf] [--out] [--json]`; `RowExport::Report`; `row_export(q, what, block)`; the golden CSV dialect (`ew_reports::csv`) | `bin/ew/src/cli.rs:37, 418-430, 772-840`; `crates/ew-api/src/output/rows.rs:33-60, 217` | Part 1 adds `--kind` |
 | `revision_overview`'s pages cell filled at draw time from `changed_pages(q, rev)`; the CSV of `--block 911` does not get it (FT-704) | `crates/ew-api/src/output/view.rs:1028` (`revision_pages`, called at :1008; FT-971); `output/revisions.rs:258` | Part 1 (D11) |
@@ -104,7 +104,7 @@ The lanes rely on exactly these items. If one differs, the lane stops and report
 | EW-CORE-026 (report coverage, FR-REP-047) | `crates/ew-checks/src/rules/page.rs:299-360` | Traced as built |
 | EW-LAY-001 is not registered (WP-S4.01 part 5) | `crates/ew-checks/src/rules/` | OI-1's two row counts |
 | `ci/dep-rules.toml`: `"ew-reports" = ["ew-derive", "ew-sqlview", "ew-text"]`, `"ew-sqlview" = ["ew-derive", "ew-checks"]`: `ew-checks` is already in `ew-reports`' graph | `ci/dep-rules.toml:73-78` | D8 |
-| Golden A: 11 page blocks and 4 embedded blocks (doc 09 §2.2); `expected/csv/` holds 8 files; `expected/pdf/structure.json` 92 links (64 cross-reference items, 28 PLC overview rows); `expected/acceptance_headless.md` pins 92 links (AC-13, AC-14, D-07) | `golden/J-E-2416/` | D4, part 3's golden change |
+| Golden A: 11 page blocks and 4 embedded blocks (doc 09 §2.2); `expected/csv/` holds 8 files; `expected/pdf/structure.json` 92 links (64 cross-reference items, 28 PLC overview rows); `expected/acceptance_headless.md` pins 92 links (AC-13, AC-14, D-07). *As built (cycle 44, ID-1091):* at part 3's base Golden A had five embedded blocks, not four; after part 3, 246 links (154 report row links added) and 185 named destinations | `golden/J-E-2416/` | D4, part 3's golden change |
 
 ### 2.2 Gaps found (why the parts are shaped as they are)
 
@@ -322,6 +322,21 @@ change; if one does, the lane stops.
 8. **Files beyond §9.1,** each for its item only: `crates/ew-reports/src/render.rs` (1), `crates/ew-scene/src/page.rs`
    (3), `crates/ew-scene/src/embedded.rs` (the new `TableRow.links` type), the test files of 5, the new
    `crates/ew-api/tests/it/report_links.rs`, and the `TableRow` sites in `crates/ew-scene/tests/it/`.
+
+*As built (cycle 44, lane C44, b206c802 with c8f7b4a2's golden change; decision log ID-1079, ID-1091).* **BL-1 to
+BL-6 met**; FT-231 closed; nothing de-scoped. Golden A's PDF holds 246 links (64 cross-reference items, 28 PLC overview
+rows, 154 report row links: the TOC's 36, the parts list's 52, the device tag overview's 66) and 185 named
+destinations; the count is computed from the page views, never pinned. C44's four proposals, accepted by the review's
+part 3: **embedded blocks** keep only whole-cell `Cp` links and draw no back-links (§1; FR-PLC-052's box links are as
+built); **a folio link skips contact images** when it picks the first source device's representation on a page, as
+`MainRep` does; **rows 13 and 14** of the parts list (terminal devices placed through their strip, with no
+representation on 103) link the page (D10's "else the page"); **the CLI's export test** reads the committed count from
+`expected/pdf/structure.json`, which the PDF test ties to 92 plus the counted row links. Beyond ruling 8: the golden
+README's lines 629-630 (row links drawn), and `crates/ew-api/tests/it/new_project.rs` (its page-text reader reads an
+escaped quote, so the copy comparison holds with drawn row links; 9bdf29b4). FT-874's continuation sheet 901.1 joined
+the per-gate PNG sample unchanged (ae364f20). The review's part 3 rows on long Folios cells, untested branches,
+`LinkRef::item`'s saturation and a bracket's side went to the fixer FIX44c. Commit `0b8dd9ca`'s message names the
+feature commit by a pre-integration hash; it is `b206c802`.
 
 ## 8. Neighbours and who owns what
 

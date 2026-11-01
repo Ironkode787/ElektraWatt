@@ -337,13 +337,16 @@ action the filter missed finds no golden project and no repository.
 ### 5.4 The keeper, `resume` and `--stateless`
 
 - `cargo xtask blind start --kind <k> --task <t> [--persona <p>] [--of <run>] [--folios <list>] --run <id>
-  [--out <dir>] [--bin <dir>] [--stateless]` (run by the orchestrator from the repository) hashes `golden/`, creates the
+  [--out <dir>] [--bin <dir>] [--stateless] [--no-book]` (run by the orchestrator from the repository) hashes `golden/`, creates the
   folder outside the repository, copies the binaries and the book (§5.1), composes `prompt.md`, and, unless
   `--stateless`, spawns **the copied harness** `<run>/bin/xtask blind serve <run>` detached (never `cargo xtask`: a
   running `xtask` from `target/` would lock the next build on Windows). `--bin` names the directory of the built
   binaries (default `target/debug`); the harness records `elektrawatt --version`. `--folios` limits a gate task to some
   of its folios (the task sheet's other folios are left out of the composed prompt, and their checks are scored `gap`
-  with the reason "not in this run").
+  with the reason "not in this run"). *As built in cycle 44 (FT-936, decision log ID-1080, ID-1085):* the subcommand
+  refuses when `target/book/index.html` is missing ("error: the user guide is not built: run `mdbook build
+  docs/book` first, or pass --no-book to start without it"), and `--no-book` starts with an empty `book` folder; the
+  self-tests call the start without that check.
 - `serve` spawns `<run>/.harness/bin/elektrawatt --headless --script - --keep-going --record <run>/record.ewcmd
   --config-dir <run>/config` with the working directory `<run>/work` and the environment `EW_SAMPLE_DIR` =
   `<run>/.harness/empty-sample`, `EW_DOCS_DIR` = `<run>/book`; it binds a TCP listener on `127.0.0.1:0` and writes
