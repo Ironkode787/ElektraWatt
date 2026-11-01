@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm] [--fresh]`: a lane's hand-back checks
-//! (`.claude/agents/lane.md`, "Hand-back checks"), run once and chosen from the diff against `<rev>` and the lane's
-//! declared package set (`-p`, its edit-loop set).
+//! `lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm] [--fresh]
+//! [--trailers "<Key>: <items>"]...`: a lane's hand-back checks (`.claude/agents/lane.md`, "Hand-back checks"), run
+//! once and chosen from the diff against `<rev>` and the lane's declared package set (`-p`, its edit-loop set).
 //!
 //! - **The diff.** The changed files are those of [`affected::changed_files`] since the merge base of `<rev>` and
 //!   `HEAD` (committed, uncommitted and untracked). A file belongs to the deepest member whose directory holds it;
@@ -16,31 +16,43 @@
 //!   for the roots of [`GUARDED_ROOTS`]: a package whose `.rs` files name a changed root (a scan of the tracked files,
 //!   [`root_readers`]; `xtask`, which names them as policy, aside) must be in the set, or the nextest step fails
 //!   closed naming the missing ones (C43-p2#6).
-//! - **The steps,** in this order:
+//! - **The steps,** in this order ([`STEPS`]; ID-1103: the two writing steps first, so that a rewrite costs no long
+//!   step):
 //!   1. `fmt`: `cargo fmt`, then settle's per-file rustfmt over the diff's `.rs` files (`settle::rust_files`: never a
 //!      module under `#[rustfmt::skip]`), which reaches the test modules `automod::dir!` includes and `cargo fmt`
 //!      does not see. It writes; it is not a check. Its snapshot holds every `.rs` file it can rewrite (FT-1013): the
 //!      formatted crates' files, in the diff or not, and every file below the directory of a per-file target (the
-//!      child modules rustfmt reaches). When it changed one, it reports `rewrote <files> (commit them)` (not a
-//!      failure).
-//!   2. `clippy`: the changed crates, `--all-targets --all-features -- -D warnings`. An unresolvable
+//!      child modules rustfmt reaches). When it changed one, it reports `rewrote <files> (commit them)`.
+//!   2. `settle`: `settle --base <rev>`, settle's write mode, as a child process of this executable, so a parallel
+//!      change of settle is picked up by the build that runs it. Its snapshot is the worktree: each file that differs
+//!      from `HEAD`, with a digest of its bytes, before and after (settle's text is not read). When it changed one, it
+//!      reports `rewrote <files> (commit them)`; a failure without a rewrite is `FAILED`.
+//!   3. `clippy`: the changed crates, `--all-targets --all-features -- -D warnings`. An unresolvable
 //!      `disallowed-methods` path in clippy's output fails the step as in `cargo xtask ci`.
-//!   3. `doc`: `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features` over the changed crates, in one call.
+//!   4. `doc`: `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features` over the changed crates, in one call.
 //!      `--all-features`, as every cargo command of a lane, so the dependencies' check builds are clippy's. Then
 //!      `cargo test --doc --all-features` over those of them that have a library target with doctests (FT-1006).
-//!   4. `nextest`: one run of the `lane` profile with `--all-features` over the nextest set (below), with the
+//!   5. `nextest`: one run of the `lane` profile with `--all-features` over the nextest set (below), with the
 //!      `required-features` of each package's test targets named as `affected::commands` names them (redundant
 //!      beside `--all-features`, and harmless).
-//!   5. `settle`: `settle --check --base <rev>` as a child process of this executable, so a parallel change of
-//!      settle is picked up by the build that runs it.
 //!   6. `policy`: the checks of lane.md step 6, each by its trigger (see [`policy_commands`]). The cheap static
 //!      checks `check-raw-read` and `check-disallowed-methods` run on any changed `.rs` file, since an allow attribute
 //!      or a raw-model read is not visible in a path; `check-test-layout` runs on any changed path under a `tests/`
 //!      directory and on any changed file that mentions `--test`; `map --check` (the shared-list markers) on any
 //!      changed `.rs` file, `Cargo.toml` or `ci/dep-rules.toml`; `api-guard --base <rev>` when one of
 //!      [`API_SNAPSHOTS`] changed (FT-1007).
-//!   7. `fuzz`: `cargo check` of the fuzz workspace, when `crates/ew-testkit/tests/command_fuzz/**`, `fuzz/**` or the
+//!   7. `trailers`: with `--trailers "<Key>: <items>"` (repeatable; the items separated by commas), in-process over
+//!      the non-merge commits of `<merge base>..HEAD` ([`trailers::commits`]): it passes when every item appears among
+//!      the comma-separated items of a trailer of its key (in any case) in some commit of the range, whole or as the
+//!      first word of one (`Golden: ID-n <reason>`), and else fails naming each missing pair once, in the order
+//!      given: `FAILED (missing: Decision: ID-1083; FT-Closes: FT-231)` ([`missing_trailers`]). Without
+//!      `--trailers` it is `skipped (no --trailers)`.
+//!   8. `fuzz`: `cargo check` of the fuzz workspace, when `crates/ew-testkit/tests/command_fuzz/**`, `fuzz/**` or the
 //!      `Cargo.toml` of a crate in a fuzz target's closure (`ci/fuzz-smoke-targets.toml`) changed.
+//! - **A rewrite stops the run** (ID-1103, [`run_steps`]). Once fmt or settle changed the worktree, whether it passed
+//!   (`rewrote <files> (commit them)`) or failed (`FAILED (rewrote <files>)`), no later step runs: each reads `not run
+//!   (commit the rewrites and run again)`, since it would check a tree that must be committed first, and the run
+//!   fails. A failed step does not stop the run, so one run reports every failure.
 //! - **The nextest set, and its bound.** The changed crates, plus their **direct** reverse dependencies through
 //!   normal, build and dev edges (one step, never the transitive closure, never `--workspace`: the closure is the
 //!   merge point's `affected` run), plus the additions of lane.md's step-4 triggers ([`TRIGGERS`]), plus the declared
@@ -51,10 +63,11 @@
 //!   reads its modules with `automod::dir!` is not rebuilt for a new file alone, because cargo does not track that
 //!   directory read.
 //! - **Output.** A step's output goes whole to `target/lane-check/<step>.log`; a failed step's log is printed whole,
-//!   never cut. Then the memory's line and one summary line per step: `lane-check: <step>: ok | FAILED | skipped
-//!   (<why>)`, and `target/lane-check.json` (written all or nothing) with each step's name, status, commands, seconds
-//!   and log path, and the records of the memory. The durations are reported, never asserted (owner's rule). The exit
-//!   code is 0 only when no step failed.
+//!   never cut. Then the memory's line and one summary line per step: `lane-check: <step>: ok | rewrote <files>
+//!   (commit them) | FAILED | skipped (<why>) | not run (<why>)`, and `target/lane-check.json` (written all or nothing)
+//!   with each step's name, status, commands, seconds and log path, and the records of the memory. The durations are
+//!   reported, never asserted (owner's rule). The exit code is 0 only when no step failed and none was left unrun (a
+//!   rewrite alone, as with `--only fmt`, is no failure).
 //! - **The memory** (ID-1077). A step that passed is recorded in `target/lane-check.json`: its name, its exact commands
 //!   (program, arguments, environment), the merge base's hash, the tree it ran on (`HEAD^{tree}`) and the inputs
 //!   outside the tree that can change its outcome: the environment variables of [`INPUT_ENV_PREFIXES`] (`EW_BLESS`,
@@ -63,9 +76,10 @@
 //!   when the step runs it. Not held: the contents of folders named by variables, and git-ignored files; run `--fresh`
 //!   after changing them. A run on a clean worktree (no tracked change, no untracked file outside
 //!   `.gitignore`) skips a step whose record matches and prints it as `ok (from memory; --fresh runs it again)`. A
-//!   dirty worktree records nothing and skips nothing; once a step changed the worktree (fmt's rewrite, say), no later
-//!   step is skipped or recorded. A failure forgets the step's record. A step that runs `cargo deny` is never
-//!   recorded: the advisory database comes from the network. `--fresh` runs every step and records anew.
+//!   dirty worktree records nothing and skips nothing; once a step changed the worktree (a rewrite stops the run; any
+//!   other change), no later step is skipped or recorded. A failure forgets the step's record. A step that runs `cargo
+//!   deny` is never recorded: the advisory database comes from the network. The trailers step is never recorded or
+//!   skipped: commit messages change without the tree changing. `--fresh` runs every step and records anew.
 //! - **`--plan`** prints the selection, the memory's line and the exact commands (a step it would skip as
 //!   `<step>: from memory: <command>`) and runs nothing. **`--only <step>`** runs one step with the same selection.
 //!   **`--warm`** builds exactly the nextest step's packages (the derived set and the declared one; at a lane's start
@@ -83,12 +97,100 @@ use std::time::Instant;
 use anyhow::{Context, Result, bail};
 
 use crate::affected::{self, Members};
+use crate::trailers::{self, Commit};
 
-const USAGE: &str =
-    "usage: cargo xtask lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm] [--fresh]";
+const USAGE: &str = "usage: cargo xtask lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm] \
+                     [--fresh] [--trailers \"<Key>: <items>\"]...";
 
-/// The steps, in their order.
-pub(crate) const STEPS: [&str; 7] = ["fmt", "clippy", "doc", "nextest", "settle", "policy", "fuzz"];
+/// The steps, in their order (ID-1103): the writing steps first, so that a rewrite stops the run before a long step.
+pub(crate) const STEPS: [&str; 8] = [
+    "fmt", "settle", "clippy", "doc", "nextest", "policy", "trailers", "fuzz",
+];
+
+/// The status of a step that does not run because an earlier step rewrote files.
+const NOT_RUN: &str = "not run";
+
+/// Why a step after a rewrite does not run.
+const COMMIT_THE_REWRITES: &str = "commit the rewrites and run again";
+
+/// One `--trailers "<Key>: <items>"`: a trailer key and the items that the commits since the merge base must carry
+/// under it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Wanted {
+    /// The trailer key, as given (compared without regard to case).
+    pub key: String,
+    /// The items, in the order given.
+    pub items: Vec<String>,
+}
+
+impl fmt::Display for Wanted {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.key, self.items.join(", "))
+    }
+}
+
+/// The value of `--trailers`: `<Key>: <item>[, <item>]...`, a key without spaces and at least one item, none empty.
+fn parse_wanted(value: &str) -> Option<Wanted> {
+    let (key, items) = value.split_once(':')?;
+    let key = key.trim();
+    let items: Vec<String> = items.split(',').map(|i| i.trim().to_owned()).collect();
+    if key.is_empty() || key.contains(char::is_whitespace) || items.iter().any(String::is_empty) {
+        return None;
+    }
+    Some(Wanted {
+        key: key.to_owned(),
+        items,
+    })
+}
+
+/// Whether the trailer item `have` carries the wanted item `want`: whole, or as its first word (`Golden: ID-n
+/// <reason>` carries `ID-n`); two record IDs compare by kind and number (`FT-07` is `FT-7`).
+fn carries(have: &str, want: &str) -> bool {
+    let first = have.split_whitespace().next().unwrap_or_default();
+    [have, first].into_iter().any(|h| {
+        h == want
+            || trailers::parse_ref(h)
+                .zip(trailers::parse_ref(want))
+                .is_some_and(|(a, b)| a == b)
+    })
+}
+
+/// The pairs `<Key>: <item>` of `wanted` that no commit of `commits` carries, each once, in the order given: an item
+/// is carried when a trailer of its key (in any case) holds it among its comma-separated items ([`carries`]), in
+/// any commit of the range, so the items of one key may be split across commits.
+pub(crate) fn missing_trailers(wanted: &[Wanted], commits: &[Commit]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for w in wanted {
+        for item in &w.items {
+            let carried = commits
+                .iter()
+                .flat_map(|c| &c.trailers)
+                .filter(|(k, _)| k.eq_ignore_ascii_case(&w.key))
+                .flat_map(|(_, v)| v.split(','))
+                .any(|have| carries(have.trim(), item));
+            let pair = format!("{}: {item}", w.key);
+            if !carried && !out.contains(&pair) {
+                out.push(pair);
+            }
+        }
+    }
+    out
+}
+
+/// The trailers step's status and reason from the pairs it found missing ([`missing_trailers`]).
+fn trailers_status(missing: &[String]) -> (&'static str, Option<String>) {
+    if missing.is_empty() {
+        ("ok", None)
+    } else {
+        ("FAILED", Some(format!("missing: {}", missing.join("; "))))
+    }
+}
+
+/// What the trailers step checks, as the plan prints it.
+fn trailers_text(wanted: &[Wanted]) -> String {
+    let wanted: Vec<String> = wanted.iter().map(ToString::to_string).collect();
+    format!("the commits since the merge base carry {}", wanted.join("; "))
+}
 
 /// The table of the fuzz targets and their path-dependency closures.
 const FUZZ_TABLE: &str = "ci/fuzz-smoke-targets.toml";
@@ -307,6 +409,8 @@ pub(crate) fn root_readers(
 pub(crate) enum StepRun {
     /// Runs these commands.
     Run(Vec<Cmd>),
+    /// Checks in-process that the commits since the merge base carry these trailer items (`--trailers`, ID-1103).
+    Trailers(Vec<Wanted>),
     /// Is skipped, for this reason.
     Skip(String),
     /// Fails without running, for this reason (it fails closed).
@@ -346,7 +450,8 @@ impl Plan {
 
     /// One line per step: `<step>: <command>` per command (the nextest step's touched files first, as
     /// `nextest: touch <file>`), `<step>: from memory: <command>` per command of a step in `remembered` (one that a
-    /// run would skip, ID-1077), `<step>: skipped (<why>)` or `<step>: FAILED (<why>)`.
+    /// run would skip, ID-1077), `trailers: the commits since the merge base carry <Key>: <items>[; ...]`,
+    /// `<step>: skipped (<why>)` or `<step>: FAILED (<why>)`.
     pub(crate) fn lines_remembering(&self, remembered: &BTreeSet<&str>) -> Vec<String> {
         let mut out = Vec::new();
         for s in &self.steps {
@@ -360,6 +465,7 @@ impl Plan {
                     }
                     out.extend(cmds.iter().map(|c| format!("{}: {c}", s.name)));
                 }
+                StepRun::Trailers(wanted) => out.push(format!("{}: {}", s.name, trailers_text(wanted))),
                 StepRun::Skip(why) => out.push(format!("{}: skipped ({why})", s.name)),
                 StepRun::Fail(why) => out.push(format!("{}: FAILED ({why})", s.name)),
             }
@@ -518,13 +624,15 @@ fn some_files(files: &[String]) -> String {
     s
 }
 
-/// The plan for `diff` against `base`, with the lane's declared package set (`-p`, the edit-loop set).
+/// The plan for `diff` against `base`, with the lane's declared package set (`-p`, the edit-loop set) and the trailer
+/// items its commits must carry (`--trailers`).
 pub(crate) fn plan(
     diff: &Diff,
     members: &Members,
     fuzz_closure: &BTreeSet<String>,
     base: &str,
     declared: &BTreeSet<String>,
+    wanted: &[Wanted],
 ) -> Plan {
     let selection = affected::select(&diff.files, members);
     let changed = selection.changed;
@@ -623,10 +731,19 @@ pub(crate) fn plan(
             .chunks(crate::settle::RUSTFMT_CHUNK)
             .map(Cmd::rustfmt),
     );
+    // ID-1103: the order of `STEPS` (a test keeps the two the same).
     let steps = vec![
         StepPlan {
             name: "fmt",
             run: cargo_step(fmt),
+        },
+        StepPlan {
+            name: "settle",
+            run: if diff.files.is_empty() {
+                StepRun::Skip("no changed file".to_owned())
+            } else {
+                StepRun::Run(vec![Cmd::xtask(&["settle", "--base", base])])
+            },
         },
         StepPlan {
             name: "clippy",
@@ -652,19 +769,19 @@ pub(crate) fn plan(
             },
         },
         StepPlan {
-            name: "settle",
-            run: if diff.files.is_empty() {
-                StepRun::Skip("no changed file".to_owned())
-            } else {
-                StepRun::Run(vec![Cmd::xtask(&["settle", "--check", "--base", base])])
-            },
-        },
-        StepPlan {
             name: "policy",
             run: if policy.is_empty() {
                 StepRun::Skip("no trigger".to_owned())
             } else {
                 StepRun::Run(policy)
+            },
+        },
+        StepPlan {
+            name: "trailers",
+            run: if wanted.is_empty() {
+                StepRun::Skip("no --trailers".to_owned())
+            } else {
+                StepRun::Trailers(wanted.to_vec())
             },
         },
         StepPlan {
@@ -701,6 +818,8 @@ struct Args {
     warm: bool,
     fresh: bool,
     packages: BTreeSet<String>,
+    /// The `--trailers` values, in the order given.
+    trailers: Vec<Wanted>,
 }
 
 fn parse(args: &[String]) -> Result<Args> {
@@ -737,6 +856,15 @@ fn parse(args: &[String]) -> Result<Args> {
                         .with_context(|| format!("-p needs a package\n{USAGE}"))?
                         .clone(),
                 );
+            }
+            "--trailers" => {
+                let value = it
+                    .next()
+                    .with_context(|| format!("--trailers needs \"<Key>: <items>\"\n{USAGE}"))?;
+                let Some(wanted) = parse_wanted(value) else {
+                    bail!("--trailers takes \"<Key>: <item>[, <item>]...\", not `{value}`\n{USAGE}");
+                };
+                out.trailers.push(wanted);
             }
             other => bail!("unknown argument `{other}`\n{USAGE}"),
         }
@@ -842,6 +970,36 @@ fn rust_snapshot(root: &Path, files: &[String]) -> BTreeMap<String, Vec<u8>> {
     files
         .iter()
         .filter_map(|f| std::fs::read(root.join(f)).ok().map(|b| (f.clone(), b)))
+        .collect()
+}
+
+/// The settle step's snapshot of the worktree: each file that differs from `HEAD` (tracked, or untracked and not
+/// ignored) with a SHA-256 digest of its bytes (`None` when it is gone). Settle can write any of its outputs, so the
+/// whole worktree is its scope; a file that is not in a snapshot is at its `HEAD` content there.
+fn worktree_snapshot(root: &Path) -> Result<BTreeMap<String, Option<Vec<u8>>>> {
+    use sha2::Digest as _;
+    Ok(affected::changed_files(root, "HEAD")?
+        .into_iter()
+        .map(|f| {
+            let digest = std::fs::read(root.join(&f))
+                .ok()
+                .map(|b| sha2::Sha256::digest(&b).to_vec());
+            (f, digest)
+        })
+        .collect())
+}
+
+/// The files whose content differs between two snapshots of [`worktree_snapshot`], in either: a file absent from one
+/// is at its `HEAD` content there.
+fn changed_between(
+    before: &BTreeMap<String, Option<Vec<u8>>>,
+    after: &BTreeMap<String, Option<Vec<u8>>>,
+) -> Vec<String> {
+    let files: BTreeSet<&String> = before.keys().chain(after.keys()).collect();
+    files
+        .into_iter()
+        .filter(|f| before.get(*f) != after.get(*f))
+        .cloned()
         .collect()
 }
 
@@ -1120,13 +1278,74 @@ fn tool_version_in(root: &Path, cache: &mut BTreeMap<String, Option<String>>, to
 /// The outcome of one executed step.
 struct Outcome {
     name: &'static str,
-    /// `ok`, `FAILED`, `skipped` or `rewrote` (fmt changed files).
+    /// `ok`, `FAILED`, `skipped`, `rewrote` (fmt or settle passed and changed files) or `not run` (after a rewrite).
     status: &'static str,
-    /// Why it was skipped or failed without running, or the files fmt rewrote.
+    /// Why it was skipped, failed without running or did not run, the files fmt or settle rewrote, or the trailer
+    /// items that are missing.
     why: Option<String>,
     commands: Vec<String>,
     seconds: f64,
     log: Option<String>,
+    /// Whether the step changed the worktree (fmt's or settle's rewrite, whether it passed or failed): no later step
+    /// runs ([`run_steps`]).
+    wrote: bool,
+}
+
+impl Outcome {
+    /// The outcome of a step that ran no command: `status`, for the reason `why`.
+    fn without_command(name: &'static str, status: &'static str, why: &str) -> Self {
+        Self {
+            name,
+            status,
+            why: Some(why.to_owned()),
+            commands: Vec::new(),
+            seconds: 0.0,
+            log: None,
+            wrote: false,
+        }
+    }
+
+    /// A writing step's outcome (fmt, settle) with the files it rewrote: none leaves it as it was; else it changed
+    /// the worktree, and it reads `rewrote <files>` when it passed, `FAILED (rewrote <files>)` when it failed.
+    fn with_rewrites(mut self, rewrote: &[String]) -> Self {
+        if rewrote.is_empty() {
+            return self;
+        }
+        self.wrote = true;
+        if self.status == "ok" {
+            self.status = "rewrote";
+            self.why = Some(rewrote.join(", "));
+        } else {
+            self.why = Some(format!("rewrote {}", rewrote.join(", ")));
+        }
+        self
+    }
+}
+
+/// The outcomes of `steps`, each run by `run_step` in order, until one changes the worktree ([`Outcome::wrote`]):
+/// each later step is `not run (commit the rewrites and run again)`, since it would check a tree that must be
+/// committed first (ID-1103). A failed step does not stop the run, so one run reports every failure.
+fn run_steps<'a>(
+    steps: impl IntoIterator<Item = &'a StepPlan>,
+    mut run_step: impl FnMut(&'a StepPlan) -> Result<Outcome>,
+) -> Result<Vec<Outcome>> {
+    let mut outcomes: Vec<Outcome> = Vec::new();
+    for s in steps {
+        let outcome = if outcomes.iter().any(|o| o.wrote) {
+            Outcome::without_command(s.name, NOT_RUN, COMMIT_THE_REWRITES)
+        } else {
+            run_step(s)?
+        };
+        outcomes.push(outcome);
+    }
+    Ok(outcomes)
+}
+
+/// Whether a run passed: no step `FAILED`, and none `not run` after a rewrite.
+fn passed(outcomes: &[Outcome]) -> bool {
+    outcomes
+        .iter()
+        .all(|o| o.status != "FAILED" && o.status != NOT_RUN)
 }
 
 /// Runs the commands of one step in sequence, all of them even after a failure, into `target/lane-check/<step>.log`.
@@ -1188,6 +1407,7 @@ fn execute(root: &Path, name: &'static str, cmds: &[Cmd]) -> Result<Outcome> {
         commands: cmds.iter().map(ToString::to_string).collect(),
         seconds: start.elapsed().as_secs_f64(),
         log: Some(log_rel),
+        wrote: false,
     })
 }
 
@@ -1262,7 +1482,7 @@ fn summarise(
             &json_text(base, outcomes, records)?,
         )?;
     }
-    Ok(outcomes.iter().all(|o| o.status != "FAILED"))
+    Ok(passed(outcomes))
 }
 
 /// `cargo xtask lane-check`.
@@ -1294,7 +1514,14 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
             bail!("`{p}` is not a workspace member");
         }
     }
-    let plan = plan(&diff, &members, &fuzz_closure(root)?, &a.base, &a.packages);
+    let plan = plan(
+        &diff,
+        &members,
+        &fuzz_closure(root)?,
+        &a.base,
+        &a.packages,
+        &a.trailers,
+    );
 
     if a.warm {
         // Exactly the nextest step's set: the derived set and the declared one.
@@ -1330,12 +1557,7 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         let remembered: BTreeSet<&str> = plan
             .steps
             .iter()
-            .filter(|s| match &s.run {
-                StepRun::Run(cmds) => {
-                    remembered(&records, s.name, cmds, key.as_ref(), a.fresh, &mut tool_version)
-                }
-                _ => false,
-            })
+            .filter(|s| remembered_step(&records, s, key.as_ref(), a.fresh, &mut tool_version))
             .map(|s| s.name)
             .collect();
         let short = &merge_base[..merge_base.len().min(12)];
@@ -1376,34 +1598,23 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
         return Ok(true);
     }
 
-    let mut outcomes = Vec::new();
-    for s in &plan.steps {
-        if a.only.is_some_and(|o| o != s.name) {
-            continue;
-        }
-        let not_run = |status: &'static str, why: &String| Outcome {
-            name: s.name,
-            status,
-            why: Some(why.clone()),
-            commands: Vec::new(),
-            seconds: 0.0,
-            log: None,
-        };
+    let selected = plan.steps.iter().filter(|s| a.only.is_none_or(|o| o == s.name));
+    let outcomes = run_steps(selected, |s| {
         let outcome = match &s.run {
-            StepRun::Skip(why) => not_run("skipped", why),
-            StepRun::Fail(why) => not_run("FAILED", why),
-            StepRun::Run(cmds)
-                if remembered(&records, s.name, cmds, key.as_ref(), a.fresh, &mut tool_version) =>
-            {
+            StepRun::Skip(why) => Outcome::without_command(s.name, "skipped", why),
+            StepRun::Fail(why) => Outcome::without_command(s.name, "FAILED", why),
+            StepRun::Run(cmds) if remembered_step(&records, s, key.as_ref(), a.fresh, &mut tool_version) => {
                 Outcome {
                     commands: cmds.iter().map(ToString::to_string).collect(),
-                    ..not_run("ok", &FROM_MEMORY.to_owned())
+                    ..Outcome::without_command(s.name, "ok", FROM_MEMORY)
                 }
             }
             StepRun::Run(cmds) => {
                 if s.name == "nextest" {
                     touch(root, &plan.touch)?;
                 }
+                // The writing steps' snapshots: fmt's of the `.rs` files it can rewrite (FT-1013), settle's of the
+                // worktree (ID-1103).
                 let scope = if s.name == "fmt" {
                     let all = affected::nul_paths(&affected::git_output(
                         root,
@@ -1413,36 +1624,55 @@ pub(crate) fn run(args: &[String], root: &Path) -> Result<bool> {
                 } else {
                     Vec::new()
                 };
-                let before = (s.name == "fmt").then(|| rust_snapshot(root, &scope));
-                let mut outcome = execute(root, s.name, cmds)?;
-                if let Some(before) = before {
-                    let rewrote = rewrote_files(&before, &rust_snapshot(root, &scope));
-                    if outcome.status == "ok" && !rewrote.is_empty() {
-                        outcome.status = "rewrote";
-                        outcome.why = Some(rewrote.join(", "));
-                    }
-                }
+                let before_fmt = (s.name == "fmt").then(|| rust_snapshot(root, &scope));
+                let before_settle = if s.name == "settle" {
+                    Some(worktree_snapshot(root)?)
+                } else {
+                    None
+                };
+                let outcome = execute(root, s.name, cmds)?;
+                let rewrote = match (before_fmt, before_settle) {
+                    (Some(before), _) => rewrote_files(&before, &rust_snapshot(root, &scope)),
+                    (_, Some(before)) => changed_between(&before, &worktree_snapshot(root)?),
+                    _ => Vec::new(),
+                };
+                let outcome = outcome.with_rewrites(&rewrote);
                 if outcome.status == "FAILED" {
                     print_failure(root, &outcome);
                 }
-                // A rewrite by fmt, or any other change of the worktree, ends the memory for the later steps.
-                if key.is_some() && (outcome.status == "rewrote" || !worktree_clean(root)?) {
+                // A rewrite by fmt or settle, or any other change of the worktree, ends the memory for the later
+                // steps.
+                if key.is_some() && (outcome.wrote || !worktree_clean(root)?) {
                     key = None;
                     memory.push(changed_worktree_line(s.name));
                 }
-                update_memory(
-                    &mut records,
-                    s.name,
-                    cmds,
-                    outcome.status,
-                    key.as_ref(),
-                    &mut tool_version,
-                );
+                record_step(&mut records, s, outcome.status, key.as_ref(), &mut tool_version);
                 outcome
             }
+            StepRun::Trailers(wanted) => {
+                let start = Instant::now();
+                let (status, why) = match trailers::commits(root, &format!("{merge_base}..HEAD")) {
+                    Ok(commits) => trailers_status(&missing_trailers(wanted, &commits)),
+                    Err(e) => (
+                        "FAILED",
+                        Some(format!("could not read the commits since the merge base: {e:#}")),
+                    ),
+                };
+                // Never recorded: the commit messages change without the tree changing.
+                record_step(&mut records, s, status, key.as_ref(), &mut tool_version);
+                Outcome {
+                    name: s.name,
+                    status,
+                    why,
+                    commands: vec![trailers_text(wanted)],
+                    seconds: start.elapsed().as_secs_f64(),
+                    log: None,
+                    wrote: false,
+                }
+            }
         };
-        outcomes.push(outcome);
-    }
+        Ok(outcome)
+    })?;
     summarise(root, &a.base, Some(&memory.join("\n")), &outcomes, Some(&records))
 }
 
@@ -1452,6 +1682,36 @@ const FROM_MEMORY: &str = "from memory; --fresh runs it again";
 /// The memory line of a step that changed the worktree.
 fn changed_worktree_line(step: &str) -> String {
     format!("lane-check: memory: {step} changed the worktree, so no later step is skipped or recorded")
+}
+
+/// Whether a run skips `step` from memory: a step that runs commands as [`remembered`] says; never the trailers step,
+/// whose input (the commit messages) changes without the tree changing (ID-1103).
+fn remembered_step(
+    records: &BTreeMap<String, Record>,
+    step: &StepPlan,
+    key: Option<&MemoryKey>,
+    fresh: bool,
+    tool_version: &mut dyn FnMut(&str) -> Option<String>,
+) -> bool {
+    match &step.run {
+        StepRun::Run(cmds) => remembered(records, step.name, cmds, key, fresh, tool_version),
+        StepRun::Trailers(_) | StepRun::Skip(_) | StepRun::Fail(_) => false,
+    }
+}
+
+/// After `step` ran with `status`: a step that runs commands updates the memory as [`update_memory`] says; the
+/// trailers step is never recorded (ID-1103).
+fn record_step(
+    records: &mut BTreeMap<String, Record>,
+    step: &StepPlan,
+    status: &str,
+    key: Option<&MemoryKey>,
+    tool_version: &mut dyn FnMut(&str) -> Option<String>,
+) {
+    match &step.run {
+        StepRun::Run(cmds) => update_memory(records, step.name, cmds, status, key, tool_version),
+        StepRun::Trailers(_) | StepRun::Skip(_) | StepRun::Fail(_) => {}
+    }
 }
 
 /// Whether a run skips the step `name` with `cmds`: not with `--fresh` or on a dirty worktree (`key` is `None`), never
@@ -1576,7 +1836,7 @@ mod tests {
 
     /// The plan's lines with the declared set `-p <declared>`.
     fn lines_with(d: &Diff, declared: &[&str]) -> Vec<String> {
-        plan(d, &members(), &set(&["ew-format"]), BASE, &set(declared)).lines()
+        plan(d, &members(), &set(&["ew-format"]), BASE, &set(declared), &[]).lines()
     }
 
     #[test]
@@ -1585,11 +1845,12 @@ mod tests {
             lines(&diff(&["docs/plan/01-global-plan.md", "README.md"], &[])),
             [
                 "fmt: skipped (no crate in the diff)",
+                "settle: cargo xtask settle --base 4762316c",
                 "clippy: skipped (no crate in the diff)",
                 "doc: skipped (no crate in the diff)",
                 "nextest: skipped (no crate in the diff)",
-                "settle: cargo xtask settle --check --base 4762316c",
                 "policy: skipped (no trigger)",
+                "trailers: skipped (no --trailers)",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -1599,7 +1860,7 @@ mod tests {
     fn an_empty_diff_skips_everything() {
         let l = lines(&diff(&[], &[]));
         assert_eq!(l[0], "fmt: skipped (no changed file)");
-        assert_eq!(l[4], "settle: skipped (no changed file)");
+        assert_eq!(l[1], "settle: skipped (no changed file)");
     }
 
     #[test]
@@ -1608,13 +1869,14 @@ mod tests {
             lines(&diff(&["crates/ew-leaf/src/lib.rs"], &[])),
             [
                 "fmt: cargo fmt -p ew-leaf",
+                "settle: cargo xtask settle --base 4762316c",
                 "clippy: cargo clippy -p ew-leaf --all-targets --all-features -- -D warnings",
                 "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-leaf --all-features",
                 "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-leaf --all-features",
-                "settle: cargo xtask settle --check --base 4762316c",
                 "policy: cargo xtask check-raw-read",
                 "policy: cargo xtask check-disallowed-methods",
                 "policy: cargo xtask map --check",
+                "trailers: skipped (no --trailers)",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -1626,12 +1888,12 @@ mod tests {
     fn a_crate_with_dependants_adds_only_the_direct_ones() {
         let l = lines(&diff(&["crates/ew-model/src/table.rs"], &[]));
         assert_eq!(
-            l[3],
+            l[4],
             "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-checks -p ew-commands -p ew-model \
              --all-features"
         );
         assert_eq!(
-            l[1],
+            l[2],
             "clippy: cargo clippy -p ew-model --all-targets --all-features -- -D warnings"
         );
     }
@@ -1642,7 +1904,7 @@ mod tests {
     fn the_shell_adds_the_binaries_and_its_test_features() {
         let l = lines(&diff(&["crates/ew-viewmodel/src/strings.rs"], &[]));
         assert_eq!(
-            l[3],
+            l[4],
             "nextest: cargo nextest run --profile lane --cargo-quiet -p elektrawatt -p ew -p ew-ui -p ew-viewmodel \
              --all-features --features ew-viewmodel/testkit"
         );
@@ -1654,7 +1916,7 @@ mod tests {
     fn a_command_change_restricts_the_testkit_to_its_binaries() {
         let l = lines(&diff(&["crates/ew-commands/src/wire.rs"], &[]));
         assert_eq!(
-            l[3],
+            l[4],
             "nextest: cargo nextest run --profile lane --cargo-quiet -p elektrawatt -p ew -p ew-api -p ew-commands \
              -p ew-testkit --all-features -E '(not package(=ew-testkit) or binary(=command_fuzz) or \
              binary(=golden_dsl))'"
@@ -1667,15 +1929,16 @@ mod tests {
             lines(&diff(&["crates/ew-leaf/Cargo.toml"], &[])),
             [
                 "fmt: cargo fmt -p ew-leaf",
+                "settle: cargo xtask settle --base 4762316c",
                 "clippy: cargo clippy -p ew-leaf --all-targets --all-features -- -D warnings",
                 "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-leaf --all-features",
                 "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-leaf --all-features",
-                "settle: cargo xtask settle --check --base 4762316c",
                 "policy: cargo xtask check-deps",
                 "policy: cargo xtask check-features",
                 "policy: cargo xtask map --check",
                 "policy: cargo deny --locked check",
                 "policy: cargo vet --locked",
+                "trailers: skipped (no --trailers)",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -1693,26 +1956,26 @@ mod tests {
             &["crates/ew-leaf/tests/it/new_case.rs"],
             &["crates/ew-leaf/tests/it/new_case.rs"],
         );
-        let p = plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new());
+        let p = plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new(), &[]);
         assert_eq!(p.touch, ["crates/ew-leaf/tests/it/main.rs"]);
         assert_eq!(
-            &p.lines()[3..],
+            &p.lines()[4..],
             [
                 "nextest: touch crates/ew-leaf/tests/it/main.rs",
                 "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-leaf --all-features",
-                "settle: cargo xtask settle --check --base 4762316c",
                 "policy: cargo xtask check-licence-map",
                 "policy: cargo xtask check-raw-read",
                 "policy: cargo xtask check-disallowed-methods",
                 "policy: cargo xtask check-test-layout",
                 "policy: cargo xtask map --check",
+                "trailers: skipped (no --trailers)",
                 "fuzz: skipped (no trigger)",
             ]
         );
         // A changed (not added) file touches nothing.
         let d = diff(&["crates/ew-leaf/tests/it/new_case.rs"], &[]);
         assert!(
-            plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new())
+            plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new(), &[])
                 .touch
                 .is_empty()
         );
@@ -1725,14 +1988,15 @@ mod tests {
             l,
             [
                 "fmt: cargo fmt -p ew-testkit",
+                "settle: cargo xtask settle --base 4762316c",
                 "clippy: cargo clippy -p ew-testkit --all-targets --all-features -- -D warnings",
                 "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-testkit --all-features",
                 "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-api -p ew-testkit --all-features",
-                "settle: cargo xtask settle --check --base 4762316c",
                 "policy: cargo xtask check-raw-read",
                 "policy: cargo xtask check-disallowed-methods",
                 "policy: cargo xtask check-test-layout",
                 "policy: cargo xtask map --check",
+                "trailers: skipped (no --trailers)",
                 "fuzz: cargo check --manifest-path fuzz/Cargo.toml --all-targets --locked",
             ]
         );
@@ -1744,12 +2008,13 @@ mod tests {
             lines(&diff(&["Cargo.lock"], &[])),
             [
                 "fmt: skipped (no crate in the diff)",
+                "settle: cargo xtask settle --base 4762316c",
                 "clippy: skipped (no crate in the diff)",
                 "doc: skipped (no crate in the diff)",
                 "nextest: FAILED (workspace-wide files changed: Cargo.lock; name the packages they reach with -p)",
-                "settle: cargo xtask settle --check --base 4762316c",
                 "policy: cargo deny --locked check",
                 "policy: cargo vet --locked",
+                "trailers: skipped (no --trailers)",
                 "fuzz: skipped (no trigger)",
             ]
         );
@@ -1769,7 +2034,7 @@ mod tests {
             &[],
         );
         assert_eq!(
-            lines(&d)[3],
+            lines(&d)[4],
             "nextest: FAILED (workspace-wide files changed: golden/J-E-2416/x.csv, schemas/0.1/a.json, content/l/b.toml \
              and 1 more; name the packages they reach with -p)"
         );
@@ -1777,14 +2042,15 @@ mod tests {
         let l = lines(&mixed);
         assert_eq!(l[0], "fmt: cargo fmt -p ew-leaf");
         assert_eq!(
-            l[3],
+            l[4],
             "nextest: FAILED (workspace-wide files changed: golden/J-E-2416/x.csv; name the packages they reach \
              with -p)"
         );
         assert_eq!(
-            &lines_with(&diff(&["golden/J-E-2416/x.csv"], &[]), &["ew-api"])[..5],
+            &lines_with(&diff(&["golden/J-E-2416/x.csv"], &[]), &["ew-api"])[..6],
             [
                 "fmt: cargo fmt -p ew-api",
+                "settle: cargo xtask settle --base 4762316c",
                 "clippy: cargo clippy -p ew-api --all-targets --all-features -- -D warnings",
                 "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-api --all-features",
                 "doc: cargo test --doc -p ew-api --all-features",
@@ -1802,9 +2068,10 @@ mod tests {
             &["ew-testkit", "ew-leaf"],
         );
         assert_eq!(
-            &l[..4],
+            &l[..5],
             [
                 "fmt: cargo fmt -p ew-commands -p ew-leaf -p ew-testkit",
+                "settle: cargo xtask settle --base 4762316c",
                 "clippy: cargo clippy -p ew-commands -p ew-leaf -p ew-testkit --all-targets --all-features -- -D \
                  warnings",
                 "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-commands -p ew-leaf -p ew-testkit \
@@ -1820,6 +2087,7 @@ mod tests {
             &BTreeSet::new(),
             BASE,
             &set(&["ew-viewmodel"]),
+            &[],
         );
         assert_eq!(
             warm_command(&p.nextest_set, &members()).to_string(),
@@ -1876,7 +2144,7 @@ mod tests {
         assert_eq!(rustfmt, [automod]);
         let mut d = diff(&[automod, skipped], &[]);
         d.rustfmt = rustfmt;
-        let p = plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new());
+        let p = plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new(), &[]);
         assert_eq!(
             p.steps[0],
             StepPlan {
@@ -1921,6 +2189,7 @@ mod tests {
             commands: Vec::new(),
             seconds: 0.0,
             log: None,
+            wrote: false,
         };
         assert_eq!(
             summary_line(&outcome),
@@ -1948,12 +2217,12 @@ mod tests {
         .into_iter()
         .collect();
         assert_eq!(
-            lines_with(&d, &["ew-api"])[4],
+            lines_with(&d, &["ew-api"])[5],
             "nextest: FAILED (golden/ changed and ew, ew-testkit name it; content/ changed and ew-ui name it; add \
              them with -p)"
         );
         assert_eq!(
-            lines_with(&d, &["ew-api", "ew-testkit", "ew", "ew-ui"])[4],
+            lines_with(&d, &["ew-api", "ew-testkit", "ew", "ew-ui"])[5],
             "nextest: cargo nextest run --profile lane --cargo-quiet -p ew -p ew-api -p ew-leaf -p ew-testkit -p ew-ui \
              --all-features"
         );
@@ -2021,8 +2290,13 @@ mod tests {
                 .unwrap_err()
                 .to_string(),
             format!(
-                "unknown step `lint`; the steps are fmt, clippy, doc, nextest, settle, policy, fuzz\n{USAGE}"
+                "unknown step `lint`; the steps are fmt, settle, clippy, doc, nextest, policy, trailers, fuzz\n\
+                 {USAGE}"
             )
+        );
+        assert_eq!(
+            parse(&s(&["--base", "main", "--only", "trailers"])).unwrap().only,
+            Some("trailers")
         );
         assert_eq!(
             parse(&s(&["--base", "main", "-p"])).unwrap_err().to_string(),
@@ -2047,8 +2321,364 @@ mod tests {
         );
         assert_eq!(
             USAGE,
-            "usage: cargo xtask lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm] [--fresh]"
+            "usage: cargo xtask lane-check --base <rev> [-p <pkg>]... [--only <step>] [--plan] [--warm] [--fresh] \
+             [--trailers \"<Key>: <items>\"]..."
         );
+    }
+
+    /// ID-1103: `--trailers "<Key>: <items>"` is repeatable and keeps its order; a value without a key or an item is
+    /// refused whole, as is an unknown argument.
+    #[test]
+    fn the_trailers_argument_is_parsed() {
+        let s = |a: &[&str]| a.iter().map(|x| (*x).to_owned()).collect::<Vec<_>>();
+        let wanted = |key: &str, items: &[&str]| Wanted {
+            key: key.to_owned(),
+            items: items.iter().map(|i| (*i).to_owned()).collect(),
+        };
+        assert_eq!(
+            parse(&s(&[
+                "--base",
+                "main",
+                "--trailers",
+                "Decision: ID-1083",
+                "--trailers",
+                "FT-Closes:FT-231 ,  FT-232",
+            ]))
+            .unwrap(),
+            Args {
+                base: "main".to_owned(),
+                trailers: vec![
+                    wanted("Decision", &["ID-1083"]),
+                    wanted("FT-Closes", &["FT-231", "FT-232"]),
+                ],
+                ..Args::default()
+            }
+        );
+        assert_eq!(
+            parse(&s(&["--base", "main", "--trailers"]))
+                .unwrap_err()
+                .to_string(),
+            format!("--trailers needs \"<Key>: <items>\"\n{USAGE}")
+        );
+        for bad in [
+            "ID-1083",
+            ": ID-1083",
+            "Decision:",
+            "Decision: ID-1, , ID-2",
+            "Dec ision: ID-1",
+        ] {
+            assert_eq!(
+                parse(&s(&["--base", "main", "--trailers", bad]))
+                    .unwrap_err()
+                    .to_string(),
+                format!("--trailers takes \"<Key>: <item>[, <item>]...\", not `{bad}`\n{USAGE}"),
+                "{bad}"
+            );
+        }
+        assert_eq!(
+            parse(&s(&["--base", "main", "--trailer", "Decision: ID-1"]))
+                .unwrap_err()
+                .to_string(),
+            format!("unknown argument `--trailer`\n{USAGE}")
+        );
+    }
+
+    /// ID-1103: the run order is `STEPS`, by name, the writing steps first and the trailers step after policy.
+    #[test]
+    fn the_steps_run_in_the_order_of_steps() {
+        let wanted = [Wanted {
+            key: "Decision".to_owned(),
+            items: vec!["ID-1103".to_owned()],
+        }];
+        for p in [
+            plan(
+                &diff(&["crates/ew-leaf/src/lib.rs"], &[]),
+                &members(),
+                &BTreeSet::new(),
+                BASE,
+                &BTreeSet::new(),
+                &wanted,
+            ),
+            plan(
+                &diff(&[], &[]),
+                &members(),
+                &BTreeSet::new(),
+                BASE,
+                &BTreeSet::new(),
+                &[],
+            ),
+        ] {
+            let names: Vec<&str> = p.steps.iter().map(|s| s.name).collect();
+            assert_eq!(names, STEPS);
+        }
+        assert_eq!(
+            STEPS,
+            [
+                "fmt", "settle", "clippy", "doc", "nextest", "policy", "trailers", "fuzz"
+            ]
+        );
+    }
+
+    fn outcome(name: &'static str, status: &'static str) -> Outcome {
+        Outcome {
+            name,
+            status,
+            why: None,
+            commands: Vec::new(),
+            seconds: 0.0,
+            log: None,
+            wrote: false,
+        }
+    }
+
+    /// The summary lines of a run of the leaf crate's plan in which `run_step` decides each step's outcome.
+    fn run_lines(run_step: impl FnMut(&StepPlan) -> Result<Outcome>) -> (Vec<String>, bool) {
+        let p = plan(
+            &diff(&["crates/ew-leaf/src/lib.rs"], &[]),
+            &members(),
+            &BTreeSet::new(),
+            BASE,
+            &BTreeSet::new(),
+            &[],
+        );
+        let outcomes = run_steps(&p.steps, run_step).unwrap();
+        (outcomes.iter().map(summary_line).collect(), passed(&outcomes))
+    }
+
+    /// ID-1103: a rewrite by fmt stops the run: no later step runs, each reads `not run`, and the run fails.
+    #[test]
+    fn a_rewrite_stops_the_run() {
+        let mut ran = Vec::new();
+        let (lines, ok) = run_lines(|s| {
+            ran.push(s.name);
+            Ok(match s.name {
+                "fmt" => outcome("fmt", "ok").with_rewrites(&["crates/ew-leaf/src/lib.rs".to_owned()]),
+                name => outcome(name, "ok"),
+            })
+        });
+        assert_eq!(ran, ["fmt"]);
+        assert_eq!(
+            lines,
+            [
+                "lane-check: fmt: rewrote crates/ew-leaf/src/lib.rs (commit them)",
+                "lane-check: settle: not run (commit the rewrites and run again)",
+                "lane-check: clippy: not run (commit the rewrites and run again)",
+                "lane-check: doc: not run (commit the rewrites and run again)",
+                "lane-check: nextest: not run (commit the rewrites and run again)",
+                "lane-check: policy: not run (commit the rewrites and run again)",
+                "lane-check: trailers: not run (commit the rewrites and run again)",
+                "lane-check: fuzz: not run (commit the rewrites and run again)",
+            ]
+        );
+        assert!(!ok);
+        // A settle that rewrites and fails stops the run too, and reads FAILED with its files.
+        let mut ran = Vec::new();
+        let (lines, ok) = run_lines(|s| {
+            ran.push(s.name);
+            Ok(match s.name {
+                "settle" => outcome("settle", "FAILED").with_rewrites(&[
+                    "bin/ew/api/cli.json".to_owned(),
+                    "crates/ew-commands/schemas/a.json".to_owned(),
+                ]),
+                name => outcome(name, "ok"),
+            })
+        });
+        assert_eq!(ran, ["fmt", "settle"]);
+        assert_eq!(
+            &lines[..3],
+            [
+                "lane-check: fmt: ok",
+                "lane-check: settle: FAILED (rewrote bin/ew/api/cli.json, crates/ew-commands/schemas/a.json)",
+                "lane-check: clippy: not run (commit the rewrites and run again)",
+            ]
+        );
+        assert!(!ok);
+        // A lone rewrite (`--only fmt`) is no failure: nothing was left unrun.
+        let only_fmt = [outcome("fmt", "ok").with_rewrites(&["a.rs".to_owned()])];
+        assert!(passed(&only_fmt));
+        // No rewrite: the outcome is unchanged.
+        let same = outcome("settle", "ok").with_rewrites(&[]);
+        assert_eq!((same.status, same.why, same.wrote), ("ok", None, false));
+    }
+
+    /// ID-1103: a failed step does not stop the run, so one run reports every failure.
+    #[test]
+    fn a_failed_step_does_not_stop_the_run() {
+        let mut ran = Vec::new();
+        let (lines, ok) = run_lines(|s| {
+            ran.push(s.name);
+            Ok(match s.name {
+                "settle" | "clippy" => outcome(s.name, "FAILED"),
+                name => outcome(name, "ok"),
+            })
+        });
+        assert_eq!(ran, STEPS);
+        assert_eq!(
+            lines,
+            [
+                "lane-check: fmt: ok",
+                "lane-check: settle: FAILED",
+                "lane-check: clippy: FAILED",
+                "lane-check: doc: ok",
+                "lane-check: nextest: ok",
+                "lane-check: policy: ok",
+                "lane-check: trailers: ok",
+                "lane-check: fuzz: ok",
+            ]
+        );
+        assert!(!ok);
+        let (_, ok) = run_lines(|s| Ok(outcome(s.name, "ok")));
+        assert!(ok);
+    }
+
+    /// The settle step's snapshot difference: a rewritten file, a new file and a file restored to its `HEAD` content
+    /// count; an unchanged one does not.
+    #[test]
+    fn the_settle_snapshot_finds_every_rewrite() {
+        let snap = |pairs: &[(&str, Option<&str>)]| -> BTreeMap<String, Option<Vec<u8>>> {
+            pairs
+                .iter()
+                .map(|(f, d)| ((*f).to_owned(), d.map(|d| d.as_bytes().to_vec())))
+                .collect()
+        };
+        let before = snap(&[
+            ("a.json", Some("1")),
+            ("b.json", Some("2")),
+            ("c.json", Some("3")),
+        ]);
+        let after = snap(&[
+            ("a.json", Some("1")),
+            ("b.json", Some("9")),
+            ("d.json", Some("4")),
+        ]);
+        assert_eq!(changed_between(&before, &after), ["b.json", "c.json", "d.json"]);
+        assert!(changed_between(&before, &before).is_empty());
+    }
+
+    fn commit(sha: &str, trailers: &[(&str, &str)]) -> Commit {
+        Commit {
+            sha: sha.to_owned(),
+            subject: "feat: x".to_owned(),
+            trailers: trailers
+                .iter()
+                .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+                .collect(),
+        }
+    }
+
+    /// ID-1103: the trailer match. Items of one key may be split across commits; a key matches in any case; an item
+    /// under another key does not count; each missing pair is named once, in the order given.
+    #[test]
+    fn the_trailer_match() {
+        let commits = [
+            commit("b", &[("Decision", "ID-1083"), ("FT-Closes", "FT-230")]),
+            commit(
+                "a",
+                &[
+                    ("decision", "ID-1084, ID-1085"),
+                    ("Golden", "ID-1090 a re-blessed frame, and its sheet"),
+                    ("Spec", "docs/plan/decisions.md"),
+                ],
+            ),
+        ];
+        let wanted = |key: &str, items: &[&str]| Wanted {
+            key: key.to_owned(),
+            items: items.iter().map(|i| (*i).to_owned()).collect(),
+        };
+        // Present: split across two commits, the key in another case, the Golden ID before its reason, and
+        // FT-0230 as FT-230.
+        assert!(
+            missing_trailers(
+                &[
+                    wanted("Decision", &["ID-1083", "ID-1085"]),
+                    wanted("DECISION", &["ID-1084"]),
+                    wanted("Golden", &["ID-1090"]),
+                    wanted("FT-Closes", &["FT-0230"]),
+                ],
+                &commits
+            )
+            .is_empty()
+        );
+        // Missing: an absent item, and an item that only another key carries.
+        let missing = missing_trailers(
+            &[
+                wanted("Decision", &["ID-1083", "FT-230"]),
+                wanted("FT-Closes", &["FT-231"]),
+                wanted("Decision", &["FT-230"]),
+            ],
+            &commits,
+        );
+        assert_eq!(missing, ["Decision: FT-230", "FT-Closes: FT-231"]);
+        let failed = |missing: &[String]| {
+            let (status, why) = trailers_status(missing);
+            Outcome {
+                why,
+                ..outcome("trailers", status)
+            }
+        };
+        assert_eq!(
+            summary_line(&failed(&[
+                "Decision: ID-1083".to_owned(),
+                "FT-Closes: FT-231".to_owned()
+            ])),
+            "lane-check: trailers: FAILED (missing: Decision: ID-1083; FT-Closes: FT-231)"
+        );
+        assert_eq!(summary_line(&failed(&[])), "lane-check: trailers: ok");
+        // No commit in the range: every item is missing.
+        assert_eq!(
+            missing_trailers(&[wanted("Decision", &["ID-1103"])], &[]),
+            ["Decision: ID-1103"]
+        );
+    }
+
+    /// ID-1103: the trailers step's plan lines: skipped without `--trailers`, else what it checks.
+    #[test]
+    fn the_trailers_step_in_the_plan() {
+        let d = diff(&["docs/x.md"], &[]);
+        assert_eq!(lines(&d)[6], "trailers: skipped (no --trailers)");
+        let wanted = [
+            Wanted {
+                key: "Decision".to_owned(),
+                items: vec!["ID-1103".to_owned(), "ID-1104".to_owned()],
+            },
+            Wanted {
+                key: "FT-Closes".to_owned(),
+                items: vec!["FT-231".to_owned()],
+            },
+        ];
+        let p = plan(&d, &members(), &BTreeSet::new(), BASE, &BTreeSet::new(), &wanted);
+        assert_eq!(
+            p.lines()[6],
+            "trailers: the commits since the merge base carry Decision: ID-1103, ID-1104; FT-Closes: FT-231"
+        );
+    }
+
+    /// ID-1103: the memory never records the trailers step and never skips it, whatever its outcome and records.
+    #[test]
+    fn the_memory_never_records_the_trailers_step() {
+        let k = key("feedbeef");
+        let mut tool = |_: &str| None;
+        let trailers = StepPlan {
+            name: "trailers",
+            run: StepRun::Trailers(vec![Wanted {
+                key: "Decision".to_owned(),
+                items: vec!["ID-1103".to_owned()],
+            }]),
+        };
+        let mut records = BTreeMap::new();
+        record_step(&mut records, &trailers, "ok", Some(&k), &mut tool);
+        assert!(records.is_empty());
+        // Even a record under its name (none is ever written) does not skip it.
+        let cmds = vec![Cmd::cargo(&["clippy"])];
+        records.insert("trailers".to_owned(), record_of("trailers", &cmds, &k, &mut tool));
+        assert!(!remembered_step(&records, &trailers, Some(&k), false, &mut tool));
+        // A step that runs commands is recorded and skipped through the same calls.
+        let clippy = StepPlan {
+            name: "clippy",
+            run: StepRun::Run(cmds),
+        };
+        record_step(&mut records, &clippy, "ok", Some(&k), &mut tool);
+        assert!(remembered_step(&records, &clippy, Some(&k), false, &mut tool));
     }
 
     /// C43-p7#6, on the repository itself: ew-schema's `join("../../schemas")` reads the format schemas, `ew`'s join
@@ -2094,7 +2724,7 @@ mod tests {
     fn the_doc_step_runs_the_doctests_of_the_library_crates() {
         let l = lines_with(&diff(&["crates/ew-api/src/lib.rs"], &[]), &["ew", "ew-format"]);
         assert_eq!(
-            &l[2..4],
+            &l[3..5],
             [
                 "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew -p ew-api -p ew-format --all-features",
                 "doc: cargo test --doc -p ew-api -p ew-format --all-features",
@@ -2102,7 +2732,7 @@ mod tests {
         );
         // No crate with a library target: no doctest command.
         assert_eq!(
-            &lines(&diff(&["crates/ew-leaf/src/lib.rs"], &[]))[2..4],
+            &lines(&diff(&["crates/ew-leaf/src/lib.rs"], &[]))[3..5],
             [
                 "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-leaf --all-features",
                 "nextest: cargo nextest run --profile lane --cargo-quiet -p ew-leaf --all-features",
@@ -2283,6 +2913,7 @@ mod tests {
             commands: Vec::new(),
             seconds: 0.0,
             log: None,
+            wrote: false,
         };
         assert_eq!(
             summary_line(&outcome),
@@ -2294,11 +2925,13 @@ mod tests {
             &BTreeSet::new(),
             BASE,
             &BTreeSet::new(),
+            &[],
         );
         assert_eq!(
-            &p.lines_remembering(&["clippy"].into_iter().collect())[..3],
+            &p.lines_remembering(&["clippy"].into_iter().collect())[..4],
             [
                 "fmt: cargo fmt -p ew-leaf",
+                "settle: cargo xtask settle --base 4762316c",
                 "clippy: from memory: cargo clippy -p ew-leaf --all-targets --all-features -- -D warnings",
                 "doc: RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -p ew-leaf --all-features",
             ]
@@ -2327,6 +2960,7 @@ mod tests {
             commands: vec![cmds[0].to_string()],
             seconds: 1.5,
             log: Some("target/lane-check/doc.log".to_owned()),
+            wrote: false,
         };
         let text = json_text("main", &[outcome], &records).unwrap();
         assert_eq!(

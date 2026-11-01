@@ -209,7 +209,7 @@ the blind self-tests) in one order, and reports `symbols-qet10 --check` and the 
 transitively: the merge point's affected verify, which runs every bless test in compare mode for every package the
 change reaches, is the safety net). The triggered bless tests run as one nested `cargo nextest run --profile lane
 --all-features -p … -E '<union>'`, and each changed file and each failure is reported under its step. `--check` writes
-nothing and fails when a step would rewrite a file (the lane's mode, and the merged-tip verify's): it skips the
+nothing and fails when a step would rewrite a file (the merged-tip verify's mode; a lane's `lane-check` writes): it skips the
 self-tests, and without `--merge` also `check-brief` and the MSRV check, and says so. `--merge` adds the allow-list
 review gates and the two checks that left the lanes: `check-brief` for each `tools/blind/tasks/brief-*` brief the change
 reaches (after `cargo build -p elektrawatt -p ew`), and the MSRV check of the permissive crates on `Cargo.lock` or a
@@ -218,14 +218,19 @@ afterwards; the committed lockfile is never touched), with the crate list derive
 The outputs that a step rewrites whole carry `merge=regen` in `.gitattributes`.
 
 `cargo xtask lane-check --base <rev> -p <pkg>...` (`xtask/src/lane_check.rs`) is an agent lane's hand-back sequence:
-from the diff against `<rev>` and the lane's declared package set it runs fmt, clippy, doc and the doctests of the
-changed crates, one nextest run over them, their direct dependants and the additions of `.claude/agents/lane.md`,
-`settle --check`, the triggered policy checks (`api-guard --base <rev>` when `bin/ew/api/cli.json` or
-`crates/ew-sqlview/api/api_v1.json` changed) and the fuzz workspace check, prints only failures and a summary, and
-writes `target/lane-check.json`. It is bounded to direct dependants; the transitive closure is `cargo xtask affected`,
-at the merge point. It remembers what passed (ID-1077): on a clean worktree a step whose record in
-`target/lane-check.json` matches (the same commands, merge base, tree and outside inputs) is skipped as `ok (from
-memory; ...)`; a dirty worktree records and skips nothing, and `--fresh` runs every step.
+from the diff against `<rev>` and the lane's declared package set it runs, in this order, fmt, `settle --base <rev>`
+(write mode), clippy, doc and the doctests of the changed crates, one nextest run over them, their direct dependants
+and the additions of `.claude/agents/lane.md`, the triggered policy checks (`api-guard --base <rev>` when
+`bin/ew/api/cli.json` or `crates/ew-sqlview/api/api_v1.json` changed), the trailers check and the fuzz workspace
+check, prints only failures and a summary, and writes `target/lane-check.json`. It is bounded to direct dependants;
+the transitive closure is `cargo xtask affected`, at the merge point. It fails fast (ID-1103): when fmt or settle
+rewrites files (found by a snapshot of the worktree, not by their text), no later step runs; each reads `not run
+(commit the rewrites and run again)` and the run fails, while a failed step lets the later steps run. `--trailers
+"<Key>: <items>"` (repeatable, the items separated by commas) makes the `trailers` step check that every item appears
+under its key in some commit of `<merge base>..HEAD`, failing with `missing: <Key>: <item>; ...`; without it the step
+is skipped. It remembers what passed (ID-1077): on a clean worktree a step whose record in `target/lane-check.json`
+matches (the same commands, merge base, tree and outside inputs) is skipped as `ok (from memory; ...)`; a dirty
+worktree records and skips nothing, the trailers step is never recorded, and `--fresh` runs every step.
 
 The licence-boundary check that 18 §5.2 lists under CI-PR-09 is part of `check-licence-map` and therefore runs in
 `legal-docs`, next to the licence map it shares its policy file with; the dependency-rule part of the same

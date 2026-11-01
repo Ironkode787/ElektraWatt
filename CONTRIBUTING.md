@@ -28,14 +28,16 @@ the full per-PR CI set and how to reproduce each job locally.
 
 Run `cargo xtask settle` before you push: it formats the changed Rust files and regenerates the derived reference files
 your change reaches (schemas, keymaps, the book's table of contents, the fuzz table, the self-test recordings, ...);
-`cargo xtask settle --check` is what a lane and the verify run; the merge point runs `cargo xtask settle --merge`, which
-adds the allow-list gates, `check-brief` and the MSRV check.
+`cargo xtask settle --check` is what the verify runs (a lane's `lane-check` runs `cargo xtask settle` in write mode);
+the merge point runs `cargo xtask settle --merge`, which adds the allow-list gates, `check-brief` and the MSRV check.
 The book's reference pages are built, not committed: `cargo xtask docs-gen` writes them from the committed contract
 files, and `mdbook build docs/book` needs them.
-An agent lane runs its hand-back checks with `cargo xtask lane-check --base <rev> -p <pkg>...`, which picks fmt,
-clippy, doc with the doctests, one bounded nextest run, `settle --check` and the policy checks (with `api-guard` when
-an API snapshot changed) from the diff (`--plan` prints them). On a clean worktree it skips a step that passed before
-on the same tree with the same commands; `--fresh` runs every step.
+An agent lane runs its hand-back checks with `cargo xtask lane-check --base <rev> -p <pkg>...`, which picks, in this
+order, fmt, settle (write mode), clippy, doc with the doctests, one bounded nextest run and the policy checks (with
+`api-guard` when an API snapshot changed) from the diff (`--plan` prints them). A rewrite by fmt or settle stops the
+run: commit the rewrites and run it again. `--trailers "Decision: ID-n"` (repeatable) adds a step that fails when no
+commit since the merge base carries an item. On a clean worktree it skips a step that passed before on the same tree
+with the same commands; `--fresh` runs every step.
 
 A new integration test goes into its crate's one test binary: `tests/it/<name>.rs`, which `automod::dir!` in
 `tests/it/main.rs` declares. Touch `tests/it/main.rs` once after adding the file: cargo does not notice a new file in
