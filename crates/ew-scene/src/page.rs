@@ -1616,12 +1616,13 @@ impl Builder<'_> {
         shaped: &Shaped,
         lines: &[Item],
     ) -> Vec<Item> {
-        spec.items
-            .iter()
-            .filter_map(|link| {
-                let quad = span_quad(self.fonts, style, spec.text, shaped, lines, &link.range)?;
+        let ranges: Vec<&Range<usize>> = spec.items.iter().map(|link| &link.range).collect();
+        span_quads(self.fonts, style, spec.text, shaped, lines, &ranges)
+            .into_iter()
+            .zip(spec.items)
+            .filter_map(|(quad, link)| {
                 Some(
-                    Item::path(Path::polygon(&quad), None, None)
+                    Item::path(Path::polygon(&quad?), None, None)
                         .with_entity(spec.entity)
                         .with_link(Link::Source(link.dest)),
                 )
@@ -1630,44 +1631,156 @@ impl Builder<'_> {
     }
 }
 
-/// The box of the glyph span `range` of `text` as placed (ADR-0015 amendment 9): from the pen travel of the text up to
-/// the span's start to the travel up to its end (trailing spaces included), from the ascent to the descent of `style`,
-/// mapped to the parent through the placed line item that holds the span (so it turns with the text). `shaped` is
-/// `text` shaped in `style` and `lines` its placed line items, one per shaped line. `None` when no line holds the whole
-/// span or the line is not placed. The cross-reference texts' item links and the report tables' item links
-/// (WP-S3.06 ruling 3) both take their boxes from here.
-pub(crate) fn span_quad(
+/// The boxes of the glyph spans `ranges` of `text` as placed (ADR-0015 amendment 9), one per range in their order: from
+/// the pen travel of the text up to the span's start to the travel up to its end (trailing spaces included), from the
+/// ascent to the descent of `style`, mapped to the parent through the placed line item that holds the span (so it turns
+/// with the text). `shaped` is `text` shaped in `style` and `lines` its placed line items, one per shaped line. `None`
+/// for a range that no line holds whole or whose line is not placed. The cross-reference texts' item links and the
+/// report tables' item links (WP-S3.06 ruling 3) both take their boxes from here.
+///
+/// The pen travel up to a span end is the advance of the line's text up to it, shaped alone. Each line is shaped once
+/// (C44-p3#1): the travel to the line's end is that shaping's advance, and to a character inside it that character's
+/// glyph position, where the line's glyphs map one to one onto its characters in a left-to-right script without
+/// combining marks. Any other end is shaped up to it, so every box is the one a shaping per end gives.
+pub(crate) fn span_quads(
     fonts: &FontSet,
     style: &TextStyle,
     text: &str,
     shaped: &Shaped,
     lines: &[Item],
-    range: &Range<usize>,
-) -> Option<[Pt2; 4]> {
+    ranges: &[&Range<usize>],
+) -> Vec<Option<[Pt2; 4]>> {
     let m = fonts.vertical_metrics(style);
-    let (k, line) = shaped
-        .lines
+    let mut pens: Vec<Option<LinePens>> = vec![None; shaped.lines.len()];
+    ranges
         .iter()
-        .enumerate()
-        .find(|(_, l)| l.text.start <= range.start && range.end <= l.text.end)?;
-    // The span ends are the pen travel of the text up to them, trailing spaces included.
-    let travel = |end: usize| {
-        let prefix = text.get(line.text.start..end)?;
-        Some(fonts.shape(prefix, style, None).advance())
-    };
-    let (x0, x1) = (travel(range.start)?, travel(range.end)?);
-    let to_parent = |q: Pt2| match &lines.get(k)?.kind {
-        ItemKind::Glyphs(run) => Some(run.to_parent(q)),
-        ItemKind::Group(g) => Some(g.transform.unwrap_or(Transform::IDENTITY).apply(q)),
-        _ => None,
-    };
-    let corner = |x: Nm, y: Nm| to_parent(Pt2::new(x, y));
-    Some([
-        corner(x0, Nm(-m.ascent.0))?,
-        corner(x0, m.descent)?,
-        corner(x1, m.descent)?,
-        corner(x1, Nm(-m.ascent.0))?,
-    ])
+        .map(|range| {
+            let (k, line) = shaped
+                .lines
+                .iter()
+                .enumerate()
+                .find(|(_, l)| l.text.start <= range.start && range.end <= l.text.end)?;
+            let line_text = text.get(line.text.clone())?;
+            let p = pens
+                .get_mut(k)?
+                .get_or_insert_with(|| LinePens::new(fonts, style, line_text));
+            // The span ends are the pen travel of the text up to them, trailing spaces included.
+            let travel = |end: usize| {
+                let at = end.checked_sub(line.text.start)?;
+                p.at(at).or_else(|| {
+                    let prefix = line_text.get(..at)?;
+                    Some(fonts.shape(prefix, style, None).advance())
+                })
+            };
+            let (x0, x1) = (travel(range.start)?, travel(range.end)?);
+            let to_parent = |q: Pt2| match &lines.get(k)?.kind {
+                ItemKind::Glyphs(run) => Some(run.to_parent(q)),
+                ItemKind::Group(g) => Some(g.transform.unwrap_or(Transform::IDENTITY).apply(q)),
+                _ => None,
+            };
+            let corner = |x: Nm, y: Nm| to_parent(Pt2::new(x, y));
+            Some([
+                corner(x0, Nm(-m.ascent.0))?,
+                corner(x0, m.descent)?,
+                corner(x1, m.descent)?,
+                corner(x1, Nm(-m.ascent.0))?,
+            ])
+        })
+        .collect()
+}
+
+/// The pen travel of one line's text up to its character boundaries, from one shaping of the line's text without its
+/// trailing line breaks ([`span_quads`]).
+#[derive(Clone)]
+struct LinePens {
+    /// The byte length of the line's text without its trailing line breaks.
+    len: usize,
+    /// The advance of that text shaped alone: the travel up to its end.
+    advance: Nm,
+    /// The glyph position of each character, by its byte offset in the line, ascending; empty when the glyphs do not
+    /// map one to one onto the characters.
+    starts: Vec<(usize, Nm)>,
+}
+
+impl LinePens {
+    fn new(fonts: &FontSet, style: &TextStyle, line_text: &str) -> LinePens {
+        let body = line_text.trim_end_matches(is_line_break);
+        let shaped = fonts.shape(body, style, None);
+        let starts = if shaped.lines.len() == 1 && body.chars().all(maps_one_to_one) {
+            char_starts(body, &shaped).unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        LinePens {
+            len: body.len(),
+            advance: shaped.advance(),
+            starts,
+        }
+    }
+
+    /// The pen travel up to byte `at` of the line, when this shaping gives it: 0 at the start, the advance at the end,
+    /// a character's glyph position inside.
+    fn at(&self, at: usize) -> Option<Nm> {
+        if at == 0 {
+            return Some(Nm::ZERO);
+        }
+        if at == self.len {
+            return Some(self.advance);
+        }
+        let i = self.starts.binary_search_by_key(&at, |&(b, _)| b).ok()?;
+        self.starts.get(i).map(|&(_, x)| x)
+    }
+}
+
+/// How many characters of `line_text` take their pen travel from the line's one shaping ([`LinePens`]).
+#[cfg(test)]
+pub(crate) fn pens_mapped(fonts: &FontSet, style: &TextStyle, line_text: &str) -> usize {
+    LinePens::new(fonts, style, line_text).starts.len()
+}
+
+/// The glyph position of each character of `body` (shaped alone as `shaped`), by byte offset; `None` when a face span's
+/// glyphs are not one per character.
+fn char_starts(body: &str, shaped: &Shaped) -> Option<Vec<(usize, Nm)>> {
+    let mut out = Vec::with_capacity(shaped.run.glyphs.len());
+    for span in &shaped.faces {
+        let chars = body.get(span.text.clone())?.char_indices();
+        let glyphs = shaped.run.glyphs.get(span.glyphs.clone())?;
+        if chars.clone().count() != glyphs.len() {
+            return None;
+        }
+        out.extend(chars.zip(glyphs).map(|((b, _), g)| (span.text.start + b, g.x)));
+    }
+    out.sort_by_key(|&(b, _)| b);
+    Some(out)
+}
+
+/// A character that ends a line (a mandatory break).
+fn is_line_break(c: char) -> bool {
+    matches!(
+        c,
+        '\n' | '\r' | '\u{0B}' | '\u{0C}' | '\u{85}' | '\u{2028}' | '\u{2029}'
+    )
+}
+
+/// A character whose glyph position [`LinePens`] may take as the pen travel up to it: a left-to-right letter, digit,
+/// sign or punctuation of the Latin, Greek and Cyrillic blocks and of the general punctuation, symbol and arrow blocks;
+/// never a combining mark, a format control or a character of a right-to-left or complex script.
+fn maps_one_to_one(c: char) -> bool {
+    matches!(
+        u32::from(c),
+        0x20..=0x7E
+            | 0xA0..=0xAC
+            | 0xAE..=0x2FF
+            | 0x370..=0x3FF
+            | 0x400..=0x482
+            | 0x48A..=0x52F
+            | 0x1E00..=0x1FFF
+            | 0x2000..=0x200A
+            | 0x2010..=0x2027
+            | 0x2030..=0x205F
+            | 0x2070..=0x20CF
+            | 0x2100..=0x2BFF
+    )
 }
 
 /// The distance of a black box's pin text from its pin, inward along the pin's normal (WP-S1.21 D7): 1 mm.

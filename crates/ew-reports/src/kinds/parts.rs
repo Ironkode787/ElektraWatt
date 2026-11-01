@@ -4,9 +4,11 @@
 //! `parts_summary` and `parts_list` (FR-REP-004 … FR-REP-006; golden 901, 901.1), and the part cells the
 //! other part-based kinds share.
 
+use std::collections::BTreeMap;
+
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, LibRef, OrderUnit, Page, Part, RepType, ReportBlock};
+use ew_derive::ew_schema::{Device, LibRef, OrderUnit, Page, Part, RepType, ReportBlock, Representation};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{
     BomMode, BomRows, DevicePartLines, DeviceTag, PageRef, PartLine, Q, manufacturer_copy, manufacturer_name,
@@ -139,36 +141,50 @@ impl PartsSummary {
 /// smallest-ID representation on that page of the first of `devices` (in their order) that has one there, not a
 /// contact image, else to the page (a panel-layout page of a layout object). A cell with one page links whole; with
 /// several, each page links its own item. The representations are read from the model's tables, never from the page
-/// order (doc 09 §3.6).
+/// order (doc 09 §3.6). The page → representation map is built once per row, walking the devices in their order
+/// (C44-p3#1).
 fn folio_links(q: &Q, column: usize, devices: &[Id<Device>], pages: &[PageRef]) -> Vec<LinkRef> {
-    let reps = q.reps();
-    let idx = q.idx();
-    let rep_on = |page: Id<Page>| {
-        devices.iter().find_map(|d| {
-            idx.functions_of_device(*d)
-                .flat_map(|f| idx.reps_of_function(f))
-                .filter(|r| {
-                    reps.get(*r)
-                        .is_some_and(|x| x.page == page && x.rep_type != RepType::ContactImage)
-                })
-                .min()
-        })
-    };
+    let rep_on = rep_by_page(q, devices);
     pages
         .iter()
         .enumerate()
-        .map(|(n, p)| {
+        .filter_map(|(n, p)| {
             let target = match p {
-                PageRef::Drawn(page) => rep_on(*page).map_or(LinkTarget::Page(*p), LinkTarget::Rep),
+                PageRef::Drawn(page) => rep_on
+                    .get(page)
+                    .map_or(LinkTarget::Page(*p), |r| LinkTarget::Rep(*r)),
                 _ => LinkTarget::Page(*p),
             };
             if pages.len() == 1 {
-                LinkRef::whole(column, target)
+                Some(LinkRef::whole(column, target))
             } else {
                 LinkRef::item(column, n, target)
             }
         })
         .collect()
+}
+
+/// For each page, the smallest-ID representation on it of the first of `devices` (in their order) that has one there,
+/// contact images excluded.
+fn rep_by_page(q: &Q, devices: &[Id<Device>]) -> BTreeMap<Id<Page>, Id<Representation>> {
+    let reps = q.reps();
+    let idx = q.idx();
+    let mut out: BTreeMap<Id<Page>, Id<Representation>> = BTreeMap::new();
+    for d in devices {
+        // This device's smallest representation per page; a page an earlier device holds keeps that device's.
+        let mut own: BTreeMap<Id<Page>, Id<Representation>> = BTreeMap::new();
+        for r in idx.functions_of_device(*d).flat_map(|f| idx.reps_of_function(f)) {
+            let Some(x) = reps.get(r) else {
+                continue;
+            };
+            if x.rep_type == RepType::ContactImage || out.contains_key(&x.page) {
+                continue;
+            }
+            own.entry(x.page).and_modify(|m| *m = (*m).min(r)).or_insert(r);
+        }
+        out.extend(own);
+    }
+    out
 }
 
 /// The parts list, one row per device part line (EPLAN `.f01`).

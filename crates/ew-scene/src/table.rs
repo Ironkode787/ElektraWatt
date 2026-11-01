@@ -46,7 +46,7 @@ use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, TextStyleTable};
 use ew_units::{Nm, Pt2, Rect};
 
 use crate::forms::{BoxSpec, CELL_PADDING, OverflowKind, SheetMap, lay_out};
-use crate::page::span_quad;
+use crate::page::span_quads;
 
 /// The left edge of the table, printed.
 pub const LEFT: Nm = Nm(16_310_000);
@@ -199,7 +199,7 @@ pub fn column_edges_in(columns: &[TableColumn], left: Nm, right: Nm) -> Vec<Nm> 
 /// midline and inset by [`CELL_PADDING`], shrunk to the printed cap height [`MIN_CAP_HEIGHT`] when it does not fit and
 /// then reported ([`TableFinding::Overflow`] at `at`, `(row, column)`), never clipped; characters without a glyph are
 /// reported too. An empty text draws nothing. `links` are the cell's links: the first without a span is set on every
-/// item of the text; each with a span adds an invisible path over that span's glyphs ([`span_quad`]) carrying it.
+/// item of the text; each with a span adds an invisible path over that span's glyphs ([`span_quads`]) carrying it.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn push_cell(
     out: &mut LoweredTable,
@@ -244,12 +244,17 @@ pub(crate) fn push_cell(
     }
     // The style at the size the text was laid out in (shrink-to-fit may have made it smaller).
     let final_style = style.with_size(laid.shaped.run.size);
-    let carriers: Vec<Item> = links
+    // One call for all the cell's spans: the line is shaped once, never once per span end (C44-p3#1).
+    let spanned: Vec<(&Range<usize>, Destination)> = links
         .iter()
-        .filter_map(|l| {
-            let span = l.span.as_ref()?;
-            let quad = span_quad(fonts, &final_style, s, &laid.shaped, &laid.items, span)?;
-            Some(Item::path(Path::polygon(&quad), None, None).with_link(Link::Source(l.dest)))
+        .filter_map(|l| Some((l.span.as_ref()?, l.dest)))
+        .collect();
+    let ranges: Vec<&Range<usize>> = spanned.iter().map(|(r, _)| *r).collect();
+    let carriers: Vec<Item> = span_quads(fonts, &final_style, s, &laid.shaped, &laid.items, &ranges)
+        .into_iter()
+        .zip(&spanned)
+        .filter_map(|(quad, (_, dest))| {
+            Some(Item::path(Path::polygon(&quad?), None, None).with_link(Link::Source(*dest)))
         })
         .collect();
     match links.iter().find(|l| l.span.is_none()) {
@@ -404,6 +409,158 @@ pub fn lower_table(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use ew_dl::ItemKind;
+    use ew_text::{Shaped, bundled};
+
+    /// The oracle of C44-p3#1: the span box as it was computed before, with one shaping of the line's text up to each
+    /// span end.
+    fn span_quad_per_end(
+        fonts: &FontSet,
+        style: &TextStyle,
+        text: &str,
+        shaped: &Shaped,
+        lines: &[Item],
+        range: &Range<usize>,
+    ) -> Option<[Pt2; 4]> {
+        let m = fonts.vertical_metrics(style);
+        let (k, line) = shaped
+            .lines
+            .iter()
+            .enumerate()
+            .find(|(_, l)| l.text.start <= range.start && range.end <= l.text.end)?;
+        let travel = |end: usize| {
+            let prefix = text.get(line.text.start..end)?;
+            Some(fonts.shape(prefix, style, None).advance())
+        };
+        let (x0, x1) = (travel(range.start)?, travel(range.end)?);
+        let to_parent = |q: Pt2| match &lines.get(k)?.kind {
+            ItemKind::Glyphs(run) => Some(run.to_parent(q)),
+            ItemKind::Group(g) => Some(g.transform.unwrap_or(ew_dl::Transform::IDENTITY).apply(q)),
+            _ => None,
+        };
+        let corner = |x: Nm, y: Nm| to_parent(Pt2::new(x, y));
+        Some([
+            corner(x0, Nm(-m.ascent.0))?,
+            corner(x0, m.descent)?,
+            corner(x1, m.descent)?,
+            corner(x1, Nm(-m.ascent.0))?,
+        ])
+    }
+
+    /// A Folios text of 300 pages as `folios_spans` prints it, lists and runs mixed, and the spans of its linked pages
+    /// (a run's two ends; "–" is 3 bytes).
+    fn folios_300() -> (String, Vec<Range<usize>>) {
+        let mut text = String::new();
+        let mut spans = Vec::new();
+        let mut page = 100;
+        let mut listed = 0;
+        let mut n = 0;
+        while listed < 300 {
+            if !text.is_empty() {
+                text.push_str(", ");
+            }
+            let first = page.to_string();
+            spans.push(text.len()..text.len() + first.len());
+            text.push_str(&first);
+            if n % 5 == 4 {
+                // A run of four pages: its two ends span.
+                let last = (page + 3).to_string();
+                text.push('–');
+                spans.push(text.len()..text.len() + last.len());
+                text.push_str(&last);
+                page += 3;
+                listed += 4;
+            } else {
+                listed += 1;
+            }
+            page += 2;
+            n += 1;
+        }
+        (text, spans)
+    }
+
+    /// One box per span, `None` where a span has none.
+    type Quads = Vec<Option<[Pt2; 4]>>;
+
+    /// The span boxes of `text` laid into `rect` (as `push_cell` lays a cell) by `span_quads` and by the oracle.
+    fn both(text: &str, spans: &[Range<usize>], rect: Rect, max_lines: usize) -> (Quads, Quads) {
+        let fonts = bundled();
+        let style = ew_text::builtin()
+            .resolve(DEFAULT_STYLE_KEY)
+            .expect("the default style");
+        let shrink = Overflow::ShrinkToFit(ShrinkSpec {
+            min_cap_height: MIN_CAP_HEIGHT,
+            extra: Default::default(),
+        });
+        let spec = BoxSpec {
+            rect,
+            halign: -1,
+            valign: 0,
+            padding: CELL_PADDING,
+            overflow: Some(&shrink),
+            max_lines,
+            sheet: SheetMap::IDENTITY,
+        };
+        let laid = lay_out(fonts, text, &style, &spec);
+        let style = style.with_size(laid.shaped.run.size);
+        let ranges: Vec<&Range<usize>> = spans.iter().collect();
+        let new = span_quads(fonts, &style, text, &laid.shaped, &laid.items, &ranges);
+        let old = spans
+            .iter()
+            .map(|r| span_quad_per_end(fonts, &style, text, &laid.shaped, &laid.items, r))
+            .collect();
+        (new, old)
+    }
+
+    fn mm(x0: i64, y0: i64, x1: i64, y1: i64) -> Rect {
+        let n = |v: i64| Nm(v * 1_000_000);
+        Rect::from_points(Pt2::new(n(x0), n(y0)), Pt2::new(n(x1), n(y1)))
+    }
+
+    /// C44-p3#1: the spans of a 300-folio cell take their ends from one shaping of the line, and every box equals the
+    /// one a shaping per span end gives, in a cell that shrinks it and in one wide enough for it.
+    #[test]
+    fn the_spans_of_a_300_folio_cell_equal_a_shaping_per_span_end() {
+        let (text, spans) = folios_300();
+        assert!(text.contains("100, 102, 104, 106, 108–111, 113"), "{text}");
+        // Every character takes its pen travel from the line's one shaping: no span end shapes again.
+        let style = ew_text::builtin()
+            .resolve(DEFAULT_STYLE_KEY)
+            .expect("the default style");
+        assert_eq!(
+            crate::page::pens_mapped(bundled(), &style, &text),
+            text.chars().count()
+        );
+        for rect in [mm(0, 0, 30, 6), mm(0, 0, 20_000, 6)] {
+            let (new, old) = both(&text, &spans, rect, 1);
+            assert!(new.iter().all(Option::is_some));
+            assert_eq!(new, old);
+        }
+    }
+
+    /// C44-p3#1: a text of several lines and spans the shaping cannot map one to one (a combining mark, a ligature-prone
+    /// pair, a right-to-left word) keep the boxes of a shaping per span end; a span across a line break has none.
+    #[test]
+    fn spans_over_several_lines_and_unmapped_text_equal_a_shaping_per_span_end() {
+        let text = "1.2 /3.4\nfi e\u{301}f\n\u{5d0}\u{5d1} 7";
+        let spans = [
+            0..3,
+            4..8,
+            5..8,
+            9..11,
+            12..15,
+            15..16,
+            6..12,
+            17..19,
+            19..21,
+            22..23,
+        ];
+        let (new, old) = both(text, &spans, mm(0, 0, 500, 40), 3);
+        assert!(new[..6].iter().all(Option::is_some));
+        assert_eq!(new[6], None);
+        assert_eq!(new, old);
+    }
 
     fn cols(weights: &[u32]) -> Vec<TableColumn> {
         weights

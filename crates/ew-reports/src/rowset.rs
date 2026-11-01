@@ -529,13 +529,14 @@ impl LinkRef {
         }
     }
 
-    /// A link over the `item`-th listed item of the cell of `column`.
-    pub fn item(column: usize, item: usize, target: LinkTarget) -> LinkRef {
-        LinkRef {
-            column: u16::try_from(column).unwrap_or(u16::MAX),
-            item: Some(u16::try_from(item).unwrap_or(u16::MAX)),
+    /// A link over the `item`-th listed item of the cell of `column`; `None` when the column or the item index does not
+    /// fit a `u16` (such a link is not made: a saturated index would draw over another item; C44-p3#3).
+    pub fn item(column: usize, item: usize, target: LinkTarget) -> Option<LinkRef> {
+        Some(LinkRef {
+            column: u16::try_from(column).ok()?,
+            item: Some(u16::try_from(item).ok()?),
             target,
-        }
+        })
     }
 }
 
