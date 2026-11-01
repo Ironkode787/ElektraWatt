@@ -1,0 +1,170 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The path a connection is drawn along on its page (doc 06 §5.4): the rules of the page scene (`ew-scene`, modules
+//! `route` and `page`), restated so that what lies on a wire can be found as the page shows it (FT-1020, decision log
+//! ID-1104): normaliser 7 of `ew-commands` splits a connection under a dropped symbol along it, and EW-TERM-006 names a
+//! terminal lying on a wire it does not join.
+//!
+//! - A connection with a stored route is drawn through its ends' points and the stored vertices,
+//!   `[a] ++ route ++ [b]`.
+//! - A connection without one is drawn along [`provisional_path`] between its ends.
+//! - An end at a CP is the CP's point and leaving direction on the page ([`cp_end`]); an end at a junction is the
+//!   junction's point, without a direction. A connection one of whose ends is not drawn on the page is not drawn.
+//!
+//! The scene also pulls a vertex that lies off the sheet onto the sheet's edge; these paths keep every vertex where it
+//! is, so they differ from the drawing only next to an end off the sheet.
+
+use ew_ids::Id;
+use ew_schema::{Connection, Dir4, Endpoint, Page};
+use ew_units::{Nm, Orient2, Pt2};
+
+use crate::Q;
+use crate::cp_point::cp_end;
+
+/// Whether a direction runs along y: `Some(true)` for `Up` and `Down`, `Some(false)` for `Left` and `Right`, `None`
+/// for an unknown direction.
+pub fn dir_vertical(d: &Dir4) -> Option<bool> {
+    match d {
+        Dir4::Up | Dir4::Down => Some(true),
+        Dir4::Left | Dir4::Right => Some(false),
+        Dir4::Unknown(_) => None,
+    }
+}
+
+/// The direction `d` turned by the orientation `o` (a representation's), as the page scene turns a CP's direction;
+/// `None` for an unknown direction.
+pub fn oriented_dir(d: &Dir4, o: Orient2) -> Option<Dir4> {
+    let v = match d {
+        Dir4::Up => (0, -1),
+        Dir4::Right => (1, 0),
+        Dir4::Down => (0, 1),
+        Dir4::Left => (-1, 0),
+        Dir4::Unknown(_) => return None,
+    };
+    let p = o.apply(Pt2::new(Nm(v.0), Nm(v.1)));
+    match (p.x.0, p.y.0) {
+        (0, -1) => Some(Dir4::Up),
+        (1, 0) => Some(Dir4::Right),
+        (0, 1) => Some(Dir4::Down),
+        (-1, 0) => Some(Dir4::Left),
+        _ => None,
+    }
+}
+
+/// The provisional path of a connection without a stored route, from end `a` to end `b`, each with whether a wire
+/// leaves it along y ([`dir_vertical`]; `None` for a junction or an unknown direction): the page scene's rule
+/// (`ew-scene`, `route::provisional_route`), which the router of `ew-commands` also falls back to.
+///
+/// 1. `a == b` gives `[a]` (a single point; nothing is drawn).
+/// 2. Ends on one x or one y give the straight segment `[a, b]`.
+/// 3. Otherwise an L with one corner from the ends' own coordinates: the wire leaves `a` along its axis (along y the
+///    corner is `(a.x, b.y)`, along x `(b.x, a.y)`); when `a` has no direction it arrives at `b` along `b`'s axis
+///    (along y the corner is `(b.x, a.y)`, along x `(a.x, b.y)`); with neither direction the corner is `(b.x, a.y)`.
+pub fn provisional_path(a: Pt2, a_vertical: Option<bool>, b: Pt2, b_vertical: Option<bool>) -> Vec<Pt2> {
+    if a == b {
+        return vec![a];
+    }
+    if a.x == b.x || a.y == b.y {
+        return vec![a, b];
+    }
+    let vertical_first = Pt2::new(a.x, b.y);
+    let horizontal_first = Pt2::new(b.x, a.y);
+    let corner = match (a_vertical, b_vertical) {
+        (Some(true), _) => vertical_first,
+        (Some(false), _) => horizontal_first,
+        (None, Some(true)) => horizontal_first,
+        (None, Some(false)) => vertical_first,
+        (None, None) => horizontal_first,
+    };
+    vec![a, corner, b]
+}
+
+/// Whether `p` lies on the closed segment `a`–`b`: exactly, collinear by an `i128` cross product and inside the
+/// segment's bounding box. A product that would overflow `i128` (a coordinate far beyond the ±(2⁵³ − 1) nm a record
+/// holds, ADR-0005) counts as off the segment.
+pub fn on_segment(p: Pt2, a: Pt2, b: Pt2) -> bool {
+    let (px, py) = (i128::from(p.x.0), i128::from(p.y.0));
+    let (ax, ay) = (i128::from(a.x.0), i128::from(a.y.0));
+    let (bx, by) = (i128::from(b.x.0), i128::from(b.y.0));
+    let cross = (bx - ax)
+        .checked_mul(py - ay)
+        .zip((by - ay).checked_mul(px - ax))
+        .and_then(|(l, r)| l.checked_sub(r));
+    cross == Some(0) && px >= ax.min(bx) && px <= ax.max(bx) && py >= ay.min(by) && py <= ay.max(by)
+}
+
+/// The path connection `c` is drawn along on `page` (see the module documentation), from its end `a` to its end `b`;
+/// `None` when it is not drawn there: it belongs to another page (or none), or an end is not drawn on `page`.
+pub fn drawn_path(q: &Q, c: &Connection, page: Id<Page>) -> Option<Vec<Pt2>> {
+    if c.page != Some(page) {
+        return None;
+    }
+    let end = |e: &Endpoint| match e {
+        Endpoint::Cp(function, idx) => cp_end(q, *function, *idx, page),
+        Endpoint::Junction(j) => q
+            .junctions()
+            .get(*j)
+            .filter(|j| j.page == page)
+            .map(|j| (j.at, None)),
+        Endpoint::Unknown(_) => None,
+    };
+    let ((a, a_dir), (b, b_dir)) = (end(&c.a)?, end(&c.b)?);
+    if c.route.is_empty() {
+        let vertical = |d: Option<Dir4>| d.as_ref().and_then(dir_vertical);
+        return Some(provisional_path(a, vertical(a_dir), b, vertical(b_dir)));
+    }
+    let mut path = Vec::with_capacity(c.route.len() + 2);
+    path.push(a);
+    path.extend_from_slice(&c.route);
+    path.push(b);
+    Some(path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn p(x: i64, y: i64) -> Pt2 {
+        Pt2::new(Nm(x), Nm(y))
+    }
+
+    #[test]
+    fn the_corner_follows_the_scene_s_rule() {
+        let (a, b) = (p(0, 0), p(10, 20));
+        assert_eq!(provisional_path(a, Some(true), b, Some(false)), [a, p(0, 20), b]);
+        assert_eq!(provisional_path(a, Some(false), b, Some(true)), [a, p(10, 0), b]);
+        assert_eq!(provisional_path(a, None, b, Some(true)), [a, p(10, 0), b]);
+        assert_eq!(provisional_path(a, None, b, Some(false)), [a, p(0, 20), b]);
+        assert_eq!(provisional_path(a, None, b, None), [a, p(10, 0), b]);
+        assert_eq!(provisional_path(a, Some(true), p(0, 5), None), [a, p(0, 5)]);
+        assert_eq!(provisional_path(a, Some(true), a, None), [a]);
+    }
+
+    #[test]
+    fn a_point_on_a_segment_is_exact() {
+        let (a, b) = (p(0, 0), p(30, 10));
+        assert!(on_segment(p(15, 5), a, b));
+        assert!(on_segment(a, a, b) && on_segment(b, a, b));
+        assert!(!on_segment(p(15, 6), a, b));
+        assert!(!on_segment(p(60, 20), a, b), "collinear beyond the end");
+        // (−10, 9) lies on the segment between these ends (on x + y = −1), but (2⁶⁴ − 1)(2⁶³ + 9) overflows `i128`.
+        let (from, to) = (p(i64::MAX, i64::MIN), p(i64::MIN, i64::MAX));
+        assert!(on_segment(p(0, -1), from, to), "a product that fits");
+        assert!(!on_segment(p(-10, 9), from, to), "an overflowing product");
+    }
+
+    #[test]
+    fn a_direction_turns_with_the_orientation() {
+        assert_eq!(oriented_dir(&Dir4::Up, Orient2::R90), Some(Dir4::Right));
+        assert_eq!(oriented_dir(&Dir4::Right, Orient2::R90), Some(Dir4::Down));
+        assert_eq!(oriented_dir(&Dir4::Right, Orient2::M0), Some(Dir4::Left));
+        assert_eq!(oriented_dir(&Dir4::Up, Orient2::M0), Some(Dir4::Up));
+        assert_eq!(oriented_dir(&Dir4::Up, Orient2::M90), Some(Dir4::Right));
+        assert_eq!(oriented_dir(&Dir4::Left, Orient2::R270), Some(Dir4::Down));
+        assert_eq!(
+            oriented_dir(&Dir4::Unknown(serde_json::json!("north")), Orient2::R0),
+            None
+        );
+    }
+}

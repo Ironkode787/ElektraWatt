@@ -50,7 +50,7 @@
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
-use ew_units::{Grid, Nm};
+use ew_units::{Grid, Nm, Pt2};
 
 /// The largest search area, in grid nodes, beyond which the router falls back to the L route: 2¹⁸ = 262 144, an A0
 /// sheet (1189 × 841 mm) at a 2.5 mm grid (476 × 337 = 160 412 nodes) with room to spare (fix round of WP-S2.04
@@ -163,25 +163,19 @@ pub struct Routed {
 }
 
 /// The provisional L route of `ew-scene`'s rule (the fallback): `[a, b]` for aligned ends (`[a]` for equal ones),
-/// else one corner from the ends' own coordinates, chosen by `a`'s direction, else `b`'s, else `(b.x, a.y)`.
+/// else one corner from the ends' own coordinates, chosen by `a`'s direction, else `b`'s, else `(b.x, a.y)`. The rule
+/// is `ew_derive::provisional_path`, the path the page draws a connection without a route along (FT-1020).
 pub fn l_route(a: RouteEnd, b: RouteEnd) -> Vec<(i64, i64)> {
-    let (pa, pb) = (a.at, b.at);
-    if pa == pb {
-        return vec![pa];
-    }
-    if pa.0 == pb.0 || pa.1 == pb.1 {
-        return vec![pa, pb];
-    }
-    let vertical_first = (pa.0, pb.1);
-    let horizontal_first = (pb.0, pa.1);
-    let corner = match (a.dir, b.dir) {
-        (Some(d), _) if d.vertical() => vertical_first,
-        (Some(_), _) => horizontal_first,
-        (None, Some(d)) if d.vertical() => horizontal_first,
-        (None, Some(_)) => vertical_first,
-        (None, None) => horizontal_first,
-    };
-    vec![pa, corner, pb]
+    let point = |(x, y): (i64, i64)| Pt2::new(Nm(x), Nm(y));
+    ew_derive::provisional_path(
+        point(a.at),
+        a.dir.map(Heading::vertical),
+        point(b.at),
+        b.dir.map(Heading::vertical),
+    )
+    .into_iter()
+    .map(|p| (p.x.0, p.y.0))
+    .collect()
 }
 
 /// The search space of one request.

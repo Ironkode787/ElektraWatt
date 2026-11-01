@@ -86,6 +86,7 @@ static RULES: &[&dyn Rule] = &[
     &shipped::term::SpareWiredOnFieldSide,
     &shipped::term::BridgeGroupInvalid,
     &shipped::term::RailBondingOnNonPe,
+    &shipped::term::TerminalOnUnjoinedWire,
 ];
 
 /// Every shipped rule implementation, in rule-ID order.

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Integer geometry of the editor commands (ARCH §4.5: i64 nanometres, no float equality): the positions of
-//! a representation's connection points, point-on-route tests, route splitting and the connection-grid
-//! checks of doc 06 §5.7.
+//! a representation's connection points, the path a connection without a route is drawn along, point-on-route
+//! tests, route splitting and the connection-grid checks of doc 06 §5.7.
 //!
 //! **Range.** Every stored coordinate lies within ±[`MAX_COORD`] = ±(2⁵³ − 1) nm, the range a record can
 //! be written in (ADR-0005). The arithmetic here is checked: a result outside that range is
@@ -13,7 +13,7 @@
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_schema::{Connection, Endpoint, Function, LibCopy, Page, Representation, SymbolDef};
+use ew_schema::{Connection, Dir4, Endpoint, Function, Junction, LibCopy, Page, Representation, SymbolDef};
 use ew_units::{Grid, Nm, Pt2};
 
 use crate::error::CmdError;
@@ -60,6 +60,10 @@ pub struct RepCp {
     pub idx: u16,
     /// The position on the page.
     pub pos: Pt2,
+    /// Whether a wire leaves it along y: its direction (`cp.dir`) turned by the representation's orientation, as
+    /// the page draws it ([`ew_derive::oriented_dir`], [`ew_derive::dir_vertical`]); `None` when the direction is
+    /// unknown.
+    pub vertical: Option<bool>,
 }
 
 /// `a + b`, checked: [`OutOfRange`] when a coordinate of the result leaves ±[`MAX_COORD`].
@@ -107,6 +111,11 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
             Err(OutOfRange)
         }
     };
+    let vertical = |dir: &Dir4| {
+        ew_derive::oriented_dir(dir, rep.orient)
+            .as_ref()
+            .and_then(ew_derive::dir_vertical)
+    };
     if symbol.item.cps.is_empty() {
         let (Some(b), Some(&function)) = (&rep.box_, rep.functions.first()) else {
             return Vec::new();
@@ -120,6 +129,7 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
                     function,
                     idx: cp.idx,
                     pos,
+                    vertical: vertical(&cp.dir),
                 })
             })
             .collect();
@@ -139,6 +149,7 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
                 function,
                 idx,
                 pos,
+                vertical: vertical(&cp.dir),
             }))
         })
         .collect()
@@ -148,6 +159,11 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
 /// representation ID if several draw it); `None` when no representation on that page draws it or the
 /// symbol geometry is unknown.
 pub fn cp_position(tx: &TxBuilder<'_>, function: Id<Function>, idx: u16, page: Id<Page>) -> Option<Pt2> {
+    drawn_cp(tx, function, idx, page).map(|c| c.pos)
+}
+
+/// The drawn CP of [`cp_position`]: function CP `(function, idx)` as its representation on `page` draws it.
+pub fn drawn_cp(tx: &TxBuilder<'_>, function: Id<Function>, idx: u16, page: Id<Page>) -> Option<RepCp> {
     tx.reps_of_function(function).into_iter().find_map(|rid| {
         let rep = tx.get::<Representation>(rid)?;
         if rep.page != page {
@@ -156,22 +172,37 @@ pub fn cp_position(tx: &TxBuilder<'_>, function: Id<Function>, idx: u16, page: I
         rep_cps(tx, &rep)
             .into_iter()
             .find(|c| c.function == function && c.idx == idx)
-            .map(|c| c.pos)
     })
 }
 
-/// Whether `p` lies on the closed segment `a`–`b` (exact: collinear by an `i128` cross product, inside the
-/// bounding box). A point outside ±[`MAX_COORD`] lies on nothing; within the range the differences are
-/// below 2⁵⁴ and their products below 2¹⁰⁸, so the `i128` arithmetic cannot overflow.
-pub fn on_segment(p: Pt2, a: Pt2, b: Pt2) -> bool {
-    if !(point_in_range(p) && point_in_range(a) && point_in_range(b)) {
-        return false;
+/// The path the page draws connection `c` along when it has no stored route (FT-1020, decision log ID-1104):
+/// [`ew_derive::provisional_path`] between its ends on its page, an end at a CP at the CP's [`drawn_cp`] point and
+/// leaving direction, an end at a junction at the junction's point without a direction. `None` when `c` has a stored
+/// route (that route is its path) or no page, or an end is not drawn on its page (a strip segment's terminal point,
+/// whose geometry `ew-derive` holds, included: such a connection is not located).
+pub fn provisional_path_of(tx: &TxBuilder<'_>, c: &Connection) -> Option<Vec<Pt2>> {
+    let page = c.page?;
+    if !c.route.is_empty() {
+        return None;
     }
-    let (px, py) = (i128::from(p.x.0), i128::from(p.y.0));
-    let (ax, ay) = (i128::from(a.x.0), i128::from(a.y.0));
-    let (bx, by) = (i128::from(b.x.0), i128::from(b.y.0));
-    let cross = (bx - ax) * (py - ay) - (by - ay) * (px - ax);
-    cross == 0 && px >= ax.min(bx) && px <= ax.max(bx) && py >= ay.min(by) && py <= ay.max(by)
+    let end = |e: &Endpoint| match e {
+        Endpoint::Cp(function, idx) => drawn_cp(tx, *function, *idx, page).map(|cp| (cp.pos, cp.vertical)),
+        Endpoint::Junction(j) => tx
+            .get::<Junction>(*j)
+            .filter(|j| j.page == page)
+            .map(|j| (j.at, None)),
+        Endpoint::Unknown(_) => None,
+    };
+    let ((a, a_vertical), (b, b_vertical)) = (end(&c.a)?, end(&c.b)?);
+    Some(ew_derive::provisional_path(a, a_vertical, b, b_vertical))
+}
+
+/// Whether `p` lies on the closed segment `a`–`b` (exact: collinear by an `i128` cross product, inside the
+/// bounding box; [`ew_derive::on_segment`], the test of the page's drawn paths). A point outside ±[`MAX_COORD`]
+/// lies on nothing; within the range the differences are below 2⁵⁴ and their products below 2¹⁰⁸, so the `i128`
+/// arithmetic cannot overflow.
+pub fn on_segment(p: Pt2, a: Pt2, b: Pt2) -> bool {
+    point_in_range(p) && point_in_range(a) && point_in_range(b) && ew_derive::on_segment(p, a, b)
 }
 
 /// Where `p` lies on a polyline: `(segment index, Manhattan distance from the segment's start)`, for the

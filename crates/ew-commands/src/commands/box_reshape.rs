@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{BoxCp, BoxSpec, Connection, Dir4, Endpoint, Function, Kind, Page, Representation};
-use ew_units::{Grid, Nm, Orient2, Pt2};
+use ew_units::{Grid, Nm, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -58,17 +58,6 @@ pub struct ReshapeBox {
     pub cps: Option<Vec<BoxCp>>,
 }
 
-/// The unit vector of a direction (`Up` is −y); `None` for an unknown value.
-fn dir_vector(d: &Dir4) -> Option<(i64, i64)> {
-    match d {
-        Dir4::Up => Some((0, -1)),
-        Dir4::Right => Some((1, 0)),
-        Dir4::Down => Some((0, 1)),
-        Dir4::Left => Some((-1, 0)),
-        Dir4::Unknown(_) => None,
-    }
-}
-
 /// The direction of a unit vector.
 fn dir_of_vector(v: (i64, i64)) -> Option<Dir4> {
     match v {
@@ -78,13 +67,6 @@ fn dir_of_vector(v: (i64, i64)) -> Option<Dir4> {
         (-1, 0) => Some(Dir4::Left),
         _ => None,
     }
-}
-
-/// A direction under an orientation.
-fn orient_dir(o: Orient2, d: &Dir4) -> Option<Dir4> {
-    let v = dir_vector(d)?;
-    let p = o.apply(Pt2::new(Nm(v.0), Nm(v.1)));
-    dir_of_vector((p.x.0, p.y.0))
 }
 
 /// The grid coordinate inside `[min(a, b), max(a, b)]` nearest to `target`, ties toward `a`. `a` and `b` are grid
@@ -283,7 +265,7 @@ impl Command for ReshapeBox {
                                 .unwrap_or((0, new_abs[0], new_abs[1]));
                             let q = nearest_on_edge(grid, na, nb, p);
                             let dir = outward(na, nb, area)
-                                .and_then(|d| orient_dir(inverse, &d))
+                                .and_then(|d| ew_derive::oriented_dir(&d, inverse))
                                 .unwrap_or_else(|| cp.dir.clone());
                             notices.push(match edge {
                                 Some((i, ..)) => format!(

@@ -340,6 +340,28 @@ impl Fx {
         }
     }
 
+    /// A terminal device `n` on strip `strip` with designation `designation`, whose plain two-CP function `f` is
+    /// drawn on `page` at `pos` (CP 0 at `pos`, CP 1 1 mm below it).
+    pub fn drawn_terminal(
+        &mut self,
+        n: u128,
+        strip: u128,
+        designation: &str,
+        f: u128,
+        page: u128,
+        pos: [i64; 2],
+    ) {
+        self.device(n, "X", None).with(
+            "terminal",
+            json!({"strip": us(strip), "seq": n as u32, "designation": designation}),
+        );
+        self.push(json!({"$k": "function", "id": us(f), "device": us(n), "def": us(FNDEF)}));
+        self.push(json!({
+            "$k": "representation", "id": us(f + 0x10_000), "functions": [us(f)], "page": us(page),
+            "symbol": us(SYM), "pos": pos,
+        }));
+    }
+
     /// A connection `n` between `a` and `b` on `page`; `extra` members (kind, core, overrides) are merged.
     pub fn conn(&mut self, n: u128, page: u128, a: Ep, b: Ep, extra: &Value) {
         let mut r = json!({"$k": "connection", "id": us(n), "page": us(page), "a": a.json(), "b": b.json()});

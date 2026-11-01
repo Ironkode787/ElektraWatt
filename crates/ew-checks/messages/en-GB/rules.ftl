@@ -464,3 +464,7 @@ rule-ew-term-004 =
 rule-ew-term-005 =
     .title = Rail bonding on a non-PE terminal
     .hint = Clear the rail bonding, or make the terminal a PE terminal.
+
+rule-ew-term-006 =
+    .title = Terminal on a wire it does not join
+    .hint = Connect the terminal into the wire, or move it off the wire.

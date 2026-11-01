@@ -521,6 +521,156 @@ fn place_on_a_wire_splits_it() {
     assert_eq!(second.page, Some(PAGE_102));
 }
 
+/// FT-1020: a wire that a `connect` hint made, so without a route, on page 102. Device A of `SYM_TWO` stands at
+/// (0, 0) (CP 1 at (0, 10 mm), leaving down); device B at `b_at` with the hint from its CP 0 (leaving up) to A's CP 1.
+/// Returns the engine, the wire and the functions of A and B.
+fn hinted_wire(
+    b_at: Pt2,
+) -> (
+    Engine,
+    ew_ids::Id<Connection>,
+    ew_ids::Id<Function>,
+    ew_ids::Id<Function>,
+) {
+    hinted_wire_in(golden_model(), b_at)
+}
+
+/// [`hinted_wire`] in `model`.
+fn hinted_wire_in(
+    model: Model,
+    b_at: Pt2,
+) -> (
+    Engine,
+    ew_ids::Id<Connection>,
+    ew_ids::Id<Function>,
+    ew_ids::Id<Function>,
+) {
+    let mut e = engine(model);
+    let r = e.execute(&place(PAGE_102, pt(0, 0), new_device("K"))).unwrap();
+    let fa: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
+    let mut cmd = place(PAGE_102, b_at, new_device("K"));
+    cmd.connect = vec![ConnectHint {
+        cp: 0,
+        to: EndpointParam::Cp { function: fa, idx: 1 },
+    }];
+    let r = e.execute(&cmd).unwrap();
+    let fb: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
+    let wires: Vec<ew_ids::Id<Connection>> = created(&r, Kind::Connection);
+    assert_eq!(wires.len(), 1);
+    let w = row(&e, wires[0]);
+    assert_eq!(
+        (w.a.clone(), w.b.clone(), w.route.clone()),
+        (cp(fb, 0), cp(fa, 1), Vec::new()),
+        "the hint's wire has no route"
+    );
+    (e, wires[0], fa, fb)
+}
+
+/// FT-1020 (decision log ID-1104): `place` dropped a symbol (its two CPs at `at` and `at` + (0, 10 mm)) on the hinted
+/// wire `wire`; the wire is split as FR-CON-008 says. The part at the wire's `a` end keeps the wire's ID, number,
+/// kind and overrides and ends at the CP met first from `a` (CP 1, the lower one); the other part is new, unnumbered,
+/// and runs from CP 0 to the wire's `b` end. A wire without a route splits into parts without one (the page draws
+/// each between its ends).
+fn assert_split_at_the_drop(e: &Engine, r: &Receipt, wire: ew_ids::Id<Connection>, before: &Connection) {
+    let f: ew_ids::Id<Function> = created(r, Kind::Function)[0];
+    let first = row(e, wire);
+    let mut expected = before.clone();
+    expected.b = cp(f, 1);
+    expected.v = first.v;
+    assert_eq!(*first, expected);
+    let wires: Vec<ew_ids::Id<Connection>> = created(r, Kind::Connection);
+    assert_eq!(wires.len(), 1, "one new part");
+    let second = row(e, wires[0]);
+    let expected = Connection {
+        id: wires[0],
+        v: 1,
+        a: cp(f, 0),
+        b: before.b.clone(),
+        page: before.page,
+        route: Vec::new(),
+        kind: before.kind.clone(),
+        overrides: before.overrides.clone(),
+        number: NumberSpec::Unassigned,
+        source_ref: None,
+        extra: ew_schema::Extra::new(),
+    };
+    assert_eq!(*second, expected);
+}
+
+#[test]
+fn ft1020_a_two_pin_symbol_dropped_on_a_wire_without_a_route_splits_it() {
+    // The wire runs straight up from B's CP 0 at (0, 6G) to A's CP 1 at (0, 10 mm).
+    let (mut e, wire, _, _) = hinted_wire(pt(0, 6 * G));
+    let before = (*row(&e, wire)).clone();
+    let r = e
+        .execute(&place(PAGE_102, pt(0, 2 * G), new_device("F")))
+        .unwrap();
+    assert_split_at_the_drop(&e, &r, wire, &before);
+}
+
+#[test]
+fn ft1020_a_terminal_dropped_on_a_wire_without_a_route_splits_it() {
+    let (mut e, wire, _, _) = hinted_wire(pt(0, 6 * G));
+    let before = (*row(&e, wire)).clone();
+    let terminal = PlaceTarget::NewTerminal {
+        strip: DEV_X1031,
+        designation: ident("9"),
+        seq: None,
+        part: None,
+    };
+    let r = e.execute(&place(PAGE_102, pt(0, 2 * G), terminal)).unwrap();
+    assert_split_at_the_drop(&e, &r, wire, &before);
+}
+
+#[test]
+fn ft1020_a_wire_without_a_route_splits_only_where_the_page_draws_it() {
+    // B at (4G, 6G): its CP 0 leaves up, so the page draws the wire up from (4G, 6G) to the corner (4G, 10 mm), then
+    // left to A's CP 1 at (0, 10 mm) (the corner of `ew-scene`'s provisional route).
+    let (mut e, wire, _, _) = hinted_wire(pt(4 * G, 6 * G));
+    let before = (*row(&e, wire)).clone();
+    // On the other corner's leg (x = 0): not on the drawn wire, so nothing is split.
+    let r = e
+        .execute(&place(PAGE_102, pt(0, 2 * G), new_device("F")))
+        .unwrap();
+    assert!(created::<Connection>(&r, Kind::Connection).is_empty());
+    assert_eq!(*row(&e, wire), before);
+    // On the drawn leg (x = 4G): split.
+    let (mut e, wire, _, _) = hinted_wire(pt(4 * G, 6 * G));
+    let r = e
+        .execute(&place(PAGE_102, pt(4 * G, 2 * G), new_device("F")))
+        .unwrap();
+    assert_split_at_the_drop(&e, &r, wire, &before);
+}
+
+#[test]
+fn ft1020_a_routed_wire_drawn_on_the_line_of_a_wire_without_a_route_is_split_first() {
+    // A routed wire along x = 0 from (0, 10 mm) to (0, 6G), with an ID above every minted one, under the hinted wire.
+    let routed: ew_ids::Id<Connection> = id(u128::MAX - 1);
+    let mut original = connection(routed, Some(PAGE_102), cp(FN_102G1, 0), cp(FN_T1, 1));
+    original.route = vec![pt(0, MM10), pt(0, 6 * G)];
+    let model = golden_with(|r| r.push(Record::Connection(original.clone())));
+    let (mut e, hinted, _, _) = hinted_wire_in(model, pt(0, 6 * G));
+    assert!(hinted < routed);
+    let before = (*row(&e, hinted)).clone();
+    let r = e
+        .execute(&place(PAGE_102, pt(0, 2 * G), new_device("F")))
+        .unwrap();
+    let f: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
+    assert_eq!(*row(&e, hinted), before, "the wire without a route stays");
+    let first = row(&e, routed);
+    assert_eq!(
+        (first.b.clone(), first.route.clone()),
+        (cp(f, 0), vec![pt(0, MM10), pt(0, 2 * G)])
+    );
+    let wires: Vec<ew_ids::Id<Connection>> = created(&r, Kind::Connection);
+    assert_eq!(wires.len(), 1);
+    let second = row(&e, wires[0]);
+    assert_eq!(
+        (second.a.clone(), second.b.clone(), second.route.clone()),
+        (cp(f, 1), cp(FN_T1, 1), vec![pt(0, 2 * G + MM10), pt(0, 6 * G)])
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // rep.move
 

@@ -527,6 +527,9 @@ stays FT-18. A script therefore gets the mouse's route by calling the same funct
 command that routes. **Normaliser 7 (connection split) works on routes**, so it splits a connection that has a stored
 route, which every connection drawn with the Wire tool has; a route-less connection has no route to test, and the
 route editor's first edit stores its drawn polyline (WP-S2.04 §8.4). The as-built text follows each part's delivery.
+*Amended by decision log ID-1104 (FT-1020, cycle 45):* normaliser 7 tests a route-less connection on the provisional
+path `ew-scene` draws it along (`ew_derive::provisional_path`), so a symbol dropped on the wire of a `connect` hint is
+split into it; the two parts stay route-less, and a routed connection drawn on the same line is split first.
 
 ### 3.3 Placing symbols and assigning devices
 

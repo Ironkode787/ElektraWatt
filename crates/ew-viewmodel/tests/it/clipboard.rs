@@ -242,17 +242,18 @@ fn cb4_copy_and_paste_of_102f1_is_102f3_with_its_part_and_no_wire() {
     let reps = shell.canvas().unwrap().page().tables.reps.len();
     done(&mut shell, "edit.paste_clip", json!({}));
     let target = sheet(&shell, rep_pos(&shell, &rep));
-    // Six grid steps down: an empty spot below the original.
+    // Twelve grid steps right: an empty spot beside the original, on no wire. (Six steps down, the copy's pins would lie
+    // on -102F1's own wire to the junction below it, which normaliser 7 splits into the copy, FT-1020.)
     done(
         &mut shell,
         "canvas.pointer",
-        at((target.0, target.1 + 6 * STEP), json!({})),
+        at((target.0 + 12 * STEP, target.1), json!({})),
     );
     let rev = shell.revision();
     done(
         &mut shell,
         "canvas.press",
-        at((target.0, target.1 + 6 * STEP), json!({})),
+        at((target.0 + 12 * STEP, target.1), json!({})),
     );
     assert_eq!(shell.revision(), rev.map(|r| r + 1), "one commit");
     assert_eq!(shell.tool().name(), "select");

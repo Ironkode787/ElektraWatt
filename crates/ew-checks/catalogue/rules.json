@@ -3114,6 +3114,46 @@
       "supersedes": [],
       "title": "Rail bonding on a non-PE terminal",
       "waivable": true
+    },
+    {
+      "code": "001006",
+      "id": "EW-TERM-006",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "open_item": null,
+      "pack": "EW-TERM",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Terminal on a wire it does not join",
+      "waivable": true
     }
   ],
   "schemes": [

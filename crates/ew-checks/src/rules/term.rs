@@ -7,8 +7,14 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{CaseSensitivity, natural_cmp};
-use ew_derive::ew_schema::{ConnectionKind, Device, DeviceState, Endpoint, Kind, Side, TagCase};
-use ew_derive::{DeriveNote, DeviceTag, FunctionCps, Q, RailTerminalOf, StripBridges};
+use ew_derive::ew_schema::{
+    Connection, ConnectionKind, Device, DeviceState, Endpoint, Function, Kind, Side, TagCase,
+};
+use ew_derive::ew_units::Pt2;
+use ew_derive::{
+    DeriveNote, DeviceTag, EndpointKey, FunctionCps, PhysicalWiresOf, PotentialPartition, Q, RailTerminalOf,
+    StripBridges, WireNumbers, cp_point, drawn_path, on_segment,
+};
 
 use crate::engine::touched_ids;
 use crate::finding::{Finding, Fingerprint, Severity, Target};
@@ -607,6 +613,193 @@ impl Rule for BridgeGroupInvalid {
         }
         out
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-TERM-006
+
+/// EW-TERM-006 "Terminal on a wire it does not join" (doc 15 §4.4): conflict, o r, warning, page.
+pub const TERMINAL_ON_UNJOINED_WIRE: RuleMeta = RuleMeta {
+    id: "EW-TERM-006",
+    code: "001006",
+    pack: "EW-TERM",
+    title: "Terminal on a wire it does not join",
+    kind: RuleKind::Conflict,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Page,
+    supersedes: &[],
+    release: Release::Mvp,
+};
+
+/// The axis-parallel segments of the page's wires on one line: `(start, end, wire)` along the line, `start ≤ end`.
+type LineSegments = Vec<(i64, i64, Id<Connection>)>;
+
+/// EW-TERM-006 (FT-1020, decision log ID-1104): a connection point of a terminal, drawn on the page by the terminal's
+/// own symbol, lies on the path a wire or cable core of the page is drawn along (`ew_derive::drawn_path`: its stored
+/// route, else the provisional path between its ends), and that wire does not end at the terminal: the page shows the
+/// terminal in the wire, but it is not connected. One finding per terminal and wire: targets the terminal and the wire,
+/// no discriminator, shown on the page. The points a strip segment draws for its strip's terminals are not read.
+///
+/// Bounded work: the wires' horizontal and vertical segments are kept by their line (the y of a horizontal one, the x
+/// of a vertical one), so a CP is compared only with the segments on its own two lines; other segments are tested one
+/// by one.
+#[derive(Clone, Copy, Debug)]
+pub struct TerminalOnUnjoinedWire;
+
+impl Rule for TerminalOnUnjoinedWire {
+    fn meta(&self) -> &'static RuleMeta {
+        &TERMINAL_ON_UNJOINED_WIRE
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Page(page) = *scope else {
+            return Vec::new();
+        };
+        // The CPs the terminals' own representations draw on the page.
+        let mut functions: BTreeSet<Id<Function>> = BTreeSet::new();
+        for r in q.idx().reps_by_page(page) {
+            if let Some(rep) = q.reps().get(r) {
+                functions.extend(rep.functions.iter().copied());
+            }
+        }
+        let mut points: Vec<(Pt2, Id<Device>)> = Vec::new();
+        for f in functions {
+            let Some(terminal) = q.functions().get(f).and_then(|f| f.device) else {
+                continue;
+            };
+            if !q
+                .devices()
+                .get(terminal)
+                .is_some_and(|d| d.aspects.terminal.is_some())
+            {
+                continue;
+            }
+            for c in q.get::<FunctionCps>(f).iter() {
+                if let Some(at) = cp_point(q, f, c.idx, page) {
+                    points.push((at, terminal));
+                }
+            }
+        }
+        if points.is_empty() {
+            return Vec::new();
+        }
+        // The drawn segments of the page's wires and cores, by line.
+        let mut vertical: BTreeMap<i64, LineSegments> = BTreeMap::new();
+        let mut horizontal: BTreeMap<i64, LineSegments> = BTreeMap::new();
+        let mut other: Vec<(Pt2, Pt2, Id<Connection>)> = Vec::new();
+        for id in q.idx().connections_by_page(page) {
+            let Some(c) = q.connections().get(id) else {
+                continue;
+            };
+            if !matches!(c.kind, ConnectionKind::Wire | ConnectionKind::Core(_)) {
+                continue;
+            }
+            let Some(path) = drawn_path(q, c, page) else {
+                continue;
+            };
+            for s in path.windows(2) {
+                let (a, b) = (s[0], s[1]);
+                if a == b {
+                    continue;
+                }
+                if a.x == b.x {
+                    vertical
+                        .entry(a.x.0)
+                        .or_default()
+                        .push((a.y.0.min(b.y.0), a.y.0.max(b.y.0), id));
+                } else if a.y == b.y {
+                    horizontal
+                        .entry(a.y.0)
+                        .or_default()
+                        .push((a.x.0.min(b.x.0), a.x.0.max(b.x.0), id));
+                } else {
+                    other.push((a, b, id));
+                }
+            }
+        }
+        for line in vertical.values_mut().chain(horizontal.values_mut()) {
+            line.sort_unstable();
+        }
+        // The segments of one line that hold coordinate `v`: those starting at or before it and ending at or after it.
+        let holding = |line: Option<&LineSegments>, v: i64| -> Vec<Id<Connection>> {
+            line.map(|segments| {
+                segments
+                    .iter()
+                    .take_while(|s| s.0 <= v)
+                    .filter(|s| v <= s.1)
+                    .map(|s| s.2)
+                    .collect()
+            })
+            .unwrap_or_default()
+        };
+        let mut hits: BTreeSet<(Id<Device>, Id<Connection>)> = BTreeSet::new();
+        for (at, terminal) in points {
+            let mut on = holding(vertical.get(&at.x.0), at.y.0);
+            on.extend(holding(horizontal.get(&at.y.0), at.x.0));
+            on.extend(other.iter().filter(|s| on_segment(at, s.0, s.1)).map(|s| s.2));
+            for id in on {
+                if hits.contains(&(terminal, id)) {
+                    continue;
+                }
+                let Some(c) = q.connections().get(id) else {
+                    continue;
+                };
+                let joins = [&c.a, &c.b].into_iter().any(|e| {
+                    matches!(e, Endpoint::Cp(f, _)
+                        if q.functions().get(*f).and_then(|f| f.device) == Some(terminal))
+                });
+                if !joins {
+                    hits.insert((terminal, id));
+                }
+            }
+        }
+        hits.into_iter()
+            .filter_map(|(terminal, id)| {
+                let aspect = q.devices().get(terminal)?.aspects.terminal.clone()?;
+                let subject = format!(
+                    "{}:{}",
+                    full_tag(q, aspect.strip, "strip"),
+                    aspect.designation.as_str()
+                );
+                let wire = wire_number(q, id).unwrap_or_else(|| "?".to_owned());
+                Some(
+                    Finding::new(
+                        &TERMINAL_ON_UNJOINED_WIRE,
+                        [
+                            Target::new(Kind::Device, terminal),
+                            Target::new(Kind::Connection, id),
+                        ],
+                        "",
+                        subject.clone(),
+                        format!(
+                            "terminal {subject} lies on wire {wire} without joining it; connect it to the wire or move it"
+                        ),
+                    )
+                    .on_page(page),
+                )
+            })
+            .collect()
+    }
+}
+
+/// The printed number of the physical wire connection `id` belongs to (`102.3`), or `None` (a cable core, a wire on
+/// no potential).
+fn wire_number(q: &Q, id: Id<Connection>) -> Option<String> {
+    let c = q.connections().get(id)?;
+    let partition = q.get::<PotentialPartition>(());
+    let potential = [&c.a, &c.b]
+        .into_iter()
+        .filter_map(EndpointKey::of)
+        .find_map(|e| partition.potential_at(e).map(|p| p.id))?;
+    let wire = q
+        .get::<PhysicalWiresOf>(potential)
+        .wires
+        .iter()
+        .find(|w| w.constituents.contains(&id))
+        .map(|w| w.id)?;
+    q.get::<WireNumbers>(()).number(wire).map(|n| n.label.clone())
 }
 
 /// One more than the largest designation that is a plain decimal number, or 1 when there is none.

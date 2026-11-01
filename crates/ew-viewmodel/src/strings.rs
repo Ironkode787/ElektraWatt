@@ -479,10 +479,6 @@ pub const TEXTS: &[(&str, &str)] = &[
         "Tab picks the segment, the arrow keys move it, Enter commits; Escape cancels",
     ),
     (
-        "hint-place-needs-route",
-        "Give this wire a route first (Edit route)",
-    ),
-    (
         "announce-wire-routing",
         "Wire: routing from {0}. Click a connection point; Backspace removes the last bend; Escape cancels",
     ),

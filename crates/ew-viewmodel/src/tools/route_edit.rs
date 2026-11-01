@@ -11,7 +11,7 @@
 //! **Keyboard** ([`RouteEditTool`], `tool.route_edit` on one selected connection): Tab cycles the movable segments,
 //! the grid cursor's row or column is the segment's new position, Enter commits. On a route-less connection the
 //! first edit starts from its drawn polyline, so the commit stores it with the moved segment; Enter without a move
-//! stores the drawn polyline as it is (the remedy of §8.3: "give this wire a route first").
+//! stores the drawn polyline as it is.
 //!
 //! The first and last segments never move, so the route's ends stay on their connection points.
 

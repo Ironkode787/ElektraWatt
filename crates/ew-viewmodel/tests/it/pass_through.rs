@@ -662,3 +662,62 @@ fn ft759_a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {
         "{toast}"
     );
 }
+
+/// FT-1020 (decision log ID-1104): the wire autoconnect draws when a coil is placed under a switch has no route (a
+/// `connect` hint), and the page draws it straight from the coil up to the switch; a terminal dropped on it is split
+/// into it as into a routed wire, and the toast says so.
+#[test]
+fn ft1020_a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
+    let tmp = Tmp::new("ft1020-drop");
+    let mut s = tmp.shell_in(Mode::Headless, true, "103");
+    done(&mut s, "view.zoom_actual", json!({}));
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.contact-no@qet10", "letter": "S"}),
+        (60, 20),
+    );
+    // The coil with autoconnect: its A1 connects up to the switch's 14.
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+    );
+    let p = page_point(&s, (60, 40));
+    let sheet = s.canvas().unwrap().page().snapper.page_to_sheet(p);
+    done(&mut s, "cursor.set", at(sheet, json!({})));
+    done(&mut s, "canvas.activate", json!({}));
+    done(&mut s, "tool.select", json!({}));
+    let wired = tables(&s);
+    let hinted: Vec<&TableConnection> = wired
+        .connections
+        .iter()
+        .filter(|c| ends(&wired, c) == ["-103K1:A1".to_owned(), "-103S1:14".to_owned()])
+        .collect();
+    assert_eq!(hinted.len(), 1, "one wire from the coil to the switch");
+    assert!(!hinted[0].stored_route, "the hint's wire has no route");
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "terminal_designation": "71"}),
+        (60, 30),
+    );
+    let after = tables(&s);
+    let mut split: Vec<[String; 2]> = after
+        .connections
+        .iter()
+        .map(|c| ends(&after, c))
+        .filter(|e| e.iter().any(|l| l.starts_with("-X1031:71/")))
+        .collect();
+    split.sort();
+    assert_eq!(
+        split,
+        [
+            ["-103K1:A1".to_owned(), "-X1031:71/a".to_owned()],
+            ["-X1031:71/b".to_owned(), "-103S1:14".to_owned()],
+        ],
+        "the wire is split at the terminal, the coil's part keeping the wire"
+    );
+    assert_eq!(
+        state(&s)["toast"]["text"].as_str(),
+        Some("Placed -X1031 terminal 71 at 103-D9, connected into the wire it was dropped on")
+    );
+}

@@ -584,6 +584,9 @@ move of the ghost) and by Select's drag (shown only, never committed in this pac
    replaced by the split of W: no hint is sent for them, because normaliser 7 splits W when the symbol lands on its
    route (FR-CON-008, doc 06 §5.3); the split is drawn as two dashed stubs at the CPs and counted as one proposal. On a
    route-less W no split is proposed and the status hint reads "Give this wire a route first (Edit route)".
+   *Amended by decision log ID-1104 (FT-1020, cycle 45):* normaliser 7 splits a route-less W along the provisional
+   path the page draws it on, so a route-less W gets the same split proposal and the hint is gone; where a routed and
+   a route-less W are drawn on one line, the routed one's split is proposed, as normaliser 7 splits it first.
 4. Ties by CP ID (v5) (as built by FT-439: in the page tables' CP order, natural label, its bytes, (y, x), ID; a
    move's ghost CPs in that order too); `Key(NextProposal)` (Tab) cycles each ray to its next hit further along,
    wrapping.

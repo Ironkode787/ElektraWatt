@@ -9,6 +9,7 @@ use common::*;
 use ew_checks::{CheckMode, DRAFTING, MIGRATION, PRE_DELIVERY, Scope, prevent, run};
 use ew_derive::Q;
 use ew_derive::ew_ids::Id;
+use ew_derive::ew_schema::{AnyId, Kind};
 use serde_json::json;
 
 const STRIP: u128 = 0x100;
@@ -380,4 +381,99 @@ fn integrity_items_join_the_counts_in_release_mode_only() {
     assert!(release.rules.iter().any(|r| r.id == "EW-CORE-005"));
     let online = run(&Q::new(&m), &DRAFTING, CheckMode::Online).with_integrity(items());
     assert_eq!(online.exit_code(), 0);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-TERM-006
+
+const TERM_STRIP: u128 = 0x300;
+const TERM_T: u128 = 0x301;
+const TERM_FN: u128 = 0x320;
+const TERM_K1: u128 = 0x10;
+const TERM_K2: u128 = 0x40;
+const TERM_WIRE: u128 = 0x900;
+
+/// Devices -K16 (function 0x10, CPs at (0, 16 mm) and (0, 17 mm)) and -K64 (function 0x40, CPs at (0, 64 mm) and
+/// (0, 65 mm)) on P1, strip -1X1 with terminal 5 whose function is drawn at `terminal_at` (CP 1 1 mm below CP 0), and
+/// the wires `wires`, each `(id, a, b, route)`.
+fn term006_fx(terminal_at: [i64; 2], wires: &[(u128, Ep, Ep, Vec<[i64; 2]>)]) -> Fx {
+    let mut fx = Fx::base();
+    fx.func(TERM_K1, P1);
+    fx.func(TERM_K2, P1);
+    fx.device(TERM_STRIP, "X", Some(1)).with("strip", json!({}));
+    fx.drawn_terminal(TERM_T, TERM_STRIP, "5", TERM_FN, P1, terminal_at);
+    for (id, a, b, route) in wires {
+        let extra = if route.is_empty() {
+            json!({})
+        } else {
+            json!({ "route": route })
+        };
+        fx.conn(*id, P1, *a, *b, &extra);
+    }
+    fx
+}
+
+/// FT-1020 (decision log ID-1104): a terminal whose connection points lie on a wire it does not join is one warning,
+/// on a wire without a route (drawn straight between its ends) as on a routed one; once the wire is split at the
+/// terminal, or with the terminal beside it, there is none.
+#[test]
+fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
+    let k1 = Ep::Cp(TERM_K1, 1);
+    let k2 = Ep::Cp(TERM_K2, 0);
+    let over = |route: Vec<[i64; 2]>| term006_fx([0, 32_000_000], &[(TERM_WIRE, k1, k2, route)]);
+    let reported = |c: &str, f: &[ew_checks::Finding]| {
+        assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+        assert_eq!(
+            (
+                f[0].code,
+                f[0].severity,
+                f[0].subject.as_str(),
+                f[0].message.as_str()
+            ),
+            (
+                "001006",
+                ew_checks::Severity::Warning,
+                "-1X1:5",
+                "terminal -1X1:5 lies on wire 1.1 without joining it; connect it to the wire or move it"
+            ),
+            "case {c}"
+        );
+        let mut targets: Vec<(Kind, AnyId)> = f[0].targets.iter().map(|t| (t.kind, t.id)).collect();
+        targets.sort();
+        assert_eq!(
+            targets,
+            [(Kind::Device, uid(TERM_T)), (Kind::Connection, uid(TERM_WIRE))],
+            "case {c}"
+        );
+    };
+    let split = term006_fx(
+        [0, 32_000_000],
+        &[
+            (TERM_WIRE, k1, Ep::Cp(TERM_FN, 0), Vec::new()),
+            (0x901, Ep::Cp(TERM_FN, 1), k2, Vec::new()),
+        ],
+    );
+    let beside = term006_fx([4_000_000, 32_000_000], &[(TERM_WIRE, k1, k2, Vec::new())]);
+    rule_table(
+        "EW-TERM-006",
+        vec![
+            Case::reports("a wire without a route", over(Vec::new()).build(), reported),
+            Case::reports(
+                "a routed wire",
+                over(vec![[0, 17_000_000], [0, 64_000_000]]).build(),
+                reported,
+            ),
+            Case::silent("the wire split at the terminal", split.build()),
+            Case::silent("the terminal beside the wire", beside.build()),
+        ],
+    );
+    // The release run reports it too.
+    let m = over(Vec::new()).build();
+    let report = run(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release);
+    assert_eq!(
+        report.findings.iter().filter(|f| f.rule == "EW-TERM-006").count(),
+        1,
+        "{:#?}",
+        report.findings
+    );
 }

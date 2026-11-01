@@ -16,9 +16,9 @@
 //! along, wrapping.
 //!
 //! **The split.** Two ghost CPs that lie on one segment of a connection W and face its two ends (their directions
-//! along the segment, pointing apart) are the split of W: with a stored route they are one proposal and send no hint,
-//! because normaliser 7 splits W when the symbol lands on its route (FR-CON-008, doc 06 §5.3); on a route-less W no
-//! split is proposed and the status hint asks for a route first.
+//! along the segment, pointing apart) are the split of W: one proposal that sends no hint, because normaliser 7
+//! splits W when the symbol lands on the path the page draws it along (FR-CON-008, doc 06 §5.3), its stored route or,
+//! for a route-less W, its provisional path (FT-1020, decision log ID-1104).
 
 use ew_api::geometry::Dir;
 use ew_api::output::ew_dl::EntityRef;
@@ -57,7 +57,7 @@ pub enum ProposalTarget {
         /// Its label (`1X1:1`).
         label: String,
     },
-    /// The split of a routed connection by two ghost CPs (no hint: normaliser 7 splits it).
+    /// The split of a connection by two ghost CPs (no hint: normaliser 7 splits it).
     Split {
         /// The connection.
         connection: EntityRef,
@@ -75,13 +75,11 @@ pub struct Proposal {
     pub target: ProposalTarget,
 }
 
-/// The proposals of a ghost, and whether a split was not proposed because the connection has no route.
+/// The proposals of a ghost.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct Proposals {
     /// The proposals in ascending symbol CP index; a split counts once.
     pub list: Vec<Proposal>,
-    /// Two ghost CPs face the ends of a route-less connection (the hint: give it a route first).
-    pub needs_route: bool,
 }
 
 impl Proposals {
@@ -242,11 +240,11 @@ fn ray_hits(
     hits
 }
 
-/// The splits of the ghost: pairs of ghost CPs on one segment of a connection facing its two ends. Returns the
-/// proposals of the routed ones and whether a route-less one was met.
-fn splits(cps: &[GhostCp], tables: &PageTables, grid: GridMap) -> (Vec<Proposal>, bool) {
-    let mut out = Vec::new();
-    let mut needs_route = false;
+/// The splits of the ghost: pairs of ghost CPs on one segment of a connection facing its two ends, those of the
+/// connections with a stored route first (normaliser 7 splits a routed connection before a route-less one drawn on
+/// the same line).
+fn splits(cps: &[GhostCp], tables: &PageTables, grid: GridMap) -> Vec<Proposal> {
+    let mut out: Vec<(bool, Proposal)> = Vec::new();
     for c in &tables.connections {
         let line = dedup(&c.polyline);
         for w in line.windows(2) {
@@ -283,27 +281,27 @@ fn splits(cps: &[GhostCp], tables: &PageTables, grid: GridMap) -> (Vec<Proposal>
                     if !faces {
                         continue;
                     }
-                    if c.stored_route {
-                        let (first, second) = if p.symbol_cp <= q.symbol_cp {
-                            (p, q)
-                        } else {
-                            (q, p)
-                        };
-                        out.push(Proposal {
+                    let (first, second) = if p.symbol_cp <= q.symbol_cp {
+                        (p, q)
+                    } else {
+                        (q, p)
+                    };
+                    out.push((
+                        !c.stored_route,
+                        Proposal {
                             cp: first.clone(),
                             target: ProposalTarget::Split {
                                 connection: EntityRef(c.id),
                                 other: (second.symbol_cp, second.designation.clone(), second.at),
                             },
-                        });
-                    } else {
-                        needs_route = true;
-                    }
+                        },
+                    ));
                 }
             }
         }
     }
-    (out, needs_route)
+    out.sort_by_key(|(route_less, _)| *route_less);
+    out.into_iter().map(|(_, p)| p).collect()
 }
 
 /// The proposals of `cps` on the page of `tables` (see the module documentation): `own` are the representations of
@@ -317,7 +315,7 @@ pub fn proposals(
     cycle: usize,
 ) -> Proposals {
     let grid = GridMap::of(tables);
-    let (split_list, needs_route) = splits(cps, tables, grid);
+    let split_list = splits(cps, tables, grid);
     let in_split = |c: &GhostCp| {
         split_list.iter().any(|p| {
             p.cp.symbol_cp == c.symbol_cp
@@ -347,7 +345,7 @@ pub fn proposals(
             target: hits[cycle % hits.len()].clone(),
         });
     }
-    Proposals { list, needs_route }
+    Proposals { list }
 }
 
 /// The ghost CPs of the representations `reps` of the page moved by the page displacements `delta(rep)`: their table
@@ -529,10 +527,30 @@ mod tests {
         assert!(matches!(&p.list[0].target, ProposalTarget::Split { .. }));
         assert!(p.hints().is_empty());
         assert_eq!(p.lines(), vec![("\"1\" \"2\"".to_owned(), None)]);
-        // Route-less: no split, and the hint asks for a route.
+        // Route-less: the same split along the drawn polyline (FT-1020: normaliser 7 splits it there too).
         t.connections[0].stored_route = false;
+        assert_eq!(proposals(&g, &t, &[], AREA, 0), p);
+    }
+
+    #[test]
+    fn a_routed_connection_is_split_before_a_route_less_one_on_the_same_line() {
+        let mut t = tables();
+        for (n, stored_route) in [(0x600, false), (0x601, true)] {
+            t.connections.push(TableConnection {
+                id: uuid(n),
+                a: TableEnd::Junction { id: uuid(1) },
+                b: TableEnd::Junction { id: uuid(2) },
+                kind: "wire".into(),
+                polyline: vec![(0, 0), (0, 20 * G)],
+                stored_route,
+            });
+        }
+        let g = [ghost(0, (0, 8 * G), Dir::Up), ghost(1, (0, 12 * G), Dir::Down)];
         let p = proposals(&g, &t, &[], AREA, 0);
-        assert!(p.list.is_empty());
-        assert!(p.needs_route);
+        assert_eq!(p.list.len(), 1, "{p:?}");
+        assert!(
+            matches!(&p.list[0].target, ProposalTarget::Split { connection, .. } if *connection == EntityRef(uuid(0x601))),
+            "{p:?}"
+        );
     }
 }
