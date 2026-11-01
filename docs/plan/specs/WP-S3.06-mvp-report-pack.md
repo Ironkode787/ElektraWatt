@@ -291,6 +291,36 @@ change; if one does, the lane stops.
 - **BL-6** Targeted checks for `ew-reports`, `ew-scene`, `ew-api` and `ew-viewmodel`; the snapshot gate and both blind
   selftests.
 
+**Rulings** (cycle 44, project owner (delegated), ID-1079; code lines at `d9f50aa5`):
+1. **A folio item and its span.** `LinkRef` (`rowset.rs:509`, `{column, target}`) gains `item: Option<u16>`: `None`
+   links the whole cell, `Some(n)` the n-th `PageRef` of a `Cell::Folios` list. `LinkTarget` (`rowset.rs:518`) gains
+   `Rep(Id<Representation>)`. A pure `ew_reports::render::folios_spans` returns the printed text and the byte span of
+   every page it prints; `folios` (`render.rs:146`) returns its text, so the printer and the link boxes cannot
+   disagree. A page inside a run ("203–206": 204, 205) has no span and no link; the two ends of a run each get their
+   own. Spans count "–" as 3 bytes; a test pins row 21's.
+2. **The Folios links of `parts_summary`:** one per page of the row, `Rep(r)` with `r` the smallest-ID representation
+   on that page of the first source device that has one there, else `Page(p)` (902 for a layout object). The rows
+   read the model's tables, never `PageOrder` (doc 09 §3.6).
+3. **One span-box function.** The computation in `item_carriers` (`ew-scene` `page.rs:1612`) moves into one
+   `pub(crate)` function that both the cross-reference texts and `lower_table` call; the cross-reference boxes stay
+   byte-equal.
+4. **Resolution never draws a dead link:** `MainRep(d)` with no main representation, and `Rep(r)` of a missing
+   representation, draw no link. Embedded blocks draw none (§1).
+5. **The link count is computed, never hand-written.** AC-13's title drops the number ("PDF structure equals
+   expected/pdf (outline, links, page labels, fonts, SHA-256)", `checks.rs:196`, and D-07's copy at `:1822`); its
+   pass text prints "{n} links (64 cross-reference items, 28 PLC overview rows, {m} report row links)" with `m`
+   counted from the page views. `checks.rs:1483` (`r.links != 64 + 28`) and its failure text (`:1485`, "expected 92
+   and 0"), `page_output.rs:186` (`64 + 28`) and `bin/ew/tests/cli.rs:925` (`": 36 pages, 92 links"`) compare with
+   the same sum.
+6. **`parts_list`'s tag** is its `device` column (`parts.rs:151`, `Cell::Tag(device)` at `:173`): it links `MainRep`.
+7. **Order:** part 3 runs on a tip that holds WP-S4.02 part 5 (both rewrite `pdf/sha256.txt` and
+   `acceptance_headless.md`) and re-blesses from its bytes; row 26 then links 902 with rows 22 to 25. The count in
+   `golden/J-E-2416/README.md:604` is part of the golden change; the documents outside `golden/` that quote it
+   (doc 20, the headless tutorial, the WP-S3.07 spec, ADR-0015) are the design pass's.
+8. **Files beyond §9.1,** each for its item only: `crates/ew-reports/src/render.rs` (1), `crates/ew-scene/src/page.rs`
+   (3), `crates/ew-scene/src/embedded.rs` (the new `TableRow.links` type), the test files of 5, the new
+   `crates/ew-api/tests/it/report_links.rs`, and the `TableRow` sites in `crates/ew-scene/tests/it/`.
+
 ## 8. Neighbours and who owns what
 
 | Neighbour | It owns | This package |

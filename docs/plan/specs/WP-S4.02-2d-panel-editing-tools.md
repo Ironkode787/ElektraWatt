@@ -336,6 +336,35 @@ its reason; kittest flows for PS-1 to PS-6. **PS-8** Window check at both sizes:
 the Create enclosure dialog, the draw-duct tool mid-gesture, a placement's Properties; no truncation at the floor.
 **PS-9** Targeted checks for `ew-api`, `ew-viewmodel`, `ew-ui`.
 
+**Rulings** (cycle 44, project owner (delegated), ID-1078; code lines at `d9f50aa5`):
+1. **Draw's group** is a new `Group::PanelLayout`: word `panel-layout`, label key `group-panel-layout`, text "Layout",
+   after Connect. View's group keeps its word and text (`Group::Layout => "layout"`, `command_bar.rs:216`;
+   `("group-layout", "Layout")`, `strings.rs:980`); the tab tells the two apart ("Draw ▸ Layout", "View ▸ Layout").
+2. **CB8 stays strict.** The lane adds the Layout group (Rail, Duct, Auto-fill rail) to the command row of
+   `docs/design/assets/design-language-mockup.html`, which CB8 parses; the rest of FP-5 stays open.
+3. **A layout row commits through one compiled command.** `EditRoute` has `FieldsSet`, `SettingsMember` and
+   `ReadOnly` (`fields.rs:295`). A new `EditRoute::Command { command }`, and `Session::layout_edit(&LayoutEdit) ->
+   Result<AnyCommand, LayoutEditError>` in a new `crates/ew-api/src/output/layout_edit.rs`, compile one row's text
+   into exactly one D5 to D7 command, as `Session::strip_edit` does for a terminal's Group row (`strip_edit.rs:254`).
+   The shell's `commit_text` routes a `Command` row there, as it routes `GROUP_ROW` (`shell/properties.rs:861`).
+   Never `fields.set` (D12).
+4. **The rail ghost** is a new `Ghost::Line { from, to, kind }`; `Ghost` has no line variant (`tools/mod.rs:244`).
+5. **Snap radius:** 15 px on screen, D4's, for both draw tools.
+6. **The Profile row** calls `ew_derive::layout::fit::mount_label` (`fit.rs:99`); `ew-api` gains no re-export.
+7. **The Create enclosure dialog's part list is built at run time:** `FormField`'s choices are
+   `&'static [&'static str]` (`shell/creation.rs:190`), so the dialog gets a run-time choice list in `shell/**`.
+8. **PS-1 runs on fixtures:** part 6 is not built (`EW-GEN-ENC-1` occurs only in §10). One fixture project holds an
+   enclosure part and its plate part (the project path); one fixture system-library part goes through the same
+   `copies` builder as `starter_embed_part` (`editing.rs:544`) and `missing_copies` (`:638`), with the closure of the
+   plate part its enclosure section names (the library path). `copies` of `layout.enclosure.create_from_part` is a
+   list with a serde default (`layout.rs:2432`).
+9. **PS-5's "FT-840's commands"** are `layout.space.edit`, `layout.enclosure.edit` and `layout.surface.edit`
+   (`layout.rs:2615`, `:2661`, `:2698`).
+10. **Files beyond §11.1,** each for its item only: `crates/ew-viewmodel/src/command_bar.rs` (1), `tools/select.rs`
+    (carrier dragging), `describe.rs` and `script.rs` (4's arms), the new `layout_edit.rs` of 3 with its tests, the
+    mockup's Draw command row (2). While part 5 runs beside it, `crates/ew-api/src/output/panel.rs` is part 5's: part 4
+    reads `panel_tables` and edits nothing there; a field appended to `PanelTables` is reported.
+
 ## 9. Part 5: end brackets in the outputs
 
 **Scope.** D13, FT-204's row 26, the rest of AC-33. **0.6 pw.**
