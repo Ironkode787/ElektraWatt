@@ -96,8 +96,9 @@ checked on every build. All 30 architecture decision records are listed in the [
   [work breakdown](docs/plan/02-work-packages.md) with the follow-up tasks of every delivered package.
 - The [reference project](docs/design/20-golden-project.md) and the [quality, security and release](docs/design/18-quality-security-release.md)
   document, which define what the tests and the CI prove.
-- [CLAUDE.md](CLAUDE.md) and [.claude/agents](.claude/agents): the model-routing setup for AI-assisted work (Opus for
-  lead decisions, Sonnet for specified work, Haiku for mechanical tasks) and the testing policy.
+- [CLAUDE.md](CLAUDE.md), [.claude/orchestration.md](.claude/orchestration.md) and [.claude/agents](.claude/agents):
+  the setup for AI-assisted work (an orchestrating session with builder, reviewer, checker and lookup agents) and the
+  testing policy.
 
 ## Branches
 

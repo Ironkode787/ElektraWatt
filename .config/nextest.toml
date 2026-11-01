@@ -30,6 +30,16 @@ path = "junit.xml"
 # still runs the acceptance tests and `cargo nextest run -p ew-testkit` the fuzzer. `cargo xtask acceptance` runs
 # the full gate (`gate`, the raster comparison) on its own.
 
+# Used by agent lanes in their edit loop and hand-back checks (workflow redesign, owner, 2026-11-01): only failures
+# and the summary are printed, so a lane never pipes the output and never re-runs a test to see a cut-off failure.
+[profile.lane]
+retries = 0
+fail-fast = false
+status-level = "fail"
+final-status-level = "fail"
+failure-output = "final"
+success-output = "never"
+
 # Used by the CI test jobs: same behaviour, plus a JUnit report at target/nextest/ci/junit.xml.
 [profile.ci]
 retries = 0
