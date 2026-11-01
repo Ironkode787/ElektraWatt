@@ -641,7 +641,7 @@ fn rep_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 }
 
 /// `rep.move` with `items` alone: a page item or structure box moves by a delta; refused across pages, with an
-/// item that does not exist, or with nothing named.
+/// item that does not exist, with a surface view, or with nothing named.
 fn rep_move_items(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let mut all: Vec<(Value, Value)> = live.page_items.clone();
     all.extend(live.structure_boxes.iter().cloned());
@@ -663,9 +663,13 @@ fn rep_move_items(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         _ => {
             let (item, _) = rng.pick(&all)?.clone();
             let delta = [rng.range(-2, 2) * MOVE_UNIT, rng.range(-2, 2) * MOVE_UNIT];
+            let step = Step::cmd("rep.move", json!({"reps": [], "items": [item], "delta": delta}));
+            // Refused: a surface view is set by `page.surface_view.set`, never moved with a selection.
+            if live.fixed_items.contains(&item) {
+                return Some(step.refuse());
+            }
             Some(
-                Step::cmd("rep.move", json!({"reps": [], "items": [item], "delta": delta}))
-                    .accept()
+                step.accept()
                     .counts(&[(Table::PageItems, 0), (Table::StructureBoxes, 0)]),
             )
         }

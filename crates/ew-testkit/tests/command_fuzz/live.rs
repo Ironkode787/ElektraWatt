@@ -349,9 +349,11 @@ pub struct Live {
     pub revisions: Vec<RevInfo>,
     /// Whether a revision has a release record (the typed `release` member, FT-302).
     pub any_release: bool,
-    /// WP-S2.04 part 4a: `(item, page)` of every page item that `rep.move` can move (a typed variant), and of every
-    /// structure box.
+    /// WP-S2.04 part 4a: `(item, page)` of every page item of a typed variant, and of every structure box.
     pub page_items: Vec<(Value, Value)>,
+    /// Every page item that `rep.move` refuses to move: a surface view or an unknown variant ([`movable_item`]); a
+    /// move of a surface view of `page_items` is an expected refusal.
+    pub fixed_items: Vec<Value>,
     pub structure_boxes: Vec<(Value, Value)>,
     /// The connections drawn on each page that has one: `(page, connections)`.
     pub page_connections: Vec<(Value, Vec<Value>)>,
@@ -364,6 +366,16 @@ pub struct Live {
     pub contact_fndefs: Vec<Value>,
     /// WP-S4.01 part 1: the layout records.
     pub layout: LayoutLive,
+}
+
+/// Whether `rep.move` moves a page item of this kind with `items` (`translate_item` of `ew-commands`, which is
+/// crate-private): a surface view is set by `page.surface_view.set`, never moved with a selection, and an unknown
+/// variant is kept verbatim. The fuzzer's deltas stay far inside the format's coordinate range, so the kind decides.
+pub fn movable_item(kind: &ew_schema::PageItemKind) -> bool {
+    !matches!(
+        kind,
+        ew_schema::PageItemKind::SurfaceView(_) | ew_schema::PageItemKind::Unknown(_)
+    )
 }
 
 /// A rail of the layout: its ID and length in nanometres (an invalid path: length 0).
@@ -1138,6 +1150,12 @@ impl Live {
                 .iter()
                 .filter(|(_, i)| !matches!(i.kind, ew_schema::PageItemKind::Unknown(_)))
                 .map(|(id, i)| (id_json(id), id_json(i.page)))
+                .collect(),
+            fixed_items: q
+                .page_items()
+                .iter()
+                .filter(|(_, i)| !movable_item(&i.kind))
+                .map(|(id, _)| id_json(id))
                 .collect(),
             structure_boxes: q
                 .structure_boxes()

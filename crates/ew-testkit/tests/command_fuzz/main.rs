@@ -1201,6 +1201,42 @@ fn command_sequence_route_repeated_vertex_regression_passes() {
     assert!(stats.committed() > 0);
 }
 
+/// Cycle 42 `fuzz-smoke` finding (CI run 41255625529): seed 13, step 2, moved the surface view of a panel-layout
+/// page of Golden A with `rep.move`'s `items`; the product refuses that (a surface view is set by
+/// `page.surface_view.set`, never moved with a selection) while the model expected it to commit. The `items` arm now
+/// expects the refusal ([`live::movable_item`]), so the run passes and counts the refused `rep.move`.
+#[test]
+fn command_sequence_rep_move_surface_view_regression_passes() {
+    let bytes = std::fs::read(repo().join("fuzz/regressions/command_sequence/rep-move-surface-view"))
+        .expect("the preserved rep.move input");
+    assert_eq!(bytes.len(), 172);
+    let seed = u64::from_le_bytes(bytes[..8].try_into().expect("eight seed bytes"));
+    let steps = 1 + usize::from(bytes[8]) % 8;
+    assert_eq!(seed, 13);
+    assert_eq!(steps, 8);
+    let stats = run_fuzz_tape(
+        seed,
+        &bytes[9..],
+        steps,
+        &Cadence {
+            sample_every: 0,
+            check_every: 0,
+            verify_every: 0,
+            full_end: false,
+            save_weight: 1,
+            import_weight: 0,
+            deep: false,
+        },
+    );
+    assert!(stats.committed() > 0);
+    assert!(
+        stats.refused.get("rep.move").copied().unwrap_or(0) > 0,
+        "the move of the surface view is refused: {:?}",
+        stats.refused
+    );
+    assert!(stats.expected_refusals > 0);
+}
+
 /// The placement and arrangement steps of WP-S2.04 on Golden A: the `from_part` and `new_terminal` targets of
 /// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
 /// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind
