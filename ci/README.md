@@ -206,6 +206,12 @@ the blind self-tests) in one order, and reports `symbols-qet10 --check` and the 
 writes nothing and fails when a step would rewrite a file (the merged-tip verify runs it); `--merge` adds the allow-list
 review gates. The outputs that a step rewrites whole carry `merge=regen` in `.gitattributes`.
 
+`cargo xtask lane-check --base <rev>` (`xtask/src/lane_check.rs`) is an agent lane's hand-back sequence: from the diff
+against `<rev>` it runs fmt, clippy and doc of the changed crates, one nextest run over them, their direct dependants and
+the additions of `.claude/agents/lane.md`, `settle --check`, the triggered policy checks and the fuzz workspace check,
+prints only failures and a summary, and writes `target/lane-check.json`. It is bounded to direct dependants; the
+transitive closure is `cargo xtask affected`, at the merge point.
+
 The licence-boundary check that 18 §5.2 lists under CI-PR-09 is part of `check-licence-map` and therefore runs in
 `legal-docs`, next to the licence map it shares its policy file with; the dependency-rule part of the same
 boundary (no permissive crate depends on a GPL workspace crate, `ew-import-qet` confinement) stays in `check-deps`

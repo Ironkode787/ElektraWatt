@@ -222,7 +222,7 @@ pub(crate) fn members_of(metadata: &cargo_metadata::Metadata) -> Result<Members>
 }
 
 /// Runs git in `root` and returns its standard output.
-fn git_output(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
+pub(crate) fn git_output(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
     let output = Command::new("git")
         .args(args)
         .current_dir(root)
@@ -257,7 +257,7 @@ pub(crate) fn changed_files(root: &Path, merge_base: &str) -> Result<Vec<String>
 }
 
 /// The paths of git's `-z` output (NUL-terminated, verbatim).
-fn nul_paths(stdout: &[u8]) -> Vec<String> {
+pub(crate) fn nul_paths(stdout: &[u8]) -> Vec<String> {
     stdout
         .split(|b| *b == 0)
         .filter(|p| !p.is_empty())

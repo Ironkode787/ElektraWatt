@@ -22,6 +22,7 @@ mod docs_gen;
 mod features;
 mod governance;
 mod icons;
+mod lane_check;
 mod licence;
 mod ordered;
 mod perf;
@@ -119,6 +120,14 @@ commands:
                        to the verify's replay); --merge adds check-disallowed-methods --bless and
                        check-ordered-collections --bless, printing each list's change per crate and the sites
                        added. One line per step: unchanged | rewrote <files> | would rewrite | FAILED | skipped
+  lane-check --base <rev> [--only <step>] [--plan] [--warm [-p <pkg>]...]
+                       a lane's hand-back checks (.claude/agents/lane.md), chosen from the diff against the
+                       merge base of <rev>: fmt, clippy and doc of the changed crates, one nextest run over them,
+                       their direct dependants and lane.md's triggers, settle --check, the policy checks and the
+                       fuzz workspace check, each by its trigger. Prints the failed steps' logs whole and one line
+                       per step (ok | FAILED | skipped (<why>)); logs in target/lane-check/, a summary in
+                       target/lane-check.json. --plan prints the commands and runs nothing; --only runs one step;
+                       --warm builds the nextest step's test binaries (cargo test --no-run), -p names the set
   api-guard [--base <rev>]
                        the API stability guard (NFR-MAINT-10, CI-PR-14, WP-S1.22 D14): compares the published-
                        surface snapshots (the command schemas, bin/ew/api/cli.json, the result schemas, the query
@@ -290,6 +299,7 @@ fn main() -> ExitCode {
         },
         "affected" => affected::run(&args[1..], &workspace_root()),
         "settle" => settle::run(&args[1..], &workspace_root()),
+        "lane-check" => lane_check::run(&args[1..], &workspace_root()),
         "api-guard" => api_guard::run(&args[1..], &workspace_root()),
         "fuzz-smoke-table" => match args.get(1).map(String::as_str) {
             None => workflows::run_fuzz_smoke_table(&workspace_root(), false),

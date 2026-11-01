@@ -44,26 +44,23 @@ how every lane works.
 Run `cargo xtask lane-check --base <base>` and quote its summary. After a failure, fix it and re-run only the failed
 step (`--only <step>`).
 
-Until `lane-check` exists, run this sequence once. After a failure, re-run only the failed step.
-1. `cargo fmt -p <crate>` for each crate in the diff. This formats the code; it is not a check.
-2. `cargo clippy <your -p set> --all-targets --all-features -- -D warnings`.
-3. `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps -p <each changed crate>`.
-4. One nextest run over your set plus the dependants:
-   - **a changed public item:** the tests of its dependants;
-   - **the scene, rendered output, the shell, `ew-ui`, commands, checks or the CLI:** add `-p elektrawatt -p ew`;
-   - **commands or check rules:** `-p ew-testkit --test command_fuzz --test golden_dsl`;
-   - **rendered output or Golden A's findings:** `-p ew-ui --test snapshots`. Inspect each `.diff.png` before you run
+It runs these steps, each only when the diff selects it, and `--plan` prints the selection and the commands:
+1. `fmt`: `cargo fmt` over the changed crates. This formats the code; it is not a check.
+2. `clippy`: the changed crates, `--all-targets --all-features -- -D warnings`.
+3. `doc`: `cargo doc --no-deps` over the changed crates, with `RUSTDOCFLAGS="-D warnings"`.
+4. `nextest`: one run over the changed crates, their direct dependants and these additions:
+   - **the scene, rendered output, the shell, `ew-ui`, commands, checks or the CLI:** `elektrawatt` and `ew`;
+   - **commands or check rules:** `ew-testkit`'s `command_fuzz` and `golden_dsl`;
+   - **rendered output or Golden A's findings:** `ew-ui`'s `snapshots`. Inspect each `.diff.png` before you run
      with `EW_BLESS=1`.
-5. `cargo xtask settle --check --base <base>`; quote its summary. It covers rustfmt and the generated files.
-6. The policy checks your diff touches:
-   - a changed `Cargo.toml`: `check-deps` and `check-features`;
-   - a new file: `check-licence-map`;
-   - a new allow attribute or raw-model read: `check-raw-read` and `check-disallowed-methods`;
-   - a new test file or `--test` command: `check-test-layout`;
-   - a new or changed dependency: `cargo deny --locked check` and `cargo vet --locked`. An exemption needs a ruling:
-     stop.
-7. **The fuzz workspace,** if you changed `crates/ew-testkit/tests/command_fuzz/**`, a fuzzed crate's dependencies or
-   `fuzz/Cargo.toml`: `cargo check --manifest-path fuzz/Cargo.toml --all-targets --locked`.
+5. `settle`: `settle --check --base <base>`. It covers rustfmt and the generated files.
+6. `policy`: the policy checks the diff touches (dependencies, new files, `.rs` files, tests). An exemption for
+   `cargo deny` or `cargo vet` needs a ruling: stop.
+7. `fuzz`: the fuzz workspace's `cargo check`, when `command_fuzz`, `fuzz/` or a fuzzed crate's `Cargo.toml` changed.
+
+A failed step's log is printed whole and kept in `target/lane-check/<step>.log`. At the start of a lane,
+`cargo xtask lane-check --base <base> --warm -p <A> -p <B>` builds your package set's test binaries in the
+background.
 
 **Not in lanes.** The orchestrator runs these at the merge point:
 - the workspace suite, `cargo xtask ci` and default-features runs;

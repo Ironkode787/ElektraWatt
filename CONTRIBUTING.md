@@ -29,6 +29,8 @@ the full per-PR CI set and how to reproduce each job locally.
 Run `cargo xtask settle` before you push: it formats the changed Rust files and regenerates the derived reference files
 your change reaches (schemas, keymaps, the book's generated pages, the fuzz table, the self-test recordings, ...);
 `cargo xtask settle --check` is what the verify runs.
+An agent lane runs its hand-back checks with `cargo xtask lane-check --base <rev>`, which picks fmt, clippy, doc,
+one bounded nextest run, `settle --check` and the policy checks from the diff (`--plan` prints them).
 
 A new integration test goes into its crate's one test binary: `tests/it/<name>.rs`, declared with `mod <name>;` in
 `tests/it/main.rs` (`cargo xtask check-test-layout` names any other top-level file under `tests/`).
