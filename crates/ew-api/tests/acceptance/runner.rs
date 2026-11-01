@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The acceptance runner: opens the golden project with the oracle on, evaluates the M1 criteria of doc 20 §21
-//! (AC-01 … AC-14, AC-18, AC-20) and the defect regression rows of §19 that gate at M1, and returns the
-//! [`Report`]. The checks live in `checks.rs`; this file builds their context.
+//! (AC-01 … AC-14, AC-18, AC-20), AC-37's SVG half and the defect regression rows of §19 that gate at M1, and
+//! returns the [`Report`]. The checks live in `checks.rs`; this file builds their context.
 //!
 //! **What a check compares with.** Doc 20's expected outputs where they are committed files
 //! (`expected/text`, `expected/png`, `expected/geometry`, `expected/pdf`, `expected/csv`), through the

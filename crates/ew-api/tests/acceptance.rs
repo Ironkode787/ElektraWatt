@@ -3,8 +3,8 @@
 
 //! The acceptance runner (WP-S6.01, WP-S7.01; doc 20 §21, §22; doc 18 §3.10) for gate M1, headless.
 //!
-//! It opens the golden project with the oracle on and evaluates AC-01 … AC-14, AC-18, AC-20 and the §19 rows
-//! gated M1 (`acceptance/checks.rs`), each as a named entry that passes, fails or is not applicable with a
+//! It opens the golden project with the oracle on and evaluates AC-01 … AC-14, AC-18, AC-20, AC-37's SVG half and
+//! the §19 rows gated M1 (`acceptance/checks.rs`), each as a named entry that passes, fails or is not applicable with a
 //! one-line reason (`acceptance/report.rs`). The comparisons with committed files reuse the functions of
 //! `tests/page_output.rs` and `tests/connectivity_reports.rs` (text CSV, frame geometry, PNG, PDF structure and
 //! SHA-256, report rows); they live in `tests/page_output/` and `tests/golden_common/` and are included here.
@@ -51,7 +51,7 @@ use report::Status;
 use runner::{Options, evaluated_rows, run, run_shard};
 
 /// The (pass, fail, not_built, not_applicable) counts of the headless report; updated with the committed report.
-const EXPECTED: (usize, usize, usize, usize) = (99, 0, 0, 6);
+const EXPECTED: (usize, usize, usize, usize) = (100, 0, 0, 6);
 
 /// The committed report of the headless run without the raster comparison (`expected/acceptance_headless.md`):
 /// the ordinary tests run the runner and compare its rows with this file, which pins the statuses and reasons
@@ -101,8 +101,8 @@ fn nightly_the_headless_report_equals_the_committed_report_on_every_read() {
 /// The shards of the headless report: the entry indexes each one evaluates (an `entry_from` row goes with the
 /// entry it copies). The SQL pairs (AC-08 to AC-11) and AC-15's SQL paths share the SQL projection, whose
 /// pre-delivery check on the oracle session takes about a minute in a debug build, so they are one shard; the
-/// criteria AC-01 to AC-13 another; AC-18, AC-20, AC-14, the rest of AC-15, AC-16, AC-17, AC-39 and the §19
-/// rows the third (open-ended, so that an entry added at the end is evaluated). Every row is evaluated by
+/// criteria AC-01 to AC-13 another; AC-18, AC-20, AC-14, the rest of AC-15, AC-16, AC-17, AC-31, AC-37, AC-39 and
+/// the §19 rows the third (open-ended, so that an entry added at the end is evaluated). Every row is evaluated by
 /// exactly one shard (`the_headless_report_shards_cover_the_committed_report`); moving an entry only moves the
 /// work between shards.
 #[allow(clippy::single_range_in_vec_init)] // a shard is a list of index ranges; the first has one

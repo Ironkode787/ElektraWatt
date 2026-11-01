@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The checks of the acceptance runner (doc 20 §21 AC-01 … AC-14, AC-18, AC-20; §19 rows gated M1).
+//! The checks of the acceptance runner (doc 20 §21 AC-01 … AC-14, AC-18, AC-20, AC-37's SVG half; §19 rows gated
+//! M1).
 //!
 //! Every entry says what it compared and what is left out. A criterion whose feature does not exist yet is
 //! `not_built` (it blocks the gate like a failure); one that cannot be evaluated headless or at this delivery
@@ -313,6 +314,11 @@ pub fn all(r: &mut Runner) {
         "AC-31",
         "EW-BUS-004: no error with -3X1 On and one info for the external end, an error with -3X1 Off; JE-N1000-03 is the master and absent from the BOM",
         ac31,
+    );
+    r.entry(
+        "AC-37",
+        "SVG half: every page keeps its text as <text> and embeds the font faces it names",
+        ac37_svg,
     );
     r.entry(
         "AC-39",
@@ -3780,6 +3786,246 @@ fn ac14_parallel(c: &Ctx) -> Outcome {
     } else {
         fail(list(wrong, 3))
     }
+}
+
+/// AC-37, SVG half (MVP; FR-OUT-013; WP-S3.07 SV-1, SV-3, FT-233): the SVG export keeps every printed glyph run
+/// as `<text>` (the runs of AC-14), and every page's `<style>` declares exactly the faces its `<text>` elements
+/// name, each as an embedded subset that loads as a font (`ew_text::FontSet`, through skrifa) with that family's
+/// name and draws every character of the page's texts in that face with a glyph whose outline is the bundled
+/// face's (shaped through the subset's own `cmap`, no `.notdef`). The DXF half (AC1015 of folios 101–106,
+/// re-import within 0.01 mm; 1.0) is WP-S3.19's and is not checked here.
+fn ac37_svg(c: &Ctx) -> Outcome {
+    let options = svg_options();
+    let out = match ew_export::svg(&c.pdf_pages, &options, None, Parallelism::Serial) {
+        Ok(o) => o,
+        Err(e) => return fail(format!("the SVG export failed: {e}")),
+    };
+    let runs: usize = c.text.values().map(|csv| runs(csv).len()).sum();
+    let mut wrong = Vec::new();
+    let r = &out.report;
+    if r.texts != runs || !r.missing_fonts.is_empty() || !r.named_fonts.is_empty() {
+        wrong.push(format!(
+            "{} <text> elements for {runs} printed runs, {} missing faces, {} faces named only",
+            r.texts,
+            r.missing_fonts.len(),
+            r.named_fonts.len()
+        ));
+    }
+    let faces: BTreeMap<(String, u16, bool), &[u8]> = options
+        .faces
+        .values()
+        .filter_map(|f| Some(((f.family.clone(), f.weight, f.italic), f.data.as_deref()?)))
+        .collect();
+    let mut texts = 0;
+    let mut rules = 0;
+    let mut folio_103 = Vec::new();
+    for f in &out.files {
+        let named = svg_texts(&f.text);
+        texts += named.len();
+        let declared = match svg_font_faces(&f.text) {
+            Ok(d) => d,
+            Err(e) => {
+                wrong.push(format!("{}: {e}", f.name));
+                continue;
+            }
+        };
+        rules += declared.len();
+        let names: BTreeSet<&(String, u16, bool)> = named.iter().map(|(k, _)| k).collect();
+        let decl: Vec<&(String, u16, bool)> = declared.iter().map(|(k, _)| k).collect();
+        if decl.iter().copied().collect::<BTreeSet<_>>() != names || decl.len() != names.len() {
+            wrong.push(format!(
+                "{} declares {} for the faces {}",
+                f.name,
+                face_list(decl.iter().copied()),
+                face_list(names.iter().copied())
+            ));
+            continue;
+        }
+        if f.name == "103.svg" {
+            folio_103 = decl.iter().map(|k| face_name(k)).collect();
+        }
+        for (key, subset) in &declared {
+            let Some(face) = faces.get(key) else {
+                wrong.push(format!("{} declares {}, which is not a bundled face", f.name, face_name(key)));
+                continue;
+            };
+            let chars: BTreeSet<char> = named
+                .iter()
+                .filter(|(k, _)| k == key)
+                .flat_map(|(_, t)| t.chars())
+                .filter(|c| !c.is_whitespace())
+                .collect();
+            if let Err(e) = subset_draws(subset, face, &key.0, &chars) {
+                wrong.push(format!("{}, {}: {e}", f.name, face_name(key)));
+            }
+        }
+    }
+    if texts != r.texts {
+        wrong.push(format!("{texts} <text> elements read back, {} written", r.texts));
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "{} SVG files keep the {} printed glyph runs as <text> (AC-14's); each page's <style> declares exactly the faces its <text> elements name ({rules} @font-face subsets over the pages; folio 103: {}), each subset loads as a font of its family and draws every character of its page's texts with the bundled face's outline through its own cmap; no face is named only. The DXF half (AC1015, 1.0) is WP-S3.19's and not checked here",
+            out.files.len(),
+            r.texts,
+            folio_103.join(", ")
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// A face as (family, CSS weight, italic) in words: "Noto Sans 400".
+fn face_name(k: &(String, u16, bool)) -> String {
+    format!("{} {}{}", k.0, k.1, if k.2 { " italic" } else { "" })
+}
+
+fn face_list<'a>(faces: impl Iterator<Item = &'a (String, u16, bool)>) -> String {
+    let all: Vec<String> = faces.map(face_name).collect();
+    if all.is_empty() { "none".to_owned() } else { all.join(", ") }
+}
+
+/// The `<text>` elements of an SVG page: the face each names (family without the generic fallback, weight, italic)
+/// and its text, unescaped.
+fn svg_texts(doc: &str) -> Vec<((String, u16, bool), String)> {
+    doc.split("<text")
+        .skip(1)
+        .filter_map(|el| {
+            let end = el.find('>')?;
+            let open = &el[..end];
+            let attr = |name: &str| {
+                let key = format!(" {name}=\"");
+                let v = &open[open.find(&key)? + key.len()..];
+                Some(v[..v.find('"')?].to_owned())
+            };
+            let family = attr("font-family")?;
+            let family = family.strip_suffix(", sans-serif").unwrap_or(&family).to_owned();
+            let weight = attr("font-weight").map_or(Some(400), |w| w.parse().ok())?;
+            let italic = attr("font-style").is_some_and(|s| s == "italic");
+            let body = &el[end + 1..el.find("</text>")?];
+            let body = body
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&apos;", "'")
+                .replace("&amp;", "&");
+            Some(((family, weight, italic), body))
+        })
+        .collect()
+}
+
+/// The `@font-face` rules of an SVG page's `<style>`, each in the form of WP-S3.07 D3, with the subset decoded.
+fn svg_font_faces(doc: &str) -> Result<Vec<((String, u16, bool), Vec<u8>)>, String> {
+    let (Some(a), Some(b)) = (doc.find("<style>"), doc.find("</style>")) else {
+        return Err("no <style>".to_owned());
+    };
+    let mut out = Vec::new();
+    for rule in doc[a + 7..b].lines().filter(|l| l.starts_with("@font-face")) {
+        let parsed = (|| {
+            let rest = rule.strip_prefix("@font-face { font-family: \"")?;
+            let (family, rest) = rest.split_once("\"; font-weight: ")?;
+            let (weight, rest) = rest.split_once("; font-style: ")?;
+            let (slope, rest) = rest.split_once("; src: url(data:font/ttf;base64,")?;
+            let data = rest.strip_suffix(") format(\"truetype\"); }")?;
+            let italic = match slope {
+                "normal" => false,
+                "italic" => true,
+                _ => return None,
+            };
+            Some(((family.to_owned(), weight.parse().ok()?, italic), unbase64(data)?))
+        })();
+        out.push(parsed.ok_or_else(|| format!("an @font-face rule not in D3's form: {:.80}", rule))?);
+    }
+    Ok(out)
+}
+
+/// RFC 4648 base64 (padded, no line breaks) back to bytes; `None` for any other character.
+fn unbase64(s: &str) -> Option<Vec<u8>> {
+    let value = |c: u8| match c {
+        b'A'..=b'Z' => Some(c - b'A'),
+        b'a'..=b'z' => Some(c - b'a' + 26),
+        b'0'..=b'9' => Some(c - b'0' + 52),
+        b'+' => Some(62),
+        b'/' => Some(63),
+        _ => None,
+    };
+    if s.len() % 4 != 0 {
+        return None;
+    }
+    let mut out = Vec::with_capacity(s.len() / 4 * 3);
+    for chunk in s.as_bytes().chunks(4) {
+        let pad = chunk.iter().rev().take_while(|&&c| c == b'=').count();
+        let mut n = 0u32;
+        for &c in chunk {
+            n = (n << 6) | if c == b'=' { 0 } else { u32::from(value(c)?) };
+        }
+        out.extend_from_slice(&n.to_be_bytes()[1..4 - pad.min(2)]);
+    }
+    Some(out)
+}
+
+/// The outline record of every glyph of a TrueType font (from its `loca` and `glyf`), by glyph ID.
+fn glyph_records(font: &[u8]) -> Option<Vec<&[u8]>> {
+    let word = |d: &[u8], at: usize| Some(u32::from_be_bytes(d.get(at..at + 4)?.try_into().ok()?));
+    let half = |d: &[u8], at: usize| Some(u16::from_be_bytes(d.get(at..at + 2)?.try_into().ok()?));
+    let table = |tag: &[u8; 4]| {
+        (0..usize::from(half(font, 4)?)).find_map(|i| {
+            let r = 12 + 16 * i;
+            (font.get(r..r + 4)? == tag).then(|| {
+                let (o, l) = (word(font, r + 8)? as usize, word(font, r + 12)? as usize);
+                font.get(o..o + l)
+            })?
+        })
+    };
+    let (head, maxp, loca, glyf) = (table(b"head")?, table(b"maxp")?, table(b"loca")?, table(b"glyf")?);
+    let long = half(head, 50)? == 1;
+    let at = |i: usize| {
+        if long {
+            word(loca, 4 * i).map(|v| v as usize)
+        } else {
+            half(loca, 2 * i).map(|v| 2 * usize::from(v))
+        }
+    };
+    (0..usize::from(half(maxp, 4)?))
+        .map(|i| glyf.get(at(i)?..at(i + 1)?))
+        .collect()
+}
+
+/// Whether the subset loads as a font of `family` and draws every character of `chars`, shaped through the
+/// subset's own `cmap` (no symbol fallback), with the outline record of the bundled `face`.
+fn subset_draws(subset: &[u8], face: &[u8], family: &str, chars: &BTreeSet<char>) -> Result<(), String> {
+    let set = ew_text::FontSet::new(vec![ew_text::FontSource::from_vec(
+        subset.to_vec(),
+        ew_text::Family::Default,
+        ew_text::Weight::Regular,
+        false,
+    )])
+    .map_err(|e| format!("the subset does not load: {e:?}"))?;
+    let info = set.faces().next().ok_or("the subset has no face")?;
+    if info.family_name != family {
+        return Err(format!("the subset's family is {}", info.family_name));
+    }
+    let text: String = chars.iter().collect();
+    let shaped = set.shape(&text, &ew_text::TextStyle::regular(ew_dl::ew_units::Nm::from_mm(3)), None);
+    if !shaped.missing.is_empty() {
+        return Err(format!("no glyph for {:?}", shaped.missing));
+    }
+    let (ours, theirs) = (
+        glyph_records(subset).ok_or("the subset's glyphs do not read")?,
+        glyph_records(face).ok_or("the face's glyphs do not read")?,
+    );
+    for g in &shaped.run.glyphs {
+        let i = g.id as usize;
+        match (ours.get(i), theirs.get(i)) {
+            _ if g.id == 0 => return Err("a character draws .notdef".to_owned()),
+            (Some(a), Some(b)) if a == b && !a.is_empty() => {}
+            (Some(a), Some(b)) if a == b && a.is_empty() => {
+                return Err(format!("glyph {} has no outline in the face", g.id));
+            }
+            _ => return Err(format!("glyph {} is not the face's outline", g.id)),
+        }
+    }
+    Ok(())
 }
 
 /// The open findings of `rule` in a pre-delivery release run of a session.
