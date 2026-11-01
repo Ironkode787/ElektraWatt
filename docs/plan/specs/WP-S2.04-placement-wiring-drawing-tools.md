@@ -490,7 +490,7 @@ Label keys and English texts in `ew_viewmodel::strings`; kinds: `Command` for th
 | `rep.exchange` | Edit ▸ Change symbol… | — | canvas | optional `symbol` |
 
 A `Command` action is disabled with its reason on a read-only project or a generated page (doc 16 §17 item 9) and on a
-page type that has no wire or symbol tools (doc 06 §2.2). `clears_banner` gains every action above.
+page type that has no wire or symbol tools (doc 06 §2.2). `clears_banner` gains every action above. *As built (cycle 43; decision log ID-1071):* the `clears_banner` list is gone; the banner exception is the `keeps_banner` flag of the action's `ACTIONS` entry, so a new action clears the banner unless its entry sets the flag.
 
 ### 7.7 Transcript and describe of part 1
 

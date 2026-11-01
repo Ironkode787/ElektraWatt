@@ -374,7 +374,7 @@ The Window menu is new (doc 16 §3.2): the four tab actions, `tab.focus_other` a
 item per tab of the focused group, dispatching `tab.activate`). Every new action is in the palette (hidden ones are not,
 as today). A canvas view action and `canvas.pointer` with `group` act on that group's active tab; `canvas.pointer` on one
 group clears the pointer of the other. `clears_banner` gains every new action except `nav.goto`, `page.goto` and
-`tab.open` (navigation must not dismiss a banner; the three that can fail with a message clear it as before).
+`tab.open` (navigation must not dismiss a banner; the three that can fail with a message clear it as before). *As built (cycle 43; decision log ID-1071):* the `clears_banner` list is gone; the banner exception is the `keeps_banner` flag of the action's `ACTIONS` entry, so a new action clears the banner unless its entry sets the flag.
 
 **Pointer input** added to WP-S2.02's mapping: a primary click on a link is `nav.follow`; a primary press anywhere in a
 group's canvas dispatches `ui.focus` for that group first; the mouse's back and forward buttons are `nav.back` and

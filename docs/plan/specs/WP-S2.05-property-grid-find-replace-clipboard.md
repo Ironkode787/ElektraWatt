@@ -557,7 +557,7 @@ Context `Properties` is new (registry `Context::Properties`).
 | `preview.apply`, `preview.cancel` | the card's buttons | Ctrl+Enter, Escape | properties | — |
 | `toast.undo`, `toast.dismiss` | the toast's buttons | — | global | — |
 
-A `Command` action is disabled with its reason on a read-only project. `clears_banner` gains every action above.
+A `Command` action is disabled with its reason on a read-only project. `clears_banner` gains every action above. *As built (cycle 43; decision log ID-1071):* the `clears_banner` list is gone; the banner exception is the `keeps_banner` flag of the action's `ACTIONS` entry, so a new action clears the banner unless its entry sets the flag.
 `focus` gains the value `"properties"`.
 
 ### 6.11 Transcript and describe of part 1
