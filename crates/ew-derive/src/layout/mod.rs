@@ -71,8 +71,8 @@ pub use queries::{
     primary_part, rail_extent, space_of_location,
 };
 pub use snap::{
-    BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, end_gap, free_length, min_gap,
-    next_fit, resolve, runs, start_gap,
+    BracketRole, BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, end_gap, free_length,
+    min_gap, next_fit, resolve, runs, start_gap,
 };
 
 #[cfg(test)]

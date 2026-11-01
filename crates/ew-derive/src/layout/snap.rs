@@ -128,7 +128,16 @@ pub fn runs(items: &[RailItem]) -> Vec<Vec<usize>> {
     out
 }
 
-/// One end bracket over items: its interval along the axis and the index of the strip it is attributed to.
+/// Where an end bracket stands relative to the strip it is attributed to (D3).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum BracketRole {
+    /// At the start of a run, before its first strip.
+    RunStart,
+    /// After its strip.
+    After,
+}
+
+/// One end bracket over items: its interval along the axis, the index of the strip it is attributed to and its role.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct BracketSpan {
     /// Where the bracket starts.
@@ -137,9 +146,11 @@ pub struct BracketSpan {
     pub s1: i128,
     /// The index into the items of the strip it is attributed to.
     pub item: usize,
+    /// Before its run or after its strip (C44-p3#4: a bracket of zero length cannot tell it from its interval).
+    pub role: BracketRole,
 }
 
-/// The end brackets of `items` (D3), sorted by `(s0, s1, item)`: per run, one at its start `[s0 − w, s0]` attributed
+/// The end brackets of `items` (D3), sorted by `(s0, s1, item, role)`: per run, one at its start `[s0 − w, s0]` attributed
 /// to its first strip, and one after each strip `[s1, s1 + w]` attributed to it; a strip that declares no bracket part
 /// (`w` is `None`) contributes none. The same rule as `group_accessories`, over any arrangement, so a tool can show the
 /// brackets of a candidate.
@@ -155,6 +166,7 @@ pub fn brackets(items: &[RailItem]) -> Vec<BracketSpan> {
                 s0: f.s0.saturating_sub(f.bw()),
                 s1: f.s0,
                 item: first,
+                role: BracketRole::RunStart,
             });
         }
         for &k in &run {
@@ -164,6 +176,7 @@ pub fn brackets(items: &[RailItem]) -> Vec<BracketSpan> {
                     s0: s.s1,
                     s1: s.s1.saturating_add(s.bw()),
                     item: k,
+                    role: BracketRole::After,
                 });
             }
         }

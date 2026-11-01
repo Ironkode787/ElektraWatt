@@ -15,7 +15,7 @@ use ew_ids::Id;
 use ew_schema::{Carrier, CarrierRef, Device, LibCopy, MountingSurface, Part, PartKind, PartRef, Placement};
 
 use super::queries::{RailOccupancy, places_strip};
-use super::snap::{RailItem, brackets};
+use super::snap::{BracketRole, RailItem, brackets};
 use crate::Q;
 use crate::query::{Policy, Query};
 
@@ -139,6 +139,8 @@ pub struct Bracket {
     pub strip: Id<Device>,
     /// The strip's placement.
     pub placement: Id<Placement>,
+    /// Before its run or after its strip, as [`brackets`] made it (C44-p3#4).
+    pub role: BracketRole,
 }
 
 /// The end brackets of one rail, the value of [`GroupAccessories`]: the brackets in rail order (it dereferences to
@@ -206,6 +208,7 @@ impl Query for GroupAccessories {
                     part,
                     strip,
                     placement,
+                    role: b.role,
                 })
             })
             .collect();

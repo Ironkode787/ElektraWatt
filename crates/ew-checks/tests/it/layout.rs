@@ -852,6 +852,12 @@ const PL_STRIP0: u128 = 0xf10c;
 /// The plate with -X1040, a strip of no width declaring a bracket of no width, placed on R2 at `s`: its run-start
 /// bracket and the one after it are both `[s, s]`.
 fn zero_width_strip(s: f64) -> Fx {
+    strip_with_bracket_of_no_width(s, P_TERM0)
+}
+
+/// The plate with -X1040, a strip of one terminal of the part `terminal` declaring a bracket of no width, placed on R2
+/// at `s`.
+fn strip_with_bracket_of_no_width(s: f64, terminal: u128) -> Fx {
     let mut fx = plate();
     fx.part(P_EB0, "EB 0", &json!({"kind": "end_bracket"}));
     mech_part(
@@ -868,9 +874,41 @@ fn zero_width_strip(s: f64) -> Fx {
         json!({"strip": us(STRIP0), "seq": 1, "designation": "1"}),
     );
     fx.with("structure", json!({"location": us(LOC)}));
-    fx.with_parts(0xed, &[P_TERM0]);
+    fx.with_parts(0xed, &[terminal]);
     place(&mut fx, PL_STRIP0, STRIP0, None, on(R2), rail_pose(s));
     fx
+}
+
+/// C44-p3#4: a strip with a width whose bracket part has none, placed 20 mm before R2's start: its run-start bracket
+/// `[-20, -20]` reads "before" though it has no length and no other bracket shares its point; the one after it
+/// `[-13.8, -13.8]` reads "after".
+#[test]
+fn eb4_the_run_start_bracket_of_no_width_reads_before_off_the_rail_start() {
+    let m = strip_with_bracket_of_no_width(-20.0, P_TERM).build();
+    let mut found: Vec<(String, String)> = findings_of(&m, "EW-LAY-010")
+        .into_iter()
+        .map(|f| (f.discriminator, f.message))
+        .collect();
+    found.sort();
+    assert_eq!(
+        found,
+        [
+            (
+                "bracket_outside:after:-13800000".to_owned(),
+                "The end bracket after +J-E-2416-X1040 passes the start of rail 2 by 13.8 mm.".to_owned()
+            ),
+            (
+                "bracket_outside:before:-20000000".to_owned(),
+                "The end bracket before +J-E-2416-X1040 passes the start of rail 2 by 20 mm.".to_owned()
+            ),
+            (
+                "off_rail".to_owned(),
+                "+J-E-2416-X1040 is placed at -20.0 mm on the rail at (40.0, 480.0)–(610.0, 480.0) mm, outside its \
+                 0.0 to 570.0 mm; move it onto the rail"
+                    .to_owned()
+            ),
+        ]
+    );
 }
 
 /// Ruling 12 (C44-p1#5): a strip whose bracket part has no width gives two brackets at one start; their findings never

@@ -43,9 +43,9 @@ use ew_derive::ew_schema::{
 };
 use ew_derive::ew_units::{Pt2, Rect};
 use ew_derive::layout::{
-    Bracket, CarrierGeometry, Fit, GroupAccessories, PlacementGeometry, PoseError, PoseOn, Profile, RailAxis,
-    RailOccupancy, Unplaced, carrier_label, check_pose, fits_rail, fits_surface, member_order, primary_part,
-    surface_pages,
+    Bracket, BracketRole, CarrierGeometry, Fit, GroupAccessories, PlacementGeometry, PoseError, PoseOn,
+    Profile, RailAxis, RailOccupancy, Unplaced, carrier_label, check_pose, fits_rail, fits_surface,
+    member_order, primary_part, surface_pages,
 };
 use ew_derive::part_confidence;
 
@@ -1166,27 +1166,11 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     let placements = q.table::<Placement>();
     let rail =
         carrier_label(q, id).map_or_else(|| format!("the rail at {}", carrier_at(c)), |l| l.in_sentence());
-    // Where each placement's footprint starts, built once per rail (its first interval, as the scan found it before).
-    let mut starts: BTreeMap<Id<Placement>, i128> = BTreeMap::new();
-    for o in occupancy.iter() {
-        starts.entry(o.placement).or_insert(o.s0);
-    }
-    // A bracket is "before" its strip when it starts before the strip's footprint does (the run-start bracket). A
-    // zero-length strip with a zero-length bracket has two at one point; the first in rail order is its run-start
-    // bracket (`brackets` pushes it first and sorts stably), so the two read, and fingerprint, apart (ruling 12).
-    let side = |i: usize| {
-        let Some(b) = brackets.get(i) else {
-            return "after";
-        };
-        let before = starts.get(&b.placement).is_some_and(|&s0| {
-            b.s0 < s0
-                || (b.s0 == s0
-                    && b.s1 == b.s0
-                    && brackets
-                        .get(i.saturating_add(1))
-                        .is_some_and(|x| x.placement == b.placement && x.s0 == b.s0 && x.s1 == b.s1))
-        });
-        if before { "before" } else { "after" }
+    // A bracket is "before" its strip when it is its run's start bracket, as `brackets` made it, zero-length ones
+    // included (C44-p3#4): two zero-length brackets at one point read, and fingerprint, apart (ruling 12).
+    let side = |i: usize| match brackets.get(i).map(|b| b.role) {
+        Some(BracketRole::RunStart) => "before",
+        _ => "after",
     };
     // The next bracket of non-zero length after each, from one pass from the end.
     let mut next_long: Vec<Option<usize>> = vec![None; brackets.len()];
