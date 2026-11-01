@@ -22,7 +22,9 @@ use ew_api::AnyCommand;
 use ew_api::output::{PanelTables, Uuid};
 use serde_json::{Value, json};
 
-use super::layout::{LAYOUT_SNAP_PT, round_to, sheet_of_surface, surface_of_sheet, surface_per_sheet};
+use super::layout::{
+    LAYOUT_SNAP_PT, clamp64, round_to, sheet_of_surface, surface_of_sheet, surface_per_sheet,
+};
 use super::{
     Anchor, Button, CanvasEvent, Ghost, Mods, Overlay, OverlayItem, Style, Token, Tool, ToolCx, ToolOutput,
 };
@@ -164,9 +166,17 @@ pub(crate) fn mm_of(panel: &PanelTables, nm: i128) -> String {
     }
 }
 
-/// A point of the surface as a JSON pair.
+/// A point of the surface as a JSON pair, each coordinate saturated to the `i64` range (C44-p2#1): a point far off
+/// the plate (a large scale, a far datum) then reaches the command, which refuses it in its own words, where an
+/// `i128` beyond `i64` would make no JSON number.
 pub(crate) fn point_json(p: (i128, i128)) -> Value {
-    json!([p.0, p.1])
+    json!([clamp64(p.0), clamp64(p.1)])
+}
+
+/// The midpoint of two sheet points, computed in `i128` so that two far points cannot overflow (C44-p2#1).
+pub(crate) fn midpoint(a: (i64, i64), b: (i64, i64)) -> (i64, i64) {
+    let mid = |x: i64, y: i64| clamp64((i128::from(x) + i128::from(y)) / 2);
+    (mid(a.0, b.0), mid(a.1, b.1))
 }
 
 /// The Draw rail tool (D11).
@@ -236,7 +246,7 @@ impl RailDrawTool {
             });
             let length = (c.0 - s.0).abs() + (c.1 - s.1).abs();
             items.push(OverlayItem::Label {
-                at: ((a.0 + b.0) / 2, (a.1 + b.1) / 2),
+                at: midpoint(a, b),
                 text: strings::format(key!("draw-length"), &[&mm_of(panel, length)]),
                 anchor: Anchor::Above,
             });

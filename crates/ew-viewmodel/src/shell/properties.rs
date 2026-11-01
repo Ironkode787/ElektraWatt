@@ -84,6 +84,8 @@ pub(super) fn replace_uuids(text: &str, name: &dyn Fn(&str) -> String) -> String
 
 /// WP-S2.07 D13: the key of a terminal's Group row and of its Printed label row.
 const GROUP_ROW: &str = "device/derived.group";
+/// A panel page's Surface view row (WP-S4.02 D12): its choices are the surfaces by ID.
+const SURFACE_ROW: &str = "page/derived.surface";
 const PRINTED_LABEL_ROW: &str = "device/derived.printed_label";
 /// WP-S2.18 D3 (FT-628): the key of a device's Tag row.
 const TAG_ROW: &str = "device/derived.tag";
@@ -696,6 +698,16 @@ impl ShellModel {
         // WP-S4.02 part 4 (D12): a layout row lists the choices its sheet built (the device's parts, the turns, the
         // project's surfaces), each its own text.
         let items: Vec<(String, Value)> = match (&row.route, row.ty.inner()) {
+            // The Surface row's choice is the surface, by its ID (C44-p2#4): two surfaces may read alike.
+            (crate::properties::EditRoute::Command { .. }, _) if row.key == SURFACE_ROW => {
+                let f = filter.to_lowercase();
+                p.session
+                    .surface_choices()
+                    .into_iter()
+                    .filter(|(_, w)| w.to_lowercase().contains(&f))
+                    .map(|(id, w)| (w, Value::String(id.to_string())))
+                    .collect()
+            }
             (
                 crate::properties::EditRoute::Command { .. },
                 crate::properties::FieldType::Enum { options },
@@ -1038,7 +1050,10 @@ impl ShellModel {
             RowValue::Absent => Some(String::new()),
             RowValue::Varies { .. } => None,
         };
-        if shown.as_deref().map(str::trim) == Some(text.trim()) {
+        // The shown text, or the row's value (a choice by ID, C44-p2#4), again builds no command.
+        let same_value =
+            matches!(&row.value, RowValue::One { json: Value::String(v), .. } if v == text.trim());
+        if shown.as_deref().map(str::trim) == Some(text.trim()) || same_value {
             self.props.edit = None;
             self.props.error = None;
             return Outcome::Done;

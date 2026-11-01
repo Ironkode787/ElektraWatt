@@ -1022,7 +1022,7 @@ fn resolve_at(
 }
 
 /// An `i128` in the `i64` range, saturating.
-fn clamp64(v: i128) -> i64 {
+pub(crate) fn clamp64(v: i128) -> i64 {
     i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
 }
 

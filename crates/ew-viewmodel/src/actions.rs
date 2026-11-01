@@ -5173,9 +5173,13 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
     let state = (meta.enabled)(model);
     // Paste names the page kind that cannot take it (window check, item 3): the reason is a text with the kind, not a
     // plain key, so the item formats it here.
-    let paste_reason = (meta.id == "edit.paste_clip" && state.is_ok())
-        .then(|| model.paste_page_reason())
-        .flatten();
+    // Enclosure… likewise names Structure node… in its reason when the project has no location (W44.2 F1).
+    let paste_reason = match meta.id {
+        _ if state.is_err() => None,
+        "edit.paste_clip" => model.paste_page_reason(),
+        "layout.enclosure_new" => model.enclosure_new_reason(),
+        _ => None,
+    };
     let enabled = state.is_ok() && paste_reason.is_none();
     ActionItem {
         id: meta.id,

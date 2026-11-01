@@ -19,7 +19,7 @@ use ew_api::output::PanelTables;
 use serde_json::{Value, json};
 
 use super::layout::{sheet_of_surface, surface_of_sheet};
-use super::rail_draw::{DrawPart, dominant, mm_of, point_json, reach_at, snap_lines, snap_point};
+use super::rail_draw::{DrawPart, dominant, midpoint, mm_of, point_json, reach_at, snap_lines, snap_point};
 use super::{
     Anchor, Button, CanvasEvent, Ghost, Mods, Overlay, OverlayItem, Style, Token, Tool, ToolCx, ToolKey,
     ToolOutput,
@@ -127,7 +127,7 @@ impl DuctDrawTool {
             let a = sheet[sheet.len() - 2];
             let b = sheet[sheet.len() - 1];
             items.push(OverlayItem::Label {
-                at: ((a.0 + b.0) / 2, (a.1 + b.1) / 2),
+                at: midpoint(a, b),
                 text: strings::format(key!("draw-duct-size"), &[&mm_of(panel, w), &mm_of(panel, h)]),
                 anchor: Anchor::Above,
             });

@@ -20,6 +20,7 @@ use ew_api::output::{
 };
 use serde_json::{Map, Value, json};
 
+use super::navigation::bump;
 use super::{Outcome, ShellModel, failed, string_param};
 use crate::strings;
 use crate::strings::Key;
@@ -591,6 +592,13 @@ fn fill_orders() -> Vec<(String, String)> {
 }
 
 /// The draw tool's carrier kind (`rail`, `duct`) of the tool name `name`.
+/// The registry's label of Structure node… (`structure.new`), as the texts that name it print it.
+fn structure_new_label() -> String {
+    crate::actions::find("structure.new")
+        .map(|a| strings::text(Key::run_time(&a.label_key())).to_owned())
+        .unwrap_or_default()
+}
+
 fn draw_kind(name: &str) -> Option<&'static str> {
     match name {
         "rail_draw" => Some("rail"),
@@ -610,11 +618,28 @@ impl ShellModel {
 
     /// The parts a draw tool of `kind` (`rail`, `duct`) offers (D11): the project's copies of the kind, then the
     /// installed libraries' parts, embedded through `copies` when drawn.
+    ///
+    /// The offers are kept for (session, revision, kind) (C44-p2#2): arming the tool or changing its options computes
+    /// them afresh, a new revision too; the options card's every frame reuses them.
     pub fn draw_part_offers(&self, kind: &str) -> Vec<crate::tools::DrawPart> {
         let Some(project) = &self.project else {
             return Vec::new();
         };
-        project
+        let Some(kind) = ["rail", "duct"].into_iter().find(|k| *k == kind) else {
+            return Vec::new();
+        };
+        let key = (
+            self.project_epoch().unwrap_or(0),
+            self.revision().unwrap_or(0),
+            kind,
+        );
+        if let Some((k, offers)) = self.tools.draw_offers.borrow().as_ref()
+            && *k == key
+        {
+            return offers.clone();
+        }
+        bump(&self.calls, |c| c.layout_part_offers += 1);
+        let offers: Vec<crate::tools::DrawPart> = project
             .session
             .layout_part_offers(kind)
             .into_iter()
@@ -625,7 +650,14 @@ impl ShellModel {
                 size: o.size,
                 copies: o.copies,
             })
-            .collect()
+            .collect();
+        *self.tools.draw_offers.borrow_mut() = Some((key, offers.clone()));
+        offers
+    }
+
+    /// Drops the draw tools' kept part offers: the next read computes them (a draw tool armed, its options changed).
+    fn forget_draw_offers(&self) {
+        *self.tools.draw_offers.borrow_mut() = None;
     }
 
     /// The part a draw tool of `kind` draws with: the tool option's when it is still offered, else the first offer.
@@ -664,6 +696,7 @@ impl ShellModel {
 
     /// `tool.rail_draw` (Draw ▸ Layout ▸ Rail, D11): arms Draw rail with the tool option's rail part.
     pub(crate) fn act_tool_rail_draw(&mut self) -> Outcome {
+        self.forget_draw_offers();
         let part = self.draw_part("rail");
         self.activate_tool(Box::new(crate::tools::RailDrawTool::new(part)));
         Outcome::Done
@@ -671,6 +704,7 @@ impl ShellModel {
 
     /// `tool.duct_draw` (Draw ▸ Layout ▸ Duct, D11): arms Draw duct with the tool option's duct part and size.
     pub(crate) fn act_tool_duct_draw(&mut self) -> Outcome {
+        self.forget_draw_offers();
         let part = self.draw_part("duct");
         let size = self.tools.layout_options.duct_size;
         self.activate_tool(Box::new(crate::tools::DuctDrawTool::new(part, size)));
@@ -685,6 +719,7 @@ impl ShellModel {
                 reason_key: key!("reason-no-draw-tool"),
             };
         };
+        self.forget_draw_offers();
         if let Some(number) = p.get("part").and_then(Value::as_str) {
             let Some(offer) = self
                 .draw_part_offers(kind)
@@ -732,6 +767,15 @@ impl ShellModel {
     /// and the first part chosen); a refusal stays under its fields.
     pub(crate) fn act_layout_enclosure_new(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "layout.enclosure_new";
+        // A project without a location has nowhere to put an enclosure: the menu disables the entry with this text
+        // (W44.2 F1), and the action refuses with it.
+        if let Some(reason) = self.enclosure_new_reason() {
+            self.tools.notice = Some(reason);
+            self.tools.notice_sticky = false;
+            return Outcome::Refused {
+                reason_key: key!("enclosure-new-no-location"),
+            };
+        }
         let given = |name: &str| {
             p.get(name)
                 .and_then(Value::as_str)
@@ -743,8 +787,14 @@ impl ShellModel {
             let missing = if location.is_none() { "location" } else { "part" };
             return match self.mode {
                 super::Mode::Headless => failed(key!("error-missing-param"), &[missing]),
+                // Create is disabled while a field is empty (W44.2 F1); Enter in the form says why in the same words.
                 super::Mode::Gui if self.in_layout_form(ACTION) => {
-                    let message = strings::format(key!("error-missing-param"), &[missing]);
+                    let message = strings::text(if location.is_none() {
+                        key!("reason-enclosure-location")
+                    } else {
+                        key!("reason-enclosure-part")
+                    })
+                    .to_owned();
                     self.layout_form_failed(ACTION, message)
                 }
                 super::Mode::Gui => {
@@ -874,6 +924,43 @@ impl ShellModel {
             .collect()
     }
 
+    /// Why Project ▸ Enclosure… is disabled in a project that can be changed (W44.2 F1): the project has no location
+    /// yet ("The project has no location yet; add one with Structure node… first.", named by the registry's label);
+    /// `None` when it has one, or no project is open.
+    pub fn enclosure_new_reason(&self) -> Option<String> {
+        let project = self.project.as_ref()?;
+        if !project.session.layout_locations().is_empty() {
+            return None;
+        }
+        Some(strings::format(
+            key!("enclosure-new-no-location"),
+            &[&structure_new_label()],
+        ))
+    }
+
+    /// Why the Create enclosure dialog's Create is disabled (W44.2 F1): its location is empty ("Choose a location"),
+    /// else its part ("Type or choose a part number"); `None` while both are given or another dialog is open.
+    pub fn enclosure_create_reason(&self) -> Option<String> {
+        let Some(super::Dialog::Form(f)) = &self.dialog else {
+            return None;
+        };
+        if f.action != "layout.enclosure_new" {
+            return None;
+        }
+        let empty = |name: &str| {
+            f.fields
+                .iter()
+                .any(|x| x.name == name && x.value.trim().is_empty())
+        };
+        if empty("location") {
+            Some(strings::text(key!("reason-enclosure-location")).to_owned())
+        } else if empty("part") {
+            Some(strings::text(key!("reason-enclosure-part")).to_owned())
+        } else {
+            None
+        }
+    }
+
     /// The Create enclosure dialog's lines when a list has nothing to offer: no location yet (the user adds one with
     /// Structure node…, named by its registry label), no enclosure part in the project or an installed library. The
     /// fields then take typed text (a location's code, a part number).
@@ -884,10 +971,10 @@ impl ShellModel {
         let empty = |name: &str| f.fields.iter().any(|x| x.name == name && x.options.is_empty());
         let mut notes = Vec::new();
         if empty("location") {
-            let structure = crate::actions::find("structure.new")
-                .map(|a| strings::text(Key::run_time(&a.label_key())).to_owned())
-                .unwrap_or_default();
-            notes.push(strings::format(key!("enclosure-new-no-location"), &[&structure]));
+            notes.push(strings::format(
+                key!("enclosure-new-no-location"),
+                &[&structure_new_label()],
+            ));
         }
         if empty("part") {
             notes.push(strings::text(key!("enclosure-new-no-part")).to_owned());

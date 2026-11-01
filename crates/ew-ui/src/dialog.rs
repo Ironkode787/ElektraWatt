@@ -138,8 +138,13 @@ fn footer(ui: &mut Ui, spec: &DialogSpec, focus_primary: bool) -> Clicked {
     let t = components::tokens(ui);
     let mut clicked = None;
     let mut press = |ui: &mut Ui, b: &DialogButton, kind: Kind, focus: bool| {
-        let r = components::button(ui, kind, &b.label, true, t.size_button_min_width);
-        if focus {
+        // A disabled button says why on hover (W44.2 F1: Create enclosure's Create without a location or a part).
+        let r = components::button(ui, kind, &b.label, b.disabled.is_none(), t.size_button_min_width);
+        let r = match &b.disabled {
+            Some(reason) => r.on_disabled_hover_text(reason),
+            None => r,
+        };
+        if focus && b.disabled.is_none() {
             r.request_focus();
         }
         if r.clicked() {

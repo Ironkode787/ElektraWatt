@@ -2569,7 +2569,10 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         }
     }
     for b in spec.buttons() {
-        lines.push(format!("  button \"{}\"", b.label));
+        match &b.disabled {
+            Some(reason) => lines.push(format!("  button \"{}\" disabled: {reason}", b.label)),
+            None => lines.push(format!("  button \"{}\"", b.label)),
+        }
     }
 }
 

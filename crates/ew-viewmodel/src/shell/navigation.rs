@@ -115,6 +115,10 @@ pub struct SessionCalls {
     pub preview_entities: u64,
     /// `Session::history_view`: once per (project session, revision) while the history panel is open.
     pub history_view: u64,
+    // WP-S4.02 part 4 (C44-p2#2)
+    /// `Session::layout_part_offers` for Draw rail and Draw duct: when the tool is armed, and again only when its
+    /// options or the revision change.
+    pub layout_part_offers: u64,
 }
 
 /// Counts one of the shell's `Session` calls (a free function, so that a call can be counted while the project is

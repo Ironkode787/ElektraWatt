@@ -19,7 +19,7 @@ use ew_derive::layout::{
     clip_offset, fits_rail, member_order, member_slot, min_gap, mm, mount_label, next_fit, plate_frame,
     rail_extent, rail_items, rehome_pose, resolve,
 };
-use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf};
+use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf, StructurePath};
 use ew_ids::Id;
 use ew_mltext::{Ident, natural_key};
 use ew_model::{AnyKey, Model};
@@ -2501,9 +2501,17 @@ impl Command for CreateEnclosureFromPart {
             .map(|s| s.id);
         if let Some(space) = existing {
             if let Some(e) = tx.iter::<Enclosure>().into_iter().find(|e| e.space == space) {
+                // The location's designation with its sign (`+J-E-2416`), as a tag prints it.
+                let q = Q::new(tx.base_model());
+                let codes = q
+                    .try_get::<StructurePath>(self.location)
+                    .ok()
+                    .map(|p| p.codes.clone())
+                    .filter(|c| !c.is_empty())
+                    .unwrap_or_else(|| vec![node.code.as_str().to_owned()]);
                 return tx.reject(format!(
-                    "location {} already has enclosure {}; a location has one enclosure",
-                    node.code.as_str(),
+                    "location +{} already has enclosure {}; a location has one enclosure",
+                    codes.join("+"),
                     tag(tx, e.device)
                 ));
             }

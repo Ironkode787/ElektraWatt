@@ -8,6 +8,7 @@
 //! project path); Properties rows committed from the shell (PS-4, PS-5); Auto-fill rail's dialog and toast (PS-6).
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::command_bar::{Tab, command_bar_of};
@@ -267,7 +268,7 @@ fn ps1_create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosu
     };
     assert_eq!(
         message,
-        "Location J-E-2416 already has enclosure -UC1; a location has one enclosure."
+        "Location +J-E-2416 already has enclosure -UC1; a location has one enclosure."
     );
     let Some(Dialog::Form(form)) = s.dialog() else {
         panic!("the dialog stays")
@@ -334,8 +335,14 @@ fn ps1_create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosu
         (cx - sheet.0 / 2).abs() < sheet.0 / 10 && (cy - sheet.1 / 2).abs() < sheet.1 / 10,
         "centred: ({cx}, {cy}) on {sheet:?}"
     );
+    // C44-p2#5: the datum exactly, the one D12 computes for this frame and plate.
+    assert_eq!(row_text(&s, "page/derived.datum"), PS1_DATUM);
     s.shutdown();
 }
+
+/// PS-1's centred datum of the new plate on folio 950 (1:1): the frame's drawing-area centre on the page, less the
+/// enclosure rectangle's centre in the plate's frame (x), plus it (y, the page's y grows downwards).
+const PS1_DATUM: &str = "-192.746658, 531.283331 mm";
 
 /// The Surface view row's choices on the page shown (the project's plates by their words).
 fn surfaces(s: &ShellModel) -> Vec<String> {
@@ -460,7 +467,8 @@ fn ps6_auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
     s.shutdown();
 }
 
-/// PS-5 through the grid: -102F1's Locked row, its Position row's refusal in words, and R1's Length row.
+/// PS-5 through the grid: -102F1's Locked row, its Position row's refusals in words (a text that does not read, and one
+/// the command refuses, the old value kept), and R1's Length row.
 #[test]
 fn ps5_rows_commit_from_the_properties_grid() {
     let tmp = Tmp::new("ps5");
@@ -493,14 +501,47 @@ fn ps5_rows_commit_from_the_properties_grid() {
         panic!("refused")
     };
     assert_eq!(message, "Type a length in millimetres, such as 158.5.");
+    // A text that reads but that the command refuses (off the rail's end): the refusal in words, the old value kept.
+    let Outcome::Failed { message } = s.dispatch(
+        "props.set",
+        &json!({"row": "placement/derived.position", "value": "9999"}),
+    ) else {
+        panic!("refused")
+    };
+    assert_eq!(message, FAR_POSITION_REFUSAL);
+    assert_eq!(row_text(&s, "placement/derived.position"), "158 mm");
+    // R1's Length row lengthens the rail.
+    let r1 = carrier(&panel(&s), "Rail 1").id;
+    done(&mut s, "select.set", json!({"ids": [r1.to_string()]}));
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "carrier/derived.length", "value": "600"}),
+    );
+    assert_eq!(row_text(&s, "carrier/derived.length"), "600 mm");
     s.shutdown();
 }
 
-/// The Create enclosure dialog on a new project from the built-in template: no location and no enclosure part yet, and
-/// the dialog says so in words (the fields then take typed text).
-#[test]
-fn the_create_enclosure_dialog_on_a_new_project_says_what_is_missing() {
-    let tmp = Tmp::new("ps1-new");
+/// What `layout.move` says of -102F1 moved to 9999 mm on rail 1 (570 mm long).
+const FAR_POSITION_REFUSAL: &str = "the pose is off the rail: s = 9999 mm is outside [0, 570 mm]";
+
+/// The text of the shown Properties row `key`.
+fn row_text(s: &ShellModel, key: &str) -> String {
+    let sheet = s.properties().sheet().expect("a Properties sheet");
+    let row = sheet
+        .sections
+        .iter()
+        .flat_map(|sec| &sec.rows)
+        .find(|r| r.key == key)
+        .unwrap_or_else(|| panic!("no row {key}"));
+    match &row.value {
+        ew_viewmodel::ew_api::output::RowValue::One { text, .. } => text.clone(),
+        other => format!("{other:?}"),
+    }
+}
+
+/// A new project from the built-in template (no location, no enclosure part).
+fn new_project(tmp: &Tmp) -> ShellModel {
     let config = ew_viewmodel::shell::ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test");
     let mut s = ShellModel::new(Mode::Gui, config);
     done(
@@ -508,22 +549,285 @@ fn the_create_enclosure_dialog_on_a_new_project_says_what_is_missing() {
         "file.new",
         json!({"dir": tmp.0.join("n.ew").to_string_lossy(), "template": "builtin"}),
     );
+    s
+}
+
+/// Project ▸ Enclosure…: (enabled, reason) on the command bar.
+fn enclosure_entry(s: &ShellModel) -> (bool, Option<String>) {
+    let bar = command_bar_of(s, Tab::Project);
+    let b = bar
+        .groups
+        .iter()
+        .flat_map(|g| &g.buttons)
+        .find(|b| b.id == "layout.enclosure_new")
+        .expect("Enclosure… in the Project tab");
+    (b.enabled, b.reason.clone())
+}
+
+/// W44.2 F1: on a new project without a location, Project ▸ Enclosure… is disabled with its reason, and the action
+/// refuses with it; with a location the dialog opens, and Create is disabled while the part (or the location) is
+/// empty, each with its reason; Create then sends nothing.
+#[test]
+fn enclosure_is_disabled_without_a_location_and_create_without_a_part() {
+    let tmp = Tmp::new("ps1-new");
+    let mut s = new_project(&tmp);
+    let no_location = "The project has no location yet; add one with Structure node… first.";
+    assert_eq!(enclosure_entry(&s), (false, Some(no_location.to_owned())));
+    assert_eq!(
+        refused(&mut s, "layout.enclosure_new", json!({})),
+        "enclosure-new-no-location"
+    );
+    assert_eq!(s.tool_notice(), Some(no_location));
+    assert!(s.dialog().is_none());
+    done(
+        &mut s,
+        "structure.new",
+        json!({"kind": "location", "designation": "CAB1"}),
+    );
+    assert_eq!(enclosure_entry(&s), (true, None));
     done(&mut s, "layout.enclosure_new", json!({}));
     let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
     assert_eq!(
         (
             spec.title.as_str(),
             spec.body.clone(),
-            spec.primary.label.as_str()
+            spec.primary.label.as_str(),
+            spec.primary.disabled.as_deref()
         ),
         (
             "Create enclosure",
             vec![
-                "The project has no location yet; add one with Structure node… first.".to_owned(),
-                "No enclosure part is in the project or an installed library; type a part number.".to_owned(),
+                "No enclosure part is in the project or an installed library; type a part number.".to_owned()
             ],
-            "Create"
+            "Create",
+            Some("Type or choose a part number")
         )
     );
+    let rev = s.revision();
+    let Outcome::Failed { message } = s.submit_form() else {
+        panic!("refused")
+    };
+    assert_eq!(message, "Type or choose a part number");
+    assert_eq!(s.revision(), rev, "no command");
+    s.set_form_field("part", "NSY-1");
+    let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
+    assert_eq!(spec.primary.disabled, None);
+    s.set_form_field("location", "");
+    let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
+    assert_eq!(spec.primary.disabled.as_deref(), Some("Choose a location"));
+    let Outcome::Failed { message } = s.submit_form() else {
+        panic!("refused")
+    };
+    assert_eq!(message, "Choose a location");
+    assert_eq!(s.revision(), rev, "no command");
+    s.shutdown();
+}
+
+/// C44-p2#1: on 902 at a scale of 1:4 000 000 000 with its datum 10⁹ mm away, every click lies far beyond the `i64`
+/// range on the surface; Draw rail's two clicks and Draw duct's finish reach the command, which refuses the points in
+/// its own words, and nothing panics.
+#[test]
+fn far_points_of_the_draw_tools_are_refused_in_words() {
+    let tmp = Tmp::new("far");
+    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "page", "targets": [{"ref": "folio:902"}],
+            "path": "scale", "value": {"one_to": 4_000_000_000_u32}}}),
+    );
+    done(&mut s, "select.set", json!({"ids": []}));
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "page/derived.datum", "value": "1000000000, 1000000000"}),
+    );
+    let rev = s.revision();
+    let a = (100_000_000, 100_000_000);
+    let b = (300_000_000, 100_000_000);
+    done(&mut s, "tool.rail_draw", json!({}));
+    common::click(&mut s, a, json!({}));
+    done(&mut s, "canvas.pointer", at(b, json!({})));
+    let out = s.dispatch("canvas.press", &at(b, json!({})));
+    assert_eq!(
+        out,
+        Outcome::Failed {
+            message: FAR_REFUSAL.to_owned()
+        }
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "tool.duct_draw", json!({}));
+    common::click(&mut s, a, json!({}));
+    common::click(&mut s, b, json!({}));
+    let out = s.dispatch("tool.finish", &json!({}));
+    assert_eq!(
+        out,
+        Outcome::Failed {
+            message: FAR_REFUSAL.to_owned()
+        }
+    );
+    assert_eq!(s.revision(), rev, "nothing drawn");
+    s.shutdown();
+}
+
+/// `layout.carrier.add`'s refusal of a path point beyond the drawable range (its parameter check, in its own words).
+const FAR_REFUSAL: &str =
+    "Add carrier: Path, item 1: -9223372036854775808 is below the minimum -9007199254740991";
+
+/// The texts of the draw tools' overlay labels.
+fn overlay_labels(s: &ShellModel) -> Vec<String> {
+    s.tool_overlay()
+        .items
+        .iter()
+        .filter_map(|i| match i {
+            ew_viewmodel::tools::OverlayItem::Label { text, .. } => Some(text.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// A click at the surface point (mm) with Shift (the snap lines suspended, the grid kept).
+fn free_click_mm(shell: &mut ShellModel, u: f64, v: f64) -> Outcome {
+    let p = sheet_mm(shell, u, v);
+    let mods = json!({"shift": true});
+    done(shell, "canvas.pointer", at(p, mods.clone()));
+    let out = shell.dispatch("canvas.press", &at(p, mods.clone()));
+    done(shell, "canvas.release", at(p, mods));
+    out
+}
+
+/// C44-p2#5: the draw tools' hints, chips and refusals, each whole: the rail's two hints and its length chip, the
+/// duct's two hints and its size chip, the options without a draw tool, the 256-point cap, the one-point duct.
+#[test]
+fn the_draw_tools_texts_read_whole() {
+    let tmp = Tmp::new("draw-texts");
+    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    assert_eq!(
+        refused(&mut s, "layout.draw_options", json!({"part": "x"})),
+        "reason-no-draw-tool"
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text(key!("reason-no-draw-tool")),
+        "Choose Rail or Duct first"
+    );
+    done(&mut s, "tool.rail_draw", json!({}));
+    assert_eq!(s.tool_hint(), "Click the rail's start; Escape cancels");
+    click_mm(&mut s, 40.0, 740.0);
+    assert_eq!(
+        s.tool_hint(),
+        "Click the rail's end; Backspace drops the start; Escape cancels"
+    );
+    let p = sheet_mm(&s, 610.0, 740.0);
+    done(&mut s, "canvas.pointer", at(p, json!({})));
+    assert_eq!(overlay_labels(&s), ["570 mm"]);
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "tool.duct_draw", json!({}));
+    assert_eq!(s.tool_hint(), "Click the duct's first point; Escape cancels");
+    assert_eq!(free_click_mm(&mut s, 100.0, 100.0), Outcome::Done);
+    assert_eq!(
+        s.tool_hint(),
+        "Click the next point; a double click or Enter finishes; Backspace removes the last point"
+    );
+    let p = sheet_mm(&s, 300.0, 100.0);
+    done(&mut s, "canvas.pointer", at(p, json!({"shift": true})));
+    let (w, h) = s.draw_card().and_then(|c| c.size).map_or_else(
+        || {
+            let t = panel(&s);
+            let d1 = carrier(&t, "Duct 1");
+            (d1.width.unwrap() / MM, d1.height.unwrap() / MM)
+        },
+        |_| (40, 60),
+    );
+    assert_eq!(overlay_labels(&s), [format!("{w} \u{d7} {h} mm")]);
+    // 256 points in a staircase; the 257th is refused.
+    for i in 1..256 {
+        let (u, v) = (
+            100.0 + 5.0 * f64::from(i / 2 + i % 2),
+            100.0 + 5.0 * f64::from(i / 2),
+        );
+        assert_eq!(free_click_mm(&mut s, u, v), Outcome::Done, "point {i}");
+    }
+    let out = free_click_mm(&mut s, 900.0, 740.0);
+    assert_eq!(
+        out,
+        Outcome::Refused {
+            reason_key: key!("reason-duct-vertices")
+        }
+    );
+    assert_eq!(s.tool_notice(), Some("A duct takes at most 256 points"));
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "tool.duct_draw", json!({}));
+    assert_eq!(free_click_mm(&mut s, 100.0, 100.0), Outcome::Done);
+    assert_eq!(
+        refused(&mut s, "tool.finish", json!({})),
+        "reason-duct-two-points"
+    );
+    assert_eq!(s.tool_notice(), Some("A duct needs two points"));
+    // The refusals of a rail tool without a usable part (no fixture holds such a project).
+    assert_eq!(
+        ew_viewmodel::strings::text(key!("reason-no-rail-part")),
+        "Add a rail part to the project first"
+    );
+    assert_eq!(
+        ew_viewmodel::strings::text(key!("reason-rail-no-profile")),
+        "The rail part has no profile; choose a rail part with a rail section."
+    );
+    s.shutdown();
+}
+
+/// C44-p2#5: Auto-fill rail with one marked device: the dialog's line for one device and the toast without notices;
+/// a rail that is not on the page is refused in words.
+#[test]
+fn auto_fill_one_marked_device_says_so_and_toasts_without_notices() {
+    let tmp = Tmp::new("fill-one");
+    let mut s = tmp.shell_in(Mode::Gui, true, "902");
+    let t = panel(&s);
+    let p = t.placements.iter().find(|p| p.tag == "-101F1").unwrap().id;
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "layout.remove", "params": {"placement": p.to_string()}}),
+    );
+    done(&mut s, "navigator.show", json!({"kind": "unplaced"}));
+    let key = unplaced_key(&s, "-101F1");
+    done(&mut s, "navigator.mark", json!({"kind": "unplaced", "key": key}));
+    let Outcome::Failed { message } =
+        s.dispatch("layout.auto_fill_rail", &json!({"rail": "Rail 9", "order": "dt"}))
+    else {
+        panic!("refused")
+    };
+    assert_eq!(message, "The page has no rail; draw one first.");
+    done(&mut s, "layout.auto_fill_rail", json!({}));
+    let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
+    assert_eq!(spec.body, ["Fills with the device marked in Unplaced devices."]);
+    assert_eq!(s.submit_form(), Outcome::Done);
+    let toast = s
+        .notifications()
+        .visible()
+        .last()
+        .map(|n| n.text.clone())
+        .expect("a toast");
+    assert_eq!(toast, "Placed 1 device on rail 1.");
+    s.shutdown();
+}
+
+/// C44-p2#2: the draw tools' part offers are computed when the tool is armed, and a second frame with the tool armed
+/// (the options card read again) reuses them; a new revision computes them once more.
+#[test]
+fn the_draw_tools_part_offers_are_kept_between_frames() {
+    let tmp = Tmp::new("offers");
+    let mut s = tmp.shell_in(Mode::Headless, true, "902");
+    let calls = |s: &ShellModel| s.session_calls().layout_part_offers;
+    let before = calls(&s);
+    done(&mut s, "tool.rail_draw", json!({}));
+    assert_eq!(calls(&s), before + 1, "armed");
+    let card = s.draw_card().expect("the options card");
+    assert_eq!(s.draw_card(), Some(card), "a second frame");
+    assert_eq!(calls(&s), before + 1, "the frames reuse the offers");
+    let number = s.draw_card().unwrap().parts[0].clone();
+    done(&mut s, "layout.draw_options", json!({"part": number}));
+    assert_eq!(calls(&s), before + 2, "the options changed");
+    s.draw_card();
+    assert_eq!(calls(&s), before + 2);
     s.shutdown();
 }

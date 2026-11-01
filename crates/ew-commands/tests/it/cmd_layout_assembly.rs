@@ -868,7 +868,7 @@ fn as5_an_enclosure_from_its_part() {
     );
     assert_eq!(
         rejected(e.execute(&from_part(vec![]))),
-        "location J-E-2416 already has enclosure -UC1; a location has one enclosure"
+        "location +J-E-2416 already has enclosure -UC1; a location has one enclosure"
     );
     e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before, "all gone, the copies included");

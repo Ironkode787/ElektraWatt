@@ -3,8 +3,9 @@
 
 //! WP-S4.02 part 4 in the window, on a writable copy of Golden A, folio 902 (PS-7's kittest flows): Draw ▸ Layout's
 //! Duct button arming Draw duct with its options card; the Create enclosure dialog with its two choice lists and its
-//! refusal under the fields; the Auto-fill rail dialog's line and Fill; Rail 1's Properties with its free length. The
-//! drawing, the commits and the poses are the viewmodel's `tests/it/layout_setup.rs`.
+//! refusal under the fields, and its Create disabled without a part; the Auto-fill rail dialog's line and its Fill
+//! button; Rail 1's Properties with its free length. The drawing, the commits and the poses are the viewmodel's
+//! `tests/it/layout_setup.rs`.
 
 use crate::support;
 
@@ -91,6 +92,26 @@ fn the_create_enclosure_dialog_keeps_its_refusal_under_the_fields() {
         h.query_all_by_label(&message).next().is_some(),
         "under the fields: {message}"
     );
+}
+
+/// W44.2 F1: with its part emptied, the dialog's Create is disabled; a click on it sends nothing and leaves no
+/// refusal under the fields.
+#[test]
+fn create_is_disabled_without_a_part() {
+    let tmp = Tmp::new();
+    let mut h = on_902(&tmp);
+    dispatch(&mut h, "layout.enclosure_new", json!({}));
+    settle(&mut h);
+    h.state_mut().shell_mut().set_form_field("part", "");
+    settle(&mut h);
+    let rev = h.state().shell().revision();
+    h.get_by_label("Create").click();
+    settle(&mut h);
+    match h.state().shell().dialog() {
+        Some(Dialog::Form(f)) => assert_eq!(f.error, None, "nothing sent"),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(h.state().shell().revision(), rev);
 }
 
 #[test]

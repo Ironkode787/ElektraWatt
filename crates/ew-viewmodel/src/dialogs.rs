@@ -41,6 +41,8 @@ pub struct DialogButton {
     pub label: String,
     /// What it does.
     pub answer: DialogAnswer,
+    /// Why it is disabled (the window draws it disabled with this text on hover); `None` while it can be pressed.
+    pub disabled: Option<String>,
 }
 
 impl DialogButton {
@@ -48,6 +50,7 @@ impl DialogButton {
         DialogButton {
             label: strings::text(key).to_owned(),
             answer,
+            disabled: None,
         }
     }
 
@@ -333,7 +336,14 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                     "layout.enclosure_new" => model.enclosure_form_notes(),
                     _ => Vec::new(),
                 },
-                DialogButton::new(form.ok_key, DialogAnswer::Submit),
+                DialogButton {
+                    // W44.2 F1: Create enclosure's Create is disabled while its location or part is empty.
+                    disabled: match form.action {
+                        "layout.enclosure_new" => model.enclosure_create_reason(),
+                        _ => None,
+                    },
+                    ..DialogButton::new(form.ok_key, DialogAnswer::Submit)
+                },
             )
         },
     }

@@ -159,7 +159,14 @@ pub(crate) struct ToolHost {
     /// Whether a `layout.*` commit of this dispatch announces the selected placement's live text once the page is
     /// read again (at the end of the dispatch).
     pub layout_announce: bool,
+    // WP-S4.02 part 4 (C44-p2#2)
+    /// The draw tools' part offers of (session, revision, kind): computed when Draw rail or Draw duct is armed, and
+    /// again only when its options or the revision change (the options card reads them every frame).
+    pub draw_offers: std::cell::RefCell<Option<DrawOffers>>,
 }
+
+/// The cached part offers of a draw tool: the (session, revision, kind) they were computed for, and the offers.
+pub(crate) type DrawOffers = ((u64, u64, &'static str), Vec<super::DrawPart>);
 
 /// A commit's result line, said in the toast once the page tables show the result (FT-546, FT-547).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -229,6 +236,7 @@ impl ToolHost {
             result_note: None,
             layout_options: super::LayoutOptions::default(),
             layout_announce: false,
+            draw_offers: std::cell::RefCell::new(None),
         }
     }
 }

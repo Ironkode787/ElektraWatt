@@ -254,6 +254,295 @@ fn the_panel_pages_surface_view_rows_set_the_view() {
     );
 }
 
+/// The page ID of folio `folio`.
+fn page_of(s: &Session, folio: &str) -> Uuid {
+    s.page_rows()
+        .into_iter()
+        .find(|r| r.folio == folio)
+        .unwrap_or_else(|| panic!("no folio {folio}"))
+        .id
+}
+
+/// The project's enclosure part copy (NSYPLA1074G).
+fn enclosure_part(s: &Session) -> Uuid {
+    s.layout_part_offers("enclosure")
+        .into_iter()
+        .find(|o| o.number == "NSYPLA1074G")
+        .expect("the project's enclosure part")
+        .part
+}
+
+/// E55 placed on -UC1's plate at (300, 400) mm; the placement's ID.
+fn e55_on_the_plate(s: &mut Session) -> Uuid {
+    let e55 = uuid::<ew_schema::Device>("devices", "E55");
+    let plate = uuid::<MountingSurface>("mounting_surfaces", "-UC1");
+    run(
+        s,
+        &AnyCommand {
+            name: "layout.place".into(),
+            params: json!({"device": e55.to_string(), "carrier": {"surface": plate.to_string()},
+                "pose": {"t": [300_000_000, 400_000_000, 0], "q": [1_000_000_000, 0, 0, 0]}}),
+        },
+    );
+    s.query()
+        .table::<Placement>()
+        .iter()
+        .find(|(_, p)| p.device.as_uuid() == e55)
+        .map(|(id, _)| id.as_uuid())
+        .expect("E55's placement")
+}
+
+/// A second enclosure, at +FIELD, from the project's enclosure part, its tag frozen as -UC1 (as -UC1 of +J-E-2416 is);
+/// its surface's ID.
+fn field_enclosure(s: &mut Session) -> Uuid {
+    let field = uuid::<ew_schema::StructureNode>("structure", "+FIELD");
+    let before: Vec<Uuid> = s.surface_choices().into_iter().map(|c| c.0).collect();
+    let part = enclosure_part(s);
+    run(
+        s,
+        &AnyCommand {
+            name: "layout.enclosure.create_from_part".into(),
+            params: json!({"location": field.to_string(), "part": part.to_string()}),
+        },
+    );
+    let surface = s
+        .surface_choices()
+        .into_iter()
+        .map(|c| c.0)
+        .find(|id| !before.contains(id))
+        .expect("a new surface");
+    let device = {
+        let q = s.query();
+        let enclosure = q
+            .table::<MountingSurface>()
+            .get(Id::from_uuid(surface))
+            .unwrap()
+            .enclosure;
+        q.table::<Enclosure>().get(enclosure).unwrap().device
+    };
+    run(
+        s,
+        &AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "device", "targets": [device.as_uuid().to_string()],
+                "path": "tag.frozen", "value": {"text": "UC1"}}),
+        },
+    );
+    surface
+}
+
+/// The choices of a row (its type's options).
+fn options_of(s: &Session, id: Uuid, key: &str) -> Vec<String> {
+    let sheet = s.property_sheet(&[id]);
+    let row = sheet
+        .sections
+        .iter()
+        .flat_map(|sec| &sec.rows)
+        .find(|r| r.key == key)
+        .unwrap_or_else(|| panic!("no row {key}"));
+    match &row.ty {
+        ew_api::output::FieldType::Enum { options } => options.clone(),
+        other => panic!("{other:?}"),
+    }
+}
+
+/// C44-p2#4: two locations with an enclosure -UC1 each read alike by the short tag, so each surface reads by its
+/// enclosure's full designation; choosing the second (by its value, the surface's ID) sets the second.
+#[test]
+fn two_uc1_plates_read_by_their_full_designations_and_the_choice_sets_the_one_chosen() {
+    let mut s = golden_common::session(&golden_common::batch());
+    let page = page_of(&s, "902");
+    let first = uuid::<MountingSurface>("mounting_surfaces", "-UC1");
+    let second = field_enclosure(&mut s);
+    let choices = s.surface_choices();
+    assert_eq!(
+        choices,
+        [
+            (second, "+FIELD-UC1 plate".to_owned()),
+            (first, "=P01+J-E-2416-UC1 plate".to_owned()),
+        ]
+    );
+    assert_eq!(
+        options_of(&s, page, "page/derived.surface"),
+        ["+FIELD-UC1 plate", "=P01+J-E-2416-UC1 plate"]
+    );
+    assert_eq!(
+        text_of(&s, page, "page/derived.surface"),
+        "=P01+J-E-2416-UC1 plate"
+    );
+    // The choice by its value: the second surface, though the words differ from the shown ones only in the location.
+    let cmd = edit(&s, "page", page, "surface", &second.to_string()).unwrap();
+    assert_eq!(cmd.params["surface"], json!(second.to_string()));
+    run(&mut s, &cmd);
+    assert_eq!(text_of(&s, page, "page/derived.surface"), "+FIELD-UC1 plate");
+    // Typed words name one surface.
+    let cmd = edit(&s, "page", page, "surface", "=P01+J-E-2416-UC1 plate").unwrap();
+    assert_eq!(cmd.params["surface"], json!(first.to_string()));
+}
+
+/// C44-p2#3 (D12): Device is a link (its tag the words); Realised part offers only the part uses `layout.move {part}`
+/// takes (an accessory mounted on its parent is not one); Label is read from the page that shows the placement's
+/// surface, and is absent when none does.
+#[test]
+fn a_placements_device_is_a_link_its_parts_mount_and_its_label_comes_from_the_showing_page() {
+    let mut s = golden_common::session(&golden_common::batch());
+    let f1 = uuid::<Placement>("placements", "-102F1");
+    let sheet = s.property_sheet(&[f1]);
+    let device = sheet
+        .sections
+        .iter()
+        .flat_map(|sec| &sec.rows)
+        .find(|r| r.key == "placement/derived.device")
+        .expect("the Device row")
+        .clone();
+    assert_eq!(
+        device.ty,
+        ew_api::output::FieldType::Link {
+            kind: "device".to_owned()
+        }
+    );
+    let placement = s
+        .query()
+        .table::<Placement>()
+        .get(Id::from_uuid(f1))
+        .cloned()
+        .unwrap();
+    match &device.value {
+        RowValue::One { json, text } => {
+            assert_eq!(
+                (json, text.as_str()),
+                (&json!(placement.device.as_uuid().to_string()), "-102F1")
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+    let offered = options_of(&s, f1, "placement/derived.realised_part");
+    // An accessory part use (532216, mounted on its parent) is not offered.
+    let parts = s.query().devices().get(placement.device).unwrap().parts.clone();
+    let mut uses = serde_json::to_value(&parts).unwrap();
+    let accessory = "22ea7428-f5dd-5283-a359-ed71da1f5efc";
+    uses.as_array_mut()
+        .unwrap()
+        .push(json!({"part": {"copy": accessory}, "qty": "1"}));
+    run(
+        &mut s,
+        &AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "device", "targets": [placement.device.as_uuid().to_string()],
+                "path": "parts", "value": uses}),
+        },
+    );
+    assert_eq!(options_of(&s, f1, "placement/derived.realised_part"), offered);
+    assert!(!offered.contains(&"532216".to_owned()), "{offered:?}");
+    // The label comes from 902, which shows -UC1's plate; with 902 showing another plate no page shows it.
+    assert_eq!(text_of(&s, f1, "placement/derived.label"), "-102F1");
+    let page = page_of(&s, "902");
+    let other = field_enclosure(&mut s);
+    let cmd = edit(&s, "page", page, "surface", &other.to_string()).unwrap();
+    run(&mut s, &cmd);
+    let keys: Vec<String> = rows(&s, f1).into_iter().map(|r| r.0).collect();
+    assert!(!keys.contains(&"placement/derived.label".to_owned()), "{keys:?}");
+}
+
+/// C44-p2#5 and p2#7: the rows' refusals in words, each whole; the enclosure's Position row asks for the three
+/// lengths it shows.
+#[test]
+fn the_layout_rows_refusals_read_whole() {
+    let mut s = golden_common::session(&golden_common::batch());
+    let f1 = uuid::<Placement>("placements", "-102F1");
+    let r1 = uuid::<Carrier>("carriers", "R1");
+    let enclosure = uuid::<Enclosure>("enclosures", "-UC1");
+    let page = page_of(&s, "902");
+    let gone = Uuid::from_u128(7);
+    assert_eq!(
+        refusal(edit(&s, "placement", gone, "locked", "true")),
+        "The placement is no longer in the project."
+    );
+    assert_eq!(
+        refusal(edit(&s, "carrier", gone, "pe_bond", "true")),
+        "The carrier is no longer in the project."
+    );
+    assert_eq!(
+        refusal(edit(&s, "page", gone, "label_mode", "Full")),
+        "The page is no longer in the project."
+    );
+    assert_eq!(
+        refusal(edit(&s, "carrier", r1, "part", "NOPART")),
+        "The project has no rail part NOPART."
+    );
+    assert_eq!(
+        refusal(edit(&s, "enclosure", enclosure, "position", "10")),
+        "Type three lengths in millimetres, such as 10, 20, 0."
+    );
+    // A plate placement's rotation takes a quarter turn.
+    let plate = e55_on_the_plate(&mut s);
+    assert_eq!(
+        refusal(edit(&s, "placement", plate, "rotation", "45°")),
+        "Choose 0°, 90°, 180° or 270°."
+    );
+    // A panel page without a surface view: its Label mode needs the surface first.
+    run(
+        &mut s,
+        &AnyCommand {
+            name: "page.create".into(),
+            params: json!({"number": 950, "kind": "panel_layout"}),
+        },
+    );
+    let p950 = page_of(&s, "950");
+    assert_eq!(
+        refusal(edit(&s, "page", p950, "label_mode", "Full")),
+        "Choose the surface first."
+    );
+    // A row's text that reads but that the command refuses compiles; the refusal is the command's (the shell keeps
+    // the old value, `layout_setup.rs`).
+    assert!(edit(&s, "placement", f1, "position", "9999").is_ok());
+    assert!(edit(&s, "page", page, "datum", "1, 2").is_ok());
+}
+
+/// PS-5 (C44-p2#5): Position on a rail and on the plate, Realised part, Rotation on the plate, a duct's Width and
+/// Height and the page's Datum each commit their command, and the row then reads the new value.
+#[test]
+fn ps5_position_realised_part_rotation_duct_size_and_datum_commit() {
+    let mut s = golden_common::session(&golden_common::batch());
+    let f1 = uuid::<Placement>("placements", "-102F1");
+    let cmd = edit(&s, "placement", f1, "position", "450").unwrap();
+    assert_eq!(cmd.name, "layout.move");
+    run(&mut s, &cmd);
+    assert_eq!(text_of(&s, f1, "placement/derived.position"), "450 mm");
+    let part = text_of(&s, f1, "placement/derived.realised_part");
+    let cmd = edit(&s, "placement", f1, "realised_part", &part).unwrap();
+    assert_eq!(cmd.name, "layout.move");
+    run(&mut s, &cmd);
+    assert_eq!(text_of(&s, f1, "placement/derived.realised_part"), part);
+    let plate = e55_on_the_plate(&mut s);
+    let cmd = edit(&s, "placement", plate, "rotation", "180°").unwrap();
+    run(&mut s, &cmd);
+    assert_eq!(text_of(&s, plate, "placement/derived.rotation"), "180°");
+    let at = text_of(&s, plate, "placement/derived.position");
+    let cmd = edit(&s, "placement", plate, "position", "300, 400").unwrap();
+    run(&mut s, &cmd);
+    assert_eq!(
+        text_of(&s, plate, "placement/derived.position"),
+        "300, 400 mm",
+        "from {at}"
+    );
+    let d1 = uuid::<Carrier>("carriers", "D1");
+    for (row, text) in [("width", "50"), ("height", "80")] {
+        let cmd = edit(&s, "carrier", d1, row, text).unwrap();
+        assert_eq!(cmd.name, "layout.carrier.edit");
+        run(&mut s, &cmd);
+        assert_eq!(
+            text_of(&s, d1, &format!("carrier/derived.{row}")),
+            format!("{text} mm")
+        );
+    }
+    let page = page_of(&s, "902");
+    let cmd = edit(&s, "page", page, "datum", "100, 200").unwrap();
+    assert_eq!(cmd.name, "page.surface_view.set");
+    run(&mut s, &cmd);
+    assert_eq!(text_of(&s, page, "page/derived.datum"), "100, 200 mm");
+}
+
 /// Removes the fixture directory at the end.
 struct Dir(std::path::PathBuf);
 
