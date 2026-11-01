@@ -297,12 +297,16 @@ WP-S6.02, FT-272 and FT-279, decision log ID-388 (doc 18 §3.6, CI-N-02). The ni
 [`ew-testkit/tests/command_fuzz`](../crates/ew-testkit/tests/command_fuzz): `EW_FUZZ_SEEDS` seeds (a comma list or
 ranges such as `1..=40`; the schedule uses 12 seeds from a range that starts at the day number, so every night
 explores new streams) of `EW_FUZZ_STEPS` (default 200 in the workflow) random steps over Golden A. Every one of
-the registered commands is generated (the test `every_registered_command_has_a_generator_arm` fails when a
-command has no arm), next to undo and redo, save-and-reload round trips and strict and lenient CSV table imports.
-Oracles: the structural check after every changing step, the memo oracle, the prevent rule, `verify_derived`, the
-validity oracle of each command (a well-formed step must commit, a malformed one must be refused and change
-nothing, the checks of what the command created), the equality of the model and of the derived families after a
-reload, and the closing undo-all with its own save and reload. The nightly body is this seeded test, on the stable
+the registered commands is generated: by its hand arm, and by the schema-driven default arm, which builds a step
+for any registered command from its parameter schema (`the_default_arm_builds_a_valid_step_for_every_registered_command`),
+next to undo and redo, save-and-reload round trips and strict and lenient CSV table imports. The command decides
+whether a step commits; the fuzzer asserts invariants. Oracles: no panic and no internal error, all or nothing (a
+refused step changes nothing), the undo law (undo of a committed undoable step restores the model and redo the
+committed model, by content), the structural check after every changing step, the memo oracle, the prevent rule,
+`verify_derived`, the checks of what a committed step created, a step built to name no record of its kind or to
+fail its schema must be refused, the equality of the model and of the derived families after a reload, and the
+closing undo-all with its own save and reload; a whole run of one seed is deterministic
+(`a_whole_run_is_deterministic`). The nightly body is this seeded test, on the stable
 toolchain without a sanitizer; the same test under AddressSanitizer and the cargo-fuzz form of the generator (the
 target `command_sequence` of [`fuzz/`](../fuzz)) run in the
 [deep nightly](#deep-nightly-deep-nightlyyml-ci-n-02-and-ci-n-03) (FT-297, FT-304, FT-272 closed).

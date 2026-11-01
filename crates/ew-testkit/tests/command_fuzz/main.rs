@@ -8,17 +8,27 @@
 //! The session opens the golden import batch (path (a)) in oracle mode ([`ew_api::MemoMode::Oracle`]), with the
 //! shipped prevent rules and a seeded ID source. Each step is one of
 //!
-//! - a command built from the live records of the current snapshot, **every registered command has a
-//!   generator arm** ([`arms::ARMS`]; `every_registered_command_has_a_generator_arm` fails when a registered
-//!   command has none), each arm mixing well-formed steps (the model must commit them), malformed steps (the
-//!   model must refuse them and change nothing) and after-commit checks ([`step`]);
+//! - a command step of a hand arm ([`arms::ARMS`]): a generator of well-formed steps and deep states built from
+//!   the live records of the current snapshot, with the checks of what a commit created ([`step`]);
+//! - a command step of the schema-driven default arm ([`schema_arm`]), for every registered command, from the
+//!   command's parameter schema alone: a new command is fuzzed without a hand arm
+//!   (`the_default_arm_builds_a_valid_step_for_every_registered_command`);
 //! - an undo or a redo;
 //! - a **save and reload** ([`roundtrip`]): the project is written to a scratch directory (created once, then
 //!   saved incrementally), opened again by a reader, and the model and the derived families are compared;
 //! - a **CSV table import** ([`import`]): the golden tables, intact or damaged, imported strict and lenient
 //!   and loaded.
 //!
-//! A command the engine refuses is counted and changes nothing; a panic is a bug.
+//! The command decides whether a step is accepted; the fuzzer asserts invariants. A step carries
+//! [`step::Verdict::Refuse`] only where the arm built it to be invalid in a way no command rule decides (an ID that
+//! names nothing or a record of another kind, parameters that fail the registry's schema check or parse); every
+//! other step is [`step::Verdict::Either`]. For every command step:
+//! - no panic, and no internal error;
+//! - all or nothing: a refused step changes no record and no revision;
+//! - the undo law: a committed, undoable step is undone to the model before it (`Model::content_eq`) and redone to
+//!   the committed model ([`undo_law`]);
+//! - determinism: the same seed gives the same outcome list and the same final model over a whole run
+//!   (`a_whole_run_is_deterministic`, [`same_run`]).
 //!
 //! Oracles after every step that changed the model (an Ok command that moved the revision, an Ok undo/redo):
 //! - (a) `Model::integrity_check` (the full structural check against the engine's incremental one), and the layout
@@ -34,14 +44,16 @@
 //!   ("embed then undo": a symbol whose function definition is not embedded, then that function definition),
 //!   whose undo removes a copy that a `LibRef` names; `embed_then_undo_of_a_named_fndef_restores_golden_a` runs
 //!   it deterministically;
-//! - (f) the step's own verdict and checks ([`step::Verdict`], [`step::Post`]).
+//! - (f) the step's own verdict, the undo law and the checks of what it created ([`step::Verdict`], [`step::Post`]).
 //!
 //! A failure panics with the seed, the step index, the oracle and the committed steps as a command log (the
 //! `ew.cmdlog/1` format; the diagnostic steps are marker lines such as `{"cmd":"#undo"}`).
 //!
 //! Tests:
 //! - `fuzz_smoke`: one seed, 30 steps.
-//! - `every_registered_command_has_a_generator_arm`, `every_arm_commits_and_refuses_what_it_should`,
+//! - `every_hand_arm_names_a_registered_command`, `the_default_arm_builds_a_valid_step_for_every_registered_command`,
+//!   `the_default_arm_steps_hold_the_invariants_on_golden_a`, `every_arm_commits_on_golden_a`,
+//!   `a_whole_run_is_deterministic`, the regressions of `fuzz/regressions/command_sequence` as step sequences,
 //!   `save_and_reload_of_golden_a_round_trips`, `embed_then_undo_of_a_named_fndef_restores_golden_a`,
 //!   `table_import_oracles_hold`, `layout_command_sequences_save_incrementally_as_a_full_save` (WP-S4.01 LM-1).
 //! - `fuzz_long` (ignored, the nightly body; see the function): `EW_FUZZ_SEEDS` (a comma list, or `a..b` /
@@ -62,6 +74,7 @@ mod import;
 mod live;
 mod rng;
 mod roundtrip;
+mod schema_arm;
 mod step;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -88,7 +101,8 @@ const TERM_RULE: &str = "EW-TERM-002";
 // ---------------------------------------------------------------------------------------------------------
 // Step choice
 
-/// The weights of the diagnostic steps among the command arms (whose weights sum to about 100).
+/// The weights of the diagnostic steps among the command arms (the hand arms weigh about 200 together, the default
+/// arm [`schema_arm::WEIGHT`] per registered command).
 #[derive(Clone, Copy, Debug)]
 struct Mix {
     undo: usize,
@@ -108,7 +122,8 @@ impl Default for Mix {
 
 /// The next step. After an undo, a redo follows half of the time (a redo is only valid right after undos, so
 /// uniform kinds would rarely exercise it). A command arm that has nothing to target (`None`) is retried with
-/// another kind.
+/// another kind. Beside the hand arms, every registered command has the default arm's step at
+/// [`schema_arm::WEIGHT`].
 fn gen_step(
     session: &Session,
     fixture: &Rc<Fixture>,
@@ -120,8 +135,11 @@ fn gen_step(
         return Step::Redo;
     }
     let live = Live::read(&session.query(), fixture);
+    let registry = session.registry();
+    let commands: Vec<&'static str> = registry.names().collect();
+    let defaults = commands.len() * schema_arm::WEIGHT;
     let arms: usize = ARMS.iter().map(|a| a.weight).sum();
-    let total = arms + mix.undo + mix.save + mix.import;
+    let total = arms + defaults + mix.undo + mix.save + mix.import;
     loop {
         let mut at = rng.below(total);
         if at < mix.undo {
@@ -136,6 +154,14 @@ fn gen_step(
             return Step::Import(import::Damage::draw(rng));
         }
         at -= mix.import;
+        if at < defaults {
+            let command = commands[at / schema_arm::WEIGHT];
+            if let Some(step) = schema_arm::step(registry, command, &live.all_ids, rng) {
+                return step;
+            }
+            continue;
+        }
+        at -= defaults;
         let arm = ARMS
             .iter()
             .find(|a| {
@@ -234,10 +260,10 @@ pub struct FuzzStats {
     /// Refusals by the structural invariants or a prevent rule after the command's own checks passed, per
     /// command name (the backstop; a command that says why is better).
     pub backstop: BTreeMap<String, usize>,
-    /// Steps built as malformed that the model refused.
+    /// Steps built as invalid (a [`Verdict::Refuse`]) that the model refused.
     pub expected_refusals: usize,
-    /// Steps built as well-formed that the model committed.
-    pub expected_accepts: usize,
+    /// Committed, undoable command steps whose undo and redo the undo law checked.
+    pub undo_laws: usize,
     /// Undos that restored a step.
     pub undos: usize,
     /// Redos that restored a step.
@@ -250,6 +276,11 @@ pub struct FuzzStats {
     pub round_trips: usize,
     /// Table import steps.
     pub imports: import::ImportStats,
+    /// The outcome of every step of a run, in order (the step's command-log line and what it did): what the
+    /// determinism check compares ([`same_run`]). Not merged across runs.
+    pub outcomes: Vec<String>,
+    /// The model at the end of a run's steps, before the closing undo-all (the determinism check). Not merged.
+    pub final_model: Option<Model>,
 }
 
 impl FuzzStats {
@@ -270,7 +301,7 @@ impl FuzzStats {
             }
         }
         self.expected_refusals += other.expected_refusals;
-        self.expected_accepts += other.expected_accepts;
+        self.undo_laws += other.undo_laws;
         self.undos += other.undos;
         self.redos += other.redos;
         self.history_refused += other.history_refused;
@@ -376,6 +407,8 @@ struct Applied {
     changed: bool,
     /// The command committed (also as a marker line or a no-op).
     ok: bool,
+    /// The refusal, in its debug form, when the command was refused (for the outcome list).
+    refusal: Option<String>,
 }
 
 /// The kind of a refusal, for the report; `None` for the ones that are the backstop of the model.
@@ -383,17 +416,60 @@ fn is_backstop(e: &CmdError) -> bool {
     matches!(e, CmdError::Model(_) | CmdError::Prevented { .. })
 }
 
-/// Runs a command step and checks its verdict (oracle (f)): `Err` is a finding. A panic unwinds.
+/// The history operations the undo law drives ([`undo_law`]): the session's own, or a test's wrapper that injects
+/// a fault.
+pub trait History {
+    /// Undoes the last step; false when the history refuses.
+    fn undo_step(&mut self) -> bool;
+    /// Redoes the last undone step; false when the history refuses.
+    fn redo_step(&mut self) -> bool;
+    /// The current model.
+    fn model(&self) -> Model;
+}
+
+impl History for Session {
+    fn undo_step(&mut self) -> bool {
+        self.undo(&ew_api::Origin::Gui).is_ok()
+    }
+
+    fn redo_step(&mut self) -> bool {
+        self.redo(&ew_api::Origin::Gui).is_ok()
+    }
+
+    fn model(&self) -> Model {
+        self.world().model
+    }
+}
+
+/// The undo law of a committed, undoable step (`before` the model before it, `after` the committed model): undo
+/// restores `before` and redo restores `after`, both by content ([`Model::content_eq`]: the revision and the change
+/// stamps are not compared). The history is left as it was, with the step done.
+pub fn undo_law(history: &mut dyn History, before: &Model, after: &Model) -> Result<(), String> {
+    if !history.undo_step() {
+        return Err("the undo of a committed step was refused".to_owned());
+    }
+    if !history.model().content_eq(before) {
+        return Err("undo did not restore the model before the step".to_owned());
+    }
+    if !history.redo_step() {
+        return Err("the redo of an undone step was refused".to_owned());
+    }
+    if !history.model().content_eq(after) {
+        return Err("redo did not restore the committed model".to_owned());
+    }
+    Ok(())
+}
+
+/// Runs a command step and checks the invariants and its verdict (oracle (f)): `Err` is a finding. A panic unwinds.
 fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Applied, String> {
     let before = session.world();
     let cmd = AnyCommand {
         name: c.name.to_owned(),
         params: c.params.clone(),
     };
-    let bulk = session
-        .registry()
-        .get(c.name)
-        .is_some_and(|e| e.meta().cost == Cost::Bulk);
+    let (bulk, undoable) = session.registry().get(c.name).map_or((false, false), |e| {
+        (e.meta().cost == Cost::Bulk, e.meta().undoable)
+    });
     let receipt = if bulk {
         session.preview(&cmd).and_then(|p| session.commit(p))
     } else {
@@ -403,8 +479,12 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
     match receipt {
         Ok(receipt) => {
             if c.verdict == Verdict::Refuse {
+                let site = c.site.map_or_else(String::new, |l| {
+                    format!(" (the arm's refusal at line {})", l.line())
+                });
                 return Err(format!(
-                    "`{}` accepted a step that must be refused (it moved the revision: {})",
+                    "`{}` accepted a step that names no record of its kind or fails its schema{site} (it moved the \
+                     revision: {})",
                     c.name,
                     after.rev > before.rev
                 ));
@@ -412,9 +492,6 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
             let changed = after.rev > before.rev;
             let map = if changed { &mut stats.ok } else { &mut stats.noop };
             *map.entry(c.name.to_owned()).or_default() += 1;
-            if c.verdict == Verdict::Accept {
-                stats.expected_accepts += 1;
-            }
             let (qb, qa) = (
                 session.query_over(&before.model),
                 session.query_over(&after.model),
@@ -428,10 +505,8 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
                     c.name
                 ));
             }
-            // The checks run after a commit that changed the model, and also after an `Accept` step that
-            // committed as a no-op (it must then satisfy them too: a well-formed step that did nothing while
-            // the generator expected a change is a finding). A count that is expected to move cannot hold
-            // when the model did not change, whatever the verdict.
+            // The checks of what the step created run after a commit that changed the model; a count that is
+            // expected to move cannot hold when the model did not change.
             for post in &c.posts {
                 match post {
                     Post::Counts(deltas) => {
@@ -452,21 +527,27 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
                             }
                         }
                     }
-                    Post::Check(f) if changed || c.verdict == Verdict::Accept => {
+                    Post::Check(f) if changed => {
                         f(&qb, &qa).map_err(|e| format!("`{}`: {e}", c.name))?;
                     }
                     Post::Check(_) => {}
                 }
             }
-            Ok(Applied { changed, ok: true })
+            // The undo law. A non-undoable command (`project.assets.purge`) never moves the revision: exempt.
+            if changed && undoable {
+                undo_law(session, &before.model, &after.model).map_err(|e| format!("`{}`: {e}", c.name))?;
+                stats.undo_laws += 1;
+            }
+            Ok(Applied {
+                changed,
+                ok: true,
+                refusal: None,
+            })
         }
         Err(e) => {
             *stats.refused.entry(c.name.to_owned()).or_default() += 1;
             if is_backstop(&e) {
                 *stats.backstop.entry(c.name.to_owned()).or_default() += 1;
-            }
-            if c.verdict == Verdict::Accept {
-                return Err(format!("`{}` refused a well-formed step: {e:?}", c.name));
             }
             if c.verdict == Verdict::Refuse {
                 stats.expected_refusals += 1;
@@ -486,12 +567,14 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
                 }
                 _ => {}
             }
+            // All or nothing: a refused step changes no record and no revision.
             if after.rev != before.rev || !after.model.content_eq(&before.model) {
                 return Err(format!("`{}` was refused ({e:?}) but changed the model", c.name));
             }
             Ok(Applied {
                 changed: false,
                 ok: false,
+                refusal: Some(format!("{e:?}")),
             })
         }
     }
@@ -621,32 +704,48 @@ fn run_fuzz_rng(seed: u64, mut rng: SplitMix64, steps: usize, cadence: &Cadence)
         let fail = |log: &[String], oracle: &str, detail: String| -> ! {
             panic!("{}", failure(seed, index, oracle, &detail, log));
         };
-        // The step's own work, with a panic reported like any other finding.
-        let outcome = catch_unwind(AssertUnwindSafe(|| -> Result<bool, (&'static str, String)> {
-            match &step {
-                Step::Undo => Ok(run_history(&mut session, true, &mut stats)),
-                Step::Redo => Ok(run_history(&mut session, false, &mut stats)),
-                Step::SaveReload => {
-                    stats.round_trips += 1;
-                    let depth = if deep {
-                        roundtrip::Depth::Full
-                    } else {
-                        roundtrip::Depth::Sample
-                    };
-                    disk.round_trip(&mut session, depth)
-                        .map(|()| false)
-                        .map_err(|e| ("save and reload", e))
+        // The step's own work, with a panic reported like any other finding: whether the model changed, and
+        // what the step did (the outcome list of the determinism check).
+        let outcome = catch_unwind(AssertUnwindSafe(
+            || -> Result<(bool, String), (&'static str, String)> {
+                let history = |done: bool, what: &str| {
+                    (done, format!("{what} {}", if done { "done" } else { "refused" }))
+                };
+                match &step {
+                    Step::Undo => Ok(history(run_history(&mut session, true, &mut stats), "undo")),
+                    Step::Redo => Ok(history(run_history(&mut session, false, &mut stats), "redo")),
+                    Step::SaveReload => {
+                        stats.round_trips += 1;
+                        let depth = if deep {
+                            roundtrip::Depth::Full
+                        } else {
+                            roundtrip::Depth::Sample
+                        };
+                        disk.round_trip(&mut session, depth)
+                            .map(|()| (false, "saved and reloaded".to_owned()))
+                            .map_err(|e| ("save and reload", e))
+                    }
+                    Step::Import(damage) => import::check(damage, deep, &mut stats.imports)
+                        .map(|()| (false, "imported".to_owned()))
+                        .map_err(|e| ("table import", e)),
+                    Step::Cmd(c) => apply(&mut session, c, &mut stats)
+                        .map(|a| {
+                            let what = match (&a.refusal, a.changed) {
+                                (Some(e), _) => format!("refused: {e}"),
+                                (None, true) => "committed".to_owned(),
+                                (None, false) => "committed as a no-op".to_owned(),
+                            };
+                            (a.changed, what)
+                        })
+                        .map_err(|e| ("validity oracle", e)),
                 }
-                Step::Import(damage) => import::check(damage, deep, &mut stats.imports)
-                    .map(|()| false)
-                    .map_err(|e| ("table import", e)),
-                Step::Cmd(c) => apply(&mut session, c, &mut stats)
-                    .map(|a| a.changed)
-                    .map_err(|e| ("validity oracle", e)),
-            }
-        }));
+            },
+        ));
         let changed = match outcome {
-            Ok(Ok(changed)) => changed,
+            Ok(Ok((changed, what))) => {
+                stats.outcomes.push(format!("{} => {what}", step.line()));
+                changed
+            }
             Ok(Err((oracle, detail))) => {
                 log.push(step.line());
                 fail(&log, oracle, detail)
@@ -716,6 +815,7 @@ fn run_fuzz_rng(seed: u64, mut rng: SplitMix64, steps: usize, cadence: &Cadence)
         }
     }
 
+    stats.final_model = Some(session.world().model);
     // The closing oracles, whatever the cadence and also when the last step did not change the model.
     let end = |log: &[String], oracle: &str, r: Result<(), String>| {
         if let Err(d) = r {
@@ -819,7 +919,7 @@ fn run_fuzz_rng(seed: u64, mut rng: SplitMix64, steps: usize, cadence: &Cadence)
 fn report(label: &str, stats: &FuzzStats) -> String {
     let mut out = format!(
         "{label}: committed {}, noop {}, refused {} (backstop {}), undos {}, redos {}, history refused {}, closing undos {}, \
-         round trips {}, imports {} (loaded {}, refused {}, lenient kept {}), expected accepts {}, expected refusals {}\n",
+         round trips {}, imports {} (loaded {}, refused {}, lenient kept {}), undo laws {}, expected refusals {}\n",
         stats.committed(),
         stats.noop.values().sum::<usize>(),
         stats.refused.values().sum::<usize>(),
@@ -833,7 +933,7 @@ fn report(label: &str, stats: &FuzzStats) -> String {
         stats.imports.loaded,
         stats.imports.refused,
         stats.imports.lenient_kept,
-        stats.expected_accepts,
+        stats.undo_laws,
         stats.expected_refusals,
     );
     let names: BTreeSet<&String> = stats
@@ -885,40 +985,209 @@ fn fuzz_smoke() {
         "seed {seed}: the generator is degenerate, only {} commands committed",
         stats.committed()
     );
+    assert!(
+        stats.undo_laws > 0,
+        "seed {seed}: the undo law ran for no committed step"
+    );
 }
 
-/// The coverage rule of FT-279: every registered command has a generator arm, and every arm is a registered
-/// command. A command added to the registry (lane A's `revision.*`, a later package's) fails this test until
-/// its arm is added to `ARMS` in `arms.rs`, with the validity oracle of its steps.
+/// The coverage rule (FT-279, RD43): every hand arm names a registered command, and no command has two. A
+/// registered command without a hand arm is still fuzzed: the default arm builds its steps from its schema
+/// (`the_default_arm_builds_a_valid_step_for_every_registered_command`).
 #[test]
-fn every_registered_command_has_a_generator_arm() {
+fn every_hand_arm_names_a_registered_command() {
     let registry = ew_commands::CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.names().collect();
     let covered: BTreeSet<&str> = ARMS.iter().map(|a| a.command).collect();
-    assert_eq!(covered.len(), ARMS.len(), "a command has two generator arms");
-    let missing: Vec<&str> = registered.difference(&covered).copied().collect();
+    assert_eq!(covered.len(), ARMS.len(), "a command has two hand arms");
     let stale: Vec<&str> = covered.difference(&registered).copied().collect();
-    assert!(
-        missing.is_empty() && stale.is_empty(),
-        "the command fuzzer's generator arms (crates/ew-testkit/tests/command_fuzz/arms.rs, ARMS) and the command \
-         registry disagree.\n  registered commands without an arm: {missing:?}\n  arms for commands that are no \
-         longer registered: {stale:?}\nAdd an arm for each missing command: a generator function that builds \
-         well-formed steps from the live records (Verdict::Accept where every refusal rule is modelled) and \
-         malformed ones (Verdict::Refuse), with the checks that must hold after the commit, and list it in ARMS."
-    );
-    eprintln!(
-        "{} of {} registered commands have a generator arm",
-        covered.len(),
-        registered.len()
+    assert_eq!(
+        stale,
+        Vec::<&str>::new(),
+        "hand arms (crates/ew-testkit/tests/command_fuzz/arms.rs, ARMS) for commands that are not registered"
     );
 }
 
-/// Every arm builds a step on Golden A, the model commits what the arm calls well-formed, and refuses and
-/// leaves unchanged what it calls malformed: the validity oracle holds for every command on the initial
-/// project, at several seeds, without the fuzz loop around it. Each committed step is undone, so every
-/// attempt starts from the golden project.
+/// The seeds per command of the default-arm tests.
+const DEFAULT_SEEDS: u64 = 32;
+
+/// The default arm over every registered command, on Golden A's records: for each command, some seed yields a step
+/// that passes the registry's schema check and parse (`CommandRegistry::resolve`), and a seed always yields the
+/// same step. The share of valid steps per command is printed (informational).
 #[test]
-fn every_arm_commits_and_refuses_what_it_should() {
+fn the_default_arm_builds_a_valid_step_for_every_registered_command() {
+    let session = open_session_with(5, MemoMode::Off);
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let live = Live::read(&session.query(), &fixture);
+    let registry = ew_commands::CommandRegistry::builtin();
+    let (mut never, mut rates) = (Vec::new(), String::new());
+    for command in registry.names() {
+        let draw = |seed: u64| {
+            schema_arm::params(registry, command, &live.all_ids, &mut SplitMix64::new(seed))
+                .expect("a registered command has a schema")
+        };
+        let mut valid = 0;
+        for seed in 0..DEFAULT_SEEDS {
+            let params = draw(seed);
+            assert_eq!(
+                params,
+                draw(seed),
+                "`{command}`: seed {seed} drew two different steps"
+            );
+            let cmd = AnyCommand {
+                name: command.to_owned(),
+                params,
+            };
+            if registry.resolve(&cmd).is_ok() {
+                valid += 1;
+            }
+        }
+        if valid == 0 {
+            never.push(command);
+        }
+        let _ = writeln!(rates, "  {command:<36} {valid:>3} of {DEFAULT_SEEDS} valid");
+    }
+    eprintln!("{rates}");
+    assert_eq!(
+        never,
+        Vec::<&str>::new(),
+        "commands whose default steps never pass the schema check and parse"
+    );
+}
+
+/// The default arm's steps on Golden A, a few per registered command: the invariants hold for every one of them
+/// ([`apply`]: no panic, no internal error, all or nothing, the undo law), and each committed step is undone, so
+/// that every step starts from Golden A. The commits per command are printed (informational).
+#[test]
+fn the_default_arm_steps_hold_the_invariants_on_golden_a() {
+    let mut session = open_session_with(8, MemoMode::On);
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let live = Live::read(&session.query(), &fixture);
+    let initial = session.world().model.clone();
+    let registry = ew_commands::CommandRegistry::builtin();
+    let mut stats = FuzzStats::default();
+    for (i, command) in registry.names().enumerate() {
+        for attempt in 0..DEFAULT_SEEDS / 4 {
+            let mut rng = SplitMix64::new(7_000 * (i as u64 + 1) + attempt);
+            let Some(Step::Cmd(c)) = schema_arm::step(registry, command, &live.all_ids, &mut rng) else {
+                panic!("`{command}` is registered");
+            };
+            let line = serde_json::json!({"cmd": c.name, "params": c.params}).to_string();
+            let applied = apply(&mut session, &c, &mut stats)
+                .unwrap_or_else(|e| panic!("`{command}` attempt {attempt}: {e}\nstep: {line}"));
+            if applied.changed {
+                session
+                    .undo(&ew_api::Origin::Gui)
+                    .expect("a committed step undoes");
+            }
+        }
+    }
+    assert!(
+        session.world().model.content_eq(&initial),
+        "the default steps, each undone, leave Golden A"
+    );
+    eprintln!("{}", report("default arm", &stats));
+}
+
+/// A history whose redo claims success and does nothing: the seeded fault of
+/// [`the_undo_law_fails_on_a_redo_that_does_not_restore`].
+struct RedoForgets<'a>(&'a mut Session);
+
+impl History for RedoForgets<'_> {
+    fn undo_step(&mut self) -> bool {
+        self.0.undo_step()
+    }
+
+    fn redo_step(&mut self) -> bool {
+        true
+    }
+
+    fn model(&self) -> Model {
+        self.0.model()
+    }
+}
+
+/// The undo law holds for a committed step of the session, and fails, with its own words, through a history whose
+/// redo does not restore the committed model.
+#[test]
+fn the_undo_law_fails_on_a_redo_that_does_not_restore() {
+    let mut session = open_session_with(9, MemoMode::On);
+    let before = session.world().model;
+    let cmd = AnyCommand {
+        name: "page.create".to_owned(),
+        params: serde_json::json!({"number": 10_001, "kind": "multi_line", "title": "FZ"}),
+    };
+    session.execute(&cmd).expect("a page of no section commits");
+    let after = session.world().model;
+    undo_law(&mut session, &before, &after).expect("the session keeps the undo law");
+    assert_eq!(
+        undo_law(&mut RedoForgets(&mut session), &before, &after),
+        Err("redo did not restore the committed model".to_owned())
+    );
+}
+
+/// Whether two runs of one seed went the same way: the same outcome list and the same final model (by content).
+pub fn same_run(a: &FuzzStats, b: &FuzzStats) -> Result<(), String> {
+    let steps = a.outcomes.len().max(b.outcomes.len());
+    if let Some(i) = (0..steps).find(|i| a.outcomes.get(*i) != b.outcomes.get(*i)) {
+        return Err(format!(
+            "step {i} went two ways: {:?} and {:?}",
+            a.outcomes.get(i),
+            b.outcomes.get(i)
+        ));
+    }
+    match (&a.final_model, &b.final_model) {
+        (Some(x), Some(y)) if x.content_eq(y) => Ok(()),
+        (Some(_), Some(_)) => Err("the final models differ".to_owned()),
+        _ => Err("a run kept no final model".to_owned()),
+    }
+}
+
+/// The steps of the determinism runs.
+const DETERMINISM_STEPS: usize = 16;
+
+/// The cadence of the determinism runs: the structural check, the verdicts, the undo law and a few round trips; no
+/// costly sweep.
+fn determinism_cadence() -> Cadence {
+    Cadence {
+        sample_every: 0,
+        check_every: 0,
+        verify_every: 0,
+        full_end: false,
+        save_weight: 2,
+        import_weight: 0,
+        deep: false,
+    }
+}
+
+/// Determinism over a whole run: two runs of one seed give the same outcome list and the same final model.
+#[test]
+fn a_whole_run_is_deterministic() {
+    let seed = 4;
+    let a = run_fuzz_with(seed, DETERMINISM_STEPS, &determinism_cadence());
+    let b = run_fuzz_with(seed, DETERMINISM_STEPS, &determinism_cadence());
+    assert_eq!(a.outcomes.len(), DETERMINISM_STEPS);
+    assert!(a.committed() > 0, "the run commits something: {:?}", a.outcomes);
+    same_run(&a, &b).unwrap_or_else(|e| panic!("seed {seed}: {e}"));
+}
+
+/// The determinism check fails on a seeded fault: a second run of the same seed whose random source differs in its
+/// first draw (every bit of it flipped through the tape of the cargo-fuzz target).
+#[test]
+fn the_determinism_check_fails_on_a_perturbed_run() {
+    let seed = 4;
+    let a = run_fuzz_with(seed, DETERMINISM_STEPS, &determinism_cadence());
+    let perturbed = run_fuzz_tape(seed, &[0xFF; 8], DETERMINISM_STEPS, &determinism_cadence());
+    let err = same_run(&a, &perturbed).expect_err("a perturbed run goes another way");
+    assert!(err.starts_with("step "), "{err}");
+}
+
+/// Every hand arm builds steps on Golden A that the model commits (a dead arm covers nothing), at several seeds,
+/// without the fuzz loop around it; the invariants and the remaining verdicts hold for every step ([`apply`]). Each
+/// committed step is undone, so every attempt starts from the golden project. An arm of [`arms::SESSION_REFUSES`]
+/// must see every step refused instead.
+#[test]
+fn every_arm_commits_on_golden_a() {
     let mut session = open_session_with(7, MemoMode::On);
     session.take_oracle_mismatches();
     let fixture = Rc::new(Fixture::of(&session.query()));
@@ -926,7 +1195,7 @@ fn every_arm_commits_and_refuses_what_it_should() {
     let mut stats = FuzzStats::default();
     let mut dead = Vec::new();
     for (i, arm) in ARMS.iter().enumerate() {
-        let (mut committed, mut refused_ok, mut tried) = (0, 0, 0);
+        let (mut committed, mut refused, mut tried) = (0, 0, 0);
         for attempt in 0..60u64 {
             let mut rng = SplitMix64::new(1_000 * (i as u64 + 1) + attempt);
             // An arm whose command finds nothing to act on in Golden A gets its setup step first (`arms::setup_of`),
@@ -974,6 +1243,7 @@ fn every_arm_commits_and_refuses_what_it_should() {
                 params: c.params.clone(),
                 verdict: c.verdict,
                 posts: Vec::new(),
+                site: None,
             })
             .line();
             let applied = apply(&mut session, &c, &mut stats)
@@ -993,8 +1263,8 @@ fn every_arm_commits_and_refuses_what_it_should() {
                     "arm `{}`: undo did not restore the golden project\nstep: {line}",
                     arm.command
                 );
-            } else if c.verdict == Verdict::Refuse {
-                refused_ok += 1;
+            } else if !applied.ok {
+                refused += 1;
             }
             if set_up > 0 {
                 undo_setup(&mut session, set_up);
@@ -1004,7 +1274,7 @@ fn every_arm_commits_and_refuses_what_it_should() {
                     arm.command
                 );
             }
-            if committed >= 2 && (refused_ok >= 1 || attempt > 40) {
+            if committed >= 2 && (refused >= 1 || attempt > 40) {
                 break;
             }
         }
@@ -1012,8 +1282,8 @@ fn every_arm_commits_and_refuses_what_it_should() {
             // A command no submit path of the session commits (`revision.approve`, WP-S1.18 D9): every step is
             // refused, and the arm proves it.
             assert!(
-                committed == 0 && refused_ok > 0,
-                "arm `{}`: the session must refuse every step ({committed} committed, {refused_ok} refused)",
+                committed == 0 && refused > 0,
+                "arm `{}`: the session must refuse every step ({committed} committed, {refused} refused)",
                 arm.command
             );
         } else if committed == 0 {
@@ -1027,10 +1297,10 @@ fn every_arm_commits_and_refuses_what_it_should() {
     eprintln!("{}", report("every arm", &stats));
 }
 
-/// Cycle-29 review: the `item.place` arm that places an image from its file (`.accept()`) gives the image's rectangle
-/// an area on every draw: the two opposite corners differ on both axes, whichever grid position the first corner drew
-/// (before, a fixed second corner made the rectangle empty on about one draw in forty, and `item.place` refuses an
-/// empty rectangle: a false finding in `fuzz_long`).
+/// Cycle-29 review: the `item.place` arm that places an image from its file gives the image's rectangle an area on
+/// every draw: the two opposite corners differ on both axes, whichever grid position the first corner drew (before, a
+/// fixed second corner made the rectangle empty on about one draw in forty, and `item.place` refuses an empty
+/// rectangle). The steps of that branch are the ones whose `data` is a PNG file.
 #[test]
 fn the_image_arm_always_places_a_rectangle_with_area() {
     let session = open_session(7);
@@ -1044,7 +1314,11 @@ fn the_image_arm_always_places_a_rectangle_with_area() {
             continue;
         };
         let image = &c.params["kind"]["image"];
-        if image.get("data").is_none() || c.verdict != Verdict::Accept {
+        let png = image["data"]
+            .as_str()
+            .and_then(|d| ew_schema::base64_decode(d).ok())
+            .is_some_and(|bytes| bytes.starts_with(b"\x89PNG"));
+        if !png {
             continue;
         }
         images += 1;
@@ -1063,184 +1337,187 @@ fn the_image_arm_always_places_a_rectangle_with_area() {
     assert!(images > 500, "the arm places images: {images}");
     assert!(
         empty.is_empty(),
-        "{} of {images} accepted image rectangles have no area, first: {:?}",
+        "{} of {images} image rectangles have no area, first: {:?}",
         empty.len(),
         empty.first()
     );
 }
 
+/// Runs explicit command steps (`Either`: the command decides) through [`apply`], so that every invariant holds for
+/// each; returns whether each committed.
+fn run_steps(session: &mut Session, steps: &[(&'static str, serde_json::Value)]) -> Vec<bool> {
+    let mut stats = FuzzStats::default();
+    steps
+        .iter()
+        .map(|(name, params)| {
+            let Step::Cmd(c) = Step::cmd(name, params.clone()) else {
+                unreachable!("a command step")
+            };
+            apply(session, &c, &mut stats)
+                .unwrap_or_else(|e| panic!("{e}\nstep: {}", Step::Cmd(c).line()))
+                .ok
+        })
+        .collect()
+}
+
+/// FT-469 (`fuzz/regressions/command_sequence/non-cable-refusal-picked-a-cable`): the arm's "not a cable" refusal of
+/// `conductor.add` picked a cable, which the command accepts, and the run reported the commit as a finding. The arm
+/// no longer restates the command's rule (the step is `Either`); the step sequence the finding was about: a
+/// conductor added to a cable commits, and the same step on a device that is no cable is refused and changes nothing.
 #[test]
-fn conductor_add_non_cable_refusal_excludes_cables() {
-    let mut session = open_session(469);
+fn ft469_conductor_add_commits_on_a_cable_and_is_refused_on_another_device() {
+    let mut session = open_session_with(469, MemoMode::On);
     let fixture = Rc::new(Fixture::of(&session.query()));
-    let mut live = Live::read(&session.query(), &fixture);
-    let cable = live.cables.first().expect("Golden A has a cable").id.clone();
-    assert!(live.plain_devices.contains(&cable));
-    let q = session.query();
-    let cable_id = serde_json::from_value(cable.clone()).expect("a device ID");
-    assert!(
-        q.devices()
-            .get(cable_id)
-            .expect("a live cable")
-            .aspects
-            .cable
-            .is_some()
-    );
-    let non_cable = live
+    let live = Live::read(&session.query(), &fixture);
+    let cable = live.cables.first().expect("Golden A has a cable");
+    let other = live
         .plain_devices
         .iter()
-        .find(|id| {
-            let id = serde_json::from_value((*id).clone()).expect("a device ID");
-            q.devices()
-                .get(id)
-                .expect("a live device")
-                .aspects
-                .cable
-                .is_none()
-        })
-        .expect("Golden A has a plain non-cable device")
-        .clone();
-    let non_cable_id = serde_json::from_value(non_cable.clone()).expect("a device ID");
-    assert!(
-        q.devices()
-            .get(non_cable_id)
-            .expect("a live device")
-            .aspects
-            .cable
-            .is_none()
+        .find(|d| !live.cables.iter().any(|c| c.id == **d))
+        .expect("Golden A has a device that is no cable");
+    let core = (1..)
+        .map(|n| format!("C{n}"))
+        .find(|c| !cable.cores.contains(c))
+        .expect("a free core");
+    let done = run_steps(
+        &mut session,
+        &[
+            (
+                "conductor.add",
+                serde_json::json!({"cable": cable.id, "conductors": [{"core": core}]}),
+            ),
+            (
+                "conductor.add",
+                serde_json::json!({"cable": other, "conductors": [{"core": "C1"}]}),
+            ),
+        ],
     );
-    let arm = ARMS
+    assert_eq!(done, [true, false]);
+}
+
+/// Cycle 33 `fuzz-smoke` finding (`fuzz/regressions/command_sequence/route-repeated-vertex`, seed 286 720 002): the
+/// arm built a Z-shaped `connection.route` whose bend line ran through an end, so the route repeated a vertex, which
+/// the product refuses (FT-437), and the run expected a commit. The step sequence: that route is refused and changes
+/// nothing, and the tidy dog-leg between the same ends commits (the arm's routes are tidy).
+#[test]
+fn a_route_that_repeats_a_vertex_is_refused_and_the_tidy_route_commits() {
+    let mut session = open_session_with(437, MemoMode::On);
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let live = Live::read(&session.query(), &fixture);
+    let r = live
+        .routes
         .iter()
-        .find(|a| a.command == "conductor.add")
-        .expect("an arm");
-
-    let seed = 469;
-    let mut normal = SplitMix64::new(seed);
-    normal.next(); // The initial cable pick keeps its seeded draw.
-    let second = normal.next();
-    let tape = [0u64.to_le_bytes(), (second ^ 1u64).to_le_bytes()].concat();
-
-    live.plain_devices = vec![cable.clone()];
-    let mut rng = SplitMix64::with_tape(seed, &tape);
-    assert!(
-        (arm.build)(&live, &mut rng).is_none(),
-        "a cable is not a refusal target"
-    );
-
-    live.plain_devices = vec![cable, non_cable.clone()];
-    let mut rng = SplitMix64::with_tape(seed, &tape);
-    let Some(Step::Cmd(c)) = (arm.build)(&live, &mut rng) else {
-        panic!("the non-cable refusal branch builds a command");
+        .find(|r| r.a.0 != r.b.0 && r.a.1 != r.b.1)
+        .expect("Golden A has a connection between CPs on two lines");
+    let (a, b) = (r.a, r.b);
+    let route = |points: &[(i64, i64)]| -> serde_json::Value {
+        points.iter().map(|(x, y)| serde_json::json!([x, y])).collect()
     };
-    assert_eq!(c.verdict, Verdict::Refuse);
-    assert_eq!(c.name, "conductor.add");
-    assert_eq!(c.params["cable"], non_cable);
-    let before = session.world();
-    let mut stats = FuzzStats::default();
-    let applied = apply(&mut session, &c, &mut stats).expect("a valid non-cable refusal");
-    assert!(!applied.ok);
-    assert!(!applied.changed);
-    let after = session.world();
-    assert_eq!(before.rev, after.rev);
-    assert!(after.model.content_eq(&before.model));
+    // The Z route of the finding: its bend line is the y of the first end, so its second vertex repeats the first.
+    let repeated = route(&[a, (a.0, a.1), (b.0, a.1), b]);
+    let tidy = route(&[a, (b.0, a.1), b]);
+    let done = run_steps(
+        &mut session,
+        &[
+            (
+                "connection.route",
+                serde_json::json!({"connection": r.connection, "route": repeated}),
+            ),
+            (
+                "connection.route",
+                serde_json::json!({"connection": r.connection, "route": tidy}),
+            ),
+        ],
+    );
+    assert_eq!(done, [false, true]);
 }
 
+/// Cycle 42 `fuzz-smoke` finding (`fuzz/regressions/command_sequence/rep-move-surface-view`, CI run 41255625529):
+/// the run moved the surface view of a panel-layout page of Golden A with `rep.move`'s `items`, which the product
+/// refuses (a surface view is set by `page.surface_view.set`, never moved with a selection), and expected a commit.
+/// The arm no longer restates the rule (the step is `Either`). The step sequence: the move of the surface view is
+/// refused and changes nothing, and the move of a free text placed first (Golden A's page items are surface views)
+/// commits.
 #[test]
-fn ft469_command_sequence_regression_passes() {
-    let bytes =
-        std::fs::read(repo().join("fuzz/regressions/command_sequence/non-cable-refusal-picked-a-cable"))
-            .expect("the preserved FT-469 input");
-    assert_eq!(bytes.len(), 66);
-    let seed = u64::from_le_bytes(bytes[..8].try_into().expect("eight seed bytes"));
-    let steps = 1 + usize::from(bytes[8]) % 8;
-    assert_eq!(seed, 18_446_744_073_709_486_082);
-    assert_eq!(steps, 8);
-    let stats = run_fuzz_tape(
-        seed,
-        &bytes[9..],
-        steps,
-        &Cadence {
-            sample_every: 0,
-            check_every: 0,
-            verify_every: 0,
-            full_end: false,
-            save_weight: 1,
-            import_weight: 0,
-            deep: false,
-        },
+fn rep_move_of_a_surface_view_is_refused_and_of_a_free_text_commits() {
+    use ew_schema::PageItemKind;
+    let mut session = open_session_with(13, MemoMode::On);
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let live = Live::read(&session.query(), &fixture);
+    let page = live
+        .page_info
+        .iter()
+        .find(|p| p.kind == "multi_line")
+        .expect("Golden A has a multi-line page");
+    let at = Live::grid_pos(page, 4, 4);
+    let placed = run_steps(
+        &mut session,
+        &[(
+            "item.place",
+            serde_json::json!({"page": page.id, "kind": {"free_text": {"text": "FZ", "at": at}}}),
+        )],
     );
-    assert!(stats.committed() > 0);
+    assert_eq!(placed, [true]);
+    let q = session.query();
+    let item_of = |pick: fn(&PageItemKind) -> bool| {
+        q.page_items()
+            .iter()
+            .find(|(_, i)| pick(&i.kind))
+            .map(|(id, _)| live::id_json(id))
+    };
+    let view = item_of(|k| matches!(k, PageItemKind::SurfaceView(_))).expect("Golden A has a surface view");
+    let text = item_of(|k| matches!(k, PageItemKind::FreeText(_))).expect("the free text placed");
+    drop(q);
+    let delta = [arms::MOVE_UNIT, 0];
+    let done = run_steps(
+        &mut session,
+        &[
+            (
+                "rep.move",
+                serde_json::json!({"reps": [], "items": [view], "delta": delta}),
+            ),
+            (
+                "rep.move",
+                serde_json::json!({"reps": [], "items": [text], "delta": delta}),
+            ),
+        ],
+    );
+    assert_eq!(done, [false, true]);
 }
 
-/// Cycle 33 `fuzz-smoke` finding: seed 286 720 002 built a Z-shaped `connection.route` whose bend line ran
-/// through an end, so the route repeated a vertex; the product refuses that (FT-437) while the model expected it to
-/// commit. The route generator now drops repeated vertices.
+/// FT-468 (`fuzz/regressions/command_sequence/structure-box-dropped-by-save`, CI run 40115388450): a save dropped
+/// the page items and structure boxes, so the round trip after a `box.structure` lost the box. The step sequence of
+/// the finding: the dotted structure box with a location and an external reference commits, a save and reload gives
+/// the same model, and after the undo a save and reload gives Golden A.
 #[test]
-fn command_sequence_route_repeated_vertex_regression_passes() {
-    let bytes = std::fs::read(repo().join("fuzz/regressions/command_sequence/route-repeated-vertex"))
-        .expect("the preserved route input");
-    assert_eq!(bytes.len(), 9);
-    let seed = u64::from_le_bytes(bytes[..8].try_into().expect("eight seed bytes"));
-    let steps = 1 + usize::from(bytes[8]) % 8;
-    assert_eq!(seed, 286_720_002);
-    assert_eq!(steps, 8);
-    let stats = run_fuzz_tape(
-        seed,
-        &bytes[9..],
-        steps,
-        &Cadence {
-            sample_every: 0,
-            check_every: 0,
-            verify_every: 0,
-            full_end: false,
-            save_weight: 1,
-            import_weight: 0,
-            deep: false,
-        },
+fn ft468_a_structure_box_survives_a_save_and_reload() {
+    let mut session = open_session(7);
+    let initial = session.world().model.clone();
+    let mut disk = roundtrip::Disk::new(468);
+    let boxes = session.query().structure_boxes().len();
+    let done = run_steps(
+        &mut session,
+        &[(
+            "box.structure",
+            serde_json::json!({"assigns": {"location": "d6137d06-68c5-5e53-abe2-c728d203b03d"},
+                "external": "97ccee03-a693-5fbc-9d61-5f5ce37ec8e6",
+                "outline": [[0, 0], [50_000_000, 0], [50_000_000, 30_000_000], [0, 30_000_000]],
+                "page": "64b79654-66b4-5243-9cfc-fd7c0878c4f3", "style": "dotted"}),
+        )],
     );
-    assert!(stats.committed() > 0);
-}
-
-/// Cycle 42 `fuzz-smoke` finding (CI run 41255625529): seed 13, step 2, moved the surface view of a panel-layout
-/// page of Golden A with `rep.move`'s `items`; the product refuses that (a surface view is set by
-/// `page.surface_view.set`, never moved with a selection) while the model expected it to commit. The `items` arm now
-/// expects the refusal ([`live::movable_item`]), so the run passes and counts the refused `rep.move`.
-#[test]
-fn command_sequence_rep_move_surface_view_regression_passes() {
-    let bytes = std::fs::read(repo().join("fuzz/regressions/command_sequence/rep-move-surface-view"))
-        .expect("the preserved rep.move input");
-    assert_eq!(bytes.len(), 172);
-    let seed = u64::from_le_bytes(bytes[..8].try_into().expect("eight seed bytes"));
-    let steps = 1 + usize::from(bytes[8]) % 8;
-    assert_eq!(seed, 13);
-    assert_eq!(steps, 8);
-    let stats = run_fuzz_tape(
-        seed,
-        &bytes[9..],
-        steps,
-        &Cadence {
-            sample_every: 0,
-            check_every: 0,
-            verify_every: 0,
-            full_end: false,
-            save_weight: 1,
-            import_weight: 0,
-            deep: false,
-        },
-    );
-    assert!(stats.committed() > 0);
-    assert!(
-        stats.refused.get("rep.move").copied().unwrap_or(0) > 0,
-        "the move of the surface view is refused: {:?}",
-        stats.refused
-    );
-    assert!(stats.expected_refusals > 0);
+    assert_eq!(done, [true]);
+    assert_eq!(session.query().structure_boxes().len(), boxes + 1);
+    disk.round_trip(&mut session, roundtrip::Depth::Sample)
+        .unwrap_or_else(|e| panic!("the structure box after a save and reload: {e}"));
+    session.undo(&ew_api::Origin::Gui).expect("the box undoes");
+    disk.closing(&mut session, &initial)
+        .unwrap_or_else(|e| panic!("after the undo: {e}"));
 }
 
 /// The placement and arrangement steps of WP-S2.04 on Golden A: the `from_part` and `new_terminal` targets of
 /// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
 /// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind
-/// commits at least once and is refused at least once where the arm builds refusals (the verdicts are checked by
+/// commits at least once and is refused at least once where the arm builds refusals (the invariants are checked by
 /// `apply`; each committed step is undone, and the undo restores Golden A, so every attempt starts from Golden A).
 ///
 /// The commands, their attempts (seeded `50_000 + attempt`) and the kinds each must commit and refuse, in the
@@ -1369,6 +1646,7 @@ fn placement_steps(group: PlacementGroup) {
                         params: c.params.clone(),
                         verdict: c.verdict,
                         posts: Vec::new(),
+                        site: None,
                     })
                     .line()
                 )
@@ -1401,8 +1679,8 @@ fn placement_steps(group: PlacementGroup) {
 }
 
 /// The revision steps (`revision.create`, `fields.set` and `edit.delete` on a revision) on Golden A, many
-/// attempts with the deletions of the open revision among them: the commits and the refusals of the revision
-/// rules (EW-INV-016 to EW-INV-020, FR-REV-009) all go the way the arms say, and the title block follows.
+/// attempts with the deletions of the open revision among them: the revision rules (EW-INV-016 to EW-INV-020,
+/// FR-REV-009) both commit and refuse steps, the invariants hold for every step, and the title block follows.
 #[test]
 fn the_revision_steps_hold_on_golden_a() {
     let mut session = open_session_with(11, MemoMode::On);
@@ -1453,7 +1731,7 @@ step: {line}"
                     .undo(&ew_api::Origin::Gui)
                     .expect("a committed step undoes");
             }
-        } else if c.verdict == Verdict::Refuse {
+        } else if !applied.ok {
             refused += 1;
         }
     }
@@ -1593,6 +1871,7 @@ fn layout_command_sequences_save_incrementally_as_a_full_save() {
                         params: c.params.clone(),
                         verdict: c.verdict,
                         posts: Vec::new(),
+                        site: None,
                     })
                     .line();
                     let applied = apply(&mut session, &c, &mut stats)
@@ -1726,7 +2005,7 @@ fn embed_then_undo_of_a_named_fndef_restores_golden_a() {
         let Some(Step::Cmd(c)) = half(&live, &mut rng) else {
             panic!("half {i} of the shape builds a library.embed step");
         };
-        assert_eq!((c.name, c.verdict), ("library.embed", Verdict::Accept));
+        assert_eq!(c.name, "library.embed");
         let applied = apply(&mut session, &c, &mut stats).unwrap_or_else(|e| panic!("half {i}: {e}"));
         assert!(applied.changed, "half {i} commits");
     }

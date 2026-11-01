@@ -97,8 +97,9 @@ that was fixed.
   the `fuzz-smoke` job; a test of xtask keeps them equal) and advanced by the upgrade train (doc 18 §6.3).
 - A new target is added to the table of `ci/fuzz-smoke-targets.toml` (the path filter of CI-PR-08; a test of xtask recomputes its dependency closures) and to the matrix of
   `deep-nightly.yml`; the filter's self-test fails when the table, `Cargo.toml` and the matrix disagree.
-- A command added to the registry needs a generator arm in `crates/ew-testkit/tests/command_fuzz/arms.rs`
-  (`every_registered_command_has_a_generator_arm` fails otherwise); the target picks it up without a change here.
+- A command added to the registry is fuzzed by the schema-driven default arm
+  (`crates/ew-testkit/tests/command_fuzz/schema_arm.rs`) without a change here; a hand arm in `arms.rs` adds
+  well-formed steps and deep states, and must name a registered command (`every_hand_arm_names_a_registered_command`).
 - The dependencies of the crate are outside the workspace's `cargo deny` and `cargo vet` runs; they are `libfuzzer-sys`
   (and its `arbitrary` and `cc`) and the workspace's own path crates. The job `fuzz-deny` of the deep nightly runs
   `cargo deny check licenses advisories` over the crate's own graph with `fuzz/deny.toml` (the workspace's `deny.toml` policy plus an NCSA exception for libfuzzer-sys, which carries LLVM's libFuzzer runtime), report-only.

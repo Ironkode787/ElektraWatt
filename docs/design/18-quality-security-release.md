@@ -379,6 +379,24 @@ level 1 for the nightly is a change of the workflow's `ASAN_OPTIONS` once a disp
 
 *As built (cycle 28, FT-468, FT-469; ID-663).* The save-and-reload oracle compares full model content and, on a mismatch, prints Model::content_diff's first differing project row, typed row (kind/ID), unknown-record/library-document position or base-index key. The diagnostic follows content_eq's ordering, ignores revision/change stamps and is None exactly when the models are content-equal; rendered row lines are supplementary evidence, not an independent table inventory. Model::keys, generated from the entity list and gated by raw-read, supplies both store keys and command row rendering, including page items and structure boxes. The preserved structure-box-dropped-by-save input and a plain API regression guard the data-loss fix. The second preserved input, non-cable-refusal-picked-a-cable, exposed a generator classification error: only that expected non-cable refusal branch now excludes live cables; production conductor.add is unchanged. Plain tests and exact sanitized replay guard it; hosted fuzz-smoke at the delivery tip is separate evidence.
 
+*As built (cycle 43, R9; RD43).* The command decides acceptance; the fuzzer asserts invariants. A step's verdict is
+`Either` (the command decides) or `Refuse`, which stays only where the arm built the step to name a record that does
+not exist (or no record of its kind) or to fail the registry's schema check or parse; the verdicts that restated a
+command's own rule (`rep.move` of a surface view, `conductor.add` on a device that is no cable, grid steps beside a
+delta, and the rest) are `Either`, and `Verdict::Accept` is gone. The lists the arms copied from the registry (report
+kinds, aspects, frame page types) are read from the schemas, the check schemes from `SHIPPED_CHECK_SCHEMES`. Every
+step meets: no panic and no internal error; all or nothing; for a committed undoable step the undo law (undo restores
+the model before it, redo the committed model, both by `Model::content_eq`; a non-undoable command is exempt); and a
+whole run of one seed gives the same outcome list and final model (`a_whole_run_is_deterministic`). The undo law and
+the determinism check each fail on a seeded fault (`the_undo_law_fails_on_a_redo_that_does_not_restore`,
+`the_determinism_check_fails_on_a_perturbed_run`). The schema-driven default arm (`schema_arm.rs`) builds a step for
+every registered command from its parameter schema, with IDs drawn from the live records (of the kind a member's
+name or a `kind` beside it names, three times in four), and joins the step mix at weight 1 per command; the hand
+arms stay as generators of well-formed steps and deep states. `every_hand_arm_names_a_registered_command` replaces
+`every_registered_command_has_a_generator_arm`, and `every_arm_commits_on_golden_a` replaces
+`every_arm_commits_and_refuses_what_it_should`. The four preserved inputs are explicit step-sequence tests as well
+(their byte files still replay through `fuzz/tests/replay.rs`).
+
 ### 3.7 Snapshots
 
 - **What is snapshotted.** Typed query outputs on GP: tags, xref texts, potentials with aliases, wire properties with

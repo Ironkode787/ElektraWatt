@@ -75,10 +75,9 @@ pub struct RepInfo {
 pub struct JoinInfo {
     pub rep: Value,
     pub device: Value,
-    /// The devices that take its FnDef by D2's rule: `(device, removes a function, certain)`. A slot of the FnDef
-    /// removes the old function; `certain` is false where a part's template names the FnDef (its CPs may not line
-    /// up with the wired ones, which the command refuses).
-    pub targets: Vec<(Value, bool, bool)>,
+    /// The devices that take its FnDef by D2's rule: `(device, removes a function)`. A slot of the FnDef removes the
+    /// old function.
+    pub targets: Vec<(Value, bool)>,
     /// The other devices (not the representation's own), which D2's rule refuses.
     pub refused: Vec<Value>,
 }
@@ -351,9 +350,6 @@ pub struct Live {
     pub any_release: bool,
     /// WP-S2.04 part 4a: `(item, page)` of every page item of a typed variant, and of every structure box.
     pub page_items: Vec<(Value, Value)>,
-    /// Every page item that `rep.move` refuses to move: a surface view or an unknown variant ([`movable_item`]); a
-    /// move of a surface view of `page_items` is an expected refusal.
-    pub fixed_items: Vec<Value>,
     pub structure_boxes: Vec<(Value, Value)>,
     /// The connections drawn on each page that has one: `(page, connections)`.
     pub page_connections: Vec<(Value, Vec<Value>)>,
@@ -366,16 +362,60 @@ pub struct Live {
     pub contact_fndefs: Vec<Value>,
     /// WP-S4.01 part 1: the layout records.
     pub layout: LayoutLive,
+    /// Every live record and library copy as `(kind name, ID)`: what the schema-driven default arm
+    /// ([`super::schema_arm`]) draws its IDs from.
+    pub all_ids: Vec<(&'static str, Value)>,
 }
 
-/// Whether `rep.move` moves a page item of this kind with `items` (`translate_item` of `ew-commands`, which is
-/// crate-private): a surface view is set by `page.surface_view.set`, never moved with a selection, and an unknown
-/// variant is kept verbatim. The fuzzer's deltas stay far inside the format's coordinate range, so the kind decides.
-pub fn movable_item(kind: &ew_schema::PageItemKind) -> bool {
-    !matches!(
-        kind,
-        ew_schema::PageItemKind::SurfaceView(_) | ew_schema::PageItemKind::Unknown(_)
-    )
+/// Every live record and library copy of the snapshot as `(kind name, ID)`, in kind order, then ID order.
+fn all_ids(q: &Q) -> Vec<(&'static str, Value)> {
+    use ew_schema::Kind;
+    fn rows<T>(kind: Kind, ids: impl Iterator<Item = ew_ids::Id<T>>) -> Vec<(&'static str, Value)>
+    where
+        ew_ids::Id<T>: serde::Serialize,
+    {
+        ids.map(|id| (kind.name(), id_json(id))).collect()
+    }
+    let mut out = Vec::new();
+    out.extend(rows(Kind::Project, std::iter::once(q.project().id)));
+    out.extend(rows(Kind::StructureNode, q.structure_nodes().ids()));
+    out.extend(rows(Kind::Section, q.sections().ids()));
+    out.extend(rows(Kind::ExternalRef, q.external_refs().ids()));
+    out.extend(rows(Kind::Page, q.pages().ids()));
+    out.extend(rows(Kind::Device, q.devices().ids()));
+    out.extend(rows(Kind::Function, q.functions().ids()));
+    out.extend(rows(Kind::Representation, q.reps().ids()));
+    out.extend(rows(Kind::Connection, q.connections().ids()));
+    out.extend(rows(Kind::Junction, q.junctions().ids()));
+    out.extend(rows(Kind::Conductor, q.conductors().ids()));
+    out.extend(rows(Kind::PotentialDef, q.potential_defs().ids()));
+    out.extend(rows(Kind::Bond, q.bonds().ids()));
+    out.extend(rows(Kind::ReportBlock, q.report_blocks().ids()));
+    out.extend(rows(Kind::DeviceLink, q.table::<ew_schema::DeviceLink>().ids()));
+    out.extend(rows(Kind::LogicalNet, q.table::<ew_schema::LogicalNet>().ids()));
+    out.extend(rows(Kind::PhysicalNet, q.table::<ew_schema::PhysicalNet>().ids()));
+    out.extend(rows(
+        Kind::PlcConfigProject,
+        q.table::<ew_schema::PlcConfigProject>().ids(),
+    ));
+    out.extend(rows(Kind::Channel, q.table::<ew_schema::Channel>().ids()));
+    out.extend(rows(Kind::Revision, q.table::<ew_schema::Revision>().ids()));
+    out.extend(rows(Kind::Waiver, q.table::<ew_schema::Waiver>().ids()));
+    out.extend(rows(Kind::PageItem, q.page_items().ids()));
+    out.extend(rows(Kind::StructureBox, q.structure_boxes().ids()));
+    out.extend(rows(Kind::LayoutSpace, q.table::<ew_schema::LayoutSpace>().ids()));
+    out.extend(rows(Kind::Enclosure, q.table::<ew_schema::Enclosure>().ids()));
+    out.extend(rows(
+        Kind::MountingSurface,
+        q.table::<ew_schema::MountingSurface>().ids(),
+    ));
+    out.extend(rows(Kind::Carrier, q.table::<ew_schema::Carrier>().ids()));
+    out.extend(rows(Kind::Placement, q.table::<ew_schema::Placement>().ids()));
+    out.extend(rows(Kind::Part, q.parts().ids()));
+    out.extend(rows(Kind::Symbol, q.symbols().ids()));
+    out.extend(rows(Kind::Fndef, q.fndefs().ids()));
+    out.extend(rows(Kind::Form, q.forms().ids()));
+    out
 }
 
 /// A rail of the layout: its ID and length in nanometres (an invalid path: length 0).
@@ -581,7 +621,7 @@ fn join_infos(q: &Q) -> (Vec<JoinInfo>, Vec<Value>) {
                 })
             });
             if slot || (contact && !terminal_or_strip(d) && (coil || names_def)) {
-                targets.push((id_json(did), slot, !names_def));
+                targets.push((id_json(did), slot));
             } else {
                 refused.push(id_json(did));
             }
@@ -1151,12 +1191,6 @@ impl Live {
                 .filter(|(_, i)| !matches!(i.kind, ew_schema::PageItemKind::Unknown(_)))
                 .map(|(id, i)| (id_json(id), id_json(i.page)))
                 .collect(),
-            fixed_items: q
-                .page_items()
-                .iter()
-                .filter(|(_, i)| !movable_item(&i.kind))
-                .map(|(id, _)| id_json(id))
-                .collect(),
             structure_boxes: q
                 .structure_boxes()
                 .iter()
@@ -1195,6 +1229,7 @@ impl Live {
                 .map(|(id, _)| id_json(id))
                 .collect(),
             layout: LayoutLive::read(q),
+            all_ids: all_ids(q),
         }
     }
 

@@ -3,30 +3,30 @@
 
 //! The steps of a run and the validity oracle each command step carries.
 //!
-//! A command step says what the model must do with it (a [`Verdict`]) and what must hold afterwards when it
-//! committed (the [`Post`] checks):
+//! The command decides whether a step is accepted; the fuzzer asserts invariants (RD43). A command step says
+//! whether the arm built it to be invalid (a [`Verdict`]) and what must hold afterwards when it committed (the
+//! [`Post`] checks):
 //!
-//! - [`Verdict::Accept`]: a well-formed step. The model must commit it (an `Ok`, whether or not it changed
-//!   anything); a refusal is a finding, because the generator built the step from the live records and the
-//!   command's own rules.
-//! - [`Verdict::Refuse`]: a step the model must refuse (a nonexistent record, an off-grid position, a
-//!   duplicate key): an `Ok` is a finding.
-//! - [`Verdict::Either`]: the outcome depends on rules the generator does not model (prevent rules, the
-//!   structural invariants); both are fine.
+//! - [`Verdict::Refuse`]: the arm built the step to be invalid in a way no command rule decides: an ID that names
+//!   no record (a fresh UUID, a deleted record) or a record of another kind (the generic `tx.require` refuses
+//!   both), or parameters that fail the registry's schema check or parse. An `Ok` is a finding.
+//! - [`Verdict::Either`]: every other step. Whether a command's own rules accept it is the command's to decide;
+//!   a verdict that restated a rule would be a second copy of it.
 //!
 //! Whatever the verdict, a refused step changes nothing (the revision does not move and the model equals the
-//! model before), the refusal is of a kind a user can act on ([`CmdError::Internal`] is a bug), and a
-//! committed step's primary record exists afterwards.
+//! model before), the refusal is of a kind a user can act on (`CmdError::Internal` is a bug), a committed step's
+//! primary record exists afterwards, and a committed, undoable step obeys the undo law.
 
 use ew_derive::Q;
 use ew_schema::Kind;
 use serde_json::{Value, json};
 
-/// What the model must do with a step.
+/// Whether the arm built a step to be invalid (see the module).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Verdict {
-    Accept,
+    /// Invalid in a way no command rule decides: the model must refuse it.
     Refuse,
+    /// The command decides.
     Either,
 }
 
@@ -129,6 +129,9 @@ pub struct CmdStep {
     pub params: Value,
     pub verdict: Verdict,
     pub posts: Vec<Post>,
+    /// Where the arm gave a [`Verdict::Refuse`] (`#[track_caller]`), for the failure text of a refusal that is not
+    /// generic.
+    pub site: Option<&'static std::panic::Location<'static>>,
 }
 
 impl Step {
@@ -139,6 +142,7 @@ impl Step {
             params,
             verdict: Verdict::Either,
             posts: Vec::new(),
+            site: None,
         })
     }
 
@@ -149,12 +153,18 @@ impl Step {
         }
     }
 
-    pub fn accept(self) -> Step {
-        self.verdict(Verdict::Accept)
-    }
-
+    /// Marks the step as invalid in a way no command rule decides (see the module); the call site is kept for the
+    /// failure text.
+    #[track_caller]
     pub fn refuse(self) -> Step {
-        self.verdict(Verdict::Refuse)
+        let site = std::panic::Location::caller();
+        match self.verdict(Verdict::Refuse) {
+            Step::Cmd(c) => Step::Cmd(CmdStep {
+                site: Some(site),
+                ..c
+            }),
+            other => other,
+        }
     }
 
     /// Adds a count check.

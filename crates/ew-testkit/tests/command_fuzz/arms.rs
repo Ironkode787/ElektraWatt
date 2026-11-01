@@ -1,30 +1,36 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The generator arms: one per registered command, each building a step from the live records and saying what
-//! the model must do with it (the validity oracle of [`super::step`]).
-//!
-//! [`ARMS`] is the table the coverage test compares with the command registry
-//! (`every_registered_command_has_a_generator_arm`): a new command fails that test until it has an arm here.
+//! The hand arms: generators of well-formed steps and deep states, each building a step from the live records.
+//! The schema-driven default arm ([`super::schema_arm`]) fuzzes every registered command beside them, so a new
+//! command needs no hand arm; [`ARMS`] names registered commands only (`every_hand_arm_names_a_registered_command`).
 //! An arm returns `None` when the snapshot has nothing to target (the no-op rule of doc 18 §3.3).
 //!
-//! Every arm mixes three kinds of steps, by a dice roll:
-//! - well-formed steps built from the live records and the command's own rules, [`Verdict::Accept`] where the
-//!   generator models every rule that can refuse them (or [`Verdict::Either`] where prevent rules or the
-//!   structural invariants may);
-//! - malformed steps, [`Verdict::Refuse`]: a record that does not exist, a position off the grid, a duplicate
-//!   key, a cycle: the model must refuse them and change nothing;
+//! The command decides whether a step is accepted (RD43). Every arm mixes, by a dice roll:
+//! - steps built from the live records, which a command should mostly commit, and steps a command's own rules
+//!   refuse (an off-grid position, a duplicate key, a cycle): both `Verdict::Either`;
+//! - steps invalid in a way no command rule decides, `Verdict::Refuse`: an ID that names no record or a record of
+//!   another kind, parameters that fail the schema check or parse: the model must refuse them and change nothing;
 //! - after-commit checks: counts of the records the command creates, the primary record, and field values.
 
 use serde_json::{Value, json};
 
+use std::sync::OnceLock;
+
 use super::live::{Live, PageInfo, PartTemplate, StripInfo, SymInfo, id_json, id_text};
 use super::rng::SplitMix64;
+use super::schema_arm;
 use super::step::{Step, Table, typed};
 
 /// The unit of a move: three steps of the page grid in nm (7 937 500 nm, a multiple of the grid of the golden
 /// pages).
 pub const MOVE_UNIT: i64 = 7_937_500;
+
+/// The string values a command's schema allows at a path of member names, read from the registry: the arms
+/// never copy a list the registry holds ([`schema_arm::strings_at`]).
+fn registry_strings(command: &str, path: &[&str]) -> Vec<&'static str> {
+    schema_arm::strings_at(ew_commands::CommandRegistry::builtin(), command, path)
+}
 
 /// Commands that no submit path of the session commits, so that their arms only ever refuse: `revision.approve` is
 /// recorded only by `Session::approve` on a saved generation (WP-S1.18 part 3, D9), `revision.release` only by
@@ -571,16 +577,16 @@ fn rep_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
     let rep = rng.pick(&live.reps)?.clone();
     match rng.below(8) {
-        // Refused: grid steps beside a non-zero delta.
+        // The command refuses: grid steps beside a non-zero delta.
         0 => {
             let p = json!({"reps": [rep], "delta": [MOVE_UNIT, 0], "steps": [1, 0]});
-            return Some(Step::cmd("rep.move", p).refuse());
+            return Some(Step::cmd("rep.move", p));
         }
-        // Refused: grid steps with a target page (a move to another page takes a delta).
+        // The command refuses: grid steps with a target page (a move to another page takes a delta).
         1 => {
             let page = rng.pick(&live.pages)?;
             let p = json!({"reps": [rep], "steps": [1, -1], "page": page});
-            return Some(Step::cmd("rep.move", p).refuse());
+            return Some(Step::cmd("rep.move", p));
         }
         // Grid steps: the representation lands on the grid point at its grid index plus the steps. Either: a
         // representation off the grid, or a route that cannot follow, is refused.
@@ -640,13 +646,17 @@ fn rep_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     )
 }
 
-/// `rep.move` with `items` alone: a page item or structure box moves by a delta; refused across pages, with an
-/// item that does not exist, with a surface view, or with nothing named.
+/// `rep.move` with `items` alone: a page item or structure box moves by a delta, also across pages or with
+/// nothing named (the command decides: it refuses a surface view, a move across pages and an empty selection);
+/// refused: an item that does not exist.
 fn rep_move_items(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let mut all: Vec<(Value, Value)> = live.page_items.clone();
     all.extend(live.structure_boxes.iter().cloned());
     match rng.below(6) {
-        0 => Some(Step::cmd("rep.move", json!({"reps": [], "delta": [MOVE_UNIT, 0]})).refuse()),
+        0 => Some(Step::cmd(
+            "rep.move",
+            json!({"reps": [], "delta": [MOVE_UNIT, 0]}),
+        )),
         1 => Some(
             Step::cmd(
                 "rep.move",
@@ -658,18 +668,13 @@ fn rep_move_items(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let (item, _) = rng.pick(&all)?.clone();
             let page = rng.pick(&live.pages)?.clone();
             let p = json!({"reps": [], "items": [item], "delta": [MOVE_UNIT, 0], "page": page});
-            Some(Step::cmd("rep.move", p).refuse())
+            Some(Step::cmd("rep.move", p))
         }
         _ => {
             let (item, _) = rng.pick(&all)?.clone();
             let delta = [rng.range(-2, 2) * MOVE_UNIT, rng.range(-2, 2) * MOVE_UNIT];
-            let step = Step::cmd("rep.move", json!({"reps": [], "items": [item], "delta": delta}));
-            // Refused: a surface view is set by `page.surface_view.set`, never moved with a selection.
-            if live.fixed_items.contains(&item) {
-                return Some(step.refuse());
-            }
             Some(
-                step.accept()
+                Step::cmd("rep.move", json!({"reps": [], "items": [item], "delta": delta}))
                     .counts(&[(Table::PageItems, 0), (Table::StructureBoxes, 0)]),
             )
         }
@@ -723,7 +728,6 @@ fn item_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             Some(
                 cmd(json!({"page": page.id, "kind": {"image": {"data": data,
                     "rect": [at, [x + MOVE_UNIT * dx, y + MOVE_UNIT * dy]]}}}))
-                .accept()
                 .counts(&[(Table::PageItems, 1)]),
             )
         }
@@ -740,31 +744,28 @@ fn item_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 }
                 _ => json!({"rect": [at, [MOVE_UNIT * 60, MOVE_UNIT * 40]]}),
             };
-            Some(cmd(json!({"page": page.id, "kind": {"image": image}})).refuse())
+            Some(cmd(json!({"page": page.id, "kind": {"image": image}})))
         }
         10 => {
             // A hash the project cannot hold: 32 random bytes.
             let bytes: Vec<u8> = (0..4).flat_map(|_| rng.next().to_le_bytes()).collect();
             let asset = format!("sha256:{}", hex(&bytes));
-            Some(
-                cmd(json!({"page": page.id, "kind": {"image": {"asset": asset,
-                    "rect": [at, [MOVE_UNIT * 20, MOVE_UNIT * 20]]}}}))
-                .refuse(),
-            )
+            Some(cmd(json!({"page": page.id, "kind": {"image": {"asset": asset,
+                    "rect": [at, [MOVE_UNIT * 20, MOVE_UNIT * 20]]}}})))
         }
         0 => Some(cmd(json!({"page": rng.uuid(), "kind": {"free_text": {"text": "x", "at": at}}})).refuse()),
-        1 => Some(
-            cmd(json!({"page": page.id, "kind": {"graphic": {"shape": shape(page, rng, true)}}})).refuse(),
-        ),
-        2 => Some(
-            cmd(json!({"page": page.id, "kind": {"free_text": {"bind": "project.reference", "at": at}}}))
-                .refuse(),
-        ),
-        3 => Some(cmd(json!({"page": page.id, "kind": {"free_text": {"text": "", "at": at}}})).refuse()),
-        4 => Some(
-            cmd(json!({"page": page.id, "kind": {"free_text": {"text": "x", "at": at, "angle": 45_000}}}))
-                .refuse(),
-        ),
+        1 => Some(cmd(
+            json!({"page": page.id, "kind": {"graphic": {"shape": shape(page, rng, true)}}}),
+        )),
+        2 => Some(cmd(
+            json!({"page": page.id, "kind": {"free_text": {"bind": "project.reference", "at": at}}}),
+        )),
+        3 => Some(cmd(
+            json!({"page": page.id, "kind": {"free_text": {"text": "", "at": at}}}),
+        )),
+        4 => Some(cmd(
+            json!({"page": page.id, "kind": {"free_text": {"text": "x", "at": at, "angle": 45_000}}}),
+        )),
         5 => Some(
             cmd(json!({"page": page.id, "kind": {"graphic": {"shape": shape(page, rng, false)}, "z": 1}}))
                 .refuse(),
@@ -773,7 +774,7 @@ fn item_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let dash = ["solid", "dashed", "dotted", "dash_dot"][rng.below(4)];
             let p = json!({"page": page.id, "kind": {"graphic": {"shape": shape(page, rng, false),
                 "dash": dash, "fill": rng.chance(2)}}});
-            Some(cmd(p).accept().counts(&[(Table::PageItems, 1)]))
+            Some(cmd(p).counts(&[(Table::PageItems, 1)]))
         }
         _ => {
             let text = if rng.chance(3) {
@@ -783,11 +784,7 @@ fn item_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 let align = ["left", "centre", "right"][rng.below(3)];
                 json!({"text": "40x60", "at": at, "angle": angle, "align": align})
             };
-            Some(
-                cmd(json!({"page": page.id, "kind": {"free_text": text}}))
-                    .accept()
-                    .counts(&[(Table::PageItems, 1)]),
-            )
+            Some(cmd(json!({"page": page.id, "kind": {"free_text": text}})).counts(&[(Table::PageItems, 1)]))
         }
     }
 }
@@ -801,8 +798,10 @@ fn marker_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let at = json!([MOVE_UNIT, MOVE_UNIT]);
     let one = rng.pick(&conns)?.clone();
     match rng.below(10) {
-        0 => Some(cmd(json!({"page": page, "connections": [], "at": at})).refuse()),
-        1 => Some(cmd(json!({"page": page, "connections": [one.clone(), one], "at": at})).refuse()),
+        0 => Some(cmd(json!({"page": page, "connections": [], "at": at}))),
+        1 => Some(cmd(
+            json!({"page": page, "connections": [one.clone(), one], "at": at}),
+        )),
         2 => Some(cmd(json!({"page": page, "connections": [rng.uuid()], "at": at})).refuse()),
         3 => {
             let other = live
@@ -812,16 +811,17 @@ fn marker_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .flat_map(|(_, c)| c.iter())
                 .next()
                 .cloned()?;
-            Some(cmd(json!({"page": page, "connections": [other], "at": at})).refuse())
+            Some(cmd(json!({"page": page, "connections": [other], "at": at})))
         }
-        4 => Some(cmd(json!({"page": page, "connections": [one], "at": at, "angle": 45_000})).refuse()),
-        5 => Some(
-            cmd(json!({"page": page, "connections": [one], "at": at, "colours": [["BK"], ["BU"]]})).refuse(),
-        ),
-        6 => Some(
-            cmd(json!({"page": page, "connections": [one], "at": at, "colours": [[{"foreign": "XX"}]]}))
-                .refuse(),
-        ),
+        4 => Some(cmd(
+            json!({"page": page, "connections": [one], "at": at, "angle": 45_000}),
+        )),
+        5 => Some(cmd(
+            json!({"page": page, "connections": [one], "at": at, "colours": [["BK"], ["BU"]]}),
+        )),
+        6 => Some(cmd(
+            json!({"page": page, "connections": [one], "at": at, "colours": [[{"foreign": "XX"}]]}),
+        )),
         _ => {
             let mut chosen: Vec<Value> = conns.clone();
             chosen.truncate(1 + rng.below(3));
@@ -837,7 +837,7 @@ fn marker_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 p["csa"] = json!("1.5");
                 p["colours"] = Value::Array((0..n).map(|_| json!(["BK"])).collect());
             }
-            Some(cmd(p).accept().counts(&[(Table::PageItems, 1)]))
+            Some(cmd(p).counts(&[(Table::PageItems, 1)]))
         }
     }
 }
@@ -853,10 +853,9 @@ fn box_structure(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         None => json!({}),
     };
     match rng.below(8) {
-        0 => Some(
-            cmd(json!({"page": page.id, "outline": [[0, 0], [1, 1]], "style": "dotted", "assigns": {}}))
-                .refuse(),
-        ),
+        0 => Some(cmd(
+            json!({"page": page.id, "outline": [[0, 0], [1, 1]], "style": "dotted", "assigns": {}}),
+        )),
         1 => Some(
             cmd(json!({"page": rng.uuid(), "outline": outline, "style": "dotted", "assigns": {}})).refuse(),
         ),
@@ -869,11 +868,10 @@ fn box_structure(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         ),
         3 => {
             let wrong = live.nodes.iter().find(|n| n.aspect != "location")?;
-            Some(
-                cmd(json!({"page": page.id, "outline": outline, "style": "dotted",
-                    "assigns": {"location": wrong.id}}))
-                .refuse(),
-            )
+            Some(cmd(
+                json!({"page": page.id, "outline": outline, "style": "dotted",
+                    "assigns": {"location": wrong.id}}),
+            ))
         }
         _ => {
             let style = ["dotted", "dash_dot"][rng.below(2)];
@@ -884,7 +882,7 @@ fn box_structure(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             if let Some(e) = rng.pick(&live.ext_refs) {
                 p["external"] = e.clone();
             }
-            Some(cmd(p).accept().counts(&[(Table::StructureBoxes, 1)]))
+            Some(cmd(p).counts(&[(Table::StructureBoxes, 1)]))
         }
     }
 }
@@ -892,16 +890,13 @@ fn box_structure(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn rep_transform(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let rep = rng.pick(&live.reps)?.clone();
     match rng.below(10) {
-        // Refused: `rotate` counts quarter turns, 0 to 3.
-        0 => Some(
-            Step::cmd(
-                "rep.transform",
-                json!({"reps": [rep], "rotate": 4, "mirror": false}),
-            )
-            .refuse(),
-        ),
-        // Refused: nothing to transform.
-        1 => Some(Step::cmd("rep.transform", json!({"reps": [], "rotate": 1})).refuse()),
+        // The command refuses: `rotate` counts quarter turns, 0 to 3.
+        0 => Some(Step::cmd(
+            "rep.transform",
+            json!({"reps": [rep], "rotate": 4, "mirror": false}),
+        )),
+        // The command refuses: nothing to transform.
+        1 => Some(Step::cmd("rep.transform", json!({"reps": [], "rotate": 1}))),
         // Refused: the representation does not exist.
         2 => Some(Step::cmd("rep.transform", json!({"reps": [rng.uuid()], "rotate": 1})).refuse()),
         _ => {
@@ -940,25 +935,24 @@ fn rep_transform(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 }
 
 /// `rep.join_device` (WP-S2.18 D3): a D3-eligible representation joins a device that takes its FnDef by D2's rule;
-/// refused: a representation whose device has several functions, the representation's own device, a device D2's rule
-/// refuses, a representation that does not exist. A target whose part's template names the FnDef is `Either` (its CPs
-/// may not line up with the wired ones).
+/// the steps the command refuses: a representation whose device has several functions, the representation's own
+/// device, a device D2's rule refuses, a representation that does not exist.
 fn rep_join_device(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("rep.join_device", p);
     match rng.below(10) {
         0 => {
             let rep = rng.pick(&live.join_blocked)?;
             let device = rng.pick(&live.plain_devices)?;
-            Some(cmd(json!({"rep": rep, "device": device})).refuse())
+            Some(cmd(json!({"rep": rep, "device": device})))
         }
         1 => {
             let j = rng.pick(&live.joins)?;
-            Some(cmd(json!({"rep": j.rep, "device": j.device})).refuse())
+            Some(cmd(json!({"rep": j.rep, "device": j.device})))
         }
         2 => {
             let j = rng.pick(&live.joins)?;
             let device = rng.pick(&j.refused)?;
-            Some(cmd(json!({"rep": j.rep, "device": device})).refuse())
+            Some(cmd(json!({"rep": j.rep, "device": device})))
         }
         3 => {
             let device = rng.pick(&live.plain_devices)?;
@@ -967,7 +961,7 @@ fn rep_join_device(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         _ => {
             let with: Vec<_> = live.joins.iter().filter(|j| !j.targets.is_empty()).collect();
             let j = *rng.pick(&with)?;
-            let (device, slot, certain) = rng.pick(&j.targets)?.clone();
+            let (device, slot) = rng.pick(&j.targets)?.clone();
             let rep = j.rep.clone();
             let step = cmd(json!({"rep": j.rep, "device": device}))
                 .counts(&[
@@ -990,7 +984,7 @@ fn rep_join_device(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                         .then_some(())
                         .ok_or_else(|| format!("representation {rep} does not draw a function of {device}"))
                 });
-            Some(if certain { step.accept() } else { step })
+            Some(step)
         }
     }
 }
@@ -999,7 +993,7 @@ fn rep_join_device(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 pub type Setup = fn(&Live, &mut SplitMix64) -> Option<Vec<Step>>;
 
 /// The setup steps of an arm whose command finds nothing to act on in Golden A, for
-/// `every_arm_commits_and_refuses_what_it_should` (the fuzz loop reaches such states by itself): committed in order
+/// `every_arm_commits_on_golden_a` (the fuzz loop reaches such states by itself): committed in order
 /// before the arm's step is built and undone after it. `None` for every other command.
 pub fn setup_of(command: &str) -> Option<Setup> {
     match command {
@@ -1014,7 +1008,7 @@ pub fn setup_of(command: &str) -> Option<Setup> {
 pub type ChainStep = fn(&Live, &mut SplitMix64) -> Option<Step>;
 
 /// The setup chain of an arm whose command needs records that Golden A lacks and that earlier setup steps create (so
-/// each step is built only after the previous one committed), for `every_arm_commits_and_refuses_what_it_should`:
+/// each step is built only after the previous one committed), for `every_arm_commits_on_golden_a`:
 /// committed in order before the arm's step is built and undone after it. A step that finds its record already there
 /// returns `None` and is skipped. `None` for every other command.
 pub fn setup_chain_of(command: &str) -> Option<&'static [ChainStep]> {
@@ -1059,8 +1053,8 @@ fn join_setup(live: &Live, rng: &mut SplitMix64) -> Option<Vec<Step>> {
         "target": {"new_device": {"letter": "K"}}});
     let create = json!({"letter": "K", "main_fndef": symbol.fndef});
     Some(vec![
-        Step::cmd("device.place", place).accept(),
-        Step::cmd("device.create", create).accept(),
+        Step::cmd("device.place", place),
+        Step::cmd("device.create", create),
     ])
 }
 
@@ -1082,32 +1076,38 @@ fn rep_exchange_symbol(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
             .refuse(),
         ),
-        // Refused: an interruption point keeps its symbol.
+        // The command refuses: an interruption point keeps its symbol.
         2 => {
             let ips: Vec<_> = live.rep_infos.iter().filter(|r| r.ip).collect();
             let ip = *rng.pick(&ips)?;
             let symbol = rng.pick(&live.symbols)?;
-            Some(Step::cmd("rep.exchange_symbol", json!({"rep": ip.id, "symbol": symbol.id})).refuse())
+            Some(Step::cmd(
+                "rep.exchange_symbol",
+                json!({"rep": ip.id, "symbol": symbol.id}),
+            ))
         }
-        // Refused: a representation type the page does not allow.
+        // The command refuses: a representation type the page does not allow.
         3 => {
             let wrong: Vec<_> = live.symbols.iter().filter(|s| !fits_page(s)).collect();
             let symbol = *rng.pick(&wrong)?;
-            Some(Step::cmd("rep.exchange_symbol", json!({"rep": rep.id, "symbol": symbol.id})).refuse())
+            Some(Step::cmd(
+                "rep.exchange_symbol",
+                json!({"rep": rep.id, "symbol": symbol.id}),
+            ))
         }
-        // Refused: an explicit CP map that names a symbol CP the symbol does not have.
+        // The command refuses: an explicit CP map that names a symbol CP the symbol does not have.
         4 => {
             let symbol = rng.pick(&live.symbols)?;
             let p = json!({"rep": rep.id, "symbol": symbol.id,
                 "pin_map": [{"symbol_cp": 60_000, "function_cp": 0}]});
-            Some(Step::cmd("rep.exchange_symbol", p).refuse())
+            Some(Step::cmd("rep.exchange_symbol", p))
         }
-        // Refused: an explicit CP map that maps a symbol CP twice.
+        // The command refuses: an explicit CP map that maps a symbol CP twice.
         5 => {
             let symbol = rng.pick(&live.symbols)?;
             let p = json!({"rep": rep.id, "symbol": symbol.id,
                 "pin_map": [{"symbol_cp": 0, "function_cp": 0}, {"symbol_cp": 0, "function_cp": 1}]});
-            Some(Step::cmd("rep.exchange_symbol", p).refuse())
+            Some(Step::cmd("rep.exchange_symbol", p))
         }
         // The symbol of another function definition or of the same one. Either: a connected function CP that the
         // new symbol does not draw, and a symbol CP that has no counterpart by designation, are refused (the
@@ -1269,17 +1269,15 @@ fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let device = a.device.clone();
             let expect = value;
             Some(
-                one("device", &a.device, "assembly.bom_basis", json!(value))
-                    .accept()
-                    .check(move |_, after| {
-                        let d = typed(&device).and_then(|id| after.devices().get(id).cloned());
-                        let basis = d
-                            .and_then(|d| d.aspects.assembly.clone())
-                            .map(|a| serde_json::to_value(&a.bom_basis).unwrap_or(Value::Null));
-                        (basis == Some(json!(expect)))
-                            .then_some(())
-                            .ok_or_else(|| format!("bom_basis is not `{expect}` afterwards: {basis:?}"))
-                    }),
+                one("device", &a.device, "assembly.bom_basis", json!(value)).check(move |_, after| {
+                    let d = typed(&device).and_then(|id| after.devices().get(id).cloned());
+                    let basis = d
+                        .and_then(|d| d.aspects.assembly.clone())
+                        .map(|a| serde_json::to_value(&a.bom_basis).unwrap_or(Value::Null));
+                    (basis == Some(json!(expect)))
+                        .then_some(())
+                        .ok_or_else(|| format!("bom_basis is not `{expect}` afterwards: {basis:?}"))
+                }),
             )
         }
         // The assembly aspect: the configs; covers within the subtree are accepted, a cover outside it that
@@ -1293,22 +1291,15 @@ fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .collect();
             let n = rng.below(3);
             let mut covers: Vec<Value> = (0..n).filter_map(|_| rng.pick(&a.subtree).cloned()).collect();
-            let mut out_of_scope = false;
             if rng.chance(4)
                 && let Some(d) = rng.pick(&outside)
             {
                 covers.push((*d).clone());
-                out_of_scope = true;
             }
             covers.sort_by_key(Value::to_string);
             covers.dedup();
             let configs = json!([{"order_code": format!("FZ{}", rng.below(1000)), "covers": covers}]);
-            let step = one("device", &a.device, "assembly.configs", configs);
-            Some(if out_of_scope {
-                step.refuse()
-            } else {
-                step.accept()
-            })
+            Some(one("device", &a.device, "assembly.configs", configs))
         }
         18 => {
             let s = rng.pick(&live.stations)?;
@@ -1360,29 +1351,26 @@ fn fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 Some(one("device", d, "plc_module", json!({})))
             }
         }
-        // Refused: a path that is not settable, or a value the field does not take.
+        // The command refuses: a path that is not settable, or a value the field does not take.
         23 => {
             let d = rng.pick(&live.devices)?;
             let path = *rng.pick(&["id", "parent", "position", "aspects.strip", "terminal.strip"])?;
-            Some(one("device", d, path, json!(rng.below(9))).refuse())
+            Some(one("device", d, path, json!(rng.below(9))))
         }
         24 => {
             let d = rng.pick(&live.plain_devices)?;
-            Some(one("device", d, "tag.counter", json!("not-a-number")).refuse())
+            Some(one("device", d, "tag.counter", json!("not-a-number")))
         }
-        // Refused: a target that does not exist, or one listed twice.
+        // Refused: a target that does not exist; the command refuses one listed twice.
         _ => {
             if rng.chance(2) {
                 Some(one("device", &json!(rng.uuid()), "function_text", json!("X")).refuse())
             } else {
                 let d = rng.pick(&live.plain_devices)?;
-                Some(
-                    Step::cmd(
-                        "fields.set",
-                        json!({"kind": "device", "targets": [d, d], "path": "function_text", "value": "X"}),
-                    )
-                    .refuse(),
-                )
+                Some(Step::cmd(
+                    "fields.set",
+                    json!({"kind": "device", "targets": [d, d], "path": "function_text", "value": "X"}),
+                ))
             }
         }
     }
@@ -1422,30 +1410,33 @@ fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let params = |at: &Value, fragment: Value| json!({"page": page.id, "at": at, "fragment": fragment});
     let all = || vec![device.clone(), function.clone(), rep.clone(), item.clone()];
     match rng.below(11) {
-        0 => Some(Step::cmd("edit.paste", params(&at, fragment(Vec::new(), page.grid))).refuse()),
+        0 => Some(Step::cmd(
+            "edit.paste",
+            params(&at, fragment(Vec::new(), page.grid)),
+        )),
         1 => {
             let other = if page.grid == (4_000_000, 1) {
                 (7_937_500, 3)
             } else {
                 (4_000_000, 1)
             };
-            Some(Step::cmd("edit.paste", params(&at, fragment(all(), other))).refuse())
+            Some(Step::cmd("edit.paste", params(&at, fragment(all(), other))))
         }
         2 => {
             let off = json!([at[0].as_i64()? + 1, at[1]]);
-            Some(Step::cmd("edit.paste", params(&off, fragment(all(), page.grid))).refuse())
+            Some(Step::cmd("edit.paste", params(&off, fragment(all(), page.grid))))
         }
         3 => {
             let foreign = json!({"$k": "no_such_kind", "id": rng.uuid()});
-            Some(Step::cmd("edit.paste", params(&at, fragment(vec![foreign], page.grid))).refuse())
-        }
-        4 => Some(
-            Step::cmd(
+            Some(Step::cmd(
                 "edit.paste",
-                params(&at, fragment(vec![device.clone(), rep.clone()], page.grid)),
-            )
-            .refuse(),
-        ),
+                params(&at, fragment(vec![foreign], page.grid)),
+            ))
+        }
+        4 => Some(Step::cmd(
+            "edit.paste",
+            params(&at, fragment(vec![device.clone(), rep.clone()], page.grid)),
+        )),
         5 => {
             // The marker names a connection that is in neither the fragment nor the project: the reference is
             // cleared, the marker is left out, and the paste still commits.
@@ -1462,7 +1453,6 @@ fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                         ),
                     ),
                 )
-                .accept()
                 .counts(&[
                     (Table::Reps, 1),
                     (Table::Functions, 1),
@@ -1486,15 +1476,13 @@ fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             Some(Step::cmd("edit.paste", p).refuse())
         }
         _ => Some(
-            Step::cmd("edit.paste", params(&at, fragment(all(), page.grid)))
-                .accept()
-                .counts(&[
-                    (Table::Reps, 1),
-                    (Table::Functions, 1),
-                    (Table::Devices, 1),
-                    (Table::Connections, 0),
-                    (Table::PageItems, 1),
-                ]),
+            Step::cmd("edit.paste", params(&at, fragment(all(), page.grid))).counts(&[
+                (Table::Reps, 1),
+                (Table::Functions, 1),
+                (Table::Devices, 1),
+                (Table::Connections, 0),
+                (Table::PageItems, 1),
+            ]),
         ),
     }
 }
@@ -1512,13 +1500,12 @@ fn fields_set_copies(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             "copies": copies})
     };
     match rng.below(4) {
-        0 => Some(Step::cmd("fields.set", params(json!([c.clone(), c]))).refuse()),
-        1 => Some(Step::cmd("fields.set", params(json!([]))).refuse()),
+        0 => Some(Step::cmd("fields.set", params(json!([c.clone(), c])))),
+        1 => Some(Step::cmd("fields.set", params(json!([])))),
         _ => {
             let (part, connection) = (id.clone(), con.clone());
             Some(
                 Step::cmd("fields.set", params(json!([c])))
-                    .accept()
                     .counts(&[(Table::Parts, 1)])
                     .check(move |_, after| {
                         let cid = typed::<ew_schema::Connection>(&connection).ok_or("a connection ID")?;
@@ -1550,29 +1537,27 @@ fn fields_set_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         return Some(if rng.chance(2) {
             let mut bad = e;
             bad["copies"] = json!([c]);
-            Step::cmd("fields.set_many", json!({"edits": [bad]})).refuse()
+            Step::cmd("fields.set_many", json!({"edits": [bad]}))
         } else {
-            Step::cmd("fields.set_many", json!({"edits": [e], "copies": [c]}))
-                .accept()
-                .counts(&[(Table::Parts, 1)])
+            Step::cmd("fields.set_many", json!({"edits": [e], "copies": [c]})).counts(&[(Table::Parts, 1)])
         });
     }
     match rng.below(8) {
-        0 => Some(Step::cmd("fields.set_many", json!({"edits": []})).refuse()),
+        0 => Some(Step::cmd("fields.set_many", json!({"edits": []}))),
         1 => {
             let d = rng.pick(&live.plain_devices)?;
-            Some(
-                Step::cmd(
-                    "fields.set_many",
-                    json!({"edits": [entry(d, "A"), entry(d, "B")]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "fields.set_many",
+                json!({"edits": [entry(d, "A"), entry(d, "B")]}),
+            ))
         }
         2 => {
             let d = rng.pick(&live.plain_devices)?;
             let bad = json!({"kind": "device", "targets": [d], "path": "parent", "value": null});
-            Some(Step::cmd("fields.set_many", json!({"edits": [entry(d, "A"), bad]})).refuse())
+            Some(Step::cmd(
+                "fields.set_many",
+                json!({"edits": [entry(d, "A"), bad]}),
+            ))
         }
         _ => {
             let n = 1 + rng.below(3);
@@ -1610,14 +1595,12 @@ fn connection_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
     let c = rng.pick(&live.connections)?.clone();
     Some(
-        Step::cmd("connection.delete", json!({"connections": [c]}))
-            .accept()
-            .check(move |_, after| {
-                let id = typed(&c).ok_or("a connection ID")?;
-                (!after.connections().contains(id))
-                    .then_some(())
-                    .ok_or_else(|| "the deleted connection still exists".to_owned())
-            }),
+        Step::cmd("connection.delete", json!({"connections": [c]})).check(move |_, after| {
+            let id = typed(&c).ok_or("a connection ID")?;
+            (!after.connections().contains(id))
+                .then_some(())
+                .ok_or_else(|| "the deleted connection still exists".to_owned())
+        }),
     )
 }
 
@@ -1629,11 +1612,10 @@ fn edit_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         let step = Step::cmd("edit.delete", json!({"targets": [target]}));
         // Only the open revision can be deleted: a released or withdrawn one is immutable (FR-REV-009).
         return Some(if r.state == "open" {
-            step.accept()
-                .counts(&[(Table::Revisions, -1)])
+            step.counts(&[(Table::Revisions, -1)])
                 .check(|_, after| title_block_follows(after))
         } else {
-            step.refuse()
+            step
         });
     }
     if rng.chance(12) {
@@ -1669,13 +1651,10 @@ fn page_renumber(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(10) {
         0 => {
             let (section, first) = rng.pick(&live.sections)?;
-            Some(
-                Step::cmd(
-                    "page.renumber",
-                    json!({"scope": {"section": section}, "start": first, "step": 0}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "page.renumber",
+                json!({"scope": {"section": section}, "start": first, "step": 0}),
+            ))
         }
         1 => Some(
             Step::cmd(
@@ -1730,7 +1709,7 @@ fn page_reorder(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let a = group[i];
     match rng.below(10) {
         0 => Some(Step::cmd("page.reorder", json!({"pages": [a.id], "before": rng.uuid()})).refuse()),
-        1 => Some(Step::cmd("page.reorder", json!({"pages": []})).refuse()),
+        1 => Some(Step::cmd("page.reorder", json!({"pages": []}))),
         _ => {
             // Any other page of the section to put `a` before; `a` directly before it is no change.
             let mut j = rng.below(group.len() - 1);
@@ -1740,7 +1719,7 @@ fn page_reorder(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let b = group[j];
             let step = Step::cmd("page.reorder", json!({"pages": [a.id], "before": b.id}));
             Some(if i + 1 == j {
-                step.refuse()
+                step
             } else {
                 step.counts(&[(Table::Pages, 0)])
             })
@@ -1794,9 +1773,8 @@ fn junction_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         _ => {
             let id = junction.clone();
             Some(
-                Step::cmd("junction.edit", json!({"junction": junction, "wiring": wiring}))
-                    .accept()
-                    .check(move |_, after| {
+                Step::cmd("junction.edit", json!({"junction": junction, "wiring": wiring})).check(
+                    move |_, after| {
                         let j = typed(&id)
                             .and_then(|i| after.junctions().get(i).cloned())
                             .ok_or("the junction disappeared")?;
@@ -1810,7 +1788,8 @@ fn junction_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                         (have == want)
                             .then_some(())
                             .ok_or_else(|| format!("wiring is {have}, expected {want}"))
-                    }),
+                    },
+                ),
             )
         }
     }
@@ -1818,30 +1797,24 @@ fn junction_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 
 fn terminal_designate(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(10) {
-        // Refused: a terminal listed twice.
+        // The command refuses: a terminal listed twice.
         0 => {
             let strip = rng.pick(&live.strips)?;
-            Some(
-                Step::cmd(
-                    "terminal.designate",
-                    json!({"assignments": [
-                        {"terminal": strip[0].0, "designation": "Z1"},
-                        {"terminal": strip[0].0, "designation": "Z2"},
-                    ]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "terminal.designate",
+                json!({"assignments": [
+                    {"terminal": strip[0].0, "designation": "Z1"},
+                    {"terminal": strip[0].0, "designation": "Z2"},
+                ]}),
+            ))
         }
-        // Refused: a device that is not a terminal.
+        // The command refuses: a device that is not a terminal.
         1 => {
             let d = rng.pick(&live.plain_devices)?;
-            Some(
-                Step::cmd(
-                    "terminal.designate",
-                    json!({"assignments": [{"terminal": d, "designation": "Z1"}]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "terminal.designate",
+                json!({"assignments": [{"terminal": d, "designation": "Z1"}]}),
+            ))
         }
         // Refused: nothing to assign.
         2 => Some(Step::cmd("terminal.designate", json!({"assignments": []})).refuse()),
@@ -1906,8 +1879,8 @@ fn connection_draw(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn connection_draw_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (_, functions) = rng.pick(&live.page_functions)?;
     match rng.below(10) {
-        // Refused: no entry.
-        0 => Some(Step::cmd("connection.draw_many", json!({"connections": []})).refuse()),
+        // The command refuses: no entry.
+        0 => Some(Step::cmd("connection.draw_many", json!({"connections": []}))),
         // Refused: the last entry names a function that does not exist; the first entry is not kept either.
         1 => {
             let (a, b) = pick2(functions, rng)?;
@@ -1943,16 +1916,13 @@ fn connection_draw_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn potential_define(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (page, functions) = rng.pick(&live.page_functions)?;
     match rng.below(10) {
-        // Refused: a potential is defined at a CP or a junction, not on a connection.
+        // The command refuses: a potential is defined at a CP or a junction, not on a connection.
         0 => {
             let c = rng.pick(&live.connections)?;
-            Some(
-                Step::cmd(
-                    "potential.define",
-                    json!({"at": {"on_connection": {"connection": c, "at": [0, 0]}}, "name": "FZ1"}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "potential.define",
+                json!({"at": {"on_connection": {"connection": c, "at": [0, 0]}}, "name": "FZ1"}),
+            ))
         }
         // Refused: the function does not exist.
         1 => Some(
@@ -2023,13 +1993,13 @@ fn connection_draw_to_ip(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let p = step(a, &page.id, ip(&symbol, &def));
             Some(Step::cmd("connection.draw_to_ip", p).refuse())
         }
-        // Refused: the insertion point is off the page's connection grid.
+        // The command refuses: the insertion point is off the page's connection grid.
         2 => {
             let (symbol, def) = end?;
             let mut ip = ip(&symbol, &def);
             ip["pos"] = json!([2 * n + 1, 3 * n]);
             let p = step(cp_end(a, idx), &page.id, ip);
-            Some(Step::cmd("connection.draw_to_ip", p).refuse())
+            Some(Step::cmd("connection.draw_to_ip", p))
         }
         // Refused: the symbol does not exist, or its function definition is not embedded.
         3 => {
@@ -2042,12 +2012,12 @@ fn connection_draw_to_ip(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let p = step(cp_end(a, idx), &page.id, ip);
             Some(Step::cmd("connection.draw_to_ip", p).refuse())
         }
-        // Refused: a route that is off the grid and does not end at the interruption point's CP.
+        // The command refuses: a route that is off the grid and does not end at the interruption point's CP.
         4 => {
             let (symbol, def) = end?;
             let mut p = step(cp_end(a, idx), &page.id, ip(&symbol, &def));
             p["route"] = json!([[1, 1], [2, 2]]);
-            Some(Step::cmd("connection.draw_to_ip", p).refuse())
+            Some(Step::cmd("connection.draw_to_ip", p))
         }
         // The wire and its interruption point: one function, one representation, one connection. Either: the
         // generator does not model the prevent rules.
@@ -2084,16 +2054,16 @@ fn ip_arrange(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let groups: Vec<&Vec<&Value>> = by_page.values().filter(|g| g.len() >= 2).collect();
     let any_ip = rng.pick(&live.ip_infos)?;
     match rng.below(10) {
-        // Refused: fewer than two interruption points.
+        // The command refuses: fewer than two interruption points.
         0 => {
             let ips = if rng.chance(2) {
                 vec![]
             } else {
                 vec![any_ip.function.clone()]
             };
-            Some(Step::cmd("ip.arrange", json!({"ips": ips})).refuse())
+            Some(Step::cmd("ip.arrange", json!({"ips": ips})))
         }
-        // Refused: an interruption point twice.
+        // The command refuses: an interruption point twice.
         1 => {
             let other = rng.pick(&live.ip_infos)?;
             let ips = if rng.chance(2) {
@@ -2105,21 +2075,24 @@ fn ip_arrange(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     any_ip.function.clone(),
                 ]
             };
-            Some(Step::cmd("ip.arrange", json!({"ips": ips})).refuse())
+            Some(Step::cmd("ip.arrange", json!({"ips": ips})))
         }
         // Refused: a function that does not exist.
         2 => Some(Step::cmd("ip.arrange", json!({"ips": [any_ip.function, rng.uuid()]})).refuse()),
-        // Refused: a function that is not an interruption point.
+        // The command refuses: a function that is not an interruption point.
         3 => {
             let plain: Vec<_> = live.functions.iter().filter(|f| !f.ip).collect();
             let f = rng.pick(&plain)?;
-            Some(Step::cmd("ip.arrange", json!({"ips": [any_ip.function, f.id]})).refuse())
+            Some(Step::cmd("ip.arrange", json!({"ips": [any_ip.function, f.id]})))
         }
-        // Refused: interruption points of two pages.
+        // The command refuses: interruption points of two pages.
         4 => {
             let other: Vec<_> = live.ip_infos.iter().filter(|i| i.page != any_ip.page).collect();
             let other = *rng.pick(&other)?;
-            Some(Step::cmd("ip.arrange", json!({"ips": [any_ip.function, other.function]})).refuse())
+            Some(Step::cmd(
+                "ip.arrange",
+                json!({"ips": [any_ip.function, other.function]}),
+            ))
         }
         // Interruption points of one page in a new order: each takes the slot of its place in the order, the
         // slots being the old positions sorted by (y, x).
@@ -2138,7 +2111,6 @@ fn ip_arrange(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             }
             Some(
                 Step::cmd("ip.arrange", p)
-                    .accept()
                     .counts(&[(Table::Reps, 0), (Table::Functions, 0), (Table::Connections, 0)])
                     .check(move |before, after| {
                         let ids: Vec<ew_ids::Id<ew_schema::Function>> = ips
@@ -2242,39 +2214,36 @@ fn box_reshape(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(11) {
         // Refused: the representation does not exist.
         0 => Some(Step::cmd("box.reshape", json!({"rep": rng.uuid(), "outline": widened})).refuse()),
-        // Refused: a representation that has no box.
+        // The command refuses: a representation that has no box.
         1 => {
             let rep = rng.pick(&live.plain_reps)?;
-            Some(Step::cmd("box.reshape", json!({"rep": rep, "outline": widened})).refuse())
+            Some(Step::cmd("box.reshape", json!({"rep": rep, "outline": widened})))
         }
-        // Refused: an outline of fewer than three vertices.
-        2 => Some(
-            Step::cmd(
-                "box.reshape",
-                json!({"rep": b.rep, "outline": [[x0, y0], [x1w, y0]]}),
-            )
-            .refuse(),
-        ),
-        // Refused: a vertex off the page's connection grid.
+        // The command refuses: an outline of fewer than three vertices.
+        2 => Some(Step::cmd(
+            "box.reshape",
+            json!({"rep": b.rep, "outline": [[x0, y0], [x1w, y0]]}),
+        )),
+        // The command refuses: a vertex off the page's connection grid.
         3 => {
             let outline = json!([[x0, y0], [x1w, y0], [x1w + 1, y1], [x0, y1]]);
-            Some(Step::cmd("box.reshape", json!({"rep": b.rep, "outline": outline})).refuse())
+            Some(Step::cmd(
+                "box.reshape",
+                json!({"rep": b.rep, "outline": outline}),
+            ))
         }
-        // Refused: two CPs with one index.
+        // The command refuses: two CPs with one index.
         4 => {
             let cps = json!([
                 {"idx": 0, "pos": [x0, y0], "dir": "up"},
                 {"idx": 0, "pos": [x1w, y0], "dir": "up"},
             ]);
-            Some(
-                Step::cmd(
-                    "box.reshape",
-                    json!({"rep": b.rep, "outline": widened, "cps": cps}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "box.reshape",
+                json!({"rep": b.rep, "outline": widened, "cps": cps}),
+            ))
         }
-        // Refused: a CP off the outline, or a CP off the grid.
+        // The command refuses: a CP off the outline, or a CP off the grid.
         5 | 6 => {
             let pos = if rng.chance(2) {
                 [x0 - n, y0 - n]
@@ -2282,13 +2251,10 @@ fn box_reshape(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 [x0 + 1, y0]
             };
             let cps = json!([{"idx": 0, "pos": pos, "dir": "up"}]);
-            Some(
-                Step::cmd(
-                    "box.reshape",
-                    json!({"rep": b.rep, "outline": widened, "cps": cps}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "box.reshape",
+                json!({"rep": b.rep, "outline": widened, "cps": cps}),
+            ))
         }
         // No CPs at all. Either: a CP that a connection on the page ends at may not be dropped.
         7 => Some(
@@ -2313,7 +2279,6 @@ fn box_reshape(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     "box.reshape",
                     json!({"rep": b.rep, "outline": widened, "cps": cps}),
                 )
-                .accept()
                 .counts(&counts)
                 .check(box_after_check(b.rep.clone(), widened_pts, idxs)),
             )
@@ -2321,7 +2286,6 @@ fn box_reshape(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         // The CPs re-projected onto the widened rectangle.
         _ => Some(
             Step::cmd("box.reshape", json!({"rep": b.rep, "outline": widened}))
-                .accept()
                 .counts(&counts)
                 .check(box_after_check(b.rep.clone(), widened_pts, idxs)),
         ),
@@ -2438,7 +2402,7 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 p["copies"] = json!([c]);
                 parts = 1;
             }
-            Some(Step::cmd("device.place", p).accept().counts(&[
+            Some(Step::cmd("device.place", p).counts(&[
                 (Table::Reps, 1),
                 (Table::Functions, entries),
                 (Table::Devices, 1),
@@ -2446,7 +2410,7 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 (Table::Parts, parts),
             ]))
         }
-        // Refused: a `from_part` target that cannot be made.
+        // A `from_part` target that cannot be made: the command refuses it; refused: a part copy that does not exist.
         21 => {
             let target = match rng.below(8) {
                 // FT-656: `copies` holding a held part at another hash ("update from library first"), or the same copy
@@ -2461,10 +2425,13 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     };
                     let mut p = base(from_part_target(&t.part, i, "K"));
                     p["copies"] = copies;
+                    return Some(Step::cmd("device.place", p));
+                }
+                // Refused: the part copy does not exist.
+                0 => {
+                    let p = base(from_part_target(&json!(rng.uuid()), 0, "K"));
                     return Some(Step::cmd("device.place", p).refuse());
                 }
-                // The part copy does not exist.
-                0 => from_part_target(&json!(rng.uuid()), 0, "K"),
                 // A template index out of range.
                 1 => {
                     let t = rng.pick(&live.part_templates)?;
@@ -2486,7 +2453,7 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     let other = *rng.pick(&other)?;
                     let mut p = base(from_part_target(&t.part, i, "K"));
                     p["symbol"] = other.id.clone();
-                    return Some(Step::cmd("device.place", p).refuse());
+                    return Some(Step::cmd("device.place", p));
                 }
                 // A template entry whose function definition the project does not embed.
                 4 => {
@@ -2503,7 +2470,7 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     from_part_target(&t.part, i, "K")
                 }
             };
-            Some(Step::cmd("device.place", base(target)).refuse())
+            Some(Step::cmd("device.place", base(target)))
         }
         // A new terminal of a strip (AC-28), drawn with a terminal symbol.
         22 | 23 => {
@@ -2529,7 +2496,6 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let strip_id = strip.id.clone();
             Some(
                 Step::cmd("device.place", p)
-                    .accept()
                     .counts(&[
                         (Table::Reps, 1),
                         (Table::Functions, 1),
@@ -2558,7 +2524,7 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     }),
             )
         }
-        // Refused: a `new_terminal` target that cannot be made.
+        // The command refuses: a `new_terminal` target that cannot be made.
         24 | 25 => {
             let strip = rng.pick(&live.strip_infos)?;
             let target = match rng.below(3) {
@@ -2579,7 +2545,7 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     json!({"strip": strip.id, "designation": fresh_designation(strip, rng), "seq": seq})
                 }
             };
-            Some(Step::cmd("device.place", base(json!({"new_terminal": target}))).refuse())
+            Some(Step::cmd("device.place", base(json!({"new_terminal": target}))))
         }
         // Refused: the page does not exist.
         18 => {
@@ -2587,14 +2553,14 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             p["page"] = json!(rng.uuid());
             Some(Step::cmd("device.place", p).refuse())
         }
-        // Refused: the position is off the connection grid.
+        // The command refuses: the position is off the connection grid.
         17 => {
             let mut p = base(json!({"new_device": {"letter": "K"}}));
             let n = i64::try_from(page.grid.0).unwrap_or(1);
             p["pos"] = json!([3 * n + 1, 4 * n]);
-            Some(Step::cmd("device.place", p).refuse())
+            Some(Step::cmd("device.place", p))
         }
-        // Refused: a representation type the page type does not allow.
+        // The command refuses: a representation type the page type does not allow.
         19 => {
             let wrong: Vec<_> = live
                 .symbols
@@ -2604,7 +2570,7 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let w = *rng.pick(&wrong)?;
             let mut p = base(json!({"new_device": {"letter": "K"}}));
             p["symbol"] = w.id.clone();
-            Some(Step::cmd("device.place", p).refuse())
+            Some(Step::cmd("device.place", p))
         }
         // Another representation of an existing function.
         14 | 15 => {
@@ -2649,7 +2615,7 @@ fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 (Table::Connections, connections),
             ]);
             // A hint wires to a function on the page, which the model may refuse for its own reasons.
-            Some(if connections == 0 { step.accept() } else { step })
+            Some(step)
         }
     }
 }
@@ -2672,7 +2638,7 @@ fn ip_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         1 => {
             let n = i64::try_from(page.grid.0).unwrap_or(1);
             p["pos"] = json!([2 * n + 1, 3 * n]);
-            Some(Step::cmd("ip.place", p).refuse())
+            Some(Step::cmd("ip.place", p))
         }
         2 => {
             p["external"] = json!(rng.uuid());
@@ -2682,7 +2648,7 @@ fn ip_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             if k == 3 {
                 p["external"] = json!(rng.pick(&live.ext_refs)?);
             }
-            Some(Step::cmd("ip.place", p).accept().counts(&[
+            Some(Step::cmd("ip.place", p).counts(&[
                 (Table::Reps, 1),
                 (Table::Functions, 1),
                 (Table::Devices, 0),
@@ -2694,14 +2660,17 @@ fn ip_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn ip_continue(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let ip = rng.pick(&live.ip_infos)?;
     match rng.below(8) {
-        // Refused: the target page is the page of the interruption point.
-        0 => Some(Step::cmd("ip.continue", json!({"ip": ip.function, "page": ip.page})).refuse()),
-        // Refused: not an interruption point.
+        // The command refuses: the target page is the page of the interruption point.
+        0 => Some(Step::cmd(
+            "ip.continue",
+            json!({"ip": ip.function, "page": ip.page}),
+        )),
+        // The command refuses: not an interruption point.
         1 => {
             let f = live.functions.iter().filter(|f| !f.ip).collect::<Vec<_>>();
             let f = rng.pick(&f)?;
             let page = rng.pick(&live.pages)?;
-            Some(Step::cmd("ip.continue", json!({"ip": f.id, "page": page})).refuse())
+            Some(Step::cmd("ip.continue", json!({"ip": f.id, "page": page})))
         }
         _ => {
             // Another page of the same grid, so that the original position is on its grid too.
@@ -2711,15 +2680,17 @@ fn ip_continue(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .filter(|p| p.kind == "multi_line" && p.id != ip.page && p.grid == ip.grid)
                 .collect();
             let page = *rng.pick(&pages)?;
-            // Refused (FT-194): the partner of a target is a source, a second one of a name that has a source.
+            // The command refuses (FT-194): the partner of a target is a source, a second one of a name that has a source.
             if !ip.continues_cleanly {
-                return Some(Step::cmd("ip.continue", json!({"ip": ip.function, "page": page.id})).refuse());
+                return Some(Step::cmd(
+                    "ip.continue",
+                    json!({"ip": ip.function, "page": page.id}),
+                ));
             }
             let name = ip.name.clone();
             let function = ip.function.clone();
             Some(
                 Step::cmd("ip.continue", json!({"ip": ip.function, "page": page.id}))
-                    .accept()
                     .counts(&[(Table::Reps, 1), (Table::Functions, 1)])
                     .check(move |_, after| {
                         // The partner carries the name of the original.
@@ -2748,12 +2719,12 @@ fn box_black(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let target = json!({"new_device": {"letter": "A", "fndef": def}});
     let mut p = json!({"page": page.id, "symbol": symbol, "pos": on_page(page, rng), "target": target});
     match rng.below(15) {
-        // Refused: a template without exactly one main entry (EW-INV-002: the device needs exactly one main
+        // The command refuses: a template without exactly one main entry (EW-INV-002: the device needs exactly one main
         // function).
         14 => {
             let (t, i, _) = template_entry(live, rng, true, false)?;
             p["target"] = from_part_target(&t.part, i, "A");
-            Some(Step::cmd("box.black", p).refuse())
+            Some(Step::cmd("box.black", p))
         }
         // A black-box entry of a part copy: the device with a function per template entry, the entry drawn.
         10 | 11 => {
@@ -2769,38 +2740,38 @@ fn box_black(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 p["copies"] = json!([c]);
                 parts = 1;
             }
-            Some(Step::cmd("box.black", p).accept().counts(&[
+            Some(Step::cmd("box.black", p).counts(&[
                 (Table::Reps, 1),
                 (Table::Functions, entries),
                 (Table::Devices, 1),
                 (Table::Parts, parts),
             ]))
         }
-        // Refused: an entry that is no black box belongs to `device.place`.
+        // The command refuses: an entry that is no black box belongs to `device.place`.
         12 => {
             let (t, i, _) = template_entry(live, rng, false, true)?;
             p["target"] = from_part_target(&t.part, i, "A");
-            Some(Step::cmd("box.black", p).refuse())
+            Some(Step::cmd("box.black", p))
         }
-        // Refused: a black box is no terminal.
+        // The command refuses: a black box is no terminal.
         13 => {
             let strip = rng.pick(&live.strip_infos)?;
             p["target"] =
                 json!({"new_terminal": {"strip": strip.id, "designation": fresh_designation(strip, rng)}});
-            Some(Step::cmd("box.black", p).refuse())
+            Some(Step::cmd("box.black", p))
         }
-        // Refused: an outline of fewer than three points.
+        // The command refuses: an outline of fewer than three points.
         0 => {
             p["box"] = json!({"outline": [[0, 0], [4 * n, 0]]});
-            Some(Step::cmd("box.black", p).refuse())
+            Some(Step::cmd("box.black", p))
         }
-        // Refused: two box CPs with the same index.
+        // The command refuses: two box CPs with the same index.
         1 => {
             p["box"] = json!({
                 "outline": [[0, 0], [4 * n, 0], [4 * n, 3 * n], [0, 3 * n]],
                 "cps": [{"idx": 0, "dir": "right", "pos": [4 * n, n]}, {"idx": 0, "dir": "left", "pos": [0, n]}],
             });
-            Some(Step::cmd("box.black", p).refuse())
+            Some(Step::cmd("box.black", p))
         }
         k => {
             if k < 5 {
@@ -2823,13 +2794,10 @@ fn rep_set_anchor_policy(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         0 => Some(Step::cmd("rep.set_anchor_policy", json!({"reps": [], "anchor": "origin"})).refuse()),
         1 => {
             let r = rng.pick(&live.reps)?;
-            Some(
-                Step::cmd(
-                    "rep.set_anchor_policy",
-                    json!({"reps": [r, r], "anchor": "origin"}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "rep.set_anchor_policy",
+                json!({"reps": [r, r], "anchor": "origin"}),
+            ))
         }
         2 => Some(
             Step::cmd(
@@ -2853,9 +2821,8 @@ fn rep_set_anchor_policy(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let expect = anchor.clone();
             let ids = reps.clone();
             Some(
-                Step::cmd("rep.set_anchor_policy", json!({"reps": reps, "anchor": anchor}))
-                    .accept()
-                    .check(move |_, after| {
+                Step::cmd("rep.set_anchor_policy", json!({"reps": reps, "anchor": anchor})).check(
+                    move |_, after| {
                         for id in &ids {
                             let r = typed(id)
                                 .and_then(|i| after.reps().get(i).cloned())
@@ -2866,7 +2833,8 @@ fn rep_set_anchor_policy(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                             }
                         }
                         Ok(())
-                    }),
+                    },
+                ),
             )
         }
     }
@@ -2878,7 +2846,7 @@ fn connection_route(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let as_json =
         |route: &[(i64, i64)]| -> Value { Value::Array(route.iter().map(|(x, y)| json!([x, y])).collect()) };
     let verified = |step: Step, expect: Vec<(i64, i64)>, conn: Value| {
-        step.accept().check(move |_, after| {
+        step.check(move |_, after| {
             let c = typed(&conn)
                 .and_then(|i| after.connections().get(i).cloned())
                 .ok_or("connection gone")?;
@@ -2913,27 +2881,21 @@ fn connection_route(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             Vec::new(),
             conn,
         )),
-        // Refused: the first vertex does not meet its CP.
+        // The command refuses: the first vertex does not meet its CP.
         1 => {
             let route = [(a.0 + 1, a.1), (b.0, a.1), b];
-            Some(
-                Step::cmd(
-                    "connection.route",
-                    json!({"connection": conn, "route": as_json(&route)}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "connection.route",
+                json!({"connection": conn, "route": as_json(&route)}),
+            ))
         }
-        // Refused: a bend off the connection grid (and not on the line of an end).
+        // The command refuses: a bend off the connection grid (and not on the line of an end).
         2 if mid + 1 != a.1 && mid + 1 != b.1 => {
             let route = [a, (a.0, mid + 1), (b.0, mid + 1), b];
-            Some(
-                Step::cmd(
-                    "connection.route",
-                    json!({"connection": conn, "route": as_json(&route)}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "connection.route",
+                json!({"connection": conn, "route": as_json(&route)}),
+            ))
         }
         // Refused: the connection does not exist.
         3 => {
@@ -2981,11 +2943,14 @@ fn page_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let kind = *rng.pick(&["multi_line", "single_line", "overview", "fluid", "graphic"])?;
     let title = rng.word(10);
     match rng.below(12) {
-        // Refused: report pages are generated (EW-INV-012).
-        0 => Some(Step::cmd("page.create", json!({"number": 5000, "kind": "report"})).refuse()),
-        // Refused: no folio.
-        1 => Some(Step::cmd("page.create", json!({"kind": kind})).refuse()),
-        // Refused: a folio another page of the section has.
+        // The command refuses: report pages are generated (EW-INV-012).
+        0 => Some(Step::cmd(
+            "page.create",
+            json!({"number": 5000, "kind": "report"}),
+        )),
+        // The command refuses: no folio.
+        1 => Some(Step::cmd("page.create", json!({"kind": kind}))),
+        // The command refuses: a folio another page of the section has.
         2 => {
             let p = rng.pick(&live.page_info)?;
             let mut params = json!({"number": p.number, "kind": kind});
@@ -2995,7 +2960,7 @@ fn page_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             if let Some(l) = &p.label {
                 params["label"] = json!(l);
             }
-            Some(Step::cmd("page.create", params).refuse())
+            Some(Step::cmd("page.create", params))
         }
         // Refused: the section does not exist.
         3 => Some(
@@ -3052,7 +3017,7 @@ fn page_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn page_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(10) {
         0 => Some(Step::cmd("page.delete", json!({"pages": [rng.uuid()]})).refuse()),
-        1 => Some(Step::cmd("page.delete", json!({"pages": []})).refuse()),
+        1 => Some(Step::cmd("page.delete", json!({"pages": []}))),
         _ => {
             // The golden project keeps most of its pages: the run deletes while there are enough.
             if live.pages.len() < 6 {
@@ -3085,35 +3050,26 @@ fn section_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let number = live.section_info.iter().map(|s| s.number).max().unwrap_or(0) + 1;
     let free_from = live.section_info.iter().map(|s| s.range.1).max().unwrap_or(0) + 1;
     match rng.below(10) {
-        // Refused: the range starts after it ends.
-        0 => Some(
-            Step::cmd(
-                "section.create",
-                json!({"number": number, "folio_range": [free_from + 50, free_from]}),
-            )
-            .refuse(),
-        ),
-        // Refused: a number a section has.
+        // The command refuses: the range starts after it ends.
+        0 => Some(Step::cmd(
+            "section.create",
+            json!({"number": number, "folio_range": [free_from + 50, free_from]}),
+        )),
+        // The command refuses: a number a section has.
         1 => {
             let s = rng.pick(&live.section_info)?;
-            Some(
-                Step::cmd(
-                    "section.create",
-                    json!({"number": s.number, "folio_range": [free_from, free_from + 9]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "section.create",
+                json!({"number": s.number, "folio_range": [free_from, free_from + 9]}),
+            ))
         }
-        // Refused: overlaps the range of a section.
+        // The command refuses: overlaps the range of a section.
         2 => {
             let s = rng.pick(&live.section_info)?;
-            Some(
-                Step::cmd(
-                    "section.create",
-                    json!({"number": number, "folio_range": [s.range.0, s.range.0 + 3]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "section.create",
+                json!({"number": number, "folio_range": [s.range.0, s.range.0 + 3]}),
+            ))
         }
         _ => {
             let from = free_from + u32::try_from(rng.below(40)).unwrap_or(0);
@@ -3123,46 +3079,38 @@ fn section_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     "section.create",
                     json!({"number": number, "folio_range": [from, to], "title": rng.word(8), "divider": rng.chance(2)}),
                 )
-                .accept()
                 .counts(&[(Table::Sections, 1)]),
             )
         }
     }
 }
 
-const ASPECTS: [&str; 7] = [
-    "functional_assignment",
-    "function",
-    "installation_site",
-    "location",
-    "document_kind",
-    "user_defined",
-    "type",
-];
+/// The aspects `structure.create_node` takes, read from its schema (never a copy of the list).
+fn aspects() -> &'static [&'static str] {
+    static LIST: OnceLock<Vec<&'static str>> = OnceLock::new();
+    LIST.get_or_init(|| registry_strings("structure.create_node", &["aspect"]))
+}
 
 fn structure_create_node(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    let aspect = *rng.pick(&ASPECTS)?;
+    let aspect = *rng.pick(aspects())?;
     let code = format!("FZ{}", rng.below(100_000));
     match rng.below(10) {
-        // Refused: a parent of another aspect (EW-INV-011).
+        // The command refuses: a parent of another aspect (EW-INV-011).
         0 => {
             let other = live.nodes.iter().find(|n| n.aspect != aspect)?;
-            Some(
-                Step::cmd(
-                    "structure.create_node",
-                    json!({"aspect": aspect, "code": code, "parent": other.id}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "structure.create_node",
+                json!({"aspect": aspect, "code": code, "parent": other.id}),
+            ))
         }
-        // Refused: a sibling with the same code.
+        // The command refuses: a sibling with the same code.
         1 => {
             let n = rng.pick(&live.nodes)?;
             let mut p = json!({"aspect": n.aspect, "code": n.code});
             if let Some(parent) = &n.parent {
                 p["parent"] = parent.clone();
             }
-            Some(Step::cmd("structure.create_node", p).refuse())
+            Some(Step::cmd("structure.create_node", p))
         }
         // Refused: the product aspect is the device tree.
         2 => Some(
@@ -3191,36 +3139,16 @@ fn structure_create_node(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             if rng.chance(4) {
                 p["aliases"] = json!([format!("AL{}", rng.below(100))]);
             }
-            Some(
-                Step::cmd("structure.create_node", p)
-                    .accept()
-                    .counts(&[(Table::Nodes, 1)]),
-            )
+            Some(Step::cmd("structure.create_node", p).counts(&[(Table::Nodes, 1)]))
         }
     }
 }
 
 fn report_block_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    const KINDS: [&str; 15] = [
-        "profile_tables",
-        "part_data",
-        "toc",
-        "structure_overview",
-        "parts_summary",
-        "parts_list",
-        "device_list",
-        "terminal_diagram",
-        "terminal_overview",
-        "cable_overview_diagrams",
-        "wire_list",
-        "plc_overview",
-        "io_list",
-        "potential_overview",
-        // WP-S3.06 part 2 (R1): the open-items list runs check rules inside the page order.
-        "open_items",
-    ];
+    static KINDS: OnceLock<Vec<&'static str>> = OnceLock::new();
+    let kinds = KINDS.get_or_init(|| registry_strings("report_block.create", &["source", "kind"]));
     let form = rng.pick(&live.forms)?;
-    let kind = *rng.pick(&KINDS)?;
+    let kind = *rng.pick(kinds)?;
     match rng.below(12) {
         // FT-341: the form from the library with its closure; the golden project holds the same items, so the
         // held copies are used and only the block is new.
@@ -3236,27 +3164,21 @@ fn report_block_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .counts(&[(Table::ReportBlocks, 1)]),
             )
         }
-        // Refused: a form copy whose hash is not its item's.
+        // The command refuses: a form copy whose hash is not its item's.
         11 => {
             let (mut nogrid, _) = shipped_report_forms();
             nogrid["sheet"]["width"] = json!(1 + rng.below(1000));
-            Some(
-                Step::cmd(
-                    "report_block.create",
-                    json!({"source": {"kind": kind}, "form": nogrid["id"], "form_copies": [nogrid],
-                           "first_folio": 6200}),
-                )
-                .refuse(),
-            )
-        }
-        // Refused: a page-oriented block needs its first folio (EW-INV-014).
-        0 => Some(
-            Step::cmd(
+            Some(Step::cmd(
                 "report_block.create",
-                json!({"source": {"kind": kind}, "form": form}),
-            )
-            .refuse(),
-        ),
+                json!({"source": {"kind": kind}, "form": nogrid["id"], "form_copies": [nogrid],
+                           "first_folio": 6200}),
+            ))
+        }
+        // The command refuses: a page-oriented block needs its first folio (EW-INV-014).
+        0 => Some(Step::cmd(
+            "report_block.create",
+            json!({"source": {"kind": kind}, "form": form}),
+        )),
         // Refused: the form copy does not exist.
         1 => Some(
             Step::cmd(
@@ -3304,10 +3226,13 @@ fn shipped_report_forms() -> (Value, Value) {
 
 fn external_ref_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(8) {
-        // Refused: the node is not a location.
+        // The command refuses: the node is not a location.
         0 => {
             let n = live.nodes.iter().find(|n| n.aspect != "location")?;
-            Some(Step::cmd("external_ref.create", json!({"location": n.id, "device": "X1"})).refuse())
+            Some(Step::cmd(
+                "external_ref.create",
+                json!({"location": n.id, "device": "X1"}),
+            ))
         }
         // Refused: the node does not exist.
         1 => Some(
@@ -3326,11 +3251,7 @@ fn external_ref_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             if rng.chance(3) {
                 p["project"] = json!(format!("P{}", rng.below(100)));
             }
-            Some(
-                Step::cmd("external_ref.create", p)
-                    .accept()
-                    .counts(&[(Table::ExternalRefs, 1)]),
-            )
+            Some(Step::cmd("external_ref.create", p).counts(&[(Table::ExternalRefs, 1)]))
         }
     }
 }
@@ -3372,11 +3293,7 @@ fn device_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     if rng.chance(4) {
         p["function_text"] = json!(rng.word(8));
     }
-    Some(
-        Step::cmd("device.create", p)
-            .accept()
-            .counts(&[(Table::Devices, 1), (Table::Functions, functions)]),
-    )
+    Some(Step::cmd("device.create", p).counts(&[(Table::Devices, 1), (Table::Functions, functions)]))
 }
 
 fn terminal_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -3393,48 +3310,36 @@ fn terminal_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         }
     };
     match rng.below(10) {
-        // Refused: a designation the strip has.
+        // The command refuses: a designation the strip has.
         0 => {
             let (_, d) = rng.pick(&strip.terminals)?;
-            Some(
-                Step::cmd(
-                    "terminal.add",
-                    json!({"strip": strip.id, "fndef": fndef, "terminals": [{"designation": d}]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "terminal.add",
+                json!({"strip": strip.id, "fndef": fndef, "terminals": [{"designation": d}]}),
+            ))
         }
-        // Refused: not a strip.
+        // The command refuses: not a strip.
         1 => {
             let d = rng.pick(&live.plain_devices)?;
-            Some(
-                Step::cmd(
-                    "terminal.add",
-                    json!({"strip": d, "fndef": fndef, "terminals": [{"designation": "Z1"}]}),
-                )
-                .refuse(),
-            )
-        }
-        // Refused: nothing to add.
-        2 => Some(
-            Step::cmd(
+            Some(Step::cmd(
                 "terminal.add",
-                json!({"strip": strip.id, "fndef": fndef, "terminals": []}),
-            )
-            .refuse(),
-        ),
-        // Refused: a sequence number the strip has.
+                json!({"strip": d, "fndef": fndef, "terminals": [{"designation": "Z1"}]}),
+            ))
+        }
+        // The command refuses: nothing to add.
+        2 => Some(Step::cmd(
+            "terminal.add",
+            json!({"strip": strip.id, "fndef": fndef, "terminals": []}),
+        )),
+        // The command refuses: a sequence number the strip has.
         3 => {
             let seq = rng
                 .pick(&strip.seqs.iter().copied().collect::<Vec<_>>())?
                 .to_owned();
-            Some(
-                Step::cmd(
-                    "terminal.add",
-                    json!({"strip": strip.id, "fndef": fndef, "terminals": [{"designation": fresh(rng), "seq": seq}]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "terminal.add",
+                json!({"strip": strip.id, "fndef": fndef, "terminals": [{"designation": fresh(rng), "seq": seq}]}),
+            ))
         }
         _ => {
             let n = 1 + rng.below(3);
@@ -3458,7 +3363,6 @@ fn terminal_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     "terminal.add",
                     json!({"strip": strip.id, "fndef": fndef, "terminals": terminals}),
                 )
-                .accept()
                 .counts(&[(Table::Devices, n), (Table::Functions, n)])
                 .check(move |_, after| {
                     let strip = typed(&strip_id).ok_or("a strip ID")?;
@@ -3512,44 +3416,41 @@ fn terminal_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     };
     let cmd = |p: Value| Step::cmd("terminal.insert", p);
     match rng.below(12) {
-        // Refused: a designation the strip has.
+        // The command refuses: a designation the strip has.
         0 => {
             let (_, d) = rng.pick(&strip.terminals)?;
-            Some(cmd(json!({"strip": strip.id, "fndef": fndef, "terminals": [{"designation": d}]})).refuse())
+            Some(cmd(
+                json!({"strip": strip.id, "fndef": fndef, "terminals": [{"designation": d}]}),
+            ))
         }
-        // Refused: not a strip.
+        // The command refuses: not a strip.
         1 => {
             let d = rng.pick(&live.plain_devices)?;
-            Some(cmd(json!({"strip": d, "fndef": fndef, "terminals": [{"designation": "Z1"}]})).refuse())
+            Some(cmd(
+                json!({"strip": d, "fndef": fndef, "terminals": [{"designation": "Z1"}]}),
+            ))
         }
         // Refused: nothing to insert.
         2 => Some(cmd(json!({"strip": strip.id, "fndef": fndef, "terminals": []})).refuse()),
-        // Refused: a spec with `seq` (the position follows from `before`).
-        3 => Some(
-            cmd(json!({"strip": strip.id, "fndef": fndef,
-                "terminals": [{"designation": fresh(rng), "seq": 1 + rng.below(30)}]}))
-            .refuse(),
-        ),
-        // Refused: the same designation twice in the list.
+        // The command refuses: a spec with `seq` (the position follows from `before`).
+        3 => Some(cmd(json!({"strip": strip.id, "fndef": fndef,
+                "terminals": [{"designation": fresh(rng), "seq": 1 + rng.below(30)}]}))),
+        // The command refuses: the same designation twice in the list.
         4 => {
             let d = fresh(rng);
-            Some(
-                cmd(json!({"strip": strip.id, "fndef": fndef,
-                    "terminals": [{"designation": d}, {"designation": d}]}))
-                .refuse(),
-            )
+            Some(cmd(json!({"strip": strip.id, "fndef": fndef,
+                    "terminals": [{"designation": d}, {"designation": d}]})))
         }
-        // Refused: `before` is not a terminal of the strip (a plain device, or a device that does not exist).
+        // `before` is not a terminal of the strip: a plain device (the command refuses it), or refused: a device that
+        // does not exist.
         5 => {
-            let before = match rng.pick(&live.plain_devices) {
-                Some(d) if rng.chance(2) => d.clone(),
-                _ => json!(rng.uuid()),
+            let (before, dangling) = match rng.pick(&live.plain_devices) {
+                Some(d) if rng.chance(2) => (d.clone(), false),
+                _ => (json!(rng.uuid()), true),
             };
-            Some(
-                cmd(json!({"strip": strip.id, "before": before, "fndef": fndef,
-                    "terminals": [{"designation": fresh(rng)}]}))
-                .refuse(),
-            )
+            let step = cmd(json!({"strip": strip.id, "before": before, "fndef": fndef,
+                "terminals": [{"designation": fresh(rng)}]}));
+            Some(if dangling { step.refuse() } else { step })
         }
         _ => {
             let n = 1 + rng.below(3);
@@ -3572,10 +3473,10 @@ fn terminal_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 at = order.iter().position(|t| *t == before)?;
                 p["before"] = before;
             }
-            // Refused (CI-06, EW-TERM-004): new terminals between two terminals of one bridge group.
+            // The command refuses (CI-06, EW-TERM-004): new terminals between two terminals of one bridge group.
             order.insert(at, Value::Null);
             if strip.splits_a_bridge_group(&order) {
-                return Some(cmd(p).refuse());
+                return Some(cmd(p));
             }
             let total = strip.order.len() + n;
             let n = isize::try_from(n).unwrap_or(1);
@@ -3583,7 +3484,6 @@ fn terminal_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let unique_before = strip.seqs.len() == strip.order.len();
             Some(
                 cmd(p)
-                    .accept()
                     .counts(&[(Table::Devices, n), (Table::Functions, n)])
                     .check(move |_, after| {
                         let strip = typed::<ew_schema::Device>(&strip_id).ok_or("a strip ID")?;
@@ -3623,33 +3523,30 @@ fn terminal_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(12) {
         // Refused: nothing to move.
         0 => Some(cmd(json!({"terminals": []})).refuse()),
-        // Refused: a terminal listed twice.
+        // The command refuses: a terminal listed twice.
         1 => {
             let t = rng.pick(&ids)?;
-            Some(cmd(json!({"terminals": [t, t]})).refuse())
+            Some(cmd(json!({"terminals": [t, t]})))
         }
-        // Refused: a device that is not a terminal.
+        // The command refuses: a device that is not a terminal.
         2 => {
             let d = rng.pick(&live.plain_devices)?;
-            Some(cmd(json!({"terminals": [ids[0], d]})).refuse())
+            Some(cmd(json!({"terminals": [ids[0], d]})))
         }
-        // Refused: terminals of two strips.
+        // The command refuses: terminals of two strips.
         3 => {
             let other = strips.iter().find(|s| s.id != strip.id)?;
-            Some(cmd(json!({"terminals": [ids[0], other.order[0].1]})).refuse())
+            Some(cmd(json!({"terminals": [ids[0], other.order[0].1]})))
         }
-        // Refused: `before` among the moved terminals.
-        4 => Some(cmd(json!({"terminals": [ids[0], ids[1]], "before": ids[1]})).refuse()),
-        // Refused: an order that does not change (a terminal before its successor, or the last to the end).
+        // The command refuses: `before` among the moved terminals.
+        4 => Some(cmd(json!({"terminals": [ids[0], ids[1]], "before": ids[1]}))),
+        // The command refuses: an order that does not change (a terminal before its successor, or the last to the end).
         5 => {
             let i = rng.below(ids.len());
-            Some(
-                match ids.get(i + 1) {
-                    Some(next) => cmd(json!({"terminals": [ids[i]], "before": next})),
-                    None => cmd(json!({"terminals": [ids[i]]})),
-                }
-                .refuse(),
-            )
+            Some(match ids.get(i + 1) {
+                Some(next) => cmd(json!({"terminals": [ids[i]], "before": next})),
+                None => cmd(json!({"terminals": [ids[i]]})),
+            })
         }
         _ => {
             // One or two terminals, put before another terminal of the strip or at the end.
@@ -3679,47 +3576,42 @@ fn terminal_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 None => order.len(),
             };
             order.splice(at..at, block.clone());
-            // Refused: no change, or (CI-06, EW-TERM-004) an order that splits a bridge group.
+            // The command refuses: no change, or (CI-06, EW-TERM-004) an order that splits a bridge group.
             if order == ids || strip.splits_a_bridge_group(&order) {
-                return Some(cmd(p).refuse());
+                return Some(cmd(p));
             }
             let seqs_before: Vec<u32> = strip.order.iter().map(|(s, _)| *s).collect();
             let (strip_id, before_id) = (strip.id.clone(), before.map(|b| ids[b].clone()));
-            Some(
-                cmd(p)
-                    .accept()
-                    .counts(&[(Table::Devices, 0)])
-                    .check(move |_, after| {
-                        let now = mounting_order(after, &strip_id)?;
-                        let mut seqs: Vec<u32> = now.iter().map(|(s, _)| *s).collect();
-                        seqs.sort_unstable();
-                        if seqs != seqs_before {
-                            return Err(format!(
-                                "the strip's sequence numbers changed: {seqs:?}, were {seqs_before:?}"
-                            ));
-                        }
-                        let ids: Vec<&Value> = now.iter().map(|(_, t)| t).collect();
-                        let start = ids
-                            .iter()
-                            .position(|t| **t == block[0])
-                            .ok_or("a moved terminal is gone")?;
-                        let end = start + block.len();
-                        let together = ids
-                            .get(start..end)
-                            .is_some_and(|w| w.iter().copied().eq(block.iter()));
-                        let placed = match &before_id {
-                            Some(b) => ids.get(end).is_some_and(|t| *t == b),
-                            None => end == ids.len(),
-                        };
-                        if together && placed {
-                            Ok(())
-                        } else {
-                            Err(format!(
-                                "the moved terminals are not directly before {before_id:?}: order {ids:?}"
-                            ))
-                        }
-                    }),
-            )
+            Some(cmd(p).counts(&[(Table::Devices, 0)]).check(move |_, after| {
+                let now = mounting_order(after, &strip_id)?;
+                let mut seqs: Vec<u32> = now.iter().map(|(s, _)| *s).collect();
+                seqs.sort_unstable();
+                if seqs != seqs_before {
+                    return Err(format!(
+                        "the strip's sequence numbers changed: {seqs:?}, were {seqs_before:?}"
+                    ));
+                }
+                let ids: Vec<&Value> = now.iter().map(|(_, t)| t).collect();
+                let start = ids
+                    .iter()
+                    .position(|t| **t == block[0])
+                    .ok_or("a moved terminal is gone")?;
+                let end = start + block.len();
+                let together = ids
+                    .get(start..end)
+                    .is_some_and(|w| w.iter().copied().eq(block.iter()));
+                let placed = match &before_id {
+                    Some(b) => ids.get(end).is_some_and(|t| *t == b),
+                    None => end == ids.len(),
+                };
+                if together && placed {
+                    Ok(())
+                } else {
+                    Err(format!(
+                        "the moved terminals are not directly before {before_id:?}: order {ids:?}"
+                    ))
+                }
+            }))
         }
     }
 }
@@ -3758,18 +3650,21 @@ fn check_waive(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     };
     let reason = "accepted for the fuzz run";
     match rng.below(6) {
-        0 => Some(Step::cmd("check.waive", params("EW-CORE-41", &hex(rng), reason)).refuse()),
-        1 => Some(Step::cmd("check.waive", params("EW-CORE-041", &rng.word(31), reason)).refuse()),
-        2 => Some(Step::cmd("check.waive", params("EW-CORE-041", &hex(rng), "too short")).refuse()),
+        0 => Some(Step::cmd("check.waive", params("EW-CORE-41", &hex(rng), reason))),
+        1 => Some(Step::cmd(
+            "check.waive",
+            params("EW-CORE-041", &rng.word(31), reason),
+        )),
+        2 => Some(Step::cmd(
+            "check.waive",
+            params("EW-CORE-041", &hex(rng), "too short"),
+        )),
         3 => {
             let (_, rule, fingerprint) = rng.pick(&live.waivers)?;
-            Some(
-                Step::cmd(
-                    "check.waive",
-                    params(rule, &fingerprint.to_ascii_uppercase(), reason),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "check.waive",
+                params(rule, &fingerprint.to_ascii_uppercase(), reason),
+            ))
         }
         _ => {
             let fingerprint = hex(rng).to_ascii_uppercase();
@@ -3784,7 +3679,6 @@ fn check_waive(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let lower = fingerprint.to_ascii_lowercase();
             Some(
                 Step::cmd("check.waive", params(rule, &fingerprint, reason))
-                    .accept()
                     .counts(&[(Table::Waivers, 1)])
                     .check(move |_, after| {
                         after
@@ -3808,11 +3702,7 @@ fn check_unwaive(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         return Some(Step::cmd("check.unwaive", json!({"waiver": rng.uuid()})).refuse());
     }
     let (waiver, _, _) = rng.pick(&live.waivers)?;
-    Some(
-        Step::cmd("check.unwaive", json!({"waiver": waiver}))
-            .accept()
-            .counts(&[(Table::Waivers, -1)]),
-    )
+    Some(Step::cmd("check.unwaive", json!({"waiver": waiver})).counts(&[(Table::Waivers, -1)]))
 }
 
 fn cable_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -3822,56 +3712,44 @@ fn cable_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     if rng.chance(4) {
         p["parts"] = json!([part_use(&live.parts, rng)?]);
     }
-    // Refused: two conductors with the same core.
+    // The command refuses: two conductors with the same core.
     if rng.chance(8) {
         let again = conductors[0].clone();
         conductors.push(again);
         p["conductors"] = json!(conductors);
-        return Some(Step::cmd("cable.create", p).refuse());
+        return Some(Step::cmd("cable.create", p));
     }
     p["conductors"] = json!(conductors);
     let n = isize::try_from(n).unwrap_or(1);
-    Some(
-        Step::cmd("cable.create", p)
-            .accept()
-            .counts(&[(Table::Devices, 1), (Table::Conductors, n)]),
-    )
+    Some(Step::cmd("cable.create", p).counts(&[(Table::Devices, 1), (Table::Conductors, n)]))
 }
 
 fn conductor_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cable = rng.pick(&live.cables)?;
     match rng.below(10) {
-        // Refused: a core the cable has.
+        // The command refuses: a core the cable has.
         0 => {
             let core = rng
                 .pick(&cable.cores.iter().cloned().collect::<Vec<_>>())?
                 .to_owned();
-            Some(
-                Step::cmd(
-                    "conductor.add",
-                    json!({"cable": cable.id, "conductors": [{"core": core}]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "conductor.add",
+                json!({"cable": cable.id, "conductors": [{"core": core}]}),
+            ))
         }
-        // Refused: not a cable.
+        // Any device (FT-469): the command refuses one that is no cable and adds a conductor to a cable.
         1 => {
-            let candidates: Vec<_> = live
-                .plain_devices
-                .iter()
-                .filter(|id| !live.cables.iter().any(|cable| cable.id == **id))
-                .collect();
-            let d = rng.pick(&candidates)?;
-            Some(
-                Step::cmd(
-                    "conductor.add",
-                    json!({"cable": d, "conductors": [{"core": "C1"}]}),
-                )
-                .refuse(),
-            )
+            let d = rng.pick(&live.plain_devices)?;
+            Some(Step::cmd(
+                "conductor.add",
+                json!({"cable": d, "conductors": [{"core": "C1"}]}),
+            ))
         }
-        // Refused: nothing to add.
-        2 => Some(Step::cmd("conductor.add", json!({"cable": cable.id, "conductors": []})).refuse()),
+        // The command refuses: nothing to add.
+        2 => Some(Step::cmd(
+            "conductor.add",
+            json!({"cable": cable.id, "conductors": []}),
+        )),
         _ => {
             let n = 1 + rng.below(3);
             let conductors = conductor_specs(rng, n, &cable.cores);
@@ -3881,7 +3759,6 @@ fn conductor_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     "conductor.add",
                     json!({"cable": cable.id, "conductors": conductors}),
                 )
-                .accept()
                 .counts(&[(Table::Conductors, n), (Table::Devices, 0)]),
             )
         }
@@ -3895,28 +3772,22 @@ fn bond_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let kind = *rng.pick(&["pelv_0v_pe", "fe_pe", "equipotential", "shield"])?;
     let (_, functions) = rng.pick(&live.page_functions)?;
     match rng.below(8) {
-        // Refused: both ends are the same point.
+        // The command refuses: both ends are the same point.
         0 => {
             let f = rng.pick(functions)?;
-            Some(
-                Step::cmd(
-                    "bond.create",
-                    json!({"a": cp_end(f, 0), "b": cp_end(f, 0), "kind": kind}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "bond.create",
+                json!({"a": cp_end(f, 0), "b": cp_end(f, 0), "kind": kind}),
+            ))
         }
-        // Refused: a bond ends at a CP or a junction, not on a connection.
+        // The command refuses: a bond ends at a CP or a junction, not on a connection.
         1 => {
             let c = rng.pick(&live.connections)?;
             let f = rng.pick(functions)?;
-            Some(
-                Step::cmd(
-                    "bond.create",
-                    json!({"a": {"on_connection": {"connection": c, "at": [0, 0]}}, "b": cp_end(f, 0), "kind": kind}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "bond.create",
+                json!({"a": {"on_connection": {"connection": c, "at": [0, 0]}}, "b": cp_end(f, 0), "kind": kind}),
+            ))
         }
         // Refused: `via` does not exist.
         2 => {
@@ -3943,18 +3814,24 @@ fn bond_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn device_link(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let kind = *rng.pick(&["drives", "linkage"])?;
     match rng.below(8) {
-        // Refused: a device cannot link to itself.
+        // The command refuses: a device cannot link to itself.
         0 => {
             let d = rng.pick(&live.devices)?;
-            Some(Step::cmd("device.link", json!({"from": d, "to": d, "kind": kind})).refuse())
+            Some(Step::cmd(
+                "device.link",
+                json!({"from": d, "to": d, "kind": kind}),
+            ))
         }
-        // Refused: the link exists already.
+        // The command refuses: the link exists already.
         1 => {
             let (from, to, kind) = rng
                 .pick(&live.links.iter().collect::<Vec<_>>())?
                 .to_owned()
                 .clone();
-            Some(Step::cmd("device.link", json!({"from": from, "to": to, "kind": kind})).refuse())
+            Some(Step::cmd(
+                "device.link",
+                json!({"from": from, "to": to, "kind": kind}),
+            ))
         }
         // Refused: a device that does not exist.
         2 => {
@@ -3969,7 +3846,6 @@ fn device_link(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             }
             Some(
                 Step::cmd("device.link", json!({"from": a, "to": b, "kind": kind}))
-                    .accept()
                     .counts(&[(Table::DeviceLinks, 1)]),
             )
         }
@@ -3995,41 +3871,29 @@ fn assembly_attach(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         out
     };
     match rng.below(10) {
-        // Refused: a device cannot be its own child.
-        0 => Some(
-            Step::cmd(
-                "assembly.attach",
-                json!({"parent": parent.id, "children": [{"device": parent.id}]}),
-            )
-            .refuse(),
-        ),
-        // Refused: positions are 1-based.
-        1 => Some(
-            Step::cmd(
-                "assembly.attach",
-                json!({"parent": parent.id, "children": [{"device": child.id, "position": 0}]}),
-            )
-            .refuse(),
-        ),
-        // Refused: the child is listed twice.
-        2 => Some(
-            Step::cmd(
-                "assembly.attach",
-                json!({"parent": parent.id, "children": [{"device": child.id}, {"device": child.id}]}),
-            )
-            .refuse(),
-        ),
-        // Refused: the child is an ancestor of the parent (the assembly graph is acyclic).
+        // The command refuses: a device cannot be its own child.
+        0 => Some(Step::cmd(
+            "assembly.attach",
+            json!({"parent": parent.id, "children": [{"device": parent.id}]}),
+        )),
+        // The command refuses: positions are 1-based.
+        1 => Some(Step::cmd(
+            "assembly.attach",
+            json!({"parent": parent.id, "children": [{"device": child.id, "position": 0}]}),
+        )),
+        // The command refuses: the child is listed twice.
+        2 => Some(Step::cmd(
+            "assembly.attach",
+            json!({"parent": parent.id, "children": [{"device": child.id}, {"device": child.id}]}),
+        )),
+        // The command refuses: the child is an ancestor of the parent (the assembly graph is acyclic).
         3 => {
             let up = ancestors(parent);
             let a = live.tree.iter().find(|t| up.contains(&t.key))?;
-            Some(
-                Step::cmd(
-                    "assembly.attach",
-                    json!({"parent": parent.id, "children": [{"device": a.id}]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "assembly.attach",
+                json!({"parent": parent.id, "children": [{"device": a.id}]}),
+            ))
         }
         // Refused: the parent does not exist.
         4 => Some(
@@ -4039,7 +3903,7 @@ fn assembly_attach(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
             .refuse(),
         ),
-        // Refused: a position another child of the parent holds (no push insert).
+        // The command refuses: a position another child of the parent holds (no push insert).
         5 => {
             let holder = live.tree.iter().find(|t| {
                 t.parent.as_deref() == Some(parent.key.as_str()) && t.position.is_some() && t.key != child.key
@@ -4047,13 +3911,10 @@ fn assembly_attach(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             if ancestors(parent).contains(&child.key) {
                 return None;
             }
-            Some(
-                Step::cmd(
-                    "assembly.attach",
-                    json!({"parent": parent.id, "children": [{"device": child.id, "position": holder.position}]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "assembly.attach",
+                json!({"parent": parent.id, "children": [{"device": child.id, "position": holder.position}]}),
+            ))
         }
         _ => {
             if ancestors(parent).contains(&child.key) {
@@ -4081,7 +3942,6 @@ fn assembly_attach(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     "assembly.attach",
                     json!({"parent": parent.id, "children": [spec]}),
                 )
-                .accept()
                 .check(move |_, after| {
                     let c = typed(&child_id)
                         .and_then(|i| after.devices().get(i).cloned())
@@ -4109,24 +3969,18 @@ fn valve_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         .filter_map(|t| t.position)
         .collect();
     match rng.below(8) {
-        // Refused: positions are 1-based.
-        0 => Some(
-            Step::cmd(
-                "valve.add",
-                json!({"module": module.id, "part": part, "position": 0}),
-            )
-            .refuse(),
-        ),
-        // Refused: a position another child holds.
+        // The command refuses: positions are 1-based.
+        0 => Some(Step::cmd(
+            "valve.add",
+            json!({"module": module.id, "part": part, "position": 0}),
+        )),
+        // The command refuses: a position another child holds.
         1 => {
             let p = *rng.pick(&taken.iter().copied().collect::<Vec<_>>())?;
-            Some(
-                Step::cmd(
-                    "valve.add",
-                    json!({"module": module.id, "part": part, "position": p}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "valve.add",
+                json!({"module": module.id, "part": part, "position": p}),
+            ))
         }
         // Refused: the module does not exist.
         2 => Some(Step::cmd("valve.add", json!({"module": rng.uuid(), "part": part})).refuse()),
@@ -4156,7 +4010,6 @@ fn valve_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let module_id = module.id.clone();
             Some(
                 Step::cmd("valve.add", p)
-                    .accept()
                     .counts(&[(Table::Devices, 1), (Table::Functions, functions)])
                     .check(move |before, after| {
                         let want = typed(&module_id);
@@ -4182,27 +4035,21 @@ fn valve_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn plc_config_project_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let profile = "siemens-tia-intl@2027.1";
     match rng.below(8) {
-        // Refused: a name another configuration project has.
+        // The command refuses: a name another configuration project has.
         0 => {
             let name = rng
                 .pick(&live.cfg_names.iter().cloned().collect::<Vec<_>>())?
                 .to_owned();
-            Some(
-                Step::cmd(
-                    "plc.config_project.create",
-                    json!({"name": name, "profile": profile}),
-                )
-                .refuse(),
-            )
-        }
-        // Refused: not `id@version`.
-        1 => Some(
-            Step::cmd(
+            Some(Step::cmd(
                 "plc.config_project.create",
-                json!({"name": format!("FZ{}", rng.below(10_000)), "profile": "no-version"}),
-            )
-            .refuse(),
-        ),
+                json!({"name": name, "profile": profile}),
+            ))
+        }
+        // The command refuses: not `id@version`.
+        1 => Some(Step::cmd(
+            "plc.config_project.create",
+            json!({"name": format!("FZ{}", rng.below(10_000)), "profile": "no-version"}),
+        )),
         // Refused: the CPU device does not exist.
         2 => Some(
             Step::cmd(
@@ -4220,11 +4067,7 @@ fn plc_config_project_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
             if rng.chance(2) {
                 p["cpu"] = rng.pick(&live.devices)?.clone();
             }
-            Some(
-                Step::cmd("plc.config_project.create", p)
-                    .accept()
-                    .counts(&[(Table::PlcConfigProjects, 1)]),
-            )
+            Some(Step::cmd("plc.config_project.create", p).counts(&[(Table::PlcConfigProjects, 1)]))
         }
     }
 }
@@ -4241,21 +4084,18 @@ fn fresh_net_name(taken: &std::collections::BTreeSet<String>, rng: &mut SplitMix
 fn bus_logical_net_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     const NAME: &str = "bus.logical_net.create";
     match rng.below(8) {
-        // Refused: a name another logical net has.
+        // The command refuses: a name another logical net has.
         0 => {
             let name = rng
                 .pick(&live.lnet_names.iter().cloned().collect::<Vec<_>>())?
                 .to_owned();
-            Some(Step::cmd(NAME, json!({"bus": "profibus_dp", "name": name})).refuse())
+            Some(Step::cmd(NAME, json!({"bus": "profibus_dp", "name": name})))
         }
-        // Refused: a rate of 0 bit/s.
-        1 => Some(
-            Step::cmd(
-                NAME,
-                json!({"bus": "profibus_dp", "name": fresh_net_name(&live.lnet_names, rng), "rate": 0}),
-            )
-            .refuse(),
-        ),
+        // The command refuses: a rate of 0 bit/s.
+        1 => Some(Step::cmd(
+            NAME,
+            json!({"bus": "profibus_dp", "name": fresh_net_name(&live.lnet_names, rng), "rate": 0}),
+        )),
         // Refused: a bus system this build does not know.
         2 => Some(
             Step::cmd(
@@ -4270,7 +4110,7 @@ fn bus_logical_net_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             if rng.chance(2) {
                 p["rate"] = json!(1_500_000);
             }
-            Some(Step::cmd(NAME, p).accept().counts(&[(Table::LogicalNets, 1)]))
+            Some(Step::cmd(NAME, p).counts(&[(Table::LogicalNets, 1)]))
         }
     }
 }
@@ -4278,12 +4118,12 @@ fn bus_logical_net_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn bus_physical_net_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     const NAME: &str = "bus.physical_net.create";
     match rng.below(6) {
-        // Refused: a name another physical net has.
+        // The command refuses: a name another physical net has.
         0 => {
             let name = rng
                 .pick(&live.pnet_names.iter().cloned().collect::<Vec<_>>())?
                 .to_owned();
-            Some(Step::cmd(NAME, json!({"name": name, "medium": "copper"})).refuse())
+            Some(Step::cmd(NAME, json!({"name": name, "medium": "copper"})))
         }
         // Refused: a medium this build does not know.
         1 => Some(
@@ -4300,7 +4140,6 @@ fn bus_physical_net_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     NAME,
                     json!({"name": fresh_net_name(&live.pnet_names, rng), "medium": medium}),
                 )
-                .accept()
                 .counts(&[(Table::PhysicalNets, 1)]),
             )
         }
@@ -4310,38 +4149,29 @@ fn bus_physical_net_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn plc_bind_channel(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let ch = rng.pick(&live.channels)?;
     match rng.below(10) {
-        // Refused: a CP of a function outside the module's subtree.
+        // The command refuses: a CP of a function outside the module's subtree.
         0 => {
             let (f, idx) = ch.outside.as_ref()?;
-            Some(
-                Step::cmd(
-                    "plc.bind_channel",
-                    json!({"channel": ch.id, "endpoint": cp_end(f, *idx)}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "plc.bind_channel",
+                json!({"channel": ch.id, "endpoint": cp_end(f, *idx)}),
+            ))
         }
-        // Refused: the function has no such CP.
+        // The command refuses: the function has no such CP.
         1 => {
             let (f, _) = rng.pick(&ch.targets)?;
-            Some(
-                Step::cmd(
-                    "plc.bind_channel",
-                    json!({"channel": ch.id, "endpoint": cp_end(f, 99)}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "plc.bind_channel",
+                json!({"channel": ch.id, "endpoint": cp_end(f, 99)}),
+            ))
         }
-        // Refused: a junction is not a signal CP.
+        // The command refuses: a junction is not a signal CP.
         2 => {
             let j = rng.pick(&live.junctions)?;
-            Some(
-                Step::cmd(
-                    "plc.bind_channel",
-                    json!({"channel": ch.id, "endpoint": {"junction": {"junction": j}}}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "plc.bind_channel",
+                json!({"channel": ch.id, "endpoint": {"junction": {"junction": j}}}),
+            ))
         }
         // Refused: the channel does not exist.
         3 => {
@@ -4358,15 +4188,15 @@ fn plc_bind_channel(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         4 => {
             let channel = ch.id.clone();
             Some(
-                Step::cmd("plc.bind_channel", json!({"channel": ch.id, "endpoint": null}))
-                    .accept()
-                    .check(move |_, after| {
+                Step::cmd("plc.bind_channel", json!({"channel": ch.id, "endpoint": null})).check(
+                    move |_, after| {
                         let c =
                             typed(&channel).and_then(|i| after.table::<ew_schema::Channel>().get(i).cloned());
                         c.is_some_and(|c| c.binding.is_none())
                             .then_some(())
                             .ok_or_else(|| "the channel is still bound".to_owned())
-                    }),
+                    },
+                ),
             )
         }
         _ => {
@@ -4377,7 +4207,6 @@ fn plc_bind_channel(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     "plc.bind_channel",
                     json!({"channel": ch.id, "endpoint": cp_end(&f, idx)}),
                 )
-                .accept()
                 .check(move |_, after| {
                     let want = ew_schema::Endpoint::Cp(typed(&function).ok_or("a function ID")?, idx);
                     let id = typed::<ew_schema::Channel>(&channel).ok_or("a channel ID")?;
@@ -4408,16 +4237,13 @@ fn plc_bind_channel(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 /// profile and an unknown configuration project are refused.
 fn plc_set_profile(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(8) {
-        // Refused: no such shipped profile.
+        // The command refuses: no such shipped profile.
         0 => {
             let cfg = rng.pick(&live.cfgs)?.clone();
-            Some(
-                Step::cmd(
-                    "plc.set_profile",
-                    json!({"config_project": cfg, "profile": "nope@1"}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "plc.set_profile",
+                json!({"config_project": cfg, "profile": "nope@1"}),
+            ))
         }
         // Refused: the configuration project does not exist.
         1 => Some(
@@ -4437,7 +4263,6 @@ fn plc_set_profile(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let id = cfg.clone();
             Some(
                 Step::cmd("plc.set_profile", json!({"config_project": cfg, "profile": text}))
-                    .accept()
                     .counts(&[(Table::PlcConfigProjects, 0)])
                     .check(move |_, after| {
                         let id =
@@ -4471,14 +4296,11 @@ fn plc_set_start(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
             .refuse(),
         ),
-        // Refused: an input address as an output start.
-        1 => Some(
-            Step::cmd(
-                "plc.set_start",
-                json!({"modules": [m], "dir": "output", "spec": "I3"}),
-            )
-            .refuse(),
-        ),
+        // The command refuses: an input address as an output start.
+        1 => Some(Step::cmd(
+            "plc.set_start",
+            json!({"modules": [m], "dir": "output", "spec": "I3"}),
+        )),
         k => {
             let output = k % 2 == 0;
             let byte = rng.below(64);
@@ -4493,7 +4315,6 @@ fn plc_set_start(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let want = spec.to_ascii_lowercase();
             Some(
                 Step::cmd("plc.set_start", json!({"modules": [m], "dir": dir, "spec": spec}))
-                    .accept()
                     .counts(&[(Table::Devices, 0)])
                     .check(move |_, after| {
                         let id = typed::<ew_schema::Device>(&module).ok_or("a device ID")?;
@@ -4546,7 +4367,6 @@ fn plc_set_module_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let module = m.clone();
             Some(
                 Step::cmd("plc.set_module_part", p)
-                    .accept()
                     .counts(&[(Table::Devices, 0)])
                     .check(move |before, after| {
                         let id = typed::<ew_schema::Device>(&module).ok_or("a device ID")?;
@@ -4589,13 +4409,16 @@ fn plc_set_module_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 
 fn project_supply_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(8) {
-        // Refused: a member that is not settable in v0.
+        // The command refuses: a member that is not settable in v0.
         0 => {
             let path = *rng.pick(&["phases", "u_nom", "earthing", "origin", "origin.ik_max", "bogus"])?;
-            Some(Step::cmd("project.supply.set", json!({"path": path, "value": 1})).refuse())
+            Some(Step::cmd("project.supply.set", json!({"path": path, "value": 1})))
         }
-        // Refused: a value the member does not take.
-        1 => Some(Step::cmd("project.supply.set", json!({"path": "origin.source", "value": 5})).refuse()),
+        // The command refuses: a value the member does not take.
+        1 => Some(Step::cmd(
+            "project.supply.set",
+            json!({"path": "origin.source", "value": 5}),
+        )),
         // Refused: an external reference that does not exist.
         2 => Some(
             Step::cmd(
@@ -4619,7 +4442,6 @@ fn project_supply_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     "project.supply.set",
                     json!({"path": "origin.source", "value": value}),
                 )
-                .accept()
                 .check(move |_, after| {
                     let have = after
                         .project()
@@ -4640,13 +4462,19 @@ fn project_supply_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn project_settings_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let member = *rng.pick(&["numbering", "colour_profile", "size_profile", "xref_format"])?;
     match rng.below(8) {
-        // Refused: not a settable member.
+        // The command refuses: not a settable member.
         0 => {
             let m = *rng.pick(&["identifier_set", "frames", "wire_default", "bogus"])?;
-            Some(Step::cmd("project.settings.set", json!({"member": m, "value": {}})).refuse())
+            Some(Step::cmd(
+                "project.settings.set",
+                json!({"member": m, "value": {}}),
+            ))
         }
         // Removing a member lets the derivation profile's default apply.
-        1 | 2 => Some(Step::cmd("project.settings.set", json!({"member": member, "value": null})).accept()),
+        1 | 2 => Some(Step::cmd(
+            "project.settings.set",
+            json!({"member": member, "value": null}),
+        )),
         // Setting a member to the value it has changes nothing.
         _ => {
             let value = live
@@ -4655,13 +4483,13 @@ fn project_settings_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .get(member)
                 .or_else(|| live.settings.get(member))?
                 .clone();
-            Some(Step::cmd("project.settings.set", json!({"member": member, "value": value})).accept())
+            Some(Step::cmd(
+                "project.settings.set",
+                json!({"member": member, "value": value}),
+            ))
         }
     }
 }
-
-/// The check schemes `project.checks.set` takes (`ew_commands::commands::SHIPPED_CHECK_SCHEMES`).
-const CHECK_SCHEMES: [&str; 4] = ["drafting", "full", "migration", "pre-delivery"];
 
 /// The stored `checks` settings member (`None` when absent).
 fn checks_member(q: &ew_derive::Q) -> Option<Value> {
@@ -4670,11 +4498,11 @@ fn checks_member(q: &ew_derive::Q) -> Option<Value> {
 
 fn project_checks_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(6) {
-        // Refused: a scheme that does not ship.
+        // The command refuses: a scheme that does not ship.
         0 => {
             let member = *rng.pick(&["active_scheme", "release_scheme"])?;
             let name = *rng.pick(&["lenient", "strict", "pre_delivery", "Full"])?;
-            Some(Step::cmd("project.checks.set", json!({ member: name })).refuse())
+            Some(Step::cmd("project.checks.set", json!({ member: name })))
         }
         // Refused: an unknown member.
         1 => Some(Step::cmd("project.checks.set", json!({"scheme": "full"})).refuse()),
@@ -4682,26 +4510,27 @@ fn project_checks_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let mut params = serde_json::Map::new();
             for member in ["active_scheme", "release_scheme"] {
                 if rng.chance(2) {
-                    params.insert(member.into(), json!(*rng.pick(&CHECK_SCHEMES)?));
+                    params.insert(
+                        member.into(),
+                        json!(*rng.pick(ew_commands::commands::SHIPPED_CHECK_SCHEMES)?),
+                    );
                 }
             }
             let expect = params.clone();
             Some(
-                Step::cmd("project.checks.set", Value::Object(params))
-                    .accept()
-                    .check(move |_, after| {
-                        let stored = checks_member(after);
-                        for member in ["active_scheme", "release_scheme"] {
-                            let have = stored.as_ref().and_then(|c| c.get(member));
-                            if have != expect.get(member) {
-                                return Err(format!(
-                                    "checks.{member} is {have:?}, not {:?}",
-                                    expect.get(member)
-                                ));
-                            }
+                Step::cmd("project.checks.set", Value::Object(params)).check(move |_, after| {
+                    let stored = checks_member(after);
+                    for member in ["active_scheme", "release_scheme"] {
+                        let have = stored.as_ref().and_then(|c| c.get(member));
+                        if have != expect.get(member) {
+                            return Err(format!(
+                                "checks.{member} is {have:?}, not {:?}",
+                                expect.get(member)
+                            ));
                         }
-                        Ok(())
-                    }),
+                    }
+                    Ok(())
+                }),
             )
         }
     }
@@ -4740,15 +4569,15 @@ fn project_assets_purge(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(4) {
         0 => {
             let hex: String = (0..32).map(|_| format!("{:02x}", rng.below(256))).collect();
-            Some(
-                Step::cmd(
-                    "project.assets.purge",
-                    json!({"assets": [format!("sha256:{hex}")]}),
-                )
-                .refuse(),
-            )
+            Some(Step::cmd(
+                "project.assets.purge",
+                json!({"assets": [format!("sha256:{hex}")]}),
+            ))
         }
-        1 => Some(Step::cmd("project.assets.purge", json!({"assets": [rng.word(8)]})).refuse()),
+        1 => Some(Step::cmd(
+            "project.assets.purge",
+            json!({"assets": [rng.word(8)]}),
+        )),
         _ => Some(Step::cmd("project.assets.purge", json!({})).check(unchanged)),
     }
 }
@@ -4756,7 +4585,7 @@ fn project_assets_purge(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(11) {
         // Refused: no member at all, or a value of the wrong type.
-        0 => Some(Step::cmd("project.company.set", json!({})).refuse()),
+        0 => Some(Step::cmd("project.company.set", json!({}))),
         1 => Some(Step::cmd("project.company.set", json!({"name": 5})).refuse()),
         // FT-337: a logo joins the asset store and the company member names it; empty removes it.
         8 | 9 => {
@@ -4769,30 +4598,26 @@ fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 ew_schema::base64_encode(&bytes)
             };
             Some(
-                Step::cmd("project.company.set", json!({"logo": text}))
-                    .accept()
-                    .check(move |_, after| {
-                        let logo = ew_schema::company_logo(&after.project().extra);
-                        match (remove, logo) {
-                            (true, None) => Ok(()),
-                            (false, Some(r)) if r.size == Some((w, h)) => Ok(()),
-                            (_, other) => Err(format!("the logo is {other:?} (removed: {remove})")),
-                        }
-                    }),
+                Step::cmd("project.company.set", json!({"logo": text})).check(move |_, after| {
+                    let logo = ew_schema::company_logo(&after.project().extra);
+                    match (remove, logo) {
+                        (true, None) => Ok(()),
+                        (false, Some(r)) if r.size == Some((w, h)) => Ok(()),
+                        (_, other) => Err(format!("the logo is {other:?} (removed: {remove})")),
+                    }
+                }),
             )
         }
-        // Refused: a logo that is no image.
-        10 => Some(
-            Step::cmd(
-                "project.company.set",
-                json!({"logo": ew_schema::base64_encode(rng.word(12).as_bytes())}),
-            )
-            .refuse(),
-        ),
-        // Refused: the personal-data flag alone, without a panel-builder party to carry it.
-        2 if !live.has_panel_builder => {
-            Some(Step::cmd("project.company.set", json!({"personal_data": rng.chance(2)})).refuse())
-        }
+        // The command refuses: a logo that is no image.
+        10 => Some(Step::cmd(
+            "project.company.set",
+            json!({"logo": ew_schema::base64_encode(rng.word(12).as_bytes())}),
+        )),
+        // The command refuses: the personal-data flag alone, without a panel-builder party to carry it.
+        2 if !live.has_panel_builder => Some(Step::cmd(
+            "project.company.set",
+            json!({"personal_data": rng.chance(2)}),
+        )),
         _ => {
             let name = if rng.chance(4) {
                 String::new()
@@ -4809,22 +4634,18 @@ fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 params["personal_data"] = json!(rng.chance(2));
             }
             let party_before = live.has_panel_builder;
-            Some(
-                Step::cmd("project.company.set", params)
-                    .accept()
-                    .check(move |_, after| {
-                        let (have_name, have_notice) = company_of(after);
-                        let want_name = (party_before || !name.is_empty()).then(|| name.clone());
-                        if have_name != want_name {
-                            return Err(format!("the panel builder is {have_name:?}, not {want_name:?}"));
-                        }
-                        let want_notice = (!notice.is_empty()).then(|| json!(notice));
-                        if have_notice != want_notice {
-                            return Err(format!("the notice is {have_notice:?}, not {want_notice:?}"));
-                        }
-                        Ok(())
-                    }),
-            )
+            Some(Step::cmd("project.company.set", params).check(move |_, after| {
+                let (have_name, have_notice) = company_of(after);
+                let want_name = (party_before || !name.is_empty()).then(|| name.clone());
+                if have_name != want_name {
+                    return Err(format!("the panel builder is {have_name:?}, not {want_name:?}"));
+                }
+                let want_notice = (!notice.is_empty()).then(|| json!(notice));
+                if have_notice != want_notice {
+                    return Err(format!("the notice is {have_notice:?}, not {want_notice:?}"));
+                }
+                Ok(())
+            }))
         }
     }
 }
@@ -4832,8 +4653,8 @@ fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 /// The page types a frame-defaults entry may name (every type but `report`).
 fn project_drawing_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(8) {
-        // Refused: no member given.
-        0 => Some(Step::cmd("project.drawing.set", json!({})).refuse()),
+        // The command refuses: no member given.
+        0 => Some(Step::cmd("project.drawing.set", json!({}))),
         // Refused: an unknown value, a value of the wrong type, an unknown member.
         1 => Some(Step::cmd("project.drawing.set", json!({"crossings": "loops"})).refuse()),
         // WP-S2.04 part 4a: `marker_mode`, an unknown value refused, a known one or `null` accepted.
@@ -4847,7 +4668,7 @@ fn project_drawing_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 Value::Null,
             ][rng.below(5)]
             .clone();
-            Some(Step::cmd("project.drawing.set", json!({"marker_mode": mode})).accept())
+            Some(Step::cmd("project.drawing.set", json!({"marker_mode": mode})))
         }
         2 => Some(Step::cmd("project.drawing.set", json!({"crossings": rng.below(9)})).refuse()),
         3 => Some(
@@ -4861,73 +4682,66 @@ fn project_drawing_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let value = [json!("plain"), json!("hops"), Value::Null][rng.below(3)].clone();
             let want = value.clone();
             Some(
-                Step::cmd("project.drawing.set", json!({"crossings": value}))
-                    .accept()
-                    .check(move |_, after| {
-                        let drawing = after.project().settings.extra.get("drawing").cloned();
-                        let crossings = drawing.as_ref().and_then(|d| d.get("crossings")).cloned();
-                        match (&want, &crossings, &drawing) {
-                            (Value::Null, None, None) => Ok(()),
-                            (Value::Null, None, Some(Value::Object(m))) if !m.is_empty() => Ok(()),
-                            (w, Some(c), _) if !w.is_null() && w == c => Ok(()),
-                            _ => Err(format!(
-                                "the drawing settings are {drawing:?} after setting `crossings` to {want}"
-                            )),
-                        }
-                    }),
+                Step::cmd("project.drawing.set", json!({"crossings": value})).check(move |_, after| {
+                    let drawing = after.project().settings.extra.get("drawing").cloned();
+                    let crossings = drawing.as_ref().and_then(|d| d.get("crossings")).cloned();
+                    match (&want, &crossings, &drawing) {
+                        (Value::Null, None, None) => Ok(()),
+                        (Value::Null, None, Some(Value::Object(m))) if !m.is_empty() => Ok(()),
+                        (w, Some(c), _) if !w.is_null() && w == c => Ok(()),
+                        _ => Err(format!(
+                            "the drawing settings are {drawing:?} after setting `crossings` to {want}"
+                        )),
+                    }
+                }),
             )
         }
     }
 }
 
-const FRAME_PAGE_TYPES: [&str; 8] = [
-    "title_page",
-    "table_of_contents",
-    "section_divider",
-    "multi_line",
-    "single_line",
-    "fluid",
-    "graphic",
-    "panel_layout",
-];
+/// The page types of `project.frames.set`'s entries, read from its schema (the command refuses `report`: report
+/// pages are generated).
+fn frame_page_types() -> &'static [&'static str] {
+    static LIST: OnceLock<Vec<&'static str>> = OnceLock::new();
+    LIST.get_or_init(|| registry_strings("project.frames.set", &["per_page_type", "page_type"]))
+}
 
 fn project_frames_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("project.frames.set", p);
     match rng.below(10) {
         // Refused: a form that does not exist.
         0 => Some(cmd(json!({"default": rng.uuid()})).refuse()),
-        // Refused: an entry for report pages, or the same page type twice.
+        // The command refuses: an entry for report pages, or the same page type twice.
         1 => {
             let form = rng.pick(&live.frame_forms)?.clone();
-            Some(cmd(json!({"per_page_type": [{"page_type": "report", "form": form}]})).refuse())
+            Some(cmd(
+                json!({"per_page_type": [{"page_type": "report", "form": form}]}),
+            ))
         }
         2 => {
             let form = rng.pick(&live.frame_forms)?.clone();
-            let t = *rng.pick(&FRAME_PAGE_TYPES)?;
-            Some(
-                cmd(json!({"per_page_type": [
-                    {"page_type": t, "form": form},
-                    {"page_type": t, "form": form},
-                ]}))
-                .refuse(),
-            )
+            let t = *rng.pick(frame_page_types())?;
+            Some(cmd(json!({"per_page_type": [
+                {"page_type": t, "form": form},
+                {"page_type": t, "form": form},
+            ]})))
         }
-        // Refused: a form that is no frame (a title block).
+        // The command refuses: a form that is no frame (a title block).
         3 => {
             let form = rng.pick(&live.other_forms)?.clone();
-            Some(cmd(json!({"default": form})).refuse())
+            Some(cmd(json!({"default": form})))
         }
         // Removing the frame defaults lets the built-in frames apply.
-        4 => Some(cmd(json!({})).accept().check(
-            |_, after| match after.project().settings.extra.get("frames") {
+        4 => Some(
+            cmd(json!({})).check(|_, after| match after.project().settings.extra.get("frames") {
                 None => Ok(()),
                 Some(v) => Err(format!("the frame defaults are still {v}")),
-            },
-        )),
+            }),
+        ),
         _ => {
             let default = rng.pick(&live.frame_forms)?.clone();
             let mut entries = Vec::new();
-            let mut types: Vec<&str> = FRAME_PAGE_TYPES.to_vec();
+            let mut types: Vec<&str> = frame_page_types().to_vec();
             for _ in 0..rng.below(3) {
                 let i = rng.below(types.len());
                 let t = types.remove(i);
@@ -4936,21 +4750,17 @@ fn project_frames_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let expect_default = default.clone();
             let expect_len = entries.len();
             Some(
-                cmd(json!({"default": default, "per_page_type": entries}))
-                    .accept()
-                    .check(move |_, after| {
-                        let frames = after.get::<ew_derive::FrameSettings>(());
-                        let default = frames.default.map(id_json);
-                        if default.as_ref() != Some(&expect_default)
-                            || frames.per_page_type.len() != expect_len
-                        {
-                            return Err(format!(
-                                "the frame defaults read back as {default:?} with {} entries",
-                                frames.per_page_type.len()
-                            ));
-                        }
-                        Ok(())
-                    }),
+                cmd(json!({"default": default, "per_page_type": entries})).check(move |_, after| {
+                    let frames = after.get::<ew_derive::FrameSettings>(());
+                    let default = frames.default.map(id_json);
+                    if default.as_ref() != Some(&expect_default) || frames.per_page_type.len() != expect_len {
+                        return Err(format!(
+                            "the frame defaults read back as {default:?} with {} entries",
+                            frames.per_page_type.len()
+                        ));
+                    }
+                    Ok(())
+                }),
             )
         }
     }
@@ -4960,8 +4770,8 @@ fn project_languages_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("project.languages.set", p);
     match rng.below(8) {
         // Refused: translations without a source, the source as a translation, an unknown format.
-        0 => Some(cmd(json!({"translations": ["de"]})).refuse()),
-        1 => Some(cmd(json!({"source": "en", "translations": ["en"]})).refuse()),
+        0 => Some(cmd(json!({"translations": ["de"]}))),
+        1 => Some(cmd(json!({"source": "en", "translations": ["en"]}))),
         2 => Some(cmd(json!({"date": "mm/dd/yyyy"})).refuse()),
         _ => {
             let mut params = serde_json::Map::new();
@@ -4978,7 +4788,7 @@ fn project_languages_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 params.insert("decimal_separator".into(), json!(*rng.pick(&["point", "comma"])?));
             }
             let expect = params.clone();
-            Some(cmd(Value::Object(params)).accept().check(move |_, after| {
+            Some(cmd(Value::Object(params)).check(move |_, after| {
                 let project = after.project();
                 let source = project.languages.as_ref().map(|l| json!(l.source));
                 let date = project.settings.formatting.date.as_ref().map(|d| json!(d));
@@ -5052,7 +4862,6 @@ pub fn lib_ref_symbol_step(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let id = copy["id"].clone();
     Some(
         Step::cmd("library.embed", json!({"copies": [copy]}))
-            .accept()
             .counts(&[(Table::Symbols, 1), (Table::Fndefs, 0)])
             .check(move |_, after| {
                 let id = typed(&id).ok_or("a copy ID")?;
@@ -5098,7 +4907,6 @@ pub fn lib_ref_fndef_step(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let id = copy["id"].clone();
     Some(
         Step::cmd("library.embed", json!({"copies": [copy]}))
-            .accept()
             .counts(&[(Table::Fndefs, 1)])
             .check(move |_, after| {
                 let id = typed(&id).ok_or("a copy ID")?;
@@ -5118,36 +4926,36 @@ fn library_embed(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let consistent =
         |rng: &mut SplitMix64| -> Option<Value> { relineaged(template, &rng.uuid(), &rng.uuid()) };
     match rng.below(12) {
-        // Refused: the hash is not the hash of the item's members (EW-CORE-014).
+        // The command refuses: the hash is not the hash of the item's members (EW-CORE-014).
         0 => {
             let mut c = consistent(rng)?;
             c["sha256"] = json!(format!("sha256:{}", "00".repeat(32)));
-            Some(Step::cmd("library.embed", json!({"copies": [c]})).refuse())
+            Some(Step::cmd("library.embed", json!({"copies": [c]})))
         }
-        // Refused: the copy ID is not the copy identity.
+        // The command refuses: the copy ID is not the copy identity.
         1 => {
             let mut c = consistent(rng)?;
             c["id"] = json!(rng.uuid());
-            Some(Step::cmd("library.embed", json!({"copies": [c]})).refuse())
+            Some(Step::cmd("library.embed", json!({"copies": [c]})))
         }
-        // Refused: an item of the project itself is created, not embedded.
+        // The command refuses: an item of the project itself is created, not embedded.
         2 => {
             let mut c = consistent(rng)?;
             c["library_id"] = live.fixture.project_id.clone();
-            Some(Step::cmd("library.embed", json!({"copies": [c]})).refuse())
+            Some(Step::cmd("library.embed", json!({"copies": [c]})))
         }
-        // Refused: an item the project has embedded already.
+        // The command refuses: an item the project has embedded already.
         3 => {
             let mut c = template.clone();
             c["$k"] = json!("form");
-            Some(Step::cmd("library.embed", json!({"copies": [c]})).refuse())
+            Some(Step::cmd("library.embed", json!({"copies": [c]})))
         }
-        // Refused: the same item twice, and no copies at all.
+        // The command refuses: the same item twice, and no copies at all.
         4 => {
             let c = consistent(rng)?;
-            Some(Step::cmd("library.embed", json!({"copies": [c.clone(), c]})).refuse())
+            Some(Step::cmd("library.embed", json!({"copies": [c.clone(), c]})))
         }
-        5 => Some(Step::cmd("library.embed", json!({"copies": []})).refuse()),
+        5 => Some(Step::cmd("library.embed", json!({"copies": []}))),
         // The FT-316 shape: a symbol naming a function definition that is not embedded, then (on a later step)
         // that function definition; the undo-all oracle undoes both.
         6 => lib_ref_symbol_step(live, rng),
@@ -5157,7 +4965,6 @@ fn library_embed(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let id = c["id"].clone();
             Some(
                 Step::cmd("library.embed", json!({"copies": [c]}))
-                    .accept()
                     .counts(&[(Table::Forms, 1)])
                     .check(move |_, after| {
                         let id = typed(&id).ok_or("a copy ID")?;
@@ -5190,17 +4997,19 @@ fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             .ok_or_else(|| "the device does not use the assigned part".to_owned())
     };
     match rng.below(12) {
-        0 => Some(cmd(json!({"devices": [], "part": held})).refuse()),
-        1 => Some(cmd(json!({"devices": [device, device], "part": held})).refuse()),
+        0 => Some(cmd(json!({"devices": [], "part": held}))),
+        1 => Some(cmd(json!({"devices": [device, device], "part": held}))),
         2 => Some(cmd(json!({"devices": [rng.uuid()], "part": held})).refuse()),
         3 => Some(cmd(json!({"devices": [device], "part": rng.uuid()})).refuse()),
-        4 => Some(cmd(json!({"devices": [device], "part": held, "mode": "replace"})).refuse()),
-        5 => Some(cmd(json!({"devices": [device], "part": held, "from": held})).refuse()),
-        6 => Some(cmd(json!({"devices": [device], "part": held, "qty": "0"})).refuse()),
+        4 => Some(cmd(json!({"devices": [device], "part": held, "mode": "replace"}))),
+        5 => Some(cmd(json!({"devices": [device], "part": held, "from": held}))),
+        6 => Some(cmd(json!({"devices": [device], "part": held, "qty": "0"}))),
         7 => {
             let c = relineaged(template, &rng.uuid(), &rng.uuid())?;
             let id = c["id"].clone();
-            Some(cmd(json!({"devices": [device], "part": id, "copies": [c.clone(), c]})).refuse())
+            Some(cmd(
+                json!({"devices": [device], "part": id, "copies": [c.clone(), c]}),
+            ))
         }
         // Either: the device may or may not use the part it replaces.
         8 => {
@@ -5217,7 +5026,6 @@ fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let d = device.clone();
             Some(
                 cmd(json!({"devices": [device], "part": id, "copies": [c], "mode": "replace_all", "qty": "2"}))
-                    .accept()
                     .counts(&[(Table::Parts, 1)])
                     .check(move |_, after| uses(after, &d, &id)),
             )
@@ -5226,7 +5034,6 @@ fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let (part, d) = (held.clone(), device.clone());
             Some(
                 cmd(json!({"devices": [device], "part": held}))
-                    .accept()
                     .counts(&[(Table::Parts, 0)])
                     .check(move |_, after| uses(after, &d, &part)),
             )
@@ -5257,14 +5064,19 @@ fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("part.edit_copy", p);
     match rng.below(10) {
         0 => Some(cmd(json!({"copy": rng.uuid(), "part": item})).refuse()),
-        1 => Some(cmd(json!({"copy": held, "part": with("description", json!("x")), "fork": rng.uuid()})).refuse()),
-        2 => Some(cmd(json!({"copy": held, "part": with("cp_pattern", json!([{"idx": 99, "designation": "99"}]))})).refuse()),
-        3 => Some(cmd(json!({"copy": held, "part": with("part_number", json!(" "))})).refuse()),
-        4 => Some(cmd(json!({"copy": held, "part": with("unit", json!("pcs"))})).refuse()),
-        5 => Some(
-            cmd(json!({"copy": held, "part": with("tech_data", json!([{"key": "k", "value": "A"}, {"key": "k", "value": "B"}]))}))
-                .refuse(),
-        ),
+        1 => Some(cmd(
+            json!({"copy": held, "part": with("description", json!("x")), "fork": rng.uuid()}),
+        )),
+        2 => Some(cmd(
+            json!({"copy": held, "part": with("cp_pattern", json!([{"idx": 99, "designation": "99"}]))}),
+        )),
+        3 => Some(cmd(
+            json!({"copy": held, "part": with("part_number", json!(" "))}),
+        )),
+        4 => Some(cmd(json!({"copy": held, "part": with("unit", json!("pcs"))}))),
+        5 => Some(cmd(
+            json!({"copy": held, "part": with("tech_data", json!([{"key": "k", "value": "A"}, {"key": "k", "value": "B"}]))}),
+        )),
         // Either: an earlier step may have edited the copy, so its own template is no longer the held item.
         6 => Some(cmd(json!({"copy": held, "part": item}))),
         _ => {
@@ -5272,7 +5084,6 @@ fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let (id, text) = (held.clone(), description.clone());
             Some(
                 cmd(json!({"copy": held, "part": with("description", json!(description))}))
-                    .accept()
                     .counts(&[(Table::Parts, 0)])
                     .check(move |_, after| {
                         let id = typed::<ew_schema::Part>(&id).ok_or("a copy ID")?;
@@ -5327,16 +5138,16 @@ fn macro_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let params = |copies: Value| json!({"copies": copies, "macro": id, "page": page.id, "at": at, "orient": orient, "instance": instance});
     let cmd = |p: Value| Step::cmd("macro.insert", p);
     match rng.below(10) {
-        0 => Some(cmd(params(json!([]))).refuse()),
+        0 => Some(cmd(params(json!([])))),
         1 => {
             let mut p = params(json!([good]));
             p.as_object_mut()?.remove("at");
-            Some(cmd(p).refuse())
+            Some(cmd(p))
         }
         2 => {
             let mut p = params(json!([good]));
             p["value_set"] = json!("none");
-            Some(cmd(p).refuse())
+            Some(cmd(p))
         }
         3 => {
             let other = if page.grid == (4_000_000, 1) {
@@ -5346,17 +5157,17 @@ fn macro_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             };
             let mut p = params(json!([doc(other)?]));
             p["macro"] = p["copies"][0]["id"].clone();
-            Some(cmd(p).refuse())
+            Some(cmd(p))
         }
         4 => {
             let mut p = params(json!([good]));
             p["at"] = json!([at[0].as_i64()? + 1, at[1]]);
-            Some(cmd(p).refuse())
+            Some(cmd(p))
         }
         5 => {
             let mut c = good.clone();
             c["sha256"] = json!(format!("sha256:{}", "00".repeat(32)));
-            Some(cmd(params(json!([c]))).refuse())
+            Some(cmd(params(json!([c]))))
         }
         _ => {
             let local: ew_ids::Uuid = d.parse().ok()?;
@@ -5364,7 +5175,6 @@ fn macro_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let new = ew_ids::Uuid::new_v5(&inst, local.hyphenated().to_string().as_bytes());
             Some(
                 cmd(params(json!([good])))
-                    .accept()
                     .counts(&[(Table::Devices, 1), (Table::Functions, 1), (Table::Reps, 1)])
                     .check(move |_, after| {
                         after
@@ -5395,18 +5205,18 @@ fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         relineaged(&t, &library, &item)
     };
     match rng.below(10) {
-        0 => Some(cmd(json!({"copies": []})).refuse()),
+        0 => Some(cmd(json!({"copies": []}))),
         1 => {
             let c = relineaged(template, &rng.uuid(), &rng.uuid())?;
-            Some(cmd(json!({"copies": [c]})).refuse())
+            Some(cmd(json!({"copies": [c]})))
         }
         2 => {
             let c = next(rng, "one".to_owned())?;
-            Some(cmd(json!({"copies": [c]})).refuse())
+            Some(cmd(json!({"copies": [c]})))
         }
         3 => {
             let c = next(rng, "9.0.0".to_owned())?;
-            Some(cmd(json!({"copies": [c.clone(), c]})).refuse())
+            Some(cmd(json!({"copies": [c.clone(), c]})))
         }
         4 => {
             let c = next(rng, "9.0.0".to_owned())?;
@@ -5425,7 +5235,9 @@ fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             } else {
                 json!([[a, a], [a, b]])
             };
-            Some(cmd(json!({"copies": [c], "cp_maps": [{"copy": held, "map": map}]})).refuse())
+            Some(cmd(
+                json!({"copies": [c], "cp_maps": [{"copy": held, "map": map}]}),
+            ))
         }
         // FT-640: the new version names a manufacturer the project does not hold and the command does not embed.
         6 => {
@@ -5433,7 +5245,7 @@ fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             t["version"] = json!("9.0.0");
             t["manufacturer"]["item"] = json!(rng.uuid());
             let c = relineaged(&t, &library, &item)?;
-            Some(cmd(json!({"copies": [c]})).refuse())
+            Some(cmd(json!({"copies": [c]})))
         }
         _ => {
             let minor = rng.below(50);
@@ -5468,48 +5280,45 @@ fn parts_import(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         relineaged(&t, &project, &rng.uuid())
     };
     match rng.below(10) {
-        // Refused: a copy of another library (that is library.embed's).
+        // The command refuses: a copy of another library (that is library.embed's).
         0 => {
             let mut t = template.clone();
             t["meta"]["key"] = json!(format!("fuzz.{}", &rng.uuid().replace('-', "")[..12]));
             let c = relineaged(&t, &rng.uuid(), &rng.uuid())?;
-            Some(Step::cmd("parts.import", json!({"copies": [c]})).refuse())
+            Some(Step::cmd("parts.import", json!({"copies": [c]})))
         }
-        // Refused: the copy ID is not the copy identity.
+        // The command refuses: the copy ID is not the copy identity.
         1 => {
             let mut c = fresh(rng)?;
             c["id"] = json!(rng.uuid());
-            Some(Step::cmd("parts.import", json!({"copies": [c]})).refuse())
+            Some(Step::cmd("parts.import", json!({"copies": [c]})))
         }
-        // Refused: the hash is not the hash of the item's members.
+        // The command refuses: the hash is not the hash of the item's members.
         2 => {
             let mut c = fresh(rng)?;
             c["sha256"] = json!(format!("sha256:{}", "00".repeat(32)));
-            Some(Step::cmd("parts.import", json!({"copies": [c]})).refuse())
+            Some(Step::cmd("parts.import", json!({"copies": [c]})))
         }
-        // Refused: the same copy twice, and no copies at all.
+        // The command refuses: the same copy twice, and no copies at all.
         3 => {
             let c = fresh(rng)?;
-            Some(Step::cmd("parts.import", json!({"copies": [c.clone(), c]})).refuse())
+            Some(Step::cmd("parts.import", json!({"copies": [c.clone(), c]})))
         }
-        4 => Some(Step::cmd("parts.import", json!({"copies": []})).refuse()),
-        // Refused: not a part document.
+        4 => Some(Step::cmd("parts.import", json!({"copies": []}))),
+        // The command refuses: not a part document.
         5 => {
             let (_, form) = rng.pick(&live.fixture.form_json)?;
-            Some(Step::cmd("parts.import", json!({"copies": [form.clone()]})).refuse())
+            Some(Step::cmd("parts.import", json!({"copies": [form.clone()]})))
         }
         // Accepted, nothing inserted: the key exists in the project already.
         6 => Some(
-            Step::cmd("parts.import", json!({"copies": [template.clone()]}))
-                .accept()
-                .counts(&[(Table::Parts, 0)]),
+            Step::cmd("parts.import", json!({"copies": [template.clone()]})).counts(&[(Table::Parts, 0)]),
         ),
         _ => {
             let c = fresh(rng)?;
             let id = c["id"].clone();
             Some(
                 Step::cmd("parts.import", json!({"copies": [c]}))
-                    .accept()
                     .counts(&[(Table::Parts, 1)])
                     .check(move |_, after| {
                         let id = typed(&id).ok_or("a copy ID")?;
@@ -5609,35 +5418,31 @@ fn revision_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         12 => {
             let state = *rng.pick(&["open", "released"])?;
             let bad = *rng.pick(&["2", "V2", "v3.0", "V01.0", "Rev 4"])?;
-            Some(create(json!({"label": bad, "state": state})).refuse())
+            Some(create(json!({"label": bad, "state": state})))
         }
         // Prevented (EW-REL-004): a historic released revision above the open one.
-        13 if open && !live.any_release => {
-            Some(create(json!({"label": label, "state": "released"})).refuse())
-        }
-        // Refused (D4, FT-402): a checker on an open revision.
-        14 if !open => Some(create(json!({"label": label, "checker": "checker"})).refuse()),
-        // Refused: a label another revision has (EW-INV-017).
+        13 if open && !live.any_release => Some(create(json!({"label": label, "state": "released"}))),
+        // The command refuses (D4, FT-402): a checker on an open revision.
+        14 if !open => Some(create(json!({"label": label, "checker": "checker"}))),
+        // The command refuses: a label another revision has (EW-INV-017).
         0 => {
             let r = rng.pick(&live.revisions)?;
-            Some(create(json!({"label": r.label, "state": "released"})).refuse())
+            Some(create(json!({"label": r.label, "state": "released"})))
         }
-        // Refused: the checker is the author's party (EW-INV-018).
-        1 => Some(
-            create(json!({"label": label, "state": "released", "author": "engineer", "checker": "engineer"}))
-                .refuse(),
-        ),
-        // Refused: a second open revision (EW-INV-016).
-        2 if open => Some(create(json!({"label": label})).refuse()),
-        // Refused: a historic released revision once a release record exists.
-        3 if live.any_release => Some(create(json!({"label": label, "state": "released"})).refuse()),
-        // Refused: two notes on one page (EW-INV-019).
+        // The command refuses: the checker is the author's party (EW-INV-018).
+        1 => Some(create(
+            json!({"label": label, "state": "released", "author": "engineer", "checker": "engineer"}),
+        )),
+        // The command refuses: a second open revision (EW-INV-016).
+        2 if open => Some(create(json!({"label": label}))),
+        // The command refuses: a historic released revision once a release record exists.
+        3 if live.any_release => Some(create(json!({"label": label, "state": "released"}))),
+        // The command refuses: two notes on one page (EW-INV-019).
         4 => {
             let page = rng.pick(&live.pages)?;
-            Some(
-                create(json!({"label": label, "state": "released", "page_notes": [{"page": page}, {"page": page}]}))
-                    .refuse(),
-            )
+            Some(create(
+                json!({"label": label, "state": "released", "page_notes": [{"page": page}, {"page": page}]}),
+            ))
         }
         // Refused: a note on a page that does not exist.
         5 => Some(
@@ -5699,7 +5504,7 @@ pub fn revision_fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         let closed: Vec<_> = live.revisions.iter().filter(|r| r.state != "open").collect();
         let r = *rng.pick(&closed)?;
         let path = *rng.pick(&["label", "date", "description", "page_notes", "author"])?;
-        return Some(one(&r.id, path, json!("X")).refuse());
+        return Some(one(&r.id, path, json!("X")));
     }
     let r = live.revisions.iter().find(|r| r.state == "open")?;
     let id = r.id.clone();
@@ -5707,45 +5512,45 @@ pub fn revision_fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         typed::<ew_schema::Revision>(&id).and_then(|i| q.table::<ew_schema::Revision>().get(i).cloned())
     };
     match rng.below(14) {
-        // Refused: the state is not settable.
-        0 => Some(one(&r.id, "state", json!("released")).refuse()),
-        // Refused: two notes on one page (EW-INV-019).
+        // The command refuses: the state is not settable.
+        0 => Some(one(&r.id, "state", json!("released"))),
+        // The command refuses: two notes on one page (EW-INV-019).
         1 => {
             let p = rng.pick(&live.pages)?;
-            Some(one(&r.id, "page_notes", json!([{"page": p}, {"page": p}])).refuse())
+            Some(one(&r.id, "page_notes", json!([{"page": p}, {"page": p}])))
         }
-        // Refused: a note takes no member besides `page` and `description`.
+        // The command refuses: a note takes no member besides `page` and `description`.
         2 => {
             let p = rng.pick(&live.pages)?;
-            Some(one(&r.id, "page_notes", json!([{"page": p, "bogus": 1}])).refuse())
+            Some(one(&r.id, "page_notes", json!([{"page": p, "bogus": 1}])))
         }
         // Refused: a note on a page that does not exist.
         3 => Some(one(&r.id, "page_notes", json!([{"page": rng.uuid()}])).refuse()),
-        // Refused: a label another revision has (EW-INV-017).
+        // The command refuses: a label another revision has (EW-INV-017).
         4 => {
             let other = live
                 .revisions
                 .iter()
                 .find(|o| o.id != r.id && o.state != "withdrawn")?;
-            Some(one(&r.id, "label", json!(other.label)).refuse())
+            Some(one(&r.id, "label", json!(other.label)))
         }
-        // Refused: the author's party as the checker (EW-INV-018).
+        // The command refuses: the author's party as the checker (EW-INV-018).
         5 => {
             let author = r.author.clone()?;
-            Some(one(&r.id, "checker", json!(author)).refuse())
+            Some(one(&r.id, "checker", json!(author)))
         }
         6 => {
             let date = format!("20{}-0{}-2{}", 20 + rng.below(6), 1 + rng.below(9), rng.below(8));
             let want = json!(date);
-            Some(one(&r.id, "date", want.clone()).accept().check(move |_, after| {
+            Some(one(&r.id, "date", want.clone()).check(move |_, after| {
                 let have = record(after).and_then(|r| serde_json::to_value(r.date).ok());
                 (have == Some(want.clone()))
                     .then_some(())
                     .ok_or_else(|| format!("date is {have:?}, expected {want}"))
             }))
         }
-        7 => Some(one(&r.id, "description", json!(rng.word(12))).accept()),
-        8 => Some(one(&r.id, "date", Value::Null).accept().check(move |_, after| {
+        7 => Some(one(&r.id, "description", json!(rng.word(12)))),
+        8 => Some(one(&r.id, "date", Value::Null).check(move |_, after| {
             record(after)
                 .is_some_and(|r| r.date.is_none())
                 .then_some(())
@@ -5762,7 +5567,7 @@ pub fn revision_fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     .map(|g| json!({"page": g, "description": rng.word(6)}))
                     .collect(),
             );
-            Some(one(&r.id, "page_notes", notes).accept().check(move |_, after| {
+            Some(one(&r.id, "page_notes", notes).check(move |_, after| {
                 let have: Vec<Value> = record(after)
                     .map(|r| r.page_notes.iter().map(|n| id_json(n.page)).collect())
                     .unwrap_or_default();
@@ -5771,15 +5576,15 @@ pub fn revision_fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     .ok_or_else(|| format!("the notes are on {have:?}, expected {pages:?}"))
             }))
         }
-        // Refused (D4, FT-402): the roles are set by `revision.set_author` and by approval, never by fields.set.
-        11 => Some(one(&r.id, "author", json!(role(rng))).refuse()),
-        12 => Some(one(&r.id, "checker", json!(role(rng))).refuse()),
+        // The command refuses (D4, FT-402): the roles are set by `revision.set_author` and by approval, never by fields.set.
+        11 => Some(one(&r.id, "author", json!(role(rng)))),
+        12 => Some(one(&r.id, "checker", json!(role(rng)))),
         // A new label above every other (the order of labels is the release gate's rule); the title block
         // prints it.
         _ => {
             let label = fresh_label(live, rng);
             let want = label.clone();
-            Some(one(&r.id, "label", json!(label)).accept().check(move |_, after| {
+            Some(one(&r.id, "label", json!(label)).check(move |_, after| {
                 let have = record(after).map(|r| r.label.as_str().to_owned());
                 if have.as_deref() != Some(want.as_str()) {
                     return Err(format!("label is {have:?}, expected {want}"));
@@ -5800,18 +5605,18 @@ fn revision_set_author(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         0 => {
             let closed: Vec<_> = live.revisions.iter().filter(|r| r.state != "open").collect();
             let r = *rng.pick(&closed)?;
-            Some(step(&r.id, role(rng)).refuse())
+            Some(step(&r.id, role(rng)))
         }
         1 => Some(step(&json!(rng.uuid()), role(rng)).refuse()),
         _ => {
             let r = live.revisions.iter().find(|r| r.state == "open")?;
             let new = role(rng);
             if r.checker.as_deref() == Some(new) {
-                return Some(step(&r.id, new).refuse());
+                return Some(step(&r.id, new));
             }
             let id = r.id.clone();
             let want = json!(new);
-            Some(step(&r.id, new).accept().check(move |_, after| {
+            Some(step(&r.id, new).check(move |_, after| {
                 let have = typed::<ew_schema::Revision>(&id)
                     .and_then(|i| after.table::<ew_schema::Revision>().get(i).cloned())
                     .and_then(|r| serde_json::to_value(&r.author).ok());
@@ -5874,23 +5679,22 @@ fn revision_withdraw(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         0 => {
             let others: Vec<_> = live.revisions.iter().filter(|r| r.state != "released").collect();
             let r = *rng.pick(&others)?;
-            Some(step(&r.id, "not a released revision").refuse())
+            Some(step(&r.id, "not a released revision"))
         }
         1 => {
             let r = rng.pick(&live.revisions)?;
-            Some(step(&r.id, "   ").refuse())
+            Some(step(&r.id, "   "))
         }
         _ => {
             let released: Vec<_> = live.revisions.iter().filter(|r| r.state == "released").collect();
             let r = *rng.pick(&released)?;
             if withdrawn(&r.id) {
-                return Some(step(&r.id, "withdrawn again").refuse());
+                return Some(step(&r.id, "withdrawn again"));
             }
             let id = r.id.clone();
             let before = typed::<ew_schema::Revision>(&id);
             Some(
                 step(&r.id, &format!("withdrawn: {}", rng.word(8)))
-                    .accept()
                     .counts(&[(Table::Revisions, 1)])
                     .check(move |q_before, after| {
                         let get = |q: &ew_derive::Q| {
@@ -5965,14 +5769,13 @@ fn assign_enclosure_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             "part.assign",
             json!({"devices": [device], "part": id, "copies": [c]}),
         )
-        .accept()
         .counts(&[(Table::Parts, 1)]),
     )
 }
 
 fn setup_space(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let location = rng.pick(&live.layout.free_locations)?;
-    Some(Step::cmd("layout.space.create", json!({"location": location})).accept())
+    Some(Step::cmd("layout.space.create", json!({"location": location})))
 }
 
 fn setup_enclosure_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -5985,20 +5788,17 @@ fn setup_enclosure_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 fn setup_enclosure(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let space = rng.pick(&live.layout.empty_spaces)?;
     let device = rng.pick(&live.layout.enclosure_devices)?;
-    Some(
-        Step::cmd(
-            "layout.enclosure.create",
-            json!({"space": space, "device": device}),
-        )
-        .accept(),
-    )
+    Some(Step::cmd(
+        "layout.enclosure.create",
+        json!({"space": space, "device": device}),
+    ))
 }
 
 fn setup_rail(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let surface = rng.pick(&live.layout.surfaces)?;
     let path = [[10 * LAY_MM, 500 * LAY_MM], [610 * LAY_MM, 500 * LAY_MM]];
     let p = json!({"surface": surface, "kind": "rail", "path": path, "params": {"rail": {"profile": "ts35x7_5"}}});
-    Some(Step::cmd("layout.carrier.add", p).accept())
+    Some(Step::cmd("layout.carrier.add", p))
 }
 
 /// A plain device without a placement put on the plate itself (a surface checks no profile).
@@ -6017,13 +5817,10 @@ fn setup_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         .collect();
     let device = *rng.pick(&free)?;
     let pose = lay_pose([100 * LAY_MM, 100 * LAY_MM, 0], QUARTERS[0]);
-    Some(
-        Step::cmd(
-            "layout.place",
-            json!({"device": device, "carrier": {"surface": surface}, "pose": pose}),
-        )
-        .accept(),
-    )
+    Some(Step::cmd(
+        "layout.place",
+        json!({"device": device, "carrier": {"surface": surface}, "pose": pose}),
+    ))
 }
 
 /// `layout.space.create`: a location without a space, with or without a name (accepted); refused: a node that does not
@@ -6039,19 +5836,19 @@ fn layout_space_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .iter()
                 .filter(|n| !l.free_locations.contains(n))
                 .collect();
-            Some(cmd(json!({"location": *rng.pick(&taken)?})).refuse())
+            Some(cmd(json!({"location": *rng.pick(&taken)?})))
         }
         2 => {
             let other: Vec<&super::live::NodeInfo> =
                 live.nodes.iter().filter(|n| n.aspect != "location").collect();
-            Some(cmd(json!({"location": rng.pick(&other)?.id})).refuse())
+            Some(cmd(json!({"location": rng.pick(&other)?.id})))
         }
         _ => {
             let mut p = json!({"location": rng.pick(&l.free_locations)?});
             if rng.chance(2) {
                 p["name"] = json!(rng.word(8));
             }
-            Some(cmd(p).accept().counts(&[(Table::LayoutSpaces, 1)]))
+            Some(cmd(p).counts(&[(Table::LayoutSpaces, 1)]))
         }
     }
 }
@@ -6066,11 +5863,9 @@ fn layout_space_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
     let space = rng.pick(&l.spaces)?;
     Some(if l.occupied.contains(&id_text(space)) {
-        cmd(json!({"space": space})).refuse()
-    } else {
         cmd(json!({"space": space}))
-            .accept()
-            .counts(&[(Table::LayoutSpaces, -1), (Table::Placements, 0)])
+    } else {
+        cmd(json!({"space": space})).counts(&[(Table::LayoutSpaces, -1), (Table::Placements, 0)])
     })
 }
 
@@ -6092,17 +5887,16 @@ fn layout_enclosure_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 return None;
             }
             let space = rng.pick(&l.empty_spaces)?;
-            Some(cmd(json!({"space": space, "device": plain})).refuse())
+            Some(cmd(json!({"space": space, "device": plain})))
         }
         2 => {
             let full: Vec<&Value> = l.spaces.iter().filter(|s| !l.empty_spaces.contains(s)).collect();
-            Some(cmd(json!({"space": *rng.pick(&full)?, "device": device})).refuse())
+            Some(cmd(json!({"space": *rng.pick(&full)?, "device": device})))
         }
         _ => {
             let space = rng.pick(&l.empty_spaces)?;
             Some(
                 cmd(json!({"space": space, "device": device, "pe_bond": rng.chance(2)}))
-                    .accept()
                     .counts(&[(Table::Enclosures, 1), (Table::Surfaces, 1)]),
             )
         }
@@ -6119,11 +5913,9 @@ fn layout_enclosure_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
     let enclosure = rng.pick(&l.enclosures)?;
     Some(if l.occupied.contains(&id_text(enclosure)) {
-        cmd(json!({"enclosure": enclosure})).refuse()
-    } else {
         cmd(json!({"enclosure": enclosure}))
-            .accept()
-            .counts(&[(Table::Enclosures, -1), (Table::Surfaces, -1)])
+    } else {
+        cmd(json!({"enclosure": enclosure})).counts(&[(Table::Enclosures, -1), (Table::Surfaces, -1)])
     })
 }
 
@@ -6156,15 +5948,15 @@ fn layout_carrier_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         1 => {
             let diagonal = [end[0] + 10 * LAY_MM, end[1] + 10 * LAY_MM];
             let p = json!({"surface": surface, "kind": "rail", "path": [start, diagonal], "params": rail});
-            Some(cmd(p).refuse())
+            Some(cmd(p))
         }
         2 => {
             let p = json!({"surface": surface, "kind": "duct", "path": [start, end], "params": rail});
-            Some(cmd(p).refuse())
+            Some(cmd(p))
         }
         3 => {
             let p = json!({"surface": surface, "kind": "duct", "path": [start, start, end], "params": duct});
-            Some(cmd(p).refuse())
+            Some(cmd(p))
         }
         4 | 5 => {
             let turn = 10 * LAY_MM * rng.range(1, 30);
@@ -6174,12 +5966,12 @@ fn layout_carrier_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 [end[0] + turn, end[1]]
             };
             let p = json!({"surface": surface, "kind": "duct", "path": [start, end, corner], "params": duct});
-            Some(cmd(p).accept().counts(&[(Table::Carriers, 1)]))
+            Some(cmd(p).counts(&[(Table::Carriers, 1)]))
         }
         _ => {
             let p = json!({"surface": surface, "kind": "rail", "path": [start, end], "params": rail,
                 "pe_bond": rng.chance(2)});
-            Some(cmd(p).accept().counts(&[(Table::Carriers, 1)]))
+            Some(cmd(p).counts(&[(Table::Carriers, 1)]))
         }
     }
 }
@@ -6191,28 +5983,26 @@ fn layout_carrier_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("layout.carrier.edit", p);
     match rng.below(7) {
         0 => Some(cmd(json!({"carrier": rng.uuid(), "pe_bond": true})).refuse()),
-        1 => Some(cmd(json!({"carrier": rng.pick(&l.carriers)?.0})).refuse()),
+        1 => Some(cmd(json!({"carrier": rng.pick(&l.carriers)?.0}))),
         2 => {
             let r = rng.pick(&l.rails)?;
-            Some(cmd(json!({"carrier": r.id, "path": [[0, 0], [10 * LAY_MM, 10 * LAY_MM]]})).refuse())
+            Some(cmd(
+                json!({"carrier": r.id, "path": [[0, 0], [10 * LAY_MM, 10 * LAY_MM]]}),
+            ))
         }
         3 => {
             let r = rng.pick(&l.rails)?;
             let s = rng.pick(&l.surfaces)?;
-            Some(
-                cmd(json!({"carrier": r.id, "surface": s}))
-                    .accept()
-                    .counts(&[(Table::Carriers, 0)]),
-            )
+            Some(cmd(json!({"carrier": r.id, "surface": s})).counts(&[(Table::Carriers, 0)]))
         }
         4 | 5 => {
             let r = rng.pick(&l.rails)?;
             let (start, end, _) = lay_segment(rng);
-            Some(cmd(json!({"carrier": r.id, "path": [start, end]})).accept())
+            Some(cmd(json!({"carrier": r.id, "path": [start, end]})))
         }
         _ => {
             let (c, _) = rng.pick(&l.carriers)?;
-            Some(cmd(json!({"carrier": c, "pe_bond": rng.chance(2)})).accept())
+            Some(cmd(json!({"carrier": c, "pe_bond": rng.chance(2)})))
         }
     }
 }
@@ -6229,16 +6019,11 @@ fn layout_carrier_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (carrier, n) = rng.pick(&l.carriers)?;
     let n = isize::try_from(*n).expect("a count fits isize");
     if n == 0 {
-        return Some(
-            cmd(json!({"carrier": carrier}))
-                .accept()
-                .counts(&[(Table::Carriers, -1)]),
-        );
+        return Some(cmd(json!({"carrier": carrier})).counts(&[(Table::Carriers, -1)]));
     }
     Some(match rng.below(3) {
-        0 => cmd(json!({"carrier": carrier})).refuse(),
+        0 => cmd(json!({"carrier": carrier})),
         1 => cmd(json!({"carrier": carrier, "then": "remove_placements"}))
-            .accept()
             .counts(&[(Table::Carriers, -1), (Table::Placements, -n)]),
         _ => cmd(json!({"carrier": carrier, "then": "rehome_to_surface"}))
             .counts(&[(Table::Carriers, -1), (Table::Placements, 0)]),
@@ -6275,18 +6060,16 @@ fn layout_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 QUARTERS[0],
             );
             let mode = *rng.pick(&["push", "swap"])?;
-            Some(
-                cmd(json!({"device": device, "carrier": {"surface": surface}, "pose": pose, "mode": mode}))
-                    .refuse(),
-            )
+            Some(cmd(
+                json!({"device": device, "carrier": {"surface": surface}, "pose": pose, "mode": mode}),
+            ))
         }
         10 => {
             let r = *rng.pick(&rails)?;
             let pose = at(rng.range(0, r.length));
-            Some(
-                cmd(json!({"device": device, "carrier": {"carrier": r.id}, "pose": pose, "mode": "swap"}))
-                    .refuse(),
-            )
+            Some(cmd(
+                json!({"device": device, "carrier": {"carrier": r.id}, "pose": pose, "mode": "swap"}),
+            ))
         }
         0 => {
             let r = *rng.pick(&rails)?;
@@ -6296,16 +6079,22 @@ fn layout_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         2 => {
             let r = *rng.pick(&rails)?;
             let s = r.length + 1 + rng.range(0, 1000);
-            Some(cmd(json!({"device": device, "carrier": {"carrier": r.id}, "pose": at(s)})).refuse())
+            Some(cmd(
+                json!({"device": device, "carrier": {"carrier": r.id}, "pose": at(s)}),
+            ))
         }
         3 => {
             let r = *rng.pick(&rails)?;
             let pose = lay_pose([0, LAY_MM, 0], QUARTERS[0]);
-            Some(cmd(json!({"device": device, "carrier": {"carrier": r.id}, "pose": pose})).refuse())
+            Some(cmd(
+                json!({"device": device, "carrier": {"carrier": r.id}, "pose": pose}),
+            ))
         }
         4 => {
             let d = rng.pick(&l.ducts)?;
-            Some(cmd(json!({"device": device, "carrier": {"carrier": d}, "pose": at(0)})).refuse())
+            Some(cmd(
+                json!({"device": device, "carrier": {"carrier": d}, "pose": at(0)}),
+            ))
         }
         5 => {
             let surface = rng.pick(&l.surfaces)?;
@@ -6355,27 +6144,19 @@ fn layout_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         (None, Some(_), 4 | 5) => {
             let pose = lay_pose([10 * LAY_MM, 10 * LAY_MM, 0], QUARTERS[0]);
             let mode = *rng.pick(&["push", "swap"])?;
-            Some(cmd(json!({"placement": p.id, "pose": pose, "mode": mode})).refuse())
+            Some(cmd(json!({"placement": p.id, "pose": pose, "mode": mode})))
         }
-        (Some((_, len)), _, 0) => {
-            Some(cmd(json!({"placement": p.id, "pose": lay_pose([len + 1, 0, 0], QUARTERS[0])})).refuse())
-        }
+        (Some((_, len)), _, 0) => Some(cmd(
+            json!({"placement": p.id, "pose": lay_pose([len + 1, 0, 0], QUARTERS[0])}),
+        )),
         (Some((_, len)), _, 1 | 2) => {
             let pose = lay_pose([rng.range(0, *len), 0, 0], QUARTERS[2]);
-            Some(
-                cmd(json!({"placement": p.id, "pose": pose}))
-                    .accept()
-                    .counts(&[(Table::Placements, 0)]),
-            )
+            Some(cmd(json!({"placement": p.id, "pose": pose})).counts(&[(Table::Placements, 0)]))
         }
         (None, Some(_), 1 | 2) => {
             let t = [LAY_MM * rng.range(0, 650), LAY_MM * rng.range(0, 900), 0];
             let pose = lay_pose(t, *rng.pick(&QUARTERS)?);
-            Some(
-                cmd(json!({"placement": p.id, "pose": pose}))
-                    .accept()
-                    .counts(&[(Table::Placements, 0)]),
-            )
+            Some(cmd(json!({"placement": p.id, "pose": pose})).counts(&[(Table::Placements, 0)]))
         }
         _ => {
             let surface = rng.pick(&l.surfaces)?;
@@ -6394,11 +6175,7 @@ fn layout_remove(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         return Some(cmd(json!({"placement": rng.uuid()})).refuse());
     }
     let p = rng.pick(&live.layout.placements)?;
-    Some(
-        cmd(json!({"placement": p.id}))
-            .accept()
-            .counts(&[(Table::Placements, -1)]),
-    )
+    Some(cmd(json!({"placement": p.id})).counts(&[(Table::Placements, -1)]))
 }
 
 /// `layout.lock`: a placement locked or unlocked (accepted); one that does not exist is refused.
@@ -6408,7 +6185,7 @@ fn layout_lock(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         return Some(cmd(json!({"placement": rng.uuid(), "locked": true})).refuse());
     }
     let p = rng.pick(&live.layout.placements)?;
-    Some(cmd(json!({"placement": p.id, "locked": rng.chance(2)})).accept())
+    Some(cmd(json!({"placement": p.id, "locked": rng.chance(2)})))
 }
 
 /// `page.surface_view.set` (WP-S4.01 part 3, D9): a panel-layout page shows a surface at a datum, in either label mode
@@ -6433,7 +6210,9 @@ fn page_surface_view_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         0 => Some(cmd(json!({"page": rng.uuid(), "surface": surface, "datum_at": datum})).refuse()),
         1 => {
             let page = rng.pick(&others)?;
-            Some(cmd(json!({"page": page.id, "surface": surface, "datum_at": datum})).refuse())
+            Some(cmd(
+                json!({"page": page.id, "surface": surface, "datum_at": datum}),
+            ))
         }
         2 => {
             let page = rng.pick(&panels)?;
@@ -6441,10 +6220,9 @@ fn page_surface_view_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         }
         _ => {
             let page = rng.pick(&panels)?;
-            Some(
-                cmd(json!({"page": page.id, "surface": surface, "datum_at": datum, "label_mode": mode}))
-                    .accept(),
-            )
+            Some(cmd(
+                json!({"page": page.id, "surface": surface, "datum_at": datum, "label_mode": mode}),
+            ))
         }
     }
 }
@@ -6508,7 +6286,7 @@ fn setup_unplace_member(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         .filter(|p| p.rail.is_some() && assembly_root_text(live, &id_text(&p.device)).is_some())
         .collect();
     let p = *rng.pick(&on_rails)?;
-    Some(Step::cmd("layout.remove", json!({"placement": p.id})).accept())
+    Some(Step::cmd("layout.remove", json!({"placement": p.id})))
 }
 
 /// `layout.place_assembly` (WP-S4.02 part 2, D6): the unplaced members of an assembly go onto the rail one of its
@@ -6527,14 +6305,16 @@ fn layout_place_assembly(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         1 => {
             let (device, _) = assembly_member(live, rng)?;
             let surface = rng.pick(&l.surfaces)?;
-            Some(cmd(json!({"device": device, "carrier": {"surface": surface}, "s": 0})).refuse())
+            Some(cmd(
+                json!({"device": device, "carrier": {"surface": surface}, "s": 0}),
+            ))
         }
         2 => {
             let (device, _) = assembly_member(live, rng)?;
             let r = *rng.pick(&rails)?;
-            Some(
-                cmd(json!({"device": device, "carrier": {"carrier": r.id}, "s": 0, "mode": "swap"})).refuse(),
-            )
+            Some(cmd(
+                json!({"device": device, "carrier": {"carrier": r.id}, "s": 0, "mode": "swap"}),
+            ))
         }
         3 => {
             let alone: Vec<&Value> = live
@@ -6544,7 +6324,9 @@ fn layout_place_assembly(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 .collect();
             let device = *rng.pick(&alone)?;
             let r = *rng.pick(&rails)?;
-            Some(cmd(json!({"device": device, "carrier": {"carrier": r.id}, "s": 0})).refuse())
+            Some(cmd(
+                json!({"device": device, "carrier": {"carrier": r.id}, "s": 0}),
+            ))
         }
         _ => {
             let (device, rail) = assembly_member(live, rng)?;
@@ -6573,11 +6355,11 @@ fn layout_auto_fill(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let rails: Vec<&super::live::RailInfo> = l.rails.iter().filter(|r| r.length > 0).collect();
     match rng.below(9) {
         0 => Some(cmd(json!({"carrier": rng.uuid(), "order": order})).refuse()),
-        1 => Some(cmd(json!({"carrier": rng.pick(&l.ducts)?, "order": order})).refuse()),
+        1 => Some(cmd(json!({"carrier": rng.pick(&l.ducts)?, "order": order}))),
         2 => {
             let r = *rng.pick(&rails)?;
             let d = rng.pick(&live.devices)?;
-            Some(cmd(json!({"carrier": r.id, "devices": [d, d], "order": order})).refuse())
+            Some(cmd(json!({"carrier": r.id, "devices": [d, d], "order": order})))
         }
         3 => {
             let r = *rng.pick(&rails)?;
@@ -6625,17 +6407,18 @@ fn layout_enclosure_create_from_part(live: &Live, rng: &mut SplitMix64) -> Optio
         1 => {
             let other: Vec<&super::live::NodeInfo> =
                 live.nodes.iter().filter(|n| n.aspect != "location").collect();
-            Some(cmd(json!({"location": rng.pick(&other)?.id, "part": part, "copies": [c]})).refuse())
+            Some(cmd(
+                json!({"location": rng.pick(&other)?.id, "part": part, "copies": [c]}),
+            ))
         }
         2 => {
             let location = rng.pick(&live.layout.free_locations)?;
-            Some(cmd(json!({"location": location, "part": part, "copies": [c]})).refuse())
+            Some(cmd(json!({"location": location, "part": part, "copies": [c]})))
         }
         _ => {
             let location = rng.pick(&live.layout.free_locations)?;
             Some(
                 cmd(json!({"location": location, "part": part, "copies": [c], "pe_bond": rng.chance(2)}))
-                    .accept()
                     .counts(&[
                         (Table::Parts, 1),
                         (Table::Devices, 1),
@@ -6655,15 +6438,13 @@ fn layout_space_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("layout.space.edit", p);
     match rng.below(6) {
         0 => Some(cmd(json!({"space": rng.uuid(), "name": rng.word(8)})).refuse()),
-        1 => Some(cmd(json!({"space": rng.pick(&live.layout.spaces)?})).refuse()),
+        1 => Some(cmd(json!({"space": rng.pick(&live.layout.spaces)?}))),
         2 => Some(
             cmd(json!({"space": rng.pick(&live.layout.spaces)?, "name": null}))
-                .accept()
                 .counts(&[(Table::LayoutSpaces, 0)]),
         ),
         _ => Some(
             cmd(json!({"space": rng.pick(&live.layout.spaces)?, "name": rng.word(8)}))
-                .accept()
                 .counts(&[(Table::LayoutSpaces, 0)]),
         ),
     }
@@ -6678,13 +6459,12 @@ fn layout_enclosure_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         0 => Some(cmd(json!({"enclosure": rng.uuid(), "pose": lay_pose(t, QUARTERS[0])})).refuse()),
         1 => {
             let e = rng.pick(&live.layout.enclosures)?;
-            Some(cmd(json!({"enclosure": e, "pose": lay_pose(t, QUARTERS[1])})).refuse())
+            Some(cmd(json!({"enclosure": e, "pose": lay_pose(t, QUARTERS[1])})))
         }
         _ => {
             let e = rng.pick(&live.layout.enclosures)?;
             Some(
                 cmd(json!({"enclosure": e, "pose": lay_pose(t, QUARTERS[0])}))
-                    .accept()
                     .counts(&[(Table::Enclosures, 0)])
                     .check(|_, after| placements_have_devices(after)),
             )
@@ -6700,11 +6480,7 @@ fn layout_surface_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         return Some(cmd(json!({"surface": rng.uuid(), "pe_bond": true})).refuse());
     }
     let s = rng.pick(&live.layout.surfaces)?;
-    Some(
-        cmd(json!({"surface": s, "pe_bond": rng.chance(2)}))
-            .accept()
-            .counts(&[(Table::Surfaces, 0)]),
-    )
+    Some(cmd(json!({"surface": s, "pe_bond": rng.chance(2)})).counts(&[(Table::Surfaces, 0)]))
 }
 
 /// `edit.delete` of one layout record (WP-S4.02 part 2, FT-840): a placement goes; an empty carrier, enclosure or space
@@ -6717,37 +6493,31 @@ fn edit_delete_layout(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let step = match rng.below(5) {
         0 => {
             let p = rng.pick(&l.placements)?;
-            del("placement", &p.id)
-                .accept()
-                .counts(&[(Table::Placements, -1)])
+            del("placement", &p.id).counts(&[(Table::Placements, -1)])
         }
         1 => {
             let (c, n) = rng.pick(&l.carriers)?;
             if *n == 0 {
-                del("carrier", c).accept().counts(&[(Table::Carriers, -1)])
+                del("carrier", c).counts(&[(Table::Carriers, -1)])
             } else {
-                del("carrier", c).refuse()
+                del("carrier", c)
             }
         }
-        2 => del("mounting_surface", rng.pick(&l.surfaces)?).refuse(),
+        2 => del("mounting_surface", rng.pick(&l.surfaces)?),
         3 => {
             let e = rng.pick(&l.enclosures)?;
             if l.occupied.contains(&id_text(e)) {
-                del("enclosure", e).refuse()
-            } else {
                 del("enclosure", e)
-                    .accept()
-                    .counts(&[(Table::Enclosures, -1), (Table::Surfaces, -1)])
+            } else {
+                del("enclosure", e).counts(&[(Table::Enclosures, -1), (Table::Surfaces, -1)])
             }
         }
         _ => {
             let s = rng.pick(&l.spaces)?;
             if l.occupied.contains(&id_text(s)) {
-                del("layout_space", s).refuse()
-            } else {
                 del("layout_space", s)
-                    .accept()
-                    .counts(&[(Table::LayoutSpaces, -1)])
+            } else {
+                del("layout_space", s).counts(&[(Table::LayoutSpaces, -1)])
             }
         }
     };
