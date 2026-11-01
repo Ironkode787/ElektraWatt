@@ -3752,6 +3752,19 @@ mod tests {
         assert_eq!(missing, Vec::<String>::new());
     }
 
+    /// The part editor's field labels are built at run time as `part-field-<f>` over `ew_api::DRAFT_FIELDS`
+    /// (`describe.rs`, `part_dialog.rs`): every field has its text.
+    #[test]
+    fn every_draft_field_has_a_label() {
+        let missing: Vec<String> = ew_api::DRAFT_FIELDS
+            .iter()
+            .filter(|f| lookup(&format!("part-field-{f}")).is_none())
+            .map(|f| format!("the draft field {f} has no part-field-{f} text"))
+            .collect();
+        assert_eq!(missing, Vec::<String>::new());
+        assert_eq!(lookup("part-field-part_number"), Some("Part number"));
+    }
+
     /// RD43 §5: every key of `TEXTS` is there once (`lookup` reads a map built from it, `key!` checks against it).
     #[test]
     fn the_text_keys_are_unique() {

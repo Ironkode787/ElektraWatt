@@ -9,7 +9,9 @@
 //! **Script.** The `ew.uiscript/1` header, then three kinds of line:
 //!
 //! - an action line (`{"action":…,"params":…}`): dispatched on the shell as in the headless mode (the harness's
-//!   prelude and epilogue; the agent never sends one), one transcript line as `run_step` writes it;
+//!   prelude and epilogue; the agent never sends one), one transcript line as `run_step` writes it. `view.zoom_to`'s
+//!   `x_mm` and `y_mm` are a fixed pivot, not the new view centre: the page point there stays where it is on screen
+//!   while the zoom changes about it (absent: the view's centre); to centre a point, pan to it first (FT-939);
 //! - an input line (`{"input":"click","x":412,"y":96}`, spec §4.1): the egui events of the input in one or more
 //!   frames, then frames until the window settles; one transcript line `{"step","input","dispatched","state"}`, with
 //!   `"closed":true` once the application has closed;

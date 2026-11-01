@@ -45,7 +45,7 @@
 //! cursor (doc 16 section 10.1, WP-S2.03 §6.9).
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use std::time::Duration;
 
 use egui::{
@@ -606,14 +606,23 @@ struct GroupView {
     /// The page (session, folio) of the previous frame: a page change suppresses the pointer replay, a view or model
     /// change on the same page sends it again from the pointer's screen position.
     page: Option<(u64, String)>,
-    /// The page model of the previous frame, with [`GroupView::page`].
-    model: Option<usize>,
+    /// The page model of the previous frame, with [`GroupView::page`]: a weak reference, so a rebuilt model is never
+    /// taken for the old one because it was allocated at the old one's address (FT-1001).
+    model: Option<Weak<CanvasPage>>,
     /// The view of the previous frame, with [`GroupView::page`].
     view: Option<Viewport>,
 }
 
 /// The double-click interval of the window in seconds (WP-S2.04 §6.1): the common platform default.
 pub const DOUBLE_CLICK_S: f64 = 0.5;
+
+/// Whether `now` is the page model a group saw in its previous frame (`previous`): the same allocation, still alive
+/// through the weak reference, so a model rebuilt with the same content, even at the old address, is a new model
+/// and replays the pointer (FT-1001, ID-1080).
+fn same_model<T>(previous: Option<&Weak<T>>, now: &Arc<T>) -> bool {
+    previous.is_some_and(|w| w.ptr_eq(&Arc::downgrade(now)))
+}
+
 
 impl GroupView {
     fn new(gpu: GpuHost) -> GroupView {
@@ -1482,14 +1491,14 @@ impl CanvasHost {
         // The pointer follows movement, and a view change on the same page replays it from the pointer's screen
         // position (zoom, pan, fit, Home). A page load or change does not: its pointer starts unknown, so no dashed
         // hover outline is chosen from a position the page never saw (round 3, item 5; round 5, R2).
-        let model = Arc::as_ptr(canvas.page()) as usize;
         let page = (canvas.page().session, canvas.page().folio.clone());
         let view = canvas.viewport();
         let same_page = self.views[group].page.as_ref() == Some(&page);
-        let view_changed =
-            same_page && (self.views[group].view != Some(view) || self.views[group].model != Some(model));
+        let view_changed = same_page
+            && (self.views[group].view != Some(view)
+                || !same_model(self.views[group].model.as_ref(), canvas.page()));
         self.views[group].page = Some(page);
-        self.views[group].model = Some(model);
+        self.views[group].model = Some(Arc::downgrade(canvas.page()));
         self.views[group].view = Some(view);
         let moved = ui.input(|i| i.events.iter().any(|e| matches!(e, EguiEvent::PointerMoved(_))));
         // The pointer: `canvas.pointer` when it moved or its view changed, without a point when it left.
@@ -2226,5 +2235,24 @@ mod statistics_tests {
         });
         out.textures_delta.clear();
         assert_eq!(sizes[0], sizes[1]);
+    }
+}
+
+#[cfg(test)]
+mod model_identity_tests {
+    use super::*;
+
+    /// FT-1001: a page model rebuilt with the same content is a new model (the pointer replays); the same model is
+    /// not; a group without a previous model sees a new one.
+    #[test]
+    fn a_rebuilt_model_with_the_same_content_is_a_new_model() {
+        let first = Arc::new(String::from("103"));
+        let seen = Arc::downgrade(&first);
+        assert!(same_model(Some(&seen), &first));
+        drop(first);
+        // The rebuilt model may take the freed allocation's address; the weak reference keeps that from matching.
+        let rebuilt = Arc::new(String::from("103"));
+        assert!(!same_model(Some(&seen), &rebuilt));
+        assert!(!same_model(None, &rebuilt));
     }
 }
