@@ -425,6 +425,26 @@ every other exported byte equal. *Added in cycle 41 (the window check W41a, ID-9
     `crates/ew-checks/tests/`; in `crates/ew-api/tests/`, the files of 1 and 7 and `page_output_panel.rs`. Part 5 runs
     before WP-S3.06 part 3, since both re-bless `pdf/sha256.txt` and `acceptance_headless.md`.
 
+**Rulings after the review** (cycle 44, project owner (delegated), ID-1083; code lines at `32877363`):
+
+11. **Bounded work on a hostile rail.** `bracket_cases` (`crates/ew-checks/src/rules/layout.rs:1149`) scans the whole
+    occupancy and every later bracket for each bracket (`:1194`, `:1200`) and looks `side` up in the occupancy
+    (`:1165`); `strip_brackets` (`crates/ew-derive/src/layout/accessories.rs:66`) filters the rail's whole
+    `GroupAccessories` list for each strip (`:81-85`). Both become O((P + B) log (P + B)) per rail or better, P
+    placements and B brackets: the scans use the lists' rail order, `side` reads a map built once per rail, and the
+    brackets per strip are counted once per rail inside the existing `GroupAccessories` family. No memo family is added
+    (AC-16's 90 stays), and every reader's result is unchanged. EW-LAY-010's bracket cases take no cap: they give at
+    most two findings per bracket, so their number grows with the file, not with its square (EW-LAY-006's cap guards
+    pairs). Tests assert the findings and the BOM line of a rail with many stacked strips; the speed is not measured
+    (owner's rule).
+12. **The discriminator** of a bracket case is its form, its side and the bracket's start in nm (`"{form}:{side}:{s0}"`;
+    today `format!("{form}:{}", b.s0)`, `layout.rs:1183`), so two brackets of one strip at one start (a bracket part
+    without a width) never share a fingerprint. A bracket of zero length overlaps nothing; it still counts in the BOM
+    and in the overflow case.
+13. **Ruling 5's texts as built** name every device by its full designation, as the rule's other forms do
+    (`layout.rs`'s module doc): "The end bracket after =P01+J-E-2416-X1031 overlaps =P01+J-E-2416-X1032 on rail 2."
+    Ruling 5's examples read with that substitution.
+
 ## 10. Part 6: the starter library's layout parts
 
 **Scope.** D14, FT-805. **0.3 pw.** Haiku: every value is given; the shapes are those of Golden A's copies
