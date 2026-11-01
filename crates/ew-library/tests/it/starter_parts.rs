@@ -11,12 +11,14 @@
 //!
 //! The parts are CC0-1.0 part facts (doc 19 §2.1 L8): manufacturer "Generic", part numbers `EW-GEN-<kind>-<n>`, a
 //! description, no order or catalogue data; each carries the template functions on the starter FnDefs, the CP pattern,
-//! the contact data of its contacts and the technical data the starter symbols print in their `tech_data` slot.
+//! the contact data of its contacts and the technical data the starter symbols print in their `tech_data` slot. The
+//! layout parts (WP-S4.02 D14: an enclosure, a mounting plate, a rail, a duct and an end bracket) carry no template
+//! and no CP pattern: their sections and their dimensions (`mech`) are their data.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use ew_format::ew_schema::{Kind, LibDocument, LibRef};
+use ew_format::ew_schema::{Kind, LibDocument, LibRef, PartKind};
 use ew_ids::Uuid;
 use ew_library::{
     LibManifest, LibraryTiers, PartQuery, Registry, STARTER_PARTS_KEY, starter, starter_parts_library,
@@ -29,17 +31,28 @@ const LICENCE: &str = "CC0-1.0";
 const VERSION: &str = "0.1.0";
 /// The library's version: 0.1.1 since FT-659 and FT-655 changed parts, 0.1.2 since FT-606 added the one-pole on/off
 /// switch EW-GEN-SW-1, 0.2.0 since WP-S1.21 D5 added the generic CPU EW-GEN-CPU-1, 0.2.1 since WP-S1.21 D17 gave
-/// it its DP port (a library refuses other content under a published version, doc 05 §13.1).
-const LIBRARY_VERSION: &str = "0.2.1";
+/// it its DP port (a library refuses other content under a published version, doc 05 §13.1), 0.3.0 since WP-S4.02
+/// part 6 (D14) added the layout parts and the dimensions.
+const LIBRARY_VERSION: &str = "0.3.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. FT-655: the relay
-/// and the contactor template their contacts beside the coil. WP-S1.21 D17: the CPU's bus section, after 0.2.0).
+/// and the contactor template their contacts beside the coil. WP-S1.21 D17: the CPU's bus section, after 0.2.0.
+/// WP-S4.02 D14: the dimensions).
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.1"),
     ("EW-GEN-VLV-1", "0.1.1"),
-    ("EW-GEN-RLY-1", "0.1.1"),
-    ("EW-GEN-CON-1", "0.1.1"),
-    ("EW-GEN-CPU-1", "0.1.1"),
+    ("EW-GEN-RLY-1", "0.1.2"),
+    ("EW-GEN-CON-1", "0.1.2"),
+    ("EW-GEN-CPU-1", "0.1.2"),
+    ("EW-GEN-MCB-1", "0.1.1"),
+    ("EW-GEN-MCB-2", "0.1.1"),
+    ("EW-GEN-FUS-1", "0.1.1"),
+    ("EW-GEN-SW-1", "0.1.1"),
+    ("EW-GEN-PSU-1", "0.1.1"),
+    ("EW-GEN-DI-1", "0.1.1"),
+    ("EW-GEN-DO-1", "0.1.1"),
+    ("EW-GEN-TRM-1", "0.1.1"),
+    ("EW-GEN-TRM-2", "0.1.1"),
 ];
 
 /// The bus section of part `number` (WP-S1.21 D17): the generic CPU's DP interface, the master by default; no
@@ -79,13 +92,66 @@ fn fndef(key: &str) -> Value {
     })
 }
 
+/// The reference to the mounting plate EW-GEN-PLT-1 of this library, built as the manufacturer reference is.
+fn plate_ref() -> Value {
+    json!({
+        "library": starter_parts_library().to_string(),
+        "item": item_id("part", "EW-GEN-PLT-1").to_string(),
+        "version_req": "^0.1",
+    })
+}
+
 /// A quantity.
 fn q(value: &str, unit: &str) -> Value {
     json!({"value": value, "unit": unit})
 }
 
-/// One generic part: number, part kind, description, the CP designations (index order, with a potential role),
-/// the template (FnDef key, main, CP indices), the contacts (kind, CP designations) and the technical data.
+/// A length in millimetres as nanometres, exactly: `mm("5.2")` is `5200000`. At most six decimals.
+fn mm(text: &str) -> i64 {
+    let (whole, frac) = text.split_once('.').unwrap_or((text, ""));
+    assert!(frac.len() <= 6, "{text}: more than six decimals");
+    let whole: i64 = whole.parse().unwrap_or_else(|_| panic!("{text}"));
+    let frac: i64 = format!("{frac:0<6}").parse().unwrap();
+    whole * 1_000_000 + frac
+}
+
+/// The mechanical data of a part (`mech`, WP-S4.02 D14): the dimensions in millimetres as exact decimal text, the
+/// depth absent on a flat part, the mount kind absent on a part that is not mounted on a rail.
+struct Mech {
+    width: &'static str,
+    height: &'static str,
+    depth: Option<&'static str>,
+    mount: Option<&'static str>,
+}
+
+/// The mount kind of a part on a top-hat rail TS 35 × 7.5 (`MountKind::Ts35x7_5`).
+const TS35: &str = "ts35x7_5";
+
+/// The mechanical data of a device on a TS 35 rail: width, height and depth in millimetres.
+fn ts35(width: &'static str, height: &'static str, depth: &'static str) -> Option<Mech> {
+    Some(Mech {
+        width,
+        height,
+        depth: Some(depth),
+        mount: Some(TS35),
+    })
+}
+
+/// The `mech` member of a part.
+fn mech_json(m: &Mech) -> Value {
+    let mut v = json!({"width": mm(m.width), "height": mm(m.height)});
+    if let Some(d) = m.depth {
+        v["depth"] = json!(mm(d));
+    }
+    if let Some(k) = m.mount {
+        v["mount_kind"] = json!(k);
+    }
+    v
+}
+
+/// One generic part: number, part kind, description, the CP designations (index order, with a potential role), the
+/// template (FnDef key, main, CP indices), the contacts (kind, CP designations), the technical data, the PLC section,
+/// the mechanical data, the section of a layout part (WP-S4.02 D14) and the order unit.
 struct Def {
     number: &'static str,
     kind: Option<&'static str>,
@@ -95,6 +161,9 @@ struct Def {
     contacts: Vec<(&'static str, Vec<&'static str>)>,
     tech: Vec<(&'static str, Value)>,
     plc: Option<Value>,
+    mech: Option<Mech>,
+    sections: Option<Value>,
+    unit: Option<&'static str>,
 }
 
 fn cps(designations: &[&'static str]) -> Vec<(&'static str, Option<&'static str>)> {
@@ -106,7 +175,7 @@ fn range(from: u16, to: u16) -> Vec<u16> {
 }
 
 /// The generic starter parts of D5 (the MCB 3P and the valve 3/2 are de-scoped: the starter set has no FnDef or
-/// symbol for them).
+/// symbol for them), then the five layout parts of WP-S4.02 D14 (no template, no CP pattern).
 ///
 /// The relay and the contactor template their coil (the main function) and every contact (auxiliary functions,
 /// several entries of one FnDef): a function made from the template records its entry (`Function.template_entry`,
@@ -146,6 +215,9 @@ fn defs() -> Vec<Def> {
             ],
             tech: vec![("coil_voltage", q("24", "V"))],
             plc: None,
+            mech: ts35("27", "80", "70"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-CON-1",
@@ -167,6 +239,9 @@ fn defs() -> Vec<Def> {
             ],
             tech: vec![("coil_voltage", q("24", "V")), ("rated_current", q("9", "A"))],
             plc: None,
+            mech: ts35("45", "85", "80"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-MCB-1",
@@ -177,6 +252,9 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: vec![("characteristic", json!("C")), ("rated_current", q("16", "A"))],
             plc: None,
+            mech: ts35("18", "85", "70"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-MCB-2",
@@ -187,6 +265,9 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: vec![("characteristic", json!("C")), ("rated_current", q("10", "A"))],
             plc: None,
+            mech: ts35("36", "85", "70"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-FUS-1",
@@ -197,6 +278,9 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: vec![("rated_current", q("4", "A"))],
             plc: None,
+            mech: ts35("18", "85", "60"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-PB-1",
@@ -207,6 +291,9 @@ fn defs() -> Vec<Def> {
             contacts: vec![("no", vec!["13", "14"])],
             tech: Vec::new(),
             plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-SEL-1",
@@ -217,6 +304,9 @@ fn defs() -> Vec<Def> {
             contacts: vec![("no", vec!["13", "14"])],
             tech: Vec::new(),
             plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-SW-1",
@@ -227,6 +317,9 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: Vec::new(),
             plc: None,
+            mech: ts35("18", "85", "70"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-POS-1",
@@ -237,6 +330,9 @@ fn defs() -> Vec<Def> {
             contacts: vec![("no", vec!["13", "14"])],
             tech: Vec::new(),
             plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-LMP-1",
@@ -247,6 +343,9 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: vec![("rated_voltage", q("24", "V"))],
             plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-MOT-1",
@@ -257,6 +356,9 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: vec![("rated_power", q("370", "W")), ("rated_voltage", q("400", "V"))],
             plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-PSU-1",
@@ -279,6 +381,9 @@ fn defs() -> Vec<Def> {
                 ("output_voltage", q("24", "V")),
             ],
             plc: None,
+            mech: ts35("60", "90", "110"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-VLV-1",
@@ -292,6 +397,9 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: vec![("coil_voltage", q("24", "V"))],
             plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-TRM-1",
@@ -302,6 +410,9 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: Vec::new(),
             plc: None,
+            mech: ts35("5.2", "45", "40"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-TRM-2",
@@ -312,6 +423,9 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: Vec::new(),
             plc: None,
+            mech: ts35("5.2", "45", "40"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-DI-1",
@@ -332,6 +446,9 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: vec![("rated_voltage", q("24", "V"))],
             plc: Some(card("in", "di")),
+            mech: ts35("25", "100", "75"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-CPU-1",
@@ -344,6 +461,9 @@ fn defs() -> Vec<Def> {
             // WP-S1.21 D5: a station without I/O ranges, so the cards' addresses start at byte 0; its DP port is
             // the bus section (D17, `bus_section`).
             plc: Some(json!({"role": "station"})),
+            mech: ts35("100", "100", "75"),
+            sections: None,
+            unit: None,
         },
         Def {
             number: "EW-GEN-DO-1",
@@ -365,6 +485,85 @@ fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: vec![("output_current", q("0.5", "A")), ("rated_voltage", q("24", "V"))],
             plc: Some(card("out", "do")),
+            mech: ts35("25", "100", "75"),
+            sections: None,
+            unit: None,
+        },
+        // WP-S4.02 D14: the layout parts. No template, no CP pattern; the layout tools read their sections and `mech`.
+        Def {
+            number: "EW-GEN-ENC-1",
+            kind: Some("enclosure"),
+            description: "Wall enclosure 600 × 800 × 250 mm",
+            cps: Vec::new(),
+            template: Vec::new(),
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: Some(json!({"enclosure": {
+                "width": mm("600"),
+                "height": mm("800"),
+                "depth": mm("250"),
+                "plate": plate_ref(),
+            }})),
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-PLT-1",
+            kind: Some("mounting_plate"),
+            description: "Mounting plate 520 × 720 mm",
+            cps: Vec::new(),
+            template: Vec::new(),
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: Some(json!({"mounting_plate": {"width": mm("520"), "height": mm("720")}})),
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-RAIL-1",
+            kind: Some("rail"),
+            description: "DIN rail TS 35 × 7.5",
+            cps: Vec::new(),
+            template: Vec::new(),
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: Some(json!({"rail": {"profile": TS35, "stock_length": mm("2000")}})),
+            unit: Some("m"),
+        },
+        Def {
+            number: "EW-GEN-DUCT-1",
+            kind: Some("duct"),
+            description: "Wiring duct 40 × 60 mm",
+            cps: Vec::new(),
+            template: Vec::new(),
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: Some(Mech {
+                width: "40",
+                height: "60",
+                depth: None,
+                mount: None,
+            }),
+            sections: None,
+            unit: Some("m"),
+        },
+        Def {
+            number: "EW-GEN-EB-1",
+            kind: Some("end_bracket"),
+            description: "End bracket for TS 35",
+            cps: Vec::new(),
+            template: Vec::new(),
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: ts35("10", "45", "35"),
+            sections: None,
+            unit: None,
         },
     ]
 }
@@ -382,6 +581,15 @@ fn manufacturer() -> LibDocument {
     .unwrap()
 }
 
+/// Adds the section `name` to the part document `v`, beside the sections it already has: the layout section of a
+/// definition stays when the PLC or the bus section is added (WP-S4.02 D14).
+fn add_section(v: &mut Value, name: &str, section: Value) {
+    if v.get("sections").is_none() {
+        v["sections"] = json!({});
+    }
+    v["sections"][name] = section;
+}
+
 /// The part documents, in the order of [`defs`].
 fn parts() -> Vec<LibDocument> {
     let lib = starter_parts_library();
@@ -390,11 +598,6 @@ fn parts() -> Vec<LibDocument> {
         .into_iter()
         .map(|d| {
             let item = item_id("part", d.number);
-            let main = d.template.iter().find(|t| t.1).map(|t| t.0).unwrap();
-            let category = match LibDocument::from_json(starter::item(main).unwrap().json).unwrap() {
-                LibDocument::Fndef(c) => serde_json::to_value(&c.item.category).unwrap(),
-                _ => unreachable!(),
-            };
             let mut v = json!({
                 "$k": "part", "id": item.to_string(), "library_id": lib.to_string(),
                 "item_id": item.to_string(), "version": part_version(d.number), "sha256": ZERO,
@@ -402,7 +605,6 @@ fn parts() -> Vec<LibDocument> {
                 "manufacturer": {"library": lib.to_string(), "item": mfr.to_string(), "version_req": "^0.1"},
                 "part_number": d.number,
                 "description": {"en": d.description},
-                "category": category,
                 "cp_pattern": d.cps.iter().enumerate().map(|(i, (des, role))| {
                     let mut cp = json!({"idx": i, "designation": des});
                     if let Some(r) = role {
@@ -410,16 +612,35 @@ fn parts() -> Vec<LibDocument> {
                     }
                     cp
                 }).collect::<Vec<_>>(),
-                "function_template": d.template.iter().map(|(key, main, cps)| {
+            });
+            // A layout part has no template, so no category and no function template (WP-S4.02 D14).
+            if !d.template.is_empty() {
+                let main = d
+                    .template
+                    .iter()
+                    .find(|t| t.1)
+                    .map(|t| t.0)
+                    .unwrap_or_else(|| panic!("{}: no main template", d.number));
+                v["category"] = match LibDocument::from_json(starter::item(main).unwrap().json).unwrap() {
+                    LibDocument::Fndef(c) => serde_json::to_value(&c.item.category).unwrap(),
+                    _ => unreachable!(),
+                };
+                v["function_template"] = json!(d.template.iter().map(|(key, main, cps)| {
                     let mut t = json!({"fndef": fndef(key), "cps": cps});
                     if *main {
                         t["main"] = json!(true);
                     }
                     t
-                }).collect::<Vec<_>>(),
-            });
+                }).collect::<Vec<_>>());
+            }
             if let Some(k) = d.kind {
                 v["kind"] = json!(k);
+            }
+            if let Some(u) = d.unit {
+                v["unit"] = json!(u);
+            }
+            if let Some(m) = &d.mech {
+                v["mech"] = mech_json(m);
             }
             if !d.tech.is_empty() {
                 v["tech_data"] = d
@@ -435,11 +656,14 @@ fn parts() -> Vec<LibDocument> {
                     .map(|(k, cps)| json!({"kind": k, "cps": cps}))
                     .collect();
             }
+            if let Some(section) = d.sections {
+                v["sections"] = section;
+            }
             if let Some(plc) = d.plc {
-                v["sections"] = json!({ "plc": plc });
+                add_section(&mut v, "plc", plc);
             }
             if let Some(bus) = bus_section(d.number) {
-                v["sections"]["bus"] = bus;
+                add_section(&mut v, "bus", bus);
             }
             LibDocument::from_value(v).unwrap_or_else(|e| panic!("{}: {e}", d.number))
         })
@@ -572,9 +796,35 @@ fn the_shipped_library_is_the_generated_one() {
     );
 }
 
+/// Whether a part is a layout part of WP-S4.02 D14: an enclosure, a mounting plate, a rail, a duct or an end bracket.
+/// The layout tools use them; they carry no function template.
+fn is_layout(kind: &PartKind) -> bool {
+    matches!(
+        kind,
+        PartKind::Enclosure | PartKind::MountingPlate | PartKind::Rail | PartKind::Duct | PartKind::EndBracket
+    )
+}
+
+/// The records of the shipped part files, by part number, each as the JSON of its line.
+fn shipped_parts() -> BTreeMap<String, Value> {
+    let mut out = BTreeMap::new();
+    for (path, text) in files_of(&shipped_dir()) {
+        if !path.starts_with("parts/") {
+            continue;
+        }
+        for line in text.lines().filter(|l| !l.is_empty()) {
+            let v: Value = serde_json::from_str(line).unwrap();
+            let number = v["part_number"].as_str().unwrap().to_owned();
+            assert!(out.insert(number.clone(), v).is_none(), "{number} is in two files");
+        }
+    }
+    out
+}
+
 /// D5: every part carries a description, the manufacturer "Generic", a part number of the fixed form, a function
 /// template with one main function on starter FnDefs whose CP indices exist, and contacts whose CPs are in its CP
-/// pattern; no order data.
+/// pattern; no order data. The five layout parts of WP-S4.02 D14 have no function template and are skipped here
+/// (`the_layout_parts_read_back_from_the_shipped_files` checks them).
 #[test]
 fn every_generic_part_is_usable() {
     let numbers: Vec<&str> = defs().iter().map(|d| d.number).collect();
@@ -588,6 +838,9 @@ fn every_generic_part_is_usable() {
     for doc in parts() {
         let LibDocument::Part(c) = doc else { panic!() };
         let p = &c.item;
+        if is_layout(&p.kind) {
+            continue;
+        }
         let n = p.part_number.as_str();
         let mut words = n.split('-');
         assert_eq!((words.next(), words.next()), (Some("EW"), Some("GEN")), "{n}");
@@ -645,6 +898,108 @@ fn every_generic_part_is_usable() {
     }
 }
 
+/// WP-S4.02 D14: each layout part reads back from the shipped files with its kind, its version, its unit and its
+/// section or `mech`, as whole values (nanometres as integers; the plate as its reference), and without a category or
+/// a function template.
+#[test]
+fn the_layout_parts_read_back_from_the_shipped_files() {
+    let shipped = shipped_parts();
+    let plate = json!({
+        "library": starter_parts_library().to_string(),
+        "item": item_id("part", "EW-GEN-PLT-1").to_string(),
+        "version_req": "^0.1",
+    });
+    // (part number, kind, unit, the member that holds its data, and that member's value).
+    let layout = [
+        (
+            "EW-GEN-ENC-1",
+            "enclosure",
+            None,
+            "sections",
+            json!({"enclosure": {"width": 600000000, "height": 800000000, "depth": 250000000, "plate": plate}}),
+        ),
+        (
+            "EW-GEN-PLT-1",
+            "mounting_plate",
+            None,
+            "sections",
+            json!({"mounting_plate": {"width": 520000000, "height": 720000000}}),
+        ),
+        (
+            "EW-GEN-RAIL-1",
+            "rail",
+            Some("m"),
+            "sections",
+            json!({"rail": {"profile": "ts35x7_5", "stock_length": 2000000000}}),
+        ),
+        (
+            "EW-GEN-DUCT-1",
+            "duct",
+            Some("m"),
+            "mech",
+            json!({"width": 40000000, "height": 60000000}),
+        ),
+        (
+            "EW-GEN-EB-1",
+            "end_bracket",
+            None,
+            "mech",
+            json!({"width": 10000000, "height": 45000000, "depth": 35000000, "mount_kind": "ts35x7_5"}),
+        ),
+    ];
+    for (number, kind, unit, member, value) in layout {
+        let rec = shipped.get(number).unwrap_or_else(|| panic!("{number} is shipped"));
+        assert_eq!(rec["kind"], kind, "{number}");
+        assert_eq!(rec["version"], "0.1.0", "{number}");
+        assert_eq!(rec.get("unit"), unit.map(|u| json!(u)).as_ref(), "{number}");
+        assert_eq!(rec.get(member), Some(&value), "{number}");
+        assert!(rec.get("category").is_none(), "{number}");
+        assert!(rec.get("function_template").is_none(), "{number}");
+    }
+}
+
+/// WP-S4.02 D14: the twelve parts with dimensions read back from the shipped files, each at its version, with its `mech`
+/// as whole nanometres and the mount kind `ts35x7_5`; the door and field parts carry no `mech`.
+#[test]
+fn the_dimensioned_parts_read_back_from_the_shipped_files() {
+    let shipped = shipped_parts();
+    // (part number, version, width, height, depth) in nanometres.
+    let dims = [
+        ("EW-GEN-MCB-1", "0.1.1", 18000000, 85000000, 70000000),
+        ("EW-GEN-MCB-2", "0.1.1", 36000000, 85000000, 70000000),
+        ("EW-GEN-FUS-1", "0.1.1", 18000000, 85000000, 60000000),
+        ("EW-GEN-SW-1", "0.1.1", 18000000, 85000000, 70000000),
+        ("EW-GEN-RLY-1", "0.1.2", 27000000, 80000000, 70000000),
+        ("EW-GEN-CON-1", "0.1.2", 45000000, 85000000, 80000000),
+        ("EW-GEN-PSU-1", "0.1.1", 60000000, 90000000, 110000000),
+        ("EW-GEN-CPU-1", "0.1.2", 100000000, 100000000, 75000000),
+        ("EW-GEN-DI-1", "0.1.1", 25000000, 100000000, 75000000),
+        ("EW-GEN-DO-1", "0.1.1", 25000000, 100000000, 75000000),
+        ("EW-GEN-TRM-1", "0.1.1", 5200000, 45000000, 40000000),
+        ("EW-GEN-TRM-2", "0.1.1", 5200000, 45000000, 40000000),
+    ];
+    for (number, version, width, height, depth) in dims {
+        let rec = shipped.get(number).unwrap_or_else(|| panic!("{number} is shipped"));
+        assert_eq!(rec["version"], version, "{number}");
+        assert_eq!(
+            rec.get("mech"),
+            Some(&json!({"width": width, "height": height, "depth": depth, "mount_kind": "ts35x7_5"})),
+            "{number}"
+        );
+    }
+    for number in [
+        "EW-GEN-SEL-1",
+        "EW-GEN-PB-1",
+        "EW-GEN-POS-1",
+        "EW-GEN-LMP-1",
+        "EW-GEN-MOT-1",
+        "EW-GEN-VLV-1",
+    ] {
+        let rec = shipped.get(number).unwrap_or_else(|| panic!("{number} is shipped"));
+        assert!(rec.get("mech").is_none(), "{number}");
+    }
+}
+
 /// D6: the registry of a session with no library configured holds the starter parts, compiled in; a part resolves
 /// with its closure (the part, its template FnDefs from the starter, the manufacturer).
 #[test]
@@ -681,11 +1036,11 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
 }
 
 /// WP-S1.21 D5: the generic CPU is a station without I/O ranges on a black box with the supply CPs L+ and M, a new
-/// item at 0.1.0 in the library's minor version 0.2.0 (0.1.1 in 0.2.1 with its DP port, D17); the cards are modules
-/// of 8 channels each.
+/// item at 0.1.0 in the library's minor version 0.2.0 (0.1.1 in 0.2.1 with its DP port, D17; 0.1.2 in 0.3.0 with its
+/// dimensions, D14); the cards are modules of 8 channels each.
 #[test]
 fn the_generic_cpu_is_a_station_without_io() {
-    assert_eq!(LIBRARY_VERSION, "0.2.1");
+    assert_eq!(LIBRARY_VERSION, "0.3.0");
     let part = |number: &str| {
         parts()
             .into_iter()
@@ -696,7 +1051,7 @@ fn the_generic_cpu_is_a_station_without_io() {
             .unwrap_or_else(|| panic!("{number}"))
     };
     let cpu = part("EW-GEN-CPU-1");
-    assert_eq!(cpu.version, "0.1.1");
+    assert_eq!(cpu.version, "0.1.2");
     let plc = cpu.item.sections.plc.as_ref().expect("a PLC section");
     assert_eq!(plc.role, ew_format::ew_schema::PlcRole::Station);
     assert!(plc.io.is_empty() && plc.channels.is_none());
@@ -715,9 +1070,10 @@ fn the_generic_cpu_is_a_station_without_io() {
     }
 }
 
-/// BU-7e (WP-S1.21 D17): the generic CPU at 0.1.1 carries one bus port `DP`, `profibus_dp`, `master`, with no port
-/// label, termination or other member; its CP pattern, function template and PLC section are 0.1.0's (the compact
-/// JSON of 0.1.0's members as `ew-starter-parts` 0.2.0 published them), and no other starter part has a bus section.
+/// BU-7e (WP-S1.21 D17): the generic CPU at 0.1.2 (its bus port from 0.1.1, D17; its dimensions, D14) carries one bus
+/// port `DP`, `profibus_dp`, `master`, with no port label, termination or other member; its CP pattern, function
+/// template and PLC section are 0.1.0's (the compact JSON of 0.1.0's members as `ew-starter-parts` 0.2.0 published
+/// them), and no other starter part has a bus section.
 #[test]
 fn the_generic_cpu_has_its_dp_port() {
     use ew_format::ew_schema::{BusSystem, PortRole};
@@ -729,7 +1085,7 @@ fn the_generic_cpu_has_its_dp_port() {
             _ => None,
         })
         .expect("the generic CPU");
-    assert_eq!(cpu.version, "0.1.1");
+    assert_eq!(cpu.version, "0.1.2");
     let bus = cpu.item.sections.bus.as_ref().expect("a bus section");
     assert!(bus.extra.is_empty());
     let [port] = bus.ports.as_slice() else {
