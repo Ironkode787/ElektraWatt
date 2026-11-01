@@ -582,7 +582,11 @@ mod tests {
     #[test]
     fn automod_line_declares_every_file() {
         let dir = fresh("automod");
-        write(&dir, "crates/ew-dl/tests/it/main.rs", "automod::dir!(\"tests/it\");\n");
+        write(
+            &dir,
+            "crates/ew-dl/tests/it/main.rs",
+            "automod::dir!(\"tests/it\");\n",
+        );
         touch(&dir, "crates/ew-dl/tests/it/a.rs");
         touch(&dir, "crates/ew-dl/tests/it/b.rs");
         touch(&dir, "crates/ew-dl/tests/it/deep/x.rs");
@@ -601,7 +605,11 @@ mod tests {
     #[test]
     fn automod_skips_mod_and_lib() {
         let dir = fresh("automod-skips");
-        write(&dir, "crates/ew-dl/tests/it/main.rs", "automod::dir!(\"tests/it\");\n");
+        write(
+            &dir,
+            "crates/ew-dl/tests/it/main.rs",
+            "automod::dir!(\"tests/it\");\n",
+        );
         touch(&dir, "crates/ew-dl/tests/it/a.rs");
         touch(&dir, "crates/ew-dl/tests/it/b.rs");
         touch(&dir, "crates/ew-dl/tests/it/deep/x.rs");
