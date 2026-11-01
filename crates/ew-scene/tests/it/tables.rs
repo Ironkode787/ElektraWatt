@@ -308,3 +308,84 @@ fn a_span_link_covers_its_item_only() {
     let pos = |pred: &dyn Fn(&ew_dl::Item) -> bool| items.iter().position(pred).unwrap();
     assert!(pos(&|i| i.link == Some(ew_dl::Link::Source(d1))) > pos(&|i| std::ptr::eq(i, run)));
 }
+
+/// WP-S3.06 ruling 3 (C44-p3#2): a cell that shrinks to fit draws its span boxes at the size the text was laid out
+/// in. In the narrow Folio column a long folio list shrinks; the first span's box starts where the text starts, the
+/// last one's ends where it ends, and both run from the shrunk text's ascent to its descent.
+#[test]
+fn the_span_boxes_of_a_shrunk_cell_follow_the_shrunk_text() {
+    let folios = "101, 103, 105, 107, 109, 111, 113, 115, 117, 119, 121";
+    let mut t = table(&[&[folios, "Title", "+J"]]);
+    let (d1, d2) = (
+        ew_dl::Destination::Page(Uuid::from_u128(0x101)),
+        ew_dl::Destination::Page(Uuid::from_u128(0x121)),
+    );
+    let last = folios.len() - 3..folios.len();
+    t.rows[0].links = vec![
+        TableLink {
+            column: 0,
+            span: Some(0..3),
+            dest: d1,
+        },
+        TableLink {
+            column: 0,
+            span: Some(last),
+            dest: d2,
+        },
+    ];
+    let l = page_display_list(&view(Some(t)), Layer::Tables, bundled(), builtin());
+    assert!(
+        l.findings
+            .iter()
+            .all(|f| !matches!(f, PageFinding::Table(TableFinding::Overflow { row: Some(0), .. }))),
+        "the list fits once shrunk: {:?}",
+        l.findings
+    );
+    let items = &l.list.items;
+    let ItemKind::Glyphs(glyphs) = &items
+        .iter()
+        .find(|i| matches!(&i.kind, ItemKind::Glyphs(r) if r.text == folios))
+        .expect("the cell's text")
+        .kind
+    else {
+        unreachable!()
+    };
+    let header = items
+        .iter()
+        .find_map(|i| match &i.kind {
+            ItemKind::Glyphs(r) if r.text == "+J" => Some(r.size),
+            _ => None,
+        })
+        .expect("a cell in the default size");
+    assert!(
+        glyphs.size < header,
+        "the list shrank: {} < {}",
+        glyphs.size.0,
+        header.0
+    );
+    let text = ew_units::Rect::from_points(
+        glyphs.to_parent(glyphs.layout_box.min()),
+        glyphs.to_parent(glyphs.layout_box.max()),
+    );
+    let carrier = |d| {
+        let found: Vec<ew_units::Rect> = items
+            .iter()
+            .filter(|i| i.link == Some(ew_dl::Link::Source(d)))
+            .map(|i| match &i.kind {
+                ItemKind::Path(p) if p.stroke.is_none() && p.fill.is_none() => p.path.bounds().unwrap(),
+                _ => panic!("not an invisible path"),
+            })
+            .collect();
+        assert_eq!(found.len(), 1);
+        found[0]
+    };
+    let (b1, b2) = (carrier(d1), carrier(d2));
+    assert_eq!(
+        (b1.min().x, b1.min().y, b1.max().y),
+        (text.min().x, text.min().y, text.max().y)
+    );
+    assert_eq!(
+        (b2.max().x, b2.min().y, b2.max().y),
+        (text.max().x, text.min().y, text.max().y)
+    );
+}

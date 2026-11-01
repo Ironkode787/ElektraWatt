@@ -5,7 +5,9 @@
 //!
 //! Tests:
 //! - `bl1_the_bom_folios_link_each_listed_folio`
+//! - `bl1_the_terminal_rows_link_their_strip_page`, `bl1_a_folio_link_skips_contact_images`
 //! - `bl1_the_folio_of_101f1_carries_its_link_on_its_text`
+//! - `bl3_a_parts_list_links_each_device_to_its_main_representation`
 //! - `bl2_the_toc_and_the_device_tag_overview_link_their_pages_and_devices`
 //! - `bl3_the_fixture_blocks_draw_their_links`
 
@@ -16,9 +18,11 @@ use crate::{common, golden_common, view};
 
 use ew_api::output::{page_destination, page_layer};
 use ew_api::{AnyCommand, CmdError, Session};
+use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{MainRep, PageOrder, PageRef, Q};
 use ew_dl::{Destination, ItemKind, Layer, Link};
 use ew_scene::table::{TableLink, TableRow};
+use ew_schema::{Record, RepType};
 use serde_json::{Value, json};
 
 fn run(session: &mut Session, name: &str, params: Value) {
@@ -150,6 +154,126 @@ fn bl1_the_bom_folios_link_each_listed_folio() {
         assert_eq!(links.len(), 1, "row {pos}");
         assert_eq!((links[0].span.clone(), links[0].dest), (None, p902), "row {pos}");
     }
+}
+
+/// D10 (C44-p3#2): BOM rows 13 and 14, the PT 2.5-TWIN terminals placed through their strip, list folio 103 and link
+/// the page whole: the terminals have no representation of their own there.
+#[test]
+fn bl1_the_terminal_rows_link_their_strip_page() {
+    const FOLIOS: usize = 7;
+    let s = common::golden_session();
+    let q = s.query();
+    let rows: BTreeMap<String, TableRow> = block_rows(&q, "901")
+        .into_iter()
+        .map(|r| (r.cells[0].clone(), r))
+        .collect();
+    let p103 = page_destination(page(&q, "103"));
+    for pos in ["13", "14"] {
+        let r = rows.get(pos).unwrap_or_else(|| panic!("no BOM row {pos}"));
+        assert_eq!(r.cells[FOLIOS], "103", "row {pos}");
+        assert_eq!(
+            links_of(r, FOLIOS),
+            [&TableLink::whole(FOLIOS, p103)],
+            "row {pos}"
+        );
+        assert_eq!(
+            targets(&s, &links_of(r, FOLIOS)),
+            [target("103", None)],
+            "row {pos}"
+        );
+    }
+}
+
+/// D10 (C44-p3#2): a folio link never picks a contact image. A contact image of -101F1 on 101 with an ID below every
+/// other representation's leaves the Folios link of -101F1's row on its main representation (101-B8).
+#[test]
+fn bl1_a_folio_link_skips_contact_images() {
+    const FOLIOS: usize = 7;
+    let golden = common::golden_session();
+    let device = *golden_common::tags(&golden)
+        .iter()
+        .find(|(_, t)| t.as_str() == "-101F1")
+        .expect("-101F1")
+        .0;
+    let main = (*golden.query().get::<MainRep>(device)).expect("-101F1 is drawn");
+    let s = golden_common::session_with(&golden_common::batch(), |_, records| {
+        let mut image = records
+            .iter()
+            .find_map(|r| match r {
+                Record::Representation(rep) if rep.id == main => Some(rep.clone()),
+                _ => None,
+            })
+            .expect("-101F1's main representation");
+        image.id = Id::from_uuid(Uuid::from_u128(1));
+        image.rep_type = RepType::ContactImage;
+        records.push(Record::Representation(image));
+    });
+    let q = s.query();
+    let f1 = block_rows(&q, "901")
+        .into_iter()
+        .find(|r| r.cells[6] == "-101F1")
+        .expect("-101F1's row");
+    assert_eq!(f1.cells[FOLIOS], "101");
+    assert_eq!(
+        links_of(&f1, FOLIOS),
+        [&TableLink::whole(
+            FOLIOS,
+            Destination::Representation(main.as_uuid())
+        )]
+    );
+    assert_eq!(
+        targets(&s, &links_of(&f1, FOLIOS)),
+        [target("101", Some("101-B8"))]
+    );
+}
+
+/// D10 (C44-p3#2): a `parts_list` block links each row's device tag to the device's main representation, whole; a
+/// device without one (-UC1, its plate, the terminals) links nothing.
+#[test]
+fn bl3_a_parts_list_links_each_device_to_its_main_representation() {
+    let mut s = common::golden_session();
+    let b = s
+        .query()
+        .report_blocks()
+        .get(golden_common::block(&golden_common::batch(), "910"))
+        .expect("910's block")
+        .clone();
+    run(
+        &mut s,
+        "report_block.create",
+        json!({"source": {"kind": "parts_list"}, "form": json!(b.form), "section": json!(b.section),
+            "first_folio": 915, "title": "Parts List {n}"}),
+    );
+    let q = s.query();
+    let rows = block_rows(&q, "915");
+    assert!(!rows.is_empty());
+    let mut unlinked: Vec<&str> = Vec::new();
+    for r in &rows {
+        if r.links.is_empty() {
+            unlinked.push(r.cells[0].as_str());
+            continue;
+        }
+        let links = links_of(r, 0);
+        assert_eq!(links.len(), r.links.len(), "{}", r.cells[0]);
+        assert_eq!(links.len(), 1, "{}", r.cells[0]);
+        assert_eq!(links[0].span, None, "{}", r.cells[0]);
+        assert!(
+            matches!(links[0].dest, Destination::Representation(_)),
+            "{}",
+            r.cells[0]
+        );
+    }
+    unlinked.dedup();
+    // -UC1 and its plate have no representation, and a terminal has none of its own (its strip draws it).
+    let mut want: Vec<String> = vec!["-UC1".to_owned(), "-UC1-plate".to_owned()];
+    want.extend((1..=20).map(|n| format!("-X1031:{n}")));
+    want.extend((1..=5).map(|n| format!("-X1032:{n}")));
+    assert_eq!(unlinked, want);
+    let f1 = rows
+        .iter()
+        .find(|r| r.cells[0].ends_with("-101F1"))
+        .expect("-101F1's row");
+    assert_eq!(targets(&s, &links_of(f1, 0)), [target("101", Some("101-B8"))]);
 }
 
 /// BL-1, R5: the whole-cell link of -101F1's "101" is on the text, so its box is the text's: on 901 the items that

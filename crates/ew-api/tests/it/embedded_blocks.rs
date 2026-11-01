@@ -10,13 +10,14 @@
 //!   is row 31; the block holds 2 × 20 rows, asserted first)
 //! - `lb8_the_legend_exports_through_the_named_block_path_and_no_default_export_changes`
 //! - `lb9_part_data_on_201_and_202_draws_both_order_codes_with_no_overflow`
+//! - `an_embedded_block_draws_no_back_links` (WP-S3.06 ruling 4)
 //!
 //! Folio 1's byte equality (LB-6) and every other page's (LB-10) are the expected files of `page_output`; LP-5 with the
 //! legend on 902 is `page_output_panel::lp5_…` (a `layout.move` runs no `tables` family).
 
 use crate::{common, golden_common};
 
-use ew_api::output::{RowExport, page_layer, row_export};
+use ew_api::output::{RowExport, page_layer, page_view, row_export};
 use ew_api::{AnyCommand, CmdError, Session};
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_units::{Nm, Pt2, Rect};
@@ -24,11 +25,12 @@ use ew_derive::{PageOrder, PageRef, Q};
 use ew_dl::{DisplayList, ItemKind, Layer};
 use ew_import_tables::ids::record_id;
 use ew_reports::BlockRows;
-use ew_scene::embedded::{EmbeddedTable, boxed_capacity};
+use ew_scene::embedded::{EmbeddedContent, EmbeddedTable, boxed_capacity};
 use ew_scene::forms::SheetMap;
 use ew_scene::page::PageFinding;
 use ew_scene::table::TableColumn;
 use ew_scene::table::TableFinding;
+use ew_scene::table::TableLink;
 use ew_schema::{Bounds, Carrier, Device, Page, Record, ReportBlock, ReportKind, ReportSource};
 use serde_json::{Value, json};
 
@@ -369,4 +371,66 @@ fn lb6_the_tables_layer_does_not_depend_on_record_order() {
         assert_eq!(*la.list, *lb.list, "folio {folio}");
         assert_eq!(la.findings, lb.findings, "folio {folio}");
     }
+}
+
+/// WP-S3.06 ruling 4 (C44-p3#2): an embedded block draws no back-links. `parts_summary`, `toc` and
+/// `structure_overview` blocks embedded on 101 have rows that link (their generated pages draw those links), and their
+/// boxes on 101 draw none.
+#[test]
+fn an_embedded_block_draws_no_back_links() {
+    let batch = golden_common::batch();
+    let kinds = [
+        ReportKind::PartsSummary,
+        ReportKind::Toc,
+        ReportKind::StructureOverview,
+    ];
+    let blocks: Vec<ReportBlock> = kinds
+        .iter()
+        .zip(0i64..)
+        .map(|(kind, n)| {
+            let y = 2_000 + 3_000 * n;
+            fixture_block(
+                10 + u128::try_from(n).expect("a small index"),
+                ReportSource::Kind(kind.clone()),
+                record_id("pages", "101"),
+                printed_rect(1_631, y, 27_727, y + 2_800),
+            )
+        })
+        .collect();
+    let ids: Vec<Id<ReportBlock>> = blocks.iter().map(|b| b.id).collect();
+    let s = golden_common::session_with(&batch, |_, records| {
+        records.extend(blocks.into_iter().map(Record::ReportBlock));
+    });
+    let q = s.query();
+    for (id, kind) in ids.iter().zip(&kinds) {
+        let set = q.get::<BlockRows>(*id);
+        assert!(
+            set.rows.iter().any(|r| !r.links.is_empty()),
+            "{kind:?}'s rows link"
+        );
+    }
+    let entry = q
+        .get::<PageOrder>(())
+        .entries
+        .iter()
+        .find(|e| e.folio == "101")
+        .expect("folio 101")
+        .clone();
+    let view = page_view(&q, &entry);
+    let tables: Vec<&EmbeddedTable> = view
+        .embedded
+        .iter()
+        .filter_map(|e| match &e.content {
+            EmbeddedContent::Table(t) => Some(t),
+            EmbeddedContent::Cover(_) => None,
+        })
+        .collect();
+    let titles: Vec<&str> = tables.iter().map(|t| t.title.as_str()).collect();
+    assert_eq!(titles.len(), 3, "{titles:?}");
+    let links: Vec<(&str, &[TableLink])> = tables
+        .iter()
+        .flat_map(|t| t.rows.iter().map(|r| (t.title.as_str(), r.links.as_slice())))
+        .filter(|(_, links)| !links.is_empty())
+        .collect();
+    assert_eq!(links, []);
 }
