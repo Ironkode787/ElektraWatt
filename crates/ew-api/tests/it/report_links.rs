@@ -58,7 +58,10 @@ fn links_of(row: &TableRow, column: usize) -> Vec<&TableLink> {
 }
 
 /// Where each link goes as the window follows it: the folio and the printed cell.
-fn targets(s: &Session, links: &[&TableLink]) -> Vec<(String, Option<String>)> {
+/// A followed link: the folio and the printed cell.
+type Target = (String, Option<String>);
+
+fn targets(s: &Session, links: &[&TableLink]) -> Vec<Target> {
     let dests: Vec<Destination> = links.iter().map(|l| l.dest).collect();
     s.link_targets(&dests)
         .into_iter()
@@ -69,7 +72,7 @@ fn targets(s: &Session, links: &[&TableLink]) -> Vec<(String, Option<String>)> {
         .collect()
 }
 
-fn target(folio: &str, cell: Option<&str>) -> (String, Option<String>) {
+fn target(folio: &str, cell: Option<&str>) -> Target {
     (folio.to_owned(), cell.map(str::to_owned))
 }
 
@@ -220,7 +223,11 @@ fn bl2_the_toc_and_the_device_tag_overview_link_their_pages_and_devices() {
         .filter(|l| matches!(l.dest, Destination::Cp(_)))
         .count();
     assert_eq!(cp, bound);
-    assert!(plc.iter().flat_map(|r| &r.links).all(|l| l.column == 11 && l.span.is_none()));
+    assert!(
+        plc.iter()
+            .flat_map(|r| &r.links)
+            .all(|l| l.column == 11 && l.span.is_none())
+    );
     assert_eq!(plc.iter().flat_map(|r| &r.links).count(), cp);
 }
 
@@ -266,7 +273,7 @@ fn bl3_the_fixture_blocks_draw_their_links() {
         assert_eq!(targets(&s, &links), [want.clone(), want], "{}", r.cells[0]);
     }
 
-    let strips: Vec<(String, Vec<(String, Option<String>)>)> = block_rows(&q, "913")
+    let strips: Vec<(String, Vec<Target>)> = block_rows(&q, "913")
         .iter()
         .map(|r| (r.cells[0].clone(), targets(&s, &links_of(r, 0))))
         .collect();
@@ -279,14 +286,19 @@ fn bl3_the_fixture_blocks_draw_their_links() {
         ]
     );
 
-    let items: BTreeMap<String, Vec<(String, Option<String>)>> = block_rows(&q, "914")
+    let items: BTreeMap<String, Vec<Target>> = block_rows(&q, "914")
         .iter()
         .map(|r| {
             assert!(r.links.iter().all(|l| l.column == 1 && l.span.is_none()));
             (r.cells[1].clone(), targets(&s, &links_of(r, 1)))
         })
         .collect();
-    let item = |subject: &str| items.get(subject).unwrap_or_else(|| panic!("no open item {subject}")).clone();
+    let item = |subject: &str| {
+        items
+            .get(subject)
+            .unwrap_or_else(|| panic!("no open item {subject}"))
+            .clone()
+    };
     // No page and no device target: no link.
     assert_eq!(item("=P01+J-E-2416-201U1:DP"), []);
     // A page: the page.

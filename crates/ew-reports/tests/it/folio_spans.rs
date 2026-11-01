@@ -47,7 +47,14 @@ fn runs_and_lists_mix_in_page_order() {
     assert_eq!(text, "3, 101–103, x, 901.1");
     assert_eq!(
         spans,
-        [Some(0..1), Some(3..6), None, Some(9..12), Some(14..15), Some(17..22)]
+        [
+            Some(0..1),
+            Some(3..6),
+            None,
+            Some(9..12),
+            Some(14..15),
+            Some(17..22)
+        ]
     );
 }
 

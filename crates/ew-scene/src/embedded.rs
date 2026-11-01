@@ -367,7 +367,16 @@ fn lower_boxed(
                         let s = row.cells.get(c).map_or("", String::as_str);
                         let links: Vec<&TableLink> = row.links.iter().filter(|l| l.column == c).collect();
                         let cell = page_rect(edges[c], ya, edges[c + 1], yb);
-                        push_cell(&mut out, fonts, &text_style, sheet, cell, s, (Some(at), c), &links);
+                        push_cell(
+                            &mut out,
+                            fonts,
+                            &text_style,
+                            sheet,
+                            cell,
+                            s,
+                            (Some(at), c),
+                            &links,
+                        );
                     }
                 }
             }

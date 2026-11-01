@@ -10,9 +10,7 @@ use ew_dl::{Brush, ItemKind, Layer};
 use ew_ids::{Id, Uuid};
 use ew_scene::forms::PageBindings;
 use ew_scene::page::{FrameView, PageFinding, PageKind, PageView, page_display_list, page_scene};
-use ew_scene::table::{
-    HEADER_FILL, TableColumn, TableFinding, TableLink, TableRow, TableRowKind, TableView,
-};
+use ew_scene::table::{HEADER_FILL, TableColumn, TableFinding, TableLink, TableRow, TableRowKind, TableView};
 use ew_schema::{FormDef, LibCopy, LibDocument};
 use ew_text::{builtin, bundled};
 use ew_units::Nm;

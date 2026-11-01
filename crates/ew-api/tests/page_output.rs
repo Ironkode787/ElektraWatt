@@ -32,8 +32,8 @@ use golden_files::{
     frame_json, page_png, text_csv,
 };
 use pdf_support::{
-    EXPECTED_DROPPED_NOTDEF_GLYPHS, pdf_options, pdf_pages, pdf_sha256, report_row_link_count, report_row_links,
-    structure_text, xref_counts,
+    EXPECTED_DROPPED_NOTDEF_GLYPHS, pdf_options, pdf_pages, pdf_sha256, report_row_link_count,
+    report_row_links, structure_text, xref_counts,
 };
 use view::{GoldenPage, builtin_symbol, destination, fonts, golden_pages, golden_session};
 
@@ -190,7 +190,12 @@ fn the_golden_pdf_has_one_link_per_cross_reference_item() {
     )
     .expect("the golden PDF is written");
     assert_eq!(out.report.links, 64 + 28 + rows, "{:?}", out.report);
-    assert_eq!(out.report.links, targets + PLC_ROW_LINKS + rows, "{:?}", out.report);
+    assert_eq!(
+        out.report.links,
+        targets + PLC_ROW_LINKS + rows,
+        "{:?}",
+        out.report
+    );
     assert_eq!(out.report.plain_text_links, 0, "{:?}", out.report);
 }
 
