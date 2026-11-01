@@ -2559,6 +2559,7 @@ pub fn kind_plural(kind: &str) -> String {
     }
 }
 
+// map: command-titles: a new command goes here with its title; then run `-p ew-viewmodel --test blind_reference`.
 /// The human titles of the commands (cycle 35 play-test): what the window says for a command it previews ("Preview of
 /// Place device"), verb first, sentence case. The parameters, the describe text and the scripts keep the command ID.
 const COMMAND_TITLES: &[(&str, &str)] = &[

@@ -217,6 +217,7 @@ pub use terminal::{
 
 use crate::registry::CommandRegistry;
 
+// map: commands: a new command goes in this list as one `register` line, and its title in `COMMAND_TITLES`.
 /// Registers every built-in command: the single list of commands.
 pub fn register_all(r: &mut CommandRegistry) {
     r.register::<CreatePage>();

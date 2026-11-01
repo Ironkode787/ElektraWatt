@@ -990,6 +990,7 @@ fn selection_editable(m: &ShellModel) -> Result<(), &'static str> {
 
 use ActionKind::{Command, View};
 
+// map: actions: a new action goes in this table, in menu order, with its arm in `ShellModel::run_action`.
 /// The registry: the part-1 actions of the spec, section 5.2, in menu order, then the headless-only ones.
 pub static ACTIONS: &[ActionMeta] = &[
     with_params(

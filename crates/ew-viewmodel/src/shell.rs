@@ -1496,6 +1496,7 @@ impl ShellModel {
         outcome
     }
 
+    // map: action-arms: a new action goes in this match as one arm, beside its row in `actions::ACTIONS`.
     /// The body of [`ShellModel::dispatch`] for an enabled action.
     fn run_action(&mut self, id: &'static str, p: &Map<String, Value>) -> Outcome {
         match id {

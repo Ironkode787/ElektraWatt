@@ -20,6 +20,8 @@ use std::path::Path;
 
 use anyhow::Result;
 
+// map: it-modules: a new integration test goes in `tests/it/<name>.rs` of its crate; touch that binary's `main.rs` once.
+// map: separate-tests: a new separate test binary goes in this list, only when a workflow, xtask or nextest names it.
 /// The separate test binaries, per package directory: the only top-level files a `tests/` folder may keep
 /// beside `tests/it/`. Each one is named by binary somewhere else, so it keeps its own binary and name.
 pub const SEPARATE: &[(&str, &[&str])] = &[

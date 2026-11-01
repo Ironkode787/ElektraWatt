@@ -24,6 +24,7 @@ mod governance;
 mod icons;
 mod lane_check;
 mod licence;
+mod map;
 mod ordered;
 mod perf;
 mod plan_counts;
@@ -132,6 +133,12 @@ commands:
                        logs in target/lane-check/, a summary in target/lane-check.json. --plan prints the
                        commands and runs nothing; --only runs one step; --warm builds exactly the nextest step's
                        packages' test binaries (cargo test --no-run)
+  map --crates <a,b,...> [--depth <n>] | map --check
+                       the code map a lane reads before its first edit (.claude/agents/lane.md): per crate its
+                       direct workspace dependencies and dependants, its features, its test binaries, its modules
+                       with their first doc line (--depth limits the directory levels listed) and its markers,
+                       then every marker in the workspace (`// map: <name>: a new <X> goes <where>.` beside a
+                       hand-kept list); --check fails on a malformed, duplicate or misplaced marker
   api-guard [--base <rev>]
                        the API stability guard (NFR-MAINT-10, CI-PR-14, WP-S1.22 D14): compares the published-
                        surface snapshots (the command schemas, bin/ew/api/cli.json, the result schemas, the query
@@ -304,6 +311,7 @@ fn main() -> ExitCode {
         "affected" => affected::run(&args[1..], &workspace_root()),
         "settle" => settle::run(&args[1..], &workspace_root()),
         "lane-check" => lane_check::run(&args[1..], &workspace_root()),
+        "map" => map::run(&args[1..], &workspace_root()),
         "api-guard" => api_guard::run(&args[1..], &workspace_root()),
         "fuzz-smoke-table" => match args.get(1).map(String::as_str) {
             None => workflows::run_fuzz_smoke_table(&workspace_root(), false),

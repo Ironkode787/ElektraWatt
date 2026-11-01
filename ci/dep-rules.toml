@@ -31,6 +31,7 @@
 # ew-testids, the seeded ID source of the tests (doc 18 §2.2), likewise.
 banned_crates = ["egui_mcp", "ew-testids"]
 
+# map: dep-rules: a new workspace crate goes in [layers] and [allowed_edges], with its edges from 04-architecture §3.
 [layers]
 # MIT OR Apache-2.0; closed under dependencies (ADR-0024 decision 2).
 permissive = [

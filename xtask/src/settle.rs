@@ -186,6 +186,7 @@ const GOLDEN_LIST: &str = "docs/plan/gate-records/golden-change-list.md";
 const SELFTEST_RECORDING: &str = "tools/blind/recordings/selftest/**";
 const SELFTEST_VISUAL_RECORDING: &str = "tools/blind/recordings/selftest-visual/**";
 
+// map: settle-steps: a new generated file or upkeep step goes in this table, in order, with triggers and outputs.
 /// The steps in their order: rustfmt, the command schemas, the CLI schemas, the rule catalogue, the keymaps, the
 /// blind reference, the CLI, `api_v1` and query snapshots, `docs-gen`, `gen-icons`, the clippy list, the fuzz table, the golden change list and the two
 /// self-tests; then the checks; then the review gates of `--merge`.

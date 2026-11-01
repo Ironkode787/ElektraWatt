@@ -16,7 +16,9 @@ how every lane works.
 2. Read in this order, and only as far as you need:
    - the brief;
    - the spec sections it cites: find the heading with Grep and Read that range, not the whole spec;
-   - the hand-off note and the code map, if the brief names them;
+   - the hand-off note, if the brief names one;
+   - the code map: `cargo xtask map --crates <set>` (your package set; `--depth 2` lists the files of
+     subdirectories with their doc lines too);
    - the code you will change.
 
    Read large files by range: Grep for the item first. Do not re-read a file you already have unless it changed.
@@ -78,14 +80,9 @@ No performance tests and no timing assertions (owner's rule).
 
 ## Shared lists (kept by hand until the redesign removes them)
 
-The code map lists these with "where a new X goes", once it exists:
-- **A new integration-test file:** `tests/it/<name>.rs`; `automod::dir!` declares it. Touch `tests/it/main.rs` once so
-  cargo rebuilds the binary. Only the binaries in `SEPARATE` in `xtask/src/test_layout.rs` stay separate.
-- **A new command:** its title in `COMMAND_TITLES` in `crates/ew-viewmodel/src/strings.rs`. Then run
-  `-p ew-viewmodel --test blind_reference`.
-- **A new describe word:** its list in `crates/ew-viewmodel/src/describe.rs`.
-- **A new action:** its row in `crates/ew-viewmodel/src/actions.rs`, and its arm in `run_action` in
-  `crates/ew-viewmodel/src/shell.rs`.
+`cargo xtask map` prints them in its section "Shared lists still kept by hand", each with where a new item goes. Each
+comes from a marker: one comment line above the registry, `// map: <name>: a new <X> goes <where and how>.` (`#` in
+TOML). When you add a hand-kept list, add its marker; `cargo xtask map --check` keeps the markers honest.
 
 ## Self-check
 
