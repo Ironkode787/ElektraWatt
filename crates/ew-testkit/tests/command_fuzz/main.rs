@@ -533,7 +533,8 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
                     Post::Check(_) => {}
                 }
             }
-            // The undo law. A non-undoable command (`project.assets.purge`) never moves the revision: exempt.
+            // The undo law. A non-undoable command is exempt: `project.assets.purge` is a marker that never moves
+            // the revision, and `revision.release` moves it but is never undone (a released revision is immutable).
             if changed && undoable {
                 undo_law(session, &before.model, &after.model).map_err(|e| format!("`{}`: {e}", c.name))?;
                 stats.undo_laws += 1;
@@ -664,8 +665,8 @@ pub fn run_fuzz_with(seed: u64, steps: usize, cadence: &Cadence) -> FuzzStats {
 /// The run of the cargo-fuzz target (`fuzz/`, FT-297, FT-272), which includes this module: the random source is
 /// the seeded stream mixed with the bytes of the fuzzer's input ([`SplitMix64::with_tape`]), so that the
 /// coverage-guided mutation of the input steers the draws. `seed` is the identity of the run (the ID source, the
-/// scratch directory, the failure text). Not used by the tests of this crate.
-#[allow(dead_code)]
+/// scratch directory, the failure text). The tests use it for the seeded fault of the determinism check
+/// (`the_determinism_check_fails_on_a_perturbed_run`).
 pub fn run_fuzz_tape(seed: u64, tape: &[u8], steps: usize, cadence: &Cadence) -> FuzzStats {
     run_fuzz_rng(seed, SplitMix64::with_tape(seed, tape), steps, cadence)
 }
@@ -1182,6 +1183,30 @@ fn the_determinism_check_fails_on_a_perturbed_run() {
     assert!(err.starts_with("step "), "{err}");
 }
 
+/// The determinism check compares the final models too: two runs with the same outcome list whose final models
+/// differ by content (a page more in one) fail it with its own words, and equal ones pass.
+#[test]
+fn the_determinism_check_fails_on_equal_outcomes_with_different_final_models() {
+    let mut session = open_session_with(10, MemoMode::On);
+    let before = session.world().model;
+    let cmd = AnyCommand {
+        name: "page.create".to_owned(),
+        params: serde_json::json!({"number": 10_002, "kind": "multi_line", "title": "FZ"}),
+    };
+    session.execute(&cmd).expect("a page of no section commits");
+    let after = session.world().model;
+    let run = |model: &Model| FuzzStats {
+        outcomes: vec!["#undo => undo refused".to_owned()],
+        final_model: Some(model.clone()),
+        ..FuzzStats::default()
+    };
+    assert_eq!(same_run(&run(&before), &run(&before)), Ok(()));
+    assert_eq!(
+        same_run(&run(&before), &run(&after)),
+        Err("the final models differ".to_owned())
+    );
+}
+
 /// Every hand arm builds steps on Golden A that the model commits (a dead arm covers nothing), at several seeds,
 /// without the fuzz loop around it; the invariants and the remaining verdicts hold for every step ([`apply`]). Each
 /// committed step is undone, so every attempt starts from the golden project. An arm of [`arms::SESSION_REFUSES`]
@@ -1248,8 +1273,9 @@ fn every_arm_commits_on_golden_a() {
             .line();
             let applied = apply(&mut session, &c, &mut stats)
                 .unwrap_or_else(|e| panic!("arm `{}` attempt {attempt}: {e}\nstep: {line}", arm.command));
-            // A non-undoable command (`project.assets.purge`) never moves the revision: its committed marker line
-            // counts.
+            // A non-undoable command's commit counts whether or not it moved the revision: `project.assets.purge`
+            // commits a marker line that never moves it, `revision.release` (which no submit path commits) would
+            // move it.
             let marker = session.registry().get(c.name).is_some_and(|e| !e.meta().undoable);
             if marker && applied.ok {
                 committed += 1;

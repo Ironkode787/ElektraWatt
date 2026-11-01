@@ -15,8 +15,9 @@
 //!
 //! The arm knows no command rule, so its steps carry [`super::step::Verdict::Either`]: the command decides, and
 //! the fuzzer's invariants (no panic, all or nothing, the undo law, determinism) hold whatever it decides.
-//! Memory and time stay bounded: arrays get at most two items beyond their minimum, optional members are dropped
-//! below a nesting depth of [`SHALLOW`], and no value nests deeper than [`MAX_DEPTH`].
+//! Memory and time stay bounded: an array gets at most three items beyond its minimum (and none beyond
+//! `max(minItems, 1)` at a nesting depth of [`SHALLOW`] or more), optional members are dropped at that depth, and
+//! no value nests deeper than [`MAX_DEPTH`].
 
 use ew_commands::CommandRegistry;
 use serde_json::{Map, Value, json};
@@ -28,7 +29,9 @@ use super::step::Step;
 /// together).
 pub const WEIGHT: usize = 1;
 
-/// Below this nesting depth, an object gets only its required members and an array only its minimum length.
+/// At this nesting depth or deeper, an object gets only its required members and a map no entry beyond its
+/// minimum; an array gets its minimum length, except that an array of no minimum gets one item two times in three
+/// (and none the third).
 const SHALLOW: usize = 6;
 
 /// The deepest value the generator builds.

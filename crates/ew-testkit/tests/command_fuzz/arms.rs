@@ -1433,10 +1433,15 @@ fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 params(&at, fragment(vec![foreign], page.grid)),
             ))
         }
-        4 => Some(Step::cmd(
-            "edit.paste",
-            params(&at, fragment(vec![device.clone(), rep.clone()], page.grid)),
-        )),
+        // Refused: a representation whose function is in neither the fragment nor the project (a dangling
+        // mandatory reference).
+        4 => Some(
+            Step::cmd(
+                "edit.paste",
+                params(&at, fragment(vec![device.clone(), rep.clone()], page.grid)),
+            )
+            .refuse(),
+        ),
         5 => {
             // The marker names a connection that is in neither the fragment nor the project: the reference is
             // cleared, the marker is left out, and the paste still commits.
@@ -5239,13 +5244,14 @@ fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 json!({"copies": [c], "cp_maps": [{"copy": held, "map": map}]}),
             ))
         }
-        // FT-640: the new version names a manufacturer the project does not hold and the command does not embed.
+        // Refused (FT-640): the new version names a manufacturer that is a fresh UUID, which the project does not
+        // hold and the command does not embed (a dangling reference).
         6 => {
             let mut t = template.clone();
             t["version"] = json!("9.0.0");
             t["manufacturer"]["item"] = json!(rng.uuid());
             let c = relineaged(&t, &library, &item)?;
-            Some(cmd(json!({"copies": [c]})))
+            Some(cmd(json!({"copies": [c]})).refuse())
         }
         _ => {
             let minor = rng.below(50);
