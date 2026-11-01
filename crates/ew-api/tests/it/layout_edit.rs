@@ -732,10 +732,11 @@ fn a_library_enclosure_part_is_offered_with_its_plate_and_creates_the_enclosure(
         .iter()
         .map(|o| (o.number.as_str(), o.copies.len()))
         .collect();
-    // The library's enclosure by its part number (the starter's enclosure is offered too, below, ID-1109).
+    // The library's enclosure by its part number: the project's held copy of it has no copies, so the offer with its
+    // copies is the library's (the starter's enclosure is offered too, below, ID-1109).
     let library = offers
         .iter()
-        .find(|o| o.number == "NSYPLA1074G")
+        .find(|o| o.number == "NSYPLA1074G" && !o.copies.is_empty())
         .unwrap_or_else(|| panic!("the library's enclosure: {numbers:?}"))
         .clone();
     assert_eq!(library.number, "NSYPLA1074G");
