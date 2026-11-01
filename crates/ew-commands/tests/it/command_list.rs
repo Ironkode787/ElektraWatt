@@ -23,18 +23,44 @@ fn listed(mod_rs: &str) -> BTreeSet<String> {
         .collect()
 }
 
+/// Whether `c` continues an identifier.
+fn ident_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
+}
+
+/// The byte offsets of `word` in `text` as a whole word (no identifier character on either side).
+fn word_at(text: &str, word: &str) -> Vec<usize> {
+    text.match_indices(word)
+        .map(|(at, _)| at)
+        .filter(|&at| {
+            !text[..at].chars().next_back().is_some_and(ident_char)
+                && !text[at + word.len()..].chars().next().is_some_and(ident_char)
+        })
+        .collect()
+}
+
+/// The type a line implements `Command` for, in any spelling: `impl Command for X`, `impl crate::Command for X`,
+/// `impl<T: Bound> super::Command for X<T>` (the pattern `\bimpl\b[^{]*\bCommand\s+for\s+(\w+)`).
+fn impl_command_type(line: &str) -> Option<String> {
+    let start = *word_at(line, "impl").first()?;
+    let head = line[start..].split('{').next().unwrap_or_default();
+    word_at(head, "Command").into_iter().find_map(|at| {
+        let rest = head[at + "Command".len()..].strip_prefix(char::is_whitespace)?;
+        let rest = rest.trim_start().strip_prefix("for")?;
+        let rest = rest.strip_prefix(char::is_whitespace)?.trim_start();
+        let ty: String = rest.chars().take_while(|&c| ident_char(c)).collect();
+        (!ty.is_empty()).then_some(ty)
+    })
+}
+
 /// The failure texts of the types that implement `Command` in `files` (path, source) but are not in `list`.
 fn unlisted(files: &[(String, String)], list: &BTreeSet<String>) -> Vec<String> {
     let mut out = Vec::new();
     for (path, source) in files {
         for line in source.lines() {
-            let Some(rest) = line.trim_start().strip_prefix("impl Command for ") else {
+            let Some(ty) = impl_command_type(line) else {
                 continue;
             };
-            let ty: String = rest
-                .chars()
-                .take_while(|c| c.is_alphanumeric() || *c == '_')
-                .collect();
             if !list.contains(&ty) {
                 out.push(format!(
                     "{path}: {ty} implements Command but commands! does not list it"
@@ -104,5 +130,24 @@ fn an_unlisted_command_type_is_named_with_its_file() {
     assert_eq!(
         unlisted(&files, &list),
         ["src/commands/page.rs: RenamePage implements Command but commands! does not list it"]
+    );
+    // Every spelling of the impl: a path to the trait, a generic impl, a nested one; never another trait.
+    let files = vec![(
+        "src/commands/device/mod.rs".to_owned(),
+        "impl crate::Command for PathTrait {\n}\n\
+         impl super::Command for DeletePages {\n}\n\
+         impl<T: Clone> Command for Generic<T> {\n}\n\
+         \x20   impl<'a> crate::command::Command  for  Nested<'a> where 'a: 'static {}\n\
+         impl DynCommand for NotACommand {\n}\n\
+         impl CommandLike for NotEither {\n}\n"
+            .to_owned(),
+    )];
+    assert_eq!(
+        unlisted(&files, &list),
+        [
+            "src/commands/device/mod.rs: PathTrait implements Command but commands! does not list it",
+            "src/commands/device/mod.rs: Generic implements Command but commands! does not list it",
+            "src/commands/device/mod.rs: Nested implements Command but commands! does not list it",
+        ]
     );
 }
