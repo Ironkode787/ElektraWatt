@@ -381,19 +381,22 @@ every other exported byte equal. *Added in cycle 41 (the window check W41a, ID-9
 
 **Rulings** (cycle 44, project owner (delegated), ID-1081; code lines at `d9f50aa5`):
 1. **Row 26's tags** print in ID-9's order, `-X1031, -X1032, 1X1`; AC-07 keeps that one accepted difference. Its pass
-   text reads "1 accepted difference (row 26: its tags in the ID-9 sign order)": the format at
-   `crates/ew-api/tests/acceptance/checks.rs:872` (`"{accepted} accepted differences"`) gains the singular.
+   text reads "1 accepted difference (row 26: its tags in the ID-9 sign order)": `AC07_ACCEPTED`
+   (`crates/ew-api/tests/acceptance/checks.rs:860`) drops its folio entry, and the format at `:872`
+   (`"… {accepted} accepted differences (row 26: folio 902, …"`) gains the singular.
 2. **Folios per line.** A `GroupAccessory` line contributes the panel pages whose surface view shows the surfaces of
    the rails holding its brackets, and none of its device's representation pages; `BomRows` adds every device's
    representation pages today (`bom.rs:359-364`). Its device's tag stays in the row. A row of both kinds prints the
    union in page order: with R2's strips placed, row 26 prints `902`; with -X1032's placement removed, `103, 902`.
 3. **Assembly mode** reads the same lines: `bom_assembly`'s row 20 follows.
 4. **One truth.** Every consumer of `DevicePartLines` follows the derived quantity. `device_list`'s Parts cell keeps
-   `LineSource::Device` lines only (`device_list.rs:109-111`); it keeps `GroupAccessory` lines too, so 1X1, whose only
-   part use is its end bracket (`golden/J-E-2416/tables/devices.csv:63`), still lists "TBD".
-5. **EW-LAY-010's bracket cases.** A finding's discriminator is its form plus the bracket's start on the rail in nm:
-   `lay010` passes the form alone (`crates/ew-checks/src/rules/layout.rs:934`) and the fingerprint is rule, targets and
-   discriminator (`finding.rs:166-183`), so two brackets of one strip would collide. The en-GB texts:
+   only `LineSource::Device` lines today (`device_list.rs:111`, `.filter(|l| l.source == LineSource::Device)`); it
+   also keeps `GroupAccessory` lines, so 1X1, whose only part use is its end bracket
+   (`golden/J-E-2416/tables/devices.csv:63`), still lists "TBD".
+5. **EW-LAY-010's bracket cases.** A finding targets the attributed strip and its placement, and its subject is the
+   strip. Its discriminator is its form plus the bracket's start on the rail in nm: `lay010`
+   (`crates/ew-checks/src/rules/layout.rs:925`) passes the form alone (`:930`), and the fingerprint is rule, targets
+   and discriminator (`finding.rs:166-183`), so two brackets of one strip would collide. The en-GB texts:
    - "The end bracket after -X1031 overlaps -X1032 on rail 2." (a bracket attributed after a strip; another
      placement is named by its device, another bracket by "the end bracket after <strip>");
    - "The end bracket before 1X1 overlaps -102F9 on rail 2." (a run-start bracket);
@@ -405,13 +408,15 @@ every other exported byte equal. *Added in cycle 41 (the window check W41a, ID-9
    ending at L = 570 mm is no overflow (`o.s1 > axis.length`, `layout.rs:1085`). Growing -X1031, as EB-4 says, would
    overlap -X1032 first.
 7. **EB-3's capacity:** 902's legend block holds 2 × 20 rows by arithmetic (`report_blocks.csv:14`, a row of 6.52 mm;
-   not run). A test asserts `boxed_capacity` ≥ 31 first. The tests that pin Golden A's 30 legend rows follow to 31:
-   `crates/ew-api/tests/it/golden_layout_bom.rs:230-232`, `embedded_blocks.rs:198`, `:203`, `reports_golden.rs:574`.
+   not run). A test asserts `boxed_capacity` ≥ 31 first. The tests that pin Golden A's 30 legend rows follow by one
+   row: `crates/ew-api/tests/it/golden_layout_bom.rs:230-232`, `embedded_blocks.rs:160` (`21..=30`), `:186`
+   (`21..=31` with F55 placed), `:198`, `:203`, `reports_golden.rs:574`.
 8. **The golden change** (EB-5): `expected/rows/901.csv` and `csv/bom_parts.csv` (row 26's folios); `rows/901.assembly.csv`
    and `csv/bom_assembly.csv` (row 20's); `text/901.1.csv` and `png/901.1.png` (that cell); `text/902.csv` and
    `png/902.png` (R2's brackets, the legend's row 31); `pdf/sha256.txt`; `acceptance_headless.md` AC-07 (:20, :21),
    D-04 (:68), AC-13 (:35) and AC-14 (:50) for the glyph runs and the SVG digest, AC-16 (:60) only in its key count;
-   the golden change list by `settle`. Nothing else moves.
+   the golden change list by `settle`. Nothing else moves. No memo family is added: `DevicePartLines` reads the
+   existing `GroupAccessories` family, so AC-16's "90 memoised families" stays.
 9. **FT-942 is this part's:** the doc comments of `next_fit` (`snap.rs:188-189`) and of `resolve`'s Free item
    (`:269-271`) overstate the gap rule: free mode keeps the minimum gap to the previous item only, and an earlier item
    that ends later is cleared by `max_s1` (`free`, `:321-353`) without its pad or bracket. Comments only.
