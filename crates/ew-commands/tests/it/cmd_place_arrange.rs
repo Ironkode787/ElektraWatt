@@ -1898,8 +1898,26 @@ fn check_routes(
     Ok(())
 }
 
+/// The case count of [`route_ends_stay_on_their_connection_points`]: `PROPTEST_CASES` when it is set, else 64 (an
+/// explicit `cases` hides the variable, which proptest reads only into its default).
+// ID-1106 (FT-1029): "the property keeps its failures, takes its case count from `PROPTEST_CASES` when set".
+fn follow_cases() -> u32 {
+    std::env::var("PROPTEST_CASES")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(64)
+}
+
 proptest! {
-    #![proptest_config(ProptestConfig { cases: 64, failure_persistence: None, ..ProptestConfig::default() })]
+    // ID-1106 (FT-1029): the failures persist in the crate's `proptest-regressions/` (the working directory of a test
+    // is its package's directory) and are re-run first.
+    #![proptest_config(ProptestConfig {
+        cases: follow_cases(),
+        failure_persistence: Some(Box::new(proptest::test_runner::FileFailurePersistence::Direct(
+            "proptest-regressions/tests/it/cmd_place_arrange.txt",
+        ))),
+        ..ProptestConfig::default()
+    })]
 
     /// FT-423: after any `rep.move` (by `delta` or by `steps`), `rep.transform` or `rep.exchange_symbol`, every
     /// stored route still starts and ends on its connection points (the far end of a two-vertex route is never
@@ -1926,6 +1944,44 @@ proptest! {
             prop_assert_eq!(check_routes(&e, &orthogonal), Ok(()), "after {:?}", op);
         }
     }
+}
+
+/// FT-1029, the shrunk case of [`route_ends_stay_on_their_connection_points`] (kept in `proptest-regressions/`): the
+/// move of `REP_102G1` brings its CP onto the CP of `REP_T1` at the other end of the straight wire; the step of
+/// `REP_T1` that follows moves only that wire's end `a`, and end `b` stays on its CP.
+#[test]
+fn a_route_whose_ends_met_moves_one_end_only() {
+    let mut e = engine(follow_model([(2, 2), (13, 28), (19, 28)], [0, 0, 0]));
+    e.execute(&MoveReps {
+        items: Vec::new(),
+        reps: vec![REP_102G1],
+        delta: pt(-2 * G, 0),
+        page: None,
+        steps: None,
+    })
+    .unwrap();
+    let met = row(&e, CON_P3).route.clone();
+    assert_eq!((met.len(), met[0]), (2, met[1]), "the two ends meet: {met:?}");
+    e.execute(&steps_cmd(vec![REP_T1], [0, 1])).unwrap();
+    let orthogonal = [CON_P1, CON_P2, CON_P3].into_iter().collect();
+    assert_eq!(check_routes(&e, &orthogonal), Ok(()));
+    assert_eq!(row(&e, CON_P3).route.last(), Some(&met[1]), "end b stays");
+}
+
+/// FT-1029 at the geometry: a one-vertex route whose end `a` moves gets its end `b` back where it was; a route whose
+/// ends meet leaves along an L when one end moves on both axes.
+#[test]
+fn ends_that_meet_stay_two_vertices_and_leave_along_an_l() {
+    let at = pt(10 * G, 10 * G);
+    let mut one = vec![at];
+    ew_commands::geometry::follow_ends(&mut one, grid(), Some(pt(G, 0)), None).unwrap();
+    assert_eq!(one, [pt(11 * G, 10 * G), at]);
+    let mut met = vec![at, at];
+    ew_commands::geometry::follow_ends(&mut met, grid(), None, Some(pt(G, 2 * G))).unwrap();
+    assert_eq!(met, [at, pt(11 * G, 10 * G), pt(11 * G, 12 * G)]);
+    let mut back = vec![pt(11 * G, 10 * G), at];
+    ew_commands::geometry::follow_ends(&mut back, grid(), Some(pt(-G, 0)), None).unwrap();
+    assert_eq!(back, [at, at], "the ends meet and stay two");
 }
 
 #[test]

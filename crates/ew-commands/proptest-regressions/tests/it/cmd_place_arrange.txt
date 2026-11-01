@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Seeds for failure cases proptest has generated in the past. It is automatically read and these particular
+# cases re-run before any novel cases are generated.
+cc 7a66343968d016d65f36200446f6c0b120e85b8535db7440e3d47f3cebb8a6ce # shrinks to at = [(2, 2), (13, 28), (19, 28)], shapes = [0, 0, 0], ops = [Delta([Id(00000000-0000-0000-0000-000000000301)], [-15875000, 0]), Steps([Id(00000000-0000-0000-0000-000000000305)], [0, 1])]

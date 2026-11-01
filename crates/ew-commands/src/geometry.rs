@@ -244,8 +244,9 @@ pub fn split_route(route: &[Pt2], at: Pt2) -> Option<(Vec<Pt2>, Vec<Pt2>)> {
 ///   dog-leg is inserted: two vertices at the grid coordinate nearest the middle between the moved end and the
 ///   neighbour, so the end's segment leaves along its old axis and meets the neighbour along it.
 ///
-/// A segment that was neither horizontal nor vertical keeps only its moved end. Consecutive equal vertices are
-/// merged. On [`OutOfRange`] the route is unchanged.
+/// A segment that was neither horizontal nor vertical keeps only its moved end; one without length (both ends of the
+/// route at one point) leaves along an L when the end moves on both axes. Consecutive equal vertices are merged, but a
+/// route keeps two vertices, its two ends, also where they meet (FT-1029). On [`OutOfRange`] the route is unchanged.
 pub fn follow_end(route: &mut Vec<Pt2>, grid: Grid, at_start: bool, delta: Pt2) -> Result<(), OutOfRange> {
     if at_start {
         follow_ends(route, grid, Some(delta), None)
@@ -268,6 +269,11 @@ pub fn follow_ends(
     match (da, db) {
         (Some(a), Some(b)) if a == b => translate(&mut next, a)?,
         _ => {
+            // FT-1029: a route whose two ends met (stored as one vertex) gets its second end back before one end
+            // moves, else the far end would move with it.
+            if next.len() == 1 {
+                next.push(next[0]);
+            }
             if let Some(a) = da {
                 follow_start(&mut next, grid, a)?;
             }
@@ -277,6 +283,10 @@ pub fn follow_ends(
                 next.reverse();
             }
             next.dedup();
+            // The ends stay two vertices where they meet (FT-1029).
+            if next.len() == 1 {
+                next.push(next[0]);
+            }
         }
     }
     *route = next;
@@ -299,6 +309,13 @@ fn follow_start(route: &mut Vec<Pt2>, grid: Grid, d: Pt2) -> Result<(), OutOfRan
         return Ok(());
     }
     let nb = route[1];
+    if old == nb {
+        // An end segment without length (FT-1029): the end leaves the neighbour along an L, never diagonally.
+        if new.x != nb.x && new.y != nb.y {
+            route.insert(1, Pt2::new(new.x, nb.y));
+        }
+        return Ok(());
+    }
     let horizontal = old.y == nb.y && old.x != nb.x;
     let vertical = old.x == nb.x && old.y != nb.y;
     let keeps = (horizontal && new.y == nb.y) || (vertical && new.x == nb.x);
