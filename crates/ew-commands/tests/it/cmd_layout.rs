@@ -39,6 +39,7 @@ const ITEM_MCB: u128 = 0xd005;
 const ITEM_MCB_WIDE: u128 = 0xd006;
 const ITEM_ACC: u128 = 0xd007;
 const ITEM_G_RAIL: u128 = 0xd008;
+const ITEM_LABEL: u128 = 0xd009;
 
 /// The enclosure device (-UC1), its plate child, two MCBs, a G-rail device, a second enclosure device (-UC20, no
 /// plate child) and an empty location.
@@ -48,6 +49,8 @@ const DEV_K1: Id<Device> = id(0xa02);
 const DEV_K2: Id<Device> = id(0xa03);
 const DEV_K3: Id<Device> = id(0xa04);
 const DEV_UC2: Id<Device> = id(0xa05);
+/// A device whose uses are an accessory on its parent, a label that does not mount and a TS 35 MCB.
+const DEV_K4: Id<Device> = id(0xa06);
 const LOC_206: Id<StructureNode> = id(0xa10);
 
 fn copy_id(item: u128) -> Id<Part> {
@@ -108,7 +111,12 @@ fn copies() -> Vec<LibCopy<Part>> {
         c
     };
     let device = |item, m: MechData| {
-        let mut c = copy(item, "DEV");
+        let number = match item {
+            ITEM_ACC => "ACC-9",
+            ITEM_LABEL => "LBL-1",
+            _ => "DEV",
+        };
+        let mut c = copy(item, number);
         c.item.mech = Some(m);
         c
     };
@@ -121,6 +129,7 @@ fn copies() -> Vec<LibCopy<Part>> {
         device(ITEM_MCB_WIDE, mech(MountKind::Ts35x7_5, 36, 90)),
         device(ITEM_ACC, mech(MountKind::OnParent, 9, 45)),
         device(ITEM_G_RAIL, mech(MountKind::Ts32, 12, 60)),
+        device(ITEM_LABEL, mech(MountKind::None, 20, 10)),
     ]
 }
 
@@ -140,7 +149,9 @@ fn model() -> Model {
     k3.parts = uses(&[ITEM_G_RAIL]);
     let mut uc2 = device(DEV_UC2, "UC", 20);
     uc2.parts = uses(&[ITEM_ENCL]);
-    records.extend([uc1, plate, k1, k2, k3, uc2].map(Record::Device));
+    let mut k4 = device(DEV_K4, "K", 4);
+    k4.parts = uses(&[ITEM_ACC, ITEM_LABEL, ITEM_MCB]);
+    records.extend([uc1, plate, k1, k2, k3, uc2, k4].map(Record::Device));
     records.push(Record::StructureNode(structure_node(
         LOC_206,
         Aspect::Location,
@@ -398,7 +409,8 @@ fn lm3_an_enclosure_brings_its_plate() {
     }));
     assert_eq!(
         second,
-        "the layout space already has enclosure -?UC1; a layout space has one enclosure"
+        "the layout space already has enclosure -?UC1; a layout space has one enclosure. \
+         Choose another layout space, or edit -?UC1"
     );
     assert_eq!(e.history().cursor(), 2, "one step each");
 }
@@ -627,6 +639,62 @@ fn lm5_placement_refusals() {
     explicit.part = Some(copy_id(ITEM_MCB));
     let k2: Id<Placement> = created(e.execute(&explicit).unwrap());
     assert_eq!(get(&e, k2).unwrap().part, Some(PartRef::new(copy_id(ITEM_MCB))));
+}
+
+/// ID-1106 (FT-1031): "a part whose mount kind is `none` or `on_parent` is refused on a surface by `layout.place`,
+/// `layout.move` and `layout.place_assembly`, \"Part {part number} does not mount on a surface; choose a part that
+/// mounts on it.\"". `layout.place_assembly` takes a rail only ("An assembly is placed on a rail.", pinned in
+/// `cmd_layout_assembly`), so a surface never reaches its fit. A mounting part still fits the surface.
+#[test]
+fn a_part_that_does_not_mount_is_refused_on_a_surface() {
+    let Layout {
+        mut e, surface, rail, ..
+    } = layout();
+    let on_plate = Pose3 {
+        t: [Nm(300 * MM), Nm(100 * MM), Nm(0)],
+        q: Quat9::IDENTITY,
+    };
+    for (item, number) in [(ITEM_LABEL, "LBL-1"), (ITEM_ACC, "ACC-9")] {
+        let mut cmd = place(DEV_K4, PlaceOnParam::Surface(surface), on_plate);
+        cmd.part = Some(copy_id(item));
+        assert_eq!(
+            rejected(e.execute(&cmd)),
+            format!("Part {number} does not mount on a surface; choose a part that mounts on it.")
+        );
+    }
+    // without a part, the placement realises the first use that mounts: the MCB
+    let start = e.history().cursor();
+    let k4: Id<Placement> = created(
+        e.execute(&place(DEV_K4, PlaceOnParam::Surface(surface), on_plate))
+            .unwrap(),
+    );
+    assert_eq!(get(&e, k4).unwrap().part, Some(PartRef::new(copy_id(ITEM_MCB))));
+    for (item, number) in [(ITEM_LABEL, "LBL-1"), (ITEM_ACC, "ACC-9")] {
+        let moved = rejected(e.execute(&MovePlacement {
+            placement: k4,
+            carrier: None,
+            pose: on_plate,
+            mode: None,
+            part: Some(copy_id(item)),
+        }));
+        assert_eq!(
+            moved,
+            format!("Part {number} does not mount on a surface; choose a part that mounts on it.")
+        );
+    }
+    let mut mcb = place(DEV_K1, PlaceOnParam::Surface(surface), on_plate);
+    mcb.part = Some(copy_id(ITEM_MCB));
+    created::<Placement>(e.execute(&mcb).unwrap());
+    // the move's own fit still holds on a rail: the MCB moves onto the TS 35 rail
+    e.execute(&MovePlacement {
+        placement: k4,
+        carrier: Some(PlaceOnParam::Carrier(rail)),
+        pose: at(100),
+        mode: None,
+        part: None,
+    })
+    .unwrap();
+    assert_eq!(e.history().cursor(), start + 3, "the refusals took no step");
 }
 
 /// LM-6: deleting a placed device removes its placement in the same transaction, listed in the preview; an occupied

@@ -596,8 +596,8 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
 /// The part copies of the device's part uses that the Realised part row offers for a placement on `on`: D12's
 /// mountable uses (C44-p2#3), those whose part mounts (a mount kind other than `none` and `on_parent`) or has no mount
 /// kind (an unknown footprint), and on a rail only those whose mount kind the rail's profile does not refuse.
-/// `layout.move {part}` is looser (C44-p4#5): on a surface it also takes a `none` or `on_parent` part use, since its
-/// fit judges only a rail's profile.
+/// `layout.move {part}` judges the same (ID-1106, FT-1031): on a surface it refuses a `none` or `on_parent` part use, so
+/// the row offers mounting parts only.
 fn mountable_uses(q: &Q, device: &Device, on: &CarrierRef) -> Vec<Id<Part>> {
     let profile = match on {
         CarrierRef::Carrier(c) => q.table::<Carrier>().get(*c).and_then(|c| match &c.params {

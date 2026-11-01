@@ -270,7 +270,8 @@ fn ps1_create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosu
     };
     assert_eq!(
         message,
-        "Location +J-E-2416 already has enclosure -UC1; a location has one enclosure."
+        "Location +J-E-2416 already has enclosure -UC1; a location has one enclosure. \
+         Choose another location, or edit -UC1."
     );
     let Some(Dialog::Form(form)) = s.dialog() else {
         panic!("the dialog stays")

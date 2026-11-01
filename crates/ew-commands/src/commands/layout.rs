@@ -276,13 +276,29 @@ fn target(tx: &TxBuilder<'_>, name: &'static str, at: &str, on: CarrierRef) -> R
 }
 
 /// Refuses a part whose mount kind does not fit the target rail's profile (doc 12 §3.3: "-102F1 (TS 35) does not fit a
-/// TS 32 rail"). A part without a mount kind, a strip and a partless device are not judged here.
+/// TS 32 rail"), and on a surface a part that mounts on its parent or not at all (ID-1106, FT-1031). A part without a
+/// mount kind, a strip and a partless device are not judged here.
 fn check_fit(
     tx: &TxBuilder<'_>,
     device: Id<Device>,
     part: Option<&PartRef>,
     target: &Target,
 ) -> Result<(), CmdError> {
+    if matches!(target.on, PoseOn::Surface) {
+        let copy = part.and_then(|p| part_copy(tx, p.copy));
+        if let Some(copy) = copy.filter(|c| {
+            c.item
+                .mech
+                .as_ref()
+                .and_then(|m| m.mount_kind.as_ref())
+                .is_some_and(|k| matches!(k, MountKind::None | MountKind::OnParent))
+        }) {
+            return tx.reject(format!(
+                "Part {} does not mount on a surface; choose a part that mounts on it.",
+                copy.item.part_number.as_str()
+            ));
+        }
+    }
     let Some(profile) = &target.profile else {
         return Ok(());
     };
@@ -609,9 +625,11 @@ impl Command for CreateEnclosure {
             ));
         };
         if let Some(first) = tx.iter::<Enclosure>().into_iter().find(|e| e.space == self.space) {
+            // ID-1106 (FT-1033): the refusal names the next step, as the location's does.
+            let tag = tag(tx, first.device);
             return tx.reject(format!(
-                "the layout space already has enclosure {}; a layout space has one enclosure",
-                tag(tx, first.device)
+                "the layout space already has enclosure {tag}; a layout space has one enclosure. \
+                 Choose another layout space, or edit {tag}"
             ));
         }
         let Some(section) = device
@@ -2509,10 +2527,13 @@ impl Command for CreateEnclosureFromPart {
                     .map(|p| p.codes.clone())
                     .filter(|c| !c.is_empty())
                     .unwrap_or_else(|| vec![node.code.as_str().to_owned()]);
+                // ID-1106 (FT-1033): "Location +{location} already has enclosure {tag}; a location has one
+                // enclosure. Choose another location, or edit {tag}."
+                let tag = tag(tx, e.device);
                 return tx.reject(format!(
-                    "location +{} already has enclosure {}; a location has one enclosure",
+                    "location +{} already has enclosure {tag}; a location has one enclosure. \
+                     Choose another location, or edit {tag}",
                     codes.join("+"),
-                    tag(tx, e.device)
                 ));
             }
         }
