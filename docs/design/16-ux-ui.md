@@ -849,7 +849,7 @@ the item floating at the grid cursor (arrows move it, Enter commits).
 | Macro | page canvas | `InsertMacro` ghost with conflict list (FR-MAC-005) | Enter on the macro |
 | Unplaced function (device navigator) | page canvas | new representation of the existing function (FR-UI-007) | "Place on canvas…" |
 | PLC channel (PLC navigator) | coil or channel symbol | binds the channel (FR-PLC-020) | "Bind to…" with target picker |
-| Unplaced device (layout list) | rail or surface | placement (FR-LAY-013) | "Place on carrier…" |
+| Unplaced device (layout list) | rail or surface | placement (FR-LAY-013) | "Place device" |
 | Page row (page navigator) | another position | renumber preview (FR-PAG-024) | Alt+Up, Alt+Down |
 | `.qet` file from the OS | window | import wizard ([14](14-interop.md) §13) | File ▸ Import |
 | `.ew` folder or `.ewz` from the OS | window | open | File ▸ Open |

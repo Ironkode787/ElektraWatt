@@ -4,7 +4,7 @@
 export by kind (0.9 pw, D4 to D6, D9, D11), part 2 the open-items list (0.7 pw, D7, D8), part 3 the report back-links
 drawn (0.6 pw, D10); 0.3 pw reserve; in M2's order after WP-S1.21's remaining work (doc 01, ID-779); part 1 and
 part 2 in any order or side by side, part 3 after both and after WP-S4.01 part 4b · **Ruled in cycle 41** (decision log ID-950, project owner (delegated)): §12's O1 to O4 as proposed, except FP-2 (O4), which is not taken at MVP; the PERT in `work-packages.csv`; the FT annotations made · **Date:** 2026-10-31 ·
-**Work package:** [WP-S3.06](../02-work-packages.md#wp-s306-mvp-report-pack) · **Decision log:** ID-950 ·
+**Work package:** [WP-S3.06](../02-work-packages.md#wp-s306-mvp-report-pack) · **Decision log:** ID-950; as built ID-1026, ID-1039 ·
 **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** Most of WP-S3.06's scope was built ahead of the package by other packages: nine of its fourteen
@@ -97,7 +97,7 @@ The lanes rely on exactly these items. If one differs, the lane stops and report
 | Only `Cp` row links are drawn: `row_links` in `PageTableOf`; `TableRow.links: Vec<(usize, Destination)>`, one link over a whole cell's text | `crates/ew-api/src/output/view.rs:856-868`; `crates/ew-scene/src/table.rs:33-90` | Part 3 |
 | `Session::link_targets(&[Destination])` resolves page, representation and CP destinations; the canvas follows a display list's link sources (`PageLink`, `link_at`) | `crates/ew-api/src/output/navigation.rs:887-930`; `crates/ew-viewmodel/src/canvas.rs:70-90, 757` | Part 3's screen half needs no new view code |
 | `ew export report [<project>] --block <block> [--format csv\|pdf] [--out] [--json]`; `RowExport::Report`; `row_export(q, what, block)`; the golden CSV dialect (`ew_reports::csv`) | `bin/ew/src/cli.rs:37, 418-430, 772-840`; `crates/ew-api/src/output/rows.rs:33-60, 217` | Part 1 adds `--kind` |
-| `revision_overview`'s pages cell filled at draw time from `changed_pages(q, rev)`; the CSV of `--block 911` does not get it (FT-704) | `crates/ew-api/src/output/view.rs:931-937`; `output/revisions.rs:258` | Part 1 (D11) |
+| `revision_overview`'s pages cell filled at draw time from `changed_pages(q, rev)`; the CSV of `--block 911` does not get it (FT-704) | `crates/ew-api/src/output/view.rs:1028` (`revision_pages`, called at :1008; FT-971); `output/revisions.rs:258` | Part 1 (D11) |
 | `ew_checks::run(q, scheme, mode)` (supersession, waivers, scheme severity), `CheckOf` (`check_findings(rule, scope)`, Memo), `Finding { rule, severity, state, targets, discriminator, subject, page, message, fingerprint, … }`, `RuleMeta` (no open-item member) | `crates/ew-checks/src/engine.rs:30-60, 277`; `finding.rs:128-161`; `rule.rs:180-204` | Part 2 |
 | The project's release scheme is `settings.extra.checks.release_scheme`, read by `Session::project_check_scheme(Release)`, else `pre-delivery` | `crates/ew-api/src/lib.rs:910-935` | Part 2 |
 | EW-CORE-022 and EW-CORE-025 read `PageOrder`; no other rule does | `crates/ew-checks/src/rules/page.rs:149, 274` | D8's cycle rule |
@@ -159,7 +159,7 @@ specification (ID-950) and the as-built entries after each part.
 | D8 | **Where the open-item code lives, and one new edge.** The table of D7 is data in `ew-checks` (`open_items.rs`: rule ID, optional discriminator, category), not a `RuleMeta` member (a member would touch every rule definition for one reader); the catalogue snapshot `crates/ew-checks/catalogue/rules.json` and the generated rule pages gain an `open_item` column from it; a registry test asserts that every listed ID is registered. `ew_checks::open_items(q) -> Vec<Finding>` runs those rules, and only those, through the engine path of D7 with `try_get`, reporting a query cycle as a cycle, never a panic; the release-scheme lookup moves into `ew-checks` (`release_scheme_of(q)`), and `Session::project_check_scheme(Release)` calls it. The kind lives in `ew-reports` and calls `ew_checks::open_items`: **`ci/dep-rules.toml` gains `ew-checks` in `"ew-reports"`**, and arch §3's `ew-reports` row gains the edge at the design pass. **Contract:** an open-item rule never reads `PageOrder` (the list paginates inside it); D7's rules do not today, and adding a rule that does to the table is a stop (§9.2) | `ew-checks` is already in `ew-reports`' graph through `ew-sqlview`, so no package enters the binary and no cycle forms; the alternative, a provider hook on `Q` like `ReportPagesProvider`, is more machinery for the same reads. The SQL projection would make the list Class II (stale on screen). `check_report` will need the same edge |
 | D9 | **The `params` encoding (FT-46), ruled and not typed.** `params` is a **top-level member** of a report block, a JSON object of the parameters its kind declares: snake_case keys, JSON scalar values. Declared now: `parts_summary` `mode` ("component", the default, or "assembly"); `io_list` `include_deactivated` (boolean, default false) when WP-S1.21 part 5 adopts it (O1). A kind declares its parameters through a new `ReportKindDef::params()` (key, type, default; empty by default); `ew_reports::kind_params(block)` reads them; an undeclared key is ignored and a value of the wrong type gives the default, each with one `DeriveNote::MalformedShim` naming the block and the key. The member stays in `extra`: no `schemas/0.1` change. **`filter` stays untyped** too | No command, import or wizard writes `params` or `filter` at the MVP, so typing them now would type members with no writer (WP-S4.01 D3's rule); the shape is fixed now, so a 0.1 file that carries it reads the same once the schema steward types both with their first writer (FT-385's `report_block.set`) |
 | D10 | **Back-links drawn** (FR-REP-042, FT-231). Every `LinkTarget` is drawn on a generated page: `MainRep(d)` → the representation `MainRep(d)` (no link when the device has none: never a dead link), `Page(p)` → the page, `Cp` as built. **One link per listed item:** `LinkRef` gains `item: Option<u16>` (the n-th item of a multi-item cell) and `LinkTarget` gains `Rep(Id<Representation>)`; `ew-api` renders the cell's items one by one to find each item's byte span in the cell text and hands `ew-scene` `(column, span, destination)` links, which it draws as a cross-reference text's items are drawn (ADR-0015 amendment 9). **The links, closed:** `toc` folio cell → the page (carried, now drawn); `parts_summary` Tags cell → `MainRep` of its first device (carried, now drawn) and **each folio of its Folios cell** → the representation, on that folio, of the row's first source device drawn there (smallest representation ID), else the page (902 for a layout object); `parts_list` tag → `MainRep`; `structure_overview` designation of a device row → `MainRep`; `device_list` tag and main representation → `MainRep`; `terminal_overview` strip → `MainRep`; `open_items` item → the finding's page, else `MainRep` of its first device target, else none; `plc_overview` as built. Embedded blocks draw no links. **A golden change** (§7) | The acceptance asks for the folio, not the tag ("101" opens folio 101 at the device); one link per item is the cross-reference rule users already know. The window follows display-list links already, so the screen half needs no view code |
-| D11 | **The revision overview's changed pages outside the page (FT-704).** `ew-api` fills the pages cell of `revision_overview` rows with `changed_pages(q, rev)` in every row export (`--block` and `--kind`), through the function the drawn cell uses (`view.rs:931`), so the CSV and folio 911 print the same pages. No navigator lists revision rows at the base, so FT-704's navigator half is moot | The changed pages need the page order, which a row query may not read; the export runs outside the pagination and can |
+| D11 | **The revision overview's changed pages outside the page (FT-704).** `ew-api` fills the pages cell of `revision_overview` rows with `changed_pages(q, rev)` in every row export (`--block` and `--kind`), through the function the drawn cell uses (`revision_pages`, `view.rs:1028`, called at :1008; FT-971), so the CSV and folio 911 print the same pages. No navigator lists revision rows at the base, so FT-704's navigator half is moot | The changed pages need the page order, which a row query may not read; the export runs outside the pagination and can |
 | D12 | **Every part closed to its items, decisions and acceptance;** each part is re-read at dispatch against the delivered earlier parts and the neighbours' state (WP-S1.21 part 5, WP-S4.01 parts 4b and 5) without reopening D1 to D11 | The three parts are small and independent; part 3 waits for the PDF changes before it |
 | D13 | **Size and reserve.** The parts sum to **2.2 pw**; **0.3 pw** is held for golden re-blesses that neighbours' lanes force on the new CSV files and the PDF, with the de-scope rule of §11 | Each new golden file is one more file other golden changes may re-bless |
 
@@ -188,9 +188,10 @@ No decision changes an ADR. D8 changes one edge of `ci/dep-rules.toml` and arch 
   representation "101-B8"; -201U1 parts "195740, 550208", main representation "201-E1"; -UC1 parts "NSYPLA1074G" (no
   rail or duct line) and an empty main representation; S56 and E56 an empty parts cell. The output equals
   `expected/csv/device_list.csv`. A value that contradicts doc 20 §6.1 is a stop.
-- **RK-2** `--kind terminal_overview` writes three rows: 1X1 3 terminals, 3 used, 0 spare, 0 other, "2 × UK 5 N, 1 ×
-  USLKG 5", segments "101-D2"; -X1031 20, 8, 12, 0, "20 × PT 2.5-TWIN", "103-A3, 103-A10"; -X1032 5, 4, 1, 0, "5 × PT
-  2.5-TWIN-PE", "103-F3"; it equals `expected/csv/terminal_overview.csv`. A fixture with a `reserved` terminal counts
+- **RK-2** `--kind terminal_overview` writes three rows, in D6's natural order of the printed tag (*as built,
+  cycle 42*, decision log ID-1027): -X1031 20 terminals, 8 used, 12 spare, 0 other, "20 × PT 2.5-TWIN", segments
+  "103-A3, 103-A10"; -X1032 5, 4, 1, 0, "5 × PT 2.5-TWIN-PE", "103-F3"; 1X1 3, 3, 0, 0, "2 × UK 5 N, 1 × USLKG 5",
+  "101-D2"; it equals `expected/csv/terminal_overview.csv`. A fixture with a `reserved` terminal counts
   it in Other; renumbering -X1031 to -X1041 keeps the row ID; each strip's counts agree with its `terminal_diagram`
   rows' State column.
 - **RK-3** The four refusals of D4, each a whole-text assertion; `--json` gives the kind, the row count and an empty
@@ -227,7 +228,7 @@ No decision changes an ADR. D8 changes one edge of `ci/dep-rules.toml` and arch 
   (-102F2:13, -102F2:14, EF-09), "Missing length" 1 (-3W1, EF-08): **10 rows**; with EW-LAY-001 registered at the
   lane's base, also "Unplaced device" 5 (F55, E55, E56, S56, -201U9, EF-05): **15 rows**. EW-PLC-012's 28 and
   EW-POT-013's 2 are not listed. The output of `--kind open_items` equals `expected/csv/open_items.csv`. Another count
-  is a stop. *As built (cycle 42, ruled at H42's stop 1, project owner (delegated)):* **24 rows**. Golden A as checked
+  is a stop. *As built (cycle 42, ruled at H42's stop 1, project owner (delegated), decision log ID-1032):* **24 rows**. Golden A as checked
   in does not hold W-1 (it is recorded in a test copy only, WP-S1.16 §10.3), so -XPE is listed, and the eight process
   valves =P01+FIELD-203Q1 … Q8 have no part until FT-209 (FT-638), so "Device without part" has 11 rows. D7's invariant
   wins: a finding is listed exactly when `ew check --mode release` prints it open, and the list shrinks by itself when
@@ -238,7 +239,14 @@ No decision changes an ADR. D8 changes one edge of `ci/dep-rules.toml` and arch 
   `Session::check(release scheme, Release)` reports.
 - **OI-3** An `open_items` block (fixture, folio 914) paginates inside `page_order` with no cycle note; giving -102G1
   a TBD part adds one "TBD value" row and keeps the block's pages in the same commit; a project without open items
-  gives no rows, and a block with `empty` "No entries" prints that page (doc 09 §7 item 4).
+  gives no rows, and a block with `empty` "No entries" prints that page (doc 09 §7 item 4). *As built (cycle 42,
+  ruled at H42's fit stop, project owner (delegated), decision log ID-1041):* met except the fit: at the 1.8 mm text
+  floor the two EW-CORE-043 descriptions (the End bracket and the Plug-in bridge) need 184.95 and 164.31 mm, and the
+  columns' minimum total, about 287.7 mm, exceeds the 260.96 mm table, so no column weighting fits (the weights as
+  built: Category 38, Item 31, Description 156, Rule 18, Severity 11, Page 7). The two `ShrinkLimit` overflows are
+  accepted and asserted exactly by the test, because EW-CORE-043's message lists every device that uses the
+  placeholder and so grows with the project, and Golden A prints no open-items page. FT-977 caps that list ("used by
+  X and N more", en and nl-NL), which removes the overflow.
 - **OI-4** The catalogue snapshot's `open_item` column marks exactly D7's rules; every ID of the table is registered
   (EW-LAY-001 is in the table only when registered); `cargo xtask docs-gen` is clean; `cargo xtask check-deps`
   passes with the one new edge and no other.

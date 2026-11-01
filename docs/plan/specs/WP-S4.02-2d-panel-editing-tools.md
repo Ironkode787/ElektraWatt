@@ -8,7 +8,7 @@ part 1 first; part 2 after part 1; part 3 after part 1 and WP-S4.01 part 3; part
 part 1 and WP-S4.01 parts 3 to 5; part 6 at any time. The parts sum to **5.2 pw plus 0.3 pw reserve** against a 3.1
 pw PERT that covered the five requirement rows only (D15, O1) · **Ruled in cycle 41** (decision log ID-948, project owner (delegated)): O1 accepted, `work-packages.csv` O 4 · L 5.5 · P 7 · PERT 5.5; O2: one rebase is accepted, but part 1 never runs beside WP-S4.01 part 5 (both edit `ew-derive/src/layout/queries.rs`) · **Date:** 2026-10-31 ·
 **Work package:** [WP-S4.02](../02-work-packages.md#wp-s402-2d-panel-editing-tools) ·
-**Decision log:** ID-948 · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-948; as built ID-1004, ID-1023, ID-1042 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S4.01 made the layout a model with outputs and checks and left every gesture to this package (its
 D1). WP-S4.02 is where a person lays out a panel: drag a device from the unplaced list onto a rail, let it snap,
@@ -249,7 +249,7 @@ placement without a device or carrier. **AS-8** Golden A unchanged; targeted che
 - `Session::panel_tables` and `CanvasPage.panel` (D9).
 - **The Unplaced devices navigator** (`NavKind::Unplaced`, doc 16 §5.2's row): tree location → device; table columns
   Part, W × H (mm), Mount; badges `strip`, `assembly`, `unknown size`; drag source `DragSource::Device`; Enter and
-  the context command "Place on carrier…" arm the layout place tool with the device floating at the grid cursor of
+  the context command "Place device" (*as built, cycle 42*: the tool's own name, decision log ID-1048) arm the layout place tool with the device floating at the grid cursor of
   the focused panel page (doc 16 §4.8's keyboard twin); empty states (doc 16a §6.17): no layout space, "No panel
   layout yet" with the action Enclosure…; all placed, "Every device of +J-E-2416 is placed."; on the rail after
   Report blocks (D10).
@@ -290,6 +290,24 @@ above; arrows nudge; R, X and Delete work on a selected placement. **PW-7** Wind
 1920 × 1080 and 1280 × 800: 902 with the navigator open, the push ghost and the selected placement; nothing truncated
 at the floor (the navigator's Part column gives way first). **PW-8** Targeted checks for `ew-api`, `ew-viewmodel`,
 `ew-ui`.
+
+*As built (cycle 42, lane F42; decision log ID-1042 to ID-1046, ID-1048).* **PW-1 to PW-8 met**, as viewmodel flows
+(nine in `ew-viewmodel`'s `layout_place`) plus one kittest for the drag and the tool options card, not one kittest
+per PW; every flow asserts that the ghost's pose equals the committed pose (R1). `PanelTables` and
+`Session::panel_tables` carry the page's carriers, placements and unplaced devices; the ghost's refusal is the
+command's error without its name prefix. **The keyboard step** (ID-1043): with a device floating, an arrow along a
+rail moves the ghost to the next snap candidate, across the rail to the nearest parallel rail, else one grid step; on
+the plate one grid step; Enter drops. `layout.nudge` is enabled on any panel page (the predicate `panel_page`), so the
+arrows step a floating ghost as well as a selected placement (ID-1046). **Snap resolution** (ID-1044): of the targets
+in reach the nearest wins, the plate grid included; a tie goes to a device edge, then a rail end, then the grid.
+**The Device column** (ID-1045): the navigator's table leads with Device (the tag), then Part, W × H (mm) and Mount;
+Part gives way first at the floor. **De-scoped:** column alignment with the rail above (D4's third snap target) moves
+to part 4. **A refused turn** (the review's part 3, fixed by FIX42-F, ID-1048): one source,
+`ShellModel::layout_turn_refusal`, builds `layout-wrong-turn` ("{0} turns a placement on the plate; {1} flips one on
+a rail.") with the keys from the keymap, and the shell, the place tool and the Select tool all show it (through
+`ShellModel::refusal_text`); `reason-layout-turn` names no keys ("Turn a placement on the plate; flip one on a
+rail"). The HUD prompts read as above: "Esc done" follows the HUD convention (doc 16a §5.5 as built), while hints
+spell "Escape".
 
 ## 8. Part 4: setting up and editing in the window
 

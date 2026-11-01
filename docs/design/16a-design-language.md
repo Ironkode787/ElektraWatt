@@ -676,7 +676,7 @@ live in the app menu's Edit, the canvas context menu and their keys, as everywhe
   `elevation.1`.
 - **Toasts** appear at the canvas's top right (§6.10).
 
-*As built (cycle 32; decision log ID-747, ID-755).* The HUD is one status node holding the zoom control, **centred on the page-view pane** (not on the canvas sheet), on the inverse surface (light in dark mode, as specified). The Place prompt reads "`<target>` · R rotates · V variant · Esc done"; a repeated click on a pick stack reads "`<n>` here · click again for the next". The tool strip's fields are on the tool options card (§5.2).
+*As built (cycle 32; decision log ID-747, ID-755).* The HUD is one status node holding the zoom control, **centred on the page-view pane** (not on the canvas sheet), on the inverse surface (light in dark mode, as specified). The Place prompt reads "`<target>` · R rotates · V variant · Esc done"; a repeated click on a pick stack reads "`<n>` objects overlap here · click again to select the next" (`hud-stack`, the text as built since cycle 42, decision log ID-1025). The tool strip's fields are on the tool options card (§5.2).
 
 *As built (cycle 38; decision log ID-883).* **The double-click rule:** the window turns a double click's second press into `tool.finish` only for a tool that finishes on a double click (`Tool::finishes_on_double_click`): Wire, Select (a free text opens for editing), the polyline and polygon graphics and Structure box. Every other tool sees two plain presses, so two quick clicks with Place place twice (WP-S2.04 §6.1 as amended; FT-751 for the stacked twin). A right-click on the canvas opens a context menu: over an object the selection's Arrange commands in the command bar's order, then Delete; over nothing Paste when it is enabled; no menu when there is nothing to offer (FT-715). The Black box tool marks its first corner, and after an Escape its hint says that a second Escape leaves the tool (FT-714).
 
@@ -1178,8 +1178,8 @@ states, density and the keyboard and accessibility it keeps. The part column nam
 cycle-31 design pass, decision log ID-727: 1 is FT-520, 2 FT-521, 3 FT-522, 4 FT-523, 5 FT-519):
 1. **Pick-stack chooser.** Alt+click (or a held click) on overlapping objects opens the chooser list of §6.22 with the
    pick stack, the active row outlined on the canvas; the repeated-click walk stays.
-2. **Pick-stack hint.** While the pointer is over more than one pickable object, the HUD's prompt says so ("3 here ·
-   click again for the next"), so the walk can be found.
+2. **Pick-stack hint.** While the pointer is over more than one pickable object, the HUD's prompt says so ("3 objects overlap
+   here · click again to select the next", `hud-stack` as built in cycle 42), so the walk can be found.
 3. **Messages opens as the mockup's table.** The Messages pane opens in table mode with Severity, Message, Object,
    Page and Rule on show in that order (fix and state hidden), the tree one toggle away.
 4. **Sort state in the header's name.** A sorted header's accessible name adds ", sorted ascending" or ", sorted
