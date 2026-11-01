@@ -428,6 +428,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
+name = "automod"
+version = "1.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a273e731a7fb8c2268fd2932c9e9a3469f4fd171d85d070d2687190229653bd3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1072,6 +1083,7 @@ checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
 name = "elektrawatt"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "eframe",
  "ew-print",
  "ew-ui",
@@ -1213,6 +1225,7 @@ dependencies = [
 name = "ew"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "boon",
  "ew-api",
  "ew-print",
@@ -1225,6 +1238,7 @@ dependencies = [
 name = "ew-api"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-checks",
  "ew-commands",
  "ew-derive",
@@ -1273,6 +1287,7 @@ version = "0.0.0"
 name = "ew-checks"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-derive",
  "ew-model",
  "ew-rhai",
@@ -1289,6 +1304,7 @@ dependencies = [
 name = "ew-commands"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-commands",
  "ew-derive",
  "ew-ids",
@@ -1308,6 +1324,7 @@ dependencies = [
 name = "ew-derive"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-commands",
  "ew-ids",
  "ew-memo",
@@ -1349,6 +1366,7 @@ version = "0.0.0"
 name = "ew-export"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-dl",
  "ew-render-cpu",
  "ew-text",
@@ -1363,6 +1381,7 @@ dependencies = [
 name = "ew-format"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-schema",
  "proptest",
  "serde",
@@ -1414,6 +1433,7 @@ dependencies = [
 name = "ew-import-qet"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-ids",
  "ew-interop-api",
  "ew-mltext",
@@ -1429,6 +1449,7 @@ dependencies = [
 name = "ew-import-tables"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-ids",
  "ew-interop-api",
  "ew-mltext",
@@ -1458,6 +1479,7 @@ version = "0.0.0"
 name = "ew-library"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-format",
  "ew-ids",
  "ew-schema",
@@ -1568,6 +1590,7 @@ dependencies = [
 name = "ew-render-cpu"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-dl",
  "ew-text",
  "ew-units",
@@ -1603,6 +1626,7 @@ dependencies = [
 name = "ew-reports"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-checks",
  "ew-derive",
  "ew-model",
@@ -1620,6 +1644,7 @@ version = "0.0.0"
 name = "ew-scene"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-dl",
  "ew-ids",
  "ew-mltext",
@@ -1638,6 +1663,7 @@ dependencies = [
 name = "ew-schema"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-ids",
  "ew-mltext",
  "ew-rds",
@@ -1661,6 +1687,7 @@ dependencies = [
 name = "ew-sqlview"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-checks",
  "ew-derive",
  "ew-testdir",
@@ -1688,6 +1715,7 @@ dependencies = [
 name = "ew-store"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-format",
  "ew-model",
  "ew-testdir",
@@ -1705,6 +1733,7 @@ version = "0.0.0"
 name = "ew-testkit"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-api",
  "ew-commands",
  "ew-derive",
@@ -1737,6 +1766,7 @@ dependencies = [
 name = "ew-ui"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "egui",
  "egui-wgpu",
  "egui_kittest",
@@ -1767,6 +1797,7 @@ dependencies = [
 name = "ew-viewmodel"
 version = "0.0.0"
 dependencies = [
+ "automod",
  "ew-api",
  "ew-testdir",
  "serde_json",
