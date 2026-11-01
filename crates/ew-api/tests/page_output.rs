@@ -327,10 +327,11 @@ fn the_printed_frame_matches_doc_20_section_17_1() {
 }
 
 /// The folios of the per-gate PNG comparison: one of every page type of doc 20 §5 (title page, table of contents,
-/// bus topology, section divider, multi-line schematic, assembly overview, fluid-power schematic, parts list,
-/// panel layout, and two generated report pages: the wire list and the PLC overview).
-const PNG_SAMPLE: [&str; 11] = [
-    "1", "2", "3", "100", "101", "201", "203", "901", "902", "907", "908",
+/// bus topology, section divider, multi-line schematic, assembly overview, fluid-power schematic, parts list and the
+/// parts list's continuation sheet 901.1, panel layout, and two generated report pages: the wire list and the PLC
+/// overview).
+const PNG_SAMPLE: [&str; 12] = [
+    "1", "2", "3", "100", "101", "201", "203", "901", "901.1", "902", "907", "908",
 ];
 
 /// Per gate: one golden page of every page type ([`PNG_SAMPLE`]) renders to a 150 dpi PNG within doc 20's
