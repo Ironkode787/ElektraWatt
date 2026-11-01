@@ -181,7 +181,7 @@ pub struct MenuSlot {
 
 /// What an action does when it runs: one call into the shell with the action's parameters, after the dispatch checked
 /// that it is enabled and resolved its aliases.
-pub type Handler = fn(&mut ShellModel, &Map<String, Value>) -> Outcome;
+pub(crate) type Handler = fn(&mut ShellModel, &Map<String, Value>) -> Outcome;
 
 /// One action of the registry.
 #[derive(Clone, Copy)]
@@ -218,7 +218,7 @@ pub struct ActionMeta {
     /// its signature stays empty on purpose.
     pub parameterless: bool,
     /// What the action does (run by [`ShellModel::dispatch`] once the action is enabled).
-    pub handler: Handler,
+    pub(crate) handler: Handler,
 }
 
 impl ActionMeta {
