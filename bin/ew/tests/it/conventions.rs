@@ -401,14 +401,15 @@ fn project_flag_equals_the_positional_directory() {
             "{positional:?}: {}",
             stderr(&a)
         );
-        // Both together: a usage error with D3's message.
+        // Both together: a usage error with D3's rule, in clap's words (cycle 43); the usage line is the subcommand's.
         let mut both = positional.clone();
         both.push("--project".into());
         both.push(project.as_os_str().to_owned());
         let o = t.ew(&both);
         assert_eq!(o.status.code(), Some(2), "{both:?}");
-        assert!(
-            stderr(&o).contains("`--project` cannot be combined with a positional project directory"),
+        assert_eq!(
+            stderr(&o).lines().next(),
+            Some("error: the argument '[project-dir]' cannot be used with '--project <dir>'"),
             "{both:?}: {}",
             stderr(&o)
         );

@@ -1,0 +1,1675 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The `ew` command line as one clap derive tree: every subcommand and flag is declared here once, with its help in
+//! its doc comment; [`Cli::into_command`] lowers a parsed line to the [`Command`] that [`super::run`] runs.
+//!
+//! The grammar (doc 17 §3.1, WP-S1.22 D3): a valued flag takes the next word as its value even when it starts with
+//! `-`; a second `--project` is an error, `--company` and `lib search --kind` accumulate, every other flag is
+//! last-wins; the positional project directory and `--project` exclude each other. A rule the relations cannot say
+//! is one check in the lowering that returns a usage error.
+
+use std::path::PathBuf;
+
+use clap::error::ErrorKind;
+use clap::{ArgGroup, Args, CommandFactory, Parser, Subcommand, ValueEnum};
+use ew_api::BomMode;
+use ew_api::checks::CheckMode;
+use ew_api::import::migration::ReportFormat;
+use ew_api::output::PageSelection;
+
+use super::query::QueryArgs;
+use super::{
+    ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportKind,
+    ExportPagesArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs, LibAction, LibArgs, PageFormat,
+    RecoverAction, RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, SqlArgs, SqlDumpArgs, SqlFormat,
+    SqlSource, VerifyArgs,
+};
+
+/// The ElektraWatt command-line interface.
+///
+/// Every subcommand that works on one project takes it as the positional directory or as `--project <dir>`, never
+/// both, else the nearest ancestor of the current directory holding `manifest.json`. Every subcommand that prints a
+/// result takes `--json`: stdout is then one JSON object whose first member `$schema` names its published schema
+/// (`ew.<command>-result/1`; `ew schema <name>` prints it), diagnostics stay on stderr and the exit codes are
+/// unchanged. For `check` and `sql`, `--json` is `--format json`. The human-only subcommands (`project`,
+/// `revision`, `recover --discard`) print a dialogue, not a result, and take no `--json`. A usage error exits 2.
+#[derive(Parser, Debug)]
+#[command(name = "ew", bin_name = "ew", version)]
+pub(super) struct Cli {
+    /// The subcommand.
+    #[command(subcommand)]
+    command: Top,
+}
+
+// map: cli: a new subcommand or flag goes in this derive tree with its help; its exits go in catalogue::TABLE.
+/// The subcommands of `ew`.
+#[derive(Subcommand, Debug)]
+enum Top {
+    /// Import a project, a parts table or golden-dialect tables.
+    #[command(subcommand)]
+    Import(Import),
+    /// Run a check scheme over a project.
+    ///
+    /// Runs a check scheme (mode `release`, format `text`) over a project directory and exits 0 with no unwaived
+    /// errors, 1 with errors, 2 on usage and open errors. Without `--scheme` the scheme is the one the project names
+    /// (`project checks set`: `--release` for mode `release`, `--active` for mode `online`), else `pre-delivery`.
+    /// `--lang` renders the messages in a shipped language (en-GB, the default, or nl-NL); a message without a text
+    /// in that language prints in en-GB.
+    Check(CheckCli),
+    /// Run one read-only SELECT against the SQL projection of a project.
+    ///
+    /// Runs one read-only SELECT against the SQL projection of a project (the `api_v1_*` views; `ew sql schema`
+    /// prints them) in the sandbox of doc 17 §6.2, with the query given inline or from `--file`. With one positional
+    /// it is the query; with two, the project directory and the query; with `--file`, the one positional is the
+    /// project directory. An inline query may start with an SQL comment (`-- ...`). The result is CSV (default) or
+    /// JSON on stdout, the row count on stderr; with `--out` it goes to a file. `--timeout` sets a deadline in
+    /// seconds. `sql` exits 0 on success and 2 on everything else (usage, open and SQL errors, denials, limits).
+    Sql(SqlCli),
+    /// Write a report's rows as CSV, or the pages as PDF, SVG or PNG.
+    #[command(subcommand)]
+    Export(ExportCli),
+    /// Render one page as PNG.
+    ///
+    /// `render --page <folio> --png` renders one page to `--out` (default: `<folio>.png` in the current directory,
+    /// never stdout) on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150, the golden PNGs'
+    /// resolution). Exit 0 on success, 2 on everything else (usage, open errors, an unknown folio, write errors).
+    Render(RenderCli),
+    /// Replay a command log on the project and save.
+    ///
+    /// Replays a command log (`.ewcmd`, doc 17 section 3.5) on the project, each line one transaction, and saves.
+    /// With one positional it is the log; with two, the project directory and the log. `--preview` replays it on a
+    /// copy in memory, prints the changed records, tags and cross-references, and saves nothing; `--one-step` saves
+    /// only when every line commits. A project with unsaved changes of a crashed session is refused (exit 2) until
+    /// they are recovered or discarded (`ew recover`). Exit 0 when every line commits, 1 when a prevent or domain
+    /// rule refuses a line, 2 on everything else (usage, a malformed log, an unresolvable reference, a refused
+    /// command, an open, lock or save error). Without `--one-step` the lines before a failing one are saved.
+    #[command(override_usage = "ew apply [OPTIONS] [project-dir] <file.ewcmd>")]
+    Apply(ApplyCli),
+    /// Rewrite the project's files in their canonical form.
+    ///
+    /// Rewrites the project's files in their canonical encoding and line order (doc 05 section 3), only the files
+    /// that are not, through the save protocol (a crash leaves the old or the new generation, never a torn file). It
+    /// changes form only, never content: a file whose canonical form would change a record's content refuses the
+    /// whole format (exit 2). Quarantined lines, malformed values and unknown kinds, members and files stay verbatim;
+    /// they are listed on stderr. `fmt --check` is a reader (no lock): it lists the files a format would rewrite and
+    /// writes nothing. A project with unsaved changes of a crashed session, or one that opens read-only, is refused
+    /// (exit 2). Exit 0 when every file is canonical or was rewritten, 1 when `--check` finds files to rewrite, 2 on
+    /// usage, open, lock, content and save errors.
+    Fmt(FmtCli),
+    /// Summarise, replay or discard the journal a crashed session left.
+    ///
+    /// Works on the journals that crashed sessions left (doc 05 section 8.3), one at a time, the latest change
+    /// first. Without a flag it prints the journal's summary (its unsaved transactions with their commands, whether
+    /// the project was saved since, how many more journals remain) and changes nothing. `--replay` replays its
+    /// transactions on the saved project and saves; a replay that meets a change saved since (the same field) is
+    /// refused and the journal kept. `--discard` prints the summary and deletes the journal, losing its work, so it
+    /// is human-only: type `discard` on a controlling terminal; there is no `--yes` flag, and without a terminal it
+    /// exits 2 before the project is opened. `recover` needs the project's lock: a project another session holds, or
+    /// one that opens read-only, is refused (exit 2) as `apply` refuses it. Exit 0 when summarised, replayed and
+    /// saved, discarded, or there is no journal; 1 when the replay is refused or the discard not confirmed; 2 on
+    /// usage, terminal, lock, open and save errors.
+    Recover(RecoverCli),
+    /// The project's check schemes and asset files (human-only).
+    #[command(subcommand)]
+    Project(ProjectCli),
+    /// The release workflow's human-only commands.
+    ///
+    /// Each asks the person to type the revision's label on a controlling terminal (doc 15 section 5.4, doc 17
+    /// section 2.3); there is no `--yes` flag, and without a terminal it exits 2 before the project is opened. Exit 0
+    /// when approved, released, settled or withdrawn and saved, 1 when refused (the gate's blockers, a wrong label, a
+    /// refused command or git step) or not confirmed, 2 on usage, terminal and open errors and when writing the
+    /// release fails.
+    #[command(subcommand)]
+    Revision(RevisionCli),
+    /// Compare every memoised derived value with a cold recomputation.
+    ///
+    /// Opens a project with the memo oracle on, recomputes every derived value cold and compares it with the
+    /// memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.
+    VerifyDerived(ProjectJsonCli),
+    /// Answer one public query of the project.
+    ///
+    /// `query <name> <key>` answers one public query of the project (`ew queries` lists them with their keys): the
+    /// key is a reference as in a command log (`tag:-101F1`, `id:<uuid>`, `folio:102`, a bare tag such as
+    /// `-X1031:5`), or `-` for a query without one. With three positionals the first is the project directory.
+    /// `--explain` adds the memo's policy (verified and changed at which revision, and whether the value was memoised
+    /// before the query ran), what the value depends on in words, and, for a value the property grid shows, the
+    /// provenance of its row. Exit 0 when answered, 2 on usage, an unknown query, open errors and a key that names no
+    /// record or a record of another kind.
+    #[command(override_usage = "ew query [OPTIONS] [project-dir] <name> <key>")]
+    Query(QueryCli),
+    /// List the public queries with their keys.
+    ///
+    /// Lists the public queries with their keys (`ew query` answers one); exits 0.
+    Queries(JsonCli),
+    /// List, search, reindex, create and import into libraries.
+    ///
+    /// Works on the libraries of the four tiers: system (the compiled-in starter, and `<content>/libraries` when
+    /// `EW_CONTENT_DIR` names the starter content), community (`<data>/packs`), company (every `--company <dir>`: a
+    /// library directory or a directory of `*.ewlib` libraries) and user (`<data>/libraries`), with the search index
+    /// in the cache directory (`EW_DATA_DIR` and `EW_CACHE_DIR` override the OS directories). `--json` prints JSON.
+    /// Exit 0 on success, 2 on everything else (usage, unreadable tiers, a refused write or import, an index error).
+    Lib(LibCli),
+    /// List the command registry.
+    ///
+    /// Lists the command registry (name, parameters version, exposure, cost, confirmation, undoable, stability,
+    /// aliases); exits 0.
+    Commands(JsonCli),
+    /// Print a command's parameter schema or a result schema.
+    ///
+    /// Prints the JSON Schema of a command's parameters (a name or alias of `ew commands`) or of a result
+    /// (`ew.<command>-result/<n>`). Exit 0, 2 for an unknown name.
+    Schema(SchemaCli),
+}
+
+/// `ew import`.
+#[derive(Subcommand, Debug)]
+enum Import {
+    /// Import a QElectroTech project.
+    ///
+    /// Exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or error
+    /// findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.
+    Qet(ImportQetArgs),
+    /// Copy the parts of a parts table into the project.
+    ///
+    /// Copies the parts of a parts table (the golden dialect: `parts.csv`, with `part_cps.csv`,
+    /// `part_templates.csv`, `cable_cores.csv` and `part_plc.csv` when they lie beside it) into the project
+    /// (`--project`, default: the nearest ancestor of the current directory holding `manifest.json`) as project-local
+    /// part copies (`parts.import`) and saves; a part whose key the project has already is skipped. Exit 0 when
+    /// imported (counts on stdout), 2 on everything else (usage, a refused table with its line and column, open and
+    /// save errors).
+    ///
+    /// With `--map` it reads any supplier's parts table instead, CSV (UTF-8, comma or semicolon) or XLSX (the first
+    /// sheet unless the map names one), through a column map (a TOML file: `sheet` and a `[columns]` table from
+    /// `manufacturer`, `part_number`, `type_designation`, `order_number`, `gtin`, `description`,
+    /// `description.<lang>`, `kind`, `unit`, `tech_data.<key>` and `free_props.<key>` to the column headers).
+    /// Manufacturer names resolve through the manufacturers of the libraries (`--company` as for `lib`); `--as-of`
+    /// (YYYY-MM-DD) stamps the parts. Every row is reported: new, unchanged (the project holds it), duplicate,
+    /// rejected with the reason; an `A / B` part number becomes two candidates flagged for review. The new parts are
+    /// imported with `parts.import`, with copies of the manufacturers they name, and the project is saved.
+    Parts(ImportPartsArgs),
+    /// Import golden-dialect tables as a new project.
+    ///
+    /// Imports golden-dialect tables (the `*.csv` files of `<tables-dir>`: `project.csv`, `devices.csv`,
+    /// `conductors.csv` and the others of `golden/J-E-2416/tables/`) with the starter content (`--content` or
+    /// `EW_CONTENT_DIR`; required, the tables name its symbols, function definitions and forms) as a new project in
+    /// `--out`, which must not exist or be an empty directory: the project is written beside it and renamed into
+    /// place, so `--out` never holds a part of one. Every finding of the import is printed. Strict is the default: a
+    /// row the dialect refuses, such as a foreign colour code (EW-IMP-002), is dropped and then nothing is written;
+    /// `--lenient` keeps a foreign colour code with a warning (EW-IMP-008) and writes the project with its findings.
+    /// Exit 0 when written, 1 when nothing is written because strict refused error findings or the records do not
+    /// make a project, 2 on usage, starter content, an unreadable table (with its line, and its column where the
+    /// reader names one), an `--out` that holds something, and write errors.
+    Csv(ImportCsvArgs),
+}
+
+/// `ew check`.
+#[derive(Args, Debug)]
+struct CheckCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The check scheme (default: the project's scheme for the mode, else `pre-delivery`).
+    #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "scheme", value_parser = scheme_name)]
+    scheme: Option<String>,
+    /// The check mode.
+    #[arg(
+        long,
+        value_name = "mode",
+        allow_hyphen_values = true,
+        overrides_with = "mode",
+        default_value = "release"
+    )]
+    mode: ModeArg,
+    /// The output format (default: text).
+    #[arg(
+        long,
+        value_name = "format",
+        allow_hyphen_values = true,
+        overrides_with = "format"
+    )]
+    format: Option<CheckFormat>,
+    /// Print the result as JSON (`--format json`).
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+    /// The language of the messages (a shipped language).
+    #[arg(long, value_name = "tag", allow_hyphen_values = true, overrides_with = "lang", value_parser = language, default_value = ew_api::checks::messages::DEFAULT_LANGUAGE)]
+    lang: String,
+    /// The output file (default: stdout).
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    out: Option<PathBuf>,
+}
+
+/// The mode of `ew check --mode`.
+#[derive(ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
+enum ModeArg {
+    /// The release gate's mode.
+    Release,
+    /// The online checks' mode.
+    Online,
+}
+
+/// `ew sql`: the query, or `dump` and `schema`.
+#[derive(Args, Debug)]
+#[command(
+    args_conflicts_with_subcommands = true,
+    override_usage = "ew sql [OPTIONS] [project-dir] <select>\n       ew sql [OPTIONS] [project-dir] --file <query.sql>\n       ew sql <COMMAND>"
+)]
+struct SqlCli {
+    /// `dump` or `schema`.
+    #[command(subcommand)]
+    sub: Option<SqlSub>,
+    /// The query, or with a second positional or `--file` the project directory.
+    #[arg(value_name = "project-dir|select", allow_hyphen_values = true, value_parser = sql_word, required_unless_present = "file")]
+    first: Option<String>,
+    /// The query, after the project directory.
+    #[arg(value_name = "select", allow_hyphen_values = true, value_parser = sql_word, conflicts_with = "file")]
+    second: Option<String>,
+    /// The project directory (instead of the positional one).
+    #[arg(long, value_name = "dir", allow_hyphen_values = true)]
+    project: Option<PathBuf>,
+    /// A file holding the query.
+    #[arg(
+        long,
+        value_name = "query.sql",
+        allow_hyphen_values = true,
+        overrides_with = "file"
+    )]
+    file: Option<PathBuf>,
+    /// The result format: csv (default) or json.
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = sql_format)]
+    format: Option<SqlFormat>,
+    /// Print the result as JSON (`--format json`).
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+    /// The deadline in seconds.
+    #[arg(long, value_name = "seconds", allow_hyphen_values = true, overrides_with = "timeout", value_parser = timeout)]
+    timeout: Option<u64>,
+    /// The output file (default: stdout).
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    out: Option<PathBuf>,
+}
+
+/// `ew sql dump|schema`.
+#[derive(Subcommand, Debug)]
+enum SqlSub {
+    /// Write the SQL projection as a SQLite database file.
+    ///
+    /// With one positional it is the output file; with two, the project directory and the output file.
+    #[command(override_usage = "ew sql dump [OPTIONS] [project-dir] <out.sqlite>")]
+    Dump(SqlDumpCli),
+    /// Print the SQL schema (the `api_v1_*` views).
+    Schema,
+}
+
+/// `ew sql dump`.
+#[derive(Args, Debug)]
+struct SqlDumpCli {
+    /// The output file, or with a second positional the project directory.
+    #[arg(value_name = "project-dir|out.sqlite")]
+    first: String,
+    /// The output file, after the project directory.
+    #[arg(value_name = "out.sqlite")]
+    second: Option<String>,
+    /// The project directory (instead of the positional one).
+    #[arg(long, value_name = "dir", allow_hyphen_values = true)]
+    project: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew export`.
+#[derive(Subcommand, Debug)]
+enum ExportCli {
+    /// Write the cable list as CSV.
+    ///
+    /// Writes the rows of the project's cable overview (the golden dialect) to stdout or to `--out`. `--block`
+    /// names the report block by its ID or its first folio (`908`); without it the block is the project's block of
+    /// the kind with the lowest first folio; a block of another kind is refused. XLSX waits for the writer of
+    /// FT-61. Exit 0 on success, 2 on everything else (usage, open errors, a project without the block, an unknown
+    /// or wrong block).
+    Cables(RowsCli),
+    /// Write the bill of materials as CSV.
+    ///
+    /// Writes the rows of the project's parts summary (the golden dialect) to stdout or to `--out`. `--mode parts`
+    /// (alias `component`, the default) lists every component part; `--mode assembly` replaces the parts a
+    /// configured product covers by its row. `--block` names the report block by its ID or its first folio;
+    /// without it the block is the project's block of the kind with the lowest first folio. Exit 0 on success, 2 on
+    /// everything else.
+    Bom(BomCli),
+    /// Write the wire list as CSV.
+    ///
+    /// Writes the rows of the project's wire list (the golden dialect) to stdout or to `--out`. `--block` names the
+    /// report block by its ID or its first folio; without it the block is the project's block of the kind with the
+    /// lowest first folio. Exit 0 on success, 2 on everything else.
+    Wires(RowsCli),
+    /// Write the terminal diagrams as CSV.
+    ///
+    /// Writes the rows of the project's terminal diagram blocks (the golden dialect) to stdout or to `--out`.
+    /// Without `--block`, every terminal diagram block. `--strip <tag>` writes the rows of one strip (`-X1031`);
+    /// without it every strip, each strip's rows after a heading row `heading,<tag>`. Exit 0 on success, 2 on
+    /// everything else (also an unknown strip).
+    Terminals(TerminalsCli),
+    /// Write the rows of a report block or a report kind.
+    ///
+    /// `--block <block>` writes the rows of any block as CSV, or with `--format pdf` the block's pages as a PDF to
+    /// `--out` (as `export pdf --pages`). `--kind <kind>` writes the whole-project rows of a report kind
+    /// (`device_list`, `terminal_overview`, ...) in the kind's default order, as CSV only, with no block. Exit 0 on
+    /// success, 2 on everything else.
+    Report(ReportCli),
+    /// Write the pages as one PDF/A-2b.
+    ///
+    /// Writes the project's pages as one PDF/A-2b (outline, page labels, links) through the session's export job
+    /// with the bundled fonts only. `--pages` selects folio labels and ranges in page order (`101-106,901`);
+    /// `--threads` changes the speed, never the bytes. The date is `SOURCE_DATE_EPOCH` when set, else the model's.
+    /// Exit 0 on success, 2 on everything else.
+    Pdf(PagesCli),
+    /// Write one SVG file per page.
+    ///
+    /// Writes one `<folio>.svg` per page into the directory `--out` (replaced as a whole; it may hold SVG files
+    /// only) through the session's export job with the bundled fonts only. `--pages` and `--threads` as for
+    /// `export pdf`. Exit 0 on success, 2 on everything else.
+    Svg(PagesCli),
+    /// Write one PNG file per page.
+    ///
+    /// Writes one `<folio>.png` per page into the directory `--out` (replaced as a whole; it may hold PNG files
+    /// only), rendered on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150, the golden PNGs'
+    /// resolution). Exit 0 on success, 2 on everything else (usage, open errors, an unknown folio, write errors).
+    Png(PngCli),
+}
+
+/// `ew export cables|wires`.
+#[derive(Args, Debug)]
+struct RowsCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The report block, by its ID or its first folio.
+    #[arg(
+        long,
+        value_name = "block",
+        allow_hyphen_values = true,
+        overrides_with = "block"
+    )]
+    block: Option<String>,
+    /// The format: csv.
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
+    format: Option<ReportPages>,
+    /// The output file (default: stdout).
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    out: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew export bom`.
+#[derive(Args, Debug)]
+struct BomCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The report block, by its ID or its first folio.
+    #[arg(
+        long,
+        value_name = "block",
+        allow_hyphen_values = true,
+        overrides_with = "block"
+    )]
+    block: Option<String>,
+    /// Every component part, or the configured products' rows in place of the parts they cover.
+    #[arg(
+        long,
+        value_name = "mode",
+        allow_hyphen_values = true,
+        overrides_with = "mode",
+        default_value = "parts"
+    )]
+    mode: BomArg,
+    /// The format: csv.
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
+    format: Option<ReportPages>,
+    /// The output file (default: stdout).
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    out: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// The mode of `ew export bom --mode`.
+#[derive(ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
+enum BomArg {
+    /// Every component part.
+    #[value(alias = "component")]
+    Parts,
+    /// The configured products' rows in place of the parts they cover.
+    Assembly,
+}
+
+/// `ew export terminals`.
+#[derive(Args, Debug)]
+struct TerminalsCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The report block, by its ID or its first folio (default: every terminal diagram block).
+    #[arg(
+        long,
+        value_name = "block",
+        allow_hyphen_values = true,
+        overrides_with = "block"
+    )]
+    block: Option<String>,
+    /// One strip, by its tag (`-X1031`).
+    #[arg(
+        long,
+        value_name = "tag",
+        allow_hyphen_values = true,
+        overrides_with = "strip"
+    )]
+    strip: Option<String>,
+    /// The format: csv.
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = row_format)]
+    format: Option<ReportPages>,
+    /// The output file (default: stdout).
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    out: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew export report`.
+#[derive(Args, Debug)]
+#[command(group(ArgGroup::new("rows").args(["block", "kind"]).required(true)))]
+struct ReportCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The report block, by its ID or its first folio.
+    #[arg(
+        long,
+        value_name = "block",
+        allow_hyphen_values = true,
+        overrides_with = "block"
+    )]
+    block: Option<String>,
+    /// A report kind: its whole-project rows (CSV only, no block).
+    #[arg(
+        long,
+        value_name = "kind",
+        allow_hyphen_values = true,
+        overrides_with = "kind"
+    )]
+    kind: Option<String>,
+    /// The format: csv (default) or pdf (a block's pages, with `--out`).
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = report_format)]
+    format: Option<ReportPages>,
+    /// The output file (default: stdout).
+    #[arg(
+        long,
+        value_name = "file",
+        allow_hyphen_values = true,
+        overrides_with = "out",
+        required_if_eq("format", "pdf")
+    )]
+    out: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// What `ew export report --format` writes.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum ReportPages {
+    /// Rows as CSV.
+    Csv,
+    /// A block's pages as PDF.
+    Pdf,
+}
+
+/// `ew export pdf|svg`.
+#[derive(Args, Debug)]
+struct PagesCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The PDF file, or the directory of the SVG files.
+    #[arg(long, value_name = "path", allow_hyphen_values = true, overrides_with = "out")]
+    out: PathBuf,
+    /// The folio labels and ranges, in page order (`101-106,901`; default: every page).
+    #[arg(long, value_name = "folios", allow_hyphen_values = true, overrides_with = "pages", value_parser = pages)]
+    pages: Option<PageSelection>,
+    /// The threads of the page phase (1 to 256; default: the machine's parallelism).
+    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads)]
+    threads: Option<usize>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+    /// Not built yet: refused.
+    #[arg(long, hide = true, num_args = 0..=1, allow_hyphen_values = true, overrides_with = "lang")]
+    lang: Option<Option<String>>,
+    /// Not built yet: refused.
+    #[arg(long, hide = true, overrides_with = "omit_personal_data")]
+    omit_personal_data: bool,
+}
+
+/// `ew export png`.
+#[derive(Args, Debug)]
+struct PngCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The directory of the PNG files.
+    #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "out")]
+    out: PathBuf,
+    /// The folio labels and ranges, in page order (`101-106,901`; default: every page).
+    #[arg(long, value_name = "folios", allow_hyphen_values = true, overrides_with = "pages", value_parser = pages)]
+    pages: Option<PageSelection>,
+    /// The resolution (72 to 600).
+    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "dpi", value_parser = dpi, default_value_t = ew_api::output::DEFAULT_DPI)]
+    dpi: u32,
+    /// The threads of the page phase (1 to 256; default: the machine's parallelism).
+    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads)]
+    threads: Option<usize>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+    /// Not built yet: refused.
+    #[arg(long, hide = true, num_args = 0..=1, allow_hyphen_values = true, overrides_with = "lang")]
+    lang: Option<Option<String>>,
+    /// Not built yet: refused.
+    #[arg(long, hide = true, overrides_with = "omit_personal_data")]
+    omit_personal_data: bool,
+}
+
+/// `ew render`.
+#[derive(Args, Debug)]
+struct RenderCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The page, by its folio label.
+    #[arg(
+        long,
+        value_name = "folio",
+        allow_hyphen_values = true,
+        overrides_with = "page"
+    )]
+    page: String,
+    /// The page format (PNG is the only one).
+    #[arg(long, overrides_with = "png", required = true)]
+    png: bool,
+    /// The resolution (72 to 600).
+    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "dpi", value_parser = dpi, default_value_t = ew_api::output::DEFAULT_DPI)]
+    dpi: u32,
+    /// The PNG file (default: `<folio>.png` in the current directory).
+    #[arg(
+        long,
+        value_name = "file.png",
+        allow_hyphen_values = true,
+        overrides_with = "out"
+    )]
+    out: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew apply`.
+#[derive(Args, Debug)]
+struct ApplyCli {
+    /// The command log, or with a second positional the project directory.
+    #[arg(value_name = "project-dir|file.ewcmd")]
+    first: PathBuf,
+    /// The command log, after the project directory.
+    #[arg(value_name = "file.ewcmd")]
+    second: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(long, value_name = "dir", allow_hyphen_values = true)]
+    project: Option<PathBuf>,
+    /// Replay on a copy in memory, print the changes and save nothing.
+    #[arg(long, overrides_with = "preview")]
+    preview: bool,
+    /// Save only when every line commits.
+    #[arg(long, overrides_with = "one_step")]
+    one_step: bool,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew fmt`.
+#[derive(Args, Debug)]
+struct FmtCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// List the files a format would rewrite and write nothing.
+    #[arg(long, overrides_with = "check")]
+    check: bool,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew recover`.
+#[derive(Args, Debug)]
+struct RecoverCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// Replay the journal's transactions on the saved project and save.
+    #[arg(long, overrides_with = "replay", conflicts_with = "discard")]
+    replay: bool,
+    /// Delete the journal after the word `discard` typed on a controlling terminal.
+    #[arg(long, overrides_with = "discard")]
+    discard: bool,
+    /// Print the result as JSON (not with `--discard`, which prints a dialogue).
+    #[arg(long, overrides_with = "json", conflicts_with = "discard")]
+    json: bool,
+}
+
+/// `ew project`.
+#[derive(Subcommand, Debug)]
+enum ProjectCli {
+    /// The project's check schemes.
+    #[command(subcommand)]
+    Checks(ChecksCli),
+    /// The project's asset files.
+    #[command(subcommand)]
+    Assets(AssetsCli),
+}
+
+/// `ew project checks`.
+#[derive(Subcommand, Debug)]
+enum ChecksCli {
+    /// Name the project's check schemes (human-only).
+    ///
+    /// Names the project's check schemes (`project.checks.set`): `--active` the online scheme, `--release` the
+    /// scheme of the release gate and `ew check`; a scheme not given returns to its default (`drafting`,
+    /// `pre-delivery`). The check scheme decides check outcomes, so the command is human-only (ADR-0008 amendment 3,
+    /// doc 17 section 2.3): it prints the change and asks the person to type the scheme's name (the active one, else
+    /// the release one) on a controlling terminal; there is no `--yes` flag. Without a terminal it exits 2
+    /// (HumanOnly: needs an interactive terminal) before the project is opened. Exit 0 when written and saved, 1 for
+    /// a scheme that does not ship or an answer that is not the name, 2 on usage, terminal, open and save errors.
+    Set(ChecksSetCli),
+}
+
+/// `ew project checks set`.
+#[derive(Args, Debug)]
+#[command(group(ArgGroup::new("schemes").args(["active", "release"]).required(true).multiple(true)))]
+struct ChecksSetCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The online scheme.
+    #[arg(
+        long,
+        value_name = "scheme",
+        allow_hyphen_values = true,
+        overrides_with = "active"
+    )]
+    active: Option<String>,
+    /// The scheme of the release gate and `ew check`.
+    #[arg(
+        long,
+        value_name = "scheme",
+        allow_hyphen_values = true,
+        overrides_with = "release"
+    )]
+    release: Option<String>,
+}
+
+/// `ew project assets`.
+#[derive(Subcommand, Debug)]
+enum AssetsCli {
+    /// Delete the asset files no project file names (human-only).
+    ///
+    /// Deletes the project's asset files (`assets/<sha256>.<ext>`) whose hash no project file mentions (kept lines
+    /// and unknown members included) through the save protocol (`project.assets.purge`, doc 05 section 13.3). A save
+    /// never removes an asset file; this is the explicit clean-up, and deleted files do not come back, so the command
+    /// is human-only (doc 17 section 2.3): it prints the files that would go and asks the person to type `purge` on a
+    /// controlling terminal; there is no `--yes` flag. Without a terminal it exits 2 before the project is opened.
+    /// `--preview` lists the files and changes nothing (no terminal needed). Refused while the project has unsaved
+    /// changes of a crashed session, quarantined lines or an incomplete save, and in a read-only session. Exit 0 when
+    /// purged (or nothing to purge, or previewed), 1 when the purge is refused or not confirmed, 2 on usage,
+    /// terminal, open and save errors.
+    Purge(AssetsPurgeCli),
+}
+
+/// `ew project assets purge`.
+#[derive(Args, Debug)]
+struct AssetsPurgeCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// List the files that would go and change nothing.
+    #[arg(long, overrides_with = "preview")]
+    preview: bool,
+}
+
+/// `ew revision`.
+#[derive(Subcommand, Debug)]
+enum RevisionCli {
+    /// Record the checker's sign-off on the open revision.
+    ///
+    /// `revision approve --as <role>` records the checker's sign-off on the open revision (`revision.approve`): the
+    /// checker is a party role (`checker`, `author`, `engineer`, ...), never the author's; the project must be
+    /// saved; it runs the release gate on the saved generation (the release scheme in release mode with the EW-REL
+    /// rules) and is refused while any error other than EW-REL-001 is open, prints the safety-kind waivers in force
+    /// (the typed label acknowledges them), then approves and saves.
+    Approve(ApproveCli),
+    /// Release the open revision with its as-built archive.
+    ///
+    /// `revision release <label>` releases the open revision (doc 05 section 14.1): it runs the release gate on the
+    /// saved generation and prints its blockers when it refuses; else it shows the archive it writes
+    /// (`<label>.ewarchive` in `--archive-dir`, by default `<name>.ew-archive` beside the project directory, never
+    /// inside it) and, when the project lies in a git worktree, the commit of the project directory and the tag
+    /// `ew/rev/<label>` it makes there (a warning when the archive root lies in the worktree: archives are never
+    /// added to git). After the typed label it writes and verifies the archive, commits and tags, then stamps the
+    /// revision released and saves; a failure leaves the revision open and removes what the run wrote. An archive of
+    /// the label left by a crashed release is offered first: type `complete` to stamp it or `discard` to remove it
+    /// (with its tag). `discard` is offered only when your record on this computer shows that a release from this
+    /// project directory wrote the archive: a copy of the directory names the same project, so without that record
+    /// the archive is kept (remove it by hand if you know it is a leftover).
+    Release(ReleaseCli),
+    /// Withdraw a released revision.
+    ///
+    /// `revision withdraw <label> --reason <text>` withdraws a released revision (`revision.withdraw`) and saves.
+    Withdraw(WithdrawCli),
+}
+
+/// `ew revision approve`.
+#[derive(Args, Debug)]
+struct ApproveCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The checker's party role.
+    #[arg(
+        long = "as",
+        value_name = "role",
+        allow_hyphen_values = true,
+        overrides_with = "role"
+    )]
+    role: String,
+}
+
+/// `ew revision release`.
+#[derive(Args, Debug)]
+struct ReleaseCli {
+    /// The open revision's label.
+    #[arg(value_name = "label")]
+    label: String,
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The archive root (default: `<name>.ew-archive` beside the project directory).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        overrides_with = "archive_dir"
+    )]
+    archive_dir: Option<PathBuf>,
+}
+
+/// `ew revision withdraw`.
+#[derive(Args, Debug)]
+struct WithdrawCli {
+    /// The released revision's label.
+    #[arg(value_name = "label")]
+    label: String,
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// Why the revision is withdrawn.
+    #[arg(
+        long,
+        value_name = "text",
+        allow_hyphen_values = true,
+        overrides_with = "reason"
+    )]
+    reason: String,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+}
+
+/// A subcommand that takes a project and `--json` only.
+#[derive(Args, Debug)]
+struct ProjectJsonCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew query`.
+#[derive(Args, Debug)]
+struct QueryCli {
+    /// The query's name, or with three positionals the project directory.
+    #[arg(value_name = "project-dir|name", allow_hyphen_values = true)]
+    first: String,
+    /// The key, or with three positionals the query's name.
+    #[arg(value_name = "name|key", allow_hyphen_values = true)]
+    second: String,
+    /// The key, after the project directory and the name.
+    #[arg(value_name = "key", allow_hyphen_values = true)]
+    third: Option<String>,
+    /// The project directory (instead of the positional one).
+    #[arg(long, value_name = "dir", allow_hyphen_values = true)]
+    project: Option<PathBuf>,
+    /// Add the memo's policy, the value's dependencies and the row's provenance.
+    #[arg(long, overrides_with = "explain")]
+    explain: bool,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// A subcommand that takes `--json` only.
+#[derive(Args, Debug)]
+struct JsonCli {
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew schema`.
+#[derive(Args, Debug)]
+struct SchemaCli {
+    /// A command's name or alias (see `ew commands`), or a result schema's name.
+    #[arg(value_name = "name")]
+    name: String,
+}
+
+/// `ew lib`.
+#[derive(Args, Debug)]
+struct LibCli {
+    /// The subcommand.
+    #[command(subcommand)]
+    action: LibSub,
+    /// A company library: a library directory or a directory of `*.ewlib` libraries (repeatable).
+    #[arg(long, value_name = "dir", allow_hyphen_values = true, global = true)]
+    company: Vec<PathBuf>,
+    /// Print JSON.
+    #[arg(long, overrides_with = "json", global = true)]
+    json: bool,
+}
+
+/// `ew lib list|search|index|create|import`.
+#[derive(Subcommand, Debug)]
+enum LibSub {
+    /// List the libraries.
+    ///
+    /// Prints each library (tier, key, version, name, ID, `rw` or `ro`, index state, directory) and what could not be
+    /// read.
+    List,
+    /// Find parts or other library items.
+    ///
+    /// Finds parts by part number, manufacturer and description (`--kind part`, the default), or symbols, FnDefs,
+    /// forms, macros and manufacturers by key and name (`--kind symbol|fndef|form|macro|manufacturer`); `--all`
+    /// includes deprecated and withdrawn items, `--limit` caps the hits (default 50, 0: all).
+    Search(SearchCli),
+    /// Rebuild the search index from the libraries.
+    Index(IndexCli),
+    /// Make an empty library with a new ID.
+    ///
+    /// Makes an empty library in `<dir>` (absent or empty) with a new ID; it is listed when `<dir>` lies in the user
+    /// tier or a `--company` directory.
+    Create(CreateCli),
+    /// Import into a library.
+    #[command(subcommand)]
+    Import(LibImportCli),
+}
+
+/// `ew lib search`.
+#[derive(Args, Debug)]
+struct SearchCli {
+    /// The text to search for.
+    #[arg(value_name = "text", allow_hyphen_values = true)]
+    text: String,
+    /// The kind of item (repeatable; default: part).
+    #[arg(long, value_name = "kind", allow_hyphen_values = true, value_parser = item_kind)]
+    kind: Vec<String>,
+    /// Include deprecated and withdrawn items.
+    #[arg(long, overrides_with = "all")]
+    all: bool,
+    /// The most hits (0: all).
+    #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "limit", value_parser = limit, default_value_t = 50)]
+    limit: u32,
+}
+
+/// `ew lib index`.
+#[derive(Args, Debug)]
+struct IndexCli {
+    /// Rebuild the index.
+    #[arg(long, overrides_with = "rebuild", required = true)]
+    rebuild: bool,
+}
+
+/// `ew lib create`.
+#[derive(Args, Debug)]
+struct CreateCli {
+    /// The new library's directory (absent or empty).
+    #[arg(value_name = "dir", allow_hyphen_values = true)]
+    dir: PathBuf,
+    /// The library's key.
+    #[arg(long, value_name = "key", allow_hyphen_values = true, overrides_with = "key")]
+    key: String,
+    /// The library's name.
+    #[arg(
+        long,
+        value_name = "name",
+        allow_hyphen_values = true,
+        overrides_with = "name"
+    )]
+    name: String,
+    /// The library's licence (an SPDX expression).
+    #[arg(
+        long,
+        value_name = "spdx",
+        allow_hyphen_values = true,
+        overrides_with = "licence"
+    )]
+    licence: String,
+}
+
+/// `ew lib import`.
+#[derive(Subcommand, Debug)]
+enum LibImportCli {
+    /// Import a parts table into a writable library through a column map.
+    ///
+    /// Imports a parts table through a column map (as `import parts --map`) into the writable library `<library>`
+    /// (its key or ID) under the library's lock, with the parts' import date `--as-of` (YYYY-MM-DD); new
+    /// manufacturers are written with the parts. A second import of a changed list updates the parts in place (same
+    /// item IDs); a part whose content changed under its published version refuses the whole file unless `--bump`
+    /// writes it as the next patch version. A library locked by a live session is refused; a stale lock is taken
+    /// over only with `--take-over`.
+    Parts(LibImportPartsCli),
+}
+
+/// `ew lib import parts`.
+#[derive(Args, Debug)]
+struct LibImportPartsCli {
+    /// The target library, by its key or ID.
+    #[arg(value_name = "library", allow_hyphen_values = true)]
+    library: String,
+    /// The parts table (CSV or XLSX).
+    #[arg(value_name = "table", allow_hyphen_values = true)]
+    file: PathBuf,
+    /// The column map (a TOML file).
+    #[arg(
+        long,
+        value_name = "map.toml",
+        allow_hyphen_values = true,
+        overrides_with = "map"
+    )]
+    map: PathBuf,
+    /// The parts' import date (YYYY-MM-DD).
+    #[arg(long, value_name = "date", allow_hyphen_values = true, overrides_with = "as_of", value_parser = date)]
+    as_of: ew_api::catalog::Date,
+    /// Write changed parts as the next patch version.
+    #[arg(long, overrides_with = "bump")]
+    bump: bool,
+    /// Take over a stale library lock.
+    #[arg(long, overrides_with = "take_over")]
+    take_over: bool,
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// The value parsers: each keeps the refusal's words.
+
+/// A `--scheme` that ships.
+fn scheme_name(v: &str) -> Result<String, String> {
+    match ew_api::checks::scheme(v) {
+        Some(_) => Ok(v.to_owned()),
+        None => Err(format!("unknown scheme `{v}`")),
+    }
+}
+
+/// A `--lang` tag of a shipped language, any case, stored canonical.
+fn language(v: &str) -> Result<String, String> {
+    let languages = ew_api::checks::messages::LANGUAGES;
+    match languages.iter().find(|l| l.eq_ignore_ascii_case(v)) {
+        Some(l) => Ok((*l).to_owned()),
+        None => Err(format!(
+            "unknown message language `{v}` ({})",
+            languages.join(", ")
+        )),
+    }
+}
+
+/// An `--as-of` date `YYYY-MM-DD`.
+pub(super) fn date(v: &str) -> Result<ew_api::catalog::Date, String> {
+    v.parse()
+        .map_err(|_| format!("`--as-of` needs a date YYYY-MM-DD, not `{v}`"))
+}
+
+/// An `import qet --report` format.
+pub(super) fn report(v: &str) -> Result<ReportFormat, String> {
+    v.parse::<ReportFormat>().map_err(|e| e.to_string())
+}
+
+/// A `--dpi` value: 72 to 600 (WP-S1.22 D7).
+fn dpi(v: &str) -> Result<u32, String> {
+    match v.parse::<u32>() {
+        Ok(n) if ew_api::output::DPI_RANGE.contains(&n) => Ok(n),
+        _ => Err(format!(
+            "`--dpi` needs a number from {} to {}, got `{v}`",
+            ew_api::output::DPI_RANGE.start(),
+            ew_api::output::DPI_RANGE.end()
+        )),
+    }
+}
+
+/// A `--threads` value: 1 to 256.
+fn threads(v: &str) -> Result<usize, String> {
+    match v.parse::<usize>() {
+        Ok(n) if (1..=256).contains(&n) => Ok(n),
+        _ => Err(format!("`--threads` needs a number from 1 to 256, got `{v}`")),
+    }
+}
+
+/// A `--pages` selection.
+fn pages(v: &str) -> Result<PageSelection, String> {
+    PageSelection::parse(v).map_err(|e| e.to_string())
+}
+
+/// A `--timeout` in seconds: 1 to the sandbox's longest deadline (one day).
+fn timeout(v: &str) -> Result<u64, String> {
+    let max = ew_api::sql::Profile::MAX_DEADLINE.as_secs();
+    match v.parse::<u64>() {
+        Ok(n) if (1..=max).contains(&n) => Ok(n),
+        _ => Err(format!(
+            "`--timeout` needs a number of seconds from 1 to {max}, got `{v}`"
+        )),
+    }
+}
+
+/// A positional of `sql`: an inline query may start with an SQL comment (`-- …`), but a single word starting with
+/// `-` is a mistyped option.
+fn sql_word(v: &str) -> Result<String, String> {
+    if v.starts_with('-') && !v.contains(char::is_whitespace) {
+        Err(format!("unknown option `{v}`"))
+    } else {
+        Ok(v.to_owned())
+    }
+}
+
+/// An `sql --format`.
+fn sql_format(v: &str) -> Result<SqlFormat, String> {
+    match v {
+        "csv" => Ok(SqlFormat::Csv),
+        "json" => Ok(SqlFormat::Json),
+        "xlsx" => Err("`--format xlsx` is not built yet (csv, json)".to_owned()),
+        other => Err(format!("unknown format `{other}` (csv, json)")),
+    }
+}
+
+/// The `--format` of a row export (`export cables|bom|wires|terminals`): CSV only; `pdf` is refused by the lowering
+/// with the subject's words ([`csv_only`]).
+fn row_format(v: &str) -> Result<ReportPages, String> {
+    match v {
+        "csv" => Ok(ReportPages::Csv),
+        "pdf" => Ok(ReportPages::Pdf),
+        "xlsx" => {
+            Err("`--format xlsx` is not built yet (csv; XLSX waits for the writer of FT-61)".to_owned())
+        }
+        other => Err(format!("unknown format `{other}` (csv)")),
+    }
+}
+
+/// A row export's `--format pdf`: the row exports are CSV only, and the refusal points to the report PDF.
+fn csv_only(what: &str, format: Option<ReportPages>) -> Result<(), clap::Error> {
+    match format {
+        Some(ReportPages::Pdf) => Err(usage_error(
+            &["export", what],
+            format!(
+                "`export {what}` is CSV only; a report block's pages go to PDF with `ew export report --block <block> --format pdf`"
+            ),
+        )),
+        _ => Ok(()),
+    }
+}
+
+/// The `--format` of `export report`.
+fn report_format(v: &str) -> Result<ReportPages, String> {
+    match v {
+        "csv" => Ok(ReportPages::Csv),
+        "pdf" => Ok(ReportPages::Pdf),
+        "xlsx" => {
+            Err("`--format xlsx` is not built yet (csv, pdf; XLSX waits for the writer of FT-61)".to_owned())
+        }
+        other => Err(format!("unknown format `{other}` (csv, pdf)")),
+    }
+}
+
+/// A `lib search --kind`.
+fn item_kind(v: &str) -> Result<String, String> {
+    match ew_api::library::item_kind(v) {
+        Some(_) => Ok(v.to_owned()),
+        None => Err(format!(
+            "unknown kind `{v}` (part, symbol, fndef, form, macro, manufacturer)"
+        )),
+    }
+}
+
+/// A `lib search --limit`.
+fn limit(v: &str) -> Result<u32, String> {
+    v.parse::<u32>()
+        .map_err(|_| format!("`--limit` needs a number, not `{v}`"))
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// The lowering.
+
+/// A usage error of the subcommand at `path`, with clap's usage line for it.
+fn usage_error(path: &[&str], message: impl std::fmt::Display) -> clap::Error {
+    /// The error of the command at `path` below `cmd`; the paths are the tree's own, a missing word stops there.
+    fn at(cmd: &mut clap::Command, path: &[&str], message: String) -> clap::Error {
+        if let Some((word, rest)) = path.split_first()
+            && let Some(sub) = cmd.find_subcommand_mut(word)
+        {
+            return at(sub, rest, message);
+        }
+        cmd.error(ErrorKind::ArgumentConflict, message)
+    }
+    let mut root = Cli::command();
+    root.build();
+    at(&mut root, path, message.to_string())
+}
+
+/// `--json` beside an explicit `--format`: `--json` is the alias of `--format json`, so another format is a usage
+/// error (D3 (c)).
+fn json_alias(path: &[&str], json: bool, format: Option<&str>) -> Result<(), clap::Error> {
+    match format {
+        Some(f) if json && f != "json" => Err(usage_error(
+            path,
+            format!("`--json` cannot be combined with `--format {f}` (`--json` is `--format json`)"),
+        )),
+        _ => Ok(()),
+    }
+}
+
+/// The refused flags of `export pdf|svg|png`: accepted by the grammar, refused as not built.
+fn not_built(path: &[&str], lang: bool, omit_personal_data: bool) -> Result<(), clap::Error> {
+    match (lang, omit_personal_data) {
+        (true, _) => Err(usage_error(path, "`--lang` is not built yet")),
+        (_, true) => Err(usage_error(path, "`--omit-personal-data` is not built yet")),
+        _ => Ok(()),
+    }
+}
+
+/// The project of a line: `--project` or the positional directory (the relations exclude both).
+fn project(flag: Option<PathBuf>, positional: Option<PathBuf>) -> Option<PathBuf> {
+    flag.or(positional)
+}
+
+/// The project of a line whose positionals are resolved by their count (`apply`, `query`, `sql`, `sql dump`): the
+/// relations would name the positional by its other meaning, so both together is refused here, in the words clap
+/// uses for the other subcommands.
+fn counted_project(
+    path: &[&str],
+    flag: Option<PathBuf>,
+    positional: Option<PathBuf>,
+) -> Result<Option<PathBuf>, clap::Error> {
+    match (flag, positional) {
+        (Some(_), Some(_)) => Err(usage_error(
+            path,
+            "the argument '[project-dir]' cannot be used with '--project <dir>'",
+        )),
+        (flag, positional) => Ok(flag.or(positional)),
+    }
+}
+
+impl Cli {
+    /// The command a parsed line names.
+    ///
+    /// # Errors
+    ///
+    /// A usage error for a rule the relations of the tree cannot say.
+    pub(super) fn into_command(self) -> Result<Command, clap::Error> {
+        Ok(match self.command {
+            Top::Import(Import::Qet(a)) => {
+                if a.json && a.report.is_some() && a.report_out.is_none() {
+                    return Err(usage_error(
+                        &["import", "qet"],
+                        "`--json` prints the result on stdout: give the report a file with `--report-out <file>`",
+                    ));
+                }
+                Command::ImportQet(a)
+            }
+            Top::Import(Import::Parts(a)) => Command::ImportParts(a),
+            Top::Import(Import::Csv(a)) => Command::ImportCsv(a),
+            Top::Check(a) => {
+                let format_name = a.format.map(|f| match f {
+                    CheckFormat::Text => "text",
+                    CheckFormat::Markdown => "md",
+                    CheckFormat::Json => "json",
+                });
+                json_alias(&["check"], a.json, format_name)?;
+                Command::Check(CheckArgs {
+                    project: project(a.project, a.project_dir),
+                    scheme: a.scheme,
+                    mode: match a.mode {
+                        ModeArg::Release => CheckMode::Release,
+                        ModeArg::Online => CheckMode::Online,
+                    },
+                    format: if a.json {
+                        CheckFormat::Json
+                    } else {
+                        a.format.unwrap_or(CheckFormat::Text)
+                    },
+                    out: a.out,
+                    lang: a.lang,
+                })
+            }
+            Top::Sql(a) => sql(a)?,
+            Top::Export(e) => export(e)?,
+            Top::Render(a) => Command::Render(RenderArgs {
+                project: project(a.project, a.project_dir),
+                page: a.page,
+                dpi: a.dpi,
+                out: a.out,
+                json: a.json,
+            }),
+            Top::Apply(a) => {
+                let (dir, log) = match a.second {
+                    Some(log) => (Some(a.first), log),
+                    None => (None, a.first),
+                };
+                Command::Apply(ApplyArgs {
+                    project: counted_project(&["apply"], a.project, dir)?,
+                    log,
+                    preview: a.preview,
+                    one_step: a.one_step,
+                    json: a.json,
+                })
+            }
+            Top::Fmt(a) => Command::Fmt(FmtArgs {
+                project: project(a.project, a.project_dir),
+                check: a.check,
+                json: a.json,
+            }),
+            Top::Recover(a) => Command::Recover(RecoverArgs {
+                project: project(a.project, a.project_dir),
+                action: match (a.replay, a.discard) {
+                    (true, _) => RecoverAction::Replay,
+                    (false, true) => RecoverAction::Discard,
+                    (false, false) => RecoverAction::Summary,
+                },
+                json: a.json,
+            }),
+            Top::Project(ProjectCli::Checks(ChecksCli::Set(a))) => Command::ChecksSet(ChecksSetArgs {
+                project: project(a.project, a.project_dir),
+                active: a.active,
+                release: a.release,
+            }),
+            Top::Project(ProjectCli::Assets(AssetsCli::Purge(a))) => Command::AssetsPurge(AssetsPurgeArgs {
+                project: project(a.project, a.project_dir),
+                preview: a.preview,
+            }),
+            Top::Revision(r) => {
+                let (action, dir, flag) = match r {
+                    RevisionCli::Approve(a) => {
+                        (RevisionAction::Approve { role: a.role }, a.project_dir, a.project)
+                    }
+                    RevisionCli::Release(a) => (
+                        RevisionAction::Release {
+                            label: a.label,
+                            archive_dir: a.archive_dir,
+                        },
+                        a.project_dir,
+                        a.project,
+                    ),
+                    RevisionCli::Withdraw(a) => (
+                        RevisionAction::Withdraw {
+                            label: a.label,
+                            reason: a.reason,
+                        },
+                        a.project_dir,
+                        a.project,
+                    ),
+                };
+                Command::Revision(RevisionArgs {
+                    action,
+                    project: project(flag, dir),
+                })
+            }
+            Top::VerifyDerived(a) => Command::VerifyDerived(VerifyArgs {
+                project: project(a.project, a.project_dir),
+                json: a.json,
+            }),
+            Top::Query(a) => {
+                let (dir, name, key) = match a.third {
+                    Some(key) => (Some(PathBuf::from(a.first)), a.second, key),
+                    None => (None, a.first, a.second),
+                };
+                Command::Query(QueryArgs {
+                    project: counted_project(&["query"], a.project, dir)?,
+                    name,
+                    key,
+                    explain: a.explain,
+                    json: a.json,
+                })
+            }
+            Top::Queries(a) => Command::Queries { json: a.json },
+            Top::Lib(a) => Command::Lib(LibArgs {
+                action: match a.action {
+                    LibSub::List => LibAction::List,
+                    LibSub::Search(s) => LibAction::Search {
+                        text: s.text,
+                        kinds: s.kind,
+                        all: s.all,
+                        limit: s.limit,
+                    },
+                    LibSub::Index(_) => LibAction::IndexRebuild,
+                    LibSub::Create(c) => LibAction::Create {
+                        dir: c.dir,
+                        key: c.key,
+                        name: c.name,
+                        licence: c.licence,
+                    },
+                    LibSub::Import(LibImportCli::Parts(i)) => LibAction::ImportParts {
+                        library: i.library,
+                        file: i.file,
+                        map: i.map,
+                        as_of: i.as_of,
+                        bump: i.bump,
+                        take_over: i.take_over,
+                    },
+                },
+                company: a.company,
+                json: a.json,
+            }),
+            Top::Commands(a) => Command::Commands { json: a.json },
+            Top::Schema(a) => Command::Schema(a.name),
+        })
+    }
+}
+
+/// `ew sql` and its subcommands.
+fn sql(a: SqlCli) -> Result<Command, clap::Error> {
+    match a.sub {
+        Some(SqlSub::Schema) => return Ok(Command::SqlSchema),
+        Some(SqlSub::Dump(d)) => {
+            let (dir, out) = match d.second {
+                Some(out) => (Some(PathBuf::from(d.first)), out),
+                None => (None, d.first),
+            };
+            return Ok(Command::SqlDump(SqlDumpArgs {
+                project: counted_project(&["sql", "dump"], d.project, dir)?,
+                out: PathBuf::from(out),
+                json: d.json,
+            }));
+        }
+        None => {}
+    }
+    let (dir, query) = match (a.file, a.first, a.second) {
+        (Some(file), dir, _) => (dir.map(PathBuf::from), SqlSource::File(file)),
+        (None, Some(dir), Some(q)) => (Some(PathBuf::from(dir)), SqlSource::Text(q)),
+        (None, Some(q), None) => (None, SqlSource::Text(q)),
+        // `required_unless_present = "file"` gives the query.
+        (None, None, _) => return Err(usage_error(&["sql"], "`sql` needs a query (or `--file`)")),
+    };
+    let format_name = a.format.map(|f| match f {
+        SqlFormat::Csv => "csv",
+        SqlFormat::Json => "json",
+    });
+    let project = counted_project(&["sql"], a.project, dir)?;
+    json_alias(&["sql"], a.json, format_name)?;
+    Ok(Command::Sql(SqlArgs {
+        project,
+        query,
+        format: if a.json {
+            SqlFormat::Json
+        } else {
+            a.format.unwrap_or(SqlFormat::Csv)
+        },
+        timeout: a.timeout,
+        out: a.out,
+    }))
+}
+
+/// `ew export` and its subjects.
+fn export(e: ExportCli) -> Result<Command, clap::Error> {
+    let rows = |kind, block, flag, dir, out, json| {
+        Command::Export(ExportArgs {
+            kind,
+            block,
+            project: project(flag, dir),
+            out,
+            json,
+        })
+    };
+    Ok(match e {
+        ExportCli::Cables(a) => {
+            csv_only("cables", a.format)?;
+            rows(
+                ExportKind::Cables,
+                a.block,
+                a.project,
+                a.project_dir,
+                a.out,
+                a.json,
+            )
+        }
+        ExportCli::Wires(a) => {
+            csv_only("wires", a.format)?;
+            rows(
+                ExportKind::Wires,
+                a.block,
+                a.project,
+                a.project_dir,
+                a.out,
+                a.json,
+            )
+        }
+        ExportCli::Bom(a) => {
+            csv_only("bom", a.format)?;
+            rows(
+                ExportKind::Bom(match a.mode {
+                    BomArg::Parts => BomMode::Component,
+                    BomArg::Assembly => BomMode::Assembly,
+                }),
+                a.block,
+                a.project,
+                a.project_dir,
+                a.out,
+                a.json,
+            )
+        }
+        ExportCli::Terminals(a) => {
+            csv_only("terminals", a.format)?;
+            rows(
+                ExportKind::Terminals(a.strip),
+                a.block,
+                a.project,
+                a.project_dir,
+                a.out,
+                a.json,
+            )
+        }
+        ExportCli::Report(a) => {
+            let pdf = a.format == Some(ReportPages::Pdf);
+            let kind = match a.kind {
+                Some(name) => {
+                    if pdf {
+                        // WP-S3.06 D4: the refusal is the report layer's text.
+                        return Err(usage_error(
+                            &["export", "report"],
+                            ew_api::output::RowsError::KindPages,
+                        ));
+                    }
+                    ExportKind::ReportKind(name)
+                }
+                None => ExportKind::Report { pdf },
+            };
+            rows(kind, a.block, a.project, a.project_dir, a.out, a.json)
+        }
+        ExportCli::Pdf(a) => pages_command(PageFormat::Pdf, a)?,
+        ExportCli::Svg(a) => pages_command(PageFormat::Svg, a)?,
+        ExportCli::Png(a) => {
+            not_built(&["export", "png"], a.lang.is_some(), a.omit_personal_data)?;
+            Command::ExportPages(ExportPagesArgs {
+                format: PageFormat::Png,
+                project: project(a.project, a.project_dir),
+                out: a.out,
+                pages: a.pages.unwrap_or(PageSelection::All),
+                threads: a.threads,
+                dpi: a.dpi,
+                json: a.json,
+            })
+        }
+    })
+}
+
+/// `ew export pdf|svg`.
+fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error> {
+    let path: &[&str] = match format {
+        PageFormat::Pdf => &["export", "pdf"],
+        PageFormat::Svg | PageFormat::Png => &["export", "svg"],
+    };
+    not_built(path, a.lang.is_some(), a.omit_personal_data)?;
+    Ok(Command::ExportPages(ExportPagesArgs {
+        format,
+        project: project(a.project, a.project_dir),
+        out: a.out,
+        pages: a.pages.unwrap_or(PageSelection::All),
+        threads: a.threads,
+        dpi: ew_api::output::DEFAULT_DPI,
+        json: a.json,
+    }))
+}

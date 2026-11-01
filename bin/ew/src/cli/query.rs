@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use ew_api::cli_results as results;
 
-use super::{Command, one_project, project_dir, project_flag};
+use super::project_dir;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -25,62 +25,6 @@ pub struct QueryArgs {
     pub explain: bool,
     /// Print the result as JSON (`--json`).
     pub json: bool,
-}
-
-/// `ew query [<project-dir>] <name> <key> [--project <dir>] [--explain] [--json]`.
-pub(super) fn parse_query(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut positionals: Vec<String> = Vec::new();
-    let mut project_opt = None;
-    let mut explain = false;
-    let mut json = false;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--explain" => explain = true,
-            "--json" => json = true,
-            // A key may start with one `-`: a bare tag (`-X1031:5`), or `-` for a query without a key.
-            opt if opt.starts_with("--") => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if positionals.len() == 3 {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-                positionals.push(a);
-            }
-        }
-    }
-    let mut positionals = positionals.into_iter();
-    let (dir, name, key) = match (positionals.next(), positionals.next(), positionals.next()) {
-        (Some(dir), Some(name), Some(key)) => (Some(PathBuf::from(dir)), name, key),
-        (Some(name), Some(key), None) => (None, name, key),
-        _ => {
-            return Err(
-                "`query` needs a query name and a key (`ew query device_tag tag:-101F1`; `ew queries` lists the \
-                 queries)"
-                    .to_owned(),
-            );
-        }
-    };
-    let project = one_project(project_opt, dir)?;
-    Ok(Command::Query(QueryArgs {
-        project,
-        name,
-        key,
-        explain,
-        json,
-    }))
-}
-
-/// `ew queries [--json]`.
-pub(super) fn parse_queries(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    match it.next().as_deref() {
-        None => Ok(Command::Queries { json: false }),
-        Some("--json") => match it.next() {
-            None => Ok(Command::Queries { json: true }),
-            Some(extra) => Err(format!("unexpected argument `{extra}`")),
-        },
-        Some(opt) if opt.starts_with('-') => Err(format!("unknown option `{opt}`")),
-        Some(extra) => Err(format!("unexpected argument `{extra}`")),
-    }
 }
 
 /// `ew query` (D11, D12, FR-EXT-005): opens the project as a reader (no lock) and prints the query's value, with

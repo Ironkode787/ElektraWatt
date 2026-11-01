@@ -521,11 +521,6 @@
           "repeatable": false
         },
         {
-          "name": "--strict",
-          "value": false,
-          "repeatable": false
-        },
-        {
           "name": "--lenient",
           "value": false,
           "repeatable": false
@@ -543,7 +538,7 @@
         },
         {
           "code": 1,
-          "meaning": "nothing written: `--strict` refused error findings, or the records do not make a project"
+          "meaning": "nothing written: the strict default refused error findings, or the records do not make a project"
         },
         {
           "code": 2,

@@ -86,7 +86,7 @@ The lanes rely on exactly these items. If one differs, the lane stops and report
 
 | Item | Where | Used here for |
 |---|---|---|
-| The hand-written parser, `Command` enum and `USAGE` text of every subcommand (no `clap`) | `bin/ew/src/cli.rs` (3,872 lines), `bin/ew/src/main.rs` | Every part |
+| The hand-written parser, `Command` enum and `USAGE` text of every subcommand (no `clap`). As built (cycle 43): the parser and `USAGE` are replaced by one `clap` derive tree (`bin/ew/src/cli/tree.rs`) lowered to the same `Command` enum; help and usage are clap's | `bin/ew/src/cli.rs` (3,872 lines), `bin/ew/src/main.rs` | Every part |
 | The CLI tests through `bin_exe()`, among them the PDF digest of G-M1-01 and the check, SQL and lib JSON | `bin/ew/tests/cli.rs` | Every part's tests |
 | `ew.check-result/1` (`report::to_json`, hand-built `serde_json`) and `ew.sql-result/1` (`RowSet::to_json`) | `crates/ew-checks/src/report.rs`, `crates/ew-sqlview/src/result.rs` | Part 1 types them |
 | `ew lib list --json` and `ew lib search --json` print a bare JSON array with no `$schema` | `bin/ew/src/cli.rs` (`LibAction::List`) | Part 1 (D3) |

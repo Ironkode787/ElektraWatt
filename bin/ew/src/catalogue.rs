@@ -1,19 +1,19 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The CLI table (WP-S1.22 D4): one entry per subcommand path of [`crate::cli::USAGE`] with its flags, its exit codes,
-//! its result schema and its stability.
+//! The CLI table (WP-S1.22 D4): one entry per subcommand path of the derive tree ([`crate::cli::command`]) with its
+//! flags, its exit codes, its result schema and its stability.
 //!
-//! The parser stays hand-written; this table is the structured form of the surface. The tests below tie it to the
-//! `USAGE` synopsis (each path's synopsis lines name exactly its flags, with their values and repetition), to the
-//! parser (it accepts every flag of the table) and to the published result schemas
-//! ([`ew_api::cli_results::RESULTS`]). From part 5 it is the source of the CLI snapshot and the CLI reference.
+//! The paths and the flags (name, value, repetition) come from walking clap's tree in declaration order, skipping
+//! clap's own help and version; the exit codes, the result and the stability are [`TABLE`], keyed by path. The tests
+//! below tie the table to the tree (they name the same paths) and to the published result schemas
+//! ([`ew_api::cli_results::RESULTS`]). It is the source of the CLI snapshot and the CLI reference.
 
 /// One flag of a subcommand.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Flag {
     /// The flag, `--name`.
-    pub name: &'static str,
+    pub name: String,
     /// Whether it takes a value (`--out <file>`).
     pub value: bool,
     /// Whether it may be given more than once (`--company <dir>`...).
@@ -36,13 +36,11 @@ pub enum Stability {
     Preview,
 }
 
-/// One subcommand path of the CLI.
+/// The hand-kept part of one subcommand path: what the tree cannot say.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Entry {
+pub struct Row {
     /// The words after `ew` (`["export", "pdf"]`).
     pub path: &'static [&'static str],
-    /// Its flags, in synopsis order.
-    pub flags: &'static [Flag],
     /// Its exit codes.
     pub exits: &'static [Exit],
     /// The schema name of its `--json` result (`ew.<command>-result/1`), or `None` when it prints none.
@@ -51,39 +49,24 @@ pub struct Entry {
     pub stability: Stability,
 }
 
-const fn flag(name: &'static str) -> Flag {
-    Flag {
-        name,
-        value: false,
-        repeatable: false,
-    }
-}
-
-const fn valued(name: &'static str) -> Flag {
-    Flag {
-        name,
-        value: true,
-        repeatable: false,
-    }
-}
-
-const fn repeated(name: &'static str) -> Flag {
-    Flag {
-        name,
-        value: true,
-        repeatable: true,
-    }
+/// One subcommand path of the CLI: its words and flags from the tree, the rest from its [`Row`].
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Entry {
+    /// The words after `ew`.
+    pub path: Vec<String>,
+    /// Its flags, in declaration order.
+    pub flags: Vec<Flag>,
+    /// Its exit codes.
+    pub exits: &'static [Exit],
+    /// The schema name of its `--json` result, or `None` when it prints none.
+    pub result: Option<&'static str>,
+    /// Its stability.
+    pub stability: Stability,
 }
 
 const fn exit(code: u8, meaning: &'static str) -> Exit {
     Exit { code, meaning }
 }
-
-const PROJECT: Flag = valued("--project");
-const JSON: Flag = flag("--json");
-const COMPANY: Flag = repeated("--company");
-
-const BLOCK: Flag = valued("--block");
 
 const OK: Exit = exit(0, "success");
 const USAGE_ETC: Exit = exit(2, "usage, open, I/O and every other error");
@@ -97,17 +80,10 @@ const HUMAN_EXITS: &[Exit] = &[
     exit(2, "usage, no controlling terminal, open and save errors"),
 ];
 
-/// The CLI table: every subcommand path of `USAGE` (the meta lines `--version` and `help` aside).
-pub const CATALOGUE: &[Entry] = &[
-    Entry {
+/// The exits, results and stability of every subcommand path of the tree.
+pub const TABLE: &[Row] = &[
+    Row {
         path: &["import", "qet"],
-        flags: &[
-            valued("--content"),
-            valued("--report"),
-            valued("--report-out"),
-            flag("--strict"),
-            JSON,
-        ],
         exits: &[
             exit(0, "imported, even with findings"),
             exit(
@@ -119,27 +95,19 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::IMPORT_QET),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["import", "parts"],
-        flags: &[PROJECT, JSON, valued("--map"), valued("--as-of"), COMPANY],
         exits: &[exit(0, "imported and saved"), USAGE_ETC],
         result: Some(ew_api::cli_results::IMPORT_PARTS),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["import", "csv"],
-        flags: &[
-            valued("--out"),
-            valued("--content"),
-            flag("--strict"),
-            flag("--lenient"),
-            JSON,
-        ],
         exits: &[
             exit(0, "written, with its findings"),
             exit(
                 1,
-                "nothing written: `--strict` refused error findings, or the records do not make a project",
+                "nothing written: the strict default refused error findings, or the records do not make a project",
             ),
             exit(
                 2,
@@ -149,17 +117,8 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::IMPORT_CSV),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["check"],
-        flags: &[
-            PROJECT,
-            valued("--scheme"),
-            valued("--mode"),
-            valued("--format"),
-            JSON,
-            valued("--lang"),
-            valued("--out"),
-        ],
         exits: &[
             exit(0, "no unwaived error"),
             exit(1, "unwaived errors"),
@@ -168,72 +127,44 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::CHECK),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["sql"],
-        flags: &[
-            PROJECT,
-            valued("--file"),
-            valued("--format"),
-            JSON,
-            valued("--timeout"),
-            valued("--out"),
-        ],
         exits: &[OK, exit(2, "usage, open and SQL errors, denials and limits")],
         result: Some(ew_api::cli_results::SQL),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["sql", "dump"],
-        flags: &[PROJECT, JSON],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::SQL_DUMP),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["sql", "schema"],
-        flags: &[],
         exits: &[OK],
         result: None,
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["export", "cables"],
-        flags: &[PROJECT, BLOCK, valued("--format"), valued("--out"), JSON],
         exits: &[OK, ROW_EXPORT_ERRORS],
         result: Some(ew_api::cli_results::EXPORT_CABLES),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["export", "bom"],
-        flags: &[
-            PROJECT,
-            BLOCK,
-            valued("--mode"),
-            valued("--format"),
-            valued("--out"),
-            JSON,
-        ],
         exits: &[OK, ROW_EXPORT_ERRORS],
         result: Some(ew_api::cli_results::EXPORT_BOM),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["export", "wires"],
-        flags: &[PROJECT, BLOCK, valued("--format"), valued("--out"), JSON],
         exits: &[OK, ROW_EXPORT_ERRORS],
         result: Some(ew_api::cli_results::EXPORT_WIRES),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["export", "terminals"],
-        flags: &[
-            PROJECT,
-            BLOCK,
-            valued("--strip"),
-            valued("--format"),
-            valued("--out"),
-            JSON,
-        ],
         exits: &[
             OK,
             exit(
@@ -244,16 +175,8 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::EXPORT_TERMINALS),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["export", "report"],
-        flags: &[
-            PROJECT,
-            BLOCK,
-            valued("--kind"),
-            valued("--format"),
-            valued("--out"),
-            JSON,
-        ],
         exits: &[
             OK,
             exit(
@@ -264,56 +187,26 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::EXPORT_REPORT),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["export", "pdf"],
-        flags: &[
-            PROJECT,
-            valued("--out"),
-            valued("--pages"),
-            valued("--threads"),
-            JSON,
-        ],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::EXPORT_PDF),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["export", "svg"],
-        flags: &[
-            PROJECT,
-            valued("--out"),
-            valued("--pages"),
-            valued("--threads"),
-            JSON,
-        ],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::EXPORT_SVG),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["export", "png"],
-        flags: &[
-            PROJECT,
-            valued("--out"),
-            valued("--pages"),
-            valued("--dpi"),
-            valued("--threads"),
-            JSON,
-        ],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::EXPORT_PNG),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["render"],
-        flags: &[
-            PROJECT,
-            valued("--page"),
-            flag("--png"),
-            valued("--dpi"),
-            valued("--out"),
-            JSON,
-        ],
         exits: &[
             OK,
             exit(2, "usage, open, I/O and writer errors, an unknown folio"),
@@ -321,9 +214,8 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::RENDER),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["apply"],
-        flags: &[PROJECT, flag("--preview"), flag("--one-step"), JSON],
         exits: &[
             exit(0, "every line commits"),
             exit(1, "a prevent or domain rule refuses a line"),
@@ -335,9 +227,8 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::APPLY),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["fmt"],
-        flags: &[PROJECT, flag("--check"), JSON],
         exits: &[
             exit(
                 0,
@@ -352,9 +243,8 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::FMT),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["recover"],
-        flags: &[PROJECT, flag("--replay"), flag("--discard"), JSON],
         exits: &[
             exit(0, "summarised, replayed and saved, discarded, or no journal"),
             exit(1, "the replay refused or the discard not confirmed"),
@@ -363,44 +253,38 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::RECOVER),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["project", "checks", "set"],
-        flags: &[PROJECT, valued("--active"), valued("--release")],
         exits: HUMAN_EXITS,
         result: None,
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["project", "assets", "purge"],
-        flags: &[PROJECT, flag("--preview")],
         exits: HUMAN_EXITS,
         result: None,
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["revision", "approve"],
-        flags: &[PROJECT, valued("--as")],
         exits: HUMAN_EXITS,
         result: None,
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["revision", "release"],
-        flags: &[PROJECT, valued("--archive-dir")],
         exits: HUMAN_EXITS,
         result: None,
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["revision", "withdraw"],
-        flags: &[valued("--reason"), PROJECT],
         exits: HUMAN_EXITS,
         result: None,
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["verify-derived"],
-        flags: &[PROJECT, JSON],
         exits: &[
             exit(0, "no difference"),
             exit(1, "differences"),
@@ -409,9 +293,8 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::VERIFY_DERIVED),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["query"],
-        flags: &[PROJECT, flag("--explain"), JSON],
         exits: &[
             exit(0, "answered"),
             exit(
@@ -422,196 +305,186 @@ pub const CATALOGUE: &[Entry] = &[
         result: Some(ew_api::cli_results::QUERY),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["queries"],
-        flags: &[JSON],
         exits: &[OK],
         result: Some(ew_api::cli_results::QUERIES),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["lib", "list"],
-        flags: &[COMPANY, JSON],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::LIB_LIST),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["lib", "search"],
-        flags: &[
-            repeated("--kind"),
-            flag("--all"),
-            valued("--limit"),
-            COMPANY,
-            JSON,
-        ],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::LIB_SEARCH),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["lib", "index"],
-        flags: &[flag("--rebuild"), COMPANY, JSON],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::LIB_INDEX),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["lib", "create"],
-        flags: &[
-            valued("--key"),
-            valued("--name"),
-            valued("--licence"),
-            COMPANY,
-            JSON,
-        ],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::LIB_CREATE),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["lib", "import", "parts"],
-        flags: &[
-            valued("--map"),
-            valued("--as-of"),
-            flag("--bump"),
-            flag("--take-over"),
-            COMPANY,
-            JSON,
-        ],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::LIB_IMPORT_PARTS),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["commands"],
-        flags: &[JSON],
         exits: &[OK],
         result: Some(ew_api::cli_results::COMMANDS),
         stability: Stability::Preview,
     },
-    Entry {
+    Row {
         path: &["schema"],
-        flags: &[],
         exits: &[OK, exit(2, "usage, an unknown schema name")],
         result: None,
         stability: Stability::Preview,
     },
 ];
 
+/// The subcommand paths of `cmd` (a built command) with their flags: a command is a path when it has no subcommands
+/// or does not require one (`sql` and its `dump` and `schema`); clap's `help` subcommand is skipped.
+fn walk(cmd: &clap::Command, path: &mut Vec<String>, out: &mut Vec<(Vec<String>, Vec<Flag>)>) {
+    let subcommands: Vec<&clap::Command> = cmd.get_subcommands().filter(|s| s.get_name() != "help").collect();
+    if !path.is_empty() && (subcommands.is_empty() || !cmd.is_subcommand_required_set()) {
+        let flags = cmd
+            .get_arguments()
+            .filter(|a| !a.is_positional() && !a.is_hide_set())
+            .filter(|a| !matches!(a.get_id().as_str(), "help" | "version"))
+            .filter_map(|a| {
+                a.get_long().map(|long| Flag {
+                    name: format!("--{long}"),
+                    value: a.get_action().takes_values(),
+                    repeatable: matches!(a.get_action(), clap::ArgAction::Append),
+                })
+            })
+            .collect();
+        out.push((path.clone(), flags));
+    }
+    for sub in subcommands {
+        path.push(sub.get_name().to_owned());
+        walk(sub, path, out);
+        path.pop();
+    }
+}
+
+/// The CLI catalogue: every subcommand path of the tree in declaration order, with its row of [`TABLE`].
+///
+/// # Panics
+///
+/// When a path of the tree has no row (the test `the_table_and_the_tree_name_the_same_paths` fails first).
+pub fn catalogue() -> Vec<Entry> {
+    let mut cmd = crate::cli::command();
+    cmd.build();
+    let mut paths = Vec::new();
+    walk(&cmd, &mut Vec::new(), &mut paths);
+    paths
+        .into_iter()
+        .map(|(path, flags)| {
+            let row = TABLE
+                .iter()
+                .find(|r| r.path.iter().copied().eq(path.iter().map(String::as_str)))
+                .unwrap_or_else(|| panic!("`ew {}` has no row in the CLI table", path.join(" ")));
+            Entry {
+                path,
+                flags,
+                exits: row.exits,
+                result: row.result,
+                stability: row.stability,
+            }
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, BTreeSet};
+    use std::collections::BTreeSet;
 
     use super::*;
 
-    /// The synopsis of `USAGE`: one entry per line (continuation lines joined), the meta lines left out.
-    fn synopsis() -> Vec<String> {
-        let mut lines: Vec<String> = Vec::new();
-        for line in crate::cli::USAGE.lines().skip(1) {
-            if line.is_empty() {
-                break;
-            }
-            if line.starts_with("      ") {
-                let last = lines.last_mut().expect("a continuation follows a synopsis line");
-                last.push(' ');
-                last.push_str(line.trim());
-            } else {
-                lines.push(line.trim().to_owned());
-            }
-        }
-        lines
-            .into_iter()
-            .filter(|l| !l.starts_with("ew --version") && !l.starts_with("ew help"))
-            .collect()
-    }
-
-    /// The path and the flags one synopsis line names.
-    fn parse_line(line: &str) -> (Vec<String>, Vec<Flag>) {
-        let tokens: Vec<&str> = line.split_whitespace().collect();
-        assert_eq!(tokens.first(), Some(&"ew"), "{line}");
-        let path: Vec<String> = tokens[1..]
-            .iter()
-            .take_while(|t| t.bytes().all(|b| b.is_ascii_lowercase() || b == b'-') && !t.starts_with('-'))
-            .map(|t| (*t).to_owned())
-            .collect();
-        let mut flags = Vec::new();
-        for (i, t) in tokens.iter().enumerate() {
-            let bare = t.trim_start_matches('[');
-            if !bare.starts_with("--") {
-                continue;
-            }
-            let name: String = bare
-                .chars()
-                .take_while(|c| *c == '-' || c.is_ascii_lowercase())
-                .collect();
-            let rest = &bare[name.len()..];
-            let next = tokens.get(i + 1).copied().unwrap_or("");
-            let value =
-                rest.is_empty() && !next.is_empty() && !next.starts_with('[') && !next.starts_with("--");
-            let closing = if value { next } else { rest };
-            flags.push(Flag {
-                name: Box::leak(name.into_boxed_str()),
-                value,
-                repeatable: closing.ends_with("]..."),
-            });
-        }
-        (path, flags)
-    }
-
-    /// D4: each `USAGE` synopsis line names only flags of its entry, and a path's lines together name exactly the
-    /// entry's flags, with their values and repetition; every path of `USAGE` has an entry and every entry a line.
+    /// Cycle 43, ruling 5: the table and the tree name the same paths, each once; the paths are those of the tree.
     #[test]
-    fn usage_synopsis_names_exactly_the_flags_of_each_entry() {
-        let mut by_path: BTreeMap<Vec<String>, BTreeSet<(String, bool, bool)>> = BTreeMap::new();
-        for line in synopsis() {
-            let (path, flags) = parse_line(&line);
-            let entry = CATALOGUE
-                .iter()
-                .find(|e| e.path.iter().copied().eq(path.iter().map(String::as_str)))
-                .unwrap_or_else(|| panic!("no catalogue entry for `{line}`"));
-            let set = by_path.entry(path).or_default();
-            for f in flags {
-                assert!(
-                    entry.flags.contains(&f),
-                    "`{line}` names {f:?}, which its entry does not hold as such"
-                );
-                set.insert((f.name.to_owned(), f.value, f.repeatable));
-            }
-        }
-        for e in CATALOGUE {
-            let path: Vec<String> = e.path.iter().map(|w| (*w).to_owned()).collect();
-            let named = by_path
-                .get(&path)
-                .unwrap_or_else(|| panic!("{:?} has no synopsis line in USAGE", e.path));
-            let want: BTreeSet<(String, bool, bool)> = e
+    fn the_table_and_the_tree_name_the_same_paths() {
+        let mut cmd = crate::cli::command();
+        cmd.build();
+        let mut walked = Vec::new();
+        walk(&cmd, &mut Vec::new(), &mut walked);
+        let tree: BTreeSet<Vec<String>> = walked.into_iter().map(|(path, _)| path).collect();
+        let table: BTreeSet<Vec<String>> = TABLE
+            .iter()
+            .map(|r| r.path.iter().map(|w| (*w).to_owned()).collect())
+            .collect();
+        assert_eq!(table.len(), TABLE.len(), "a path twice in the table");
+        assert_eq!(tree, table);
+        assert!(
+            tree.contains(&vec!["sql".to_owned()]),
+            "`sql` takes a query and has subcommands"
+        );
+        assert!(tree.contains(&vec!["lib".to_owned(), "import".to_owned(), "parts".to_owned()]));
+        assert!(
+            !tree.iter().any(|p| p.iter().any(|w| w == "help")),
+            "clap's `help` is no path"
+        );
+    }
+
+    /// The walk reads each flag's value and repetition from the tree, skips clap's help and version and the hidden
+    /// flags, and lists a parent's global flags (`lib --company`, `--json`) on each subcommand after its own.
+    #[test]
+    fn the_walk_reads_values_repetition_and_global_flags() {
+        let all = catalogue();
+        let flags = |path: &str| -> Vec<(String, bool, bool)> {
+            let entry = all.iter().find(|e| e.path.join(" ") == path).expect("the path");
+            entry
                 .flags
                 .iter()
-                .map(|f| (f.name.to_owned(), f.value, f.repeatable))
-                .collect();
-            assert_eq!(*named, want, "{:?}", e.path);
-        }
-        assert_eq!(by_path.len(), CATALOGUE.len());
-    }
-
-    /// The hand-written parser accepts every flag of the table (none is an unknown option).
-    #[test]
-    fn the_parser_knows_every_flag_of_the_table() {
-        for e in CATALOGUE {
-            for f in e.flags {
-                let mut args: Vec<String> = e.path.iter().map(|w| (*w).to_owned()).collect();
-                args.push(f.name.to_owned());
-                if f.value {
-                    args.push("x".to_owned());
-                }
-                if let Err(msg) = crate::cli::parse(args.clone()) {
-                    assert!(
-                        !msg.contains(&format!("unknown option `{}`", f.name)),
-                        "{args:?}: {msg}"
-                    );
-                }
-            }
-        }
+                .map(|f| (f.name.clone(), f.value, f.repeatable))
+                .collect()
+        };
+        let f = |name: &str, value: bool, repeatable: bool| (name.to_owned(), value, repeatable);
+        assert_eq!(
+            flags("lib search"),
+            [
+                f("--kind", true, true),
+                f("--all", false, false),
+                f("--limit", true, false),
+                f("--company", true, true),
+                f("--json", false, false),
+            ]
+        );
+        assert_eq!(
+            flags("export png"),
+            [
+                f("--project", true, false),
+                f("--out", true, false),
+                f("--pages", true, false),
+                f("--dpi", true, false),
+                f("--threads", true, false),
+                f("--json", false, false),
+            ]
+        );
+        assert_eq!(
+            flags("import csv"),
+            [
+                f("--out", true, false),
+                f("--content", true, false),
+                f("--lenient", false, false),
+                f("--json", false, false),
+            ]
+        );
+        assert_eq!(flags("schema"), []);
     }
 
     /// Every result-printing entry takes `--json` and names a published schema whose subcommand is the entry's path;
@@ -619,7 +492,7 @@ mod tests {
     #[test]
     fn results_and_flags_follow_the_conventions() {
         let mut named = BTreeSet::new();
-        for e in CATALOGUE {
+        for e in catalogue() {
             let has = |n: &str| e.flags.iter().any(|f| f.name == n);
             match e.result {
                 Some(name) => {
@@ -641,7 +514,7 @@ mod tests {
     // -----------------------------------------------------------------------------------------------------
     // The CLI snapshot (WP-S1.22 D13, AG-1)
     //
-    // The orchestrator's ruling 1 (cycle 42): "The CLI snapshot's generator lives in a binary": `CATALOGUE` is a
+    // The orchestrator's ruling 1 (cycle 42): "The CLI snapshot's generator lives in a binary": the catalogue is a
     // module of the `ew` binary, which has no library target, so this unit test writes `bin/ew/api/cli.json`,
     // blessed with `EW_CLI_BLESS=1` (the flag of the result schemas).
 
@@ -668,7 +541,7 @@ mod tests {
 
     #[derive(serde::Serialize)]
     struct SnapshotFlag {
-        name: &'static str,
+        name: String,
         value: bool,
         repeatable: bool,
     }
@@ -690,7 +563,7 @@ mod tests {
                     .flags
                     .iter()
                     .map(|f| SnapshotFlag {
-                        name: f.name,
+                        name: f.name.clone(),
                         value: f.value,
                         repeatable: f.repeatable,
                     })
@@ -734,11 +607,11 @@ mod tests {
         std::env::var_os("EW_CLI_BLESS").is_some_and(|v| v == "1")
     }
 
-    /// AG-1 (D13): `bin/ew/api/cli.json` equals the snapshot of `CATALOGUE` (an equality snapshot, blessed with
+    /// AG-1 (D13): `bin/ew/api/cli.json` equals the snapshot of the catalogue (an equality snapshot, blessed with
     /// `EW_CLI_BLESS=1`).
     #[test]
     fn the_cli_snapshot_equals_the_table() {
-        let generated = snapshot_text(CATALOGUE);
+        let generated = snapshot_text(&catalogue());
         if bless() {
             std::fs::create_dir_all(std::path::Path::new(SNAPSHOT).parent().unwrap()).unwrap();
             std::fs::write(SNAPSHOT, &generated).unwrap();
@@ -756,7 +629,7 @@ mod tests {
     /// missing file fails the same way.
     #[test]
     fn an_edited_cli_snapshot_fails_naming_the_bless_command() {
-        let generated = snapshot_text(CATALOGUE);
+        let generated = snapshot_text(&catalogue());
         assert_eq!(compare(Some(&generated), &generated), Ok(()));
         let edited = generated.replacen("\"--json\"", "\"--jsom\"", 1);
         assert_ne!(edited, generated);
@@ -769,18 +642,22 @@ mod tests {
     /// The snapshot's form: entries sorted by path, flags and exits in table order, the result name or `null`.
     #[test]
     fn the_cli_snapshot_lists_paths_flags_exits_and_results() {
-        const FLAGS: &[Flag] = &[valued("--out"), JSON];
+        let flag = |name: &str, value: bool| Flag {
+            name: name.to_owned(),
+            value,
+            repeatable: false,
+        };
         let table = [
             Entry {
-                path: &["export", "pdf"],
-                flags: FLAGS,
+                path: vec!["export".to_owned(), "pdf".to_owned()],
+                flags: vec![flag("--out", true), flag("--json", false)],
                 exits: &[OK, USAGE_ETC],
                 result: Some("ew.export-pdf-result/1"),
                 stability: Stability::Preview,
             },
             Entry {
-                path: &["commands"],
-                flags: &[],
+                path: vec!["commands".to_owned()],
+                flags: Vec::new(),
                 exits: &[OK],
                 result: None,
                 stability: Stability::Preview,

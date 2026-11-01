@@ -11,11 +11,13 @@ mod catalogue;
 mod cli;
 
 fn main() {
-    let code = match cli::parse(std::env::args().skip(1)) {
+    // A usage error prints clap's rendering on stderr and exits 2; `--help` and `--version` print on stdout and exit 0.
+    let code = match cli::parse(std::env::args_os().skip(1)) {
         Ok(cmd) => cli::run(cmd),
-        Err(msg) => {
-            eprintln!("error: {msg}\n{}", cli::USAGE);
-            2
+        Err(e) => {
+            // Printing fails only when the stream is gone; the exit code still says what happened.
+            let _ = e.print();
+            e.exit_code()
         }
     };
     std::process::exit(code);

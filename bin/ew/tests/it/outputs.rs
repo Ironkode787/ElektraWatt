@@ -213,10 +213,11 @@ fn render_refuses_an_unknown_folio_and_a_bad_resolution() {
         &"render", &p, &"--page", &"103", &"--png", &"--dpi", &"601",
     ]));
     assert_eq!(o.status.code(), Some(2));
-    // A usage error: the line, then the usage text.
+    // A usage error: clap's rendering of the value parser's refusal.
     assert_eq!(
-        stderr(&o).lines().next(),
-        Some("error: `--dpi` needs a number from 72 to 600, got `601`")
+        stderr(&o),
+        "error: invalid value '601' for '--dpi <n>': `--dpi` needs a number from 72 to 600, got `601`\n\nFor more \
+         information, try '--help'.\n"
     );
 }
 
@@ -424,8 +425,9 @@ fn report_refuses_xlsx_and_an_unknown_block() {
     ]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
-        stderr(&o).lines().next(),
-        Some("error: `--format xlsx` is not built yet (csv, pdf; XLSX waits for the writer of FT-61)")
+        stderr(&o),
+        "error: invalid value 'xlsx' for '--format <format>': `--format xlsx` is not built yet (csv, pdf; XLSX waits \
+         for the writer of FT-61)\n\nFor more information, try '--help'.\n"
     );
     let o = t.ew(&args([&"export", &"report", &p, &"--block", &"777"]));
     assert_eq!(o.status.code(), Some(2));
@@ -475,7 +477,6 @@ fn report_kind_writes_the_golden_kind_csvs() {
 fn report_kind_refusals_and_every_listed_kind_exports() {
     let t = Tmp::new();
     let p = t.golden();
-    let first_line = |o: &Output| stderr(o).lines().next().unwrap_or_default().to_owned();
     let o = t.ew(&args([
         &"export",
         &"report",
@@ -486,7 +487,11 @@ fn report_kind_refusals_and_every_listed_kind_exports() {
         &"910",
     ]));
     assert_eq!(o.status.code(), Some(2));
-    assert_eq!(first_line(&o), "error: give `--block` or `--kind`, not both");
+    assert_eq!(
+        stderr(&o),
+        "error: the argument '--kind <kind>' cannot be used with '--block <block>'\n\nUsage: ew export report \
+         <--block <block>|--kind <kind>> <project-dir>\n\nFor more information, try '--help'.\n"
+    );
     let pdf = t.0.join("k.pdf");
     let o = t.ew(&args([
         &"export",
@@ -501,14 +506,17 @@ fn report_kind_refusals_and_every_listed_kind_exports() {
     ]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
-        first_line(&o),
-        "error: `--kind` exports rows: a kind has pages only through a block, use `--block <block> --format pdf`"
+        stderr(&o),
+        "error: `--kind` exports rows: a kind has pages only through a block, use `--block <block> --format pdf`\n\n\
+         Usage: ew export report [OPTIONS] <--block <block>|--kind <kind>> [project-dir]\n\nFor more information, try \
+         '--help'.\n"
     );
     let o = t.ew(&args([&"export", &"report", &p]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
-        first_line(&o),
-        "error: `export report` needs `--block <block>` (its ID or first folio) or `--kind <kind>`"
+        stderr(&o),
+        "error: the following required arguments were not provided:\n  <--block <block>|--kind <kind>>\n\nUsage: ew \
+         export report <--block <block>|--kind <kind>> <project-dir>\n\nFor more information, try '--help'.\n"
     );
     let o = t.ew(&args([&"export", &"report", &p, &"--kind", &"terminal_diagram"]));
     assert_eq!(o.status.code(), Some(2));

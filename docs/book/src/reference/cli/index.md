@@ -18,7 +18,7 @@
 | [`ew export terminals`](export.md#ew-export-terminals) | `--project`, `--block`, `--strip`, `--format`, `--out`, `--json` | `ew.export-terminals-result/1` |
 | [`ew export wires`](export.md#ew-export-wires) | `--project`, `--block`, `--format`, `--out`, `--json` | `ew.export-wires-result/1` |
 | [`ew fmt`](fmt.md#ew-fmt) | `--project`, `--check`, `--json` | `ew.fmt-result/1` |
-| [`ew import csv`](import.md#ew-import-csv) | `--out`, `--content`, `--strict`, `--lenient`, `--json` | `ew.import-csv-result/1` |
+| [`ew import csv`](import.md#ew-import-csv) | `--out`, `--content`, `--lenient`, `--json` | `ew.import-csv-result/1` |
 | [`ew import parts`](import.md#ew-import-parts) | `--project`, `--json`, `--map`, `--as-of`, `--company` | `ew.import-parts-result/1` |
 | [`ew import qet`](import.md#ew-import-qet) | `--content`, `--report`, `--report-out`, `--strict`, `--json` | `ew.import-qet-result/1` |
 | [`ew lib create`](lib.md#ew-lib-create) | `--key`, `--name`, `--licence`, `--company`, `--json` | `ew.lib-create-result/1` |

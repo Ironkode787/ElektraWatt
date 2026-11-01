@@ -469,7 +469,7 @@ mod tests {
 
     #[test]
     fn recover_and_fmt_parse_their_flags() {
-        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned()));
+        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string());
         let recover = |project: Option<&str>, action, json| {
             Ok(Command::Recover(RecoverArgs {
                 project: project.map(PathBuf::from),
@@ -488,18 +488,21 @@ mod tests {
         );
         assert_eq!(
             parse(&["recover", "--replay", "--discard"]),
-            Err("`--replay` and `--discard` cannot be combined".to_owned())
+            Err("error: the argument '--replay' cannot be used with '--discard'\n\nUsage: ew recover --replay \
+                 [project-dir]\n\nFor more information, try '--help'.\n"
+                .to_owned())
         );
         assert_eq!(
             parse(&["recover", "--discard", "--json"]),
-            Err(
-                "`--discard` asks for a typed word on a terminal and prints no result: it takes no `--json`"
-                    .to_owned()
-            )
+            Err("error: the argument '--discard' cannot be used with '--json'\n\nUsage: ew recover --discard \
+                 [project-dir]\n\nFor more information, try '--help'.\n"
+                .to_owned())
         );
         assert_eq!(
             parse(&["recover", "--yes"]),
-            Err("unknown option `--yes`".to_owned())
+            Err("error: unexpected argument '--yes' found\n\n  tip: to pass '--yes' as a value, use '-- --yes'\n\n\
+                 Usage: ew recover [OPTIONS] [project-dir]\n\nFor more information, try '--help'.\n"
+                .to_owned())
         );
         assert_eq!(
             parse(&["fmt", "p.ew", "--check"]),
@@ -511,11 +514,19 @@ mod tests {
         );
         assert_eq!(
             parse(&["fmt", "a", "b"]),
-            Err("unexpected argument `b`".to_owned())
+            Err(
+                "error: unexpected argument 'b' found\n\nUsage: ew fmt [OPTIONS] [project-dir]\n\nFor more \
+                 information, try '--help'.\n"
+                    .to_owned()
+            )
         );
         assert_eq!(
             parse(&["fmt", "a", "--project", "b"]),
-            Err("`--project` cannot be combined with a positional project directory".to_owned())
+            Err(
+                "error: the argument '[project-dir]' cannot be used with '--project <dir>'\n\nUsage: ew fmt \
+                 <project-dir>\n\nFor more information, try '--help'.\n"
+                    .to_owned()
+            )
         );
     }
 

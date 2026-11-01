@@ -67,6 +67,11 @@ criteria = "safe-to-deploy"
 version = "0.1.6"
 criteria = "safe-to-deploy"
 
+[[exemptions.anstyle]]
+version = "1.0.14"
+criteria = "safe-to-deploy"
+notes = "clap_builder's style types; cycle 43: a normal dependency of bin/ew through clap 4 (the CLI's argument parser, doc 17 §3.1), so it ships and needs safe-to-deploy; NOT audited line by line. No allowed import covers this version."
+
 [[exemptions.anyhow]]
 version = "1.0.104"
 criteria = "safe-to-deploy"
@@ -210,6 +215,26 @@ criteria = "safe-to-deploy"
 [[exemptions.chacha20]]
 version = "0.10.2"
 criteria = "safe-to-deploy"
+
+[[exemptions.clap]]
+version = "4.6.7"
+criteria = "safe-to-deploy"
+notes = "the derive front-end; cycle 43: a normal dependency of bin/ew through clap 4 (the CLI's argument parser, doc 17 §3.1), so it ships and needs safe-to-deploy; NOT audited line by line. No allowed import covers this version."
+
+[[exemptions.clap_builder]]
+version = "4.6.7"
+criteria = "safe-to-deploy"
+notes = "the parser and help renderer; cycle 43: a normal dependency of bin/ew through clap 4 (the CLI's argument parser, doc 17 §3.1), so it ships and needs safe-to-deploy; NOT audited line by line. No allowed import covers this version."
+
+[[exemptions.clap_derive]]
+version = "4.6.7"
+criteria = "safe-to-deploy"
+notes = "a proc-macro (build time only); cycle 43: a normal dependency of bin/ew through clap 4 (the CLI's argument parser, doc 17 §3.1), so it ships and needs safe-to-deploy; NOT audited line by line. No allowed import covers this version."
+
+[[exemptions.clap_lex]]
+version = "1.1.1"
+criteria = "safe-to-deploy"
+notes = "the argument lexer; cycle 43: a normal dependency of bin/ew through clap 4 (the CLI's argument parser, doc 17 §3.1), so it ships and needs safe-to-deploy; NOT audited line by line. No allowed import covers this version."
 
 [[exemptions.color]]
 version = "0.3.3"
@@ -530,6 +555,11 @@ criteria = "safe-to-deploy"
 [[exemptions.hashbrown]]
 version = "0.15.5"
 criteria = "safe-to-deploy"
+
+[[exemptions.heck]]
+version = "0.5.0"
+criteria = "safe-to-deploy"
+notes = "clap_derive's case conversion (build time only); cycle 43: a normal dependency of bin/ew through clap 4 (the CLI's argument parser, doc 17 §3.1), so it ships and needs safe-to-deploy; NOT audited line by line. No allowed import covers this version."
 
 [[exemptions.hermit-abi]]
 version = "0.5.3"
@@ -1211,6 +1241,11 @@ criteria = "safe-to-deploy"
 [[exemptions.strict-num]]
 version = "0.1.1"
 criteria = "safe-to-deploy"
+
+[[exemptions.strsim]]
+version = "0.11.1"
+criteria = "safe-to-deploy"
+notes = "clap's suggestions; cycle 43: a normal dependency of bin/ew through clap 4 (the CLI's argument parser, doc 17 §3.1), so it ships and needs safe-to-deploy; NOT audited line by line. No allowed import covers this version."
 
 [[exemptions.subsetter]]
 version = "0.2.6"

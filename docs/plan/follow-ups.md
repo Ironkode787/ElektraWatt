@@ -15,3 +15,4 @@ for. The commit that opens a task carries `FT-Opens: FT-n`, and the commit that 
 trailer, not an edit, closes an entry ([CONTRIBUTING.md](../../CONTRIBUTING.md#records-commit-trailers)). `cargo
 xtask records` lists the open tasks of this file and of Appendix B in [records.md](records.md), grouped as
 scheduled, expired and other.
+- FT-999 (cycle 43, Low, WP-S1.22; due: cycle 44): `ew import csv --strict` is accepted, hidden and ignored; give it a meaning or remove it. Source: ID-1052

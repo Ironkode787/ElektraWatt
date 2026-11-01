@@ -16,3 +16,4 @@ records` lists every entry with the commits that cite it in [records.md](records
 check-trailers` refuses a trailer that cites an ID this file or the decision log does not hold at that commit.
 
 - ID-1051 (cycle 43): Records come from commit trailers and one line per new entry; the decision log and Appendix B are frozen at ID-1050 and FT-998. RD43 §9 item 6; CONTRIBUTING.md "Records: commit trailers".
+- ID-1052 (cycle 43): The `ew` CLI is one clap 4 derive tree lowered to the unchanged `Command`; its catalogue walks the tree for paths and flags; parse errors are clap's renderings (exit 2), a bare `--` ends options, `lib search` and `query` positionals take hyphen values, and `ew` or `ew lib` without a subcommand print help and exit 2. Supersedes the hand-written parser of WP-S1.22; doc 17 §3.1; RD43 §9 item 10.

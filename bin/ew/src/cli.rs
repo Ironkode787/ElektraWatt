@@ -15,232 +15,11 @@ use ew_api::{BomMode, CmdLog, Export};
 
 mod project_files;
 mod query;
-
-/// The usage text.
-pub const USAGE: &str = "usage:
-  ew --version | -V
-  ew import qet <file.qet> [--content <dir>] [--report md|csv|json] [--report-out <file>] [--strict] [--json]
-  ew import parts <parts.csv> [--project <dir>] [--json]
-  ew import parts <table.csv|table.xlsx> --map <map.toml> [--as-of <date>] [--project <dir>] [--company <dir>]...
-      [--json]
-  ew import csv <tables-dir> --out <dir> [--content <dir>] [--strict] [--lenient] [--json]
-  ew check [<project-dir>] [--project <dir>] [--scheme <name>] [--mode release|online] [--format text|md|json]
-      [--json] [--lang <tag>] [--out <file>]
-  ew sql [<project-dir>] \"<select>\" [--project <dir>] [--format csv|json] [--json] [--timeout <seconds>]
-      [--out <file>]
-  ew sql [<project-dir>] --file <query.sql> [--project <dir>] [--format csv|json] [--json] [--timeout <seconds>]
-      [--out <file>]
-  ew sql dump [<project-dir>] <out.sqlite> [--project <dir>] [--json]
-  ew sql schema
-  ew export cables [<project-dir>] [--project <dir>] [--block <block>] [--format csv] [--out <file>] [--json]
-  ew export bom [<project-dir>] [--project <dir>] [--block <block>] [--mode parts|assembly] [--format csv]
-      [--out <file>] [--json]
-  ew export wires [<project-dir>] [--project <dir>] [--block <block>] [--format csv] [--out <file>] [--json]
-  ew export terminals [<project-dir>] [--project <dir>] [--block <block>] [--strip <tag>] [--format csv]
-      [--out <file>] [--json]
-  ew export report [<project-dir>] [--project <dir>] --block <block> [--format csv|pdf] [--out <file>] [--json]
-  ew export report [<project-dir>] [--project <dir>] --kind <kind> [--format csv] [--out <file>] [--json]
-  ew export pdf [<project-dir>] [--project <dir>] --out <file.pdf> [--pages <folios>] [--threads <n>] [--json]
-  ew export svg [<project-dir>] [--project <dir>] --out <dir> [--pages <folios>] [--threads <n>] [--json]
-  ew export png [<project-dir>] [--project <dir>] --out <dir> [--pages <folios>] [--dpi <n>] [--threads <n>]
-      [--json]
-  ew render [<project-dir>] [--project <dir>] --page <folio> --png [--dpi <n>] [--out <file.png>] [--json]
-  ew apply [<project-dir>] <file.ewcmd> [--project <dir>] [--preview] [--one-step] [--json]
-  ew fmt [<project-dir>] [--project <dir>] [--check] [--json]
-  ew recover [<project-dir>] [--project <dir>] [--replay] [--discard] [--json]
-  ew project checks set [<project-dir>] [--project <dir>] [--active <scheme>] [--release <scheme>]
-  ew project assets purge [<project-dir>] [--project <dir>] [--preview]
-  ew revision approve [<project-dir>] [--project <dir>] --as <role>
-  ew revision release <label> [<project-dir>] [--project <dir>] [--archive-dir <dir>]
-  ew revision withdraw <label> --reason <text> [<project-dir>] [--project <dir>]
-  ew verify-derived [<project-dir>] [--project <dir>] [--json]
-  ew query [<project-dir>] <name> <key> [--project <dir>] [--explain] [--json]
-  ew queries [--json]
-  ew lib list [--company <dir>]... [--json]
-  ew lib search <text> [--kind <kind>]... [--all] [--limit <n>] [--company <dir>]... [--json]
-  ew lib index --rebuild [--company <dir>]... [--json]
-  ew lib create <dir> --key <key> --name <name> --licence <spdx> [--company <dir>]... [--json]
-  ew lib import parts <library> <table.csv|table.xlsx> --map <map.toml> --as-of <date> [--bump] [--take-over]
-      [--company <dir>]... [--json]
-  ew commands [--json]
-  ew schema <name>
-  ew help | --help | -h
-
-Every subcommand that works on one project takes it as the positional directory or as `--project <dir>`, never
-both, else the nearest ancestor of the current directory holding `manifest.json`. Every subcommand that prints a
-result takes `--json`: stdout is then one JSON object whose first member `$schema` names its published schema
-(`ew.<command>-result/1`; `ew schema <name>` prints it), diagnostics stay on stderr and the exit codes are unchanged.
-For `check` and `sql`, `--json` is `--format json`. The human-only subcommands (`project`, `revision`,
-`recover --discard`) print a dialogue, not a result, and take no `--json`.
-
-`import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
-error findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.
-
-`import parts` copies the parts of a parts table (the golden dialect: `parts.csv`, with `part_cps.csv`,
-`part_templates.csv`, `cable_cores.csv` and `part_plc.csv` when they lie beside it) into the project (`--project`,
-default: the nearest ancestor of the current directory holding `manifest.json`) as project-local part copies
-(`parts.import`) and saves; a part whose key the project has already is skipped. Exit 0 when imported (counts on
-stdout), 2 on everything else (usage, a refused table with its line and column, open and save errors).
-With `--map` it reads any supplier's parts table instead, CSV (UTF-8, comma or semicolon) or XLSX (the first sheet
-unless the map names one), through a column map (a TOML file: `sheet` and a `[columns]` table from `manufacturer`,
-`part_number`, `type_designation`, `order_number`, `gtin`, `description`, `description.<lang>`, `kind`, `unit`,
-`tech_data.<key>` and `free_props.<key>` to the column headers). Manufacturer names resolve through the manufacturers
-of the libraries (`--company` as for `lib`); `--as-of` (YYYY-MM-DD) stamps the parts. Every row is reported: new,
-unchanged (the project holds it), duplicate, rejected with the reason; an `A / B` part number becomes two candidates
-flagged for review. The new parts are imported with `parts.import`, with copies of the manufacturers they name, and
-the project is saved.
-
-`import csv` imports golden-dialect tables (the `*.csv` files of `<tables-dir>`: `project.csv`, `devices.csv`,
-`conductors.csv` and the others of `golden/J-E-2416/tables/`) with the starter content (`--content` or
-`EW_CONTENT_DIR`; required, the tables name its symbols, function definitions and forms) as a new project in `--out`,
-which must not exist or be an empty directory: the project is written beside it and renamed into place, so `--out`
-never holds a part of one. Every finding of the import is printed. `--strict` (the default) drops a row the dialect
-refuses, such as a foreign colour code (EW-IMP-002), and then writes nothing; `--lenient` keeps a foreign colour code
-with a warning (EW-IMP-008) and writes the project with its findings. Exit 0 when written, 1 when nothing is written
-because `--strict` refused error findings or the records do not make a project, 2 on usage, starter content, an
-unreadable table (with its line, and its column where the reader names one), an `--out` that holds something, and
-write errors.
-
-`check` runs a check scheme (mode `release`, format `text`) over a project directory
-(default: the nearest ancestor of the current directory holding `manifest.json`) and exits 0 with no unwaived
-errors, 1 with errors, 2 on usage and open errors. Without `--scheme` the scheme is the one the project names
-(`project checks set`: `--release` for mode `release`, `--active` for mode `online`), else `pre-delivery`. `--lang`
-renders the messages in a shipped language (en-GB, the default, or nl-NL); a message without a text in that language
-prints in en-GB.
-
-`sql` runs one read-only SELECT against the SQL projection of a project (the `api_v1_*` views; `ew sql schema` prints
-them) in the sandbox of doc 17 §6.2, with the query given inline or from `--file`. The result is CSV (default) or
-JSON on stdout, the row count on stderr; with `--out` it goes to a file. `--timeout` sets a deadline in seconds.
-`--project <dir>` may replace the positional project directory. `sql dump` writes the projection as a SQLite
-database file. `sql` exits 0 on success and 2 on everything else (usage, open and SQL errors, denials, limits).
-
-`export cables` writes the cable list, `export bom` the bill of materials, `export wires` the wire list and
-`export terminals` the terminal diagrams as CSV (the rows of the project's cable overview, parts summary, wire list
-and terminal diagram blocks, the golden dialect), to stdout or to `--out`. `--mode parts` (alias `component`,
-the default) lists every component part; `--mode assembly` replaces the parts a configured product covers by its
-row. `--block` names the report block by its ID or its first folio (`908`); without it the block is the project's
-block of the kind with the lowest first folio (for `terminals`: every terminal diagram block); a block of another
-kind is refused. `export terminals --strip <tag>` writes the rows of one strip (`-X1031`); without it every strip,
-each strip's rows after a heading row `heading,<tag>`. `export report --block <block>` writes the rows of any block
-as CSV, or with `--format pdf` the block's pages as a PDF to `--out` (as `export pdf --pages`). `export report --kind
-<kind>` writes the whole-project rows of a report kind (`device_list`, `terminal_overview`, ...) in the kind's default
-order, as CSV only, with no block. XLSX waits for the writer of FT-61. `export` exits 0 on success and 2 on everything else (usage, open errors, a project without the
-block, an unknown or wrong block or strip).
-
-`export pdf` writes the project's pages as one PDF/A-2b (outline, page labels, links) and `export svg` one
-`<folio>.svg` per page into the directory `--out` (replaced as a whole; it may hold SVG files only), through
-the session's export job with the bundled fonts only.
-`--pages` selects folio labels and ranges in page order (`101-106,901`); `--threads` changes the speed, never the
-bytes. The date is `SOURCE_DATE_EPOCH` when set, else the model's. Exit 0 on success, 2 on everything else.
-
-`export png` writes one `<folio>.png` per page into the directory `--out` (replaced as a whole; it may hold PNG files
-only) and `render --page <folio> --png` one page to `--out` (default: `<folio>.png` in the current directory, never
-stdout), both rendered on the CPU with the bundled fonts at `--dpi` (72 to 600, default 150, the golden PNGs'
-resolution). Exit 0 on success, 2 on everything else (usage, open errors, an unknown folio, write errors).
-
-`apply` replays a command log (`.ewcmd`, doc 17 section 3.5) on the project, each line one transaction, and saves.
-`--preview` replays it on a copy in memory, prints the changed records, tags and cross-references, and saves
-nothing; `--one-step` saves only when every line commits. A project with unsaved changes of a crashed session is
-refused (exit 2) until they are recovered or discarded (`ew recover`). Exit 0 when every line commits, 1 when a
-prevent or domain rule refuses a line, 2 on everything else (usage, a malformed log, an unresolvable reference, a
-refused command, an open, lock or save error). Without `--one-step` the lines before a failing one are saved.
-
-`fmt` rewrites the project's files in their canonical encoding and line order (doc 05 section 3), only the files
-that are not, through the save protocol (a crash leaves the old or the new generation, never a torn file). It
-changes form only, never content: a file whose canonical form would change a record's content refuses the whole
-format (exit 2). Quarantined lines, malformed values and unknown kinds, members and files stay verbatim; they are
-listed on stderr. `fmt --check` is a reader (no lock): it lists the files a format would rewrite and writes nothing.
-A project with unsaved changes of a crashed session, or one that opens read-only, is refused (exit 2). Exit 0 when
-every file is canonical or was rewritten, 1 when `--check` finds files to rewrite, 2 on usage, open, lock, content
-and save errors.
-
-`recover` works on the journals that crashed sessions left (doc 05 section 8.3), one at a time, the latest change
-first. Without a flag it prints the journal's summary (its unsaved transactions with their commands, whether the
-project was saved since, how many more journals remain) and changes nothing. `--replay` replays its transactions on
-the saved project and saves; a replay that meets a change saved since (the same field) is refused and the journal
-kept. `--discard` prints the summary and deletes the journal, losing its work, so it is human-only: type `discard`
-on a controlling terminal; there is no `--yes` flag, and without a terminal it exits 2 before the project is opened.
-`recover` needs the project's lock: a project another session holds, or one that opens read-only, is refused (exit
-2) as `apply` refuses it. Exit 0 when summarised, replayed and saved, discarded, or there is no journal; 1 when the
-replay is refused or the discard not confirmed; 2 on usage, terminal, lock, open and save errors.
-
-`project checks set` names the project's check schemes (`project.checks.set`): `--active` the online scheme,
-`--release` the scheme of the release gate and `ew check`; a scheme not given returns to its default (`drafting`,
-`pre-delivery`). The check scheme decides check outcomes, so the command is human-only (ADR-0008 amendment 3,
-doc 17 section 2.3): it prints the change and asks the person to type the scheme's name (the active one, else the
-release one) on a controlling terminal; there is no `--yes` flag. Without a terminal it exits 2 (HumanOnly: needs
-an interactive terminal) before the project is opened. Exit 0 when written and saved, 1 for a scheme that does
-not ship or an answer that is not the name, 2 on usage, terminal, open and save errors.
-
-`project assets purge` deletes the project's asset files (`assets/<sha256>.<ext>`) whose hash no project file
-mentions (kept lines and unknown members included) through the save protocol (`project.assets.purge`, doc 05
-section 13.3). A save never removes an asset file; this is the explicit clean-up, and deleted files do not come back,
-so the command is human-only (doc 17 section 2.3): it prints the files that would go and asks the person to type
-`purge` on a controlling terminal; there is no `--yes` flag. Without a terminal it exits 2 before the project is
-opened. `--preview` lists the files and changes nothing (no terminal needed). Refused while the project has unsaved
-changes of a crashed session, quarantined lines or an incomplete save, and in a read-only session. Exit 0 when
-purged (or nothing to purge, or previewed), 1 when the purge is refused or not confirmed, 2 on usage, terminal, open
-and save errors.
-
-`revision` runs the release workflow's human-only commands (doc 15 section 5.4, doc 17 section 2.3). Each asks the
-person to type the revision's label on a controlling terminal; there is no `--yes` flag, and without a terminal it
-exits 2 before the project is opened. `revision approve --as <role>` records the checker's sign-off on the open
-revision (`revision.approve`): the checker is a party role (`checker`, `author`, `engineer`, ...), never the author's;
-the project must be saved; it runs the release gate on the saved generation (the release scheme in release mode with
-the EW-REL rules) and is refused while any error other than EW-REL-001 is open, prints the safety-kind waivers in
-force (the typed label acknowledges them), then approves and saves. `revision release <label>` releases the open
-revision (doc 05 section 14.1): it runs the release gate on the saved generation and prints its blockers when it
-refuses; else it shows the archive it writes (`<label>.ewarchive` in `--archive-dir`, by default `<name>.ew-archive`
-beside the project directory, never inside it) and, when the project lies in a git worktree, the commit of the project
-directory and the tag `ew/rev/<label>` it makes there (a warning when the archive root lies in the worktree: archives
-are never added to git). After the typed label it writes and verifies the archive, commits and tags, then stamps the
-revision released and saves; a failure leaves the revision open and removes what the run wrote. An archive of the
-label left by a crashed release is offered first: type `complete` to stamp it or `discard` to remove it (with its
-tag). `discard` is offered only when your record on this computer shows that a release from this project directory
-wrote the archive: a copy of the directory names the same project, so without that record the archive is kept (remove
-it by hand if you know it is a leftover). `revision withdraw <label> --reason <text>` withdraws a released revision
-(`revision.withdraw`) and saves. Exit 0 when approved, released, settled or withdrawn and saved, 1 when refused (the
-gate's blockers, a wrong label, a refused command or git step) or not confirmed, 2 on usage, terminal and open errors
-and when writing the release fails.
-
-`verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
-the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.
-
-`query <name> <key>` answers one public query of the project (`ew queries` lists them with their keys): the key is a
-reference as in a command log (`tag:-101F1`, `id:<uuid>`, `folio:102`, a bare tag such as `-X1031:5`), or `-` for a
-query without one. `--explain` adds the memo's policy (verified and changed at which revision, and whether the value
-was memoised before the query ran), what the value depends on in words, and, for a value the property grid shows, the
-provenance of its row. `queries` lists the queries. `query` exits 0 when answered, 2 on usage, an unknown query, open
-errors and a key that names no record or a record of another kind; `queries` exits 0.
-
-`lib` works on the libraries of the four tiers: system (the compiled-in starter, and `<content>/libraries` when
-`EW_CONTENT_DIR` names the starter content), community (`<data>/packs`), company (every `--company <dir>`: a
-library directory or a directory of `*.ewlib` libraries) and user (`<data>/libraries`), with the search index in
-the cache directory (`EW_DATA_DIR` and `EW_CACHE_DIR` override the OS directories). `lib list` prints each library
-(tier, key, version, name, ID, `rw` or `ro`, index state, directory) and what could not be read; `lib search`
-finds parts by part number, manufacturer and description (`--kind part`, the default), or symbols, FnDefs, forms,
-macros and manufacturers by key and name (`--kind symbol|fndef|form|macro|manufacturer`); `--all` includes
-deprecated and withdrawn items, `--limit` caps the hits (default 50, 0: all). `lib index --rebuild` rebuilds the
-index from the libraries. `lib create` makes an empty library in `<dir>` (absent or empty) with a new ID; it is
-listed when `<dir>` lies in the user tier or a `--company` directory. `lib import parts` imports a parts table
-through a column map (as `import parts --map`) into the writable library `<library>` (its key or ID) under the
-library's lock, with the parts' import date `--as-of` (YYYY-MM-DD); new manufacturers are written with the parts. A
-second import of a changed list updates the parts in place (same item IDs); a part whose content changed under its
-published version refuses the whole file unless `--bump` writes it as the next patch version. A library locked by a
-live session is refused; a stale lock is taken over only with `--take-over`. `--json` prints JSON. Exit 0 on
-success, 2 on everything else (usage, unreadable tiers, a refused write or import, an index error).
-
-`commands` lists the command registry (name, parameters version, exposure, cost, confirmation, undoable, stability,
-aliases). `schema <name>` prints the JSON Schema of a command's parameters (a name or alias of `commands`) or of a
-result (`ew.<command>-result/<n>`). Both exit 0, `schema` 2 for an unknown name.";
+mod tree;
 
 /// A parsed command line.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Command {
-    /// Print the version.
-    Version,
-    /// Print the usage.
-    Help,
     /// Import a QElectroTech project.
     ImportQet(ImportQetArgs),
     /// `ew import parts`.
@@ -418,17 +197,29 @@ pub struct RecoverArgs {
 }
 
 /// The arguments of `ew import csv`.
-#[derive(Clone, PartialEq, Eq, Debug)]
+// `--strict` names the default: accepted and ignored, hidden from the help (cycle 43, ruling 3).
+#[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
+#[command(arg = clap::Arg::new("strict").long("strict").action(clap::ArgAction::SetTrue).hide(true).overrides_with("strict"))]
 pub struct ImportCsvArgs {
     /// The directory of the tables.
+    #[arg(value_name = "tables-dir")]
     pub tables: PathBuf,
-    /// The new project's directory (`--out`): absent or empty.
+    /// The new project's directory: absent or empty.
+    #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "out")]
     pub out: PathBuf,
-    /// The starter content directory (`--content`); `None`: `EW_CONTENT_DIR`.
+    /// The starter content directory (default: `EW_CONTENT_DIR`).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        overrides_with = "content"
+    )]
     pub content: Option<PathBuf>,
-    /// Keep foreign colour codes with a warning and write the project with its findings (`--lenient`); else strict.
+    /// Keep foreign colour codes with a warning and write the project with its findings (else strict).
+    #[arg(long, overrides_with = "lenient", conflicts_with = "strict")]
     pub lenient: bool,
-    /// Print the result as JSON (`--json`).
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
     pub json: bool,
 }
 
@@ -601,11 +392,12 @@ pub struct SqlDumpArgs {
 }
 
 /// The output format of `ew check`.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(clap::ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CheckFormat {
     /// One line per finding.
     Text,
     /// Markdown.
+    #[value(name = "md")]
     Markdown,
     /// JSON (`ew.check-result/1`).
     Json,
@@ -629,974 +421,92 @@ pub struct CheckArgs {
 }
 
 /// The arguments of `ew import qet`.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
 pub struct ImportQetArgs {
-    /// The project file.
+    /// The QElectroTech project file.
+    #[arg(value_name = "file.qet")]
     pub file: PathBuf,
-    /// The starter content directory (`--content`).
+    /// The starter content directory.
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        overrides_with = "content"
+    )]
     pub content: Option<PathBuf>,
-    /// The report format (`--report`).
+    /// The migration report's format: md, csv or json.
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "report", value_parser = tree::report)]
     pub report: Option<ReportFormat>,
-    /// The report file (`--report-out`).
+    /// The migration report's file (default: stdout).
+    #[arg(
+        long,
+        value_name = "file",
+        allow_hyphen_values = true,
+        overrides_with = "report_out"
+    )]
     pub report_out: Option<PathBuf>,
-    /// Fail on lost connections or error findings (`--strict`).
+    /// Exit 1 on lost connections or error findings.
+    #[arg(long, overrides_with = "strict")]
     pub strict: bool,
-    /// Print the result as JSON (`--json`, `ew.import-qet-result/1`).
+    /// Print the result as JSON (`ew.import-qet-result/1`).
+    #[arg(long, overrides_with = "json")]
     pub json: bool,
 }
 
 /// The arguments of `ew import parts`.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
 pub struct ImportPartsArgs {
-    /// The parts table (`parts.csv`).
+    /// The parts table: `parts.csv` of the golden dialect, or with `--map` a supplier's CSV or XLSX table.
+    #[arg(value_name = "table")]
     pub file: PathBuf,
-    /// The project directory (`--project`).
+    /// The project directory.
+    #[arg(long, value_name = "dir", allow_hyphen_values = true)]
     pub project: Option<PathBuf>,
-    /// The column map (`--map`): a supplier's table instead of the golden dialect.
-    pub map: Option<PathBuf>,
-    /// The import date (`--as-of`, with `--map`).
-    pub as_of: Option<ew_api::catalog::Date>,
-    /// The company library paths (`--company`, with `--map`): their manufacturers resolve the names.
-    pub company: Vec<PathBuf>,
-    /// Print the result as JSON (`--json`, `ew.import-parts-result/1`).
+    /// Print the result as JSON (`ew.import-parts-result/1`).
+    #[arg(long, overrides_with = "json")]
     pub json: bool,
+    /// The column map (a TOML file): a supplier's table instead of the golden dialect.
+    #[arg(
+        long,
+        value_name = "map.toml",
+        allow_hyphen_values = true,
+        overrides_with = "map"
+    )]
+    pub map: Option<PathBuf>,
+    /// The parts' import date, YYYY-MM-DD (with `--map`).
+    #[arg(long, value_name = "date", allow_hyphen_values = true, overrides_with = "as_of", value_parser = tree::date, requires = "map")]
+    pub as_of: Option<ew_api::catalog::Date>,
+    /// A company library whose manufacturers resolve the names (with `--map`; repeatable).
+    #[arg(long, value_name = "dir", allow_hyphen_values = true, requires = "map")]
+    pub company: Vec<PathBuf>,
 }
 
-/// Parses the arguments after the program name.
+/// Parses the arguments after the program name through the derive tree ([`tree::Cli`]).
 ///
 /// # Errors
 ///
-/// The text of the usage error.
-pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String> {
-    let mut it = args.into_iter();
-    let Some(first) = it.next() else {
-        return Err("no command given".to_owned());
-    };
-    match first.as_str() {
-        "--version" | "-V" => no_more(it, Command::Version),
-        "help" | "--help" | "-h" => no_more(it, Command::Help),
-        "import" => match it.next().as_deref() {
-            Some("qet") => parse_import_qet(it),
-            Some("parts") => parse_import_parts(it),
-            Some("csv") => parse_import_csv(it),
-            Some(other) => Err(format!("unknown import format `{other}`")),
-            None => Err("`import` needs a format (qet, parts, csv)".to_owned()),
-        },
-        "check" => parse_check(it),
-        "sql" => parse_sql(it),
-        "export" => parse_export(it),
-        "render" => parse_render(it),
-        "apply" => parse_apply(it),
-        "fmt" => parse_fmt(it),
-        "recover" => parse_recover(it),
-        "project" => match (it.next().as_deref(), it.next().as_deref()) {
-            (Some("checks"), Some("set")) => parse_checks_set(it),
-            (Some("assets"), Some("purge")) => parse_assets_purge(it),
-            _ => Err("`project` takes `checks set` or `assets purge`".to_owned()),
-        },
-        "verify-derived" => parse_verify(it),
-        "query" => query::parse_query(it),
-        "queries" => query::parse_queries(it),
-        "lib" => parse_lib(it),
-        "revision" => parse_revision(it),
-        "commands" => match it.next().as_deref() {
-            None => Ok(Command::Commands { json: false }),
-            Some("--json") => no_more(it, Command::Commands { json: true }),
-            Some(opt) if opt.starts_with('-') => Err(format!("unknown option `{opt}`")),
-            Some(extra) => Err(format!("unexpected argument `{extra}`")),
-        },
-        "schema" => match it.next() {
-            Some(opt) if opt.starts_with('-') => Err(format!("unknown option `{opt}`")),
-            Some(name) => no_more(it, Command::Schema(name)),
-            None => Err("`schema` needs a command or result schema name (see `ew commands`)".to_owned()),
-        },
-        other => Err(format!("unknown command `{other}`")),
-    }
+/// clap's error: a usage error (exit 2), or the help or the version (exit 0), to print as clap renders it.
+pub fn parse<I, T>(args: I) -> Result<Command, clap::Error>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<std::ffi::OsString> + Clone,
+{
+    use clap::Parser as _;
+    let line = std::iter::once(std::ffi::OsString::from("ew")).chain(args.into_iter().map(Into::into));
+    tree::Cli::try_parse_from(line)?.into_command()
 }
 
-fn no_more(mut it: impl Iterator<Item = String>, c: Command) -> Result<Command, String> {
-    match it.next() {
-        None => Ok(c),
-        Some(extra) => Err(format!("unexpected argument `{extra}`")),
-    }
-}
-
-fn parse_import_qet(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut file = None;
-    let mut content = None;
-    let mut report = None;
-    let mut report_out = None;
-    let mut strict = false;
-    let mut json = false;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--json" => json = true,
-            "--content" => content = Some(PathBuf::from(value(&mut it, "--content")?)),
-            "--report" => {
-                report = Some(
-                    value(&mut it, "--report")?
-                        .parse::<ReportFormat>()
-                        .map_err(|e| e.to_string())?,
-                );
-            }
-            "--report-out" => report_out = Some(PathBuf::from(value(&mut it, "--report-out")?)),
-            "--strict" => strict = true,
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if file.replace(PathBuf::from(&a)).is_some() {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-            }
-        }
-    }
-    let file = file.ok_or_else(|| "`import qet` needs a project file".to_owned())?;
-    if json && report.is_some() && report_out.is_none() {
-        return Err(
-            "`--json` prints the result on stdout: give the report a file with `--report-out <file>`"
-                .to_owned(),
-        );
-    }
-    Ok(Command::ImportQet(ImportQetArgs {
-        file,
-        content,
-        report,
-        report_out,
-        strict,
-        json,
-    }))
-}
-
-fn parse_import_parts(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut file = None;
-    let mut project = None;
-    let mut map = None;
-    let mut as_of = None;
-    let mut company = Vec::new();
-    let mut json = false;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project, &mut it)?,
-            "--json" => json = true,
-            "--map" => map = Some(PathBuf::from(value(&mut it, "--map")?)),
-            "--as-of" => as_of = Some(date(&value(&mut it, "--as-of")?)?),
-            "--company" => company.push(PathBuf::from(value(&mut it, "--company")?)),
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if file.replace(PathBuf::from(&a)).is_some() {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-            }
-        }
-    }
-    let file = file.ok_or_else(|| "`import parts` needs a parts table (<parts.csv>)".to_owned())?;
-    if map.is_none() && (as_of.is_some() || !company.is_empty()) {
-        return Err("`--as-of` and `--company` need `--map`".to_owned());
-    }
-    Ok(Command::ImportParts(ImportPartsArgs {
-        file,
-        project,
-        map,
-        as_of,
-        company,
-        json,
-    }))
-}
-
-fn parse_import_csv(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut tables = None;
-    let mut out = None;
-    let mut content = None;
-    let (mut strict, mut lenient, mut json) = (false, false, false);
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
-            "--content" => content = Some(PathBuf::from(value(&mut it, "--content")?)),
-            "--strict" => strict = true,
-            "--lenient" => lenient = true,
-            "--json" => json = true,
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if tables.replace(PathBuf::from(&a)).is_some() {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-            }
-        }
-    }
-    if strict && lenient {
-        return Err("`--strict` and `--lenient` cannot be combined".to_owned());
-    }
-    let tables = tables.ok_or_else(|| "`import csv` needs a tables directory (<tables-dir>)".to_owned())?;
-    let out = out.ok_or_else(|| "`import csv` needs `--out <dir>`, a new or empty directory".to_owned())?;
-    Ok(Command::ImportCsv(ImportCsvArgs {
-        tables,
-        out,
-        content,
-        lenient,
-        json,
-    }))
-}
-
-/// An import date `YYYY-MM-DD`.
-fn date(v: &str) -> Result<ew_api::catalog::Date, String> {
-    v.parse()
-        .map_err(|_| format!("`--as-of` needs a date YYYY-MM-DD, not `{v}`"))
-}
-
-fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut project = None;
-    let mut project_opt = None;
-    let mut scheme_name = None;
-    let mut mode = CheckMode::Release;
-    let mut format = CheckFormat::Text;
-    let mut format_name = None;
-    let mut json = false;
-    let mut out = None;
-    let mut lang = ew_api::checks::messages::DEFAULT_LANGUAGE.to_owned();
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--json" => json = true,
-            "--lang" => {
-                let tag = value(&mut it, "--lang")?;
-                let languages = ew_api::checks::messages::LANGUAGES;
-                match languages.iter().find(|l| l.eq_ignore_ascii_case(&tag)) {
-                    Some(l) => lang = (*l).to_owned(),
-                    None => {
-                        return Err(format!(
-                            "unknown message language `{tag}` ({})",
-                            languages.join(", ")
-                        ));
-                    }
-                }
-            }
-            "--scheme" => {
-                let name = value(&mut it, "--scheme")?;
-                if scheme(&name).is_none() {
-                    return Err(format!("unknown scheme `{name}`"));
-                }
-                scheme_name = Some(name);
-            }
-            "--mode" => {
-                mode = match value(&mut it, "--mode")?.as_str() {
-                    "release" => CheckMode::Release,
-                    "online" => CheckMode::Online,
-                    other => return Err(format!("unknown mode `{other}` (release, online)")),
-                };
-            }
-            "--format" => {
-                let name = value(&mut it, "--format")?;
-                format = match name.as_str() {
-                    "text" => CheckFormat::Text,
-                    "md" => CheckFormat::Markdown,
-                    "json" => CheckFormat::Json,
-                    other => return Err(format!("unknown format `{other}` (text, md, json)")),
-                };
-                format_name = Some(name);
-            }
-            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if project.replace(PathBuf::from(&a)).is_some() {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-            }
-        }
-    }
-    json_alias(json, format_name.as_deref())?;
-    if json {
-        format = CheckFormat::Json;
-    }
-    let project = one_project(project_opt, project)?;
-    Ok(Command::Check(CheckArgs {
-        project,
-        scheme: scheme_name,
-        mode,
-        format,
-        out,
-        lang,
-    }))
-}
-
-fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    const SUBJECTS: &str = "cables, bom, wires, terminals, report, pdf, svg, png";
-    let what = match it.next().as_deref() {
-        Some(w @ ("cables" | "bom" | "wires" | "terminals" | "report")) => w.to_owned(),
-        Some("pdf") => return parse_export_pages(PageFormat::Pdf, it),
-        Some("svg") => return parse_export_pages(PageFormat::Svg, it),
-        Some("png") => return parse_export_pages(PageFormat::Png, it),
-        Some(other) => return Err(format!("unknown export `{other}` ({SUBJECTS})")),
-        None => return Err(format!("`export` needs a subject ({SUBJECTS})")),
-    };
-    let report = what == "report";
-    let mut project = None;
-    let mut project_opt = None;
-    let mut out = None;
-    let mut mode = BomMode::Component;
-    let mut block = None;
-    let mut report_kind = None;
-    let mut strip = None;
-    let mut pdf = false;
-    let mut json = false;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--json" => json = true,
-            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
-            "--block" => block = Some(value(&mut it, "--block")?),
-            "--kind" if report => report_kind = Some(value(&mut it, "--kind")?),
-            "--format" => match value(&mut it, "--format")?.as_str() {
-                "csv" => pdf = false,
-                "pdf" if report => pdf = true,
-                "xlsx" => {
-                    let formats = if report { "csv, pdf" } else { "csv" };
-                    return Err(format!(
-                        "`--format xlsx` is not built yet ({formats}; XLSX waits for the writer of FT-61)"
-                    ));
-                }
-                "pdf" => {
-                    return Err(format!(
-                        "`export {what}` is CSV only; a report block's pages go to PDF with `ew export report --block <block> --format pdf`"
-                    ));
-                }
-                other if report => return Err(format!("unknown format `{other}` (csv, pdf)")),
-                other => return Err(format!("unknown format `{other}` (csv)")),
-            },
-            "--mode" if what == "bom" => {
-                mode = match value(&mut it, "--mode")?.as_str() {
-                    "parts" | "component" => BomMode::Component,
-                    "assembly" => BomMode::Assembly,
-                    other => return Err(format!("unknown mode `{other}` (parts, assembly)")),
-                };
-            }
-            "--strip" if what == "terminals" => strip = Some(value(&mut it, "--strip")?),
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if project.replace(PathBuf::from(&a)).is_some() {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-            }
-        }
-    }
-    let kind = match what.as_str() {
-        "cables" => ExportKind::Cables,
-        "bom" => ExportKind::Bom(mode),
-        "wires" => ExportKind::Wires,
-        "terminals" => ExportKind::Terminals(strip),
-        _ => match report_kind {
-            Some(name) => ExportKind::ReportKind(name),
-            None => ExportKind::Report { pdf },
-        },
-    };
-    if let ExportKind::ReportKind(_) = kind {
-        // WP-S3.06 D4: the refusals are the report layer's texts.
-        if block.is_some() {
-            return Err(ew_api::output::RowsError::KindAndBlock.to_string());
-        }
-        if pdf {
-            return Err(ew_api::output::RowsError::KindPages.to_string());
-        }
-    }
-    if report && block.is_none() && !matches!(kind, ExportKind::ReportKind(_)) {
-        return Err(
-            "`export report` needs `--block <block>` (its ID or first folio) or `--kind <kind>`".to_owned(),
-        );
-    }
-    if pdf && out.is_none() {
-        return Err("`export report --format pdf` needs `--out <file.pdf>`".to_owned());
-    }
-    let project = one_project(project_opt, project)?;
-    Ok(Command::Export(ExportArgs {
-        kind,
-        block,
-        project,
-        out,
-        json,
-    }))
-}
-
-/// A `--dpi` value: 72 to 600 (WP-S1.22 D7).
-fn dpi(v: &str) -> Result<u32, String> {
-    match v.parse::<u32>() {
-        Ok(n) if ew_api::output::DPI_RANGE.contains(&n) => Ok(n),
-        _ => Err(format!(
-            "`--dpi` needs a number from {} to {}, got `{v}`",
-            ew_api::output::DPI_RANGE.start(),
-            ew_api::output::DPI_RANGE.end()
-        )),
-    }
-}
-
-fn parse_render(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut project = None;
-    let mut project_opt = None;
-    let mut page = None;
-    let mut png = false;
-    let mut resolution = ew_api::output::DEFAULT_DPI;
-    let mut out = None;
-    let mut json = false;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--json" => json = true,
-            "--page" => page = Some(value(&mut it, "--page")?),
-            "--png" => png = true,
-            "--dpi" => resolution = dpi(&value(&mut it, "--dpi")?)?,
-            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if project.replace(PathBuf::from(&a)).is_some() {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-            }
-        }
-    }
-    let page = page.ok_or("`render` needs `--page <folio>`")?;
-    if !png {
-        return Err("`render` needs `--png` (the page format; PNG is the only one)".to_owned());
-    }
-    let project = one_project(project_opt, project)?;
-    Ok(Command::Render(RenderArgs {
-        project,
-        page,
-        dpi: resolution,
-        out,
-        json,
-    }))
-}
-
-fn parse_export_pages(format: PageFormat, mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut project = None;
-    let mut out = None;
-    let mut pages = PageSelection::All;
-    let mut threads = None;
-    let mut project_opt = None;
-    let mut json = false;
-    let mut resolution = ew_api::output::DEFAULT_DPI;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--json" => json = true,
-            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
-            "--dpi" if format == PageFormat::Png => resolution = dpi(&value(&mut it, "--dpi")?)?,
-            "--pages" => {
-                pages = PageSelection::parse(&value(&mut it, "--pages")?).map_err(|e| e.to_string())?;
-            }
-            "--threads" => {
-                let v = value(&mut it, "--threads")?;
-                match v.parse::<usize>() {
-                    Ok(n) if (1..=256).contains(&n) => threads = Some(n),
-                    _ => return Err(format!("`--threads` needs a number from 1 to 256, got `{v}`")),
-                }
-            }
-            opt @ ("--lang" | "--omit-personal-data") => {
-                return Err(format!("`{opt}` is not built yet"));
-            }
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if project.replace(PathBuf::from(&a)).is_some() {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-            }
-        }
-    }
-    let what = match format {
-        PageFormat::Pdf => "export pdf` needs `--out <file.pdf>",
-        PageFormat::Svg => "export svg` needs `--out <dir>",
-        PageFormat::Png => "export png` needs `--out <dir>",
-    };
-    let out = out.ok_or_else(|| format!("`{what}`"))?;
-    let project = one_project(project_opt, project)?;
-    Ok(Command::ExportPages(ExportPagesArgs {
-        format,
-        project,
-        out,
-        pages,
-        threads,
-        dpi: resolution,
-        json,
-    }))
-}
-
-fn parse_apply(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut positionals = Vec::new();
-    let mut preview = false;
-    let mut one_step = false;
-    let mut project_opt = None;
-    let mut json = false;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--json" => json = true,
-            "--preview" => preview = true,
-            "--one-step" => one_step = true,
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => positionals.push(PathBuf::from(a)),
-        }
-    }
-    let mut pos = positionals.into_iter();
-    let (project, log) = match (pos.next(), pos.next(), pos.next()) {
-        (Some(log), None, _) => (None, log),
-        (Some(dir), Some(log), None) => (Some(dir), log),
-        (None, ..) => return Err("`apply` needs a command log (<file.ewcmd>)".to_owned()),
-        (Some(_), Some(_), Some(extra)) => return Err(format!("unexpected argument `{}`", extra.display())),
-    };
-    let project = one_project(project_opt, project)?;
-    Ok(Command::Apply(ApplyArgs {
-        project,
-        log,
-        preview,
-        one_step,
-        json,
-    }))
-}
-
-fn parse_fmt(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut project = None;
-    let mut project_opt = None;
-    let (mut check, mut json) = (false, false);
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--check" => check = true,
-            "--json" => json = true,
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if project.replace(PathBuf::from(&a)).is_some() {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-            }
-        }
-    }
-    let project = one_project(project_opt, project)?;
-    Ok(Command::Fmt(FmtArgs { project, check, json }))
-}
-
-fn parse_recover(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut project = None;
-    let mut project_opt = None;
-    let (mut replay, mut discard, mut json) = (false, false, false);
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--replay" => replay = true,
-            "--discard" => discard = true,
-            "--json" => json = true,
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if project.replace(PathBuf::from(&a)).is_some() {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-            }
-        }
-    }
-    let action = match (replay, discard) {
-        (true, true) => return Err("`--replay` and `--discard` cannot be combined".to_owned()),
-        (true, false) => RecoverAction::Replay,
-        (false, true) => RecoverAction::Discard,
-        (false, false) => RecoverAction::Summary,
-    };
-    if action == RecoverAction::Discard && json {
-        return Err(
-            "`--discard` asks for a typed word on a terminal and prints no result: it takes no `--json`"
-                .to_owned(),
-        );
-    }
-    let project = one_project(project_opt, project)?;
-    Ok(Command::Recover(RecoverArgs {
-        project,
-        action,
-        json,
-    }))
-}
-
-fn parse_checks_set(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut args = ChecksSetArgs {
-        project: None,
-        active: None,
-        release: None,
-    };
-    let mut project_opt = None;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--active" => args.active = Some(value(&mut it, "--active")?),
-            "--release" => args.release = Some(value(&mut it, "--release")?),
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ if args.project.is_none() => args.project = Some(PathBuf::from(a)),
-            _ => return Err(format!("unexpected argument `{a}`")),
-        }
-    }
-    if args.active.is_none() && args.release.is_none() {
-        return Err("`project checks set` needs `--active <scheme>` or `--release <scheme>`".to_owned());
-    }
-    args.project = one_project(project_opt, args.project)?;
-    Ok(Command::ChecksSet(args))
-}
-
-fn parse_revision(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let sub = it.next();
-    let mut positional: Vec<String> = Vec::new();
-    let (mut role, mut reason, mut archive_dir) = (None, None, None);
-    let mut project_opt = None;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--as" if sub.as_deref() == Some("approve") => role = Some(value(&mut it, "--as")?),
-            "--reason" if sub.as_deref() == Some("withdraw") => reason = Some(value(&mut it, "--reason")?),
-            "--archive-dir" if sub.as_deref() == Some("release") => {
-                archive_dir = Some(PathBuf::from(value(&mut it, "--archive-dir")?));
-            }
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => positional.push(a),
-        }
-    }
-    let mut positional = positional.into_iter();
-    let action = match sub.as_deref() {
-        Some("approve") => RevisionAction::Approve {
-            role: role.ok_or("`revision approve` needs `--as <role>`")?,
-        },
-        Some("release") => RevisionAction::Release {
-            label: positional
-                .next()
-                .ok_or("`revision release` needs the revision's label")?,
-            archive_dir,
-        },
-        Some("withdraw") => RevisionAction::Withdraw {
-            label: positional
-                .next()
-                .ok_or("`revision withdraw` needs the revision's label")?,
-            reason: reason.ok_or("`revision withdraw` needs `--reason <text>`")?,
-        },
-        Some(other) => return Err(format!("unknown revision command `{other}`")),
-        None => return Err("`revision` takes `approve`, `release` or `withdraw`".to_owned()),
-    };
-    let project = positional.next().map(PathBuf::from);
-    if let Some(extra) = positional.next() {
-        return Err(format!("unexpected argument `{extra}`"));
-    }
-    let project = one_project(project_opt, project)?;
-    Ok(Command::Revision(RevisionArgs { action, project }))
-}
-
-fn parse_assets_purge(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut args = AssetsPurgeArgs {
-        project: None,
-        preview: false,
-    };
-    let mut project_opt = None;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--preview" => args.preview = true,
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ if args.project.is_none() => args.project = Some(PathBuf::from(a)),
-            _ => return Err(format!("unexpected argument `{a}`")),
-        }
-    }
-    args.project = one_project(project_opt, args.project)?;
-    Ok(Command::AssetsPurge(args))
-}
-
-fn parse_verify(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut project = None;
-    let mut project_opt = None;
-    let mut json = false;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--json" => json = true,
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => {
-                if project.replace(PathBuf::from(&a)).is_some() {
-                    return Err(format!("unexpected argument `{a}`"));
-                }
-            }
-        }
-    }
-    let project = one_project(project_opt, project)?;
-    Ok(Command::VerifyDerived(VerifyArgs { project, json }))
-}
-
-fn parse_sql(it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut rest: Vec<String> = it.collect();
-    match rest.first().map(String::as_str) {
-        Some("schema") => {
-            return match rest.get(1) {
-                None => Ok(Command::SqlSchema),
-                Some(extra) => Err(format!("unexpected argument `{extra}`")),
-            };
-        }
-        Some("dump") => {
-            rest.remove(0);
-            return parse_sql_dump(rest.into_iter());
-        }
-        _ => {}
-    }
-    let mut it = rest.into_iter();
-    let mut positionals: Vec<String> = Vec::new();
-    let mut project_opt = None;
-    let mut file = None;
-    let mut format = SqlFormat::Csv;
-    let mut format_name = None;
-    let mut json = false;
-    let mut timeout = None;
-    let mut out = None;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--json" => json = true,
-            "--file" => file = Some(PathBuf::from(value(&mut it, "--file")?)),
-            "--format" => {
-                let name = value(&mut it, "--format")?;
-                format = match name.as_str() {
-                    "csv" => SqlFormat::Csv,
-                    "json" => SqlFormat::Json,
-                    "xlsx" => return Err("`--format xlsx` is not built yet (csv, json)".to_owned()),
-                    other => return Err(format!("unknown format `{other}` (csv, json)")),
-                };
-                format_name = Some(name);
-            }
-            "--timeout" => {
-                let v = value(&mut it, "--timeout")?;
-                let max = ew_api::sql::Profile::MAX_DEADLINE.as_secs();
-                match v.parse::<u64>() {
-                    Ok(n) if (1..=max).contains(&n) => timeout = Some(n),
-                    _ => {
-                        return Err(format!(
-                            "`--timeout` needs a number of seconds from 1 to {max}, got `{v}`"
-                        ));
-                    }
-                }
-            }
-            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
-            // An argument is an option only when it is one of the above; an inline query may start with an
-            // SQL comment (`-- …`). A single word starting with `-` is still a mistyped option.
-            opt if opt.starts_with('-') && !opt.contains(char::is_whitespace) => {
-                return Err(format!("unknown option `{opt}`"));
-            }
-            _ => positionals.push(a),
-        }
-    }
-    let mut pos = positionals.into_iter();
-    let (positional_project, query) = match file {
-        Some(f) => {
-            let project = pos.next().map(PathBuf::from);
-            if let Some(extra) = pos.next() {
-                return Err(format!(
-                    "`--file` cannot be combined with a query text (`{extra}`)"
-                ));
-            }
-            (project, SqlSource::File(f))
-        }
-        None => match (pos.next(), pos.next(), pos.next()) {
-            (Some(q), None, _) => (None, SqlSource::Text(q)),
-            (Some(d), Some(q), None) => (Some(PathBuf::from(d)), SqlSource::Text(q)),
-            (None, ..) => return Err("`sql` needs a query (or `--file`)".to_owned()),
-            (Some(_), Some(_), Some(extra)) => return Err(format!("unexpected argument `{extra}`")),
-        },
-    };
-    let project = one_project(project_opt, positional_project)?;
-    json_alias(json, format_name.as_deref())?;
-    if json {
-        format = SqlFormat::Json;
-    }
-    Ok(Command::Sql(SqlArgs {
-        project,
-        query,
-        format,
-        timeout,
-        out,
-    }))
-}
-
-fn parse_sql_dump(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut positionals: Vec<String> = Vec::new();
-    let mut project_opt = None;
-    let mut json = false;
-    while let Some(a) = it.next() {
-        match a.as_str() {
-            "--project" => project_flag(&mut project_opt, &mut it)?,
-            "--json" => json = true,
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
-            _ => positionals.push(a),
-        }
-    }
-    let mut pos = positionals.into_iter();
-    let (positional_project, out) = match (pos.next(), pos.next(), pos.next()) {
-        (Some(o), None, _) => (None, PathBuf::from(o)),
-        (Some(d), Some(o), None) => (Some(PathBuf::from(d)), PathBuf::from(o)),
-        (None, ..) => return Err("`sql dump` needs an output file".to_owned()),
-        (Some(_), Some(_), Some(extra)) => return Err(format!("unexpected argument `{extra}`")),
-    };
-    let project = one_project(project_opt, positional_project)?;
-    Ok(Command::SqlDump(SqlDumpArgs { project, out, json }))
-}
-
-fn parse_lib(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
-    let sub = it
-        .next()
-        .ok_or_else(|| "`lib` takes `list`, `search`, `index`, `create` or `import`".to_owned())?;
-    let mut company = Vec::new();
-    let mut json = false;
-    let mut positional: Vec<String> = Vec::new();
-    let mut kinds = Vec::new();
-    let mut all = false;
-    let mut limit = None;
-    let mut rebuild = false;
-    let (mut key, mut name, mut licence) = (None, None, None);
-    let (mut map, mut as_of, mut bump, mut take_over) = (None, None, false, false);
-    while let Some(a) = it.next() {
-        match (sub.as_str(), a.as_str()) {
-            ("import", "--map") => map = Some(PathBuf::from(value(&mut it, "--map")?)),
-            ("import", "--as-of") => as_of = Some(date(&value(&mut it, "--as-of")?)?),
-            ("import", "--bump") => bump = true,
-            ("import", "--take-over") => take_over = true,
-            (_, "--company") => company.push(PathBuf::from(value(&mut it, "--company")?)),
-            (_, "--json") => json = true,
-            ("search", "--kind") => {
-                let k = value(&mut it, "--kind")?;
-                if ew_api::library::item_kind(&k).is_none() {
-                    return Err(format!(
-                        "unknown kind `{k}` (part, symbol, fndef, form, macro, manufacturer)"
-                    ));
-                }
-                kinds.push(k);
-            }
-            ("search", "--all") => all = true,
-            ("search", "--limit") => {
-                let v = value(&mut it, "--limit")?;
-                limit = Some(
-                    v.parse::<u32>()
-                        .map_err(|_| format!("`--limit` needs a number, not `{v}`"))?,
-                );
-            }
-            ("index", "--rebuild") => rebuild = true,
-            ("create", "--key") => key = Some(value(&mut it, "--key")?),
-            ("create", "--name") => name = Some(value(&mut it, "--name")?),
-            ("create", "--licence") => licence = Some(value(&mut it, "--licence")?),
-            (_, opt) if opt.starts_with("--") => return Err(format!("unknown option `{opt}`")),
-            _ => positional.push(a),
-        }
-    }
-    let one = |what: &str, positional: Vec<String>| -> Result<String, String> {
-        let mut p = positional.into_iter();
-        let first = p.next().ok_or_else(|| format!("`lib {sub}` needs {what}"))?;
-        match p.next() {
-            None => Ok(first),
-            Some(extra) => Err(format!("unexpected argument `{extra}`")),
-        }
-    };
-    let action = match sub.as_str() {
-        "list" => {
-            if let Some(extra) = positional.first() {
-                return Err(format!("unexpected argument `{extra}`"));
-            }
-            LibAction::List
-        }
-        "search" => LibAction::Search {
-            text: one("the text to search for", positional)?,
-            kinds,
-            all,
-            limit: limit.unwrap_or(50),
-        },
-        "index" => {
-            if let Some(extra) = positional.first() {
-                return Err(format!("unexpected argument `{extra}`"));
-            }
-            if !rebuild {
-                return Err("`lib index` needs `--rebuild`".to_owned());
-            }
-            LibAction::IndexRebuild
-        }
-        "create" => {
-            let dir = PathBuf::from(one("a directory", positional)?);
-            let need = |v: Option<String>, opt: &str| v.ok_or_else(|| format!("`lib create` needs `{opt}`"));
-            LibAction::Create {
-                dir,
-                key: need(key, "--key")?,
-                name: need(name, "--name")?,
-                licence: need(licence, "--licence")?,
-            }
-        }
-        "import" => {
-            let mut p = positional.into_iter();
-            if p.next().as_deref() != Some("parts") {
-                return Err("`lib import` takes `parts`".to_owned());
-            }
-            let (Some(library), Some(file)) = (p.next(), p.next()) else {
-                return Err("`lib import parts` needs a library and a parts table".to_owned());
-            };
-            if let Some(extra) = p.next() {
-                return Err(format!("unexpected argument `{extra}`"));
-            }
-            LibAction::ImportParts {
-                library,
-                file: PathBuf::from(file),
-                map: map.ok_or_else(|| "`lib import parts` needs `--map`".to_owned())?,
-                as_of: as_of.ok_or_else(|| "`lib import parts` needs `--as-of`".to_owned())?,
-                bump,
-                take_over,
-            }
-        }
-        other => {
-            return Err(format!(
-                "unknown `lib` command `{other}` (list, search, index, create, import)"
-            ));
-        }
-    };
-    Ok(Command::Lib(LibArgs {
-        action,
-        company,
-        json,
-    }))
-}
-
-fn value(it: &mut impl Iterator<Item = String>, opt: &str) -> Result<String, String> {
-    it.next().ok_or_else(|| format!("`{opt}` needs a value"))
-}
-
-/// Takes the value of `--project` into `slot` (doc 17 §3.1, WP-S1.22 D3 (a)); a second `--project` is a usage error.
-fn project_flag(slot: &mut Option<PathBuf>, it: &mut impl Iterator<Item = String>) -> Result<(), String> {
-    if slot.replace(PathBuf::from(value(it, "--project")?)).is_some() {
-        return Err("`--project` given twice".to_owned());
-    }
-    Ok(())
-}
-
-/// The project of a command line: `--project <dir>` or the positional directory, never both (D3 (a)).
-fn one_project(flag: Option<PathBuf>, positional: Option<PathBuf>) -> Result<Option<PathBuf>, String> {
-    match (flag, positional) {
-        (Some(_), Some(_)) => {
-            Err("`--project` cannot be combined with a positional project directory".to_owned())
-        }
-        (Some(d), None) | (None, Some(d)) => Ok(Some(d)),
-        (None, None) => Ok(None),
-    }
-}
-
-/// `--json` beside an explicit `--format`: `--json` is the alias of `--format json`, so another format is a usage
-/// error (D3 (c)).
-fn json_alias(json: bool, format: Option<&str>) -> Result<(), String> {
-    match format {
-        Some(f) if json && f != "json" => Err(format!(
-            "`--json` cannot be combined with `--format {f}` (`--json` is `--format json`)"
-        )),
-        _ => Ok(()),
-    }
+/// The clap command of the derive tree: the source of the CLI catalogue's paths and flags.
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn command() -> clap::Command {
+    use clap::CommandFactory as _;
+    tree::Cli::command()
 }
 
 /// Runs `cmd` and returns the exit code (0 success, 1 model check failed or `--strict` violated, 2 usage, I/O and
 /// import errors).
 pub fn run(cmd: Command) -> i32 {
     match cmd {
-        Command::Version => {
-            println!("ew {}", env!("CARGO_PKG_VERSION"));
-            0
-        }
-        Command::Help => {
-            println!("{USAGE}");
-            0
-        }
         Command::ImportQet(a) => run_import_qet(&a),
         Command::ImportParts(a) => run_import_parts(&a),
         Command::ImportCsv(a) => run_import_csv(&a),
@@ -4447,7 +3357,14 @@ mod tests {
     /// FIX40a (finding 8): the release run's record is kept per user, so the help names it as the person's own.
     #[test]
     fn the_help_names_the_release_record_as_the_users() {
-        let text = super::USAGE.split_whitespace().collect::<Vec<_>>().join(" ");
+        let mut cmd = super::command();
+        cmd.build();
+        let release = cmd
+            .find_subcommand_mut("revision")
+            .and_then(|r| r.find_subcommand_mut("release"))
+            .expect("`revision release`");
+        let help = release.render_long_help().to_string();
+        let text = help.split_whitespace().collect::<Vec<_>>().join(" ");
         assert!(
             text.contains("`discard` is offered only when your record on this computer shows"),
             "the help text"
@@ -4457,8 +3374,155 @@ mod tests {
 
     use super::*;
 
+    /// The command of a line, or clap's rendering of its error.
     fn p(args: &[&str]) -> Result<Command, String> {
-        parse(args.iter().map(|s| (*s).to_owned()))
+        parse(args.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string())
+    }
+
+    /// clap's whole rendering of a usage error of the subcommand whose usage line is `usage`.
+    fn usage_error(message: &str, usage: &str) -> Result<Command, String> {
+        Err(format!(
+            "error: {message}\n\nUsage: {usage}\n\nFor more information, try '--help'.\n"
+        ))
+    }
+
+    /// clap's whole rendering of a value that the flag's value parser refuses with `message`.
+    fn invalid(value: &str, flag: &str, message: &str) -> Result<Command, String> {
+        Err(format!(
+            "error: invalid value '{value}' for '{flag}': {message}\n\nFor more information, try '--help'.\n"
+        ))
+    }
+
+    /// Cycle 43, ruling 4: a line without its subcommand prints the help on stderr and exits 2; `--help` and
+    /// `--version` print on stdout and exit 0, the version as `ew <version>`.
+    #[test]
+    fn help_and_version_are_clap_s() {
+        let e = |args: &[&str]| parse(args.iter().map(|s| (*s).to_owned())).unwrap_err();
+        for args in [&[][..], &["lib"], &["import"], &["project", "checks"]] {
+            let err = e(args);
+            assert_eq!(
+                err.kind(),
+                clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
+                "{args:?}"
+            );
+            assert_eq!(err.exit_code(), 2, "{args:?}");
+        }
+        for args in [
+            &["--help"][..],
+            &["-h"],
+            &["help"],
+            &["export", "pdf", "--help"],
+            &["help", "lib", "search"],
+        ] {
+            let err = e(args);
+            assert_eq!(err.kind(), clap::error::ErrorKind::DisplayHelp, "{args:?}");
+            assert_eq!(err.exit_code(), 0, "{args:?}");
+        }
+        for args in [&["--version"][..], &["-V"]] {
+            let err = e(args);
+            assert_eq!(err.kind(), clap::error::ErrorKind::DisplayVersion, "{args:?}");
+            assert_eq!(err.exit_code(), 0, "{args:?}");
+            assert_eq!(
+                err.render().to_string(),
+                format!("ew {}\n", env!("CARGO_PKG_VERSION"))
+            );
+        }
+        assert_eq!(
+            p(&["frobnicate"]),
+            usage_error("unrecognized subcommand 'frobnicate'", "ew <COMMAND>")
+        );
+    }
+
+    /// Cycle 43, ruling 3: a valued flag takes the next word even when it starts with `-`; a second `--project` is an
+    /// error, `--company` accumulates, another flag is last-wins; a bare `--` ends the options.
+    #[test]
+    fn the_grammar_of_values_repeats_and_the_option_end() {
+        let Ok(Command::Export(t)) = p(&["export", "terminals", "--strip", "--json"]) else {
+            panic!("a value starting with `-`");
+        };
+        assert_eq!(
+            (t.kind, t.json),
+            (ExportKind::Terminals(Some("--json".to_owned())), false)
+        );
+        assert_eq!(
+            p(&["fmt", "--project", "a", "--project", "b"]),
+            usage_error(
+                "the argument '--project <dir>' cannot be used multiple times",
+                "ew fmt [OPTIONS] [project-dir]"
+            )
+        );
+        let Ok(Command::Check(c)) = p(&["check", "--out", "a", "--out", "b", "--json", "--json"]) else {
+            panic!("last-wins");
+        };
+        assert_eq!((c.out, c.format), (Some(PathBuf::from("b")), CheckFormat::Json));
+        let Ok(Command::Check(c)) = p(&["check", "--lang", "NL-nl"]) else {
+            panic!("--lang in any case");
+        };
+        assert_eq!(c.lang, "nl-NL");
+        let Ok(Command::Fmt(f)) = p(&["fmt", "--", "--check"]) else {
+            panic!("`--` ends the options");
+        };
+        assert_eq!((f.project, f.check), (Some(PathBuf::from("--check")), false));
+        let Ok(Command::Query(q)) = p(&["query", "device_tag", "-X1031:5", "--json"]) else {
+            panic!("a key starting with `-`");
+        };
+        assert_eq!((q.key.as_str(), q.json), ("-X1031:5", true));
+        let Ok(Command::Lib(l)) = p(&["lib", "search", "-X1", "--company", "a", "--company", "b"]) else {
+            panic!("a search text starting with `-`");
+        };
+        assert_eq!(l.company, [PathBuf::from("a"), PathBuf::from("b")]);
+        // `import csv --strict` names the default: accepted and ignored.
+        assert_eq!(
+            p(&["import", "csv", "t", "--out", "o", "--strict"]),
+            p(&["import", "csv", "t", "--out", "o"])
+        );
+        assert_eq!(
+            p(&["import", "csv", "t", "--out", "o", "--strict", "--lenient"]),
+            usage_error(
+                "the argument '--strict' cannot be used with '--lenient'",
+                "ew import csv --out <dir> <tables-dir>"
+            )
+        );
+        assert_eq!(
+            p(&["export", "pdf", "--out", "o", "--lang", "de"]),
+            usage_error(
+                "`--lang` is not built yet",
+                "ew export pdf [OPTIONS] --out <path> [project-dir]"
+            )
+        );
+        assert_eq!(
+            p(&["export", "png", "--out", "o", "--omit-personal-data"]),
+            usage_error(
+                "`--omit-personal-data` is not built yet",
+                "ew export png [OPTIONS] --out <dir> [project-dir]"
+            )
+        );
+        assert_eq!(
+            p(&["import", "qet", "a.qet", "--json", "--report", "md"]),
+            usage_error(
+                "`--json` prints the result on stdout: give the report a file with `--report-out <file>`",
+                "ew import qet [OPTIONS] <file.qet>"
+            )
+        );
+        assert_eq!(
+            p(&["check", "--json", "--format", "md"]),
+            usage_error(
+                "`--json` cannot be combined with `--format md` (`--json` is `--format json`)",
+                "ew check [OPTIONS] [project-dir]"
+            )
+        );
+        assert_eq!(
+            p(&["sql", "--project", "p", "--file", "q", "proj"]),
+            usage_error(
+                "the argument '[project-dir]' cannot be used with '--project <dir>'",
+                "ew sql [OPTIONS] [project-dir] <select>\n       ew sql [OPTIONS] [project-dir] --file <query.sql>\n       \
+                 ew sql <COMMAND>"
+            )
+        );
+        assert_eq!(
+            p(&["sql", "SELECT 1", "--bogus"]),
+            invalid("--bogus", "[select]", "unknown option `--bogus`")
+        );
     }
 
     #[test]
@@ -4533,47 +3597,69 @@ mod tests {
                 false
             )
         );
+        let create = "ew lib create --key <key> --name <name> --licence <spdx> <dir>";
         for (args, error) in [
             (
-                &["lib"][..],
-                "`lib` takes `list`, `search`, `index`, `create` or `import`",
+                &["lib", "frob"][..],
+                usage_error("unrecognized subcommand 'frob'", "ew lib [OPTIONS] <COMMAND>"),
             ),
             (
-                &["lib", "frob"],
-                "unknown `lib` command `frob` (list, search, index, create, import)",
+                &["lib", "list", "x"],
+                usage_error("unexpected argument 'x' found", "ew lib list [OPTIONS]"),
             ),
-            (&["lib", "list", "x"], "unexpected argument `x`"),
-            (&["lib", "search"], "`lib search` needs the text to search for"),
-            (&["lib", "search", "a", "b"], "unexpected argument `b`"),
+            (
+                &["lib", "search"],
+                usage_error(
+                    "the following required arguments were not provided:\n  <text>",
+                    "ew lib search <text>",
+                ),
+            ),
+            (
+                &["lib", "search", "a", "b"],
+                usage_error("unexpected argument 'b' found", "ew lib search [OPTIONS] <text>"),
+            ),
             (
                 &["lib", "search", "a", "--kind", "device"],
-                "unknown kind `device` (part, symbol, fndef, form, macro, manufacturer)",
+                invalid(
+                    "device",
+                    "--kind <kind>",
+                    "unknown kind `device` (part, symbol, fndef, form, macro, manufacturer)",
+                ),
             ),
             (
                 &["lib", "search", "a", "--limit", "x"],
-                "`--limit` needs a number, not `x`",
+                invalid("x", "--limit <n>", "`--limit` needs a number, not `x`"),
             ),
-            (&["lib", "index"], "`lib index` needs `--rebuild`"),
+            (
+                &["lib", "index"],
+                usage_error(
+                    "the following required arguments were not provided:\n  --rebuild",
+                    "ew lib index --rebuild",
+                ),
+            ),
             (
                 &["lib", "create", "d", "--key", "k", "--name", "N"],
-                "`lib create` needs `--licence`",
+                usage_error(
+                    "the following required arguments were not provided:\n  --licence <spdx>",
+                    create,
+                ),
             ),
-            (&["lib", "create", "--key", "k"], "`lib create` needs a directory"),
-            (&["lib", "list", "--company"], "`--company` needs a value"),
+            (
+                &["lib", "create", "--key", "k"],
+                usage_error(
+                    "the following required arguments were not provided:\n  --name <name>\n  --licence <spdx>\n  <dir>",
+                    create,
+                ),
+            ),
+            (
+                &["lib", "list", "--company"],
+                Err("error: a value is required for '--company <dir>' but none was supplied\n\nFor more information, \
+                     try '--help'.\n"
+                    .to_owned()),
+            ),
         ] {
-            assert_eq!(p(args), Err(error.to_owned()), "{args:?}");
+            assert_eq!(p(args), error, "{args:?}");
         }
-    }
-
-    #[test]
-    fn simple_commands() {
-        assert_eq!(p(&["--version"]), Ok(Command::Version));
-        assert_eq!(p(&["-V"]), Ok(Command::Version));
-        assert_eq!(p(&["help"]), Ok(Command::Help));
-        assert_eq!(p(&["-h"]), Ok(Command::Help));
-        assert!(p(&[]).is_err());
-        assert!(p(&["--version", "x"]).is_err());
-        assert!(p(&["frobnicate"]).is_err());
     }
 
     #[test]
@@ -4719,10 +3805,18 @@ mod tests {
 
     #[test]
     fn sql_errors() {
-        let xlsx = p(&["sql", "SELECT 1", "--format", "xlsx"]).unwrap_err();
-        assert_eq!(xlsx, "`--format xlsx` is not built yet (csv, json)");
-        let unknown = p(&["sql", "SELECT 1", "--format", "x"]).unwrap_err();
-        assert_eq!(unknown, "unknown format `x` (csv, json)");
+        assert_eq!(
+            p(&["sql", "SELECT 1", "--format", "xlsx"]),
+            invalid(
+                "xlsx",
+                "--format <format>",
+                "`--format xlsx` is not built yet (csv, json)"
+            )
+        );
+        assert_eq!(
+            p(&["sql", "SELECT 1", "--format", "x"]),
+            invalid("x", "--format <format>", "unknown format `x` (csv, json)")
+        );
         assert!(p(&["sql", "SELECT 1", "--timeout", "0"]).is_err());
         assert!(p(&["sql", "SELECT 1", "--timeout", "abc"]).is_err());
         assert!(p(&["sql", "SELECT 1", "--timeout", "-1"]).is_err());
@@ -4848,35 +3942,58 @@ SELECT 1"
                 json: false,
             }))
         );
+        let lib_import = "ew lib import parts --map <map.toml> --as-of <date> <library> <table>";
+        let missing = "the following required arguments were not provided:";
         for (args, error) in [
             (
                 &["import", "parts", "a.csv", "--as-of", "2026-10-29"][..],
-                "`--as-of` and `--company` need `--map`",
+                usage_error(
+                    &format!("{missing}\n  --map <map.toml>"),
+                    "ew import parts --map <map.toml> --as-of <date> <table>",
+                ),
             ),
             (
                 &["import", "parts", "a.csv", "--map", "m", "--as-of", "29.10.2026"],
-                "`--as-of` needs a date YYYY-MM-DD, not `29.10.2026`",
+                invalid(
+                    "29.10.2026",
+                    "--as-of <date>",
+                    "`--as-of` needs a date YYYY-MM-DD, not `29.10.2026`",
+                ),
             ),
-            (&["lib", "import", "macros"], "`lib import` takes `parts`"),
+            (
+                &["lib", "import", "macros"],
+                Err("error: unrecognized subcommand 'macros'\n\n  tip: a similar subcommand exists: 'parts'\n\nUsage: \
+                     ew lib import [OPTIONS] <COMMAND>\n\nFor more information, try '--help'.\n"
+                    .to_owned()),
+            ),
             (
                 &["lib", "import", "parts", "std"],
-                "`lib import parts` needs a library and a parts table",
+                usage_error(
+                    &format!("{missing}\n  --map <map.toml>\n  --as-of <date>\n  <table>"),
+                    lib_import,
+                ),
             ),
             (
                 &["lib", "import", "parts", "std", "a.csv", "--as-of", "2026-10-29"],
-                "`lib import parts` needs `--map`",
+                usage_error(&format!("{missing}\n  --map <map.toml>"), lib_import),
             ),
             (
                 &["lib", "import", "parts", "std", "a.csv", "--map", "m"],
-                "`lib import parts` needs `--as-of`",
+                usage_error(&format!("{missing}\n  --as-of <date>"), lib_import),
             ),
             (
                 &["lib", "import", "parts", "std", "a.csv", "b.csv"],
-                "unexpected argument `b.csv`",
+                usage_error(
+                    "unexpected argument 'b.csv' found",
+                    "ew lib import parts [OPTIONS] --map <map.toml> --as-of <date> <library> <table>",
+                ),
             ),
-            (&["lib", "list", "--bump"], "unknown option `--bump`"),
+            (
+                &["lib", "list", "--bump"],
+                usage_error("unexpected argument '--bump' found", "ew lib list [OPTIONS]"),
+            ),
         ] {
-            assert_eq!(p(args), Err(error.to_owned()), "{args:?}");
+            assert_eq!(p(args), error, "{args:?}");
         }
     }
 
@@ -4941,19 +4058,30 @@ SELECT 1"
         assert!(p(&["export", "report", "--block", "908", "--format", "pdf"]).is_err());
         assert!(p(&["export", "report", "--block", "908", "--format", "svg"]).is_err());
         assert_eq!(
-            p(&["export", "wires", "--format", "xlsx"]).unwrap_err(),
-            "`--format xlsx` is not built yet (csv; XLSX waits for the writer of FT-61)"
+            p(&["export", "wires", "--format", "xlsx"]),
+            invalid(
+                "xlsx",
+                "--format <format>",
+                "`--format xlsx` is not built yet (csv; XLSX waits for the writer of FT-61)"
+            )
         );
         assert_eq!(
-            p(&["export", "report", "--block", "908", "--format", "xlsx"]).unwrap_err(),
-            "`--format xlsx` is not built yet (csv, pdf; XLSX waits for the writer of FT-61)"
+            p(&["export", "report", "--block", "908", "--format", "xlsx"]),
+            invalid(
+                "xlsx",
+                "--format <format>",
+                "`--format xlsx` is not built yet (csv, pdf; XLSX waits for the writer of FT-61)"
+            )
         );
         // Cycle-40 review, part 3, finding 5: the row exports are CSV only, and the refusal points to the report PDF.
         for what in ["bom", "cables", "wires", "terminals"] {
             assert_eq!(
-                p(&["export", what, "--format", "pdf"]).unwrap_err(),
-                format!(
-                    "`export {what}` is CSV only; a report block's pages go to PDF with `ew export report --block <block> --format pdf`"
+                p(&["export", what, "--format", "pdf"]),
+                usage_error(
+                    &format!(
+                        "`export {what}` is CSV only; a report block's pages go to PDF with `ew export report --block <block> --format pdf`"
+                    ),
+                    &format!("ew export {what} [OPTIONS] [project-dir]")
                 )
             );
         }
@@ -5026,27 +4154,42 @@ SELECT 1"
                 Some(PathBuf::from("proj"))
             )
         );
+        let report = "ew export report <--block <block>|--kind <kind>> [project-dir]";
         assert_eq!(
             p(&["export", "report", "--kind", "device_list", "--block", "910"]),
-            Err("give `--block` or `--kind`, not both".to_owned())
+            usage_error(
+                "the argument '--kind <kind>' cannot be used with '--block <block>'",
+                report
+            )
         );
         assert_eq!(
-            p(&["export", "report", "--kind", "device_list", "--format", "pdf", "--out", "r.pdf"]),
-            Err(
-                "`--kind` exports rows: a kind has pages only through a block, use `--block <block> --format pdf`"
-                    .to_owned()
+            p(&[
+                "export",
+                "report",
+                "--kind",
+                "device_list",
+                "--format",
+                "pdf",
+                "--out",
+                "r.pdf"
+            ]),
+            usage_error(
+                "`--kind` exports rows: a kind has pages only through a block, use `--block <block> --format pdf`",
+                "ew export report [OPTIONS] <--block <block>|--kind <kind>> [project-dir]"
             )
         );
         assert_eq!(
             p(&["export", "report"]),
-            Err(
-                "`export report` needs `--block <block>` (its ID or first folio) or `--kind <kind>`"
-                    .to_owned()
+            usage_error(
+                "the following required arguments were not provided:\n  <--block <block>|--kind <kind>>",
+                report
             )
         );
         assert_eq!(
             p(&["export", "wires", "--kind", "device_list"]),
-            Err("unknown option `--kind`".to_owned())
+            Err("error: unexpected argument '--kind' found\n\n  tip: to pass '--kind' as a value, use '-- --kind'\n\n\
+                 Usage: ew export wires [OPTIONS] [project-dir]\n\nFor more information, try '--help'.\n"
+                .to_owned())
         );
     }
 
@@ -5232,7 +4375,7 @@ mod checks_set_tests {
 
     #[test]
     fn the_subcommand_takes_no_yes_flag() {
-        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned()));
+        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string());
         assert!(parse(&["project", "checks", "set", "--release", "full", "--confirm"]).is_err());
         assert!(parse(&["project", "checks", "set", "--yes"]).is_err());
         assert!(
@@ -5256,7 +4399,7 @@ mod assets_purge_tests {
 
     #[test]
     fn assets_purge_parses_its_directory_and_preview_flag() {
-        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned()));
+        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string());
         assert_eq!(
             parse(&["project", "assets", "purge"]),
             Ok(Command::AssetsPurge(AssetsPurgeArgs {
@@ -5399,7 +4542,7 @@ mod revision_tests {
     use super::*;
 
     fn parse(a: &[&str]) -> Result<Command, String> {
-        super::parse(a.iter().map(|s| (*s).to_owned()))
+        super::parse(a.iter().map(|s| (*s).to_owned())).map_err(|e| e.render().to_string())
     }
 
     #[test]

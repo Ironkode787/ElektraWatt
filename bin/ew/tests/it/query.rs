@@ -291,28 +291,32 @@ fn failures_exit_2_with_their_message() {
         assert_eq!(stderr(&o), message, "{cmd:?}");
         assert_eq!(stdout(&o), "", "{cmd:?}");
     }
-    // Usage errors print the message and the usage.
-    for (cmd, first) in [
+    // Usage errors print clap's rendering: the message, the subcommand's usage line and the pointer to `--help`.
+    let usage =
+        "\n\nUsage: ew query [OPTIONS] [project-dir] <name> <key>\n\nFor more information, try '--help'.\n";
+    for (cmd, message) in [
         (
             args([&"query", &"device_tag"]),
-            "error: `query` needs a query name and a key (`ew query device_tag tag:-101F1`; `ew queries` lists the \
-             queries)",
+            format!("error: the following required arguments were not provided:\n  <name|key>{usage}"),
         ),
         (
             args([&"query", &p, &"device_tag", &"tag:-101F1", &"--bogus"]),
-            "error: unknown option `--bogus`",
+            format!("error: unexpected argument '--bogus' found\n\n  tip: to pass '--bogus' as a value, use '-- --bogus'{usage}"),
         ),
         (
             args([&"query", &p, &"device_tag", &"tag:-101F1", &"extra"]),
-            "error: unexpected argument `extra`",
+            format!("error: unexpected argument 'extra' found{usage}"),
         ),
-        (args([&"queries", &"--bogus"]), "error: unknown option `--bogus`"),
+        (
+            args([&"queries", &"--bogus"]),
+            "error: unexpected argument '--bogus' found\n\nUsage: ew queries [OPTIONS]\n\nFor more information, try \
+             '--help'.\n"
+                .to_owned(),
+        ),
     ] {
         let o = t.ew(&cmd);
         assert_eq!(o.status.code(), Some(2), "{cmd:?}");
-        let err = stderr(&o);
-        assert_eq!(err.lines().next(), Some(first), "{cmd:?}: {err}");
-        assert_eq!(err.lines().nth(1), Some("usage:"), "{cmd:?}: {err}");
+        assert_eq!(stderr(&o), message, "{cmd:?}");
         assert_eq!(stdout(&o), "", "{cmd:?}");
     }
 }
@@ -395,7 +399,8 @@ fn project_flag_equals_the_positional_directory() {
     let both = t.ew(&args([&"query", &p, &"cell_of", &"tag:-101F1", &"--project", &p]));
     assert_eq!(both.status.code(), Some(2));
     assert_eq!(
-        stderr(&both).lines().next(),
-        Some("error: `--project` cannot be combined with a positional project directory")
+        stderr(&both),
+        "error: the argument '[project-dir]' cannot be used with '--project <dir>'\n\nUsage: ew query [OPTIONS] \
+         [project-dir] <name> <key>\n\nFor more information, try '--help'.\n"
     );
 }

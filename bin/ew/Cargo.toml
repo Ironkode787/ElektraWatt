@@ -21,6 +21,16 @@ workspace = true
 [dependencies]
 ew-api = { path = "../../crates/ew-api" }
 ew-print = { path = "../../crates/ew-print" }
+# The argument parser: the subcommand tree is one derive type (`cli::Cli`), its help and usage are clap's (doc 17
+# §3.1, "a thin `clap` front-end").
+clap = { version = "4.6.7", default-features = false, features = [
+    "std",
+    "derive",
+    "help",
+    "usage",
+    "error-context",
+    "suggestions",
+] }
 # The parameters of `project.checks.set` that `ew project checks set` submits (already a dev-dependency).
 serde_json = "1.0.154"
 

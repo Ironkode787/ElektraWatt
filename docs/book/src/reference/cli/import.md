@@ -7,7 +7,7 @@
 ## `ew import csv`
 
 ```text
-ew import csv [--out <out>] [--content <content>] [--strict] [--lenient] [--json]
+ew import csv [--out <out>] [--content <content>] [--lenient] [--json]
 ```
 
 Stability: preview.
@@ -16,7 +16,6 @@ Stability: preview.
 |---|---|---|
 | `--out` | yes | no |
 | `--content` | yes | no |
-| `--strict` | no | no |
 | `--lenient` | no | no |
 | `--json` | no | no |
 
@@ -25,7 +24,7 @@ Stability: preview.
 | Code | Meaning |
 |---|---|
 | 0 | written, with its findings |
-| 1 | nothing written: `--strict` refused error findings, or the records do not make a project |
+| 1 | nothing written: the strict default refused error findings, or the records do not make a project |
 | 2 | usage, starter content, an unreadable table, an `--out` that holds something, write errors |
 
 **Result** (`--json`): `ew.import-csv-result/1`, schema [`ew.import-csv-result-1.schema.json`](https://github.com/Ironkode787/ElektraWatt/blob/main/bin/ew/schemas/ew.import-csv-result-1.schema.json).
