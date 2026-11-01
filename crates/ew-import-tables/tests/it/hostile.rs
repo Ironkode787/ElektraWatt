@@ -243,7 +243,8 @@ fn mutate_once(lines: &mut Vec<String>, rng: &mut Lcg) {
 /// table, and every successful batch has unique record IDs.
 ///
 /// Per table: `MUTATIONS_PER_TABLE` = 60 mutated runs from the seed `0xC5F0_7A11_0B5E_ED01` mixed with the
-/// table index, one thread per table (debug build: see the measured time in the test run).
+/// table index, one thread per table (debug build: see the measured time in the test run). A failure names its table,
+/// its run and the seed, and prints the panic's message and the mutated text (FT-925).
 #[test]
 fn mutated_golden_tables_never_panic() {
     const MUTATIONS_PER_TABLE: usize = 60;
@@ -265,7 +266,7 @@ fn mutated_golden_tables_never_panic() {
             scope.spawn(move || {
                 let text = String::from_utf8(target.bytes().to_vec()).expect("golden tables are UTF-8");
                 let mut rng = Lcg(SEED ^ ((n as u64 + 1) << 32));
-                for _ in 0..MUTATIONS_PER_TABLE {
+                for run in 0..MUTATIONS_PER_TABLE {
                     let mut lines: Vec<String> = text.lines().map(str::to_owned).collect();
                     for _ in 0..=(rng.next() % 3) {
                         mutate_once(&mut lines, &mut rng);
@@ -281,13 +282,29 @@ fn mutated_golden_tables_never_panic() {
                         ew_interop_api::ImportInput::new(target.name(), mutated.clone().into_bytes())
                             .unwrap(),
                     );
-                    if let Ok(batch) = importer.import(&inputs, ctx) {
+                    // FT-925: a panic is caught and reported with its message and the case (the table, the run, the
+                    // seed and the mutated text), so a failure under load can be replayed.
+                    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        importer.import(&inputs, ctx)
+                    }))
+                    .unwrap_or_else(|payload| {
+                        let message = payload
+                            .downcast_ref::<&str>()
+                            .map(|s| (*s).to_owned())
+                            .or_else(|| payload.downcast_ref::<String>().cloned())
+                            .unwrap_or_else(|| "a panic without a message".to_owned());
+                        panic!(
+                            "{} (table {n}, run {run}, seed {SEED:#x}): the import panicked: {message}\n{mutated}",
+                            target.name()
+                        )
+                    });
+                    if let Ok(batch) = result {
                         let mut seen = std::collections::BTreeSet::new();
                         for r in &batch.records {
                             if let Some(id) = r.id() {
                                 assert!(
                                     seen.insert(id),
-                                    "{}: duplicate record ID {id:?}\n{mutated}",
+                                    "{} (table {n}, run {run}, seed {SEED:#x}): duplicate record ID {id:?}\n{mutated}",
                                     target.name()
                                 );
                             }

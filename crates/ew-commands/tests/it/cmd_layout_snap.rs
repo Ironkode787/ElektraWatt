@@ -570,6 +570,74 @@ fn a_neighbours_concurrent_edit_conflicts_at_merge() {
     assert!(preview.read_set().unchanged_since(f.e.model(), base));
 }
 
+/// FT-941: `note_rail_reads` records the rail's placements index, so a concurrent insert onto the same rail, which
+/// writes no row the push read, still conflicts at merge, and the push re-runs on the current rail.
+#[test]
+fn a_concurrent_insert_onto_the_rail_conflicts_at_merge() {
+    let mut f = fx();
+    let k1 = f.put(k(1), 100); // [91, 109]
+    let k2 = f.put(k(2), 136); // [127, 145]
+    let push = place(
+        k(3),
+        PlaceOnParam::Carrier(f.rail1),
+        at(118),
+        Some(PlaceMode::Push),
+    );
+    let preview = f.e.preview(&push).unwrap();
+    let base = preview.base_rev();
+    // Meanwhile K4 is placed far right on the same rail, clear of every item the push moves.
+    let k4 = f.put(k(4), 400);
+    assert!(
+        !preview.read_set().unchanged_since(f.e.model(), base),
+        "the push read the rail's placements"
+    );
+    let k3: Id<Placement> = created(f.e.commit(preview).unwrap());
+    assert_eq!(
+        [k1, k3, k2, k4].map(|p| clip10(&f.e, p)),
+        [1000, 1180, 1360, 4000]
+    );
+}
+
+/// FT-941: `note_rail_reads` records the neighbours' part copies, so a concurrent clearance edit of a neighbour's part
+/// copy (a `library.update` of its 5 mm pads to 9 mm, which changes no placement or device row) conflicts at merge.
+#[test]
+fn a_concurrent_clearance_edit_of_a_neighbours_part_copy_conflicts_at_merge() {
+    let mut f = fx();
+    f.put(DEV_C1, 100); // PAD: [91, 109], 5 mm pads
+    f.put(k(2), 136);
+    let push = place(
+        k(3),
+        PlaceOnParam::Carrier(f.rail1),
+        at(118),
+        Some(PlaceMode::Push),
+    );
+    let preview = f.e.preview(&push).unwrap();
+    let base = preview.base_rev();
+    let mut pad = copies()
+        .into_iter()
+        .find(|c| c.id == copy_id(ITEM_PAD))
+        .expect("the pad copy");
+    pad.version = "1.1.0".into();
+    pad.item.mech = Some(mech(18, Some((9, 9))));
+    let mut v = serde_json::to_value(LibDocument::Part(pad)).expect("a library document");
+    let hash = ew_commands::commands::library_copy_hash(
+        &LibDocument::from_value(v.clone()).expect("a library document"),
+    )
+    .expect("a known kind");
+    let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
+    v["sha256"] = serde_json::json!(format!("sha256:{hex}"));
+    let update = ew_commands::AnyCommand {
+        name: "library.update".into(),
+        params: serde_json::json!({ "copies": [v] }),
+    };
+    let update = f.e.preview(&update).expect("library.update previews");
+    f.e.commit(update).expect("library.update");
+    assert!(
+        !preview.read_set().unchanged_since(f.e.model(), base),
+        "the push read the neighbour's part copy"
+    );
+}
+
 /// SN-7: without `mode` the JSON form is unchanged (no `mode` member); with it, `mode` round-trips.
 #[test]
 fn mode_is_an_optional_member() {
