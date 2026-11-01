@@ -15,7 +15,8 @@ get the code, not the orchestrator's conclusions.
 
 1. **The ledger first.** Read it: it holds the earlier parts' findings and their status. For each finding marked
    fixed, check that it is closed by a test that fails without the fix. Mark each one closed or reopened.
-2. **Then review the range,** against these sources, in this order of weight:
+2. **Orient** with `cargo xtask map --crates <the range's crates>` in your own worktree.
+3. **Then review the range,** against these sources, in this order of weight:
    - the ADRs (`docs/adr/`);
    - the specs (`docs/plan/specs/`);
    - the design documents and the requirements.
@@ -28,8 +29,13 @@ get the code, not the orchestrator's conclusions.
    5. CI and the supply chain;
    6. repository hygiene: no personal names, addresses, project or drawing numbers beyond Golden A's published ones,
       local paths or agent IDs.
-3. **Check every lane's self-check claims** against the diff.
-4. **Append your findings to the ledger.** It is the only file you write.
+4. **Generated files are outputs, not hand edits:** `records.md`, `SUMMARY.md`, doc 04's crate table, `ew-hack` and
+   the fuzz table. Review their generators, and check the outputs with `cargo xtask settle --check --base <from>` and
+   `cargo xtask records --check`.
+5. **Run** `cargo xtask check-trailers --range <from>..<to>`, and `cargo xtask api-guard --base <from>` when
+   `bin/ew/api/cli.json` or `crates/ew-sqlview/api/api_v1.json` changes in the range.
+6. **Check every lane's self-check claims** against the diff.
+7. **Append your findings to the ledger.** It is the only file you write, besides your scratch files.
 
 ## How you work
 
@@ -40,6 +46,7 @@ get the code, not the orchestrator's conclusions.
 - When your brief says all three builder slots are busy, read and do not build.
 - Delete your worktree's `target` before you hand back. On "No space left on device", stop and report.
 - Do not edit or commit anything in the repository.
+- Scratch files go in your own subfolder of the scratchpad (named after your part). Delete only files you created.
 
 ## Report
 

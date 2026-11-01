@@ -42,11 +42,13 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
    not judgment.
 4. **Do not underestimate Haiku 5.5:** lookups, mechanical edits, fixtures, regeneration, well-specified small code.
    Opus is for open design, core crates with subtle invariants, hard debugging and the review.
-5. **Briefs** (amended 2026-11-01): at most 800 words, written from the brief template in the orchestrator's private
-   notes.
+5. **Briefs** (amended 2026-11-01; the facts, 2026-11-01, cycle-43 retro): at most 800 words, written from the brief
+   template in the orchestrator's private notes.
    - **Sections:**
      - the goal and the base tip;
      - the spec anchors (rulings go into the spec first; a brief never carries them);
+     - the facts: gathered by a `scout` at the lane's base hash, never copied from an older inventory. Each item the
+       brief names has its `path:line` there, and each changed item lists every reader, found by grep (rule 17);
      - the lane's package set and its expected files;
      - the golden expectations;
      - the stops;
@@ -55,6 +57,7 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
    - **Every expectation cites its source.** Each expected behaviour, count or text cites a spec line, a doc line or
      the fixture query that produced it (cycle-42 retro). An expectation with no source is left to the lane, with a
      stop.
+   - **A ruling about existing behaviour quotes the old code line it rests on,** at the base (cycle-43 retro).
    - **Banned:** restating the spec, describing the code as it is, registry lists, copies of standing rules.
    - **Precision matches the model.** The lower the class, the more exact the brief. A Haiku brief gives exact
      signatures, error texts, tests and commands, and leaves nothing open.
@@ -79,8 +82,9 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
      - `cargo xtask affected`'s selection (every package the changes reach, bin crates included), with and without
        `--all-features`;
      - every policy check;
-     - the checks lanes no longer run (2026-11-01): the blind selftests and `check-brief` when settle's trigger fires,
-       and the MSRV check when `Cargo.lock` or a `rust-version` changes.
+     - the checks lanes no longer run (2026-11-01), which `settle --merge` runs by their triggers: the blind
+       selftests and `check-brief` when settle's trigger fires, and the MSRV check when `Cargo.lock`, a
+       `rust-version`, or a permissive crate's source or manifest changes (amended 2026-11-01, ID-1072).
 
      A checkpoint's last verify runs the full suite.
    - Then, beside the next wave: the wave's review part, and a window check only if the wave changed what users see.
@@ -151,13 +155,18 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
       - merges onto the working branch;
       - runs `cargo xtask settle --merge` once on the merged tip and commits its rewrites (the main checkout sets
         `git config merge.regen.driver true` for its `merge=regen` files);
-      - verifies, `settle --check` included, before calling the tip green.
+      - verifies, `settle --check` included, before calling the tip green;
+      - copies the verify script for each run and never edits a running one, and stages named paths in an
+        integration commit, never `git add -A` (2026-11-01, cycle-43 retro).
     - Subagent check results are claims until re-run.
     - Lanes keep their `target` for a fix round; the orchestrator deletes it when the part is accepted (2026-11-01).
-17. **Feasibility read before dispatch** (amended 2026-11-01).
-    - **Only for briefs that touch:** the file format or a schema, a core crate, golden data, a check rule's meaning,
-      or a bug that must reproduce. Every other brief goes out after the orchestrator's own check of its cited
-      sources.
+17. **Facts and the feasibility read before dispatch** (amended 2026-11-01; the facts, 2026-11-01, cycle-43 retro).
+    - **The facts, for every brief:** a `scout` (Haiku) gathers them at the lane's base hash with `git show` and
+      `git grep`: the `path:line` of each named item, every reader of a changed item, and where a new item goes by its
+      `// map:` marker. The brief's facts section is written from that report.
+    - **The feasibility read, only for briefs that touch:** the file format or a schema, a core crate, golden data, a
+      check rule's meaning, or a bug that must reproduce. Every other brief goes out after the orchestrator's own
+      check of its cited sources.
     - **The read:** a `scout` (Haiku `high`) checks with a checklist: the named items exist, a claimed bug reproduces,
       the files and the format touched, the consumers of a changed behaviour, an item's version already on `main`,
       each expectation against its cited source.
@@ -184,10 +193,12 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
 21. **Downloads** (2026-10-22): fetch crates, tools and images without asking. Keep pins and digests,
     `cargo deny`/`cargo vet`, the licence boundary and the permissive MSRV. The private corpus never enters the
     repository.
-22. **The design pass** runs once per cycle, in the end phase, as one `lane` (amended 2026-11-01).
-    - It writes decision-log rows, FT rows, as-built spec text, doc 01's cycle section and the next candidates.
-    - Once the records tooling exists (commit trailers read by `cargo xtask records`), the pass writes only what the
-      tooling cannot produce.
+22. **The design pass** runs once per cycle, in the end phase, as one `lane` (amended 2026-11-01; ID-1072).
+    - It writes only what `cargo xtask records` cannot produce: decision lines in `docs/plan/decisions.md`, FT lines
+      in `docs/plan/follow-ups.md`, the as-built spec text, doc 01's cycle section and the next candidates, with
+      trailers.
+    - It never edits `records.md` or doc 01 §3.8's status block: `settle --merge` regenerates them from those lines
+      and the commit trailers.
     - Report outcomes faithfully, including what was skipped or not proven (2026-10-27).
 23. **A retro after every cycle,** checkpoint or delivery (2026-10-29, -31), by the orchestrator without agents.
     - **Measure** the cycle with the metrics script in the private notes (2026-11-01):
@@ -209,7 +220,7 @@ The main session orchestrates. It plans each cycle, briefs Claude subagents, int
     - It gets two things:
       - the previous part's hand-off note, written by that lane as its last act (at most 1,000 words, kept in the
         orchestrator's notes);
-      - the code map (`cargo xtask map --crates <set>`, once it exists).
+      - the code map (`cargo xtask map --crates <set>`; amended 2026-11-01, ID-1072).
     - An agent is resumed only for fix rounds, rulings and questions, while its context is under about 250k tokens.
       Part writers ended near the 367k compaction point, so a resumed writer would compact at once.
     - Size lanes to finish under about 250k.

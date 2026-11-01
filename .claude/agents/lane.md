@@ -43,12 +43,17 @@ how every lane works.
 
 ## Hand-back checks (once, after the code is final)
 
-Run `cargo xtask lane-check --base <base> -p <A> -p <B>` with your package set, and quote its summary. After a
-failure, fix it and re-run only the failed step (`--only <step>`). When `fmt` reports `rewrote <files>`, commit them
-before you hand back.
+Run `cargo xtask lane-check --base <base> -p <A> -p <B>` with your package set **once, as your last test run**, and
+quote its summary.
+- After a failure, fix it and re-run only the failed step (`--only <step>`).
+- When `fmt` reports `rewrote <files>`, commit them before you hand back. After an amend that only formats, run
+  `--only fmt`, not the whole check.
+- A failed `settle` step is fixed with `cargo xtask settle --base <base>` (write mode). Commit its rewrites (`ew-hack`,
+  the fuzz table, the CLI schemas).
 
 It runs these steps, each only when the diff selects it, and `--plan` prints the selection and the commands:
-1. `fmt`: `cargo fmt` over the changed crates and your set. This formats the code; it is not a check.
+1. `fmt`: `cargo fmt` over the changed crates and your set, then rustfmt per file over the diff's `.rs` files, which
+   reaches the `automod` test modules that `cargo fmt` does not see. This formats the code; it is not a check.
 2. `clippy`: the changed crates and your set, `--all-targets --all-features -- -D warnings`.
 3. `doc`: `cargo doc --no-deps` over the changed crates and your set, with `RUSTDOCFLAGS="-D warnings"`.
 4. `nextest`: one run over the changed crates, their direct dependants, your set and these additions:
@@ -68,6 +73,11 @@ A failed step's log is printed whole and kept in `target/lane-check/<step>.log`.
 `cargo xtask lane-check --base <base> -p <A> -p <B> --warm` builds the nextest step's test binaries in the
 background.
 
+**Beside lane-check:**
+- A change to `bin/ew/api/cli.json` or `crates/ew-sqlview/api/api_v1.json` runs `cargo xtask api-guard --base
+  <base>`. A breaking change is a stop.
+- A new crate gets its row in `ci/dep-rules.toml`; doc 04's crate table and `ew-hack` follow it through `settle`.
+
 **Not in lanes.** The orchestrator runs these at the merge point:
 - the workspace suite, `cargo xtask ci` and default-features runs;
 - the blind selftests and `check-brief`;
@@ -78,7 +88,7 @@ newer standard-library APIs.
 
 No performance tests and no timing assertions (owner's rule).
 
-## Shared lists (kept by hand until the redesign removes them)
+## Shared lists kept by hand
 
 `cargo xtask map` prints them in its section "Shared lists still kept by hand", each with where a new item goes. Each
 comes from a marker: one comment line above the registry, `// map: <name>: a new <X> goes <where and how>.` (`#` in
@@ -163,3 +173,4 @@ At most 400 words, through SubagentHandback, in this order:
 - Keep your `target`. A fix round reuses it, and the orchestrator deletes it when your part is accepted.
 - On "No space left on device", stop and report.
 - Delete nothing outside your worktree.
+- Scratch files go in your own subfolder of the scratchpad (named after your lane). Delete only files you created.
