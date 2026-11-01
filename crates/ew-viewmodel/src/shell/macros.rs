@@ -31,7 +31,7 @@ use super::creation::{FormDialog, FormField, FormRow, FormTable};
 use super::navigation::bump;
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::canvas::PageId;
-use crate::navigators::NavKind;
+use crate::navigators::{NavKind, TableRef};
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, MacroField, MacroInsert, PendingEdit};
 use crate::strings;
 use crate::tools::{MacroTool, PreviewState};
@@ -65,9 +65,9 @@ pub(crate) struct MacroState {
     detail: Option<(String, Option<Arc<MacroDetail>>, Option<Thumbnail>)>,
     /// The variables Make variable remembered.
     variables: Vec<MacroVariable>,
-    /// The Libraries navigator's cursor row key, the table it was read from (its address: a new table after a change
-    /// reads it again) and the copy's detail (`None`: no copy row) (FT-755).
-    copy_detail: Option<(String, usize, Option<Arc<LibraryCopyDetail>>)>,
+    /// The Libraries navigator's cursor row key, the table it was read from (its identity, never a bare address: a
+    /// new table after a change reads it again) and the copy's detail (`None`: no copy row) (FT-755).
+    copy_detail: Option<(String, Option<TableRef>, Option<Arc<LibraryCopyDetail>>)>,
 }
 
 /// The word of a variable type a property row's field takes (`Session::save_macro` checks the binding).
@@ -296,7 +296,7 @@ impl ShellModel {
         let table = self
             .generic(NavKind::Libraries)
             .and_then(|n| n.table())
-            .map_or(0, |t| Arc::as_ptr(t) as usize);
+            .map(TableRef::of);
         if self
             .macros
             .copy_detail

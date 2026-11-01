@@ -31,9 +31,31 @@ pub mod table;
 
 use std::cell::RefCell;
 use std::collections::BTreeSet;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 pub use ew_api::output::{Drawable, NaturalKey, NavKind, NavNode, NavRole, NavTable};
+
+/// A table's identity in a cache key or stamp: a weak reference, compared by allocation. The weak reference keeps the
+/// allocation, so no later table takes its address while the key is held; an address alone is reused once the table
+/// is dropped (a library write drops the Macros table and fetches a new one of the same revision, cycle 42's CI
+/// failure), and a stale key then matched the new table.
+#[derive(Clone, Debug)]
+pub(crate) struct TableRef(Weak<NavTable>);
+
+impl TableRef {
+    /// The identity of `table`.
+    pub(crate) fn of(table: &Arc<NavTable>) -> TableRef {
+        TableRef(Arc::downgrade(table))
+    }
+}
+
+impl PartialEq for TableRef {
+    fn eq(&self, other: &TableRef) -> bool {
+        Weak::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl Eq for TableRef {}
 
 /// The facets of the closed list that take a value (§6.1 item 5).
 pub const FACETS: [&str; 7] = ["page", "potential", "state", "kind", "part", "strip", "config"];
@@ -228,7 +250,7 @@ pub struct VisRow {
 /// The inputs the visible rows depend on.
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct VisKey {
-    table: usize,
+    table: TableRef,
     rev: u64,
     view: NavView,
     sort: SortBy,
@@ -257,7 +279,7 @@ impl std::fmt::Debug for VisCache {
 /// What a navigator's rows on show depend on: a widget rebuilds its rows only when it changed.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct NavStamp {
-    table: Option<(usize, u64)>,
+    table: Option<(TableRef, u64)>,
     view: NavView,
     sort: SortBy,
     descending: bool,
@@ -346,7 +368,7 @@ impl Navigator {
     /// What the rows on show depend on.
     pub fn stamp(&self) -> NavStamp {
         NavStamp {
-            table: self.table.as_ref().map(|t| (Arc::as_ptr(t) as usize, t.rev)),
+            table: self.table.as_ref().map(|t| (TableRef::of(t), t.rev)),
             view: self.view,
             sort: self.sort.clone(),
             descending: self.descending,
@@ -369,7 +391,7 @@ impl Navigator {
             return Arc::new(Vec::new());
         };
         let key = VisKey {
-            table: Arc::as_ptr(table) as usize,
+            table: TableRef::of(table),
             rev: table.rev,
             view: self.view,
             sort: self.sort.clone(),
@@ -748,6 +770,44 @@ mod tests {
         );
         assert_eq!(labels(&t, &rows), ["=P01", "-201U3", "coil"]);
         assert_eq!(rows[1].expanded, Some(true));
+    }
+
+    /// Cycle 42's CI failure: a table dropped and replaced by a new one of the same revision (a library write drops
+    /// the Macros table) must not hit the cache of the old table's visible rows or keep the old stamp, even when the
+    /// allocator hands the new table the old one's address (glibc does at once; the loop gives others the chance).
+    #[test]
+    fn a_new_table_of_the_same_revision_rebuilds_the_visible_rows() {
+        let mut nav = Navigator::new(NavKind::Devices);
+        nav.table = Some(Arc::new(fixture()));
+        let all = ["=P01", "-102K2", "-102K10", "-201U3", "coil"];
+        assert_eq!(labels(&fixture(), &nav.visible()), all);
+        for i in 0..64 {
+            let stamp = nav.stamp();
+            let before = nav.rebuilds();
+            // Even rounds add the device -9K1 under =P01, odd rounds take it away again.
+            let mut t = fixture();
+            let mut expected: Vec<&str> = all.to_vec();
+            if i % 2 == 0 {
+                t.nodes.push(node(
+                    "function:=P01/device:n",
+                    Some(0),
+                    NavRole::Device,
+                    "-9K1",
+                    &[],
+                ));
+                expected.insert(1, "-9K1");
+            }
+            nav.table = None;
+            nav.table = Some(Arc::new(t));
+            let table = Arc::clone(nav.table().expect("the table"));
+            assert_eq!(
+                labels(&table, &nav.visible()),
+                expected,
+                "round {i}: the new table's rows, not the old one's"
+            );
+            assert_eq!(nav.rebuilds(), before + 1, "round {i}: one rebuild");
+            assert_ne!(nav.stamp(), stamp, "round {i}: a new table is a new stamp");
+        }
     }
 
     /// A table row with cells, its tokens the label's and the cells' (as the provider builds them).
