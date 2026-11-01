@@ -37,6 +37,7 @@ use std::path::PathBuf;
 use egui::{Event, Key, Modifiers, PointerButton, Pos2, Rect, Vec2, ViewportId};
 use ew_render_cpu::{RgbaImage, encode_png};
 use ew_render2d::gpu::HeadlessDevice;
+use ew_viewmodel::key;
 use ew_viewmodel::script::{self, ScriptError, ScriptParser};
 use ew_viewmodel::shell::{Mode, Prompt, ShellConfig, ShellModel};
 use ew_viewmodel::strings;
@@ -1414,7 +1415,7 @@ pub fn run_in_folder(
     }
     let mut code = code;
     if code == 0 && !driver.closed() && driver.shell_mut().is_dirty() {
-        let _ = writeln!(err, "error: {}", strings::text("error-unsaved-at-end"));
+        let _ = writeln!(err, "error: {}", strings::text(key!("error-unsaved-at-end")));
         code = 1;
     }
     if !unseen.is_empty() && code == 0 {

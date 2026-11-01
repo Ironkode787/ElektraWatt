@@ -18,6 +18,7 @@ use std::collections::BTreeSet;
 use ew_api::output::PageRow;
 
 use crate::canvas::PageId;
+use crate::key;
 use crate::strings;
 
 /// The three views of the navigator.
@@ -260,10 +261,13 @@ impl PageNavigator {
         };
         let section = |parent: &str, row: &PageRow| -> (String, String) {
             let (key, label) = match &row.section {
-                None => ("s:front".to_owned(), strings::text("nav-front-matter").to_owned()),
+                None => (
+                    "s:front".to_owned(),
+                    strings::text(key!("nav-front-matter")).to_owned(),
+                ),
                 Some((n, title)) => (
                     format!("s:{n}"),
-                    strings::format("nav-section", &[&n.to_string(), title]),
+                    strings::format(key!("nav-section"), &[&n.to_string(), title]),
                 ),
             };
             let key = if parent.is_empty() {
@@ -273,7 +277,7 @@ impl PageNavigator {
             };
             (key, label)
         };
-        let none = || strings::text("nav-none").to_owned();
+        let none = || strings::text(key!("nav-none")).to_owned();
         let query = crate::navigators::Query::parse(&self.filter);
         for i in self.sorted(rows) {
             let row = &rows[i];
@@ -378,20 +382,22 @@ impl PageNavigator {
     /// level, the position in its set, the set size and the expanded state are AccessKit properties, not words.
     pub fn accessible_name(row: &NavRow, rows: &[PageRow], current: Option<PageId>) -> String {
         match &row.kind {
-            RowKind::Node { label, aspect } => strings::format("nav-node-name", &[label, aspect.word()]),
+            RowKind::Node { label, aspect } => {
+                strings::format(key!("nav-node-name"), &[label, aspect.word()])
+            }
             RowKind::Page(i) => {
                 let r = &rows[*i];
                 let mut badges = String::new();
                 if r.generated {
-                    badges.push_str(&format!(", {}", strings::text("badge-generated")));
+                    badges.push_str(&format!(", {}", strings::text(key!("badge-generated"))));
                 }
                 if r.qet_grid {
-                    badges.push_str(&format!(", {}", strings::text("badge-qet-grid")));
+                    badges.push_str(&format!(", {}", strings::text(key!("badge-qet-grid"))));
                 }
                 if current == Some(PageId::of(r)) {
-                    badges.push_str(&format!(", {}", strings::text("badge-current")));
+                    badges.push_str(&format!(", {}", strings::text(key!("badge-current"))));
                 }
-                strings::format("nav-page-name", &[&r.folio, &r.title, &badges])
+                strings::format(key!("nav-page-name"), &[&r.folio, &r.title, &badges])
             }
         }
     }

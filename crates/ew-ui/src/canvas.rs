@@ -68,6 +68,7 @@ use ew_viewmodel::canvas::{
 use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect as SheetRect;
 use ew_viewmodel::ew_api::output::ew_dl::{Color, FontKey, ew_units::Nm};
 use ew_viewmodel::ew_api::output::font_bytes;
+use ew_viewmodel::key;
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::tools::OverlayItem;
 use ew_viewmodel::{highlight, status, strings};
@@ -185,7 +186,7 @@ fn cp_pitch(c: &CanvasModel) -> Option<f64> {
 /// The text of the renderer's error, or of a missing canvas.
 pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu::RgbaImage, u32), String> {
     let Some(canvas) = shell.canvas_of(group) else {
-        return Err(strings::text("reason-no-page").to_owned());
+        return Err(strings::text(key!("reason-no-page")).to_owned());
     };
     let selected = shell.selected_rects(group);
     let tool = crate::tool_view::marks_of(shell, group);
@@ -435,7 +436,7 @@ fn paint_highlights(
 /// The text of the renderer's error, or of a missing preview.
 pub fn preview_snapshot_image(shell: &ShellModel) -> Result<(ew_render_cpu::RgbaImage, u32), String> {
     let Some(lp) = shell.link_preview() else {
-        return Err(strings::text("reason-no-preview").to_owned());
+        return Err(strings::text(key!("reason-no-preview")).to_owned());
     };
     render_view(
         &lp.canvas,
@@ -507,7 +508,7 @@ fn render_view(
             };
             let (part, _) =
                 ew_render_cpu::render_region(&page.list, Some(&bounds), sheet, &options, font_bytes(), None)
-                    .map_err(|e| strings::format("error-render", &[&e.to_string()]))?;
+                    .map_err(|e| strings::format(key!("error-render"), &[&e.to_string()]))?;
             for row in 0..ch as usize {
                 let from = row * cw as usize * 4;
                 let to = ((y0 as usize + row) * w as usize + x0 as usize) * 4;
@@ -967,7 +968,7 @@ impl CanvasHost {
             // FT-902: a link that leads somewhere looks like one (its outline is the hover, `hover_rect`): the pointing
             // hand and "Go to <its cell or folio>"; a link without a target stays plain.
             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
-            cp_tooltip(&response, strings::format("tip-link", &[&label]));
+            cp_tooltip(&response, strings::format(key!("tip-link"), &[&label]));
         }
         if shell.area().map(|a| a.focused) == Some(group) {
             self.dwell(ui, canvas, group, events);
@@ -1159,9 +1160,10 @@ impl CanvasHost {
         rect: Rect,
     ) {
         let node = status::canvas_node(shell, group);
-        let name = node
-            .as_ref()
-            .map_or_else(|| strings::text("pane-page-view").to_owned(), |n| n.name.clone());
+        let name = node.as_ref().map_or_else(
+            || strings::text(key!("pane-page-view")).to_owned(),
+            |n| n.name.clone(),
+        );
         response.widget_info(move || egui::WidgetInfo::labeled(egui::Role::Canvas, true, &name));
         let Some(node) = node else { return };
         let description = node.description.clone();
@@ -1178,7 +1180,7 @@ impl CanvasHost {
         );
         let id = response.id.with("cursor");
         let child = child_ui.interact(at, id, Sense::hover());
-        let label = strings::text("canvas-cursor-name").to_owned();
+        let label = strings::text(key!("canvas-cursor-name")).to_owned();
         child.widget_info(move || egui::WidgetInfo::labeled(egui::Role::Status, true, &label));
         let live = node.live;
         ui.ctx().accesskit_node_builder(id, |n| {
@@ -1317,9 +1319,9 @@ impl CanvasHost {
     /// A page without a canvas: its message, or the waiting text.
     fn no_canvas(&mut self, ui: &mut Ui, rect: Rect, shell: &ShellModel) {
         let text = match (shell.canvas_error(), shell.current_folio()) {
-            (Some(message), _) => strings::format("message-no-canvas", &[message]),
-            (None, Some(folio)) => strings::format("page-rendering", &[folio]),
-            (None, None) => strings::text("page-no-pages").to_owned(),
+            (Some(message), _) => strings::format(key!("message-no-canvas"), &[message]),
+            (None, Some(folio)) => strings::format(key!("page-rendering"), &[folio]),
+            (None, None) => strings::text(key!("page-no-pages")).to_owned(),
         };
         let t = crate::theme::current(ui.ctx());
         ui.painter().text(
@@ -1753,8 +1755,8 @@ impl CanvasHost {
         let node = response.id.with("link-preview");
         let at = Rect::from_min_size(popup.min, Vec2::splat(1.0));
         let name = match &lp.target.cell {
-            Some(cell) => strings::format("link-preview-node", &[&lp.target.folio, cell]),
-            None => strings::format("link-preview-node-page", &[&lp.target.folio]),
+            Some(cell) => strings::format(key!("link-preview-node"), &[&lp.target.folio, cell]),
+            None => strings::format(key!("link-preview-node-page"), &[&lp.target.folio]),
         };
         ui.interact(at, node, Sense::hover())
             .widget_info(move || egui::WidgetInfo::labeled(egui::Role::Image, true, &name));
@@ -2142,18 +2144,21 @@ impl StatValues {
     fn text(&self) -> String {
         let ms = |v: f64| format!("{v:.2}");
         let mut lines = vec![
-            strings::format("canvas-stats-fps", &[&format!("{:.0}", self.fps)]),
-            strings::format("canvas-stats-frame", &[&ms(self.frame)]),
+            strings::format(key!("canvas-stats-fps"), &[&format!("{:.0}", self.fps)]),
+            strings::format(key!("canvas-stats-frame"), &[&ms(self.frame)]),
         ];
         let phases = [Phase::Input, Phase::Scene, Phase::Render, Phase::Paint];
         for (phase, p99) in phases.iter().zip(self.phases) {
-            lines.push(strings::format("canvas-stats-phase", &[phase.name(), &ms(p99)]));
+            lines.push(strings::format(
+                key!("canvas-stats-phase"),
+                &[phase.name(), &ms(p99)],
+            ));
         }
         lines.push(strings::format(
-            "canvas-stats-tiles",
+            key!("canvas-stats-tiles"),
             &[&self.pending.to_string()],
         ));
-        lines.push(strings::format("canvas-stats-backend", &[&self.backend]));
+        lines.push(strings::format(key!("canvas-stats-backend"), &[&self.backend]));
         lines.join("\n")
     }
 
@@ -2193,7 +2198,7 @@ fn cp_tooltip(response: &egui::Response, tip: String) {
 
 /// The zoom text of a canvas as its accessible description reads it (tests).
 pub fn zoom_text(c: &CanvasModel) -> String {
-    strings::format("status-zoom", &[&zoom_percent_text(c.zoom())])
+    strings::format(key!("status-zoom"), &[&zoom_percent_text(c.zoom())])
 }
 
 #[cfg(test)]

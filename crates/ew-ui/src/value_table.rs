@@ -14,6 +14,7 @@
 //! set `<i>`"; the remove button "Remove value set `<name>`".
 
 use egui::{RichText, TextEdit, Ui};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::FormTable;
 use ew_viewmodel::strings;
 
@@ -86,13 +87,13 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
     let t = components::tokens(ui);
     ui.add_space(t.space_4);
     ui.label(
-        RichText::new(strings::text("form-value-sets"))
+        RichText::new(strings::text(key!("form-value-sets")))
             .font(theme::font(&t.type_body_strong))
             .color(t.text_primary.color32()),
     );
     if table.columns.is_empty() {
         ui.label(
-            RichText::new(strings::text("form-value-sets-none"))
+            RichText::new(strings::text(key!("form-value-sets-none")))
                 .font(theme::font(&t.type_small))
                 .color(t.text_secondary.color32()),
         );
@@ -117,7 +118,7 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
             let labels = std::iter::once((strings::text(table.key_label).to_owned(), key_width)).chain(
                 table.columns.iter().map(|(name, ty)| {
                     (
-                        strings::format("macro-value-label", &[name, &strings::var_type_word(ty)]),
+                        strings::format(key!("macro-value-label"), &[name, &strings::var_type_word(ty)]),
                         width,
                     )
                 }),
@@ -148,20 +149,22 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                     |ui| {
                         ui.set_min_size(size);
                         let mut key = row.key.clone();
-                        let name =
-                            strings::format("form-value-cell", &[strings::text(table.key_label), &index]);
+                        let name = strings::format(
+                            key!("form-value-cell"),
+                            &[strings::text(table.key_label), &index],
+                        );
                         if cell(ui, &t, key_width, &mut key, &name, "") {
                             events.push(Event::FormTableCell(i, None, key));
                         }
                         for (c, ((col, ty), value)) in table.columns.iter().zip(&row.cells).enumerate() {
                             let mut text = value.clone();
-                            let name = strings::format("form-value-cell", &[col, &index]);
+                            let name = strings::format(key!("form-value-cell"), &[col, &index]);
                             if cell(ui, &t, width, &mut text, &name, &strings::var_type_word(ty)) {
                                 events.push(Event::FormTableCell(i, Some(c), text));
                             }
                         }
                         ui.add_space(t.space_2);
-                        let remove = strings::format("form-value-set-remove", &[&row.key]);
+                        let remove = strings::format(key!("form-value-set-remove"), &[&row.key]);
                         if components::icon_button(ui, IconId::x, &remove).clicked() {
                             events.push(Event::FormTableRemove(i));
                         }
@@ -188,7 +191,7 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
         ui,
         components::Kind::Subtle,
         Some(IconId::plus),
-        strings::text("form-value-set-add"),
+        strings::text(key!("form-value-set-add")),
         true,
         0.0,
     )

@@ -20,6 +20,7 @@
 //! so.
 
 use egui::{Align, Align2, Context, Layout, Rect, RichText, Ui, Vec2};
+use ew_viewmodel::key;
 use ew_viewmodel::notifications::{NoteTone, Notification};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -155,7 +156,7 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
                     }
                     action_link(ui, t, shell, n, events);
                 });
-                if components::icon_button(ui, IconId::x, strings::text("toast-dismiss")).clicked() {
+                if components::icon_button(ui, IconId::x, strings::text(key!("toast-dismiss"))).clicked() {
                     events.push(Event::DismissToast(n.serial));
                 }
             });
@@ -166,7 +167,9 @@ fn toast(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: 
         ui.scope_id().with(("toast", n.serial)),
         egui::Sense::hover(),
     );
-    node.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text("toast-name")));
+    node.widget_info(|| {
+        egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text(key!("toast-name")))
+    });
 }
 
 /// Where the toasts stand: the canvas's top right under its tabs, else the window's under the command bar.
@@ -238,7 +241,7 @@ pub(crate) fn show_log(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event
                     ui.horizontal(|ui| {
                         ui.add_space(t.space_2);
                         ui.label(
-                            RichText::new(strings::text("notifications-title"))
+                            RichText::new(strings::text(key!("notifications-title")))
                                 .font(theme::font(&t.type_body_strong))
                                 .color(t.text_primary.color32()),
                         );
@@ -247,8 +250,8 @@ pub(crate) fn show_log(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event
                         components::empty_state(
                             ui,
                             IconId::bell,
-                            strings::text("notifications-empty"),
-                            strings::text("empty-notifications-text"),
+                            strings::text(key!("notifications-empty")),
+                            strings::text(key!("empty-notifications-text")),
                             None,
                         );
                     }
@@ -272,7 +275,7 @@ pub(crate) fn show_log(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event
                         if components::button(
                             ui,
                             components::Kind::Subtle,
-                            strings::text("dialog-close"),
+                            strings::text(key!("dialog-close")),
                             true,
                             0.0,
                         )

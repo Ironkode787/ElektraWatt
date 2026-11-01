@@ -43,7 +43,9 @@ use super::{
     Anchor, Button, CanvasEvent, Ghost, Mods, Overlay, OverlayItem, PreviewInfo, Style, Token, Tool, ToolCx,
     ToolKey, ToolOutput,
 };
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 /// How near a rail or a snap target the pointer must come, in screen points (D4).
 pub const LAYOUT_SNAP_PT: f64 = 15.0;
@@ -976,7 +978,7 @@ fn resolve_at(
             let anchor = (u_min - lo.0, v_min - lo.1);
             let footprint = (u_min, v_min, u_min + bw, v_min + bh);
             let local_text =
-                rail_profile.map(|_| strings::format("layout-off-rail", &[&label, &mount_label]));
+                rail_profile.map(|_| strings::format(key!("layout-off-rail"), &[&label, &mount_label]));
             let mut params = match g.source {
                 Source::Device(d) => json!({ "device": d.to_string() }),
                 Source::Placement(p) => json!({ "placement": p.to_string() }),
@@ -1121,7 +1123,7 @@ impl Tool for LayoutPlaceTool {
         if cx.page.panel.is_none() {
             return match ev {
                 CanvasEvent::Press { .. } | CanvasEvent::Activate => {
-                    ToolOutput::Refused("reason-no-panel-page")
+                    ToolOutput::Refused(key!("reason-no-panel-page"))
                 }
                 _ => ToolOutput::None,
             };
@@ -1135,7 +1137,7 @@ impl Tool for LayoutPlaceTool {
                 mods,
             } => {
                 if self.device.is_none() {
-                    return ToolOutput::Refused("reason-no-unplaced-device");
+                    return ToolOutput::Refused(key!("reason-no-unplaced-device"));
                 }
                 self.track(*at, *mods, cx)
             }
@@ -1156,7 +1158,7 @@ impl Tool for LayoutPlaceTool {
                     return ToolOutput::None;
                 };
                 if !g.turn_key(*key) {
-                    return ToolOutput::Refused("reason-layout-turn");
+                    return ToolOutput::Refused(key!("reason-layout-turn"));
                 }
                 g.update(at, mods, cx);
                 track_output(g)
@@ -1172,10 +1174,10 @@ impl Tool for LayoutPlaceTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         match self.device {
-            Some(_) => "hint-layout-place",
-            None => "hint-layout-idle",
+            Some(_) => key!("hint-layout-place"),
+            None => key!("hint-layout-idle"),
         }
     }
 
@@ -1231,7 +1233,7 @@ impl LayoutPlaceTool {
         g.update(at, mods, cx);
         match g.commit() {
             Some(cmd) => ToolOutput::Commit(Box::new(cmd)),
-            None => ToolOutput::Refused("reason-layout-refused"),
+            None => ToolOutput::Refused(key!("reason-layout-refused")),
         }
     }
 }

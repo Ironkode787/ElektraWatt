@@ -59,7 +59,7 @@ fn open(shell: &mut ShellModel, dir: &Path) -> Outcome {
 
 fn refused(shell: &mut ShellModel, action: &str, params: Value) -> &'static str {
     match shell.dispatch(action, &params) {
-        Outcome::Refused { reason_key } => reason_key,
+        Outcome::Refused { reason_key } => reason_key.as_str(),
         other => panic!("{action} should be refused, got {other:?}"),
     }
 }

@@ -27,7 +27,9 @@ use ew_api::{AnyCommand, DynCommand};
 use serde_json::{Map, Value, json};
 
 use super::{Dialog, Mode, Outcome, ShellModel, failed};
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::PreviewState;
 
 /// The page types `page.new` creates: `PageType`'s snake_case spellings except `report`, whose pages are generated
@@ -79,7 +81,7 @@ fn strip_sign(aspect: &str, text: &str) -> Result<String, String> {
         Some(&(sign, of)) if of == aspect => &text[sign.len()..],
         Some(&(sign, of)) => {
             return Err(strings::format(
-                "error-wrong-sign",
+                key!("error-wrong-sign"),
                 &[text, sign, &of.replace('_', " "), &aspect.replace('_', " ")],
             ));
         }
@@ -87,7 +89,7 @@ fn strip_sign(aspect: &str, text: &str) -> Result<String, String> {
     };
     let code = code.trim();
     if let Some((second, _)) = SIGNS.iter().find(|(sign, _)| code.contains(sign)) {
-        return Err(strings::format("error-second-sign", &[text, second]));
+        return Err(strings::format(key!("error-second-sign"), &[text, second]));
     }
     Ok(code.to_owned())
 }
@@ -114,7 +116,7 @@ fn node_path(nodes: &[(String, String, Option<String>)], id: &str) -> Vec<String
 #[derive(Clone, Copy)]
 struct Field {
     name: &'static str,
-    label_key: &'static str,
+    label_key: Key<'static>,
     choices: &'static [&'static str],
     default: &'static str,
 }
@@ -122,11 +124,11 @@ struct Field {
 /// A creation action's form: its action, the title key and the fields in order.
 struct Spec {
     action: &'static str,
-    title_key: &'static str,
+    title_key: Key<'static>,
     fields: &'static [Field],
 }
 
-const fn field(name: &'static str, label_key: &'static str) -> Field {
+const fn field(name: &'static str, label_key: Key<'static>) -> Field {
     Field {
         name,
         label_key,
@@ -137,43 +139,43 @@ const fn field(name: &'static str, label_key: &'static str) -> Field {
 
 static PAGE_NEW: Spec = Spec {
     action: "page.new",
-    title_key: "new-page-title",
+    title_key: key!("new-page-title"),
     fields: &[
-        field("folio", "form-folio"),
+        field("folio", key!("form-folio")),
         Field {
             name: "type",
-            label_key: "form-page-type",
+            label_key: key!("form-page-type"),
             choices: PAGE_TYPES,
             default: "multi_line",
         },
-        field("title", "form-title"),
-        field("section", "form-section"),
+        field("title", key!("form-title")),
+        field("section", key!("form-section")),
     ],
 };
 
 static STRUCTURE_NEW: Spec = Spec {
     action: "structure.new",
-    title_key: "new-structure-title",
+    title_key: key!("new-structure-title"),
     fields: &[
         Field {
             name: "kind",
-            label_key: "form-kind",
+            label_key: key!("form-kind"),
             choices: STRUCTURE_KINDS,
             default: "location",
         },
-        field("designation", "form-designation"),
-        field("parent", "form-parent"),
+        field("designation", key!("form-designation")),
+        field("parent", key!("form-parent")),
     ],
 };
 
 static EXTERNAL_REF_NEW: Spec = Spec {
     action: "external_ref.new",
-    title_key: "new-external-title",
+    title_key: key!("new-external-title"),
     fields: &[
-        field("location", "form-location"),
-        field("device", "form-device"),
-        field("connection", "form-connection"),
-        field("project", "form-project"),
+        field("location", key!("form-location")),
+        field("device", key!("form-device")),
+        field("connection", key!("form-connection")),
+        field("project", key!("form-project")),
     ],
 };
 
@@ -183,7 +185,7 @@ pub struct FormField {
     /// The action parameter the field carries.
     pub name: &'static str,
     /// The key of the field's label.
-    pub label_key: &'static str,
+    pub label_key: Key<'static>,
     /// The values a choice field offers, in order; empty for a free-text field.
     pub choices: &'static [&'static str],
     /// The text of the field.
@@ -204,9 +206,9 @@ pub struct FormDialog {
     /// The action the dialog dispatches (`page.new`).
     pub action: &'static str,
     /// The key of the dialog's title.
-    pub title_key: &'static str,
+    pub title_key: Key<'static>,
     /// The key of the button Enter presses (`Create`; WP-S2.09 part 3's renumber dialogs: `Renumber`).
-    pub ok_key: &'static str,
+    pub ok_key: Key<'static>,
     /// The fields in order.
     pub fields: Vec<FormField>,
     /// What the last attempt was refused with, shown under the fields.
@@ -223,7 +225,7 @@ pub struct FormTable {
     /// The action parameter the table carries (`value_sets`).
     pub name: &'static str,
     /// The key of the first column's header (`Value set`).
-    pub key_label: &'static str,
+    pub key_label: Key<'static>,
     /// The columns after the first: the variable's name and its type's word (`number`), which types the cells.
     pub columns: Vec<(String, String)>,
     /// The rows in order.
@@ -266,7 +268,7 @@ impl Spec {
         FormDialog {
             action: self.action,
             title_key: self.title_key,
-            ok_key: "dialog-create",
+            ok_key: key!("dialog-create"),
             fields: self
                 .fields
                 .iter()
@@ -292,7 +294,7 @@ fn text_param(p: &Map<String, Value>, name: &str) -> Result<String, Outcome> {
         None | Some(Value::Null) => Ok(String::new()),
         Some(Value::String(s)) => Ok(s.trim().to_owned()),
         Some(Value::Number(n)) => Ok(n.to_string()),
-        Some(_) => Err(failed("error-bad-param", &[name])),
+        Some(_) => Err(failed(key!("error-bad-param"), &[name])),
     }
 }
 
@@ -324,7 +326,7 @@ fn section_of(shell: &ShellModel, number: u32) -> Option<String> {
 fn parse_folio(text: &str) -> Result<(u32, Option<String>), String> {
     let digits: String = text.chars().take_while(char::is_ascii_digit).collect();
     let Ok(number) = digits.parse::<u32>() else {
-        return Err(strings::format("error-folio-number", &[text]));
+        return Err(strings::format(key!("error-folio-number"), &[text]));
     };
     Ok((number, (text.len() > digits.len()).then(|| text.to_owned())))
 }
@@ -368,7 +370,7 @@ impl ShellModel {
             && let Some(table) = &mut form.table
         {
             let key = (table.rows.len() + 1..)
-                .map(|n| strings::format("form-value-set-new", &[&n.to_string()]))
+                .map(|n| strings::format(key!("form-value-set-new"), &[&n.to_string()]))
                 .find(|k| table.rows.iter().all(|r| r.key.trim() != k))
                 .unwrap_or_default();
             table.rows.push(FormRow {
@@ -423,9 +425,9 @@ impl ShellModel {
     /// fails.
     fn form_missing(&mut self, spec: &'static Spec, p: &Map<String, Value>, name: &str) -> Outcome {
         match self.mode {
-            Mode::Headless => failed("error-missing-param", &[name]),
+            Mode::Headless => failed(key!("error-missing-param"), &[name]),
             Mode::Gui if self.in_form(spec) => {
-                self.form_failed(spec, strings::format("error-missing-param", &[name]))
+                self.form_failed(spec, strings::format(key!("error-missing-param"), &[name]))
             }
             Mode::Gui => self.open_dialog(Dialog::Form(spec.dialog(p))),
         }
@@ -471,13 +473,13 @@ impl ShellModel {
         };
         let Some(base_rev) = self.revision() else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let submit = self.tool_submit();
         let Some(project) = &mut self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let result = project.session.preview_with(&cmd, submit);
@@ -506,7 +508,7 @@ impl ShellModel {
     /// their codes from the root (FT-439), because no navigator prints a node's alias yet.
     pub(super) fn structure_node(&self, aspect: &str, text: &str) -> Result<String, String> {
         let Some(project) = &self.project else {
-            return Err(strings::text("reason-no-project").to_owned());
+            return Err(strings::text(key!("reason-no-project")).to_owned());
         };
         let whole_uuid =
             crate::alias::find_uuid(text).is_some_and(|(at, u)| at == 0 && u.len() == text.len());
@@ -540,7 +542,7 @@ impl ShellModel {
             .collect();
         match hits.len() {
             0 => Err(strings::format(
-                "error-no-node",
+                key!("error-no-node"),
                 &[&aspect.replace('_', " "), text],
             )),
             1 => Ok(hits[0].0.clone()),
@@ -554,13 +556,13 @@ impl ShellModel {
                     .iter()
                     .map(
                         |(path, id)| match path.len().checked_sub(2).and_then(|i| path.get(i)) {
-                            Some(parent) => strings::format("node-candidate-under", &[id, parent]),
-                            None => strings::format("node-candidate-top", &[id]),
+                            Some(parent) => strings::format(key!("node-candidate-under"), &[id, parent]),
+                            None => strings::format(key!("node-candidate-top"), &[id]),
                         },
                     )
                     .collect();
                 Err(self.alias_text(&strings::format(
-                    "error-ambiguous-node",
+                    key!("error-ambiguous-node"),
                     &[&n.to_string(), text, &list.join(", ")],
                 )))
             }
@@ -610,7 +612,7 @@ impl ShellModel {
             if !PAGE_TYPES.contains(&ty.as_str()) {
                 return self.form_failed(
                     &PAGE_NEW,
-                    strings::format("error-page-type", &[&ty, &PAGE_TYPES.join(", ")]),
+                    strings::format(key!("error-page-type"), &[&ty, &PAGE_TYPES.join(", ")]),
                 );
             }
             params["kind"] = Value::String(ty);
@@ -621,7 +623,7 @@ impl ShellModel {
         if !section.is_empty() {
             let Some(project) = &self.project else {
                 return Outcome::Refused {
-                    reason_key: "reason-no-project",
+                    reason_key: key!("reason-no-project"),
                 };
             };
             match project.session.resolve_reference(&format!("section:{section}")) {
@@ -706,7 +708,10 @@ impl ShellModel {
         if !STRUCTURE_KINDS.contains(&kind.as_str()) {
             return self.form_failed(
                 &STRUCTURE_NEW,
-                strings::format("error-structure-kind", &[&kind, &STRUCTURE_KINDS.join(", ")]),
+                strings::format(
+                    key!("error-structure-kind"),
+                    &[&kind, &STRUCTURE_KINDS.join(", ")],
+                ),
             );
         }
         let designation = match strip_sign(&kind, &designation) {
@@ -724,7 +729,7 @@ impl ShellModel {
         let out = self.host_create("structure.create_node", params);
         if out == Outcome::Done {
             self.notify(
-                strings::format("toast-structure-new", &[&kind, &designation]),
+                strings::format(key!("toast-structure-new"), &[&kind, &designation]),
                 true,
             );
         }
@@ -766,7 +771,7 @@ impl ShellModel {
             } else {
                 format!("{device}:{connection}")
             };
-            self.notify(strings::format("toast-external-ref-new", &[&label]), true);
+            self.notify(strings::format(key!("toast-external-ref-new"), &[&label]), true);
         }
         self.form_done(&EXTERNAL_REF_NEW, out)
     }

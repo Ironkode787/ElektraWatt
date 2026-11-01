@@ -9,6 +9,7 @@
 //! Every test works on a writable temporary copy of Golden A.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::ew_api::output::{PageTables, TableConnection, TableCp, TableEnd};
@@ -993,7 +994,7 @@ fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
     // Headless: without a selection `junction.open` is refused with the reason naming what to select.
     assert_eq!(refused(&mut s, "junction.open", json!({})), "reason-one-junction");
     assert_eq!(
-        ew_viewmodel::strings::text("reason-one-junction"),
+        ew_viewmodel::strings::text(key!("reason-one-junction")),
         "Select exactly one junction"
     );
     let text = s.describe();

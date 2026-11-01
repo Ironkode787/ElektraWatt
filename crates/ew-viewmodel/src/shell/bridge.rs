@@ -35,7 +35,9 @@ use serde_json::{Value, json};
 
 use super::interruption::natural_cmp;
 use super::{Outcome, ShellModel};
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 /// A connection point: the function's ID text and the CP index.
 type CpKey = (String, u16);
@@ -80,8 +82,8 @@ impl ShellModel {
     ///
     /// `pub(crate)` because the action's enabled predicate in `actions.rs` calls it: the Draw menu evaluates it. Its
     /// cost is linear in the project's connections plus the selected terminals' keyed lookups.
-    pub(crate) fn bridge_command(&self) -> Result<AnyCommand, &'static str> {
-        let selection: &'static str = "reason-bridge-selection";
+    pub(crate) fn bridge_command(&self) -> Result<AnyCommand, Key<'static>> {
+        let selection = key!("reason-bridge-selection");
         // 1. The selection's terminals (D9): each item a representation with one function, a function or a device,
         // resolving to a terminal device's function; one terminal counts once.
         let project = self.project.as_ref().ok_or(selection)?;
@@ -116,20 +118,20 @@ impl ShellModel {
 
         // 2. Every terminal belongs to the same strip.
         if terminals.iter().any(|t| t.strip != terminals[0].strip) {
-            return Err("reason-bridge-strips");
+            return Err(key!("reason-bridge-strips"));
         }
 
         // 3. Each terminal's bridge end: the lowest CP of the first part use whose copy has a shaft-1 entry, else
         // the lowest side-1 CP of the function's definition.
         for (terminal, (device_id, def)) in terminals.iter_mut().zip(&devices) {
             let Some(device) = q.devices().get(*device_id) else {
-                return Err("reason-bridge-no-shaft");
+                return Err(key!("reason-bridge-no-shaft"));
             };
             let mut shaft = None;
             for use_ in &device.parts {
                 // A part use whose copy the project does not hold fails closed: the terminal has no usable shaft.
                 let Some(part) = q.parts().get(use_.part.copy) else {
-                    return Err("reason-bridge-no-shaft");
+                    return Err(key!("reason-bridge-no-shaft"));
                 };
                 let lowest = part
                     .item
@@ -156,7 +158,7 @@ impl ShellModel {
                     .map(|cp| cp.idx)
                     .min()
             });
-            terminal.end = end.ok_or("reason-bridge-no-shaft")?;
+            terminal.end = end.ok_or(key!("reason-bridge-no-shaft"))?;
         }
 
         let bridges = self.project_bridges();
@@ -179,7 +181,7 @@ impl ShellModel {
             .filter(|(a, b)| !bridges.iter().any(|bridge| bridge.joins(&a.0, &b.0)))
             .collect();
         if pairs.is_empty() {
-            return Err("reason-bridge-exists");
+            return Err(key!("reason-bridge-exists"));
         }
 
         // 5. The group: the smallest group of the strip's bridges that ends at one of the chain's ends, else the
@@ -247,9 +249,9 @@ impl ShellModel {
                 if matches!(outcome, Outcome::Done) {
                     let bridges = connections.len();
                     let key = if bridges == 1 {
-                        "toast-bridged-one"
+                        key!("toast-bridged-one")
                     } else {
-                        "toast-bridged"
+                        key!("toast-bridged")
                     };
                     let text = strings::format(key, &[&bridges.to_string(), &terminals.len().to_string()]);
                     self.notify(text, true);
@@ -301,14 +303,14 @@ impl ShellModel {
     /// `strip.unbridge` (Remove bridge, D11): the bridge connections with both ends on the selected terminals, in one
     /// `edit.delete`; refused when none joins them (`reason-unbridge-none`) or when the deletion would leave a group in
     /// two pieces (`reason-unbridge-split`).
-    pub(crate) fn unbridge_command(&self) -> Result<AnyCommand, &'static str> {
-        let terminals = self.selected_terminals().ok_or("reason-bridge-selection")?;
+    pub(crate) fn unbridge_command(&self) -> Result<AnyCommand, Key<'static>> {
+        let terminals = self.selected_terminals().ok_or(key!("reason-bridge-selection"))?;
         let functions: Vec<String> = terminals.iter().map(|(f, _)| f.to_string()).collect();
         let bridges = self.project_bridges();
         let on = |b: &Bridge| matches!(b.ends(), (Some(a), Some(z)) if functions.iter().any(|f| f == a) && functions.iter().any(|f| f == z));
         let removed: Vec<&Bridge> = bridges.iter().filter(|b| on(b)).collect();
         if removed.is_empty() {
-            return Err("reason-unbridge-none");
+            return Err(key!("reason-unbridge-none"));
         }
         // Each touched group: what stays must be one piece (connected over its terminals).
         let groups: std::collections::BTreeSet<(Option<&str>, u16)> =
@@ -323,7 +325,7 @@ impl ShellModel {
                 })
                 .collect();
             if pieces(&kept) > 1 {
-                return Err("reason-unbridge-split");
+                return Err(key!("reason-unbridge-split"));
             }
         }
         let targets: Vec<Value> = removed
@@ -344,9 +346,9 @@ impl ShellModel {
                 let outcome = self.commit_from_host(&cmd);
                 if outcome == Outcome::Done {
                     let text = if n == 1 {
-                        strings::format("toast-unbridged-one", &["1"])
+                        strings::format(key!("toast-unbridged-one"), &["1"])
                     } else {
-                        strings::format("toast-unbridged", &[&n.to_string()])
+                        strings::format(key!("toast-unbridged"), &[&n.to_string()])
                     };
                     self.notify(text, true);
                 }

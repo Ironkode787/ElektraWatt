@@ -19,27 +19,29 @@
 
 use serde_json::{Map, Value, json};
 
+use crate::key;
 use crate::navigators::NavKind;
 use crate::strings;
+use crate::strings::Key;
 
 /// The key of a navigator pane's title in [`crate::strings`] (WP-S2.06 §6.8).
-pub fn nav_title_key(kind: NavKind) -> &'static str {
+pub fn nav_title_key(kind: NavKind) -> Key<'static> {
     match kind {
-        NavKind::Pages => "pane-pages",
-        NavKind::Devices => "nav-title-devices",
-        NavKind::Connections => "nav-title-connections",
-        NavKind::Strips => "nav-title-strips",
-        NavKind::Cables => "nav-title-cables",
-        NavKind::Plc => "nav-title-plc",
-        NavKind::Potentials => "nav-title-potentials",
-        NavKind::Ips => "nav-title-ips",
-        NavKind::Structure => "nav-title-structure",
-        NavKind::Parts => "nav-title-parts",
-        NavKind::Blocks => "nav-title-blocks",
-        NavKind::Unplaced => "nav-title-unplaced",
-        NavKind::Macros => "nav-title-macros",
-        NavKind::Libraries => "nav-title-libraries",
-        NavKind::Messages => "nav-title-messages",
+        NavKind::Pages => key!("pane-pages"),
+        NavKind::Devices => key!("nav-title-devices"),
+        NavKind::Connections => key!("nav-title-connections"),
+        NavKind::Strips => key!("nav-title-strips"),
+        NavKind::Cables => key!("nav-title-cables"),
+        NavKind::Plc => key!("nav-title-plc"),
+        NavKind::Potentials => key!("nav-title-potentials"),
+        NavKind::Ips => key!("nav-title-ips"),
+        NavKind::Structure => key!("nav-title-structure"),
+        NavKind::Parts => key!("nav-title-parts"),
+        NavKind::Blocks => key!("nav-title-blocks"),
+        NavKind::Unplaced => key!("nav-title-unplaced"),
+        NavKind::Macros => key!("nav-title-macros"),
+        NavKind::Libraries => key!("nav-title-libraries"),
+        NavKind::Messages => key!("nav-title-messages"),
     }
 }
 
@@ -116,16 +118,16 @@ impl PaneKind {
     }
 
     /// The key of the pane's title in [`crate::strings`].
-    pub fn title_key(self) -> &'static str {
+    pub fn title_key(self) -> Key<'static> {
         match self {
-            PaneKind::Pages => "pane-pages",
-            PaneKind::PageView => "pane-page-view",
-            PaneKind::Properties => "pane-properties",
-            PaneKind::Find => "pane-find",
+            PaneKind::Pages => key!("pane-pages"),
+            PaneKind::PageView => key!("pane-page-view"),
+            PaneKind::Properties => key!("pane-properties"),
+            PaneKind::Find => key!("pane-find"),
             PaneKind::Navigator(k) => nav_title_key(k),
-            PaneKind::Jobs => "pane-jobs",
-            PaneKind::Preview => "pane-preview",
-            PaneKind::History => "pane-history",
+            PaneKind::Jobs => key!("pane-jobs"),
+            PaneKind::Preview => key!("pane-preview"),
+            PaneKind::History => key!("pane-history"),
         }
     }
 }
@@ -554,14 +556,14 @@ impl Layout {
         for (i, p) in panes.iter().enumerate() {
             if panes[i + 1..].contains(p) {
                 return Err(LayoutError::Invalid(strings::format(
-                    "layout-pane-twice",
+                    key!("layout-pane-twice"),
                     &[p.key()],
                 )));
             }
         }
         if !panes.contains(&PaneKind::PageView) {
             return Err(LayoutError::Invalid(
-                strings::text("layout-no-page-view").to_owned(),
+                strings::text(key!("layout-no-page-view")).to_owned(),
             ));
         }
         Ok(())
@@ -594,21 +596,24 @@ impl Layout {
     ///
     /// [`LayoutError`] for text that is not a workspace file or a layout that is not usable.
     pub fn parse(text: &str) -> Result<(String, Layout), LayoutError> {
-        let bad = |key: &str| LayoutError::Malformed(strings::text(key).to_owned());
-        let value: Value = serde_json::from_str(text)
-            .map_err(|e| LayoutError::Malformed(strings::format("layout-not-json", &[&e.to_string()])))?;
+        let bad = |key: Key<'_>| LayoutError::Malformed(strings::text(key).to_owned());
+        let value: Value = serde_json::from_str(text).map_err(|e| {
+            LayoutError::Malformed(strings::format(key!("layout-not-json"), &[&e.to_string()]))
+        })?;
         let Value::Object(mut file) = value else {
-            return Err(bad("layout-not-object"));
+            return Err(bad(key!("layout-not-object")));
         };
         if file.get("$schema").and_then(Value::as_str) != Some(SCHEMA) {
-            return Err(bad("layout-schema"));
+            return Err(bad(key!("layout-schema")));
         }
         let name = file
             .get("name")
             .and_then(Value::as_str)
-            .ok_or_else(|| bad("layout-name-missing"))?
+            .ok_or_else(|| bad(key!("layout-name-missing")))?
             .to_owned();
-        let root = file.remove("root").ok_or_else(|| bad("layout-root-missing"))?;
+        let root = file
+            .remove("root")
+            .ok_or_else(|| bad(key!("layout-root-missing")))?;
         let mut count = 0;
         let root = read_node(&root, 1, &mut count)?;
         let layout = Layout { root };
@@ -651,21 +656,25 @@ impl Layout {
 }
 
 fn read_node(v: &Value, depth: usize, count: &mut usize) -> Result<LayoutNode, LayoutError> {
-    let bad = |key: &str| LayoutError::Malformed(strings::text(key).to_owned());
+    let bad = |key: Key<'_>| LayoutError::Malformed(strings::text(key).to_owned());
     *count += 1;
     if depth > MAX_DEPTH {
-        return Err(LayoutError::Invalid(strings::text("layout-too-deep").to_owned()));
+        return Err(LayoutError::Invalid(
+            strings::text(key!("layout-too-deep")).to_owned(),
+        ));
     }
     if *count > MAX_NODES {
-        return Err(LayoutError::Invalid(strings::text("layout-too-many").to_owned()));
+        return Err(LayoutError::Invalid(
+            strings::text(key!("layout-too-many")).to_owned(),
+        ));
     }
     let Value::Object(obj) = v else {
-        return Err(bad("layout-node-object"));
+        return Err(bad(key!("layout-node-object")));
     };
     let known = |obj: &Map<String, Value>, allowed: &[&str]| -> Result<(), LayoutError> {
         match obj.keys().find(|k| !allowed.contains(&k.as_str())) {
             Some(k) => Err(LayoutError::Malformed(strings::format(
-                "layout-unknown-member",
+                key!("layout-unknown-member"),
                 &[k],
             ))),
             None => Ok(()),
@@ -673,16 +682,16 @@ fn read_node(v: &Value, depth: usize, count: &mut usize) -> Result<LayoutNode, L
     };
     if let Some(p) = obj.get("pane") {
         known(obj, &["pane"])?;
-        let key = p.as_str().ok_or_else(|| bad("layout-pane-name"))?;
+        let key = p.as_str().ok_or_else(|| bad(key!("layout-pane-name")))?;
         return PaneKind::from_key(key)
             .map(LayoutNode::Pane)
-            .ok_or_else(|| LayoutError::Malformed(strings::format("layout-unknown-pane", &[key])));
+            .ok_or_else(|| LayoutError::Malformed(strings::format(key!("layout-unknown-pane"), &[key])));
     }
     if let Some(t) = obj.get("tabs") {
         known(obj, &["tabs", "active"])?;
-        let items = t.as_array().ok_or_else(|| bad("layout-tabs-list"))?;
+        let items = t.as_array().ok_or_else(|| bad(key!("layout-tabs-list")))?;
         if items.is_empty() {
-            return Err(bad("layout-tabs-empty"));
+            return Err(bad(key!("layout-tabs-empty")));
         }
         let children = items
             .iter()
@@ -701,19 +710,19 @@ fn read_node(v: &Value, depth: usize, count: &mut usize) -> Result<LayoutNode, L
         let dir = match s.as_str() {
             Some("horizontal") => SplitDir::Horizontal,
             Some("vertical") => SplitDir::Vertical,
-            _ => return Err(bad("layout-split-dir")),
+            _ => return Err(bad(key!("layout-split-dir"))),
         };
         let items = obj
             .get("children")
             .and_then(Value::as_array)
-            .ok_or_else(|| bad("layout-children-list"))?;
+            .ok_or_else(|| bad(key!("layout-children-list")))?;
         if items.is_empty() {
-            return Err(bad("layout-children-empty"));
+            return Err(bad(key!("layout-children-empty")));
         }
         let mut children = Vec::new();
         for item in items {
             let Value::Object(item) = item else {
-                return Err(bad("layout-child-object"));
+                return Err(bad(key!("layout-child-object")));
             };
             known(item, &["share", "node"])?;
             let share = item
@@ -721,13 +730,13 @@ fn read_node(v: &Value, depth: usize, count: &mut usize) -> Result<LayoutNode, L
                 .and_then(Value::as_u64)
                 .and_then(|s| u32::try_from(s).ok())
                 .filter(|s| *s > 0)
-                .ok_or_else(|| bad("layout-share"))?;
-            let node = item.get("node").ok_or_else(|| bad("layout-node-missing"))?;
+                .ok_or_else(|| bad(key!("layout-share")))?;
+            let node = item.get("node").ok_or_else(|| bad(key!("layout-node-missing")))?;
             children.push((share, read_node(node, depth + 1, count)?));
         }
         return Ok(LayoutNode::Split { dir, children });
     }
-    Err(bad("layout-node-kind"))
+    Err(bad(key!("layout-node-kind")))
 }
 
 #[cfg(test)]

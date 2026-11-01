@@ -20,6 +20,7 @@
 //! value, as the property grid composes it. The result is `fields.set` when every target gets the same (kind, member,
 //! value), else one `fields.set_many` with one entry per (kind, member, value) in the order of first appearance.
 
+use crate::key;
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Value, json};
@@ -113,15 +114,15 @@ fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Optio
     let c = table.columns.get(column)?;
     let editable = strip_route(table, node, column).is_some();
     if node.role == NavRole::Accessory {
-        return Some((!editable).then(|| crate::strings::text("table-accessory-row").to_owned()));
+        return Some((!editable).then(|| crate::strings::text(key!("table-accessory-row")).to_owned()));
     }
     if c.key == "pos" {
-        return Some(Some(crate::strings::text("table-pos-move").to_owned()));
+        return Some(Some(crate::strings::text(key!("table-pos-move")).to_owned()));
     }
     if node.role == NavRole::Terminal {
         return match c.strip_cell {
             Some(StripCell::BridgePart) if !editable => {
-                Some(Some(crate::strings::text("table-no-bridge").to_owned()))
+                Some(Some(crate::strings::text(key!("table-no-bridge")).to_owned()))
             }
             Some(StripCell::Group | StripCell::BridgePart) => Some(None),
             _ => None,
@@ -445,20 +446,20 @@ pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<St
         return reason;
     }
     if c.derived {
-        return Some(crate::strings::text("table-reason-derived").to_owned());
+        return Some(crate::strings::text(key!("table-reason-derived")).to_owned());
     }
     if table.kind == NavKind::Pages && node.badges.iter().any(|b| b == "generated") {
-        return Some(crate::strings::text("table-reason-generated").to_owned());
+        return Some(crate::strings::text(key!("table-reason-generated")).to_owned());
     }
     let Some((kind, path)) = &c.route else {
         return Some(
             c.read_only
                 .clone()
-                .unwrap_or_else(|| crate::strings::text("table-reason-no-command").to_owned()),
+                .unwrap_or_else(|| crate::strings::text(key!("table-reason-no-command")).to_owned()),
         );
     };
     if row_targets(node, kind).is_empty() && define_point(node, kind, path).is_none() {
-        return Some(crate::strings::text("table-no-record").to_owned());
+        return Some(crate::strings::text(key!("table-no-record")).to_owned());
     }
     match route_type(kind, path) {
         Some(ty) if is_scalar(&ty) => None,
@@ -466,8 +467,8 @@ pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<St
         Some(_) if (kind.as_str(), path.as_str()) == ("device", "cable.length") => None,
         // WP-S2.07 §8 (FT-429, FT-690): the PLC grid's typed editors.
         Some(_) if TYPED_PLC.contains(&(kind.as_str(), path.as_str())) => None,
-        Some(_) => Some(crate::strings::text("table-reason-property-grid").to_owned()),
-        None => Some(crate::strings::text("table-reason-no-command").to_owned()),
+        Some(_) => Some(crate::strings::text(key!("table-reason-property-grid")).to_owned()),
+        None => Some(crate::strings::text(key!("table-reason-no-command")).to_owned()),
     }
 }
 
@@ -543,10 +544,10 @@ impl GestureCell {
             return Some(format!("same record as row {n}"));
         }
         if self.define_clash {
-            return Some(crate::strings::text("table-define-alone").to_owned());
+            return Some(crate::strings::text(key!("table-define-alone")).to_owned());
         }
         if self.define_unnamed {
-            return Some(crate::strings::text("table-define-name-first").to_owned());
+            return Some(crate::strings::text(key!("table-define-name-first")).to_owned());
         }
         match &self.value {
             CellValue::Invalid(r) => Some(r.clone()),

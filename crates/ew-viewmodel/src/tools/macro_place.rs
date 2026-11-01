@@ -11,7 +11,9 @@
 //! commits it. `Escape` answers nothing, so the Escape chain ends the tool. The tool reads no `Session`.
 
 use super::{Anchor, Button, CanvasEvent, HostStep, Overlay, OverlayItem, Tool, ToolCx, ToolOutput, rect_of};
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 /// The macro tool.
 pub struct MacroTool {
@@ -67,7 +69,7 @@ impl MacroTool {
             },
             OverlayItem::Label {
                 at: sheet,
-                text: strings::format("label-macro", &[&self.name]),
+                text: strings::format(key!("label-macro"), &[&self.name]),
                 anchor: Anchor::Above,
             },
         ])
@@ -108,8 +110,8 @@ impl Tool for MacroTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
-        "hint-macro"
+    fn status_hint(&self) -> Key<'static> {
+        key!("hint-macro")
     }
 
     fn wants_hover(&self) -> bool {

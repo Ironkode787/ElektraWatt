@@ -26,6 +26,8 @@
 //! `fields.set {kind: page_item, targets: [id], path: "kind.free_text.text", value}` — unchanged text and a blank text
 //! commit nothing (the first finishes the edit). A dwell previews a changed, non-blank text.
 
+use crate::key;
+use crate::strings::Key;
 use ew_api::AnyCommand;
 use serde_json::json;
 
@@ -231,10 +233,10 @@ impl Tool for TextTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         match self.state {
-            State::Armed { .. } => "hint-text-armed",
-            State::Typing { .. } => "hint-text-typing",
+            State::Armed { .. } => key!("hint-text-armed"),
+            State::Typing { .. } => key!("hint-text-typing"),
         }
     }
 
@@ -350,8 +352,8 @@ impl Tool for TextEditTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
-        "hint-text-edit"
+    fn status_hint(&self) -> Key<'static> {
+        key!("hint-text-edit")
     }
 
     fn wants_hover(&self) -> bool {

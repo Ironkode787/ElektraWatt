@@ -18,6 +18,8 @@ use ew_api::Cost;
 use ew_api::output::ew_dl::EntityRef;
 
 use crate::canvas::PageId;
+use crate::key;
+use crate::strings::Key;
 pub use ew_api::output::{
     Category, EditRoute, FieldReadOnly, FieldType, PropRow, PropertySheet, Provenance, RowAction, RowValue,
     SheetSection,
@@ -36,7 +38,7 @@ pub enum Decision {
     /// Commit the kept preview at once.
     Direct,
     /// Show the card; the key names why.
-    Card(&'static str),
+    Card(Key<'static>),
     /// The preview failed: the row's error state, no card.
     Error,
 }
@@ -48,11 +50,11 @@ pub fn policy(targets: usize, identifier: bool, tags: usize, cost: Cost, ok: boo
     if !ok {
         Decision::Error
     } else if targets > BULK_TARGETS {
-        Decision::Card("reason-bulk")
+        Decision::Card(key!("reason-bulk"))
     } else if (identifier && targets > 1) || tags > 1 {
-        Decision::Card("reason-identifiers")
+        Decision::Card(key!("reason-identifiers"))
     } else if cost == Cost::Bulk {
-        Decision::Card("reason-bulk-command")
+        Decision::Card(key!("reason-bulk-command"))
     } else {
         Decision::Direct
     }
@@ -255,9 +257,9 @@ pub struct PasteChoice {
     /// (`patch`, `minor`, `major`) of the change from the pasted version to the project's.
     pub conflicts: Vec<PasteConflict>,
     /// Why Use the project's copy is disabled (`reason-paste-adapt-major`); `None`: enabled.
-    pub adapt: Option<&'static str>,
+    pub adapt: Option<Key<'static>>,
     /// Why Update the project's copy is disabled (`reason-paste-update-older`); `None`: enabled.
-    pub update: Option<&'static str>,
+    pub update: Option<Key<'static>>,
 }
 
 /// One copy of the paste choice card (WP-S2.07 D22).
@@ -278,7 +280,7 @@ pub struct PasteConflict {
 impl PasteChoice {
     /// The card's line of one choice (`adapt` or `update`): `choice <word> enabled`, or `choice <word> disabled:
     /// "<reason>"`.
-    pub fn choice_line(word: &str, reason: Option<&'static str>) -> String {
+    pub fn choice_line(word: &str, reason: Option<Key<'static>>) -> String {
         match reason {
             None => format!("choice {word} enabled"),
             Some(key) => format!("choice {word} disabled: \"{}\"", strings::text(key)),
@@ -289,11 +291,11 @@ impl PasteChoice {
     /// change size in words (cycle 39, FIX39b-1), the describe line keeps the class word.
     pub fn conflict_text(c: &PasteConflict) -> String {
         let size = match c.class {
-            "major" => strings::text("paste-class-major"),
-            "minor" => strings::text("paste-class-minor"),
-            _ => strings::text("paste-class-patch"),
+            "major" => strings::text(key!("paste-class-major")),
+            "minor" => strings::text(key!("paste-class-minor")),
+            _ => strings::text(key!("paste-class-patch")),
         };
-        strings::format("paste-conflict", &[&c.title, &c.held, &c.pasted, size])
+        strings::format(key!("paste-conflict"), &[&c.title, &c.held, &c.pasted, size])
     }
 }
 
@@ -384,7 +386,7 @@ pub struct Card {
     /// The number of changed records (a replace: the number of replaced hits, §7.2).
     pub changes: usize,
     /// Why the card opened (`reason-identifiers`).
-    pub reason: &'static str,
+    pub reason: Key<'static>,
     /// Where it was opened (WP-S2.05 part 2).
     pub origin: CardOrigin,
 }
@@ -399,13 +401,13 @@ impl Card {
         // WP-S2.07 D22: the paste choice card leads with what it asks; its rows and choices are the detail.
         if matches!(self.origin, CardOrigin::PasteVersions(_)) {
             return Some(FailedLead {
-                text: strings::text("card-paste-versions-title").to_owned(),
+                text: strings::text(key!("card-paste-versions-title")).to_owned(),
                 rule: None,
             });
         }
         let CardOrigin::Macro(m) = &self.origin else {
             return Some(FailedLead {
-                text: strings::format("card-failed", &[message]),
+                text: strings::format(key!("card-failed"), &[message]),
                 rule: None,
             });
         };
@@ -413,15 +415,15 @@ impl Card {
         // field.
         if let Some(f) = m.fields.iter().find(|f| f.error.is_some()) {
             return Some(FailedLead {
-                text: strings::format("macro-failed-value", &[&f.name]),
+                text: strings::format(key!("macro-failed-value"), &[&f.name]),
                 rule: None,
             });
         }
         let (rule, rest) = split_rule_code(message);
         let text = match m.conflicts.len() {
-            0 => strings::format("macro-failed-other", &[rest]),
-            1 => strings::text("macro-failed-one").to_owned(),
-            n => strings::format("macro-failed", &[&n.to_string()]),
+            0 => strings::format(key!("macro-failed-other"), &[rest]),
+            1 => strings::text(key!("macro-failed-one")).to_owned(),
+            n => strings::format(key!("macro-failed"), &[&n.to_string()]),
         };
         Some(FailedLead {
             text,
@@ -515,9 +517,9 @@ impl TagProposal {
     pub fn button_text(&self) -> String {
         strings::format(
             if self.join {
-                "props-join-tag"
+                key!("props-join-tag")
             } else {
-                "props-use-tag"
+                key!("props-use-tag")
             },
             &[&self.tag],
         )
@@ -635,8 +637,8 @@ impl RowGroup {
     /// The group's title (`Main`, `Identity`).
     pub fn title(self) -> &'static str {
         match self {
-            RowGroup::Main => strings::text("category-main"),
-            RowGroup::Category(c) => strings::text(&format!("category-{}", c.word())),
+            RowGroup::Main => strings::text(key!("category-main")),
+            RowGroup::Category(c) => strings::text(Key::run_time(&format!("category-{}", c.word()))),
         }
     }
 }
@@ -862,7 +864,7 @@ pub fn read_only_reason(sheet: &PropertySheet, section: &SheetSection, row: &Pro
         return Some(r.clone());
     }
     if let Provenance::Generated { block } = &row.provenance {
-        return Some(strings::format("props-ro-generated", &[block]));
+        return Some(strings::format(key!("props-ro-generated"), &[block]));
     }
     if is_derived(row) || is_header(section, row) {
         return None;
@@ -876,14 +878,14 @@ pub fn read_only_reason(sheet: &PropertySheet, section: &SheetSection, row: &Pro
 /// The text of a read-only reason.
 pub fn reason_text(reason: &FieldReadOnly) -> String {
     match reason {
-        FieldReadOnly::Identity => strings::text("props-ro-identity").to_owned(),
+        FieldReadOnly::Identity => strings::text(key!("props-ro-identity")).to_owned(),
         FieldReadOnly::Narrowed { why } => why.clone(),
         FieldReadOnly::Command {
             action: Some(action), ..
-        } => strings::format("props-ro-action", &[action]),
-        FieldReadOnly::Command { command, .. } => strings::format("props-ro-command", &[command]),
-        FieldReadOnly::HumanOnly { step, .. } => strings::format("props-ro-human-only", &[step]),
-        FieldReadOnly::NoCommand => strings::text("props-ro-no-command").to_owned(),
+        } => strings::format(key!("props-ro-action"), &[action]),
+        FieldReadOnly::Command { command, .. } => strings::format(key!("props-ro-command"), &[command]),
+        FieldReadOnly::HumanOnly { step, .. } => strings::format(key!("props-ro-human-only"), &[step]),
+        FieldReadOnly::NoCommand => strings::text(key!("props-ro-no-command")).to_owned(),
     }
 }
 
@@ -1011,7 +1013,7 @@ pub fn item_default(ty: &FieldType) -> Value {
 pub fn value_text(row: &PropRow) -> String {
     match &row.value {
         RowValue::One { text, .. } => text.clone(),
-        RowValue::Varies { count, .. } => strings::format("props-varies", &[&count.to_string()]),
+        RowValue::Varies { count, .. } => strings::format(key!("props-varies"), &[&count.to_string()]),
         RowValue::Absent => String::new(),
     }
 }
@@ -1041,36 +1043,36 @@ pub enum RowMenuItem {
 pub fn menu_label(item: RowMenuItem) -> &'static str {
     match item {
         RowMenuItem::Action(a) => action_label(a),
-        RowMenuItem::MakeVariable => strings::text("props-action-make-variable"),
-        RowMenuItem::ChoosePart { .. } => strings::text("action-part-choose"),
-        RowMenuItem::AddPart => strings::text("action-part-add"),
-        RowMenuItem::EditPart => strings::text("action-part-edit"),
+        RowMenuItem::MakeVariable => strings::text(key!("props-action-make-variable")),
+        RowMenuItem::ChoosePart { .. } => strings::text(key!("action-part-choose")),
+        RowMenuItem::AddPart => strings::text(key!("action-part-add")),
+        RowMenuItem::EditPart => strings::text(key!("action-part-edit")),
     }
 }
 
 /// The label of a row action in the row's actions menu (FT-530; doc 16a §6.8: "Reset to derived", "Freeze").
 pub fn action_label(action: RowAction) -> &'static str {
     strings::text(match action {
-        RowAction::Edit => "props-action-edit",
-        RowAction::Clear => "props-action-clear",
-        RowAction::Override => "props-action-override",
-        RowAction::Reset => "props-action-reset",
-        RowAction::Freeze => "props-action-freeze",
-        RowAction::Unfreeze => "props-action-unfreeze",
+        RowAction::Edit => key!("props-action-edit"),
+        RowAction::Clear => key!("props-action-clear"),
+        RowAction::Override => key!("props-action-override"),
+        RowAction::Reset => key!("props-action-reset"),
+        RowAction::Freeze => key!("props-action-freeze"),
+        RowAction::Unfreeze => key!("props-action-unfreeze"),
     })
 }
 
 /// The provenance chip's text (an icon glyph and words, never colour alone; FR-UI-025).
 pub fn chip_text(p: &Provenance) -> String {
     match p {
-        Provenance::Authored => strings::text("chip-authored").to_owned(),
-        Provenance::Inherited { from } => strings::format("chip-inherited", &[from]),
-        Provenance::Derived { via } => strings::format("chip-derived", &[via]),
-        Provenance::Overridden { note } => strings::format("chip-overridden", &[note]),
-        Provenance::Frozen { note } => strings::format("chip-frozen", &[note]),
-        Provenance::Library { item } => strings::format("chip-library", &[item]),
-        Provenance::Generated { block } => strings::format("chip-generated", &[block]),
-        Provenance::Varies { count } => strings::format("chip-varies", &[&count.to_string()]),
+        Provenance::Authored => strings::text(key!("chip-authored")).to_owned(),
+        Provenance::Inherited { from } => strings::format(key!("chip-inherited"), &[from]),
+        Provenance::Derived { via } => strings::format(key!("chip-derived"), &[via]),
+        Provenance::Overridden { note } => strings::format(key!("chip-overridden"), &[note]),
+        Provenance::Frozen { note } => strings::format(key!("chip-frozen"), &[note]),
+        Provenance::Library { item } => strings::format(key!("chip-library"), &[item]),
+        Provenance::Generated { block } => strings::format(key!("chip-generated"), &[block]),
+        Provenance::Varies { count } => strings::format(key!("chip-varies"), &[&count.to_string()]),
     }
 }
 
@@ -1082,15 +1084,15 @@ pub fn chip_word(p: &Provenance) -> &'static str {
     match p {
         Provenance::Authored => "",
         Provenance::Inherited { from } if from.starts_with("page ") || from.contains(" on page ") => {
-            strings::text("chip-word-page")
+            strings::text(key!("chip-word-page"))
         }
-        Provenance::Inherited { .. } => strings::text("chip-word-inherited"),
-        Provenance::Derived { .. } => strings::text("chip-word-derived"),
-        Provenance::Overridden { .. } => strings::text("chip-word-override"),
-        Provenance::Frozen { .. } => strings::text("chip-word-frozen"),
-        Provenance::Library { .. } => strings::text("chip-word-library"),
-        Provenance::Generated { .. } => strings::text("chip-word-generated"),
-        Provenance::Varies { .. } => strings::text("chip-word-varies"),
+        Provenance::Inherited { .. } => strings::text(key!("chip-word-inherited")),
+        Provenance::Derived { .. } => strings::text(key!("chip-word-derived")),
+        Provenance::Overridden { .. } => strings::text(key!("chip-word-override")),
+        Provenance::Frozen { .. } => strings::text(key!("chip-word-frozen")),
+        Provenance::Library { .. } => strings::text(key!("chip-word-library")),
+        Provenance::Generated { .. } => strings::text(key!("chip-word-generated")),
+        Provenance::Varies { .. } => strings::text(key!("chip-word-varies")),
     }
 }
 
@@ -1164,20 +1166,20 @@ mod tests {
         assert_eq!(policy(12, false, 0, Cost::Interactive, true), Decision::Direct);
         assert_eq!(
             policy(501, false, 0, Cost::Interactive, true),
-            Decision::Card("reason-bulk")
+            Decision::Card(key!("reason-bulk"))
         );
         assert_eq!(
             policy(2, true, 0, Cost::Interactive, true),
-            Decision::Card("reason-identifiers")
+            Decision::Card(key!("reason-identifiers"))
         );
         assert_eq!(policy(1, true, 1, Cost::Interactive, true), Decision::Direct);
         assert_eq!(
             policy(1, false, 2, Cost::Interactive, true),
-            Decision::Card("reason-identifiers")
+            Decision::Card(key!("reason-identifiers"))
         );
         assert_eq!(
             policy(1, false, 0, Cost::Bulk, true),
-            Decision::Card("reason-bulk-command")
+            Decision::Card(key!("reason-bulk-command"))
         );
         assert_eq!(policy(1, false, 0, Cost::Interactive, false), Decision::Error);
     }

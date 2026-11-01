@@ -27,6 +27,8 @@
 //! outline a vertex grip moves that vertex alone and an edge grip translates an axis-aligned edge (another edge is
 //! refused, `reason-grip-not-axis`). Select drags them (and a box CP along the outline) and commits `box.reshape`.
 
+use crate::key;
+use crate::strings::Key;
 use ew_api::AnyCommand;
 use ew_api::geometry::{Dir, orient_dir, orient_point};
 use ew_api::output::TableRep;
@@ -179,8 +181,8 @@ impl BlackBoxTool {
     /// The target's label text (`new F`, `part MICO 4.10`).
     fn label(&self) -> String {
         match &self.target {
-            BoxTarget::NewDevice { letter } => crate::strings::format("place-target-new", &[letter]),
-            BoxTarget::Part { number, .. } => crate::strings::format("place-target-part", &[number]),
+            BoxTarget::NewDevice { letter } => crate::strings::format(key!("place-target-new"), &[letter]),
+            BoxTarget::Part { number, .. } => crate::strings::format(key!("place-target-part"), &[number]),
         }
     }
 
@@ -348,11 +350,11 @@ impl Tool for BlackBoxTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         match self.state {
-            State::Armed { .. } if self.dropped => "hint-box-dropped",
-            State::Armed { .. } => "hint-box-armed",
-            State::Outline { .. } => "hint-box-outline",
+            State::Armed { .. } if self.dropped => key!("hint-box-dropped"),
+            State::Armed { .. } => key!("hint-box-armed"),
+            State::Outline { .. } => key!("hint-box-outline"),
         }
     }
 
@@ -431,10 +433,10 @@ pub fn reshape_by_grip(
     outline: &[(i64, i64)],
     grip: usize,
     to: (i64, i64),
-) -> Result<Vec<(i64, i64)>, &'static str> {
+) -> Result<Vec<(i64, i64)>, Key<'static>> {
     let n = outline.len();
     if n < 3 || grip >= 2 * n {
-        return Err("reason-no-grip");
+        return Err(key!("reason-no-grip"));
     }
     let mut out = outline.to_vec();
     if grip < n {
@@ -461,16 +463,16 @@ pub fn reshape_by_grip(
             out[i].0 = to.0;
             out[j].0 = to.0;
         } else {
-            return Err("reason-grip-not-axis");
+            return Err(key!("reason-grip-not-axis"));
         }
     }
     let (before, after) = (signed_area2(outline), signed_area2(&out));
     if after == 0 {
-        return Err("reason-box-too-small");
+        return Err(key!("reason-box-too-small"));
     }
     // A grip never turns the box inside out (its CPs would then point inwards; fix round, item 6).
     if before.signum() != after.signum() {
-        return Err("reason-box-inside-out");
+        return Err(key!("reason-box-inside-out"));
     }
     Ok(out)
 }
@@ -695,18 +697,24 @@ mod tests {
             reshape_by_grip(&r, 5, (14, 99)).unwrap(),
             vec![(0, 0), (14, 0), (14, 5), (0, 5)]
         );
-        assert_eq!(reshape_by_grip(&r, 5, (0, 0)), Err("reason-box-too-small"));
+        assert_eq!(reshape_by_grip(&r, 5, (0, 0)), Err(key!("reason-box-too-small")));
         // The right edge past the left one would turn the box inside out.
-        assert_eq!(reshape_by_grip(&r, 5, (-4, 0)), Err("reason-box-inside-out"));
-        assert_eq!(reshape_by_grip(&r, 2, (-3, 7)), Err("reason-box-inside-out"));
-        assert_eq!(reshape_by_grip(&r, 8, (0, 0)), Err("reason-no-grip"));
+        assert_eq!(
+            reshape_by_grip(&r, 5, (-4, 0)),
+            Err(key!("reason-box-inside-out"))
+        );
+        assert_eq!(
+            reshape_by_grip(&r, 2, (-3, 7)),
+            Err(key!("reason-box-inside-out"))
+        );
+        assert_eq!(reshape_by_grip(&r, 8, (0, 0)), Err(key!("reason-no-grip")));
         // A triangle: a vertex alone; its diagonal edge refuses.
         let t = vec![(0, 0), (10, 0), (10, 5)];
         assert_eq!(
             reshape_by_grip(&t, 0, (2, 0)).unwrap(),
             vec![(2, 0), (10, 0), (10, 5)]
         );
-        assert_eq!(reshape_by_grip(&t, 5, (0, 0)), Err("reason-grip-not-axis"));
+        assert_eq!(reshape_by_grip(&t, 5, (0, 0)), Err(key!("reason-grip-not-axis")));
     }
 
     #[test]

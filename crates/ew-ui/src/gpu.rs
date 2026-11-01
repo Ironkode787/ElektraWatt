@@ -18,6 +18,7 @@
 //! [`wgpu_configuration`] is the window's wgpu setup: with `--no-gpu`, eframe's adapter selector picks the first
 //! adapter whose device type is CPU (WARP, llvmpipe, lavapipe), else the default adapter with a banner.
 
+use ew_viewmodel::key;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
@@ -348,19 +349,22 @@ impl GpuHost {
         if let Some(Err(e)) = &self.init
             && self.told.insert("init")
         {
-            shell.show_banner(&strings::format("banner-gpu-init", &[&e.to_string()]));
+            shell.show_banner(&strings::format(key!("banner-gpu-init"), &[&e.to_string()]));
         }
         if let Some(f) = &self.fault
             && self.told.insert("fault")
         {
-            shell.show_banner(&strings::format("banner-gpu-lost", &[&f.to_string()]));
+            shell.show_banner(&strings::format(key!("banner-gpu-lost"), &[&f.to_string()]));
         }
         if self.flags.no_gpu
             && let Some(a) = &self.adapter
             && a.kind != DeviceKind::Cpu
             && self.told.insert("no-software-adapter")
         {
-            shell.show_banner(&strings::format("banner-gpu-no-software-adapter", &[&a.name]));
+            shell.show_banner(&strings::format(
+                key!("banner-gpu-no-software-adapter"),
+                &[&a.name],
+            ));
         }
         let label = label_of(&choice);
         if shell.canvas_backend() != &label {

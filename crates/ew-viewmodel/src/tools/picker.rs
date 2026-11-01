@@ -19,6 +19,8 @@
 //! placement proposes, then the strip's ID, which the printer names `@n` (`row strip "-X1031" terminal "21" @7`;
 //! FT-485 item 9); the filter matches the tag; Enter arms the Place tool with that strip.
 
+use crate::key;
+use crate::strings::Key;
 use std::sync::Arc;
 
 use ew_api::output::{CatalogueSymbol, PlaceCatalogue};
@@ -206,18 +208,18 @@ impl Picker {
     /// The string key of the text the picker shows instead of rows; `None` while it has rows. With a filter typed it
     /// is `picker-empty` ("Nothing matches the filter"); with the filter empty the list itself is empty, and the text
     /// says what is missing for the mode (a fresh project has no part copies, so Device lists nothing).
-    pub fn empty_text(&self) -> Option<&'static str> {
+    pub fn empty_text(&self) -> Option<Key<'static>> {
         if !self.rows.is_empty() {
             return None;
         }
         if !self.filter.is_empty() {
-            return Some("picker-empty");
+            return Some(key!("picker-empty"));
         }
         Some(match self.mode {
-            PickerMode::Parts => "picker-empty-parts",
-            PickerMode::Strip => "picker-empty-strips",
-            PickerMode::BlackBox => "picker-empty-black-box",
-            PickerMode::Place | PickerMode::Exchange => "picker-empty-page",
+            PickerMode::Parts => key!("picker-empty-parts"),
+            PickerMode::Strip => key!("picker-empty-strips"),
+            PickerMode::BlackBox => key!("picker-empty-black-box"),
+            PickerMode::Place | PickerMode::Exchange => key!("picker-empty-page"),
         })
     }
 
@@ -248,13 +250,13 @@ impl Picker {
     }
 
     /// The key of the reason a row is disabled; `None` for an enabled row.
-    pub fn disabled(&self, row: PickerRow) -> Option<&'static str> {
+    pub fn disabled(&self, row: PickerRow) -> Option<Key<'static>> {
         match row {
             PickerRow::Symbol(i) => {
                 let s = self.catalogue.symbols.get(i)?;
                 // From WP-S2.04 part 3 a black-box row arms the black box tool (§9.5).
                 if !s.allowed {
-                    Some("reason-rep-type-not-allowed")
+                    Some(key!("reason-rep-type-not-allowed"))
                 } else {
                     None
                 }
@@ -262,7 +264,7 @@ impl Picker {
             PickerRow::PartFn(p, k) => {
                 let f = self.catalogue.parts.get(p)?.functions.get(k)?;
                 if f.symbol.is_none() {
-                    Some("reason-no-symbol-for-function")
+                    Some(key!("reason-no-symbol-for-function"))
                 } else {
                     None
                 }

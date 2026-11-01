@@ -13,6 +13,7 @@ use serde_json::{Map, Value};
 
 use super::{Dialog, Outcome, Prompt, ShellModel, failed, string_param};
 use crate::actions::{self, ActionMeta};
+use crate::key;
 use crate::keymap::{self, Bind, Bound, Chord, EditorRow, Keymap, Preset, Refusal};
 use crate::strings;
 
@@ -57,7 +58,7 @@ pub(super) fn load_user_keymap(dir: &Path, preset_word: &str) -> Result<Option<K
         }
         Err(keymap::UserFileError::Read(error)) => {
             return Err(KeymapTrouble {
-                banner: strings::format("banner-keymap-unread", &[&error, preset.name()]),
+                banner: strings::format(key!("banner-keymap-unread"), &[&error, preset.name()]),
                 keep_file: true,
             });
         }
@@ -67,11 +68,11 @@ pub(super) fn load_user_keymap(dir: &Path, preset_word: &str) -> Result<Option<K
     Err(
         match crate::settings::copy_aside_once_as(&dir.join(keymap::USER_FILE), keymap::USER_FILE) {
             Some(copy) => KeymapTrouble {
-                banner: strings::format("banner-keymap-refused", &[reason, preset.name(), &copy]),
+                banner: strings::format(key!("banner-keymap-refused"), &[reason, preset.name(), &copy]),
                 keep_file: false,
             },
             None => KeymapTrouble {
-                banner: strings::format("banner-keymap-refused-kept", &[reason, preset.name()]),
+                banner: strings::format(key!("banner-keymap-refused-kept"), &[reason, preset.name()]),
                 keep_file: true,
             },
         },
@@ -142,7 +143,7 @@ impl ShellModel {
         let id = string_param(p, "action")?.unwrap_or_default();
         actions::find(id)
             .filter(|m| !m.hidden && !m.headless_only)
-            .ok_or_else(|| failed("error-keymap-action", &[id]))
+            .ok_or_else(|| failed(key!("error-keymap-action"), &[id]))
     }
 
     /// `keymap.record_start {action?}`: the window records the next chord for `action`; without it the recording
@@ -183,12 +184,12 @@ impl ShellModel {
                     errors: vec![reason],
                 });
                 return Outcome::Refused {
-                    reason_key: "reason-keymap-conflict",
+                    reason_key: key!("reason-keymap-conflict"),
                 };
             }
         };
         let mut user = self.user_keymap.clone().unwrap_or_else(|| Keymap {
-            name: strings::format("keymap-custom-name", &[self.keymap_preset().name()]),
+            name: strings::format(key!("keymap-custom-name"), &[self.keymap_preset().name()]),
             binds: Vec::new(),
         });
         user.binds.retain(|b| b.action != meta.id);
@@ -227,7 +228,7 @@ impl ShellModel {
                 errors: errors.iter().map(|f| keymap::refusal_text(f, action)).collect(),
             });
             return Outcome::Refused {
-                reason_key: "reason-keymap-conflict",
+                reason_key: key!("reason-keymap-conflict"),
             };
         }
         self.keymap_editor.refusal = None;
@@ -241,9 +242,9 @@ impl ShellModel {
     fn set_user_keymap(&mut self, user: Keymap) {
         if let Some(dir) = &self.config.config_dir {
             if self.keymap_keep_file {
-                self.banner = Some(strings::text("banner-keymap-kept").to_owned());
+                self.banner = Some(strings::text(key!("banner-keymap-kept")).to_owned());
             } else if keymap::write_user(dir, &user).is_err() {
-                self.banner = Some(strings::text("banner-keymap-write").to_owned());
+                self.banner = Some(strings::text(key!("banner-keymap-write")).to_owned());
             }
         }
         self.user_keymap = Some(user);
@@ -259,12 +260,14 @@ impl ShellModel {
             Ok(Some(path)) => path.to_owned(),
         };
         let parsed = std::fs::read(&path)
-            .map_err(|_| strings::text("keymap-error-toml").to_owned())
-            .and_then(|b| String::from_utf8(b).map_err(|_| strings::text("keymap-error-toml").to_owned()))
+            .map_err(|_| strings::text(key!("keymap-error-toml")).to_owned())
+            .and_then(|b| {
+                String::from_utf8(b).map_err(|_| strings::text(key!("keymap-error-toml")).to_owned())
+            })
             .and_then(|t| Keymap::parse(&t));
         let user = match parsed {
             Ok(k) => k,
-            Err(reason) => return failed("error-keymap-import", &[&clause(&reason)]),
+            Err(reason) => return failed(key!("error-keymap-import"), &[&clause(&reason)]),
         };
         let errors = keymap::user_errors(self.keymap_preset(), &user);
         if !errors.is_empty() {
@@ -273,7 +276,7 @@ impl ShellModel {
                 .map(keymap::Finding::text)
                 .collect::<Vec<_>>()
                 .join("; ");
-            return failed("error-keymap-import", &[&list]);
+            return failed(key!("error-keymap-import"), &[&list]);
         }
         self.keymap_editor.refusal = None;
         self.set_user_keymap(user);
@@ -290,13 +293,13 @@ impl ShellModel {
         };
         let preset = self.keymap_preset();
         let name = match &self.user_keymap {
-            Some(_) => strings::format("keymap-custom-name", &[preset.name()]),
+            Some(_) => strings::format(key!("keymap-custom-name"), &[preset.name()]),
             None => preset.name().to_owned(),
         };
         let file = keymap::export(&name, preset, self.user_keymap.as_ref());
         match std::fs::write(&path, file.to_toml()) {
             Ok(()) => Outcome::Done,
-            Err(_) => failed("error-keymap-export", &[]),
+            Err(_) => failed(key!("error-keymap-export"), &[]),
         }
     }
 

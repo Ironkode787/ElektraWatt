@@ -34,6 +34,8 @@
 //! `set_asset` (the host's `image.pick`) makes the tool armed with that asset, from any state, keeping the pointer
 //! point; an unfinished rectangle is dropped.
 
+use crate::key;
+use crate::strings::Key;
 use ew_api::AnyCommand;
 use serde_json::json;
 
@@ -259,11 +261,11 @@ impl Tool for ImageTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         match self.state {
-            State::Picking { .. } => "hint-image-picking",
-            State::Armed { .. } => "hint-image-armed",
-            State::Placing { .. } => "hint-image-placing",
+            State::Picking { .. } => key!("hint-image-picking"),
+            State::Armed { .. } => key!("hint-image-armed"),
+            State::Placing { .. } => key!("hint-image-placing"),
         }
     }
 

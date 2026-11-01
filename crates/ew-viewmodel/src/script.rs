@@ -67,8 +67,10 @@ use std::io;
 use serde_json::{Map, Value};
 
 use crate::actions;
+use crate::key;
 use crate::shell::{AccessMode, Focus, Outcome, ShellModel};
 use crate::strings;
+use crate::strings::Key;
 
 /// The `$schema` of a script header.
 pub const SCRIPT_SCHEMA: &str = "ew.uiscript/1";
@@ -114,7 +116,7 @@ impl fmt::Display for ScriptError {
                 write!(
                     f,
                     "script line {line}: {}",
-                    strings::format("error-unknown-action", &[id])
+                    strings::format(key!("error-unknown-action"), &[id])
                 )
             }
         }
@@ -891,18 +893,21 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
                 Some(rule) => format!(
                     "{} · {}",
                     lead.text,
-                    strings::format("card-failed-rule", &[&rule])
+                    strings::format(key!("card-failed-rule"), &[&rule])
                 ),
                 None => lead.text,
             },
             None => format!(
                 "{} · {}",
-                strings::format("preview-title", &[strings::command_title(&card.preview.name)]),
+                strings::format(
+                    key!("preview-title"),
+                    &[strings::command_title(&card.preview.name)]
+                ),
                 shell.preview_summary().unwrap_or_default()
             ),
         };
         let conflicts = if m.conflicts.is_empty() {
-            strings::text("macro-no-conflicts").to_owned()
+            strings::text(key!("macro-no-conflicts")).to_owned()
         } else {
             m.conflicts.join("; ")
         };
@@ -917,16 +922,16 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
             .collect();
         return Some(format!(
             "{} · {}",
-            strings::text("card-paste-versions-title"),
+            strings::text(key!("card-paste-versions-title")),
             rows.join("; ")
         ));
     }
     if let Err(message) = &card.preview.result {
-        return Some(strings::format("card-failed", &[message]));
+        return Some(strings::format(key!("card-failed"), &[message]));
     }
     Some(match &card.origin {
         CardOrigin::Properties => strings::format(
-            "card-line",
+            key!("card-line"),
             &[
                 &card.targets.to_string(),
                 &crate::properties::kind_plural(&card.edit.kind, card.targets),
@@ -936,7 +941,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
             ],
         ),
         CardOrigin::Find { .. } => strings::format(
-            "find-card-line",
+            key!("find-card-line"),
             &[
                 &card.changes.to_string(),
                 &card.targets.to_string(),
@@ -949,14 +954,14 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
             created,
             skipped,
         } => strings::format(
-            "parts-card-line",
+            key!("parts-card-line"),
             &[source, &created.to_string(), &skipped.to_string(), "0"],
         ),
         CardOrigin::Reorder { notices } => {
-            strings::format("card-reorder", &[&notices.join(", "), &tags, &xrefs])
+            strings::format(key!("card-reorder"), &[&notices.join(", "), &tags, &xrefs])
         }
         CardOrigin::QuickFix { .. } => {
-            strings::format("card-fix", &[&card.changes.to_string(), &tags, &xrefs])
+            strings::format(key!("card-fix"), &[&card.changes.to_string(), &tags, &xrefs])
         }
         // FT-580: the Preview tab's title (a table card's gesture title) and its summary line, as the window shows them.
         CardOrigin::Bulk
@@ -967,7 +972,10 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         | CardOrigin::PasteUpdate { .. } => format!(
             "{} · {}",
             shell.table_gesture().map_or_else(
-                || strings::format("preview-title", &[strings::command_title(&card.preview.name)]),
+                || strings::format(
+                    key!("preview-title"),
+                    &[strings::command_title(&card.preview.name)]
+                ),
                 |g| g.title()
             ),
             shell.preview_summary().unwrap_or_default()
@@ -1012,22 +1020,22 @@ fn expect_refused(
     shell: &mut ShellModel,
     ext: &mut dyn StepExtension,
     params: &Value,
-) -> Result<&'static str, Outcome> {
-    let inner_fail = |key: &str| Outcome::Failed {
+) -> Result<Key<'static>, Outcome> {
+    let inner_fail = |key: Key<'_>| Outcome::Failed {
         message: strings::text(key).to_owned(),
     };
     let action = match params.get("action").and_then(Value::as_str) {
         Some(a) if a != EXPECT_REFUSED && actions::find(a).is_some() => a.to_owned(),
-        _ => return Err(inner_fail("message-expect-refused-inner")),
+        _ => return Err(inner_fail(key!("message-expect-refused-inner"))),
     };
     let inner = match params.get("params") {
         None => Value::Object(Map::new()),
         Some(p @ Value::Object(_)) => p.clone(),
-        Some(_) => return Err(inner_fail("message-expect-refused-inner")),
+        Some(_) => return Err(inner_fail(key!("message-expect-refused-inner"))),
     };
     match step_outcome(shell, ext, &action, &inner) {
         Outcome::Refused { reason_key } => Ok(reason_key),
-        Outcome::Done => Err(inner_fail("message-expected-refusal")),
+        Outcome::Done => Err(inner_fail(key!("message-expected-refusal"))),
         failed @ Outcome::Failed { .. } => Err(failed),
     }
 }
@@ -1052,8 +1060,12 @@ pub fn run_step(
         (step_outcome(shell, ext, &step.action, &step.params), None)
     };
     let (word, reason, message) = match &outcome {
-        Outcome::Done => ("done", met_refusal.map_or(Value::Null, Value::from), Value::Null),
-        Outcome::Refused { reason_key } => ("refused", Value::from(*reason_key), Value::Null),
+        Outcome::Done => (
+            "done",
+            met_refusal.map_or(Value::Null, |k| Value::from(k.as_str())),
+            Value::Null,
+        ),
+        Outcome::Refused { reason_key } => ("refused", Value::from(reason_key.as_str()), Value::Null),
         Outcome::Failed { message } => ("failed", Value::Null, Value::from(message.as_str())),
     };
     // G-PP triage row 10: the sentence of a refusal's key beside the key (which stays as it is: recordings compare
@@ -1286,7 +1298,7 @@ mod tests {
         assert_eq!(step["outcome"], "refused");
         assert_eq!(step["reason"], "reason-no-project");
         // G-PP triage row 10: the key's sentence stands beside the key.
-        assert_eq!(step["reason_text"], strings::text("reason-no-project"));
+        assert_eq!(step["reason_text"], strings::text(key!("reason-no-project")));
         assert_ne!(step["reason_text"], "?");
         assert_eq!(step["pending"], Value::Null);
         assert_eq!(step["state"]["project"], Value::Null);
@@ -1317,7 +1329,7 @@ mod tests {
         assert_eq!(step["action"], "script.expect_refused");
         assert_eq!(step["outcome"], "done");
         assert_eq!(step["reason"], "reason-no-project");
-        assert_eq!(step["reason_text"], strings::text("reason-no-project"));
+        assert_eq!(step["reason_text"], strings::text(key!("reason-no-project")));
         let next: Value = serde_json::from_str(&lines[2]).unwrap();
         assert_eq!(next["outcome"], "done");
     }
@@ -1331,11 +1343,11 @@ mod tests {
             ),
             (
                 r#"{"action":"no.such"}"#,
-                strings::text("message-expect-refused-inner"),
+                strings::text(key!("message-expect-refused-inner")),
             ),
             (
                 r#"{"action":"file.save","params":3}"#,
-                strings::text("message-expect-refused-inner"),
+                strings::text(key!("message-expect-refused-inner")),
             ),
         ] {
             let mut shell = ShellModel::for_tests();

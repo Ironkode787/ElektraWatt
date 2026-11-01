@@ -16,6 +16,8 @@ use std::collections::BTreeMap;
 
 use crate::canvas::{CanvasModel, PageId, Viewport};
 use crate::history::History;
+use crate::key;
+use crate::strings::Key;
 
 /// The most tabs over both groups.
 pub const MAX_TABS: usize = 32;
@@ -185,9 +187,9 @@ impl CanvasArea {
     /// # Errors
     ///
     /// `reason-tabs-full` with [`MAX_TABS`] tabs.
-    pub fn new_tab(&mut self) -> Result<(), &'static str> {
+    pub fn new_tab(&mut self) -> Result<(), Key<'static>> {
         if self.tab_count() >= MAX_TABS {
-            return Err("reason-tabs-full");
+            return Err(key!("reason-tabs-full"));
         }
         let id = self.take_id();
         let g = &mut self.groups[self.focused];
@@ -209,9 +211,9 @@ impl CanvasArea {
     /// # Errors
     ///
     /// `reason-last-tab` for the project's last tab.
-    pub fn close_tab(&mut self) -> Result<(), &'static str> {
+    pub fn close_tab(&mut self) -> Result<(), Key<'static>> {
         if self.tab_count() <= 1 {
-            return Err("reason-last-tab");
+            return Err(key!("reason-last-tab"));
         }
         let g = &mut self.groups[self.focused];
         g.tabs.remove(g.active);
@@ -230,11 +232,11 @@ impl CanvasArea {
     /// # Errors
     ///
     /// `reason-one-tab` when the group has one tab.
-    pub fn cycle(&mut self, step: isize) -> Result<(), &'static str> {
+    pub fn cycle(&mut self, step: isize) -> Result<(), Key<'static>> {
         let g = &mut self.groups[self.focused];
         let n = g.tabs.len();
         if n <= 1 {
-            return Err("reason-one-tab");
+            return Err(key!("reason-one-tab"));
         }
         g.active = (g.active as isize + step).rem_euclid(n as isize) as usize;
         self.changed();
@@ -252,9 +254,9 @@ impl CanvasArea {
     /// # Errors
     ///
     /// `reason-tabs-full` with [`MAX_TABS`] tabs.
-    pub fn split(&mut self, page: PageId, pane: (f64, f64), ppp: f64) -> Result<(), &'static str> {
+    pub fn split(&mut self, page: PageId, pane: (f64, f64), ppp: f64) -> Result<(), Key<'static>> {
         if self.tab_count() >= MAX_TABS {
-            return Err("reason-tabs-full");
+            return Err(key!("reason-tabs-full"));
         }
         if self.side_by_side() {
             return Ok(());
@@ -283,9 +285,9 @@ impl CanvasArea {
     /// # Errors
     ///
     /// `reason-one-group` without side by side.
-    pub fn focus_other(&mut self) -> Result<(), &'static str> {
+    pub fn focus_other(&mut self) -> Result<(), Key<'static>> {
         if !self.side_by_side() {
-            return Err("reason-one-group");
+            return Err(key!("reason-one-group"));
         }
         self.focused = 1 - self.focused;
         self.changed();
@@ -297,10 +299,10 @@ impl CanvasArea {
     /// # Errors
     ///
     /// `error-bad-param` out of range.
-    pub fn activate(&mut self, group: usize, index: usize) -> Result<(), &'static str> {
-        let g = self.groups.get_mut(group).ok_or("error-bad-param")?;
+    pub fn activate(&mut self, group: usize, index: usize) -> Result<(), Key<'static>> {
+        let g = self.groups.get_mut(group).ok_or(key!("error-bad-param"))?;
         if index >= g.tabs.len() {
-            return Err("error-bad-param");
+            return Err(key!("error-bad-param"));
         }
         g.active = index;
         self.focused = group;
@@ -320,12 +322,12 @@ impl CanvasArea {
         index: usize,
         to_group: usize,
         to_index: usize,
-    ) -> Result<(), &'static str> {
+    ) -> Result<(), Key<'static>> {
         if group >= self.groups.len()
             || to_group >= self.groups.len()
             || index >= self.groups[group].tabs.len()
         {
-            return Err("error-bad-param");
+            return Err(key!("error-bad-param"));
         }
         let src = &mut self.groups[group];
         let tab = src.tabs.remove(index);
@@ -353,12 +355,12 @@ impl CanvasArea {
     /// # Errors
     ///
     /// `reason-tabs-full` with [`MAX_TABS`] tabs; `error-bad-param` for a group out of range.
-    pub fn open(&mut self, page: PageId, group: usize) -> Result<(), &'static str> {
+    pub fn open(&mut self, page: PageId, group: usize) -> Result<(), Key<'static>> {
         if group >= self.groups.len() {
-            return Err("error-bad-param");
+            return Err(key!("error-bad-param"));
         }
         if self.tab_count() >= MAX_TABS {
-            return Err("reason-tabs-full");
+            return Err(key!("reason-tabs-full"));
         }
         let id = self.take_id();
         let g = &mut self.groups[group];
@@ -421,9 +423,9 @@ mod tests {
     fn every_operation_keeps_the_invariants() {
         let mut a = area();
         a.check().unwrap();
-        assert_eq!(a.close_tab(), Err("reason-last-tab"));
-        assert_eq!(a.cycle(1), Err("reason-one-tab"));
-        assert_eq!(a.focus_other(), Err("reason-one-group"));
+        assert_eq!(a.close_tab(), Err(key!("reason-last-tab")));
+        assert_eq!(a.cycle(1), Err(key!("reason-one-tab")));
+        assert_eq!(a.focus_other(), Err(key!("reason-one-group")));
         a.new_tab().unwrap();
         assert_eq!((a.groups[0].active, a.current().id), (1, 2));
         a.cycle(1).unwrap();
@@ -436,7 +438,7 @@ mod tests {
         assert_eq!(a.focused, 0);
         a.open(page(5), 1).unwrap();
         assert_eq!((a.focused, a.groups[1].active, a.current().id), (1, 1, 4));
-        assert_eq!(a.activate(1, 9), Err("error-bad-param"));
+        assert_eq!(a.activate(1, 9), Err(key!("error-bad-param")));
         a.activate(0, 0).unwrap();
         // Move the right group's tabs one by one to the left: the right group goes when empty.
         a.move_tab(1, 0, 0, 0).unwrap();
@@ -466,9 +468,9 @@ mod tests {
         while a.tab_count() < MAX_TABS {
             a.new_tab().unwrap();
         }
-        assert_eq!(a.new_tab(), Err("reason-tabs-full"));
-        assert_eq!(a.split(page(2), (1.0, 1.0), 1.0), Err("reason-tabs-full"));
-        assert_eq!(a.open(page(2), 0), Err("reason-tabs-full"));
+        assert_eq!(a.new_tab(), Err(key!("reason-tabs-full")));
+        assert_eq!(a.split(page(2), (1.0, 1.0), 1.0), Err(key!("reason-tabs-full")));
+        assert_eq!(a.open(page(2), 0), Err(key!("reason-tabs-full")));
         a.check().unwrap();
     }
 

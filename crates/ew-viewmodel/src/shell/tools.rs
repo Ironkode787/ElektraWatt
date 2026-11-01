@@ -29,7 +29,9 @@ use super::canvas_actions::point_mm;
 use super::navigation::bump;
 use super::{Focus, Mode, Outcome, RecordedCommand, ShellModel, failed, flag};
 use crate::canvas::{CanvasModel, CanvasPage, PageId, reading_key};
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::{
     Button, CanvasEvent, LINK_PREVIEW_DWELL_MS, LINK_PREVIEW_PANE, LinkPreview, MarkerKind, Mods, Overlay,
     PreviewInfo, PreviewState, PreviewStatus, ResultNote, Selection, SelectionChange, Tool, ToolCx,
@@ -117,7 +119,7 @@ impl ShellModel {
     /// (cycle 36, play-test rv-txt-2: the switch to the strip list was silent).
     pub fn tool_hint(&self) -> &'static str {
         if self.strip_chooser_open() {
-            return strings::text("hint-choose-strip");
+            return strings::text(key!("hint-choose-strip"));
         }
         strings::text(self.tools.tool.status_hint())
     }
@@ -308,7 +310,7 @@ impl ShellModel {
     pub(super) fn announce_tool(&mut self) {
         let label = tool_label(self.tools.tool.name());
         self.tools.announcement = Some(strings::format(
-            "announce-tool",
+            key!("announce-tool"),
             &[&label, strings::text(self.tools.tool.status_hint())],
         ));
     }
@@ -338,7 +340,7 @@ impl ShellModel {
         // A place tool that asks for the next designation refuses a click or Enter with the reason (WP-S2.04 §7.2).
         if matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate) && self.place_needs_designation() {
             return Outcome::Refused {
-                reason_key: "reason-designation-needed",
+                reason_key: key!("reason-designation-needed"),
             };
         }
         // FIXPT41: the IP tool's click on another interruption point, or an external point's on a pin, is refused in
@@ -381,17 +383,18 @@ impl ShellModel {
                 out
             }
             None => Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             },
         }
     }
 
     /// The words of a tool's refusal: the reason's text, except where it names keys, which come from the keymap
     /// (a refused turn during a layout drag reads as `layout.rotate`'s and `layout.flip`'s refusal; cycle-42 review).
-    pub(super) fn refusal_text(&self, reason_key: &'static str) -> String {
-        match reason_key {
-            "reason-layout-turn" => self.layout_turn_refusal(),
-            key => strings::text(key).to_owned(),
+    pub(super) fn refusal_text(&self, reason_key: Key<'static>) -> String {
+        if reason_key == key!("reason-layout-turn") {
+            self.layout_turn_refusal()
+        } else {
+            strings::text(reason_key).to_owned()
         }
     }
 
@@ -603,7 +606,11 @@ impl ShellModel {
             })
             .collect();
         let count = strings::format(
-            if hints == 1 { "count-wire" } else { "count-wires" },
+            if hints == 1 {
+                key!("count-wire")
+            } else {
+                key!("count-wires")
+            },
             &[&hints.to_string()],
         );
         Some((count, list.join(", ")))
@@ -617,7 +624,7 @@ impl ShellModel {
             return;
         }
         self.tools.announcement = Some(strings::format(
-            "announce-selected",
+            key!("announce-selected"),
             &[&self.tools.selection.items.len().to_string()],
         ));
     }
@@ -633,7 +640,7 @@ impl ShellModel {
         match index {
             Some(i) => self.follow_link(g, i),
             None => Outcome::Refused {
-                reason_key: "reason-no-link",
+                reason_key: key!("reason-no-link"),
             },
         }
     }
@@ -713,9 +720,9 @@ impl ShellModel {
         if !self.is_writable() {
             return Outcome::Refused {
                 reason_key: if self.has_project() {
-                    "reason-read-only"
+                    key!("reason-read-only")
                 } else {
-                    "reason-no-project"
+                    key!("reason-no-project")
                 },
             };
         }
@@ -737,7 +744,7 @@ impl ShellModel {
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let result = match kept.map(|p| p.result) {
@@ -849,7 +856,7 @@ impl ShellModel {
                 self.activate_tool(tool);
                 Outcome::Done
             }
-            None => failed("error-unknown-action", &[name]),
+            None => failed(key!("error-unknown-action"), &[name]),
         }
     }
 
@@ -860,7 +867,7 @@ impl ShellModel {
     pub(crate) fn act_press(&mut self, p: &Map<String, Value>, release: bool) -> Outcome {
         let at = match point_mm(p) {
             Ok(Some(at)) => at,
-            Ok(None) => return failed("error-missing-param", &["x_mm"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["x_mm"]),
             Err(e) => return e,
         };
         let button = match p.get("button") {
@@ -868,7 +875,7 @@ impl ShellModel {
             Some(v) => match v.as_str() {
                 Some("primary") => Button::Primary,
                 Some("middle") => Button::Middle,
-                _ => return failed("error-bad-param", &["button"]),
+                _ => return failed(key!("error-bad-param"), &["button"]),
             },
         };
         if button == Button::Primary {
@@ -882,7 +889,7 @@ impl ShellModel {
                 self.tools.press_held = false;
                 self.tools.drop_release = true;
                 return Outcome::Refused {
-                    reason_key: "reason-choose-strip",
+                    reason_key: key!("reason-choose-strip"),
                 };
             }
             // A new press: a release that never came is forgotten (before the focus moves, so the press's own
@@ -905,7 +912,7 @@ impl ShellModel {
         self.sync_tool_context();
         let Some(c) = self.canvas_mut(g) else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         c.set_pointer(Some(at));
@@ -936,15 +943,15 @@ impl ShellModel {
     /// wants hover) the link preview shows its target; the tool gets `Dwell` either way.
     pub(crate) fn act_dwell(&mut self, p: &Map<String, Value>) -> Outcome {
         let ms = match p.get("ms") {
-            None => return failed("error-missing-param", &["ms"]),
+            None => return failed(key!("error-missing-param"), &["ms"]),
             Some(v) => match v.as_u64().and_then(|m| u32::try_from(m).ok()).filter(|m| *m > 0) {
                 Some(ms) => ms,
-                None => return failed("error-bad-param", &["ms"]),
+                None => return failed(key!("error-bad-param"), &["ms"]),
             },
         };
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         if ms >= LINK_PREVIEW_DWELL_MS && self.tools.tool.wants_hover() {
@@ -975,7 +982,7 @@ impl ShellModel {
         }
         let Some(at) = self.canvas().and_then(CanvasModel::cursor) else {
             return Outcome::Refused {
-                reason_key: "reason-no-cursor",
+                reason_key: key!("reason-no-cursor"),
             };
         };
         let mods = Mods {
@@ -1016,7 +1023,7 @@ impl ShellModel {
         }
         let Some(at) = self.canvas().and_then(CanvasModel::cursor) else {
             return Outcome::Refused {
-                reason_key: "reason-no-cursor",
+                reason_key: key!("reason-no-cursor"),
             };
         };
         let _ = self.send_tool(&CanvasEvent::CursorMove { at });
@@ -1039,7 +1046,7 @@ impl ShellModel {
         let last = self.tools.last_cp.clone();
         let Some(c) = self.canvas_mut(g) else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let page = Arc::clone(c.page());
@@ -1049,9 +1056,9 @@ impl ShellModel {
         let (Some(&first), Some(&end)) = (candidates.first(), candidates.last()) else {
             return Outcome::Refused {
                 reason_key: if page.cps.is_empty() {
-                    "reason-no-cp"
+                    key!("reason-no-cp")
                 } else {
-                    "reason-no-unconnected-cp"
+                    key!("reason-no-unconnected-cp")
                 },
             };
         };
@@ -1103,14 +1110,14 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
             path,
             message,
         } => failed(
-            "error-command-field",
+            key!("error-command-field"),
             &[
                 strings::command_title(command),
                 &param_words(params, path),
                 message,
             ],
         ),
-        other => failed("error-command", &[&other.to_string()]),
+        other => failed(key!("error-command"), &[&other.to_string()]),
     }
 }
 
@@ -1129,7 +1136,7 @@ pub(crate) fn param_words(params: &Value, path: &str) -> String {
     }
     let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
     let Some(at) = segments.iter().rposition(|s| s.parse::<usize>().is_err()) else {
-        return strings::text("error-param-whole").to_owned();
+        return strings::text(key!("error-param-whole")).to_owned();
     };
     let base = match segments[at] {
         "ips" => "Interruption points".to_owned(),
@@ -1139,7 +1146,7 @@ pub(crate) fn param_words(params: &Value, path: &str) -> String {
         other => strings::field_label("", other),
     };
     match segments.get(at + 1).and_then(|s| s.parse::<usize>().ok()) {
-        Some(i) => strings::format("error-param-item", &[&base, &(i + 1).to_string()]),
+        Some(i) => strings::format(key!("error-param-item"), &[&base, &(i + 1).to_string()]),
         None => base,
     }
 }

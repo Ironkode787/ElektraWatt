@@ -23,6 +23,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use egui::{ColorImage, TextureHandle, TextureOptions, Ui, Vec2};
 use ew_render_cpu::{RenderOptions, RgbaImage, SheetSize, pixel_size, render};
 use ew_viewmodel::ew_api::output::{ExportPages, font_bytes};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 
@@ -43,7 +44,7 @@ pub fn render_page(pages: &ExportPages, dpi: u32) -> Result<RgbaImage, String> {
     let page = pages
         .pages
         .first()
-        .ok_or_else(|| strings::text("page-no-pages").to_owned())?;
+        .ok_or_else(|| strings::text(key!("page-no-pages")).to_owned())?;
     let sheet = SheetSize {
         width: page.width,
         height: page.height,
@@ -54,7 +55,7 @@ pub fn render_page(pages: &ExportPages, dpi: u32) -> Result<RgbaImage, String> {
     };
     render(&page.content, sheet, &options, font_bytes(), None)
         .map(|(image, _report)| image)
-        .map_err(|e| strings::format("error-render", &[&e.to_string()]))
+        .map_err(|e| strings::format(key!("error-render"), &[&e.to_string()]))
 }
 
 /// The display dpi: the largest multiple of 12 in `36..=200` at which `pages`' sheet fits `pane_px` (the pane in
@@ -142,7 +143,7 @@ impl PageView {
     /// Paints the current page of `shell` into `ui`: the image when it is there, else the waiting text.
     pub fn show(&mut self, ui: &mut Ui, shell: &ShellModel) {
         let (Some(folio), Some(rev)) = (shell.current_folio(), shell.revision()) else {
-            ui.label(strings::text("page-no-pages"));
+            ui.label(strings::text(key!("page-no-pages")));
             return;
         };
         let folio = folio.to_owned();
@@ -166,7 +167,7 @@ impl PageView {
             return;
         }
         let Some(content) = &self.content else {
-            ui.label(strings::format("page-rendering", &[&folio]));
+            ui.label(strings::format(key!("page-rendering"), &[&folio]));
             return;
         };
         let ppp = ui.ctx().pixels_per_point();
@@ -204,7 +205,7 @@ impl PageView {
                 );
             }
             _ => {
-                ui.label(strings::format("page-rendering", &[&folio]));
+                ui.label(strings::format(key!("page-rendering"), &[&folio]));
             }
         }
     }

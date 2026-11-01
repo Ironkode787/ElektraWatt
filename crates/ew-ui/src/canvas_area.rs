@@ -24,6 +24,7 @@ use egui_tiles::{
     UiResponse,
 };
 use ew_viewmodel::area::CanvasArea;
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::json;
@@ -271,10 +272,10 @@ impl AreaBehavior<'_> {
         };
         let mut badges = Vec::new();
         if row.qet_grid {
-            badges.push(strings::text("badge-qet-grid"));
+            badges.push(strings::text(key!("badge-qet-grid")));
         }
         if row.generated {
-            badges.push(strings::text("badge-generated"));
+            badges.push(strings::text(key!("badge-generated")));
         }
         (self.shell.tab_title(tab), badges, row.folio.clone())
     }
@@ -400,7 +401,7 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
         let close_rect = egui::Align2::RIGHT_CENTER.align_size_within_rect(close, rect.shrink(margin));
         let close_id = id.with("close");
         let close_response = ui.interact(close_rect, close_id, Sense::click());
-        let close_name = strings::format("tab-close-name", &[&folio]);
+        let close_name = strings::format(key!("tab-close-name"), &[&folio]);
         close_response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &close_name));
         let stroke = ui.style().interact(&close_response).fg_stroke;
         let x = close_rect.shrink(self.close_button_inner_margin());

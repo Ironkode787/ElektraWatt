@@ -30,7 +30,9 @@ use serde_json::{Map, Value};
 use super::creation::{FormDialog, FormField};
 use super::tools::command_failed;
 use super::{Dialog, Outcome, ShellModel, failed, string_param};
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 /// The action of Approve revision.
 pub(crate) const APPROVE: &str = "revision.approve";
@@ -116,7 +118,7 @@ fn finding_line(f: &Finding) -> String {
     if f.subject.is_empty() || f.message.starts_with(&f.subject) {
         f.message.clone()
     } else {
-        strings::format("revision-finding", &[&f.subject, &f.message])
+        strings::format(key!("revision-finding"), &[&f.subject, &f.message])
     }
 }
 
@@ -125,7 +127,10 @@ fn finding_list<'a>(findings: impl ExactSizeIterator<Item = &'a Finding>) -> Vec
     let total = findings.len();
     let mut list: Vec<String> = findings.take(LISTED).map(finding_line).collect();
     if total > LISTED {
-        list.push(strings::format("revision-more", &[&(total - LISTED).to_string()]));
+        list.push(strings::format(
+            key!("revision-more"),
+            &[&(total - LISTED).to_string()],
+        ));
     }
     list
 }
@@ -146,7 +151,7 @@ fn role_words(role: &PartyRole) -> String {
 /// A form field.
 fn field(
     name: &'static str,
-    label_key: &'static str,
+    label_key: Key<'static>,
     choices: &'static [&'static str],
     value: String,
 ) -> FormField {
@@ -163,9 +168,9 @@ fn field(
 /// sentence ends on "could not be read" (never the OS text or its code).
 fn io_cause(kind: std::io::ErrorKind) -> &'static str {
     match kind {
-        std::io::ErrorKind::NotFound => strings::text("release-cause-not-found"),
-        std::io::ErrorKind::PermissionDenied => strings::text("release-cause-denied"),
-        std::io::ErrorKind::NotADirectory => strings::text("release-cause-not-folder"),
+        std::io::ErrorKind::NotFound => strings::text(key!("release-cause-not-found")),
+        std::io::ErrorKind::PermissionDenied => strings::text(key!("release-cause-denied")),
+        std::io::ErrorKind::NotADirectory => strings::text(key!("release-cause-not-folder")),
         _ => "",
     }
 }
@@ -174,30 +179,30 @@ fn io_cause(kind: std::io::ErrorKind) -> &'static str {
 /// (FIX41b ruling 6).
 pub(crate) fn trouble_text(t: &ReleaseTrouble) -> String {
     let key = match t.what {
-        TroubleKind::RecordNotRemoved => "release-trouble-not-removed",
-        TroubleKind::RecordsNotRead => "release-trouble-not-read",
-        TroubleKind::RecordNotUpdated => "release-trouble-not-updated",
+        TroubleKind::RecordNotRemoved => key!("release-trouble-not-removed"),
+        TroubleKind::RecordsNotRead => key!("release-trouble-not-read"),
+        TroubleKind::RecordNotUpdated => key!("release-trouble-not-updated"),
     };
     strings::format(key, &[&t.file_name(), io_cause(t.kind)])
 }
 
 /// The key of a count's text: `one` for exactly one, `many` otherwise (FIX41b ruling 4: "counts take their noun's
 /// number").
-fn counted(n: usize, one: &'static str, many: &'static str) -> &'static str {
+fn counted(n: usize, one: Key<'static>, many: Key<'static>) -> Key<'static> {
     if n == 1 { one } else { many }
 }
 
 /// Why the release gate cannot run, in words (FIX41b ruling 1: never the `Display` text).
 fn gate_words(e: &GateError) -> String {
     match e {
-        GateError::NoProject => strings::text("gate-no-project").to_owned(),
-        GateError::Unsaved => strings::text("gate-unsaved").to_owned(),
-        GateError::IncompleteSave => strings::text("gate-incomplete-save").to_owned(),
-        GateError::NoManifest => strings::text("gate-no-manifest").to_owned(),
-        GateError::Digest(_) => strings::text("gate-digest").to_owned(),
-        GateError::NoOpenRevision { .. } => strings::text("gate-no-open-revision").to_owned(),
+        GateError::NoProject => strings::text(key!("gate-no-project")).to_owned(),
+        GateError::Unsaved => strings::text(key!("gate-unsaved")).to_owned(),
+        GateError::IncompleteSave => strings::text(key!("gate-incomplete-save")).to_owned(),
+        GateError::NoManifest => strings::text(key!("gate-no-manifest")).to_owned(),
+        GateError::Digest(_) => strings::text(key!("gate-digest")).to_owned(),
+        GateError::NoOpenRevision { .. } => strings::text(key!("gate-no-open-revision")).to_owned(),
         GateError::NotTheOpenRevision { label, open } => {
-            strings::format("gate-not-open-revision", &[label, open])
+            strings::format(key!("gate-not-open-revision"), &[label, open])
         }
     }
 }
@@ -210,13 +215,13 @@ fn waiver_words(report: &CheckReport, waiver: &str) -> String {
         .iter()
         .find(|f| matches!(&f.state, FindingState::Waived { waiver: w } if w == waiver));
     let Some(f) = finding else {
-        return strings::text("revision-waiver-gone").to_owned();
+        return strings::text(key!("revision-waiver-gone")).to_owned();
     };
     let title = ew_api::checks::rule(f.rule).map_or_else(|| f.rule.to_owned(), |r| r.meta().title.to_owned());
     if f.subject.is_empty() {
         title
     } else {
-        strings::format("revision-waiver", &[&title, &f.subject])
+        strings::format(key!("revision-waiver"), &[&title, &f.subject])
     }
 }
 
@@ -227,13 +232,13 @@ fn approve_words(e: &ApproveError, report: Option<&CheckReport>, params: &Value)
     let reason = match e {
         // Whole sentences of their own.
         ApproveError::Command(c) => return refusal_text(command_failed(c, params)),
-        ApproveError::Gate(g) => return strings::format("revision-gate-error", &[&gate_words(g)]),
-        ApproveError::NoAuthor { label } => return strings::format("revision-no-author", &[label]),
+        ApproveError::Gate(g) => return strings::format(key!("revision-gate-error"), &[&gate_words(g)]),
+        ApproveError::NoAuthor { label } => return strings::format(key!("revision-no-author"), &[label]),
         // Reasons the sentence "The approval was refused: …." takes.
-        ApproveError::ReadOnly => strings::text("approve-read-only").to_owned(),
-        ApproveError::FourEyes { role } => strings::format("approve-four-eyes", &[&role_words(role)]),
+        ApproveError::ReadOnly => strings::text(key!("approve-read-only")).to_owned(),
+        ApproveError::FourEyes { role } => strings::format(key!("approve-four-eyes"), &[&role_words(role)]),
         ApproveError::Blocked(list) => strings::format(
-            counted(list.len(), "approve-blocked-one", "approve-blocked"),
+            counted(list.len(), key!("approve-blocked-one"), key!("approve-blocked")),
             &[&list.len().to_string()],
         ),
         ApproveError::Unacknowledged(ids) => {
@@ -241,15 +246,15 @@ fn approve_words(e: &ApproveError, report: Option<&CheckReport>, params: &Value)
                 .iter()
                 .map(|id| {
                     report.map_or_else(
-                        || strings::text("revision-waiver-gone").to_owned(),
+                        || strings::text(key!("revision-waiver-gone")).to_owned(),
                         |r| waiver_words(r, &id.to_string()),
                     )
                 })
                 .collect();
-            strings::format("approve-unacknowledged", &[&named.join("; ")])
+            strings::format(key!("approve-unacknowledged"), &[&named.join("; ")])
         }
     };
-    strings::format("error-revision-approve", &[&reason])
+    strings::format(key!("error-revision-approve"), &[&reason])
 }
 
 /// The message of a refusal [`Outcome`] (a command's refusal in words).
@@ -265,55 +270,62 @@ fn refusal_text(out: Outcome) -> String {
 /// of paths (`paths` lists the ones a reason given in words may name); never the `Display` text, which stays the
 /// CLI's. A match without a wildcard, so a new variant needs its words.
 fn release_words(e: &ReleaseError, paths: &[PathBuf]) -> String {
-    let text = |key: &str| strings::text(key).to_owned();
+    let text = |key: Key<'_>| strings::text(key).to_owned();
     match e {
-        ReleaseError::HumanOnly { .. } => text("release-error-person"),
-        ReleaseError::Gate(g) => strings::format("release-error-gate", &[&gate_words(g)]),
-        ReleaseError::ReadOnly => text("release-error-read-only"),
+        ReleaseError::HumanOnly { .. } => text(key!("release-error-person")),
+        ReleaseError::Gate(g) => strings::format(key!("release-error-gate"), &[&gate_words(g)]),
+        ReleaseError::ReadOnly => text(key!("release-error-read-only")),
         ReleaseError::Blocked(list) => strings::format(
-            counted(list.len(), "release-error-blocked-one", "release-error-blocked"),
+            counted(
+                list.len(),
+                key!("release-error-blocked-one"),
+                key!("release-error-blocked"),
+            ),
             &[&list.len().to_string()],
         ),
         ReleaseError::ArchiveRoot { root, why } => {
-            strings::format("release-error-archive-root", &[&file_name(root), why])
+            strings::format(key!("release-error-archive-root"), &[&file_name(root), why])
         }
         ReleaseError::Incomplete { archive } => {
-            strings::format("release-error-incomplete", &[&file_name(archive)])
+            strings::format(key!("release-error-incomplete"), &[&file_name(archive)])
         }
-        ReleaseError::GitConsent { tag, .. } => strings::format("release-error-git-consent", &[tag]),
-        ReleaseError::TagExists { tag } => strings::format("release-error-tag-exists", &[tag]),
-        ReleaseError::Git(_) => text("release-error-git"),
-        ReleaseError::Freeze(_) => text("release-error-freeze"),
+        ReleaseError::GitConsent { tag, .. } => strings::format(key!("release-error-git-consent"), &[tag]),
+        ReleaseError::TagExists { tag } => strings::format(key!("release-error-tag-exists"), &[tag]),
+        ReleaseError::Git(_) => text(key!("release-error-git")),
+        ReleaseError::Freeze(_) => text(key!("release-error-freeze")),
         ReleaseError::FreezeChangesPages { pages } => strings::format(
             counted(
                 pages.len(),
-                "release-error-freeze-pages-one",
-                "release-error-freeze-pages",
+                key!("release-error-freeze-pages-one"),
+                key!("release-error-freeze-pages"),
             ),
             &[&pages.len().to_string()],
         ),
-        ReleaseError::Save(_) => text("release-error-save"),
-        ReleaseError::Generation(_) => text("release-error-generation"),
-        ReleaseError::Output(_) => text("release-error-output"),
-        ReleaseError::Archive(_) => text("release-error-archive"),
-        ReleaseError::Write(_) => text("release-error-write"),
-        ReleaseError::Tag(_) => text("release-error-tag"),
-        ReleaseError::Stamp(_) => text("release-error-stamp"),
-        ReleaseError::Unsettled(_) => text("release-error-unsettled"),
-        ReleaseError::Undecided(_) => text("release-error-undecided"),
-        ReleaseError::Io { path, error } => {
-            strings::format("release-error-io", &[&file_name(path), io_cause(error.kind())])
-        }
-        ReleaseError::NoIncomplete => text("release-error-no-incomplete"),
+        ReleaseError::Save(_) => text(key!("release-error-save")),
+        ReleaseError::Generation(_) => text(key!("release-error-generation")),
+        ReleaseError::Output(_) => text(key!("release-error-output")),
+        ReleaseError::Archive(_) => text(key!("release-error-archive")),
+        ReleaseError::Write(_) => text(key!("release-error-write")),
+        ReleaseError::Tag(_) => text(key!("release-error-tag")),
+        ReleaseError::Stamp(_) => text(key!("release-error-stamp")),
+        ReleaseError::Unsettled(_) => text(key!("release-error-unsettled")),
+        ReleaseError::Undecided(_) => text(key!("release-error-undecided")),
+        ReleaseError::Io { path, error } => strings::format(
+            key!("release-error-io"),
+            &[&file_name(path), io_cause(error.kind())],
+        ),
+        ReleaseError::NoIncomplete => text(key!("release-error-no-incomplete")),
         ReleaseError::NotCompletable(why) => {
-            strings::format("release-error-not-completable", &[&path_free(why, paths)])
+            strings::format(key!("release-error-not-completable"), &[&path_free(why, paths)])
         }
-        ReleaseError::Foreign(why) => strings::format("release-error-foreign", &[&path_free(why, paths)]),
+        ReleaseError::Foreign(why) => {
+            strings::format(key!("release-error-foreign"), &[&path_free(why, paths)])
+        }
         ReleaseError::Unproven { why, completable } => strings::format(
             if *completable {
-                "release-error-unproven"
+                key!("release-error-unproven")
             } else {
-                "release-error-unproven-kept"
+                key!("release-error-unproven-kept")
             },
             &[&path_free(why, paths)],
         ),
@@ -462,7 +474,7 @@ impl ShellModel {
         self.fetch_messages_table();
         // Its own key, so it does not replace the release's toast (a toast of a visible key replaces that one).
         self.notify_with(
-            strings::format("toast-release-troubles", &[&count.to_string()]),
+            strings::format(key!("toast-release-troubles"), &[&count.to_string()]),
             "release",
             false,
         );
@@ -473,12 +485,12 @@ impl ShellModel {
     fn revision_start(&mut self, action: &str, p: &Map<String, Value>) -> Option<Outcome> {
         if !self.has_project() {
             return Some(Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             });
         }
         if !self.is_writable() {
             return Some(Outcome::Refused {
-                reason_key: "reason-read-only",
+                reason_key: key!("reason-read-only"),
             });
         }
         match super::jobs::bool_param(p, "cancel", false) {
@@ -506,7 +518,7 @@ impl ShellModel {
                 None => continue,
                 Some(Value::String(s)) => s.clone(),
                 Some(Value::Bool(b)) => b.to_string(),
-                Some(_) => return Err(failed("error-bad-param", &[name])),
+                Some(_) => return Err(failed(key!("error-bad-param"), &[name])),
             };
             if let Some(Dialog::Form(f)) = &mut self.dialog
                 && let Some(x) = f.fields.iter_mut().find(|x| x.name == *name)
@@ -527,7 +539,7 @@ impl ShellModel {
             .map(str::parse::<ew_api::catalog::Date>)
         {
             Some(Ok(d)) => Ok(d),
-            _ => Err(self.revision_failed(strings::format("error-missing-param", &["date"]))),
+            _ => Err(self.revision_failed(strings::format(key!("error-missing-param"), &["date"]))),
         }
     }
 
@@ -537,7 +549,7 @@ impl ShellModel {
         if self.person {
             Ok(())
         } else {
-            Err(self.revision_failed(strings::text("error-revision-person").to_owned()))
+            Err(self.revision_failed(strings::text(key!("error-revision-person")).to_owned()))
         }
     }
 
@@ -555,8 +567,8 @@ impl ShellModel {
     fn open_revision_form(
         &mut self,
         action: &'static str,
-        title_key: &'static str,
-        ok_key: &'static str,
+        title_key: Key<'static>,
+        ok_key: Key<'static>,
         fields: Vec<FormField>,
     ) -> Outcome {
         self.open_dialog(Dialog::Form(FormDialog {
@@ -607,7 +619,7 @@ impl ShellModel {
             let rev = p.session.world().rev.0;
             self.markers.push(super::HistoryMarker {
                 rev,
-                text: strings::text("marker-saved").to_owned(),
+                text: strings::text(key!("marker-saved")).to_owned(),
             });
         }
     }
@@ -626,7 +638,7 @@ impl ShellModel {
         }
         let Some(label) = self.open_revision_label() else {
             return Outcome::Refused {
-                reason_key: "reason-no-open-revision",
+                reason_key: key!("reason-no-open-revision"),
             };
         };
         if !self.in_form_of(APPROVE) {
@@ -647,10 +659,10 @@ impl ShellModel {
             return self.revision_failed(message);
         }
         let Some(role) = role_of(&self.form_value("role")) else {
-            return self.revision_failed(strings::text("error-revision-role").to_owned());
+            return self.revision_failed(strings::text(key!("error-revision-role")).to_owned());
         };
         if self.form_value("typed") != label {
-            return self.revision_failed(strings::format("error-revision-typed", &[&label]));
+            return self.revision_failed(strings::format(key!("error-revision-typed"), &[&label]));
         }
         let date = match self.revision_date() {
             Ok(d) => d,
@@ -663,7 +675,8 @@ impl ShellModel {
         {
             Some(Ok(g)) => g,
             Some(Err(e)) => {
-                return self.revision_failed(strings::format("revision-gate-error", &[&gate_words(&e)]));
+                return self
+                    .revision_failed(strings::format(key!("revision-gate-error"), &[&gate_words(&e)]));
             }
             None => return Outcome::Done,
         };
@@ -691,7 +704,7 @@ impl ShellModel {
         self.revision_done();
         let saved = self.act_save();
         self.notify_with(
-            strings::format("toast-revision-approved", &[&label]),
+            strings::format(key!("toast-revision-approved"), &[&label]),
             "edit",
             false,
         );
@@ -712,19 +725,19 @@ impl ShellModel {
         let mut list = Vec::new();
         let mut blocked = true;
         match (&author, gate) {
-            (None, _) => body.push(strings::format("revision-no-author", &[label])),
-            (_, Err(e)) => body.push(strings::format("revision-gate-error", &[&gate_words(&e)])),
+            (None, _) => body.push(strings::format(key!("revision-no-author"), &[label])),
+            (_, Err(e)) => body.push(strings::format(key!("revision-gate-error"), &[&gate_words(&e)])),
             (Some(author), Ok(gate)) => {
                 let blockers = gate.approval_blockers();
                 if blockers.is_empty() {
                     blocked = false;
                     body.push(strings::format(
-                        "revision-approve-text",
+                        key!("revision-approve-text"),
                         &[label, &role_words(author)],
                     ));
                     if !gate.safety_waivers.is_empty() {
                         body.push(strings::format(
-                            "revision-waivers",
+                            key!("revision-waivers"),
                             &[&gate.safety_waivers.len().to_string()],
                         ));
                     }
@@ -732,8 +745,8 @@ impl ShellModel {
                     body.push(strings::format(
                         counted(
                             blockers.len(),
-                            "revision-approve-blocked-one",
-                            "revision-approve-blocked",
+                            key!("revision-approve-blocked-one"),
+                            key!("revision-approve-blocked"),
                         ),
                         &[&blockers.len().to_string()],
                     ));
@@ -745,15 +758,20 @@ impl ShellModel {
             Vec::new()
         } else {
             vec![
-                field("role", "form-revision-checker", ROLES, "checker".to_owned()),
-                field("typed", "form-revision-typed", &[], String::new()),
+                field("role", key!("form-revision-checker"), ROLES, "checker".to_owned()),
+                field("typed", key!("form-revision-typed"), &[], String::new()),
             ]
         };
         self.revision.label = label.to_owned();
         self.revision.body = body;
         self.revision.list = list;
         self.revision.blocked = blocked;
-        self.open_revision_form(APPROVE, "revision-approve-title", "dialog-approve", fields);
+        self.open_revision_form(
+            APPROVE,
+            key!("revision-approve-title"),
+            key!("dialog-approve"),
+            fields,
+        );
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -770,7 +788,7 @@ impl ShellModel {
         }
         let Some(label) = self.open_revision_label() else {
             return Outcome::Refused {
-                reason_key: "reason-no-open-revision",
+                reason_key: key!("reason-no-open-revision"),
             };
         };
         if !self.in_form_of(RELEASE) {
@@ -799,7 +817,7 @@ impl ShellModel {
             return self.revision_failed(message);
         }
         if self.form_value("typed") != label {
-            return self.revision_failed(strings::format("error-revision-typed", &[&label]));
+            return self.revision_failed(strings::format(key!("error-revision-typed"), &[&label]));
         }
         let git = ew_api::git::GitExe::default();
         let plan = match self.project.as_ref().map(|p| {
@@ -812,7 +830,7 @@ impl ShellModel {
             Some(Ok(plan)) => plan,
             Some(Err(e)) => {
                 let text = self.release_error_text(&e);
-                return self.revision_failed(strings::format("error-revision-release", &[&text]));
+                return self.revision_failed(strings::format(key!("error-revision-release"), &[&text]));
             }
             None => return Outcome::Done,
         };
@@ -820,7 +838,7 @@ impl ShellModel {
         if let Some((_, tag)) = &plan.git
             && !consent
         {
-            return self.revision_failed(strings::format("error-revision-git", &[tag]));
+            return self.revision_failed(strings::format(key!("error-revision-git"), &[tag]));
         }
         let date = match self.revision_date() {
             Ok(d) => d,
@@ -848,7 +866,7 @@ impl ShellModel {
                 self.revision_saved();
                 self.notify_with(
                     strings::format(
-                        "toast-revision-released",
+                        key!("toast-revision-released"),
                         &[&done.label, &file_name(&done.archive)],
                     ),
                     "edit",
@@ -861,7 +879,7 @@ impl ShellModel {
                     self.revision.list = finding_list(list.iter());
                 }
                 let text = self.release_error_text(&e);
-                self.revision_failed(strings::format("error-revision-release", &[&text]))
+                self.revision_failed(strings::format(key!("error-revision-release"), &[&text]))
             }
         };
         self.drain_release_troubles();
@@ -885,11 +903,19 @@ impl ShellModel {
         let (body, blocked) = match judged {
             Ok(plan) => {
                 list = self.release_steps(label, &plan);
-                fields.push(field("typed", "form-revision-typed", &[], String::new()));
+                fields.push(field("typed", key!("form-revision-typed"), &[], String::new()));
                 if plan.git.is_some() {
-                    fields.push(field("git", "form-revision-git", TOGGLE, "false".to_owned()));
+                    fields.push(field(
+                        "git",
+                        key!("form-revision-git"),
+                        TOGGLE,
+                        "false".to_owned(),
+                    ));
                 }
-                (vec![strings::text("revision-release-text").to_owned()], false)
+                (
+                    vec![strings::text(key!("revision-release-text")).to_owned()],
+                    false,
+                )
             }
             Err(ReleaseError::Blocked(findings)) => {
                 list = finding_list(findings.iter());
@@ -897,8 +923,8 @@ impl ShellModel {
                     vec![strings::format(
                         counted(
                             findings.len(),
-                            "revision-release-blocked-one",
-                            "revision-release-blocked",
+                            key!("revision-release-blocked-one"),
+                            key!("revision-release-blocked"),
                         ),
                         &[&findings.len().to_string()],
                     )],
@@ -907,7 +933,7 @@ impl ShellModel {
             }
             Err(e) => (
                 vec![strings::format(
-                    "revision-release-cannot",
+                    key!("revision-release-cannot"),
                     &[&self.release_error_text(&e)],
                 )],
                 true,
@@ -917,35 +943,40 @@ impl ShellModel {
         self.revision.body = body;
         self.revision.list = list;
         self.revision.blocked = blocked;
-        self.open_revision_form(RELEASE, "revision-release-title", "dialog-release", fields);
+        self.open_revision_form(
+            RELEASE,
+            key!("revision-release-title"),
+            key!("dialog-release"),
+            fields,
+        );
     }
 
     /// The six steps of a release as the Release form lists them.
     fn release_steps(&self, label: &str, plan: &ReleasePlan) -> Vec<String> {
         let folder = plan.archive.parent().map(file_name).unwrap_or_default();
         let mut steps = vec![
-            strings::text("revision-step-gate").to_owned(),
-            strings::text("revision-step-freeze").to_owned(),
+            strings::text(key!("revision-step-gate")).to_owned(),
+            strings::text(key!("revision-step-freeze")).to_owned(),
         ];
         match &plan.git {
             Some((_, tag)) => {
-                steps.push(strings::text("revision-step-commit").to_owned());
+                steps.push(strings::text(key!("revision-step-commit")).to_owned());
                 steps.push(strings::format(
-                    "revision-step-archive",
+                    key!("revision-step-archive"),
                     &[&file_name(&plan.archive), &folder],
                 ));
-                steps.push(strings::format("revision-step-tag", &[tag]));
+                steps.push(strings::format(key!("revision-step-tag"), &[tag]));
             }
             None => {
-                steps.push(strings::text("revision-step-no-commit").to_owned());
+                steps.push(strings::text(key!("revision-step-no-commit")).to_owned());
                 steps.push(strings::format(
-                    "revision-step-archive",
+                    key!("revision-step-archive"),
                     &[&file_name(&plan.archive), &folder],
                 ));
-                steps.push(strings::text("revision-step-no-tag").to_owned());
+                steps.push(strings::text(key!("revision-step-no-tag")).to_owned());
             }
         }
-        steps.push(strings::format("revision-step-stamp", &[label]));
+        steps.push(strings::format(key!("revision-step-stamp"), &[label]));
         steps
     }
 
@@ -974,7 +1005,7 @@ impl ShellModel {
         let Some(found) = found else {
             self.revision.incomplete = None;
             return Outcome::Refused {
-                reason_key: "reason-no-incomplete-release",
+                reason_key: key!("reason-no-incomplete-release"),
             };
         };
         self.revision.incomplete = Some(found);
@@ -982,7 +1013,7 @@ impl ShellModel {
             Err(e) => return e,
             Ok(Some("complete")) => Some(COMPLETE),
             Ok(Some("discard")) => Some(DISCARD),
-            Ok(Some(_)) => return failed("error-bad-param", &["how"]),
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["how"]),
             Ok(None) => None,
         };
         let confirm = match super::jobs::bool_param(p, "confirm", false) {
@@ -991,7 +1022,7 @@ impl ShellModel {
         };
         let Some(how) = how else {
             if confirm {
-                return failed("error-missing-param", &["how"]);
+                return failed(key!("error-missing-param"), &["how"]);
             }
             if !self.in_form_of(INCOMPLETE) || self.settle_stage().is_some() {
                 self.open_incomplete();
@@ -1003,12 +1034,12 @@ impl ShellModel {
                 if how == COMPLETE {
                     f.refusal.as_ref().map(|why| {
                         let paths = self.release_paths(&[&f.archive]);
-                        strings::format("revision-incomplete-refused", &[&path_free(why, &paths)])
+                        strings::format(key!("revision-incomplete-refused"), &[&path_free(why, &paths)])
                     })
                 } else {
                     f.unproven
                         .as_ref()
-                        .map(|_| strings::text("revision-incomplete-unproven").to_owned())
+                        .map(|_| strings::text(key!("revision-incomplete-unproven")).to_owned())
                 }
             });
             if let Some(message) = refusal {
@@ -1033,11 +1064,11 @@ impl ShellModel {
         if how == COMPLETE {
             match self.project.as_ref().map(|p| p.session.settle_git(&label, &git)) {
                 Some(Ok(Some((_, tag)))) if !consent => {
-                    return self.revision_failed(strings::format("error-revision-git", &[&tag]));
+                    return self.revision_failed(strings::format(key!("error-revision-git"), &[&tag]));
                 }
                 Some(Err(e)) => {
                     let text = self.release_error_text(&e);
-                    return self.revision_failed(strings::format("error-revision-settle", &[&text]));
+                    return self.revision_failed(strings::format(key!("error-revision-settle"), &[&text]));
                 }
                 _ => {}
             }
@@ -1054,7 +1085,7 @@ impl ShellModel {
                     .complete_release_as(&origin, &integrity, &options)
                     .map(|done| {
                         strings::format(
-                            "toast-revision-released",
+                            key!("toast-revision-released"),
                             &[&done.label, &file_name(&done.archive)],
                         )
                     })
@@ -1062,7 +1093,7 @@ impl ShellModel {
             Some(p) => p
                 .session
                 .discard_incomplete_release_as(&origin, &options)
-                .map(|_| strings::format("toast-revision-discarded", &[&label])),
+                .map(|_| strings::format(key!("toast-revision-discarded"), &[&label])),
             None => return Outcome::Done,
         };
         self.revision.integrity = integrity;
@@ -1078,7 +1109,7 @@ impl ShellModel {
             }
             Err(e) => {
                 let text = self.release_error_text(&e);
-                self.revision_failed(strings::format("error-revision-settle", &[&text]))
+                self.revision_failed(strings::format(key!("error-revision-settle"), &[&text]))
             }
         };
         self.drain_release_troubles();
@@ -1091,19 +1122,19 @@ impl ShellModel {
             return Outcome::Done;
         };
         let mut body = vec![strings::format(
-            "revision-incomplete-text",
+            key!("revision-incomplete-text"),
             &[&found.label, &file_name(&found.archive)],
         )];
         let paths = self.release_paths(&[&found.archive]);
         match &found.refusal {
             Some(why) => body.push(strings::format(
-                "revision-incomplete-refused",
+                key!("revision-incomplete-refused"),
                 &[&path_free(why, &paths)],
             )),
-            None => body.push(strings::text("revision-incomplete-complete").to_owned()),
+            None => body.push(strings::text(key!("revision-incomplete-complete")).to_owned()),
         }
         if found.unproven.is_some() {
-            body.push(strings::text("revision-incomplete-unproven").to_owned());
+            body.push(strings::text(key!("revision-incomplete-unproven")).to_owned());
         }
         self.revision.label = found.label.clone();
         self.revision.blocked = found.refusal.is_some() && found.unproven.is_some();
@@ -1111,8 +1142,8 @@ impl ShellModel {
         self.revision.list = Vec::new();
         self.open_revision_form(
             INCOMPLETE,
-            "revision-incomplete-title",
-            "dialog-not-now",
+            key!("revision-incomplete-title"),
+            key!("dialog-not-now"),
             Vec::new(),
         )
     }
@@ -1122,8 +1153,8 @@ impl ShellModel {
     pub(crate) fn settle_stage(&self) -> Option<&'static str> {
         match &self.dialog {
             Some(Dialog::Form(f)) if f.action == INCOMPLETE => match f.ok_key {
-                "dialog-complete-release" => Some(COMPLETE),
-                "dialog-discard-archive" => Some(DISCARD),
+                k if k == key!("dialog-complete-release") => Some(COMPLETE),
+                k if k == key!("dialog-discard-archive") => Some(DISCARD),
                 _ => None,
             },
             _ => None,
@@ -1141,18 +1172,29 @@ impl ShellModel {
         let mut body = Vec::new();
         let mut fields = Vec::new();
         let (title_key, ok_key) = if how == COMPLETE {
-            body.push(strings::format("revision-complete-text", &[&label, &archive]));
+            body.push(strings::format(
+                key!("revision-complete-text"),
+                &[&label, &archive],
+            ));
             let git = ew_api::git::GitExe::default();
             if let Some(Ok(Some((_, tag)))) =
                 self.project.as_ref().map(|p| p.session.settle_git(&label, &git))
             {
-                body.push(strings::format("revision-complete-git", &[&tag]));
-                fields.push(field("git", "form-revision-git", TOGGLE, "false".to_owned()));
+                body.push(strings::format(key!("revision-complete-git"), &[&tag]));
+                fields.push(field(
+                    "git",
+                    key!("form-revision-git"),
+                    TOGGLE,
+                    "false".to_owned(),
+                ));
             }
-            ("revision-complete-title", "dialog-complete-release")
+            (key!("revision-complete-title"), key!("dialog-complete-release"))
         } else {
-            body.push(strings::format("revision-discard-text", &[&archive, &label]));
-            ("revision-discard-title", "dialog-discard-archive")
+            body.push(strings::format(
+                key!("revision-discard-text"),
+                &[&archive, &label],
+            ));
+            (key!("revision-discard-title"), key!("dialog-discard-archive"))
         };
         self.revision.label = label;
         self.revision.body = body;
@@ -1174,21 +1216,21 @@ impl ShellModel {
         let labels = self.released_labels();
         let Some(last) = labels.last().cloned() else {
             return Outcome::Refused {
-                reason_key: "reason-no-released-revision",
+                reason_key: key!("reason-no-released-revision"),
             };
         };
         if !self.in_form_of(WITHDRAW) {
             self.revision.label = last.clone();
-            self.revision.body = vec![strings::text("revision-withdraw-text").to_owned()];
+            self.revision.body = vec![strings::text(key!("revision-withdraw-text")).to_owned()];
             self.revision.list = Vec::new();
             self.revision.blocked = false;
             self.open_revision_form(
                 WITHDRAW,
-                "revision-withdraw-title",
-                "dialog-withdraw",
+                key!("revision-withdraw-title"),
+                key!("dialog-withdraw"),
                 vec![
-                    field("revision", "form-revision-revision", &[], last),
-                    field("reason", "form-revision-reason", &[], String::new()),
+                    field("revision", key!("form-revision-revision"), &[], last),
+                    field("reason", key!("form-revision-reason"), &[], String::new()),
                 ],
             );
         }
@@ -1209,11 +1251,11 @@ impl ShellModel {
             .and_then(|p| p.session.released_revision(&label))
             .filter(|_| labels.contains(&label))
         else {
-            return self.revision_failed(strings::format("error-revision-unknown", &[&label]));
+            return self.revision_failed(strings::format(key!("error-revision-unknown"), &[&label]));
         };
         let reason = self.form_value("reason");
         if reason.is_empty() {
-            return self.revision_failed(strings::text("error-revision-reason").to_owned());
+            return self.revision_failed(strings::text(key!("error-revision-reason")).to_owned());
         }
         if let Err(e) = self.person_gate() {
             return e;
@@ -1226,7 +1268,7 @@ impl ShellModel {
             Ok(()) => {
                 self.revision_done();
                 self.notify_with(
-                    strings::format("toast-revision-withdrawn", &[&label]),
+                    strings::format(key!("toast-revision-withdrawn"), &[&label]),
                     "edit",
                     true,
                 );
@@ -1252,7 +1294,7 @@ impl ShellModel {
             .and_then(|p| p.session.open_revision_roles())
         else {
             return Outcome::Refused {
-                reason_key: "reason-no-open-revision",
+                reason_key: key!("reason-no-open-revision"),
             };
         };
         let label = self.open_revision_label().unwrap_or_default();
@@ -1261,14 +1303,14 @@ impl ShellModel {
                 .as_ref()
                 .map_or_else(|| "author".to_owned(), ew_api::role_name);
             self.revision.label = label.clone();
-            self.revision.body = vec![strings::format("revision-author-text", &[&label])];
+            self.revision.body = vec![strings::format(key!("revision-author-text"), &[&label])];
             self.revision.list = Vec::new();
             self.revision.blocked = false;
             self.open_revision_form(
                 SET_AUTHOR,
-                "revision-author-title",
-                "dialog-set-author",
-                vec![field("role", "form-revision-author", ROLES, current)],
+                key!("revision-author-title"),
+                key!("dialog-set-author"),
+                vec![field("role", key!("form-revision-author"), ROLES, current)],
             );
         }
         if let Err(e) = self.fill_form(p, &["role"]) {
@@ -1282,7 +1324,7 @@ impl ShellModel {
             return Outcome::Done;
         }
         let Some(role) = role_of(&self.form_value("role")) else {
-            return self.revision_failed(strings::text("error-revision-role").to_owned());
+            return self.revision_failed(strings::text(key!("error-revision-role")).to_owned());
         };
         if let Err(e) = self.person_gate() {
             return e;
@@ -1295,7 +1337,7 @@ impl ShellModel {
             Ok(()) => {
                 self.revision_done();
                 self.notify_with(
-                    strings::format("toast-revision-author", &[&label, &role_words(&role)]),
+                    strings::format(key!("toast-revision-author"), &[&label, &role_words(&role)]),
                     "edit",
                     true,
                 );
@@ -1338,6 +1380,7 @@ mod tests {
     use serde_json::Value;
 
     use super::{approve_words, command_failed, counted, refusal_text, release_words, trouble_text};
+    use crate::key;
     use crate::strings;
 
     const WAIVER: &str = "01900000-0000-7000-8000-000000000001";
@@ -1610,8 +1653,14 @@ mod tests {
     #[test]
     fn the_blocked_counts_take_their_nouns_number() {
         let text = |n: usize, one, many| strings::format(counted(n, one, many), &[&n.to_string()]);
-        let (approve_one, approve) = ("revision-approve-blocked-one", "revision-approve-blocked");
-        let (release_one, release) = ("revision-release-blocked-one", "revision-release-blocked");
+        let (approve_one, approve) = (
+            key!("revision-approve-blocked-one"),
+            key!("revision-approve-blocked"),
+        );
+        let (release_one, release) = (
+            key!("revision-release-blocked-one"),
+            key!("revision-release-blocked"),
+        );
         assert_eq!(
             text(1, approve_one, approve),
             "The release gate has 1 error besides the four-eyes rule; correct or waive it first:"

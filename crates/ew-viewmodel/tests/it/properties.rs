@@ -8,6 +8,7 @@
 //! read-only rules.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done, refused, state};
 use ew_viewmodel::properties::{Provenance, RowValue, find_row};
@@ -250,7 +251,7 @@ fn pg7_the_policy_card_and_its_stale_rule() {
         json!({"row": "device/tag.counter", "value": "9"}),
     );
     let card = shell.properties().card().expect("a card");
-    assert_eq!(card.reason, "reason-identifiers");
+    assert_eq!(card.reason, key!("reason-identifiers"));
     assert_eq!(state(&shell)["card"]["state"], "ready");
     assert_eq!(state(&shell)["card"]["origin"], "properties");
     assert_eq!(state(&shell)["card"]["targets"], 2);
@@ -323,7 +324,10 @@ fn pg7_the_policy_card_and_its_stale_rule() {
         "props.set",
         json!({"row": "project/settings.colour_profile", "value": renamed.to_string()}),
     );
-    assert_eq!(shell.properties().card().unwrap().reason, "reason-bulk-command");
+    assert_eq!(
+        shell.properties().card().unwrap().reason,
+        key!("reason-bulk-command")
+    );
     done(&mut shell, "preview.apply", json!({}));
     assert!(shell.properties().card().is_none());
     assert_eq!(
@@ -746,7 +750,10 @@ fn pg1_a_new_project_sets_its_size_profile_from_the_grid() {
         "props.set",
         json!({"row": "project/settings.size_profile", "value": size.to_string()}),
     );
-    assert_eq!(shell.properties().card().unwrap().reason, "reason-bulk-command");
+    assert_eq!(
+        shell.properties().card().unwrap().reason,
+        key!("reason-bulk-command")
+    );
     done(&mut shell, "preview.apply", json!({}));
     assert_eq!(
         shell.recorded_commands().last().unwrap().cmd,
@@ -792,7 +799,7 @@ fn pg7_an_edit_of_501_targets_opens_the_card() {
         json!({"row": "device/function_text", "value": "bulk"}),
     );
     let card = shell.properties().card().expect("the card");
-    assert_eq!(card.reason, "reason-bulk");
+    assert_eq!(card.reason, key!("reason-bulk"));
     assert_eq!(card.targets, 501);
     assert_eq!(shell.revision(), rev, "nothing committed before Apply");
     done(&mut shell, "preview.cancel", json!({}));
@@ -817,7 +824,7 @@ fn a_leaf_below_an_identifier_member_opens_the_card() {
         json!({"row": "device/plc_module.start.input", "value": "\"excluded\""}),
     );
     let card = shell.properties().card().expect("the card");
-    assert_eq!(card.reason, "reason-identifiers");
+    assert_eq!(card.reason, key!("reason-identifiers"));
     assert_eq!(shell.revision(), rev);
     shell.shutdown();
 }

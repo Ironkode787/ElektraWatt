@@ -7,6 +7,7 @@
 //! `marker.fields`.
 
 use crate::support;
+use ew_viewmodel::key;
 
 use egui::{Key, Modifiers};
 use egui_kittest::Harness;
@@ -52,7 +53,7 @@ fn typing_text(h: &mut Harness<'_, App>) {
 
 /// The popup's text field by its accessible name.
 fn label() -> &'static str {
-    strings::text("action-text-input")
+    strings::text(key!("action-text-input"))
 }
 
 #[test]
@@ -143,7 +144,7 @@ fn the_marker_fields_in_the_tool_strip_send_the_cross_section() {
     settle(&mut h);
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "marker");
-    let label = strings::text("action-marker-csa");
+    let label = strings::text(key!("action-marker-csa"));
     let field = h
         .get_all_by_role(egui::Role::TextInput)
         .find(|n| n.accesskit_node().label().as_deref() == Some(label))
@@ -169,7 +170,7 @@ fn the_marker_fields_in_the_tool_strip_send_the_cross_section() {
 }
 
 /// Edits an accessible field, leaving its draft unsubmitted unless Enter is requested.
-fn type_field(h: &mut Harness<'_, App>, key: &str, text: &str, enter: bool) {
+fn type_field(h: &mut Harness<'_, App>, key: strings::Key<'_>, text: &str, enter: bool) {
     let label = strings::text(key);
     h.get_all_by_role(egui::Role::TextInput)
         .find(|n| n.accesskit_node().label().as_deref() == Some(label))
@@ -190,13 +191,17 @@ fn type_field(h: &mut Harness<'_, App>, key: &str, text: &str, enter: bool) {
     }
 }
 
-fn assert_field(h: &Harness<'_, App>, key: &str, expected: &str) {
+fn assert_field(h: &Harness<'_, App>, key: strings::Key<'_>, expected: &str) {
     let label = strings::text(key);
     let field = h
         .get_all_by_role(egui::Role::TextInput)
         .find(|n| n.accesskit_node().label().as_deref() == Some(label))
         .unwrap();
-    assert_eq!(field.accesskit_node().value().as_deref(), Some(expected), "{key}");
+    assert_eq!(
+        field.accesskit_node().value().as_deref(),
+        Some(expected),
+        "{key:?}"
+    );
 }
 
 fn activate(h: &mut Harness<'_, App>, action: &str) {
@@ -209,8 +214,8 @@ fn activate(h: &mut Harness<'_, App>, action: &str) {
 fn rearm_marker(h: &mut Harness<'_, App>) {
     activate(h, "tool.marker");
     for switch_away in [true, false] {
-        type_field(h, "action-marker-csa", "2.5", true);
-        type_field(h, "action-marker-colours", "BK BU", true);
+        type_field(h, key!("action-marker-csa"), "2.5", true);
+        type_field(h, key!("action-marker-colours"), "BK BU", true);
         assert!(
             matches!(h.state().shell().tool_ghost(),Some(Ghost::Marker{text:Some(text),..}) if text=="2.5 BK BU")
         );
@@ -218,8 +223,8 @@ fn rearm_marker(h: &mut Harness<'_, App>) {
             activate(h, "tool.text");
         }
         activate(h, "tool.marker");
-        assert_field(h, "action-marker-csa", "");
-        assert_field(h, "action-marker-colours", "");
+        assert_field(h, key!("action-marker-csa"), "");
+        assert_field(h, key!("action-marker-colours"), "");
         assert!(matches!(
             h.state().shell().tool_ghost(),
             Some(Ghost::Marker {
@@ -249,14 +254,14 @@ fn rearming_marker_and_structure_box_resets_visible_fields_to_tool_defaults() {
     rearm_marker(&mut h);
     activate(&mut h, "tool.structure_box");
     for switch_away in [true, false] {
-        type_field(&mut h, "action-structure-box-caption", "Spare", true);
-        type_field(&mut h, "action-structure-box-location", "+J-E-206", true);
+        type_field(&mut h, key!("action-structure-box-caption"), "Spare", true);
+        type_field(&mut h, key!("action-structure-box-location"), "+J-E-206", true);
         if switch_away {
             activate(&mut h, "tool.text");
         }
         activate(&mut h, "tool.structure_box");
-        assert_field(&h, "action-structure-box-caption", "");
-        assert_field(&h, "action-structure-box-location", "");
+        assert_field(&h, key!("action-structure-box-caption"), "");
+        assert_field(&h, key!("action-structure-box-location"), "");
         outline_box(&mut h);
         dispatch(&mut h, "tool.finish", json!({}));
         settle(&mut h);
@@ -272,10 +277,10 @@ fn drawing_field_drafts_survive_frames_and_outline_transitions() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     activate(&mut h, "tool.marker");
-    type_field(&mut h, "action-marker-csa", "2.5", false);
+    type_field(&mut h, key!("action-marker-csa"), "2.5", false);
     settle(&mut h);
     settle(&mut h);
-    assert_field(&h, "action-marker-csa", "2.5");
+    assert_field(&h, key!("action-marker-csa"), "2.5");
     assert!(matches!(
         h.state().shell().tool_ghost(),
         Some(Ghost::Marker { text: None, .. })
@@ -284,18 +289,18 @@ fn drawing_field_drafts_survive_frames_and_outline_transitions() {
     dispatch(&mut h, "canvas.activate", json!({}));
     settle(&mut h);
     assert_eq!(h.state().shell().tool().state(), "crossing");
-    assert_field(&h, "action-marker-csa", "2.5");
-    type_field(&mut h, "action-marker-csa", "2.5", true);
+    assert_field(&h, key!("action-marker-csa"), "2.5");
+    type_field(&mut h, key!("action-marker-csa"), "2.5", true);
     assert!(
         matches!(h.state().shell().tool_ghost(),Some(Ghost::Marker{text:Some(text),..}) if text=="2.5"),
         "{:?}",
         h.state().shell().tool_ghost()
     );
     activate(&mut h, "tool.structure_box");
-    type_field(&mut h, "action-structure-box-caption", "Spare", false);
+    type_field(&mut h, key!("action-structure-box-caption"), "Spare", false);
     outline_box(&mut h);
-    assert_field(&h, "action-structure-box-caption", "Spare");
-    type_field(&mut h, "action-structure-box-caption", "Spare", true);
+    assert_field(&h, key!("action-structure-box-caption"), "Spare");
+    type_field(&mut h, key!("action-structure-box-caption"), "Spare", true);
     dispatch(&mut h, "tool.finish", json!({}));
     settle(&mut h);
     assert_eq!(
@@ -309,15 +314,15 @@ fn page_and_project_changes_do_not_keep_stale_drawing_fields() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     activate(&mut h, "tool.marker");
-    type_field(&mut h, "action-marker-csa", "2.5", true);
+    type_field(&mut h, key!("action-marker-csa"), "2.5", true);
     dispatch(&mut h, "page.goto", json!({"folio":"102"}));
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "select");
     activate(&mut h, "tool.marker");
-    assert_field(&h, "action-marker-csa", "");
+    assert_field(&h, key!("action-marker-csa"), "");
     activate(&mut h, "tool.structure_box");
-    type_field(&mut h, "action-structure-box-caption", "Spare", true);
-    type_field(&mut h, "action-structure-box-location", "+J-E-206", true);
+    type_field(&mut h, key!("action-structure-box-caption"), "Spare", true);
+    type_field(&mut h, key!("action-structure-box-location"), "+J-E-206", true);
     // Closing and reopening the project replaces the whole host; its epoch must still advance.
     dispatch(&mut h, "file.close", json!({}));
     settle(&mut h);
@@ -328,8 +333,8 @@ fn page_and_project_changes_do_not_keep_stale_drawing_fields() {
     dispatch(&mut h, "page.goto", json!({"folio":"101"}));
     settle(&mut h);
     activate(&mut h, "tool.structure_box");
-    assert_field(&h, "action-structure-box-caption", "");
-    assert_field(&h, "action-structure-box-location", "");
+    assert_field(&h, key!("action-structure-box-caption"), "");
+    assert_field(&h, key!("action-structure-box-location"), "");
 }
 
 #[test]
@@ -340,7 +345,7 @@ fn text_popup_typing_updates_ghost_and_dwell_preview_without_commit() {
     typing_text(&mut h);
     let rev = h.state().shell().revision();
     let recorded = h.state().shell().recorded_commands().len();
-    type_field(&mut h, "action-text-input", "40x60", false);
+    type_field(&mut h, key!("action-text-input"), "40x60", false);
     assert!(
         matches!(h.state().shell().tool_ghost(),Some(Ghost::Text{text,..}) if text=="40x60"),
         "{:?}",
@@ -393,7 +398,7 @@ fn text_edit_typing_updates_preview_before_enter() {
     assert_eq!(h.state().shell().tool().name(), "text_edit");
     let rev = h.state().shell().revision();
     let recorded = h.state().shell().recorded_commands().len();
-    type_field(&mut h, "action-text-input", "changed", false);
+    type_field(&mut h, key!("action-text-input"), "changed", false);
     assert!(matches!(h.state().shell().tool_ghost(),Some(Ghost::Text{text,..}) if text=="changed"));
     assert!(h.state().shell().tool_overlay().labels().any(|s| s == "changed"));
     dispatch(&mut h, "canvas.dwell", json!({"ms":80}));
@@ -462,7 +467,7 @@ fn clicking_placed_text_shows_properties_and_f2_edit() {
     let mut h = on_golden(&tmp, "101");
     assert!(h.state().shell().properties_shown());
     typing_text(&mut h);
-    type_field(&mut h, "action-text-input", "40x60", true);
+    type_field(&mut h, key!("action-text-input"), "40x60", true);
     let item = h
         .state()
         .shell()
@@ -503,10 +508,10 @@ fn clicking_placed_text_shows_properties_and_f2_edit() {
         assert_eq!(sheet.sections[0].targets, [item.id]);
         let (_, row) = find_row(sheet, "page_item/kind.free_text.text").expect("the text row");
         assert!(matches!(&row.value, RowValue::One { text, .. } if text == "40x60"));
-        for key in ["props-gone", "props-gone-title"] {
+        for key in [key!("props-gone"), key!("props-gone-title")] {
             assert!(
                 h.query_all_by_label(strings::text(key)).next().is_none(),
-                "{key} is absent from the accessible UI"
+                "{key:?} is absent from the accessible UI"
             );
         }
     };
@@ -518,8 +523,8 @@ fn clicking_placed_text_shows_properties_and_f2_edit() {
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "text_edit");
     assert!(h.state().shell().text_popup().is_some());
-    assert_field(&h, "action-text-input", "40x60");
-    type_field(&mut h, "action-text-input", "Cancelled", false);
+    assert_field(&h, key!("action-text-input"), "40x60");
+    type_field(&mut h, key!("action-text-input"), "Cancelled", false);
     h.key_press(Key::Escape);
     settle(&mut h);
     settle(&mut h);

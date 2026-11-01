@@ -32,7 +32,9 @@ use serde_json::{Value, json};
 
 use std::sync::Arc;
 
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 use crate::wizard_data::{
     COLOUR_PROFILE_SAMPLE, COVER_FRAME, GOLDEN_REPORT_LAYOUT, GRID_FRAME, NOGRID_FRAME,
     SHIPPED_COLOUR_PROFILES, SHIPPED_FORMS, SIZE_PROFILE_SAMPLE, TITLE_BLOCK,
@@ -110,34 +112,34 @@ impl Step {
     }
 
     /// The key of the step's title.
-    pub fn title_key(self) -> &'static str {
+    pub fn title_key(self) -> Key<'static> {
         match self {
-            Step::Company => "wizard-step-company",
-            Step::Frame => "wizard-step-frame",
-            Step::Colour => "wizard-step-colour",
-            Step::Size => "wizard-step-size",
-            Step::Numbering => "wizard-step-numbering",
-            Step::Structure => "wizard-step-structure",
-            Step::Revisions => "wizard-step-revisions",
-            Step::Languages => "wizard-step-languages",
-            Step::Reports => "wizard-step-reports",
-            Step::Review => "wizard-step-review",
+            Step::Company => key!("wizard-step-company"),
+            Step::Frame => key!("wizard-step-frame"),
+            Step::Colour => key!("wizard-step-colour"),
+            Step::Size => key!("wizard-step-size"),
+            Step::Numbering => key!("wizard-step-numbering"),
+            Step::Structure => key!("wizard-step-structure"),
+            Step::Revisions => key!("wizard-step-revisions"),
+            Step::Languages => key!("wizard-step-languages"),
+            Step::Reports => key!("wizard-step-reports"),
+            Step::Review => key!("wizard-step-review"),
         }
     }
 
     /// The key of the step's one-line help.
-    pub fn hint_key(self) -> &'static str {
+    pub fn hint_key(self) -> Key<'static> {
         match self {
-            Step::Company => "wizard-hint-company",
-            Step::Frame => "wizard-hint-frame",
-            Step::Colour => "wizard-hint-colour",
-            Step::Size => "wizard-hint-size",
-            Step::Numbering => "wizard-hint-numbering",
-            Step::Structure => "wizard-hint-structure",
-            Step::Revisions => "wizard-hint-revisions",
-            Step::Languages => "wizard-hint-languages",
-            Step::Reports => "wizard-hint-reports",
-            Step::Review => "wizard-hint-review",
+            Step::Company => key!("wizard-hint-company"),
+            Step::Frame => key!("wizard-hint-frame"),
+            Step::Colour => key!("wizard-hint-colour"),
+            Step::Size => key!("wizard-hint-size"),
+            Step::Numbering => key!("wizard-hint-numbering"),
+            Step::Structure => key!("wizard-hint-structure"),
+            Step::Revisions => key!("wizard-hint-revisions"),
+            Step::Languages => key!("wizard-hint-languages"),
+            Step::Reports => key!("wizard-hint-reports"),
+            Step::Review => key!("wizard-hint-review"),
         }
     }
 }
@@ -161,7 +163,7 @@ pub struct FieldMeta {
     /// Its name, the `field` of `wizard.set`.
     pub key: &'static str,
     /// The key of its label.
-    pub label_key: &'static str,
+    pub label_key: Key<'static>,
     /// How it is edited.
     pub kind: FieldKind,
     /// The default value.
@@ -176,7 +178,7 @@ const DEFAULT_SECTIONS: &str = "1 100-199 Wiring Definition\n2 200-299 Pneumatic
 const fn field(
     step: Step,
     key: &'static str,
-    label_key: &'static str,
+    label_key: Key<'static>,
     kind: FieldKind,
     default: &'static str,
     written: bool,
@@ -198,7 +200,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Company,
         "company_name",
-        "wizard-field-company-name",
+        key!("wizard-field-company-name"),
         Text,
         "",
         true,
@@ -206,7 +208,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Company,
         "company_notice",
-        "wizard-field-company-notice",
+        key!("wizard-field-company-notice"),
         Multiline,
         "",
         true,
@@ -214,7 +216,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Company,
         LOGO_FIELD,
-        "wizard-field-company-logo",
+        key!("wizard-field-company-logo"),
         Text,
         "",
         true,
@@ -222,7 +224,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Frame,
         "frame",
-        "wizard-field-frame",
+        key!("wizard-field-frame"),
         Choice(&["qet-grid", "qet-nogrid"]),
         "qet-grid",
         true,
@@ -230,7 +232,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Colour,
         "colour",
-        "wizard-field-colour",
+        key!("wizard-field-colour"),
         Choice(&["sample", "en60204-machine", "iec60445-installation", "default"]),
         "sample",
         true,
@@ -238,7 +240,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Size,
         "size",
-        "wizard-field-size",
+        key!("wizard-field-size"),
         Choice(&["sample", "default"]),
         "sample",
         true,
@@ -246,7 +248,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Size,
         "csa_control",
-        "wizard-field-csa-control",
+        key!("wizard-field-csa-control"),
         Text,
         "0.75",
         true,
@@ -254,7 +256,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Size,
         "csa_mains",
-        "wizard-field-csa-mains",
+        key!("wizard-field-csa-mains"),
         Text,
         "1.5",
         true,
@@ -262,7 +264,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Numbering,
         "device_format",
-        "wizard-field-device-format",
+        key!("wizard-field-device-format"),
         Text,
         "{page}{letter}{counter}",
         true,
@@ -270,7 +272,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Numbering,
         "strip_format",
-        "wizard-field-strip-format",
+        key!("wizard-field-strip-format"),
         Text,
         "{letter}{page}{counter}",
         true,
@@ -278,7 +280,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Numbering,
         "xref",
-        "wizard-field-xref",
+        key!("wizard-field-xref"),
         Choice(&["qet", "eplan"]),
         "qet",
         true,
@@ -286,7 +288,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Structure,
         "function_node",
-        "wizard-field-function-node",
+        key!("wizard-field-function-node"),
         Text,
         "P01",
         true,
@@ -294,7 +296,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Structure,
         "location_node",
-        "wizard-field-location-node",
+        key!("wizard-field-location-node"),
         Text,
         "",
         true,
@@ -302,7 +304,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Structure,
         "sections",
-        "wizard-field-sections",
+        key!("wizard-field-sections"),
         Multiline,
         DEFAULT_SECTIONS,
         true,
@@ -310,7 +312,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Revisions,
         "first_revision",
-        "wizard-field-first-revision",
+        key!("wizard-field-first-revision"),
         Text,
         "V1.0",
         true,
@@ -318,7 +320,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Languages,
         "language",
-        "wizard-field-language",
+        key!("wizard-field-language"),
         Choice(&["en"]),
         "en",
         true,
@@ -326,7 +328,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Languages,
         "date_format",
-        "wizard-field-date-format",
+        key!("wizard-field-date-format"),
         Choice(&["dd_mm_yyyy", "iso8601"]),
         "dd_mm_yyyy",
         true,
@@ -334,7 +336,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Languages,
         "decimal",
-        "wizard-field-decimal",
+        key!("wizard-field-decimal"),
         Choice(&["point", "comma"]),
         "point",
         true,
@@ -342,7 +344,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Reports,
         "report_blocks",
-        "wizard-field-report-blocks",
+        key!("wizard-field-report-blocks"),
         Choice(&["golden", "none"]),
         "golden",
         true,
@@ -350,7 +352,7 @@ pub static FIELDS: &[FieldMeta] = &[
     field(
         Step::Reports,
         "check_scheme",
-        "wizard-field-check-scheme",
+        key!("wizard-field-check-scheme"),
         Choice(&["drafting", "pre-delivery", "full"]),
         "pre-delivery",
         false,
@@ -385,28 +387,28 @@ pub struct SectionRow {
 /// # Errors
 ///
 /// The reason key of the first bad line, or of an overlap of two ranges or a repeated number.
-pub fn parse_sections(text: &str) -> Result<Vec<SectionRow>, &'static str> {
+pub fn parse_sections(text: &str) -> Result<Vec<SectionRow>, Key<'static>> {
     let mut rows: Vec<SectionRow> = Vec::new();
     for line in text.lines().map(str::trim).filter(|l| !l.is_empty()) {
         let mut parts = line.splitn(3, ' ');
         let number = parts
             .next()
             .and_then(|n| n.parse::<u16>().ok())
-            .ok_or("wizard-error-sections")?;
+            .ok_or(key!("wizard-error-sections"))?;
         let (first, last) = parts
             .next()
             .and_then(|r| r.split_once('-'))
             .and_then(|(a, b)| Some((a.parse::<u32>().ok()?, b.parse::<u32>().ok()?)))
-            .ok_or("wizard-error-sections")?;
+            .ok_or(key!("wizard-error-sections"))?;
         let title = parts.next().map(str::trim).unwrap_or("");
         if first > last {
-            return Err("wizard-error-sections");
+            return Err(key!("wizard-error-sections"));
         }
         if rows
             .iter()
             .any(|r| r.number == number || (r.first <= last && first <= r.last))
         {
-            return Err("wizard-error-sections");
+            return Err(key!("wizard-error-sections"));
         }
         rows.push(SectionRow {
             number,
@@ -474,41 +476,41 @@ fn is_format(text: &str) -> bool {
 /// # Errors
 ///
 /// The reason key of the refusal.
-pub fn validate(meta: &FieldMeta, value: &str) -> Result<(), &'static str> {
+pub fn validate(meta: &FieldMeta, value: &str) -> Result<(), Key<'static>> {
     match (meta.kind, meta.key) {
         (FieldKind::Choice(choices), _) => {
             if choices.contains(&value) {
                 Ok(())
             } else {
-                Err("wizard-error-choice")
+                Err(key!("wizard-error-choice"))
             }
         }
         (_, "csa_control" | "csa_mains") => {
             if is_csa(value) {
                 Ok(())
             } else {
-                Err("wizard-error-csa")
+                Err(key!("wizard-error-csa"))
             }
         }
         (_, "device_format" | "strip_format") => {
             if is_format(value) {
                 Ok(())
             } else {
-                Err("wizard-error-format")
+                Err(key!("wizard-error-format"))
             }
         }
         (_, "function_node") => {
             if is_node_code(value, true) {
                 Ok(())
             } else {
-                Err("wizard-error-node")
+                Err(key!("wizard-error-node"))
             }
         }
         (_, "location_node") => {
             if is_node_code(value, true) {
                 Ok(())
             } else {
-                Err("wizard-error-node")
+                Err(key!("wizard-error-node"))
             }
         }
         (_, "sections") => parse_sections(value).map(|_| ()),
@@ -516,7 +518,7 @@ pub fn validate(meta: &FieldMeta, value: &str) -> Result<(), &'static str> {
             if value.chars().count() <= 1000 && !value.contains('\n') {
                 Ok(())
             } else {
-                Err("wizard-error-text")
+                Err(key!("wizard-error-text"))
             }
         }
         // A new project has the default label format, which `revision.create` holds the label to (EW-REL-004).
@@ -524,21 +526,21 @@ pub fn validate(meta: &FieldMeta, value: &str) -> Result<(), &'static str> {
             if value.len() <= 20 && ew_api::LabelFormat::VMajorMinor.order_key(value).is_some() {
                 Ok(())
             } else {
-                Err("wizard-error-revision")
+                Err(key!("wizard-error-revision"))
             }
         }
         (FieldKind::Text, _) => {
             if value.chars().count() <= 200 && !value.contains('\n') {
                 Ok(())
             } else {
-                Err("wizard-error-text")
+                Err(key!("wizard-error-text"))
             }
         }
         (FieldKind::Multiline, _) => {
             if value.chars().count() <= 2000 {
                 Ok(())
             } else {
-                Err("wizard-error-text")
+                Err(key!("wizard-error-text"))
             }
         }
     }
@@ -557,20 +559,22 @@ struct Logo {
 impl Logo {
     /// Reads and sniffs the logo file at `path`: an SVG, PNG or JPEG file of at most [`ew_api::MAX_LOGO_BYTES`],
     /// whose size is checked before the file is read.
-    fn read(path: &str) -> Result<Logo, &'static str> {
-        let len = std::fs::metadata(path).map_err(|_| "wizard-error-logo")?.len();
+    fn read(path: &str) -> Result<Logo, Key<'static>> {
+        let len = std::fs::metadata(path)
+            .map_err(|_| key!("wizard-error-logo"))?
+            .len();
         if usize::try_from(len).map_or(true, |n| n > ew_api::MAX_LOGO_BYTES) {
-            return Err("wizard-error-logo-size");
+            return Err(key!("wizard-error-logo-size"));
         }
-        let bytes = std::fs::read(path).map_err(|_| "wizard-error-logo")?;
+        let bytes = std::fs::read(path).map_err(|_| key!("wizard-error-logo"))?;
         // The file may have grown since its size was read.
         if bytes.len() > ew_api::MAX_LOGO_BYTES {
-            return Err("wizard-error-logo-size");
+            return Err(key!("wizard-error-logo-size"));
         }
         let (format, _) = match ew_api::sniff_asset(&bytes) {
             Ok(sniffed) => sniffed,
             Err(ew_api::AssetError::UnsafeSvg(hazard)) => return Err(svg_refusal_key(hazard)),
-            Err(_) => return Err("wizard-error-logo"),
+            Err(_) => return Err(key!("wizard-error-logo")),
         };
         let digest = bytes.iter().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| {
             (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3)
@@ -584,14 +588,14 @@ impl Logo {
 }
 
 /// The wizard's text key for a refused SVG logo: what was found and how to export the logo again (FT-418).
-fn svg_refusal_key(hazard: ew_api::SvgHazard) -> &'static str {
+fn svg_refusal_key(hazard: ew_api::SvgHazard) -> Key<'static> {
     use ew_api::SvgHazard as H;
     match hazard {
-        H::DoctypeSubset | H::Entity | H::ForeignObject => "wizard-error-logo-svg-editing",
-        H::Script | H::EventAttribute => "wizard-error-logo-svg-active",
-        H::ExternalReference => "wizard-error-logo-svg-external",
-        H::TooComplex | H::HugeNumber | H::Unsupported => "wizard-error-logo-svg-complex",
-        H::NotUtf8 | H::Malformed => "wizard-error-logo",
+        H::DoctypeSubset | H::Entity | H::ForeignObject => key!("wizard-error-logo-svg-editing"),
+        H::Script | H::EventAttribute => key!("wizard-error-logo-svg-active"),
+        H::ExternalReference => key!("wizard-error-logo-svg-external"),
+        H::TooComplex | H::HugeNumber | H::Unsupported => key!("wizard-error-logo-svg-complex"),
+        H::NotUtf8 | H::Malformed => key!("wizard-error-logo"),
     }
 }
 
@@ -631,8 +635,8 @@ impl Draft {
     ///
     /// The reason key when the name is no field or the value is not valid for it (for the logo: a file that cannot
     /// be read, or that is no SVG, PNG or JPEG file within the asset store's limits).
-    pub fn set(&mut self, key: &str, value: &str) -> Result<(), &'static str> {
-        let meta = field_meta(key).ok_or("wizard-error-field")?;
+    pub fn set(&mut self, key: &str, value: &str) -> Result<(), Key<'static>> {
+        let meta = field_meta(key).ok_or(key!("wizard-error-field"))?;
         validate(meta, value)?;
         if key == LOGO_FIELD {
             self.logo = if value.is_empty() {
@@ -897,7 +901,7 @@ impl Draft {
     /// # Errors
     ///
     /// The reason key when the sections field does not parse.
-    pub fn commands(&self) -> Result<Vec<(&'static str, Value)>, &'static str> {
+    pub fn commands(&self) -> Result<Vec<(&'static str, Value)>, Key<'static>> {
         let copies: Vec<Value> = SHIPPED_FORMS
             .iter()
             .filter_map(|text| serde_json::from_str(text).ok())
@@ -963,14 +967,14 @@ impl Draft {
     pub fn display_value(&self, f: &FieldMeta) -> String {
         let v = self.get(f.key);
         match f.kind {
-            FieldKind::Choice(_) => strings::text(&format!("choice-{}-{v}", f.key)).to_owned(),
+            FieldKind::Choice(_) => strings::text(Key::run_time(&format!("choice-{}-{v}", f.key))).to_owned(),
             _ if v.is_empty() => "-".to_owned(),
             _ if f.key == LOGO_FIELD => {
                 let name = Path::new(v)
                     .file_name()
                     .map_or_else(|| v.to_owned(), |n| n.to_string_lossy().into_owned());
                 if self.logo_is_raster() {
-                    strings::format("wizard-logo-raster", &[&name])
+                    strings::format(key!("wizard-logo-raster"), &[&name])
                 } else {
                     name
                 }
@@ -1106,7 +1110,7 @@ impl Wizard {
             return;
         }
         let session = match sample {
-            None => Err(strings::text("wizard-preview-no-sample").to_owned()),
+            None => Err(strings::text(key!("wizard-preview-no-sample")).to_owned()),
             Some(dir) => build_preview(dir, app_version, &self.draft),
         };
         self.preview_rev += 1;
@@ -1125,7 +1129,7 @@ impl Wizard {
         else {
             return match &self.preview {
                 Some(Preview { session: Err(e), .. }) => Err(e.clone()),
-                _ => Err(strings::text("wizard-preview-no-sample").to_owned()),
+                _ => Err(strings::text(key!("wizard-preview-no-sample")).to_owned()),
             };
         };
         session
@@ -1139,7 +1143,7 @@ impl Wizard {
 
 fn build_preview(dir: &Path, app_version: &str, draft: &Draft) -> Result<Session, String> {
     let (mut session, _report) = Session::open_read_only(dir, app_version)
-        .map_err(|_| strings::text("wizard-preview-no-sample").to_owned())?;
+        .map_err(|_| strings::text(key!("wizard-preview-no-sample")).to_owned())?;
     run_commands(&mut session, "wizard-preview", &draft.preview_commands())?;
     Ok(session)
 }
@@ -1157,10 +1161,10 @@ pub(crate) fn run_commands(
     for (cmd, params) in commands {
         let text = Draft::cmdlog(label, &[(*cmd, params.clone())]);
         let log = CmdLog::parse(&text)
-            .map_err(|e| strings::format("wizard-error-command", &[cmd, &e.to_string()]))?;
+            .map_err(|e| strings::format(key!("wizard-error-command"), &[cmd, &e.to_string()]))?;
         session
             .run_script(&log, label)
-            .map_err(|e| strings::format("wizard-error-command", &[cmd, &e.to_string()]))?;
+            .map_err(|e| strings::format(key!("wizard-error-command"), &[cmd, &e.to_string()]))?;
     }
     Ok(())
 }
@@ -1187,7 +1191,11 @@ mod tests {
     #[test]
     fn every_field_has_texts_and_a_valid_default() {
         for f in FIELDS {
-            assert!(strings::lookup(f.label_key).is_some(), "label of {}", f.key);
+            assert!(
+                strings::lookup(f.label_key.as_str()).is_some(),
+                "label of {}",
+                f.key
+            );
             assert_eq!(validate(f, f.default), Ok(()), "default of {}", f.key);
             if let FieldKind::Choice(choices) = f.kind {
                 for c in choices {
@@ -1200,8 +1208,8 @@ mod tests {
             }
         }
         for s in Step::ALL {
-            assert!(strings::lookup(s.title_key()).is_some());
-            assert!(strings::lookup(s.hint_key()).is_some());
+            assert!(strings::lookup(s.title_key().as_str()).is_some());
+            assert!(strings::lookup(s.hint_key().as_str()).is_some());
         }
         let mut keys: Vec<&str> = FIELDS.iter().map(|f| f.key).collect();
         keys.sort_unstable();
@@ -1214,39 +1222,42 @@ mod tests {
     #[test]
     fn validation_refuses_bad_values_with_a_reason() {
         let mut d = Draft::default();
-        assert_eq!(d.set("csa_control", "0"), Err("wizard-error-csa"));
+        assert_eq!(d.set("csa_control", "0"), Err(key!("wizard-error-csa")));
         assert_eq!(d.set("csa_control", "0.5"), Ok(()));
-        assert_eq!(d.set("csa_mains", "abc"), Err("wizard-error-csa"));
+        assert_eq!(d.set("csa_mains", "abc"), Err(key!("wizard-error-csa")));
         assert_eq!(
             d.set("device_format", "{page}{letter}"),
-            Err("wizard-error-format")
+            Err(key!("wizard-error-format"))
         );
         assert_eq!(
             d.set("device_format", "{letter}{counter}"),
-            Err("wizard-error-format")
+            Err(key!("wizard-error-format"))
         );
         assert_eq!(d.set("device_format", "{page}-{letter}{counter}"), Ok(()));
         assert_eq!(
             d.set("device_format", "{page}{letter}{counter"),
-            Err("wizard-error-format")
+            Err(key!("wizard-error-format"))
         );
-        assert_eq!(d.set("function_node", "P 01"), Err("wizard-error-node"));
+        assert_eq!(d.set("function_node", "P 01"), Err(key!("wizard-error-node")));
         assert_eq!(d.set("function_node", ""), Ok(()));
-        assert_eq!(d.set("xref", "kicad"), Err("wizard-error-choice"));
-        assert_eq!(d.set("first_revision", "V 1"), Err("wizard-error-revision"));
-        assert_eq!(d.set("first_revision", "01"), Err("wizard-error-revision"));
+        assert_eq!(d.set("xref", "kicad"), Err(key!("wizard-error-choice")));
+        assert_eq!(d.set("first_revision", "V 1"), Err(key!("wizard-error-revision")));
+        assert_eq!(d.set("first_revision", "01"), Err(key!("wizard-error-revision")));
         assert_eq!(d.set("first_revision", "V0.1"), Ok(()));
-        assert_eq!(d.set("sections", "1 100-99 X"), Err("wizard-error-sections"));
+        assert_eq!(
+            d.set("sections", "1 100-99 X"),
+            Err(key!("wizard-error-sections"))
+        );
         assert_eq!(
             d.set("sections", "1 100-199 A\n2 150-250 B"),
-            Err("wizard-error-sections")
+            Err(key!("wizard-error-sections"))
         );
         assert_eq!(
             d.set("sections", "1 100-199 A\n1 200-299 B"),
-            Err("wizard-error-sections")
+            Err(key!("wizard-error-sections"))
         );
         assert_eq!(d.set("sections", "1 100-199 A\n2 200-299 B"), Ok(()));
-        assert_eq!(d.set("nope", "x"), Err("wizard-error-field"));
+        assert_eq!(d.set("nope", "x"), Err(key!("wizard-error-field")));
         assert_eq!(d.get("csa_control"), "0.5");
     }
 
@@ -1436,11 +1447,11 @@ mod tests {
         let mut d = Draft::default();
         assert_eq!(
             d.set(LOGO_FIELD, &text.to_string_lossy()),
-            Err("wizard-error-logo")
+            Err(key!("wizard-error-logo"))
         );
         assert_eq!(
             d.set(LOGO_FIELD, &dir.join("missing.svg").to_string_lossy()),
-            Err("wizard-error-logo")
+            Err(key!("wizard-error-logo"))
         );
         assert_eq!(d.get(LOGO_FIELD), "", "a refused file leaves the field as it was");
         // A file above the 512 KiB limit is refused by its size, before it is read.
@@ -1450,7 +1461,7 @@ mod tests {
         std::fs::write(&big, &bytes).unwrap();
         assert_eq!(
             d.set(LOGO_FIELD, &big.to_string_lossy()),
-            Err("wizard-error-logo-size")
+            Err(key!("wizard-error-logo-size"))
         );
         bytes.truncate(ew_api::MAX_LOGO_BYTES);
         std::fs::write(&big, &bytes).unwrap();
@@ -1501,23 +1512,23 @@ mod tests {
         let cases = [
             (
                 r#"<?xml version="1.0"?><!DOCTYPE svg [ <!ENTITY ns_svg "http://www.w3.org/2000/svg"> ]><svg xmlns="&ns_svg;" viewBox="0 0 4 4"/>"#,
-                "wizard-error-logo-svg-editing",
+                key!("wizard-error-logo-svg-editing"),
             ),
             (
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><foreignObject width="4" height="4"/></svg>"#,
-                "wizard-error-logo-svg-editing",
+                key!("wizard-error-logo-svg-editing"),
             ),
             (
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4" onload="x()"/>"#,
-                "wizard-error-logo-svg-active",
+                key!("wizard-error-logo-svg-active"),
             ),
             (
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><image href="https://example.invalid/a.png" width="4" height="4"/></svg>"#,
-                "wizard-error-logo-svg-external",
+                key!("wizard-error-logo-svg-external"),
             ),
             (
                 r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><path d="M0 0 A1e30 1 0 0 1 2 2"/></svg>"#,
-                "wizard-error-logo-svg-complex",
+                key!("wizard-error-logo-svg-complex"),
             ),
         ];
         for (i, (svg, key)) in cases.iter().enumerate() {
@@ -1526,7 +1537,7 @@ mod tests {
             assert_eq!(
                 Draft::default().set(LOGO_FIELD, &path.to_string_lossy()),
                 Err(*key),
-                "{key}"
+                "{key:?}"
             );
         }
         for key in [
@@ -1587,13 +1598,13 @@ mod tests {
         let review = Draft::default().review();
         assert_eq!(review.len(), FIELDS.len());
         let by = |label: &str| review.iter().find(|l| l.label == label).unwrap().clone();
-        assert!(by(strings::text("wizard-field-xref")).written);
+        assert!(by(strings::text(key!("wizard-field-xref"))).written);
         // FT-336: every field is written but the check scheme, whose command is `HumanOnly` (ADR-0008 am. 3).
         for f in FIELDS {
             assert_eq!(f.written, f.key != "check_scheme", "{}", f.key);
         }
-        assert!(by(strings::text("wizard-field-company-name")).written);
-        assert!(!by(strings::text("wizard-field-check-scheme")).written);
-        assert_eq!(by(strings::text("wizard-field-company-name")).value, "-");
+        assert!(by(strings::text(key!("wizard-field-company-name"))).written);
+        assert!(!by(strings::text(key!("wizard-field-check-scheme"))).written);
+        assert_eq!(by(strings::text(key!("wizard-field-company-name"))).value, "-");
     }
 }

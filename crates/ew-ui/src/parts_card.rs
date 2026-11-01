@@ -10,6 +10,7 @@
 //! anywhere (`App::route_keys`). **Accessibility.** The summary is a polite live region.
 
 use egui::{Align2, Id};
+use ew_viewmodel::key;
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -37,7 +38,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
     };
     let t = crate::theme::current(ctx);
     let summary = strings::format(
-        "parts-card-line",
+        key!("parts-card-line"),
         &[source, &created.to_string(), &skipped.to_string(), "0"],
     );
     egui::Area::new(Id::unique("parts-card"))
@@ -55,7 +56,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
                 .corner_radius(crate::theme::radius(t.radius_md))
                 .show(ui, |ui| {
                     let inline = InlineCard {
-                        title: strings::text("parts-card-title"),
+                        title: strings::text(key!("parts-card-title")),
                         summary: &summary,
                         apply: "preview.apply",
                         strip: true,

@@ -12,6 +12,8 @@
 //! this session is known. The shell judges the validity ([`crate::shell::ShellModel::notification_valid`]); this
 //! module keeps the entries. Nothing here reads a clock, a path or a `Session`.
 
+use crate::key;
+use crate::strings::Key;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 
@@ -49,10 +51,10 @@ impl NoteAction {
     }
 
     /// The key of the button's label in [`crate::strings`].
-    pub fn label_key(self) -> &'static str {
+    pub fn label_key(self) -> Key<'static> {
         match self {
-            NoteAction::Undo => "toast-undo",
-            NoteAction::Open => "toast-open",
+            NoteAction::Undo => key!("toast-undo"),
+            NoteAction::Open => key!("toast-open"),
         }
     }
 }

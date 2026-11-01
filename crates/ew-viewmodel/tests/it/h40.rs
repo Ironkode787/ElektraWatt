@@ -4,6 +4,8 @@
 //! Cycle 40 lane H40 at shell level: Output ▸ Parts list (FT-717).
 
 use crate::common;
+use ew_viewmodel::key;
+use ew_viewmodel::strings::Key;
 
 use common::{Tmp, done, refused};
 use ew_viewmodel::actions;
@@ -18,8 +20,8 @@ fn parts_list_opens_the_first_page_of_the_bom_block() {
     let tmp = Tmp::new("h40-parts");
     let mut shell = tmp.shell("102");
     let meta = actions::find("lists.parts").expect("registered");
-    assert_eq!(strings::text(&meta.label_key()), "Open parts list");
-    assert_eq!(strings::text("bar-lists-parts"), "Parts list");
+    assert_eq!(strings::text(Key::run_time(&meta.label_key())), "Open parts list");
+    assert_eq!(strings::text(key!("bar-lists-parts")), "Parts list");
     assert_eq!((meta.enabled)(&shell), Ok(()));
     let folio = shell.parts_list_folio().expect("Golden A has a parts list");
     assert_eq!(folio, "901");
@@ -42,7 +44,7 @@ fn parts_list_without_a_bom_block_is_refused_in_words() {
         ShellConfig::in_dir(&tmp.0.join("config"), "0.0.0-test"),
     );
     let meta = actions::find("lists.parts").expect("registered");
-    assert_eq!((meta.enabled)(&shell), Err("reason-no-project"));
+    assert_eq!((meta.enabled)(&shell), Err(key!("reason-no-project")));
     done(
         &mut shell,
         "file.new",
@@ -54,9 +56,9 @@ fn parts_list_without_a_bom_block_is_refused_in_words() {
         json!({"folio": "101", "type": "multi_line", "title": "Power"}),
     );
     assert_eq!(shell.parts_list_folio(), None);
-    assert_eq!((meta.enabled)(&shell), Err("reason-no-parts-list"));
+    assert_eq!((meta.enabled)(&shell), Err(key!("reason-no-parts-list")));
     assert_eq!(
-        strings::text("reason-no-parts-list"),
+        strings::text(key!("reason-no-parts-list")),
         "The project has no parts list: it needs a parts list report block"
     );
     assert_eq!(

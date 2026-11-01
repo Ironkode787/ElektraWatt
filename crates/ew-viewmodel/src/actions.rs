@@ -17,9 +17,11 @@
 use serde_json::{Map, Value, json};
 
 use crate::command_bar::{CommandSize, Group, Placement, Tab, place};
+use crate::key;
 use crate::settings::{DENSITIES, THEMES, UI_SCALES};
 use crate::shell::{Outcome, ShellModel};
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::{Ghost, GraphicShape};
 
 /// An action ID, such as `file.open` (the `&ActionId` of `dispatch` is a `&str`).
@@ -75,18 +77,18 @@ impl Menu {
     ];
 
     /// The key of the menu's label.
-    pub fn label_key(self) -> &'static str {
+    pub fn label_key(self) -> Key<'static> {
         match self {
-            Menu::File => "menu-file",
-            Menu::Edit => "menu-edit",
-            Menu::Project => "menu-project",
-            Menu::Page => "menu-page",
-            Menu::Draw => "menu-draw",
-            Menu::Check => "menu-check",
-            Menu::Output => "menu-output",
-            Menu::View => "menu-view",
-            Menu::Window => "menu-window",
-            Menu::Help => "menu-help",
+            Menu::File => key!("menu-file"),
+            Menu::Edit => key!("menu-edit"),
+            Menu::Project => key!("menu-project"),
+            Menu::Page => key!("menu-page"),
+            Menu::Draw => key!("menu-draw"),
+            Menu::Check => key!("menu-check"),
+            Menu::Output => key!("menu-output"),
+            Menu::View => key!("menu-view"),
+            Menu::Window => key!("menu-window"),
+            Menu::Help => key!("menu-help"),
         }
     }
 
@@ -130,21 +132,21 @@ pub enum Submenu {
 
 impl Submenu {
     /// The key of the submenu's label.
-    pub fn label_key(self) -> &'static str {
+    pub fn label_key(self) -> Key<'static> {
         match self {
-            Submenu::OpenRecent => "submenu-open-recent",
-            Submenu::UiScale => "submenu-ui-scale",
-            Submenu::Theme => "submenu-theme",
-            Submenu::Density => "submenu-density",
-            Submenu::Workspace => "submenu-workspace",
-            Submenu::Pan => "submenu-pan",
-            Submenu::PageNavigator => "submenu-page-navigator",
-            Submenu::Navigators => "submenu-navigators",
-            Submenu::Graphic => "submenu-graphic",
-            Submenu::WireMarkers => "submenu-wire-markers",
-            Submenu::Bond => "submenu-bond",
-            Submenu::CommandTab => "submenu-command-tab",
-            Submenu::Revision => "submenu-revision",
+            Submenu::OpenRecent => key!("submenu-open-recent"),
+            Submenu::UiScale => key!("submenu-ui-scale"),
+            Submenu::Theme => key!("submenu-theme"),
+            Submenu::Density => key!("submenu-density"),
+            Submenu::Workspace => key!("submenu-workspace"),
+            Submenu::Pan => key!("submenu-pan"),
+            Submenu::PageNavigator => key!("submenu-page-navigator"),
+            Submenu::Navigators => key!("submenu-navigators"),
+            Submenu::Graphic => key!("submenu-graphic"),
+            Submenu::WireMarkers => key!("submenu-wire-markers"),
+            Submenu::Bond => key!("submenu-bond"),
+            Submenu::CommandTab => key!("submenu-command-tab"),
+            Submenu::Revision => key!("submenu-revision"),
         }
     }
 }
@@ -195,7 +197,7 @@ pub struct ActionMeta {
     /// The default shortcuts (`Ctrl+Shift+Z`); `Ctrl` reads `Cmd` on macOS. The first is shown in menus.
     pub shortcut: &'static [&'static str],
     /// Whether the action can run now: `Err` carries the reason key of its refusal.
-    pub enabled: fn(&ShellModel) -> Result<(), &'static str>,
+    pub enabled: fn(&ShellModel) -> Result<(), Key<'static>>,
     /// The place in the menu bar; `None` for palette-only and headless-only actions.
     pub menu: Option<MenuSlot>,
     /// The action exists only in the headless mode (no menu entry, not in the palette).
@@ -237,233 +239,233 @@ impl std::fmt::Debug for ActionMeta {
     }
 }
 
-fn always(_: &ShellModel) -> Result<(), &'static str> {
+fn always(_: &ShellModel) -> Result<(), Key<'static>> {
     Ok(())
 }
 
-fn project_open(m: &ShellModel) -> Result<(), &'static str> {
+fn project_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.has_project() {
         Ok(())
     } else {
-        Err("reason-no-project")
+        Err(key!("reason-no-project"))
     }
 }
 
-fn writable(m: &ShellModel) -> Result<(), &'static str> {
+fn writable(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.is_writable() {
         Ok(())
     } else {
-        Err("reason-read-only")
+        Err(key!("reason-read-only"))
     }
 }
 
 /// WP-S1.18 part 5: the project can be written and has an open revision (Approve, Release, Set author).
-fn open_revision(m: &ShellModel) -> Result<(), &'static str> {
+fn open_revision(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.open_revision_label().is_some() {
         Ok(())
     } else {
-        Err("reason-no-open-revision")
+        Err(key!("reason-no-open-revision"))
     }
 }
 
 /// WP-S1.18 part 5: the project can be written and has a released revision that is not withdrawn (Withdraw).
-fn released_revision(m: &ShellModel) -> Result<(), &'static str> {
+fn released_revision(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.released_labels().is_empty() {
-        Err("reason-no-released-revision")
+        Err(key!("reason-no-released-revision"))
     } else {
         Ok(())
     }
 }
 
 /// WP-S1.18 part 5: an incomplete release was found when the project opened and is not settled yet.
-fn incomplete_release(m: &ShellModel) -> Result<(), &'static str> {
+fn incomplete_release(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.has_incomplete_release() {
         Ok(())
     } else {
-        Err("reason-no-incomplete-release")
+        Err(key!("reason-no-incomplete-release"))
     }
 }
 
 /// FT-717: the project has a parts list to open (a `parts_summary` or `parts_list` report block with pages).
-fn has_parts_list(m: &ShellModel) -> Result<(), &'static str> {
+fn has_parts_list(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.parts_list_folio().is_some() {
         Ok(())
     } else {
-        Err("reason-no-parts-list")
+        Err(key!("reason-no-parts-list"))
     }
 }
 
-fn has_pages(m: &ShellModel) -> Result<(), &'static str> {
+fn has_pages(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.page_count() > 0 {
         Ok(())
     } else {
-        Err("reason-no-pages")
+        Err(key!("reason-no-pages"))
     }
 }
 
 // WP-S2.09 part 3
 /// The history panel's row moves and Show changes: a project with the panel open.
-fn history_open(m: &ShellModel) -> Result<(), &'static str> {
+fn history_open(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.history_shown() {
         Ok(())
     } else {
-        Err("reason-history-closed")
+        Err(key!("reason-history-closed"))
     }
 }
 
 /// Undo to here: a writable project with the panel open.
-fn history_writable(m: &ShellModel) -> Result<(), &'static str> {
+fn history_writable(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     history_open(m)
 }
 
-fn can_undo(m: &ShellModel) -> Result<(), &'static str> {
+fn can_undo(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.can_undo() {
         Ok(())
     } else {
-        Err("reason-nothing-to-undo")
+        Err(key!("reason-nothing-to-undo"))
     }
 }
 
-fn can_redo(m: &ShellModel) -> Result<(), &'static str> {
+fn can_redo(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.can_redo() {
         Ok(())
     } else {
-        Err("reason-nothing-to-redo")
+        Err(key!("reason-nothing-to-redo"))
     }
 }
 
-fn has_next(m: &ShellModel) -> Result<(), &'static str> {
+fn has_next(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     if m.page_index() + 1 < m.page_count() {
         Ok(())
     } else {
-        Err("reason-no-next-page")
+        Err(key!("reason-no-next-page"))
     }
 }
 
-fn has_previous(m: &ShellModel) -> Result<(), &'static str> {
+fn has_previous(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     if m.page_index() > 0 {
         Ok(())
     } else {
-        Err("reason-no-previous-page")
+        Err(key!("reason-no-previous-page"))
     }
 }
 
-fn has_recent(m: &ShellModel) -> Result<(), &'static str> {
+fn has_recent(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.recent_count() > 0 {
         Ok(())
     } else {
-        Err("reason-no-recent")
+        Err(key!("reason-no-recent"))
     }
 }
 
-fn page_shown(m: &ShellModel) -> Result<(), &'static str> {
+fn page_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     // The wizard's preview page is a page on show too (`view.snapshot` writes it).
     if m.page_count() > 0 || m.wizard().is_some() {
         Ok(())
     } else {
-        Err("reason-no-page")
+        Err(key!("reason-no-page"))
     }
 }
 
-fn can_zoom_in(m: &ShellModel) -> Result<(), &'static str> {
+fn can_zoom_in(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     match m.canvas() {
-        Some(c) if c.zoom() >= crate::canvas::ZOOM_MAX => Err("reason-zoom-max"),
+        Some(c) if c.zoom() >= crate::canvas::ZOOM_MAX => Err(key!("reason-zoom-max")),
         _ => Ok(()),
     }
 }
 
-fn can_zoom_out(m: &ShellModel) -> Result<(), &'static str> {
+fn can_zoom_out(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     match m.canvas() {
-        Some(c) if c.zoom() <= crate::canvas::ZOOM_MIN => Err("reason-zoom-min"),
+        Some(c) if c.zoom() <= crate::canvas::ZOOM_MIN => Err(key!("reason-zoom-min")),
         _ => Ok(()),
     }
 }
 
-fn can_add_tab(m: &ShellModel) -> Result<(), &'static str> {
+fn can_add_tab(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     match m.area() {
-        Some(a) if a.tab_count() >= crate::area::MAX_TABS => Err("reason-tabs-full"),
+        Some(a) if a.tab_count() >= crate::area::MAX_TABS => Err(key!("reason-tabs-full")),
         _ => Ok(()),
     }
 }
 
-fn can_close_tab(m: &ShellModel) -> Result<(), &'static str> {
+fn can_close_tab(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     match m.area() {
-        Some(a) if a.tab_count() <= 1 => Err("reason-last-tab"),
+        Some(a) if a.tab_count() <= 1 => Err(key!("reason-last-tab")),
         _ => Ok(()),
     }
 }
 
-fn can_cycle_tabs(m: &ShellModel) -> Result<(), &'static str> {
+fn can_cycle_tabs(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     match m.area() {
-        Some(a) if a.focused_group().tabs.len() <= 1 => Err("reason-one-tab"),
+        Some(a) if a.focused_group().tabs.len() <= 1 => Err(key!("reason-one-tab")),
         _ => Ok(()),
     }
 }
 
-fn two_groups(m: &ShellModel) -> Result<(), &'static str> {
+fn two_groups(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     match m.area() {
         Some(a) if a.side_by_side() => Ok(()),
-        _ => Err("reason-one-group"),
+        _ => Err(key!("reason-one-group")),
     }
 }
 
-fn can_go_back(m: &ShellModel) -> Result<(), &'static str> {
+fn can_go_back(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     match m.area() {
         Some(a) if a.current().history.back_len() > 0 => Ok(()),
-        _ => Err("reason-history-empty"),
+        _ => Err(key!("reason-history-empty")),
     }
 }
 
-fn can_go_forward(m: &ShellModel) -> Result<(), &'static str> {
+fn can_go_forward(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     match m.area() {
         Some(a) if a.current().history.forward_len() > 0 => Ok(()),
-        _ => Err("reason-history-empty"),
+        _ => Err(key!("reason-history-empty")),
     }
 }
 
 // WP-S4.02 part 3
 /// A panel-layout page of a project that can be changed is on show (D10's reason: "Open a panel layout page").
-pub(crate) fn panel_page(m: &ShellModel) -> Result<(), &'static str> {
+pub(crate) fn panel_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     writable(m)?;
     match m.page_rows().get(m.page_index()).map(|r| r.kind.as_str()) {
         Some("panel_layout") => Ok(()),
-        _ => Err("reason-no-panel-page"),
+        _ => Err(key!("reason-no-panel-page")),
     }
 }
 
 /// A placement is selected on a panel page that can be changed.
-fn panel_selection(m: &ShellModel) -> Result<(), &'static str> {
+fn panel_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_page(m)?;
     if m.selected_placements() == 0 {
-        Err("reason-no-placement")
+        Err(key!("reason-no-placement"))
     } else {
         Ok(())
     }
 }
 
 /// A drawn page of a project that can be changed is on show (the editing tools of WP-S2.04 §7.6).
-pub(crate) fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
+pub(crate) fn editable_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     writable(m)?;
     // The page types without wire or symbol tools (doc 06 §2.2: title page, panel layout, model view, external
@@ -471,23 +473,23 @@ pub(crate) fn editable_page(m: &ShellModel) -> Result<(), &'static str> {
     // FT-892: the refusal names the page's kind in words where one key exists for it, the generic text otherwise.
     let kind = m.page_rows().get(m.page_index()).map(|r| r.kind.as_str());
     match kind {
-        Some("section_divider") => return Err("reason-page-type-no-symbols-divider"),
-        Some("title_page") => return Err("reason-page-type-no-symbols-title"),
-        Some("table_of_contents") => return Err("reason-page-type-no-symbols-contents"),
-        Some("report") => return Err("reason-page-type-no-symbols-report"),
-        Some("panel_layout") => return Err("reason-page-type-no-symbols-panel"),
-        Some("model_view" | "external_document") => return Err("reason-page-type-no-symbols"),
+        Some("section_divider") => return Err(key!("reason-page-type-no-symbols-divider")),
+        Some("title_page") => return Err(key!("reason-page-type-no-symbols-title")),
+        Some("table_of_contents") => return Err(key!("reason-page-type-no-symbols-contents")),
+        Some("report") => return Err(key!("reason-page-type-no-symbols-report")),
+        Some("panel_layout") => return Err(key!("reason-page-type-no-symbols-panel")),
+        Some("model_view" | "external_document") => return Err(key!("reason-page-type-no-symbols")),
         _ => {}
     }
     match m.canvas() {
         Some(c) if !c.page().tables.page.is_nil() => Ok(()),
-        _ => Err("reason-not-editable"),
+        _ => Err(key!("reason-not-editable")),
     }
 }
 
 /// A drawn page of a writable project for Paste (window check, item 3): the page's kind is checked by the action, which
 /// refuses it with `reason-paste-page-kind` and the kind's name in the status bar; the menu disables it with that text.
-fn paste_page(m: &ShellModel) -> Result<(), &'static str> {
+fn paste_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     writable(m)?;
     // A page kind that takes no paste may have no canvas at all (a generated report): the action still runs, so it can
@@ -497,34 +499,34 @@ fn paste_page(m: &ShellModel) -> Result<(), &'static str> {
     }
     match m.canvas() {
         Some(c) if !c.page().tables.page.is_nil() => Ok(()),
-        _ => Err("reason-not-editable"),
+        _ => Err(key!("reason-not-editable")),
     }
 }
 
 /// An editable page whose type has a connection kind the Wire tool draws (WP-S2.04 part 2, fix round item 1).
-fn wire_page(m: &ShellModel) -> Result<(), &'static str> {
+fn wire_page(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     m.wire_kind().map(|_| ())
 }
 
 /// An editable page with exactly one connection selected (Edit ▸ Edit route; WP-S2.04 part 2, window check).
-fn one_connection(m: &ShellModel) -> Result<(), &'static str> {
+fn one_connection(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.one_connection_selected() {
         Ok(())
     } else {
-        Err("reason-one-connection")
+        Err(key!("reason-one-connection"))
     }
 }
 
 /// An editable page whose selection gives a bond its two ends: exactly one selected connection (Draw ▸ Bond, FT-578).
 /// The headless form that names the two ends (`a` and `b`) needs only the editable page ([`enabled_with`]).
-fn bond_ends(m: &ShellModel) -> Result<(), &'static str> {
+fn bond_ends(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.one_connection_selected() {
         Ok(())
     } else {
-        Err("reason-bond-selection")
+        Err(key!("reason-bond-selection"))
     }
 }
 
@@ -539,7 +541,7 @@ pub fn enabled_with(
     meta: &ActionMeta,
     m: &ShellModel,
     p: &serde_json::Map<String, Value>,
-) -> Result<(), &'static str> {
+) -> Result<(), Key<'static>> {
     if meta.id == "bond.draw" && (p.contains_key("a") || p.contains_key("b")) {
         return editable_page(m);
     }
@@ -547,54 +549,54 @@ pub fn enabled_with(
 }
 
 /// An editable page with exactly one junction selected (Edit ▸ Junction sequence…; WP-S2.04 part 2, window check).
-fn one_junction(m: &ShellModel) -> Result<(), &'static str> {
+fn one_junction(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.one_junction_selected() {
         Ok(())
     } else {
-        Err("reason-one-junction")
+        Err(key!("reason-one-junction"))
     }
 }
 
 /// An editable page with exactly one interruption point selected (Edit ▸ Continue on page…; WP-S2.04 §9.3).
-fn one_ip(m: &ShellModel) -> Result<(), &'static str> {
+fn one_ip(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.selected_ip_count() == 1 {
         Ok(())
     } else {
-        Err("reason-select-one-ip")
+        Err(key!("reason-select-one-ip"))
     }
 }
 
 /// An editable page with at least two interruption points selected (Edit ▸ Arrange interruption points; §9.3).
-fn two_ips(m: &ShellModel) -> Result<(), &'static str> {
+fn two_ips(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.selected_ip_count() >= 2 {
         Ok(())
     } else {
-        Err("reason-select-ips")
+        Err(key!("reason-select-ips"))
     }
 }
 
 /// An editable page with exactly one black box selected (Edit ▸ Add connection point, the grips; §9.4).
-fn one_box(m: &ShellModel) -> Result<(), &'static str> {
+fn one_box(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.one_black_box_selected() {
         Ok(())
     } else {
-        Err("reason-one-black-box")
+        Err(key!("reason-one-black-box"))
     }
 }
 
 /// An editable page with exactly one unbound free text selected (Edit ▸ Edit text; §10.5).
-fn one_free_text(m: &ShellModel) -> Result<(), &'static str> {
+fn one_free_text(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     m.text_edit_target().map(|_| ())
 }
 
 /// An editable page whose selection is two or more terminals of one strip not all bridged yet (Edit ▸ Bridge
 /// terminals; FT-411, §10.7, cycle 33).
-fn two_strip_terminals(m: &ShellModel) -> Result<(), &'static str> {
+fn two_strip_terminals(m: &ShellModel) -> Result<(), Key<'static>> {
     // WP-S2.07 D9: a writable project, not an editable page (the selection may be records).
     writable(m)?;
     m.bridge_command().map(|_| ())
@@ -602,115 +604,115 @@ fn two_strip_terminals(m: &ShellModel) -> Result<(), &'static str> {
 
 /// The strip editor's gestures (WP-S2.07 §6.9): a writable project with the Terminal strips navigator open and focused
 /// (headless: open).
-fn strips_editor(m: &ShellModel) -> Result<(), &'static str> {
+fn strips_editor(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     m.strip_editor_shown()
 }
 
 /// Swap cores (WP-S2.07 §7): a writable project with the Cables navigator open and focused (headless: open).
-fn cables_editor(m: &ShellModel) -> Result<(), &'static str> {
+fn cables_editor(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     m.cables_shown()
 }
 
 /// The junction sequence editor is open on a project that can be changed (WP-S2.04 part 2, §8.5).
-fn junction_editor_open(m: &ShellModel) -> Result<(), &'static str> {
+fn junction_editor_open(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.junction_editor().is_some() {
         Ok(())
     } else {
-        Err("reason-no-junction-editor")
+        Err(key!("reason-no-junction-editor"))
     }
 }
 
 /// A project with a page is open: `page.describe` reads a page (WP-S6.13 §5.5.3).
-fn page_describable(m: &ShellModel) -> Result<(), &'static str> {
+fn page_describable(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.page_count() > 0 {
         Ok(())
     } else {
-        Err("reason-no-page")
+        Err(key!("reason-no-page"))
     }
 }
 
 /// The Place tool is active and its symbol can be an auxiliary function (WP-S2.18 D2: J offers the Join chooser).
-fn place_joinable(m: &ShellModel) -> Result<(), &'static str> {
+fn place_joinable(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.place_joinable() {
         Ok(())
     } else {
-        Err("reason-join-not-auxiliary")
+        Err(key!("reason-join-not-auxiliary"))
     }
 }
 
 /// The Join chooser is open (WP-S2.18 D2).
-fn chooser_open(m: &ShellModel) -> Result<(), &'static str> {
+fn chooser_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.chooser().is_some() {
         Ok(())
     } else {
-        Err("reason-no-chooser")
+        Err(key!("reason-no-chooser"))
     }
 }
 
 /// The parts import's column mapping step is open on a writable project (FT-649).
-fn parts_map_open(m: &ShellModel) -> Result<(), &'static str> {
+fn parts_map_open(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.parts_map().is_some() {
         Ok(())
     } else {
-        Err("reason-no-parts-map")
+        Err(key!("reason-no-parts-map"))
     }
 }
 
 /// The picker is open (WP-S2.04 §7.1).
-fn picker_open(m: &ShellModel) -> Result<(), &'static str> {
+fn picker_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.picker().is_some() {
         Ok(())
     } else {
-        Err("reason-no-picker")
+        Err(key!("reason-no-picker"))
     }
 }
 
-fn has_link_preview(m: &ShellModel) -> Result<(), &'static str> {
+fn has_link_preview(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
     if m.link_preview().is_some() {
         Ok(())
     } else {
-        Err("reason-no-preview")
+        Err(key!("reason-no-preview"))
     }
 }
 
-fn can_discard_journal(m: &ShellModel) -> Result<(), &'static str> {
+fn can_discard_journal(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.can_discard_journal() {
         Ok(())
     } else {
-        Err("reason-no-journal")
+        Err(key!("reason-no-journal"))
     }
 }
 
 // WP-S2.09 part 1
 /// The recovery dialog's answers need the dialog (§6.6).
-fn recovery_open(m: &ShellModel) -> Result<(), &'static str> {
+fn recovery_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if matches!(m.dialog(), Some(crate::shell::Dialog::Recovery { .. })) {
         Ok(())
     } else {
-        Err("reason-no-recovery")
+        Err(key!("reason-no-recovery"))
     }
 }
 
-fn wizard_open(m: &ShellModel) -> Result<(), &'static str> {
+fn wizard_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.wizard().is_some() {
         Ok(())
     } else {
-        Err("reason-no-wizard")
+        Err(key!("reason-no-wizard"))
     }
 }
 
-fn first_run_open(m: &ShellModel) -> Result<(), &'static str> {
+fn first_run_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.first_run().is_some() {
         Ok(())
     } else {
-        Err("reason-no-first-run")
+        Err(key!("reason-no-first-run"))
     }
 }
 
@@ -790,7 +792,7 @@ const fn act(
     kind: ActionKind,
     category: Menu,
     shortcut: &'static [&'static str],
-    enabled: fn(&ShellModel) -> Result<(), &'static str>,
+    enabled: fn(&ShellModel) -> Result<(), Key<'static>>,
     menu: Option<MenuSlot>,
     handler: Handler,
 ) -> ActionMeta {
@@ -856,17 +858,17 @@ const fn in_properties(mut a: ActionMeta) -> ActionMeta {
 }
 
 /// The property grid's actions need a project; the grid's own controls also need the pane.
-fn grid_shown(m: &ShellModel) -> Result<(), &'static str> {
+fn grid_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.properties_shown() {
         Ok(())
     } else {
-        Err("reason-no-sheet")
+        Err(key!("reason-no-sheet"))
     }
 }
 
 /// A grid action that may commit: a writable project with the pane shown.
-fn grid_writable(m: &ShellModel) -> Result<(), &'static str> {
+fn grid_writable(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     grid_shown(m)
 }
@@ -878,24 +880,24 @@ const fn in_find(mut a: ActionMeta) -> ActionMeta {
 }
 
 /// The find pane's own controls need the pane.
-fn find_shown(m: &ShellModel) -> Result<(), &'static str> {
+fn find_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.find_shown() {
         Ok(())
     } else {
-        Err("reason-no-find")
+        Err(key!("reason-no-find"))
     }
 }
 
 /// A replace: a writable project with the find pane shown.
-fn find_writable(m: &ShellModel) -> Result<(), &'static str> {
+fn find_writable(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     find_shown(m)
 }
 
 /// The card's buttons: the card sits in the property grid or the find pane, so one of them is shown; an import card
 /// (FT-410) is a window of its own and needs neither.
-fn card_shown(m: &ShellModel) -> Result<(), &'static str> {
+fn card_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     // WP-S2.09 part 3 (§8.7): the Preview tab shows every card; WP-S2.06 part 3: a table card is in its navigator.
     if m.properties_shown()
@@ -906,12 +908,12 @@ fn card_shown(m: &ShellModel) -> Result<(), &'static str> {
     {
         Ok(())
     } else {
-        Err("reason-no-sheet")
+        Err(key!("reason-no-sheet"))
     }
 }
 
 /// Apply on the card: a writable project with the property grid or the find pane shown, or an import card open.
-fn card_writable(m: &ShellModel) -> Result<(), &'static str> {
+fn card_writable(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     card_shown(m)
 }
@@ -919,7 +921,7 @@ fn card_writable(m: &ShellModel) -> Result<(), &'static str> {
 // WP-S2.06 part 1
 /// `navigator.apply`: a writable project with the Pages pane's reorder card, (WP-S2.09 part 2) the Messages pane's
 /// quick-fix card or (WP-S2.06 part 3) a navigator's table card on show.
-fn reorder_card(m: &ShellModel) -> Result<(), &'static str> {
+fn reorder_card(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.properties().card().is_some_and(|c| {
         matches!(
@@ -931,44 +933,44 @@ fn reorder_card(m: &ShellModel) -> Result<(), &'static str> {
     }) {
         Ok(())
     } else {
-        Err("reason-no-card")
+        Err(key!("reason-no-card"))
     }
 }
 
 // WP-S2.06 part 3
 /// `table.resolve` and `table.drop`: a writable project with a table card on show.
-fn table_card(m: &ShellModel) -> Result<(), &'static str> {
+fn table_card(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if m.table_gesture().is_some() {
         Ok(())
     } else {
-        Err("reason-no-card")
+        Err(key!("reason-no-card"))
     }
 }
 
 // WP-S2.06 part 2
 /// View ▸ Clear highlights: a highlight is shown.
-fn has_highlights(m: &ShellModel) -> Result<(), &'static str> {
+fn has_highlights(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.highlights().is_empty() {
-        Err("reason-no-highlights")
+        Err(key!("reason-no-highlights"))
     } else {
         Ok(())
     }
 }
 
 /// The page reorder actions: a writable project with pages.
-fn pages_writable(m: &ShellModel) -> Result<(), &'static str> {
+fn pages_writable(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     has_pages(m)
 }
 
 // WP-S2.05 part 3
 /// Copy and Copy tag list: a page is shown and something is selected (a read-only project copies too).
-fn selection_shown(m: &ShellModel) -> Result<(), &'static str> {
+fn selection_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     page_shown(m)?;
     if m.selection().is_empty() {
-        Err("reason-nothing-selected")
+        Err(key!("reason-nothing-selected"))
     } else {
         Ok(())
     }
@@ -976,18 +978,18 @@ fn selection_shown(m: &ShellModel) -> Result<(), &'static str> {
 
 /// Edit ▸ Delete (M39): an editable page with something selected; it deletes the canvas selection only (a navigator's
 /// rows have their own Delete, `table.clear`), so with nothing selected it is disabled for that reason, as Cut is.
-fn editable_selection(m: &ShellModel) -> Result<(), &'static str> {
+fn editable_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     // WP-S4.02 part 3 (D10): Delete on a panel page deletes the selected placements and carriers.
     if panel_page(m).is_ok() {
         return if m.selection().is_empty() {
-            Err("reason-nothing-selected")
+            Err(key!("reason-nothing-selected"))
         } else {
             Ok(())
         };
     }
     editable_page(m)?;
     if m.selection().is_empty() {
-        Err("reason-nothing-selected")
+        Err(key!("reason-nothing-selected"))
     } else {
         Ok(())
     }
@@ -995,17 +997,17 @@ fn editable_selection(m: &ShellModel) -> Result<(), &'static str> {
 
 /// Save as macro… (WP-S1.19 §11, FT-754 (b)): a page on show with something selected (a window macro) or pages
 /// marked in the Pages navigator (a page macro).
-fn macro_scope_shown(m: &ShellModel) -> Result<(), &'static str> {
+fn macro_scope_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     page_shown(m)?;
     if m.selection().is_empty() && m.navigator().marked().is_empty() {
-        Err("reason-nothing-selected")
+        Err(key!("reason-nothing-selected"))
     } else {
         Ok(())
     }
 }
 
 /// Cut and Duplicate: an editable page with something selected.
-fn selection_editable(m: &ShellModel) -> Result<(), &'static str> {
+fn selection_editable(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     selection_shown(m)
 }
@@ -1066,7 +1068,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     with_params(
         "file?:path, dir?:path, discard?:bool",
         placed(
-            place(Group::Import, 2, CommandSize::Small, Some("bar-import-qet")),
+            place(Group::Import, 2, CommandSize::Small, Some(key!("bar-import-qet"))),
             "file-import",
             act(
                 "file.import_qet",
@@ -1085,7 +1087,12 @@ pub static ACTIONS: &[ActionMeta] = &[
         "path?:path",
         placed(
             // Cycle 32: both imports in one group, Import (the window check), the parts table first.
-            place(Group::Import, 1, CommandSize::Large, Some("bar-import-parts")),
+            place(
+                Group::Import,
+                1,
+                CommandSize::Large,
+                Some(key!("bar-import-parts")),
+            ),
             "database-import",
             act(
                 "parts.import",
@@ -1264,7 +1271,12 @@ pub static ACTIONS: &[ActionMeta] = &[
         |s, _| s.act_props_focus(),
     )),
     placed(
-        place(Group::Project, 1, CommandSize::Large, Some("bar-properties")),
+        place(
+            Group::Project,
+            1,
+            CommandSize::Large,
+            Some(key!("bar-properties")),
+        ),
         "adjustments",
         act(
             "props.project",
@@ -1372,7 +1384,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     with_params(
         "text?:text",
         placed(
-            place(Group::Go, 1, CommandSize::Large, Some("bar-go-to")),
+            place(Group::Go, 1, CommandSize::Large, Some(key!("bar-go-to"))),
             "current-location",
             act(
                 "nav.goto",
@@ -1414,7 +1426,12 @@ pub static ACTIONS: &[ActionMeta] = &[
     with_params(
         "x_mm?:mm, y_mm?:mm, group?:uint",
         in_canvas(placed(
-            place(Group::Go, 4, CommandSize::Small, Some("bar-follow-reference")),
+            place(
+                Group::Go,
+                4,
+                CommandSize::Small,
+                Some(key!("bar-follow-reference")),
+            ),
             "link",
             act("nav.follow", View, Menu::Page, &["F"], has_pages, None, |s, p| {
                 s.act_follow(p)
@@ -1732,7 +1749,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     // FT-717: Output ▸ Parts list opens the first page of the project's parts list (the first `parts_summary` block,
     // else the first `parts_list` block, in page order).
     placed(
-        place(Group::Lists, 1, CommandSize::Large, Some("bar-lists-parts")),
+        place(Group::Lists, 1, CommandSize::Large, Some(key!("bar-lists-parts"))),
         "list-details",
         act(
             "lists.parts",
@@ -1918,7 +1935,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     with_params(
         "name:text",
         needs_parameters(placed(
-            place(Group::Layout, 2, CommandSize::Small, Some("bar-workspaces")),
+            place(Group::Layout, 2, CommandSize::Small, Some(key!("bar-workspaces"))),
             "layout-dashboard",
             act(
                 "view.workspace_load",
@@ -2000,7 +2017,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ),
     )),
     in_canvas(placed(
-        place(Group::Place, 2, CommandSize::Large, Some("bar-device")),
+        place(Group::Place, 2, CommandSize::Large, Some(key!("bar-device"))),
         "package",
         act(
             "tool.place_part",
@@ -2028,7 +2045,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     with_params(
         "kind:enum(functional_assignment|function|installation_site|location|document_kind|user_defined|type), designation:text, parent?:text",
         placed(
-            place(Group::Project, 2, CommandSize::Small, Some("bar-structure")),
+            place(Group::Project, 2, CommandSize::Small, Some(key!("bar-structure"))),
             "sitemap",
             act(
                 "structure.new",
@@ -2151,7 +2168,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     ),
     in_canvas(placed(
-        place(Group::Arrange, 1, CommandSize::Small, Some("bar-rotate")),
+        place(Group::Arrange, 1, CommandSize::Small, Some(key!("bar-rotate"))),
         "rotate-clockwise",
         act(
             "tool.rotate_cw",
@@ -2173,7 +2190,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         |s, _| s.act_tool_key(crate::tools::ToolKey::RotateCcw),
     )),
     in_canvas(placed(
-        place(Group::Arrange, 2, CommandSize::Small, Some("bar-mirror")),
+        place(Group::Arrange, 2, CommandSize::Small, Some(key!("bar-mirror"))),
         "flip-vertical",
         act(
             "tool.mirror_x",
@@ -2334,7 +2351,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     // WP-S2.04 part 2 (wiring, §8.7): the Wire tool, the proposals' Tab, route edit, the junction sequence editor and
     // the crossings setting. Begin.
     in_canvas(placed(
-        place(Group::Connect, 1, CommandSize::Large, Some("bar-wire")),
+        place(Group::Connect, 1, CommandSize::Large, Some(key!("bar-wire"))),
         "route-2",
         act(
             "tool.wire",
@@ -2541,7 +2558,12 @@ pub static ACTIONS: &[ActionMeta] = &[
     // WP-S2.04 part 2. End.
     // WP-S2.04 part 3 (interruption points and black boxes, §9.6). Begin.
     in_canvas(placed(
-        place(Group::Connect, 3, CommandSize::Small, Some("bar-interruption")),
+        place(
+            Group::Connect,
+            3,
+            CommandSize::Small,
+            Some(key!("bar-interruption")),
+        ),
         "ew-interruption-point",
         act(
             "tool.ip",
@@ -2948,7 +2970,7 @@ pub static ACTIONS: &[ActionMeta] = &[
             Group::Standards,
             2,
             CommandSize::Small,
-            Some("bar-company-standard"),
+            Some(key!("bar-company-standard")),
         ),
         "building-factory-2",
         act(
@@ -2963,7 +2985,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     ),
     // WP-S2.09 part 2 (§7.6): Tools ▸ Run checks.
     placed(
-        place(Group::Run, 1, CommandSize::Large, Some("bar-check-project")),
+        place(Group::Run, 1, CommandSize::Large, Some(key!("bar-check-project"))),
         "list-check",
         act(
             "messages.check",
@@ -2980,7 +3002,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     with_params(
         "scope?:enum(project|page|selection), scheme?:text, include_frozen?:bool, only_nonconforming?:bool",
         placed(
-            place(Group::Arrange, 4, CommandSize::Small, Some("bar-renumber")),
+            place(Group::Arrange, 4, CommandSize::Small, Some(key!("bar-renumber"))),
             "sort-ascending-numbers",
             act(
                 "devices.renumber",
@@ -3532,7 +3554,7 @@ pub static ACTIONS: &[ActionMeta] = &[
     with_params(
         "kind:enum(pages|devices|connections|strips|cables|plc|potentials|ips|structure|parts|blocks|unplaced|macros|libraries|messages), on?:bool",
         needs_parameters(placed(
-            place(Group::Panels, 1, CommandSize::Small, Some("bar-navigators")),
+            place(Group::Panels, 1, CommandSize::Small, Some(key!("bar-navigators"))),
             "layout-sidebar",
             act(
                 "navigator.show",
@@ -3777,7 +3799,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         ))),
     ),
     in_navigator(placed(
-        place(Group::Order, 2, CommandSize::Small, Some("bar-move-up")),
+        place(Group::Order, 2, CommandSize::Small, Some(key!("bar-move-up"))),
         "arrow-up",
         parameterless(act(
             "pages.move_up",
@@ -3790,7 +3812,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         )),
     )),
     in_navigator(placed(
-        place(Group::Order, 3, CommandSize::Small, Some("bar-move-down")),
+        place(Group::Order, 3, CommandSize::Small, Some(key!("bar-move-down"))),
         "arrow-down",
         parameterless(act(
             "pages.move_down",
@@ -4789,17 +4811,17 @@ pub static ACTIONS: &[ActionMeta] = &[
 
 // WP-S2.08 part 2
 /// The keymap editor's controls need the keyboard shortcuts dialog.
-fn keymap_editor_open(m: &ShellModel) -> Result<(), &'static str> {
+fn keymap_editor_open(m: &ShellModel) -> Result<(), Key<'static>> {
     if matches!(m.dialog(), Some(crate::shell::Dialog::Shortcuts)) {
         Ok(())
     } else {
-        Err("reason-no-keymap-editor")
+        Err(key!("reason-no-keymap-editor"))
     }
 }
 
 // WP-S2.07 part 4b
 /// The paste choice card's choices need the card and a writable project.
-fn paste_choice_open(m: &ShellModel) -> Result<(), &'static str> {
+fn paste_choice_open(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if matches!(
         m.properties().card().map(|c| &c.origin),
@@ -4807,28 +4829,28 @@ fn paste_choice_open(m: &ShellModel) -> Result<(), &'static str> {
     ) {
         Ok(())
     } else {
-        Err("reason-no-paste-choice")
+        Err(key!("reason-no-paste-choice"))
     }
 }
 
 // WP-S2.07 part 4a
 /// The part selection dialog's own actions need the dialog.
-fn part_dialog_open(m: &ShellModel) -> Result<(), &'static str> {
+fn part_dialog_open(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if matches!(m.dialog(), Some(crate::shell::Dialog::PartChoose(_))) {
         Ok(())
     } else {
-        Err("reason-no-part-dialog")
+        Err(key!("reason-no-part-dialog"))
     }
 }
 
 /// The part editor's own actions need the editor and a writable project.
-fn part_editor_open(m: &ShellModel) -> Result<(), &'static str> {
+fn part_editor_open(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     if matches!(m.dialog(), Some(crate::shell::Dialog::PartEdit(_))) {
         Ok(())
     } else {
-        Err("reason-no-part-editor")
+        Err(key!("reason-no-part-editor"))
     }
 }
 
@@ -5028,7 +5050,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
     ActionItem {
         id: meta.id,
         params: Value::Object(serde_json::Map::new()),
-        label: strings::text(&meta.label_key()).to_owned(),
+        label: strings::text(Key::run_time(&meta.label_key())).to_owned(),
         shortcut: model.shortcut_text(meta),
         enabled,
         reason: paste_reason.or_else(|| state.err().map(|k| strings::text(k).to_owned())),
@@ -5097,7 +5119,8 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 if meta.id == "pages.mode" {
                     for mode in crate::navigator::NavMode::ALL {
                         let mut item = item_of(meta, model);
-                        item.label = strings::text(&format!("nav-mode-{}", mode.word())).to_owned();
+                        item.label =
+                            strings::text(Key::run_time(&format!("nav-mode-{}", mode.word()))).to_owned();
                         item.params = json!({ "mode": mode.word() });
                         item.checked = nav.mode == mode;
                         items.push(item);
@@ -5105,7 +5128,8 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 } else if meta.id == "pages.sort" {
                     for sort in crate::navigator::NavSort::ALL {
                         let mut item = item_of(meta, model);
-                        item.label = strings::text(&format!("nav-sort-{}", sort.word())).to_owned();
+                        item.label =
+                            strings::text(Key::run_time(&format!("nav-sort-{}", sort.word()))).to_owned();
                         item.params = json!({ "by": sort.word() });
                         item.checked = nav.sort == sort;
                         items.push(item);
@@ -5159,7 +5183,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             let names = model.recent_names();
             if names.is_empty() {
                 let mut item = item_of(meta, model);
-                item.label = strings::text("menu-no-recent").to_owned();
+                item.label = strings::text(key!("menu-no-recent")).to_owned();
                 item.enabled = false;
                 return vec![item];
             }
@@ -5176,18 +5200,23 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         }
         Submenu::UiScale => {
             let current = model.settings().ui_scale;
-            ["scale-100", "scale-125", "scale-150", "scale-200"]
-                .iter()
-                .zip(UI_SCALES)
-                .map(|(key, scale)| {
-                    let mut item = item_of(meta, model);
-                    item.label = strings::text(key).to_owned();
-                    item.params = json!({ "scale": scale });
-                    item.shortcut = String::new();
-                    item.checked = (current - scale).abs() < 1e-3;
-                    item
-                })
-                .collect()
+            [
+                key!("scale-100"),
+                key!("scale-125"),
+                key!("scale-150"),
+                key!("scale-200"),
+            ]
+            .iter()
+            .zip(UI_SCALES)
+            .map(|(key, scale)| {
+                let mut item = item_of(meta, model);
+                item.label = strings::text(*key).to_owned();
+                item.params = json!({ "scale": scale });
+                item.shortcut = String::new();
+                item.checked = (current - scale).abs() < 1e-3;
+                item
+            })
+            .collect()
         }
         Submenu::Theme | Submenu::Density => {
             let (prefix, choices, current): (&str, &[&str], &str) = if submenu == Submenu::Theme {
@@ -5199,7 +5228,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 .iter()
                 .map(|value| {
                     let mut item = item_of(meta, model);
-                    item.label = strings::text(&format!("{prefix}-{value}")).to_owned();
+                    item.label = strings::text(Key::run_time(&format!("{prefix}-{value}"))).to_owned();
                     item.params = json!({ "value": value });
                     item.shortcut = String::new();
                     item.checked = *value == current;
@@ -5216,7 +5245,8 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 .iter()
                 .map(|shape| {
                     let mut item = item_of(meta, model);
-                    item.label = strings::text(&format!("graphic-{}", shape.word())).to_owned();
+                    item.label =
+                        strings::text(Key::run_time(&format!("graphic-{}", shape.word()))).to_owned();
                     item.params = json!({ "shape": shape.word() });
                     item.shortcut = String::new();
                     item.checked = active == Some(shape.word());
@@ -5228,7 +5258,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
             .iter()
             .map(|kind| {
                 let mut item = item_of(meta, model);
-                item.label = strings::text(&format!("bond-kind-{kind}")).to_owned();
+                item.label = strings::text(Key::run_time(&format!("bond-kind-{kind}"))).to_owned();
                 item.params = json!({ "kind": kind });
                 item
             })
@@ -5239,7 +5269,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 .iter()
                 .map(|mode| {
                     let mut item = item_of(meta, model);
-                    item.label = strings::text(&format!("marker-mode-{mode}")).to_owned();
+                    item.label = strings::text(Key::run_time(&format!("marker-mode-{mode}"))).to_owned();
                     item.params = json!({ "mode": mode });
                     item.checked = *mode == current;
                     item
@@ -5338,7 +5368,7 @@ pub fn menu_model(model: &ShellModel) -> Vec<MenuModel> {
                     if block.len() > 3 {
                         entries.push(MenuEntry::Group {
                             group,
-                            label: strings::text(&group.label_key()).to_owned(),
+                            label: strings::text(Key::run_time(&group.label_key())).to_owned(),
                             entries: block,
                         });
                     } else {
@@ -5401,7 +5431,7 @@ pub fn breadcrumb(meta: &ActionMeta) -> String {
         return format!(
             "{} · {}",
             strings::text(g.tab().label_key()),
-            strings::text(&g.label_key())
+            strings::text(Key::run_time(&g.label_key()))
         );
     }
     match meta.menu {
@@ -5470,7 +5500,7 @@ mod tests {
             );
         }
         for m in Menu::ALL {
-            assert!(strings::lookup(m.label_key()).is_some());
+            assert!(strings::lookup(m.label_key().as_str()).is_some());
         }
         for s in [
             Submenu::OpenRecent,
@@ -5485,7 +5515,7 @@ mod tests {
             Submenu::Bond,
             Submenu::Revision,
         ] {
-            assert!(strings::lookup(s.label_key()).is_some());
+            assert!(strings::lookup(s.label_key().as_str()).is_some());
         }
     }
 

@@ -16,8 +16,10 @@
 //! otherwise.
 
 use crate::actions::{self, ACTIONS, ActionItem, ActionMeta, Menu};
+use crate::key;
 use crate::shell::ShellModel;
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::{self, Ghost};
 
 /// The tabs of the command bar, in the order of work (doc 16a §9.1).
@@ -78,7 +80,7 @@ impl Tab {
     }
 
     /// The key of the tab's label (the app menu's submenu has the same label).
-    pub fn label_key(self) -> &'static str {
+    pub fn label_key(self) -> Key<'static> {
         self.menu().label_key()
     }
 
@@ -249,7 +251,7 @@ pub struct Placement {
     /// Large or small.
     pub size: CommandSize,
     /// The key of the short label the bar shows; `None`: the registry label without its ellipsis.
-    pub bar_label: Option<&'static str>,
+    pub bar_label: Option<Key<'static>>,
 }
 
 /// A placement in `group` (the registry's constructor).
@@ -257,7 +259,7 @@ pub const fn place(
     group: Group,
     order: u16,
     size: CommandSize,
-    bar_label: Option<&'static str>,
+    bar_label: Option<Key<'static>>,
 ) -> Placement {
     Placement {
         tab: group.tab(),
@@ -434,7 +436,7 @@ pub fn command_bar_of(model: &ShellModel, tab: Tab) -> CommandBarModel {
                 .collect();
             (!buttons.is_empty()).then(|| GroupModel {
                 group,
-                label: strings::text(&group.label_key()).to_owned(),
+                label: strings::text(Key::run_time(&group.label_key())).to_owned(),
                 buttons,
             })
         })
@@ -442,7 +444,7 @@ pub fn command_bar_of(model: &ShellModel, tab: Tab) -> CommandBarModel {
     let next = next_step(tab).and_then(actions::find).map(|meta| {
         let mut b = button_of(meta, model, CommandSize::Small);
         b.kind = ButtonKind::Plain;
-        b.bar_label = strings::text(&format!("next-step-{}", tab.word())).to_owned();
+        b.bar_label = strings::text(Key::run_time(&format!("next-step-{}", tab.word()))).to_owned();
         b
     });
     CommandBarModel {
@@ -590,11 +592,11 @@ pub(crate) fn key_of(model: &ShellModel, id: &str) -> String {
 }
 
 /// The key of the HUD's text for an interruption point's role (FT-899).
-fn ip_role_key(d: crate::tools::IpDir) -> &'static str {
+fn ip_role_key(d: crate::tools::IpDir) -> Key<'static> {
     match d {
-        crate::tools::IpDir::Source => "hud-ip-source",
-        crate::tools::IpDir::Target => "hud-ip-target",
-        crate::tools::IpDir::Undirected => "hud-ip-undirected",
+        crate::tools::IpDir::Source => key!("hud-ip-source"),
+        crate::tools::IpDir::Target => key!("hud-ip-target"),
+        crate::tools::IpDir::Undirected => key!("hud-ip-undirected"),
     }
 }
 
@@ -611,11 +613,11 @@ pub fn hud(model: &ShellModel) -> HudModel {
             stack = pointer_stack(model);
             let selected = model.selection().items.len();
             if stack > 1 {
-                strings::format("hud-stack", &[&stack.to_string()])
+                strings::format(key!("hud-stack"), &[&stack.to_string()])
             } else if selected > 0 && model.selected_placements() > 0 {
                 // WP-S4.02 part 3 (doc 16a §5.5): a placement selected on a panel page, its keys from the keymap.
                 strings::format(
-                    "hud-layout-selected",
+                    key!("hud-layout-selected"),
                     &[
                         &selected.to_string(),
                         &key_of(model, "tool.rotate_cw"),
@@ -625,7 +627,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 )
             } else if selected > 0 {
                 strings::format(
-                    "hud-selected",
+                    key!("hud-selected"),
                     &[&selected.to_string(), &key_of(model, "tool.rotate_cw")],
                 )
             } else {
@@ -655,13 +657,17 @@ pub fn hud(model: &ShellModel) -> HudModel {
             });
             if hints > 0 {
                 let count = strings::format(
-                    if hints == 1 { "count-wire" } else { "count-wires" },
+                    if hints == 1 {
+                        key!("count-wire")
+                    } else {
+                        key!("count-wires")
+                    },
                     &[&hints.to_string()],
                 );
                 what = format!(
                     "{what} \u{b7} {}",
                     strings::format(
-                        "hud-place-wires",
+                        key!("hud-place-wires"),
                         &[&count, &key_of(model, "canvas.activate_alt")]
                     )
                 );
@@ -669,7 +675,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             // WP-S2.18 D2: "J Join device…" while the symbol can be an auxiliary function, before "Esc done".
             let keys = if joinable {
                 strings::format(
-                    "hud-keys-place-join",
+                    key!("hud-keys-place-join"),
                     &[
                         &key_of(model, "tool.rotate_cw"),
                         &key_of(model, "tool.next_variant"),
@@ -678,7 +684,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 )
             } else {
                 strings::format(
-                    "hud-keys-place",
+                    key!("hud-keys-place"),
                     &[
                         &key_of(model, "tool.rotate_cw"),
                         &key_of(model, "tool.next_variant"),
@@ -690,7 +696,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
         Some(Ghost::Move { readout, .. }) => readout,
         Some(Ghost::Paste { records, .. }) => format!(
             "{} \u{b7} {}",
-            strings::format("label-paste", &[&records.to_string()]),
+            strings::format(key!("label-paste"), &[&records.to_string()]),
             hint()
         ),
         Some(Ghost::Exchange { symbol, unmapped }) => {
@@ -713,7 +719,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             // W42b: a starred point is its name's star source whatever its direction (ew-derive pairs from it), so the
             // star's hint stands alone in the role's place.
             if let Some(d) = crate::tools::IpDir::from_word(direction) {
-                let role = if star { "hud-ip-star" } else { ip_role_key(d) };
+                let role = if star { key!("hud-ip-star") } else { ip_role_key(d) };
                 parts.push(strings::text(role).to_owned());
                 parts.push(format!(
                     "{}: {}",
@@ -724,12 +730,12 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 parts.push(direction.to_owned());
             }
             if star && crate::tools::IpDir::from_word(direction).is_none() {
-                parts.push(strings::text("hud-ip-star").to_owned());
+                parts.push(strings::text(key!("hud-ip-star")).to_owned());
             }
             parts.extend(external);
             // FIXPT41: a click on a pin connects the point; the HUD says it before the click.
             if let Some(cp) = connects {
-                parts.push(strings::format("hud-ip-connects", &[&cp]));
+                parts.push(strings::format(key!("hud-ip-connects"), &[&cp]));
             }
             parts.join(" \u{b7} ")
         }
@@ -739,9 +745,9 @@ pub fn hud(model: &ShellModel) -> HudModel {
             hint(),
             strings::format(
                 if cps == 1 {
-                    "count-box-pin"
+                    key!("count-box-pin")
                 } else {
-                    "count-box-pins"
+                    key!("count-box-pins")
                 },
                 &[&cps.to_string()]
             )
@@ -758,9 +764,9 @@ pub fn hud(model: &ShellModel) -> HudModel {
             let mut parts = vec![shape.to_owned(), points.to_string()];
             if shape == "arc" {
                 let key = if anticlockwise {
-                    "graphic-anticlockwise"
+                    key!("graphic-anticlockwise")
                 } else {
-                    "graphic-clockwise"
+                    key!("graphic-clockwise")
                 };
                 parts.push(strings::text(key).to_owned());
             }
@@ -778,7 +784,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             format!("{} \u{b7} {}", asset.unwrap_or_else(|| "-".to_owned()), hint())
         }
         // WP-S4.02 part 3 (doc 16a §5.5): the placing prompt; a refused drop's text stands in its chip.
-        Some(Ghost::Layout { device, .. }) => strings::format("hud-layout-place", &[&device]),
+        Some(Ghost::Layout { device, .. }) => strings::format(key!("hud-layout-place"), &[&device]),
     };
     // FT-751: a tool's refusal stands in the HUD in place of its prompt, also over a ghost (the stacked twin's
     // "An identical symbol already stands here"), until the next canvas input ends it.

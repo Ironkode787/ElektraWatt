@@ -12,6 +12,7 @@
 
 use egui::{Align, Layout, RichText, Sense, Ui, vec2};
 use ew_viewmodel::actions::Context;
+use ew_viewmodel::key;
 use ew_viewmodel::keymap::EditorRow;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -35,13 +36,13 @@ const WHERE_SHARE: f32 = 0.35;
 const BUTTON_WIDTH: f32 = 72.0;
 
 /// The label key of where a binding applies.
-fn context_key(context: Context) -> &'static str {
+fn context_key(context: Context) -> strings::Key<'static> {
     match context {
-        Context::Global => "keymap-context-global",
-        Context::Canvas => "keymap-context-canvas",
-        Context::Navigator => "keymap-context-navigator",
-        Context::Properties => "keymap-context-properties",
-        Context::Find => "keymap-context-find",
+        Context::Global => key!("keymap-context-global"),
+        Context::Canvas => key!("keymap-context-canvas"),
+        Context::Navigator => key!("keymap-context-navigator"),
+        Context::Properties => key!("keymap-context-properties"),
+        Context::Find => key!("keymap-context-find"),
     }
 }
 
@@ -99,12 +100,12 @@ pub(crate) fn columns(room: f32, keys_need: f32, where_need: f32) -> (f32, f32, 
 fn where_text(row: &EditorRow) -> String {
     let mut place = strings::text(context_key(row.context)).to_owned();
     if row.custom {
-        place = format!("{place} · {}", strings::text("keymap-custom"));
+        place = format!("{place} · {}", strings::text(key!("keymap-custom")));
     }
     if row.notes.is_empty() {
         place
     } else {
-        format!("{place} · {}", strings::text("keymap-shadows"))
+        format!("{place} · {}", strings::text(key!("keymap-shadows")))
     }
 }
 
@@ -119,9 +120,9 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     let preset = shell.keymap_preset().name();
     // W40a 5b: "with your changes" only while an action's bindings differ from the preset's.
     let preset_line = if ew_viewmodel::keymap::has_changes(shell.keymap_preset(), shell.user_keymap()) {
-        strings::format("keymap-preset-custom", &[preset])
+        strings::format(key!("keymap-preset-custom"), &[preset])
     } else {
-        strings::format("keymap-preset", &[preset])
+        strings::format(key!("keymap-preset"), &[preset])
     };
     ui.label(
         RichText::new(preset_line)
@@ -129,7 +130,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
             .color(t.text_secondary.color32()),
     );
     let mut text = state.search.clone();
-    let search = components::filter_field(ui, &mut text, strings::text("keymap-search-hint"));
+    let search = components::filter_field(ui, &mut text, strings::text(key!("keymap-search-hint")));
     if just_opened {
         search.request_focus();
     }
@@ -138,14 +139,15 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     }
     // A refused edit: what was tried and each error (D8).
     if let Some(refusal) = &state.refusal {
-        let label = ew_viewmodel::actions::find(refusal.action)
-            .map_or(refusal.action, |m| strings::text(&m.label_key()));
+        let label = ew_viewmodel::actions::find(refusal.action).map_or(refusal.action, |m| {
+            strings::text(strings::Key::run_time(&m.label_key()))
+        });
         let what = if refusal.chord.is_empty() {
             label.to_owned()
         } else {
             format!("{} ({label})", crate::keys::display(&refusal.chord))
         };
-        components::live_line(ui, &strings::format("keymap-refused", &[&what]), true);
+        components::live_line(ui, &strings::format(key!("keymap-refused"), &[&what]), true);
         for e in &refusal.errors {
             components::live_line(ui, e, true);
         }
@@ -167,7 +169,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                 .size()
                 .x
         };
-        let mut keys = measure(strings::text("keymap-recording").to_owned(), &t.type_small);
+        let mut keys = measure(strings::text(key!("keymap-recording")).to_owned(), &t.type_small);
         let mut place = 0.0_f32;
         for row in &rows {
             let chips = row
@@ -187,7 +189,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     let shown = visible_rows(ui.ctx().content_rect().height(), row_height, rows.len());
     if rows.is_empty() {
         ui.label(
-            RichText::new(strings::text("keymap-none"))
+            RichText::new(strings::text(key!("keymap-none")))
                 .font(theme::font(&t.type_body))
                 .color(t.text_secondary.color32()),
         );
@@ -216,7 +218,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                         cell(ui, keys_w, row_height, |ui| {
                             if state.recording == Some(row.action) {
                                 ui.label(
-                                    RichText::new(strings::text("keymap-recording"))
+                                    RichText::new(strings::text(key!("keymap-recording")))
                                         .font(theme::font(&t.type_small))
                                         .color(t.accent.color32()),
                                 );
@@ -250,7 +252,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                         if components::button(
                             ui,
                             Kind::Subtle,
-                            strings::text("keymap-record"),
+                            strings::text(key!("keymap-record")),
                             true,
                             BUTTON_WIDTH,
                         )
@@ -264,7 +266,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                         if components::button(
                             ui,
                             Kind::Subtle,
-                            strings::text("keymap-reset"),
+                            strings::text(key!("keymap-reset")),
                             row.custom,
                             BUTTON_WIDTH,
                         )
@@ -280,7 +282,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     // W40a 5a: the Menu key's note only while a shortcut is being recorded, under the list that shows the recording.
     if state.recording.is_some() {
         ui.label(
-            RichText::new(strings::text("keymap-menu-key"))
+            RichText::new(strings::text(key!("keymap-menu-key")))
                 .font(theme::font(&t.type_small))
                 .color(t.text_tertiary.color32()),
         );
@@ -298,9 +300,12 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
         for b in user.unused() {
             let keys: Vec<String> = b.chords().map(ew_viewmodel::keymap::Chord::display).collect();
             ui.label(
-                RichText::new(strings::format("keymap-unused", &[&b.action, &keys.join(", ")]))
-                    .font(theme::font(&t.type_small))
-                    .color(t.text_tertiary.color32()),
+                RichText::new(strings::format(
+                    key!("keymap-unused"),
+                    &[&b.action, &keys.join(", ")],
+                ))
+                .font(theme::font(&t.type_small))
+                .color(t.text_tertiary.color32()),
             );
         }
     }

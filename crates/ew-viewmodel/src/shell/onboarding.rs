@@ -19,6 +19,7 @@ use super::{
 };
 use crate::first_run::{self, FirstRun, FirstRunStep, START_CHOICES};
 use crate::help;
+use crate::key;
 use crate::settings::{CANVAS_BACKENDS, DENSITIES, KEYMAPS, LANGUAGES, ORIGINS, THEMES};
 use crate::strings;
 use crate::wizard::{CHECK_SCHEME_FIELD, DRAFT_FILE, Draft, Step, Wizard, run_commands};
@@ -42,7 +43,7 @@ impl ShellModel {
         let choice = |choices: &[&str]| {
             text.filter(|t| choices.contains(t))
                 .map(str::to_owned)
-                .ok_or_else(|| failed("error-bad-param", &["value"]))
+                .ok_or_else(|| failed(key!("error-bad-param"), &["value"]))
         };
         match key {
             "language" => self.settings.language = choice(&LANGUAGES)?,
@@ -58,17 +59,17 @@ impl ShellModel {
             }
             "update_check" => {
                 self.settings.update_check =
-                    bool_value(value).ok_or_else(|| failed("error-bad-param", &["value"]))?;
+                    bool_value(value).ok_or_else(|| failed(key!("error-bad-param"), &["value"]))?;
             }
             "basic_project" => {
                 self.settings.basic_project = match value {
                     Value::Null => None,
                     Value::String(s) if s.is_empty() => None,
                     Value::String(s) => Some(s.clone()),
-                    _ => return Err(failed("error-bad-param", &["value"])),
+                    _ => return Err(failed(key!("error-bad-param"), &["value"])),
                 }
             }
-            _ => return Err(failed("error-bad-param", &["key"])),
+            _ => return Err(failed(key!("error-bad-param"), &["key"])),
         }
         self.save_settings();
         Ok(())
@@ -89,13 +90,13 @@ impl ShellModel {
     pub(crate) fn act_command_tab(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "tab") {
             Err(e) => e,
-            Ok(None) => failed("error-missing-param", &["tab"]),
+            Ok(None) => failed(key!("error-missing-param"), &["tab"]),
             Ok(Some(word)) => match crate::command_bar::Tab::from_word(word) {
                 Some(tab) => {
                     self.command_tab = tab;
                     Outcome::Done
                 }
-                None => failed("error-bad-param", &["tab"]),
+                None => failed(key!("error-bad-param"), &["tab"]),
             },
         }
     }
@@ -106,7 +107,7 @@ impl ShellModel {
         self.command_bar_collapsed = match p.get("collapsed") {
             None => !self.command_bar_collapsed,
             Some(Value::Bool(b)) => *b,
-            Some(_) => return failed("error-bad-param", &["collapsed"]),
+            Some(_) => return failed(key!("error-bad-param"), &["collapsed"]),
         };
         Outcome::Done
     }
@@ -115,7 +116,7 @@ impl ShellModel {
     /// parameter; an unknown value is refused with `error-bad-param`.
     pub(crate) fn act_view_setting(&mut self, key: &str, p: &Map<String, Value>) -> Outcome {
         let Some(value) = p.get("value") else {
-            return failed("error-missing-param", &["value"]);
+            return failed(key!("error-missing-param"), &["value"]);
         };
         match self.apply_setting(key, value) {
             Ok(()) => Outcome::Done,
@@ -127,10 +128,10 @@ impl ShellModel {
         let key = match string_param(p, "key") {
             Err(e) => return e,
             Ok(Some(k)) => k.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["key"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["key"]),
         };
         let Some(value) = p.get("value") else {
-            return failed("error-missing-param", &["value"]);
+            return failed(key!("error-missing-param"), &["value"]);
         };
         match self.apply_setting(&key, value) {
             Ok(()) => Outcome::Done,
@@ -163,7 +164,7 @@ impl ShellModel {
         let topic = match string_param(p, "topic") {
             Err(e) => return e,
             Ok(Some(t)) if help::anchor(t).is_some() => t.to_owned(),
-            Ok(Some(_)) => return failed("error-bad-param", &["topic"]),
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["topic"]),
             // WP-S2.09 part 2: F1 on a finding or rule row of the Messages pane opens the rule's page (§7.3).
             Ok(None) => match self.messages_help_target() {
                 Some(target) => {
@@ -200,7 +201,7 @@ impl ShellModel {
                 .and_then(FirstRunStep::from_index)
             {
                 Some(s) => s,
-                None => return failed("error-bad-param", &["step"]),
+                None => return failed(key!("error-bad-param"), &["step"]),
             },
         };
         self.palette = None;
@@ -213,10 +214,10 @@ impl ShellModel {
         let field = match string_param(p, "field") {
             Err(e) => return e,
             Ok(Some(f)) => f.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["field"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["field"]),
         };
         let Some(value) = p.get("value") else {
-            return failed("error-missing-param", &["value"]);
+            return failed(key!("error-missing-param"), &["value"]);
         };
         if field == "ui_scale" {
             return self.dispatch("view.ui_scale", &serde_json::json!({ "scale": value }));
@@ -245,7 +246,7 @@ impl ShellModel {
             Err(e) => return e,
             Ok(None) => "none",
             Ok(Some(s)) if START_CHOICES.contains(&s) => s,
-            Ok(Some(_)) => return failed("error-bad-param", &["start"]),
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["start"]),
         };
         self.first_run = None;
         self.settings.first_run_done = true;
@@ -273,7 +274,7 @@ impl ShellModel {
             return;
         }
         let text = w.draft.to_json(w.step);
-        let failed_text = strings::text("wizard-error-draft-write").to_owned();
+        let failed_text = strings::text(key!("wizard-error-draft-write")).to_owned();
         let written = path
             .parent()
             .map_or(Ok(()), std::fs::create_dir_all)
@@ -312,7 +313,7 @@ impl ShellModel {
     pub fn wizard_preview_content(&self) -> Result<ew_api::output::ExportPages, String> {
         match &self.wizard {
             Some(w) => w.preview_content(),
-            None => Err(strings::text("reason-no-wizard").to_owned()),
+            None => Err(strings::text(key!("reason-no-wizard")).to_owned()),
         }
     }
 
@@ -327,7 +328,7 @@ impl ShellModel {
         let lost = draft.logo_lost();
         let mut wizard = Wizard::new(draft, step);
         if lost {
-            wizard.error = Some(strings::text("wizard-notice-logo-gone").to_owned());
+            wizard.error = Some(strings::text(key!("wizard-notice-logo-gone")).to_owned());
         }
         self.wizard = Some(wizard);
         self.wizard_prepare_preview();
@@ -338,29 +339,29 @@ impl ShellModel {
         let field = match string_param(p, "field") {
             Err(e) => return e,
             Ok(Some(f)) => f.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["field"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["field"]),
         };
         let value = match string_param(p, "value") {
             Err(e) => return e,
             Ok(Some(v)) => v.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["value"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["value"]),
         };
         let Some(w) = &mut self.wizard else {
             return Outcome::Refused {
-                reason_key: "reason-no-wizard",
+                reason_key: key!("reason-no-wizard"),
             };
         };
         if field == "preview" {
             match value.as_str() {
                 "cover" => w.preview_cover = true,
                 "page" => w.preview_cover = false,
-                _ => return failed("error-bad-param", &["value"]),
+                _ => return failed(key!("error-bad-param"), &["value"]),
             }
             return Outcome::Done;
         }
         if w.finished.is_some() {
             return Outcome::Refused {
-                reason_key: "reason-wizard-finished",
+                reason_key: key!("reason-wizard-finished"),
             };
         }
         match w.draft.set(&field, &value) {
@@ -397,14 +398,14 @@ impl ShellModel {
 
     pub(crate) fn act_wizard_goto(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(index) = p.get("step").and_then(Value::as_u64) else {
-            return failed("error-missing-param", &["step"]);
+            return failed(key!("error-missing-param"), &["step"]);
         };
         match usize::try_from(index).ok().and_then(Step::from_index) {
             Some(step) => {
                 self.set_wizard_step(step);
                 Outcome::Done
             }
-            None => failed("error-bad-param", &["step"]),
+            None => failed(key!("error-bad-param"), &["step"]),
         }
     }
 
@@ -429,12 +430,12 @@ impl ShellModel {
     pub(crate) fn act_wizard_finish(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(draft) = self.wizard.as_ref().map(|w| w.draft.clone()) else {
             return Outcome::Refused {
-                reason_key: "reason-no-wizard",
+                reason_key: key!("reason-no-wizard"),
             };
         };
         if self.wizard.as_ref().is_some_and(|w| w.finished.is_some()) {
             return Outcome::Refused {
-                reason_key: "reason-wizard-finished",
+                reason_key: key!("reason-wizard-finished"),
             };
         }
         let dir = match string_param(p, "dir") {
@@ -463,7 +464,7 @@ impl ShellModel {
                     w.step = Step::Review;
                     w.error = None;
                 }
-                self.banner = Some(strings::format("banner-wizard-done", &[&name]));
+                self.banner = Some(strings::format(key!("banner-wizard-done"), &[&name]));
                 Outcome::Done
             }
             Err(message) => {
@@ -484,17 +485,17 @@ impl ShellModel {
             Some((dir, w.draft.get(CHECK_SCHEME_FIELD).to_owned()))
         }) else {
             return Outcome::Refused {
-                reason_key: "reason-wizard-not-finished",
+                reason_key: key!("reason-wizard-not-finished"),
             };
         };
         if !self.wizard.as_ref().is_some_and(Wizard::can_apply_check_scheme) {
             return Outcome::Refused {
-                reason_key: "reason-check-scheme-written",
+                reason_key: key!("reason-check-scheme-written"),
             };
         }
         if self.mode == Mode::Headless {
             return Outcome::Refused {
-                reason_key: "reason-human-only",
+                reason_key: key!("reason-human-only"),
             };
         }
         if !flag(p, "confirm") {
@@ -504,7 +505,7 @@ impl ShellModel {
         let name = dir_name(&dir);
         let written = self
             .open_for_editing_with(&dir, Recovery::Keep)
-            .map_err(|e| strings::format("error-wizard-write", &[strings::text(open_error_key(&e))]))
+            .map_err(|e| strings::format(key!("error-wizard-write"), &[strings::text(open_error_key(&e))]))
             .and_then(|(mut session, _report)| {
                 let cmd = AnyCommand {
                     name: "project.checks.set".to_owned(),
@@ -513,13 +514,16 @@ impl ShellModel {
                 let result = session
                     .execute(&cmd)
                     .map_err(|e| {
-                        strings::format("wizard-error-command", &["project.checks.set", &e.to_string()])
+                        strings::format(
+                            key!("wizard-error-command"),
+                            &["project.checks.set", &e.to_string()],
+                        )
                     })
                     .and_then(|_| {
                         session
                             .save()
                             .map(|_| ())
-                            .map_err(|_| strings::format("error-wizard-write", &[&name]))
+                            .map_err(|_| strings::format(key!("error-wizard-write"), &[&name]))
                     });
                 session.close();
                 result
@@ -530,7 +534,10 @@ impl ShellModel {
                     w.checks_written = true;
                     w.error = None;
                 }
-                self.banner = Some(strings::format("banner-check-scheme-applied", &[&scheme, &name]));
+                self.banner = Some(strings::format(
+                    key!("banner-check-scheme-applied"),
+                    &[&scheme, &name],
+                ));
                 Outcome::Done
             }
             Err(message) => {
@@ -550,11 +557,11 @@ impl ShellModel {
             NewProjectKind::Basic,
             self.session_options(),
         )
-        .map_err(|e| strings::format("error-wizard-write", &[strings::text(open_error_key(&e))]))?;
+        .map_err(|e| strings::format(key!("error-wizard-write"), &[strings::text(open_error_key(&e))]))?;
         run_commands(&mut session, "wizard", &commands)?;
         session
             .create(dir, self.store_options())
-            .map_err(|e| strings::format("error-wizard-write", &[strings::text(open_error_key(&e))]))?;
+            .map_err(|e| strings::format(key!("error-wizard-write"), &[strings::text(open_error_key(&e))]))?;
         session.close();
         Ok(())
     }

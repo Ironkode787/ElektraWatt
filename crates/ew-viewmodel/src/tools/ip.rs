@@ -52,6 +52,8 @@ use super::{
     Anchor, Button, CanvasEvent, Ghost, MarkerKind, Overlay, OverlayItem, Tool, ToolCx, ToolKey, ToolOutput,
 };
 use crate::canvas::CanvasPage;
+use crate::key;
+use crate::strings::Key;
 
 /// The direction of an interruption point.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -531,14 +533,14 @@ impl IpTool {
                 .map(|ip| ip.name.clone())
         });
         if let Some(name) = ip_name {
-            return DropOn::Refused(crate::strings::format("notice-ip-on-ip", &[&name]));
+            return DropOn::Refused(crate::strings::format(key!("notice-ip-on-ip"), &[&name]));
         }
         let Some(pin) = under.first() else {
             return DropOn::Free;
         };
         if self.external.is_some() {
             return DropOn::Refused(crate::strings::format(
-                "notice-external-on-pin",
+                key!("notice-external-on-pin"),
                 &[&crate::describe::pin_in_sentence(&pin.label)],
             ));
         }
@@ -648,7 +650,7 @@ impl IpTool {
             at: sheet,
             // W42b: a starred point is labelled as its name's star source, which it is whatever its direction.
             text: if self.star {
-                crate::strings::format("ghost-ip-star", &[&name])
+                crate::strings::format(key!("ghost-ip-star"), &[&name])
             } else {
                 format!("{name} {}", direction.word())
             },
@@ -755,11 +757,11 @@ impl Tool for IpTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         if self.external.is_some() {
-            "hint-ip-external"
+            key!("hint-ip-external")
         } else {
-            "hint-ip"
+            key!("hint-ip")
         }
     }
 

@@ -23,9 +23,11 @@ use super::{
     open_error_key, string_param,
 };
 use crate::jobs::{ExportDone, JobStatus, JobsState};
+use crate::key;
 use crate::layout::PaneKind;
 use crate::notifications::{NoteAction, NoteTone, Notification, NotificationLog, Validity};
 use crate::strings;
+use crate::strings::Key;
 
 /// A `uint` parameter: `Ok(None)` when absent, `Err` when present with another type.
 fn uint_param(p: &Map<String, Value>, name: &str) -> Result<Option<u64>, Outcome> {
@@ -34,7 +36,7 @@ fn uint_param(p: &Map<String, Value>, name: &str) -> Result<Option<u64>, Outcome
         Some(v) => v
             .as_u64()
             .map(Some)
-            .ok_or_else(|| failed("error-bad-param", &[name])),
+            .ok_or_else(|| failed(key!("error-bad-param"), &[name])),
     }
 }
 
@@ -43,7 +45,7 @@ pub(super) fn bool_param(p: &Map<String, Value>, name: &str, default: bool) -> R
     match p.get(name) {
         None | Some(Value::Null) => Ok(default),
         Some(Value::Bool(b)) => Ok(*b),
-        Some(_) => Err(failed("error-bad-param", &[name])),
+        Some(_) => Err(failed(key!("error-bad-param"), &[name])),
     }
 }
 
@@ -51,9 +53,9 @@ pub(super) fn bool_param(p: &Map<String, Value>, name: &str, default: bool) -> R
 fn number_list(numbers: &[u64]) -> String {
     let texts: Vec<String> = numbers.iter().map(u64::to_string).collect();
     match texts.as_slice() {
-        [] => strings::text("list-none").to_owned(),
+        [] => strings::text(key!("list-none")).to_owned(),
         [one] => one.clone(),
-        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), strings::text("list-and")),
+        [rest @ .., last] => format!("{} {} {last}", rest.join(", "), strings::text(key!("list-and"))),
     }
 }
 
@@ -211,24 +213,24 @@ impl ShellModel {
         let serial = match uint_param(p, "entry") {
             Err(e) => return e,
             Ok(Some(n)) => n,
-            Ok(None) => return failed("error-missing-param", &["entry"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["entry"]),
         };
         let action = match string_param(p, "action") {
             Err(e) => return e,
             Ok(Some(word)) => match NoteAction::from_word(word) {
                 Some(a) => a,
-                None => return failed("error-bad-param", &["action"]),
+                None => return failed(key!("error-bad-param"), &["action"]),
             },
-            Ok(None) => return failed("error-missing-param", &["action"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["action"]),
         };
         let Some(entry) = self.notes.get(serial).cloned() else {
             return failed(
-                "error-unknown-notification",
+                key!("error-unknown-notification"),
                 &[&serial.to_string(), &number_list(&self.notes.serials())],
             );
         };
         if entry.action() != Some(action) {
-            return failed("error-no-such-action", &[action.word()]);
+            return failed(key!("error-no-such-action"), &[action.word()]);
         }
         self.run_note_action(&entry)
     }
@@ -237,7 +239,7 @@ impl ShellModel {
     fn run_note_action(&mut self, entry: &Notification) -> Outcome {
         if !self.notification_valid(entry) {
             return Outcome::Refused {
-                reason_key: "reason-action-expired",
+                reason_key: key!("reason-action-expired"),
             };
         }
         match entry.action() {
@@ -248,18 +250,18 @@ impl ShellModel {
             }
             Some(NoteAction::Open) => match (self.mode, entry.open_path()) {
                 (Mode::Headless, _) => Outcome::Refused {
-                    reason_key: "reason-no-opener",
+                    reason_key: key!("reason-no-opener"),
                 },
                 (Mode::Gui, Some(path)) => {
                     self.jobs.open_request = Some(file_url_of(path));
                     Outcome::Done
                 }
                 (Mode::Gui, None) => Outcome::Refused {
-                    reason_key: "reason-action-expired",
+                    reason_key: key!("reason-action-expired"),
                 },
             },
             None => Outcome::Refused {
-                reason_key: "reason-no-toast",
+                reason_key: key!("reason-no-toast"),
             },
         }
     }
@@ -268,12 +270,12 @@ impl ShellModel {
     pub(crate) fn act_toast_undo(&mut self) -> Outcome {
         let Some(toast) = self.notes.newest_visible().cloned() else {
             return Outcome::Refused {
-                reason_key: "reason-no-toast",
+                reason_key: key!("reason-no-toast"),
             };
         };
         if toast.action() != Some(NoteAction::Undo) {
             return Outcome::Refused {
-                reason_key: "reason-no-toast-undo",
+                reason_key: key!("reason-no-toast-undo"),
             };
         }
         self.run_note_action(&toast)
@@ -308,26 +310,26 @@ impl ShellModel {
         };
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else {
-            return failed("error-bad-param", &["path"]);
+            return failed(key!("error-bad-param"), &["path"]);
         };
         if self.jobs.running() > 0 {
             return Outcome::Refused {
-                reason_key: "reason-export-running",
+                reason_key: key!("reason-export-running"),
             };
         }
         // A PDF renamed over a file of the open project would damage it (review finding 5 of cycle 30).
         if inside(&project.dir, &path) {
             return Outcome::Refused {
-                reason_key: "reason-export-into-project",
+                reason_key: key!("reason-export-into-project"),
             };
         }
         if path.exists() && !replace {
             return Outcome::Refused {
-                reason_key: "reason-file-exists",
+                reason_key: key!("reason-file-exists"),
             };
         }
         let rev = project.session.world().rev.0;
@@ -337,7 +339,8 @@ impl ShellModel {
         let number = match self.jobs.start_export(job, path, name, rev, epoch) {
             Ok(n) => n,
             Err(_) => {
-                let message = strings::format("error-export", &[strings::text("error-no-thread")]);
+                let message =
+                    strings::format(key!("error-export"), &[strings::text(key!("error-no-thread"))]);
                 self.banner = Some(message.clone());
                 return Outcome::Failed { message };
             }
@@ -438,9 +441,9 @@ impl ShellModel {
                 });
                 let text = strings::format(
                     if again {
-                        "toast-export-pdf-again"
+                        key!("toast-export-pdf-again")
                     } else {
-                        "toast-export-pdf"
+                        key!("toast-export-pdf")
                     },
                     &[&entry.name, &done.pages.to_string(), &kib.to_string()],
                 );
@@ -462,7 +465,7 @@ impl ShellModel {
                 )
             }
             JobEnd::Cancelled => {
-                let text = strings::text("toast-export-cancelled").to_owned();
+                let text = strings::text(key!("toast-export-cancelled")).to_owned();
                 (
                     JobStatus::Cancelled,
                     text.clone(),
@@ -471,7 +474,7 @@ impl ShellModel {
                 )
             }
             JobEnd::Failed(cause) => {
-                let text = strings::format("toast-export-failed", &[&cause]);
+                let text = strings::format(key!("toast-export-failed"), &[&cause]);
                 (
                     JobStatus::Failed(cause),
                     text.clone(),
@@ -480,8 +483,8 @@ impl ShellModel {
                 )
             }
             JobEnd::Panicked => {
-                let cause = strings::text("job-cause-internal").to_owned();
-                let text = strings::text("toast-export-internal").to_owned();
+                let cause = strings::text(key!("job-cause-internal")).to_owned();
+                let text = strings::text(key!("toast-export-internal")).to_owned();
                 (
                     JobStatus::Failed(cause),
                     text.clone(),
@@ -491,7 +494,7 @@ impl ShellModel {
             }
         };
         let marker = matches!(status, JobStatus::Done { .. })
-            .then(|| strings::format("marker-export", &[&entry.name]))
+            .then(|| strings::format(key!("marker-export"), &[&entry.name]))
             .filter(|_| same_session)
             .map(|text| HistoryMarker { rev: entry.rev, text });
         entry.status = status;
@@ -511,12 +514,12 @@ impl ShellModel {
         &self,
         p: &Map<String, Value>,
         default: impl Fn(&JobsState) -> Option<u64>,
-        none: &'static str,
+        none: Key<'static>,
     ) -> Result<u64, Outcome> {
         match uint_param(p, "job")? {
             Some(n) if self.jobs.get(n).is_some() => Ok(n),
             Some(n) => Err(failed(
-                "error-unknown-job",
+                key!("error-unknown-job"),
                 &[&n.to_string(), &number_list(&self.jobs.numbers())],
             )),
             None => default(&self.jobs).ok_or(Outcome::Refused { reason_key: none }),
@@ -546,7 +549,7 @@ impl ShellModel {
         let number = match self.job_number(
             p,
             |j| j.newest_running().map(|e| e.number),
-            "reason-no-running-job",
+            key!("reason-no-running-job"),
         ) {
             Ok(n) => n,
             Err(e) => return e,
@@ -557,7 +560,7 @@ impl ShellModel {
                 Outcome::Done
             }
             None => Outcome::Refused {
-                reason_key: "reason-job-finished",
+                reason_key: key!("reason-job-finished"),
             },
         }
     }
@@ -567,7 +570,7 @@ impl ShellModel {
     /// on which poll took an end (R1-2 and R2-1 of cycle 31). Done at once when there is none.
     pub(crate) fn act_jobs_wait(&mut self, p: &Map<String, Value>) -> Outcome {
         let unseen = |j: &JobsState| j.entries().filter(|e| !e.waited).last().map(|e| e.number);
-        let number = match self.job_number(p, unseen, "reason-no-running-job") {
+        let number = match self.job_number(p, unseen, key!("reason-no-running-job")) {
             Ok(n) => n,
             // Every job was waited for: there is nothing to wait for.
             Err(Outcome::Refused { .. }) => return Outcome::Done,
@@ -587,23 +590,23 @@ impl ShellModel {
                 .last()
                 .map(|e| e.number)
         };
-        let number = match self.job_number(p, newest_done, "reason-no-result") {
+        let number = match self.job_number(p, newest_done, key!("reason-no-result")) {
             Ok(n) => n,
             Err(e) => return e,
         };
         let Some(entry) = self.jobs.get(number) else {
             return Outcome::Refused {
-                reason_key: "reason-no-result",
+                reason_key: key!("reason-no-result"),
             };
         };
         if !matches!(entry.status, JobStatus::Done { .. }) {
             return Outcome::Refused {
-                reason_key: "reason-no-result",
+                reason_key: key!("reason-no-result"),
             };
         }
         if self.mode == Mode::Headless {
             return Outcome::Refused {
-                reason_key: "reason-no-opener",
+                reason_key: key!("reason-no-opener"),
             };
         }
         self.jobs.open_request = Some(file_url_of(&entry.path));
@@ -636,12 +639,12 @@ impl ShellModel {
         }) = self.dialog.clone()
         else {
             return Outcome::Refused {
-                reason_key: "reason-recovery-failed",
+                reason_key: key!("reason-recovery-failed"),
             };
         };
         let Some(dir) = self.project.as_ref().map(|p| p.dir.clone()) else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         self.dialog = None;
@@ -651,7 +654,8 @@ impl ShellModel {
         let (session, report) = match opened {
             Ok(o) => o,
             Err(e) => {
-                let message = strings::format("error-open", &[&name, strings::text(open_error_key(&e))]);
+                let message =
+                    strings::format(key!("error-open"), &[&name, strings::text(open_error_key(&e))]);
                 self.banner = Some(message.clone());
                 return Outcome::Failed { message };
             }
@@ -662,9 +666,9 @@ impl ShellModel {
             // Its own (empty) journal goes, the leftover stays.
             session.close();
             let reason = if base_matches {
-                strings::text("recovery-failed-replay")
+                strings::text(key!("recovery-failed-replay"))
             } else {
-                strings::text("recovery-failed-moved")
+                strings::text(key!("recovery-failed-moved"))
             };
             let fresh = report
                 .recovery
@@ -675,7 +679,8 @@ impl ShellModel {
             let again = match Session::open_read_only(&dir, &self.config.app_version) {
                 Ok((session, _)) => session,
                 Err(e) => {
-                    let message = strings::format("error-open", &[&name, strings::text(open_error_key(&e))]);
+                    let message =
+                        strings::format(key!("error-open"), &[&name, strings::text(open_error_key(&e))]);
                     self.banner = Some(message.clone());
                     return Outcome::Failed { message };
                 }
@@ -684,10 +689,10 @@ impl ShellModel {
                 &dir,
                 again,
                 AccessMode::ReadOnly {
-                    reason_key: "readonly-recovery",
+                    reason_key: key!("readonly-recovery"),
                 },
             );
-            self.banner = Some(strings::text("banner-recovery").to_owned());
+            self.banner = Some(strings::text(key!("banner-recovery")).to_owned());
             self.dialog = Some(Dialog::Recovery {
                 name,
                 transactions,
@@ -700,11 +705,15 @@ impl ShellModel {
         self.install_project(&dir, session, AccessMode::Edit);
         self.banner = None;
         let count = transactions;
-        self.notify_with(strings::format_count("toast-recovered", count), "recovery", false);
+        self.notify_with(
+            strings::format_count(key!("toast-recovered"), count),
+            "recovery",
+            false,
+        );
         if let Some(rev) = self.revision() {
             self.markers.push(HistoryMarker {
                 rev,
-                text: strings::format_count("marker-recovered", count),
+                text: strings::format_count(key!("marker-recovered"), count),
             });
         }
         Outcome::Done

@@ -23,7 +23,9 @@ use serde_json::{Map, Value, json};
 use super::canvas_actions::point_mm;
 use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::canvas::CanvasPage;
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::black_box::{
     nearest_on_outline, on_outline, outward, reshape_by_grip, reshape_command, selected_black_box,
     signed_area2,
@@ -139,10 +141,10 @@ impl ShellModel {
     /// with its FnDef; FT-673).
     fn family_shape(&mut self, base: &str) -> Result<(Arc<SymbolShape>, Vec<Value>), Outcome> {
         let none = Outcome::Refused {
-            reason_key: "reason-no-ip-symbol",
+            reason_key: key!("reason-no-ip-symbol"),
         };
         let cat = self.catalogue().ok_or(Outcome::Refused {
-            reason_key: "reason-no-catalogue",
+            reason_key: key!("reason-no-catalogue"),
         })?;
         let key = cat
             .symbols
@@ -299,7 +301,7 @@ impl ShellModel {
             }
             Some(Err(reason_key)) => Outcome::Refused { reason_key },
             None => Outcome::Refused {
-                reason_key: "reason-ip-end-grid",
+                reason_key: key!("reason-ip-end-grid"),
             },
         }
     }
@@ -311,15 +313,15 @@ impl ShellModel {
             Some(t) => t.external().is_some(),
             None => {
                 return Outcome::Refused {
-                    reason_key: "reason-ip-tool-only",
+                    reason_key: key!("reason-ip-tool-only"),
                 };
             }
         };
         if key == ToolKey::ToggleStar && external {
-            self.tools.notice = Some(strings::text("reason-external-never-pairs").to_owned());
+            self.tools.notice = Some(strings::text(key!("reason-external-never-pairs")).to_owned());
             self.tools.notice_sticky = false;
             return Outcome::Refused {
-                reason_key: "reason-external-never-pairs",
+                reason_key: key!("reason-external-never-pairs"),
             };
         }
         self.send_tool(&CanvasEvent::Key(key))
@@ -331,7 +333,7 @@ impl ShellModel {
     pub(crate) fn act_ip_direction(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() == "graphic" {
             if p.contains_key("direction") {
-                return failed("error-bad-param", &["direction"]);
+                return failed(key!("error-bad-param"), &["direction"]);
             }
             return self.send_tool(&CanvasEvent::Key(ToolKey::ToggleDirection));
         }
@@ -340,12 +342,12 @@ impl ShellModel {
             Ok(Some("source")) => IpDir::Source,
             Ok(Some("target")) => IpDir::Target,
             Ok(Some("undirected")) => IpDir::Undirected,
-            Ok(Some(_)) => return failed("error-bad-param", &["direction"]),
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["direction"]),
             Err(e) => return e,
         };
         if self.ip_tool().is_none() {
             return Outcome::Refused {
-                reason_key: "reason-ip-tool-only",
+                reason_key: key!("reason-ip-tool-only"),
             };
         }
         let overlay = self
@@ -366,7 +368,7 @@ impl ShellModel {
     pub(crate) fn act_ip_name(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.ip_tool().is_none() {
             return Outcome::Refused {
-                reason_key: "reason-ip-tool-only",
+                reason_key: key!("reason-ip-tool-only"),
             };
         }
         match string_param(p, "text") {
@@ -376,7 +378,7 @@ impl ShellModel {
                 self.tools.ip_memory.typed = (!t.is_empty()).then(|| t.to_owned());
                 self.send_tool(&CanvasEvent::Text(t.to_owned()))
             }
-            Ok(None) => failed("error-missing-param", &["text"]),
+            Ok(None) => failed(key!("error-missing-param"), &["text"]),
             Err(e) => e,
         }
     }
@@ -425,14 +427,14 @@ impl ShellModel {
                 let mut labels: Vec<&str> = choices.iter().map(|(_, l)| l.as_str()).collect();
                 labels.dedup();
                 let known = if labels.is_empty() {
-                    strings::text("external-none").to_owned()
+                    strings::text(key!("external-none")).to_owned()
                 } else {
                     labels.join(", ")
                 };
-                Err(failed("error-no-external", &[s, &known]))
+                Err(failed(key!("error-no-external"), &[s, &known]))
             }
             _ => Err(Outcome::Refused {
-                reason_key: "reason-external-ambiguous",
+                reason_key: key!("reason-external-ambiguous"),
             }),
         }
     }
@@ -455,18 +457,18 @@ impl ShellModel {
     pub(crate) fn act_ip_external(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.ip_tool().is_none() {
             return Outcome::Refused {
-                reason_key: "reason-ip-tool-only",
+                reason_key: key!("reason-ip-tool-only"),
             };
         }
         let external = match p.get("external") {
-            None => return failed("error-missing-param", &["external"]),
+            None => return failed(key!("error-missing-param"), &["external"]),
             Some(Value::Null) => None,
             Some(Value::String(s)) if s.is_empty() => None,
             Some(Value::String(s)) => match self.resolve_external(s) {
                 Ok(e) => Some(e),
                 Err(outcome) => return outcome,
             },
-            Some(_) => return failed("error-bad-param", &["external"]),
+            Some(_) => return failed(key!("error-bad-param"), &["external"]),
         };
         let base = if external.is_some() {
             "ew.gen.external-arrow"
@@ -544,7 +546,7 @@ impl ShellModel {
         self.tools.notice_at = Some(at.unwrap_or((i64::MIN, i64::MIN)));
         self.notify_toned(text, crate::notifications::NoteTone::Warning);
         Some(Outcome::Refused {
-            reason_key: "reason-ip-not-placed",
+            reason_key: key!("reason-ip-not-placed"),
         })
     }
 
@@ -563,13 +565,13 @@ impl ShellModel {
         // C40 (H40 item 6): a second source says what is in the way and the way out, not the rule's ID tie-break.
         let text = self
             .second_source_words(message)
-            .unwrap_or_else(|| strings::format("notice-ip-not-placed", &[message]));
+            .unwrap_or_else(|| strings::format(key!("notice-ip-not-placed"), &[message]));
         self.tools.notice = Some(text.clone());
         self.tools.notice_sticky = true;
         self.notify_toned(text, crate::notifications::NoteTone::Warning);
         (
             Outcome::Refused {
-                reason_key: "reason-ip-not-placed",
+                reason_key: key!("reason-ip-not-placed"),
             },
             true,
         )
@@ -626,7 +628,7 @@ impl ShellModel {
                     Some(f) => f,
                     None => {
                         return Outcome::Refused {
-                            reason_key: "reason-no-next-page",
+                            reason_key: key!("reason-no-next-page"),
                         };
                     }
                 }
@@ -639,29 +641,29 @@ impl ShellModel {
         };
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let tables = Arc::clone(&c.page().tables);
         let [ip] = selected_ips(self, &tables)[..] else {
             return Outcome::Refused {
-                reason_key: "reason-select-one-ip",
+                reason_key: key!("reason-select-one-ip"),
             };
         };
         let (function, original) = (ip.functions.first().copied(), ip.pos);
         let Some(function) = function else {
             return Outcome::Refused {
-                reason_key: "reason-select-one-ip",
+                reason_key: key!("reason-select-one-ip"),
             };
         };
         let here = self.focused_area();
         let target: Arc<CanvasPage> = match self.page_for(&folio) {
             Ok(page) => page,
-            Err(_) => return failed("error-bad-param", &["folio"]),
+            Err(_) => return failed(key!("error-bad-param"), &["folio"]),
         };
         if target.tables.page.is_nil() {
             return Outcome::Refused {
-                reason_key: "reason-not-editable",
+                reason_key: key!("reason-not-editable"),
             };
         }
         let grid = PageGridMap::new(target.tables.grid);
@@ -713,19 +715,19 @@ impl ShellModel {
         let by_potential = match string_param(p, "by") {
             Ok(None | Some("name")) => false,
             Ok(Some("potential")) => true,
-            Ok(Some(_)) => return failed("error-bad-param", &["by"]),
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["by"]),
             Err(e) => return e,
         };
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let tables = Arc::clone(&c.page().tables);
         let ips = selected_ips(self, &tables);
         if ips.len() < 2 {
             return Outcome::Refused {
-                reason_key: "reason-select-ips",
+                reason_key: key!("reason-select-ips"),
             };
         }
         let mut keyed: Vec<ArrangeKey> = ips
@@ -793,7 +795,7 @@ impl ShellModel {
     /// The one selected black box and the grid cursor's page point.
     fn box_and_cursor(&self) -> Result<(TableRep, (i64, i64)), Outcome> {
         let c = self.canvas().ok_or(Outcome::Refused {
-            reason_key: "reason-no-page",
+            reason_key: key!("reason-no-page"),
         })?;
         let t = &c.page().tables;
         let rep = match self.selection().items.as_slice() {
@@ -802,10 +804,10 @@ impl ShellModel {
         }
         .cloned()
         .ok_or(Outcome::Refused {
-            reason_key: "reason-one-black-box",
+            reason_key: key!("reason-one-black-box"),
         })?;
         let cursor = c.cursor().ok_or(Outcome::Refused {
-            reason_key: "reason-no-cursor",
+            reason_key: key!("reason-no-cursor"),
         })?;
         Ok((rep, c.page().snapper.snap_grid(cursor).page_nm))
     }
@@ -818,7 +820,7 @@ impl ShellModel {
             .and_then(Value::as_u64)
             .and_then(|g| usize::try_from(g).ok())
         else {
-            return failed("error-missing-param", &["grip"]);
+            return failed(key!("error-missing-param"), &["grip"]);
         };
         let (rep, to) = match self.box_and_cursor() {
             Ok(v) => v,
@@ -826,7 +828,7 @@ impl ShellModel {
         };
         let Some(b) = &rep.black_box else {
             return Outcome::Refused {
-                reason_key: "reason-one-black-box",
+                reason_key: key!("reason-one-black-box"),
             };
         };
         match reshape_by_grip(&b.outline, grip, to) {
@@ -851,17 +853,17 @@ impl ShellModel {
         };
         let Some(b) = &rep.black_box else {
             return Outcome::Refused {
-                reason_key: "reason-one-black-box",
+                reason_key: key!("reason-one-black-box"),
             };
         };
         if !on_outline(&b.outline, at) {
             return Outcome::Refused {
-                reason_key: "reason-cp-off-outline",
+                reason_key: key!("reason-cp-off-outline"),
             };
         }
         let Some(idx) = (0..=u16::MAX).find(|i| !b.cps.iter().any(|(j, ..)| j == i)) else {
             return Outcome::Refused {
-                reason_key: "reason-cp-off-outline",
+                reason_key: key!("reason-cp-off-outline"),
             };
         };
         let n = b.outline.len();
@@ -940,11 +942,12 @@ impl ShellModel {
 /// has none (cycle-40 review).
 fn second_source_text(name: &str, folio: &str, key: &str) -> String {
     if key.is_empty() {
-        let title = crate::actions::find("tool.ip_direction")
-            .map_or("tool.ip_direction", |m| strings::text(&m.label_key()));
-        strings::format("notice-ip-second-source-unbound", &[name, folio, title])
+        let title = crate::actions::find("tool.ip_direction").map_or("tool.ip_direction", |m| {
+            strings::text(Key::run_time(&m.label_key()))
+        });
+        strings::format(key!("notice-ip-second-source-unbound"), &[name, folio, title])
     } else {
-        strings::format("notice-ip-second-source", &[name, folio, key])
+        strings::format(key!("notice-ip-second-source"), &[name, folio, key])
     }
 }
 

@@ -25,8 +25,10 @@ use crate::canvas::{
     CanvasModel, CanvasPage, HEADLESS_PANE, PageId, PageLink, Viewport, reading_key, rect_centre, sort_links,
 };
 use crate::history::Location;
+use crate::key;
 use crate::navigator::{NavMode, NavRow, NavSort, PageNavigator, RowKind};
 use crate::strings;
+use crate::strings::Key;
 
 /// How many pages no tab shows the page-content cache keeps, most recently shown first.
 pub const RECENT_PAGES: usize = 8;
@@ -161,18 +163,18 @@ enum CursorAt {
 /// A `usize` parameter that must be below `limit`.
 fn index_param(p: &Map<String, Value>, name: &str, limit: usize) -> Result<usize, Outcome> {
     match p.get(name) {
-        None => Err(failed("error-missing-param", &[name])),
+        None => Err(failed(key!("error-missing-param"), &[name])),
         Some(v) => v
             .as_u64()
             .and_then(|n| usize::try_from(n).ok())
             .filter(|&n| n < limit)
-            .ok_or_else(|| failed("error-bad-param", &[name])),
+            .ok_or_else(|| failed(key!("error-bad-param"), &[name])),
     }
 }
 
 /// An outcome of an area operation's refusal key.
-fn refused(key: &'static str, param: &str) -> Outcome {
-    if key.starts_with("error-") {
+fn refused(key: Key<'static>, param: &str) -> Outcome {
+    if key.as_str().starts_with("error-") {
         failed(key, &[param])
     } else {
         Outcome::Refused { reason_key: key }
@@ -233,7 +235,7 @@ impl ShellModel {
     /// A tab's title: `<folio> <title>`.
     pub fn tab_title(&self, tab: &Tab) -> String {
         match self.tab_row(tab) {
-            Some(r) => strings::format("tab-title", &[&r.folio, &r.title]),
+            Some(r) => strings::format(key!("tab-title"), &[&r.folio, &r.title]),
             None => String::new(),
         }
     }
@@ -356,7 +358,7 @@ impl ShellModel {
     /// The page content of `folio` at the current revision, through the cache (built once per entry).
     pub(super) fn page_for(&mut self, folio: &str) -> Result<Arc<CanvasPage>, String> {
         let (Some(epoch), Some(rev)) = (self.project_epoch(), self.revision()) else {
-            return Err(strings::text("reason-no-project").to_owned());
+            return Err(strings::text(key!("reason-no-project")).to_owned());
         };
         if self.cache.key != Some((epoch, rev)) {
             self.cache.pages.clear();
@@ -394,10 +396,10 @@ impl ShellModel {
     fn build_page(&self, folio: &str, epoch: u64, rev: u64) -> Result<CanvasPage, String> {
         let pages = self.page_content(folio)?;
         let Some(first) = pages.pages.into_iter().next() else {
-            return Err(strings::text("page-no-pages").to_owned());
+            return Err(strings::text(key!("page-no-pages")).to_owned());
         };
         let Some(project) = &self.project else {
-            return Err(strings::text("reason-no-project").to_owned());
+            return Err(strings::text(key!("reason-no-project")).to_owned());
         };
         let grid = project.session.page_grid(folio);
         let title = first
@@ -554,7 +556,7 @@ impl ShellModel {
             .get(index.min(self.page_count().saturating_sub(1)))
         else {
             return Outcome::Refused {
-                reason_key: "reason-no-pages",
+                reason_key: key!("reason-no-pages"),
             };
         };
         let page = PageId::of(row);
@@ -712,12 +714,12 @@ impl ShellModel {
 
     fn area_op(
         &mut self,
-        f: impl FnOnce(&mut CanvasArea) -> Result<(), &'static str>,
+        f: impl FnOnce(&mut CanvasArea) -> Result<(), Key<'static>>,
         param: &str,
     ) -> Outcome {
         let Some(area) = &mut self.area else {
             return Outcome::Refused {
-                reason_key: "reason-no-pages",
+                reason_key: key!("reason-no-pages"),
             };
         };
         match f(area) {
@@ -780,7 +782,7 @@ impl ShellModel {
         };
         let to_i = match p.get("to_index").and_then(Value::as_u64) {
             Some(n) => usize::try_from(n).unwrap_or(usize::MAX),
-            None => return failed("error-missing-param", &["to_index"]),
+            None => return failed(key!("error-missing-param"), &["to_index"]),
         };
         self.area_op(|a| a.move_tab(g, i, to_g, to_i), "index")
     }
@@ -789,14 +791,14 @@ impl ShellModel {
         let folio = match string_param(p, "folio") {
             Err(e) => return e,
             Ok(Some(f)) => f.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["folio"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["folio"]),
         };
         let g = match self.group_param(p) {
             Ok(g) => g,
             Err(e) => return e,
         };
         let Some(row) = self.page_rows().iter().find(|r| r.folio == folio) else {
-            return failed("error-no-folio", &[&folio]);
+            return failed(key!("error-no-folio"), &[&folio]);
         };
         let page = PageId::of(row);
         let out = self.area_op(|a| a.open(page, g), "group");
@@ -809,7 +811,7 @@ impl ShellModel {
     pub(crate) fn act_side_by_side(&mut self) -> Outcome {
         let Some(area) = &self.area else {
             return Outcome::Refused {
-                reason_key: "reason-no-pages",
+                reason_key: key!("reason-no-pages"),
             };
         };
         if area.side_by_side() {
@@ -839,7 +841,7 @@ impl ShellModel {
     pub(crate) fn act_history(&mut self, back: bool) -> Outcome {
         let Some(g) = self.area.as_ref().map(|a| a.focused) else {
             return Outcome::Refused {
-                reason_key: "reason-history-empty",
+                reason_key: key!("reason-history-empty"),
             };
         };
         let Some(current) = self.location(g) else {
@@ -860,7 +862,7 @@ impl ShellModel {
         };
         let Some(entry) = entry else {
             return Outcome::Refused {
-                reason_key: "reason-history-empty",
+                reason_key: key!("reason-history-empty"),
             };
         };
         self.remember_view(g);
@@ -879,7 +881,7 @@ impl ShellModel {
         };
         let Some(c) = self.canvas_of(g) else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let index = match (point, c.cursor()) {
@@ -889,7 +891,7 @@ impl ShellModel {
         match index {
             Some(i) => self.follow_link(g, i),
             None => Outcome::Refused {
-                reason_key: "reason-no-link",
+                reason_key: key!("reason-no-link"),
             },
         }
     }
@@ -898,12 +900,12 @@ impl ShellModel {
     pub(super) fn follow_link(&mut self, g: usize, index: usize) -> Outcome {
         let Some(link) = self.canvas_of(g).and_then(|c| c.page().links.get(index)) else {
             return Outcome::Refused {
-                reason_key: "reason-no-link",
+                reason_key: key!("reason-no-link"),
             };
         };
         let Some(target) = link.target.clone() else {
             return Outcome::Refused {
-                reason_key: "reason-link-external",
+                reason_key: key!("reason-link-external"),
             };
         };
         let page = PageId::of_target(&target);
@@ -921,13 +923,13 @@ impl ShellModel {
         };
         let Some(c) = self.canvas_mut(g) else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let page = Arc::clone(c.page());
         if page.links.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-link",
+                reason_key: key!("reason-no-link"),
             };
         }
         let from = c.cursor().unwrap_or(c.centre());
@@ -953,24 +955,24 @@ impl ShellModel {
             Ok(Some(t)) => t.to_owned(),
             Ok(None) => {
                 return match self.mode {
-                    Mode::Headless => failed("error-missing-param", &["text"]),
+                    Mode::Headless => failed(key!("error-missing-param"), &["text"]),
                     Mode::Gui => self.open_dialog(Dialog::GotoPage { text: String::new() }),
                 };
             }
         };
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let resolved = project.session.resolve_goto(&text);
         self.count(|c| c.resolve_goto += 1);
         let target = match resolved {
             Ok(t) => t,
-            Err(GotoError::Empty) => return failed("error-goto-empty", &[]),
-            Err(GotoError::NotFound) => return failed("error-goto-not-found", &[text.trim()]),
+            Err(GotoError::Empty) => return failed(key!("error-goto-empty"), &[]),
+            Err(GotoError::NotFound) => return failed(key!("error-goto-not-found"), &[text.trim()]),
             Err(GotoError::NoSuchCell { folio, cell }) => {
-                return failed("error-goto-no-cell", &[&folio, &cell]);
+                return failed(key!("error-goto-no-cell"), &[&folio, &cell]);
             }
         };
         self.dialog = None;
@@ -1035,7 +1037,7 @@ impl ShellModel {
                 self.act_page_goto(&p)
             }
             None => Outcome::Refused {
-                reason_key: "reason-no-parts-list",
+                reason_key: key!("reason-no-parts-list"),
             },
         }
     }
@@ -1046,13 +1048,13 @@ impl ShellModel {
             Ok(Some(folio)) => folio.to_owned(),
             Ok(None) => {
                 return match self.mode {
-                    Mode::Headless => failed("error-missing-param", &["folio"]),
+                    Mode::Headless => failed(key!("error-missing-param"), &["folio"]),
                     Mode::Gui => self.open_dialog(Dialog::GotoPage { text: String::new() }),
                 };
             }
         };
         let Some(page) = self.page_rows().iter().find(|r| r.folio == folio).map(PageId::of) else {
-            return failed("error-no-folio", &[&folio]);
+            return failed(key!("error-no-folio"), &[&folio]);
         };
         self.dialog = None;
         if let Some(g) = self.area.as_ref().map(|a| a.focused) {
@@ -1080,7 +1082,7 @@ impl ShellModel {
                 Outcome::Done
             }
             None => Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             },
         }
     }
@@ -1104,7 +1106,7 @@ impl ShellModel {
                 Outcome::Done
             }
             None => Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             },
         }
     }
@@ -1115,7 +1117,7 @@ impl ShellModel {
     pub(crate) fn act_pages_mode(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "mode") {
             Err(e) => e,
-            Ok(None) => failed("error-missing-param", &["mode"]),
+            Ok(None) => failed(key!("error-missing-param"), &["mode"]),
             Ok(Some(w)) => match NavMode::from_word(w) {
                 Some(m) => {
                     if self.navigator.mode != m {
@@ -1127,7 +1129,7 @@ impl ShellModel {
                     self.navigator.reset_row();
                     Outcome::Done
                 }
-                None => failed("error-bad-param", &["mode"]),
+                None => failed(key!("error-bad-param"), &["mode"]),
             },
         }
     }
@@ -1135,13 +1137,13 @@ impl ShellModel {
     pub(crate) fn act_pages_sort(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "by") {
             Err(e) => e,
-            Ok(None) => failed("error-missing-param", &["by"]),
+            Ok(None) => failed(key!("error-missing-param"), &["by"]),
             Ok(Some(w)) => match NavSort::from_word(w) {
                 Some(s) => {
                     self.navigator.sort = s;
                     Outcome::Done
                 }
-                None => failed("error-bad-param", &["by"]),
+                None => failed(key!("error-bad-param"), &["by"]),
             },
         }
     }
@@ -1149,7 +1151,7 @@ impl ShellModel {
     pub(crate) fn act_pages_filter(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "text") {
             Err(e) => e,
-            Ok(None) => failed("error-missing-param", &["text"]),
+            Ok(None) => failed(key!("error-missing-param"), &["text"]),
             Ok(Some(t)) => {
                 self.navigator.filter = t.to_owned();
                 Outcome::Done
@@ -1161,13 +1163,13 @@ impl ShellModel {
     fn row_param(&self, p: &Map<String, Value>) -> Result<NavRow, Outcome> {
         let key = match string_param(p, "key") {
             Err(e) => return Err(e),
-            Ok(None) => return Err(failed("error-missing-param", &["key"])),
+            Ok(None) => return Err(failed(key!("error-missing-param"), &["key"])),
             Ok(Some(k)) => k,
         };
         self.navigator_rows()
             .into_iter()
             .find(|r| r.key == key)
-            .ok_or_else(|| failed("error-bad-param", &["key"]))
+            .ok_or_else(|| failed(key!("error-bad-param"), &["key"]))
     }
 
     pub(crate) fn act_pages_toggle(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -1178,7 +1180,7 @@ impl ShellModel {
                 self.navigator.set_row(&row.key);
                 Outcome::Done
             }
-            Ok(_) => failed("error-bad-param", &["key"]),
+            Ok(_) => failed(key!("error-bad-param"), &["key"]),
         }
     }
 
@@ -1196,11 +1198,11 @@ impl ShellModel {
             match to.as_str() {
                 Some("first") => rows[0].key.clone(),
                 Some("last") => rows[rows.len() - 1].key.clone(),
-                _ => return failed("error-bad-param", &["to"]),
+                _ => return failed(key!("error-bad-param"), &["to"]),
             }
         } else if let Some(step) = p.get("step") {
             let Some(step) = step.as_i64().filter(|s| *s == 1 || *s == -1) else {
-                return failed("error-bad-param", &["step"]);
+                return failed(key!("error-bad-param"), &["step"]);
             };
             let here = self
                 .navigator_row_key()
@@ -1209,7 +1211,7 @@ impl ShellModel {
             let at = (here as i64 + step).clamp(0, rows.len() as i64 - 1) as usize;
             rows[at].key.clone()
         } else {
-            return failed("error-missing-param", &["key"]);
+            return failed(key!("error-missing-param"), &["key"]);
         };
         self.navigator.set_row(&key);
         Outcome::Done
@@ -1224,16 +1226,16 @@ impl ShellModel {
                         self.navigator.set_row(&row.key);
                         i
                     }
-                    RowKind::Node { .. } => return failed("error-bad-param", &["key"]),
+                    RowKind::Node { .. } => return failed(key!("error-bad-param"), &["key"]),
                 },
             }
         } else {
             match string_param(p, "folio") {
                 Err(e) => return e,
-                Ok(None) => return failed("error-missing-param", &["key"]),
+                Ok(None) => return failed(key!("error-missing-param"), &["key"]),
                 Ok(Some(f)) => match self.page_rows().iter().position(|r| r.folio == f) {
                     Some(i) => i,
-                    None => return failed("error-no-folio", &[f]),
+                    None => return failed(key!("error-no-folio"), &[f]),
                 },
             }
         };
@@ -1258,7 +1260,7 @@ impl ShellModel {
     pub(crate) fn act_focus(&mut self, p: &Map<String, Value>) -> Outcome {
         let area = match string_param(p, "area") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["area"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["area"]),
             Ok(Some(a)) => a.to_owned(),
         };
         match area.as_str() {
@@ -1269,7 +1271,7 @@ impl ShellModel {
                     Ok(None) => crate::navigators::NavKind::Pages,
                     Ok(Some(w)) => match crate::navigators::NavKind::from_word(w) {
                         Some(k) if k == crate::navigators::NavKind::Pages || self.navs.contains_key(&k) => k,
-                        _ => return failed("error-bad-param", &["kind"]),
+                        _ => return failed(key!("error-bad-param"), &["kind"]),
                     },
                 };
                 self.focus = Some(Focus::Navigator(kind));
@@ -1305,7 +1307,7 @@ impl ShellModel {
                 self.focus = Some(Focus::Canvas(g));
                 Outcome::Done
             }
-            _ => failed("error-bad-param", &["area"]),
+            _ => failed(key!("error-bad-param"), &["area"]),
         }
     }
 

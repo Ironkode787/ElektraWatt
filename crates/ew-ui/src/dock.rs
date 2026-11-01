@@ -17,6 +17,7 @@ use std::collections::BTreeMap;
 
 use egui::{Rect, Sense, Ui, pos2, vec2};
 use egui_tiles::{Container, Linear, LinearDir, Tabs, Tile, TileId, Tiles, Tree, UiResponse};
+use ew_viewmodel::key;
 use ew_viewmodel::layout::{Layout, LayoutNode, PaneKind, SplitDir};
 use ew_viewmodel::rail::{LEFT, PROJECT_PANES};
 use ew_viewmodel::strings;
@@ -558,7 +559,7 @@ fn title_of(tiles: &Tiles<PaneKind>, id: TileId) -> String {
 /// the pane's title.
 fn header_title(pane: PaneKind, in_rail: bool) -> String {
     if in_rail && PROJECT_PANES.contains(&pane) {
-        return strings::text("rail-project").to_owned();
+        return strings::text(key!("rail-project")).to_owned();
     }
     strings::text(pane.title_key()).to_owned()
 }
@@ -659,7 +660,7 @@ impl DockBehavior<'_> {
                 vec2(size, size),
             );
             let mut child = ui.new_child(egui::UiBuilder::new().max_rect(at));
-            let name = strings::text("dock-close");
+            let name = strings::text(key!("dock-close"));
             if crate::components::icon_button(&mut child, crate::icons::IconId::x, name).clicked() {
                 self.events
                     .push(Event::Action("view.bottom_dock", json!({ "on": false })));
@@ -689,7 +690,7 @@ impl DockBehavior<'_> {
         );
         let list_id = ui.scope_id().with("ew-segmented");
         let list = ui.interact(track, list_id, Sense::hover());
-        let list_name = strings::text("rail-views").to_owned();
+        let list_name = strings::text(key!("rail-views")).to_owned();
         list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TabList, true, &list_name));
         // The two tabs are the list's children.
         let tabs = ui.new_child(
@@ -706,8 +707,8 @@ impl DockBehavior<'_> {
         let inner = track.shrink(t.space_1);
         let half = inner.width() / 2.0;
         for (i, (pane, key, word)) in [
-            (PROJECT_PANES[0], "rail-pages", "pages"),
-            (PROJECT_PANES[1], "rail-devices", "devices"),
+            (PROJECT_PANES[0], key!("rail-pages"), "pages"),
+            (PROJECT_PANES[1], key!("rail-devices"), "devices"),
         ]
         .into_iter()
         .enumerate()
@@ -940,7 +941,7 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
         // Doc 16a §5.7: one close button at the right end of the bottom dock's tab row closes the dock.
         if panes.iter().any(|(_, p)| PaneKind::BOTTOM.contains(p)) {
             ui.add_space(self.tokens.space_2);
-            let name = strings::text("dock-close");
+            let name = strings::text(key!("dock-close"));
             if crate::components::icon_button(ui, crate::icons::IconId::x, name).clicked() {
                 self.events
                     .push(Event::Action("view.bottom_dock", json!({ "on": false })));
@@ -950,7 +951,7 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
             return;
         }
         // FT-562: "All tabs" is a Subtle 24-px icon button without a border (doc 16a §6.3), its list a menu (§6.13).
-        let name = strings::text("dock-all-tabs");
+        let name = strings::text(key!("dock-all-tabs"));
         let response = crate::components::icon_button(ui, crate::icons::IconId::dots, name);
         egui::Popup::menu(&response)
             .style(crate::menu::menu_style(&self.tokens))

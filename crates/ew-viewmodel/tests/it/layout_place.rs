@@ -9,6 +9,7 @@
 //! live region, the nudges, R, X, Delete, Lock and Unlock (PW-6).
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::actions::ActionItem;
@@ -338,7 +339,7 @@ fn pw1_the_empty_states_name_the_location_or_the_missing_layout() {
         "reason-no-panel-page"
     );
     assert_eq!(
-        ew_viewmodel::strings::text("reason-no-panel-page"),
+        ew_viewmodel::strings::text(key!("reason-no-panel-page")),
         "Open a panel layout page"
     );
     shell.shutdown();
@@ -598,7 +599,7 @@ fn pw4_target_snapping_shift_and_the_grid_option() {
 }
 
 fn shell_failed_text(param: &str) -> String {
-    ew_viewmodel::strings::format("error-bad-param", &[param])
+    ew_viewmodel::strings::format(key!("error-bad-param"), &[param])
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -709,14 +710,14 @@ fn pw6_nudge_turn_lock_and_delete_a_selected_placement() {
     assert_eq!(
         key(&mut shell, "cursor.right"),
         Outcome::Refused {
-            reason_key: "reason-layout-blocked"
+            reason_key: key!("reason-layout-blocked")
         }
     );
     assert_eq!(shell.tool_announcement(), Some("Blocked by -102F2"));
     assert_eq!(
         key(&mut shell, "cursor.left"),
         Outcome::Refused {
-            reason_key: "reason-layout-blocked"
+            reason_key: key!("reason-layout-blocked")
         }
     );
     assert_eq!(shell.tool_announcement(), Some("Blocked by -101F1"));
@@ -746,7 +747,7 @@ fn pw6_nudge_turn_lock_and_delete_a_selected_placement() {
     assert_eq!(
         key(&mut shell, "tool.rotate_cw"),
         Outcome::Refused {
-            reason_key: "reason-layout-turn"
+            reason_key: key!("reason-layout-turn")
         }
     );
     assert_eq!(
@@ -802,7 +803,7 @@ fn a_refused_turn_names_the_rebound_keys_on_every_path() {
     let tmp = Tmp::new("layout-turn-keys");
     let mut shell = writable(&tmp);
     assert_eq!(
-        ew_viewmodel::strings::text("reason-layout-turn"),
+        ew_viewmodel::strings::text(key!("reason-layout-turn")),
         "Turn a placement on the plate; flip one on a rail"
     );
     done(&mut shell, "help.shortcuts", json!({}));
@@ -818,7 +819,7 @@ fn a_refused_turn_names_the_rebound_keys_on_every_path() {
     );
     done(&mut shell, "ui.dismiss", json!({}));
     let turn_refused = Outcome::Refused {
-        reason_key: "reason-layout-turn",
+        reason_key: key!("reason-layout-turn"),
     };
 
     // The shell: the selected placement -102F1 on Rail 1.

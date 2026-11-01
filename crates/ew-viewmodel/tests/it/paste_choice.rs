@@ -10,6 +10,7 @@
 //! opens `library.update`'s card and its Apply arms the paste again: two commands, two undo steps.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use std::path::{Path, PathBuf};
 
@@ -196,7 +197,7 @@ fn ps8_the_paste_choice_in_the_shell() {
     assert_eq!(
         p2.dispatch("edit.paste_clip", &json!({ "text": text })),
         Outcome::Refused {
-            reason_key: "reason-paste-versions"
+            reason_key: key!("reason-paste-versions")
         }
     );
     assert_ne!(p2.tool().name(), "paste", "no paste tool before the choice");
@@ -260,7 +261,7 @@ fn ps8_the_paste_choice_in_the_shell() {
     assert_eq!(
         p1.dispatch("edit.paste_clip", &json!({ "text": text })),
         Outcome::Refused {
-            reason_key: "reason-paste-versions"
+            reason_key: key!("reason-paste-versions")
         }
     );
     let lines = card_lines(&p1);
@@ -314,7 +315,7 @@ fn ps8_the_paste_choice_in_the_shell() {
     assert_eq!(
         p1.dispatch("edit.paste_clip", &json!({ "text": text })),
         Outcome::Refused {
-            reason_key: "reason-paste-versions"
+            reason_key: key!("reason-paste-versions")
         }
     );
     done(&mut p1, "paste.resolve", json!({"choice": "update"}));

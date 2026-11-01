@@ -15,6 +15,7 @@
 //! `parts.map {column, member}`; Import `parts.map_import`; Cancel and Escape `ui.dismiss`.
 
 use egui::{Align, Align2, Id, Layout, RichText, Vec2};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::{PartsMap, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
@@ -59,12 +60,12 @@ fn body(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
     let t = crate::components::tokens(ui);
     ui.spacing_mut().item_spacing.y = t.space_3;
     ui.label(
-        RichText::new(strings::text("parts-map-title"))
+        RichText::new(strings::text(key!("parts-map-title")))
             .font(crate::theme::font(&t.type_title))
             .color(t.text_primary.color32()),
     );
     ui.label(
-        RichText::new(strings::format("parts-map-intro", &[&map.file]))
+        RichText::new(strings::format(key!("parts-map-intro"), &[&map.file]))
             .font(crate::theme::font(&t.type_body))
             .color(t.text_secondary.color32()),
     );
@@ -89,7 +90,7 @@ fn source_row(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                 |ui| {
                     ui.set_min_width(t.size_dialog_label);
                     ui.label(
-                        RichText::new(strings::text("parts-map-source"))
+                        RichText::new(strings::text(key!("parts-map-source")))
                             .font(crate::theme::font(&t.type_label))
                             .color(t.text_secondary.color32()),
                     )
@@ -114,7 +115,7 @@ fn source_row(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
             events.push(Event::Action("parts.map", json!({ "source": text.trim() })));
         }
         if map.saved {
-            crate::components::caption_badge(ui, strings::text("parts-map-saved"));
+            crate::components::caption_badge(ui, strings::text(key!("parts-map-saved")));
         }
     });
 }
@@ -146,7 +147,7 @@ fn column_widths(ui: &egui::Ui, map: &PartsMap) -> (f32, f32, f32) {
 /// The column table: header, sample and the member drop-down per column.
 fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
     let t = crate::components::tokens(ui);
-    let none = strings::text("parts-map-none");
+    let none = strings::text(key!("parts-map-none"));
     let small = |s: &str, strong: bool| {
         RichText::new(s.to_owned())
             .font(crate::theme::font(if strong {
@@ -176,9 +177,9 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                 .spacing([t.space_4, t.space_2])
                 .min_col_width(t.size_dialog_label * 0.6)
                 .show(ui, |ui| {
-                    ui.label(small(strings::text("parts-map-column"), true));
-                    ui.label(small(strings::text("parts-map-sample"), true));
-                    ui.label(small(strings::text("parts-map-member"), true));
+                    ui.label(small(strings::text(key!("parts-map-column")), true));
+                    ui.label(small(strings::text(key!("parts-map-sample")), true));
+                    ui.label(small(strings::text(key!("parts-map-member")), true));
                     ui.end_row();
                     for (i, c) in map.columns.iter().enumerate() {
                         ui.label(
@@ -233,7 +234,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                                 }
                             });
                         // Named "Imports as <header>" (every focusable node has a name, ADR-0014 amendment 2).
-                        let name = format!("{} {}", strings::text("parts-map-member"), c.header);
+                        let name = format!("{} {}", strings::text(key!("parts-map-member")), c.header);
                         ui.ctx()
                             .accesskit_node_builder(combo.response.id, |n| n.set_label(name));
                         ui.end_row();
@@ -256,7 +257,13 @@ fn buttons(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
         for import in order {
             if import {
                 let enabled = map.can_import();
-                let r = button(ui, Kind::Primary, strings::text("parts-map-import"), enabled, 0.0);
+                let r = button(
+                    ui,
+                    Kind::Primary,
+                    strings::text(key!("parts-map-import")),
+                    enabled,
+                    0.0,
+                );
                 let r = match (map.error_text(), enabled) {
                     (Some(reason), false) => r.disabled_tip(&reason),
                     _ => r,
@@ -264,7 +271,15 @@ fn buttons(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                 if r.clicked() {
                     events.push(Event::Action("parts.map_import", json!({})));
                 }
-            } else if button(ui, Kind::Secondary, strings::text("parts-map-cancel"), true, 0.0).clicked() {
+            } else if button(
+                ui,
+                Kind::Secondary,
+                strings::text(key!("parts-map-cancel")),
+                true,
+                0.0,
+            )
+            .clicked()
+            {
                 events.push(Event::Action("ui.dismiss", json!({})));
             }
         }

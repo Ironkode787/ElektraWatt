@@ -32,6 +32,8 @@
 //! **The arc's direction.** The tool draws its sweep clockwise by default (negative on the sheet) and anticlockwise
 //! while the tool's toggle (D) is set or Shift is held on the end press; the tool strip and the ghost say which.
 
+use crate::key;
+use crate::strings::Key;
 use ew_api::AnyCommand;
 use serde_json::{Value, json};
 
@@ -494,10 +496,10 @@ impl Tool for GraphicTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         match self.state {
-            State::Armed { .. } => "hint-graphic-armed",
-            State::Drawing { .. } => "hint-graphic-drawing",
+            State::Armed { .. } => key!("hint-graphic-armed"),
+            State::Drawing { .. } => key!("hint-graphic-drawing"),
         }
     }
 

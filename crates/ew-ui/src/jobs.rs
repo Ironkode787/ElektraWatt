@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 
 use egui::Ui;
 use ew_viewmodel::jobs::{JobEntry, JobStatus};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::{status, strings};
 use serde_json::json;
@@ -31,15 +32,15 @@ pub fn show(
     let rect = ui.available_rect_before_wrap();
     let pane_id = ui.scope_id().with("jobs-pane");
     let pane = ui.interact(rect, pane_id, egui::Sense::hover());
-    pane.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text("pane-jobs")));
+    pane.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text(key!("pane-jobs"))));
     ui.scope_builder(egui::UiBuilder::new().accessibility_parent(pane_id), |ui| {
         let jobs = shell.jobs();
         if jobs.entries().next().is_none() {
             crate::components::empty_state(
                 ui,
                 crate::icons::IconId::file_type_pdf,
-                strings::text("empty-jobs"),
-                strings::text("empty-jobs-text"),
+                strings::text(key!("empty-jobs")),
+                strings::text(key!("empty-jobs-text")),
                 None,
             );
             return;
@@ -68,7 +69,7 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
     let name = format!("{kind} {}", e.name);
     ui.horizontal_wrapped(|ui| {
         ui.strong(&name);
-        ui.label(strings::format("job-as-of", &[&e.rev.to_string()]));
+        ui.label(strings::format(key!("job-as-of"), &[&e.rev.to_string()]));
     });
     match &e.status {
         JobStatus::Running => {
@@ -77,7 +78,7 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                 (
                     progress.done as f32 / progress.total as f32,
                     strings::format(
-                        "job-progress",
+                        key!("job-progress"),
                         &[&progress.done.to_string(), &progress.total.to_string()],
                     ),
                 )
@@ -93,9 +94,9 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                 );
                 ui.label(text);
                 if let Some(d) = elapsed {
-                    ui.label(strings::format("job-elapsed", &[&d.as_secs().to_string()]));
+                    ui.label(strings::format(key!("job-elapsed"), &[&d.as_secs().to_string()]));
                 }
-                if ui.button(strings::text("job-cancel")).clicked() {
+                if ui.button(strings::text(key!("job-cancel"))).clicked() {
                     events.push(Event::Action("jobs.cancel", json!({ "job": e.number })));
                 }
             });
@@ -106,13 +107,16 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
             ui.horizontal_wrapped(|ui| {
                 crate::components::status_badge(ui, crate::components::Badge::Done);
                 ui.label(strings::format(
-                    "job-done",
+                    key!("job-done"),
                     &[&pages.to_string(), &kib.to_string()],
                 ));
                 if let Some(m) = now {
-                    ui.label(strings::format("job-now", &[&e.rev.to_string(), &m.to_string()]));
+                    ui.label(strings::format(
+                        key!("job-now"),
+                        &[&e.rev.to_string(), &m.to_string()],
+                    ));
                 }
-                if ui.button(strings::text("toast-open")).clicked() {
+                if ui.button(strings::text(key!("toast-open"))).clicked() {
                     events.push(Event::Action("jobs.open_result", json!({ "job": e.number })));
                 }
             });
@@ -120,7 +124,7 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
         JobStatus::Cancelled => {
             ui.horizontal_wrapped(|ui| {
                 crate::components::status_badge(ui, crate::components::Badge::Cancelled);
-                ui.label(strings::text("job-cancelled"));
+                ui.label(strings::text(key!("job-cancelled")));
             });
         }
         JobStatus::Failed(cause) => {
@@ -128,7 +132,7 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                 crate::components::status_badge(ui, crate::components::Badge::Failed);
                 ui.colored_label(
                     ui.visuals().error_fg_color,
-                    strings::format("job-failed", &[cause]),
+                    strings::format(key!("job-failed"), &[cause]),
                 );
             });
         }

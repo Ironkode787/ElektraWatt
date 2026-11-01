@@ -16,6 +16,7 @@ use std::time::Duration;
 
 use egui::{CentralPanel, Key, Modifiers, Panel, Ui, ViewportCommand};
 use ew_viewmodel::actions::Context;
+use ew_viewmodel::key;
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::shell::{ConfirmAnswer, Focus, Outcome, Prompt, PromptRequest, ShellModel};
 use ew_viewmodel::strings;
@@ -508,9 +509,9 @@ impl App {
         }
         let message = match outcome {
             Outcome::Failed { message } => message,
-            Outcome::Refused {
-                reason_key: "reason-cut-incomplete-items",
-            } => strings::text("reason-cut-incomplete-items").to_owned(),
+            Outcome::Refused { reason_key } if reason_key == key!("reason-cut-incomplete-items") => {
+                strings::text(reason_key).to_owned()
+            }
             _ => return,
         };
         if self.shell.banner().is_none() {
@@ -573,7 +574,7 @@ impl App {
                             && crate::components::button(
                                 ui,
                                 crate::components::Kind::Primary,
-                                strings::text("action-file-discard-journal"),
+                                strings::text(key!("action-file-discard-journal")),
                                 true,
                                 0.0,
                             )
@@ -584,7 +585,7 @@ impl App {
                         if crate::components::button(
                             ui,
                             crate::components::Kind::Subtle,
-                            strings::text("banner-dismiss"),
+                            strings::text(key!("banner-dismiss")),
                             true,
                             0.0,
                         )
@@ -1375,7 +1376,7 @@ impl App {
                     .shadow(crate::theme::shadow(&t.elevation_1))
                     .show(ui, |ui| {
                         ui.label(
-                            egui::RichText::new(strings::text("hud-tool-options"))
+                            egui::RichText::new(strings::text(key!("hud-tool-options")))
                                 .font(crate::theme::font(&t.type_body_strong))
                                 .color(t.text_primary.color32()),
                         );
@@ -1445,7 +1446,8 @@ impl App {
             Event::JunctionRow(row) => self.shell.set_junction_row(row),
             Event::OpenPrivacy => {
                 if !self.platform.open_url(ew_viewmodel::about::PRIVACY_URL) {
-                    let text = strings::format("privacy-open-failed", &[ew_viewmodel::about::PRIVACY_URL]);
+                    let text =
+                        strings::format(key!("privacy-open-failed"), &[ew_viewmodel::about::PRIVACY_URL]);
                     self.shell.show_banner(&text);
                 }
             }
@@ -1489,7 +1491,8 @@ impl App {
                 return;
             }
             Pick::Unavailable => {
-                self.shell.show_banner(strings::text("banner-no-file-dialog"));
+                self.shell
+                    .show_banner(strings::text(key!("banner-no-file-dialog")));
                 self.prompt_answered(ctx);
                 return;
             }
@@ -1518,7 +1521,7 @@ impl App {
     fn open_results(&mut self) {
         while let Some(url) = self.shell.take_open_request() {
             if !self.platform.open_url(&url) {
-                self.shell.show_banner(strings::text("open-failed"));
+                self.shell.show_banner(strings::text(key!("open-failed")));
             }
         }
     }
@@ -1532,7 +1535,7 @@ impl App {
                 .as_deref()
                 .is_some_and(|url| self.platform.open_url(url));
             if !opened {
-                self.shell.show_banner(strings::text("doc-missing"));
+                self.shell.show_banner(strings::text(key!("doc-missing")));
             }
         }
     }

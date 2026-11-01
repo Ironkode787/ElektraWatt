@@ -13,7 +13,9 @@
 //! or a later session pastes it), `clipboard.text` takes it as given (its `text` is not an alias parameter), and
 //! neither the transcript's `clipboard` member nor the describe line prints it, only its kind and counts.
 
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 /// What the clipboard holds (the transcript's `clipboard` member).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -111,17 +113,17 @@ impl ClipboardState {
 }
 
 /// The reason key of a copy refusal.
-pub fn copy_refusal(e: ew_api::output::CopyError) -> &'static str {
+pub fn copy_refusal(e: ew_api::output::CopyError) -> Key<'static> {
     match e {
-        ew_api::output::CopyError::Empty => "reason-nothing-selected",
-        ew_api::output::CopyError::NotOnePage => "reason-copy-pages",
-        ew_api::output::CopyError::Generated => "reason-copy-generated",
+        ew_api::output::CopyError::Empty => key!("reason-nothing-selected"),
+        ew_api::output::CopyError::NotOnePage => key!("reason-copy-pages"),
+        ew_api::output::CopyError::Generated => key!("reason-copy-generated"),
     }
 }
 
 /// The banner text of a fragment that does not read (other than plain text, which is refused quietly).
 pub fn fragment_banner(e: &ew_api::output::FragmentError) -> String {
-    strings::format("banner-paste-refused", &[&e.to_string()])
+    strings::format(key!("banner-paste-refused"), &[&e.to_string()])
 }
 
 #[cfg(test)]

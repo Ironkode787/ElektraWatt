@@ -21,6 +21,7 @@ use serde_json::{Map, Value};
 use super::navigation::{Focus, bump};
 use super::{Outcome, ShellModel, failed, string_param};
 use crate::find::{FindQuery, FindResults, FindState, Ran, field_of_word, updated_note};
+use crate::key;
 use crate::layout::PaneKind;
 use crate::properties::{Card, CardOrigin, EditRoute, PendingEdit};
 use crate::strings;
@@ -125,7 +126,7 @@ impl ShellModel {
         let text = match string_param(p, "text") {
             Err(e) => return e,
             Ok(Some(t)) => t.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["text"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["text"]),
         };
         if replacement {
             self.find.replacement = text;
@@ -140,14 +141,14 @@ impl ShellModel {
         let option = match string_param(p, "option") {
             Err(e) => return e,
             Ok(Some(o)) => o.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["option"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["option"]),
         };
         let flag = match option.as_str() {
             "regex" => &mut self.find.regex,
             "match_case" => &mut self.find.match_case,
             "whole_word" => &mut self.find.whole_word,
             "in_selection" => &mut self.find.in_selection,
-            other => return failed("error-find-option", &[other]),
+            other => return failed(key!("error-find-option"), &[other]),
         };
         *flag = p.get("on").and_then(Value::as_bool).unwrap_or(!*flag);
         Outcome::Done
@@ -156,16 +157,16 @@ impl ShellModel {
     /// `find.fields`: `fields`, a list of field words; an empty list checks every field.
     pub(crate) fn act_find_fields(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(Value::Array(words)) = p.get("fields") else {
-            return failed("error-missing-param", &["fields"]);
+            return failed(key!("error-missing-param"), &["fields"]);
         };
         let mut fields = Vec::new();
         for w in words {
             let Some(word) = w.as_str() else {
-                return failed("error-bad-param", &["fields"]);
+                return failed(key!("error-bad-param"), &["fields"]);
             };
             match field_of_word(word) {
                 Some(f) => fields.push(f),
-                None => return failed("error-find-field", &[word]),
+                None => return failed(key!("error-find-field"), &[word]),
             }
         }
         // In the pane's order, each once; none checked searches every field, so the list shows all five.
@@ -179,14 +180,14 @@ impl ShellModel {
     /// `find.folios`: `folios`, a list of printed folio labels (the pane's filter splits its text at commas).
     pub(crate) fn act_find_folios(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(Value::Array(labels)) = p.get("folios") else {
-            return failed("error-missing-param", &["folios"]);
+            return failed(key!("error-missing-param"), &["folios"]);
         };
         let mut folios = Vec::new();
         for l in labels {
             match l.as_str() {
                 Some(text) if !text.trim().is_empty() => folios.push(text.trim().to_owned()),
                 Some(_) => {}
-                None => return failed("error-bad-param", &["folios"]),
+                None => return failed(key!("error-bad-param"), &["folios"]),
             }
         }
         self.find.folios = folios;
@@ -197,7 +198,7 @@ impl ShellModel {
     pub(crate) fn act_find_run(&mut self) -> Outcome {
         if self.find.in_selection && self.tools.selection.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-find-no-selection",
+                reason_key: key!("reason-find-no-selection"),
             };
         }
         let query = self.find_query();
@@ -211,12 +212,12 @@ impl ShellModel {
         let n = self.find.results().map_or(0, |r| r.hits.len());
         if n == 0 {
             return Outcome::Refused {
-                reason_key: "reason-find-no-results",
+                reason_key: key!("reason-find-no-results"),
             };
         }
         let at = if let Some(step) = p.get("step") {
             let Some(step) = step.as_i64() else {
-                return failed("error-bad-param", &["step"]);
+                return failed(key!("error-bad-param"), &["step"]);
             };
             let here = self.find.row().map_or(-1, |r| r as i64);
             let from = if here < 0 && step > 0 { -1 } else { here.max(0) };
@@ -224,8 +225,8 @@ impl ShellModel {
         } else {
             match p.get("to").and_then(Value::as_u64) {
                 Some(to) if to >= 1 && (to as usize) <= n => to as usize - 1,
-                Some(_) | None if p.contains_key("to") => return failed("error-bad-param", &["to"]),
-                _ => return failed("error-missing-param", &["step"]),
+                Some(_) | None if p.contains_key("to") => return failed(key!("error-bad-param"), &["to"]),
+                _ => return failed(key!("error-missing-param"), &["step"]),
             }
         };
         self.find.row = Some(at);
@@ -241,13 +242,13 @@ impl ShellModel {
             .and_then(|r| self.find.results().and_then(|res| res.hits.get(r)).cloned())
         else {
             return Outcome::Refused {
-                reason_key: "reason-find-no-results",
+                reason_key: key!("reason-find-no-results"),
             };
         };
         let change = crate::tools::SelectionChange::Replace(vec![EntityRef(hit.record)]);
         if self.tools.selection.apply(&change) {
             self.tools.announcement = Some(strings::format(
-                "announce-selected",
+                key!("announce-selected"),
                 &[&self.tools.selection.items.len().to_string()],
             ));
         }
@@ -271,7 +272,7 @@ impl ShellModel {
     pub(crate) fn act_find_replace_all(&mut self) -> Outcome {
         if !self.find.replace_mode {
             return Outcome::Refused {
-                reason_key: "reason-find-no-replace",
+                reason_key: key!("reason-find-no-replace"),
             };
         }
         let (Some(epoch), Some(rev)) = (self.project_epoch(), self.revision()) else {
@@ -288,7 +289,7 @@ impl ShellModel {
         } else {
             if self.find.in_selection && self.tools.selection.is_empty() {
                 return Outcome::Refused {
-                    reason_key: "reason-find-no-selection",
+                    reason_key: key!("reason-find-no-selection"),
                 };
             }
             self.run_find(query.clone())
@@ -308,12 +309,12 @@ impl ShellModel {
         }
         if results.truncated {
             return Outcome::Refused {
-                reason_key: "reason-find-truncated",
+                reason_key: key!("reason-find-truncated"),
             };
         }
         let Some(params) = results.replace_command() else {
             return Outcome::Refused {
-                reason_key: "reason-find-nothing",
+                reason_key: key!("reason-find-nothing"),
             };
         };
         let Some(project) = &self.project else {
@@ -324,14 +325,14 @@ impl ShellModel {
             Some(meta) if meta.exposure == Exposure::Edit => {}
             Some(_) => {
                 return Outcome::Refused {
-                    reason_key: "reason-human-only",
+                    reason_key: key!("reason-human-only"),
                 };
             }
-            None => return failed("error-unknown-action", &[name]),
+            None => return failed(key!("error-unknown-action"), &[name]),
         }
         if !self.is_writable() {
             return Outcome::Refused {
-                reason_key: "reason-read-only",
+                reason_key: key!("reason-read-only"),
             };
         }
         let Some(rev) = self.revision() else {
@@ -400,9 +401,9 @@ impl ShellModel {
             targets: edit.targets.len(),
             changes: hits,
             reason: if rebuilt {
-                "reason-rebuilt"
+                key!("reason-rebuilt")
             } else {
-                "reason-find-replace"
+                key!("reason-find-replace")
             },
             edit,
             origin: CardOrigin::Find { query, hits },
@@ -430,7 +431,7 @@ impl ShellModel {
                         .find(|r| r.id.to_string() == u)
                         .map(|r| r.folio.clone())
                 })
-                .unwrap_or_else(|| strings::text("props-a-record").to_owned())
+                .unwrap_or_else(|| strings::text(key!("props-a-record")).to_owned())
         };
         let text = match e {
             ew_api::CmdError::InvalidParams { path, message, .. } => {
@@ -444,14 +445,17 @@ impl ShellModel {
                         };
                         let target = entry["targets"][k].as_str().map(name).unwrap_or_default();
                         let field = entry["path"].as_str().unwrap_or_default();
-                        strings::format("props-refused-on", &[&format!("{target} ({field})"), message])
+                        strings::format(
+                            key!("props-refused-on"),
+                            &[&format!("{target} ({field})"), message],
+                        )
                     }
                     _ => message.clone(),
                 }
             }
             ew_api::CmdError::Rejected { reason, .. } => reason.clone(),
             ew_api::CmdError::Prevented { rule, finding, .. } => format!("{rule}: {finding}"),
-            ew_api::CmdError::NotFound { .. } => strings::text("props-gone").to_owned(),
+            ew_api::CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
             other => other.to_string(),
         };
         super::properties::replace_uuids(&text, &name)
@@ -478,7 +482,7 @@ impl ShellModel {
             let Card { preview, edit, .. } = card;
             let outcome = self.commit_kept(preview, &edit.name, &edit.params, None);
             if outcome == Outcome::Done {
-                self.find.note = Some(strings::format("find-replaced", &[&hits.to_string()]));
+                self.find.note = Some(strings::format(key!("find-replaced"), &[&hits.to_string()]));
             }
             return outcome;
         }

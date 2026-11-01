@@ -19,7 +19,9 @@ use common::{Tmp, at, click, done, entity_points, state};
 use ew_viewmodel::ew_api::AnyCommand;
 use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect;
 use ew_viewmodel::ew_api::output::ew_dl::{Destination, EntityRef};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
+use ew_viewmodel::strings::Key;
 use ew_viewmodel::tools::{
     Button, CanvasEvent, Overlay, OverlayItem, SelectionChange, Style, Token, Tool, ToolCx, ToolOutput,
 };
@@ -154,8 +156,8 @@ impl Tool for Probe {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
-        "hint-select"
+    fn status_hint(&self) -> Key<'static> {
+        key!("hint-select")
     }
 
     fn wants_hover(&self) -> bool {
@@ -194,8 +196,8 @@ impl Tool for Scripted {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
-        "hint-select"
+    fn status_hint(&self) -> Key<'static> {
+        key!("hint-select")
     }
 
     fn wants_hover(&self) -> bool {
@@ -299,9 +301,7 @@ fn t1_every_output_of_the_host() {
         .push(ToolOutput::Follow(Destination::Page(Default::default())));
     assert!(matches!(
         poke(&mut shell),
-        Outcome::Refused {
-            reason_key: "reason-no-link"
-        }
+        Outcome::Refused { reason_key } if reason_key == key!("reason-no-link")
     ));
     // Preview: one `preview_with`, the state kept, a repeat ignored; Commit: a new revision headless through
     // `run_script`, and the overlay and preview go.

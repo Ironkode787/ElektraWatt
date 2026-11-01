@@ -7,6 +7,7 @@
 //! Bond submenu.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done, refused};
 use ew_viewmodel::actions::{Menu, Submenu, menu_model};
@@ -98,7 +99,7 @@ fn a_bond_drawn_on_w27_keeps_0v_and_pe_apart() {
     assert_eq!(shell.revision(), rev, "the bond is previewed, not committed");
     let card = shell.properties().card().expect("the bond's card");
     assert_eq!(card.preview.name, "bond.create");
-    assert_eq!(card.reason, "reason-bond");
+    assert_eq!(card.reason, key!("reason-bond"));
     assert!(card.preview.result.is_ok(), "{:?}", card.preview.result);
     assert!(
         shell
@@ -209,7 +210,7 @@ fn the_bond_submenu_lists_the_four_kinds() {
         draw.submenu(Submenu::Bond).expect("the Bond submenu").to_vec()
     };
     let items = bond_items(&shell);
-    let reason = ew_viewmodel::strings::text("reason-bond-selection");
+    let reason = ew_viewmodel::strings::text(key!("reason-bond-selection"));
     assert!(
         items
             .iter()

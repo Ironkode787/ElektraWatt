@@ -30,6 +30,7 @@ use super::navigation::{Focus, bump};
 use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::canvas::PageId;
 use crate::highlight::{HighlightTarget, Highlights};
+use crate::key;
 use crate::layout::PaneKind;
 use crate::navigator::RowKind;
 use crate::navigators::{NavView, Navigator, SortBy, starts_with_folded};
@@ -189,13 +190,13 @@ impl ShellModel {
             .unwrap_or_default();
         if locations.is_empty() {
             (
-                crate::strings::text("empty-nav-unplaced").to_owned(),
-                crate::strings::text("empty-nav-unplaced-text").to_owned(),
+                crate::strings::text(key!("empty-nav-unplaced")).to_owned(),
+                crate::strings::text(key!("empty-nav-unplaced-text")).to_owned(),
             )
         } else {
             (
-                crate::strings::text("empty-nav-unplaced-done").to_owned(),
-                crate::strings::format("empty-nav-unplaced-done-text", &[&locations.join(", ")]),
+                crate::strings::text(key!("empty-nav-unplaced-done")).to_owned(),
+                crate::strings::format(key!("empty-nav-unplaced-done-text"), &[&locations.join(", ")]),
             )
         }
     }
@@ -357,10 +358,10 @@ impl ShellModel {
                             RowKind::Page(i) => {
                                 let p = &rows[*i];
                                 if p.generated {
-                                    badges.push(strings::text("badge-generated").to_owned());
+                                    badges.push(strings::text(key!("badge-generated")).to_owned());
                                 }
                                 if p.qet_grid {
-                                    badges.push(strings::text("badge-qet-grid").to_owned());
+                                    badges.push(strings::text(key!("badge-qet-grid")).to_owned());
                                 }
                                 let drag =
                                     (draggable && is_record(p)).then(|| DragSource::Page(p.folio.clone()));
@@ -660,11 +661,11 @@ impl ShellModel {
         match string_param(p, "kind")? {
             Some(w) => NavKind::from_word(w).ok_or_else(|| {
                 let words: Vec<&str> = NavKind::ALL.iter().map(|k| k.word()).collect();
-                failed("error-nav-kind", &[w, &words.join(", ")])
+                failed(key!("error-nav-kind"), &[w, &words.join(", ")])
             }),
             None => self
                 .focused_navigator()
-                .ok_or_else(|| failed("error-missing-param", &["kind"])),
+                .ok_or_else(|| failed(key!("error-missing-param"), &["kind"])),
         }
     }
 
@@ -674,7 +675,7 @@ impl ShellModel {
         if self.navigator_open(k) || k == NavKind::Pages {
             Ok(k)
         } else {
-            Err(failed("error-nav-closed", &[k.word()]))
+            Err(failed(key!("error-nav-closed"), &[k.word()]))
         }
     }
 
@@ -689,7 +690,7 @@ impl ShellModel {
             None => Ok(None),
             Some(k) => match self.resolve_nav_key(kind, k) {
                 Some(key) => Ok(Some(key)),
-                None => Err(failed("error-nav-key", &[k, kind.word()])),
+                None => Err(failed(key!("error-nav-key"), &[k, kind.word()])),
             },
         }
     }
@@ -825,7 +826,7 @@ impl ShellModel {
             .collect();
         if self.tools.selection.apply(&SelectionChange::Replace(items)) {
             self.tools.announcement = Some(strings::format(
-                "announce-selected",
+                key!("announce-selected"),
                 &[&self.tools.selection.items.len().to_string()],
             ));
         }
@@ -911,20 +912,20 @@ impl ShellModel {
             Ok(None) => crate::rail::Side::Left,
             Ok(Some(w)) => match crate::rail::Side::from_word(w) {
                 Some(s) => s,
-                None => return failed("error-bad-param", &["side"]),
+                None => return failed(key!("error-bad-param"), &["side"]),
             },
         };
         if side == crate::rail::Side::Right {
             return Outcome::Refused {
-                reason_key: "reason-rail-no-palettes",
+                reason_key: key!("reason-rail-no-palettes"),
             };
         }
         let pane = match string_param(p, "pane") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["pane"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["pane"]),
             Ok(Some(w)) => match crate::rail::left_pane(w) {
                 Some(pane) => pane,
-                None => return failed("error-bad-param", &["pane"]),
+                None => return failed(key!("error-bad-param"), &["pane"]),
             },
         };
         let shown = crate::rail::shown_pane(self);
@@ -965,7 +966,7 @@ impl ShellModel {
         };
         let view = match string_param(p, "view") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["view"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["view"]),
             Ok(Some(v)) => v.to_owned(),
         };
         if kind == NavKind::Pages {
@@ -978,7 +979,7 @@ impl ShellModel {
                 }
                 Outcome::Done
             }
-            None => failed("error-nav-value", &["view", &view, "tree, flat"]),
+            None => failed(key!("error-nav-value"), &["view", &view, "tree, flat"]),
         }
     }
 
@@ -990,18 +991,18 @@ impl ShellModel {
         };
         let by = match string_param(p, "by") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["by"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["by"]),
             Ok(Some(v)) => v.to_owned(),
         };
         let descending = flag(p, "descending");
         if self.as_built_pages(kind) {
             if descending {
-                return failed("error-bad-param", &["descending"]);
+                return failed(key!("error-bad-param"), &["descending"]);
             }
             return self.act_pages_sort(&json_map(json!({ "by": by })));
         }
         let Some(n) = self.generic_mut(kind) else {
-            return failed("error-nav-closed", &[kind.word()]);
+            return failed(key!("error-nav-closed"), &[kind.word()]);
         };
         let columns: Vec<String> = n
             .table()
@@ -1020,7 +1021,7 @@ impl ShellModel {
                 valid.push("order".to_owned());
             }
             valid.extend(columns);
-            return failed("error-nav-value", &["by", &by, &valid.join(", ")]);
+            return failed(key!("error-nav-value"), &["by", &by, &valid.join(", ")]);
         };
         n.sort = sort;
         n.descending = descending;
@@ -1038,7 +1039,7 @@ impl ShellModel {
         }
         match string_param(p, "text") {
             Err(e) => e,
-            Ok(None) => failed("error-missing-param", &["text"]),
+            Ok(None) => failed(key!("error-missing-param"), &["text"]),
             Ok(Some(t)) => {
                 if let Some(n) = self.generic_mut(kind) {
                     n.filter = t.to_owned();
@@ -1059,7 +1060,7 @@ impl ShellModel {
         }
         let key = match self.nav_key_param(kind, p, "key") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["key"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["key"]),
             Ok(Some(k)) => k,
         };
         let has_children = self
@@ -1067,7 +1068,7 @@ impl ShellModel {
             .iter()
             .any(|r| r.key == key && r.expanded.is_some());
         if !has_children {
-            return failed("error-nav-key", &[&key, kind.word()]);
+            return failed(key!("error-nav-key"), &[&key, kind.word()]);
         }
         if let Some(n) = self.generic_mut(kind) {
             if !n.collapsed.remove(&key) {
@@ -1126,18 +1127,18 @@ impl ShellModel {
             let key = if q.contains_key("key") {
                 match self.nav_key_param(kind, &q, "key") {
                     Ok(Some(k)) => k,
-                    Ok(None) => return failed("error-missing-param", &["key"]),
+                    Ok(None) => return failed(key!("error-missing-param"), &["key"]),
                     Err(e) => return e,
                 }
             } else if let Some(to) = q.get("to") {
                 match to.as_str() {
                     Some("first") => keys[0].clone(),
                     Some("last") => keys[keys.len() - 1].clone(),
-                    _ => return failed("error-bad-param", &["to"]),
+                    _ => return failed(key!("error-bad-param"), &["to"]),
                 }
             } else if let Some(step) = q.get("step") {
                 let Some(step) = step.as_i64() else {
-                    return failed("error-bad-param", &["step"]);
+                    return failed(key!("error-bad-param"), &["step"]);
                 };
                 let here = before
                     .as_ref()
@@ -1146,7 +1147,7 @@ impl ShellModel {
                 let at = (here as i64 + step).clamp(0, keys.len() as i64 - 1) as usize;
                 keys[at].clone()
             } else {
-                return failed("error-missing-param", &["key"]);
+                return failed(key!("error-missing-param"), &["key"]);
             };
             self.set_cursor(kind, &key);
             Outcome::Done
@@ -1205,13 +1206,13 @@ impl ShellModel {
                 Some(k) => k,
                 None => {
                     return Outcome::Refused {
-                        reason_key: "reason-no-nav-row",
+                        reason_key: key!("reason-no-nav-row"),
                     };
                 }
             },
         };
         let Some((_, node)) = self.generic(kind).and_then(|n| n.node_of(&key)) else {
-            return failed("error-nav-key", &[&key, kind.word()]);
+            return failed(key!("error-nav-key"), &[&key, kind.word()]);
         };
         // WP-S1.19 part 6: Enter on a macro row arms the macro tool (§11).
         if kind == NavKind::Macros && node.role == ew_api::output::NavRole::Macro {
@@ -1234,7 +1235,7 @@ impl ShellModel {
         {
             if self.current_folio().is_none() {
                 return Outcome::Refused {
-                    reason_key: "reason-no-page",
+                    reason_key: key!("reason-no-page"),
                 };
             }
             self.set_cursor(kind, &key);
@@ -1257,7 +1258,7 @@ impl ShellModel {
         self.set_cursor(kind, &key);
         let page = PageId(Destination::Page(open.page));
         if self.row_index(page).is_none() {
-            return failed("error-no-folio", &[&open.page.to_string()]);
+            return failed(key!("error-no-folio"), &[&open.page.to_string()]);
         }
         let Some(g) = self.area.as_ref().map(|a| a.focused) else {
             return Outcome::Done;
@@ -1273,7 +1274,7 @@ impl ShellModel {
         let items: Vec<EntityRef> = open.select.iter().map(|u| EntityRef(*u)).collect();
         if self.tools.selection.apply(&SelectionChange::Replace(items)) {
             self.tools.announcement = Some(strings::format(
-                "announce-selected",
+                key!("announce-selected"),
                 &[&self.tools.selection.items.len().to_string()],
             ));
         }
@@ -1292,15 +1293,15 @@ impl ShellModel {
             Err(e) => return e,
         };
         let Some(Value::Array(list)) = p.get("keys") else {
-            return failed("error-missing-param", &["keys"]);
+            return failed(key!("error-missing-param"), &["keys"]);
         };
         let mut keys = Vec::new();
         for v in list {
             let Some(k) = v.as_str() else {
-                return failed("error-bad-param", &["keys"]);
+                return failed(key!("error-bad-param"), &["keys"]);
             };
             let Some(key) = self.resolve_nav_key(kind, k) else {
-                return failed("error-nav-key", &[k, kind.word()]);
+                return failed(key!("error-nav-key"), &[k, kind.word()]);
             };
             keys.push(key);
         }
@@ -1331,7 +1332,7 @@ impl ShellModel {
                 Some(k) => k,
                 None => {
                     return Outcome::Refused {
-                        reason_key: "reason-no-nav-row",
+                        reason_key: key!("reason-no-nav-row"),
                     };
                 }
             },
@@ -1355,13 +1356,13 @@ impl ShellModel {
         };
         let prefix = match string_param(p, "prefix") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["prefix"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["prefix"]),
             Ok(Some(t)) => t.to_owned(),
         };
         let keys = self.vis_keys(kind);
         if keys.is_empty() || prefix.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         }
         let here = self
@@ -1384,7 +1385,7 @@ impl ShellModel {
                 Outcome::Done
             }
             None => Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             },
         }
     }
@@ -1399,7 +1400,7 @@ impl ShellModel {
             )
         }) {
             return Outcome::Refused {
-                reason_key: "reason-no-card",
+                reason_key: key!("reason-no-card"),
             };
         }
         self.act_preview_apply()
@@ -1411,8 +1412,8 @@ impl ShellModel {
     /// The page row of a printed folio that is a page record.
     fn record_row(&self, folio: &str) -> Result<PageRow, Outcome> {
         match self.page_rows().iter().find(|r| r.folio == folio) {
-            None => Err(failed("error-no-folio", &[folio])),
-            Some(r) if !is_record(r) => Err(failed("error-generated-page-order", &[])),
+            None => Err(failed(key!("error-no-folio"), &[folio])),
+            Some(r) if !is_record(r) => Err(failed(key!("error-generated-page-order"), &[])),
             Some(r) => Ok(r.clone()),
         }
     }
@@ -1432,7 +1433,7 @@ impl ShellModel {
         for k in keys {
             if let Some(i) = crate::navigator::PageNavigator::page_of(k, rows) {
                 if !is_record(&rows[i]) {
-                    return Err(failed("error-generated-page-order", &[]));
+                    return Err(failed(key!("error-generated-page-order"), &[]));
                 }
                 out.push(i);
             }
@@ -1441,7 +1442,7 @@ impl ShellModel {
         out.dedup();
         if out.is_empty() {
             return Err(Outcome::Refused {
-                reason_key: "reason-no-pages-marked",
+                reason_key: key!("reason-no-pages-marked"),
             });
         }
         Ok(out.into_iter().map(|i| rows[i].clone()).collect())
@@ -1459,7 +1460,7 @@ impl ShellModel {
                 let mut v = Vec::new();
                 for x in list {
                     let Some(f) = x.as_str() else {
-                        return failed("error-bad-param", &["pages"]);
+                        return failed(key!("error-bad-param"), &["pages"]);
                     };
                     match self.record_row(f) {
                         Ok(r) => v.push(r),
@@ -1468,7 +1469,7 @@ impl ShellModel {
                 }
                 v
             }
-            Some(_) => return failed("error-bad-param", &["pages"]),
+            Some(_) => return failed(key!("error-bad-param"), &["pages"]),
         };
         let before = match string_param(p, "before") {
             Err(e) => return e,
@@ -1479,7 +1480,7 @@ impl ShellModel {
             },
         };
         if before.is_none() && !flag(p, "end") {
-            return failed("error-missing-param", &["before"]);
+            return failed(key!("error-missing-param"), &["before"]);
         }
         self.reorder(&pages, before.as_ref())
     }
@@ -1493,7 +1494,7 @@ impl ShellModel {
                 if let Some((n, _)) = pages.first().and_then(|r| r.section.clone()) {
                     let Some(project) = &self.project else {
                         return Outcome::Refused {
-                            reason_key: "reason-no-project",
+                            reason_key: key!("reason-no-project"),
                         };
                     };
                     match project.session.resolve_reference(&format!("section:{n}")) {
@@ -1558,7 +1559,7 @@ impl ShellModel {
             edit,
             targets: moved,
             changes,
-            reason: "reason-bulk",
+            reason: key!("reason-bulk"),
             origin: CardOrigin::Reorder { notices },
         });
         Outcome::Done
@@ -1595,7 +1596,7 @@ impl ShellModel {
         };
         let section = moved[0].section.clone();
         if moved.iter().any(|r| r.section != section) {
-            return failed("error-pages-sections", &[]);
+            return failed(key!("error-pages-sections"), &[]);
         }
         let ids: Vec<_> = moved.iter().map(|r| r.id).collect();
         let s: Vec<PageRow> = self
@@ -1615,7 +1616,7 @@ impl ShellModel {
                     self.reorder(&moved, Some(&b))
                 }
                 None => Outcome::Refused {
-                    reason_key: "reason-page-at-start",
+                    reason_key: key!("reason-page-at-start"),
                 },
             }
         } else {
@@ -1623,7 +1624,7 @@ impl ShellModel {
             let below = s[last + 1..].iter().position(|r| !ids.contains(&r.id));
             match below {
                 None => Outcome::Refused {
-                    reason_key: "reason-page-at-end",
+                    reason_key: key!("reason-page-at-end"),
                 },
                 Some(k) => {
                     let after = s[last + 1 + k + 1..]
@@ -1726,7 +1727,7 @@ impl ShellModel {
                 Some(k) => k,
                 None => {
                     return Outcome::Refused {
-                        reason_key: "reason-no-nav-row",
+                        reason_key: key!("reason-no-nav-row"),
                     };
                 }
             },
@@ -1737,7 +1738,7 @@ impl ShellModel {
             .and_then(|n| n.node_of(&key))
             .and_then(|(_, node)| row_highlight(node).map(|t| (t, node.label.clone())))
         else {
-            return failed("error-highlight-row", &[]);
+            return failed(key!("error-highlight-row"), &[]);
         };
         let off = p.get("off").and_then(Value::as_bool).unwrap_or(false);
         if self.highlights.slot_of(&target).is_some() {

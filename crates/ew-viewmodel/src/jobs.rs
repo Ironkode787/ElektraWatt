@@ -20,7 +20,9 @@ use std::path::{Path, PathBuf};
 use ew_api::ew_jobs::{Gate, Job, JobCtl, JobEnd, JobError, JobOptions, Progress, Waker};
 use ew_api::output::ExportJob;
 
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 /// The most entries the Jobs pane keeps (the oldest finished one goes first).
 pub const MAX_JOBS: usize = 20;
@@ -41,9 +43,9 @@ impl JobKind {
     }
 
     /// The key of the kind's label (`PDF export`) in [`crate::strings`].
-    pub fn label_key(self) -> &'static str {
+    pub fn label_key(self) -> Key<'static> {
         match self {
-            JobKind::Pdf => "job-kind-pdf",
+            JobKind::Pdf => key!("job-kind-pdf"),
         }
     }
 }
@@ -304,12 +306,12 @@ impl Drop for Sibling<'_> {
 pub(crate) fn io_cause(e: &std::io::Error) -> String {
     // ERROR_SHARING_VIOLATION: another program holds the file open (a PDF viewer).
     if cfg!(windows) && e.raw_os_error() == Some(32) {
-        return strings::text("job-cause-in-use").to_owned();
+        return strings::text(key!("job-cause-in-use")).to_owned();
     }
     match e.kind() {
-        std::io::ErrorKind::NotFound => strings::text("job-cause-no-folder").to_owned(),
-        std::io::ErrorKind::PermissionDenied => strings::text("job-cause-denied").to_owned(),
-        std::io::ErrorKind::StorageFull => strings::text("job-cause-full").to_owned(),
+        std::io::ErrorKind::NotFound => strings::text(key!("job-cause-no-folder")).to_owned(),
+        std::io::ErrorKind::PermissionDenied => strings::text(key!("job-cause-denied")).to_owned(),
+        std::io::ErrorKind::StorageFull => strings::text(key!("job-cause-full")).to_owned(),
         kind => kind.to_string(),
     }
 }

@@ -35,6 +35,8 @@
 //! **The fields.** `marker.fields` sets the cross-section (`csa`) and the colours (each entry one or two codes); the
 //! ghost says them (`2.5 BK BU`). The angle is 90° when every crossed segment is horizontal, else 0.
 
+use crate::key;
+use crate::strings::Key;
 use ew_api::AnyCommand;
 use ew_api::output::PageTables;
 use ew_api::output::ew_dl::EntityRef;
@@ -285,7 +287,7 @@ impl MarkerTool {
             }
             items.push(OverlayItem::Label {
                 at: sheet(*to),
-                text: crate::strings::format("marker-crossed", &[&crossed.len().to_string()]),
+                text: crate::strings::format(key!("marker-crossed"), &[&crossed.len().to_string()]),
                 anchor: Anchor::Right,
             });
             return Overlay::new(items);
@@ -526,11 +528,11 @@ impl Tool for MarkerTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         match self.state {
-            State::Armed { .. } => "hint-marker-armed",
-            State::Crossing { .. } => "hint-marker-crossing",
-            State::Typing { .. } => "hint-marker-typing",
+            State::Armed { .. } => key!("hint-marker-armed"),
+            State::Crossing { .. } => key!("hint-marker-crossing"),
+            State::Typing { .. } => key!("hint-marker-typing"),
         }
     }
 

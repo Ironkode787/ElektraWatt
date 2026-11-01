@@ -6,6 +6,7 @@
 //! describe lines (SE14).
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done, refused};
 use ew_viewmodel::navigators::NavKind;
@@ -359,7 +360,7 @@ fn se9_insert_delete_and_move_rows() {
     let (n, rev) = (steps(&shell), shell.revision());
     done(&mut shell, "strip.delete_rows", json!({}));
     let card = shell.properties().card().expect("the card (D12)");
-    assert_eq!(card.reason, "reason-strip-delete");
+    assert_eq!(card.reason, key!("reason-strip-delete"));
     assert_eq!(card.preview.name, "edit.delete");
     // Two devices and two functions, BR2's connection and the wire on terminal 5's side 1, at the least.
     assert!(card.changes >= 6, "{}", card.changes);

@@ -18,7 +18,9 @@ use ew_api::AnyCommand;
 use serde_json::{Map, Value, json};
 
 use super::{Mode, Outcome, Prompt, ShellModel, failed, string_param};
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::{
     BINDABLE, EntityKind, Ghost, GraphicShape, GraphicTool, ImageAsset, ImageTool, MarkerTool,
     StructureBoxTool, TextEditTool, TextTool, selection_kinds, tool_named,
@@ -28,7 +30,7 @@ use crate::tools::{
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TextPopup {
     /// The key of the window's title (`tool-text` or `tool-text_edit`).
-    pub title_key: &'static str,
+    pub title_key: Key<'static>,
     /// The text the field starts with (the ghost's).
     pub text: String,
 }
@@ -45,8 +47,8 @@ impl ShellModel {
     /// The text popup, while the Text tool types or Text edit is open: its title and its field's initial text.
     pub fn text_popup(&self) -> Option<TextPopup> {
         let title_key = match (self.tools.tool.name(), self.tools.tool.state()) {
-            ("text", "typing") => "tool-text",
-            ("text_edit", _) => "tool-text_edit",
+            ("text", "typing") => key!("tool-text"),
+            ("text_edit", _) => key!("tool-text_edit"),
             _ => return None,
         };
         let text = match self.tools.tool.ghost() {
@@ -58,20 +60,20 @@ impl ShellModel {
 
     /// The free text `text.edit` would open: its UUID text, its label point (the bounds' top-left corner, page nm) and
     /// its text. Errors: `reason-text-bound` for a bound text, `reason-select-one-text` for anything else.
-    pub(crate) fn text_edit_target(&self) -> Result<(String, (i64, i64), String), &'static str> {
+    pub(crate) fn text_edit_target(&self) -> Result<(String, (i64, i64), String), Key<'static>> {
         let Some(c) = self.canvas() else {
-            return Err("reason-select-one-text");
+            return Err(key!("reason-select-one-text"));
         };
         let tables = &c.page().tables;
         let kinds = selection_kinds(self.selection(), tables);
         let [(e, EntityKind::Item)] = kinds.as_slice() else {
-            return Err("reason-select-one-text");
+            return Err(key!("reason-select-one-text"));
         };
         let Some(item) = tables.items.iter().find(|i| i.id == e.0 && i.kind == "free_text") else {
-            return Err("reason-select-one-text");
+            return Err(key!("reason-select-one-text"));
         };
         if item.bind.is_some() {
-            return Err("reason-text-bound");
+            return Err(key!("reason-text-bound"));
         }
         Ok((
             item.id.to_string(),
@@ -93,15 +95,15 @@ impl ShellModel {
     pub(crate) fn act_text_bind(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "text" {
             return Outcome::Refused {
-                reason_key: "reason-text-tool-only",
+                reason_key: key!("reason-text-tool-only"),
             };
         }
         let bind = match p.get("bind") {
-            None => return failed("error-missing-param", &["bind"]),
+            None => return failed(key!("error-missing-param"), &["bind"]),
             Some(Value::Null) => None,
             Some(Value::String(s)) if s.is_empty() => None,
             Some(Value::String(s)) if BINDABLE.contains(&s.as_str()) => Some(s.clone()),
-            Some(_) => return failed("error-bad-param", &["bind"]),
+            Some(_) => return failed(key!("error-bad-param"), &["bind"]),
         };
         let overlay = self
             .with_tool(|t, cx| {
@@ -162,7 +164,7 @@ impl ShellModel {
             Ok(None) => GraphicShape::Line,
             Ok(Some(w)) => match GraphicShape::of_word(w) {
                 Some(s) => s,
-                None => return failed("error-bad-param", &["shape"]),
+                None => return failed(key!("error-bad-param"), &["shape"]),
             },
             Err(e) => return e,
         };
@@ -184,11 +186,11 @@ impl ShellModel {
     pub(crate) fn act_marker_fields(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "marker" {
             return Outcome::Refused {
-                reason_key: "reason-marker-tool-only",
+                reason_key: key!("reason-marker-tool-only"),
             };
         }
         if !p.contains_key("csa") && !p.contains_key("colours") {
-            return failed("error-missing-param", &["csa"]);
+            return failed(key!("error-missing-param"), &["csa"]);
         }
         let csa = match p.get("csa") {
             None => None,
@@ -196,7 +198,7 @@ impl ShellModel {
                 let text = s.trim();
                 Some((!text.is_empty()).then(|| text.to_owned()))
             }
-            Some(_) => return failed("error-bad-param", &["csa"]),
+            Some(_) => return failed(key!("error-bad-param"), &["csa"]),
         };
         let colours = match p.get("colours") {
             None => None,
@@ -205,13 +207,13 @@ impl ShellModel {
                 for entry in s.split_ascii_whitespace() {
                     let codes: Vec<String> = entry.split('+').map(str::to_owned).collect();
                     if codes.len() > 2 || codes.iter().any(String::is_empty) {
-                        return failed("error-bad-param", &["colours"]);
+                        return failed(key!("error-bad-param"), &["colours"]);
                     }
                     out.push(codes);
                 }
                 Some(out)
             }
-            Some(_) => return failed("error-bad-param", &["colours"]),
+            Some(_) => return failed(key!("error-bad-param"), &["colours"]),
         };
         let overlay = self
             .with_tool(|t, cx| {
@@ -247,25 +249,25 @@ impl ShellModel {
     pub(crate) fn act_structure_box_fields(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "structure_box" {
             return Outcome::Refused {
-                reason_key: "reason-structure-box-tool-only",
+                reason_key: key!("reason-structure-box-tool-only"),
             };
         }
         if !["style", "caption", "location", "external"]
             .iter()
             .any(|name| p.contains_key(*name))
         {
-            return failed("error-missing-param", &["style"]);
+            return failed(key!("error-missing-param"), &["style"]);
         }
         let style: Option<&'static str> = match p.get("style") {
             None => None,
             Some(Value::String(s)) if s == "dotted" => Some("dotted"),
             Some(Value::String(s)) if s == "dash_dot" => Some("dash_dot"),
-            Some(_) => return failed("error-bad-param", &["style"]),
+            Some(_) => return failed(key!("error-bad-param"), &["style"]),
         };
         let caption: Option<Option<String>> = match p.get("caption") {
             None => None,
             Some(Value::String(s)) => Some((!s.is_empty()).then(|| s.clone())),
-            Some(_) => return failed("error-bad-param", &["caption"]),
+            Some(_) => return failed(key!("error-bad-param"), &["caption"]),
         };
         let location: Option<Option<(String, String)>> = match p.get("location") {
             None => None,
@@ -274,7 +276,7 @@ impl ShellModel {
                 Ok(id) => Some(Some((id, s.clone()))),
                 Err(message) => return Outcome::Failed { message },
             },
-            Some(_) => return failed("error-bad-param", &["location"]),
+            Some(_) => return failed(key!("error-bad-param"), &["location"]),
         };
         let external: Option<Option<(String, String)>> = match p.get("external") {
             None => None,
@@ -284,7 +286,7 @@ impl ShellModel {
                 Ok(e) => Some(Some((e.id, e.label))),
                 Err(outcome) => return outcome,
             },
-            Some(_) => return failed("error-bad-param", &["external"]),
+            Some(_) => return failed(key!("error-bad-param"), &["external"]),
         };
         let overlay = self
             .with_tool(|t, cx| {
@@ -346,31 +348,36 @@ impl ShellModel {
         };
         let name = path.display().to_string();
         let limit = ew_api::MAX_LOGO_BYTES;
-        let too_large = || failed("error-image-too-large", &[&name, &(limit / 1024).to_string()]);
+        let too_large = || {
+            failed(
+                key!("error-image-too-large"),
+                &[&name, &(limit / 1024).to_string()],
+            )
+        };
         // Only a regular file is read: a character device or a FIFO reports length 0, and reading it to the end would
         // not finish. The read is bounded as well (the file may grow after the metadata).
         match std::fs::metadata(&path) {
-            Ok(m) if !m.is_file() => return failed("error-image-file", &[&name, "not a regular file"]),
+            Ok(m) if !m.is_file() => return failed(key!("error-image-file"), &[&name, "not a regular file"]),
             Ok(m) if m.len() > limit as u64 => return too_large(),
             Ok(_) => {}
-            Err(e) => return failed("error-image-file", &[&name, &e.to_string()]),
+            Err(e) => return failed(key!("error-image-file"), &[&name, &e.to_string()]),
         }
         let mut bytes = Vec::new();
         if let Err(e) =
             std::fs::File::open(&path).and_then(|f| f.take(limit as u64 + 1).read_to_end(&mut bytes))
         {
-            return failed("error-image-file", &[&name, &e.to_string()]);
+            return failed(key!("error-image-file"), &[&name, &e.to_string()]);
         }
         if bytes.len() > limit {
             return too_large();
         }
         let reference = match ew_api::asset_ref_of(&bytes) {
             Ok(r) => r,
-            Err(e) => return failed("error-image-refused", &[&name, &e.to_string()]),
+            Err(e) => return failed(key!("error-image-refused"), &[&name, &e.to_string()]),
         };
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let held = project.session.asset(&reference.sha256).is_some();
@@ -406,24 +413,24 @@ impl ShellModel {
     pub(crate) fn act_image_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "image" {
             return Outcome::Refused {
-                reason_key: "reason-image-tool-only",
+                reason_key: key!("reason-image-tool-only"),
             };
         }
         let text = match string_param(p, "asset") {
             Ok(Some(t)) => t,
-            Ok(None) => return failed("error-missing-param", &["asset"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["asset"]),
             Err(e) => return e,
         };
         let Ok(sha256) = text.parse::<ew_api::Sha256>() else {
-            return failed("error-bad-param", &["asset"]);
+            return failed(key!("error-bad-param"), &["asset"]);
         };
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let Some((reference, _)) = project.session.asset(&sha256) else {
-            return failed("error-image-asset-missing", &[text]);
+            return failed(key!("error-image-asset-missing"), &[text]);
         };
         let asset = ImageAsset {
             hash: sha256.to_string(),
@@ -457,7 +464,7 @@ impl ShellModel {
     /// for `per_wire`; a mode the project already has commits nothing.
     pub(crate) fn act_marker_mode(&mut self, p: &Map<String, Value>) -> Outcome {
         let mode = match p.get("mode") {
-            None => return failed("error-missing-param", &["mode"]),
+            None => return failed(key!("error-missing-param"), &["mode"]),
             Some(Value::String(s))
                 if matches!(
                     s.as_str(),
@@ -466,7 +473,7 @@ impl ShellModel {
             {
                 s.as_str()
             }
-            Some(_) => return failed("error-bad-param", &["mode"]),
+            Some(_) => return failed(key!("error-bad-param"), &["mode"]),
         };
         if mode == self.marker_mode_word() {
             self.notify_marker_count(false);
@@ -493,6 +500,6 @@ impl ShellModel {
     fn notify_marker_count(&mut self, undo: bool) {
         let Some(project) = &self.project else { return };
         let n = project.session.marker_wire_count();
-        self.notify(strings::format_count("toast-marker-count", n), undo);
+        self.notify(strings::format_count(key!("toast-marker-count"), n), undo);
     }
 }

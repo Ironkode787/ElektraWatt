@@ -19,6 +19,7 @@
 use egui::text::LayoutJob;
 use egui::{Align, Align2, Id, Key, Layout, Modifiers, Rect, ScrollArea, Sense, TextEdit, Vec2};
 use ew_viewmodel::actions::{PaletteEntry, PaletteRun};
+use ew_viewmodel::key;
 use ew_viewmodel::palette::{self, PaletteForm};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -226,7 +227,7 @@ pub fn show(
                     let mut query = state.query.clone();
                     let edit = ui.add(
                         TextEdit::singleline(&mut query)
-                            .hint_text(strings::text("palette-hint"))
+                            .hint_text(strings::text(key!("palette-hint")))
                             .frame(egui::Frame::NONE)
                             .font(theme::font(&t.type_body))
                             .desired_width(f32::INFINITY),
@@ -277,8 +278,9 @@ pub fn show(
 /// field (a check box for a `bool`, a list for an enumeration, a text field otherwise), then the last error. Enter
 /// runs the form (the palette's Enter); Escape returns to the list (`ui.dismiss`).
 fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, events: &mut Vec<Event>) {
-    let title =
-        ew_viewmodel::actions::find(form.action).map_or(form.action, |m| strings::text(&m.label_key()));
+    let title = ew_viewmodel::actions::find(form.action).map_or(form.action, |m| {
+        strings::text(strings::Key::run_time(&m.label_key()))
+    });
     ui.add_space(t.space_2);
     ui.horizontal(|ui| {
         ui.add_space(t.space_3);
@@ -361,7 +363,7 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
     ui.horizontal(|ui| {
         ui.add_space(t.space_3);
         ui.label(
-            egui::RichText::new(strings::text("palette-form-hint"))
+            egui::RichText::new(strings::text(key!("palette-form-hint")))
                 .font(theme::font(&t.type_small))
                 .color(t.text_tertiary.color32()),
         );

@@ -94,6 +94,7 @@ pub use structure_box::StructureBoxTool;
 pub use text::{BINDABLE, TextEditTool, TextTool};
 pub use wire::{WireTarget, WireTool};
 
+use crate::strings::Key;
 pub use ew_api::DynCommand;
 use ew_api::output::PageTables;
 use ew_api::output::ew_dl::ew_units::{Nm, Rect};
@@ -402,7 +403,7 @@ pub enum ToolOutput {
     Cancel,
     /// The tool refused the event: the key names why (see [`crate::strings`]); the host shows it as every other
     /// refusal and leaves the model unchanged.
-    Refused(&'static str),
+    Refused(Key<'static>),
     /// Change the selection; the overlay is cleared.
     Select(SelectionChange),
     /// Follow the page's link to this destination (§6.4); the overlay is cleared.
@@ -452,7 +453,7 @@ pub trait Tool {
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput;
 
     /// The key of the status hint in [`crate::strings`].
-    fn status_hint(&self) -> &'static str;
+    fn status_hint(&self) -> Key<'static>;
 
     /// Whether the hover, the link hover and the link preview are shown while the tool is active.
     fn wants_hover(&self) -> bool;

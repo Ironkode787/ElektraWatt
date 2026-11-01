@@ -6,6 +6,7 @@
 //! FT-521).
 
 use crate::common;
+use ew_viewmodel::key;
 
 use std::collections::BTreeMap;
 
@@ -102,7 +103,11 @@ fn cb1_the_registry_places_every_command_once_and_the_app_menu_holds_every_actio
         assert!(!icon.is_empty(), "{}", a.id);
         assert!(strings::lookup(&a.label_key()).is_some(), "{} has no label", a.id);
         if let Some(key) = p.bar_label {
-            assert!(strings::lookup(key).is_some(), "{}: bar label {key}", a.id);
+            assert!(
+                strings::lookup(key.as_str()).is_some(),
+                "{}: bar label {key:?}",
+                a.id
+            );
         }
         let topic = help::action_topic(a.id).unwrap_or_else(|| panic!("{} has no docs topic", a.id));
         assert!(help::anchor(topic).is_some(), "{}: topic {topic}", a.id);
@@ -138,7 +143,7 @@ fn cb1_the_registry_places_every_command_once_and_the_app_menu_holds_every_actio
         );
     }
     for tab in Tab::ALL {
-        assert!(strings::lookup(tab.label_key()).is_some());
+        assert!(strings::lookup(tab.label_key().as_str()).is_some());
         if let Some(id) = next_step(tab) {
             assert!(actions::find(id).is_some(), "{tab:?}'s next step {id}");
             assert!(strings::lookup(&format!("next-step-{}", tab.word())).is_some());
@@ -286,8 +291,8 @@ fn cb8_the_draw_tab_equals_the_mockups_command_row() {
         app,
         format!(
             "{}|{} (Alt)",
-            strings::text("commandbar-app"),
-            strings::text("commandbar-menu")
+            strings::text(key!("commandbar-app")),
+            strings::text(key!("commandbar-menu"))
         )
     );
     // The Select tool is on in the bar.

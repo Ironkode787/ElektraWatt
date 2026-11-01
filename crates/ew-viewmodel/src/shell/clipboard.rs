@@ -18,6 +18,7 @@ use serde_json::{Map, Value};
 use super::navigation::bump;
 use super::{Mode, Outcome, ShellModel, failed, string_param};
 use crate::clipboard::{ClipKind, ClipboardState, copy_refusal, fragment_banner};
+use crate::key;
 use crate::properties::{
     Card, CardOrigin, EditRoute, FieldReadOnly, PasteChoice, PasteConflict, PendingEdit,
 };
@@ -61,7 +62,7 @@ impl ShellModel {
     pub fn paste_page_reason(&self) -> Option<String> {
         self.paste_page_kind().map(|kind| {
             strings::format(
-                "reason-paste-page-kind",
+                key!("reason-paste-page-kind"),
                 &[strings::kind_label(kind).trim_end_matches(" page")],
             )
         })
@@ -103,12 +104,12 @@ impl ShellModel {
         let ids: Vec<_> = self.copy_targets().iter().map(|e| e.0).collect();
         if ids.is_empty() {
             return Err(Outcome::Refused {
-                reason_key: "reason-nothing-selected",
+                reason_key: key!("reason-nothing-selected"),
             });
         }
         let Some(project) = &self.project else {
             return Err(Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             });
         };
         let copied = project.session.copy_fragment(&ids);
@@ -145,7 +146,7 @@ impl ShellModel {
             }),
             copied.dropped_connections,
         );
-        self.tools.announcement = Some(strings::format("announce-copied", &[&records]));
+        self.tools.announcement = Some(strings::format(key!("announce-copied"), &[&records]));
     }
 
     /// `edit.cut` (Ctrl+X): copy, then `edit.delete` of the selection through `edit.delete_selection`'s path (one undo
@@ -157,7 +158,7 @@ impl ShellModel {
         };
         if copied.incomplete_page_items > 0 {
             return Outcome::Refused {
-                reason_key: "reason-cut-incomplete-items",
+                reason_key: key!("reason-cut-incomplete-items"),
             };
         }
         self.write_copied_fragment(copied);
@@ -176,19 +177,19 @@ impl ShellModel {
         let ids: Vec<_> = self.tools.selection.items.iter().map(|e| e.0).collect();
         if ids.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-nothing-selected",
+                reason_key: key!("reason-nothing-selected"),
             };
         }
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let text = project.session.tag_list(&ids);
         bump(&self.calls, |c| c.tag_list += 1);
         if text.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-tags",
+                reason_key: key!("reason-no-tags"),
             };
         }
         self.write_clipboard(text, None, 0);
@@ -202,7 +203,7 @@ impl ShellModel {
                 self.clip.set(t.to_owned(), None, 0, false);
                 Outcome::Done
             }
-            Ok(None) => failed("error-missing-param", &["text"]),
+            Ok(None) => failed(key!("error-missing-param"), &["text"]),
             Err(e) => e,
         }
     }
@@ -217,7 +218,7 @@ impl ShellModel {
             self.tools.notice = Some(reason);
             self.tools.notice_sticky = false;
             return Outcome::Refused {
-                reason_key: "reason-paste-page-kind",
+                reason_key: key!("reason-paste-page-kind"),
             };
         }
         let text = match string_param(p, "text") {
@@ -233,7 +234,7 @@ impl ShellModel {
                 Some(t) => t.to_owned(),
                 None => {
                     return Outcome::Refused {
-                        reason_key: "reason-clipboard-empty",
+                        reason_key: key!("reason-clipboard-empty"),
                     };
                 }
             },
@@ -255,7 +256,7 @@ impl ShellModel {
             Ok(f) => f,
             Err(FragmentError::NotAFragment) => {
                 return Outcome::Refused {
-                    reason_key: "reason-not-a-fragment",
+                    reason_key: key!("reason-not-a-fragment"),
                 };
             }
             Err(e) => {
@@ -292,7 +293,7 @@ impl ShellModel {
     ) -> Outcome {
         let Some(rev) = self.revision() else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let class_word = |c: ew_api::ChangeClass| match c {
@@ -316,18 +317,18 @@ impl ShellModel {
             adapt: conflicts
                 .iter()
                 .any(|c| c.class == ew_api::ChangeClass::Major)
-                .then_some("reason-paste-adapt-major"),
+                .then_some(key!("reason-paste-adapt-major")),
             update: conflicts
                 .iter()
                 .any(|c| !c.newer)
-                .then_some("reason-paste-update-older"),
+                .then_some(key!("reason-paste-update-older")),
         };
         let list = conflicts
             .iter()
             .map(|c| c.title.as_str())
             .collect::<Vec<_>>()
             .join(", ");
-        let message = strings::format("reason-paste-versions", &[&list]);
+        let message = strings::format(key!("reason-paste-versions"), &[&list]);
         let edit = PendingEdit {
             row: String::new(),
             kind: String::new(),
@@ -352,7 +353,7 @@ impl ShellModel {
             edit,
             targets: 0,
             changes: 0,
-            reason: "reason-paste-versions",
+            reason: key!("reason-paste-versions"),
             origin: CardOrigin::PasteVersions(Box::new(choice)),
         });
         // Cycle 39 (FIX39b-1): the HUD's prompt follows the card ([`ShellModel::card_prompt`]), short, since the card
@@ -360,7 +361,7 @@ impl ShellModel {
         self.tools.notice = None;
         self.tools.notice_sticky = false;
         Outcome::Refused {
-            reason_key: "reason-paste-versions",
+            reason_key: key!("reason-paste-versions"),
         }
     }
 
@@ -377,13 +378,13 @@ impl ShellModel {
                     .collect::<Vec<_>>()
                     .join(", ");
                 let key = if choice.conflicts.len() == 1 {
-                    "hud-paste-versions-one"
+                    key!("hud-paste-versions-one")
                 } else {
-                    "hud-paste-versions-many"
+                    key!("hud-paste-versions-many")
                 };
                 Some(strings::format(key, &[&list]))
             }
-            CardOrigin::PasteUpdate { .. } => Some(strings::text("hud-paste-update").to_owned()),
+            CardOrigin::PasteUpdate { .. } => Some(strings::text(key!("hud-paste-update")).to_owned()),
             _ => None,
         }
     }
@@ -396,12 +397,12 @@ impl ShellModel {
     pub(crate) fn act_paste_resolve(&mut self, p: &Map<String, Value>) -> Outcome {
         let choice = match string_param(p, "choice") {
             Ok(Some(c)) => c.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["choice"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["choice"]),
             Err(e) => return e,
         };
         let Some(CardOrigin::PasteVersions(pending)) = self.props.card().map(|c| c.origin.clone()) else {
             return Outcome::Refused {
-                reason_key: "reason-no-paste-choice",
+                reason_key: key!("reason-no-paste-choice"),
             };
         };
         match choice.as_str() {
@@ -424,12 +425,12 @@ impl ShellModel {
                             Some(project) => project.session.paste_update(&f.params),
                             None => {
                                 return Outcome::Refused {
-                                    reason_key: "reason-no-project",
+                                    reason_key: key!("reason-no-project"),
                                 };
                             }
                         }
                     }
-                    Err(e) => return failed("error-command", &[&e.to_string()]),
+                    Err(e) => return failed(key!("error-command"), &[&e.to_string()]),
                 };
                 match plan {
                     Ok(plan) => {
@@ -437,7 +438,7 @@ impl ShellModel {
                         self.preview_host_card_as(
                             &plan.command.name,
                             plan.command.params,
-                            "reason-library-update",
+                            key!("reason-library-update"),
                             CardOrigin::PasteUpdate { text: pending.text },
                         )
                     }
@@ -447,7 +448,7 @@ impl ShellModel {
                     },
                 }
             }
-            other => failed("error-bad-param", &[&format!("choice {other}")]),
+            other => failed(key!("error-bad-param"), &[&format!("choice {other}")]),
         }
     }
 
@@ -478,7 +479,7 @@ impl ShellModel {
         bump(&self.calls, |c| c.parse_fragment += 1);
         let f = match parsed {
             Ok(f) => f,
-            Err(e) => return failed("error-command", &[&e.to_string()]),
+            Err(e) => return failed(key!("error-command"), &[&e.to_string()]),
         };
         let anchor = (
             f.params["anchor"][0].as_i64().unwrap_or(0),

@@ -20,6 +20,7 @@ use ew_viewmodel::actions::ActionItem;
 use ew_viewmodel::command_bar::{
     ButtonKind, CommandBarModel, CommandButton, CommandSize, GroupModel, Tab, command_bar,
 };
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
@@ -229,7 +230,7 @@ fn layout_row(ui: &Ui, t: &Tokens, model: &CommandBarModel, row: Rect) -> RowLay
     }
     // Still too wide: the collapsed groups go into one More button, from the right.
     let mut more = Vec::new();
-    let more_w = menu_button_size(ui, t, strings::text("commandbar-more")).x + 2.0 * t.space_2;
+    let more_w = menu_button_size(ui, t, strings::text(key!("commandbar-more"))).x + 2.0 * t.space_2;
     let shown_total = |collapsed: &[bool], more: &[usize]| -> f32 {
         let widths: f32 = (0..model.groups.len())
             .filter(|i| !more.contains(i))
@@ -276,7 +277,7 @@ fn layout_row(ui: &Ui, t: &Tokens, model: &CommandBarModel, row: Rect) -> RowLay
         groups.push((gi, rect, placed, collapsed[gi]));
     }
     let more_rect = (!more.is_empty()).then(|| {
-        let size = menu_button_size(ui, t, strings::text("commandbar-more"));
+        let size = menu_button_size(ui, t, strings::text(key!("commandbar-more")));
         Rect::from_min_size(pos2(x + divider + t.space_2, cy - size.y / 2.0), size)
     });
     let next = next_size.map(|s| Rect::from_min_size(pos2(row.right() - t.space_3 - s.x, cy - s.y / 2.0), s));
@@ -389,7 +390,7 @@ fn command_button(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect) -> (Respon
     .tip(tooltip(b));
     let chevron = split.then(|| {
         let r = Rect::from_min_max(pos2(main_rect.right(), rect.top()), rect.max);
-        let name = format!("{} {}", b.bar_label, strings::text("commandbar-variants"));
+        let name = format!("{} {}", b.bar_label, strings::text(key!("commandbar-variants")));
         button_response(
             ui,
             id.with("variants"),
@@ -585,7 +586,7 @@ impl CommandBarHost {
         self.bar = Some(rect);
         let bar_id = Id::unique("command-bar");
         let bar = ui.interact(rect, bar_id, Sense::hover());
-        let bar_name = strings::text("commandbar-name").to_owned();
+        let bar_name = strings::text(key!("commandbar-name")).to_owned();
         bar.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Toolbar, true, &bar_name));
         let before = events.len();
         ui.scope_builder(
@@ -648,7 +649,7 @@ impl CommandBarHost {
         let cy = row.center().y;
         let mut x = row.left() + t.space_3;
         // The app button (accessible name "Menu"): the product mark, the name, a chevron.
-        let name = strings::text("commandbar-app");
+        let name = strings::text(key!("commandbar-app"));
         let name_galley = ui.painter().layout_no_wrap(
             name.to_owned(),
             theme::font(&t.type_body_strong),
@@ -665,7 +666,7 @@ impl CommandBarHost {
             pos2(x, cy - t.size_control_inline / 2.0),
             vec2(w, t.size_control_inline),
         );
-        let menu_name = strings::text("commandbar-menu");
+        let menu_name = strings::text(key!("commandbar-menu"));
         let response = button_response(
             ui,
             Id::unique(APP_BUTTON),
@@ -778,7 +779,7 @@ impl CommandBarHost {
         let tabs_rect = Rect::from_min_size(pos2(x, row.top()), vec2(widths.iter().sum(), t.size_tab_row));
         let list_id = Id::unique("command-tabs");
         let list = ui.interact(tabs_rect, list_id, Sense::hover());
-        let list_name = strings::text("commandbar-tabs").to_owned();
+        let list_name = strings::text(key!("commandbar-tabs")).to_owned();
         list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TabList, true, &list_name));
         ui.scope_builder(
             UiBuilder::new().max_rect(tabs_rect).accessibility_parent(list_id),
@@ -837,7 +838,7 @@ impl CommandBarHost {
             vec2(search_width, t.size_search_height),
         );
         self.search = Some(search);
-        let placeholder = strings::text("commandbar-search").to_owned();
+        let placeholder = strings::text(key!("commandbar-search")).to_owned();
         let response = ui.interact(search, Id::unique("command-search"), Sense::click());
         // WP-S2.08 part 2: the palette's key as the keymap binds it.
         let palette_key = ew_viewmodel::actions::find("tools.palette")
@@ -866,7 +867,7 @@ impl CommandBarHost {
         );
         paint_icon(ui, "search", icon, t.text_tertiary.color32(), t.icon_stroke);
         let chip = ui.painter().layout_no_wrap(
-            strings::text("commandbar-search-key").to_owned(),
+            strings::text(key!("commandbar-search-key")).to_owned(),
             theme::font(&t.type_caption),
             t.text_tertiary.color32(),
         );
@@ -976,7 +977,7 @@ fn command_row(ui: &mut Ui, t: &Tokens, model: &CommandBarModel, row: Rect, even
         );
     }
     if let Some(r) = layout.more_rect {
-        let name = strings::text("commandbar-more");
+        let name = strings::text(key!("commandbar-more"));
         let response = menu_button(ui, t, Id::unique("command-more"), r, name, "dots");
         Popup::menu(&response).show(|ui| {
             for gi in &layout.more {

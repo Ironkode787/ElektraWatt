@@ -6,6 +6,7 @@
 //! Golden A or on a new project; Golden A itself is only read.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -768,7 +769,7 @@ fn pv6_the_purge_step() {
         "reason-no-purge-dialog"
     );
     assert_eq!(
-        ew_viewmodel::strings::text("reason-no-purge-dialog"),
+        ew_viewmodel::strings::text(key!("reason-no-purge-dialog")),
         "Open Purge unused images… first"
     );
     assert!(unused.iter().all(|f| f.exists()), "nothing was purged");

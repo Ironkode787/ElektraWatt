@@ -19,6 +19,7 @@
 
 use egui::{RichText, Ui};
 use ew_viewmodel::ew_api::output::MacroThumbnail;
+use ew_viewmodel::key;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -76,7 +77,7 @@ fn update_bar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         if components::button(
             ui,
             Kind::Secondary,
-            strings::text("action-libraries-update"),
+            strings::text(key!("action-libraries-update")),
             enabled,
             0.0,
         )
@@ -113,17 +114,17 @@ fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail)
         let kind = if d.key.is_empty() {
             d.kind.to_owned()
         } else {
-            strings::format("library-copy-kind-key", &[d.kind, &d.key])
+            strings::format(key!("library-copy-kind-key"), &[d.kind, &d.key])
         };
         line(ui, &kind, &t.type_small, t.text_secondary);
         let library = if d.library.is_empty() {
-            strings::text("library-copy-not-installed")
+            strings::text(key!("library-copy-not-installed"))
         } else {
             &d.library
         };
         line(
             ui,
-            &strings::format("macro-version", &[&d.version, library]),
+            &strings::format(key!("macro-version"), &[&d.version, library]),
             &t.type_small,
             t.text_secondary,
         );
@@ -165,7 +166,7 @@ fn thumbnail_ui(
     let t = components::tokens(ui);
     let width = ui.available_width().max(1.0);
     let (rect, response) = ui.allocate_exact_size(egui::vec2(width, height), egui::Sense::hover());
-    let name = strings::format("macro-preview-name", &[&d.name]);
+    let name = strings::format(key!("macro-preview-name"), &[&d.name]);
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Image, true, &name));
     let [x0, y0, x1, y1] = th.region;
     let (rw, rh) = ((x1 - x0).max(1) as f64, (y1 - y0).max(1) as f64);
@@ -291,7 +292,7 @@ fn macro_detail(
         });
         line(
             ui,
-            &strings::format("macro-version", &[&d.version, &d.library]),
+            &strings::format(key!("macro-version"), &[&d.version, &d.library]),
             &t.type_small,
             t.text_secondary,
         );
@@ -319,14 +320,14 @@ fn macro_detail(
                 if !thumbnail.is_some_and(|th| thumbnail_ui(ui, d, th, thumb)) {
                     line(
                         ui,
-                        strings::text("macro-no-preview"),
+                        strings::text(key!("macro-no-preview")),
                         &t.type_small,
                         t.text_tertiary,
                     );
                 }
                 for (title, items, typed) in [
-                    (strings::text("macro-devices"), &d.devices, false),
-                    (strings::text("macro-variables"), &d.variables, true),
+                    (strings::text(key!("macro-devices")), &d.devices, false),
+                    (strings::text(key!("macro-variables")), &d.variables, true),
                 ] {
                     if items.is_empty() {
                         continue;
@@ -348,7 +349,7 @@ fn macro_detail(
             if components::button(
                 ui,
                 Kind::Primary,
-                strings::text("action-macros-insert"),
+                strings::text(key!("action-macros-insert")),
                 true,
                 0.0,
             )

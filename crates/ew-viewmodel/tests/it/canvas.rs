@@ -5,6 +5,7 @@
 //! A5, A8 and the model half of A9).
 
 use ew_testdir as fresh_dir;
+use ew_viewmodel::key;
 
 use std::path::{Path, PathBuf};
 
@@ -165,7 +166,7 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
     assert_eq!(
         shell.dispatch("view.zoom_in", &json!({})),
         Outcome::Refused {
-            reason_key: "reason-zoom-max"
+            reason_key: key!("reason-zoom-max")
         }
     );
     done(&mut shell, "view.zoom_to", json!({"percent": 1}));
@@ -173,7 +174,7 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
     assert_eq!(
         shell.dispatch("view.zoom_out", &json!({})),
         Outcome::Refused {
-            reason_key: "reason-zoom-min"
+            reason_key: key!("reason-zoom-min")
         }
     );
     // Without a page every canvas action but the pane size and the statistics is refused.

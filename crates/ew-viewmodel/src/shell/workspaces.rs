@@ -14,6 +14,7 @@ use std::path::PathBuf;
 use serde_json::{Map, Value};
 
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
+use crate::key;
 use crate::layout::Layout;
 use crate::settings::{DEFAULT_WORKSPACE, valid_workspace_name};
 use crate::strings;
@@ -99,7 +100,7 @@ impl ShellModel {
             Ok(layout) => self.layout = layout,
             Err(ReadError::Missing) => {}
             Err(ReadError::Bad(_)) => {
-                self.banner = Some(strings::format("banner-workspace-bad", &[&self.workspace]));
+                self.banner = Some(strings::format(key!("banner-workspace-bad"), &[&self.workspace]));
             }
         }
     }
@@ -108,13 +109,13 @@ impl ShellModel {
         let name = match string_param(p, "name") {
             Err(e) => return e,
             Ok(Some(name)) => name.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["name"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["name"]),
         };
         if !valid_workspace_name(&name) {
-            return failed("error-bad-param", &["name"]);
+            return failed(key!("error-bad-param"), &["name"]);
         }
         if self.differs_only_in_case(&name) {
-            return failed("error-workspace-case", &[]);
+            return failed(key!("error-workspace-case"), &[]);
         }
         match self.read_workspace(&name) {
             Ok(layout) => {
@@ -126,8 +127,8 @@ impl ShellModel {
                 self.layout_changed_at = None;
                 Outcome::Done
             }
-            Err(ReadError::Missing) => failed("error-workspace-missing", &[&name]),
-            Err(ReadError::Bad(why)) => failed("error-workspace-bad", &[&name, &why]),
+            Err(ReadError::Missing) => failed(key!("error-workspace-missing"), &[&name]),
+            Err(ReadError::Bad(why)) => failed(key!("error-workspace-bad"), &[&name, &why]),
         }
     }
 
@@ -137,7 +138,7 @@ impl ShellModel {
             Ok(Some(name)) => name.to_owned(),
             Ok(None) => {
                 return match self.mode {
-                    Mode::Headless => failed("error-missing-param", &["name"]),
+                    Mode::Headless => failed(key!("error-missing-param"), &["name"]),
                     Mode::Gui => self.open_dialog(Dialog::SaveWorkspace {
                         text: self.workspace.clone(),
                     }),
@@ -145,16 +146,16 @@ impl ShellModel {
             }
         };
         if !valid_workspace_name(&name) {
-            self.banner = Some(strings::text("error-workspace-name").to_owned());
-            return failed("error-workspace-name", &[]);
+            self.banner = Some(strings::text(key!("error-workspace-name")).to_owned());
+            return failed(key!("error-workspace-name"), &[]);
         }
         if self.differs_only_in_case(&name) {
-            self.banner = Some(strings::text("error-workspace-case").to_owned());
-            return failed("error-workspace-case", &[]);
+            self.banner = Some(strings::text(key!("error-workspace-case")).to_owned());
+            return failed(key!("error-workspace-case"), &[]);
         }
         self.dialog = None;
         if self.write_workspace(&name, &self.layout).is_err() {
-            return failed("error-workspace-write", &[]);
+            return failed(key!("error-workspace-write"), &[]);
         }
         self.workspace = name.clone();
         self.settings.workspace = name;
@@ -221,7 +222,7 @@ impl ShellModel {
         }
         if self.write_workspace(&self.workspace, &self.layout).is_err() {
             self.layout_changed_at = None;
-            self.banner = Some(strings::text("banner-workspace-write").to_owned());
+            self.banner = Some(strings::text(key!("banner-workspace-write")).to_owned());
             return false;
         }
         self.layout_changed_at = None;

@@ -7,6 +7,7 @@
 //! popup). Every change is a registry action, so the headless mode drives the same model.
 
 use egui::{Align2, AtomExt as _, Button, Id, Key, Modifiers, ScrollArea, TextEdit, Window};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use ew_viewmodel::tools::{PickerMode, PickerRow};
@@ -44,12 +45,12 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         events.push(Event::Action("picker.choose", json!({})));
     }
     let title = match picker.mode {
-        PickerMode::Exchange => strings::text("picker-title-exchange"),
-        PickerMode::Place => strings::text("picker-title"),
+        PickerMode::Exchange => strings::text(key!("picker-title-exchange")),
+        PickerMode::Place => strings::text(key!("picker-title")),
         // FT-890: the Device button (`tool.place_part`) picks a part, so its dialog names a device.
-        PickerMode::Parts => strings::text("picker-title-device"),
-        PickerMode::Strip => strings::text("picker-title-strip"),
-        PickerMode::BlackBox => strings::text("picker-title-black-box"),
+        PickerMode::Parts => strings::text(key!("picker-title-device")),
+        PickerMode::Strip => strings::text(key!("picker-title-strip")),
+        PickerMode::BlackBox => strings::text(key!("picker-title-black-box")),
     };
     let t = crate::theme::current(ctx);
     let width = crate::dialog::grown(
@@ -81,7 +82,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             let edit = ui.add(
                 TextEdit::singleline(&mut filter)
                     .id(id)
-                    .hint_text(strings::text("picker-filter-hint"))
+                    .hint_text(strings::text(key!("picker-filter-hint")))
                     .desired_width(f32::INFINITY),
             );
             if just_opened {
@@ -93,13 +94,13 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             // FT-605: a terminal chosen in a project without strips opens the strip chooser on an empty state that
             // says why and offers New terminal strip (doc 16a §6.17); `strip.new` lists the new strip as the current
             // row.
-            if picker.mode == PickerMode::Strip && picker.empty_text() == Some("picker-empty-strips") {
+            if picker.mode == PickerMode::Strip && picker.empty_text() == Some(key!("picker-empty-strips")) {
                 let new = crate::components::empty_state(
                     ui,
                     crate::icons::IconId::ew_terminal_strip,
-                    strings::text("picker-empty-strips"),
-                    strings::text("picker-empty-strips-text"),
-                    Some(strings::text("picker-new-strip")),
+                    strings::text(key!("picker-empty-strips")),
+                    strings::text(key!("picker-empty-strips-text")),
+                    Some(strings::text(key!("picker-new-strip"))),
                 );
                 if new.is_some_and(|r| r.clicked()) {
                     events.push(Event::Action("strip.new", json!({})));
@@ -228,9 +229,9 @@ fn row_texts(
         PickerRow::Symbol(k) => {
             let s = &picker.catalogue.symbols[k];
             let library = if s.copy.is_some() {
-                strings::text("picker-badge-embedded")
+                strings::text(key!("picker-badge-embedded"))
             } else {
-                strings::text("picker-badge-starter")
+                strings::text(key!("picker-badge-starter"))
             };
             // The name is the key's last segment without its grid variant (`ew.iec.mcb-1p@qet10` → `mcb-1p`).
             let name = ew_viewmodel::tools::symbol_name(&s.key).to_owned();
@@ -245,7 +246,7 @@ fn row_texts(
             let part = &picker.catalogue.parts[p];
             let f = &part.functions[k];
             let mut meta = strings::format(
-                "picker-part-function",
+                key!("picker-part-function"),
                 &[
                     &(k + 1).to_string(),
                     &part.functions.len().to_string(),
@@ -254,7 +255,7 @@ fn row_texts(
             );
             if f.main {
                 meta.push(' ');
-                meta.push_str(strings::text("picker-main"));
+                meta.push_str(strings::text(key!("picker-main")));
             }
             // FT-664: the function in words, never an ID; the tooltip adds the FnDef key that scripts name. FT-712:
             // the description leads (the part number when the part has none), the part number follows it, and the
@@ -280,7 +281,7 @@ fn row_texts(
             (
                 st.tag.clone(),
                 None,
-                strings::format("picker-strip-next", &[&st.next_designation]),
+                strings::format(key!("picker-strip-next"), &[&st.next_designation]),
                 st.tag.clone(),
             )
         }

@@ -22,7 +22,9 @@ use super::{
     Anchor, Button, CanvasEvent, DynCommand, Ghost, Overlay, OverlayItem, PREVIEW_DWELL_MS, PreviewInfo,
     Tool, ToolCx, ToolOutput, rect_of,
 };
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 /// The paste tool.
 pub struct PasteTool {
@@ -117,10 +119,10 @@ impl PasteTool {
 
     /// The label: `paste <n> records`, the dropped connections, the predicted tags.
     fn label(&self) -> String {
-        let mut text = strings::format("label-paste", &[&self.fragment.records.to_string()]);
+        let mut text = strings::format(key!("label-paste"), &[&self.fragment.records.to_string()]);
         if self.dropped > 0 {
             text.push_str(&strings::format(
-                "label-paste-dropped",
+                key!("label-paste-dropped"),
                 &[&self.dropped.to_string()],
             ));
         }
@@ -178,8 +180,8 @@ impl Tool for PasteTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
-        "hint-paste"
+    fn status_hint(&self) -> Key<'static> {
+        key!("hint-paste")
     }
 
     fn wants_hover(&self) -> bool {

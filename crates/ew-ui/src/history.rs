@@ -30,6 +30,7 @@
 
 use egui::{Align, Context, Key, Layout, Modifiers, Rect, RichText, Sense, Ui, Vec2};
 use ew_viewmodel::ew_api::output::HistoryRow;
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use ew_viewmodel::undo_history::{EntryState, HistoryLine, MAX_CHANGES};
@@ -96,11 +97,11 @@ fn entry_text(row: &HistoryRow, origin: &str) -> String {
     if row.merged > 1 {
         text.push_str(&format!(
             "  {}",
-            strings::format("history-merged", &[&row.merged.to_string()])
+            strings::format(key!("history-merged"), &[&row.merged.to_string()])
         ));
     }
     if !row.step {
-        text.push_str(&format!("  {}", strings::text("history-not-undoable")));
+        text.push_str(&format!("  {}", strings::text(key!("history-not-undoable"))));
     }
     text
 }
@@ -110,7 +111,9 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let rect = ui.available_rect_before_wrap();
     let pane_id = pane_id();
     let pane = ui.interact(rect, pane_id, egui::Sense::focusable_noninteractive());
-    pane.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text("pane-history")));
+    pane.widget_info(|| {
+        egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text(key!("pane-history")))
+    });
     // FT-519: the panel holds the shell's focus like the other panes (F6, a click, Tab).
     let ours = shell.focus() == Some(ew_viewmodel::shell::Focus::History);
     if ours && !pane.has_focus() && !ui.ctx().text_edit_focused() && shell.dialog().is_none() {
@@ -146,8 +149,8 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             components::empty_state(
                 ui,
                 IconId::history,
-                strings::text("history-empty"),
-                strings::text("empty-history-text"),
+                strings::text(key!("history-empty")),
+                strings::text(key!("empty-history-text")),
                 None,
             );
             return;
@@ -164,7 +167,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             small(
                 ui,
                 strings::format(
-                    "history-header",
+                    key!("history-header"),
                     &[&view.rows.len().to_string(), &view.cursor.to_string()],
                 ),
             );
@@ -174,7 +177,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             small(
                 ui,
                 strings::format(
-                    "history-header-kept",
+                    key!("history-header-kept"),
                     &[&oldest.to_string(), &mb(view.bytes), &mb(view.max_bytes)],
                 ),
             );
@@ -296,7 +299,7 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
         ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::click());
     let text = entry_text(e.row, e.origin);
     let name = if e.state == EntryState::Redo {
-        format!("{text}, {}", strings::text("history-redo"))
+        format!("{text}, {}", strings::text(key!("history-redo")))
     } else {
         text
     };
@@ -351,13 +354,13 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
         // W31-7: `history.undo_to` redoes up to an undone entry (§8.4), so its row offers Redo to here; the others keep
         // Undo to here (§8.8).
         let (walk, walk_icon) = match e.state {
-            EntryState::Redo => ("history-redo-to", IconId::arrow_forward_up),
-            EntryState::Now | EntryState::Done => ("action-history-undo-to", IconId::history),
+            EntryState::Redo => (key!("history-redo-to"), IconId::arrow_forward_up),
+            EntryState::Now | EntryState::Done => (key!("action-history-undo-to"), IconId::history),
         };
         let changes = components::icon_button(
             &mut actions,
             IconId::list_details,
-            strings::text("action-history-changes"),
+            strings::text(key!("action-history-changes")),
         );
         let undo = components::icon_button(&mut actions, walk_icon, strings::text(walk));
         out.focused = undo.has_focus() || changes.has_focus();
@@ -396,7 +399,7 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
             if e.row.merged > 1 {
                 components::caption_badge(
                     ui,
-                    &strings::format("history-merged", &[&e.row.merged.to_string()]),
+                    &strings::format(key!("history-merged"), &[&e.row.merged.to_string()]),
                 );
             }
             if !e.row.step {
@@ -414,7 +417,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
         return;
     };
     let t = theme::current(ctx);
-    let title = strings::format("history-changes-title", &[&(index + 1).to_string()]);
+    let title = strings::format(key!("history-changes-title"), &[&(index + 1).to_string()]);
     let frame = egui::Frame::new()
         .fill(t.surface_raised.color32())
         .stroke(theme::stroke(t.border_raised_width, t.border_default))
@@ -483,7 +486,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
                 let close = components::button(
                     ui,
                     Kind::Secondary,
-                    strings::text("toast-close"),
+                    strings::text(key!("toast-close")),
                     true,
                     t.size_button_min_width,
                 );

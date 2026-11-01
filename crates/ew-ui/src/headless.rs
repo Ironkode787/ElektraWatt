@@ -16,6 +16,7 @@ use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
 
 use ew_render_cpu::encode_png;
+use ew_viewmodel::key;
 use ew_viewmodel::script::{self, RunEnd, StepExtension};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use ew_viewmodel::strings;
@@ -74,7 +75,7 @@ impl StepExtension for Snapshot {
 fn canvas_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
     let Some(path) = params.get("path").and_then(Value::as_str) else {
         return Outcome::Failed {
-            message: strings::format("error-missing-param", &["path"]),
+            message: strings::format(key!("error-missing-param"), &["path"]),
         };
     };
     let groups = shell.area().map_or(1, |a| a.groups.len());
@@ -88,14 +89,14 @@ fn canvas_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
             Some(g) => g,
             None => {
                 return Outcome::Failed {
-                    message: strings::format("error-bad-param", &["group"]),
+                    message: strings::format(key!("error-bad-param"), &["group"]),
                 };
             }
         },
     };
     if shell.canvas_of(group).is_none() {
         return Outcome::Refused {
-            reason_key: "reason-no-page",
+            reason_key: key!("reason-no-page"),
         };
     }
     let (image, dpi) = match crate::canvas::snapshot_image(shell, group) {
@@ -105,7 +106,7 @@ fn canvas_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
     match std::fs::write(path, encode_png(&image, Some(dpi))) {
         Ok(()) => Outcome::Done,
         Err(_) => Outcome::Failed {
-            message: strings::format("error-write", &[]),
+            message: strings::format(key!("error-write"), &[]),
         },
     }
 }
@@ -114,12 +115,12 @@ fn canvas_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
 fn preview_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
     let Some(path) = params.get("path").and_then(Value::as_str) else {
         return Outcome::Failed {
-            message: strings::format("error-missing-param", &["path"]),
+            message: strings::format(key!("error-missing-param"), &["path"]),
         };
     };
     if shell.link_preview().is_none() {
         return Outcome::Refused {
-            reason_key: "reason-no-preview",
+            reason_key: key!("reason-no-preview"),
         };
     }
     let (image, dpi) = match crate::canvas::preview_snapshot_image(shell) {
@@ -129,23 +130,23 @@ fn preview_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
     match std::fs::write(path, encode_png(&image, Some(dpi))) {
         Ok(()) => Outcome::Done,
         Err(_) => Outcome::Failed {
-            message: strings::format("error-write", &[]),
+            message: strings::format(key!("error-write"), &[]),
         },
     }
 }
 
 fn snapshot(shell: &ShellModel, params: &Value) -> Outcome {
-    let failed = |key: &str, args: &[&str]| Outcome::Failed {
+    let failed = |key: strings::Key<'_>, args: &[&str]| Outcome::Failed {
         message: strings::format(key, args),
     };
     let Some(path) = params.get("path").and_then(Value::as_str) else {
-        return failed("error-missing-param", &["path"]);
+        return failed(key!("error-missing-param"), &["path"]);
     };
     let dpi = match params.get("dpi") {
         None => 150,
         Some(v) => match v.as_u64().and_then(|d| u32::try_from(d).ok()).filter(|d| *d > 0) {
             Some(d) => d,
-            None => return failed("error-bad-param", &["dpi"]),
+            None => return failed(key!("error-bad-param"), &["dpi"]),
         },
     };
     // With the wizard open the page on show is its preview page (cover or folio 102 of the sample project).
@@ -154,7 +155,7 @@ fn snapshot(shell: &ShellModel, params: &Value) -> Outcome {
     } else {
         let Some(folio) = shell.current_folio() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         shell.page_content(folio)
@@ -169,7 +170,7 @@ fn snapshot(shell: &ShellModel, params: &Value) -> Outcome {
     };
     match std::fs::write(path, encode_png(&image, Some(dpi))) {
         Ok(()) => Outcome::Done,
-        Err(_) => failed("error-write", &[]),
+        Err(_) => failed(key!("error-write"), &[]),
     }
 }
 
@@ -247,7 +248,7 @@ pub fn run(
     // (`shutdown` deletes it only for a clean project). `app.quit` with `discard` ends such a script cleanly.
     let mut code = end.exit_code();
     if matches!(end, RunEnd::Completed { .. }) && shell.is_dirty() {
-        let _ = writeln!(err, "error: {}", strings::text("error-unsaved-at-end"));
+        let _ = writeln!(err, "error: {}", strings::text(key!("error-unsaved-at-end")));
         code = 1;
     }
     if !unseen.is_empty() && code == 0 {
@@ -291,7 +292,7 @@ pub fn smoke(mut config: ShellConfig, dir: &Path, out: &mut dyn Write, err: &mut
 
 fn smoke_first_page(shell: &ShellModel, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let Some(folio) = shell.current_folio() else {
-        let _ = writeln!(err, "error: {}", strings::text("page-no-pages"));
+        let _ = writeln!(err, "error: {}", strings::text(key!("page-no-pages")));
         return 1;
     };
     let rendered = shell

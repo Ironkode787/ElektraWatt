@@ -6,6 +6,7 @@
 //! Place HUD's symbol name.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done};
 use ew_viewmodel::actions::{self, PaletteEntry};
@@ -30,7 +31,10 @@ fn a_missing_folio_says_no_page_has_it() {
     assert!(query(&mut shell, ":999").is_empty());
     assert_eq!(shell.palette_empty_text(), "No page has the folio 999.");
     assert!(query(&mut shell, "zzzzqqqq").is_empty());
-    assert_eq!(shell.palette_empty_text(), strings::text("palette-no-match"));
+    assert_eq!(
+        shell.palette_empty_text(),
+        strings::text(key!("palette-no-match"))
+    );
 }
 
 /// `:102` shows the page's title after the folio, never the folio twice.
@@ -55,7 +59,7 @@ fn a_folio_row_shows_the_page_title() {
 #[test]
 fn the_form_hint_says_enter_and_escape() {
     assert_eq!(
-        strings::text("palette-form-hint"),
+        strings::text(key!("palette-form-hint")),
         "Enter applies \u{b7} Escape goes back"
     );
 }
@@ -68,7 +72,7 @@ fn delete_is_disabled_with_nothing_selected() {
     let mut shell = tmp.shell_in(Mode::Gui, true, "103");
     let meta = actions::find("edit.delete_selection").expect("the action");
     done(&mut shell, "select.set", json!({"refs": []}));
-    assert_eq!((meta.enabled)(&shell), Err("reason-nothing-selected"));
+    assert_eq!((meta.enabled)(&shell), Err(key!("reason-nothing-selected")));
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
     assert_eq!((meta.enabled)(&shell), Ok(()));

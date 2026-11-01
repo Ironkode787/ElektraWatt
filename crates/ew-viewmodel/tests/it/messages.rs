@@ -8,6 +8,7 @@
 //! a finding; the exact counts of §7.5; the 16 words and the 5 actions.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use std::collections::BTreeSet;
 
@@ -434,7 +435,7 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
     arm_ip(&mut shell, &source, (60, 6), "source");
     // FT-822: the IP tool's refused click keeps its ghost and says why in the HUD.
     match shell.dispatch("canvas.activate", &json!({})) {
-        Outcome::Refused { reason_key } => assert_eq!(reason_key, "reason-ip-not-placed"),
+        Outcome::Refused { reason_key } => assert_eq!(reason_key, key!("reason-ip-not-placed")),
         other => panic!("{other:?}"),
     }
     // H40 item 6: EW-CORE-052 in words, naming the page of the existing source.

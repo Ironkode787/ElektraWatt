@@ -21,7 +21,9 @@ use ew_api::output::{
 use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed, string_param};
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::layout::{mode_word, quarter_quat};
 use crate::tools::{
     CanvasEvent, EntityKind, LayoutOptions, LayoutPlaceTool, SelectionChange, ToolKey, page_entity_kind,
@@ -130,11 +132,11 @@ impl ShellModel {
             Some(rail) => {
                 let n = self.findings_of(&[row.id, row.device]);
                 let findings = match n {
-                    0 => strings::text("layout-findings-none").to_owned(),
-                    n => strings::format_count("layout-findings", n),
+                    0 => strings::text(key!("layout-findings-none")).to_owned(),
+                    n => strings::format_count(key!("layout-findings"), n),
                 };
                 Some(strings::format(
-                    "layout-live-rail",
+                    key!("layout-live-rail"),
                     &[
                         &row.tag,
                         &rail.sentence,
@@ -144,7 +146,7 @@ impl ShellModel {
                 ))
             }
             None => Some(strings::format(
-                "layout-live-plate",
+                key!("layout-live-plate"),
                 &[
                     &row.tag,
                     &mm_text(i128::from(row.pose.0), comma),
@@ -175,7 +177,7 @@ impl ShellModel {
 
     /// Refuses with `text` in the HUD and the live region (a reason in words that names devices or keys), under the
     /// static `reason_key` for the transcript.
-    fn refuse_with(&mut self, text: String, reason_key: &'static str) -> Outcome {
+    fn refuse_with(&mut self, text: String, reason_key: Key<'static>) -> Outcome {
         self.tools.notice = Some(text.clone());
         self.tools.notice_sticky = false;
         self.tools.announcement = Some(text);
@@ -187,11 +189,11 @@ impl ShellModel {
     pub(crate) fn act_place_layout(&mut self, p: &Map<String, Value>) -> Outcome {
         let device = match string_param(p, "device") {
             Ok(Some(d)) => d.trim().trim_start_matches("id:").to_owned(),
-            Ok(None) => return failed("error-missing-param", &["device"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["device"]),
             Err(e) => return e,
         };
         let Ok(device) = device.parse::<Uuid>() else {
-            return failed("error-bad-param", &["device"]);
+            return failed(key!("error-bad-param"), &["device"]);
         };
         self.place_layout_device(device)
     }
@@ -199,12 +201,12 @@ impl ShellModel {
     /// Arms the layout place tool with `device` (see [`ShellModel::act_place_layout`]).
     pub(super) fn place_layout_device(&mut self, device: Uuid) -> Outcome {
         let Some(panel) = self.panel_tables() else {
-            let text = strings::text("reason-no-panel-page").to_owned();
-            return self.refuse_with(text, "reason-no-panel-page");
+            let text = strings::text(key!("reason-no-panel-page")).to_owned();
+            return self.refuse_with(text, key!("reason-no-panel-page"));
         };
         if panel.unplaced_device(device).is_none() {
-            let text = strings::text("reason-no-unplaced-device").to_owned();
-            return self.refuse_with(text, "reason-no-unplaced-device");
+            let text = strings::text(key!("reason-no-unplaced-device")).to_owned();
+            return self.refuse_with(text, key!("reason-no-unplaced-device"));
         }
         self.activate_tool(Box::new(LayoutPlaceTool::new(Some(device))));
         // The ghost floats at once: under the pointer when the canvas knows where it is, else at the grid cursor, else
@@ -258,7 +260,7 @@ impl ShellModel {
     fn step_layout_ghost(&mut self, dx: i64, dy: i64) -> Outcome {
         let Some(panel) = self.panel_tables() else {
             return Outcome::Refused {
-                reason_key: "reason-no-panel-page",
+                reason_key: key!("reason-no-panel-page"),
             };
         };
         let grid = self.tools.layout_options.grid();
@@ -284,7 +286,7 @@ impl ShellModel {
     pub(crate) fn act_layout_step(&mut self, step: i64) -> Outcome {
         let Some(panel) = self.panel_tables() else {
             return Outcome::Refused {
-                reason_key: "reason-no-panel-page",
+                reason_key: key!("reason-no-panel-page"),
             };
         };
         let current = self.selected_placement().map(|(_, r)| r);
@@ -294,7 +296,7 @@ impl ShellModel {
             .or_else(|| panel.carriers.iter().find(|c| c.axis.is_some()).map(|c| c.id));
         let Some(rail) = rail else {
             return Outcome::Refused {
-                reason_key: "reason-no-placement",
+                reason_key: key!("reason-no-placement"),
             };
         };
         let mut on: Vec<&PanelPlacement> = panel
@@ -305,7 +307,7 @@ impl ShellModel {
         on.sort_by_key(|p| (i128::from(p.pose.0) - p.clip, p.id));
         if on.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-placement",
+                reason_key: key!("reason-no-placement"),
             };
         }
         let n = on.len();
@@ -334,7 +336,7 @@ impl ShellModel {
         }
         let Some((panel, row)) = self.selected_placement() else {
             return Outcome::Refused {
-                reason_key: "reason-no-placement",
+                reason_key: key!("reason-no-placement"),
             };
         };
         let grid = self.tools.layout_options.grid();
@@ -344,7 +346,7 @@ impl ShellModel {
             Some(rail) => {
                 let (Some(axis), Some(length)) = (rail.axis, rail.length) else {
                     return Outcome::Refused {
-                        reason_key: "reason-no-placement",
+                        reason_key: key!("reason-no-placement"),
                     };
                 };
                 // The page's y grows downwards, the surface's v upwards.
@@ -358,7 +360,7 @@ impl ShellModel {
                     .find(|i| i.placement.is_some_and(|x| x.as_uuid() == row.id))
                 else {
                     return Outcome::Refused {
-                        reason_key: "reason-no-placement",
+                        reason_key: key!("reason-no-placement"),
                     };
                 };
                 let s0 = own.s0;
@@ -370,10 +372,10 @@ impl ShellModel {
                         Stop::Free(s) => s,
                         Stop::Blocked(by) => {
                             let text = match by.and_then(|p| panel.placement(p)) {
-                                Some(n) => strings::format("layout-blocked", &[&n.tag]),
-                                None => strings::text("layout-rail-end").to_owned(),
+                                Some(n) => strings::format(key!("layout-blocked"), &[&n.tag]),
+                                None => strings::text(key!("layout-rail-end")).to_owned(),
                             };
-                            return self.refuse_with(text, "reason-layout-blocked");
+                            return self.refuse_with(text, key!("reason-layout-blocked"));
                         }
                     }
                 };
@@ -412,7 +414,7 @@ impl ShellModel {
         }
         let Some((panel, row)) = self.selected_placement() else {
             return Outcome::Refused {
-                reason_key: "reason-no-placement",
+                reason_key: key!("reason-no-placement"),
             };
         };
         let on_rail = row.carrier.and_then(|c| panel.carrier(c)).is_some();
@@ -428,7 +430,7 @@ impl ShellModel {
             }),
             _ => {
                 let text = self.layout_turn_refusal();
-                return self.refuse_with(text, "reason-layout-turn");
+                return self.refuse_with(text, key!("reason-layout-turn"));
             }
         };
         self.commit_layout("layout.move", cmd)
@@ -439,7 +441,7 @@ impl ShellModel {
     /// and Select tools' turn keys during a drag ([`ShellModel::refusal_text`]).
     pub(super) fn layout_turn_refusal(&self) -> String {
         strings::format(
-            "layout-wrong-turn",
+            key!("layout-wrong-turn"),
             &[
                 &crate::command_bar::key_of(self, "tool.rotate_cw"),
                 &crate::command_bar::key_of(self, "tool.mirror_x"),
@@ -452,7 +454,7 @@ impl ShellModel {
     pub(crate) fn act_layout_lock(&mut self, locked: bool) -> Outcome {
         let Some((_, row)) = self.selected_placement() else {
             return Outcome::Refused {
-                reason_key: "reason-no-placement",
+                reason_key: key!("reason-no-placement"),
             };
         };
         self.commit_layout(
@@ -470,12 +472,12 @@ impl ShellModel {
             Some("free") => options.mode = SnapMode::Free,
             Some("push") => options.mode = SnapMode::Push,
             Some("swap") => options.mode = SnapMode::Swap,
-            Some(_) => return failed("error-bad-param", &["mode"]),
+            Some(_) => return failed(key!("error-bad-param"), &["mode"]),
         }
         match p.get("grid").and_then(Value::as_u64) {
             None => {}
             Some(g @ (1 | 5)) => options.grid_mm = g as u8,
-            Some(_) => return failed("error-bad-param", &["grid"]),
+            Some(_) => return failed(key!("error-bad-param"), &["grid"]),
         }
         self.tools.layout_options = options;
         Outcome::Done

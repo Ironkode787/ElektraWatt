@@ -20,6 +20,7 @@ use serde_json::{Map, Value};
 
 use super::navigation::bump;
 use super::{Outcome, ShellModel, failed};
+use crate::key;
 use crate::layout::PaneKind;
 use crate::undo_history::{HistoryContext, HistoryPane};
 
@@ -30,7 +31,7 @@ fn int_param(p: &Map<String, Value>, name: &str) -> Result<Option<i64>, Outcome>
         Some(v) => v
             .as_i64()
             .map(Some)
-            .ok_or_else(|| failed("error-bad-param", &[name])),
+            .ok_or_else(|| failed(key!("error-bad-param"), &[name])),
     }
 }
 
@@ -43,7 +44,7 @@ fn entry_param(p: &Map<String, Value>) -> Result<Option<usize>, Outcome> {
             .and_then(|n| usize::try_from(n).ok())
             .filter(|n| *n >= 1)
             .map(Some)
-            .ok_or_else(|| failed("error-bad-param", &["entry"])),
+            .ok_or_else(|| failed(key!("error-bad-param"), &["entry"])),
     }
 }
 
@@ -180,7 +181,7 @@ impl ShellModel {
         let len = self.history_len();
         if len == 0 {
             return Outcome::Refused {
-                reason_key: "reason-undo-history-empty",
+                reason_key: key!("reason-undo-history-empty"),
             };
         }
         let to = match super::string_param(p, "to") {
@@ -201,8 +202,8 @@ impl ShellModel {
                 let moved = i64::try_from(from).unwrap_or(0).saturating_sub(step);
                 usize::try_from(moved.clamp(0, i64::try_from(len - 1).unwrap_or(0))).unwrap_or(0)
             }
-            (None, None) => return failed("error-missing-param", &["step"]),
-            _ => return failed("error-bad-param", &["to"]),
+            (None, None) => return failed(key!("error-missing-param"), &["step"]),
+            _ => return failed(key!("error-bad-param"), &["to"]),
         };
         self.history.row = Some(index);
         Outcome::Done
@@ -213,12 +214,15 @@ impl ShellModel {
         let len = self.history_len();
         match entry_param(p)? {
             Some(n) if n <= len => Ok(n - 1),
-            Some(n) => Err(failed("error-unknown-entry", &[&n.to_string(), &len.to_string()])),
+            Some(n) => Err(failed(
+                key!("error-unknown-entry"),
+                &[&n.to_string(), &len.to_string()],
+            )),
             None => self
                 .history
                 .row
                 .filter(|i| *i < len)
-                .ok_or_else(|| failed("error-missing-param", &["entry"])),
+                .ok_or_else(|| failed(key!("error-missing-param"), &["entry"])),
         }
     }
 
@@ -261,7 +265,7 @@ impl ShellModel {
         };
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let records = project.session.history_entities(index);

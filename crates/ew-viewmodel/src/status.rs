@@ -18,8 +18,10 @@
 //! notifications, each with its emphasis.
 
 use crate::canvas::{GridLabel, grid_label, mm1, zoom_percent_text};
+use crate::key;
 use crate::shell::{AccessMode, ShellModel};
 use crate::strings;
+use crate::strings::Key;
 
 /// The grid field of `model`'s canvas: the label, or "Grid off" when it is off or the page has none.
 pub fn grid_text(model: &ShellModel) -> String {
@@ -28,9 +30,9 @@ pub fn grid_text(model: &ShellModel) -> String {
         .and_then(|c| c.page().grid)
         .filter(|_| model.grid_on());
     match grid.map(|g| grid_label(&g)) {
-        None => strings::text("status-grid-off").to_owned(),
-        Some(GridLabel::Qet10) => strings::text("status-grid-qet").to_owned(),
-        Some(GridLabel::Mm(n)) => strings::format("status-grid-mm", &[&n]),
+        None => strings::text(key!("status-grid-off")).to_owned(),
+        Some(GridLabel::Qet10) => strings::text(key!("status-grid-qet")).to_owned(),
+        Some(GridLabel::Mm(n)) => strings::format(key!("status-grid-mm"), &[&n]),
     }
 }
 
@@ -51,10 +53,10 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
     let c = model.canvas_of(group)?;
     let page = c.page();
     let mut description = strings::format(
-        "canvas-description",
+        key!("canvas-description"),
         &[
             &hint_of(model, c),
-            &strings::format("status-zoom", &[&zoom_percent_text(c.zoom())]),
+            &strings::format(key!("status-zoom"), &[&zoom_percent_text(c.zoom())]),
         ],
     );
     let live = c
@@ -62,18 +64,18 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
         .map(|(x, y)| {
             let cell = page.cell_text((x, y));
             description.push_str(&match &cell {
-                Some(cell) => strings::format("canvas-cursor-description", &[cell, &mm1(x), &mm1(y)]),
-                None => strings::format("canvas-cursor-description-no-cell", &[&mm1(x), &mm1(y)]),
+                Some(cell) => strings::format(key!("canvas-cursor-description"), &[cell, &mm1(x), &mm1(y)]),
+                None => strings::format(key!("canvas-cursor-description-no-cell"), &[&mm1(x), &mm1(y)]),
             });
             let mut live = match &cell {
-                Some(cell) => strings::format("canvas-cursor-live", &[cell, &mm1(x), &mm1(y)]),
-                None => strings::format("status-cursor", &[&mm1(x), &mm1(y)]),
+                Some(cell) => strings::format(key!("canvas-cursor-live"), &[cell, &mm1(x), &mm1(y)]),
+                None => strings::format(key!("status-cursor"), &[&mm1(x), &mm1(y)]),
             };
             if let Some(label) = c.cursor_link().and_then(crate::canvas::PageLink::label) {
-                live.push_str(&strings::format("canvas-cursor-live-link", &[&label]));
+                live.push_str(&strings::format(key!("canvas-cursor-live-link"), &[&label]));
             }
             if let Some(cp) = c.cursor_cp() {
-                live.push_str(&strings::format("canvas-cursor-live-cp", &[&cp.label]));
+                live.push_str(&strings::format(key!("canvas-cursor-live-cp"), &[&cp.label]));
             }
             live
         })
@@ -86,7 +88,7 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
         _ => live,
     };
     Some(CanvasNodeText {
-        name: strings::format("canvas-name", &[&page.folio, &page.title]),
+        name: strings::format(key!("canvas-name"), &[&page.folio, &page.title]),
         description,
         live,
     })
@@ -97,8 +99,8 @@ pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
 fn hint_of(model: &ShellModel, c: &crate::canvas::CanvasModel) -> String {
     match c.hovered_link().filter(|_| model.tool().wants_hover()) {
         Some(link) => match link.label() {
-            Some(label) => strings::format("status-hint-link", &[&label]),
-            None => strings::text("status-hint-link-external").to_owned(),
+            Some(label) => strings::format(key!("status-hint-link"), &[&label]),
+            None => strings::text(key!("status-hint-link-external")).to_owned(),
         },
         None => match model.tool_notice() {
             Some(notice) => notice.to_owned(),
@@ -124,12 +126,12 @@ pub fn hint(model: &ShellModel) -> String {
 pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
     let mut out = Vec::new();
     match model.project_name() {
-        None => out.push(strings::text("status-hint-start").to_owned()),
+        None => out.push(strings::text(key!("status-hint-start")).to_owned()),
         Some(_) => {
             out.push(hint(model));
             if let Some(folio) = model.current_folio() {
                 out.push(strings::format(
-                    "status-page",
+                    key!("status-page"),
                     &[
                         folio,
                         &(model.page_index() + 1).to_string(),
@@ -140,30 +142,33 @@ pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
             if let Some(canvas) = model.canvas() {
                 if let Some((x, y)) = model.shown_point() {
                     out.push(match canvas.page().cell_text((x, y)) {
-                        Some(cell) => strings::format("status-cursor-cell", &[&cell, &mm1(x), &mm1(y)]),
-                        None => strings::format("status-cursor", &[&mm1(x), &mm1(y)]),
+                        Some(cell) => strings::format(key!("status-cursor-cell"), &[&cell, &mm1(x), &mm1(y)]),
+                        None => strings::format(key!("status-cursor"), &[&mm1(x), &mm1(y)]),
                     });
                 }
                 out.push(strings::format(
-                    "status-zoom",
+                    key!("status-zoom"),
                     &[&zoom_percent_text(canvas.zoom())],
                 ));
                 out.push(grid_text(model));
             }
             out.push(match model.access() {
                 Some(AccessMode::ReadOnly { reason_key }) => {
-                    strings::format("status-read-only", &[strings::text(reason_key)])
+                    strings::format(key!("status-read-only"), &[strings::text(reason_key)])
                 }
-                _ if model.is_dirty() => strings::text("status-unsaved").to_owned(),
-                _ => strings::text("status-saved").to_owned(),
+                _ if model.is_dirty() => strings::text(key!("status-unsaved")).to_owned(),
+                _ => strings::text(key!("status-saved")).to_owned(),
             });
         }
     }
     out.push(model.canvas_backend().label());
-    out.push(strings::text("status-language").to_owned());
+    out.push(strings::text(key!("status-language")).to_owned());
     let log = model.notifications();
     if !log.is_empty() {
-        out.push(strings::format("status-notifications", &[&log.len().to_string()]));
+        out.push(strings::format(
+            key!("status-notifications"),
+            &[&log.len().to_string()],
+        ));
     }
     if !hide_job && let Some(job) = model.jobs().newest_running() {
         out.push(job_field(model, job));
@@ -256,19 +261,31 @@ fn findings(model: &ShellModel) -> Option<(String, Tone)> {
 
 /// The findings field of counts `c` (see [`bar`]'s findings).
 pub fn findings_text(c: crate::navigators::messages::MessageCounts) -> Option<(String, Tone)> {
-    let part = |n: usize, one: &str, many: &str| match n {
+    let part = |n: usize, one: Key<'_>, many: Key<'_>| match n {
         0 => None,
         1 => Some(strings::text(one).to_owned()),
         n => Some(strings::format(many, &[&n.to_string()])),
     };
     let parts: Vec<String> = [
-        part(c.errors, "status-findings-error", "status-findings-errors"),
-        part(c.warnings, "status-findings-warning", "status-findings-warnings"),
-        part(c.infos, "status-findings-info", "status-findings-infos"),
+        part(
+            c.errors,
+            key!("status-findings-error"),
+            key!("status-findings-errors"),
+        ),
+        part(
+            c.warnings,
+            key!("status-findings-warning"),
+            key!("status-findings-warnings"),
+        ),
+        part(
+            c.infos,
+            key!("status-findings-info"),
+            key!("status-findings-infos"),
+        ),
         part(
             c.pending,
-            "status-findings-pending-one",
-            "status-findings-pending",
+            key!("status-findings-pending-one"),
+            key!("status-findings-pending"),
         ),
     ]
     .into_iter()
@@ -300,7 +317,7 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
     };
     let mut out = vec![field(
         StatusKind::State,
-        strings::text("status-ready").to_owned(),
+        strings::text(key!("status-ready")).to_owned(),
         Tone::Normal,
     )];
     if model.project_name().is_some() {
@@ -314,22 +331,22 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         if selected > 0 {
             out.push(field(
                 StatusKind::Selection,
-                strings::format("status-selected", &[&selected.to_string()]),
+                strings::format(key!("status-selected"), &[&selected.to_string()]),
                 Tone::Normal,
             ));
         }
         if let Some(canvas) = model.canvas() {
             if let Some((x, y)) = model.shown_point() {
                 let text = match canvas.page().cell_text((x, y)) {
-                    Some(cell) => strings::format("status-cursor-cell", &[&cell, &mm1(x), &mm1(y)]),
-                    None => strings::format("status-cursor", &[&mm1(x), &mm1(y)]),
+                    Some(cell) => strings::format(key!("status-cursor-cell"), &[&cell, &mm1(x), &mm1(y)]),
+                    None => strings::format(key!("status-cursor"), &[&mm1(x), &mm1(y)]),
                 };
                 out.push(field(StatusKind::Cursor, text, Tone::Normal));
             }
             out.push(field(StatusKind::Grid, grid_text(model), Tone::Normal));
             out.push(field(
                 StatusKind::Zoom,
-                strings::format("status-zoom", &[&zoom_percent_text(canvas.zoom())]),
+                strings::format(key!("status-zoom"), &[&zoom_percent_text(canvas.zoom())]),
                 Tone::Normal,
             ));
         }
@@ -338,18 +355,18 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
                 tip: strings::text(reason_key).to_owned(),
                 ..field(
                     StatusKind::Save,
-                    strings::text("status-bar-read-only").to_owned(),
+                    strings::text(key!("status-bar-read-only")).to_owned(),
                     Tone::Warning,
                 )
             },
             _ if model.is_dirty() => field(
                 StatusKind::Save,
-                strings::text("status-bar-unsaved").to_owned(),
+                strings::text(key!("status-bar-unsaved")).to_owned(),
                 Tone::Strong,
             ),
             _ => field(
                 StatusKind::Save,
-                strings::text("status-bar-saved").to_owned(),
+                strings::text(key!("status-bar-saved")).to_owned(),
                 Tone::Success,
             ),
         });
@@ -361,7 +378,7 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         Tone::Warning
     };
     let tip = if tone == Tone::Warning {
-        strings::text("status-renderer-why").to_owned()
+        strings::text(key!("status-renderer-why")).to_owned()
     } else {
         String::new()
     };
@@ -373,7 +390,7 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
     if !log.is_empty() {
         out.push(field(
             StatusKind::Notifications,
-            strings::format("status-notifications", &[&log.len().to_string()]),
+            strings::format(key!("status-notifications"), &[&log.len().to_string()]),
             Tone::Normal,
         ));
     }
@@ -390,9 +407,9 @@ pub fn job_field(model: &ShellModel, job: &crate::jobs::JobEntry) -> String {
     match job.progress() {
         Some(p) if p.total > 0 => {
             let pct = u64::from(p.done) * 100 / u64::from(p.total);
-            strings::format("status-job", &[label, &pct.to_string()])
+            strings::format(key!("status-job"), &[label, &pct.to_string()])
         }
-        Some(p) => strings::format("status-job-phase", &[label, &phase_text(p.phase)]),
+        Some(p) => strings::format(key!("status-job-phase"), &[label, &phase_text(p.phase)]),
         None => label.to_owned(),
     }
 }
@@ -400,9 +417,9 @@ pub fn job_field(model: &ShellModel, job: &crate::jobs::JobEntry) -> String {
 /// The phase word of a job's progress as text (`building` reads "building pages").
 pub fn phase_text(phase: &str) -> String {
     match phase {
-        "building" => strings::text("job-phase-building").to_owned(),
-        "drawing" => strings::text("job-phase-drawing").to_owned(),
-        "writing" => strings::text("job-phase-writing").to_owned(),
+        "building" => strings::text(key!("job-phase-building")).to_owned(),
+        "drawing" => strings::text(key!("job-phase-drawing")).to_owned(),
+        "writing" => strings::text(key!("job-phase-writing")).to_owned(),
         other => other.to_owned(),
     }
 }

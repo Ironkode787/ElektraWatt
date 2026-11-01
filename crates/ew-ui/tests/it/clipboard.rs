@@ -7,6 +7,7 @@
 //! clipboard events only.
 
 use crate::support;
+use ew_viewmodel::key;
 
 use std::sync::Arc;
 
@@ -248,7 +249,7 @@ fn assert_cut_refusal(h: &mut Harness<'_, App>, mut before: CutState) {
     before.calls.copy_fragment += 1;
     settle(h);
     assert_eq!(cut_state(h), before, "only copy preparation may change");
-    let reason = strings::text("reason-cut-incomplete-items");
+    let reason = strings::text(key!("reason-cut-incomplete-items"));
     assert_eq!(h.state().shell().banner(), Some(reason));
     assert!(
         h.query_all_by_label(reason).next().is_some(),

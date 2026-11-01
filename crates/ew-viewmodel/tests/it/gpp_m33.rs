@@ -6,6 +6,7 @@
 //! counter, and the marker tool takes a press and a release with no move between.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{GOLDEN_A, Tmp, done, state};
 use ew_viewmodel::ew_api::{Session, checks};
@@ -179,7 +180,7 @@ fn row6_a_stale_tag_proposal_is_refused() {
     assert_eq!(
         s.dispatch("props.accept_tag_proposal", &json!({})),
         Outcome::Refused {
-            reason_key: "reason-no-tag-proposal"
+            reason_key: key!("reason-no-tag-proposal")
         },
         "another selection: the proposal is stale"
     );
@@ -220,7 +221,7 @@ fn an_unknown_strip_in_a_project_without_strips_is_refused_as_no_strip() {
             &json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X9"}),
         ),
         Outcome::Refused {
-            reason_key: "reason-no-strip"
+            reason_key: key!("reason-no-strip")
         }
     );
 }

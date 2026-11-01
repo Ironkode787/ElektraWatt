@@ -7,6 +7,7 @@
 //! collapse to its rail.
 
 use crate::support;
+use ew_viewmodel::key;
 
 use egui::{Key, Modifiers, Rect, Vec2};
 use egui_kittest::Harness;
@@ -415,7 +416,7 @@ fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
     // FT-769: the untouched fit refits the shorter pane (the whole page stays in view).
     assert!(h.state().shell().canvas().unwrap().is_fitted());
     assert!(view(&h).0 < before.0, "the fit refits the shorter pane");
-    let close = ew_ui::ew_viewmodel::strings::text("dock-close");
+    let close = ew_ui::ew_viewmodel::strings::text(key!("dock-close"));
     h.get_by_role_and_label(egui::Role::Button, close).click();
     settle(&mut h);
     assert!(

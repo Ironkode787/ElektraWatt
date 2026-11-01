@@ -20,6 +20,7 @@ use ew_api::output::{PageTables, TableEnd};
 use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed, string_param};
+use crate::key;
 use crate::tools::{EntityKind, selection_kinds};
 
 /// The bond kinds `bond.create` takes, in the order the Bond submenu lists them; the first is the default.
@@ -47,8 +48,8 @@ fn cp_by_label(t: &PageTables, label: &str) -> Result<TableEnd, Outcome> {
         .collect();
     match hits.as_slice() {
         [one] => Ok(*one),
-        [] => Err(failed("error-bond-end", &[label])),
-        _ => Err(failed("error-bond-end-ambiguous", &[label])),
+        [] => Err(failed(key!("error-bond-end"), &[label])),
+        _ => Err(failed(key!("error-bond-end-ambiguous"), &[label])),
     }
 }
 
@@ -61,7 +62,7 @@ impl ShellModel {
             Ok(None) => BOND_KINDS[0],
             Ok(Some(k)) => match BOND_KINDS.iter().find(|x| **x == k) {
                 Some(k) => k,
-                None => return failed("error-bad-param", &["kind"]),
+                None => return failed(key!("error-bad-param"), &["kind"]),
             },
         };
         let (a, b) = match (string_param(p, "a"), string_param(p, "b")) {
@@ -70,7 +71,7 @@ impl ShellModel {
         };
         let Some(tables) = self.canvas().map(|c| std::sync::Arc::clone(&c.page().tables)) else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let (end_a, end_b, via) = match (a, b) {
@@ -84,7 +85,7 @@ impl ShellModel {
                     Err(out) => return out,
                 };
                 if end_a == end_b {
-                    return failed("error-bond-same-end", &[&a]);
+                    return failed(key!("error-bond-same-end"), &[&a]);
                 }
                 let between: Vec<_> = tables
                     .connections
@@ -102,23 +103,23 @@ impl ShellModel {
                 let kinds = selection_kinds(&self.tools.selection, &tables);
                 let [(e, EntityKind::Connection)] = kinds.as_slice() else {
                     return Outcome::Refused {
-                        reason_key: "reason-bond-selection",
+                        reason_key: key!("reason-bond-selection"),
                     };
                 };
                 let Some(c) = tables.connections.iter().find(|c| c.id == e.0) else {
                     return Outcome::Refused {
-                        reason_key: "reason-bond-selection",
+                        reason_key: key!("reason-bond-selection"),
                     };
                 };
                 (c.a, c.b, Some(c.id))
             }
-            (Some(_), None) => return failed("error-missing-param", &["b"]),
-            (None, Some(_)) => return failed("error-missing-param", &["a"]),
+            (Some(_), None) => return failed(key!("error-missing-param"), &["b"]),
+            (None, Some(_)) => return failed(key!("error-missing-param"), &["a"]),
         };
         let mut params = json!({"a": end_param(end_a), "b": end_param(end_b), "kind": kind});
         if let Some(via) = via {
             params["via"] = Value::String(via.to_string());
         }
-        self.preview_host_card("bond.create", params, "reason-bond")
+        self.preview_host_card("bond.create", params, key!("reason-bond"))
     }
 }

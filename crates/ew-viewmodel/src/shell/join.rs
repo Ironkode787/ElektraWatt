@@ -24,6 +24,7 @@ use ew_api::output::{PlaceCatalogue, Uuid};
 use serde_json::{Map, Value};
 
 use super::{Outcome, ShellModel, failed};
+use crate::key;
 use crate::strings;
 use crate::tools::{Chooser, ChooserRow, ChooserValue, PlaceTarget, PlaceTool, ToolOutput};
 
@@ -76,14 +77,14 @@ impl ShellModel {
     /// `tag:`, `id:`) that resolves to a device.
     fn join_device_ref(&self, text: &str) -> Result<Uuid, String> {
         let Some(project) = &self.project else {
-            return Err(strings::text("reason-no-project").to_owned());
+            return Err(strings::text(key!("reason-no-project")).to_owned());
         };
         let id = match text.trim().parse::<Uuid>() {
             Ok(id) => id,
             Err(_) => project.session.resolve_reference(text.trim())?,
         };
         if project.session.device_tag(id).is_none() {
-            return Err(strings::format("error-join-not-device", &[text]));
+            return Err(strings::format(key!("error-join-not-device"), &[text]));
         }
         Ok(id)
     }
@@ -97,10 +98,10 @@ impl ShellModel {
     ) -> Result<(Arc<PlaceCatalogue>, usize, Uuid), Outcome> {
         let (row, _) = self.starter_row(&cat.symbols[i].key)?;
         let shape = self.row_shape(&row).ok_or(Outcome::Refused {
-            reason_key: "reason-unknown-symbol",
+            reason_key: key!("reason-unknown-symbol"),
         })?;
         let cat = self.catalogue().ok_or(Outcome::Refused {
-            reason_key: "reason-no-catalogue",
+            reason_key: key!("reason-no-catalogue"),
         })?;
         Ok((cat, i, shape.fndef))
     }
@@ -115,11 +116,11 @@ impl ShellModel {
     ) -> Result<(Arc<PlaceCatalogue>, usize, JoinPick), Outcome> {
         let id = self
             .join_device_ref(device)
-            .map_err(|reason| failed("error-join-device", &[device, &reason]))?;
+            .map_err(|reason| failed(key!("error-join-device"), &[device, &reason]))?;
         let (cat, i, fndef) = self.row_fndef(cat, i)?;
         let Some(project) = &self.project else {
             return Err(Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             });
         };
         let slots: Vec<String> = project
@@ -130,7 +131,7 @@ impl ShellModel {
             .collect();
         if slots.is_empty() && !project.session.auxiliary_fndef(fndef) {
             return Err(Outcome::Refused {
-                reason_key: "reason-join-not-auxiliary",
+                reason_key: key!("reason-join-not-auxiliary"),
             });
         }
         let tag = project.session.device_tag(id).unwrap_or_default();
@@ -159,15 +160,15 @@ impl ShellModel {
             Err(whole) => match text.rsplit_once(':') {
                 Some((tag, slot)) if !tag.is_empty() && !slot.is_empty() => match self.join_device_ref(tag) {
                     Ok(id) => (id, Some(slot.trim().to_owned())),
-                    Err(_) => return Err(failed("error-join-device", &[text, &whole])),
+                    Err(_) => return Err(failed(key!("error-join-device"), &[text, &whole])),
                 },
-                _ => return Err(failed("error-join-device", &[text, &whole])),
+                _ => return Err(failed(key!("error-join-device"), &[text, &whole])),
             },
         };
         let (cat, i, fndef) = self.row_fndef(cat, i)?;
         let Some(project) = &self.project else {
             return Err(Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             });
         };
         let tag = project.session.device_tag(device).unwrap_or_default();
@@ -185,21 +186,21 @@ impl ShellModel {
                 Some((f, _)) => *f,
                 None => {
                     let list = if slots.is_empty() {
-                        strings::text("error-join-none").to_owned()
+                        strings::text(key!("error-join-none")).to_owned()
                     } else {
                         listed()
                     };
                     return Err(failed(
-                        "error-join-unknown-slot",
+                        key!("error-join-unknown-slot"),
                         &[&tag, &slot, &function_key, &list],
                     ));
                 }
             },
-            (None, []) => return Err(failed("error-join-no-slot", &[&tag, &function_key])),
+            (None, []) => return Err(failed(key!("error-join-no-slot"), &[&tag, &function_key])),
             (None, [(f, _)]) => *f,
             (None, many) => {
                 return Err(failed(
-                    "error-join-slots",
+                    key!("error-join-slots"),
                     &[&tag, &many.len().to_string(), &function_key, &listed()],
                 ));
             }
@@ -215,7 +216,7 @@ impl ShellModel {
     pub(crate) fn act_place_join(&mut self) -> Outcome {
         if !self.place_joinable() {
             return Outcome::Refused {
-                reason_key: "reason-join-not-auxiliary",
+                reason_key: key!("reason-join-not-auxiliary"),
             };
         }
         let Some((fndef, current)) = self.place_tool().map(|p| {
@@ -226,26 +227,26 @@ impl ShellModel {
             (p.shape().fndef, current)
         }) else {
             return Outcome::Refused {
-                reason_key: "reason-join-not-auxiliary",
+                reason_key: key!("reason-join-not-auxiliary"),
             };
         };
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let candidates = project.session.join_candidates(fndef);
         let mut rows = vec![ChooserRow {
-            name: strings::text("chooser-new-device").to_owned(),
+            name: strings::text(key!("chooser-new-device")).to_owned(),
             kind: String::new(),
             value: ChooserValue::NewDevice,
         }];
         rows.extend(candidates.rows.into_iter().map(|c| ChooserRow {
             name: c.tag.clone(),
             kind: if c.function.is_some() {
-                strings::format("chooser-kind-slot", &[&c.slot])
+                strings::format(key!("chooser-kind-slot"), &[&c.slot])
             } else {
-                strings::text("chooser-kind-auxiliary").to_owned()
+                strings::text(key!("chooser-kind-auxiliary")).to_owned()
             },
             value: ChooserValue::Join {
                 device: c.device.to_string(),
@@ -268,7 +269,7 @@ impl ShellModel {
         self.palette = None;
         self.tools.picker = None;
         self.tools.chooser = Some(Chooser::new(
-            strings::text("chooser-join-question").to_owned(),
+            strings::text(key!("chooser-join-question")).to_owned(),
             rows,
             row,
         ));
@@ -280,11 +281,11 @@ impl ShellModel {
         let step = p.get("step").and_then(Value::as_i64);
         let to = p.get("to").and_then(Value::as_i64);
         if step.is_none() && to.is_none() {
-            return failed("error-missing-param", &["step"]);
+            return failed(key!("error-missing-param"), &["step"]);
         }
         let Some(c) = &mut self.tools.chooser else {
             return Outcome::Refused {
-                reason_key: "reason-no-chooser",
+                reason_key: key!("reason-no-chooser"),
             };
         };
         c.move_row(step, to);
@@ -295,12 +296,12 @@ impl ShellModel {
     pub(crate) fn act_chooser_type(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match super::string_param(p, "text") {
             Ok(Some(t)) => t.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["text"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["text"]),
             Err(e) => return e,
         };
         let Some(c) = &mut self.tools.chooser else {
             return Outcome::Refused {
-                reason_key: "reason-no-chooser",
+                reason_key: key!("reason-no-chooser"),
             };
         };
         c.type_ahead(&text);
@@ -312,19 +313,19 @@ impl ShellModel {
     pub(crate) fn act_chooser_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(c) = &self.tools.chooser else {
             return Outcome::Refused {
-                reason_key: "reason-no-chooser",
+                reason_key: key!("reason-no-chooser"),
             };
         };
         let index = match p.get("row") {
             None => c.row,
             Some(v) => match v.as_u64().and_then(|i| usize::try_from(i).ok()) {
                 Some(i) if i < c.rows.len() => i,
-                _ => return failed("error-bad-param", &["row"]),
+                _ => return failed(key!("error-bad-param"), &["row"]),
             },
         };
         let Some(row) = c.rows.get(index).cloned() else {
             return Outcome::Refused {
-                reason_key: "reason-no-chooser",
+                reason_key: key!("reason-no-chooser"),
             };
         };
         self.tools.chooser = None;

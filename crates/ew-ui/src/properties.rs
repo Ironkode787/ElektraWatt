@@ -24,6 +24,7 @@
 //! The pane announces nothing on a selection change.
 
 use egui::{Key, Modifiers, RichText, Sense, TextEdit, Ui, Vec2};
+use ew_viewmodel::key;
 use ew_viewmodel::properties::{
     ChoiceKind, FieldType, Popup, PropRow, PropertySheet, Provenance, RowAction, RowValue, SheetSection,
     advanced_count, chip_text, chip_word, group_key, groups, is_header, read_only_reason, row_label,
@@ -89,7 +90,7 @@ impl PropertiesPane {
         let rect = ui.available_rect_before_wrap();
         let pane_id = ui.scope_id().with("property-grid");
         let pane = ui.interact(rect, pane_id, Sense::focusable_noninteractive());
-        let pane_name = strings::text("pane-properties").to_owned();
+        let pane_name = strings::text(key!("pane-properties")).to_owned();
         pane.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, &pane_name));
         let ours = shell.focus() == Some(Focus::Properties);
         // A field is being typed into (its own keys), unless choices wait for a number key or a popup is open; a choice
@@ -123,7 +124,7 @@ impl PropertiesPane {
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(pane_id), |ui| {
             self.card(ui, shell, events);
             let Some(sheet) = props.sheet() else {
-                ui.label(strings::text("props-empty"));
+                ui.label(strings::text(key!("props-empty")));
                 return;
             };
             Self::header(ui, sheet, shell.editing_folio().as_deref(), events);
@@ -135,12 +136,12 @@ impl PropertiesPane {
             }
             if sheet.sections.is_empty() {
                 let text = if sheet.missing > 0 && sheet.header.items == 0 {
-                    strings::text("props-gone-title").to_owned()
+                    strings::text(key!("props-gone-title")).to_owned()
                 } else if sheet.header.items == 0 {
-                    strings::text("props-empty").to_owned()
+                    strings::text(key!("props-empty")).to_owned()
                 } else {
                     let kinds: Vec<String> = sheet.header.kinds.iter().map(|(k, _)| k.clone()).collect();
-                    strings::format("props-none", &[&kinds.join(", ")])
+                    strings::format(key!("props-none"), &[&kinds.join(", ")])
                 };
                 ui.label(text);
                 return;
@@ -153,13 +154,13 @@ impl PropertiesPane {
             if !filter.is_empty()
                 && ew_viewmodel::properties::visible_rows(sheet, &collapsed, advanced, &filter).is_empty()
             {
-                let line = strings::format("empty-nav-filter", &[&filter]);
+                let line = strings::format(key!("empty-nav-filter"), &[&filter]);
                 let clear = crate::components::empty_state(
                     ui,
                     crate::icons::IconId::filter,
                     &line,
-                    strings::text("empty-nav-filter-text"),
-                    Some(strings::text("empty-nav-clear")),
+                    strings::text(key!("empty-nav-filter-text")),
+                    Some(strings::text(key!("empty-nav-clear"))),
                 );
                 if clear.is_some_and(|r| r.clicked()) {
                     self.filter.clear();
@@ -253,9 +254,9 @@ impl PropertiesPane {
                     if n > 0 {
                         ui.add_space(t.space_2);
                         let key = if advanced {
-                            "props-hide-advanced"
+                            key!("props-hide-advanced")
                         } else {
-                            "props-show-advanced"
+                            key!("props-show-advanced")
                         };
                         let text = strings::format(key, &[&n.to_string()]);
                         let link = ui.add(
@@ -288,7 +289,7 @@ impl PropertiesPane {
             egui::Rect::from_min_size(free.min, Vec2::new(free.width(), t.size_control))
                 .shrink2(Vec2::new(t.space_4, 0.0))
         };
-        let hint = strings::text("props-filter-hint");
+        let hint = strings::text(key!("props-filter-hint"));
         let field = ui
             .scope_builder(
                 egui::UiBuilder::new()
@@ -513,11 +514,11 @@ impl PropertiesPane {
         }
         let kind = card.edit.kind.clone();
         let title = strings::format(
-            "card-title-properties",
+            key!("card-title-properties"),
             &[strings::command_title(&card.preview.name)],
         );
         let summary = strings::format(
-            "card-line",
+            key!("card-line"),
             &[
                 &card.targets.to_string(),
                 &ew_viewmodel::properties::kind_plural(&kind, card.targets),
@@ -740,7 +741,7 @@ impl PropertiesPane {
                     if editable { Sense::click() } else { Sense::hover() },
                 );
                 let shown = if value.is_empty() && !header {
-                    strings::text("props-empty-value").to_owned()
+                    strings::text(key!("props-empty-value")).to_owned()
                 } else {
                     middle(&value)
                 };
@@ -824,7 +825,7 @@ impl PropertiesPane {
                     egui::pos2(value_rect.right() - t.size_control_inline, value_rect.top()),
                     Vec2::splat(t.size_control_inline),
                 );
-                let name = strings::format("props-row-menu", &[&label]);
+                let name = strings::format(key!("props-row-menu"), &[&label]);
                 let response = crate::command_bar::button_response(
                     &child,
                     id,
@@ -928,7 +929,7 @@ impl PropertiesPane {
         }
         if selected && !props.notes().is_empty() {
             for n in props.notes() {
-                ui.label(RichText::new(strings::format("props-notes", &[n])).small());
+                ui.label(RichText::new(strings::format(key!("props-notes"), &[n])).small());
             }
         }
     }
@@ -978,7 +979,7 @@ impl PropertiesPane {
                             Vec2::new(width - 2.0 * pad, max_height),
                         );
                         let list = ui.interact(list_rect, list_id, Sense::hover());
-                        let list_name = strings::format("props-options", &[label]);
+                        let list_name = strings::format(key!("props-options"), &[label]);
                         list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, &list_name));
                         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
                             egui::ScrollArea::vertical()
@@ -1162,7 +1163,7 @@ impl PropertiesPane {
             ui.horizontal(|ui| {
                 let name = lang
                     .clone()
-                    .unwrap_or_else(|| strings::text("props-neutral").to_owned());
+                    .unwrap_or_else(|| strings::text(key!("props-neutral")).to_owned());
                 ui.label(&name);
                 let response = ui.add(TextEdit::singleline(text).hint_text(name.clone()));
                 response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
@@ -1420,7 +1421,7 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
     let header = is_header(section, row);
     let value = row_value(section, row);
     let shown = if value.is_empty() && !header {
-        strings::text("props-empty-value").to_owned()
+        strings::text(key!("props-empty-value")).to_owned()
     } else {
         middle(&value)
     };
@@ -1498,10 +1499,10 @@ fn glyph_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::R
     let (rect, response) = ui.allocate_exact_size(Vec2::new(width, t.size_badge), Sense::click());
     let lines: Vec<String> = findings
         .iter()
-        .map(|(rule, message)| strings::format("props-finding-tip", &[rule, message]))
+        .map(|(rule, message)| strings::format(key!("props-finding-tip"), &[rule, message]))
         .collect();
     let name = strings::format(
-        "props-findings-chip",
+        key!("props-findings-chip"),
         &[&count_words(severity, findings.len()), &lines.join("; ")],
     );
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));

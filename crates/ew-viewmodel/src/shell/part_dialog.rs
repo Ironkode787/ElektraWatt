@@ -25,9 +25,11 @@ use ew_api::{
 use serde_json::{Map, Value};
 
 use super::{Dialog, Outcome, ShellModel, failed, flag, string_param};
+use crate::key;
 use crate::navigators::table::{accessory_index, strip_route};
 use crate::properties::{CardOrigin, PartCard};
 use crate::strings;
+use crate::strings::Key;
 
 /// The result list shows this many rows at a time (WP-S2.06 D15's window).
 pub const PART_ROWS: usize = 50;
@@ -52,7 +54,7 @@ pub struct PartChooser {
 impl PartChooser {
     /// The title (`Choose a part for F55`).
     pub fn title(&self) -> String {
-        strings::format("dialog-part-choose-title", &[&self.target_text])
+        strings::format(key!("dialog-part-choose-title"), &[&self.target_text])
     }
 
     /// The kind filter's word: `all`, or the kinds joined by `|`.
@@ -77,10 +79,10 @@ impl PartChooser {
     pub fn badge(&self, o: &PartOffer) -> Option<String> {
         match o.fit {
             Fit::SameFnDef => Some(strings::format(
-                "badge-fits-function",
+                key!("badge-fits-function"),
                 &[self.tag.as_deref().unwrap_or_default()],
             )),
-            Fit::SameCategory => Some(strings::text("badge-same-category").to_owned()),
+            Fit::SameCategory => Some(strings::text(key!("badge-same-category")).to_owned()),
             Fit::Other => None,
         }
     }
@@ -88,7 +90,7 @@ impl PartChooser {
     /// The source badge of an offer: "In this project", else the library's name.
     pub fn source(o: &PartOffer) -> String {
         if o.held {
-            strings::text("part-choose-view-project").to_owned()
+            strings::text(key!("part-choose-view-project")).to_owned()
         } else {
             o.library.as_ref().map_or_else(String::new, |l| l.1.clone())
         }
@@ -111,7 +113,7 @@ pub struct PartEditor {
 impl PartEditor {
     /// The title (`Edit part 5SY4204-7 (Siemens)`).
     pub fn title(&self) -> String {
-        strings::format("dialog-part-edit-title", &[&self.name])
+        strings::format(key!("dialog-part-edit-title"), &[&self.name])
     }
 }
 
@@ -125,7 +127,7 @@ pub fn part_kind_word(kind: &str) -> String {
 }
 
 /// The words of a draft message.
-pub fn message_text(key: &str, args: &[String]) -> String {
+pub fn message_text(key: Key<'_>, args: &[String]) -> String {
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     strings::format(key, &args)
 }
@@ -157,14 +159,14 @@ fn matches_text(text: &str, number: &str, manufacturer: &str, description: &str)
 fn api_refusal(e: ApiError) -> Outcome {
     match e {
         ApiError::OtherVersionHeld { .. } => Outcome::Refused {
-            reason_key: "reason-part-other-version",
+            reason_key: key!("reason-part-other-version"),
         },
         ApiError::Library { .. } => Outcome::Refused {
-            reason_key: "reason-part-not-installed",
+            reason_key: key!("reason-part-not-installed"),
         },
-        ApiError::Strip(ew_api::output::StripEditError::Refused(reason_key)) => {
-            Outcome::Refused { reason_key }
-        }
+        ApiError::Strip(ew_api::output::StripEditError::Refused(reason_key)) => Outcome::Refused {
+            reason_key: Key::run_time(reason_key),
+        },
         other => Outcome::Failed {
             message: other.to_string(),
         },
@@ -173,12 +175,14 @@ fn api_refusal(e: ApiError) -> Outcome {
 
 fn draft_refusal(e: PartDraftError) -> Outcome {
     match e {
-        PartDraftError::Refused(reason_key) => Outcome::Refused { reason_key },
-        PartDraftError::Field(m) if m.args.is_empty() && m.key.starts_with("reason-") => {
-            Outcome::Refused { reason_key: m.key }
-        }
+        PartDraftError::Refused(reason_key) => Outcome::Refused {
+            reason_key: Key::run_time(reason_key),
+        },
+        PartDraftError::Field(m) if m.args.is_empty() && m.key.starts_with("reason-") => Outcome::Refused {
+            reason_key: Key::run_time(m.key),
+        },
         PartDraftError::Field(m) => Outcome::Failed {
-            message: message_text(m.key, &m.args),
+            message: message_text(Key::run_time(m.key), &m.args),
         },
     }
 }
@@ -256,7 +260,10 @@ impl ShellModel {
                     .unwrap_or_default();
                 Some(Target {
                     target: PartTarget::BridgePart { terminals },
-                    text: strings::format("part-choose-target-bridge", &[&format!("{strip_label} {bridge}")]),
+                    text: strings::format(
+                        key!("part-choose-target-bridge"),
+                        &[&format!("{strip_label} {bridge}")],
+                    ),
                     tag: None,
                     function: None,
                     kinds: accessory_part_kinds("bridge")
@@ -285,7 +292,7 @@ impl ShellModel {
                 Some(Target {
                     target: PartTarget::AccessoryPart { strip, index },
                     text: strings::format(
-                        "part-choose-target-accessory",
+                        key!("part-choose-target-accessory"),
                         &[&cursor.label.to_lowercase(), &format!("{strip_label} {pos}")],
                     ),
                     tag: None,
@@ -310,7 +317,10 @@ impl ShellModel {
                     text: if terminals.len() == 1 {
                         tag.clone()
                     } else {
-                        strings::format("part-choose-target-devices", &[&terminals.len().to_string()])
+                        strings::format(
+                            key!("part-choose-target-devices"),
+                            &[&terminals.len().to_string()],
+                        )
                     },
                     target: PartTarget::Devices {
                         devices: terminals,
@@ -359,7 +369,7 @@ impl ShellModel {
         } else {
             match (use_, copy_at(use_.unwrap_or(0))) {
                 (_, None) => AssignMode::ReplaceAll,
-                (Some(_), Some(None)) => return Err(failed("error-bad-param", &["use"])),
+                (Some(_), Some(None)) => return Err(failed(key!("error-bad-param"), &["use"])),
                 (None, Some(None)) => AssignMode::Append,
                 (_, Some(Some(from))) => AssignMode::Replace { from },
             }
@@ -375,7 +385,7 @@ impl ShellModel {
             text: if devices.len() == 1 {
                 tag.clone()
             } else {
-                strings::format("part-choose-target-devices", &[&devices.len().to_string()])
+                strings::format(key!("part-choose-target-devices"), &[&devices.len().to_string()])
             },
             target: PartTarget::Devices { devices, mode },
             tag: Some(tag),
@@ -409,7 +419,7 @@ impl ShellModel {
             None => None,
             Some(v) => match v.as_u64().and_then(|i| usize::try_from(i).ok()) {
                 Some(i) => Some(i),
-                None => return failed("error-bad-param", &["use"]),
+                None => return failed(key!("error-bad-param"), &["use"]),
             },
         };
         let add = flag(p, "add");
@@ -440,14 +450,14 @@ impl ShellModel {
             }
             Some(other) => {
                 return failed(
-                    "error-nav-value",
+                    key!("error-nav-value"),
                     &["target", other, "parts, bridge_part, accessory_part"],
                 );
             }
         };
         let Some(t) = target else {
             return Outcome::Refused {
-                reason_key: "reason-part-choose-target",
+                reason_key: key!("reason-part-choose-target"),
             };
         };
         let chooser = PartChooser {
@@ -475,13 +485,13 @@ impl ShellModel {
             (Err(e), ..) | (_, Err(e), ..) | (_, _, Err(e), _) | (.., Err(e)) => return e,
         };
         let view = match view.as_deref().map(OfferView::from_word) {
-            Some(None) => return failed("error-bad-param", &["view"]),
+            Some(None) => return failed(key!("error-bad-param"), &["view"]),
             Some(Some(v)) => Some(v),
             None => None,
         };
         let Some(Dialog::PartChoose(c)) = &mut self.dialog else {
             return Outcome::Refused {
-                reason_key: "reason-no-part-dialog",
+                reason_key: key!("reason-no-part-dialog"),
             };
         };
         if let Some(t) = t {
@@ -518,16 +528,16 @@ impl ShellModel {
     /// The offer `index` (1-based), else the offer the part text names, else the active row.
     fn part_offer_param(&self, p: &Map<String, Value>) -> Result<PartOffer, Outcome> {
         let c = self.part_chooser().ok_or(Outcome::Refused {
-            reason_key: "reason-no-part-dialog",
+            reason_key: key!("reason-no-part-dialog"),
         })?;
         if let Some(v) = p.get("index") {
             let i = v
                 .as_u64()
                 .and_then(|i| usize::try_from(i).ok())
                 .filter(|i| *i >= 1)
-                .ok_or_else(|| failed("error-bad-param", &["index"]))?;
+                .ok_or_else(|| failed(key!("error-bad-param"), &["index"]))?;
             return c.offers.get(i - 1).cloned().ok_or(Outcome::Refused {
-                reason_key: "reason-part-choose-none",
+                reason_key: key!("reason-part-choose-none"),
             });
         }
         if let Some(text) = string_param(p, "part")? {
@@ -538,9 +548,9 @@ impl ShellModel {
                 .collect();
             return match hits.as_slice() {
                 [one] => Ok((*one).clone()),
-                [] => Err(failed("error-part-unknown", &[text])),
+                [] => Err(failed(key!("error-part-unknown"), &[text])),
                 many => Err(failed(
-                    "error-accessory-part-ambiguous",
+                    key!("error-accessory-part-ambiguous"),
                     &[&many
                         .iter()
                         .map(|o| format!("{} ({}) \u{b7} {}", o.part_number, o.manufacturer, o.description))
@@ -550,7 +560,7 @@ impl ShellModel {
             };
         }
         c.offers.get(c.cursor).cloned().ok_or(Outcome::Refused {
-            reason_key: "reason-part-choose-none",
+            reason_key: key!("reason-part-choose-none"),
         })
     }
 
@@ -589,7 +599,7 @@ impl ShellModel {
         };
         let Some(item) = offer.item else {
             return Outcome::Refused {
-                reason_key: "reason-part-favourite-local",
+                reason_key: key!("reason-part-favourite-local"),
             };
         };
         self.settings.toggle_favourite_part(&item_text(item));
@@ -627,8 +637,8 @@ impl ShellModel {
                 .collect();
             return match hits.as_slice() {
                 [one] => Ok(Some(*one)),
-                [] => Err(failed("error-part-unknown", &[text])),
-                _ => Err(failed("error-accessory-part-ambiguous", &[text])),
+                [] => Err(failed(key!("error-part-unknown"), &[text])),
+                _ => Err(failed(key!("error-accessory-part-ambiguous"), &[text])),
             };
         }
         let lib_row = || {
@@ -667,7 +677,7 @@ impl ShellModel {
             Ok(Some(c)) => c,
             Ok(None) => {
                 return Outcome::Refused {
-                    reason_key: "reason-part-edit-target",
+                    reason_key: key!("reason-part-edit-target"),
                 };
             }
             Err(e) => return e,
@@ -677,7 +687,7 @@ impl ShellModel {
         };
         let Ok(draft) = project.session.part_draft(copy) else {
             return Outcome::Refused {
-                reason_key: "reason-part-edit-target",
+                reason_key: key!("reason-part-edit-target"),
             };
         };
         let name = format!("{} ({})", draft.text("part_number"), draft.text("manufacturer"));
@@ -694,8 +704,8 @@ impl ShellModel {
     pub(crate) fn act_part_field(&mut self, p: &Map<String, Value>) -> Outcome {
         let (field, value) = match (string_param(p, "field"), string_param(p, "value")) {
             (Ok(Some(f)), Ok(Some(v))) => (f.to_owned(), v.to_owned()),
-            (Ok(None), _) => return failed("error-missing-param", &["field"]),
-            (_, Ok(None)) => return failed("error-missing-param", &["value"]),
+            (Ok(None), _) => return failed(key!("error-missing-param"), &["field"]),
+            (_, Ok(None)) => return failed(key!("error-missing-param"), &["value"]),
             (Err(e), _) | (_, Err(e)) => return e,
         };
         let Some(project) = &self.project else {
@@ -703,12 +713,12 @@ impl ShellModel {
         };
         let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
             return Outcome::Refused {
-                reason_key: "reason-no-part-editor",
+                reason_key: key!("reason-no-part-editor"),
             };
         };
         editor.error = None;
         match project.session.set_draft_field(&mut editor.draft, &field, &value) {
-            Err(PartDraftError::Refused(_)) => failed("error-part-field", &[&field]),
+            Err(PartDraftError::Refused(_)) => failed(key!("error-part-field"), &[&field]),
             Ok(()) | Err(PartDraftError::Field(_)) => Outcome::Done,
         }
     }
@@ -720,7 +730,7 @@ impl ShellModel {
         };
         let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
             return Outcome::Refused {
-                reason_key: "reason-no-part-editor",
+                reason_key: key!("reason-no-part-editor"),
             };
         };
         let plan = match project.session.part_edit_plan(&editor.draft) {
@@ -728,7 +738,7 @@ impl ShellModel {
             Err(e) => {
                 let out = draft_refusal(e);
                 editor.error = Some(match &out {
-                    Outcome::Refused { reason_key } => strings::text(reason_key).to_owned(),
+                    Outcome::Refused { reason_key } => strings::text(*reason_key).to_owned(),
                     Outcome::Failed { message } => message.clone(),
                     Outcome::Done => String::new(),
                 });
@@ -763,7 +773,7 @@ impl ShellModel {
         self.preview_host_card_as(
             &plan.command.name,
             plan.command.params,
-            "reason-part-edit",
+            key!("reason-part-edit"),
             CardOrigin::Part(Box::new(PartCard { devices, ..card })),
         )
     }
@@ -778,20 +788,23 @@ impl ShellModel {
         let project = self.project.as_ref()?;
         let source = match &o.library {
             Some((_, name, tier)) => format!("{name} ({})", format!("{tier:?}").to_lowercase()),
-            None => strings::text("part-choose-view-project").to_owned(),
+            None => strings::text(key!("part-choose-view-project")).to_owned(),
         };
         let head = match &o.successor {
             Some(next) => strings::format(
-                "part-choose-detail-successor",
+                key!("part-choose-detail-successor"),
                 &[&source, &o.version, &o.status, next],
             ),
-            None => strings::format("part-choose-detail", &[&source, &o.version, &o.status]),
+            None => strings::format(key!("part-choose-detail"), &[&source, &o.version, &o.status]),
         };
         let functions = project.session.part_offer_functions(&o.pick);
         Some(if functions.is_empty() {
             head
         } else {
-            strings::format("part-choose-detail-functions", &[&head, &functions.join(", ")])
+            strings::format(
+                key!("part-choose-detail-functions"),
+                &[&head, &functions.join(", ")],
+            )
         })
     }
 }

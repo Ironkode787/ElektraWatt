@@ -7,6 +7,7 @@
 //! arms the Place tool with its function (§6.8).
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done, refused, state};
 use ew_viewmodel::navigators::NavKind;
@@ -59,7 +60,7 @@ fn ft605_the_picker_opens_the_empty_strip_chooser_and_strip_new_fills_it() {
     let p = s.picker().expect("the strip chooser");
     assert_eq!(p.mode, PickerMode::Strip);
     assert!(p.rows.is_empty());
-    assert_eq!(p.empty_text(), Some("picker-empty-strips"));
+    assert_eq!(p.empty_text(), Some(key!("picker-empty-strips")));
     done(&mut s, "strip.new", json!({}));
     let p = s.picker().expect("still open");
     assert_eq!(p.mode, PickerMode::Strip);

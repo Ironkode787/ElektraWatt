@@ -13,27 +13,28 @@ use serde_json::{Map, Value};
 
 use super::{Outcome, ShellModel, failed};
 use crate::canvas::{CanvasBackend, CanvasModel, nm_of_mm, pane_out_of_bounds};
+use crate::key;
 use crate::settings::CANVAS_BACKENDS;
 
 /// A positive finite number parameter.
 fn positive(p: &Map<String, Value>, name: &str) -> Result<f64, Outcome> {
     match p.get(name) {
-        None => Err(failed("error-missing-param", &[name])),
+        None => Err(failed(key!("error-missing-param"), &[name])),
         Some(v) => v
             .as_f64()
             .filter(|x| x.is_finite() && *x > 0.0)
-            .ok_or_else(|| failed("error-bad-param", &[name])),
+            .ok_or_else(|| failed(key!("error-bad-param"), &[name])),
     }
 }
 
 /// A finite number parameter.
 fn number(p: &Map<String, Value>, name: &str) -> Result<f64, Outcome> {
     match p.get(name) {
-        None => Err(failed("error-missing-param", &[name])),
+        None => Err(failed(key!("error-missing-param"), &[name])),
         Some(v) => v
             .as_f64()
             .filter(|x| x.is_finite())
-            .ok_or_else(|| failed("error-bad-param", &[name])),
+            .ok_or_else(|| failed(key!("error-bad-param"), &[name])),
     }
 }
 
@@ -41,13 +42,13 @@ fn number(p: &Map<String, Value>, name: &str) -> Result<f64, Outcome> {
 pub(super) fn point_mm(p: &Map<String, Value>) -> Result<Option<(i64, i64)>, Outcome> {
     match (p.get("x_mm"), p.get("y_mm")) {
         (None, None) => Ok(None),
-        (Some(_), None) => Err(failed("error-missing-param", &["y_mm"])),
-        (None, Some(_)) => Err(failed("error-missing-param", &["x_mm"])),
+        (Some(_), None) => Err(failed(key!("error-missing-param"), &["y_mm"])),
+        (None, Some(_)) => Err(failed(key!("error-missing-param"), &["x_mm"])),
         (Some(x), Some(y)) => {
             let coord = |v: &Value, name: &str| {
                 v.as_f64()
                     .and_then(nm_of_mm)
-                    .ok_or_else(|| failed("error-bad-param", &[name]))
+                    .ok_or_else(|| failed(key!("error-bad-param"), &[name]))
             };
             Ok(Some((coord(x, "x_mm")?, coord(y, "y_mm")?)))
         }
@@ -175,7 +176,7 @@ impl ShellModel {
                 Outcome::Done
             }
             None => Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             },
         }
     }
@@ -248,7 +249,7 @@ impl ShellModel {
         };
         // The blind drafter drives this action: a pane beyond the bounds is refused, never allocated.
         if let Some(name) = pane_out_of_bounds(width, height, ppp) {
-            return failed("error-bad-param", &[name]);
+            return failed(key!("error-bad-param"), &[name]);
         }
         if g == 0 {
             self.canvas_pane = (width, height);

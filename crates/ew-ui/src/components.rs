@@ -12,6 +12,7 @@
 //! region, as built.
 
 use egui::{Align, Atom, Button, Layout, Response, RichText, Sense, Ui, Vec2};
+use ew_viewmodel::key;
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -304,7 +305,7 @@ pub(crate) fn filter_field(ui: &mut Ui, text: &mut String, hint: &str) -> Respon
         );
         // A child that does not move the parent's cursor: the button lies over the field's right margin.
         let mut child = ui.new_child(egui::UiBuilder::new().max_rect(at));
-        let clear = icon_button(&mut child, IconId::x, strings::text("filter-clear"));
+        let clear = icon_button(&mut child, IconId::x, strings::text(key!("filter-clear")));
         if clear.clicked() {
             text.clear();
             field.mark_changed();
@@ -393,14 +394,14 @@ impl Badge {
     /// The badge's word.
     pub(crate) fn word(self) -> &'static str {
         strings::text(match self {
-            Badge::Stale => "badge-stale",
-            Badge::Failed => "badge-failed",
-            Badge::Done => "badge-done",
-            Badge::Cancelled => "badge-cancelled",
-            Badge::Pending => "badge-pending",
-            Badge::Waived => "badge-waived",
-            Badge::Fix => "badge-fix",
-            Badge::NotUndoable => "badge-not-undoable",
+            Badge::Stale => key!("badge-stale"),
+            Badge::Failed => key!("badge-failed"),
+            Badge::Done => key!("badge-done"),
+            Badge::Cancelled => key!("badge-cancelled"),
+            Badge::Pending => key!("badge-pending"),
+            Badge::Waived => key!("badge-waived"),
+            Badge::Fix => key!("badge-fix"),
+            Badge::NotUndoable => key!("badge-not-undoable"),
         })
     }
 
@@ -773,7 +774,7 @@ pub(crate) fn card_header(ui: &mut Ui, title: &str, rev: Option<u64>, status: &C
         );
         if let Some(rev) = rev {
             ui.label(
-                RichText::new(strings::format("card-as-of", &[&rev.to_string()]))
+                RichText::new(strings::format(key!("card-as-of"), &[&rev.to_string()]))
                     .font(theme::font(&t.type_small))
                     .color(t.text_tertiary.color32()),
             );
@@ -874,7 +875,7 @@ pub(crate) fn apply_cancel_blocked(
                 let r = button(
                     ui,
                     Kind::Primary,
-                    strings::text("card-apply"),
+                    strings::text(key!("card-apply")),
                     blocked.is_none(),
                     0.0,
                 );
@@ -885,7 +886,7 @@ pub(crate) fn apply_cancel_blocked(
                 if r.clicked() {
                     events.push(Event::Action(apply.0, apply.1.clone()));
                 }
-            } else if button(ui, Kind::Secondary, strings::text("card-cancel"), true, 0.0).clicked() {
+            } else if button(ui, Kind::Secondary, strings::text(key!("card-cancel")), true, 0.0).clicked() {
                 events.push(Event::Action(cancel.0, cancel.1.clone()));
             }
         }
@@ -916,7 +917,7 @@ pub(crate) fn inline_card(
 ) {
     let status = card_status(shell);
     let strip_line = match &status {
-        CardStatus::Failed(m) => strings::format("card-strip-failed", &[card.title, m]),
+        CardStatus::Failed(m) => strings::format(key!("card-strip-failed"), &[card.title, m]),
         _ => format!("{} · {}", card.title, card.summary),
     };
     // WP-S2.09 part 3 (§8.1): while the Preview tab shows the card, the strip stands in for it.
@@ -963,7 +964,7 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
         return false;
     };
     let t = tokens(ui);
-    let text = strings::format("preview-open-chip", &[line]);
+    let text = strings::format(key!("preview-open-chip"), &[line]);
     egui::Frame::new()
         .fill(t.card_strip.color32())
         .corner_radius(theme::radius(t.radius_md))
@@ -979,7 +980,7 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
                     ..t.type_small
                 })
             };
-            let small = |ui: &mut Ui, key: &str, accent: bool| {
+            let small = |ui: &mut Ui, key: strings::Key<'_>, accent: bool| {
                 let colour = if accent { t.accent } else { t.text_primary };
                 let b = Button::new(
                     RichText::new(strings::text(key))
@@ -997,14 +998,14 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
             // Apply, Cancel and Show from the right.
             let mut buttons = |ui: &mut Ui| {
                 ui.spacing_mut().item_spacing.x = t.space_1;
-                if small(ui, "preview-show", false).clicked() {
+                if small(ui, key!("preview-show"), false).clicked() {
                     events.push(Event::Action("preview.show", json!({ "on": true })));
                 }
-                if small(ui, "preview-cancel", false).clicked() {
+                if small(ui, key!("preview-cancel"), false).clicked() {
                     events.push(Event::Action("preview.cancel", json!({})));
                 }
                 let blocked = card.preview.result.as_ref().err();
-                let apply = ui.add_enabled_ui(blocked.is_none(), |ui| small(ui, "preview-apply", true));
+                let apply = ui.add_enabled_ui(blocked.is_none(), |ui| small(ui, key!("preview-apply"), true));
                 let apply = match blocked {
                     Some(reason) => apply.inner.disabled_tip(reason),
                     None => apply.inner,
@@ -1054,9 +1055,9 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
                     .x
             };
             let pad = 2.0 * ui.spacing().button_padding.x;
-            let buttons_w = width(strings::text("preview-apply"), true)
-                + width(strings::text("preview-cancel"), false)
-                + width(strings::text("preview-show"), false)
+            let buttons_w = width(strings::text(key!("preview-apply")), true)
+                + width(strings::text(key!("preview-cancel")), false)
+                + width(strings::text(key!("preview-show")), false)
                 + 3.0 * pad
                 + 2.0 * t.space_1;
             let one_line =

@@ -29,8 +29,10 @@ use ew_api::output::{InputError, NavKind, NavNode, NavRole, NavTable, Uuid};
 use serde_json::{Map, Value, json};
 
 use super::{Mode, Outcome, ShellModel, failed, flag, string_param};
+use crate::key;
 use crate::navigators::table::row_targets;
 use crate::strings;
+use crate::strings::Key;
 
 /// A tree row whose label is being renamed (FT-490).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -104,9 +106,9 @@ impl ShellModel {
     fn acted_rows(&self, kind: NavKind) -> Result<(Arc<NavTable>, Vec<usize>), Outcome> {
         let nav = self
             .generic(kind)
-            .ok_or_else(|| failed("error-nav-closed", &[kind.word()]))?;
+            .ok_or_else(|| failed(key!("error-nav-closed"), &[kind.word()]))?;
         let table = Arc::clone(nav.table().ok_or(Outcome::Refused {
-            reason_key: "reason-no-nav-row",
+            reason_key: key!("reason-no-nav-row"),
         })?);
         let mut rows: Vec<usize> = nav
             .marked()
@@ -121,18 +123,18 @@ impl ShellModel {
         rows.sort_unstable();
         if rows.is_empty() {
             return Err(Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             });
         }
         Ok((table, rows))
     }
 
     /// The context of `cable.swap_cores`: the Cables navigator is open and focused (headless: open).
-    pub(crate) fn cables_shown(&self) -> Result<(), &'static str> {
+    pub(crate) fn cables_shown(&self) -> Result<(), Key<'static>> {
         if !self.navigator_open(NavKind::Cables)
             || (self.mode != Mode::Headless && self.focused_navigator() != Some(NavKind::Cables))
         {
-            return Err("reason-not-cables");
+            return Err(key!("reason-not-cables"));
         }
         Ok(())
     }
@@ -143,11 +145,11 @@ impl ShellModel {
             return Outcome::Refused { reason_key };
         }
         let Some(nav) = self.generic(NavKind::Cables) else {
-            return failed("error-nav-closed", &[NavKind::Cables.word()]);
+            return failed(key!("error-nav-closed"), &[NavKind::Cables.word()]);
         };
         let Some(table) = nav.table().map(Arc::clone) else {
             return Outcome::Refused {
-                reason_key: "reason-swap-two-cores",
+                reason_key: key!("reason-swap-two-cores"),
             };
         };
         let rows: Vec<&NavNode> = nav
@@ -157,17 +159,17 @@ impl ShellModel {
             .collect();
         let [a, b] = rows.as_slice() else {
             return Outcome::Refused {
-                reason_key: "reason-swap-two-cores",
+                reason_key: key!("reason-swap-two-cores"),
             };
         };
         let (Some(ca), Some(cb)) = (a.records.get(1), b.records.get(1)) else {
             return Outcome::Refused {
-                reason_key: "reason-swap-two-cores",
+                reason_key: key!("reason-swap-two-cores"),
             };
         };
         if a.role != NavRole::Conductor || b.role != NavRole::Conductor {
             return Outcome::Refused {
-                reason_key: "reason-swap-two-cores",
+                reason_key: key!("reason-swap-two-cores"),
             };
         }
         let cable = a
@@ -178,16 +180,23 @@ impl ShellModel {
         let (la, lb) = (a.label.clone(), b.label.clone());
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let cmd = match project.session.swap_cores(*ca, *cb) {
             Ok(cmd) => cmd,
-            Err(reason_key) => return Outcome::Refused { reason_key },
+            Err(reason_key) => {
+                return Outcome::Refused {
+                    reason_key: Key::run_time(reason_key),
+                };
+            }
         };
         let outcome = self.commit_from_host(&cmd);
         if matches!(outcome, Outcome::Done) {
-            self.notify(strings::format("toast-cores-swapped", &[&la, &lb, &cable]), true);
+            self.notify(
+                strings::format(key!("toast-cores-swapped"), &[&la, &lb, &cable]),
+                true,
+            );
         }
         outcome
     }
@@ -200,7 +209,7 @@ impl ShellModel {
         };
         if !self.is_writable() {
             return Outcome::Refused {
-                reason_key: "reason-read-only",
+                reason_key: key!("reason-read-only"),
             };
         }
         let targets: Vec<Value> = if kind == NavKind::Pages && self.generic(NavKind::Pages).is_none() {
@@ -222,14 +231,18 @@ impl ShellModel {
                     Some(t) => targets.push(t),
                     None => {
                         return Outcome::Refused {
-                            reason_key: "reason-nav-not-deletable",
+                            reason_key: key!("reason-nav-not-deletable"),
                         };
                     }
                 }
             }
             targets
         };
-        self.preview_host_card("edit.delete", json!({ "targets": targets }), "reason-nav-delete")
+        self.preview_host_card(
+            "edit.delete",
+            json!({ "targets": targets }),
+            key!("reason-nav-delete"),
+        )
     }
 
     /// `navigator.rename {kind?, text?, cancel?}` (FT-490): opens the cursor row's label editor, commits `text` to the
@@ -249,7 +262,7 @@ impl ShellModel {
         };
         if !self.is_writable() {
             return Outcome::Refused {
-                reason_key: "reason-read-only",
+                reason_key: key!("reason-read-only"),
             };
         }
         let legacy_pages = kind == NavKind::Pages && self.generic(NavKind::Pages).is_none();
@@ -268,15 +281,15 @@ impl ShellModel {
         let Some(route) = rename_route(kind, node.as_ref()) else {
             return Outcome::Refused {
                 reason_key: if key.is_some() {
-                    "reason-nav-not-renamable"
+                    key!("reason-nav-not-renamable")
                 } else {
-                    "reason-no-nav-row"
+                    key!("reason-no-nav-row")
                 },
             };
         };
         let Some(key) = key else {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         };
         // FT-633(b): a device's tag goes through the Properties Tag field's own path.
@@ -290,14 +303,14 @@ impl ShellModel {
                 Some(i) if !rows[i].generated => (vec![rows[i].id], rows[i].title.clone()),
                 _ => {
                     return Outcome::Refused {
-                        reason_key: "reason-nav-not-renamable",
+                        reason_key: key!("reason-nav-not-renamable"),
                     };
                 }
             }
         } else {
             let Some(node) = node else {
                 return Outcome::Refused {
-                    reason_key: "reason-no-nav-row",
+                    reason_key: key!("reason-no-nav-row"),
                 };
             };
             let targets = row_targets(&node, route_kind);
@@ -321,7 +334,7 @@ impl ShellModel {
         };
         if targets.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-nav-not-renamable",
+                reason_key: key!("reason-nav-not-renamable"),
             };
         }
         let Some(text) = text else {
@@ -339,7 +352,7 @@ impl ShellModel {
         let value = match project.session.parse_field_input(route_kind, path, &text) {
             Ok(parsed) => parsed.value,
             Err(InputError::Invalid(message)) => return Outcome::Failed { message },
-            Err(InputError::UnknownPart(typed)) => return failed("error-no-part", &[&typed]),
+            Err(InputError::UnknownPart(typed)) => return failed(key!("error-no-part"), &[&typed]),
             Err(InputError::Ambiguous { choices }) => {
                 let words: Vec<&str> = choices.iter().map(|(t, _)| t.as_str()).collect();
                 return Outcome::Failed {
@@ -376,7 +389,7 @@ impl ShellModel {
         let Some(text) = text else {
             let Some(label) = self.tag_rename_sheet(device) else {
                 return Outcome::Refused {
-                    reason_key: "reason-nav-not-renamable",
+                    reason_key: key!("reason-nav-not-renamable"),
                 };
             };
             self.rename = Some(NavRename {

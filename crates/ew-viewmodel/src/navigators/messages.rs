@@ -18,6 +18,7 @@ use std::collections::BTreeMap;
 
 use super::{NavNode, NavRole, NavTable};
 use crate::canvas::PageId;
+use crate::key;
 
 /// The column of a finding row's severity word.
 const SEVERITY: usize = 0;
@@ -288,7 +289,7 @@ pub fn with_release_notes(mut table: NavTable, notes: &[String]) -> NavTable {
             at
         }
     };
-    let source = crate::strings::text("release-source").to_owned();
+    let source = crate::strings::text(key!("release-source")).to_owned();
     let rule = index(&table.nodes);
     let group = node(
         RELEASE_KEY.to_owned(),

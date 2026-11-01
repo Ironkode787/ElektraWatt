@@ -20,7 +20,9 @@ use ew_api::{AnyCommand, Session};
 use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed, string_param};
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::{
     BlackBoxTool, BoxTarget, CanvasEvent, EntityKind, ExchangeTool, Ghost, PendingTerminal, Picker,
     PickerMode, PickerRow, PlaceTarget, PlaceTool, ResultNote, SelectTool, SelectionChange, Tool, ToolCx,
@@ -100,17 +102,19 @@ fn unplaced_text(
     let tags: Vec<String> = unplaced
         .iter()
         .map(|(d, before, _)| match now(*d) {
-            Some(after) if after != *before => strings::format("toast-device-retagged", &[before, &after]),
+            Some(after) if after != *before => {
+                strings::format(key!("toast-device-retagged"), &[before, &after])
+            }
             _ => before.clone(),
         })
         .collect();
     let part = unplaced.iter().any(|(_, _, p)| *p);
     let key = match (tags.len(), part) {
         (0, _) => return None,
-        (1, true) => "toast-device-unplaced",
-        (1, false) => "toast-device-unplaced-no-part",
-        (_, true) => "toast-devices-unplaced",
-        (_, false) => "toast-devices-unplaced-no-part",
+        (1, true) => key!("toast-device-unplaced"),
+        (1, false) => key!("toast-device-unplaced-no-part"),
+        (_, true) => key!("toast-devices-unplaced"),
+        (_, false) => key!("toast-devices-unplaced-no-part"),
     };
     Some(strings::format(key, &[&tags.join(", ")]))
 }
@@ -145,8 +149,8 @@ impl ShellModel {
                     page.cell_text(page.snapper.page_to_sheet(pos))
                 });
                 let placed = match cell {
-                    Some(cell) => strings::format("toast-placed", &[&tag, &cell]),
-                    None => strings::format("toast-placed-no-cell", &[&tag]),
+                    Some(cell) => strings::format(key!("toast-placed"), &[&tag, &cell]),
+                    None => strings::format(key!("toast-placed-no-cell"), &[&tag]),
                 };
                 // FT-759: a symbol dropped on a wire is split into it (normaliser 7) and drew no wire of its own: the
                 // toast says that it is in the circuit, where a connection of the page now ends on it.
@@ -156,8 +160,10 @@ impl ShellModel {
                     .iter()
                     .any(|c| ends_on_rep(&c.a) || ends_on_rep(&c.b));
                 let text = match wires {
-                    Some((count, list)) => strings::format("toast-autoconnect", &[&placed, &count, &list]),
-                    None if in_wire => strings::format("toast-placed-in-wire", &[&placed]),
+                    Some((count, list)) => {
+                        strings::format(key!("toast-autoconnect"), &[&placed, &count, &list])
+                    }
+                    None if in_wire => strings::format(key!("toast-placed-in-wire"), &[&placed]),
                     None => placed,
                 };
                 self.notify(text, true);
@@ -171,8 +177,8 @@ impl ShellModel {
                 });
                 let key = crate::command_bar::key_of(self, "canvas.activate_alt");
                 let text = match cell {
-                    Some(cell) => strings::format("toast-ip-connected", &[&name, &cell, &pin, &key]),
-                    None => strings::format("toast-ip-connected-no-cell", &[&name, "", &pin, &key]),
+                    Some(cell) => strings::format(key!("toast-ip-connected"), &[&name, &cell, &pin, &key]),
+                    None => strings::format(key!("toast-ip-connected-no-cell"), &[&name, "", &pin, &key]),
                 };
                 self.notify(text, true);
             }
@@ -187,10 +193,10 @@ impl ShellModel {
                     .count();
                 let ips = (!names.is_empty() && gone > 0).then(|| {
                     let key = match (names.len(), gone) {
-                        (1, 1) => "toast-ip-deleted-wire",
-                        (1, _) => "toast-ip-deleted-wires",
-                        (_, 1) => "toast-ips-deleted-wire",
-                        _ => "toast-ips-deleted-wires",
+                        (1, 1) => key!("toast-ip-deleted-wire"),
+                        (1, _) => key!("toast-ip-deleted-wires"),
+                        (_, 1) => key!("toast-ips-deleted-wire"),
+                        _ => key!("toast-ips-deleted-wires"),
                     };
                     strings::format(key, &[&names.join(", "), &gone.to_string()])
                 });
@@ -321,7 +327,7 @@ impl ShellModel {
         };
         let out = self.run_commit(&cmd);
         if let Outcome::Failed { message } = &out {
-            self.banner = Some(strings::format("banner-host-commit", &[name, message]));
+            self.banner = Some(strings::format(key!("banner-host-commit"), &[name, message]));
         }
         out
     }
@@ -332,10 +338,10 @@ impl ShellModel {
     /// recorded command replays without a library). Nothing is committed here.
     pub(super) fn starter_row(&mut self, key: &str) -> Result<(CatalogueSymbol, Vec<Value>), Outcome> {
         let no_row = Outcome::Refused {
-            reason_key: "reason-unknown-symbol",
+            reason_key: key!("reason-unknown-symbol"),
         };
         let cat = self.catalogue().ok_or(Outcome::Refused {
-            reason_key: "reason-no-catalogue",
+            reason_key: key!("reason-no-catalogue"),
         })?;
         let mut row = cat
             .symbols
@@ -402,7 +408,7 @@ impl ShellModel {
 
     /// A refusal whose text names action `action`'s first key: `<key>` formatted with it, or `<key>-unbound` when the
     /// action has no key (FT-896).
-    fn refused_with_key(&self, key: &str, action: &str) -> Outcome {
+    fn refused_with_key(&self, key: Key<'_>, action: &str) -> Outcome {
         Outcome::Failed {
             message: text_with_key(key, &crate::command_bar::key_of(self, action)),
         }
@@ -431,12 +437,12 @@ impl ShellModel {
                 }
                 let Some(key) = &f.symbol else {
                     return Outcome::Refused {
-                        reason_key: "reason-no-symbol-for-function",
+                        reason_key: key!("reason-no-symbol-for-function"),
                     };
                 };
                 let Some(i) = cat.symbols.iter().position(|s| s.key == *key) else {
                     return Outcome::Refused {
-                        reason_key: "reason-no-symbol-for-function",
+                        reason_key: key!("reason-no-symbol-for-function"),
                     };
                 };
                 (
@@ -448,7 +454,7 @@ impl ShellModel {
         let row = cat.symbols[row_index].clone();
         if !row.allowed {
             return Outcome::Refused {
-                reason_key: "reason-rep-type-not-allowed",
+                reason_key: key!("reason-rep-type-not-allowed"),
             };
         }
         // A black box (a black-box symbol, or a template function that is one) arms the black box tool (WP-S2.04 §9.5);
@@ -456,10 +462,10 @@ impl ShellModel {
         let is_box = row.black_box || box_cps.is_some();
         // FT-896: the refusals name the way out with its key from the keymap, or without the parenthesis when unbound.
         if self.tools.black_box_pick && !is_box {
-            return self.refused_with_key("reason-not-black-box", "tool.place");
+            return self.refused_with_key(key!("reason-not-black-box"), "tool.place");
         }
         if is_box && matches!(pick, Pick::Function(..) | Pick::Join(..)) {
-            return self.refused_with_key("reason-black-box-tool", "tool.black_box");
+            return self.refused_with_key(key!("reason-black-box-tool"), "tool.black_box");
         }
         // FT-656: what the project lacks travels in the placement itself, so that placing from the picker is one undo
         // step and the recorded command replays without a library: a starter symbol with its FnDef and, for a part's
@@ -470,7 +476,7 @@ impl ShellModel {
             (None, _) => Vec::new(),
             (Some(project), Some(part_copy)) => match project.session.starter_embed_part(part_copy, &row.key)
             {
-                Err(keys) => return failed("error-part-fndef-missing", &[&keys.join(", ")]),
+                Err(keys) => return failed(key!("error-part-fndef-missing"), &[&keys.join(", ")]),
                 Ok(params) => params.map(copies_of).unwrap_or_default(),
             },
             (Some(project), None) => project
@@ -489,14 +495,14 @@ impl ShellModel {
         if is_box {
             let Some(copy) = row.copy else {
                 return Outcome::Refused {
-                    reason_key: "reason-unknown-symbol",
+                    reason_key: key!("reason-unknown-symbol"),
                 };
             };
             let target = match part {
                 Some((part, template, number)) => {
                     let Some(letter) = letter_param.or(row.letter.clone()) else {
                         return Outcome::Refused {
-                            reason_key: "reason-letter-needed",
+                            reason_key: key!("reason-letter-needed"),
                         };
                     };
                     BoxTarget::Part {
@@ -510,7 +516,7 @@ impl ShellModel {
                 None => {
                     let Some(letter) = letter_param.or(row.letter.clone()) else {
                         return Outcome::Refused {
-                            reason_key: "reason-letter-needed",
+                            reason_key: key!("reason-letter-needed"),
                         };
                     };
                     BoxTarget::NewDevice { letter }
@@ -524,7 +530,7 @@ impl ShellModel {
         }
         let Some(shape) = self.row_shape(&row) else {
             return Outcome::Refused {
-                reason_key: "reason-unknown-symbol",
+                reason_key: key!("reason-unknown-symbol"),
             };
         };
         // A terminal: a terminal symbol (a PE terminal's category `TerminalEarth` counts too, FT-618), or any symbol or
@@ -543,7 +549,7 @@ impl ShellModel {
             (_, Some((part, template, number))) if !terminal => {
                 let Some(letter) = letter_param.or(row.letter.clone()) else {
                     return Outcome::Refused {
-                        reason_key: "reason-letter-needed",
+                        reason_key: key!("reason-letter-needed"),
                     };
                 };
                 PlaceTarget::Part {
@@ -563,7 +569,7 @@ impl ShellModel {
                 // (FT-605); `strip.new` then lists the new strip as the current row. A direct `place.pick` refuses.
                 if cat.strips.is_empty() && (strip.is_some() || self.tools.picker.is_none()) {
                     return Outcome::Refused {
-                        reason_key: "reason-no-strip",
+                        reason_key: key!("reason-no-strip"),
                     };
                 }
                 // Without a strip the picker asks for one (FT-421): its strip chooser.
@@ -582,7 +588,7 @@ impl ShellModel {
                 // `-X??` takes its counter with its first terminal, so the name the toast gave may have changed.
                 let Some(i) = Self::catalogue_strip(&cat, strip) else {
                     let tags: Vec<&str> = cat.strips.iter().map(|st| st.tag.as_str()).collect();
-                    return failed("error-unknown-strip", &[strip, &tags.join(", ")]);
+                    return failed(key!("error-unknown-strip"), &[strip, &tags.join(", ")]);
                 };
                 let st = &cat.strips[i];
                 let designation = match terminal_designation(p) {
@@ -600,7 +606,7 @@ impl ShellModel {
             _ => {
                 let Some(letter) = letter_param.or(row.letter.clone()) else {
                     return Outcome::Refused {
-                        reason_key: "reason-letter-needed",
+                        reason_key: key!("reason-letter-needed"),
                     };
                 };
                 PlaceTarget::NewDevice { letter }
@@ -626,7 +632,7 @@ impl ShellModel {
     fn arm_exchange(&mut self, cat: Arc<PlaceCatalogue>, i: usize) -> Outcome {
         let Some(rep) = self.tools.exchange_rep else {
             return Outcome::Refused {
-                reason_key: "reason-one-rep",
+                reason_key: key!("reason-one-rep"),
             };
         };
         let key = cat.symbols[i].key.clone();
@@ -637,7 +643,7 @@ impl ShellModel {
         };
         let Some(shape) = self.row_shape(&row) else {
             return Outcome::Refused {
-                reason_key: "reason-unknown-symbol",
+                reason_key: key!("reason-unknown-symbol"),
             };
         };
         // The FnDef the representation's current symbol draws.
@@ -646,7 +652,7 @@ impl ShellModel {
             .and_then(|c| c.page().tables.reps.iter().find(|r| r.id == rep.0).cloned());
         let Some(old) = old else {
             return Outcome::Refused {
-                reason_key: "reason-one-rep",
+                reason_key: key!("reason-one-rep"),
             };
         };
         // The shape of the representation's current symbol: the function CPs it draws and their designations.
@@ -658,7 +664,7 @@ impl ShellModel {
             ExchangeTool::new(rep, Arc::clone(&shape), current.as_deref(), cx).with_copies(copies)
         }) else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let overlay = tool.overlay();
@@ -674,7 +680,7 @@ impl ShellModel {
     pub(crate) fn act_open_picker(&mut self, mode: PickerMode) -> Outcome {
         let Some(cat) = self.catalogue() else {
             return Outcome::Refused {
-                reason_key: "reason-no-catalogue",
+                reason_key: key!("reason-no-catalogue"),
             };
         };
         let folio = self.current_folio().unwrap_or_default().to_owned();
@@ -688,7 +694,7 @@ impl ShellModel {
     pub(crate) fn act_picker_filter(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match string_param(p, "text") {
             Ok(Some(t)) => t.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["text"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["text"]),
             Err(e) => return e,
         };
         if let Some(picker) = &mut self.tools.picker {
@@ -706,15 +712,15 @@ impl ShellModel {
             Some(Value::String(word)) => match word.as_str() {
                 "first" => Some(0),
                 "last" => Some(-1),
-                _ => return failed("error-bad-param", &["to"]),
+                _ => return failed(key!("error-bad-param"), &["to"]),
             },
             Some(v) => match v.as_i64() {
                 Some(t) => Some(t),
-                None => return failed("error-bad-param", &["to"]),
+                None => return failed(key!("error-bad-param"), &["to"]),
             },
         };
         if step.is_none() && to.is_none() {
-            return failed("error-missing-param", &["step"]);
+            return failed(key!("error-missing-param"), &["step"]);
         }
         if let Some(picker) = &mut self.tools.picker {
             let to = to.map(|t| if t < 0 { picker.rows.len() as i64 - 1 } else { t });
@@ -727,12 +733,12 @@ impl ShellModel {
     pub(crate) fn act_picker_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(picker) = &self.tools.picker else {
             return Outcome::Refused {
-                reason_key: "reason-no-picker",
+                reason_key: key!("reason-no-picker"),
             };
         };
         let Some(&row) = picker.rows.get(picker.row) else {
             return Outcome::Refused {
-                reason_key: "reason-no-picker-row",
+                reason_key: key!("reason-no-picker-row"),
             };
         };
         if let Some(reason_key) = picker.disabled(row) {
@@ -747,12 +753,12 @@ impl ShellModel {
             (_, PickerRow::Strip(i)) => {
                 let Some(pending) = pending else {
                     return Outcome::Refused {
-                        reason_key: "reason-no-picker-row",
+                        reason_key: key!("reason-no-picker-row"),
                     };
                 };
                 let Some(symbol) = cat.symbols.iter().position(|r| r.key == pending.symbol) else {
                     return Outcome::Refused {
-                        reason_key: "reason-unknown-symbol",
+                        reason_key: key!("reason-unknown-symbol"),
                     };
                 };
                 // The parameters of this choice (`designation`, `letter`, `strip`) win over those of the choice that
@@ -793,11 +799,11 @@ impl ShellModel {
     pub(crate) fn act_place_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(cat) = self.catalogue() else {
             return Outcome::Refused {
-                reason_key: "reason-no-catalogue",
+                reason_key: key!("reason-no-catalogue"),
             };
         };
         let unknown = Outcome::Refused {
-            reason_key: "reason-unknown-symbol",
+            reason_key: key!("reason-unknown-symbol"),
         };
         let symbol = match string_param(p, "symbol") {
             Ok(v) => v.map(str::to_owned),
@@ -815,7 +821,7 @@ impl ShellModel {
         // WP-S2.18 D4: a device by its printed tag (or its ID) joins it.
         if let Some(device) = device {
             let Some(i) = symbol.as_deref().and_then(find) else {
-                return failed("error-missing-param", &["symbol"]);
+                return failed(key!("error-missing-param"), &["symbol"]);
             };
             return match self.pick_join_device(&cat, i, &device) {
                 Ok((cat, i, j)) => {
@@ -830,7 +836,7 @@ impl ShellModel {
             // WP-S2.18 D4: a function by its device's printed tag (`-101K1`, `-101K1:13-14`); an ID keeps the path below.
             (_, Ok(Some(function))) if function.trim().parse::<ew_api::output::Uuid>().is_err() => {
                 let Some(i) = symbol.as_deref().and_then(find) else {
-                    return failed("error-missing-param", &["symbol"]);
+                    return failed(key!("error-missing-param"), &["symbol"]);
                 };
                 return match self.pick_function_tag(&cat, i, function) {
                     Ok((cat, i, f)) => {
@@ -879,13 +885,13 @@ impl ShellModel {
                         .map(|s| s.key.clone())
                 });
                 let Some(i) = symbol.as_deref().and_then(find) else {
-                    return failed("error-missing-param", &["symbol"]);
+                    return failed(key!("error-missing-param"), &["symbol"]);
                 };
                 Pick::Function(function.to_owned(), i)
             }
             _ => {
                 let Some(s) = symbol else {
-                    return failed("error-missing-param", &["symbol"]);
+                    return failed(key!("error-missing-param"), &["symbol"]);
                 };
                 let Some(i) = find(&s) else { return unknown };
                 Pick::Symbol(i)
@@ -911,8 +917,8 @@ impl ShellModel {
         // terminal on the page on show as the example.
         self.sync_views();
         let text = match self.strip_tag_example(&letter) {
-            Some(tag) => strings::format("toast-strip-new", &[&tag]),
-            None => strings::text("toast-strip-new-no-example").to_owned(),
+            Some(tag) => strings::format(key!("toast-strip-new"), &[&tag]),
+            None => strings::text(key!("toast-strip-new-no-example")).to_owned(),
         };
         self.notify(text, true);
         let pending = self
@@ -972,17 +978,17 @@ impl ShellModel {
             match key {
                 ToolKey::NextRepType => {
                     return Outcome::Refused {
-                        reason_key: "reason-place-only",
+                        reason_key: key!("reason-place-only"),
                     };
                 }
                 ToolKey::NextVariant if reps > 1 => {
                     return Outcome::Refused {
-                        reason_key: "reason-one-rep",
+                        reason_key: key!("reason-one-rep"),
                     };
                 }
                 _ if reps == 0 => {
                     return Outcome::Refused {
-                        reason_key: "reason-nothing-selected",
+                        reason_key: key!("reason-nothing-selected"),
                     };
                 }
                 _ => {}
@@ -1004,7 +1010,7 @@ impl ShellModel {
     fn next_rep_type(&mut self) -> Outcome {
         let Some(cat) = self.catalogue() else {
             return Outcome::Refused {
-                reason_key: "reason-no-catalogue",
+                reason_key: key!("reason-no-catalogue"),
             };
         };
         let current = self
@@ -1019,7 +1025,7 @@ impl ShellModel {
         };
         let Some(at) = cat.symbols.iter().position(|s| s.key == current) else {
             return Outcome::Refused {
-                reason_key: "reason-no-next-rep-type",
+                reason_key: key!("reason-no-next-rep-type"),
             };
         };
         let fndef = cat.symbols[at].fndef_key.clone();
@@ -1030,12 +1036,12 @@ impl ShellModel {
             .cloned();
         let Some(row) = next else {
             return Outcome::Refused {
-                reason_key: "reason-no-next-rep-type",
+                reason_key: key!("reason-no-next-rep-type"),
             };
         };
         let Some(shape) = self.row_shape(&row) else {
             return Outcome::Refused {
-                reason_key: "reason-unknown-symbol",
+                reason_key: key!("reason-unknown-symbol"),
             };
         };
         let out = self
@@ -1063,14 +1069,14 @@ impl ShellModel {
         }
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let tables = Arc::clone(&c.page().tables);
         let movable = transform::selected_movable(&self.tools.selection, c.page());
         if movable.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-nothing-to-move",
+                reason_key: key!("reason-nothing-to-move"),
             };
         }
         if c.cursor().is_none() {
@@ -1114,7 +1120,7 @@ impl ShellModel {
                 Outcome::Done
             }
             _ => Outcome::Refused {
-                reason_key: "reason-no-cursor",
+                reason_key: key!("reason-no-cursor"),
             },
         }
     }
@@ -1141,7 +1147,7 @@ impl ShellModel {
         let targets = self.copy_targets();
         let Some(page) = self.canvas().map(|c| Arc::clone(c.page())) else {
             return Outcome::Refused {
-                reason_key: "reason-nothing-selected",
+                reason_key: key!("reason-nothing-selected"),
             };
         };
         // WP-S4.02 part 3 (D10, E2-2): on a panel page the selected placements and carriers, without the undrawn-device
@@ -1154,7 +1160,7 @@ impl ShellModel {
                 .collect();
             if list.is_empty() {
                 return Outcome::Refused {
-                    reason_key: "reason-nothing-selected",
+                    reason_key: key!("reason-nothing-selected"),
                 };
             }
             let cmd = AnyCommand {
@@ -1208,9 +1214,9 @@ impl ShellModel {
         let Some(cmd) = cmd else {
             return Outcome::Refused {
                 reason_key: if elsewhere {
-                    "reason-not-on-page"
+                    key!("reason-not-on-page")
                 } else {
-                    "reason-nothing-selected"
+                    key!("reason-nothing-selected")
                 },
             };
         };
@@ -1400,7 +1406,7 @@ impl ShellModel {
     pub(crate) fn act_rep_exchange(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let tables = Arc::clone(&c.page().tables);
@@ -1412,24 +1418,24 @@ impl ShellModel {
         let rep = match reps.as_slice() {
             [] => {
                 return Outcome::Refused {
-                    reason_key: "reason-nothing-selected",
+                    reason_key: key!("reason-nothing-selected"),
                 };
             }
             [one] => *one,
             _ => {
                 return Outcome::Refused {
-                    reason_key: "reason-one-rep",
+                    reason_key: key!("reason-one-rep"),
                 };
             }
         };
         if tables.reps.iter().any(|r| r.id == rep.0 && r.ip.is_some()) {
             return Outcome::Refused {
-                reason_key: "reason-ip-exchange",
+                reason_key: key!("reason-ip-exchange"),
             };
         }
         let Some(cat) = self.catalogue() else {
             return Outcome::Refused {
-                reason_key: "reason-no-catalogue",
+                reason_key: key!("reason-no-catalogue"),
             };
         };
         self.tools.exchange_rep = Some(rep);
@@ -1442,7 +1448,7 @@ impl ShellModel {
                     .position(|r| r.allowed && (r.key == s || r.copy.is_some_and(|c| c.to_string() == s)))
                 else {
                     return Outcome::Refused {
-                        reason_key: "reason-unknown-symbol",
+                        reason_key: key!("reason-unknown-symbol"),
                     };
                 };
                 self.arm_exchange(cat, i)
@@ -1615,17 +1621,17 @@ impl ShellModel {
             .and_then(|s| c.page().cell_text(s));
         let v = variant.to_string();
         self.tools.announcement = Some(match cell {
-            Some(cell) => strings::format("announce-place", &[&symbol, &label, &v, &cell]),
-            None => strings::format("announce-place-no-cell", &[&symbol, &label, &v]),
+            Some(cell) => strings::format(key!("announce-place"), &[&symbol, &label, &v, &cell]),
+            None => strings::format(key!("announce-place-no-cell"), &[&symbol, &label, &v]),
         });
     }
 }
 
 /// The text of `key` naming the key chord `chord` (FT-896): `key` formatted with it, or `<key>-unbound` (the sentence
 /// without the parenthesis) when the action has no key.
-fn text_with_key(key: &str, chord: &str) -> String {
+fn text_with_key(key: Key<'_>, chord: &str) -> String {
     if chord.is_empty() {
-        strings::text(&format!("{key}-unbound")).to_owned()
+        strings::text(Key::run_time(&format!("{}-unbound", key.as_str()))).to_owned()
     } else {
         strings::format(key, &[chord])
     }
@@ -1645,25 +1651,26 @@ fn copies_of(params: Value) -> Vec<Value> {
 #[cfg(test)]
 mod tests {
     use super::text_with_key;
+    use crate::key;
 
     /// FT-896: the two black-box refusals name the key from the keymap, or leave the parenthesis out when the action
     /// has no key.
     #[test]
     fn the_black_box_refusals_name_the_key_or_none() {
         assert_eq!(
-            text_with_key("reason-black-box-tool", "B"),
+            text_with_key(key!("reason-black-box-tool"), "B"),
             "This part is placed as a black box: use the Black box tool (B)"
         );
         assert_eq!(
-            text_with_key("reason-black-box-tool", ""),
+            text_with_key(key!("reason-black-box-tool"), ""),
             "This part is placed as a black box: use the Black box tool"
         );
         assert_eq!(
-            text_with_key("reason-not-black-box", "I"),
+            text_with_key(key!("reason-not-black-box"), "I"),
             "This is not a black box: place it with Draw \u{25b8} Symbol\u{2026} (I)"
         );
         assert_eq!(
-            text_with_key("reason-not-black-box", ""),
+            text_with_key(key!("reason-not-black-box"), ""),
             "This is not a black box: place it with Draw \u{25b8} Symbol\u{2026}"
         );
     }

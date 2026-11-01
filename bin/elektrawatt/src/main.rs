@@ -31,6 +31,7 @@ use std::path::{Path, PathBuf};
 
 use eframe::egui;
 use ew_ui::app::{App, Pick, PickReply, Platform, setup, spawn_pick};
+use ew_ui::ew_viewmodel::key;
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
 use ew_ui::ew_viewmodel::window::{MonitorArea, WindowGeometry};
@@ -206,43 +207,43 @@ impl RfdPlatform {
         let base = self.base.clone();
         match prompt {
             Prompt::OpenFolder => (
-                base.set_title(strings::text("prompt-open-title")),
+                base.set_title(strings::text(key!("prompt-open-title"))),
                 DialogKind::Folder,
             ),
             Prompt::NewFolder => (
-                base.set_title(strings::text("prompt-save-as-title")),
+                base.set_title(strings::text(key!("prompt-save-as-title"))),
                 DialogKind::Folder,
             ),
             Prompt::OpenQet => (
-                base.set_title(strings::text("prompt-open-qet-title"))
+                base.set_title(strings::text(key!("prompt-open-qet-title")))
                     .add_filter("QElectroTech", &["qet"]),
                 DialogKind::File,
             ),
             Prompt::OpenPartsTable => (
-                base.set_title(strings::text("prompt-open-parts-title"))
+                base.set_title(strings::text(key!("prompt-open-parts-title")))
                     .add_filter("CSV", &["csv"]),
                 DialogKind::File,
             ),
             Prompt::OpenImage => (
-                base.set_title(strings::text("prompt-open-image-title"))
+                base.set_title(strings::text(key!("prompt-open-image-title")))
                     .add_filter("Images", &["svg", "png", "jpg", "jpeg"]),
                 DialogKind::File,
             ),
             Prompt::SavePdf => (
-                base.set_title(strings::text("prompt-export-title"))
-                    .set_file_name(strings::text("prompt-pdf-name"))
+                base.set_title(strings::text(key!("prompt-export-title")))
+                    .set_file_name(strings::text(key!("prompt-pdf-name")))
                     .add_filter("PDF", &["pdf"]),
                 DialogKind::Save,
             ),
             // WP-S2.08 D8: the keymap editor's Import… and Export….
             Prompt::OpenKeymap => (
-                base.set_title(strings::text("prompt-open-keymap-title"))
+                base.set_title(strings::text(key!("prompt-open-keymap-title")))
                     .add_filter("TOML", &["toml"]),
                 DialogKind::File,
             ),
             Prompt::SaveKeymap => (
-                base.set_title(strings::text("prompt-save-keymap-title"))
-                    .set_file_name(strings::text("prompt-keymap-name"))
+                base.set_title(strings::text(key!("prompt-save-keymap-title")))
+                    .set_file_name(strings::text(key!("prompt-keymap-name")))
                     .add_filter("TOML", &["toml"]),
                 DialogKind::Save,
             ),
@@ -524,7 +525,7 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
     // WP-S2.17 part 3 (DK6, FT-348): the last size, position and maximised state, restored.
     let viewport = ew_ui::window_memory::restore(
         egui::ViewportBuilder::default()
-            .with_title(strings::text("window-title-start"))
+            .with_title(strings::text(key!("window-title-start")))
             .with_inner_size([1280.0, 800.0])
             .with_min_inner_size([640.0, 400.0]),
         shell.settings().window,
@@ -536,7 +537,7 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
         ..eframe::NativeOptions::default()
     };
     let result = eframe::run_native(
-        strings::text("window-title-start"),
+        strings::text(key!("window-title-start")),
         options,
         Box::new(move |cc| {
             setup(&cc.egui_ctx);

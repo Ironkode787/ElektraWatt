@@ -6,6 +6,7 @@
 //! refusals, the creation dialog of the window, the menu entries and the vocabulary of the dialog's describe lines.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused};
 use ew_viewmodel::actions::{MenuEntry, menu_model};
@@ -562,9 +563,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     shell.set_form_field("folio", "500");
     assert!(matches!(
         shell.submit_form(),
-        Outcome::Refused {
-            reason_key: "reason-no-project"
-        }
+        Outcome::Refused { reason_key } if reason_key == key!("reason-no-project")
     ));
     assert!(shell.dialog().is_none());
     shell.shutdown();

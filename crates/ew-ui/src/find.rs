@@ -18,6 +18,7 @@
 use egui::text::{LayoutJob, TextFormat};
 use egui::{Key, Modifiers, Sense, TextEdit, Ui};
 use ew_viewmodel::find::{FIELDS, FindHit, field_label_key, field_word, hit_label, marked};
+use ew_viewmodel::key;
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{Focus, ShellModel};
 use ew_viewmodel::strings;
@@ -46,7 +47,10 @@ pub fn result_line(hit: &FindHit) -> String {
     line.push_str(&format!("{} · {} · {}", hit.subject, hit_label(hit), marked(hit)));
     match (&hit.after, &hit.replaceable) {
         (Some(after), _) => line.push_str(&format!(" -> {after}")),
-        (None, Err(why)) => line.push_str(&format!(" ({})", strings::format("find-not-replaced", &[why]))),
+        (None, Err(why)) => line.push_str(&format!(
+            " ({})",
+            strings::format(key!("find-not-replaced"), &[why])
+        )),
         (None, Ok(())) => {}
     }
     line
@@ -72,7 +76,7 @@ impl FindPane {
         let rect = ui.available_rect_before_wrap();
         let pane_id = ui.scope_id().with("find-pane");
         let pane = ui.interact(rect, pane_id, Sense::focusable_noninteractive());
-        let pane_name = strings::text("pane-find").to_owned();
+        let pane_name = strings::text(key!("pane-find")).to_owned();
         pane.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, &pane_name));
         let ours = shell.focus() == Some(Focus::Find);
         let arrived = ours && !self.was_ours;
@@ -108,13 +112,13 @@ impl FindPane {
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(pane_id), |ui| {
             Self::card(ui, shell, events);
             ui.horizontal_wrapped(|ui| {
-                let name = strings::text("find-text").to_owned();
+                let name = strings::text(key!("find-text")).to_owned();
                 let response = Self::field(ui, &mut self.text, &name, events, "find.text", (card, ours));
                 if arrived {
                     response.request_focus();
                 }
                 if f.replace_mode() {
-                    let name = strings::text("find-replacement").to_owned();
+                    let name = strings::text(key!("find-replacement")).to_owned();
                     Self::field(
                         ui,
                         &mut self.replacement,
@@ -124,23 +128,23 @@ impl FindPane {
                         (card, ours),
                     );
                 }
-                if ui.button(strings::text("find-run")).clicked() {
+                if ui.button(strings::text(key!("find-run"))).clicked() {
                     events.push(Event::Action("find.run", json!({})));
                 }
-                if f.replace_mode() && ui.button(strings::text("find-replace-all")).clicked() {
+                if f.replace_mode() && ui.button(strings::text(key!("find-replace-all"))).clicked() {
                     events.push(Event::Action("find.replace_all", json!({})));
                 }
-                if ui.button(strings::text("find-close")).clicked() {
+                if ui.button(strings::text(key!("find-close"))).clicked() {
                     events.push(Event::Action("find.close", json!({})));
                 }
             });
             ui.horizontal_wrapped(|ui| {
                 let (regex, case, word, selection) = f.options();
                 for (option, on, key) in [
-                    ("regex", regex, "find-regex"),
-                    ("match_case", case, "find-match-case"),
-                    ("whole_word", word, "find-whole-word"),
-                    ("in_selection", selection, "find-in-selection"),
+                    ("regex", regex, key!("find-regex")),
+                    ("match_case", case, key!("find-match-case")),
+                    ("whole_word", word, key!("find-whole-word")),
+                    ("in_selection", selection, key!("find-in-selection")),
                 ] {
                     let mut now = on;
                     let name = strings::text(key).to_owned();
@@ -169,7 +173,7 @@ impl FindPane {
                     }
                 }
                 ui.separator();
-                let name = strings::text("find-folios").to_owned();
+                let name = strings::text(key!("find-folios")).to_owned();
                 let response = ui.add(
                     TextEdit::singleline(&mut self.folios)
                         .desired_width(140.0)
@@ -266,7 +270,7 @@ impl FindPane {
             return;
         }
         let summary = strings::format(
-            "find-card-line",
+            key!("find-card-line"),
             &[
                 &card.changes.to_string(),
                 &card.targets.to_string(),
@@ -283,7 +287,7 @@ impl FindPane {
             .map(|tag| format!("{} → {}", tag.before, tag.after))
             .collect();
         let inline = crate::components::InlineCard {
-            title: strings::text("card-title-find"),
+            title: strings::text(key!("card-title-find")),
             summary: &summary,
             apply: "preview.apply",
             strip: true,
@@ -300,18 +304,20 @@ impl FindPane {
         let f = shell.find_state();
         let mut line = match f.results() {
             None => String::new(),
-            Some(r) if r.hits.is_empty() && r.error.is_none() => strings::text("find-no-results").to_owned(),
-            Some(r) => strings::format("find-results", &[&r.hits.len().to_string()]),
+            Some(r) if r.hits.is_empty() && r.error.is_none() => {
+                strings::text(key!("find-no-results")).to_owned()
+            }
+            Some(r) => strings::format(key!("find-results"), &[&r.hits.len().to_string()]),
         };
         if f.stale(shell.revision()) {
-            line.push_str(&format!(" [{}]", strings::text("find-stale")));
+            line.push_str(&format!(" [{}]", strings::text(key!("find-stale"))));
         }
         if let Some(r) = f.results() {
             if let Some(e) = &r.error {
                 line = e.clone();
             }
             if r.truncated {
-                line.push_str(&format!(" · {}", strings::text("find-truncated")));
+                line.push_str(&format!(" · {}", strings::text(key!("find-truncated"))));
             }
         }
         if let Some(note) = f.note() {
@@ -335,22 +341,22 @@ impl FindPane {
             crate::components::empty_state(
                 ui,
                 crate::icons::IconId::search,
-                strings::text("empty-find-start"),
-                strings::text("empty-find-start-text"),
+                strings::text(key!("empty-find-start")),
+                strings::text(key!("empty-find-start-text")),
                 None,
             );
             return;
         };
         if r.hits.is_empty() && r.error.is_none() {
             let line = match f.last_query().map(|q| q.text.as_str()) {
-                Some(text) if !text.is_empty() => strings::format("empty-nav-filter", &[text]),
-                _ => strings::text("find-no-results").to_owned(),
+                Some(text) if !text.is_empty() => strings::format(key!("empty-nav-filter"), &[text]),
+                _ => strings::text(key!("find-no-results")).to_owned(),
             };
             crate::components::empty_state(
                 ui,
                 crate::icons::IconId::search,
                 &line,
-                strings::text("empty-find-text"),
+                strings::text(key!("empty-find-text")),
                 None,
             );
             return;
@@ -362,7 +368,7 @@ impl FindPane {
             list_id,
             Sense::hover(),
         );
-        let list_name = strings::format("find-results", &[&r.hits.len().to_string()]);
+        let list_name = strings::format(key!("find-results"), &[&r.hits.len().to_string()]);
         list.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ListBox, true, &list_name));
         let row = f.row();
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
@@ -424,7 +430,7 @@ impl FindPane {
         match (&hit.after, &hit.replaceable) {
             (Some(after), _) => job.append(&format!(" -> {after}"), 0.0, plain),
             (None, Err(why)) => job.append(
-                &format!(" ({})", strings::format("find-not-replaced", &[why])),
+                &format!(" ({})", strings::format(key!("find-not-replaced"), &[why])),
                 0.0,
                 plain,
             ),

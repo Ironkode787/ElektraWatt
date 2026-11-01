@@ -17,7 +17,9 @@ use ew_api::output::ew_dl::EntityRef;
 use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed, flag, string_param};
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::{CanvasEvent, EntityKind, JunctionEditor, RouteEditTool, Tool, WireTool, selection_kinds};
 
 impl ShellModel {
@@ -130,11 +132,11 @@ impl ShellModel {
     /// page, `Ok(Some("overview"))` on a single-line (the MVP kind), overview or assembly-overview page; refused on
     /// a bus-topology or fluid page (their `Bus` and `Fluid` kinds are not drawn by this package) and on every page
     /// type whose Wire tool creates nothing (fix round of WP-S2.04 part 2, item 1).
-    pub fn wire_kind(&self) -> Result<Option<&'static str>, &'static str> {
+    pub fn wire_kind(&self) -> Result<Option<&'static str>, Key<'static>> {
         match self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) {
             Some("multi_line") => Ok(None),
             Some("single_line" | "overview" | "assembly_overview") => Ok(Some("overview")),
-            _ => Err("reason-no-wire-kind"),
+            _ => Err(key!("reason-no-wire-kind")),
         }
     }
 
@@ -153,7 +155,7 @@ impl ShellModel {
     pub(crate) fn act_route_edit(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let tables = Arc::clone(&c.page().tables);
@@ -165,12 +167,12 @@ impl ShellModel {
             .collect();
         let [one] = connections.as_slice() else {
             return Outcome::Refused {
-                reason_key: "reason-one-connection",
+                reason_key: key!("reason-one-connection"),
             };
         };
         let Some(row) = tables.connections.iter().find(|x| x.id == one.0) else {
             return Outcome::Refused {
-                reason_key: "reason-one-connection",
+                reason_key: key!("reason-one-connection"),
             };
         };
         let tool = RouteEditTool::new(row, cursor);
@@ -198,7 +200,7 @@ impl ShellModel {
             })
             .flatten();
         if let Some(label) = label {
-            self.tools.announcement = Some(strings::format("announce-wire-routing", &[&label]));
+            self.tools.announcement = Some(strings::format(key!("announce-wire-routing"), &[&label]));
         }
     }
 
@@ -246,7 +248,7 @@ impl ShellModel {
     pub(crate) fn act_junction_open(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let tables = Arc::clone(&c.page().tables);
@@ -257,7 +259,7 @@ impl ShellModel {
             .collect();
         let [j] = js.as_slice() else {
             return Outcome::Refused {
-                reason_key: "reason-one-junction",
+                reason_key: key!("reason-one-junction"),
             };
         };
         match self.read_junction_editor(*j, 0) {
@@ -268,7 +270,7 @@ impl ShellModel {
                 Outcome::Done
             }
             None => Outcome::Refused {
-                reason_key: "reason-one-junction",
+                reason_key: key!("reason-one-junction"),
             },
         }
     }
@@ -277,7 +279,7 @@ impl ShellModel {
     fn junction_commit(&mut self, members: Value, row: usize) -> Outcome {
         let Some(editor) = self.tools.junction_editor.clone() else {
             return Outcome::Refused {
-                reason_key: "reason-no-junction-editor",
+                reason_key: key!("reason-no-junction-editor"),
             };
         };
         let cmd = ew_api::AnyCommand {
@@ -297,7 +299,7 @@ impl ShellModel {
     pub(crate) fn act_junction_member(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(editor) = &self.tools.junction_editor else {
             return Outcome::Refused {
-                reason_key: "reason-no-junction-editor",
+                reason_key: key!("reason-no-junction-editor"),
             };
         };
         let index = |name: &str| {
@@ -306,11 +308,11 @@ impl ShellModel {
                 .and_then(|v| usize::try_from(v).ok())
         };
         let (Some(from), Some(to)) = (index("from"), index("to")) else {
-            return failed("error-missing-param", &["from"]);
+            return failed(key!("error-missing-param"), &["from"]);
         };
         let Some(seq) = editor.reordered(from, to) else {
             return Outcome::Refused {
-                reason_key: "reason-junction-member",
+                reason_key: key!("reason-junction-member"),
             };
         };
         let ids: Vec<String> = seq.iter().map(|c| c.0.to_string()).collect();
@@ -321,23 +323,23 @@ impl ShellModel {
     pub(crate) fn act_junction_style(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(editor) = &self.tools.junction_editor else {
             return Outcome::Refused {
-                reason_key: "reason-no-junction-editor",
+                reason_key: key!("reason-no-junction-editor"),
             };
         };
         let style = match string_param(p, "style") {
             Ok(Some(s)) => s.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["style"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["style"]),
             Err(e) => return e,
         };
         let orient = match p.get("orient") {
             None => editor.bevel_orient,
             Some(v) => match v.as_u64().and_then(|o| u8::try_from(o).ok()).filter(|o| *o < 8) {
                 Some(o) => o,
-                None => return failed("error-bad-param", &["orient"]),
+                None => return failed(key!("error-bad-param"), &["orient"]),
             },
         };
         let Some(value) = JunctionEditor::style_json(&style, orient) else {
-            return failed("error-bad-param", &["style"]);
+            return failed(key!("error-bad-param"), &["style"]);
         };
         let row = editor.row;
         self.junction_commit(json!({ "style": value }), row)
@@ -347,13 +349,13 @@ impl ShellModel {
     pub(crate) fn act_junction_wiring(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(editor) = &self.tools.junction_editor else {
             return Outcome::Refused {
-                reason_key: "reason-no-junction-editor",
+                reason_key: key!("reason-no-junction-editor"),
             };
         };
         let wiring = match string_param(p, "wiring") {
             Ok(Some(w @ ("star" | "chain" | "style_default"))) => w.to_owned(),
-            Ok(Some(_)) => return failed("error-bad-param", &["wiring"]),
-            Ok(None) => return failed("error-missing-param", &["wiring"]),
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["wiring"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["wiring"]),
             Err(e) => return e,
         };
         let row = editor.row;
@@ -415,15 +417,15 @@ impl ShellModel {
     pub(crate) fn act_navigator_bind(&mut self, p: &Map<String, Value>) -> Outcome {
         let channel = match string_param(p, "channel") {
             Ok(Some(c)) => c.trim().trim_start_matches("id:").to_owned(),
-            Ok(None) => return failed("error-missing-param", &["channel"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["channel"]),
             Err(e) => return e,
         };
         let Ok(ch) = channel.parse::<ew_api::output::Uuid>() else {
-            return failed("error-bad-param", &["channel"]);
+            return failed(key!("error-bad-param"), &["channel"]);
         };
         let at = match super::canvas_actions::point_mm(p) {
             Ok(Some(at)) => at,
-            Ok(None) => return failed("error-missing-param", &["x_mm"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["x_mm"]),
             Err(e) => return e,
         };
         let g = match self.group_param(p) {
@@ -437,7 +439,7 @@ impl ShellModel {
         }
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let (page, ppn, pane) = (Arc::clone(c.page()), c.points_per_nm(), c.pane());
@@ -453,12 +455,12 @@ impl ShellModel {
             crate::tools::wire::resolve_target(&cx, at, false)
         else {
             return Outcome::Refused {
-                reason_key: "reason-drop-on-cp",
+                reason_key: key!("reason-drop-on-cp"),
             };
         };
         let Some(pr) = self.project.as_ref() else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         // (where the channel binds, the device wired to that card pin, the attachment: device, tag, card, card tag,
@@ -475,12 +477,12 @@ impl ShellModel {
                             .map(|p| crate::describe::pin_in_sentence(&p.label))
                             .collect();
                         let text = strings::format(
-                            "toast-bind-wired-pins",
+                            key!("toast-bind-wired-pins"),
                             &[&device, &card, &pins.len().to_string(), &list.join(", ")],
                         );
                         self.notify_toned(text, crate::notifications::NoteTone::Warning);
                         return Outcome::Refused {
-                            reason_key: "reason-bind-wired-pins",
+                            reason_key: key!("reason-bind-wired-pins"),
                         };
                     }
                 },
@@ -503,13 +505,13 @@ impl ShellModel {
                     valve_terminal,
                 }) => {
                     let text = match (device.is_empty(), valve_terminal) {
-                        (true, _) => strings::format("toast-bind-off-card-untagged", &[&card]),
-                        (false, false) => strings::format("toast-bind-off-card", &[&device, &card]),
-                        (false, true) => strings::format("toast-bind-no-position", &[&device, &card]),
+                        (true, _) => strings::format(key!("toast-bind-off-card-untagged"), &[&card]),
+                        (false, false) => strings::format(key!("toast-bind-off-card"), &[&device, &card]),
+                        (false, true) => strings::format(key!("toast-bind-no-position"), &[&device, &card]),
                     };
                     self.notify_toned(text, crate::notifications::NoteTone::Warning);
                     return Outcome::Refused {
-                        reason_key: "reason-bind-off-card",
+                        reason_key: key!("reason-bind-off-card"),
                     };
                 }
             };
@@ -548,14 +550,14 @@ impl ShellModel {
         }
         let mut text = match (&attach, &wired_to) {
             (Some((_, tag, _, card_tag, position)), _) => strings::format(
-                "toast-bind-attached",
+                key!("toast-bind-attached"),
                 &[tag, card_tag, &position.to_string(), &words, &pin],
             ),
-            (None, Some(device)) => strings::format("toast-bind-wired", &[&words, &pin, device]),
-            (None, None) => strings::format("toast-bind-done", &[&words, &pin]),
+            (None, Some(device)) => strings::format(key!("toast-bind-wired"), &[&words, &pin, device]),
+            (None, None) => strings::format(key!("toast-bind-done"), &[&words, &pin]),
         };
         for d in &displaced {
-            text.push_str(&strings::format("toast-bind-displaced", &[d]));
+            text.push_str(&strings::format(key!("toast-bind-displaced"), &[d]));
         }
         // An attachment and a bind are two undo steps: that toast offers no Undo of only the second.
         self.notify(text, attach.is_none());

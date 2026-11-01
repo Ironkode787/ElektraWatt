@@ -23,6 +23,7 @@ use serde_json::{Map, Value};
 
 use super::navigation::bump;
 use super::{Outcome, ShellModel, failed, flag, string_param};
+use crate::key;
 use crate::navigators::Navigator;
 use crate::navigators::paste::{parse_tsv, write_tsv};
 use crate::navigators::pattern::Template;
@@ -35,6 +36,7 @@ use crate::properties::{
     Card, CardOrigin, Decision, EditRoute, FieldReadOnly, PendingEdit, RowValue, find_row, policy,
 };
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::PreviewState;
 use ew_api::output::FieldType;
 
@@ -74,12 +76,12 @@ fn cleared(ty: Option<&FieldType>) -> Option<Value> {
 /// A 1-based unsigned parameter.
 fn index_param(p: &Map<String, Value>, name: &str) -> Result<usize, Outcome> {
     match p.get(name) {
-        None => Err(failed("error-missing-param", &[name])),
+        None => Err(failed(key!("error-missing-param"), &[name])),
         Some(v) => v
             .as_u64()
             .and_then(|i| usize::try_from(i).ok())
             .filter(|i| *i >= 1)
-            .ok_or_else(|| failed("error-bad-param", &[name])),
+            .ok_or_else(|| failed(key!("error-bad-param"), &[name])),
     }
 }
 
@@ -92,8 +94,8 @@ pub(super) fn list_param(p: &Map<String, Value>, name: &str) -> Result<Option<Ve
             .map(|x| x.as_str().map(str::to_owned))
             .collect::<Option<Vec<_>>>()
             .map(Some)
-            .ok_or_else(|| failed("error-bad-param", &[name])),
-        Some(_) => Err(failed("error-bad-param", &[name])),
+            .ok_or_else(|| failed(key!("error-bad-param"), &[name])),
+        Some(_) => Err(failed(key!("error-bad-param"), &[name])),
     }
 }
 
@@ -225,10 +227,12 @@ impl ShellModel {
         };
         match project.session.strip_edits(&edits) {
             Ok(cmd) => Ok(Some(cmd)),
-            Err(StripEditError::Refused(reason_key)) => Err(Outcome::Refused { reason_key }),
+            Err(StripEditError::Refused(reason_key)) => Err(Outcome::Refused {
+                reason_key: Key::run_time(reason_key),
+            }),
             Err(StripEditError::Invalid(message)) => Err(Outcome::Failed { message }),
             Err(StripEditError::Ambiguous(choices)) => Err(failed(
-                "error-accessory-part-ambiguous",
+                key!("error-accessory-part-ambiguous"),
                 &[&choices
                     .iter()
                     .map(|c| c.text.as_str())
@@ -248,12 +252,12 @@ impl ShellModel {
         match self.generic(kind) {
             Some(n) if n.table_mode.is_some() => Ok(n),
             Some(_) => Err(Outcome::Refused {
-                reason_key: "reason-table-off",
+                reason_key: key!("reason-table-off"),
             }),
             None if kind == NavKind::Pages => Err(Outcome::Refused {
-                reason_key: "reason-table-off",
+                reason_key: key!("reason-table-off"),
             }),
-            None => Err(failed("error-nav-closed", &[kind.word()])),
+            None => Err(failed(key!("error-nav-closed"), &[kind.word()])),
         }
     }
 
@@ -295,7 +299,7 @@ impl ShellModel {
             Err(reason) => CellValue::Invalid(reason),
             Ok((kind, path)) if kind == STRIP_ROUTE => self.strip_cell_value(view, i, &path, text),
             Ok((kind, path)) => match &self.project {
-                None => CellValue::Invalid(strings::text("reason-no-project").to_owned()),
+                None => CellValue::Invalid(strings::text(key!("reason-no-project")).to_owned()),
                 Some(project) => {
                     // The G-PP triage's row 8: a potential's Type and Voltage take their printed forms.
                     let (input, leaf) = potential_input(&kind, &path, text);
@@ -304,7 +308,7 @@ impl ShellModel {
                         Ok(parsed) => CellValue::Valid(parsed.value),
                         Err(InputError::Invalid(message)) => CellValue::Invalid(message),
                         Err(InputError::UnknownPart(typed)) => {
-                            CellValue::Invalid(strings::format("error-no-part", &[&typed]))
+                            CellValue::Invalid(strings::format(key!("error-no-part"), &[&typed]))
                         }
                         Err(InputError::Ambiguous { choices }) => CellValue::Ambiguous(choices),
                     }
@@ -333,7 +337,7 @@ impl ShellModel {
             Some(reason) => Err(reason),
             None => strip_route(&view.table, node, col)
                 .or_else(|| view.table.columns[col].route.clone())
-                .ok_or_else(|| strings::text("table-reason-no-command").to_owned()),
+                .ok_or_else(|| strings::text(key!("table-reason-no-command")).to_owned()),
         }
     }
 
@@ -341,15 +345,17 @@ impl ShellModel {
     /// own edit; else its refusal, reason or readings (each reading's value the text `id:<uuid>` that resolves to it).
     fn strip_cell_value(&self, view: &TableView, i: u32, path: &str, text: &str) -> CellValue {
         let Some(project) = &self.project else {
-            return CellValue::Invalid(strings::text("reason-no-project").to_owned());
+            return CellValue::Invalid(strings::text(key!("reason-no-project")).to_owned());
         };
         let node = &view.table.nodes[i as usize];
         let Some(edit) = strip_edit_of(path, &node.key, &strip_targets(&view.table, node, path), text) else {
-            return CellValue::Invalid(strings::text("table-no-record").to_owned());
+            return CellValue::Invalid(strings::text(key!("table-no-record")).to_owned());
         };
         match project.session.strip_edit(&edit) {
             Ok(_) => CellValue::Valid(Value::String(text.to_owned())),
-            Err(StripEditError::Refused(key)) => CellValue::Invalid(strings::text(key).to_owned()),
+            Err(StripEditError::Refused(key)) => {
+                CellValue::Invalid(strings::text(Key::run_time(key)).to_owned())
+            }
             Err(StripEditError::Invalid(message)) => CellValue::Invalid(message),
             Err(StripEditError::Ambiguous(choices)) => {
                 CellValue::Ambiguous(choices.into_iter().map(|c| (c.text, c.value)).collect())
@@ -431,10 +437,10 @@ impl ShellModel {
 
     /// Compiles, previews and decides a gesture: a direct commit with the toast, the card, or the error. `card` forces
     /// the card with that reason when the policy would commit (a rebuilt card).
-    fn run_gesture(&mut self, mut gesture: Gesture, card: Option<&'static str>) -> Outcome {
+    fn run_gesture(&mut self, mut gesture: Gesture, card: Option<Key<'static>>) -> Outcome {
         if !self.is_writable() {
             return Outcome::Refused {
-                reason_key: "reason-read-only",
+                reason_key: key!("reason-read-only"),
             };
         }
         let Some(rev) = self.revision() else {
@@ -458,10 +464,10 @@ impl ShellModel {
                 gesture,
                 rev,
                 None,
-                Err(strings::text("table-nothing").to_owned()),
+                Err(strings::text(key!("table-nothing")).to_owned()),
                 Default::default(),
                 0,
-                "reason-table-invalid",
+                key!("reason-table-invalid"),
             );
             return Outcome::Done;
         };
@@ -469,11 +475,11 @@ impl ShellModel {
             return Outcome::Done;
         };
         let Some(meta) = project.session.command_meta(c.name) else {
-            return failed("error-unknown-action", &[c.name]);
+            return failed(key!("error-unknown-action"), &[c.name]);
         };
         if meta.exposure != Exposure::Edit {
             return Outcome::Refused {
-                reason_key: "reason-human-only",
+                reason_key: key!("reason-human-only"),
             };
         }
         let cmd = AnyCommand {
@@ -497,7 +503,7 @@ impl ShellModel {
         };
         let changes = result.as_ref().map_or(0, |p| p.diff().len());
         let decision = if blocking > 0 {
-            Decision::Card("reason-table-invalid")
+            Decision::Card(key!("reason-table-invalid"))
         } else {
             policy(
                 c.targets,
@@ -531,7 +537,7 @@ impl ShellModel {
             (decision, result) => {
                 let reason = match decision {
                     Decision::Card(r) => r,
-                    _ => card.unwrap_or("reason-rebuilt"),
+                    _ => card.unwrap_or(key!("reason-rebuilt")),
                 };
                 let result = result.map_err(|e| self.refusal(&e, None));
                 self.show_table_card(gesture, rev, Some(&c), result, derived, changes, reason);
@@ -550,7 +556,7 @@ impl ShellModel {
         result: Result<ew_api::Preview, String>,
         derived: ew_api::DerivedDiff,
         changes: usize,
-        reason: &'static str,
+        reason: Key<'static>,
     ) {
         let (name, params, targets) = compiled.map_or_else(
             || (String::new(), Value::Null, 0),
@@ -600,7 +606,7 @@ impl ShellModel {
                 let rows = gesture.rows();
                 self.notify(
                     strings::format(
-                        "toast-set",
+                        key!("toast-set"),
                         &[
                             // FT-757: sentence case, "Set address on 1 channel".
                             &gesture
@@ -640,16 +646,16 @@ impl ShellModel {
     pub(super) fn apply_table_card(&mut self, card: Card) -> Outcome {
         let CardOrigin::Table { gesture } = &card.origin else {
             return Outcome::Refused {
-                reason_key: "reason-no-card",
+                reason_key: key!("reason-no-card"),
             };
         };
         let blocking = gesture.blocking();
         if blocking > 0 {
             self.props.card = Some(card);
             if blocking == 1 {
-                return failed("error-table-blocking-one", &[]);
+                return failed(key!("error-table-blocking-one"), &[]);
             }
-            return failed("error-table-blocking", &[&blocking.to_string()]);
+            return failed(key!("error-table-blocking"), &[&blocking.to_string()]);
         }
         let Some(rev) = self.revision() else {
             return Outcome::Done;
@@ -686,7 +692,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         let gesture = self.retarget(gesture);
-        self.run_gesture(gesture, Some("reason-rebuilt"))
+        self.run_gesture(gesture, Some(key!("reason-rebuilt")))
     }
 
     /// A gesture's cells on the current table (a stale card): each row by its key, its records again; a row that is
@@ -712,7 +718,7 @@ impl ShellModel {
                         cell.route = Some(route);
                     }
                     None => {
-                        cell.value = CellValue::Invalid(strings::text("table-no-row").to_owned());
+                        cell.value = CellValue::Invalid(strings::text(key!("table-no-row")).to_owned());
                         cell.route = None;
                         cell.targets.clear();
                     }
@@ -721,7 +727,7 @@ impl ShellModel {
             }
             match view.table.nodes.iter().find(|n| n.key == cell.row) {
                 None => {
-                    cell.value = CellValue::Invalid(strings::text("table-no-row").to_owned());
+                    cell.value = CellValue::Invalid(strings::text(key!("table-no-row")).to_owned());
                     cell.route = None;
                     cell.targets.clear();
                     cell.define = None;
@@ -735,7 +741,7 @@ impl ShellModel {
                         None
                     };
                     if cell.targets.is_empty() && cell.define.is_none() {
-                        cell.value = CellValue::Invalid(strings::text("table-no-record").to_owned());
+                        cell.value = CellValue::Invalid(strings::text(key!("table-no-record")).to_owned());
                         cell.route = None;
                     }
                 }
@@ -772,7 +778,7 @@ impl ShellModel {
         // WP-S2.09 part 2 meets WP-S2.06 part 3: the Messages pane's rows are read-only findings with their own
         // header, detail block and quick-fix card, so it has no table mode.
         if kind == NavKind::Messages {
-            return failed("error-nav-no-table", &[kind.word()]);
+            return failed(key!("error-nav-no-table"), &[kind.word()]);
         }
         let now = self.generic(kind).is_some_and(|n| n.table_mode.is_some());
         let on = p.get("on").and_then(Value::as_bool).unwrap_or(!now);
@@ -787,7 +793,7 @@ impl ShellModel {
             return Outcome::Done;
         }
         let Some(n) = self.generic_mut(kind) else {
-            return failed("error-nav-closed", &[kind.word()]);
+            return failed(key!("error-nav-closed"), &[kind.word()]);
         };
         if !on {
             n.table_mode = None;
@@ -833,7 +839,7 @@ impl ShellModel {
             if keys.contains(k) {
                 Ok(())
             } else {
-                Err(failed("error-nav-value", &["column", k, &keys.join(", ")]))
+                Err(failed(key!("error-nav-value"), &["column", k, &keys.join(", ")]))
             }
         };
         for k in show.iter().flatten() {
@@ -849,7 +855,7 @@ impl ShellModel {
                 return e;
             }
             if Some(k) == key_column.as_ref() {
-                return failed("error-table-key-column", &[k]);
+                return failed(key!("error-table-key-column"), &[k]);
             }
             current.retain(|c| c != k);
         }
@@ -878,11 +884,17 @@ impl ShellModel {
         let column = string_param(p, "column")?.map(str::to_owned);
         let step = match p.get("step") {
             None => None,
-            Some(v) => Some(v.as_i64().ok_or_else(|| failed("error-bad-param", &["step"]))?),
+            Some(v) => Some(
+                v.as_i64()
+                    .ok_or_else(|| failed(key!("error-bad-param"), &["step"]))?,
+            ),
         };
         let across = match p.get("across") {
             None => None,
-            Some(v) => Some(v.as_i64().ok_or_else(|| failed("error-bad-param", &["across"]))?),
+            Some(v) => Some(
+                v.as_i64()
+                    .ok_or_else(|| failed(key!("error-bad-param"), &["across"]))?,
+            ),
         };
         let Some(view) = self.table_view(kind) else {
             return Ok(());
@@ -908,7 +920,10 @@ impl ShellModel {
                         .iter()
                         .map(|i| view.table.columns[*i].key.as_str())
                         .collect();
-                    return Err(failed("error-nav-value", &["column", &c, &shown.join(", ")]));
+                    return Err(failed(
+                        key!("error-nav-value"),
+                        &["column", &c, &shown.join(", ")],
+                    ));
                 }
             }
         } else if let Some(a) = across
@@ -953,13 +968,13 @@ impl ShellModel {
         };
         let (Some(r), Some(col)) = (view.cursor_row, view.cursor_col) else {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         };
         let i = view.rows[r];
         if let Err(reason) = self.cell_route(&view, i, col) {
             return failed(
-                "error-table-read-only",
+                key!("error-table-read-only"),
                 &[&view.table.columns[col].label, &reason],
             );
         }
@@ -1001,7 +1016,7 @@ impl ShellModel {
         };
         let text = match string_param(p, "text") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["text"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["text"]),
             Ok(Some(t)) => t.to_owned(),
         };
         let Some(m) = self.mode_mut(kind) else {
@@ -1035,7 +1050,7 @@ impl ShellModel {
         }
         let Some(edit) = mode.edit else {
             return Outcome::Refused {
-                reason_key: "reason-table-not-editing",
+                reason_key: key!("reason-table-not-editing"),
             };
         };
         let Some(view) = self.table_view(kind) else {
@@ -1046,7 +1061,7 @@ impl ShellModel {
         };
         let Some(row) = view.table.nodes.iter().position(|n| n.key == edit.row) else {
             self.close_edit(kind);
-            return failed("error-nav-key", &[&edit.row, kind.word()]);
+            return failed(key!("error-nav-key"), &[&edit.row, kind.word()]);
         };
         let row = u32::try_from(row).unwrap_or(u32::MAX);
         let all = flag(p, "all");
@@ -1084,12 +1099,12 @@ impl ShellModel {
         };
         let column = match string_param(p, "column") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["column"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["column"]),
             Ok(Some(c)) => c.to_owned(),
         };
         let value = match string_param(p, "value") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["value"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["value"]),
             Ok(Some(v)) => v.to_owned(),
         };
         let listed = match list_param(p, "rows") {
@@ -1101,7 +1116,7 @@ impl ShellModel {
         };
         let Some(col) = view.table.columns.iter().position(|c| c.key == column) else {
             let keys: Vec<&str> = view.table.columns.iter().map(|c| c.key.as_str()).collect();
-            return failed("error-nav-value", &["column", &column, &keys.join(", ")]);
+            return failed(key!("error-nav-value"), &["column", &column, &keys.join(", ")]);
         };
         let rows: Vec<u32> = match listed {
             Some(keys) => {
@@ -1115,7 +1130,7 @@ impl ShellModel {
                         .find(|i| view.table.nodes[**i as usize].key == key)
                     {
                         Some(i) => out.push(*i),
-                        None => return failed("error-nav-key", &[k, kind.word()]),
+                        None => return failed(key!("error-nav-key"), &[k, kind.word()]),
                     }
                 }
                 out.sort_by_key(|i| view.number(*i));
@@ -1127,7 +1142,7 @@ impl ShellModel {
         };
         if rows.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         }
         let cells = self.column_cells(&view, &rows, col, &value);
@@ -1149,7 +1164,7 @@ impl ShellModel {
         };
         if marked < 2 || view.acted.len() < 2 {
             return Outcome::Refused {
-                reason_key: "reason-table-mark-fill",
+                reason_key: key!("reason-table-mark-fill"),
             };
         }
         let text = view.table.nodes[view.acted[0] as usize]
@@ -1215,7 +1230,7 @@ impl ShellModel {
         };
         if view.acted.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         }
         let texts = pattern_texts(nav, &template, None);
@@ -1246,7 +1261,7 @@ impl ShellModel {
                 Some(t) => t.to_owned(),
                 None => {
                     return Outcome::Refused {
-                        reason_key: "reason-clipboard-empty",
+                        reason_key: key!("reason-clipboard-empty"),
                     };
                 }
             },
@@ -1318,9 +1333,9 @@ impl ShellModel {
                     }
                     (at, col) => {
                         let reason = if at.is_none() {
-                            "table-no-row"
+                            key!("table-no-row")
                         } else {
-                            "table-no-column"
+                            key!("table-no-column")
                         };
                         cells.push(GestureCell {
                             row: at.map_or_else(String::new, |i| view.table.nodes[i as usize].key.clone()),
@@ -1366,7 +1381,7 @@ impl ShellModel {
         };
         if view.acted.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         }
         let mut grid: Vec<Vec<String>> = vec![
@@ -1403,7 +1418,7 @@ impl ShellModel {
         };
         if view.acted.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         }
         let cells: Vec<GestureCell> = view
@@ -1415,7 +1430,7 @@ impl ShellModel {
                     Ok((k, path)) if k == STRIP_ROUTE => self.strip_cell_value(&view, *i, &path, ""),
                     Ok((k, path)) => match cleared(route_type(&k, &path).as_ref()) {
                         Some(v) => CellValue::Valid(v),
-                        None => CellValue::Invalid(strings::text("table-not-clearable").to_owned()),
+                        None => CellValue::Invalid(strings::text(key!("table-not-clearable")).to_owned()),
                     },
                 };
                 self.cell(&view, *i, col, "", value)
@@ -1450,25 +1465,25 @@ impl ShellModel {
         };
         let Some(g) = self.table_card() else {
             return Outcome::Refused {
-                reason_key: "reason-no-card",
+                reason_key: key!("reason-no-card"),
             };
         };
         let value = match g.cells.get(cell - 1) {
-            None => return failed("error-bad-param", &["cell"]),
-            Some(c) if c.dropped => return failed("error-bad-param", &["cell"]),
+            None => return failed(key!("error-bad-param"), &["cell"]),
+            Some(c) if c.dropped => return failed(key!("error-bad-param"), &["cell"]),
             Some(c) => match &c.value {
                 CellValue::Ambiguous(readings) => match readings.get(choice - 1) {
                     Some((_, v)) => v.clone(),
-                    None => return failed("error-bad-param", &["choice"]),
+                    None => return failed(key!("error-bad-param"), &["choice"]),
                 },
-                _ => return failed("error-table-not-ambiguous", &[&cell.to_string()]),
+                _ => return failed(key!("error-table-not-ambiguous"), &[&cell.to_string()]),
             },
         };
         let Some(mut gesture) = self.take_table_card() else {
             return Outcome::Done;
         };
         gesture.cells[cell - 1].value = CellValue::Valid(value);
-        self.run_gesture(gesture, Some("reason-rebuilt"))
+        self.run_gesture(gesture, Some(key!("reason-rebuilt")))
     }
 
     /// `table.drop {cell}`: removes the card's cell `cell` (from 1) from the gesture and rebuilds the command and its
@@ -1480,17 +1495,17 @@ impl ShellModel {
         };
         let Some(g) = self.table_card() else {
             return Outcome::Refused {
-                reason_key: "reason-no-card",
+                reason_key: key!("reason-no-card"),
             };
         };
         if !g.cells.get(cell - 1).is_some_and(|c| !c.dropped) {
-            return failed("error-bad-param", &["cell"]);
+            return failed(key!("error-bad-param"), &["cell"]);
         }
         let Some(mut gesture) = self.take_table_card() else {
             return Outcome::Done;
         };
         gesture.cells[cell - 1].dropped = true;
-        self.run_gesture(gesture, Some("reason-rebuilt"))
+        self.run_gesture(gesture, Some(key!("reason-rebuilt")))
     }
 
     /// The navigator pane's part of the Escape chain in table mode: the pattern dialog or the cell edit, then the table

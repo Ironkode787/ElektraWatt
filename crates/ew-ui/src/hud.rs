@@ -15,6 +15,7 @@
 
 use egui::{Id, Pos2, Rect, Sense, Ui, UiBuilder, Vec2, pos2, vec2};
 use ew_viewmodel::command_bar::{CommandButton, action_button, hud};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::Value;
@@ -105,7 +106,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
             ui.set_clip_rect(pane);
             let status_id = Id::unique("tool-hud-status");
             let status = ui.interact(rect, status_id, Sense::hover());
-            let name = strings::text("hud-name").to_owned();
+            let name = strings::text(key!("hud-name")).to_owned();
             status.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Status, true, &name));
             ui.ctx().accesskit_node_builder(status_id, |n| {
                 n.set_value(value.clone());

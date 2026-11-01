@@ -81,7 +81,7 @@ fn done(shell: &mut ShellModel, action: &str, params: Value) {
 #[track_caller]
 fn refused(shell: &mut ShellModel, action: &str, params: Value) -> &'static str {
     match shell.dispatch(action, &params) {
-        Outcome::Refused { reason_key } => reason_key,
+        Outcome::Refused { reason_key } => reason_key.as_str(),
         other => panic!("{action}: {other:?}"),
     }
 }

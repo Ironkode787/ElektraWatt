@@ -13,8 +13,10 @@
 
 use serde_json::{Value, json};
 
+use crate::key;
 use crate::shell::{ConfirmAnswer, Dialog, PURGE_LISTED, ShellModel};
 use crate::strings;
+use crate::strings::Key;
 
 /// What a dialog button does.
 #[derive(Clone, PartialEq, Debug)]
@@ -42,7 +44,7 @@ pub struct DialogButton {
 }
 
 impl DialogButton {
-    fn new(key: &str, answer: DialogAnswer) -> DialogButton {
+    fn new(key: Key<'_>, answer: DialogAnswer) -> DialogButton {
         DialogButton {
             label: strings::text(key).to_owned(),
             answer,
@@ -94,11 +96,11 @@ impl DialogSpec {
 }
 
 fn close() -> DialogButton {
-    DialogButton::new("dialog-close", DialogAnswer::Dismiss)
+    DialogButton::new(key!("dialog-close"), DialogAnswer::Dismiss)
 }
 
 fn cancel() -> DialogButton {
-    DialogButton::new("dialog-cancel", DialogAnswer::Dismiss)
+    DialogButton::new(key!("dialog-cancel"), DialogAnswer::Dismiss)
 }
 
 /// The specification of `dialog` in the state of `model`.
@@ -115,52 +117,60 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
     match dialog {
         Dialog::About => DialogSpec {
             secondary: vec![
-                DialogButton::new("about-privacy-button", DialogAnswer::OpenPrivacy),
+                DialogButton::new(key!("about-privacy-button"), DialogAnswer::OpenPrivacy),
                 DialogButton::new(
-                    "about-notices-button",
+                    key!("about-notices-button"),
                     DialogAnswer::Action("help.notices", Value::Null),
                 ),
                 DialogButton::new(
-                    "about-docs-button",
+                    key!("about-docs-button"),
                     DialogAnswer::Action("help.documentation", json!({ "topic": "about" })),
                 ),
             ],
             ..small(
-                strings::text("about-title").to_owned(),
+                strings::text(key!("about-title")).to_owned(),
                 crate::about::about_lines(model),
                 close(),
             )
         },
         Dialog::Notices => DialogSpec {
             form: true,
-            ..small(strings::text("notices-title").to_owned(), Vec::new(), close())
+            ..small(
+                strings::text(key!("notices-title")).to_owned(),
+                Vec::new(),
+                close(),
+            )
         },
         // WP-S2.08 D8: the keymap editor; import and export a keymap file beside Close.
         Dialog::Shortcuts => DialogSpec {
             form: true,
             secondary: vec![
                 DialogButton::new(
-                    "action-keymap-import",
+                    key!("action-keymap-import"),
                     DialogAnswer::Action("keymap.import", Value::Null),
                 ),
                 DialogButton::new(
-                    "action-keymap-export",
+                    key!("action-keymap-export"),
                     DialogAnswer::Action("keymap.export", Value::Null),
                 ),
             ],
-            ..small(strings::text("shortcuts-title").to_owned(), Vec::new(), close())
+            ..small(
+                strings::text(key!("shortcuts-title")).to_owned(),
+                Vec::new(),
+                close(),
+            )
         },
         // The quit and close prompt (doc 16a §6.12): Save, Cancel, and Don't save apart.
         Dialog::ConfirmDiscard { .. } => DialogSpec {
-            title: strings::format("confirm-title", &[model.project_name().unwrap_or("")]),
-            body: vec![strings::text("confirm-text").to_owned()],
-            primary: DialogButton::new("dialog-save", DialogAnswer::Confirm(ConfirmAnswer::Save)),
+            title: strings::format(key!("confirm-title"), &[model.project_name().unwrap_or("")]),
+            body: vec![strings::text(key!("confirm-text")).to_owned()],
+            primary: DialogButton::new(key!("dialog-save"), DialogAnswer::Confirm(ConfirmAnswer::Save)),
             secondary: vec![DialogButton::new(
-                "dialog-cancel",
+                key!("dialog-cancel"),
                 DialogAnswer::Confirm(ConfirmAnswer::Cancel),
             )],
             danger: Some(DialogButton::new(
-                "dialog-dont-save",
+                key!("dialog-dont-save"),
                 DialogAnswer::Confirm(ConfirmAnswer::Discard),
             )),
             asks: true,
@@ -170,45 +180,52 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             secondary: vec![cancel()],
             asks: true,
             ..small(
-                strings::text("confirm-check-scheme-title").to_owned(),
-                vec![strings::format("confirm-check-scheme-text", &[scheme])],
+                strings::text(key!("confirm-check-scheme-title")).to_owned(),
+                vec![strings::format(key!("confirm-check-scheme-text"), &[scheme])],
                 DialogButton::new(
-                    "dialog-apply",
+                    key!("dialog-apply"),
                     DialogAnswer::Action("wizard.apply_check_scheme", json!({ "confirm": true })),
                 ),
             )
         },
         Dialog::ConfirmJournalDiscard => DialogSpec {
             danger: Some(DialogButton::new(
-                "dialog-discard",
+                key!("dialog-discard"),
                 DialogAnswer::Confirm(ConfirmAnswer::Discard),
             )),
             asks: true,
             ..small(
-                strings::text("confirm-journal-title").to_owned(),
-                vec![strings::text("confirm-journal-text").to_owned()],
-                DialogButton::new("dialog-cancel", DialogAnswer::Confirm(ConfirmAnswer::Cancel)),
+                strings::text(key!("confirm-journal-title")).to_owned(),
+                vec![strings::text(key!("confirm-journal-text")).to_owned()],
+                DialogButton::new(
+                    key!("dialog-cancel"),
+                    DialogAnswer::Confirm(ConfirmAnswer::Cancel),
+                ),
             )
         },
         Dialog::ConfirmPurge { files, .. } => {
-            let mut body = vec![strings::text("confirm-purge-text").to_owned()];
+            let mut body = vec![strings::text(key!("confirm-purge-text")).to_owned()];
             if files.len() > PURGE_LISTED {
                 let more = (files.len() - PURGE_LISTED).to_string();
-                body.push(strings::format("confirm-purge-more", &[&more]));
+                body.push(strings::format(key!("confirm-purge-more"), &[&more]));
             }
             DialogSpec {
                 danger: Some(DialogButton::new(
-                    "dialog-purge",
+                    key!("dialog-purge"),
                     DialogAnswer::Action("project.purge_assets", json!({ "confirm": true })),
                 )),
                 asks: true,
-                ..small(strings::text("confirm-purge-title").to_owned(), body, cancel())
+                ..small(
+                    strings::text(key!("confirm-purge-title")).to_owned(),
+                    body,
+                    cancel(),
+                )
             }
         }
         // WP-S2.07 part 4a (D19): Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
         Dialog::PartChoose(c) => {
             let body = if c.offers.is_empty() {
-                vec![strings::format("part-choose-empty", &[&c.query.text])]
+                vec![strings::format(key!("part-choose-empty"), &[&c.query.text])]
             } else {
                 Vec::new()
             };
@@ -219,7 +236,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                     c.title(),
                     body,
                     DialogButton::new(
-                        "dialog-part-choose-button",
+                        key!("dialog-part-choose-button"),
                         DialogAnswer::Action("part.pick", Value::Null),
                     ),
                 )
@@ -228,7 +245,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         // WP-S2.07 part 4a (D20): Save (Enter) and Cancel; a fork says that the library is not changed.
         Dialog::PartEdit(e) => {
             let body = if e.draft.fork {
-                vec![strings::text("part-edit-fork-note").to_owned()]
+                vec![strings::text(key!("part-edit-fork-note")).to_owned()]
             } else {
                 Vec::new()
             };
@@ -238,7 +255,10 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 ..small(
                     e.title(),
                     body,
-                    DialogButton::new("dialog-save", DialogAnswer::Action("part.save", Value::Null)),
+                    DialogButton::new(
+                        key!("dialog-save"),
+                        DialogAnswer::Action("part.save", Value::Null),
+                    ),
                 )
             }
         }
@@ -251,20 +271,20 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             ..
         } => {
             let mut body = vec![
-                strings::format("recovery-text", &[name]),
-                strings::format("recovery-count", &[&transactions.to_string()]),
+                strings::format(key!("recovery-text"), &[name]),
+                strings::format(key!("recovery-count"), &[&transactions.to_string()]),
             ];
             if !base_matches {
-                body.push(strings::text("recovery-moved").to_owned());
+                body.push(strings::text(key!("recovery-moved")).to_owned());
             }
             let keep = DialogButton::new(
-                "action-journal-keep",
+                key!("action-journal-keep"),
                 DialogAnswer::Action("journal.keep", Value::Null),
             );
             let (primary, secondary) = if failed.is_none() {
                 (
                     DialogButton::new(
-                        "action-journal-recover",
+                        key!("action-journal-recover"),
                         DialogAnswer::Action("journal.recover", Value::Null),
                     ),
                     vec![keep],
@@ -273,12 +293,12 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
                 (keep, Vec::new())
             };
             DialogSpec {
-                title: strings::text("recovery-title").to_owned(),
+                title: strings::text(key!("recovery-title")).to_owned(),
                 body,
                 primary,
                 secondary,
                 danger: Some(DialogButton::new(
-                    "recovery-discard",
+                    key!("recovery-discard"),
                     DialogAnswer::Action("file.discard_journal", Value::Null),
                 )),
                 asks: true,
@@ -288,17 +308,17 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::GotoPage { .. } => DialogSpec {
             secondary: vec![cancel()],
             ..small(
-                strings::text("goto-title").to_owned(),
+                strings::text(key!("goto-title")).to_owned(),
                 Vec::new(),
-                DialogButton::new("dialog-go", DialogAnswer::Submit),
+                DialogButton::new(key!("dialog-go"), DialogAnswer::Submit),
             )
         },
         Dialog::SaveWorkspace { .. } => DialogSpec {
             secondary: vec![cancel()],
             ..small(
-                strings::text("save-workspace-title").to_owned(),
+                strings::text(key!("save-workspace-title")).to_owned(),
                 Vec::new(),
-                DialogButton::new("dialog-save-workspace", DialogAnswer::Submit),
+                DialogButton::new(key!("dialog-save-workspace"), DialogAnswer::Submit),
             )
         },
         Dialog::Form(form) if form.action.starts_with("revision.") => revision_spec(form, model),
@@ -328,7 +348,7 @@ fn revision_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogS
         });
     let title = strings::format(form.title_key, &[&label]);
     let confirm =
-        |key: &str| DialogButton::new(key, DialogAnswer::Action(form.action, json!({ "confirm": true })));
+        |key: Key<'_>| DialogButton::new(key, DialogAnswer::Action(form.action, json!({ "confirm": true })));
     let base = DialogSpec {
         asks: title.ends_with('?'),
         title,
@@ -355,16 +375,16 @@ fn revision_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogS
         let mut secondary = Vec::new();
         if complete {
             secondary.push(DialogButton::new(
-                "dialog-complete-release",
+                key!("dialog-complete-release"),
                 DialogAnswer::Action(form.action, json!({ "how": "complete" })),
             ));
         }
         return DialogSpec {
-            primary: DialogButton::new("dialog-not-now", DialogAnswer::Dismiss),
+            primary: DialogButton::new(key!("dialog-not-now"), DialogAnswer::Dismiss),
             secondary,
             danger: discard.then(|| {
                 DialogButton::new(
-                    "dialog-discard-archive",
+                    key!("dialog-discard-archive"),
                     DialogAnswer::Action(form.action, json!({ "how": "discard" })),
                 )
             }),

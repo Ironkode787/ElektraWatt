@@ -5,6 +5,7 @@
 //! editor) and FT-490's generic half (CT4: Delete in a tree with the card, F2 rename on Pages and Potentials).
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done, refused, state};
 use ew_viewmodel::ew_api::output::NavRole;
@@ -195,7 +196,7 @@ fn ct4_tree_delete_opens_the_card() {
     let (n, rev) = (steps(&s), s.revision());
     done(&mut s, "navigator.delete", json!({"kind": "cables"}));
     let card = s.properties().card().expect("the card");
-    assert_eq!(card.reason, "reason-nav-delete");
+    assert_eq!(card.reason, key!("reason-nav-delete"));
     assert_eq!(card.preview.name, "edit.delete");
     assert_eq!((steps(&s), s.revision()), (n, rev), "nothing committed");
     done(&mut s, "preview.apply", json!({}));

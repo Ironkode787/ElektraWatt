@@ -8,6 +8,7 @@
 //! `ui.dismiss`, which reaches the tool). The buffer starts as the ghost's text and is dropped when the popup closes.
 
 use egui::{Align2, Id, Window};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::json;
@@ -33,10 +34,10 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, buffer: &mut Option<String>
         .collapsible(false)
         .resizable(false)
         .show(ctx, |ui| {
-            ui.label(strings::text("action-text-input"));
+            ui.label(strings::text(key!("action-text-input")));
             let edit = ui.add(egui::TextEdit::singleline(text).desired_width(320.0));
             // Named for assistive technology (and the tests), as the tool strip's fields are.
-            let label = strings::text("action-text-input").to_owned();
+            let label = strings::text(key!("action-text-input")).to_owned();
             edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
             if first {
                 edit.request_focus();

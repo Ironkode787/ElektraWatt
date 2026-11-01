@@ -7,6 +7,7 @@
 //! `Session` counts of pointer and cursor moves. Every test works on a writable temporary copy of Golden A.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, at, click, done, refused, state};
 use ew_viewmodel::ew_api::output::{PageTables, TableRep};
@@ -914,7 +915,7 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
     let select_hint = state(&s)["status"][0].clone();
     done(&mut s, "place.pick", json!({"symbol": "ew.iec.terminal@qet10"}));
     assert_eq!(state(&s)["canvas"]["picker"]["mode"], "strip");
-    let hint = ew_viewmodel::strings::text("hint-choose-strip");
+    let hint = ew_viewmodel::strings::text(key!("hint-choose-strip"));
     assert_eq!(state(&s)["status"][0], hint);
     assert_eq!(s.tool_hint(), hint);
     let here = sheet(&s, free_point(&s));
@@ -922,7 +923,7 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
     assert_eq!(
         s.dispatch("canvas.press", &at(here, json!({}))),
         Outcome::Refused {
-            reason_key: "reason-choose-strip"
+            reason_key: key!("reason-choose-strip")
         }
     );
     done(&mut s, "canvas.pointer", at(away, json!({})));

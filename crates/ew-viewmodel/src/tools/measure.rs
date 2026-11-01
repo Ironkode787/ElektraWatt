@@ -17,7 +17,9 @@ use super::{
     ToolOutput, dist2,
 };
 use crate::canvas::mm3;
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::MarkerKind;
 
 /// The Measure tool's state.
@@ -53,7 +55,7 @@ pub fn distance_nm(a: (i64, i64), b: (i64, i64)) -> i128 {
 pub fn measure_label(a: (i64, i64), b: (i64, i64)) -> String {
     let d = distance_nm(a, b);
     strings::format(
-        "measure-label",
+        key!("measure-label"),
         &[
             &mm3(b.0.saturating_sub(a.0)),
             &mm3(b.1.saturating_sub(a.1)),
@@ -173,10 +175,10 @@ impl Tool for MeasureTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         match self.state {
-            State::Armed => "hint-measure-armed",
-            State::Measuring { .. } => "hint-measure-measuring",
+            State::Armed => key!("hint-measure-armed"),
+            State::Measuring { .. } => key!("hint-measure-measuring"),
         }
     }
 

@@ -21,8 +21,10 @@ use ew_api::output::{NavKind, NavNode, NavRole, NavTable, StripEdit, StripEditEr
 use serde_json::{Map, Value};
 
 use super::{Mode, Outcome, ShellModel, failed, flag, string_param};
+use crate::key;
 use crate::navigators::table::{Chooser, TableMode};
 use crate::strings;
+use crate::strings::Key;
 
 /// The strip a gesture acts on and the rows it acts on, in display order.
 struct Rows {
@@ -78,12 +80,12 @@ fn record(node: &NavNode) -> Option<Uuid> {
 impl ShellModel {
     /// The context of the strip editor's gestures (§6.9): the Terminal strips navigator is open and focused (headless:
     /// open).
-    pub(crate) fn strip_editor_shown(&self) -> Result<(), &'static str> {
+    pub(crate) fn strip_editor_shown(&self) -> Result<(), Key<'static>> {
         if !self.navigator_open(NavKind::Strips) {
-            return Err("reason-not-strip-editor");
+            return Err(key!("reason-not-strip-editor"));
         }
         if self.mode != Mode::Headless && self.focused_navigator() != Some(NavKind::Strips) {
-            return Err("reason-not-strip-editor");
+            return Err(key!("reason-not-strip-editor"));
         }
         Ok(())
     }
@@ -94,10 +96,10 @@ impl ShellModel {
             return Err(Outcome::Refused { reason_key });
         }
         let nav = self.generic(NavKind::Strips).ok_or(Outcome::Refused {
-            reason_key: "reason-not-strip-editor",
+            reason_key: key!("reason-not-strip-editor"),
         })?;
         let table = Arc::clone(nav.table().ok_or(Outcome::Refused {
-            reason_key: "reason-no-nav-row",
+            reason_key: key!("reason-no-nav-row"),
         })?);
         let mut rows: Vec<usize> = nav
             .marked()
@@ -112,7 +114,7 @@ impl ShellModel {
         rows.sort_unstable();
         if rows.is_empty() {
             return Err(Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             });
         }
         Ok(Rows { table, rows })
@@ -177,7 +179,7 @@ impl ShellModel {
     pub(crate) fn act_strip_edit(&mut self, p: &Map<String, Value>) -> Outcome {
         if !self.has_project() {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         }
         let given = match string_param(p, "strip") {
@@ -226,7 +228,7 @@ impl ShellModel {
                         || record(n).is_some_and(|r| r.to_string() == *text)
                 }) {
                     Some(i) => i,
-                    None => return failed("error-nav-key", &[text, NavKind::Strips.word()]),
+                    None => return failed(key!("error-nav-key"), &[text, NavKind::Strips.word()]),
                 }
             }
             None => match selected.or(from_cursor) {
@@ -234,13 +236,13 @@ impl ShellModel {
                     Some(i) => i,
                     None => {
                         return Outcome::Refused {
-                            reason_key: "reason-no-strip",
+                            reason_key: key!("reason-no-strip"),
                         };
                     }
                 },
                 None => {
                     return Outcome::Refused {
-                        reason_key: "reason-no-strip",
+                        reason_key: key!("reason-no-strip"),
                     };
                 }
             },
@@ -275,7 +277,7 @@ impl ShellModel {
             None => 1,
             Some(v) => match v.as_u64().and_then(|n| u32::try_from(n).ok()).filter(|n| *n >= 1) {
                 Some(n) => n,
-                None => return failed("error-bad-param", &["count"]),
+                None => return failed(key!("error-bad-param"), &["count"]),
             },
         };
         let designation = match string_param(p, "designation") {
@@ -283,7 +285,7 @@ impl ShellModel {
             Err(e) => return e,
         };
         if designation.is_some() && count != 1 {
-            return failed("error-bad-param", &["designation"]);
+            return failed(key!("error-bad-param"), &["designation"]);
         }
         let cursor = self
             .generic(NavKind::Strips)
@@ -291,12 +293,12 @@ impl ShellModel {
             .unwrap_or(rows.rows[0]);
         let Some(s) = rows.strip_of(cursor) else {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         };
         let Some(strip) = record(rows.node(s)) else {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         };
         // The next terminal row at or after the cursor.
@@ -331,17 +333,17 @@ impl ShellModel {
         let text = match before_row {
             Some(i) => {
                 let key = if count == 1 {
-                    "toast-strip-inserted-one"
+                    key!("toast-strip-inserted-one")
                 } else {
-                    "toast-strip-inserted"
+                    key!("toast-strip-inserted")
                 };
                 strings::format(key, &[&n, &rows.name(i)])
             }
             None => {
                 let key = if count == 1 {
-                    "toast-strip-appended-one"
+                    key!("toast-strip-appended-one")
                 } else {
-                    "toast-strip-appended"
+                    key!("toast-strip-appended")
                 };
                 strings::format(key, &[&n, &rows.node(s).label])
             }
@@ -381,19 +383,21 @@ impl ShellModel {
     fn strip_command(&self, edit: &StripEdit) -> Result<ew_api::AnyCommand, Outcome> {
         let Some(project) = &self.project else {
             return Err(Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             });
         };
         if !self.is_writable() {
             return Err(Outcome::Refused {
-                reason_key: "reason-read-only",
+                reason_key: key!("reason-read-only"),
             });
         }
         project.session.strip_edit(edit).map_err(|e| match e {
-            StripEditError::Refused(reason_key) => Outcome::Refused { reason_key },
+            StripEditError::Refused(reason_key) => Outcome::Refused {
+                reason_key: Key::run_time(reason_key),
+            },
             StripEditError::Invalid(message) => Outcome::Failed { message },
             StripEditError::Ambiguous(choices) => failed(
-                "error-accessory-part-ambiguous",
+                key!("error-accessory-part-ambiguous"),
                 &[&choices
                     .iter()
                     .map(|c| c.text.as_str())
@@ -424,13 +428,13 @@ impl ShellModel {
             .collect();
         if !terminals.is_empty() && !accessories.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-strip-mixed-rows",
+                reason_key: key!("reason-strip-mixed-rows"),
             };
         }
         if !terminals.is_empty() {
             if !self.is_writable() {
                 return Outcome::Refused {
-                    reason_key: "reason-read-only",
+                    reason_key: key!("reason-read-only"),
                 };
             }
             let targets: Vec<Value> = terminals
@@ -441,12 +445,12 @@ impl ShellModel {
             return self.preview_host_card(
                 "edit.delete",
                 serde_json::json!({ "targets": targets }),
-                "reason-strip-delete",
+                key!("reason-strip-delete"),
             );
         }
         if accessories.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         }
         // One RemoveAccessories per strip, in row order.
@@ -474,22 +478,26 @@ impl ShellModel {
         };
         if !self.is_writable() {
             return Outcome::Refused {
-                reason_key: "reason-read-only",
+                reason_key: key!("reason-read-only"),
             };
         }
         let cmd = match project.session.strip_edits(&edits) {
             Ok(c) => c,
-            Err(StripEditError::Refused(reason_key)) => return Outcome::Refused { reason_key },
+            Err(StripEditError::Refused(reason_key)) => {
+                return Outcome::Refused {
+                    reason_key: Key::run_time(reason_key),
+                };
+            }
             Err(StripEditError::Invalid(message)) => return Outcome::Failed { message },
-            Err(StripEditError::Ambiguous(_)) => return failed("error-bad-param", &["rows"]),
+            Err(StripEditError::Ambiguous(_)) => return failed(key!("error-bad-param"), &["rows"]),
         };
         let out = self.run_commit(&cmd);
         if out == Outcome::Done {
             let n = accessories.len();
             let text = if n == 1 {
-                strings::text("toast-accessories-removed-one").to_owned()
+                strings::text(key!("toast-accessories-removed-one")).to_owned()
             } else {
-                strings::format("toast-accessories-removed", &[&n.to_string()])
+                strings::format(key!("toast-accessories-removed"), &[&n.to_string()])
             };
             self.notify(text, true);
             if let Some(n) = self.generic_mut(NavKind::Strips) {
@@ -509,13 +517,13 @@ impl ShellModel {
         };
         if rows.rows.iter().any(|i| rows.node(*i).role != NavRole::Terminal) {
             return Outcome::Refused {
-                reason_key: "reason-strip-mixed-rows",
+                reason_key: key!("reason-strip-mixed-rows"),
             };
         }
         let strips: BTreeSet<usize> = rows.rows.iter().filter_map(|i| rows.strip_of(*i)).collect();
         let [s] = strips.into_iter().collect::<Vec<_>>()[..] else {
             return Outcome::Refused {
-                reason_key: "reason-bridge-strips",
+                reason_key: key!("reason-bridge-strips"),
             };
         };
         let order: Vec<usize> = rows
@@ -534,13 +542,13 @@ impl ShellModel {
             (Some(t), _) if t == "end" => None,
             (Some(t), _) => match order.iter().copied().find(|i| rows.node(*i).label == t) {
                 Some(i) => Some(i),
-                None => return failed("error-nav-key", &[&t, NavKind::Strips.word()]),
+                None => return failed(key!("error-nav-key"), &[&t, NavKind::Strips.word()]),
             },
             (None, Some(-1)) => {
                 let first = at(moved[0]);
                 if first == 0 {
                     return Outcome::Refused {
-                        reason_key: "reason-strip-move-none",
+                        reason_key: key!("reason-strip-move-none"),
                     };
                 }
                 Some(order[first - 1])
@@ -550,13 +558,13 @@ impl ShellModel {
                 // The first terminal after the last moved one that is not moved; the moved ones go after it.
                 let Some(next) = order[last + 1..].iter().position(|i| !moved.contains(i)) else {
                     return Outcome::Refused {
-                        reason_key: "reason-strip-move-none",
+                        reason_key: key!("reason-strip-move-none"),
                     };
                 };
                 order.get(last + 1 + next + 1).copied()
             }
-            (None, Some(_)) => return failed("error-bad-param", &["step"]),
-            (None, None) => return failed("error-missing-param", &["step"]),
+            (None, Some(_)) => return failed(key!("error-bad-param"), &["step"]),
+            (None, None) => return failed(key!("error-missing-param"), &["step"]),
         };
         let edit = StripEdit::Move {
             terminals: moved.iter().filter_map(|i| record(rows.node(*i))).collect(),
@@ -571,9 +579,9 @@ impl ShellModel {
             let n = moved.len();
             let strip = rows.node(s).label.clone();
             let text = if n == 1 {
-                strings::format("toast-strip-moved-one", &[&n.to_string(), &strip])
+                strings::format(key!("toast-strip-moved-one"), &[&n.to_string(), &strip])
             } else {
-                strings::format("toast-strip-moved", &[&n.to_string(), &strip])
+                strings::format(key!("toast-strip-moved"), &[&n.to_string(), &strip])
             };
             self.notify(text, true);
         }
@@ -595,7 +603,7 @@ impl ShellModel {
         };
         if !ew_api::output::ACCESSORY_KINDS.contains(&kind.as_str()) {
             return failed(
-                "error-nav-value",
+                key!("error-nav-value"),
                 &["kind", &kind, &ew_api::output::ACCESSORY_KINDS.join(", ")],
             );
         }
@@ -605,12 +613,12 @@ impl ShellModel {
         };
         let Some(nav) = self.generic(NavKind::Strips) else {
             return Outcome::Refused {
-                reason_key: "reason-not-strip-editor",
+                reason_key: key!("reason-not-strip-editor"),
             };
         };
         let Some(table) = nav.table().map(Arc::clone) else {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         };
         let Some((cursor, _)) = nav
@@ -618,7 +626,7 @@ impl ShellModel {
             .and_then(|k| nav.node_of(&k).map(|(i, n)| (i as usize, n.key.clone())))
         else {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         };
         let rows = Rows {
@@ -627,12 +635,12 @@ impl ShellModel {
         };
         let Some(s) = rows.strip_of(cursor) else {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         };
         let Some(strip) = record(rows.node(s)) else {
             return Outcome::Refused {
-                reason_key: "reason-no-nav-row",
+                reason_key: key!("reason-no-nav-row"),
             };
         };
         let pos = rows.cell(cursor, "pos");
@@ -669,12 +677,16 @@ impl ShellModel {
         };
         if !self.is_writable() {
             return Outcome::Refused {
-                reason_key: "reason-read-only",
+                reason_key: key!("reason-read-only"),
             };
         }
         let cmd = match project.session.strip_edit(&edit) {
             Ok(c) => c,
-            Err(StripEditError::Refused(reason_key)) => return Outcome::Refused { reason_key },
+            Err(StripEditError::Refused(reason_key)) => {
+                return Outcome::Refused {
+                    reason_key: Key::run_time(reason_key),
+                };
+            }
             Err(StripEditError::Invalid(message)) => return Outcome::Failed { message },
             Err(StripEditError::Ambiguous(choices)) => {
                 let list = choices
@@ -697,7 +709,7 @@ impl ShellModel {
                         return Outcome::Done;
                     }
                 }
-                return failed("error-accessory-part-ambiguous", &[&list]);
+                return failed(key!("error-accessory-part-ambiguous"), &[&list]);
             }
         };
         let out = self.run_commit(&cmd);
@@ -712,13 +724,15 @@ impl ShellModel {
         }
         let word = ew_api::output::accessory_kind_word(&kind);
         let text = match rows.node(cursor).role {
-            NavRole::Strip => strings::format("toast-accessory-added-first", &[word, &rows.node(s).label]),
-            NavRole::Terminal if before => {
-                strings::format("toast-accessory-added-before", &[word, &rows.name(cursor)])
+            NavRole::Strip => {
+                strings::format(key!("toast-accessory-added-first"), &[word, &rows.node(s).label])
             }
-            NavRole::Terminal => strings::format("toast-accessory-added", &[word, &rows.name(cursor)]),
+            NavRole::Terminal if before => {
+                strings::format(key!("toast-accessory-added-before"), &[word, &rows.name(cursor)])
+            }
+            NavRole::Terminal => strings::format(key!("toast-accessory-added"), &[word, &rows.name(cursor)]),
             _ => strings::format(
-                "toast-accessory-added",
+                key!("toast-accessory-added"),
                 &[word, &format!("{} {}", rows.node(s).label, pos)],
             ),
         };

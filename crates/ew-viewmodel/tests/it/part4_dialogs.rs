@@ -7,6 +7,7 @@
 //! gives each result its breadcrumb; FT-510's outcome words.
 
 use crate::common;
+use ew_viewmodel::strings::Key;
 
 use std::collections::BTreeSet;
 
@@ -212,29 +213,12 @@ fn case_breaks(text: &str) -> Vec<String> {
     out
 }
 
-/// Every string literal value of `strings::lookup` (read from its source: the texts are a `match`).
+/// Every text of `strings::TEXTS`.
 fn ui_strings() -> Vec<String> {
-    let source = include_str!("../../src/strings.rs");
-    let body = source.split("pub fn lookup").nth(1).unwrap();
-    let body = body.split("_ => return None").next().unwrap();
-    let mut out = Vec::new();
-    for line in body.lines() {
-        let line = line.trim();
-        if line.starts_with("//") {
-            continue;
-        }
-        // `"key" => "value",` or a continuation line `"value"`.
-        let value = match line.split_once("=> ") {
-            Some((_, v)) => v,
-            None => line,
-        };
-        if let Some(v) = value.strip_prefix('"')
-            && let Some(end) = v.rfind('"')
-        {
-            out.push(v[..end].replace("\\\"", "\""));
-        }
-    }
-    out
+    strings::TEXTS
+        .iter()
+        .map(|(_, text)| (*text).to_owned())
+        .collect()
 }
 
 /// The actions whose dispatch opens a dialog, a picker, a pane that takes the input, or the system's file dialog
@@ -300,7 +284,10 @@ fn cp3_the_wording_lint() {
     let (mut shell, dialogs) = every_dialog(&tmp);
     let mut texts: Vec<(String, String)> = Vec::new();
     for meta in ACTIONS {
-        texts.push((meta.id.to_owned(), strings::text(&meta.label_key()).to_owned()));
+        texts.push((
+            meta.id.to_owned(),
+            strings::text(Key::run_time(&meta.label_key())).to_owned(),
+        ));
     }
     for d in &dialogs {
         let s = spec(d, &shell);
@@ -333,7 +320,7 @@ fn cp3_the_wording_lint() {
     // The ellipsis ends exactly the labels of the actions that ask for more input first.
     let with: BTreeSet<&str> = ACTIONS
         .iter()
-        .filter(|m| strings::text(&m.label_key()).ends_with('…'))
+        .filter(|m| strings::text(Key::run_time(&m.label_key())).ends_with('…'))
         .map(|m| m.id)
         .collect();
     let expected: BTreeSet<&str> = OPENS_INPUT

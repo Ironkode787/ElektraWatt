@@ -5,6 +5,7 @@
 //! FT-547, FT-550, FT-578), through the text interface.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done, state};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
@@ -100,12 +101,12 @@ fn ft543_a_designation_on_a_device_says_where_its_tag_is_set() {
         assert_eq!(
             out,
             Outcome::Refused {
-                reason_key: "reason-no-strip"
+                reason_key: key!("reason-no-strip")
             },
             "{name}"
         );
     }
-    let text = strings::text("reason-no-strip");
+    let text = strings::text(key!("reason-no-strip"));
     assert!(text.contains("terminal designation"), "{text}");
     assert!(text.contains("a device's tag is set in its properties"), "{text}");
 }

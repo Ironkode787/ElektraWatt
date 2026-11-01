@@ -28,7 +28,9 @@
 use std::path::Path;
 
 use crate::actions::{ACTIONS, ActionMeta, Context};
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 /// The user's keymap file inside the settings directory (D6).
 pub const USER_FILE: &str = "keymap.toml";
@@ -132,7 +134,7 @@ impl Chord {
     pub fn parse(text: &str) -> Result<Chord, String> {
         let parts: Vec<&str> = text.split('+').map(str::trim).collect();
         let Some((key, modifiers)) = parts.split_last() else {
-            return Err(strings::format("keymap-error-key", &[text]));
+            return Err(strings::format(key!("keymap-error-key"), &[text]));
         };
         let mut chord = Chord {
             ctrl: false,
@@ -147,14 +149,14 @@ impl Chord {
                 "alt" => &mut chord.alt,
                 "shift" => &mut chord.shift,
                 "win" | "super" | "meta" => &mut chord.win,
-                _ => return Err(strings::format("keymap-error-modifier", &[m, text])),
+                _ => return Err(strings::format(key!("keymap-error-modifier"), &[m, text])),
             };
             if *flag {
-                return Err(strings::format("keymap-error-modifier", &[m, text]));
+                return Err(strings::format(key!("keymap-error-modifier"), &[m, text]));
             }
             *flag = true;
         }
-        chord.key = parse_key(key).ok_or_else(|| strings::format("keymap-error-key", &[text]))?;
+        chord.key = parse_key(key).ok_or_else(|| strings::format(key!("keymap-error-key"), &[text]))?;
         Ok(chord)
     }
 
@@ -407,13 +409,13 @@ impl Keymap {
     /// without `keys`, `action` or `context`, with an unknown key or context, or with a member of another type.
     pub fn parse(text: &str) -> Result<Keymap, String> {
         let table: toml::Table =
-            toml::from_str(text).map_err(|_| strings::text("keymap-error-toml").to_owned())?;
+            toml::from_str(text).map_err(|_| strings::text(key!("keymap-error-toml")).to_owned())?;
         let meta = match table.get("meta") {
             Some(toml::Value::Table(m)) => m,
-            _ => return Err(strings::text("keymap-error-meta").to_owned()),
+            _ => return Err(strings::text(key!("keymap-error-meta")).to_owned()),
         };
         if meta.get("version").and_then(toml::Value::as_integer) != Some(FORMAT_VERSION) {
-            return Err(strings::text("keymap-error-meta").to_owned());
+            return Err(strings::text(key!("keymap-error-meta")).to_owned());
         }
         let name = meta
             .get("name")
@@ -423,12 +425,12 @@ impl Keymap {
         let items = match table.get("bind") {
             None => &Vec::new(),
             Some(toml::Value::Array(items)) => items,
-            Some(_) => return Err(strings::format("keymap-error-bind", &["1"])),
+            Some(_) => return Err(strings::format(key!("keymap-error-bind"), &["1"])),
         };
         let mut binds = Vec::new();
         for (i, item) in items.iter().enumerate() {
             let n = (i + 1).to_string();
-            let bad = || strings::format("keymap-error-bind", &[&n]);
+            let bad = || strings::format(key!("keymap-error-bind"), &[&n]);
             let toml::Value::Table(b) = item else {
                 return Err(bad());
             };
@@ -442,7 +444,7 @@ impl Keymap {
                 return Err(bad());
             }
             let context = context_of_word(context)
-                .ok_or_else(|| strings::format("keymap-error-context", &[&n, context]))?;
+                .ok_or_else(|| strings::format(key!("keymap-error-context"), &[&n, context]))?;
             let keys = Chord::parse(keys).map_err(|e| format!("{} {e}", bad()))?;
             let alt = match text_of("alt") {
                 Some(a) => Some(Chord::parse(a).map_err(|e| format!("{} {e}", bad()))?),
@@ -511,7 +513,7 @@ pub fn read_user(dir: &Path) -> Result<Option<Keymap>, UserFileError> {
         Err(e) => return Err(UserFileError::Read(e.to_string())),
     };
     let text = std::str::from_utf8(&bytes)
-        .map_err(|_| UserFileError::Invalid(strings::text("keymap-error-toml").to_owned()))?;
+        .map_err(|_| UserFileError::Invalid(strings::text(key!("keymap-error-toml")).to_owned()))?;
     Keymap::parse(text).map(Some).map_err(UserFileError::Invalid)
 }
 
@@ -580,11 +582,11 @@ pub fn has_changes(preset: Preset, user: Option<&Keymap>) -> bool {
 /// The words of a context in a sentence, as the editor's column names it ("in the canvas", "everywhere").
 fn context_phrase(context: Context) -> &'static str {
     strings::text(match context {
-        Context::Global => "keymap-in-global",
-        Context::Canvas => "keymap-in-canvas",
-        Context::Navigator => "keymap-in-navigator",
-        Context::Properties => "keymap-in-properties",
-        Context::Find => "keymap-in-find",
+        Context::Global => key!("keymap-in-global"),
+        Context::Canvas => key!("keymap-in-canvas"),
+        Context::Navigator => key!("keymap-in-navigator"),
+        Context::Properties => key!("keymap-in-properties"),
+        Context::Find => key!("keymap-in-find"),
     })
 }
 
@@ -599,8 +601,10 @@ pub fn refusal_text(finding: &Finding, recorded: &str) -> String {
             actions,
         } if actions.contains(&recorded) => {
             let label = |id: &str| {
-                crate::actions::find(id)
-                    .map_or_else(|| id.to_owned(), |m| strings::text(&m.label_key()).to_owned())
+                crate::actions::find(id).map_or_else(
+                    || id.to_owned(),
+                    |m| strings::text(Key::run_time(&m.label_key())).to_owned(),
+                )
             };
             let others: Vec<String> = actions
                 .iter()
@@ -608,7 +612,7 @@ pub fn refusal_text(finding: &Finding, recorded: &str) -> String {
                 .map(|a| label(a))
                 .collect();
             strings::format(
-                "keymap-taken",
+                key!("keymap-taken"),
                 &[&chord.display(), &others.join(", "), context_phrase(*context)],
             )
         }
@@ -996,8 +1000,10 @@ impl Finding {
     /// The English text the editor and the banner show.
     pub fn text(&self) -> String {
         let label = |id: &str| {
-            crate::actions::find(id)
-                .map_or_else(|| id.to_owned(), |m| strings::text(&m.label_key()).to_owned())
+            crate::actions::find(id).map_or_else(
+                || id.to_owned(),
+                |m| strings::text(Key::run_time(&m.label_key())).to_owned(),
+            )
         };
         match self {
             Finding::Conflict {
@@ -1005,7 +1011,7 @@ impl Finding {
                 context,
                 actions,
             } => strings::format(
-                "keymap-conflict",
+                key!("keymap-conflict"),
                 &[
                     &chord.display(),
                     context_word(*context),
@@ -1018,16 +1024,16 @@ impl Finding {
                 shadowed,
                 ..
             } => strings::format(
-                "keymap-shadow",
+                key!("keymap-shadow"),
                 &[&chord.display(), context_word(*context), &label(shadowed)],
             ),
-            Finding::CtrlAlt { chord, .. } => strings::format("keymap-ctrl-alt", &[&chord.display()]),
-            Finding::Reserved { chord, .. } => strings::format("keymap-reserved", &[&chord.display()]),
+            Finding::CtrlAlt { chord, .. } => strings::format(key!("keymap-ctrl-alt"), &[&chord.display()]),
+            Finding::Reserved { chord, .. } => strings::format(key!("keymap-reserved"), &[&chord.display()]),
             Finding::NeedsShift { chord, layout, .. } => {
-                strings::format("keymap-needs-shift", &[&chord.display(), layout.name()])
+                strings::format(key!("keymap-needs-shift"), &[&chord.display(), layout.name()])
             }
             Finding::Unreachable { action, layout } => {
-                strings::format("keymap-unreachable", &[&label(action), layout.name()])
+                strings::format(key!("keymap-unreachable"), &[&label(action), layout.name()])
             }
         }
     }
@@ -1166,7 +1172,7 @@ pub fn sheet_json() -> String {
         actions.push(serde_json::json!({
             "action": meta.id,
             "label_key": meta.label_key(),
-            "label": strings::text(&meta.label_key()),
+            "label": strings::text(Key::run_time(&meta.label_key())),
             "context": context_word(meta.context),
             "bindings": bindings,
         }));
@@ -1248,7 +1254,7 @@ pub fn editor_rows(preset: Preset, user: Option<&Keymap>, query: &str) -> Vec<Ed
             let chords = chords_of(preset, user, meta);
             let row = EditorRow {
                 action: meta.id,
-                label: strings::text(&meta.label_key()).to_owned(),
+                label: strings::text(Key::run_time(&meta.label_key())).to_owned(),
                 context: chords.first().map_or(meta.context, |(_, c)| *c),
                 chords: chords.iter().map(|(c, _)| c.text()).collect(),
                 custom: is_changed(preset, user, meta),
@@ -1514,8 +1520,12 @@ mod tests {
             context: Context::Canvas,
             actions: vec!["tool.move", "tool.wire"],
         };
-        let wire = strings::text(&crate::actions::find("tool.wire").unwrap().label_key());
-        let r#move = strings::text(&crate::actions::find("tool.move").unwrap().label_key());
+        let wire = strings::text(Key::run_time(
+            &crate::actions::find("tool.wire").unwrap().label_key(),
+        ));
+        let r#move = strings::text(Key::run_time(
+            &crate::actions::find("tool.move").unwrap().label_key(),
+        ));
         assert_eq!(
             refusal_text(&conflict, "tool.wire"),
             format!("M is already {move} in the canvas.")

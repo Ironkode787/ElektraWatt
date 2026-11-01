@@ -10,6 +10,7 @@
 
 use egui::{Button, Key, Modifiers, Ui};
 use ew_viewmodel::actions::{ActionItem, MenuEntry, menu_model};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::json;
@@ -85,7 +86,7 @@ pub(crate) fn item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) {
         // FT-759: beside the entry, so that the reason never covers the next entry.
         response = response.disabled_tip_beside(reason.as_str());
     } else if item.topic.is_some() {
-        response = response.tip(strings::text("tooltip-learn-more"));
+        response = response.tip(strings::text(key!("tooltip-learn-more")));
     }
     if let Some(topic) = item.topic
         && response.contains_pointer()

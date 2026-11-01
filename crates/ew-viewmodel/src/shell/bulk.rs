@@ -28,10 +28,12 @@ use serde_json::{Map, Value, json};
 use super::creation::{FormDialog, FormField};
 use super::navigation::bump;
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
+use crate::key;
 use crate::layout::PaneKind;
 use crate::preview::{PreviewPane, XrefChange, card_key};
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::PreviewState;
 
 /// The words a boolean field of a renumber dialog offers.
@@ -54,14 +56,14 @@ fn uint_param(p: &Map<String, Value>, name: &str) -> Result<Option<u32>, Outcome
             .as_u64()
             .and_then(|v| u32::try_from(v).ok())
             .map(Some)
-            .ok_or_else(|| failed("error-bad-param", &[name])),
+            .ok_or_else(|| failed(key!("error-bad-param"), &[name])),
         Some(Value::String(s)) if s.trim().is_empty() => Ok(None),
         Some(Value::String(s)) => s
             .trim()
             .parse::<u32>()
             .map(Some)
-            .map_err(|_| failed("error-bad-param", &[name])),
-        Some(_) => Err(failed("error-bad-param", &[name])),
+            .map_err(|_| failed(key!("error-bad-param"), &[name])),
+        Some(_) => Err(failed(key!("error-bad-param"), &[name])),
     }
 }
 
@@ -74,9 +76,9 @@ fn bool_text_param(p: &Map<String, Value>, name: &str, default: bool) -> Result<
             "" => Ok(default),
             "true" => Ok(true),
             "false" => Ok(false),
-            _ => Err(failed("error-bad-param", &[name])),
+            _ => Err(failed(key!("error-bad-param"), &[name])),
         },
-        Some(_) => Err(failed("error-bad-param", &[name])),
+        Some(_) => Err(failed(key!("error-bad-param"), &[name])),
     }
 }
 
@@ -89,7 +91,7 @@ fn folio_number(folio: &str) -> Option<u32> {
 /// The text of a purge refusal: the store's own text, except a read error, whose text names a path.
 fn purge_reason(e: &PurgeError) -> String {
     match e {
-        PurgeError::Io { .. } => strings::text("purge-unreadable").to_owned(),
+        PurgeError::Io { .. } => strings::text(key!("purge-unreadable")).to_owned(),
         other => other.to_string(),
     }
 }
@@ -112,22 +114,22 @@ impl ShellModel {
         // the importer's counts, not the records of its diff (the parts and their manufacturers).
         if let crate::properties::CardOrigin::Import { created, skipped, .. } = &card.origin {
             return Some(strings::format(
-                "preview-import-summary",
+                key!("preview-import-summary"),
                 &[
-                    &strings::format_count("preview-parts-new", *created),
-                    &strings::format_count("preview-parts-skipped", *skipped),
+                    &strings::format_count(key!("preview-parts-new"), *created),
+                    &strings::format_count(key!("preview-parts-skipped"), *skipped),
                 ],
             ));
         }
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
         // Cycle 37 (window check W37): a count of one takes the singular ("1 record · 1 page").
         Some(strings::format(
-            "preview-summary",
+            key!("preview-summary"),
             &[
-                &strings::format_count("preview-records", records),
-                &strings::format_count("preview-tags-count", self.preview.tags().len()),
-                &strings::format_count("preview-xrefs-count", self.preview.xrefs().len()),
-                &strings::format_count("preview-pages-count", self.preview.pages().len()),
+                &strings::format_count(key!("preview-records"), records),
+                &strings::format_count(key!("preview-tags-count"), self.preview.tags().len()),
+                &strings::format_count(key!("preview-xrefs-count"), self.preview.xrefs().len()),
+                &strings::format_count(key!("preview-pages-count"), self.preview.pages().len()),
             ],
         ))
     }
@@ -257,13 +259,13 @@ impl ShellModel {
     /// Previews the `Bulk` command `name` with `params` through the host's path and shows its `bulk` card; a refused
     /// preview opens no card and is the outcome's message.
     pub(super) fn preview_bulk(&mut self, name: &str, params: Value) -> Outcome {
-        self.preview_host_card(name, params, "reason-bulk")
+        self.preview_host_card(name, params, key!("reason-bulk"))
     }
 
     /// Previews the command `name` that a host action built (a renumber dialog, Draw ▸ Bond) and shows its card with
     /// the reason `reason`; Apply goes through [`ShellModel::apply_bulk_card`]. A refused preview opens no card and is
     /// the outcome's message.
-    pub(super) fn preview_host_card(&mut self, name: &str, params: Value, reason: &'static str) -> Outcome {
+    pub(super) fn preview_host_card(&mut self, name: &str, params: Value, reason: Key<'static>) -> Outcome {
         self.preview_host_card_as(name, params, reason, CardOrigin::Bulk)
     }
 
@@ -272,12 +274,12 @@ impl ShellModel {
         &mut self,
         name: &str,
         params: Value,
-        reason: &'static str,
+        reason: Key<'static>,
         origin: CardOrigin,
     ) -> Outcome {
         let Some(rev) = self.revision() else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let cmd = AnyCommand {
@@ -391,7 +393,7 @@ impl ShellModel {
             "front" => None,
             text => Some(
                 text.parse::<u32>()
-                    .map_err(|_| failed("error-bad-param", &["section"]))?,
+                    .map_err(|_| failed(key!("error-bad-param"), &["section"]))?,
             ),
         };
         let pages: Vec<(Uuid, String)> = self
@@ -405,8 +407,8 @@ impl ShellModel {
             .collect();
         if pages.is_empty() {
             return Err(match number {
-                Some(_) => failed("error-no-section", &[section]),
-                None => failed("error-no-front-matter", &[]),
+                Some(_) => failed(key!("error-no-section"), &[section]),
+                None => failed(key!("error-no-front-matter"), &[]),
             });
         }
         Ok(pages)
@@ -428,7 +430,7 @@ impl ShellModel {
         };
         let Some(start) = start else {
             if self.mode == Mode::Headless || self.in_bulk_form(ACTION) {
-                let out = failed("error-missing-param", &["start"]);
+                let out = failed(key!("error-missing-param"), &["start"]);
                 return self.bulk_form_done(ACTION, out);
             }
             let first = self
@@ -439,30 +441,30 @@ impl ShellModel {
                 .unwrap_or_default();
             let form = FormDialog {
                 action: ACTION,
-                title_key: "renumber-pages-title",
-                ok_key: "dialog-renumber",
+                title_key: key!("renumber-pages-title"),
+                ok_key: key!("dialog-renumber"),
                 fields: vec![
                     FormField {
                         name: "section",
-                        label_key: "form-renumber-section",
+                        label_key: key!("form-renumber-section"),
                         choices: &[],
                         value: section,
                     },
                     FormField {
                         name: "start",
-                        label_key: "form-start",
+                        label_key: key!("form-start"),
                         choices: &[],
                         value: first,
                     },
                     FormField {
                         name: "step",
-                        label_key: "form-step",
+                        label_key: key!("form-step"),
                         choices: &[],
                         value: "1".to_owned(),
                     },
                     FormField {
                         name: "keep_gaps",
-                        label_key: "form-keep-gaps",
+                        label_key: key!("form-keep-gaps"),
                         choices: BOOL_CHOICES,
                         value: "false".to_owned(),
                     },
@@ -503,7 +505,7 @@ impl ShellModel {
                     .map(|(id, _)| id.as_uuid().to_string())
             });
             let Some(id) = id else {
-                return failed("error-no-section", &[section]);
+                return failed(key!("error-no-section"), &[section]);
             };
             json!({ "section": id })
         };
@@ -566,7 +568,7 @@ impl ShellModel {
         };
         let Some(scheme) = scheme else {
             if self.mode == Mode::Headless || self.in_bulk_form(ACTION) {
-                let out = failed("error-missing-param", &["scheme"]);
+                let out = failed(key!("error-missing-param"), &["scheme"]);
                 return self.bulk_form_done(ACTION, out);
             }
             let field = |name, label_key, choices, value: &str| FormField {
@@ -577,15 +579,20 @@ impl ShellModel {
             };
             let form = FormDialog {
                 action: ACTION,
-                title_key: "renumber-devices-title",
-                ok_key: "dialog-renumber",
+                title_key: key!("renumber-devices-title"),
+                ok_key: key!("dialog-renumber"),
                 fields: vec![
-                    field("scope", "form-scope", DEVICE_SCOPES, &scope),
-                    field("scheme", "form-scheme", SCHEMES, SCHEMES[0]),
-                    field("include_frozen", "form-include-frozen", BOOL_CHOICES, "false"),
+                    field("scope", key!("form-scope"), DEVICE_SCOPES, &scope),
+                    field("scheme", key!("form-scheme"), SCHEMES, SCHEMES[0]),
+                    field(
+                        "include_frozen",
+                        key!("form-include-frozen"),
+                        BOOL_CHOICES,
+                        "false",
+                    ),
                     field(
                         "only_nonconforming",
-                        "form-only-nonconforming",
+                        key!("form-only-nonconforming"),
                         BOOL_CHOICES,
                         "true",
                     ),
@@ -602,7 +609,7 @@ impl ShellModel {
     /// The `numbering.renumber` of [`ShellModel::act_devices_renumber`] once its scheme is known.
     fn renumber_devices(&mut self, scope: &str, scheme: &str, p: &Map<String, Value>) -> Outcome {
         if !SCHEMES.contains(&scheme) {
-            return failed("error-bad-param", &["scheme"]);
+            return failed(key!("error-bad-param"), &["scheme"]);
         }
         let include_frozen = match bool_text_param(p, "include_frozen", false) {
             Err(e) => return e,
@@ -624,7 +631,7 @@ impl ShellModel {
                     Some(r) => json!({ "pages": [r.id.to_string()] }),
                     None => {
                         return Outcome::Refused {
-                            reason_key: "reason-no-page",
+                            reason_key: key!("reason-no-page"),
                         };
                     }
                 }
@@ -633,12 +640,12 @@ impl ShellModel {
                 let devices = self.selected_devices();
                 if devices.is_empty() {
                     return Outcome::Refused {
-                        reason_key: "reason-no-devices-selected",
+                        reason_key: key!("reason-no-devices-selected"),
                     };
                 }
                 json!({ "selection": devices })
             }
-            _ => return failed("error-bad-param", &["scope"]),
+            _ => return failed(key!("error-bad-param"), &["scope"]),
         };
         self.preview_bulk(
             "numbering.renumber",
@@ -661,7 +668,7 @@ impl ShellModel {
     pub(crate) fn act_purge_assets(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::Refused {
-                reason_key: "reason-human-only",
+                reason_key: key!("reason-human-only"),
             };
         }
         let confirm = match super::jobs::bool_param(p, "confirm", false) {
@@ -670,17 +677,17 @@ impl ShellModel {
         };
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         if !confirm {
             let plan = match project.session.purge_preview() {
                 Ok(plan) => plan,
-                Err(e) => return failed("error-purge", &[&purge_reason(&e)]),
+                Err(e) => return failed(key!("error-purge"), &[&purge_reason(&e)]),
             };
             if plan.remove.is_empty() {
                 return Outcome::Refused {
-                    reason_key: "reason-nothing-to-purge",
+                    reason_key: key!("reason-nothing-to-purge"),
                 };
             }
             let files = plan
@@ -699,14 +706,14 @@ impl ShellModel {
         // and the purge commits from `self.origin()`, never a hard-coded GUI origin.
         if !self.person {
             return Outcome::Refused {
-                reason_key: "reason-human-only",
+                reason_key: key!("reason-human-only"),
             };
         }
         // `confirm` purges exactly the files the open confirmation lists; without it nothing is purged (an empty
         // `project.assets.purge` would remove every purgeable file unconfirmed; R1-5 of cycle 31).
         let Some(Dialog::ConfirmPurge { assets, .. }) = &self.dialog else {
             return Outcome::Refused {
-                reason_key: "reason-no-purge-dialog",
+                reason_key: key!("reason-no-purge-dialog"),
             };
         };
         let cmd = AnyCommand {
@@ -733,7 +740,7 @@ impl ShellModel {
                 }
                 Outcome::Done
             }
-            Err(e) => failed("error-purge", &[&e.to_string()]),
+            Err(e) => failed(key!("error-purge"), &[&e.to_string()]),
         }
     }
 }

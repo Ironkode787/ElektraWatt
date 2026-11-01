@@ -11,6 +11,8 @@
 //! previews, `Activate` or a press commits `rep.exchange_symbol {rep, symbol}`, `Escape` answers `None` (the host
 //! returns to Select).
 
+use crate::key;
+use crate::strings::Key;
 use std::sync::Arc;
 
 use ew_api::AnyCommand;
@@ -164,8 +166,8 @@ impl Tool for ExchangeTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
-        "hint-exchange"
+    fn status_hint(&self) -> Key<'static> {
+        key!("hint-exchange")
     }
 
     fn wants_hover(&self) -> bool {

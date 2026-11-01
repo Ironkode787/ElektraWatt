@@ -51,7 +51,9 @@ use super::{
     Tool, ToolCx, ToolKey, ToolOutput, segment_dist2,
 };
 use crate::canvas::mm3;
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 /// What the Wire tool snaps to.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -990,7 +992,7 @@ impl WireTool {
                         .sum();
                     items.push(OverlayItem::Label {
                         at,
-                        text: strings::format("wire-readout", &[&mm3(length.round() as i64)]),
+                        text: strings::format(key!("wire-readout"), &[&mm3(length.round() as i64)]),
                         anchor: Anchor::Right,
                     });
                     items.push(OverlayItem::Marker {
@@ -1156,7 +1158,7 @@ impl WireTool {
         cx: &ToolCx<'_>,
         shape: &ew_api::output::SymbolShape,
         name_of: impl FnOnce(&WireTarget, (i64, i64)) -> (String, &'static str),
-    ) -> Result<(ToolOutput, String, &'static str), &'static str> {
+    ) -> Result<(ToolOutput, String, &'static str), Key<'static>> {
         let State::Routing {
             start,
             fixed,
@@ -1165,25 +1167,26 @@ impl WireTool {
             ..
         } = self.state.clone()
         else {
-            return Err("reason-ip-end-grid");
+            return Err(key!("reason-ip-end-grid"));
         };
         let Some(WireTarget::Grid { at: end }) = end else {
-            return Err("reason-ip-end-grid");
+            return Err(key!("reason-ip-end-grid"));
         };
         let [cp] = shape.cps.as_slice() else {
-            return Err("reason-ip-symbol");
+            return Err(key!("reason-ip-symbol"));
         };
         // The arriving direction: the last segment of the routed ghost.
         let line = super::autoconnect::dedup(&route);
         let [.., a, b] = line.as_slice() else {
-            return Err("reason-ip-end-segment");
+            return Err(key!("reason-ip-end-segment"));
         };
-        let arrive =
-            Dir::of_vector(((b.0 - a.0).signum(), (b.1 - a.1).signum())).ok_or("reason-ip-end-segment")?;
-        let away = Dir::of_vector((-arrive.vector().0, -arrive.vector().1)).ok_or("reason-ip-end-segment")?;
+        let arrive = Dir::of_vector(((b.0 - a.0).signum(), (b.1 - a.1).signum()))
+            .ok_or(key!("reason-ip-end-segment"))?;
+        let away =
+            Dir::of_vector((-arrive.vector().0, -arrive.vector().1)).ok_or(key!("reason-ip-end-segment"))?;
         let orient = (0..4u8)
             .find(|o| ew_api::geometry::orient_dir(*o, cp.dir) == away)
-            .ok_or("reason-ip-symbol")?;
+            .ok_or(key!("reason-ip-symbol"))?;
         let off = ew_api::geometry::orient_point(orient, cp.at);
         let grid = PageGridMap::new(cx.page.tables.grid);
         let pos = (
@@ -1202,7 +1205,7 @@ impl WireTool {
         let route = self.full_route(cx, &start, &fixed, &target);
         let (name, direction) = name_of(&start, pos);
         let Some(a) = start.endpoint() else {
-            return Err("reason-ip-end-grid");
+            return Err(key!("reason-ip-end-grid"));
         };
         let mut params = json!({
             "a": a,
@@ -1334,13 +1337,13 @@ impl Tool for WireTool {
 
     /// FT-706: while the ghost is the router's fallback, and after a wire drawn so until the next one starts, the
     /// hint says that no clear route was found and the wire is drawn direct (not a refusal).
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         if self.direct {
-            return "hint-wire-direct";
+            return key!("hint-wire-direct");
         }
         match self.state {
-            State::Armed { .. } => "hint-wire-armed",
-            State::Routing { .. } => "hint-wire-routing",
+            State::Armed { .. } => key!("hint-wire-armed"),
+            State::Routing { .. } => key!("hint-wire-routing"),
         }
     }
 

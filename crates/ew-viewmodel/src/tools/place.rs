@@ -42,7 +42,9 @@ use super::{
     Anchor, Button, CanvasEvent, Ghost, MarkerKind, Overlay, OverlayItem, PreviewInfo, Style, Token, Tool,
     ToolCx, ToolKey, ToolOutput,
 };
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 /// The JSON spellings of the orientations A to H.
 pub const ORIENT_NAMES: [&str; 8] = ["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"];
@@ -353,24 +355,24 @@ impl PlaceTool {
                             .iter()
                             .find(|c| c.rep == r.id)
                             .and_then(|c| c.label.rsplit_once(':').map(|(t, _)| t.to_owned()))
-                            .unwrap_or_else(|| strings::text("place-target-box").to_owned());
+                            .unwrap_or_else(|| strings::text(key!("place-target-box")).to_owned());
                         (
                             json!({"join_device": {"device": device.to_string(), "role": "aux"}}),
                             "join",
-                            strings::format("place-target-join", &[&tag]),
+                            strings::format(key!("place-target-join"), &[&tag]),
                         )
                     }
                     None => (
                         json!({"new_device": {"letter": letter}}),
                         "new",
-                        strings::format("place-target-new", &[letter]),
+                        strings::format(key!("place-target-new"), &[letter]),
                     ),
                 }
             }
             PlaceTarget::Function { function } => (
                 json!({"existing_function": {"function": function}}),
                 "function",
-                strings::text("place-target-function").to_owned(),
+                strings::text(key!("place-target-function")).to_owned(),
             ),
             // D1: a slot is filled before a new auxiliary function is made.
             PlaceTarget::Join { device, tag, slots } => (
@@ -379,7 +381,7 @@ impl PlaceTool {
                     None => json!({"join_device": {"device": device, "role": "aux"}}),
                 },
                 "join",
-                strings::format("place-target-join", &[tag]),
+                strings::format(key!("place-target-join"), &[tag]),
             ),
             PlaceTarget::Part {
                 part,
@@ -389,7 +391,7 @@ impl PlaceTool {
             } => (
                 json!({"from_part": {"part": part, "template": template, "letter": letter}}),
                 "part",
-                strings::format("place-target-part", &[number]),
+                strings::format(key!("place-target-part"), &[number]),
             ),
             PlaceTarget::Terminal {
                 strip,
@@ -405,7 +407,7 @@ impl PlaceTool {
                 },
                 "terminal",
                 strings::format(
-                    "place-target-terminal",
+                    key!("place-target-terminal"),
                     &[strip_tag, &self.designation_label(designation)],
                 ),
             ),
@@ -592,7 +594,7 @@ impl PlaceTool {
     fn commit(&mut self, cx: &ToolCx<'_>, alt: bool) -> ToolOutput {
         // FT-751: refused in words (doc 16a, a refusal leaves the model unchanged), never a stacked twin.
         if self.on_twin(cx) {
-            return ToolOutput::Refused("reason-place-stacked");
+            return ToolOutput::Refused(key!("reason-place-stacked"));
         }
         let Some(cmd) = self.command(cx, alt || self.suppressed) else {
             return ToolOutput::None;
@@ -688,14 +690,14 @@ impl Tool for PlaceTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         if self.proposals.needs_route {
-            "hint-place-needs-route"
+            key!("hint-place-needs-route")
         } else if self.proposals.list.is_empty() {
-            "hint-place"
+            key!("hint-place")
         } else {
             // FT-485 item 3: the proposals connect on commit unless Alt is held.
-            "hint-place-proposals"
+            key!("hint-place-proposals")
         }
     }
 

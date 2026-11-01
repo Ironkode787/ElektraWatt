@@ -53,6 +53,8 @@
 //! the click that a press on a selected connection's segment becomes, and for `Activate`. Shift and Ctrl clicks never
 //! walk, and any other release ends the walk.
 
+use crate::key;
+use crate::strings::Key;
 use ew_api::output::ew_dl::ew_units::Rect;
 use ew_api::output::ew_dl::{Destination, EntityRef};
 
@@ -300,7 +302,7 @@ impl SelectTool {
                         g.update(*at, *mods, cx);
                         Some(match g.commit() {
                             Some(cmd) => ToolOutput::Commit(Box::new(cmd)),
-                            None => ToolOutput::Refused("reason-layout-refused"),
+                            None => ToolOutput::Refused(key!("reason-layout-refused")),
                         })
                     }
                     None => {
@@ -313,7 +315,7 @@ impl SelectTool {
                 let press = self.panel.as_mut()?;
                 let ((at, mods), g) = (press.last, press.gesture.as_mut()?);
                 if !g.turn_key(*key) {
-                    return Some(ToolOutput::Refused("reason-layout-turn"));
+                    return Some(ToolOutput::Refused(key!("reason-layout-turn")));
                 }
                 g.update(at, mods, cx);
                 Some(track_output(g))
@@ -504,7 +506,7 @@ impl SelectTool {
 
     /// The command of a grip or CP drag at its current point; `Ok(None)` while it changes nothing or cannot be done,
     /// `Err` with the refusal the grip itself produces (an inside-out box).
-    fn box_command(&self, cx: &ToolCx<'_>) -> Result<Option<Box<ew_api::AnyCommand>>, &'static str> {
+    fn box_command(&self, cx: &ToolCx<'_>) -> Result<Option<Box<ew_api::AnyCommand>>, Key<'static>> {
         Ok(match &self.state {
             State::Grip { rep, grip, to } => {
                 let Some(r) = black_box::black_box_rep(cx, *rep) else {
@@ -955,14 +957,14 @@ impl Tool for SelectTool {
         }
     }
 
-    fn status_hint(&self) -> &'static str {
+    fn status_hint(&self) -> Key<'static> {
         match self.state {
             State::Dragging { .. }
             | State::Moving { .. }
             | State::Segment { .. }
             | State::Grip { .. }
-            | State::BoxCp { .. } => "hint-select-move",
-            _ => "hint-select",
+            | State::BoxCp { .. } => key!("hint-select-move"),
+            _ => key!("hint-select"),
         }
     }
 

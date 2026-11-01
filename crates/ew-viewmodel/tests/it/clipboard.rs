@@ -8,6 +8,7 @@
 //! transcript's `clipboard` and paste `ghost` members, the describe lines with the 6 words, and the exact counts.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::actions::{MenuEntry, find, menu_model, parse_signature};
@@ -70,7 +71,7 @@ fn a_paste_on_a_page_that_cannot_take_it_is_refused_with_its_reason() {
         assert_eq!(
             shell.dispatch("edit.paste_clip", &json!({})),
             Outcome::Refused {
-                reason_key: "reason-paste-page-kind"
+                reason_key: key!("reason-paste-page-kind")
             },
             "paste on folio {folio}"
         );
@@ -575,7 +576,7 @@ fn assert_incomplete_cut_unchanged(shell: &mut ShellModel, ids: &[String]) {
     assert_eq!(
         shell.dispatch("edit.cut", &json!({})),
         Outcome::Refused {
-            reason_key: "reason-cut-incomplete-items"
+            reason_key: key!("reason-cut-incomplete-items")
         }
     );
     assert_eq!(shell.clipboard().text(), Some(clip.as_str()));

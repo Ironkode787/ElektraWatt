@@ -18,12 +18,14 @@ use serde_json::{Map, Value};
 use super::navigation::{Focus, bump};
 use super::{Dialog, FormDialog, FormField, Mode, Outcome, ShellModel, failed, string_param};
 use crate::canvas::PageId;
+use crate::key;
 use crate::layout::PaneKind;
 use crate::navigators::messages::{self, FindingDetail, MessageCounts, OnlineFacts};
 use crate::navigators::{NavRole, Navigator, Query, visible_rows};
 use crate::notifications::NoteTone;
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::PreviewState;
 
 impl ShellModel {
@@ -341,7 +343,7 @@ impl ShellModel {
         };
         let Some(i) = pick else {
             return Outcome::Refused {
-                reason_key: "reason-no-findings",
+                reason_key: key!("reason-no-findings"),
             };
         };
         let key = keys[i].to_owned();
@@ -418,21 +420,21 @@ impl ShellModel {
             None => match self.messages.waive.as_ref().filter(|_| self.in_waive_form()) {
                 Some((k, _)) => k.clone(),
                 None => self.nav_cursor(NavKind::Messages).ok_or(Outcome::Refused {
-                    reason_key: "reason-no-nav-row",
+                    reason_key: key!("reason-no-nav-row"),
                 })?,
             },
         };
         let Some(nav) = self.navs.get(&NavKind::Messages) else {
-            return Err(failed("error-nav-closed", &[NavKind::Messages.word()]));
+            return Err(failed(key!("error-nav-closed"), &[NavKind::Messages.word()]));
         };
         let Some((_, node)) = nav.node_of(&key) else {
-            return Err(failed("error-nav-key", &[&key, NavKind::Messages.word()]));
+            return Err(failed(key!("error-nav-key"), &[&key, NavKind::Messages.word()]));
         };
         let refusal = Outcome::Refused {
             reason_key: if state == "open" {
-                "reason-not-open-finding"
+                key!("reason-not-open-finding")
             } else {
-                "reason-not-waived"
+                key!("reason-not-waived")
             },
         };
         let Some(d) = messages::detail(node) else {
@@ -469,7 +471,7 @@ impl ShellModel {
     pub(crate) fn act_messages_waive(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::Refused {
-                reason_key: "reason-human-only",
+                reason_key: key!("reason-human-only"),
             };
         }
         let (key, rule, fingerprint) = match self.finding_row(p, "open") {
@@ -498,18 +500,18 @@ impl ShellModel {
             self.messages.waive = Some((key, (!date.is_empty()).then_some(date)));
             return self.open_dialog(Dialog::Form(FormDialog {
                 action: "messages.waive",
-                title_key: "waive-title",
-                ok_key: "dialog-waive",
+                title_key: key!("waive-title"),
+                ok_key: key!("dialog-waive"),
                 fields: vec![
                     FormField {
                         name: "reason",
-                        label_key: "form-reason",
+                        label_key: key!("form-reason"),
                         choices: &[],
                         value: String::new(),
                     },
                     FormField {
                         name: "author",
-                        label_key: "form-author",
+                        label_key: key!("form-author"),
                         choices: &[],
                         value: author,
                     },
@@ -520,13 +522,13 @@ impl ShellModel {
         }
         let min = WAIVER_REASON_MIN_CHARS;
         if reason.chars().count() < min {
-            return self.waive_failed(strings::format("error-waive-reason", &[&min.to_string()]));
+            return self.waive_failed(strings::format(key!("error-waive-reason"), &[&min.to_string()]));
         }
         if author.is_empty() {
-            return self.waive_failed(strings::text("error-waive-author").to_owned());
+            return self.waive_failed(strings::text(key!("error-waive-author")).to_owned());
         }
         if date.parse::<ew_api::catalog::Date>().is_err() {
-            return self.waive_failed(strings::format("error-missing-param", &["date"]));
+            return self.waive_failed(strings::format(key!("error-missing-param"), &["date"]));
         }
         let cmd = AnyCommand {
             name: "check.waive".to_owned(),
@@ -558,7 +560,7 @@ impl ShellModel {
     pub(crate) fn act_messages_unwaive(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::Refused {
-                reason_key: "reason-human-only",
+                reason_key: key!("reason-human-only"),
             };
         }
         let (_, _, fingerprint) = match self.finding_row(p, "waived") {
@@ -570,7 +572,7 @@ impl ShellModel {
             .flatten()
         else {
             return Outcome::Refused {
-                reason_key: "reason-not-waived",
+                reason_key: key!("reason-not-waived"),
             };
         };
         let cmd = AnyCommand {
@@ -593,30 +595,30 @@ impl ShellModel {
                 Some(k) => k,
                 None => {
                     return Outcome::Refused {
-                        reason_key: "reason-no-nav-row",
+                        reason_key: key!("reason-no-nav-row"),
                     };
                 }
             },
         };
         let Some(nav) = self.navs.get(&NavKind::Messages) else {
-            return failed("error-nav-closed", &[NavKind::Messages.word()]);
+            return failed(key!("error-nav-closed"), &[NavKind::Messages.word()]);
         };
         let Some((_, node)) = nav.node_of(&key) else {
-            return failed("error-nav-key", &[&key, NavKind::Messages.word()]);
+            return failed(key!("error-nav-key"), &[&key, NavKind::Messages.word()]);
         };
         if node.role != NavRole::Finding {
             return Outcome::Refused {
-                reason_key: "reason-no-fix",
+                reason_key: key!("reason-no-fix"),
             };
         }
         let Some(fp) = messages::fingerprint_of(&key).map(str::to_owned) else {
             return Outcome::Refused {
-                reason_key: "reason-no-fix",
+                reason_key: key!("reason-no-fix"),
             };
         };
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let report = project
@@ -624,12 +626,12 @@ impl ShellModel {
             .check(project.session.online_scheme(), CheckMode::Online);
         let Some(finding) = report.findings.iter().find(|f| f.fingerprint.to_string() == fp) else {
             return Outcome::Refused {
-                reason_key: "reason-no-fix",
+                reason_key: key!("reason-no-fix"),
             };
         };
         let Some(fix) = finding.fix.clone() else {
             return Outcome::Refused {
-                reason_key: "reason-no-fix",
+                reason_key: key!("reason-no-fix"),
             };
         };
         let rule = finding.rule.to_owned();
@@ -682,7 +684,7 @@ impl ShellModel {
             edit,
             targets,
             changes,
-            reason: "reason-quick-fix",
+            reason: key!("reason-quick-fix"),
             origin: CardOrigin::QuickFix { rule },
         });
         Outcome::Done
@@ -731,32 +733,32 @@ const CONFLICT_RULE: &str = "EW-POT-001";
 /// pending findings, when there are any, qualify the title so the line of counts stays one line (FT-664):
 /// `Check: 1 error, 0 warnings`, `Check · 1 waived: 1 error, 0 warnings`.
 pub(crate) fn check_summary(c: MessageCounts) -> String {
-    let count = |n: usize, one: &str, many: &str| match n {
+    let count = |n: usize, one: Key<'_>, many: Key<'_>| match n {
         1 => strings::text(one).to_owned(),
         n => strings::format(many, &[&n.to_string()]),
     };
     let mut parts = vec![
-        count(c.errors, "check-error", "check-errors"),
-        count(c.warnings, "check-warning", "check-warnings"),
+        count(c.errors, key!("check-error"), key!("check-errors")),
+        count(c.warnings, key!("check-warning"), key!("check-warnings")),
     ];
     if c.infos > 0 {
-        parts.push(count(c.infos, "check-info", "check-infos"));
+        parts.push(count(c.infos, key!("check-info"), key!("check-infos")));
     }
     // FT-664: the waived and pending counts qualify the title ("Check · 4 waived · 1 pending"), so the line of
     // severity counts stays one line in the toast.
     let qualifiers: Vec<String> = [
-        (c.waived, "check-waived-one", "check-waived"),
-        (c.pending, "check-pending-one", "check-pending"),
+        (c.waived, key!("check-waived-one"), key!("check-waived")),
+        (c.pending, key!("check-pending-one"), key!("check-pending")),
     ]
     .into_iter()
     .filter(|(n, _, _)| *n > 0)
     .map(|(n, one, many)| count(n, one, many))
     .collect();
     if qualifiers.is_empty() {
-        strings::format("toast-check", &[&parts.join(", ")])
+        strings::format(key!("toast-check"), &[&parts.join(", ")])
     } else {
         strings::format(
-            "toast-check-qualified",
+            key!("toast-check-qualified"),
             &[&parts.join(", "), &qualifiers.join(" · ")],
         )
     }

@@ -16,6 +16,7 @@
 //! points and the source read-only. Every change is `part.field`; Enter saves (`part.save`).
 
 use egui::{Key, RichText, ScrollArea, Sense, TextEdit, Ui, vec2};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::part_dialog::{PART_ROWS, PartChooser, PartEditor};
 use ew_viewmodel::strings;
@@ -53,7 +54,7 @@ pub(crate) fn chooser(
     let mut text = c.query.text.clone();
     let search = ui.add(
         TextEdit::singleline(&mut text)
-            .hint_text(strings::text("part-choose-search"))
+            .hint_text(strings::text(key!("part-choose-search")))
             .desired_width(ui.available_width())
             .min_size(vec2(0.0, t.size_control)),
     );
@@ -62,7 +63,7 @@ pub(crate) fn chooser(
             true,
             c.query.text.as_str(),
             text.as_str(),
-            strings::text("part-choose-search"),
+            strings::text(key!("part-choose-search")),
         )
     });
     if just_opened {
@@ -76,7 +77,7 @@ pub(crate) fn chooser(
     ui.horizontal_wrapped(|ui| {
         let mut fits = c.query.fits_only;
         if ui
-            .checkbox(&mut fits, strings::text("part-choose-fits"))
+            .checkbox(&mut fits, strings::text(key!("part-choose-fits")))
             .changed()
         {
             events.push(Event::Action("part.search", json!({ "fits": fits })));
@@ -85,7 +86,7 @@ pub(crate) fn chooser(
         for v in ew_viewmodel::ew_api::OfferView::ALL {
             let key = format!("part-choose-view-{}", v.word());
             if ui
-                .selectable_label(c.query.view == v, strings::text(&key))
+                .selectable_label(c.query.view == v, strings::text(strings::Key::run_time(&key)))
                 .clicked()
             {
                 set_active(&ctx, 0);
@@ -95,7 +96,7 @@ pub(crate) fn chooser(
         ui.add_space(t.space_3);
         let mut inactive = c.query.include_inactive;
         if ui
-            .checkbox(&mut inactive, strings::text("part-choose-inactive"))
+            .checkbox(&mut inactive, strings::text(key!("part-choose-inactive")))
             .changed()
         {
             events.push(Event::Action("part.search", json!({ "inactive": inactive })));
@@ -117,7 +118,7 @@ pub(crate) fn chooser(
     if up && act > 0 {
         act -= 1;
     }
-    let list_name = strings::text("part-choose-list");
+    let list_name = strings::text(key!("part-choose-list"));
     let height = t.size_row * 10.0;
     let list_id = ui.scope_id().with("part-choose-list");
     let list_rect = egui::Rect::from_min_size(ui.cursor().min, vec2(ui.available_width(), height));
@@ -141,7 +142,7 @@ pub(crate) fn chooser(
                             egui::WidgetInfo::labeled(
                                 egui::Role::Button,
                                 true,
-                                strings::text("part-choose-favourite"),
+                                strings::text(key!("part-choose-favourite")),
                             )
                         });
                         if star.clicked() {
@@ -218,7 +219,7 @@ pub(crate) fn chooser(
     });
     if n == 0 {
         ui.label(
-            RichText::new(strings::format("part-choose-empty", &[&c.query.text]))
+            RichText::new(strings::format(key!("part-choose-empty"), &[&c.query.text]))
                 .color(t.text_secondary.color32()),
         );
     }
@@ -351,7 +352,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
         .max_height(t.size_row * 16.0)
         .show(ui, |ui| {
             for (i, f) in ew_viewmodel::ew_api::DRAFT_FIELDS.iter().enumerate() {
-                let label = strings::text(&format!("part-field-{f}"));
+                let label = strings::text(strings::Key::run_time(&format!("part-field-{f}")));
                 if *f == "kind" {
                     kind_field(ui, label, d.text(f), events);
                 } else {
@@ -362,12 +363,17 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                 if let Some(m) = d.message(f) {
                     ui.colored_label(
                         t.error.color32(),
-                        ew_viewmodel::shell::part_dialog::message_text(m.key, &m.args),
+                        ew_viewmodel::shell::part_dialog::message_text(
+                            strings::Key::run_time(m.key),
+                            &m.args,
+                        ),
                     );
                 }
             }
             ui.add_space(t.space_3);
-            ui.label(RichText::new(strings::text("part-field-tech")).font(theme::font(&t.type_body_strong)));
+            ui.label(
+                RichText::new(strings::text(key!("part-field-tech"))).font(theme::font(&t.type_body_strong)),
+            );
             for (k, v) in &d.tech {
                 let field = format!("tech:{k}");
                 // The key in words ("rated_current" reads "Rated current"); the field keeps the raw key.
@@ -381,12 +387,15 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                 if let Some(m) = d.message(&format!("tech:{k}")) {
                     ui.colored_label(
                         t.error.color32(),
-                        ew_viewmodel::shell::part_dialog::message_text(m.key, &m.args),
+                        ew_viewmodel::shell::part_dialog::message_text(
+                            strings::Key::run_time(m.key),
+                            &m.args,
+                        ),
                     );
                 }
             }
             ui.add_space(t.space_3);
-            let none = strings::text("part-none");
+            let none = strings::text(key!("part-none"));
             let read_only = |ui: &mut Ui, label: &str, value: String| {
                 ui.horizontal(|ui| {
                     ui.add_sized(vec2(t.size_dialog_label, t.size_row), egui::Label::new(label));
@@ -396,7 +405,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             };
             read_only(
                 ui,
-                strings::text("part-field-functions"),
+                strings::text(key!("part-field-functions")),
                 if d.functions.is_empty() {
                     none.to_owned()
                 } else {
@@ -405,7 +414,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             );
             read_only(
                 ui,
-                strings::text("part-field-cps"),
+                strings::text(key!("part-field-cps")),
                 if d.cps.is_empty() {
                     none.to_owned()
                 } else {
@@ -416,11 +425,11 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                 Some(name) => format!("{name} \u{b7} {}", d.version),
                 None => format!(
                     "{} \u{b7} {}",
-                    strings::text("part-choose-view-project"),
+                    strings::text(key!("part-choose-view-project")),
                     d.version
                 ),
             };
-            read_only(ui, strings::text("part-field-source"), source);
+            read_only(ui, strings::text(key!("part-field-source")), source);
             if let Some(err) = &e.error {
                 ui.colored_label(t.error.color32(), err);
             }

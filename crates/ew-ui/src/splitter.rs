@@ -11,6 +11,7 @@
 
 use egui::{CursorIcon, Id, Rect, Sense, Ui, pos2};
 use egui_tiles::{Container, LinearDir, Tile, TileId, Tiles, Tree};
+use ew_viewmodel::key;
 
 use crate::theme::{self, Tokens};
 
@@ -94,7 +95,7 @@ pub(crate) fn show<P>(
         let id = Id::unique(("ew-splitter", salt, h.container, i));
         let response = ui.interact(rect, id, Sense::click_and_drag());
         let name = ew_viewmodel::strings::format(
-            "splitter-name",
+            key!("splitter-name"),
             &[&title(&tree.tiles, h.a), &title(&tree.tiles, h.b)],
         );
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Splitter, true, &name));

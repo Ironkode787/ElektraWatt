@@ -24,11 +24,13 @@ use crate::actions;
 use crate::area::CanvasArea;
 use crate::canvas::{CanvasBackend, HEADLESS_PANE};
 use crate::first_run::FirstRun;
+use crate::key;
 use crate::layout::Layout;
 use crate::navigator::PageNavigator;
 use crate::settings::{self, Settings, UI_SCALES, scale_index};
 use crate::status;
 use crate::strings;
+use crate::strings::Key;
 use crate::wizard::Wizard;
 
 mod canvas_actions;
@@ -213,7 +215,7 @@ pub enum Outcome {
     /// The action is disabled now; the key names why (see [`crate::strings`]).
     Refused {
         /// The reason key.
-        reason_key: &'static str,
+        reason_key: Key<'static>,
     },
     /// The action ran and failed, or its parameters were wrong.
     Failed {
@@ -230,7 +232,7 @@ pub enum AccessMode {
     /// Reading only, for the reason whose text key this is.
     ReadOnly {
         /// The key of the reason text.
-        reason_key: &'static str,
+        reason_key: Key<'static>,
     },
 }
 
@@ -588,7 +590,7 @@ fn dir_name(dir: &Path) -> String {
         .map_or_else(|| "project".to_owned(), |n| n.to_string_lossy().into_owned())
 }
 
-fn failed(key: &str, args: &[&str]) -> Outcome {
+fn failed(key: Key<'_>, args: &[&str]) -> Outcome {
     Outcome::Failed {
         message: strings::format(key, args),
     }
@@ -603,47 +605,47 @@ fn string_param<'a>(p: &'a Map<String, Value>, name: &str) -> Result<Option<&'a 
     match p.get(name) {
         None => Ok(None),
         Some(Value::String(s)) => Ok(Some(s.as_str())),
-        Some(_) => Err(failed("error-bad-param", &[name])),
+        Some(_) => Err(failed(key!("error-bad-param"), &[name])),
     }
 }
 
-fn read_only_key(reason: &ReadOnlyReason) -> &'static str {
+fn read_only_key(reason: &ReadOnlyReason) -> Key<'static> {
     match reason {
-        ReadOnlyReason::Requested => "readonly-requested",
-        ReadOnlyReason::LockedBy(_) => "readonly-locked",
-        ReadOnlyReason::NotWritable(_) => "readonly-not-writable",
-        ReadOnlyReason::Integrity => "readonly-integrity",
-        ReadOnlyReason::Format(_) => "readonly-format",
-        ReadOnlyReason::LockLost(_) => "readonly-lock-lost",
+        ReadOnlyReason::Requested => key!("readonly-requested"),
+        ReadOnlyReason::LockedBy(_) => key!("readonly-locked"),
+        ReadOnlyReason::NotWritable(_) => key!("readonly-not-writable"),
+        ReadOnlyReason::Integrity => key!("readonly-integrity"),
+        ReadOnlyReason::Format(_) => key!("readonly-format"),
+        ReadOnlyReason::LockLost(_) => key!("readonly-lock-lost"),
     }
 }
 
-fn open_error_key(e: &OpenError) -> &'static str {
+fn open_error_key(e: &OpenError) -> Key<'static> {
     match e {
-        OpenError::Io { .. } => "openerr-io",
-        OpenError::NotADirectory(_) => "openerr-not-dir",
-        OpenError::Format(_) => "openerr-format",
-        OpenError::Migration(_) => "openerr-migration",
-        OpenError::SaveInProgress => "openerr-busy",
-        OpenError::NoProject(_) => "openerr-no-project",
-        OpenError::Model { .. } => "openerr-model",
-        OpenError::Takeover(_) => "openerr-takeover",
-        OpenError::Exists(_) => "openerr-exists",
+        OpenError::Io { .. } => key!("openerr-io"),
+        OpenError::NotADirectory(_) => key!("openerr-not-dir"),
+        OpenError::Format(_) => key!("openerr-format"),
+        OpenError::Migration(_) => key!("openerr-migration"),
+        OpenError::SaveInProgress => key!("openerr-busy"),
+        OpenError::NoProject(_) => key!("openerr-no-project"),
+        OpenError::Model { .. } => key!("openerr-model"),
+        OpenError::Takeover(_) => key!("openerr-takeover"),
+        OpenError::Exists(_) => key!("openerr-exists"),
         #[allow(unreachable_patterns)]
-        _ => "openerr-other",
+        _ => key!("openerr-other"),
     }
 }
 
 /// The reason key of a save error (its `Display` carries file system paths that a transcript must not).
-fn save_error_key(e: &SaveError) -> &'static str {
+fn save_error_key(e: &SaveError) -> Key<'static> {
     match e {
-        SaveError::ReadOnly(_) => "saveerr-read-only",
-        SaveError::LockLost(_) => "saveerr-lock-lost",
-        SaveError::ExternalChange => "saveerr-external",
-        SaveError::Failed { .. } => "saveerr-failed",
-        SaveError::Incomplete { .. } => "saveerr-incomplete",
-        SaveError::PendingIncomplete { .. } => "saveerr-pending",
-        _ => "saveerr-other",
+        SaveError::ReadOnly(_) => key!("saveerr-read-only"),
+        SaveError::LockLost(_) => key!("saveerr-lock-lost"),
+        SaveError::ExternalChange => key!("saveerr-external"),
+        SaveError::Failed { .. } => key!("saveerr-failed"),
+        SaveError::Incomplete { .. } => key!("saveerr-incomplete"),
+        SaveError::PendingIncomplete { .. } => key!("saveerr-pending"),
+        _ => key!("saveerr-other"),
     }
 }
 
@@ -936,7 +938,7 @@ mod dispatch_log_tests {
             [
                 entry("help.about", "done", None),
                 entry("no.such_action", "failed", None),
-                entry("edit.undo", "refused", Some(reason_key)),
+                entry("edit.undo", "refused", Some(reason_key.as_str())),
                 entry("first_run.set", "done", None),
                 entry("view.ui_scale", "done", None),
             ]
@@ -961,7 +963,7 @@ impl ShellModel {
             Some(dir) => {
                 let loaded = Settings::load(dir);
                 if let Some(name) = &loaded.bad_copy {
-                    banner = Some(strings::format("banner-settings-bad", &[name]));
+                    banner = Some(strings::format(key!("banner-settings-bad"), &[name]));
                 }
                 loaded.settings
             }
@@ -1232,9 +1234,7 @@ impl ShellModel {
     pub fn can_discard_journal(&self) -> bool {
         matches!(
             self.access(),
-            Some(AccessMode::ReadOnly {
-                reason_key: "readonly-recovery"
-            })
+            Some(AccessMode::ReadOnly { reason_key }) if reason_key == key!("readonly-recovery")
         )
     }
 
@@ -1261,9 +1261,9 @@ impl ShellModel {
     /// The window title: `<directory name> - ElektraWatt`, with `*` before it while the project is dirty.
     pub fn title(&self) -> String {
         match &self.project {
-            None => strings::text("window-title-start").to_owned(),
+            None => strings::text(key!("window-title-start")).to_owned(),
             Some(p) => {
-                let title = strings::format("window-title", &[&p.name]);
+                let title = strings::format(key!("window-title"), &[&p.name]);
                 if p.session.is_dirty() {
                     format!("*{title}")
                 } else {
@@ -1354,7 +1354,7 @@ impl ShellModel {
     /// The export job's message when the folio names no page.
     pub fn page_content(&self, folio: &str) -> Result<ExportPages, String> {
         let Some(p) = &self.project else {
-            return Err(strings::text("reason-no-project").to_owned());
+            return Err(strings::text(key!("reason-no-project")).to_owned());
         };
         self.page_content_calls.set(self.page_content_calls.get() + 1);
         p.session
@@ -1408,7 +1408,7 @@ impl ShellModel {
         if let Some(entry) = slot.and_then(|i| self.dispatch_log.as_mut()?.get_mut(i)) {
             (entry.outcome, entry.reason) = match &outcome {
                 Outcome::Done => ("done", None),
-                Outcome::Refused { reason_key } => ("refused", Some(*reason_key)),
+                Outcome::Refused { reason_key } => ("refused", Some(reason_key.as_str())),
                 Outcome::Failed { .. } => ("failed", None),
             };
         }
@@ -1428,20 +1428,20 @@ impl ShellModel {
     /// [`ShellModel::dispatch`] without the dispatch log.
     fn dispatch_unlogged(&mut self, action: &actions::ActionId, params: &Value) -> Outcome {
         let Some(meta) = actions::find(action) else {
-            return failed("error-unknown-action", &[action]);
+            return failed(key!("error-unknown-action"), &[action]);
         };
         let empty = Map::new();
         let p = match params {
             Value::Object(m) => m,
             Value::Null => &empty,
-            _ => return failed("error-params-object", &[]),
+            _ => return failed(key!("error-params-object"), &[]),
         };
         // WP-S2.09 §6.6: while the recovery dialog is open only its answers (and what observes or ends the run) go; the
         // others refuse (with their own reason when they are disabled anyway, as the script runner's check gives it),
         // and the recovery banner stays.
         if matches!(self.dialog, Some(Dialog::Recovery { .. })) && !answers_recovery(meta.id) {
             return Outcome::Refused {
-                reason_key: (meta.enabled)(self).err().unwrap_or("reason-dialog-open"),
+                reason_key: (meta.enabled)(self).err().unwrap_or(key!("reason-dialog-open")),
             };
         }
         if clears_banner(meta.id) {
@@ -1453,7 +1453,7 @@ impl ShellModel {
         // An alias `@n` in a parameter that takes a UUID or a reference resolves before the action reads it (FT-422).
         let resolved = match crate::alias::resolve_params(&self.aliases.borrow(), meta.id, p) {
             Ok(r) => r,
-            Err(alias) => return failed("error-unknown-alias", &[&alias]),
+            Err(alias) => return failed(key!("error-unknown-alias"), &[&alias]),
         };
         let p = resolved.as_ref().unwrap_or(p);
         if !keeps_link_preview(meta.id) {
@@ -1513,7 +1513,7 @@ impl ShellModel {
     pub(crate) fn act_text_input(&mut self, p: &Map<String, Value>) -> Outcome {
         match string_param(p, "text") {
             Ok(Some(t)) => self.send_tool(&crate::tools::CanvasEvent::Text(t.to_owned())),
-            Ok(None) => failed("error-missing-param", &["text"]),
+            Ok(None) => failed(key!("error-missing-param"), &["text"]),
             Err(e) => e,
         }
     }
@@ -1528,10 +1528,10 @@ impl ShellModel {
     /// `tool.connect_on_move`: refused in this package (WP-S2.04 §8.3); the status bar says why, the window has no other
     /// trace of a key.
     pub(crate) fn act_tool_connect_on_move(&mut self, _p: &Map<String, Value>) -> Outcome {
-        self.tools.notice = Some(strings::text("reason-connect-on-place").to_owned());
+        self.tools.notice = Some(strings::text(key!("reason-connect-on-place")).to_owned());
         self.tools.notice_sticky = false;
         Outcome::Refused {
-            reason_key: "reason-connect-on-place",
+            reason_key: key!("reason-connect-on-place"),
         }
     }
 
@@ -1543,12 +1543,12 @@ impl ShellModel {
 
     /// `canvas.snapshot` and `canvas.preview_snapshot`: only the window and the script runner take a snapshot.
     pub(crate) fn act_canvas_snapshot(&mut self, _p: &Map<String, Value>) -> Outcome {
-        failed("message-no-snapshot", &[])
+        failed(key!("message-no-snapshot"), &[])
     }
 
     /// `view.snapshot`: only the window and the script runner take a snapshot.
     pub(crate) fn act_view_snapshot(&mut self, _p: &Map<String, Value>) -> Outcome {
-        failed("message-no-snapshot", &[])
+        failed(key!("message-no-snapshot"), &[])
     }
 
     /// `ui.describe`: the description is read by the caller after the dispatch.
@@ -1558,7 +1558,7 @@ impl ShellModel {
 
     /// `script.expect_refused`: the script runner runs it before the dispatch; a direct dispatch does not know it.
     pub(crate) fn act_script_expect_refused(&mut self, _p: &Map<String, Value>) -> Outcome {
-        failed("error-unknown-action", &["script.expect_refused"])
+        failed(key!("error-unknown-action"), &["script.expect_refused"])
     }
 
     /// `page.describe {folio?}` (WP-S6.13 §5.5.3): the content of the page `folio` (default the page on show) as text, read
@@ -1572,13 +1572,13 @@ impl ShellModel {
                 Some(f) => f.to_owned(),
                 None => {
                     return Outcome::Refused {
-                        reason_key: "reason-no-page",
+                        reason_key: key!("reason-no-page"),
                     };
                 }
             },
         };
         if !self.page_rows().iter().any(|r| r.folio == folio) {
-            return failed("error-no-folio", &[&folio]);
+            return failed(key!("error-no-folio"), &[&folio]);
         }
         match self.page_for(&folio) {
             Ok(page) => {
@@ -1630,7 +1630,7 @@ impl ShellModel {
             return None;
         }
         match self.mode {
-            Mode::Headless => Some(failed("error-unsaved", &[])),
+            Mode::Headless => Some(failed(key!("error-unsaved"), &[])),
             Mode::Gui => {
                 self.open_dialog(Dialog::ConfirmDiscard {
                     pending: Pending {
@@ -1652,7 +1652,7 @@ impl ShellModel {
         p: &Map<String, Value>,
     ) -> Outcome {
         match self.mode {
-            Mode::Headless => failed("error-missing-param", &[param]),
+            Mode::Headless => failed(key!("error-missing-param"), &[param]),
             Mode::Gui => {
                 let mut rest = p.clone();
                 rest.remove(param);
@@ -1683,14 +1683,14 @@ impl ShellModel {
 
     pub(crate) fn act_open_recent(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(index) = p.get("index").and_then(Value::as_u64) else {
-            return failed("error-missing-param", &["index"]);
+            return failed(key!("error-missing-param"), &["index"]);
         };
         let Some(path) = usize::try_from(index)
             .ok()
             .and_then(|i| self.settings.recent_projects.get(i))
             .cloned()
         else {
-            return failed("error-bad-param", &["index"]);
+            return failed(key!("error-bad-param"), &["index"]);
         };
         if self.has_project()
             && let Some(outcome) = self.guard_unsaved("file.open_recent", p)
@@ -1721,12 +1721,13 @@ impl ShellModel {
         } = match opened {
             Ok(o) => o,
             Err(e) => {
-                let message = strings::format("error-open", &[&name, strings::text(open_error_key(&e))]);
+                let message =
+                    strings::format(key!("error-open"), &[&name, strings::text(open_error_key(&e))]);
                 // A recent entry goes only when its path is gone; a held lock or a bad format keeps it.
                 if self.settings.recent_projects.contains(&path_text) && !dir.exists() {
                     self.settings.remove_recent(&path_text);
                     self.save_settings();
-                    self.banner = Some(strings::format("banner-recent-removed", &[&name]));
+                    self.banner = Some(strings::format(key!("banner-recent-removed"), &[&name]));
                 } else {
                     self.banner = Some(message.clone());
                 }
@@ -1740,10 +1741,10 @@ impl ShellModel {
             .count();
         self.banner = match (banner, findings) {
             (b, 0) => b,
-            (None, n) => Some(strings::format("banner-findings", &[&n.to_string()])),
+            (None, n) => Some(strings::format(key!("banner-findings"), &[&n.to_string()])),
             (Some(b), n) => Some(format!(
                 "{b} {}",
-                strings::format("banner-findings", &[&n.to_string()])
+                strings::format(key!("banner-findings"), &[&n.to_string()])
             )),
         };
         let labels = session.page_labels();
@@ -1853,9 +1854,9 @@ impl ShellModel {
                 session: again,
                 report: again_report,
                 access: AccessMode::ReadOnly {
-                    reason_key: "readonly-recovery",
+                    reason_key: key!("readonly-recovery"),
                 },
-                banner: Some(strings::text("banner-recovery").to_owned()),
+                banner: Some(strings::text(key!("banner-recovery")).to_owned()),
                 recovery,
             });
         }
@@ -1869,7 +1870,8 @@ impl ShellModel {
             },
             Access::ReadOnly(reason) => {
                 let key = read_only_key(reason);
-                let banner = (!read_only).then(|| strings::format("banner-read-only", &[strings::text(key)]));
+                let banner =
+                    (!read_only).then(|| strings::format(key!("banner-read-only"), &[strings::text(key)]));
                 Opened {
                     session,
                     report,
@@ -1931,7 +1933,7 @@ impl ShellModel {
             && let (Some(geometry), Some(dir)) = (self.settings.window, &self.config.config_dir)
             && Settings::save_window(dir, geometry).is_err()
         {
-            self.banner = Some(strings::text("banner-settings-write").to_owned());
+            self.banner = Some(strings::text(key!("banner-settings-write")).to_owned());
         }
     }
 
@@ -1939,7 +1941,7 @@ impl ShellModel {
         if let Some(dir) = &self.config.config_dir
             && self.settings.save(dir).is_err()
         {
-            self.banner = Some(strings::text("banner-settings-write").to_owned());
+            self.banner = Some(strings::text(key!("banner-settings-write")).to_owned());
         }
     }
 
@@ -1950,7 +1952,7 @@ impl ShellModel {
     pub(crate) fn act_save(&mut self) -> Outcome {
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         match p.session.save() {
@@ -1960,12 +1962,12 @@ impl ShellModel {
                 let rev = p.session.world().rev.0;
                 self.markers.push(HistoryMarker {
                     rev,
-                    text: strings::text("marker-saved").to_owned(),
+                    text: strings::text(key!("marker-saved")).to_owned(),
                 });
                 Outcome::Done
             }
             Err(e) => {
-                let message = strings::format("error-save", &[strings::text(save_error_key(&e))]);
+                let message = strings::format(key!("error-save"), &[strings::text(save_error_key(&e))]);
                 self.banner = Some(message.clone());
                 Outcome::Failed { message }
             }
@@ -1984,7 +1986,7 @@ impl ShellModel {
         }
         let Some(project) = &mut self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         match project.session.create(&dir, store) {
@@ -1999,7 +2001,7 @@ impl ShellModel {
                 Outcome::Done
             }
             Err(e) => {
-                let message = strings::format("error-save-as", &[strings::text(open_error_key(&e))]);
+                let message = strings::format(key!("error-save-as"), &[strings::text(open_error_key(&e))]);
                 self.banner = Some(message.clone());
                 Outcome::Failed { message }
             }
@@ -2026,7 +2028,7 @@ impl ShellModel {
     pub(crate) fn act_undo(&mut self) -> Outcome {
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
@@ -2052,7 +2054,7 @@ impl ShellModel {
                 Outcome::Done
             }
             Err(CmdError::Exposure { .. }) => Outcome::Refused {
-                reason_key: "reason-human-only-history",
+                reason_key: key!("reason-human-only-history"),
             },
             Err(e) => tools::command_failed(&e, &Value::Null),
         }
@@ -2061,7 +2063,7 @@ impl ShellModel {
     pub(crate) fn act_redo(&mut self) -> Outcome {
         let Some(p) = &mut self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
@@ -2087,7 +2089,7 @@ impl ShellModel {
                 Outcome::Done
             }
             Err(CmdError::Exposure { .. }) => Outcome::Refused {
-                reason_key: "reason-human-only-history",
+                reason_key: key!("reason-human-only-history"),
             },
             Err(e) => tools::command_failed(&e, &Value::Null),
         }
@@ -2095,11 +2097,11 @@ impl ShellModel {
 
     pub(crate) fn act_ui_scale(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(scale) = p.get("scale").and_then(Value::as_f64) else {
-            return failed("error-missing-param", &["scale"]);
+            return failed(key!("error-missing-param"), &["scale"]);
         };
         let scale = scale as f32;
         if scale_index(scale).is_none() {
-            return failed("error-bad-param", &["scale"]);
+            return failed(key!("error-bad-param"), &["scale"]);
         }
         self.settings.ui_scale = UI_SCALES[scale_index(scale).unwrap_or(0)];
         self.save_settings();
@@ -2241,12 +2243,12 @@ impl ShellModel {
         let cmd = match string_param(p, "cmd") {
             Err(e) => return e,
             Ok(Some(cmd)) => cmd.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["cmd"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["cmd"]),
         };
         let params = match p.get("params") {
             None | Some(Value::Null) => json!({}),
             Some(v @ Value::Object(_)) => v.clone(),
-            Some(_) => return failed("error-bad-param", &["params"]),
+            Some(_) => return failed(key!("error-bad-param"), &["params"]),
         };
         self.run_logged(cmd, params)
     }
@@ -2262,12 +2264,12 @@ impl ShellModel {
         );
         let log = match CmdLog::parse(&text) {
             Ok(log) => log,
-            Err(e) => return failed("error-command", &[&e.to_string()]),
+            Err(e) => return failed(key!("error-command"), &[&e.to_string()]),
         };
         let file = self.origin_file.clone();
         let Some(project) = &mut self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let before = project.session.history().cursor();
@@ -2288,7 +2290,7 @@ impl ShellModel {
             Err(CmdLogError::Failed { error, .. } | CmdLogError::Refused { error, .. }) => {
                 tools::command_failed(&error, &params)
             }
-            Err(e) => failed("error-command", &[&e.to_string()]),
+            Err(e) => failed(key!("error-command"), &[&e.to_string()]),
         };
         if committed && outcome == Outcome::Done {
             self.record.undone.clear();

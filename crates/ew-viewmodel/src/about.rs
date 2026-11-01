@@ -14,6 +14,7 @@
 //! Not here yet: the dismissible banner after the support end (at most once a month), which needs a clock and a
 //! setting.
 
+use crate::key;
 use crate::shell::ShellModel;
 use crate::strings;
 
@@ -35,27 +36,27 @@ pub const NOTICE: &str = include_str!("../../../NOTICE");
 /// Without today's date (a run without a clock) an end is shown as the planned date.
 pub fn support_line(end: Option<&str>, today: Option<&str>) -> String {
     match (end, today) {
-        (None, _) => strings::text("about-support-prerelease").to_owned(),
-        (Some(end), Some(today)) if today > end => strings::format("about-support-ended", &[end]),
-        (Some(end), _) => strings::format("about-support-until", &[end]),
+        (None, _) => strings::text(key!("about-support-prerelease")).to_owned(),
+        (Some(end), Some(today)) if today > end => strings::format(key!("about-support-ended"), &[end]),
+        (Some(end), _) => strings::format(key!("about-support-until"), &[end]),
     }
 }
 
 /// The lines of the About dialog, in order (the title is the dialog's).
 pub fn about_lines(model: &ShellModel) -> Vec<String> {
     let privacy = if model.settings().update_check {
-        strings::text("about-privacy-on")
+        strings::text(key!("about-privacy-on"))
     } else {
-        strings::text("about-privacy")
+        strings::text(key!("about-privacy"))
     };
     vec![
-        strings::format("about-version", &[&model.config().app_version]),
-        strings::text("about-page-view").to_owned(),
+        strings::format(key!("about-version"), &[&model.config().app_version]),
+        strings::text(key!("about-page-view")).to_owned(),
         privacy.to_owned(),
-        strings::text("about-privacy-file").to_owned(),
-        strings::text("about-licence").to_owned(),
-        strings::format("about-repository", &[env!("CARGO_PKG_REPOSITORY")]),
-        strings::text("about-disclaimer").to_owned(),
+        strings::text(key!("about-privacy-file")).to_owned(),
+        strings::text(key!("about-licence")).to_owned(),
+        strings::format(key!("about-repository"), &[env!("CARGO_PKG_REPOSITORY")]),
+        strings::text(key!("about-disclaimer")).to_owned(),
         support_line(SUPPORT_END, None),
     ]
 }
@@ -71,7 +72,7 @@ pub fn notices_text(model: &ShellModel) -> String {
         .and_then(|p| std::fs::read_to_string(p).ok());
     match generated {
         Some(text) => format!("{NOTICE}\n{text}"),
-        None => format!("{NOTICE}\n{}\n", strings::text("notices-generated-missing")),
+        None => format!("{NOTICE}\n{}\n", strings::text(key!("notices-generated-missing"))),
     }
 }
 

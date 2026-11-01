@@ -21,6 +21,7 @@
 
 use egui::text::LayoutJob;
 use egui::{Align, Layout, RichText, Ui};
+use ew_viewmodel::key;
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
@@ -145,25 +146,33 @@ fn part_block(ui: &mut Ui, p: &ew_viewmodel::properties::PartCard) {
     for (member, old, new) in &p.fields {
         line(
             ui,
-            &strings::format("part-card-field", &[member, old, new]),
+            &strings::format(key!("part-card-field"), &[member, old, new]),
             t.text_primary,
         );
     }
     if !p.devices.is_empty() {
         line(
             ui,
-            &strings::format("part-card-devices", &[&p.devices.join(", ")]),
+            &strings::format(key!("part-card-devices"), &[&p.devices.join(", ")]),
             t.text_secondary,
         );
     }
     for r in &p.removed {
-        line(ui, &strings::format("part-card-removed", &[r]), t.text_secondary);
+        line(
+            ui,
+            &strings::format(key!("part-card-removed"), &[r]),
+            t.text_secondary,
+        );
     }
     for r in &p.added {
-        line(ui, &strings::format("part-card-added", &[r]), t.text_secondary);
+        line(
+            ui,
+            &strings::format(key!("part-card-added"), &[r]),
+            t.text_secondary,
+        );
     }
     if p.fork {
-        line(ui, strings::text("part-edit-fork-note"), t.text_secondary);
+        line(ui, strings::text(key!("part-edit-fork-note")), t.text_secondary);
     }
 }
 
@@ -192,8 +201,8 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
         // enabled (it changes no library copy and is one undo step), else Update the project's copy.
         let primary = if c.adapt.is_none() { "adapt" } else { "update" };
         for (word, key, reason) in [
-            ("adapt", "paste-adapt", c.adapt),
-            ("update", "paste-update", c.update),
+            ("adapt", key!("paste-adapt"), c.adapt),
+            ("update", key!("paste-update"), c.update),
         ] {
             let kind = if word == primary && reason.is_none() {
                 components::Kind::Primary
@@ -230,11 +239,11 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
     if !m.value_sets.is_empty() {
         ui.horizontal(|ui| {
             let label = ui.label(
-                RichText::new(strings::text("macro-value-set"))
+                RichText::new(strings::text(key!("macro-value-set")))
                     .font(theme::font(&t.type_small))
                     .color(t.text_secondary.color32()),
             );
-            let defaults = strings::text("macro-value-set-defaults");
+            let defaults = strings::text(key!("macro-value-set-defaults"));
             let shown = m.value_set.as_deref().unwrap_or(defaults);
             let combo = egui::ComboBox::from_id_salt("macro-value-set")
                 .selected_text(shown)
@@ -257,11 +266,17 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
     }
     macro_values(ui, m, events);
     if m.conflicts.is_empty() {
-        components::live_line(ui, strings::text("macro-no-conflicts"), false);
+        components::live_line(ui, strings::text(key!("macro-no-conflicts")), false);
         return;
     }
     let id = ui.scope_id().with("macro-conflicts");
-    if components::section_header(ui, id, strings::text("macro-conflicts"), m.conflicts.len(), true) {
+    if components::section_header(
+        ui,
+        id,
+        strings::text(key!("macro-conflicts")),
+        m.conflicts.len(),
+        true,
+    ) {
         for c in &m.conflicts {
             let response = ui.add(
                 egui::Label::new(
@@ -290,7 +305,7 @@ fn macro_values(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: 
     }
     let t = components::tokens(ui);
     ui.label(
-        RichText::new(strings::text("macro-values"))
+        RichText::new(strings::text(key!("macro-values")))
             .font(theme::font(&t.type_small))
             .color(t.text_secondary.color32()),
     );
@@ -298,7 +313,12 @@ fn macro_values(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: 
     let labels: Vec<String> = m
         .fields
         .iter()
-        .map(|f| strings::format("macro-value-label", &[&f.name, &strings::var_type_word(&f.ty)]))
+        .map(|f| {
+            strings::format(
+                key!("macro-value-label"),
+                &[&f.name, &strings::var_type_word(&f.ty)],
+            )
+        })
         .collect();
     let widest = labels
         .iter()
@@ -398,15 +418,17 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let rect = ui.available_rect_before_wrap();
     let pane_id = ui.scope_id().with("preview-pane");
     let pane = ui.interact(rect, pane_id, egui::Sense::hover());
-    pane.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text("pane-preview")));
+    pane.widget_info(|| {
+        egui::WidgetInfo::labeled(egui::Role::Group, true, strings::text(key!("pane-preview")))
+    });
     ui.scope_builder(egui::UiBuilder::new().accessibility_parent(pane_id), |ui| {
         let t = components::tokens(ui);
         let Some(card) = shell.properties().card() else {
             components::empty_state(
                 ui,
                 IconId::eye,
-                strings::text("preview-none"),
-                strings::text("empty-preview-text"),
+                strings::text(key!("preview-none")),
+                strings::text(key!("empty-preview-text")),
                 None,
             );
             return;
@@ -426,7 +448,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             let title = if choice {
                 command.to_owned()
             } else {
-                strings::format("preview-title", &[command])
+                strings::format(key!("preview-title"), &[command])
             };
             let response = ui.label(
                 RichText::new(&title)
@@ -436,10 +458,13 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             let mut header = if choice {
                 title.clone()
             } else {
-                strings::format("preview-header", &[command, &card.preview.base_rev.to_string()])
+                strings::format(
+                    key!("preview-header"),
+                    &[command, &card.preview.base_rev.to_string()],
+                )
             };
             if status == CardStatus::Stale {
-                header.push_str(&format!(" [{}]", strings::text("preview-stale")));
+                header.push_str(&format!(" [{}]", strings::text(key!("preview-stale"))));
             }
             ui.ctx().accesskit_node_builder(response.id, |n| {
                 n.set_live(egui::accesskit::Live::Polite);
@@ -448,7 +473,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             if !choice {
                 ui.label(
                     RichText::new(strings::format(
-                        "card-as-of",
+                        key!("card-as-of"),
                         &[&card.preview.base_rev.to_string()],
                     ))
                     .font(theme::font(&t.type_small))
@@ -474,7 +499,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     let cancel = components::button(
                         ui,
                         components::Kind::Secondary,
-                        strings::text("card-cancel"),
+                        strings::text(key!("card-cancel")),
                         true,
                         0.0,
                     );
@@ -504,12 +529,12 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             let lead = card.failed_lead();
             let text = lead
                 .as_ref()
-                .map_or_else(|| strings::format("card-failed", &[m]), |l| l.text.clone());
+                .map_or_else(|| strings::format(key!("card-failed"), &[m]), |l| l.text.clone());
             inset(ui, &mut |ui| components::live_line(ui, &text, !choice));
             if let Some(rule) = lead.and_then(|l| l.rule) {
                 inset(ui, &mut |ui| {
                     ui.label(
-                        RichText::new(strings::format("card-failed-rule", &[&rule]))
+                        RichText::new(strings::format(key!("card-failed-rule"), &[&rule]))
                             .font(theme::font(&t.type_small))
                             .color(t.text_secondary.color32()),
                     );
@@ -543,14 +568,14 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 // entities otherwise); the others follow, closed.
                 let renumber = card.preview.name.ends_with("renumber") && !tags.is_empty();
                 if renumber {
-                    list(ui, strings::text("preview-tags"), &tags, true);
-                    list(ui, strings::text("preview-entities"), &entities, false);
+                    list(ui, strings::text(key!("preview-tags")), &tags, true);
+                    list(ui, strings::text(key!("preview-entities")), &entities, false);
                 } else {
-                    list(ui, strings::text("preview-entities"), &entities, true);
-                    list(ui, strings::text("preview-tags"), &tags, false);
+                    list(ui, strings::text(key!("preview-entities")), &entities, true);
+                    list(ui, strings::text(key!("preview-tags")), &tags, false);
                 }
-                list(ui, strings::text("preview-xrefs"), &xrefs, false);
-                list(ui, strings::text("preview-pages"), &pages, false);
+                list(ui, strings::text(key!("preview-xrefs")), &xrefs, false);
+                list(ui, strings::text(key!("preview-pages")), &pages, false);
             });
     });
 }

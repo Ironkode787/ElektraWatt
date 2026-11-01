@@ -8,6 +8,7 @@
 //! action, so the headless mode drives the same model; each commits one `junction.edit`.
 
 use egui::{Align2, Button, Id, Key, Modifiers, Window};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use serde_json::json;
@@ -52,7 +53,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
             json!({"style": "bevel", "orient": next}),
         ));
     }
-    Window::new(strings::format("junction-title", &[&editor.cell]))
+    Window::new(strings::format(key!("junction-title"), &[&editor.cell]))
         .id(Id::unique("junction-editor"))
         .anchor(Align2::CENTER_TOP, [0.0, 60.0])
         .collapsible(false)
@@ -62,8 +63,11 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
         .default_width(crate::theme::current(ctx).size_dialog_small)
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.label(strings::text("junction-style"));
-                for (style, key) in [("dot", "junction-style-dot"), ("bevel", "junction-style-bevel")] {
+                ui.label(strings::text(key!("junction-style")));
+                for (style, key) in [
+                    ("dot", key!("junction-style-dot")),
+                    ("bevel", key!("junction-style-bevel")),
+                ] {
                     if ui
                         .add(Button::new(strings::text(key)).selected(editor.style == style))
                         .clicked()
@@ -73,27 +77,27 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
                 }
                 if editor.style == "bevel" {
                     ui.weak(strings::format(
-                        "junction-orient",
+                        key!("junction-orient"),
                         &[&ew_viewmodel::ew_api::geometry::variant_letter(editor.bevel_orient).to_string()],
                     ));
                 }
             });
             ui.horizontal(|ui| {
-                ui.label(strings::text("junction-wiring"));
+                ui.label(strings::text(key!("junction-wiring")));
                 for (wiring, key, selected) in [
                     (
                         "star",
-                        "junction-wiring-star",
+                        key!("junction-wiring-star"),
                         editor.explicit_wiring && editor.wiring == "star",
                     ),
                     (
                         "chain",
-                        "junction-wiring-chain",
+                        key!("junction-wiring-chain"),
                         editor.explicit_wiring && editor.wiring == "chain",
                     ),
                     (
                         "style_default",
-                        "junction-wiring-default",
+                        key!("junction-wiring-default"),
                         !editor.explicit_wiring,
                     ),
                 ] {
@@ -106,7 +110,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
                 }
             });
             ui.separator();
-            ui.label(strings::text("junction-sequence"));
+            ui.label(strings::text(key!("junction-sequence")));
             for (i, m) in editor.members.iter().enumerate() {
                 if ui
                     .add(Button::new(format!("{}  {}", i + 1, m.label)).selected(i == row))
@@ -116,9 +120,12 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
                 }
             }
             ui.separator();
-            ui.label(strings::text("junction-wires"));
+            ui.label(strings::text(key!("junction-wires")));
             for w in &editor.wires {
-                ui.label(strings::format("junction-wire-row", &[&w.label, &w.from, &w.to]));
+                ui.label(strings::format(
+                    key!("junction-wire-row"),
+                    &[&w.label, &w.from, &w.to],
+                ));
             }
         });
 }

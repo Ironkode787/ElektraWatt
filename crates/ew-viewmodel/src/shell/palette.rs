@@ -12,10 +12,12 @@ use serde_json::{Value, json};
 use super::{Outcome, PaletteState, ShellModel};
 use crate::actions::{self, ACTIONS, ActionMeta, Menu, PaletteEntry, PaletteRun};
 use crate::glossary;
+use crate::key;
 use crate::palette::{
     FormPlan, MAX_OBJECTS, PaletteForm, Prefix, RECENT_SHOWN, form_plan, order, rank, score, split_prefix,
 };
 use crate::strings;
+use crate::strings::Key;
 
 /// An entry with its rank, before the order is applied.
 struct Ranked {
@@ -118,7 +120,7 @@ impl ShellModel {
             .iter()
             .filter(|a| !a.headless_only && !a.hidden && keep(a))
         {
-            let label = strings::text(&meta.label_key());
+            let label = strings::text(Key::run_time(&meta.label_key()));
             let aliases = glossary::aliases_of(meta.id);
             let state = match form_plan(meta) {
                 FormPlan::Disabled(reason) => Err(reason),
@@ -295,13 +297,15 @@ impl ShellModel {
         };
         match resolved {
             Some(ew_api::output::GotoError::NotFound) if !rest.contains('-') => {
-                strings::format("error-no-folio", &[rest])
+                strings::format(key!("error-no-folio"), &[rest])
             }
-            Some(ew_api::output::GotoError::NotFound) => strings::format("error-goto-not-found", &[rest]),
+            Some(ew_api::output::GotoError::NotFound) => {
+                strings::format(key!("error-goto-not-found"), &[rest])
+            }
             Some(ew_api::output::GotoError::NoSuchCell { folio, cell }) => {
-                strings::format("error-goto-no-cell", &[&folio, &cell])
+                strings::format(key!("error-goto-no-cell"), &[&folio, &cell])
             }
-            _ => strings::text("palette-no-match").to_owned(),
+            _ => strings::text(key!("palette-no-match")).to_owned(),
         }
     }
 
@@ -323,7 +327,7 @@ impl ShellModel {
                     id: meta.id.to_owned(),
                     shortcut: String::new(),
                     enabled,
-                    reason: (!enabled).then(|| strings::text("reason-no-project").to_owned()),
+                    reason: (!enabled).then(|| strings::text(key!("reason-no-project")).to_owned()),
                     breadcrumb: meta.pack.to_owned(),
                 },
                 rank: best,
@@ -355,18 +359,20 @@ impl ShellModel {
                     Some(meta) => match form_plan(meta) {
                         FormPlan::Disabled(reason_key) => Outcome::Refused { reason_key },
                         _ => Outcome::Refused {
-                            reason_key: (meta.enabled)(self).err().unwrap_or("reason-parameters-later"),
+                            reason_key: (meta.enabled)(self)
+                                .err()
+                                .unwrap_or(key!("reason-parameters-later")),
                         },
                     },
                     None => Outcome::Refused {
-                        reason_key: "reason-parameters-later",
+                        reason_key: key!("reason-parameters-later"),
                     },
                 },
                 PaletteRun::Rule(_) => Outcome::Refused {
-                    reason_key: "reason-no-project",
+                    reason_key: key!("reason-no-project"),
                 },
                 _ => Outcome::Refused {
-                    reason_key: "reason-parameters-later",
+                    reason_key: key!("reason-parameters-later"),
                 },
             };
         }
@@ -415,7 +421,7 @@ impl ShellModel {
         let params = match form.params() {
             Ok(p) => p,
             Err(name) => {
-                let message = strings::format("error-bad-param", &[&name]);
+                let message = strings::format(key!("error-bad-param"), &[&name]);
                 self.set_palette_form_error(Some(message.clone()));
                 return Outcome::Failed { message };
             }
@@ -428,7 +434,7 @@ impl ShellModel {
                 self.palette = None;
             }
             Outcome::Refused { reason_key } => {
-                self.set_palette_form_error(Some(strings::text(reason_key).to_owned()))
+                self.set_palette_form_error(Some(strings::text(*reason_key).to_owned()))
             }
             Outcome::Failed { message } => self.set_palette_form_error(Some(message.clone())),
         }

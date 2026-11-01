@@ -23,6 +23,7 @@ use common::bless;
 use ew_viewmodel::actions::{ACTIONS, ActionKind, Context, parse_signature};
 use ew_viewmodel::describe::{FREE_TEXT_MARKERS, VOCABULARY};
 use ew_viewmodel::strings;
+use ew_viewmodel::strings::Key;
 
 const BLESS_HINT: &str = "EW_BLESS=1 cargo nextest run -p ew-viewmodel --test blind_reference";
 
@@ -62,7 +63,7 @@ fn menu_text(a: &ew_viewmodel::actions::ActionMeta) -> String {
 fn actions_text() -> String {
     let mut out = String::new();
     for a in ACTIONS {
-        let label = strings::text(&a.label_key());
+        let label = strings::text(Key::run_time(&a.label_key()));
         assert!(
             !label.contains('"') && !label.contains('\n'),
             "the label of {}",

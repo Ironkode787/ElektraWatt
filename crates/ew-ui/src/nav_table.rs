@@ -37,6 +37,7 @@ use egui::text::{LayoutJob, TextFormat, TextWrapping};
 use egui::{FontId, Key, Modifiers, Rect, RichText, Sense, StrokeKind, TextEdit, Ui, pos2, vec2};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate};
 use ew_viewmodel::ew_api::output::NavTable;
+use ew_viewmodel::key;
 use ew_viewmodel::navigators::table::cell_reason;
 use ew_viewmodel::navigators::{NavKind, NavRole, Navigator, SortBy, VisRow};
 use ew_viewmodel::strings;
@@ -260,7 +261,7 @@ impl TableUi {
             for (column, label) in &column_ids {
                 let handle = id.with(*column).with("resize");
                 if ui.ctx().has_accesskit_node(handle) {
-                    let name = strings::format("table-resize", &[label]);
+                    let name = strings::format(key!("table-resize"), &[label]);
                     ui.ctx().accesskit_node_builder(handle, |n| {
                         n.set_role(egui::accesskit::Role::Splitter);
                         n.set_label(name);
@@ -334,7 +335,7 @@ impl TableUi {
         let at = anchor.map_or(bound.center(), |r| r.left_bottom() + vec2(0.0, t.space_2));
         let list_id = ui.scope_id().with(("strip-chooser", nav.kind.word()));
         let word = ew_viewmodel::ew_api::output::accessory_kind_word(&ch.kind);
-        let question = strings::text("chooser-accessory-part");
+        let question = strings::text(key!("chooser-accessory-part"));
         egui::Area::new(list_id.with("area"))
             .order(egui::Order::Foreground)
             .fixed_pos(at)
@@ -449,7 +450,7 @@ pub(crate) fn chooser(ui: &mut Ui, nav: &Navigator, events: &mut Vec<Event>) {
     let shown = shown.as_slice();
     let word = nav.kind.word();
     let t = crate::theme::current(ui.ctx());
-    let label = RichText::new(strings::text("table-columns"))
+    let label = RichText::new(strings::text(key!("table-columns")))
         .font(theme::font(&t.type_body))
         .color(t.text_primary.color32());
     let chevron = crate::components::icon_atom(
@@ -481,7 +482,7 @@ pub(crate) fn chooser(ui: &mut Ui, nav: &Navigator, events: &mut Vec<Event>) {
                 if let Some(at) = movable.iter().position(|k| *k == c.key) {
                     let mut order = movable.clone();
                     // Doc 16a §6.21: two 24-px icon buttons, `arrow-left` and `arrow-right` (FT-536).
-                    let name = strings::format("table-move-left-name", &[&c.label]);
+                    let name = strings::format(key!("table-move-left-name"), &[&c.label]);
                     let left = crate::components::icon_toggle(ui, IconId::arrow_left, &name, at > 0, None);
                     if left.clicked() {
                         order.swap(at, at - 1);
@@ -491,7 +492,7 @@ pub(crate) fn chooser(ui: &mut Ui, nav: &Navigator, events: &mut Vec<Event>) {
                         ));
                     }
                     let last = at + 1 < movable.len();
-                    let name = strings::format("table-move-right-name", &[&c.label]);
+                    let name = strings::format(key!("table-move-right-name"), &[&c.label]);
                     let right = crate::components::icon_toggle(ui, IconId::arrow_right, &name, last, None);
                     if right.clicked() {
                         let mut order = movable.clone();
@@ -532,12 +533,12 @@ impl TableUi {
         let t = crate::theme::current(ui.ctx());
         crate::components::card_frame(&t).show(ui, |ui| {
             ui.label(
-                RichText::new(strings::text("table-pattern-title"))
+                RichText::new(strings::text(key!("table-pattern-title")))
                     .font(crate::theme::font(&t.type_body_strong)),
             );
             let escape = ui.input(|i| i.key_pressed(Key::Escape));
             let enter = ui.input(|i| i.key_pressed(Key::Enter));
-            let label = strings::text("table-pattern-hint");
+            let label = strings::text(key!("table-pattern-hint"));
             let response = ui.add(
                 TextEdit::singleline(&mut self.pattern)
                     .hint_text(label)
@@ -555,7 +556,7 @@ impl TableUi {
             }
             match preview {
                 Some(Ok(values)) => {
-                    let line = strings::format("table-pattern-values", &[&values.join(", ")]);
+                    let line = strings::format(key!("table-pattern-values"), &[&values.join(", ")]);
                     let shown = ui.label(&line);
                     ui.ctx().accesskit_node_builder(shown.id, |n| {
                         n.set_live(egui::accesskit::Live::Polite);
@@ -989,15 +990,15 @@ impl TableDelegate for Delegate<'_> {
             self.frozen_edge(ui, rect);
         }
         // FT-523: the sorted header's name says the direction, not only its icon (NFR-A11Y-01).
-        let name = strings::format("table-sort-by", &[&column.label]);
+        let name = strings::format(key!("table-sort-by"), &[&column.label]);
         let name = match sorted {
-            Some((_, false)) => strings::format("table-sorted-ascending", &[&name]),
-            Some((_, true)) => strings::format("table-sorted-descending", &[&name]),
+            Some((_, false)) => strings::format(key!("table-sorted-ascending"), &[&name]),
+            Some((_, true)) => strings::format(key!("table-sorted-descending"), &[&name]),
             None => name,
         };
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
         let response = if column.derived {
-            response.tip(strings::text("table-derived"))
+            response.tip(strings::text(key!("table-derived")))
         } else {
             response
         };
@@ -1063,11 +1064,11 @@ impl TableDelegate for Delegate<'_> {
             format!("{} {text}", column.label)
         };
         name.push_str(&strings::format(
-            "table-cell-row",
+            key!("table-cell-row"),
             &[&(at + 1).to_string(), &self.rows.len().to_string()],
         ));
         if reason.is_some() {
-            name.push_str(strings::text("table-cell-read-only"));
+            name.push_str(strings::text(key!("table-cell-read-only")));
         }
         let rect = ui.max_rect();
         if cell.col_nr == 0 {

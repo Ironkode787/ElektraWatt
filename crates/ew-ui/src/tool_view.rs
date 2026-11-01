@@ -7,6 +7,7 @@
 
 use egui::Ui;
 use ew_render2d::overlay::{Dash, MarkerKind, ToolMark, ToolToken};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use ew_viewmodel::tools::{self, BINDABLE, Overlay, OverlayItem};
@@ -87,7 +88,7 @@ pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
 
 /// The Text tool's binding in the tool options (WP-S2.04 §10.5; the tool strip until WP-S2.17 part 2): one choice per [`BINDABLE`] name and "-" for none.
 pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut Vec<crate::app::Event>) {
-    egui::ComboBox::from_label(strings::text("action-text-bind"))
+    egui::ComboBox::from_label(strings::text(key!("action-text-bind")))
         .icon(crate::components::combo_chevron)
         .selected_text(current_bind.unwrap_or("-"))
         .show_ui(ui, |ui| {
@@ -117,8 +118,8 @@ pub(crate) fn marker_fields(
     events: &mut Vec<crate::app::Event>,
 ) {
     for (label_key, buffer, member) in [
-        ("action-marker-csa", csa, "csa"),
-        ("action-marker-colours", colours, "colours"),
+        (key!("action-marker-csa"), csa, "csa"),
+        (key!("action-marker-colours"), colours, "colours"),
     ] {
         ui.label(strings::text(label_key));
         let edit = ui.add(egui::TextEdit::singleline(buffer).desired_width(120.0));
@@ -145,13 +146,16 @@ pub(crate) fn structure_box_fields(
     location: &mut String,
     events: &mut Vec<crate::app::Event>,
 ) {
-    egui::ComboBox::from_label(strings::text("action-structure-box-style"))
+    egui::ComboBox::from_label(strings::text(key!("action-structure-box-style")))
         .icon(crate::components::combo_chevron)
         .selected_text("…")
         .show_ui(ui, |ui| {
             for style in ["dotted", "dash_dot"] {
                 if ui
-                    .selectable_label(false, strings::text(&format!("box-style-{style}")))
+                    .selectable_label(
+                        false,
+                        strings::text(strings::Key::run_time(&format!("box-style-{style}"))),
+                    )
                     .clicked()
                 {
                     events.push(crate::app::Event::Action(
@@ -162,8 +166,18 @@ pub(crate) fn structure_box_fields(
             }
         });
     for (label_key, buffer, member, width) in [
-        ("action-structure-box-caption", caption, "caption", 120.0_f32),
-        ("action-structure-box-location", location, "location", 140.0_f32),
+        (
+            key!("action-structure-box-caption"),
+            caption,
+            "caption",
+            120.0_f32,
+        ),
+        (
+            key!("action-structure-box-location"),
+            location,
+            "location",
+            140.0_f32,
+        ),
     ] {
         ui.label(strings::text(label_key));
         let edit = ui.add(egui::TextEdit::singleline(buffer).desired_width(width));
@@ -179,7 +193,7 @@ pub(crate) fn structure_box_fields(
         }
     }
     if !externals.is_empty() {
-        egui::ComboBox::from_label(strings::text("action-ip-external"))
+        egui::ComboBox::from_label(strings::text(key!("action-ip-external")))
             .icon(crate::components::combo_chevron)
             .selected_text("…")
             .show_ui(ui, |ui| {
@@ -209,11 +223,11 @@ pub(crate) fn ip_fields(
     externals: &[(String, String)],
     events: &mut Vec<crate::app::Event>,
 ) {
-    ui.label(strings::text("action-ip-name"));
+    ui.label(strings::text(key!("action-ip-name")));
     let edit = ui.add(egui::TextEdit::singleline(name).desired_width(120.0));
     // Named for assistive technology (and the tests); while it has the focus the canvas keys (P, D, B …) stay with it
     // (`app.rs`, the `text_edit_focused` gate of the key routing).
-    let label = strings::text("action-ip-name").to_owned();
+    let label = strings::text(key!("action-ip-name")).to_owned();
     edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
     // Every change reaches the tool at once, so the name is the next point's however the field is left: by Enter, or
     // by a click on the canvas, whose press the window dispatches before this card's events and before the field
@@ -230,7 +244,7 @@ pub(crate) fn ip_fields(
         name.clear();
     }
     if !externals.is_empty() {
-        egui::ComboBox::from_label(strings::text("action-ip-external"))
+        egui::ComboBox::from_label(strings::text(key!("action-ip-external")))
             .icon(crate::components::combo_chevron)
             .selected_text("…")
             .show_ui(ui, |ui| {
@@ -258,26 +272,26 @@ pub(crate) fn ip_fields(
 pub(crate) fn layout_fields(ui: &mut Ui, options: tools::LayoutOptions, events: &mut Vec<crate::app::Event>) {
     use ew_viewmodel::ew_api::output::SnapMode;
     let modes = [
-        (SnapMode::Free, "layout-mode-free", "free"),
-        (SnapMode::Push, "layout-mode-push", "push"),
-        (SnapMode::Swap, "layout-mode-swap", "swap"),
+        (SnapMode::Free, key!("layout-mode-free"), "free"),
+        (SnapMode::Push, key!("layout-mode-push"), "push"),
+        (SnapMode::Swap, key!("layout-mode-swap"), "swap"),
     ];
     let labels: Vec<(&str, bool)> = modes
         .iter()
-        .map(|(m, key, _)| (strings::text(key), *m == options.mode))
+        .map(|(m, key, _)| (strings::text(*key), *m == options.mode))
         .collect();
-    if let Some(i) = segmented(ui, strings::text("layout-options-mode"), &labels) {
+    if let Some(i) = segmented(ui, strings::text(key!("layout-options-mode")), &labels) {
         events.push(crate::app::Event::Action(
             "layout.options",
             serde_json::json!({ "mode": modes[i].2 }),
         ));
     }
-    let grids = [(5_u8, "layout-grid-5"), (1, "layout-grid-1")];
+    let grids = [(5_u8, key!("layout-grid-5")), (1, key!("layout-grid-1"))];
     let labels: Vec<(&str, bool)> = grids
         .iter()
-        .map(|(g, key)| (strings::text(key), *g == options.grid_mm))
+        .map(|(g, key)| (strings::text(*key), *g == options.grid_mm))
         .collect();
-    if let Some(i) = segmented(ui, strings::text("layout-options-grid"), &labels) {
+    if let Some(i) = segmented(ui, strings::text(key!("layout-options-grid")), &labels) {
         events.push(crate::app::Event::Action(
             "layout.options",
             serde_json::json!({ "grid": grids[i].0 }),

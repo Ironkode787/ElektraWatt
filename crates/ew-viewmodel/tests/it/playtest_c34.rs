@@ -5,6 +5,7 @@
 //! picker's empty text, and `select.set` with a terminal's list-form tag.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
@@ -57,11 +58,11 @@ fn the_device_picker_of_a_fresh_project_lists_the_starter_parts() {
     assert_eq!(picker.empty_text(), None);
     assert!(s.describe().contains("\"EW-GEN-RLY-1\""), "{}", s.describe());
     assert_eq!(
-        ew_viewmodel::strings::text("picker-empty-parts"),
+        ew_viewmodel::strings::text(key!("picker-empty-parts")),
         "No parts in this project yet"
     );
     done(&mut s, "picker.filter", json!({"text": "zzz"}));
-    assert_eq!(s.picker().unwrap().empty_text(), Some("picker-empty"));
+    assert_eq!(s.picker().unwrap().empty_text(), Some(key!("picker-empty")));
     done(&mut s, "ui.dismiss", json!({}));
     // The symbol picker of the same page has rows, so no empty text.
     done(&mut s, "tool.place", json!({}));
@@ -132,7 +133,7 @@ fn a_refused_transform_key_keeps_a_by_reference_selection() {
     assert_eq!(
         outcome(&mut s, "tool.next_rep_type", json!({})),
         Outcome::Refused {
-            reason_key: "reason-place-only"
+            reason_key: key!("reason-place-only")
         }
     );
     assert_eq!(
@@ -150,7 +151,7 @@ fn a_refused_transform_key_keeps_a_by_reference_selection() {
     assert_eq!(
         outcome(&mut s, "tool.next_variant", json!({})),
         Outcome::Refused {
-            reason_key: "reason-one-rep"
+            reason_key: key!("reason-one-rep")
         }
     );
     assert_eq!(s.selection(), &before, "V refused: the selection is unchanged");

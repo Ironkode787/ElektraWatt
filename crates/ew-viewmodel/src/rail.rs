@@ -10,10 +10,12 @@
 //! {side, pane}` shows an entry (opening its navigator beside the Pages pane when it is not open); on the entry already
 //! shown it collapses the column, as a click on the active rail button does (doc 16a §5.4).
 
+use crate::key;
 use crate::layout::PaneKind;
 use crate::navigators::NavKind;
 use crate::shell::ShellModel;
 use crate::strings;
+use crate::strings::Key;
 
 /// Which rail.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -82,54 +84,59 @@ pub struct RailModel {
 /// FT-754 (g)): the word, the
 /// title key, the icon and the entry's pane. Project shows the Pages pane and, through its segmented control, the
 /// Devices navigator.
-pub const LEFT: [(&str, &str, &str, PaneKind); 13] = [
-    ("project", "rail-project", "files", PaneKind::Pages),
+pub const LEFT: [(&str, Key<'static>, &str, PaneKind); 13] = [
+    ("project", key!("rail-project"), "files", PaneKind::Pages),
     (
         "strips",
-        "nav-title-strips",
+        key!("nav-title-strips"),
         "ew-terminal-strip",
         PaneKind::Navigator(NavKind::Strips),
     ),
     (
         "cables",
-        "nav-title-cables",
+        key!("nav-title-cables"),
         "ew-cable",
         PaneKind::Navigator(NavKind::Cables),
     ),
     (
         "potentials",
-        "nav-title-potentials",
+        key!("nav-title-potentials"),
         "ew-potential",
         PaneKind::Navigator(NavKind::Potentials),
     ),
     (
         "structure",
-        "nav-title-structure",
+        key!("nav-title-structure"),
         "sitemap",
         PaneKind::Navigator(NavKind::Structure),
     ),
     (
         "connections",
-        "nav-title-connections",
+        key!("nav-title-connections"),
         "plug-connected",
         PaneKind::Navigator(NavKind::Connections),
     ),
-    ("plc", "nav-title-plc", "cpu", PaneKind::Navigator(NavKind::Plc)),
+    (
+        "plc",
+        key!("nav-title-plc"),
+        "cpu",
+        PaneKind::Navigator(NavKind::Plc),
+    ),
     (
         "ips",
-        "nav-title-ips",
+        key!("nav-title-ips"),
         "ew-interruption-point",
         PaneKind::Navigator(NavKind::Ips),
     ),
     (
         "parts",
-        "nav-title-parts",
+        key!("nav-title-parts"),
         "packages",
         PaneKind::Navigator(NavKind::Parts),
     ),
     (
         "blocks",
-        "nav-title-blocks",
+        key!("nav-title-blocks"),
         "report",
         PaneKind::Navigator(NavKind::Blocks),
     ),
@@ -137,20 +144,20 @@ pub const LEFT: [(&str, &str, &str, PaneKind); 13] = [
     // source, after Report blocks and without a Ctrl+<n> key.
     (
         "unplaced",
-        "nav-title-unplaced",
+        key!("nav-title-unplaced"),
         "layout-dashboard",
         PaneKind::Navigator(NavKind::Unplaced),
     ),
     // WP-S1.19 part 6 (FT-754 (g)): after Report blocks, without a Ctrl+<n> key (the ninth is the last).
     (
         "macros",
-        "nav-title-macros",
+        key!("nav-title-macros"),
         "package",
         PaneKind::Navigator(NavKind::Macros),
     ),
     (
         "libraries",
-        "nav-title-libraries",
+        key!("nav-title-libraries"),
         "books",
         PaneKind::Navigator(NavKind::Libraries),
     ),
@@ -158,9 +165,9 @@ pub const LEFT: [(&str, &str, &str, PaneKind); 13] = [
 
 /// The right rail's palettes (doc 16a §5.6): until the palette panes are built (§7.1 of the WP-S2.17 specification),
 /// each opens its picker, the keyboard path the palettes keep.
-pub const RIGHT: [(&str, &str, &str, &str); 2] = [
-    ("symbols", "rail-symbols", "category", "tool.place"),
-    ("parts", "rail-parts", "package", "tool.place_part"),
+pub const RIGHT: [(&str, Key<'static>, &str, &str); 2] = [
+    ("symbols", key!("rail-symbols"), "category", "tool.place"),
+    ("parts", key!("rail-parts"), "package", "tool.place_part"),
 ];
 
 /// The panes of the Project entry: the Pages pane and the Devices navigator (the segmented control's two views).
@@ -200,7 +207,7 @@ pub fn rail(model: &ShellModel) -> RailModel {
             };
             RailButton {
                 word,
-                label: strings::text(key).to_owned(),
+                label: strings::text(*key).to_owned(),
                 icon,
                 target: RailTarget::Pane(*pane),
                 shortcut: if i < 9 {
@@ -214,7 +221,7 @@ pub fn rail(model: &ShellModel) -> RailModel {
         .collect();
     let foot = RailButton {
         word: "history",
-        label: strings::text("pane-history").to_owned(),
+        label: strings::text(key!("pane-history")).to_owned(),
         icon: "history",
         target: RailTarget::Action("history.show"),
         shortcut: String::new(),
@@ -224,7 +231,7 @@ pub fn rail(model: &ShellModel) -> RailModel {
         .iter()
         .map(|(word, key, icon, action)| RailButton {
             word,
-            label: strings::text(key).to_owned(),
+            label: strings::text(*key).to_owned(),
             icon,
             target: RailTarget::Action(action),
             shortcut: String::new(),

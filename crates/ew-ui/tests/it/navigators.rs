@@ -7,6 +7,7 @@
 //! exact counts while scrolling; the accessible-name walker after every step (`settle`).
 
 use crate::support;
+use ew_viewmodel::key;
 
 use egui::{Modifiers, PointerButton, Pos2};
 use egui_kittest::Harness;
@@ -403,7 +404,7 @@ fn ct4_f2_renames_a_potential_and_delete_opens_the_card() {
     h.key_press(egui::Key::Delete);
     settle(&mut h);
     let card = h.state().shell().properties().card().expect("the delete card");
-    assert_eq!(card.reason, "reason-nav-delete");
+    assert_eq!(card.reason, key!("reason-nav-delete"));
     assert_eq!(h.state().shell().recorded_commands().len(), n);
     h.state_mut().shell_mut().shutdown();
 }

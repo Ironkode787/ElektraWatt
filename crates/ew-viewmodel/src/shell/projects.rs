@@ -19,7 +19,9 @@ use super::{
     AccessMode, Dialog, Mode, Outcome, Project, Prompt, Record, ShellModel, dir_name, failed, flag,
     open_error_key, string_param,
 };
+use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 impl ShellModel {
     /// The template of a new project: the `template` parameter (`builtin` or a directory), else the default basic
@@ -58,7 +60,7 @@ impl ShellModel {
         if free {
             return None;
         }
-        let message = strings::text("error-dir-not-empty").to_owned();
+        let message = strings::text(key!("error-dir-not-empty")).to_owned();
         self.banner = Some(message.clone());
         Some(Outcome::Failed { message })
     }
@@ -102,7 +104,7 @@ impl ShellModel {
         &mut self,
         mut session: Session,
         dir: &Path,
-        failure_key: &str,
+        failure_key: Key<'_>,
         banner: Option<String>,
     ) -> Outcome {
         match session.create(dir, self.store_options()) {
@@ -142,9 +144,9 @@ impl ShellModel {
             None => ProjectTemplate::Builtin,
         };
         match Session::new_project(from, NewProjectKind::Schematic, self.session_options()) {
-            Ok(session) => self.create_and_install(session, &dir, "error-new", None),
+            Ok(session) => self.create_and_install(session, &dir, key!("error-new"), None),
             Err(e) => {
-                let message = strings::format("error-new", &[strings::text(open_error_key(&e))]);
+                let message = strings::format(key!("error-new"), &[strings::text(open_error_key(&e))]);
                 self.banner = Some(message.clone());
                 Outcome::Failed { message }
             }
@@ -153,7 +155,7 @@ impl ShellModel {
 
     pub(crate) fn act_open_sample(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sample) = self.config.resources.sample_dir.clone().filter(|d| d.is_dir()) else {
-            return failed("error-no-sample", &[]);
+            return failed(key!("error-no-sample"), &[]);
         };
         if self.has_project()
             && let Some(outcome) = self.guard_unsaved("file.open_sample", p)
@@ -167,10 +169,10 @@ impl ShellModel {
             self.save_settings();
             if let Some(project) = &mut self.project {
                 project.access = AccessMode::ReadOnly {
-                    reason_key: "readonly-sample",
+                    reason_key: key!("readonly-sample"),
                 };
             }
-            self.banner = Some(strings::text("banner-sample").to_owned());
+            self.banner = Some(strings::text(key!("banner-sample")).to_owned());
         }
         outcome
     }
@@ -203,7 +205,7 @@ impl ShellModel {
         ) {
             Ok(s) => s,
             Err(e) => {
-                let message = strings::format("error-new", &[strings::text(open_error_key(&e))]);
+                let message = strings::format(key!("error-new"), &[strings::text(open_error_key(&e))]);
                 self.banner = Some(message.clone());
                 return Outcome::Failed { message };
             }
@@ -211,8 +213,8 @@ impl ShellModel {
         let outcome = self.create_and_install(
             session,
             &dir,
-            "error-new",
-            Some(strings::text("banner-tutorial-copy").to_owned()),
+            key!("error-new"),
+            Some(strings::text(key!("banner-tutorial-copy")).to_owned()),
         );
         if outcome == Outcome::Done {
             self.request_doc("tutorials");
@@ -243,25 +245,25 @@ impl ShellModel {
             .file_name()
             .map_or_else(|| "project.qet".to_owned(), |n| n.to_string_lossy().into_owned());
         let Ok(bytes) = std::fs::read(&file) else {
-            return failed("error-import-read", &[&name]);
+            return failed(key!("error-import-read"), &[&name]);
         };
         let (library, library_note) = match self.config.resources.content_dir.as_deref() {
             Some(content) => match StarterLibrary::from_dir(content) {
                 Ok(l) => (l, None),
                 Err(_) => (
                     StarterLibrary::empty(),
-                    Some(strings::text("banner-import-no-content")),
+                    Some(strings::text(key!("banner-import-no-content"))),
                 ),
             },
             None => (
                 StarterLibrary::empty(),
-                Some(strings::text("banner-import-no-content")),
+                Some(strings::text(key!("banner-import-no-content"))),
             ),
         };
         let imported = match import_qet(&name, bytes, &library) {
             Ok(i) => i,
             Err(e) => {
-                let message = strings::format("error-import", &[&name, &e.to_string()]);
+                let message = strings::format(key!("error-import"), &[&name, &e.to_string()]);
                 self.banner = Some(message.clone());
                 return Outcome::Failed { message };
             }
@@ -277,14 +279,14 @@ impl ShellModel {
         let session = match imported.session {
             Ok(s) => s,
             Err(reason) => {
-                let message = strings::format("error-import", &[&name, &reason]);
+                let message = strings::format(key!("error-import"), &[&name, &reason]);
                 self.banner = Some(message.clone());
                 return Outcome::Failed { message };
             }
         };
         self.close_project();
         let mut banner = strings::format(
-            "banner-imported",
+            key!("banner-imported"),
             &[
                 &name,
                 &counts.pages.to_string(),
@@ -296,13 +298,13 @@ impl ShellModel {
             banner.push(' ');
             banner.push_str(note);
         }
-        self.create_and_install(session, &dir, "error-import-write", Some(banner))
+        self.create_and_install(session, &dir, key!("error-import-write"), Some(banner))
     }
 
     pub(crate) fn act_discard_journal(&mut self, p: &Map<String, Value>) -> Outcome {
         if !flag(p, "confirm") {
             return match self.mode {
-                Mode::Headless => failed("error-confirm-needed", &[]),
+                Mode::Headless => failed(key!("error-confirm-needed"), &[]),
                 Mode::Gui => {
                     // WP-S2.09 §6.6: Discard… of the recovery dialog; Cancel returns to it.
                     if matches!(self.dialog, Some(Dialog::Recovery { .. })) {
@@ -319,7 +321,7 @@ impl ShellModel {
         self.recovery_stash = None;
         let Some(dir) = self.project.as_ref().map(|p| p.dir.clone()) else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         // The read-only session goes (it holds no lock and owns no journal), then the project opens for editing and
@@ -358,12 +360,13 @@ impl ShellModel {
                 self.install_view();
                 self.banner = Some(match banner {
                     Some(b) => b,
-                    None => strings::text("banner-journal-discarded").to_owned(),
+                    None => strings::text(key!("banner-journal-discarded")).to_owned(),
                 });
                 Outcome::Done
             }
             Err(e) => {
-                let message = strings::format("error-open", &[&name, strings::text(open_error_key(&e))]);
+                let message =
+                    strings::format(key!("error-open"), &[&name, strings::text(open_error_key(&e))]);
                 self.banner = Some(message.clone());
                 Outcome::Failed { message }
             }

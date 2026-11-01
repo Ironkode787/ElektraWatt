@@ -32,6 +32,7 @@ use ew_render2d::view::DrawTransform;
 use ew_viewmodel::canvas::CanvasModel;
 use ew_viewmodel::canvas::chip::{self as vm, FADED_OPACITY, place_chip};
 use ew_viewmodel::highlight::{MAX_HIGHLIGHTS, SLOT_COLOURS};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use ew_viewmodel::tools::{self, OverlayItem, PreviewStatus};
@@ -246,9 +247,9 @@ fn preview(
     }
     let title = strings::command_title(&p.name);
     let header = match (&p.result, status) {
-        (Err(message), _) => strings::format("preview-chip-failed", &[title, message]),
-        (_, PreviewStatus::Stale) => strings::format("preview-chip-stale", &[title]),
-        _ => strings::format("preview-chip", &[title]),
+        (Err(message), _) => strings::format(key!("preview-chip-failed"), &[title, message]),
+        (_, PreviewStatus::Stale) => strings::format(key!("preview-chip-stale"), &[title]),
+        _ => strings::format(key!("preview-chip"), &[title]),
     };
     let page = canvas.page();
     let tables = &page.tables;
@@ -274,12 +275,18 @@ fn preview(
             .map(|r| r.tag_at.map_or(r.body, |t| [t.0, t.1, t.0, t.1]))
             .or(floating)
             .map(corner_of);
-        texts.push((strings::format("preview-chip-change", &[&c.before, &c.after]), at));
+        texts.push((
+            strings::format(key!("preview-chip-change"), &[&c.before, &c.after]),
+            at,
+        ));
     }
     for c in &p.derived.xrefs {
         let id = c.key.as_uuid();
         let at = tables.reps.iter().find(|r| r.id == id).map(|r| corner_of(r.body));
-        texts.push((strings::format("preview-chip-change", &[&c.before, &c.after]), at));
+        texts.push((
+            strings::format(key!("preview-chip-change"), &[&c.before, &c.after]),
+            at,
+        ));
     }
     texts.truncate(11);
     let start = placer.out.len();
@@ -399,7 +406,7 @@ pub fn paint_popup_frame(ui: &Ui, clip: Rect, rect: Rect, folio: &str) {
         crate::theme::stroke(t.border_width, t.border_default),
         egui::StrokeKind::Outside,
     );
-    let text = strings::format("link-preview-title", &[folio]);
+    let text = strings::format(key!("link-preview-title"), &[folio]);
     let galley = painter.layout_no_wrap(
         text,
         crate::theme::font(&t.type_small),

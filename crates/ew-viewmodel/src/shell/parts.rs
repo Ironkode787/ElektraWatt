@@ -28,6 +28,7 @@ use serde_json::{Map, Value};
 
 use super::navigation::bump;
 use super::{Outcome, Prompt, ShellModel, failed, string_param};
+use crate::key;
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, PendingEdit};
 use crate::strings;
 use crate::tools::PreviewState;
@@ -138,7 +139,7 @@ impl PartsMap {
             .filter_map(|c| c.member.as_deref())
             .find(|m| !chosen.insert(*m))
         {
-            return Err(strings::format("parts-map-twice", &[twice]));
+            return Err(strings::format(key!("parts-map-twice"), &[twice]));
         }
         let pairs = self
             .columns
@@ -158,19 +159,19 @@ impl PartsMap {
     pub fn member_text(member: &str, header: &str) -> String {
         match catalog::Member::parse(member) {
             Ok(catalog::Member::Description(Some(lang))) => {
-                strings::format("parts-member-description-lang", &[&lang])
+                strings::format(key!("parts-member-description-lang"), &[&lang])
             }
-            Ok(catalog::Member::TechData(_)) => strings::format("parts-member-tech-data", &[header]),
-            Ok(catalog::Member::FreeProp(_)) => strings::format("parts-member-free-prop", &[header]),
+            Ok(catalog::Member::TechData(_)) => strings::format(key!("parts-member-tech-data"), &[header]),
+            Ok(catalog::Member::FreeProp(_)) => strings::format(key!("parts-member-free-prop"), &[header]),
             Ok(m) => strings::text(match m {
-                catalog::Member::Manufacturer => "parts-member-manufacturer",
-                catalog::Member::PartNumber => "parts-member-part-number",
-                catalog::Member::TypeDesignation => "parts-member-type-designation",
-                catalog::Member::OrderNumber => "parts-member-order-number",
-                catalog::Member::Gtin => "parts-member-gtin",
-                catalog::Member::Kind => "parts-member-kind",
-                catalog::Member::Unit => "parts-member-unit",
-                _ => "parts-member-description",
+                catalog::Member::Manufacturer => key!("parts-member-manufacturer"),
+                catalog::Member::PartNumber => key!("parts-member-part-number"),
+                catalog::Member::TypeDesignation => key!("parts-member-type-designation"),
+                catalog::Member::OrderNumber => key!("parts-member-order-number"),
+                catalog::Member::Gtin => key!("parts-member-gtin"),
+                catalog::Member::Kind => key!("parts-member-kind"),
+                catalog::Member::Unit => key!("parts-member-unit"),
+                _ => key!("parts-member-description"),
             })
             .to_owned(),
             Err(_) => member.to_owned(),
@@ -190,7 +191,7 @@ impl PartsMap {
         {
             let member = c.member.as_deref().unwrap_or_default();
             return Some(strings::format(
-                "parts-map-twice-text",
+                key!("parts-map-twice-text"),
                 &[&Self::member_text(member, &c.header)],
             ));
         }
@@ -200,9 +201,9 @@ impl PartsMap {
             .filter_map(|c| c.member.as_deref().map(|m| (m, c.header.as_str())));
         Some(match catalog::ColumnMap::new(None, pairs) {
             Err(catalog::MapError::Missing(m)) => {
-                strings::format("parts-map-missing", &[&Self::member_text(m, "")])
+                strings::format(key!("parts-map-missing"), &[&Self::member_text(m, "")])
             }
-            Err(catalog::MapError::MixedDescription) => strings::text("parts-map-mixed").to_owned(),
+            Err(catalog::MapError::MixedDescription) => strings::text(key!("parts-map-mixed")).to_owned(),
             _ => error.clone(),
         })
     }
@@ -226,7 +227,7 @@ impl ShellModel {
 
     /// The banner and the failure of a table that cannot be read.
     fn parts_refused(&mut self, why: &str) -> Outcome {
-        let message = strings::format("error-parts-import", &[why]);
+        let message = strings::format(key!("error-parts-import"), &[why]);
         self.banner = Some(message.clone());
         Outcome::Failed { message }
     }
@@ -309,7 +310,7 @@ impl ShellModel {
         };
         let Some(mut map) = self.parts_map.take() else {
             return Outcome::Refused {
-                reason_key: "reason-no-parts-map",
+                reason_key: key!("reason-no-parts-map"),
             };
         };
         let outcome = (|| {
@@ -332,7 +333,7 @@ impl ShellModel {
             }
             if let Some(header) = column {
                 let Some(i) = map.columns.iter().position(|c| c.header == header) else {
-                    return failed("error-bad-param", &["column"]);
+                    return failed(key!("error-bad-param"), &["column"]);
                 };
                 let member = member.map(|m| m.trim().to_owned()).filter(|m| !m.is_empty());
                 if let Some(m) = &member
@@ -359,7 +360,7 @@ impl ShellModel {
     pub(crate) fn act_parts_map_import(&mut self) -> Outcome {
         let Some(map) = self.parts_map.clone() else {
             return Outcome::Refused {
-                reason_key: "reason-no-parts-map",
+                reason_key: key!("reason-no-parts-map"),
             };
         };
         let columns = match map.column_map() {
@@ -391,7 +392,7 @@ impl ShellModel {
             let origin = self.props.card().map(|c| c.origin.clone());
             if let Some(CardOrigin::Import { created, skipped, .. }) = origin {
                 let text = strings::format(
-                    "toast-parts-read",
+                    key!("toast-parts-read"),
                     &[&source, &created.to_string(), &skipped.to_string(), "0"],
                 );
                 self.notify(text, false);
@@ -414,13 +415,13 @@ impl ShellModel {
         let rejected = c.rejected.to_string();
         // FT-719: every outcome of the read is one toast line, never a banner over the tab title.
         let Some(cmd) = cmd else {
-            let message = strings::format("banner-parts-none", &[&map.file, &held, &rejected]);
+            let message = strings::format(key!("banner-parts-none"), &[&map.file, &held, &rejected]);
             self.notify(message, false);
             return Outcome::Done;
         };
         self.notify(
             strings::format(
-                "toast-parts-read",
+                key!("toast-parts-read"),
                 &[&map.file, &c.new.to_string(), &held, &rejected],
             ),
             false,
@@ -488,7 +489,7 @@ impl ShellModel {
             edit,
             targets: copies,
             changes: created,
-            reason: "reason-parts-import",
+            reason: key!("reason-parts-import"),
             origin: CardOrigin::Import {
                 source,
                 created,
@@ -522,9 +523,9 @@ impl ShellModel {
             let outcome = self.commit_kept(preview, &edit.name, &edit.params, None);
             if outcome == Outcome::Done {
                 let key = if created == 1 {
-                    "banner-part-imported"
+                    key!("banner-part-imported")
                 } else {
-                    "banner-parts-imported"
+                    key!("banner-parts-imported")
                 };
                 // FT-719: the applied import is a toast with Undo, not a banner over the tab title.
                 let text = strings::format(key, &[&created.to_string(), &skipped.to_string(), &source]);

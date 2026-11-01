@@ -32,6 +32,7 @@
 use std::rc::Rc;
 
 use egui::{Key, Modifiers, PointerButton, Sense, Ui};
+use ew_viewmodel::key;
 use ew_viewmodel::navigators::{NavKind, NavStamp};
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{DragSource, Focus, ShellModel, ShownRow};
@@ -229,7 +230,7 @@ impl NavigatorPane {
                         let button = crate::components::icon_toggle(
                             ui,
                             crate::icons::IconId::file_plus,
-                            strings::text("nav-new-page"),
+                            strings::text(key!("nav-new-page")),
                             enabled,
                             None,
                         );
@@ -247,7 +248,7 @@ impl NavigatorPane {
                         let toggle = crate::components::icon_toggle(
                             ui,
                             crate::icons::IconId::table,
-                            strings::text("table-toggle"),
+                            strings::text(key!("table-toggle")),
                             true,
                             Some(in_table),
                         );
@@ -266,7 +267,7 @@ impl NavigatorPane {
                         crate::components::filter_field(
                             ui,
                             &mut self.filter,
-                            strings::text("nav-filter-hint"),
+                            strings::text(key!("nav-filter-hint")),
                         )
                     })
                     .inner
@@ -370,14 +371,14 @@ impl NavigatorPane {
         let list = ui.interact(list_rect, list_id, Sense::focusable_noninteractive());
         let tree_name = if in_table {
             strings::format(
-                "table-name",
+                key!("table-name"),
                 &[strings::text(ew_viewmodel::layout::nav_title_key(self.kind))],
             )
         } else if pages {
-            strings::text("submenu-page-navigator").to_owned()
+            strings::text(key!("submenu-page-navigator")).to_owned()
         } else {
             strings::format(
-                "nav-tree-name",
+                key!("nav-tree-name"),
                 &[strings::text(ew_viewmodel::layout::nav_title_key(self.kind))],
             )
         };
@@ -547,13 +548,13 @@ impl NavigatorPane {
     fn empty_state(&mut self, ui: &mut Ui, shell: &ShellModel, pages: bool, events: &mut Vec<Event>) {
         use crate::icons::IconId;
         if !self.filter.is_empty() {
-            let line = strings::format("empty-nav-filter", &[&self.filter]);
+            let line = strings::format(key!("empty-nav-filter"), &[&self.filter]);
             let clear = crate::components::empty_state(
                 ui,
                 IconId::filter,
                 &line,
-                strings::text("empty-nav-filter-text"),
-                Some(strings::text("empty-nav-clear")),
+                strings::text(key!("empty-nav-filter-text")),
+                Some(strings::text(key!("empty-nav-clear"))),
             );
             if clear.is_some_and(|r| r.clicked()) {
                 self.filter.clear();
@@ -738,47 +739,47 @@ pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str,
         NavKind::Messages => {
             return (
                 IconId::circle_check,
-                strings::text("empty-messages"),
-                strings::text("empty-messages-text"),
+                strings::text(key!("empty-messages")),
+                strings::text(key!("empty-messages-text")),
             );
         }
         NavKind::Pages => {
             return (
                 IconId::files,
-                strings::text("empty-nav-pages"),
-                strings::text("empty-nav-pages-text"),
+                strings::text(key!("empty-nav-pages")),
+                strings::text(key!("empty-nav-pages-text")),
             );
         }
         // The rail's icons (`ew_viewmodel::rail::LEFT`).
-        NavKind::Devices => (IconId::ew_black_box, "empty-nav-devices"),
-        NavKind::Connections => (IconId::plug_connected, "empty-nav-connections"),
-        NavKind::Strips => (IconId::ew_terminal_strip, "empty-nav-strips"),
-        NavKind::Cables => (IconId::ew_cable, "empty-nav-cables"),
-        NavKind::Plc => (IconId::cpu, "empty-nav-plc"),
-        NavKind::Potentials => (IconId::ew_potential, "empty-nav-potentials"),
-        NavKind::Ips => (IconId::ew_interruption_point, "empty-nav-ips"),
-        NavKind::Structure => (IconId::sitemap, "empty-nav-structure"),
-        NavKind::Parts => (IconId::packages, "empty-nav-parts"),
-        NavKind::Blocks => (IconId::report, "empty-nav-blocks"),
+        NavKind::Devices => (IconId::ew_black_box, key!("empty-nav-devices")),
+        NavKind::Connections => (IconId::plug_connected, key!("empty-nav-connections")),
+        NavKind::Strips => (IconId::ew_terminal_strip, key!("empty-nav-strips")),
+        NavKind::Cables => (IconId::ew_cable, key!("empty-nav-cables")),
+        NavKind::Plc => (IconId::cpu, key!("empty-nav-plc")),
+        NavKind::Potentials => (IconId::ew_potential, key!("empty-nav-potentials")),
+        NavKind::Ips => (IconId::ew_interruption_point, key!("empty-nav-ips")),
+        NavKind::Structure => (IconId::sitemap, key!("empty-nav-structure")),
+        NavKind::Parts => (IconId::packages, key!("empty-nav-parts")),
+        NavKind::Blocks => (IconId::report, key!("empty-nav-blocks")),
         // WP-S1.19 part 6 (§11).
         NavKind::Macros => {
             return (
                 IconId::package,
-                strings::text("empty-nav-macros"),
-                strings::text("empty-nav-macros-text"),
+                strings::text(key!("empty-nav-macros")),
+                strings::text(key!("empty-nav-macros-text")),
             );
         }
-        NavKind::Libraries => (IconId::books, "empty-nav-libraries"),
+        NavKind::Libraries => (IconId::books, key!("empty-nav-libraries")),
         // WP-S4.02 part 3: the pane draws the shell's texts (`ShellModel::unplaced_empty`); these are the first state's.
         NavKind::Unplaced => {
             return (
                 IconId::layout_dashboard,
-                strings::text("empty-nav-unplaced"),
-                strings::text("empty-nav-unplaced-text"),
+                strings::text(key!("empty-nav-unplaced")),
+                strings::text(key!("empty-nav-unplaced-text")),
             );
         }
     };
-    (icon, strings::text(line), strings::text("empty-nav-text"))
+    (icon, strings::text(line), strings::text(key!("empty-nav-text")))
 }
 
 /// The inline editor of a row whose label is being renamed (WP-S2.07 part 2, FT-490): a one-line text field at the
@@ -812,7 +813,7 @@ fn rename_ui(
         })
         .inner;
     // Named "Rename <row name>" (every focusable node has a name, ADR-0014 amendment 2).
-    let name = format!("{} {}", strings::text("action-navigator-rename"), row.name);
+    let name = format!("{} {}", strings::text(key!("action-navigator-rename")), row.name);
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_label(name));
     if !started {
@@ -907,7 +908,7 @@ fn row_ui(
                     let w = t.size_tree_indent - t.space_3;
                     let h = ui.spacing().interact_size.y;
                     let (rect, glyph) = ui.allocate_exact_size(egui::vec2(w, h), Sense::click());
-                    let name = strings::text("action-navigator-toggle");
+                    let name = strings::text(key!("action-navigator-toggle"));
                     glyph.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, name));
                     ui.ctx()
                         .accesskit_node_builder(glyph.id, |n| n.set_expanded(open));
@@ -1116,7 +1117,7 @@ fn reorder_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         return;
     };
     let summary = strings::format(
-        "card-reorder",
+        key!("card-reorder"),
         &[
             &notices.join(", "),
             &card.preview.derived.tags.len().to_string(),
@@ -1124,7 +1125,7 @@ fn reorder_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ],
     );
     let card = crate::components::InlineCard {
-        title: strings::text("card-title-reorder"),
+        title: strings::text(key!("card-title-reorder")),
         summary: &summary,
         apply: "navigator.apply",
         strip: true,
@@ -1174,7 +1175,15 @@ fn table_card(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut Vec<E
                     }
                 }
                 // FT-567: Drop is a Secondary button beside the readings (doc 16a §6.21), not bare text.
-                if button(ui, Kind::Secondary, strings::text("card-table-drop"), true, 0.0).clicked() {
+                if button(
+                    ui,
+                    Kind::Secondary,
+                    strings::text(key!("card-table-drop")),
+                    true,
+                    0.0,
+                )
+                .clicked()
+                {
                     events.push(Event::Action("table.drop", json!({ "cell": i + 1 })));
                 }
             });
@@ -1193,13 +1202,13 @@ pub(crate) fn chip_line(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>
     ui.horizontal_wrapped(|ui| {
         let t = crate::components::tokens(ui);
         ui.label(
-            egui::RichText::new(strings::text("chips-label"))
+            egui::RichText::new(strings::text(key!("chips-label")))
                 .font(crate::theme::font(&t.type_small))
                 .color(t.text_secondary.color32()),
         );
         for c in chips {
             let text = c.text();
-            let name = strings::format("chip-name", &[&text]);
+            let name = strings::format(key!("chip-name"), &[&text]);
             let response = crate::components::jump_chip(ui, &text, &name);
             if response.clicked() {
                 events.push(Event::Action("page.goto", json!({ "folio": c.folio })));

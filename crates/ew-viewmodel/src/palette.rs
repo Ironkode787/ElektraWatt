@@ -18,6 +18,8 @@
 use std::collections::VecDeque;
 
 use crate::actions::{ActionMeta, ParamSpec, parse_signature};
+use crate::key;
+use crate::strings::Key;
 
 /// The longest query the scorer aligns, in characters; the rest is ignored.
 pub const MAX_QUERY: usize = 64;
@@ -280,7 +282,7 @@ pub enum FormPlan {
     /// An inline form with one row per parameter of the signature.
     Form(Vec<ParamSpec>),
     /// Listed, disabled, with this reason key.
-    Disabled(&'static str),
+    Disabled(Key<'static>),
 }
 
 /// Whether a signature type is one an inline form edits: `bool`, `uint`, `int`, `text` or an enumeration.
@@ -305,13 +307,13 @@ pub fn form_plan(meta: &ActionMeta) -> FormPlan {
         return FormPlan::Direct;
     }
     let Ok(specs) = parse_signature(meta.params) else {
-        return FormPlan::Disabled("reason-parameters-later");
+        return FormPlan::Disabled(key!("reason-parameters-later"));
     };
     if specs.iter().any(|p| file_or_selection(&p.ty)) {
-        return FormPlan::Disabled("reason-palette-needs-file");
+        return FormPlan::Disabled(key!("reason-palette-needs-file"));
     }
     if specs.is_empty() || !specs.iter().all(|p| form_type(&p.ty)) {
-        return FormPlan::Disabled("reason-parameters-later");
+        return FormPlan::Disabled(key!("reason-parameters-later"));
     }
     FormPlan::Form(specs)
 }
@@ -636,19 +638,19 @@ mod tests {
         ));
         assert_eq!(
             form_plan(&meta_with("file:path", true)),
-            FormPlan::Disabled("reason-palette-needs-file")
+            FormPlan::Disabled(key!("reason-palette-needs-file"))
         );
         assert_eq!(
             form_plan(&meta_with("ids:list(ref)", true)),
-            FormPlan::Disabled("reason-palette-needs-file")
+            FormPlan::Disabled(key!("reason-palette-needs-file"))
         );
         assert_eq!(
             form_plan(&meta_with("scale:json", true)),
-            FormPlan::Disabled("reason-parameters-later")
+            FormPlan::Disabled(key!("reason-parameters-later"))
         );
         assert_eq!(
             form_plan(&meta_with("x:mm", true)),
-            FormPlan::Disabled("reason-parameters-later")
+            FormPlan::Disabled(key!("reason-parameters-later"))
         );
     }
 

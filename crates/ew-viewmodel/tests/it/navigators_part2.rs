@@ -8,6 +8,7 @@
 //! pre-fill (FT-461's second half), the six new words and the two new actions.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use std::collections::BTreeSet;
 
@@ -225,7 +226,7 @@ fn np3_highlighting_24vdc_1_from_the_potentials_navigator() {
     assert_eq!(
         shell.dispatch("view.clear_highlights", &json!({})),
         Outcome::Refused {
-            reason_key: "reason-no-highlights"
+            reason_key: key!("reason-no-highlights")
         }
     );
     let w = row_key(&shell, NavKind::Connections, NavRole::Connection, "102.10");

@@ -26,6 +26,7 @@ use serde_json::{Map, Value, json};
 
 use super::navigation::{Focus, bump};
 use super::{Mode, Outcome, RecordedCommand, ShellModel, failed, string_param};
+use crate::key;
 use crate::properties::{
     Card, CardOrigin, ChoiceKind, Choices, Decision, EditBuffer, PendingEdit, Popup, PropRow,
     PropertiesState, PropertySheet, Provenance, RowAction, RowMenuItem, RowValue, SheetKey, SheetSection,
@@ -33,6 +34,7 @@ use crate::properties::{
     read_only_reason, visible_rows,
 };
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::PreviewState;
 
 /// The message of a command refusal as the grid shows it (§6.7): a parameter path `/targets/<i>` names the target by
@@ -44,13 +46,13 @@ fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
                 .strip_prefix("/targets/")
                 .and_then(|i| i.parse::<usize>().ok())
             {
-                Some(i) => strings::format("props-refused-on", &[&label(i), message]),
+                Some(i) => strings::format(key!("props-refused-on"), &[&label(i), message]),
                 None => message.clone(),
             }
         }
         CmdError::Rejected { reason, .. } => reason.clone(),
         CmdError::Prevented { rule, finding, .. } => format!("{rule}: {finding}"),
-        CmdError::NotFound { .. } => strings::text("props-gone").to_owned(),
+        CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
         other => other.to_string(),
     }
 }
@@ -117,7 +119,7 @@ fn tag_edit_of(shown: &str, letter: &str, counter: &str, typed: &str) -> Option<
 fn message_of(result: &Result<AnyCommand, ew_api::output::StripEditError>) -> String {
     match result {
         Err(ew_api::output::StripEditError::Invalid(m)) => m.clone(),
-        Err(ew_api::output::StripEditError::Refused(k)) => strings::text(k).to_owned(),
+        Err(ew_api::output::StripEditError::Refused(k)) => strings::text(Key::run_time(k)).to_owned(),
         Err(ew_api::output::StripEditError::Ambiguous(c)) => {
             c.iter().map(|x| x.text.as_str()).collect::<Vec<_>>().join("; ")
         }
@@ -143,13 +145,14 @@ impl ShellModel {
                     bump(&self.calls, |c| c.property_sheet += 1);
                     p.session.property_sheet(&[t]).header.title
                 }
-                _ => strings::format("props-target-n", &[&(i + 1).to_string()]),
+                _ => strings::format(key!("props-target-n"), &[&(i + 1).to_string()]),
             }
         };
         replace_uuids(&refusal_text(e, &label), &|u| {
-            rows.iter()
-                .find(|r| r.id.to_string() == u)
-                .map_or_else(|| strings::text("props-a-record").to_owned(), |r| r.folio.clone())
+            rows.iter().find(|r| r.id.to_string() == u).map_or_else(
+                || strings::text(key!("props-a-record")).to_owned(),
+                |r| r.folio.clone(),
+            )
         })
     }
 
@@ -189,7 +192,7 @@ impl ShellModel {
             None => !self.settings.properties_show_advanced,
             Some(v) => match v.as_bool() {
                 Some(b) => b,
-                None => return failed("error-bad-param", &["on"]),
+                None => return failed(key!("error-bad-param"), &["on"]),
             },
         };
         if on != self.settings.properties_show_advanced {
@@ -226,7 +229,7 @@ impl ShellModel {
     pub(crate) fn act_props_filter(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match string_param(p, "text") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["text"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["text"]),
             Ok(Some(t)) => t.to_owned(),
         };
         self.props.filter = text;
@@ -366,15 +369,15 @@ impl ShellModel {
         match string_param(p, "row")? {
             Some(r) => {
                 let sheet = self.props.sheet().ok_or(Outcome::Refused {
-                    reason_key: "reason-no-sheet",
+                    reason_key: key!("reason-no-sheet"),
                 })?;
                 if find_row(sheet, r).is_none() {
-                    return Err(failed("error-no-row", &[r]));
+                    return Err(failed(key!("error-no-row"), &[r]));
                 }
                 Ok(r.to_owned())
             }
             None => self.properties_row().ok_or(Outcome::Refused {
-                reason_key: "reason-no-row",
+                reason_key: key!("reason-no-row"),
             }),
         }
     }
@@ -391,10 +394,10 @@ impl ShellModel {
         section: &SheetSection,
         row: &PropRow,
         action: RowAction,
-    ) -> Option<&'static str> {
+    ) -> Option<Key<'static>> {
         let sheet = self.props.sheet()?;
         if sheet.read_only.is_some() || !self.is_writable() {
-            return Some("reason-read-only");
+            return Some(key!("reason-read-only"));
         }
         if row.actions.contains(&action) {
             return None;
@@ -405,9 +408,9 @@ impl ShellModel {
                 crate::properties::EditRoute::ReadOnly(crate::properties::FieldReadOnly::HumanOnly { .. })
             )
         {
-            return Some("reason-human-only");
+            return Some(key!("reason-human-only"));
         }
-        Some("reason-read-only")
+        Some(key!("reason-read-only"))
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -451,7 +454,7 @@ impl ShellModel {
     pub(crate) fn act_select_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let mut items: Vec<EntityRef> = Vec::new();
@@ -459,7 +462,7 @@ impl ShellModel {
             (Some(Value::Array(ids)), None) => {
                 for v in ids {
                     let Some(text) = v.as_str() else {
-                        return failed("error-bad-param", &["ids"]);
+                        return failed(key!("error-bad-param"), &["ids"]);
                     };
                     match project.session.resolve_reference(&format!("id:{text}")) {
                         Ok(u) => items.push(EntityRef(u)),
@@ -470,7 +473,7 @@ impl ShellModel {
             (None, Some(Value::Array(refs))) => {
                 for v in refs {
                     let Some(text) = v.as_str() else {
-                        return failed("error-bad-param", &["refs"]);
+                        return failed(key!("error-bad-param"), &["refs"]);
                     };
                     if let Some(ends) = text.strip_prefix("wire:") {
                         match self.wire_of_page(ends) {
@@ -485,13 +488,13 @@ impl ShellModel {
                     }
                 }
             }
-            (None, None) => return failed("error-missing-param", &["ids"]),
-            _ => return failed("error-bad-param", &["ids"]),
+            (None, None) => return failed(key!("error-missing-param"), &["ids"]),
+            _ => return failed(key!("error-bad-param"), &["ids"]),
         }
         let change = crate::tools::SelectionChange::Replace(items);
         if self.tools.selection.apply(&change) {
             self.tools.announcement = Some(strings::format(
-                "announce-selected",
+                key!("announce-selected"),
                 &[&self.tools.selection.items.len().to_string()],
             ));
         }
@@ -505,11 +508,11 @@ impl ShellModel {
     fn wire_of_page(&self, ends: &str) -> Result<EntityRef, Outcome> {
         let unquote = |s: &str| s.trim().trim_matches('"').to_owned();
         let Some((a, b)) = ends.split_once("->").map(|(a, b)| (unquote(a), unquote(b))) else {
-            return Err(failed("error-wire-reference", &[ends]));
+            return Err(failed(key!("error-wire-reference"), &[ends]));
         };
         let Some(c) = self.canvas() else {
             return Err(Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             });
         };
         let hits: Vec<EntityRef> = crate::describe::page_wires(c.page())
@@ -519,8 +522,8 @@ impl ShellModel {
             .collect();
         match hits.as_slice() {
             [one] => Ok(*one),
-            [] => Err(failed("error-wire-reference", &[ends])),
-            _ => Err(failed("error-wire-ambiguous", &[ends])),
+            [] => Err(failed(key!("error-wire-reference"), &[ends])),
+            _ => Err(failed(key!("error-wire-ambiguous"), &[ends])),
         }
     }
 
@@ -528,7 +531,7 @@ impl ShellModel {
     pub(crate) fn act_props_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sheet) = self.props.sheet.clone() else {
             return Outcome::Refused {
-                reason_key: "reason-no-sheet",
+                reason_key: key!("reason-no-sheet"),
             };
         };
         let collapsed = self.properties_collapsed();
@@ -541,7 +544,7 @@ impl ShellModel {
         );
         if rows.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-row",
+                reason_key: key!("reason-no-row"),
             };
         }
         let here = self
@@ -550,7 +553,7 @@ impl ShellModel {
             .unwrap_or(0);
         let at = if let Some(step) = p.get("step") {
             let Some(step) = step.as_i64() else {
-                return failed("error-bad-param", &["step"]);
+                return failed(key!("error-bad-param"), &["step"]);
             };
             (here as i64 + step).clamp(0, rows.len() as i64 - 1) as usize
         } else {
@@ -560,9 +563,9 @@ impl ShellModel {
                 Ok(Some("last")) => rows.len() - 1,
                 Ok(Some(key)) => match rows.iter().position(|r| r.row.key == key) {
                     Some(i) => i,
-                    None => return failed("error-no-row", &[key]),
+                    None => return failed(key!("error-no-row"), &[key]),
                 },
-                Ok(None) => return failed("error-missing-param", &["step"]),
+                Ok(None) => return failed(key!("error-missing-param"), &["step"]),
             }
         };
         self.props.row = Some(rows[at].row.key.clone());
@@ -575,7 +578,7 @@ impl ShellModel {
     pub(crate) fn act_props_category(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sheet) = self.props.sheet.clone() else {
             return Outcome::Refused {
-                reason_key: "reason-no-sheet",
+                reason_key: key!("reason-no-sheet"),
             };
         };
         let focused = self.properties_row();
@@ -589,7 +592,7 @@ impl ShellModel {
                 Some(x) => x,
                 None => {
                     return Outcome::Refused {
-                        reason_key: "reason-no-row",
+                        reason_key: key!("reason-no-row"),
                     };
                 }
             },
@@ -598,7 +601,7 @@ impl ShellModel {
             Err(e) => return e,
             Ok(Some(word)) => match crate::properties::RowGroup::from_word(word) {
                 Some(g) => g,
-                None => return failed("error-bad-param", &["category"]),
+                None => return failed(key!("error-bad-param"), &["category"]),
             },
             Ok(None) => crate::properties::group_of(section, row),
         };
@@ -636,7 +639,7 @@ impl ShellModel {
     /// Opens the editor of `key` for `action` (Edit or Override) with `buffer`, else the value's text.
     fn begin_edit(&mut self, key: &str, action: RowAction, buffer: Option<String>) -> Outcome {
         let Some((section, row)) = self.props_find(key) else {
-            return failed("error-no-row", &[key]);
+            return failed(key!("error-no-row"), &[key]);
         };
         if let Some(reason_key) = self.props_refusal(&section, &row, action) {
             return Outcome::Refused { reason_key };
@@ -766,12 +769,12 @@ impl ShellModel {
         let text = match string_param(p, "text") {
             Err(e) => return e,
             Ok(Some(t)) => t.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["text"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["text"]),
         };
         if self.props.edit.is_none() {
             let Some(key) = self.properties_row() else {
                 return Outcome::Refused {
-                    reason_key: "reason-no-row",
+                    reason_key: key!("reason-no-row"),
                 };
             };
             let started = self.begin_edit(&key, RowAction::Edit, Some(String::new()));
@@ -814,7 +817,7 @@ impl ShellModel {
     pub(crate) fn act_props_commit(&mut self) -> Outcome {
         let Some(edit) = self.props.edit.clone() else {
             return Outcome::Refused {
-                reason_key: "reason-not-editing",
+                reason_key: key!("reason-not-editing"),
             };
         };
         // The stored value's text committed unchanged: nothing to write (its display form need not parse back).
@@ -833,13 +836,13 @@ impl ShellModel {
         let value = match string_param(p, "value") {
             Err(e) => return e,
             Ok(Some(v)) => v.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["value"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["value"]),
         };
         let choice = match p.get("choice") {
             None => None,
             Some(v) => match v.as_u64().and_then(|i| usize::try_from(i).ok()) {
                 Some(i) => Some(i),
-                None => return failed("error-bad-param", &["choice"]),
+                None => return failed(key!("error-bad-param"), &["choice"]),
             },
         };
         let started = self.begin_edit(&key, RowAction::Edit, Some(value.clone()));
@@ -852,7 +855,7 @@ impl ShellModel {
     /// Parses `text` for row `key` and commits it (a choice index picks an ambiguous reading).
     fn commit_text(&mut self, key: &str, text: &str, choice: Option<usize>) -> Outcome {
         let Some((section, row)) = self.props_find(key) else {
-            return failed("error-no-row", &[key]);
+            return failed(key!("error-no-row"), &[key]);
         };
         // WP-S2.07 D13: a terminal's Group row compiles through `Session::strip_edit` (D8).
         if row.key == GROUP_ROW {
@@ -880,7 +883,7 @@ impl ShellModel {
         }
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let parsed = project.session.parse_field_input(&section.kind, &row.path, text);
@@ -891,7 +894,7 @@ impl ShellModel {
                     value: v.clone(),
                     notes: Vec::new(),
                 },
-                None => return failed("error-bad-param", &["choice"]),
+                None => return failed(key!("error-bad-param"), &["choice"]),
             },
             (Err(InputError::Ambiguous { choices }), None) => {
                 self.props.choices = Some(Choices {
@@ -907,7 +910,7 @@ impl ShellModel {
                 return Outcome::Failed { message };
             }
             (Err(InputError::UnknownPart(typed)), _) => {
-                let message = strings::format("error-no-part", &[&typed]);
+                let message = strings::format(key!("error-no-part"), &[&typed]);
                 self.props.error = Some((key.to_owned(), message.clone()));
                 return Outcome::Failed { message };
             }
@@ -939,11 +942,11 @@ impl ShellModel {
     /// Compiles the leaf `value` of row `key` into exactly one command and runs the commit path (§6.6).
     fn commit_value(&mut self, key: &str, value: Value, typed: String, notes: Vec<String>) -> Outcome {
         let Some((section, row)) = self.props_find(key) else {
-            return failed("error-no-row", &[key]);
+            return failed(key!("error-no-row"), &[key]);
         };
         let Some(member) = member_path(&row.route) else {
             return Outcome::Refused {
-                reason_key: "reason-read-only",
+                reason_key: key!("reason-read-only"),
             };
         };
         // The member's value on every target as the sheet shows it (the base of the edit).
@@ -957,7 +960,7 @@ impl ShellModel {
             match self.props_find(&member_key).map(|(_, r)| r.value) {
                 Some(RowValue::One { json, .. }) => Some(json),
                 Some(RowValue::Varies { .. }) if row.path != member => {
-                    let message = strings::text("props-member-varies").to_owned();
+                    let message = strings::text(key!("props-member-varies")).to_owned();
                     self.props.error = Some((key.to_owned(), message.clone()));
                     return Outcome::Failed { message };
                 }
@@ -965,7 +968,7 @@ impl ShellModel {
             }
         };
         let Some(new) = compose(&member, &row.path, base.as_ref(), &value) else {
-            let message = strings::text("props-cannot-compose").to_owned();
+            let message = strings::text(key!("props-cannot-compose")).to_owned();
             self.props.error = Some((key.to_owned(), message.clone()));
             return Outcome::Failed { message };
         };
@@ -1013,7 +1016,7 @@ impl ShellModel {
         }
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let edit = ew_api::output::StripEdit::GroupLabel {
@@ -1023,7 +1026,9 @@ impl ShellModel {
         let cmd = match project.session.strip_edit(&edit) {
             Ok(c) => c,
             Err(ew_api::output::StripEditError::Refused(reason_key)) => {
-                return Outcome::Refused { reason_key };
+                return Outcome::Refused {
+                    reason_key: Key::run_time(reason_key),
+                };
             }
             Err(e) => {
                 let message = message_of(&Err(e));
@@ -1121,20 +1126,20 @@ impl ShellModel {
         let row = edit.row.clone();
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let Some(meta) = project.session.command_meta(&edit.name) else {
-            return failed("error-unknown-action", &[&edit.name]);
+            return failed(key!("error-unknown-action"), &[&edit.name]);
         };
         if meta.exposure != Exposure::Edit {
             return Outcome::Refused {
-                reason_key: "reason-human-only",
+                reason_key: key!("reason-human-only"),
             };
         }
         if !self.is_writable() {
             return Outcome::Refused {
-                reason_key: "reason-read-only",
+                reason_key: key!("reason-read-only"),
             };
         }
         let Some(rev) = self.revision() else {
@@ -1171,10 +1176,10 @@ impl ShellModel {
                 let mut message = self.refusal(&e, section.as_ref());
                 let mut shown = message.clone();
                 if let Some(proposal) = self.tag_proposal_for(&edit) {
-                    shown = strings::format("props-tag-proposal", &[&message, &proposal.tag]);
+                    shown = strings::format(key!("props-tag-proposal"), &[&message, &proposal.tag]);
                     // The window offers the "Use …" button; a script or blind transcript is told the action instead.
                     message = if self.mode == Mode::Headless {
-                        strings::format("props-tag-proposal-script", &[&message, &proposal.tag])
+                        strings::format(key!("props-tag-proposal-script"), &[&message, &proposal.tag])
                     } else {
                         shown.clone()
                     };
@@ -1198,7 +1203,7 @@ impl ShellModel {
             (decision, result) => {
                 let reason = match decision {
                     Decision::Card(r) => r,
-                    _ => "reason-rebuilt",
+                    _ => key!("reason-rebuilt"),
                 };
                 self.props.card = Some(Card {
                     preview: PreviewState {
@@ -1288,7 +1293,7 @@ impl ShellModel {
                 if edit.targets.len() > 1 {
                     self.notify(
                         strings::format(
-                            "toast-set",
+                            key!("toast-set"),
                             &[
                                 // FT-757: sentence case, as the table's toast.
                                 &strings::in_sentence(&edit.label),
@@ -1367,10 +1372,10 @@ impl ShellModel {
         };
         let base_rev = self.revision()?;
         let proposal = self.project.as_ref()?.session.join_proposal(*device, text)?;
-        let shown = strings::format("props-join-proposal", &[&proposal.tag]);
+        let shown = strings::format(key!("props-join-proposal"), &[&proposal.tag]);
         // The window offers the "Join …" button; a script or blind transcript is told the action instead.
         let message = if self.mode == Mode::Headless {
-            strings::format("props-join-proposal-script", &[&proposal.tag])
+            strings::format(key!("props-join-proposal-script"), &[&proposal.tag])
         } else {
             shown.clone()
         };
@@ -1392,7 +1397,7 @@ impl ShellModel {
     pub(crate) fn act_props_accept_tag_proposal(&mut self) -> Outcome {
         let Some(proposal) = self.props.tag_proposal.take() else {
             return Outcome::Refused {
-                reason_key: "reason-no-tag-proposal",
+                reason_key: key!("reason-no-tag-proposal"),
             };
         };
         // A proposal is accepted only while its refusal is on show and the project has not changed since (a stale
@@ -1400,7 +1405,7 @@ impl ShellModel {
         let on_show = self.props.error.as_ref().is_some_and(|(r, _)| *r == proposal.row);
         if !on_show || self.revision() != Some(proposal.base_rev) {
             return Outcome::Refused {
-                reason_key: "reason-no-tag-proposal",
+                reason_key: key!("reason-no-tag-proposal"),
             };
         }
         let section = self.props_find(&proposal.row).map(|(s, _)| s);
@@ -1420,16 +1425,16 @@ impl ShellModel {
                 let joined = rep.and_then(|r| self.project.as_ref()?.session.joined_text(r));
                 // FX37a: what the removed source device carried goes with it; the toast names it.
                 joined.map(|j| {
-                    let text = strings::format("toast-joined", &[&j.tag, &j.kind, &j.place]);
+                    let text = strings::format(key!("toast-joined"), &[&j.tag, &j.kind, &j.place]);
                     if notices.is_empty() {
                         text
                     } else {
-                        strings::format("toast-joined-dropped", &[&text, &notices.join("; ")])
+                        strings::format(key!("toast-joined-dropped"), &[&text, &notices.join("; ")])
                     }
                 })
             } else {
                 Some(strings::format(
-                    "toast-tag-proposal",
+                    key!("toast-tag-proposal"),
                     &[&proposal.tag, &proposal.counter],
                 ))
             };
@@ -1478,7 +1483,7 @@ impl ShellModel {
     pub(super) fn tag_rename_commit(&mut self, device: ew_api::output::Uuid, text: &str) -> Outcome {
         let Some(shown) = self.tag_rename_sheet(device) else {
             return Outcome::Refused {
-                reason_key: "reason-nav-not-renamable",
+                reason_key: key!("reason-nav-not-renamable"),
             };
         };
         let row_text = |s: &Self, key: &str| match s.props_find(key).map(|(_, r)| r.value) {
@@ -1527,7 +1532,7 @@ impl ShellModel {
         if !self.is_writable() {
             return (
                 Outcome::Refused {
-                    reason_key: "reason-read-only",
+                    reason_key: key!("reason-read-only"),
                 },
                 Vec::new(),
             );
@@ -1572,11 +1577,11 @@ impl ShellModel {
     pub(crate) fn act_props_choose(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(step) = p.get("step") {
             let Some(step) = step.as_i64() else {
-                return failed("error-bad-param", &["step"]);
+                return failed(key!("error-bad-param"), &["step"]);
             };
             let Some(c) = &mut self.props.choices else {
                 return Outcome::Refused {
-                    reason_key: "reason-no-choices",
+                    reason_key: key!("reason-no-choices"),
                 };
             };
             if c.items.is_empty() {
@@ -1594,20 +1599,20 @@ impl ShellModel {
         let index = match p.get("index") {
             Some(v) => match v.as_u64().and_then(|i| usize::try_from(i).ok()) {
                 Some(i) => i,
-                None => return failed("error-bad-param", &["index"]),
+                None => return failed(key!("error-bad-param"), &["index"]),
             },
             None => match self.props.choices.as_ref().and_then(|c| c.index) {
                 Some(i) => i,
                 None if self.props.edit.is_some() => return self.act_props_commit(),
-                None => return failed("error-missing-param", &["index"]),
+                None => return failed(key!("error-missing-param"), &["index"]),
             },
         };
         if let Some(Popup::Actions { row, .. }) = self.props.popup.clone() {
             if self.props_find(&row).is_none() {
-                return failed("error-no-row", &[&row]);
+                return failed(key!("error-no-row"), &[&row]);
             }
             let Some(item) = self.row_menu(&row).get(index).copied() else {
-                return failed("error-bad-param", &["index"]);
+                return failed(key!("error-bad-param"), &["index"]);
             };
             self.props.popup = None;
             return match item {
@@ -1635,12 +1640,12 @@ impl ShellModel {
         }
         let Some(choices) = self.props.choices.take() else {
             return Outcome::Refused {
-                reason_key: "reason-no-choices",
+                reason_key: key!("reason-no-choices"),
             };
         };
         let Some((_, value)) = choices.items.get(index).cloned() else {
             self.props.choices = Some(choices);
-            return failed("error-bad-param", &["index"]);
+            return failed(key!("error-bad-param"), &["index"]);
         };
         let typed = self
             .props
@@ -1683,7 +1688,7 @@ impl ShellModel {
     pub(crate) fn act_props_row_menu(&mut self, p: &Map<String, Value>) -> Outcome {
         if let (Some(step), Some(Popup::Actions { row, index })) = (p.get("step"), self.props.popup.clone()) {
             let Some(step) = step.as_i64() else {
-                return failed("error-bad-param", &["step"]);
+                return failed(key!("error-bad-param"), &["step"]);
             };
             let n = self.row_menu(&row).len().max(1);
             let index = (index as i64 + step).clamp(0, n as i64 - 1) as usize;
@@ -1692,13 +1697,13 @@ impl ShellModel {
         }
         let Some(key) = self.properties_row() else {
             return Outcome::Refused {
-                reason_key: "reason-no-row",
+                reason_key: key!("reason-no-row"),
             };
         };
         let has_actions = !self.row_menu(&key).is_empty();
         if !has_actions {
             return Outcome::Refused {
-                reason_key: "reason-no-actions",
+                reason_key: key!("reason-no-actions"),
             };
         }
         self.props.popup = Some(Popup::Actions { row: key, index: 0 });
@@ -1714,7 +1719,7 @@ impl ShellModel {
         };
         let action = match string_param(p, "action") {
             Err(e) => return e,
-            Ok(None) => return failed("error-missing-param", &["action"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["action"]),
             Ok(Some(word)) => match [
                 RowAction::Edit,
                 RowAction::Clear,
@@ -1727,7 +1732,7 @@ impl ShellModel {
             .find(|a| a.word() == word)
             {
                 Some(a) => a,
-                None => return failed("error-bad-param", &["action"]),
+                None => return failed(key!("error-bad-param"), &["action"]),
             },
         };
         self.row_action(&key, action)
@@ -1736,7 +1741,7 @@ impl ShellModel {
     /// A row action (§6.3, §6.4): its partner write, or the editor for Edit and Override.
     fn row_action(&mut self, key: &str, action: RowAction) -> Outcome {
         let Some((section, row)) = self.props_find(key) else {
-            return failed("error-no-row", &[key]);
+            return failed(key!("error-no-row"), &[key]);
         };
         if let Some(reason_key) = self.props_refusal(&section, &row, action) {
             return Outcome::Refused { reason_key };
@@ -1765,7 +1770,7 @@ impl ShellModel {
                     }
                     (RowValue::One { text, .. }, "connection") if text != "?" => json!({ "frozen": text }),
                     _ => {
-                        let message = strings::text("props-cannot-freeze").to_owned();
+                        let message = strings::text(key!("props-cannot-freeze")).to_owned();
                         self.props.error = Some((key.to_owned(), message.clone()));
                         return Outcome::Failed { message };
                     }
@@ -1783,7 +1788,7 @@ impl ShellModel {
     fn freeze_devices(&mut self, section: &SheetSection, row: &PropRow) -> Outcome {
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let mut edits = Vec::new();
@@ -1811,7 +1816,7 @@ impl ShellModel {
             }
         }
         if edits.is_empty() {
-            let message = strings::text("props-cannot-freeze").to_owned();
+            let message = strings::text(key!("props-cannot-freeze")).to_owned();
             self.props.error = Some((row.key.clone(), message.clone()));
             return Outcome::Failed { message };
         }
@@ -1848,29 +1853,29 @@ impl ShellModel {
         let op = match string_param(p, "op") {
             Err(e) => return e,
             Ok(Some(op)) => op.to_owned(),
-            Ok(None) => return failed("error-missing-param", &["op"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["op"]),
         };
         let Some((section, row)) = self.props_find(&key) else {
-            return failed("error-no-row", &[&key]);
+            return failed(key!("error-no-row"), &[&key]);
         };
         // The list row and the item's index.
         let (list_key, index) = match row.key.rsplit_once('[') {
             Some((head, tail)) if tail.ends_with(']') && op != "add" => {
                 match tail.trim_end_matches(']').parse::<usize>() {
                     Ok(i) => (head.to_owned(), Some(i)),
-                    Err(_) => return failed("error-bad-param", &["row"]),
+                    Err(_) => return failed(key!("error-bad-param"), &["row"]),
                 }
             }
             _ => (row.key.clone(), None),
         };
         let Some((_, list)) = self.props_find(&list_key) else {
-            return failed("error-no-row", &[&list_key]);
+            return failed(key!("error-no-row"), &[&list_key]);
         };
         if let Some(reason_key) = self.props_refusal(&section, &list, RowAction::Edit) {
             return Outcome::Refused { reason_key };
         }
         let crate::properties::FieldType::List(item) = list.ty.inner() else {
-            return failed("error-bad-param", &["row"]);
+            return failed(key!("error-bad-param"), &["row"]);
         };
         let mut items = match &list.value {
             RowValue::One {
@@ -1879,7 +1884,7 @@ impl ShellModel {
             } => a.clone(),
             RowValue::Absent => Vec::new(),
             _ => {
-                let message = strings::text("props-member-varies").to_owned();
+                let message = strings::text(key!("props-member-varies")).to_owned();
                 return Outcome::Failed { message };
             }
         };
@@ -1890,7 +1895,7 @@ impl ShellModel {
             }
             ("up", Some(i)) if i > 0 && i < items.len() => items.swap(i - 1, i),
             ("down", Some(i)) if i + 1 < items.len() => items.swap(i, i + 1),
-            _ => return failed("error-bad-param", &["op"]),
+            _ => return failed(key!("error-bad-param"), &["op"]),
         }
         self.commit_value(&list_key, Value::Array(items), String::new(), Vec::new())
     }
@@ -1903,11 +1908,11 @@ impl ShellModel {
             Err(e) => return e,
         };
         let Some((section, row)) = self.props_find(&key) else {
-            return failed("error-no-row", &[&key]);
+            return failed(key!("error-no-row"), &[&key]);
         };
         if !matches!(row.ty.inner(), crate::properties::FieldType::MlText) {
             return Outcome::Refused {
-                reason_key: "reason-not-mltext",
+                reason_key: key!("reason-not-mltext"),
             };
         }
         if let Some(reason_key) = self.props_refusal(&section, &row, RowAction::Edit)
@@ -1937,13 +1942,13 @@ impl ShellModel {
             .sheet()
             .and_then(|s| s.languages.first().cloned())
             .unwrap_or_else(|| "en".to_owned());
-        let choice = |label: &str, value: Value| (strings::text(label).to_owned(), value);
+        let choice = |label: Key<'_>, value: Value| (strings::text(label).to_owned(), value);
         let (direct, choices): (Option<Value>, Vec<(String, Value)>) = match (&lang, &current) {
             (None, Value::Object(_)) => (
                 None,
                 vec![
-                    choice("mltext-replace", Value::String(text.clone())),
-                    choice("mltext-keep", {
+                    choice(key!("mltext-replace"), Value::String(text.clone())),
+                    choice(key!("mltext-keep"), {
                         let mut m = current.as_object().cloned().unwrap_or_default();
                         m.insert(source.clone(), Value::String(text.clone()));
                         Value::Object(m)
@@ -1961,8 +1966,8 @@ impl ShellModel {
             (Some(l), Value::String(neutral)) if !neutral.is_empty() => (
                 None,
                 vec![
-                    choice("mltext-replace", json!({ l.clone(): text })),
-                    choice("mltext-keep", {
+                    choice(key!("mltext-replace"), json!({ l.clone(): text })),
+                    choice(key!("mltext-keep"), {
                         let mut m = Map::new();
                         m.insert(source.clone(), Value::String(neutral.clone()));
                         m.insert(l.clone(), Value::String(text.clone()));
@@ -2007,7 +2012,7 @@ impl ShellModel {
     pub(crate) fn act_preview_apply(&mut self) -> Outcome {
         let Some(card) = self.props.card.take() else {
             return Outcome::Refused {
-                reason_key: "reason-no-card",
+                reason_key: key!("reason-no-card"),
             };
         };
         // WP-S2.05 part 2: a replace card is the find pane's (§7.4).
@@ -2030,7 +2035,7 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::PasteVersions(_)) {
             self.props.card = Some(card);
             return Outcome::Refused {
-                reason_key: "reason-paste-versions",
+                reason_key: key!("reason-paste-versions"),
             };
         }
         // WP-S2.07 D22: Update the project's copy commits, then the pending paste is armed again.
@@ -2074,7 +2079,7 @@ impl ShellModel {
             s.targets.iter().map(ToString::to_string).collect::<Vec<_>>() == edit.targets
         });
         if now != edit.base || !same_targets {
-            let message = strings::text("props-changed-meanwhile").to_owned();
+            let message = strings::text(key!("props-changed-meanwhile")).to_owned();
             self.props.error = Some((edit.row.clone(), message));
             self.props.edit = Some(EditBuffer {
                 row: edit.row.clone(),
@@ -2082,7 +2087,7 @@ impl ShellModel {
                 initial: None,
             });
             return Outcome::Refused {
-                reason_key: "reason-changed-meanwhile",
+                reason_key: key!("reason-changed-meanwhile"),
             };
         }
         // WP-S2.05 part 2: a freeze on several devices is built again from the current sheet (a second Apply).
@@ -2090,14 +2095,14 @@ impl ShellModel {
             return self.row_action(&edit.row, RowAction::Freeze);
         }
         let Some((section, row)) = self.props_find(&edit.row) else {
-            return failed("error-no-row", &[&edit.row]);
+            return failed(key!("error-no-row"), &[&edit.row]);
         };
         let new = match &edit.leaf {
             Some(leaf) => compose(&member, &edit.path, now.as_ref(), leaf),
             None => edit.params.get("value").cloned(),
         };
         let Some(new) = new else {
-            return failed("error-no-row", &[&edit.row]);
+            return failed(key!("error-no-row"), &[&edit.row]);
         };
         let leaf = edit.leaf.clone().unwrap_or_else(|| new.clone());
         let rebuilt = self.pending_edit(&section, &row, &member, leaf, new, now, edit.typed.clone());
@@ -2115,7 +2120,7 @@ impl ShellModel {
     pub(crate) fn act_preview_cancel(&mut self) -> Outcome {
         if self.props.card.take().is_none() {
             return Outcome::Refused {
-                reason_key: "reason-no-card",
+                reason_key: key!("reason-no-card"),
             };
         }
         Outcome::Done
@@ -2213,7 +2218,7 @@ mod tests {
         assert_eq!(
             shell.run_edit(edit, false),
             Outcome::Refused {
-                reason_key: "reason-human-only"
+                reason_key: key!("reason-human-only")
             }
         );
         let after = shell.session_calls();
@@ -2283,7 +2288,7 @@ mod tests {
         let rev = |shell: &ShellModel| shell.project.as_ref().unwrap().session.world().rev;
         let (applied, at) = (cursor(&shell), rev(&shell));
         let refused = Outcome::Refused {
-            reason_key: "reason-human-only-history",
+            reason_key: key!("reason-human-only-history"),
         };
         assert_eq!(shell.dispatch("edit.undo", &Value::Null), refused);
         assert_eq!(
@@ -2292,7 +2297,7 @@ mod tests {
             "a refused undo changes nothing"
         );
         assert!(
-            strings::text("reason-human-only-history").contains("ADR-0008 amendment 3"),
+            strings::text(key!("reason-human-only-history")).contains("ADR-0008 amendment 3"),
             "the reason names the rule"
         );
         // The window's shell: a person drives it (cycle 41, ruling 1: the origin is `Origin::Gui` only there).

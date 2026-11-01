@@ -9,6 +9,7 @@
 //! members with the 14 words; the exact counts; the jump and the Escape chain.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done, refused, state};
 use ew_viewmodel::properties::{Provenance, RowValue, find_row};
@@ -385,7 +386,7 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
     assert_eq!(
         shell.dispatch("find.run", &json!({})),
         Outcome::Refused {
-            reason_key: "reason-no-find"
+            reason_key: key!("reason-no-find")
         }
     );
     shell.shutdown();

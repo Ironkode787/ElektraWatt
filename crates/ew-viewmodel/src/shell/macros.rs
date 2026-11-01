@@ -31,9 +31,11 @@ use super::creation::{FormDialog, FormField, FormRow, FormTable};
 use super::navigation::bump;
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::canvas::PageId;
+use crate::key;
 use crate::navigators::{NavKind, TableRef};
 use crate::properties::{Card, CardOrigin, EditRoute, FieldReadOnly, MacroField, MacroInsert, PendingEdit};
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::{MacroTool, PreviewState};
 
 /// The action of Save as macro… (its dialog dispatches it).
@@ -93,14 +95,16 @@ fn conflict_words(conflicts: &[MacroConflict]) -> Vec<String> {
     for c in conflicts {
         match c {
             MacroConflict::Refused { message, .. } => refused.push(message.clone()),
-            MacroConflict::Tag(t) => other.push(strings::format("macro-conflict-tag", &[t])),
+            MacroConflict::Tag(t) => other.push(strings::format(key!("macro-conflict-tag"), &[t])),
             MacroConflict::Pairs { name, with } => other.push(if *with == 1 {
-                strings::format("macro-conflict-pairs-one", &[name])
+                strings::format(key!("macro-conflict-pairs-one"), &[name])
             } else {
-                strings::format("macro-conflict-pairs", &[name, &with.to_string()])
+                strings::format(key!("macro-conflict-pairs"), &[name, &with.to_string()])
             }),
-            MacroConflict::Address(a) => other.push(strings::format("macro-conflict-address", &[a])),
-            MacroConflict::ProcessTag(t) => other.push(strings::format("macro-conflict-process-tag", &[t])),
+            MacroConflict::Address(a) => other.push(strings::format(key!("macro-conflict-address"), &[a])),
+            MacroConflict::ProcessTag(t) => {
+                other.push(strings::format(key!("macro-conflict-process-tag"), &[t]))
+            }
         }
     }
     refused.extend(other);
@@ -156,7 +160,7 @@ type ValueSetParam = (String, Map<String, Value>);
 /// The `value_sets` parameter of `macros.save` (FT-786): an array of `{"name": <text>, "values": {<variable>:
 /// <value>}}`, `None` when absent.
 fn value_sets_param(p: &Map<String, Value>) -> Result<Option<Vec<ValueSetParam>>, Outcome> {
-    let bad = || failed("error-bad-param", &["value_sets"]);
+    let bad = || failed(key!("error-bad-param"), &["value_sets"]);
     match p.get("value_sets") {
         None | Some(Value::Null) => Ok(None),
         Some(Value::Array(rows)) => rows
@@ -188,23 +192,23 @@ fn save_error(e: &ew_api::MacroError, sets: &[String]) -> Outcome {
         };
         if let Some(set) = index.parse::<usize>().ok().and_then(|i| sets.get(i)) {
             let message = match variable {
-                Some(v) => strings::format("error-value-set-cell", &[set, v, message]),
-                None => strings::format("error-value-set", &[set, message]),
+                Some(v) => strings::format(key!("error-value-set-cell"), &[set, v, message]),
+                None => strings::format(key!("error-value-set"), &[set, message]),
             };
             return Outcome::Failed { message };
         }
     }
-    failed("error-macro-save", &[&e.to_string()])
+    failed(key!("error-macro-save"), &[&e.to_string()])
 }
 
 /// The words of a row badge of the Libraries and Macros navigators (the API's codes, §11); any other badge as given.
 pub(super) fn badge_word(code: &str) -> &str {
     match code {
-        "update_available" => strings::text("badge-update-available"),
-        "source_missing" => strings::text("badge-source-missing"),
-        "deprecated" => strings::text("badge-deprecated"),
-        "local_fork" => strings::text("badge-local-fork"),
-        "index_failed" => strings::text("badge-index-failed"),
+        "update_available" => strings::text(key!("badge-update-available")),
+        "source_missing" => strings::text(key!("badge-source-missing")),
+        "deprecated" => strings::text(key!("badge-deprecated")),
+        "local_fork" => strings::text(key!("badge-local-fork")),
+        "index_failed" => strings::text(key!("badge-index-failed")),
         other => other,
     }
 }
@@ -368,15 +372,15 @@ impl ShellModel {
     pub(super) fn arm_macro(&mut self, key: &str) -> Outcome {
         if self.macro_page().is_none() {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         }
         let Some(detail) = self.project.as_ref().and_then(|p| p.session.macro_detail(key)) else {
-            return failed("error-nav-key", &[key, NavKind::Macros.word()]);
+            return failed(key!("error-nav-key"), &[key, NavKind::Macros.word()]);
         };
         if detail.reference.is_none() {
             return Outcome::Refused {
-                reason_key: "reason-macro-not-installed",
+                reason_key: key!("reason-macro-not-installed"),
             };
         }
         if self.navs.contains_key(&NavKind::Macros) {
@@ -395,12 +399,12 @@ impl ShellModel {
     pub(crate) fn act_macros_place(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match string_param(p, "key") {
             Ok(Some(k)) if !k.trim().is_empty() => k.trim().to_owned(),
-            Ok(_) => return failed("error-missing-param", &["key"]),
+            Ok(_) => return failed(key!("error-missing-param"), &["key"]),
             Err(e) => return e,
         };
         let at = match super::canvas_actions::point_mm(p) {
             Ok(Some(at)) => at,
-            Ok(None) => return failed("error-missing-param", &["x_mm"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["x_mm"]),
             Err(e) => return e,
         };
         let value_set = match string_param(p, "value_set") {
@@ -416,13 +420,13 @@ impl ShellModel {
         }
         let Some(c) = self.canvas() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let page_nm = c.page().snapper.snap_grid(at).page_nm;
         let Some(page) = self.macro_page() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         self.open_macro_card(&key, page, page_nm, value_set, BTreeMap::new())
@@ -433,7 +437,7 @@ impl ShellModel {
     pub(super) fn macro_place_from_tool(&mut self, key: &str, at: (i64, i64)) -> Outcome {
         let Some(page) = self.macro_page() else {
             return Outcome::Refused {
-                reason_key: "reason-no-page",
+                reason_key: key!("reason-no-page"),
             };
         };
         let out = self.open_macro_card(key, page, at, None, BTreeMap::new());
@@ -455,7 +459,7 @@ impl ShellModel {
     ) -> Outcome {
         let Some(rev) = self.revision() else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let submit = Submit::from(super::ShellModel::origin_of(
@@ -468,17 +472,17 @@ impl ShellModel {
             return Outcome::Done;
         };
         let Some(detail) = project.session.macro_detail(key) else {
-            return failed("error-nav-key", &[key, NavKind::Macros.word()]);
+            return failed(key!("error-nav-key"), &[key, NavKind::Macros.word()]);
         };
         let Some(reference) = detail.reference.clone() else {
             return Outcome::Refused {
-                reason_key: "reason-macro-not-installed",
+                reason_key: key!("reason-macro-not-installed"),
             };
         };
         if let Some(v) = &value_set
             && !detail.value_sets.contains(v)
         {
-            return failed("error-bad-param", &["value_set"]);
+            return failed(key!("error-bad-param"), &["value_set"]);
         }
         let instance = project.session.next_macro_instance(detail.copy);
         let place = InsertAt {
@@ -571,7 +575,7 @@ impl ShellModel {
             edit,
             targets: changes,
             changes,
-            reason: "reason-macro-insert",
+            reason: key!("reason-macro-insert"),
             origin: CardOrigin::Macro(Box::new(MacroInsert {
                 key: key.to_owned(),
                 name: detail.name,
@@ -596,7 +600,7 @@ impl ShellModel {
         };
         let Some(CardOrigin::Macro(m)) = self.props.card().map(|c| c.origin.clone()) else {
             return Outcome::Refused {
-                reason_key: "reason-no-card",
+                reason_key: key!("reason-no-card"),
             };
         };
         let typed = literals(&m);
@@ -609,7 +613,7 @@ impl ShellModel {
     pub(crate) fn act_macros_value(&mut self, p: &Map<String, Value>) -> Outcome {
         let name = match string_param(p, "name") {
             Ok(Some(n)) if !n.trim().is_empty() => n.trim().to_owned(),
-            Ok(_) => return failed("error-missing-param", &["name"]),
+            Ok(_) => return failed(key!("error-missing-param"), &["name"]),
             Err(e) => return e,
         };
         let value = match string_param(p, "value") {
@@ -618,11 +622,11 @@ impl ShellModel {
         };
         let Some(CardOrigin::Macro(m)) = self.props.card().map(|c| c.origin.clone()) else {
             return Outcome::Refused {
-                reason_key: "reason-no-card",
+                reason_key: key!("reason-no-card"),
             };
         };
         if !m.fields.iter().any(|f| f.name == name) {
-            return failed("error-bad-param", &["name"]);
+            return failed(key!("error-bad-param"), &["name"]);
         }
         let mut typed = literals(&m);
         if value.is_empty() {
@@ -678,7 +682,7 @@ impl ShellModel {
         };
         let Some(table) = self.libraries_table() else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let copy_rows: Vec<&ew_api::output::NavNode> = table
@@ -692,7 +696,7 @@ impl ShellModel {
             for k in &keys {
                 match by_key(k) {
                     Some(n) => out.push(n),
-                    None => return failed("error-nav-key", &[k, NavKind::Libraries.word()]),
+                    None => return failed(key!("error-nav-key"), &[k, NavKind::Libraries.word()]),
                 }
             }
             out
@@ -720,7 +724,7 @@ impl ShellModel {
             .collect();
         if copies.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-updates",
+                reason_key: key!("reason-no-updates"),
             };
         }
         let Some(project) = &self.project else {
@@ -736,10 +740,14 @@ impl ShellModel {
         };
         if plan.copies.is_empty() {
             return Outcome::Refused {
-                reason_key: "reason-no-updates",
+                reason_key: key!("reason-no-updates"),
             };
         }
-        self.preview_host_card(&plan.command.name, plan.command.params, "reason-library-update")
+        self.preview_host_card(
+            &plan.command.name,
+            plan.command.params,
+            key!("reason-library-update"),
+        )
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -753,16 +761,16 @@ impl ShellModel {
             Err(e) => return e,
         };
         let Some((section, row)) = self.props_find(&key) else {
-            return failed("error-no-row", &[&key]);
+            return failed(key!("error-no-row"), &[&key]);
         };
         let [record] = section.targets.as_slice() else {
             return Outcome::Refused {
-                reason_key: "reason-variable-one-record",
+                reason_key: key!("reason-variable-one-record"),
             };
         };
         if row.path.starts_with("derived.") {
             return Outcome::Refused {
-                reason_key: "reason-variable-derived",
+                reason_key: key!("reason-variable-derived"),
             };
         }
         let field = format!("{}.{}", section.kind, row.path);
@@ -782,7 +790,7 @@ impl ShellModel {
             .variables
             .retain(|v| v.name != var.name && (v.record, &v.field) != (var.record, &var.field));
         self.macros.variables.push(var);
-        self.tools.announcement = Some(strings::format("announce-variable", &[&name]));
+        self.tools.announcement = Some(strings::format(key!("announce-variable"), &[&name]));
         Outcome::Done
     }
 
@@ -797,8 +805,8 @@ impl ShellModel {
                     .iter()
                     .map(|f| match rows.iter().find(|r| r.folio == *f) {
                         Some(r) if !r.generated && r.kind != "section_divider" => Ok(r.id),
-                        Some(_) => Err(failed("error-generated-page-order", &[])),
-                        None => Err(failed("error-no-folio", &[f])),
+                        Some(_) => Err(failed(key!("error-generated-page-order"), &[])),
+                        None => Err(failed(key!("error-no-folio"), &[f])),
                     })
                     .collect()
             }
@@ -818,7 +826,7 @@ impl ShellModel {
         if !self.in_save_form()
             && let Outcome::Refused { reason_key } = &out
         {
-            self.show_banner(strings::text(reason_key));
+            self.show_banner(strings::text(*reason_key));
         }
         if self.in_save_form() {
             let text = match &out {
@@ -827,7 +835,7 @@ impl ShellModel {
                     None
                 }
                 Outcome::Failed { message } => Some(message.clone()),
-                Outcome::Refused { reason_key } => Some(strings::text(reason_key).to_owned()),
+                Outcome::Refused { reason_key } => Some(strings::text(*reason_key).to_owned()),
             };
             if let (Some(text), Some(Dialog::Form(f))) = (text, &mut self.dialog) {
                 f.error = Some(text);
@@ -849,7 +857,7 @@ impl ShellModel {
     pub(crate) fn act_macros_save(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::Refused {
-                reason_key: "reason-library-write-window",
+                reason_key: key!("reason-library-write-window"),
             };
         }
         let text = |name: &str| -> Result<String, Outcome> {
@@ -881,8 +889,8 @@ impl ShellModel {
                     .ok()
                     .filter(|v| v.is_finite())
                     .map(Some)
-                    .ok_or_else(|| failed("error-bad-param", &[name])),
-                Some(_) => Err(failed("error-bad-param", &[name])),
+                    .ok_or_else(|| failed(key!("error-bad-param"), &[name])),
+                Some(_) => Err(failed(key!("error-bad-param"), &[name])),
             }
         };
         let (x_mm, y_mm) = match (coordinate("x_mm"), coordinate("y_mm")) {
@@ -908,7 +916,7 @@ impl ShellModel {
                 let rows = self.page_rows();
                 selection.iter().all(|id| rows.iter().any(|r| r.id == *id))
             }
-            _ => return self.save_done(failed("error-bad-param", &["kind"])),
+            _ => return self.save_done(failed(key!("error-bad-param"), &["kind"])),
         };
         let scope = if page_macro {
             match self.macro_pages(p) {
@@ -917,7 +925,7 @@ impl ShellModel {
             }
         } else if selection.is_empty() {
             return self.save_done(Outcome::Refused {
-                reason_key: "reason-nothing-selected",
+                reason_key: key!("reason-nothing-selected"),
             });
         } else {
             MacroScope::Window(selection)
@@ -936,24 +944,24 @@ impl ShellModel {
                     })
                 }
                 (None, None) => None,
-                (None, _) => return self.save_done(failed("error-missing-param", &["x_mm"])),
-                (_, None) => return self.save_done(failed("error-missing-param", &["y_mm"])),
+                (None, _) => return self.save_done(failed(key!("error-missing-param"), &["x_mm"])),
+                (_, None) => return self.save_done(failed(key!("error-missing-param"), &["y_mm"])),
             }
         };
         if self.project.is_none() {
             return self.save_done(Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             });
         }
         let Some(project) = &self.project else {
             return Outcome::Refused {
-                reason_key: "reason-no-project",
+                reason_key: key!("reason-no-project"),
             };
         };
         let libraries = project.session.libraries().libraries();
         if !confirm || name.is_empty() {
             if self.in_save_form() {
-                return self.save_done(failed("error-missing-param", &["name"]));
+                return self.save_done(failed(key!("error-missing-param"), &["name"]));
             }
             let library = if library.is_empty() {
                 libraries
@@ -964,20 +972,20 @@ impl ShellModel {
             } else {
                 library
             };
-            let field = |name: &'static str, label_key: &'static str, value: String| FormField {
+            let field = |name: &'static str, label_key: Key<'static>, value: String| FormField {
                 name,
                 label_key,
                 choices: &[],
                 value,
             };
             let mut fields = vec![
-                field("name", "form-macro-name", name),
-                field("key", "form-macro-key", key),
-                field("description", "form-macro-description", description),
-                field("library", "form-macro-library", library),
+                field("name", key!("form-macro-name"), name),
+                field("key", key!("form-macro-key"), key),
+                field("description", key!("form-macro-description"), description),
+                field("library", key!("form-macro-library"), library),
                 FormField {
                     name: "kind",
-                    label_key: "form-macro-kind",
+                    label_key: key!("form-macro-kind"),
                     choices: &MACRO_KINDS,
                     value: if page_macro { "page" } else { "window" }.to_owned(),
                 },
@@ -985,8 +993,8 @@ impl ShellModel {
             // A window macro's insertion point, prefilled with the point the save would take (empty: the selection's
             // anchor).
             if !page_macro {
-                fields.push(field("x_mm", "form-macro-x", x_text));
-                fields.push(field("y_mm", "form-macro-y", y_text));
+                fields.push(field("x_mm", key!("form-macro-x"), x_text));
+                fields.push(field("y_mm", key!("form-macro-y"), y_text));
             }
             // FT-786: the value-set table, one column per variable of the next save, prefilled from `value_sets`.
             let columns: Vec<(String, String)> = self
@@ -1007,13 +1015,13 @@ impl ShellModel {
                 .collect();
             let form = FormDialog {
                 action: SAVE,
-                title_key: "save-macro-title",
-                ok_key: "dialog-save-macro",
+                title_key: key!("save-macro-title"),
+                ok_key: key!("dialog-save-macro"),
                 fields,
                 error: None,
                 table: Some(FormTable {
                     name: "value_sets",
-                    key_label: "form-value-set-name",
+                    key_label: key!("form-value-set-name"),
                     columns,
                     rows,
                 }),
@@ -1031,14 +1039,14 @@ impl ShellModel {
             // not a library called "".
             if library.is_empty() {
                 return self.save_done(Outcome::Refused {
-                    reason_key: "reason-no-writable-library",
+                    reason_key: key!("reason-no-writable-library"),
                 });
             }
-            return self.save_done(failed("error-no-library", &[&library]));
+            return self.save_done(failed(key!("error-no-library"), &[&library]));
         };
         if !target.writable {
             return self.save_done(Outcome::Refused {
-                reason_key: "reason-library-read-only",
+                reason_key: key!("reason-library-read-only"),
             });
         }
         let (target, target_name) = (target.id, target.name.clone());
@@ -1047,7 +1055,7 @@ impl ShellModel {
         // to the library's identifier error.
         if key.is_empty() {
             return self.save_done(Outcome::Refused {
-                reason_key: "reason-macro-no-key",
+                reason_key: key!("reason-macro-no-key"),
             });
         }
         let variables = match serde_json::from_value(Value::Array(
@@ -1061,7 +1069,7 @@ impl ShellModel {
                 .collect(),
         )) {
             Ok(v) => v,
-            Err(e) => return self.save_done(failed("error-macro-save", &[&e.to_string()])),
+            Err(e) => return self.save_done(failed(key!("error-macro-save"), &[&e.to_string()])),
         };
         // FT-786: the value sets, each cell read as its variable's type; a set needs a name.
         let mut set_names = Vec::new();
@@ -1069,7 +1077,7 @@ impl ShellModel {
         for (i, (set, values)) in value_sets.iter().enumerate() {
             let set = ew_api::to_nfc(set.trim()).into_owned();
             if set.is_empty() {
-                return self.save_done(failed("error-value-set-name", &[&(i + 1).to_string()]));
+                return self.save_done(failed(key!("error-value-set-name"), &[&(i + 1).to_string()]));
             }
             let values: Map<String, Value> = values
                 .iter()
@@ -1093,13 +1101,13 @@ impl ShellModel {
         }
         let value_sets = match serde_json::from_value(Value::Array(sets)) {
             Ok(v) => v,
-            Err(e) => return self.save_done(failed("error-macro-save", &[&e.to_string()])),
+            Err(e) => return self.save_done(failed(key!("error-macro-save"), &[&e.to_string()])),
         };
         let (Ok(name_text), Ok(description_text)) = (
             serde_json::from_value(Value::String(name.clone())),
             serde_json::from_value(Value::String(description)),
         ) else {
-            return self.save_done(failed("error-bad-param", &["name"]));
+            return self.save_done(failed(key!("error-bad-param"), &["name"]));
         };
         let spec = MacroSpec {
             key,
@@ -1122,7 +1130,7 @@ impl ShellModel {
         self.macros.variables.clear();
         self.libraries_changed();
         self.notes.push(
-            strings::format("note-macro-saved", &[&name, &saved.version, &target_name]),
+            strings::format(key!("note-macro-saved"), &[&name, &saved.version, &target_name]),
             "library",
             None,
         );

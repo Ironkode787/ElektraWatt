@@ -17,6 +17,7 @@ use crate::components::{self, Badge, Kind};
 use crate::icons::{self, IconId};
 use crate::theme::{self, Rgba, Tokens};
 use egui::{Color32, RichText, Sense, Ui, Vec2};
+use ew_viewmodel::key;
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::{FindingLook, ShellModel};
@@ -71,9 +72,9 @@ pub(crate) fn severity_icon_id(severity: &str) -> IconId {
 /// The severity word of a finding row ("Error", "Warning", "Info").
 pub(crate) fn severity_word(severity: &str) -> &'static str {
     strings::text(match severity {
-        "error" => "severity-error",
-        "warning" => "severity-warning",
-        _ => "severity-info",
+        "error" => key!("severity-error"),
+        "warning" => key!("severity-warning"),
+        _ => key!("severity-info"),
     })
 }
 
@@ -187,17 +188,17 @@ fn count_badge(ui: &mut Ui, t: &Tokens, severity: &'static str, count: usize) {
 pub(crate) fn count_words(severity: &str, n: usize) -> String {
     // M39: pending findings count under one word, as the Messages header counts them ("2 Pending").
     let words = if severity == "pending" {
-        strings::text("badge-pending")
+        strings::text(key!("badge-pending"))
     } else if n == 1 {
         severity_word(severity)
     } else {
         strings::text(match severity {
-            "error" => "severity-errors",
-            "warning" => "severity-warnings",
-            _ => "severity-infos",
+            "error" => key!("severity-errors"),
+            "warning" => key!("severity-warnings"),
+            _ => key!("severity-infos"),
         })
     };
-    strings::format("props-findings-count", &[&n.to_string(), words])
+    strings::format(key!("props-findings-count"), &[&n.to_string(), words])
 }
 
 /// One chip for `findings.len()` findings of one severity (cycle 36, window check W36; cycle 37: always one chip per
@@ -207,9 +208,9 @@ pub(crate) fn severity_count_chip(ui: &mut Ui, severity: &str, findings: &[(&str
     let word = count_words(severity, findings.len());
     let lines: Vec<String> = findings
         .iter()
-        .map(|(rule, message)| strings::format("props-finding-tip", &[rule, message]))
+        .map(|(rule, message)| strings::format(key!("props-finding-tip"), &[rule, message]))
         .collect();
-    let name = strings::format("props-findings-chip", &[&word, &lines.join("; ")]);
+    let name = strings::format(key!("props-findings-chip"), &[&word, &lines.join("; ")]);
     paint_severity_chip(ui, severity, &word, &name, &lines.join("\n"))
 }
 
@@ -267,7 +268,7 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     if let Some(c) = shell.messages_counts() {
         let scheme = shell.messages_scheme().unwrap_or_default();
         let line = strings::format(
-            "messages-header",
+            key!("messages-header"),
             &[
                 scheme,
                 &c.errors.to_string(),
@@ -296,9 +297,9 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             count_badge(ui, &t, "error", c.errors);
             count_badge(ui, &t, "warning", c.warnings);
             count_badge(ui, &t, "info", c.infos);
-            let waived = strings::format("messages-header-waived", &[&c.waived.to_string()]);
+            let waived = strings::format(key!("messages-header-waived"), &[&c.waived.to_string()]);
             small(ui, &waived, t.text_tertiary);
-            let pending = strings::format("messages-header-pending", &[&c.pending.to_string()]);
+            let pending = strings::format(key!("messages-header-pending"), &[&c.pending.to_string()]);
             small(ui, &pending, t.text_tertiary);
         });
         let id = ui.scope_id().with("messages-header");
@@ -322,9 +323,9 @@ fn fix_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let CardOrigin::QuickFix { rule } = &card.origin else {
         return;
     };
-    let title = strings::format("card-title-fix", &[rule]);
+    let title = strings::format(key!("card-title-fix"), &[rule]);
     let summary = strings::format(
-        "card-fix",
+        key!("card-fix"),
         &[
             &card.changes.to_string(),
             &card.preview.derived.tags.len().to_string(),
@@ -360,7 +361,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             .and_then(|a| (a.enabled)(shell).err())
             .map(strings::text)
     };
-    let small_link = |ui: &mut Ui, key: &str, id: &str| {
+    let small_link = |ui: &mut Ui, key: strings::Key<'_>, id: &str| {
         let colour = if enabled { t.accent } else { t.text_disabled };
         let link = ui.add_enabled(
             enabled,
@@ -378,14 +379,14 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     // X32b: the Rule page link at the right end of the title line, the title cut with an ellipsis before it (whole
     // in its tooltip), so the block keeps its link in view in a short pane. FT-674: Waive… (or "Waived" with
     // Unwaive) stands before it on the same line.
-    let title = strings::format("messages-detail-rule", &[&d.rule, &d.title]);
+    let title = strings::format(key!("messages-detail-rule"), &[&d.rule, &d.title]);
     ui.scope(|ui| {
         ui.spacing_mut().interact_size.y = 0.0;
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.spacing_mut().item_spacing.x = t.space_3;
                 let link = ui.add(egui::Link::new(
-                    RichText::new(strings::text("messages-rule-page"))
+                    RichText::new(strings::text(key!("messages-rule-page")))
                         .font(theme::font(&t.type_small))
                         .color(t.accent.color32()),
                 ));
@@ -397,15 +398,15 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     events.push(Event::Action("help.documentation", Value::Null));
                 }
                 if d.waived {
-                    if small_link(ui, "messages-unwaive-button", "messages.unwaive").clicked() {
+                    if small_link(ui, key!("messages-unwaive-button"), "messages.unwaive").clicked() {
                         events.push(Event::Action("messages.unwaive", Value::Null));
                     }
                     ui.label(
-                        RichText::new(strings::text("messages-detail-waived"))
+                        RichText::new(strings::text(key!("messages-detail-waived")))
                             .font(theme::font(&t.type_small))
                             .color(t.text_secondary.color32()),
                     );
-                } else if small_link(ui, "messages-waive-button", "messages.waive").clicked() {
+                } else if small_link(ui, key!("messages-waive-button"), "messages.waive").clicked() {
                     // The window reads the date; the shell never does (FT-674).
                     events.push(Event::Action(
                         "messages.waive",
@@ -426,9 +427,12 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         });
     });
     ui.label(
-        RichText::new(strings::format("messages-detail-kind", &[&d.kind, &d.severity]))
-            .font(theme::font(&t.type_small))
-            .color(t.text_secondary.color32()),
+        RichText::new(strings::format(
+            key!("messages-detail-kind"),
+            &[&d.kind, &d.severity],
+        ))
+        .font(theme::font(&t.type_small))
+        .color(t.text_secondary.color32()),
     );
     ui.add(
         egui::Label::new(
@@ -442,14 +446,14 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = t.space_3;
             ui.label(
-                RichText::new(strings::format("messages-detail-fix", &[fix]))
+                RichText::new(strings::format(key!("messages-detail-fix"), &[fix]))
                     .font(theme::font(&t.type_small))
                     .color(t.text_secondary.color32()),
             );
             let button = components::button(
                 ui,
                 Kind::Secondary,
-                strings::text("messages-fix-button"),
+                strings::text(key!("messages-fix-button")),
                 enabled,
                 0.0,
             );
@@ -478,7 +482,7 @@ pub(crate) fn footer(ui: &mut Ui) {
     rule_line(ui, &t);
     ui.add_space(t.space_1);
     ui.label(
-        RichText::new(strings::text("messages-footer"))
+        RichText::new(strings::text(key!("messages-footer")))
             .font(theme::font(&t.type_caption))
             .color(t.text_tertiary.color32()),
     );

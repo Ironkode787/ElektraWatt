@@ -24,6 +24,7 @@ use serde_json::json;
 
 use super::{Anchor, Overlay, OverlayItem, Style, Token, ToolCx};
 use crate::canvas::mm3;
+use crate::key;
 use crate::strings;
 
 /// The grid steps of a displacement from the sheet point `from` to `to` on the page of `cx`.
@@ -48,7 +49,7 @@ pub fn sheet_offset(cx: &ToolCx<'_>, steps: (i64, i64)) -> (i64, i64) {
 /// The readout of a move: `dx 7.938 dy 0.000 mm`, the sheet displacement of the steps.
 pub fn readout(cx: &ToolCx<'_>, steps: (i64, i64)) -> String {
     let (dx, dy) = sheet_offset(cx, steps);
-    strings::format("move-readout", &[&mm3(dx), &mm3(dy)])
+    strings::format(key!("move-readout"), &[&mm3(dx), &mm3(dy)])
 }
 
 /// The page displacement of a representation at page point `pos` moved by `steps` (its own grid index plus the

@@ -6,6 +6,7 @@
 //! journal discard banner, each followed by the accessible-name walker (ADR-0014 amendment 2).
 
 use crate::support;
+use ew_viewmodel::key;
 
 use egui::{Key, Modifiers};
 use egui_kittest::kittest::{NodeT as _, Queryable};
@@ -89,9 +90,7 @@ fn the_sample_project_opens_read_only_from_the_start_page() {
     assert_eq!(shell.project_name(), Some("J-E-2416.ew"));
     assert!(matches!(
         shell.access(),
-        Some(AccessMode::ReadOnly {
-            reason_key: "readonly-sample"
-        })
+        Some(AccessMode::ReadOnly { reason_key }) if reason_key == key!("readonly-sample")
     ));
     assert!(
         h.query_by_label_contains("sample project. It is open read-only")

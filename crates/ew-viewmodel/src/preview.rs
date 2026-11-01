@@ -24,6 +24,7 @@
 
 use ew_api::output::PreviewEntity;
 
+use crate::key;
 use crate::properties::Card;
 
 /// The most lines each list of the `preview` section prints before its `more` line (§8.7).
@@ -48,7 +49,7 @@ pub fn card_key(card: &Card) -> CardKey {
 pub fn field_words(fields: &[String]) -> Vec<String> {
     let hash = |f: &String| f == "sha256";
     if !fields.is_empty() && fields.iter().all(hash) {
-        return vec![crate::strings::text("preview-field-content").to_owned()];
+        return vec![crate::strings::text(key!("preview-field-content")).to_owned()];
     }
     fields
         .iter()

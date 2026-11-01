@@ -6,6 +6,7 @@
 //! the prefixes, PL-6 the parameter forms, and PL-7's describe lines of an open form.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done};
 use ew_viewmodel::actions::{ACTIONS, PaletteEntry, PaletteRun};
@@ -314,7 +315,7 @@ fn pl6_forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
         }
     }
     assert_eq!(
-        strings::text("reason-palette-needs-file"),
+        strings::text(key!("reason-palette-needs-file")),
         "Needs a file or a selection: use its menu"
     );
     shell.shutdown();

@@ -9,6 +9,9 @@
 //! given; the flow itself holds only the step. The keymap preset follows the second answer: KiCad users get the
 //! KiCad-like preset, everyone else the EW preset (doc 16 section 9.1, step 2).
 
+use crate::key;
+use crate::strings::Key;
+
 /// A step of the first-run flow.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum FirstRunStep {
@@ -45,13 +48,13 @@ impl FirstRunStep {
     }
 
     /// The key of the step's title.
-    pub fn title_key(self) -> &'static str {
+    pub fn title_key(self) -> Key<'static> {
         match self {
-            FirstRunStep::Language => "firstrun-step-language",
-            FirstRunStep::Origin => "firstrun-step-origin",
-            FirstRunStep::Privacy => "firstrun-step-privacy",
-            FirstRunStep::Appearance => "firstrun-step-appearance",
-            FirstRunStep::Start => "firstrun-step-start",
+            FirstRunStep::Language => key!("firstrun-step-language"),
+            FirstRunStep::Origin => key!("firstrun-step-origin"),
+            FirstRunStep::Privacy => key!("firstrun-step-privacy"),
+            FirstRunStep::Appearance => key!("firstrun-step-appearance"),
+            FirstRunStep::Start => key!("firstrun-step-start"),
         }
     }
 }
@@ -92,7 +95,7 @@ mod tests {
         for (i, s) in FirstRunStep::ALL.iter().enumerate() {
             assert_eq!(s.index(), i);
             assert_eq!(FirstRunStep::from_index(i), Some(*s));
-            assert!(strings::lookup(s.title_key()).is_some());
+            assert!(strings::lookup(s.title_key().as_str()).is_some());
         }
         assert_eq!(FirstRunStep::from_index(5), None);
     }

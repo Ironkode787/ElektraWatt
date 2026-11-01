@@ -11,6 +11,7 @@
 
 use egui::{ScrollArea, TextEdit, Ui};
 use ew_viewmodel::dialogs::DialogAnswer;
+use ew_viewmodel::key;
 use ew_viewmodel::shell::{Dialog, FormDialog, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
@@ -57,7 +58,12 @@ fn dialog_now_ms(ctx: &egui::Context) -> u64 {
 }
 
 /// A one-line text field that tells the shell what is typed (`on_change`) and says "go" on Enter.
-fn name_field(ui: &mut Ui, hint_key: &str, text: &str, just_opened: bool) -> (Option<String>, bool) {
+fn name_field(
+    ui: &mut Ui,
+    hint_key: strings::Key<'_>,
+    text: &str,
+    just_opened: bool,
+) -> (Option<String>, bool) {
     let t = crate::theme::current(ui.ctx());
     let mut field = text.to_owned();
     // FT-566: a dialog's only field fills the body's width, `size.control` high (doc 16a §6.5).
@@ -171,19 +177,22 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             let t = crate::theme::current(ui.ctx());
             if let Some(when) = utc_text(*last_change_ms) {
                 let ago = strings::elapsed_text(*last_change_ms, dialog_now_ms(ui.ctx()));
-                ui.label(strings::format("recovery-last-change", &[&ago]));
+                ui.label(strings::format(key!("recovery-last-change"), &[&ago]));
                 ui.label(
-                    egui::RichText::new(strings::format("recovery-last-change-utc", &[&when]))
+                    egui::RichText::new(strings::format(key!("recovery-last-change-utc"), &[&when]))
                         .font(crate::theme::font(&t.type_small))
                         .color(t.text_tertiary.color32()),
                 );
             }
             if let Some(reason) = failed {
-                ui.colored_label(t.error.color32(), strings::format("recovery-failed", &[reason]));
+                ui.colored_label(
+                    t.error.color32(),
+                    strings::format(key!("recovery-failed"), &[reason]),
+                );
             }
         }
         Dialog::GotoPage { text } => {
-            let (changed, enter) = name_field(ui, "goto-hint", text, just_opened);
+            let (changed, enter) = name_field(ui, key!("goto-hint"), text, just_opened);
             if let Some(t) = &changed {
                 events.push(Event::GotoText(t.clone()));
             }
@@ -191,7 +200,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
             submit |= enter;
         }
         Dialog::SaveWorkspace { text } => {
-            let (changed, enter) = name_field(ui, "save-workspace-hint", text, just_opened);
+            let (changed, enter) = name_field(ui, key!("save-workspace-hint"), text, just_opened);
             if let Some(t) = &changed {
                 events.push(Event::WorkspaceText(t.clone()));
             }

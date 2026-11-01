@@ -9,6 +9,7 @@
 //! read-only and says why.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -118,9 +119,7 @@ fn jb7_a_leftover_journal_opens_read_only_with_the_dialog_and_nothing_is_written
     open(&mut s, &dir);
     assert!(matches!(
         s.access(),
-        Some(AccessMode::ReadOnly {
-            reason_key: "readonly-recovery"
-        })
+        Some(AccessMode::ReadOnly { reason_key }) if reason_key == key!("readonly-recovery")
     ));
     let d = s.describe();
     assert!(
@@ -288,9 +287,7 @@ fn jb7_a_collision_with_a_save_of_another_session_fails_the_recovery_and_reopens
     );
     assert!(matches!(
         s.access(),
-        Some(AccessMode::ReadOnly {
-            reason_key: "readonly-recovery"
-        })
+        Some(AccessMode::ReadOnly { reason_key }) if reason_key == key!("readonly-recovery")
     ));
     assert!(title(&s).contains("Elsewhere"), "the disk state");
     assert!(!files(&watched).is_empty(), "the leftover journal stays");

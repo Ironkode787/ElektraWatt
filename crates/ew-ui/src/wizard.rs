@@ -10,6 +10,7 @@
 //! each key.
 
 use egui::{Panel, TextEdit, Ui};
+use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
 use ew_viewmodel::wizard::{CHECK_SCHEME_FIELD, FieldKind, FieldMeta, Step, Wizard, fields_of};
@@ -58,7 +59,7 @@ fn choice_field(ui: &mut Ui, events: &mut Vec<Event>, meta: &FieldMeta, choices:
     ui.label(strings::text(meta.label_key));
     ui.horizontal_wrapped(|ui| {
         for choice in choices {
-            let text = strings::text(&format!("choice-{}-{choice}", meta.key));
+            let text = strings::text(strings::Key::run_time(&format!("choice-{}-{choice}", meta.key)));
             if ui.selectable_label(*choice == value, text).clicked() && *choice != value {
                 set(events, meta.key, choice);
             }
@@ -81,11 +82,11 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, events: &mut Vec<Event>) {
                     ui.label(line.value);
                     // FT-336: the check scheme is applied after finishing, by a person (its command is HumanOnly).
                     ui.weak(strings::text(if line.written {
-                        "wizard-written"
+                        key!("wizard-written")
                     } else if line.key == CHECK_SCHEME_FIELD {
-                        "wizard-kept-apply"
+                        key!("wizard-kept-apply")
                     } else {
-                        "wizard-kept"
+                        key!("wizard-kept")
                     }));
                     ui.end_row();
                 }
@@ -109,7 +110,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, preview: &mut PageView, events: &mu
         .resizable(false)
         .default_size(220.0)
         .show(ui, |ui| {
-            ui.heading(strings::text("wizard-title"));
+            ui.heading(strings::text(key!("wizard-title")));
             for step in Step::ALL {
                 let text = format!("{}. {}", step.number(), strings::text(step.title_key()));
                 if ui.selectable_label(step == wizard.step(), text).clicked() && step != wizard.step() {
@@ -121,9 +122,12 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, preview: &mut PageView, events: &mu
         .resizable(true)
         .default_size(440.0)
         .show(ui, |ui| {
-            ui.heading(strings::text("wizard-preview-title"));
+            ui.heading(strings::text(key!("wizard-preview-title")));
             ui.horizontal(|ui| {
-                for (cover, key) in [(true, "wizard-preview-cover"), (false, "wizard-preview-page")] {
+                for (cover, key) in [
+                    (true, key!("wizard-preview-cover")),
+                    (false, key!("wizard-preview-page")),
+                ] {
                     let selected = wizard.preview_is_cover() == cover;
                     if ui.selectable_label(selected, strings::text(key)).clicked() && !selected {
                         set(events, "preview", if cover { "cover" } else { "page" });
@@ -146,31 +150,33 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, preview: &mut PageView, events: &mu
             if wizard.finished_dir().is_some() {
                 ui.horizontal(|ui| {
                     if wizard.can_apply_check_scheme()
-                        && ui.button(strings::text("wizard-apply-check-scheme")).clicked()
+                        && ui
+                            .button(strings::text(key!("wizard-apply-check-scheme")))
+                            .clicked()
                     {
                         events.push(Event::Action("wizard.apply_check_scheme", Value::Null));
                     }
-                    if ui.button(strings::text("wizard-close")).clicked() {
+                    if ui.button(strings::text(key!("wizard-close"))).clicked() {
                         events.push(Event::Action("wizard.cancel", Value::Null));
                     }
                 });
                 return;
             }
             ui.horizontal(|ui| {
-                if wizard.step() != Step::Company && ui.button(strings::text("wizard-back")).clicked() {
+                if wizard.step() != Step::Company && ui.button(strings::text(key!("wizard-back"))).clicked() {
                     events.push(Event::Action("wizard.back", Value::Null));
                 }
                 if wizard.step() == Step::Review {
-                    if ui.button(strings::text("wizard-create")).clicked() {
+                    if ui.button(strings::text(key!("wizard-create"))).clicked() {
                         events.push(Event::Action("wizard.finish", Value::Null));
                     }
-                } else if ui.button(strings::text("wizard-next")).clicked() {
+                } else if ui.button(strings::text(key!("wizard-next"))).clicked() {
                     events.push(Event::Action("wizard.next", Value::Null));
                 }
-                if ui.button(strings::text("wizard-reset")).clicked() {
+                if ui.button(strings::text(key!("wizard-reset"))).clicked() {
                     events.push(Event::Action("wizard.reset", Value::Null));
                 }
-                if ui.button(strings::text("wizard-cancel")).clicked() {
+                if ui.button(strings::text(key!("wizard-cancel"))).clicked() {
                     events.push(Event::Action("wizard.cancel", Value::Null));
                 }
             });

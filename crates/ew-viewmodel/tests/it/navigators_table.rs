@@ -9,6 +9,7 @@
 //! changes nothing, and the describe lines, words and counts.
 
 use crate::common;
+use ew_viewmodel::key;
 
 use common::{Tmp, done, refused};
 use ew_viewmodel::navigators::{NavKind, NavRole};
@@ -578,7 +579,7 @@ fn tb5_the_policy() {
     let n = steps(&shell);
     done(&mut shell, "table.paste", json!({"text": "98\n99\n"}));
     let card = shell.properties().card().expect("rule 2: the card");
-    assert_eq!(card.reason, "reason-identifiers");
+    assert_eq!(card.reason, key!("reason-identifiers"));
     assert_eq!(card.targets, 2);
     assert_eq!(steps(&shell), n);
     done(&mut shell, "preview.cancel", json!({}));
@@ -667,7 +668,7 @@ fn tb5_names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() 
             .properties()
             .card()
             .unwrap_or_else(|| panic!("{word}: rule 2's card"));
-        assert_eq!(card.reason, "reason-identifiers", "{word}");
+        assert_eq!(card.reason, key!("reason-identifiers"), "{word}");
         assert_eq!(card.targets, 2, "{word}");
         assert_eq!(steps(&shell), n, "{word}: nothing committed");
         done(&mut shell, "preview.cancel", json!({}));
@@ -716,7 +717,7 @@ fn tb5_a_fill_over_more_than_500_rows_opens_the_card() {
         json!({"kind": "devices", "column": fn_col, "value": "bulk", "all": true}),
     );
     let card = shell.properties().card().expect("rule 1: the card");
-    assert_eq!(card.reason, "reason-bulk");
+    assert_eq!(card.reason, key!("reason-bulk"));
     assert_eq!(card.targets, keys.len());
     assert_eq!(shell.revision(), rev, "nothing committed before Apply");
     shell.shutdown();

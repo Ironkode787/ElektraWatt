@@ -9,6 +9,8 @@
 //! `replace_command` into one `fields.set_many` that always goes through the inline preview card (FR-UI-020,
 //! FR-DEV-032: "one previewed command"). A result list made at another revision than the current one is stale.
 
+use crate::key;
+use crate::strings::Key;
 use std::sync::Arc;
 
 pub use ew_api::output::{FindField, FindHit, FindQuery, FindResults};
@@ -41,13 +43,13 @@ pub fn field_of_word(word: &str) -> Option<FindField> {
 }
 
 /// The label key of a field's checkbox.
-pub fn field_label_key(f: FindField) -> &'static str {
+pub fn field_label_key(f: FindField) -> Key<'static> {
     match f {
-        FindField::FunctionText => "find-field-function-text",
-        FindField::Tag => "find-field-tag",
-        FindField::Property => "find-field-property",
-        FindField::Text => "find-field-text",
-        FindField::PartNumber => "find-field-part-number",
+        FindField::FunctionText => key!("find-field-function-text"),
+        FindField::Tag => key!("find-field-tag"),
+        FindField::Property => key!("find-field-property"),
+        FindField::Text => key!("find-field-text"),
+        FindField::PartNumber => key!("find-field-part-number"),
     }
 }
 
@@ -168,7 +170,7 @@ impl FindState {
 
 /// The text of a hit's field label (`Function text`).
 pub fn hit_label(hit: &FindHit) -> String {
-    strings::text(&hit.label_key).to_owned()
+    strings::text(Key::run_time(&hit.label_key)).to_owned()
 }
 
 /// `before` with each matched range marked as `[[…]]` (the window marks them bold and underlined; the describe text
@@ -193,9 +195,13 @@ pub fn marked(hit: &FindHit) -> String {
 /// "Preview updated: 2 fewer results" (or more, or the same count) after a stale replace card was rebuilt.
 pub fn updated_note(before: usize, after: usize) -> String {
     match after.cmp(&before) {
-        std::cmp::Ordering::Less => strings::format("find-updated-fewer", &[&(before - after).to_string()]),
-        std::cmp::Ordering::Greater => strings::format("find-updated-more", &[&(after - before).to_string()]),
-        std::cmp::Ordering::Equal => strings::text("find-updated-same").to_owned(),
+        std::cmp::Ordering::Less => {
+            strings::format(key!("find-updated-fewer"), &[&(before - after).to_string()])
+        }
+        std::cmp::Ordering::Greater => {
+            strings::format(key!("find-updated-more"), &[&(after - before).to_string()])
+        }
+        std::cmp::Ordering::Equal => strings::text(key!("find-updated-same")).to_owned(),
     }
 }
 

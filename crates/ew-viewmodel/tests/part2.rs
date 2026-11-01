@@ -6,6 +6,7 @@
 //! company-standard wizard with its preview (FT-308), workspaces (FT-309), F1 and the quick switches (FT-311).
 
 use ew_testdir as fresh_dir;
+use ew_viewmodel::key;
 
 use std::path::{Path, PathBuf};
 
@@ -207,16 +208,14 @@ fn the_sample_project_opens_read_only_and_save_as_makes_a_copy() {
     assert_eq!(shell.project_name(), Some("J-E-2416.ew"));
     assert!(matches!(
         shell.access(),
-        Some(AccessMode::ReadOnly {
-            reason_key: "readonly-sample"
-        })
+        Some(AccessMode::ReadOnly { reason_key }) if reason_key == key!("readonly-sample")
     ));
     assert!(shell.banner().unwrap_or_default().contains("sample project"));
     assert!(shell.recent_names().is_empty(), "the sample is no recent project");
     assert_eq!(
         run(&mut shell, "file.save", json!({})),
         Outcome::Refused {
-            reason_key: "reason-read-only"
+            reason_key: key!("reason-read-only")
         }
     );
     assert!(
@@ -406,7 +405,7 @@ fn the_discard_is_refused_without_a_leftover_journal() {
     assert_eq!(
         run(&mut shell, "file.discard_journal", json!({"confirm": true})),
         Outcome::Refused {
-            reason_key: "reason-no-journal"
+            reason_key: key!("reason-no-journal")
         }
     );
     done(
@@ -417,7 +416,7 @@ fn the_discard_is_refused_without_a_leftover_journal() {
     assert_eq!(
         run(&mut shell, "file.discard_journal", json!({"confirm": true})),
         Outcome::Refused {
-            reason_key: "reason-no-journal"
+            reason_key: key!("reason-no-journal")
         }
     );
     shell.shutdown();
@@ -505,7 +504,7 @@ fn bad_first_run_answers_are_refused_and_the_flow_ends_where_it_is_told() {
     assert_eq!(
         run(&mut shell, "first_run.next", json!({})),
         Outcome::Refused {
-            reason_key: "reason-no-first-run"
+            reason_key: key!("reason-no-first-run")
         }
     );
     done(&mut shell, "help.first_run", json!({}));
@@ -631,9 +630,7 @@ fn the_wizard_writes_a_basic_project_that_new_projects_start_from() {
             "wizard.set",
             json!({"field": "company_name", "value": "Other"})
         ),
-        Outcome::Refused {
-            reason_key: "reason-wizard-finished"
-        }
+        Outcome::Refused { reason_key } if reason_key == key!("reason-wizard-finished")
     ));
     assert!(matches!(
         run(&mut shell, "wizard.finish", json!({ "dir": path(&basic) })),
@@ -1179,7 +1176,7 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
     assert_eq!(
         run(&mut shell, "wizard.apply_check_scheme", json!({})),
         Outcome::Refused {
-            reason_key: "reason-wizard-not-finished"
+            reason_key: key!("reason-wizard-not-finished")
         }
     );
     let basic = tmp.0.join("company.ew");
@@ -1194,7 +1191,7 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
         assert_eq!(
             run(&mut shell, "wizard.apply_check_scheme", params),
             Outcome::Refused {
-                reason_key: "reason-human-only"
+                reason_key: key!("reason-human-only")
             },
             "the headless mode never applies it"
         );
@@ -1241,7 +1238,7 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
     assert_eq!(
         run(&mut gui, "wizard.apply_check_scheme", json!({"confirm": true})),
         Outcome::Refused {
-            reason_key: "reason-check-scheme-written"
+            reason_key: key!("reason-check-scheme-written")
         }
     );
     done(&mut gui, "wizard.cancel", json!({}));
