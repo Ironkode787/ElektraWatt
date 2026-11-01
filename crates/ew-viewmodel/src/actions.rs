@@ -473,6 +473,18 @@ pub(crate) fn panel_page(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+// WP-S4.02 part 4
+/// A panel-layout page with a surface view is on show in a project that can be changed (D10: Draw ▸ Layout is
+/// disabled elsewhere with "Open a panel layout page").
+pub(crate) fn panel_view(m: &ShellModel) -> Result<(), Key<'static>> {
+    panel_page(m)?;
+    if m.panel_tables().is_some() {
+        Ok(())
+    } else {
+        Err(key!("reason-no-panel-page"))
+    }
+}
+
 /// A placement is selected on a panel page that can be changed.
 fn panel_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_page(m)?;
@@ -2517,6 +2529,83 @@ pub static ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_layout_options(p),
         ))),
+    ),
+    // WP-S4.02 part 4 (D10, D11, ruling 1): Draw ▸ Layout (Rail, Duct, Auto-fill rail…) on a panel layout page with a
+    // surface view, the draw tools' options card, and Project ▸ Enclosure….
+    keeps_banner(in_canvas(placed(
+        place(Group::PanelLayout, 1, CommandSize::Small, Some(key!("bar-rail"))),
+        "layout-align-left",
+        act(
+            "tool.rail_draw",
+            Command,
+            Menu::Draw,
+            &[],
+            panel_view,
+            None,
+            |s, _| s.act_tool_rail_draw(),
+        ),
+    ))),
+    keeps_banner(in_canvas(placed(
+        place(Group::PanelLayout, 2, CommandSize::Small, Some(key!("bar-duct"))),
+        "adjustments-horizontal",
+        act(
+            "tool.duct_draw",
+            Command,
+            Menu::Draw,
+            &[],
+            panel_view,
+            None,
+            |s, _| s.act_tool_duct_draw(),
+        ),
+    ))),
+    with_params(
+        "rail?:text, order?:enum(schematic|dt)",
+        placed(
+            place(
+                Group::PanelLayout,
+                3,
+                CommandSize::Small,
+                Some(key!("bar-auto-fill")),
+            ),
+            "wand",
+            act(
+                "layout.auto_fill_rail",
+                Command,
+                Menu::Draw,
+                &[],
+                panel_view,
+                None,
+                |s, p| s.act_layout_auto_fill_rail(p),
+            ),
+        ),
+    ),
+    with_params(
+        "part?:text, width?:text, height?:text",
+        hidden(act(
+            "layout.draw_options",
+            View,
+            Menu::Draw,
+            &[],
+            panel_view,
+            None,
+            |s, p| s.act_layout_draw_options(p),
+        )),
+    ),
+    with_params(
+        "location?:text, part?:text",
+        placed(
+            place(Group::Project, 3, CommandSize::Small, Some(key!("bar-enclosure"))),
+            "category",
+            act(
+                "layout.enclosure_new",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_layout_enclosure_new(p),
+            ),
+        ),
     ),
     keeps_banner(hidden(in_canvas(parameterless(act(
         "tool.connect_on_move",
@@ -5123,6 +5212,9 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "tool.text" => model.tool().name() == "text",
             "tool.marker" => model.tool().name() == "marker",
             "tool.structure_box" => model.tool().name() == "structure_box",
+            // WP-S4.02 part 4.
+            "tool.rail_draw" => model.tool().name() == "rail_draw",
+            "tool.duct_draw" => model.tool().name() == "duct_draw",
             "project.crossings" => model.crossings_hops(),
             // WP-S2.17 part 2: the Place tool lights Symbol in the bar; the command bar's collapse.
             "tool.place" => model.tool().name() == "place",

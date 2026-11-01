@@ -553,3 +553,497 @@ fn nudge_stop(items: &[RailItem], own: &RailItem, length: i128, target: i128, si
 fn clamp64(v: i128) -> i64 {
     i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// WP-S4.02 part 4: setting the panel up from the window (§8; D10, D11; rulings 7, 8).
+
+/// A command's refusal as a sentence under a set-up dialog's fields: without the command's name before it
+/// (`layout.enclosure.create_from_part: location J-E-2416 already has …` reads "Location J-E-2416 already has …."),
+/// capitalised and with its full stop.
+fn in_words(message: &str) -> String {
+    let rest = match message.split_once(": ") {
+        Some((name, rest)) if name.starts_with("layout.") && !name.contains(' ') => rest,
+        _ => message,
+    };
+    let mut chars = rest.chars();
+    let mut out: String = match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => String::new(),
+    };
+    if !out.ends_with('.') {
+        out.push('.');
+    }
+    out
+}
+
+/// The orders of the Auto-fill rail dialog, `(value, words)` (ruling 7: a choice list built at run time).
+fn fill_orders() -> Vec<(String, String)> {
+    vec![
+        (
+            "schematic".to_owned(),
+            strings::text(key!("auto-fill-order-schematic")).to_owned(),
+        ),
+        (
+            "dt".to_owned(),
+            strings::text(key!("auto-fill-order-dt")).to_owned(),
+        ),
+    ]
+}
+
+/// The draw tool's carrier kind (`rail`, `duct`) of the tool name `name`.
+fn draw_kind(name: &str) -> Option<&'static str> {
+    match name {
+        "rail_draw" => Some("rail"),
+        "duct_draw" => Some("duct"),
+        _ => None,
+    }
+}
+
+impl ShellModel {
+    /// The page the focused canvas shows, by ID; `None` without one.
+    fn focused_page_id(&self) -> Option<Uuid> {
+        match self.current_page()? {
+            crate::canvas::PageId(ew_api::output::ew_dl::Destination::Page(id)) => Some(id),
+            _ => None,
+        }
+    }
+
+    /// The parts a draw tool of `kind` (`rail`, `duct`) offers (D11): the project's copies of the kind, then the
+    /// installed libraries' parts, embedded through `copies` when drawn.
+    pub fn draw_part_offers(&self, kind: &str) -> Vec<crate::tools::DrawPart> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        project
+            .session
+            .layout_part_offers(kind)
+            .into_iter()
+            .map(|o| crate::tools::DrawPart {
+                part: o.part,
+                number: o.number,
+                profile: o.profile.and_then(|p| serde_json::to_value(p).ok()),
+                size: o.size,
+                copies: o.copies,
+            })
+            .collect()
+    }
+
+    /// The part a draw tool of `kind` draws with: the tool option's when it is still offered, else the first offer.
+    fn draw_part(&self, kind: &str) -> Option<crate::tools::DrawPart> {
+        let offers = self.draw_part_offers(kind);
+        let sticky = match kind {
+            "rail" => self.tools.layout_options.rail_part,
+            _ => self.tools.layout_options.duct_part,
+        };
+        sticky
+            .and_then(|s| offers.iter().find(|o| o.part == s).cloned())
+            .or_else(|| offers.into_iter().next())
+    }
+
+    /// The tool options card of Draw rail or Draw duct; `None` while another tool runs.
+    pub fn draw_card(&self) -> Option<crate::tools::DrawCard> {
+        let kind = draw_kind(self.tools.tool.name())?;
+        let parts: Vec<String> = self
+            .draw_part_offers(kind)
+            .into_iter()
+            .map(|o| o.number)
+            .collect();
+        let part = self.draw_part(kind);
+        let comma = self.panel_tables().is_some_and(|p| p.decimal_comma);
+        let size = (kind == "duct" && part.as_ref().and_then(|p| p.size).is_none()).then(|| {
+            let (w, h) = self.tools.layout_options.duct_size;
+            (mm_text(w, comma), mm_text(h, comma))
+        });
+        Some(crate::tools::DrawCard {
+            kind,
+            parts,
+            part: part.map(|p| p.number),
+            size,
+        })
+    }
+
+    /// `tool.rail_draw` (Draw ▸ Layout ▸ Rail, D11): arms Draw rail with the tool option's rail part.
+    pub(crate) fn act_tool_rail_draw(&mut self) -> Outcome {
+        let part = self.draw_part("rail");
+        self.activate_tool(Box::new(crate::tools::RailDrawTool::new(part)));
+        Outcome::Done
+    }
+
+    /// `tool.duct_draw` (Draw ▸ Layout ▸ Duct, D11): arms Draw duct with the tool option's duct part and size.
+    pub(crate) fn act_tool_duct_draw(&mut self) -> Outcome {
+        let part = self.draw_part("duct");
+        let size = self.tools.layout_options.duct_size;
+        self.activate_tool(Box::new(crate::tools::DuctDrawTool::new(part, size)));
+        Outcome::Done
+    }
+
+    /// `layout.draw_options {part?, width?, height?}` (the draw tools' options card, D11): the part by its number, a
+    /// duct's width and height in millimetres; the choice stays for the next drawing, and the running tool takes it.
+    pub(crate) fn act_layout_draw_options(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(kind) = draw_kind(self.tools.tool.name()) else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-draw-tool"),
+            };
+        };
+        if let Some(number) = p.get("part").and_then(Value::as_str) {
+            let Some(offer) = self
+                .draw_part_offers(kind)
+                .into_iter()
+                .find(|o| o.number == number)
+            else {
+                return failed(key!("error-bad-param"), &["part"]);
+            };
+            match kind {
+                "rail" => self.tools.layout_options.rail_part = Some(offer.part),
+                _ => self.tools.layout_options.duct_part = Some(offer.part),
+            }
+        }
+        let mut size = self.tools.layout_options.duct_size;
+        for (name, first) in [("width", true), ("height", false)] {
+            let Some(v) = p.get(name) else { continue };
+            let text = match v {
+                Value::String(s) => s.clone(),
+                Value::Number(n) => n.to_string(),
+                _ => return failed(key!("error-bad-param"), &[name]),
+            };
+            match ew_api::output::parse_mm(&text).filter(|n| *n > 0 && *n <= 10_000_000_000) {
+                Some(nm) if first => size.0 = nm,
+                Some(nm) => size.1 = nm,
+                None => return failed(key!("error-bad-param"), &[name]),
+            }
+        }
+        self.tools.layout_options.duct_size = size;
+        let part = self.draw_part(kind);
+        if let Some(any) = self.tools.tool.as_any_mut() {
+            if let Some(t) = any.downcast_mut::<crate::tools::RailDrawTool>() {
+                t.set_part(part);
+            } else if let Some(t) = any.downcast_mut::<crate::tools::DuctDrawTool>() {
+                t.set_part(part);
+                t.set_option_size(size);
+            }
+        }
+        Outcome::Done
+    }
+
+    /// `layout.enclosure_new {location, part}` (Project ▸ Enclosure…, D7, D10): `layout.enclosure.create_from_part` of
+    /// the location (its code or ID) with the enclosure part (its number or ID: a project copy, or an installed
+    /// library's part, embedded through `copies` with its plate part, ruling 8), the focused page's function as the
+    /// enclosure device's. In the window without both the Create enclosure dialog opens (the focused page's location
+    /// and the first part chosen); a refusal stays under its fields.
+    pub(crate) fn act_layout_enclosure_new(&mut self, p: &Map<String, Value>) -> Outcome {
+        const ACTION: &str = "layout.enclosure_new";
+        let given = |name: &str| {
+            p.get(name)
+                .and_then(Value::as_str)
+                .map(|s| s.trim().to_owned())
+                .filter(|s| !s.is_empty())
+        };
+        let (location, part) = (given("location"), given("part"));
+        let (Some(location), Some(part)) = (location.clone(), part.clone()) else {
+            let missing = if location.is_none() { "location" } else { "part" };
+            return match self.mode {
+                super::Mode::Headless => failed(key!("error-missing-param"), &[missing]),
+                super::Mode::Gui if self.in_layout_form(ACTION) => {
+                    let message = strings::format(key!("error-missing-param"), &[missing]);
+                    self.layout_form_failed(ACTION, message)
+                }
+                super::Mode::Gui => {
+                    let form = self.enclosure_form(location, part);
+                    self.open_dialog(super::Dialog::Form(form))
+                }
+            };
+        };
+        let page = self.focused_page_id();
+        let Some(project) = &self.project else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-project"),
+            };
+        };
+        let found = project.session.layout_locations().into_iter().find(|(id, code)| {
+            id.to_string() == location || *code == location || code.trim_start_matches('+') == location
+        });
+        let Some((location_id, _)) = found else {
+            let message = strings::format(key!("error-no-location"), &[&location]);
+            return self.layout_form_failed(ACTION, message);
+        };
+        let offer = project
+            .session
+            .layout_part_offers("enclosure")
+            .into_iter()
+            .find(|o| o.part.to_string() == part || o.number == part);
+        let Some(offer) = offer else {
+            let message = strings::format(key!("error-no-enclosure-part"), &[&part]);
+            return self.layout_form_failed(ACTION, message);
+        };
+        let function = page.and_then(|pg| project.session.page_structure(pg).1);
+        let mut params = json!({
+            "location": location_id.to_string(),
+            "part": offer.part.to_string(),
+        });
+        if let Some(f) = function {
+            params["function"] = Value::String(f.to_string());
+        }
+        if !offer.copies.is_empty() {
+            params["copies"] = Value::Array(offer.copies);
+        }
+        let out = self.host_create("layout.enclosure.create_from_part", params);
+        self.layout_form_done(ACTION, out)
+    }
+
+    /// The Create enclosure dialog (ruling 7): the location (the given one, else the focused page's, else the first)
+    /// and the enclosure part (the given one, else the first: the project's copies, then the libraries' parts).
+    fn enclosure_form(&self, location: Option<String>, part: Option<String>) -> super::FormDialog {
+        let page = self.focused_page_id();
+        let (locations, parts, page_location) = match &self.project {
+            Some(project) => (
+                project.session.layout_locations(),
+                project.session.layout_part_offers("enclosure"),
+                page.and_then(|pg| project.session.page_structure(pg).0),
+            ),
+            None => (Vec::new(), Vec::new(), None),
+        };
+        let location = location
+            .or_else(|| page_location.map(|l| l.to_string()))
+            .filter(|l| locations.iter().any(|(id, _)| id.to_string() == *l))
+            .or_else(|| locations.first().map(|(id, _)| id.to_string()))
+            .unwrap_or_default();
+        let part = part
+            .or_else(|| parts.first().map(|o| o.part.to_string()))
+            .unwrap_or_default();
+        super::FormDialog {
+            action: "layout.enclosure_new",
+            title_key: key!("enclosure-new-title"),
+            ok_key: key!("enclosure-new-ok"),
+            fields: vec![
+                super::FormField {
+                    name: "location",
+                    label_key: key!("form-enclosure-location"),
+                    choices: &[],
+                    options: locations
+                        .iter()
+                        .map(|(id, code)| (id.to_string(), code.clone()))
+                        .collect(),
+                    value: location,
+                },
+                super::FormField {
+                    name: "part",
+                    label_key: key!("form-enclosure-part"),
+                    choices: &[],
+                    options: parts
+                        .iter()
+                        .map(|o| {
+                            let words = if o.description.is_empty() {
+                                o.number.clone()
+                            } else {
+                                format!("{} \u{b7} {}", o.number, o.description)
+                            };
+                            (o.part.to_string(), words)
+                        })
+                        .collect(),
+                    value: part,
+                },
+            ],
+            error: None,
+            table: None,
+        }
+    }
+
+    /// The rail Auto-fill rail fills by default: the selected rail, else the page's first rail.
+    fn fill_rail(&self, panel: &PanelTables) -> Option<Uuid> {
+        let sel = &self.tools.selection;
+        sel.items
+            .iter()
+            .find_map(|e| panel.carrier(e.0).filter(|c| c.axis.is_some()).map(|c| c.id))
+            .or_else(|| panel.carriers.iter().find(|c| c.axis.is_some()).map(|c| c.id))
+    }
+
+    /// The devices Auto-fill rail fills with: the Unplaced devices navigator's marked device rows; empty for none (the
+    /// command then takes every unplaced device of the layout space that fits the rail).
+    fn fill_devices(&self) -> Vec<Uuid> {
+        let Some(nav) = self.nav(crate::navigators::NavKind::Unplaced) else {
+            return Vec::new();
+        };
+        let Some(table) = nav.table() else {
+            return Vec::new();
+        };
+        table
+            .nodes
+            .iter()
+            .filter(|n| n.role == ew_api::output::NavRole::Device && nav.marked().contains(&n.key))
+            .filter_map(|n| n.records.first().copied())
+            .collect()
+    }
+
+    /// The Create enclosure dialog's lines when a list has nothing to offer: no location yet (the user adds one with
+    /// Structure node…, named by its registry label), no enclosure part in the project or an installed library. The
+    /// fields then take typed text (a location's code, a part number).
+    pub fn enclosure_form_notes(&self) -> Vec<String> {
+        let Some(super::Dialog::Form(f)) = &self.dialog else {
+            return Vec::new();
+        };
+        let empty = |name: &str| f.fields.iter().any(|x| x.name == name && x.options.is_empty());
+        let mut notes = Vec::new();
+        if empty("location") {
+            let structure = crate::actions::find("structure.new")
+                .map(|a| strings::text(Key::run_time(&a.label_key())).to_owned())
+                .unwrap_or_default();
+            notes.push(strings::format(key!("enclosure-new-no-location"), &[&structure]));
+        }
+        if empty("part") {
+            notes.push(strings::text(key!("enclosure-new-no-part")).to_owned());
+        }
+        notes
+    }
+
+    /// The Auto-fill rail dialog's line on the devices it fills with.
+    pub fn fill_devices_text(&self) -> String {
+        match self.fill_devices().len() {
+            0 => strings::text(key!("auto-fill-devices-all")).to_owned(),
+            n => strings::format_count(count_key!("auto-fill-devices-marked"), n),
+        }
+    }
+
+    /// `layout.auto_fill_rail {rail?, order}` (Draw ▸ Layout ▸ Auto-fill rail…, D6, §8): `layout.auto_fill` of the
+    /// rail (its label or ID; by default the selected rail, else the page's first) in `order` (`schematic` or `dt`)
+    /// with the Unplaced devices navigator's marked devices, else every unplaced device that fits; a toast says what it
+    /// placed and what did not fit. In the window without `order` the Auto-fill rail dialog opens; a refusal stays
+    /// under its fields.
+    pub(crate) fn act_layout_auto_fill_rail(&mut self, p: &Map<String, Value>) -> Outcome {
+        const ACTION: &str = "layout.auto_fill_rail";
+        let Some(panel) = self.panel_tables() else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-panel-page"),
+            };
+        };
+        let given = |name: &str| {
+            p.get(name)
+                .and_then(Value::as_str)
+                .map(|s| s.trim().to_owned())
+                .filter(|s| !s.is_empty())
+        };
+        let rails: Vec<(String, String)> = panel
+            .carriers
+            .iter()
+            .filter(|c| c.axis.is_some())
+            .map(|c| (c.id.to_string(), c.label.clone()))
+            .collect();
+        let Some(order) = given("order") else {
+            return match self.mode {
+                super::Mode::Headless => failed(key!("error-missing-param"), &["order"]),
+                super::Mode::Gui if self.in_layout_form(ACTION) => {
+                    let message = strings::format(key!("error-missing-param"), &["order"]);
+                    self.layout_form_failed(ACTION, message)
+                }
+                super::Mode::Gui => {
+                    let rail = given("rail")
+                        .or_else(|| self.fill_rail(&panel).map(|r| r.to_string()))
+                        .unwrap_or_default();
+                    let form = super::FormDialog {
+                        action: ACTION,
+                        title_key: key!("auto-fill-title"),
+                        ok_key: key!("auto-fill-ok"),
+                        fields: vec![
+                            super::FormField {
+                                name: "rail",
+                                label_key: key!("form-auto-fill-rail"),
+                                choices: &[],
+                                options: rails,
+                                value: rail,
+                            },
+                            super::FormField {
+                                name: "order",
+                                label_key: key!("form-auto-fill-order"),
+                                choices: &[],
+                                options: fill_orders(),
+                                value: "schematic".to_owned(),
+                            },
+                        ],
+                        error: None,
+                        table: None,
+                    };
+                    self.open_dialog(super::Dialog::Form(form))
+                }
+            };
+        };
+        if order != "schematic" && order != "dt" {
+            return failed(key!("error-bad-param"), &["order"]);
+        }
+        let rail = match given("rail") {
+            Some(r) => rails
+                .iter()
+                .find(|(id, label)| *id == r || label.eq_ignore_ascii_case(&r))
+                .and_then(|(id, _)| id.parse::<Uuid>().ok()),
+            None => self.fill_rail(&panel),
+        };
+        let Some(rail) = rail else {
+            let message = strings::text(key!("error-no-rail")).to_owned();
+            return self.layout_form_failed(ACTION, message);
+        };
+        let sentence = panel
+            .carrier(rail)
+            .map(|c| c.sentence.clone())
+            .unwrap_or_default();
+        let before = panel
+            .placements
+            .iter()
+            .filter(|x| x.carrier == Some(rail))
+            .count();
+        let devices = self.fill_devices();
+        let mut params = json!({ "carrier": rail.to_string(), "order": order });
+        if !devices.is_empty() {
+            params["devices"] = Value::Array(devices.iter().map(|d| Value::String(d.to_string())).collect());
+        }
+        let (out, notices) = self.host_create_noticed("layout.auto_fill", params);
+        if out == Outcome::Done {
+            // The page's tables follow at the next frame; the session's are current.
+            let after = self
+                .project
+                .as_ref()
+                .and_then(|p| p.session.panel_tables(&panel.folio))
+                .map_or(before, |t| {
+                    t.placements.iter().filter(|x| x.carrier == Some(rail)).count()
+                });
+            let devices =
+                strings::format_count(count_key!("auto-fill-devices"), after.saturating_sub(before));
+            let text = if notices.is_empty() {
+                strings::format(key!("toast-auto-fill"), &[&devices, &sentence])
+            } else {
+                strings::format(
+                    key!("toast-auto-fill-left"),
+                    &[&devices, &sentence, &notices.join("; ")],
+                )
+            };
+            self.notify(text, true);
+        }
+        self.layout_form_done(ACTION, out)
+    }
+
+    /// Whether the open dialog is the form of `action`.
+    fn in_layout_form(&self, action: &str) -> bool {
+        matches!(&self.dialog, Some(super::Dialog::Form(f)) if f.action == action)
+    }
+
+    /// A refusal of a set-up action: it stays under the fields when its form is open.
+    fn layout_form_failed(&mut self, action: &str, message: String) -> Outcome {
+        if let Some(super::Dialog::Form(f)) = &mut self.dialog
+            && f.action == action
+        {
+            f.error = Some(message.clone());
+        }
+        Outcome::Failed { message }
+    }
+
+    /// The end of a set-up action: a failure stays in its dialog, a success closes it.
+    fn layout_form_done(&mut self, action: &str, out: Outcome) -> Outcome {
+        match out {
+            Outcome::Failed { message } => self.layout_form_failed(action, in_words(&message)),
+            Outcome::Done => {
+                if self.in_layout_form(action) {
+                    self.dialog = None;
+                }
+                Outcome::Done
+            }
+            other => other,
+        }
+    }
+}

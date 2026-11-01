@@ -870,7 +870,7 @@ pub fn read_only_reason(sheet: &PropertySheet, section: &SheetSection, row: &Pro
         return None;
     }
     match &row.route {
-        EditRoute::FieldsSet { .. } | EditRoute::SettingsMember { .. } => None,
+        EditRoute::FieldsSet { .. } | EditRoute::SettingsMember { .. } | EditRoute::Command { .. } => None,
         EditRoute::ReadOnly(reason) => Some(reason_text(reason)),
     }
 }
@@ -894,7 +894,8 @@ pub fn member_path(route: &EditRoute) -> Option<String> {
     match route {
         EditRoute::FieldsSet { path, .. } => Some(path.clone()),
         EditRoute::SettingsMember { member } => Some(format!("settings.{member}")),
-        EditRoute::ReadOnly(_) => None,
+        // WP-S4.02 part 4 (ruling 3): a layout row has no settable member; `Session::layout_edit` compiles its text.
+        EditRoute::Command { .. } | EditRoute::ReadOnly(_) => None,
     }
 }
 

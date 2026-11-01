@@ -3450,6 +3450,87 @@ pub const TEXTS: &[(&str, &str)] = &[
     ("action-layout-lock-selection", "Lock"),
     ("action-layout-unlock-selection", "Unlock"),
     ("action-layout-options", "Placing options"),
+    // WP-S4.02 part 4 (D10, D11; §8; doc 16a §5.3, §6.12): Draw ▸ Layout, Project ▸ Enclosure…, the draw tools and
+    // the set-up dialogs.
+    ("group-panel-layout", "Layout"),
+    ("bar-rail", "Rail"),
+    ("bar-duct", "Duct"),
+    ("bar-auto-fill", "Auto-fill rail"),
+    ("bar-enclosure", "Enclosure"),
+    ("action-tool-rail-draw", "Rail"),
+    ("action-tool-duct-draw", "Duct"),
+    ("action-layout-auto-fill-rail", "Auto-fill rail\u{2026}"),
+    ("action-layout-draw-options", "Drawing options"),
+    ("action-layout-enclosure-new", "Enclosure\u{2026}"),
+    ("tool-rail_draw", "Rail"),
+    ("tool-duct_draw", "Duct"),
+    ("hint-rail-draw", "Click the rail's start; Escape cancels"),
+    (
+        "hint-rail-draw-end",
+        "Click the rail's end; Backspace drops the start; Escape cancels",
+    ),
+    ("hint-duct-draw", "Click the duct's first point; Escape cancels"),
+    (
+        "hint-duct-draw-next",
+        "Click the next point; a double click or Enter finishes; Backspace removes the last point",
+    ),
+    ("reason-no-draw-tool", "Choose Rail or Duct first"),
+    ("reason-no-rail-part", "Add a rail part to the project first"),
+    (
+        "reason-rail-no-profile",
+        "The rail part has no profile; choose a rail part with a rail section.",
+    ),
+    ("reason-duct-two-points", "A duct needs two points"),
+    ("reason-duct-vertices", "A duct takes at most 256 points"),
+    ("draw-length", "{0} mm"),
+    ("draw-duct-size", "{0} \u{d7} {1} mm"),
+    ("draw-options-part", "Part"),
+    ("draw-options-width", "Width (mm)"),
+    ("draw-options-height", "Height (mm)"),
+    ("draw-options-no-part", "No part"),
+    ("enclosure-new-title", "Create enclosure"),
+    ("enclosure-new-ok", "Create"),
+    ("form-enclosure-location", "Location"),
+    ("form-enclosure-part", "Enclosure part"),
+    (
+        "error-no-location",
+        "The project has no location {0}; choose one of the list.",
+    ),
+    (
+        "error-no-enclosure-part",
+        "No enclosure part {0} is on offer; choose one of the list.",
+    ),
+    ("auto-fill-title", "Auto-fill rail"),
+    ("auto-fill-ok", "Fill"),
+    ("form-auto-fill-rail", "Rail"),
+    ("form-auto-fill-order", "Order"),
+    ("auto-fill-order-schematic", "Schematic"),
+    ("auto-fill-order-dt", "DT"),
+    (
+        "auto-fill-devices-all",
+        "Fills with every unplaced device that fits the rail.",
+    ),
+    (
+        "auto-fill-devices-marked",
+        "Fills with the {0} devices marked in Unplaced devices.",
+    ),
+    (
+        "auto-fill-devices-marked-one",
+        "Fills with the device marked in Unplaced devices.",
+    ),
+    ("error-no-rail", "The page has no rail; draw one first."),
+    ("toast-auto-fill", "Placed {0} on {1}."),
+    ("toast-auto-fill-left", "Placed {0} on {1}; {2}."),
+    (
+        "enclosure-new-no-location",
+        "The project has no location yet; add one with {0} first.",
+    ),
+    (
+        "enclosure-new-no-part",
+        "No enclosure part is in the project or an installed library; type a part number.",
+    ),
+    ("auto-fill-devices", "{0} devices"),
+    ("auto-fill-devices-one", "1 device"),
 ];
 
 /// The exact English labels of the property grid's rows (WP-S2.05 §6.1.2): the rows the pilot edits on folios 101 to
@@ -3492,6 +3573,9 @@ const FIELD_LABELS: &[(&str, &str, &str)] = &[
     ("function", "template_entry", "Part function"),
     ("representation", "derived.xref", "Cross-reference"),
     ("representation", "text_slots", "Text slots"),
+    // WP-S4.02 part 4 (D12): the layout rows whose humanised name would not read well.
+    ("carrier", "derived.pe_bond", "PE bond"),
+    ("mounting_surface", "derived.pe_bond", "PE bond"),
 ];
 
 /// The words the humanised labels replace (`csa` → "cross-section").

@@ -188,6 +188,9 @@ pub struct FormField {
     pub label_key: Key<'static>,
     /// The values a choice field offers, in order; empty for a free-text field.
     pub choices: &'static [&'static str],
+    /// WP-S4.02 part 4 (ruling 7): a choice list built at run time (the project's locations, the enclosure parts),
+    /// each `(value, words)`: the action receives the value, the window shows the words. Empty for every other field.
+    pub options: Vec<(String, String)>,
     /// The text of the field.
     pub value: String,
 }
@@ -276,6 +279,7 @@ impl Spec {
                     name: f.name,
                     label_key: f.label_key,
                     choices: f.choices,
+                    options: Vec::new(),
                     value: text_param(p, f.name)
                         .ok()
                         .filter(|v| !v.is_empty())
@@ -462,32 +466,43 @@ impl ShellModel {
 
     /// One command through the host with a preview (module documentation): `Session::preview_with` once, kept as the
     /// host keeps a tool's preview, then the host's commit. A refusal of the preview is the outcome's message.
-    fn host_create(&mut self, name: &str, params: Value) -> Outcome {
+    pub(super) fn host_create(&mut self, name: &str, params: Value) -> Outcome {
+        self.host_create_noticed(name, params).0
+    }
+
+    /// [`ShellModel::host_create`] with the notices of the command's outcome (what it left out instead of refusing),
+    /// read on its preview (WP-S4.02 part 4: Auto-fill rail's toast).
+    pub(super) fn host_create_noticed(&mut self, name: &str, params: Value) -> (Outcome, Vec<String>) {
         let cmd = AnyCommand {
             name: name.into(),
             params,
         };
         let json = match cmd.to_json() {
             Ok(v) => v,
-            Err(e) => return super::tools::command_failed(&e, &cmd.params),
+            Err(e) => return (super::tools::command_failed(&e, &cmd.params), Vec::new()),
+        };
+        let refused = || {
+            (
+                Outcome::Refused {
+                    reason_key: key!("reason-no-project"),
+                },
+                Vec::new(),
+            )
         };
         let Some(base_rev) = self.revision() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return refused();
         };
         let submit = self.tool_submit();
         let Some(project) = &mut self.project else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-project"),
-            };
+            return refused();
         };
         let result = project.session.preview_with(&cmd, submit);
         self.count(|c| c.preview_with += 1);
         let preview = match result {
             Ok(p) => p,
-            Err(e) => return super::tools::command_failed(&e, &json),
+            Err(e) => return (super::tools::command_failed(&e, &json), Vec::new()),
         };
+        let notices = preview.outcome().notices.clone();
         // A tool's own kept preview (the armed Place tool's ghost) is put back: it is stale after the commit and the
         // tool computes it again, as it would without this action.
         let tool_preview = self.tools.preview.replace(PreviewState {
@@ -499,7 +514,7 @@ impl ShellModel {
         });
         let out = self.run_commit(&cmd);
         self.tools.preview = tool_preview;
-        out
+        (out, notices)
     }
 
     /// The UUID text of the structure node `text` names in the aspect `aspect`: its alias or UUID (resolved by

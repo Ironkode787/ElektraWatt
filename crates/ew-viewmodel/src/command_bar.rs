@@ -113,6 +113,8 @@ pub enum Group {
     Place,
     /// Draw: wires, potentials, interruption points.
     Connect,
+    /// Draw: a panel layout page's set-up: rail, duct, auto-fill rail (WP-S4.02 part 4, D10, ruling 1).
+    PanelLayout,
     /// Draw: text and measure.
     Annotate,
     /// Draw: rotate, mirror, align, renumber.
@@ -147,7 +149,7 @@ pub enum Group {
 
 impl Group {
     /// Every group, in bar order.
-    pub const ALL: [Group; 25] = [
+    pub const ALL: [Group; 26] = [
         Group::Project,
         Group::Parts,
         Group::Standards,
@@ -158,6 +160,7 @@ impl Group {
         Group::Select,
         Group::Place,
         Group::Connect,
+        Group::PanelLayout,
         Group::Annotate,
         Group::Arrange,
         Group::Run,
@@ -180,7 +183,12 @@ impl Group {
         match self {
             Group::Project | Group::Parts | Group::Standards | Group::Import => Tab::Project,
             Group::Pages | Group::Order | Group::Go => Tab::Page,
-            Group::Select | Group::Place | Group::Connect | Group::Annotate | Group::Arrange => Tab::Draw,
+            Group::Select
+            | Group::Place
+            | Group::Connect
+            | Group::PanelLayout
+            | Group::Annotate
+            | Group::Arrange => Tab::Draw,
             Group::Run | Group::Findings | Group::Numbering | Group::Trace => Tab::Check,
             Group::Pdf | Group::Reports | Group::Lists | Group::Jobs => Tab::Output,
             Group::Zoom | Group::Show | Group::Panels | Group::Layout | Group::Appearance => Tab::View,
@@ -200,6 +208,7 @@ impl Group {
             Group::Select => "select",
             Group::Place => "place",
             Group::Connect => "connect",
+            Group::PanelLayout => "panel-layout",
             Group::Annotate => "annotate",
             Group::Arrange => "arrange",
             Group::Run => "run",
@@ -785,6 +794,8 @@ pub fn hud(model: &ShellModel) -> HudModel {
         }
         // WP-S4.02 part 3 (doc 16a §5.5): the placing prompt; a refused drop's text stands in its chip.
         Some(Ghost::Layout { device, .. }) => strings::format(key!("hud-layout-place"), &[&device]),
+        // WP-S4.02 part 4 (D11): the draw tools' line; the length stands at the line.
+        Some(Ghost::Line { .. }) => hint(),
     };
     // FT-751: a tool's refusal stands in the HUD in place of its prompt, also over a ghost (the stacked twin's
     // "An identical symbol already stands here"), until the next canvas input ends it.

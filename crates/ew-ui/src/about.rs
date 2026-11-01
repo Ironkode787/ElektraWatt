@@ -327,6 +327,25 @@ fn form_fields(ui: &mut Ui, form: &FormDialog, just_opened: bool, events: &mut V
                     check.request_focus();
                     first = false;
                 }
+            } else if !f.options.is_empty() {
+                // WP-S4.02 part 4 (ruling 7): a choice list built at run time, shown by its words.
+                let shown = f
+                    .options
+                    .iter()
+                    .find(|(v, _)| *v == f.value)
+                    .map_or_else(String::new, |(_, w)| w.clone());
+                let combo = egui::ComboBox::from_id_salt(("form-option", f.name))
+                    .selected_text(shown)
+                    .width(ui.available_width())
+                    .icon(crate::components::combo_chevron)
+                    .show_ui(ui, |ui| {
+                        for (value, words) in &f.options {
+                            if ui.selectable_label(f.value == *value, words).clicked() {
+                                events.push(Event::FormField(f.name, value.clone()));
+                            }
+                        }
+                    });
+                combo.response.labelled_by(label.id);
             } else if f.choices.is_empty() {
                 let mut text = f.value.clone();
                 let edit = ui

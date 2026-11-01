@@ -448,24 +448,28 @@ impl ShellModel {
                         name: "section",
                         label_key: key!("form-renumber-section"),
                         choices: &[],
+                        options: Vec::new(),
                         value: section,
                     },
                     FormField {
                         name: "start",
                         label_key: key!("form-start"),
                         choices: &[],
+                        options: Vec::new(),
                         value: first,
                     },
                     FormField {
                         name: "step",
                         label_key: key!("form-step"),
                         choices: &[],
+                        options: Vec::new(),
                         value: "1".to_owned(),
                     },
                     FormField {
                         name: "keep_gaps",
                         label_key: key!("form-keep-gaps"),
                         choices: BOOL_CHOICES,
+                        options: Vec::new(),
                         value: "false".to_owned(),
                     },
                 ],
@@ -575,6 +579,7 @@ impl ShellModel {
                 name,
                 label_key,
                 choices,
+                options: Vec::new(),
                 value: value.to_owned(),
             };
             let form = FormDialog {

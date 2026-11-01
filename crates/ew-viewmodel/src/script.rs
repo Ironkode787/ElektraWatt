@@ -766,6 +766,20 @@ fn ghost_json(shell: &ShellModel) -> String {
                 member("refused", &refused.map_or(Value::Null, Value::from)),
             ])
         }
+        // WP-S4.02 part 4 (D11, ruling 4): `{"kind": "line", "carrier": "rail"|"duct", "from_nm", "to_nm"}`, surface nm;
+        // `to_nm` is null before the first click.
+        Some(Ghost::Line { kind, from, to }) => {
+            let n = |v: i128| Value::from(i64::try_from(v).unwrap_or(0));
+            object(vec![
+                member("kind", &Value::from("line")),
+                member("carrier", &Value::from(kind)),
+                member("from_nm", &Value::from(vec![n(from.0), n(from.1)])),
+                member(
+                    "to_nm",
+                    &to.map_or(Value::Null, |t| Value::from(vec![n(t.0), n(t.1)])),
+                ),
+            ])
+        }
     }
 }
 

@@ -55,6 +55,8 @@ mod job;
 // WP-S2.18 part 1: the devices a placed symbol can join (D1, D2).
 pub(crate) mod join;
 mod layers;
+// WP-S4.02 part 4: Properties for layout records and the Surface view rows (D12, ruling 3).
+mod layout_edit;
 mod navigation;
 // WP-S2.06 part 1
 mod navigators;
@@ -115,6 +117,7 @@ pub use layers::{
     TablesLayer, WiresLayer, page_kind, page_layer, page_scene, page_view, text_style_table,
 };
 // WP-S4.01 part 3
+pub use layout_edit::{LayoutEdit, LayoutEditError, LayoutPartOffer, parse_mm};
 pub use navigation::{
     CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageCp, PageListRow, PageListTable, PageRow,
 };

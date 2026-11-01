@@ -693,12 +693,27 @@ impl ShellModel {
     fn options(&self, section: &SheetSection, row: &PropRow, filter: &str, key: &str) -> Option<Choices> {
         let p = self.project.as_ref()?;
         bump(&self.calls, |c| c.field_choices += 1);
-        let items: Vec<(String, Value)> = p
-            .session
-            .field_choices(&section.kind, &row.path, filter)
-            .into_iter()
-            .map(|c| (c.text, c.value))
-            .collect();
+        // WP-S4.02 part 4 (D12): a layout row lists the choices its sheet built (the device's parts, the turns, the
+        // project's surfaces), each its own text.
+        let items: Vec<(String, Value)> = match (&row.route, row.ty.inner()) {
+            (
+                crate::properties::EditRoute::Command { .. },
+                crate::properties::FieldType::Enum { options },
+            ) => {
+                let f = filter.to_lowercase();
+                options
+                    .iter()
+                    .filter(|o| o.to_lowercase().contains(&f))
+                    .map(|o| (o.clone(), Value::String(o.clone())))
+                    .collect()
+            }
+            _ => p
+                .session
+                .field_choices(&section.kind, &row.path, filter)
+                .into_iter()
+                .map(|c| (c.text, c.value))
+                .collect(),
+        };
         Some(Choices {
             row: key.to_owned(),
             items,
@@ -861,6 +876,10 @@ impl ShellModel {
         if row.key == GROUP_ROW {
             return self.commit_group_label(&section, &row, text);
         }
+        // WP-S4.02 part 4 (ruling 3): a layout row compiles through `Session::layout_edit`.
+        if matches!(row.route, crate::properties::EditRoute::Command { .. }) {
+            return self.commit_layout_row(&section, &row, text);
+        }
         // WP-S2.18 D3 (FT-628): an existing device's tag proposes Join; the shown tag again builds no command.
         if row.key == TAG_ROW {
             if let Some(outcome) = self.propose_join(&section, key, text) {
@@ -944,6 +963,16 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
+        // WP-S4.02 part 4 (ruling 3): a layout row's choice or toggle is its text.
+        if matches!(row.route, crate::properties::EditRoute::Command { .. }) {
+            let text = match &value {
+                Value::String(s) => s.clone(),
+                Value::Bool(b) => b.to_string(),
+                Value::Null => String::new(),
+                other => other.to_string(),
+            };
+            return self.commit_layout_row(&section, &row, &text);
+        }
         let Some(member) = member_path(&row.route) else {
             return Outcome::Refused {
                 reason_key: key!("reason-read-only"),
@@ -993,6 +1022,62 @@ impl ShellModel {
         let edit = self.pending_edit(&section, &row, &member, value, new, base, typed);
         self.props.notes = notes;
         self.run_edit(edit, false)
+    }
+
+    /// A layout row (WP-S4.02 part 4, D12, ruling 3): one `Session::layout_edit` of the row's text, through the commit
+    /// path of every edit (one preview, the policy, the commit); the text on show again builds no command, and a text
+    /// that does not read stays under the row in words.
+    fn commit_layout_row(
+        &mut self,
+        section: &crate::properties::SheetSection,
+        row: &crate::properties::PropRow,
+        text: &str,
+    ) -> Outcome {
+        let shown = match &row.value {
+            RowValue::One { text, .. } => Some(text.clone()),
+            RowValue::Absent => Some(String::new()),
+            RowValue::Varies { .. } => None,
+        };
+        if shown.as_deref().map(str::trim) == Some(text.trim()) {
+            self.props.edit = None;
+            self.props.error = None;
+            return Outcome::Done;
+        }
+        let Some(project) = &self.project else {
+            return Outcome::Refused {
+                reason_key: key!("reason-no-project"),
+            };
+        };
+        let Some(target) = section.targets.first().copied() else {
+            return failed(key!("error-no-row"), &[&row.key]);
+        };
+        let edit = ew_api::output::LayoutEdit {
+            kind: section.kind.clone(),
+            target,
+            row: row.path.clone(),
+            text: text.to_owned(),
+        };
+        let cmd = match project.session.layout_edit(&edit) {
+            Ok(c) => c,
+            Err(ew_api::output::LayoutEditError::Invalid(message)) => {
+                self.props.error = Some((row.key.clone(), message.clone()));
+                return Outcome::Failed { message };
+            }
+        };
+        let pending = PendingEdit {
+            row: row.key.clone(),
+            kind: section.kind.clone(),
+            targets: section.targets.iter().map(ToString::to_string).collect(),
+            route: row.route.clone(),
+            path: row.path.clone(),
+            leaf: None,
+            base: None,
+            name: cmd.name,
+            params: cmd.params,
+            typed: text.to_owned(),
+            label: crate::properties::row_label(section, row),
+        };
+        self.run_edit(pending, false)
     }
 
     /// The Group row of terminals (WP-S2.07 D13): one `StripEdit::GroupLabel` over the section's terminals, through
@@ -1074,7 +1159,9 @@ impl ShellModel {
                 "fields.set".to_owned(),
                 json!({ "kind": kind, "targets": targets, "path": path, "value": new }),
             ),
-            crate::properties::EditRoute::ReadOnly(_) => (String::new(), Value::Null),
+            crate::properties::EditRoute::Command { .. } | crate::properties::EditRoute::ReadOnly(_) => {
+                (String::new(), Value::Null)
+            }
         };
         // WP-S2.18 D6: a Parts row that chooses a system library's part the project does not hold assigns it with
         // `part.assign`, which embeds the part with its closure in the same transaction.

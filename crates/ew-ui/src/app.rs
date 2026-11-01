@@ -1344,7 +1344,12 @@ impl App {
             .shell
             .layout_options_shown()
             .then(|| self.shell.layout_card_options());
-        if !(ip || text || marker || structure_box || layout.is_some()) {
+        // WP-S4.02 part 4 (D11): Draw rail's and Draw duct's part, grid step and duct size.
+        let draw = self
+            .shell
+            .draw_card()
+            .map(|card| (card, self.shell.layout_options().grid_mm));
+        if !(ip || text || marker || structure_box || layout.is_some() || draw.is_some()) {
             return None;
         }
         let t = crate::theme::current(ctx);
@@ -1404,6 +1409,9 @@ impl App {
                             }
                             if let Some(options) = layout {
                                 crate::tool_view::layout_fields(ui, options, events);
+                            }
+                            if let Some((card, grid_mm)) = &draw {
+                                crate::tool_view::draw_fields(ui, card, *grid_mm, events);
                             }
                         });
                     });

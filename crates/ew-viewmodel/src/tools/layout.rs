@@ -74,6 +74,13 @@ pub struct LayoutOptions {
     pub mode: SnapMode,
     /// The plate grid's step, in millimetres: 5 or 1.
     pub grid_mm: u8,
+    // WP-S4.02 part 4 (D11): the draw tools' options.
+    /// The rail part Draw rail draws with (its part copy's ID); `None`: the first one offered.
+    pub rail_part: Option<Uuid>,
+    /// The duct part Draw duct draws with; `None`: the first one offered.
+    pub duct_part: Option<Uuid>,
+    /// The duct width and height when the part gives none, nm (40 × 60 mm, then the last used).
+    pub duct_size: (i128, i128),
 }
 
 impl Default for LayoutOptions {
@@ -81,6 +88,9 @@ impl Default for LayoutOptions {
         LayoutOptions {
             mode: SnapMode::Free,
             grid_mm: 5,
+            rail_part: None,
+            duct_part: None,
+            duct_size: super::duct_draw::DEFAULT_DUCT_SIZE,
         }
     }
 }
@@ -597,7 +607,7 @@ pub fn sheet_of_surface(cx: &ToolCx<'_>, panel: &PanelTables, p: (i128, i128)) -
 }
 
 /// The sheet rectangle of a surface box.
-fn sheet_rect(cx: &ToolCx<'_>, panel: &PanelTables, (u0, v0, u1, v1): SurfaceBox) -> Rect {
+pub(crate) fn sheet_rect(cx: &ToolCx<'_>, panel: &PanelTables, (u0, v0, u1, v1): SurfaceBox) -> Rect {
     let a = sheet_of_surface(cx, panel, (u0, v0));
     let b = sheet_of_surface(cx, panel, (u1, v1));
     Rect::from_points(Pt2::new(Nm(a.0), Nm(a.1)), Pt2::new(Nm(b.0), Nm(b.1)))
@@ -628,7 +638,7 @@ pub fn round_to(v: i128, step: i128) -> i128 {
 }
 
 /// How many surface nm one sheet nm stands for near `at` (the frame's factor and the projection's scale).
-fn surface_per_sheet(cx: &ToolCx<'_>, panel: &PanelTables, at: (i64, i64)) -> f64 {
+pub(crate) fn surface_per_sheet(cx: &ToolCx<'_>, panel: &PanelTables, at: (i64, i64)) -> f64 {
     let a = surface_of_sheet(cx, panel, at);
     let b = surface_of_sheet(cx, panel, (at.0.saturating_add(1_000_000), at.1));
     let d = ((b.0 - a.0).abs() + (b.1 - a.1).abs()) as f64;

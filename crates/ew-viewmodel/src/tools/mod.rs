@@ -44,11 +44,17 @@
 //! **WP-S4.02 part 3** adds placing on a panel page: the layout place tool ([`LayoutPlaceTool`]) and Select's drag
 //! of a placement, both over [`layout`]'s gesture, which resolves a drop with the commands' own resolver (D4), and the
 //! panel kinds of the selection ([`EntityKind::Placement`], [`EntityKind::Carrier`], [`page_entity_kind`]).
+//!
+//! **WP-S4.02 part 4** adds the set-up tools of a panel page: Draw rail ([`RailDrawTool`]) and Draw duct
+//! ([`DuctDrawTool`]) with their snapping ([`rail_draw`]) and the line ghost ([`Ghost::Line`]), and Select's drag of a
+//! carrier (`layout.carrier.edit`).
 
 pub mod autoconnect;
 pub mod black_box;
 // WP-S2.18 part 1: the chooser list of doc 16a §6.22 (the Join chooser).
 mod chooser;
+// WP-S4.02 part 4 (D11): Draw rail and Draw duct.
+pub mod duct_draw;
 mod exchange;
 pub mod graphic;
 mod host;
@@ -67,6 +73,7 @@ pub mod macro_place;
 mod paste;
 mod picker;
 mod place;
+pub mod rail_draw;
 pub mod route_edit;
 mod select;
 mod snap;
@@ -77,6 +84,7 @@ pub mod wire;
 
 pub use black_box::{BlackBoxTool, BoxTarget};
 pub use chooser::{Chooser, ChooserRow, ChooserValue};
+pub use duct_draw::DuctDrawTool;
 pub use exchange::ExchangeTool;
 pub use graphic::{GraphicShape, GraphicTool};
 pub use image::{ImageAsset, ImageTool, fit_rect};
@@ -85,6 +93,7 @@ pub use junction_editor::{JunctionEditor, JunctionMember, junction_name};
 pub use layout::{LayoutOptions, LayoutPlaceTool};
 pub use macro_place::MacroTool;
 pub use marker::{MarkerTool, crossed_connections};
+pub use rail_draw::{DrawCard, DrawPart, RailDrawTool};
 // WP-S2.05 part 3
 pub use paste::PasteTool;
 pub use picker::{PendingTerminal, Picker, PickerMode, PickerRow, symbol_name};
@@ -368,6 +377,17 @@ pub enum Ghost {
         moved: usize,
         /// The refusal's text, when the drop is refused.
         refused: Option<String>,
+    },
+    // WP-S4.02 part 4 (D11, ruling 4)
+    /// The Draw rail or Draw duct tool's line on a panel page: from the first point (a duct's last vertex) to the
+    /// pointer, surface nm; before the first click only the pointer's point.
+    Line {
+        /// `rail` or `duct`.
+        kind: &'static str,
+        /// The first point (a duct's last vertex), else the pointer's.
+        from: (i128, i128),
+        /// The pointer's point after the first click.
+        to: Option<(i128, i128)>,
     },
 }
 

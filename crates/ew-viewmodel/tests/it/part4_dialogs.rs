@@ -226,6 +226,9 @@ fn ui_strings() -> Vec<String> {
 /// list in the same reviewed commit.
 const OPENS_INPUT: &[&str] = &[
     "file.new",
+    // WP-S4.02 part 4: the Create enclosure and Auto-fill rail dialogs.
+    "layout.enclosure_new",
+    "layout.auto_fill_rail",
     // WP-S2.08 part 2: the keymap editor's Import… and Export… ask for a file.
     "keymap.import",
     "keymap.export",

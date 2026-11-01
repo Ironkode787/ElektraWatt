@@ -976,6 +976,7 @@ impl ShellModel {
                 name,
                 label_key,
                 choices: &[],
+                options: Vec::new(),
                 value,
             };
             let mut fields = vec![
@@ -987,6 +988,7 @@ impl ShellModel {
                     name: "kind",
                     label_key: key!("form-macro-kind"),
                     choices: &MACRO_KINDS,
+                    options: Vec::new(),
                     value: if page_macro { "page" } else { "window" }.to_owned(),
                 },
             ];

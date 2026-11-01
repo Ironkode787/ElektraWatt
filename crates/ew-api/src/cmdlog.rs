@@ -696,4 +696,10 @@ fn record_exists(q: &Q, id: AnyId) -> bool {
         || q.symbols().contains(id.cast())
         || q.fndefs().contains(id.cast())
         || q.forms().contains(id.cast())
+        // WP-S4.02 part 4 (D12): the layout records, which Properties shows and `select.set` reaches.
+        || q.table::<ew_schema::Placement>().get(id.cast()).is_some()
+        || q.table::<ew_schema::Carrier>().get(id.cast()).is_some()
+        || q.table::<ew_schema::MountingSurface>().get(id.cast()).is_some()
+        || q.table::<ew_schema::Enclosure>().get(id.cast()).is_some()
+        || q.table::<ew_schema::LayoutSpace>().get(id.cast()).is_some()
 }

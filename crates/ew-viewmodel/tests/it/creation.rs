@@ -626,7 +626,12 @@ fn the_menu_entries_are_disabled_with_their_reason() {
     let items = |shell: &ShellModel| {
         let mut out = Vec::new();
         for m in menu_model(shell) {
-            for e in m.entries {
+            // WP-S4.02 part 4: Enclosure… makes Project's group four entries, a submenu (doc 16a §9.2).
+            let flat = m.entries.into_iter().flat_map(|e| match e {
+                MenuEntry::Group { entries, .. } => entries,
+                other => vec![other],
+            });
+            for e in flat {
                 if let MenuEntry::Item(i) = e
                     && ["page.new", "structure.new", "external_ref.new"].contains(&i.id)
                 {

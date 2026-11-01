@@ -305,6 +305,13 @@ pub enum EditRoute {
         /// The settings member.
         member: String,
     },
+    // WP-S4.02 part 4 (D12, ruling 3)
+    /// A layout row: its text compiles through `Session::layout_edit` into exactly this one command (`layout.move`,
+    /// `layout.carrier.edit`, `page.surface_view.set`, …), never `fields.set`.
+    Command {
+        /// The command's name.
+        command: String,
+    },
     /// Not editable in the grid.
     ReadOnly(FieldReadOnly),
 }
@@ -344,6 +351,7 @@ impl EditRoute {
         match self {
             EditRoute::FieldsSet { path, .. } => format!("fields.set:{path}"),
             EditRoute::SettingsMember { member } => format!("settings:{member}"),
+            EditRoute::Command { command } => format!("command:{command}"),
             EditRoute::ReadOnly(FieldReadOnly::Identity) => "read-only:identity".into(),
             EditRoute::ReadOnly(FieldReadOnly::Narrowed { .. }) => "read-only:narrowed".into(),
             EditRoute::ReadOnly(FieldReadOnly::Command { command, .. }) => format!("read-only:{command}"),

@@ -249,7 +249,8 @@ table.cs-grid { border-collapse:separate; border-spacing:0; font-size:12px; widt
     </div>
   </div>
 
-  <!-- Draw tab: select -> place -> connect -> annotate -> arrange (left to right, no captions) -->
+  <!-- Draw tab: select -> place -> connect -> layout -> annotate -> arrange (left to right, no captions); Layout is
+       enabled on a panel layout page with a surface view (WP-S4.02 D10) -->
   <div class="cmdrow" id="cmdrow">
     <div class="group" aria-label="Select">
       <button class="cmd on focusable" title="Select (Esc)"><svg class="i" viewBox="0 0 24 24"><path d="m4 4 7 17 2.5-7.5L21 11z"/></svg>Select</button>
@@ -268,6 +269,13 @@ table.cs-grid { border-collapse:separate; border-spacing:0; font-size:12px; widt
         <button class="cmd small focusable" title="Potential (O)"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 8h16M4 16h16"/><path d="M8 4v16" stroke-dasharray="2 2"/></svg>Potential</button>
         <button class="cmd small focusable" title="Interruption point (I)"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 12h8"/><path d="m12 8 4 4-4 4"/></svg>Interruption</button>
       </div>
+    </div>
+    <div class="group" aria-label="Layout">
+      <div class="smallstack">
+        <button class="cmd small focusable" title="Rail"><svg class="i i16" viewBox="0 0 24 24"><path d="M4 4v16"/><path d="M8 10h12M8 14h12"/></svg>Rail</button>
+        <button class="cmd small focusable" title="Duct"><svg class="i i16" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="8" rx="1"/><path d="M8 8v8M12 8v8M16 8v8"/></svg>Duct</button>
+      </div>
+      <button class="cmd small focusable" title="Auto-fill rail…"><svg class="i i16" viewBox="0 0 24 24"><path d="m6 21 15-15-3-3L3 18z"/><path d="M15 6l3 3"/></svg>Auto-fill rail</button>
     </div>
     <div class="group" aria-label="Annotate">
       <button class="cmd focusable" title="Text (X)"><svg class="i" viewBox="0 0 24 24"><path d="M6 5h12M12 5v14M9 19h6"/></svg>Text</button>

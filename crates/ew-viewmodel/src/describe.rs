@@ -2264,6 +2264,22 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             }
             lines.push(line);
         }
+        // WP-S4.02 part 4 (D11, ruling 4): the draw tools' line in surface mm: `canvas ghost line rail from 40 740 to
+        // 610 740 mm`; before the first click only `at 40 740 mm`.
+        Some(crate::tools::Ghost::Line { kind, from, to }) => {
+            let mm = |v: i128| crate::canvas::mm3(i64::try_from(v).unwrap_or(0));
+            let line = match to {
+                Some(to) => format!(
+                    "canvas ghost line {kind} from {} {} to {} {} mm",
+                    mm(from.0),
+                    mm(from.1),
+                    mm(to.0),
+                    mm(to.1)
+                ),
+                None => format!("canvas ghost line {kind} at {} {} mm", mm(from.0), mm(from.1)),
+            };
+            lines.push(line);
+        }
     }
     wiring_lines(model, lines);
 }
@@ -2525,19 +2541,26 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         Dialog::Form(form) => {
             // WP-S1.18 part 5: a revision dialog's paragraphs and its list (the gate's findings, the release's steps)
             // before its fields.
+            // WP-S4.02 part 4: the Auto-fill rail dialog's line about its devices too.
+            for line in &spec.body {
+                lines.push(format!("  label \"{}\"", user(line)));
+            }
             if form.action.starts_with("revision.") {
-                for line in &spec.body {
-                    lines.push(format!("  label \"{}\"", user(line)));
-                }
                 for item in model.revision_list() {
                     lines.push(format!("  item \"{}\"", user(item)));
                 }
             }
             for f in &form.fields {
+                // WP-S4.02 part 4 (ruling 7): a run-time choice by its words, never its value (an ID).
+                let value = f
+                    .options
+                    .iter()
+                    .find(|(v, _)| *v == f.value)
+                    .map_or(f.value.as_str(), |(_, w)| w.as_str());
                 lines.push(format!(
                     "  field \"{}\": \"{}\"",
                     strings::text(f.label_key),
-                    f.value
+                    value
                 ));
             }
             if let Some(e) = &form.error {

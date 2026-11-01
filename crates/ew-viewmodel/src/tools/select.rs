@@ -154,8 +154,8 @@ pub struct SelectTool {
 }
 
 /// A press on a panel page (WP-S4.02 part 3): a click selects the placement or carrier (a label press selects its
-/// placement, W3-2); a drag of a placement moves it as the layout place tool places (D4); a drag of a carrier moves
-/// nothing (part 4) and selects it on release.
+/// placement, W3-2); a drag of a placement moves it as the layout place tool places (D4); a drag of a carrier translates
+/// its path on the grid (part 4, D11: `layout.carrier.edit`; its placements go with it, their poses being along it).
 #[derive(Clone, PartialEq, Debug)]
 struct PanelPress {
     entity: EntityRef,
@@ -167,6 +167,50 @@ struct PanelPress {
     gesture: Option<super::layout::LayoutGesture>,
     /// The last pointer point and modifiers.
     last: ((i64, i64), Mods),
+    // WP-S4.02 part 4 (D11)
+    /// A carrier's drag once the pointer left the click slop: its displacement on the grid, surface nm.
+    moved: Option<(i128, i128)>,
+}
+
+/// A carrier's displacement for a drag from `from` to `to` (sheet points): whole grid steps on each axis, free with
+/// Shift (D11, doc 12 §12.1).
+fn carrier_offset(
+    cx: &ToolCx<'_>,
+    panel: &ew_api::output::PanelTables,
+    from: (i64, i64),
+    to: (i64, i64),
+    free: bool,
+) -> (i128, i128) {
+    let a = super::layout::surface_of_sheet(cx, panel, from);
+    let b = super::layout::surface_of_sheet(cx, panel, to);
+    let (du, dv) = (b.0 - a.0, b.1 - a.1);
+    let grid = cx.layout.grid();
+    if free || grid <= 0 {
+        return (du, dv);
+    }
+    let snap = |v: i128| (v + grid / 2).div_euclid(grid) * grid;
+    (snap(du), snap(dv))
+}
+
+/// The ghost of a carrier dragged by `d` (surface nm): its outline rectangles moved, on the sheet.
+fn carrier_ghost(
+    cx: &ToolCx<'_>,
+    panel: &ew_api::output::PanelTables,
+    carrier: &ew_api::output::PanelCarrier,
+    d: (i128, i128),
+) -> ToolOutput {
+    let rects = carrier
+        .outline
+        .iter()
+        .map(|r| {
+            let (u0, v0, u1, v1) = super::layout::surface_box(*r);
+            super::layout::sheet_rect(cx, panel, (u0 + d.0, v0 + d.1, u1 + d.0, v1 + d.1))
+        })
+        .collect();
+    ToolOutput::Transient(super::Overlay::new(vec![super::OverlayItem::Ghost {
+        rects,
+        offset: (0, 0),
+    }]))
 }
 
 /// A plain click (no Shift, no Ctrl) of the Select tool: where it pressed, on which page and revision, and the entity
@@ -271,6 +315,7 @@ impl SelectTool {
                     placement: kind == EntityKind::Placement,
                     gesture: None,
                     last: (*at, *mods),
+                    moved: None,
                 });
                 Some(ToolOutput::None)
             }
@@ -278,7 +323,14 @@ impl SelectTool {
                 let press = self.panel.as_mut()?;
                 press.last = (*at, *mods);
                 if !press.placement {
-                    return Some(ToolOutput::None);
+                    // WP-S4.02 part 4 (D11): a carrier's drag.
+                    if press.moved.is_none() && cx.within(press.at, *at, CLICK_SLOP_PT) {
+                        return Some(ToolOutput::None);
+                    }
+                    let carrier = panel.carrier(press.entity.0)?;
+                    let d = carrier_offset(cx, panel, press.at, *at, mods.shift);
+                    press.moved = Some(d);
+                    return Some(carrier_ghost(cx, panel, carrier, d));
                 }
                 if press.gesture.is_none() && cx.within(press.at, *at, CLICK_SLOP_PT) {
                     return Some(ToolOutput::None);
@@ -297,6 +349,29 @@ impl SelectTool {
                 mods,
             } => {
                 let mut press = self.panel.take()?;
+                // WP-S4.02 part 4 (D11): a carrier's drop translates its path (`layout.carrier.edit`).
+                if press.moved.is_some() {
+                    let d = carrier_offset(cx, panel, press.at, *at, mods.shift);
+                    let Some(carrier) = panel.carrier(press.entity.0) else {
+                        return Some(ToolOutput::Cancel);
+                    };
+                    if d == (0, 0) {
+                        return Some(ToolOutput::Cancel);
+                    }
+                    let path: Vec<serde_json::Value> = carrier
+                        .path
+                        .iter()
+                        .map(|p| {
+                            let u = i64::try_from(i128::from(p.0) + d.0).unwrap_or(p.0);
+                            let v = i64::try_from(i128::from(p.1) + d.1).unwrap_or(p.1);
+                            serde_json::json!([u, v])
+                        })
+                        .collect();
+                    return Some(ToolOutput::Commit(Box::new(ew_api::AnyCommand {
+                        name: "layout.carrier.edit".into(),
+                        params: serde_json::json!({"carrier": carrier.id.to_string(), "path": path}),
+                    })));
+                }
                 match press.gesture.as_mut() {
                     Some(g) => {
                         g.update(*at, *mods, cx);
@@ -322,7 +397,7 @@ impl SelectTool {
             }
             CanvasEvent::Escape => {
                 let press = self.panel.take()?;
-                Some(if press.gesture.is_some() {
+                Some(if press.gesture.is_some() || press.moved.is_some() {
                     ToolOutput::Cancel
                 } else {
                     ToolOutput::None
@@ -844,7 +919,9 @@ impl Tool for SelectTool {
 
     fn state(&self) -> &'static str {
         match &self.panel {
-            Some(PanelPress { gesture: Some(_), .. }) => return "dragging",
+            Some(PanelPress { gesture: Some(_), .. } | PanelPress { moved: Some(_), .. }) => {
+                return "dragging";
+            }
             Some(_) => return "pressed",
             None => {}
         }

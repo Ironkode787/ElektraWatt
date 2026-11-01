@@ -41,11 +41,14 @@ const DOC_16A_KEYS: &[&str] = &[
 /// gains an icon control that is not in it.
 const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Align", "layout-align-left"),
+    // WP-S4.02 part 4 (D10): Draw ▸ Layout.
+    ("Auto-fill rail…", "wand"),
     ("Black box", "ew-black-box"),
     ("Cables", "ew-cable"),
     ("Close", "x"),
     ("Derived; read-only", "math-function"),
     ("Device from part", "package"),
+    ("Duct", "adjustments-horizontal"),
     ("Dismiss", "x"),
     ("Findings", "circle-x"),
     ("Fit page", "maximize"),
@@ -60,6 +63,7 @@ const MOCKUP_TITLES: &[(&str, &str)] = &[
     ("Parts", "package"),
     ("Potential", "ew-potential"),
     ("Potentials", "ew-potential"),
+    ("Rail", "layout-align-left"),
     ("Redo", "arrow-forward-up"),
     ("Renumber devices", "sort-ascending-numbers"),
     ("Rotate", "rotate-clockwise"),

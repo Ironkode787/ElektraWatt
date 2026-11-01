@@ -91,6 +91,7 @@ fn cb1_the_registry_places_every_command_once_and_the_app_menu_holds_every_actio
             Group::Select,
             Group::Place,
             Group::Connect,
+            Group::PanelLayout,
             Group::Annotate,
             Group::Arrange
         ]

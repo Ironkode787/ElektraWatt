@@ -159,6 +159,7 @@ fn field(
         name,
         label_key,
         choices,
+        options: Vec::new(),
         value,
     }
 }

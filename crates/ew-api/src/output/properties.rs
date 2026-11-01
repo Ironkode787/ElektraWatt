@@ -269,6 +269,12 @@ fn lookup(q: &Q, id: Uuid) -> Option<(Kind, Value)> {
         DeviceLink => DeviceLink,
         ReportBlock => ReportBlock,
         Revision => Revision,
+        // WP-S4.02 part 4 (D12): the layout records' sheets.
+        Placement => ew_schema::Placement,
+        Carrier => ew_schema::Carrier,
+        MountingSurface => ew_schema::MountingSurface,
+        Enclosure => ew_schema::Enclosure,
+        LayoutSpace => ew_schema::LayoutSpace,
     );
     None
 }
@@ -568,6 +574,8 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
         }
         Kind::StructureNode => SheetCx::new(q).node_path(Id::from_uuid(id)).unwrap_or_default(),
         Kind::Connection => wire_number_text(q, Id::from_uuid(id)),
+        // WP-S4.02 part 4 (D12): a layout record by its device's tag, its label or its words.
+        k if super::layout_edit::LAYOUT_KINDS.contains(&k) => super::layout_edit::layout_title(q, k, id)?,
         // G-PP triage row 12: a page item is named by its kind in words (`wire marker`, `free text`), not `page_item`.
         Kind::PageItem => json
             .get("kind")
@@ -1413,6 +1421,14 @@ impl Session {
             closed,
         };
         let mut built: Vec<Built> = Vec::new();
+        // WP-S4.02 part 4 (D12, FT-839): a layout record shows D12's rows only, each committed by its own command.
+        if let Some(rows) = super::layout_edit::layout_rows(q, kind, &targets) {
+            return SheetSection {
+                kind: name.to_owned(),
+                targets,
+                rows,
+            };
+        }
         let mut listed: Vec<&str> = Vec::new();
         for spec in catalogue
             .iter()
@@ -1433,6 +1449,16 @@ impl Session {
         }
         if generated.is_none() || kind != Kind::ReportBlock {
             built.extend(self.derived_rows(q, cx, kind, &targets, &jsons));
+        }
+        // WP-S4.02 part 4 (D12): a panel layout page's Surface view rows.
+        if kind == Kind::Page
+            && let [page] = targets.as_slice()
+        {
+            built.extend(
+                super::layout_edit::surface_view_rows(q, Id::from_uuid(*page))
+                    .into_iter()
+                    .map(|row| Built { row, derived: true }),
+            );
         }
         // Category order, derived rows first in their category, else catalogue order (a stable sort).
         built.sort_by_key(|b| (b.row.category, !b.derived));

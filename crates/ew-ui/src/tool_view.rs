@@ -299,6 +299,77 @@ pub(crate) fn layout_fields(ui: &mut Ui, options: tools::LayoutOptions, events: 
     }
 }
 
+// WP-S4.02 part 4
+/// Draw rail's and Draw duct's options on the tool options card (D11): the part (the project's parts of the kind, then
+/// the installed libraries'), the grid step 5 mm | 1 mm, and a duct's width and height in millimetres when its part
+/// gives none; each change sends `layout.draw_options` (the grid `layout.options`), which the next drawing keeps.
+pub(crate) fn draw_fields(
+    ui: &mut Ui,
+    card: &tools::DrawCard,
+    grid_mm: u8,
+    events: &mut Vec<crate::app::Event>,
+) {
+    let none = strings::text(key!("draw-options-no-part"));
+    let label = ui.label(strings::text(key!("draw-options-part")));
+    let combo = egui::ComboBox::from_id_salt(("draw-part", card.kind))
+        .icon(crate::components::combo_chevron)
+        .selected_text(card.part.as_deref().unwrap_or(none))
+        .show_ui(ui, |ui| {
+            for number in &card.parts {
+                let chosen = card.part.as_deref() == Some(number.as_str());
+                if ui.selectable_label(chosen, number).clicked() && !chosen {
+                    events.push(crate::app::Event::Action(
+                        "layout.draw_options",
+                        serde_json::json!({ "part": number }),
+                    ));
+                }
+            }
+        });
+    combo.response.labelled_by(label.id);
+    let grids = [(5_u8, key!("layout-grid-5")), (1, key!("layout-grid-1"))];
+    let labels: Vec<(&str, bool)> = grids
+        .iter()
+        .map(|(g, key)| (strings::text(*key), *g == grid_mm))
+        .collect();
+    if let Some(i) = segmented(ui, strings::text(key!("layout-options-grid")), &labels) {
+        events.push(crate::app::Event::Action(
+            "layout.options",
+            serde_json::json!({ "grid": grids[i].0 }),
+        ));
+    }
+    let Some((width, height)) = &card.size else {
+        return;
+    };
+    for (name, label, value) in [
+        ("width", key!("draw-options-width"), width),
+        ("height", key!("draw-options-height"), height),
+    ] {
+        let label = ui.label(strings::text(label));
+        let id = egui::Id::unique(("draw-size", name));
+        let mut buffer = ui
+            .data_mut(|d| d.get_temp::<String>(id))
+            .unwrap_or_else(|| value.clone());
+        let response = ui
+            .add(
+                egui::TextEdit::singleline(&mut buffer)
+                    .desired_width(48.0)
+                    .id(id.with("edit")),
+            )
+            .labelled_by(label.id);
+        if response.lost_focus() && buffer.trim() != value.as_str() {
+            events.push(crate::app::Event::Action(
+                "layout.draw_options",
+                serde_json::json!({ name: buffer.trim() }),
+            ));
+        }
+        if response.has_focus() {
+            ui.data_mut(|d| d.insert_temp(id, buffer));
+        } else {
+            ui.data_mut(|d| d.remove::<String>(id));
+        }
+    }
+}
+
 /// A segmented control (doc 16a §6.20, the Project entry's look): a sunken track with one segment per choice, the
 /// chosen one raised in the panel fill with semibold text; a tab list named `name` whose tabs are the choices. Returns
 /// the choice clicked when it was not the chosen one.

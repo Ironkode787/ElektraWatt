@@ -327,7 +327,12 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             form: true,
             ..small(
                 strings::text(form.title_key).to_owned(),
-                Vec::new(),
+                // WP-S4.02 part 4 (§8): the Auto-fill rail dialog says which devices it fills with.
+                match form.action {
+                    "layout.auto_fill_rail" => vec![model.fill_devices_text()],
+                    "layout.enclosure_new" => model.enclosure_form_notes(),
+                    _ => Vec::new(),
+                },
                 DialogButton::new(form.ok_key, DialogAnswer::Submit),
             )
         },
