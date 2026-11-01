@@ -13,7 +13,8 @@
 //!   first, each with its citing commits (short hash, subject), newest first.
 //! - **Open follow-up tasks.** The entries of `follow-ups.md` and the Appendix B rows whose Due has no `**Closed`,
 //!   minus every ID an `FT-Closes:` trailer names. The current cycle C is the highest `cycle N` of `decisions.md`
-//!   (matched without regard to case, everywhere). A task's due cycle is a `cycle N` in its Due text; its opening
+//!   (matched without regard to case, everywhere). A task's due cycle is the highest `cycle N` in its Due text (a
+//!   Due that names the cycle it was moved from and the cycle it moved to is due in the later one); its opening
 //!   cycle is a new entry's `(cycle N, …)` or, for Appendix B, a trailing `(…, cycle N)` of its Content, else
 //!   unknown. *Scheduled*: due cycle ≥ C; *expired*: not scheduled, opened in cycle C − 4 or earlier; *other*: the
 //!   rest, shown with its Due text.
@@ -176,7 +177,7 @@ pub(crate) fn follow_ups(text: &str) -> Vec<FollowUp> {
             Some(FollowUp {
                 id,
                 open: cycles_in(head).first().copied(),
-                due: cycles_in(due).first().copied(),
+                due: cycles_in(due).into_iter().max(),
                 closed: false,
                 line: l[2..].trim_end().to_owned(),
             })
@@ -241,7 +242,7 @@ pub(crate) fn appendix_b(text: &str) -> Vec<FollowUp> {
         out.push(FollowUp {
             id,
             open: trailing_cycle(content),
-            due: cycles_in(due).first().copied(),
+            due: cycles_in(due).into_iter().max(),
             closed: due.contains("**Closed"),
             line: format!(
                 "FT-{id:02} ({host}; due: {due}): {}. Source: {source}",
@@ -552,6 +553,39 @@ mod tests {
 | FT-05 | No cycle anywhere | WP-S1.05 | With WP-S1.05 | ID-1 |\n\
 \n## Sources\n";
     const PLAN: &str = "# Plan\n\n### 3.8 Cycles\n\nIntro.\n\n<!-- generated:records-status -->\n<!-- /generated:records-status -->\n\n| a |\n";
+
+    /// A Due text that names two cycles (the cycle a task was moved from, then the one it moved to) is due in the
+    /// highest: the row is scheduled, not other.
+    #[test]
+    fn the_due_cycle_is_the_highest_named() {
+        let r = TempRepo::new("records-due");
+        let wp = "## Appendix B\n\n| Task | Content | Host WP | Due | Source |\n|---|---|---|---|---|\n\
+| FT-06 | Moved task | WP-S1.06 | WP-S1.06 part 3 *Cycle 6 (ID-1):* not done there; moves to cycle 8's FT batch | ID-1 |\n";
+        r.commit(
+            &[
+                (DECISION_LOG, LOG),
+                (WORK_PACKAGES, wp),
+                (DECISIONS, "# Decisions\n\n- ID-2 (cycle 8): Two.\n"),
+                (FOLLOW_UPS, "# Follow-ups\n\n- FT-999 (cycle 7, Low, xtask; due: cycle 7, then cycle 8): Moved. Source: ID-2\n"),
+                (GLOBAL_PLAN, PLAN),
+            ],
+            "docs: base",
+        );
+        let r = collect(&r.dir).unwrap();
+        let lines = |g: &[FollowUp]| g.iter().map(|f| f.line.clone()).collect::<Vec<_>>();
+        assert_eq!(
+            lines(&r.scheduled),
+            [
+                "FT-06 (WP-S1.06; due: WP-S1.06 part 3 *Cycle 6 (ID-1):* not done there; moves to cycle 8's FT batch): \
+                 Moved task. Source: ID-1",
+                "FT-999 (cycle 7, Low, xtask; due: cycle 7, then cycle 8): Moved. Source: ID-2",
+            ]
+        );
+        assert_eq!(
+            (lines(&r.expired), lines(&r.other)),
+            (Vec::<String>::new(), Vec::<String>::new())
+        );
+    }
 
     /// The whole outputs over a synthetic repository: trailers, a frozen row with `\|`, an expired row and a closed
     /// row.
