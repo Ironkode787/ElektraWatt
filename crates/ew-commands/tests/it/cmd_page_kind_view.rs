@@ -131,7 +131,11 @@ fn fx() -> (Engine, AnyKey) {
         .outcome
         .primary
         .expect("the view");
-    for (page, text) in [(PAGE_902, "Front"), (PAGE_902, "Mounting plate"), (PAGE_101, "Main")] {
+    for (page, text) in [
+        (PAGE_902, "Front"),
+        (PAGE_902, "Mounting plate"),
+        (PAGE_101, "Main"),
+    ] {
         run(
             &mut e,
             "item.place",
@@ -184,7 +188,10 @@ fn a_panel_page_set_to_multi_line_loses_its_view_and_keeps_every_other_item() {
     touched.sort();
     let mut expected = vec![(page_key(PAGE_902), true), (view, false)];
     expected.sort();
-    assert_eq!(touched, expected, "the preview lists the page and the view's delete");
+    assert_eq!(
+        touched, expected,
+        "the preview lists the page and the view's delete"
+    );
     e.commit(preview).unwrap();
     assert_eq!(views(e.model(), PAGE_902), Vec::new());
     assert_eq!(
@@ -198,7 +205,11 @@ fn a_panel_page_set_to_multi_line_loses_its_view_and_keeps_every_other_item() {
             .cloned()
             .collect()
     };
-    assert_eq!(unchanged(&after), unchanged(&before), "every other record is kept");
+    assert_eq!(
+        unchanged(&after),
+        unchanged(&before),
+        "every other record is kept"
+    );
     assert_eq!(after.len() + 1, before.len(), "only the view is gone");
     e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before, "one undo restores the view byte-equal");
@@ -225,7 +236,11 @@ fn a_batch_judges_the_final_kind() {
     };
     e.execute(&many(vec![set_title(PAGE_902), set_kind(PAGE_902, "multi_line")]))
         .unwrap();
-    assert_eq!(views(e.model(), PAGE_902), Vec::new(), "away in a batch drops the view");
+    assert_eq!(
+        views(e.model(), PAGE_902),
+        Vec::new(),
+        "away in a batch drops the view"
+    );
     e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(e.model()), before, "one undo restores it");
 
@@ -242,10 +257,17 @@ fn a_batch_judges_the_final_kind() {
     );
     assert_eq!(lines(e.model()), before, "away and back keeps the view");
 
-    e.execute(&many(vec![set_kind(PAGE_902, "panel_layout"), set_title(PAGE_902)]))
-        .unwrap();
+    e.execute(&many(vec![
+        set_kind(PAGE_902, "panel_layout"),
+        set_title(PAGE_902),
+    ]))
+    .unwrap();
     let id: Id<PageItem> = view.1.cast();
-    assert_eq!(views(e.model(), PAGE_902), vec![id], "a batch that ends at panel_layout keeps it");
+    assert_eq!(
+        views(e.model(), PAGE_902),
+        vec![id],
+        "a batch that ends at panel_layout keeps it"
+    );
 }
 
 /// A page without a view (101, a multi-line page set to `panel_layout` and back) deletes nothing.

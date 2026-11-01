@@ -623,7 +623,6 @@ fn same_model<T>(previous: Option<&Weak<T>>, now: &Arc<T>) -> bool {
     previous.is_some_and(|w| w.ptr_eq(&Arc::downgrade(now)))
 }
 
-
 impl GroupView {
     fn new(gpu: GpuHost) -> GroupView {
         GroupView {

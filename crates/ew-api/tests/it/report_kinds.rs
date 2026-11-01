@@ -97,7 +97,13 @@ fn kind_csv_problems(
 /// named, whole.
 #[test]
 fn a_derived_kind_without_its_golden_csv_fails() {
-    let registered = ["device_list", "frobnicate_list", "gone_list", "toc_like", "vanished_list"];
+    let registered = [
+        "device_list",
+        "frobnicate_list",
+        "gone_list",
+        "toc_like",
+        "vanished_list",
+    ];
     let derived = ["device_list", "frobnicate_list", "toc_like"];
     let pending = ["toc_like", "vanished_list"];
     let has_file = |k: &str| ["device_list", "gone_list", "toc_like"].contains(&k);

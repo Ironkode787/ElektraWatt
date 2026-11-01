@@ -275,7 +275,11 @@ fn lower_boxed(
         let k_i = i64::try_from(k).unwrap_or(0);
         // A box narrower than its gutters: no column starts right of the box, none ends left of its start.
         let left = Nm((x0.0 + k_i * (width + GUTTER.0)).min(x1.0));
-        let right = if k + 1 == flows { x1 } else { Nm((left.0 + width).min(x1.0)) };
+        let right = if k + 1 == flows {
+            x1
+        } else {
+            Nm((left.0 + width).min(x1.0))
+        };
         let edges = column_edges_in(&t.columns, left, right);
         if draws_header(t) {
             // Whether row `i` of this flow column (0 the header) spans every column.
@@ -606,9 +610,18 @@ mod tests {
     #[test]
     fn a_block_at_the_i64_extremes_lowers_without_a_panic() {
         let rects = [
-            Rect::from_points(Pt2::new(Nm(i64::MIN), Nm(i64::MIN)), Pt2::new(Nm(i64::MAX), Nm(i64::MAX))),
-            Rect::from_points(Pt2::new(Nm(i64::MAX), Nm(i64::MAX)), Pt2::new(Nm(i64::MAX), Nm(i64::MAX))),
-            Rect::from_points(Pt2::new(Nm(i64::MIN), Nm(i64::MIN)), Pt2::new(Nm(i64::MIN), Nm(i64::MIN))),
+            Rect::from_points(
+                Pt2::new(Nm(i64::MIN), Nm(i64::MIN)),
+                Pt2::new(Nm(i64::MAX), Nm(i64::MAX)),
+            ),
+            Rect::from_points(
+                Pt2::new(Nm(i64::MAX), Nm(i64::MAX)),
+                Pt2::new(Nm(i64::MAX), Nm(i64::MAX)),
+            ),
+            Rect::from_points(
+                Pt2::new(Nm(i64::MIN), Nm(i64::MIN)),
+                Pt2::new(Nm(i64::MIN), Nm(i64::MIN)),
+            ),
         ];
         let sheets = [
             SheetMap::IDENTITY,
@@ -619,7 +632,10 @@ mod tests {
         ];
         for rect in rects {
             for sheet in sheets {
-                for content in [EmbeddedContent::Cover(Box::new(cover())), EmbeddedContent::Table(boxed(3, 4))] {
+                for content in [
+                    EmbeddedContent::Cover(Box::new(cover())),
+                    EmbeddedContent::Table(boxed(3, 4)),
+                ] {
                     let v = EmbeddedView { rect, content };
                     let _ = lower_embedded(&v, sheet, ew_text::bundled(), ew_text::builtin());
                 }

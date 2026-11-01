@@ -11,8 +11,9 @@ use ew_model::Entity;
 use ew_schema::{
     AddrSpec, AddrValue, AnyId, BusMedium, BusSystem, Channel, ChannelState, Conductor, Connection, Device,
     DeviceLink, DeviceLinkKind, Endpoint, ExternalRef, Function, FunctionKind, IpDirection, Kind, LogicalNet,
-    NetAddress, OnOff, Page, PageItem, PageItemKind, PageType, PhysicalNet, PlcArea, PlcConfigProject, PlcSize, PortRole,
-    PotentialDef, ReportBlock, Representation, Revision, Section, StructureBox, StructureNode,
+    NetAddress, OnOff, Page, PageItem, PageItemKind, PageType, PhysicalNet, PlcArea, PlcConfigProject,
+    PlcSize, PortRole, PotentialDef, ReportBlock, Representation, Revision, Section, StructureBox,
+    StructureNode,
 };
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
@@ -302,7 +303,9 @@ fn drop_left_surface_views(tx: &mut TxBuilder<'_>, targets: &[AnyId]) -> Result<
             .base_row(&(Kind::Page, *t))
             .and_then(|r| r.get::<Page>().map(|p| p.kind == PageType::PanelLayout))
             .unwrap_or(false);
-        let is_layout = tx.get::<Page>(page).is_some_and(|p| p.kind == PageType::PanelLayout);
+        let is_layout = tx
+            .get::<Page>(page)
+            .is_some_and(|p| p.kind == PageType::PanelLayout);
         if !was_layout || is_layout {
             continue;
         }
