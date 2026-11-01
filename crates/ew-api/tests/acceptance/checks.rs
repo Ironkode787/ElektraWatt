@@ -3788,6 +3788,9 @@ fn ac14_parallel(c: &Ctx) -> Outcome {
     }
 }
 
+/// A font face as an SVG page names it: family (without the generic fallback), CSS weight, italic.
+type Face = (String, u16, bool);
+
 /// AC-37, SVG half (MVP; FR-OUT-013; WP-S3.07 SV-1, SV-3, FT-233): the SVG export keeps every printed glyph run
 /// as `<text>` (the runs of AC-14), and every page's `<style>` declares exactly the faces its `<text>` elements
 /// name, each as an embedded subset that loads as a font (`ew_text::FontSet`, through skrifa) with that family's
@@ -3811,7 +3814,7 @@ fn ac37_svg(c: &Ctx) -> Outcome {
             r.named_fonts.len()
         ));
     }
-    let faces: BTreeMap<(String, u16, bool), &[u8]> = options
+    let faces: BTreeMap<Face, &[u8]> = options
         .faces
         .values()
         .filter_map(|f| Some(((f.family.clone(), f.weight, f.italic), f.data.as_deref()?)))
@@ -3830,8 +3833,8 @@ fn ac37_svg(c: &Ctx) -> Outcome {
             }
         };
         rules += declared.len();
-        let names: BTreeSet<&(String, u16, bool)> = named.iter().map(|(k, _)| k).collect();
-        let decl: Vec<&(String, u16, bool)> = declared.iter().map(|(k, _)| k).collect();
+        let names: BTreeSet<&Face> = named.iter().map(|(k, _)| k).collect();
+        let decl: Vec<&Face> = declared.iter().map(|(k, _)| k).collect();
         if decl.iter().copied().collect::<BTreeSet<_>>() != names || decl.len() != names.len() {
             wrong.push(format!(
                 "{} declares {} for the faces {}",
@@ -3880,11 +3883,11 @@ fn ac37_svg(c: &Ctx) -> Outcome {
 }
 
 /// A face as (family, CSS weight, italic) in words: "Noto Sans 400".
-fn face_name(k: &(String, u16, bool)) -> String {
+fn face_name(k: &Face) -> String {
     format!("{} {}{}", k.0, k.1, if k.2 { " italic" } else { "" })
 }
 
-fn face_list<'a>(faces: impl Iterator<Item = &'a (String, u16, bool)>) -> String {
+fn face_list<'a>(faces: impl Iterator<Item = &'a Face>) -> String {
     let all: Vec<String> = faces.map(face_name).collect();
     if all.is_empty() {
         "none".to_owned()
@@ -3895,7 +3898,7 @@ fn face_list<'a>(faces: impl Iterator<Item = &'a (String, u16, bool)>) -> String
 
 /// The `<text>` elements of an SVG page: the face each names (family without the generic fallback, weight, italic)
 /// and its text, unescaped.
-fn svg_texts(doc: &str) -> Vec<((String, u16, bool), String)> {
+fn svg_texts(doc: &str) -> Vec<(Face, String)> {
     doc.split("<text")
         .skip(1)
         .filter_map(|el| {
@@ -3923,7 +3926,7 @@ fn svg_texts(doc: &str) -> Vec<((String, u16, bool), String)> {
 }
 
 /// The `@font-face` rules of an SVG page's `<style>`, each in the form of WP-S3.07 D3, with the subset decoded.
-fn svg_font_faces(doc: &str) -> Result<Vec<((String, u16, bool), Vec<u8>)>, String> {
+fn svg_font_faces(doc: &str) -> Result<Vec<(Face, Vec<u8>)>, String> {
     let (Some(a), Some(b)) = (doc.find("<style>"), doc.find("</style>")) else {
         return Err("no <style>".to_owned());
     };
@@ -3957,7 +3960,7 @@ fn unbase64(s: &str) -> Option<Vec<u8>> {
         b'/' => Some(63),
         _ => None,
     };
-    if s.len() % 4 != 0 {
+    if !s.len().is_multiple_of(4) {
         return None;
     }
     let mut out = Vec::with_capacity(s.len() / 4 * 3);
