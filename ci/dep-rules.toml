@@ -46,6 +46,8 @@ gpl = [
   "ew-panel", "ew-render3d", "ew-mfg", "ew-import-qet", "ew-import-eplan", "ew-import-dxf",
   "ew-import-catalog", "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs", "ew-api",
   "ew-viewmodel", "ew-ui", "ew-testkit", "elektrawatt", "ew", "ew-step-worker",
+  # The workspace-hack crate of cargo-hakari (RD43 R17; .config/hakari.toml).
+  "ew-hack",
 ]
 # Development-only packages outside the product crate table; they may not be depended on.
 tools = ["xtask"]
@@ -74,34 +76,34 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-testdir" = []
 # The seeded UUIDv7 source of the tests (doc 18 §2.2, RD43 T1): dev-only, on the ID crate alone.
 "ew-testids" = ["ew-ids"]
-"ew-model" = ["ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
-"ew-rhai" = []
-"ew-derive" = ["ew-model", "ew-memo", "ew-rhai", "ew-plcaddr", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
-"ew-commands" = ["ew-derive", "ew-model", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
-"ew-checks" = ["ew-derive", "ew-rhai"]
-"ew-sqlview" = ["ew-derive", "ew-checks"]
-"ew-library" = ["ew-schema", "ew-format", "ew-ids"]
-"ew-store" = ["ew-format", "ew-model"]
-"ew-text" = ["ew-dl", "ew-units"]
+"ew-model" = ["ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds", "ew-hack"]
+"ew-rhai" = ["ew-hack"]
+"ew-derive" = ["ew-model", "ew-memo", "ew-rhai", "ew-plcaddr", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds", "ew-hack"]
+"ew-commands" = ["ew-derive", "ew-model", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds", "ew-hack"]
+"ew-checks" = ["ew-derive", "ew-rhai", "ew-hack"]
+"ew-sqlview" = ["ew-derive", "ew-checks", "ew-hack"]
+"ew-library" = ["ew-schema", "ew-format", "ew-ids", "ew-hack"]
+"ew-store" = ["ew-format", "ew-model", "ew-hack"]
+"ew-text" = ["ew-dl", "ew-units", "ew-hack"]
 # The open-items kind reads `ew_checks::open_items` (WP-S3.06 D8); `ew-checks` was already in the graph through `ew-sqlview`.
-"ew-reports" = ["ew-derive", "ew-sqlview", "ew-text", "ew-checks"]
-"ew-scene" = ["ew-reports", "ew-dl", "ew-text", "ew-schema", "ew-units", "ew-ids", "ew-mltext"]
-"ew-render2d" = ["ew-dl", "ew-render-cpu"]
-"ew-render-cpu" = ["ew-dl"]
-"ew-export" = ["ew-dl", "ew-render-cpu"]
-"ew-print" = ["ew-export", "ew-render-cpu"]
-"ew-plc" = ["ew-commands", "ew-plcaddr", "ew-caex", "ew-devdesc"]
-"ew-panel" = ["ew-commands", "ew-step-proto"]
-"ew-render3d" = ["ew-panel"]
-"ew-mfg" = ["ew-reports", "ew-panel", "ew-ewpp"]
+"ew-reports" = ["ew-derive", "ew-sqlview", "ew-text", "ew-checks", "ew-hack"]
+"ew-scene" = ["ew-reports", "ew-dl", "ew-text", "ew-schema", "ew-units", "ew-ids", "ew-mltext", "ew-hack"]
+"ew-render2d" = ["ew-dl", "ew-render-cpu", "ew-hack"]
+"ew-render-cpu" = ["ew-dl", "ew-hack"]
+"ew-export" = ["ew-dl", "ew-render-cpu", "ew-hack"]
+"ew-print" = ["ew-export", "ew-render-cpu", "ew-hack"]
+"ew-plc" = ["ew-commands", "ew-plcaddr", "ew-caex", "ew-devdesc", "ew-hack"]
+"ew-panel" = ["ew-commands", "ew-step-proto", "ew-hack"]
+"ew-render3d" = ["ew-panel", "ew-hack"]
+"ew-mfg" = ["ew-reports", "ew-panel", "ew-ewpp", "ew-hack"]
 "ew-import-qet" = ["ew-interop-api", "ew-schema", "ew-units", "ew-ids", "ew-mltext"]
 "ew-import-eplan" = ["ew-interop-api"]
 "ew-import-dxf" = ["ew-interop-api"]
 "ew-import-catalog" = ["ew-interop-api"]
 "ew-import-tables" = ["ew-interop-api", "ew-schema", "ew-units", "ew-ids", "ew-mltext", "ew-rds"]
-"ew-script" = ["ew-commands", "ew-rhai"]
-"ew-plugin-host" = ["ew-commands", "ew-sqlview", "ew-checks"]
-"ew-jobs" = []
+"ew-script" = ["ew-commands", "ew-rhai", "ew-hack"]
+"ew-plugin-host" = ["ew-commands", "ew-sqlview", "ew-checks", "ew-hack"]
+"ew-jobs" = ["ew-hack"]
 "ew-api" = [
   "ew-store", "ew-commands", "ew-checks", "ew-sqlview", "ew-library", "ew-scene", "ew-export", "ew-plc",
   "ew-panel", "ew-mfg", "ew-import-qet", "ew-import-eplan", "ew-import-dxf", "ew-import-catalog",
@@ -112,16 +114,21 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
   # WP-S2.05 part 1 (§4.1 rule 2; decision log ID-600): the field parser and formatter of the property grid
   # name the integer value types and the multi-language text. Normal edges since cycle 24, dev edges before.
   "ew-units", "ew-mltext",
+  "ew-hack",
 ]
-"ew-viewmodel" = ["ew-api"]
-"ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-render3d"]
+"ew-viewmodel" = ["ew-api", "ew-hack"]
+"ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-render3d", "ew-hack"]
 # The synthetic S-XL generator (WP-S1.05) emits records and builds the model snapshot.
 "ew-testkit" = [
   "ew-import-tables", "ew-model", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds",
+  "ew-hack",
 ]
-"elektrawatt" = ["ew-ui", "ew-print"]
-"ew" = ["ew-api", "ew-print"]
-"ew-step-worker" = ["ew-step-proto"]
+"elektrawatt" = ["ew-ui", "ew-print", "ew-hack"]
+"ew" = ["ew-api", "ew-print", "ew-hack"]
+"ew-step-worker" = ["ew-step-proto", "ew-hack"]
+# The workspace-hack crate (RD43 R17): no workspace edges; every GPL member that hakari wires (all but the importers,
+# ARCH §3 rule 4) depends on it.
+"ew-hack" = []
 "xtask" = []
 
 # Additional edges allowed for dev-dependencies only (for example a test helper crate).

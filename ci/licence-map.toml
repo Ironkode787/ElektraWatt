@@ -296,6 +296,12 @@ glob = "crates/ew-testdir/**"
 allowed = ["MIT OR Apache-2.0"]
 crate = true
 
+# The workspace-hack crate of cargo-hakari (RD43 R17).
+[[path]]
+glob = "crates/ew-hack/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
 [[path]]
 glob = "crates/ew-testids/**"
 allowed = ["MIT OR Apache-2.0"]

@@ -115,3 +115,7 @@ windows_x86_64_gnu@0.52.6 # as windows_aarch64_gnullvm
 windows_x86_64_gnullvm@0.52.6 # as windows_aarch64_gnullvm
 windows_x86_64_msvc@0.52.6 # as windows_aarch64_gnullvm
 x11-dl@2.21.0 # asks pkg-config for the libdir of 16 X libraries (an absent library or tool gives None), writes config.rs to OUT_DIR, links libdl
+#
+# Added in cycle 43 (RD43 R17): the workspace-hack crate of cargo-hakari has an empty build script, so that cargo
+# considers its build-dependencies (the unified features of the members' build-dependencies).
+ew-hack@0.0.0 # empty `fn main() {}`; runs nothing, writes nothing

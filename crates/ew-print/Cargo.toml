@@ -17,3 +17,4 @@ workspace = true
 [dependencies]
 ew-export = { path = "../ew-export" }
 ew-render-cpu = { path = "../ew-render-cpu" }
+ew-hack = { version = "0.0.0", path = "../ew-hack" }

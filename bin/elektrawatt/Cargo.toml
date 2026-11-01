@@ -30,6 +30,7 @@ ew-print = { path = "../../crates/ew-print" }
 eframe = { version = "=0.37.0", default-features = false, features = ["accesskit", "clipboard", "wgpu_no_default_features", "wayland", "x11"] }
 # Open and Save As dialogs; the XDG-portal backend on Linux (no GTK), pollster as its executor.
 rfd = { version = "=0.17.2", default-features = false, features = ["xdg-portal"] }
+ew-hack = { version = "0.0.0", path = "../../crates/ew-hack" }
 
 # Not used directly: a version floor for a transitive crate (accesskit_unix -> atspi -> zbus-lockstep ->
 # zbus_xml). zbus_xml 5.1.0 pulls quick-xml 0.38.4 (RUSTSEC-2026-0194, RUSTSEC-2026-0195), and resolver 3

@@ -1131,6 +1131,7 @@ dependencies = [
  "automod",
  "eframe",
  "ew-commands",
+ "ew-hack",
  "ew-print",
  "ew-ui",
  "ew-viewmodel",
@@ -1276,6 +1277,7 @@ dependencies = [
  "clap",
  "ew-api",
  "ew-commands",
+ "ew-hack",
  "ew-print",
  "serde",
  "serde_json",
@@ -1292,6 +1294,7 @@ dependencies = [
  "ew-derive",
  "ew-dl",
  "ew-export",
+ "ew-hack",
  "ew-ids",
  "ew-import-catalog",
  "ew-import-dxf",
@@ -1338,6 +1341,7 @@ version = "0.0.0"
 dependencies = [
  "automod",
  "ew-derive",
+ "ew-hack",
  "ew-model",
  "ew-rhai",
  "fluent-bundle",
@@ -1356,6 +1360,7 @@ dependencies = [
  "automod",
  "ew-commands",
  "ew-derive",
+ "ew-hack",
  "ew-ids",
  "ew-mltext",
  "ew-model",
@@ -1376,6 +1381,7 @@ version = "0.0.0"
 dependencies = [
  "automod",
  "ew-commands",
+ "ew-hack",
  "ew-ids",
  "ew-memo",
  "ew-mltext",
@@ -1418,6 +1424,7 @@ version = "0.0.0"
 dependencies = [
  "automod",
  "ew-dl",
+ "ew-hack",
  "ew-render-cpu",
  "ew-text",
  "ew-units",
@@ -1437,6 +1444,72 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "ew-hack"
+version = "0.0.0"
+dependencies = [
+ "ahash",
+ "arrayvec",
+ "bitflags 2.13.2",
+ "bytemuck",
+ "euclid",
+ "fastrand",
+ "float-cmp",
+ "foldhash 0.2.0",
+ "font-types 0.12.7",
+ "getrandom 0.4.3",
+ "harfrust",
+ "hashbrown 0.17.1",
+ "indexmap",
+ "kurbo",
+ "libc",
+ "libm",
+ "linebender_resource_handle",
+ "linux-raw-sys 0.12.1",
+ "log",
+ "memchr",
+ "miniz_oxide 0.8.9",
+ "num-traits",
+ "once_cell",
+ "phf_shared",
+ "proc-macro2",
+ "quick-xml",
+ "quote",
+ "read-fonts 0.41.0",
+ "regex",
+ "regex-automata",
+ "regex-syntax",
+ "roxmltree",
+ "rustix 1.1.5",
+ "serde",
+ "serde_core",
+ "serde_json",
+ "simd-adler32",
+ "skrifa 0.44.0",
+ "smallvec",
+ "strict-num",
+ "syn 2.0.119",
+ "syn 3.0.9",
+ "thiserror 2.0.21",
+ "tinystr",
+ "toml_datetime",
+ "toml_parser",
+ "tracing",
+ "tracing-core",
+ "unicode-properties",
+ "uuid",
+ "wayland-backend",
+ "wayland-sys",
+ "windows",
+ "windows-core",
+ "windows-sys 0.61.2",
+ "winnow 1.0.4",
+ "yoke",
+ "zerocopy",
+ "zerovec",
+ "zune-jpeg",
 ]
 
 [[package]]
@@ -1522,6 +1595,9 @@ dependencies = [
 [[package]]
 name = "ew-jobs"
 version = "0.0.0"
+dependencies = [
+ "ew-hack",
+]
 
 [[package]]
 name = "ew-library"
@@ -1529,6 +1605,7 @@ version = "0.0.0"
 dependencies = [
  "automod",
  "ew-format",
+ "ew-hack",
  "ew-ids",
  "ew-schema",
  "ew-testdir",
@@ -1553,6 +1630,7 @@ version = "0.0.0"
 dependencies = [
  "ew-commands",
  "ew-ewpp",
+ "ew-hack",
  "ew-panel",
  "ew-reports",
 ]
@@ -1573,6 +1651,7 @@ dependencies = [
 name = "ew-model"
 version = "0.0.0"
 dependencies = [
+ "ew-hack",
  "ew-ids",
  "ew-mltext",
  "ew-rds",
@@ -1588,6 +1667,7 @@ name = "ew-panel"
 version = "0.0.0"
 dependencies = [
  "ew-commands",
+ "ew-hack",
  "ew-step-proto",
 ]
 
@@ -1598,6 +1678,7 @@ dependencies = [
  "ew-caex",
  "ew-commands",
  "ew-devdesc",
+ "ew-hack",
  "ew-plcaddr",
 ]
 
@@ -1614,6 +1695,7 @@ version = "0.0.0"
 dependencies = [
  "ew-checks",
  "ew-commands",
+ "ew-hack",
  "ew-sqlview",
 ]
 
@@ -1622,6 +1704,7 @@ name = "ew-print"
 version = "0.0.0"
 dependencies = [
  "ew-export",
+ "ew-hack",
  "ew-render-cpu",
 ]
 
@@ -1641,6 +1724,7 @@ version = "0.0.0"
 dependencies = [
  "automod",
  "ew-dl",
+ "ew-hack",
  "ew-text",
  "ew-units",
  "png",
@@ -1655,6 +1739,7 @@ name = "ew-render2d"
 version = "0.0.0"
 dependencies = [
  "ew-dl",
+ "ew-hack",
  "ew-render-cpu",
  "kurbo",
  "lyon_tessellation",
@@ -1669,6 +1754,7 @@ name = "ew-render3d"
 version = "0.0.0"
 dependencies = [
  "ew-commands",
+ "ew-hack",
  "ew-panel",
 ]
 
@@ -1679,6 +1765,7 @@ dependencies = [
  "automod",
  "ew-checks",
  "ew-derive",
+ "ew-hack",
  "ew-model",
  "ew-sqlview",
  "ew-text",
@@ -1689,6 +1776,9 @@ dependencies = [
 [[package]]
 name = "ew-rhai"
 version = "0.0.0"
+dependencies = [
+ "ew-hack",
+]
 
 [[package]]
 name = "ew-scene"
@@ -1696,6 +1786,7 @@ version = "0.0.0"
 dependencies = [
  "automod",
  "ew-dl",
+ "ew-hack",
  "ew-ids",
  "ew-mltext",
  "ew-reports",
@@ -1730,6 +1821,7 @@ name = "ew-script"
 version = "0.0.0"
 dependencies = [
  "ew-commands",
+ "ew-hack",
  "ew-rhai",
 ]
 
@@ -1740,6 +1832,7 @@ dependencies = [
  "automod",
  "ew-checks",
  "ew-derive",
+ "ew-hack",
  "ew-testdir",
  "rusqlite",
  "schemars",
@@ -1758,6 +1851,7 @@ dependencies = [
 name = "ew-step-worker"
 version = "0.0.0"
 dependencies = [
+ "ew-hack",
  "ew-step-proto",
 ]
 
@@ -1767,6 +1861,7 @@ version = "0.0.0"
 dependencies = [
  "automod",
  "ew-format",
+ "ew-hack",
  "ew-model",
  "ew-testdir",
  "miniz_oxide 0.8.9",
@@ -1796,6 +1891,7 @@ dependencies = [
  "ew-api",
  "ew-commands",
  "ew-derive",
+ "ew-hack",
  "ew-ids",
  "ew-import-tables",
  "ew-mltext",
@@ -1814,6 +1910,7 @@ name = "ew-text"
 version = "0.0.0"
 dependencies = [
  "ew-dl",
+ "ew-hack",
  "ew-units",
  "fontique",
  "insta",
@@ -1833,6 +1930,7 @@ dependencies = [
  "egui_table",
  "egui_tiles",
  "ew-commands",
+ "ew-hack",
  "ew-render-cpu",
  "ew-render2d",
  "ew-render3d",
@@ -1861,6 +1959,7 @@ dependencies = [
  "automod",
  "ew-api",
  "ew-commands",
+ "ew-hack",
  "ew-testdir",
  "ew-viewmodel",
  "serde_json",

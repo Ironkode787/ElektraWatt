@@ -17,6 +17,7 @@ workspace = true
 [dependencies]
 ew-commands = { path = "../ew-commands" }
 ew-rhai = { path = "../ew-rhai" }
+ew-hack = { version = "0.0.0", path = "../ew-hack" }
 
 [dev-dependencies]
 # Only carries the test-only feature to every test build (ci/dep-rules.toml, `[[uniform_test_features]]`).

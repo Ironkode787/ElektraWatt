@@ -129,6 +129,9 @@ pub(crate) enum Action {
     CheckBrief,
     /// The MSRV check of the permissive crates (see the module documentation).
     Msrv,
+    /// `cargo hakari generate` and `cargo hakari manage-deps` (`generate --diff` and `manage-deps --dry-run` with
+    /// `--check`): the workspace-hack crate and the members' edges to it.
+    Hakari,
     /// `records --write` (`--check`), in-process: `docs/plan/records.md` and the status block of doc 01 §3.8.
     Records,
 }
@@ -160,6 +163,7 @@ pub(crate) struct Step {
     pub action: Action,
 }
 
+const HAKARI_CONFIG: &str = ".config/hakari.toml";
 const COMMAND_SCHEMAS: &str = "crates/ew-commands/schemas/**";
 const CLI_SCHEMAS: &str = "bin/ew/schemas/**";
 const CATALOGUE: &str = "crates/ew-checks/catalogue/rules.json";
@@ -193,7 +197,7 @@ const RECORDS: &str = crate::records::RECORDS;
 const GLOBAL_PLAN: &str = crate::records::GLOBAL_PLAN;
 
 // map: settle-steps: a new generated file or upkeep step goes in this table, in order, with triggers and outputs.
-/// The steps in their order: rustfmt, the command schemas, the CLI schemas, the rule catalogue, the keymaps, the
+/// The steps in their order: rustfmt, the workspace-hack crate, the command schemas, the CLI schemas, the rule catalogue, the keymaps, the
 /// blind reference, the CLI, `api_v1` and query snapshots, `docs-gen`, `gen-icons`, the clippy list, the fuzz table, the golden change list and the two
 /// self-tests; then the checks; then the review gates of `--merge`.
 pub(crate) const STEPS: &[Step] = &[
@@ -206,6 +210,17 @@ pub(crate) const STEPS: &[Step] = &[
         partial: &["**/*.rs"],
         reads: &[],
         action: Action::Rustfmt,
+    },
+    // RD43 R17: the workspace-hack crate `ew-hack` (.config/hakari.toml) follows every manifest and the lockfile.
+    Step {
+        name: "hakari",
+        phase: Phase::Regen,
+        triggers: &["**/Cargo.toml", "Cargo.lock", HAKARI_CONFIG],
+        deps_of: &[],
+        outputs: &["**/Cargo.toml", "Cargo.lock"],
+        partial: &["**/Cargo.toml", "Cargo.lock"],
+        reads: &[],
+        action: Action::Hakari,
     },
     Step {
         name: "command-schemas",
@@ -932,6 +947,29 @@ impl Outcome {
     }
 }
 
+/// The `hakari` step: regenerates the workspace-hack crate and the members' edges to it, or (`check`) only compares.
+/// Each `cargo hakari` call exits non-zero when it would change a file.
+fn hakari(root: &Path, check: bool) -> Result<Outcome> {
+    let calls: [&[&str]; 2] = if check {
+        [
+            &["hakari", "generate", "--diff"],
+            &["hakari", "manage-deps", "--dry-run"],
+        ]
+    } else {
+        [&["hakari", "generate"], &["hakari", "manage-deps", "--yes"]]
+    };
+    for args in calls {
+        let mut c = Command::new("cargo");
+        c.args(args).current_dir(root);
+        let what = format!("cargo {}", args.join(" "));
+        let o = captured(c, &what)?;
+        if !o.ok {
+            return Ok(o);
+        }
+    }
+    Ok(Outcome::of(true, ""))
+}
+
 /// The last lines of a command's output, for a failure's line.
 fn tail(output: &std::process::Output) -> String {
     let text = format!(
@@ -1460,6 +1498,7 @@ fn execute(step: &Step, root: &Path, check: bool, files: &BTreeSet<String>, all:
             })
         }
         Action::Msrv => msrv(root),
+        Action::Hakari => hakari(root, check),
         Action::Records => Ok(Outcome::of(
             crate::records::run(root, check)?,
             "run `cargo xtask records --write`",
@@ -1721,6 +1760,7 @@ mod tests {
             names,
             [
                 "rustfmt",
+                "hakari",
                 "command-schemas",
                 "cli-schemas",
                 "rule-catalogue",

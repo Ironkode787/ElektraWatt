@@ -13,3 +13,6 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+ew-hack = { version = "0.0.0", path = "../ew-hack" }

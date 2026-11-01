@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# cargo-hakari (pinned in ci/README.md): the workspace-hack crate `ew-hack` unifies the features of the third-party
+# crates that the GPL members share, so building one package set after another no longer recompiles them with other
+# features (RD43 R17). `cargo xtask settle` regenerates it (the `hakari` step) after any manifest or lockfile change;
+# the supply-chain job runs `cargo hakari verify`.
+
+hakari-package = "ew-hack"
+dep-format-version = "4"
+resolver = "3"
+
+# The platforms of rust-toolchain.toml.
+platforms = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"]
+
+[final-excludes]
+# The permissive crates (ci/dep-rules.toml [layers] permissive) must build and publish without the GPL hack, and xtask
+# is a development tool outside the product graph: none of them depends on ew-hack.
+workspace-members = [
+  "ew-units", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-format", "ew-interop-api", "ew-dl",
+  "ew-step-proto", "ew-memo", "ew-plcaddr", "ew-caex", "ew-devdesc", "ew-ewpp", "ew-testdir", "ew-testids",
+  "xtask",
+  # ARCH §3 rule 4 (ci/dep-rules.toml [importers]): an importer depends on permissive workspace crates only.
+  "ew-import-catalog", "ew-import-dxf", "ew-import-eplan", "ew-import-qet", "ew-import-tables",
+]
+# The crates that only their owners may name directly (ci/dep-rules.toml [[external_owner]]).
+third-party = [
+  { name = "egui" },
+  { name = "eframe" },
+  { name = "egui-wgpu" },
+  { name = "egui-winit" },
+  { name = "egui_tiles" },
+  { name = "egui_table" },
+  { name = "egui_kittest" },
+  { name = "egui_glow" },
+  { name = "wgpu" },
+  { name = "wgpu-core" },
+  { name = "wgpu-core-deps-apple" },
+  { name = "wgpu-core-deps-emscripten" },
+  { name = "wgpu-core-deps-windows-linux-android" },
+  { name = "wgpu-hal" },
+  { name = "wgpu-naga-bridge" },
+  { name = "wgpu-types" },
+  # wgpu's shader translator, reached only through wgpu: in the hack it took the features of the hack's own build, the
+  # renderers' builds then recompiled it with wgpu's, and with it ew-hack and every GPL crate (RD43 R17 measurement).
+  { name = "naga" },
+  { name = "naga-types" },
+  { name = "rusqlite" },
+  { name = "libsqlite3-sys" },
+]

@@ -26,6 +26,7 @@ png = "0.18.1"
 zune-jpeg = { version = "=0.5.15", default-features = false, features = ["std"] }
 # Validates a font file when it is first resolved (the version vello_cpu's glyph stack uses).
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
+ew-hack = { version = "0.0.0", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true

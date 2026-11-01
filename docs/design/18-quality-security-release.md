@@ -1398,6 +1398,8 @@ were executed when it was written.
   `ew-viewmodel` and both binaries (decision log ID-183); since cycle 19 `ew-ui`, `ew-viewmodel` and `elektrawatt`
   declare 1.95, which egui 0.37 needs (decision log ID-477). The workspace value 1.85 is the permissive crates' MSRV, not
   a promise for the application.
+- **The workspace hack** (cycle 43, RD43 R17). The GPL crates depend on the workspace-hack crate `ew-hack` of
+  cargo-hakari (§5, `ci/README.md`); the permissive crates never do, so the MSRV job and their publication see no hack.
 
 ### 6.3 The quarterly upgrade train
 

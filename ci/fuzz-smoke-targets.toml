@@ -26,7 +26,7 @@ closure = ["ew-format", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-units"
 [targets.migration_chain]
 max_len = 65
 roots = ["ew-format", "ew-model", "ew-store"]
-closure = ["ew-format", "ew-ids", "ew-mltext", "ew-model", "ew-rds", "ew-schema", "ew-store", "ew-units"]
+closure = ["ew-format", "ew-hack", "ew-ids", "ew-mltext", "ew-model", "ew-rds", "ew-schema", "ew-store", "ew-units"]
 
 [targets.command_sequence]
 max_len = 512
@@ -55,6 +55,7 @@ closure = [
     "ew-ewpp",
     "ew-export",
     "ew-format",
+    "ew-hack",
     "ew-ids",
     "ew-import-catalog",
     "ew-import-dxf",
@@ -90,4 +91,4 @@ closure = [
 [targets.png_pdf]
 max_len = 16384
 roots = ["ew-dl", "ew-export"]
-closure = ["ew-dl", "ew-export", "ew-render-cpu", "ew-units"]
+closure = ["ew-dl", "ew-export", "ew-hack", "ew-render-cpu", "ew-units"]

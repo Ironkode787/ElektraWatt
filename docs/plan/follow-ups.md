@@ -16,3 +16,4 @@ trailer, not an edit, closes an entry ([CONTRIBUTING.md](../../CONTRIBUTING.md#r
 xtask records` lists the open tasks of this file and of Appendix B in [records.md](records.md), grouped as
 scheduled, expired and other.
 - FT-999 (cycle 43, Low, WP-S1.22; due: cycle 44): `ew import csv --strict` is accepted, hidden and ignored; give it a meaning or remove it. Source: ID-1052
+- FT-1000 (cycle 43, Low, ew-hack; due: cycle 45): narrow GPL test builds now compile the hack's whole union (`windows`, harfrust, skrifa, regex): try excluding the platform crates and count the crates of a cold `-p ew-commands` build again. Source: ID-1053

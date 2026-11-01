@@ -28,6 +28,7 @@ sha2 = { workspace = true }
 # The as-built archive's deflate (WP-S1.18 D11): the own deterministic ZIP writer and reader (`zip`), on the raw deflate
 # already in the graph through ew-import-catalog and png (decision log ID-827); no ZIP crate.
 miniz_oxide.workspace = true
+ew-hack = { version = "0.0.0", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true
