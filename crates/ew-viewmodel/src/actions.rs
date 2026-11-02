@@ -495,6 +495,21 @@ fn panel_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// Why the page on show takes no symbols or wires, by its type, in the words of its kind where one key exists for it
+/// (FT-892) and the generic text otherwise; `None` for a page that takes them. One mapping for the refusal of the
+/// editing tools and the canvas HUD's prompt (FT-1089, ID-1183).
+pub(crate) fn page_type_reason(m: &ShellModel) -> Option<Key<'static>> {
+    match m.page_rows().get(m.page_index()).map(|r| r.kind.as_str()) {
+        Some("section_divider") => Some(key!("reason-page-type-no-symbols-divider")),
+        Some("title_page") => Some(key!("reason-page-type-no-symbols-title")),
+        Some("table_of_contents") => Some(key!("reason-page-type-no-symbols-contents")),
+        Some("report") => Some(key!("reason-page-type-no-symbols-report")),
+        Some("panel_layout") => Some(key!("reason-page-type-no-symbols-panel")),
+        Some("model_view" | "external_document") => Some(key!("reason-page-type-no-symbols")),
+        _ => None,
+    }
+}
+
 /// A drawn page of a project that can be changed is on show (the editing tools of WP-S2.04 §7.6).
 pub(crate) fn editable_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)?;
@@ -502,15 +517,8 @@ pub(crate) fn editable_page(m: &ShellModel) -> Result<(), Key<'static>> {
     // The page types without wire or symbol tools (doc 06 §2.2: title page, panel layout, model view, external
     // document; the generated table of contents, dividers and reports are not drawn pages at all).
     // FT-892: the refusal names the page's kind in words where one key exists for it, the generic text otherwise.
-    let kind = m.page_rows().get(m.page_index()).map(|r| r.kind.as_str());
-    match kind {
-        Some("section_divider") => return Err(key!("reason-page-type-no-symbols-divider")),
-        Some("title_page") => return Err(key!("reason-page-type-no-symbols-title")),
-        Some("table_of_contents") => return Err(key!("reason-page-type-no-symbols-contents")),
-        Some("report") => return Err(key!("reason-page-type-no-symbols-report")),
-        Some("panel_layout") => return Err(key!("reason-page-type-no-symbols-panel")),
-        Some("model_view" | "external_document") => return Err(key!("reason-page-type-no-symbols")),
-        _ => {}
+    if let Some(reason) = page_type_reason(m) {
+        return Err(reason);
     }
     match m.canvas() {
         Some(c) if !c.page().tables.page.is_nil() => Ok(()),

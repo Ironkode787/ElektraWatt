@@ -669,6 +669,10 @@ pub fn hud(model: &ShellModel) -> HudModel {
                         &key_name(model, "edit.delete_selection"),
                     ],
                 )
+            } else if let Some(reason) = crate::actions::page_type_reason(model) {
+                // FT-1089 (ID-1183; doc 16a P3): on a page that takes no symbols, with no tool armed, the reason stands
+                // where the user looks: the page type's, as a greyed drawing tool says it.
+                strings::text(reason).to_owned()
             } else {
                 hint()
             }

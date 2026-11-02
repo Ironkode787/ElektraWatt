@@ -103,3 +103,42 @@ fn ft1025_a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FT-1089, ID-1183 (doc 16a P3): on a section divider, with the Select tool idle and nothing selected, the canvas HUD
+/// says why the drawing tools are greyed (the page type's reason, whole), where the user looks; on a schematic page
+/// it says the tool's hint again.
+#[test]
+fn ft1089_the_hud_gives_the_page_types_reason_while_no_tool_is_armed() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp);
+    let divider = h
+        .state()
+        .shell()
+        .page_rows()
+        .iter()
+        .find(|r| r.kind == "section_divider")
+        .map(|r| r.folio.clone())
+        .expect("Golden A has a section divider");
+    let prompt = |h: &Harness<'_, App>| ew_ui::ew_viewmodel::command_bar::hud(h.state().shell()).prompt;
+    assert_eq!(
+        h.state_mut()
+            .shell_mut()
+            .dispatch("page.goto", &json!({ "folio": divider })),
+        Outcome::Done
+    );
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "select");
+    assert_eq!(
+        prompt(&h),
+        "A section divider takes no symbols or wires: draw on a schematic page"
+    );
+    assert_eq!(
+        h.state_mut()
+            .shell_mut()
+            .dispatch("page.goto", &json!({ "folio": "101" })),
+        Outcome::Done
+    );
+    settle(&mut h);
+    assert_eq!(prompt(&h), "Click to select; drag for a rubber band");
+    h.state_mut().shell_mut().shutdown();
+}
