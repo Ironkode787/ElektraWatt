@@ -529,6 +529,96 @@ fn ov4_the_link_preview_has_a_named_region() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1091 (ID-1184; play-test rv-vis-7, t0009): the link preview popup and a hover tooltip never show at once. A
+/// connection point that stands on a link (N-1 of folio 101, over the link to cell 102-A1) is hovered until the rest
+/// opens the popup, and then for as long again: the connection point's tooltip does not show while the popup does.
+#[test]
+fn ft1091_the_link_preview_and_the_cp_tooltip_never_show_together() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    let (cp, link) = {
+        let c = h.state().shell().canvas().unwrap();
+        let page = c.page();
+        let link = page
+            .links
+            .iter()
+            .find(|l| {
+                l.target.as_ref().is_some_and(|t| t.folio != "101")
+                    && page.cps.iter().any(|cp| {
+                        let (r, p) = (l.rect, cp.at_nm);
+                        p.0 >= r.min().x.0 && p.0 <= r.max().x.0 && p.1 >= r.min().y.0 && p.1 <= r.max().y.0
+                    })
+            })
+            .cloned()
+            .expect("a link with a connection point on it");
+        let cp = page
+            .cps
+            .iter()
+            .find(|cp| {
+                let (r, p) = (link.rect, cp.at_nm);
+                p.0 >= r.min().x.0 && p.0 <= r.max().x.0 && p.1 >= r.min().y.0 && p.1 <= r.max().y.0
+            })
+            .cloned()
+            .expect("the connection point");
+        (cp, link)
+    };
+    assert_eq!(cp.label, "N-1");
+    assert_eq!(link.target.as_ref().unwrap().cell.as_deref(), Some("102-A1"));
+    let bounds = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let c = h.state().shell().canvas().unwrap();
+    let k = c.points_per_nm();
+    let pos = egui::Pos2::new(
+        bounds.x0 as f32 + ((cp.at_nm.0 - c.centre().0) as f64 * k + c.pane().0 / 2.0) as f32,
+        bounds.y0 as f32 + ((cp.at_nm.1 - c.centre().1) as f64 * k + c.pane().1 / 2.0) as f32,
+    );
+    h.event(egui::Event::PointerMoved(pos));
+    // The model learns the pointer in the first frames; the tooltip's text is its.
+    let mut tip = String::new();
+    for _ in 0..200 {
+        if h.state().shell().link_preview().is_some() {
+            break;
+        }
+        h.run_ok();
+        if tip.is_empty() {
+            tip = h
+                .state()
+                .shell()
+                .canvas()
+                .and_then(|c| c.hovered_cp_tip())
+                .unwrap_or_default();
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+    assert!(
+        h.state().shell().link_preview().is_some(),
+        "the rest shows the preview"
+    );
+    assert!(
+        tip.starts_with("N-1"),
+        "the connection point's tooltip text: {tip:?}"
+    );
+    // The popup stays while the pointer rests: for 120 more frames its tooltip never shows beside it.
+    for frame in 0..120 {
+        h.run_ok();
+        assert!(
+            h.state().shell().link_preview().is_some(),
+            "frame {frame}: the popup stays"
+        );
+        assert!(
+            h.query_by_label(&tip).is_none(),
+            "frame {frame}: the tooltip {tip:?} waits while the popup shows"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// OV2, OV6, FT-508: the window reports the tool HUD's and the zoom control's frames over the canvas
 /// (`chrome_obstacles` holds both). The Place ghost is aimed so that its label's preferred spot (measured in free
 /// space mid-sheet) overlaps the top left corner of the HUD and then of the zoom control; with the frames as

@@ -1023,8 +1023,13 @@ impl CanvasHost {
         self.context_menu(&response, shell, canvas, group, events);
         // FT-512's tooltip half (doc 16a §7.2, §6.18): the connection point under the pointer names its printed label,
         // its kind and its potential in a tooltip in the inverse style.
+        // FT-1091 (ID-1184): the link preview popup and a hover tooltip never show at once; while the popup shows, the
+        // tooltip waits (the popup is the richer answer to the same hover, and the two overlapped over the sheet).
+        let popup_shows = shell.link_preview().is_some();
         if let Some(tip) = canvas.hovered_cp_tip() {
-            cp_tooltip(&response, tip);
+            if !popup_shows {
+                cp_tooltip(&response, tip);
+            }
         } else if let Some(label) = shell
             .tool()
             .wants_hover()
@@ -1034,7 +1039,9 @@ impl CanvasHost {
             // FT-902: a link that leads somewhere looks like one (its outline is the hover, `hover_rect`): the pointing
             // hand and "Go to <its cell or folio>"; a link without a target stays plain.
             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
-            cp_tooltip(&response, strings::format(key!("tip-link"), &[&label]));
+            if !popup_shows {
+                cp_tooltip(&response, strings::format(key!("tip-link"), &[&label]));
+            }
         }
         if shell.area().map(|a| a.focused) == Some(group) {
             self.dwell(ui, canvas, group, events);

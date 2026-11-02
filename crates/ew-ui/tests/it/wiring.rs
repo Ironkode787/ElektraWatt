@@ -371,7 +371,8 @@ fn c_shows_why_it_does_not_connect_while_moving() {
 }
 
 /// FT-902: the pointer over a cross-reference label of folio 101 that leads to another page shows the pointing hand and
-/// the tooltip "Go to <its target's cell or folio>"; over empty sheet the cursor is the default one.
+/// the tooltip "Go to <its target's cell or folio>"; over empty sheet the cursor is the default one. FT-1091 (ID-1184):
+/// the tooltip waits while the link preview shows (the rest opens the preview first) and shows once it is dismissed.
 #[test]
 fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     use egui_kittest::kittest::{NodeT as _, Queryable as _};
@@ -410,9 +411,28 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     assert!(h.state().shell().canvas().unwrap().hovered_link().is_some());
     assert!(h.state().shell().canvas().unwrap().hovered_cp().is_none());
     let tip = format!("Go to {label}");
-    let mut shown = false;
+    // FT-1091 (ID-1184): the rest opens the link preview first, and the tooltip waits while it shows ...
+    let mut preview = false;
     for _ in 0..120 {
         h.hover_at(at);
+        h.step();
+        if h.state().shell().link_preview().is_some() {
+            preview = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(preview, "the rest over the link shows its preview");
+    for _ in 0..30 {
+        h.hover_at(at);
+        h.step();
+        assert!(h.query_by_label(&tip).is_none(), "no tooltip beside the preview");
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    // ... and shows once the preview is dismissed, the pointer still on the link.
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    let mut shown = false;
+    for _ in 0..120 {
         h.step();
         if h.query_by_label(&tip).is_some() {
             shown = true;
@@ -420,7 +440,12 @@ fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
         }
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
-    assert!(shown, "a tooltip reads {tip}");
+    assert!(
+        shown,
+        "a tooltip reads {tip}; preview {} link {}",
+        h.state().shell().link_preview().is_some(),
+        h.state().shell().canvas().unwrap().hovered_link().is_some()
+    );
     assert_eq!(
         h.output().platform_output.cursor_icon,
         egui::CursorIcon::PointingHand
