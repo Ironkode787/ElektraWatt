@@ -5,7 +5,7 @@
 D9), part 3 printing from the window with the print preview and the Linux portal (0.8 pw, D10, D11), part 4 the
 native Windows adapter (0.7 pw, D12); 0.3 pw reserve; part 1 at any time, part 2 before parts 3 and 4, parts 3 and 4
 in any order · **Date:** 2026-10-31 · **Work package:**
-[WP-S3.07](../02-work-packages.md#wp-s307-svg-export-and-printing) · **Decision log:** ID-1017; O3 answered by ID-1030 · **Part of:** ElektraWatt plan, specifications
+[WP-S3.07](../02-work-packages.md#wp-s307-svg-export-and-printing) · **Decision log:** ID-1017; O3 answered by ID-1030; part 1 as built ID-1122; part 2 ruled by ID-1114, as built ID-1153, ID-1155 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** The SVG writer was built ahead of this package (cycle 14, `ew_export::svg`; `ew export svg` since cycle 15):
 text as text, stable order, links, one file per page, byte-identical serial and parallel output (AC-14). Its fonts are
@@ -197,7 +197,7 @@ hostile-case tests (FT-1046) and the characters collected as written (FT-1047).
 - **PR-5** No existing golden byte changes; twice-run determinism of the print set; targeted checks for `ew-api`,
   `ew-print`, `ew`; `check-deps` with no new edge.
 
-*As built (cycle 46, B46; decision log ID-1114):* `ew_export::PagePlacement` and `PdfPage::placement` (D7);
+*As built (cycle 46, B46 and FIXB46; decision log ID-1114, ID-1153, ID-1155):* `ew_export::PagePlacement` and `PdfPage::placement` (D7);
 `ew_api::output::print` with `Paper`, `Fit::{Actual, ToPaper}`, `PrintOptions` (with `parallelism`), `PrintSet` (per
 page `stamps`, `notices` as `PrintNotice::Clipped`, the scene findings and the writer's report), `placement`,
 `print_pages` and `Session::print_set`; `PageSelection::Sections` with `parse_sections`, and `resolve` takes the
@@ -206,7 +206,8 @@ adapters; `ew print` and `--sections` on `ew export pdf|svg|png`. A set whose pa
 sheets with no stamp is the export's PDF byte for byte; any other set adds ` print <paper> <fit>` to the document ID
 text. `Fit::Actual` puts the sheet's top-left corner at the paper's. `ew print` prints no findings line; a clipped page
 is a `notice:` line on stderr and in the result's `notices`. `--via windows` is refused as not built until part 4; on
-Windows the default `--via` is `viewer`. The stamp on Golden A's section 1 covers no drawn item: its layout box,
+Windows the default `--via` is `viewer`. `--out` is refused with `--via` or
+`--printer`, and its result's `adapter` reads `file`; `lp`'s job title is the project folder's name. The stamp on Golden A's section 1 covers no drawn item: its layout box,
 taken back to the sheet, keeps 0.181 mm from the nearest drawn item, tested exactly against every item: stroked
 segments with their half width, curves by their control hull, non-zero fills with open subpaths closed, text and image
 boxes (`ew-api`'s `the_stamp_covers_no_drawn_item_of_section_1`, ID-1144).

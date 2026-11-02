@@ -5,7 +5,7 @@ the CSV presets, the formula guard) behind every row export (1.0 pw, D2 to D7), 
 tables, `ew import table`, the I/O list, 1.0 pw, D8 to D13), part 3 the window (export and import from a navigator's
 table, the export as a job, 0.5 pw, D14); 0.3 pw reserve; part 1 first, part 2 after it, part 3 after part 2 ·
 **Date:** 2026-10-31 · **Work package:**
-[WP-S3.08](../02-work-packages.md#wp-s308-table-exports-and-excel-round-trip) · **Decision log:** ID-1016, ID-1145 (part 1's rulings) · **Part of:** ElektraWatt plan, specifications
+[WP-S3.08](../02-work-packages.md#wp-s308-table-exports-and-excel-round-trip) · **Decision log:** ID-1016, ID-1145 (part 1's rulings); part 1 as built ID-1157 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S3.08's CSV half was built ahead of it: every row export writes the rows of a report block, as its
 folios print them, in the golden CSV dialect (WP-S3.03, cycle 14; WP-S1.22 part 2, cycle 40), and an own bounded XLSX
@@ -200,6 +200,16 @@ preset half. **1.0 pw.**
 - **TX-7** Every `--json` export result names the format, the preset (CSV) and the revision; the new flags are in
   `catalogue.rs` and the schemas; `docs/release-notes/unreleased.md` has one line per new surface; targeted checks
   (`cargo nextest run -p ew-reports -p ew-api -p ew --all-features`, the matching clippy, `cargo fmt --all --check`).
+
+*As built (cycle 46, C46; decision log ID-1157):* `ew-zip` holds `ew-store`'s ZIP unchanged, `ew-store` re-exporting it
+as `ew_store::zip` and dropping `miniz_oxide`; `ew-reports` has `Table`, `xlsx()` returning `Result<_, XlsxError>`,
+`Preset`, `CsvOptions`, `restyle` and `table_csv`; D12's reader is `ew_import_catalog::sheet::{read_sheet,
+sheet_names}`. A quantity with a unit stays text; the presets write dates as ISO; a sheet is named after its kind; the
+BOM's key is `kind:parts_summary/…` even with `--block`, and several strips share `kind:terminal_diagram`; the id
+column is always written; the formula guard covers the header labels; the preset goldens are stored with LF and the
+test asserts CRLF. Seven golden files are new and no golden byte moved; `api-guard` saw 32 additive changes. Left to
+part 2: `_ew_base` (it needs SHA-256), the reader cutting `_ew`'s five-cell rows to the header's two cells (C46-p2#2),
+numbers read back in their shortest form and dates as serials, and the review's C46-p2#1, #3, #4 and #10 (ID-1165).
 
 ## 6. Part 2: the round trip
 

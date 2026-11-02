@@ -1,6 +1,6 @@
 # Panel layout: 2D, 3D, routing, wire lengths and thermal
 
-**Status:** Draft v0.1 · Amended 2026-10-31, cycle 40 (WP-S4.01 part 2, decision log ID-932): §2.6's MVP queries, §2.7's predicate and Open question 3 as built · Amended 2026-10-31, cycle 41 (WP-S4.01 parts 3 and 5, decision log ID-951 to ID-955, ID-977, ID-978, ID-996): §5.1 to §5.3 as built · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · Amended 2026-10-31, cycle 40 (WP-S4.01 part 2, decision log ID-932): §2.6's MVP queries, §2.7's predicate and Open question 3 as built · Amended 2026-10-31, cycle 41 (WP-S4.01 parts 3 and 5, decision log ID-951 to ID-955, ID-977, ID-978, ID-996): §5.1 to §5.3 as built · Amended 2026-11-02, cycle 46 (FT46c, decision log ID-1148, ID-1159): §5.1's scale series gains 1:1, 1:50 and 1:100, the fitting scale of a new panel page as built · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document designs the physical side of an ElektraWatt (EW) project: layout spaces, enclosures and
 mounting surfaces modelled at 1:1 in nanometres, rails and ducts as parametric carriers, placements bound to
@@ -462,8 +462,10 @@ unverified constant reports at most a warning (FR-CHK-046).
 
 A `PanelLayout` page ([06](06-schematic-editor.md) §2.2) shows one mounting surface (FR-LAY-010). It carries:
 
-- `Page.scale`: a ratio from the configured series (1:2, 1:5, 1:10, 1:20 *(unverified ISO 5455 list)*) or
-  `NotToScale`; the title block binds it (FR-REP-033, REF-070);
+- `Page.scale`: a ratio from the configured series (1:1, 1:2, 1:5, 1:10, 1:20, 1:50, 1:100, after ISO 5455; ID-1148) or
+  `NotToScale`; the title block binds it (FR-REP-033, REF-070); *as built (cycle 46, ID-1159):* a page still not to
+  scale takes, with its first surface view, the first ratio of the series at which the surface's usable outline fits
+  the drawing area (a chosen scale kept), a page without a frame form reading the default frame grid's area;
 - a `SurfaceView` page item **(add)** `{surface, side: Front | Back, datum_at: Pt2, clip: Rect?, label_mode:
   Abbreviated | Full, layers}`;
 - embedded report blocks: PART DATA (bound to `device_part_lines(-UC1)`, [09](09-reports-forms-output.md) §3.4) and

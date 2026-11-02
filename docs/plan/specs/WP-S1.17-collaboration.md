@@ -8,7 +8,7 @@ external change in the store and the session (1.1 pw, D20 to D23), part 7 the wi
 status (0.8 pw, D24, D25), part 8 `ew diff`, `ew git setup`, the post-merge integrity and AC-41 (0.9 pw, D26 to D29).
 The parts sum to **7.4 pw plus 0.3 pw reserve** against a 6.8 pw PERT (O1) · **Amended in cycle 42** (decision log ID-1029, the owner's format decision): part 3, D4 and D3's `unstable` marker move to the wave before the first release, beside WP-S6.08; the PERT is 6.9 pw; format parts route at `high`, a save, a journal, recovery or a merge at `xhigh` (§16) · **Date:** 2026-10-31 · **Work package:**
 [WP-S1.17](../02-work-packages.md#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) ·
-**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115 · **Part of:** ElektraWatt plan, specifications
+**Decision log:** ID-1015; amended by ID-1029; part 1 ruled by ID-1115, its fixes by ID-1144; as built ID-1152, ID-1156 · **Part of:** ElektraWatt plan, specifications
 
 **Purpose.** WP-S1.09 built the canonical format, the save protocol, the lock, the journal and recovery, and left to
 this package everything that happens when a project changes outside the running session or between builds: a pull
@@ -239,6 +239,16 @@ after parts 1 and 4. D20 drops `notify` from doc 05 §9 and §19; D26 widens WP-
 - **SG-5** A stray that a retried move-aside duplicates with equal bytes is removed; one with different bytes stays;
   the same in a roll-forward (ID-1115).
 - **SG-6** Targeted checks for `ew-schema`, `ew-format`, `ew-store`, `ew`.
+
+*As built (cycle 46, D46 and FIXD46; decision log ID-1152, ID-1156):* D3's stamps are `ew-schema` constants
+(`Kind::since`, `KIND_SINCE`, `MEMBER_SINCE`, `VARIANT_SINCE`, `RELEASED_FORMATS` empty) read by `ew-format`'s
+`since.rs` (`file_since`, `min_reader`); with `keep_format` a save's `min_reader` is the greater of the old and the
+computed one. D5: a target deleted on disk is written again, not refused; a directory or a link at a target counts as a
+change; the refusal names at most ten files, then "and N more"; a record file or library document held as CRLF also
+keeps the hash of its LF form, the manifest, the plan, opaque files and assets the raw hash only. D6 also reads the
+`generation` lines of the text the hunk sides share, and a save past `MAX_GENERATION` is refused with
+`SaveError::GenerationLimit` before any temp. D7 lives inside the move-aside, so the roll-forward shares it. SG-4's
+conflicted manifest is not tested through a roll-forward; FT-95's `unstable` marker waits for part 3.
 
 ## 7. Part 2: `.ewz` transport
 
